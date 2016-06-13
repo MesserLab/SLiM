@@ -339,6 +339,9 @@ extern const std::string gStr_cachedFitness;
 extern const std::string gStr_outputMSSample;
 extern const std::string gStr_outputVCFSample;
 extern const std::string gStr_outputSample;
+extern const std::string gStr_outputMS;
+extern const std::string gStr_outputVCF;
+extern const std::string gStr_output;
 
 extern const std::string gStr_sim;
 extern const std::string gStr_self;
@@ -497,6 +500,9 @@ enum _SLiMGlobalStringID : int {
 	gID_outputMSSample,
 	gID_outputVCFSample,
 	gID_outputSample,
+	gID_outputMS,
+	gID_outputVCF,
+	gID_output,
 	
 	gID_sim,
 	gID_self,

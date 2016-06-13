@@ -1509,7 +1509,7 @@
 		
 		for (unsigned int i = 0; i < sim->population_.substitutions_.size(); i++)
 		{
-			SLIM_OUTSTREAM << i;
+			SLIM_OUTSTREAM << i << " ";
 			sim->population_.substitutions_[i]->print(SLIM_OUTSTREAM);
 		}
 		

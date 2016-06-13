@@ -36,7 +36,7 @@ mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position
 
 void Substitution::print(std::ostream &p_out) const
 { 
-	p_out << " m" << mutation_type_ptr_->mutation_type_id_ << " " << position_ << " " << selection_coeff_ << " " << mutation_type_ptr_->dominance_coeff_ << " p" << subpop_index_ << " " << generation_ << " "<< fixation_generation_ << std::endl;
+	p_out << mutation_id_ << " m" << mutation_type_ptr_->mutation_type_id_ << " " << position_ << " " << selection_coeff_ << " " << mutation_type_ptr_->dominance_coeff_ << " p" << subpop_index_ << " " << generation_ << " "<< fixation_generation_ << std::endl;
 }
 
 

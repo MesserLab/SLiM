@@ -866,6 +866,57 @@ void RunSLiMTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; gen.removeMutations(object()); stop(); }");
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; gen.removeMutations(gen.mutations); stop(); }");
 	
+	// Test Genome + (void)outputMS([Ns$ filePath])
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.genomes, 0, T).outputMS(); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.genomes, 100, T).outputMS(); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.genomes, 0, T).outputMS(NULL); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.genomes, 100, T).outputMS(NULL); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.genomes, 0, T).outputMS('/tmp/slimOutputMSTest1.txt'); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.genomes, 100, T).outputMS('/tmp/slimOutputMSTest2.txt'); stop(); }");
+	
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.genomes, 0, T).outputMS(NULL); stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "10 late() { sample(p1.genomes, 100, T).outputMS(NULL); stop(); }", 1, 302, "cannot output null genomes");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.genomes[!p1.genomes.isNullGenome], 100, T).outputMS(NULL); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.genomes, 0, T).outputMS('/tmp/slimOutputMSTest3.txt'); stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "10 late() { sample(p1.genomes, 100, T).outputMS('/tmp/slimOutputMSTest4.txt'); stop(); }", 1, 302, "cannot output null genomes");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.genomes[!p1.genomes.isNullGenome], 100, T).outputMS('/tmp/slimOutputMSTest5.txt'); stop(); }");
+	
+	// Test Genome + (void)output([Ns$ filePath])
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.genomes, 0, T).output(); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.genomes, 100, T).output(); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.genomes, 0, T).output(NULL); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.genomes, 100, T).output(NULL); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.genomes, 0, T).output('/tmp/slimOutputTest1.txt'); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.genomes, 100, T).output('/tmp/slimOutputTest2.txt'); stop(); }");
+	
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.genomes, 0, T).output(NULL); stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "10 late() { sample(p1.genomes, 100, T).output(NULL); stop(); }", 1, 302, "cannot output null genomes");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.genomes[!p1.genomes.isNullGenome], 100, T).output(NULL); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.genomes, 0, T).output('/tmp/slimOutputTest3.txt'); stop(); }");
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "10 late() { sample(p1.genomes, 100, T).output('/tmp/slimOutputTest4.txt'); stop(); }", 1, 302, "cannot output null genomes");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.genomes[!p1.genomes.isNullGenome], 100, T).output('/tmp/slimOutputTest5.txt'); stop(); }");
+	
+	// Test Genome + (void)outputVCF([Ns$ filePath], [logical$ outputMultiallelics])
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.individuals, 0, T).genomes.outputVCF(); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.individuals, 100, T).genomes.outputVCF(); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.individuals, 0, T).genomes.outputVCF(NULL); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.individuals, 100, T).genomes.outputVCF(NULL); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.individuals, 0, T).genomes.outputVCF('/tmp/slimOutputVCFTest1.txt'); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.individuals, 100, T).genomes.outputVCF('/tmp/slimOutputVCFTest2.txt'); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.individuals, 0, T).genomes.outputVCF(NULL, F); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.individuals, 100, T).genomes.outputVCF(NULL, F); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.individuals, 0, T).genomes.outputVCF('/tmp/slimOutputVCFTest3.txt', F); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.individuals, 100, T).genomes.outputVCF('/tmp/slimOutputVCFTest4.txt', F); stop(); }");
+	
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.individuals, 0, T).genomes.outputVCF(NULL); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.individuals, 100, T).genomes.outputVCF(NULL); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.individuals, 0, T).genomes.outputVCF('/tmp/slimOutputVCFTest5.txt'); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.individuals, 100, T).genomes.outputVCF('/tmp/slimOutputVCFTest6.txt'); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.individuals, 0, T).genomes.outputVCF(NULL, F); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.individuals, 100, T).genomes.outputVCF(NULL, F); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.individuals, 0, T).genomes.outputVCF('/tmp/slimOutputVCFTest7.txt', F); stop(); }");
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.individuals, 100, T).genomes.outputVCF('/tmp/slimOutputVCFTest8.txt', F); stop(); }");
+	
 	
 	// ************************************************************************************
 	//

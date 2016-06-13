@@ -2533,14 +2533,14 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 				warned_early_output_ = true;
 			}
 			
-			output_stream << "#OUT: " << generation_ << " F " << endl;
+			output_stream << "#OUT: " << generation_ << " F" << endl;
 			output_stream << "Mutations:" << endl;
 			
 			std::vector<Substitution*> &subs = population_.substitutions_;
 			
 			for (unsigned int i = 0; i < subs.size(); i++)
 			{
-				output_stream << i;
+				output_stream << i << " ";
 				subs[i]->print(output_stream);
 			}
 			

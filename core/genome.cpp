@@ -22,10 +22,14 @@
 #include "slim_global.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
-#include "slim_sim.h"	// we need to register mutations in the simulation...
+#include "slim_sim.h"
+#include "polymorphism.h"
 
 #include <algorithm>
 #include <string>
+#include <iostream>
+#include <fstream>
+#include <iomanip>
 
 
 #ifdef DEBUG
@@ -840,6 +844,257 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 	}
 }
 
+// print the sample represented by genomes, using SLiM's own format
+void Genome::PrintGenomes_slim(std::ostream &p_out, std::vector<Genome *> &genomes)
+{
+	slim_popsize_t sample_size = (slim_popsize_t)genomes.size();
+	
+	// get the polymorphisms within the sample
+	PolymorphismMap polymorphisms;
+	
+	for (slim_popsize_t s = 0; s < sample_size; s++)
+	{
+		Genome &genome = *genomes[s];
+		
+		if (genome.IsNull())
+			EIDOS_TERMINATION << "ERROR (Genome::PrintGenomes_slim): cannot output null genomes." << eidos_terminate();
+		
+		for (int k = 0; k < genome.size(); k++)			// go through all mutations
+			AddMutationToPolymorphismMap(&polymorphisms, genome[k]);
+	}
+	
+	// print the sample's polymorphisms; NOTE the output format changed due to the addition of mutation_id_, BCH 11 June 2016
+	p_out << "Mutations:"  << std::endl;
+	
+	for (const PolymorphismPair &polymorphism_pair : polymorphisms) 
+		polymorphism_pair.second.print(p_out);
+	
+	// print the sample's genomes
+	p_out << "Genomes:" << std::endl;
+	
+	for (slim_popsize_t j = 0; j < sample_size; j++)														// go through all individuals
+	{
+		Genome &genome = *genomes[j];
+		
+		p_out << j << " " << genome.Type();
+		
+		for (int k = 0; k < genome.size(); k++)	// go through all mutations
+		{
+			slim_polymorphismid_t polymorphism_id = FindMutationInPolymorphismMap(polymorphisms, genome[k]);
+			
+			if (polymorphism_id == -1)
+				EIDOS_TERMINATION << "ERROR (Genome::PrintGenomes_slim): (internal error) polymorphism not found." << eidos_terminate();
+			
+			p_out << " " << polymorphism_id;
+		}
+		
+		p_out << std::endl;
+	}
+}
+
+// print the sample represented by genomes, using "ms" format
+void Genome::PrintGenomes_ms(std::ostream &p_out, std::vector<Genome *> &genomes, const Chromosome &p_chromosome)
+{
+	slim_popsize_t sample_size = (slim_popsize_t)genomes.size();
+	
+	// get the polymorphisms within the sample
+	PolymorphismMap polymorphisms;
+	
+	for (slim_popsize_t s = 0; s < sample_size; s++)
+	{
+		Genome &genome = *genomes[s];
+		
+		if (genome.IsNull())
+			EIDOS_TERMINATION << "ERROR (Genome::PrintGenomes_ms): cannot output null genomes." << eidos_terminate();
+		
+		for (int k = 0; k < genome.size(); k++)			// go through all mutations
+			AddMutationToPolymorphismMap(&polymorphisms, genome[k]);
+	}
+	
+	// print header
+	p_out << "//" << std::endl << "segsites: " << polymorphisms.size() << std::endl;
+	
+	// print the sample's positions
+	if (polymorphisms.size() > 0)
+	{
+		p_out << "positions:";
+		
+		for (const PolymorphismPair &polymorphism_pair : polymorphisms) 
+			p_out << " " << std::fixed << std::setprecision(7) << static_cast<double>(polymorphism_pair.second.mutation_ptr_->position_) / p_chromosome.last_position_;	// this prints positions as being in the interval [0,1], which Philipp decided was the best policy
+		
+		p_out << std::endl;
+	}
+	
+	// print the sample's genotypes
+	for (slim_popsize_t j = 0; j < sample_size; j++)														// go through all individuals
+	{
+		Genome &genome = *genomes[j];
+		std::string genotype(polymorphisms.size(), '0'); // fill with 0s
+		
+		for (int k = 0; k < genome.size(); k++)	// go through all mutations
+		{
+			const Mutation *mutation = genome[k];
+			slim_mutationid_t mutation_id = mutation->mutation_id_;
+			int genotype_string_position = 0;
+			
+			for (const PolymorphismPair &polymorphism_pair : polymorphisms) 
+			{
+				if (polymorphism_pair.first == mutation_id)
+				{
+					// mark this polymorphism as present in the genome, and move on since this mutation can't also match any other polymorphism
+					genotype.replace(genotype_string_position, 1, "1");
+					break;
+				}
+				
+				genotype_string_position++;
+			}
+		}
+		
+		p_out << genotype << std::endl;
+	}
+}
+
+// print the sample represented by genomes, using "vcf" format
+void Genome::PrintGenomes_vcf(std::ostream &p_out, std::vector<Genome *> &genomes, bool p_output_multiallelics)
+{
+	slim_popsize_t sample_size = (slim_popsize_t)genomes.size();
+	
+	if (sample_size % 2 == 1)
+		EIDOS_TERMINATION << "ERROR (Genome::PrintGenomes_vcf): Genome vector must be an even, since genomes are paired into individuals." << eidos_terminate();
+	
+	sample_size /= 2;
+	
+	// get the polymorphisms within the sample
+	PolymorphismMap polymorphisms;
+	
+	for (slim_popsize_t s = 0; s < sample_size; s++)
+	{
+		Genome &genome1 = *genomes[s * 2];
+		Genome &genome2 = *genomes[s * 2 + 1];
+		
+		if (!genome1.IsNull())
+			for (int k = 0; k < genome1.size(); k++)
+				AddMutationToPolymorphismMap(&polymorphisms, genome1[k]);
+		
+		if (!genome2.IsNull())
+			for (int k = 0; k < genome2.size(); k++)
+				AddMutationToPolymorphismMap(&polymorphisms, genome2[k]);
+	}
+	
+	// print the VCF header
+	p_out << "##fileformat=VCFv4.2" << std::endl;
+	
+	{
+		time_t rawtime;
+		struct tm *timeinfo;
+		char buffer[25];	// should never be more than 10, in fact, plus a null
+		
+		time(&rawtime);
+		timeinfo = localtime(&rawtime);
+		strftime(buffer, 25, "%Y%m%d", timeinfo);
+		
+		p_out << "##fileDate=" << std::string(buffer) << std::endl;
+	}
+	
+	p_out << "##source=SLiM" << std::endl;
+	p_out << "##INFO=<ID=MID,Number=1,Type=Integer,Description=\"Mutation ID in SLiM\">" << std::endl;
+	p_out << "##INFO=<ID=S,Number=1,Type=Float,Description=\"Selection Coefficient\">" << std::endl;
+	p_out << "##INFO=<ID=DOM,Number=1,Type=Float,Description=\"Dominance\">" << std::endl;
+	p_out << "##INFO=<ID=PO,Number=1,Type=Integer,Description=\"Population of Origin\">" << std::endl;
+	p_out << "##INFO=<ID=GO,Number=1,Type=Integer,Description=\"Generation of Origin\">" << std::endl;
+	p_out << "##INFO=<ID=MT,Number=1,Type=Integer,Description=\"Mutation Type\">" << std::endl;
+	p_out << "##INFO=<ID=AC,Number=1,Type=Integer,Description=\"Allele Count\">" << std::endl;
+	p_out << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">" << std::endl;
+	if (p_output_multiallelics)
+		p_out << "##INFO=<ID=MULTIALLELIC,Number=0,Type=Flag,Description=\"Multiallelic\">" << std::endl;
+	p_out << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">" << std::endl;
+	p_out << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
+	
+	for (slim_popsize_t s = 0; s < sample_size; s++)
+		p_out << "\ti" << s;
+	p_out << std::endl;
+	
+	// Print a line for each mutation.  Note that we do NOT treat multiple mutations at the same position at being different alleles,
+	// output on the same line.  This is because a single individual can carry more than one mutation at the same position, so it is
+	// not really a question of different alleles; if there are N mutations at a given position, there are 2^N possible "alleles",
+	// which is just silly to try to wedge into VCF format.  So instead, we output each mutation as a separate line, and we tag lines
+	// for positions that carry more than one mutation with the MULTIALLELIC flag so they can be filtered out if they bother the user.
+	for (auto polymorphism_pair : polymorphisms)
+	{
+		Polymorphism &polymorphism = polymorphism_pair.second;
+		const Mutation *mutation = polymorphism.mutation_ptr_;
+		slim_position_t mut_position = mutation->position_;
+		
+		// Count the mutations at the given position to determine if we are multiallelic
+		int allele_count = 0;
+		
+		for (const PolymorphismPair &allele_count_pair : polymorphisms) 
+			if (allele_count_pair.second.mutation_ptr_->position_ == mut_position)
+				allele_count++;
+		
+		if (p_output_multiallelics || (allele_count == 1))
+		{
+			// emit CHROM ("1"), POS, ID ("."), REF ("A"), and ALT ("T")
+			p_out << "1\t" << (mut_position + 1) << "\t.\tA\tT";			// +1 because VCF uses 1-based positions
+			
+			// emit QUAL (1000), FILTER (PASS)
+			p_out << "\t1000\tPASS\t";
+			
+			// emit the INFO fields and the Genotype marker
+			p_out << "MID=" << mutation->mutation_id_ << ";";
+			p_out << "S=" << mutation->selection_coeff_ << ";";
+			p_out << "DOM=" << mutation->mutation_type_ptr_->dominance_coeff_ << ";";
+			p_out << "PO=" << mutation->subpop_index_ << ";";
+			p_out << "GO=" << mutation->generation_ << ";";
+			p_out << "MT=" << mutation->mutation_type_ptr_->mutation_type_id_ << ";";
+			p_out << "AC=" << polymorphism.prevalence_ << ";";
+			p_out << "DP=1000";
+			
+			if (allele_count > 1)
+				p_out << ";MULTIALLELIC";
+			
+			p_out << "\tGT";
+			
+			// emit the individual calls
+			for (slim_popsize_t s = 0; s < sample_size; s++)
+			{
+				Genome &g1 = *genomes[s * 2];
+				Genome &g2 = *genomes[s * 2 + 1];
+				bool g1_null = g1.IsNull(), g2_null = g2.IsNull();
+				
+				if (g1_null && g2_null)
+				{
+					// Both genomes are null; we should have eliminated the possibility of this with the check above
+					EIDOS_TERMINATION << "ERROR (Population::PrintSample_vcf): (internal error) no non-null genome to output for individual." << eidos_terminate();
+				}
+				else if (g1_null)
+				{
+					// An unpaired X or Y; we emit this as haploid, I think that is the right call...
+					p_out << (g2.contains_mutation(mutation) ? "\t1" : "\t0");
+				}
+				else if (g2_null)
+				{
+					// An unpaired X or Y; we emit this as haploid, I think that is the right call...
+					p_out << (g1.contains_mutation(mutation) ? "\t1" : "\t0");
+				}
+				else
+				{
+					// Both genomes are non-null; emit an x|y pair that indicates the data is phased
+					bool g1_has_mut = g1.contains_mutation(mutation);
+					bool g2_has_mut = g2.contains_mutation(mutation);
+					
+					if (g1_has_mut && g2_has_mut)	p_out << "\t1|1";
+					else if (g1_has_mut)			p_out << "\t1|0";
+					else if (g2_has_mut)			p_out << "\t0|1";
+					else							p_out << "\t0|0";
+				}
+			}
+			
+			p_out << std::endl;
+		}
+	}
+}
+
 
 //
 //	Genome_Class
@@ -937,6 +1192,9 @@ const std::vector<const EidosMethodSignature *> *Genome_Class::Methods(void) con
 		methods->emplace_back(SignatureForMethodOrRaise(gID_containsMutations));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_countOfMutationsOfType));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_mutationsOfType));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_outputMS));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_outputVCF));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_output));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_removeMutations));
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
@@ -953,6 +1211,9 @@ const EidosMethodSignature *Genome_Class::SignatureForMethod(EidosGlobalStringID
 	static EidosInstanceMethodSignature *countOfMutationsOfTypeSig = nullptr;
 	static EidosInstanceMethodSignature *mutationsOfTypeSig = nullptr;
 	static EidosInstanceMethodSignature *removeMutationsSig = nullptr;
+	static EidosInstanceMethodSignature *outputMSSig = nullptr;
+	static EidosInstanceMethodSignature *outputVCFSig = nullptr;
+	static EidosInstanceMethodSignature *outputSig = nullptr;
 	
 	if (!addMutationsSig)
 	{
@@ -963,6 +1224,9 @@ const EidosMethodSignature *Genome_Class::SignatureForMethod(EidosGlobalStringID
 		countOfMutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
 		mutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
 		removeMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_removeMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class);
+		outputMSSig = (EidosInstanceMethodSignature *)(new EidosClassMethodSignature(gStr_outputMS, kEidosValueMaskNULL))->AddString_OSN("filePath");
+		outputVCFSig = (EidosInstanceMethodSignature *)(new EidosClassMethodSignature(gStr_outputVCF, kEidosValueMaskNULL))->AddString_OSN("filePath")->AddLogical_OS("outputMultiallelics");
+		outputSig = (EidosInstanceMethodSignature *)(new EidosClassMethodSignature(gStr_output, kEidosValueMaskNULL))->AddString_OSN("filePath");
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -975,6 +1239,9 @@ const EidosMethodSignature *Genome_Class::SignatureForMethod(EidosGlobalStringID
 		case gID_countOfMutationsOfType:	return countOfMutationsOfTypeSig;
 		case gID_mutationsOfType:			return mutationsOfTypeSig;
 		case gID_removeMutations:			return removeMutationsSig;
+		case gID_outputMS:					return outputMSSig;
+		case gID_outputVCF:					return outputVCFSig;
+		case gID_output:					return outputSig;
 			
 			// all others, including gID_none
 		default:
@@ -984,7 +1251,103 @@ const EidosMethodSignature *Genome_Class::SignatureForMethod(EidosGlobalStringID
 
 EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
 {
-	return EidosObjectClass::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
+	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0].get() : nullptr);
+	EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1].get() : nullptr);
+	
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_method_id)
+	{
+			//
+			//	*********************	+ (void)output([Ns$ filePath])
+			//	*********************	+ (void)outputMS([Ns$ filePath])
+			//	*********************	+ (void)outputVCF([Ns$ filePath], [logical$ outputMultiallelics])
+			//
+#pragma mark +output()
+#pragma mark +outputMS()
+#pragma mark +outputVCF()
+			
+		case gID_output:
+		case gID_outputMS:
+		case gID_outputVCF:
+		{
+			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
+			Chromosome &chromosome = sim->TheChromosome();
+			
+			// default to outputting multiallelic positions (used by VCF output only)
+			bool output_multiallelics = true;
+			
+			if ((p_method_id == gID_outputVCF) && (p_argument_count == 2))
+				output_multiallelics = arg1_value->LogicalAtIndex(0, nullptr);
+			
+			// Get all the genomes we're sampling from p_target
+			int sample_size = p_target->Count();
+			std::vector<Genome *> genomes;
+			
+			for (int index = 0; index < sample_size; ++index)
+				genomes.push_back((Genome *)p_target->ObjectElementAtIndex(index, nullptr));
+			
+			// Now handle stream/file output and dispatch to the actual print method
+			if ((p_argument_count == 0) || (arg0_value->Type() == EidosValueType::kValueNULL))
+			{
+				// If filePath is unspecified or NULL, output to our output stream
+				std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
+				
+				// For the output stream, we put out a descriptive SLiM-style header for all output types
+				output_stream << "#OUT: " << sim->Generation() << " G " << sample_size << std::endl;
+				
+				switch (p_method_id)
+				{
+					case gID_output:
+						Genome::PrintGenomes_slim(output_stream, genomes);
+						break;
+					case gID_outputMS:
+						Genome::PrintGenomes_ms(output_stream, genomes, chromosome);
+						break;
+					case gID_outputVCF:
+						Genome::PrintGenomes_vcf(output_stream, genomes, output_multiallelics);
+						break;
+				}
+			}
+			else
+			{
+				// Otherwise, output to filePath
+				std::string outfile_path = EidosResolvedPath(arg0_value->StringAtIndex(0, nullptr));
+				std::ofstream outfile;
+				
+				outfile.open(outfile_path.c_str());
+				
+				if (outfile.is_open())
+				{
+					switch (p_method_id)
+					{
+						case gID_output:
+							// For file output, we put out the descriptive SLiM-style header only for SLiM-format output
+							outfile << "#OUT: " << sim->Generation() << " G " << sample_size << std::endl;
+							Genome::PrintGenomes_slim(outfile, genomes);
+							break;
+						case gID_outputMS:
+							Genome::PrintGenomes_ms(outfile, genomes, chromosome);
+							break;
+						case gID_outputVCF:
+							Genome::PrintGenomes_vcf(outfile, genomes, output_multiallelics);
+							break;
+					}
+					
+					outfile.close(); 
+				}
+				else
+				{
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteClassMethod): could not open "<< outfile_path << "." << eidos_terminate();
+				}
+			}
+			
+			return gStaticEidosValueNULLInvisible;
+		}
+			
+			// all others, including gID_none
+		default:
+			return EidosObjectClass::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
+	}
 }
 
 

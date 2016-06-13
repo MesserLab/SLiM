@@ -208,6 +208,9 @@ const std::string gStr_cachedFitness = "cachedFitness";
 const std::string gStr_outputMSSample = "outputMSSample";
 const std::string gStr_outputVCFSample = "outputVCFSample";
 const std::string gStr_outputSample = "outputSample";
+const std::string gStr_outputMS = "outputMS";
+const std::string gStr_outputVCF = "outputVCF";
+const std::string gStr_output = "output";
 
 // mostly SLiM variable names used in callbacks and such
 const std::string gStr_sim = "sim";
@@ -379,6 +382,9 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_outputMSSample, gID_outputMSSample);
 		Eidos_RegisterStringForGlobalID(gStr_outputVCFSample, gID_outputVCFSample);
 		Eidos_RegisterStringForGlobalID(gStr_outputSample, gID_outputSample);
+		Eidos_RegisterStringForGlobalID(gStr_outputMS, gID_outputMS);
+		Eidos_RegisterStringForGlobalID(gStr_outputVCF, gID_outputVCF);
+		Eidos_RegisterStringForGlobalID(gStr_output, gID_output);
 		
 		Eidos_RegisterStringForGlobalID(gStr_sim, gID_sim);
 		Eidos_RegisterStringForGlobalID(gStr_self, gID_self);

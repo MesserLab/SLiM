@@ -31,6 +31,7 @@
 #include "mutation.h"
 #include "slim_global.h"
 #include "eidos_value.h"
+#include "chromosome.h"
 
 #include <vector>
 #include <string.h>
@@ -430,6 +431,16 @@ public:
 #endif
 		return *(mutations_ + (mutation_count_ - 1));
 	}
+	
+	// print the sample represented by genomes, using SLiM's own format
+	static void PrintGenomes_slim(std::ostream &p_out, std::vector<Genome *> &genomes);
+	
+	// print the sample represented by genomes, using "ms" format
+	static void PrintGenomes_ms(std::ostream &p_out, std::vector<Genome *> &genomes, const Chromosome &p_chromosome);
+	
+	// print the sample represented by genomes, using "vcf" format
+	static void PrintGenomes_vcf(std::ostream &p_out, std::vector<Genome *> &genomes, bool p_output_multiallelics);
+	
 	
 	//
 	// Eidos support
