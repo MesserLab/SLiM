@@ -2549,7 +2549,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 			
 			//
-			//	*********************	- (void)outputFull([string$ filePath], [logical$ binary])
+			//	*********************	- (void)outputFull([Ns$ filePath], [logical$ binary])
 			//
 #pragma mark -outputFull()
 			
@@ -2561,8 +2561,13 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 				warned_early_output_ = true;
 			}
 			
-			if (p_argument_count == 0)
+			bool use_binary = ((p_argument_count <= 1) ? false : arg1_value->LogicalAtIndex(0, nullptr));
+			
+			if ((p_argument_count == 0) || (arg0_value->Type() == EidosValueType::kValueNULL))
 			{
+				if (use_binary)
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): outputFull() cannot output in binary format to the standard output stream; specify a file for output." << eidos_terminate();
+				
 				std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 				
 				output_stream << "#OUT: " << generation_ << " A" << endl;
@@ -2570,7 +2575,6 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			}
 			else
 			{
-				bool use_binary = ((p_argument_count == 1) ? false : arg1_value->LogicalAtIndex(0, nullptr));
 				string outfile_path = EidosResolvedPath(arg0_value->StringAtIndex(0, nullptr));
 				std::ofstream outfile;
 				
@@ -3042,7 +3046,7 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 		mutationFrequenciesSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationFrequencies, kEidosValueMaskFloat))->AddObject_N("subpops", gSLiM_Subpopulation_Class)->AddObject_O("mutations", gSLiM_Mutation_Class);
 		mutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
 		outputFixedMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFixedMutations, kEidosValueMaskNULL));
-		outputFullSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFull, kEidosValueMaskNULL))->AddString_OS("filePath")->AddLogical_OS("binary");
+		outputFullSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFull, kEidosValueMaskNULL))->AddString_OSN("filePath")->AddLogical_OS("binary");
 		outputMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class);
 		readFromPopulationFileSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_readFromPopulationFile, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddString_S("filePath");
 		recalculateFitnessSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_recalculateFitness, kEidosValueMaskNULL))->AddInt_OS("generation");

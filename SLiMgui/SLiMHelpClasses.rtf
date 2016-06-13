@@ -1552,13 +1552,15 @@ Output is generally done in a
 \f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(void)outputFull([string$\'a0filePath], [logical$\'a0binary])
+\f2\fs18 \cf0 \'96\'a0(void)outputFull([Ns$\'a0filePath], [logical$\'a0binary])
 \f3 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Output the state of the entire population.  Output will be sent to the filesystem path 
 \f2\fs18 filePath
-\f0\fs20  if supplied, otherwise to Eidos\'92s output stream.  When writing to a file, a 
+\f0\fs20  if supplied (or 
+\f2\fs18 NULL
+\f0\fs20 ), otherwise to Eidos\'92s output stream.  When writing to a file, a 
 \f2\fs18 logical
 \f0\fs20  flag, 
 \f2\fs18 binary
@@ -1566,7 +1568,7 @@ Output is generally done in a
 \f2\fs18 binary
 \f0\fs20  is 
 \f2\fs18 T
-\f0\fs20 , the population state will be written as a binary file instead of a text file.  The binary file is usually smaller, and in any case will be read much faster than the corresponding text file would be read.  Binary files are not guaranteed to be portable between platforms; in other words, a binary file written on one machine may not be readable on a different machine (but in practice it usually will be, unless the platforms being used are fairly unusual).  The default, if 
+\f0\fs20 , the population state will be written as a binary file instead of a text file (binary data cannot be written to the standard output stream).  The binary file is usually smaller, and in any case will be read much faster than the corresponding text file would be read.  Binary files are not guaranteed to be portable between platforms; in other words, a binary file written on one machine may not be readable on a different machine (but in practice it usually will be, unless the platforms being used are fairly unusual).  The default, if 
 \f2\fs18 binary
 \f0\fs20  is not specified, is to write a text file.
 \f3 \
