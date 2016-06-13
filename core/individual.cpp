@@ -24,6 +24,10 @@
 #include "eidos_property_signature.h"
 #include "eidos_call_signature.h"
 
+#include <string>
+#include <algorithm>
+#include <vector>
+
 
 #ifdef DEBUG
 bool Individual::s_log_copy_and_assign_ = true;
