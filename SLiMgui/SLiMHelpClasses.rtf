@@ -1593,8 +1593,12 @@ Output is generally done in a
 \f2\fs18 NULL
 \f0\fs20 ), otherwise to Eidos\'92s output stream.  If output is sent to a file, it will be 
 \i appended
-\i0  to that file, unlike all other SLiM output methods (which replace an existing file).  This is done because tracking mutations is generally done over many generations, with new tracking data being output in each generation.
-\f3 \
+\i0  to that file, unlike all other SLiM output methods (which replace an existing file).  
+\fs22 This is done because tracking mutations is generally done over many generations, with new tracking data being output in each generation; if appending is not desired, use the Eidos 
+\f2\fs18 deleteFile()
+\f0\fs22  function to remove any pre-existing file prior to output
+\f3 .
+\fs20 \
 
 \f0 Output is generally done in a 
 \f2\fs18 late()

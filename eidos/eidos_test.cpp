@@ -3066,6 +3066,10 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("all(asInteger(strsplit(paste(readFile('/tmp/EidosTest.txt')))) == 0:9);", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("readFile('foo_is_a_bad_path.txt');", gStaticEidosValueNULL);
 	
+	// deleteFile() – note that the deleteFile() tests depend on the previous writeFile() test
+	EidosAssertScriptSuccess("deleteFile('/tmp/EidosTest.txt');", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("deleteFile('/tmp/EidosTest.txt');", gStaticEidosValue_LogicalF);
+	
 	#pragma mark miscellaneous
 	
 	// apply()

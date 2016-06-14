@@ -141,6 +141,7 @@ enum class EidosFunctionIdentifier {
 	
 	// filesystem access functions
 	filesAtPathFunction,
+	deleteFileFunction,
 	readFileFunction,
 	writeFileFunction,
 	

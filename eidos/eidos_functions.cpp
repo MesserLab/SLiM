@@ -237,6 +237,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		//
 		
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("filesAtPath",		EidosFunctionIdentifier::filesAtPathFunction,	kEidosValueMaskString))->AddString_S("path")->AddLogical_OS("fullPaths"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("deleteFile",		EidosFunctionIdentifier::deleteFileFunction,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S("filePath"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("readFile",			EidosFunctionIdentifier::readFileFunction,		kEidosValueMaskString))->AddString_S("filePath"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("writeFile",		EidosFunctionIdentifier::writeFileFunction,		kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S("filePath")->AddString("contents")->AddLogical_OS("append"));
 
@@ -4674,6 +4675,20 @@ EidosValue_SP EidosInterpreter::ExecuteFunctionCall(string const &p_function_nam
 				ExecutionOutputStream() << "#WARNING (ExecuteFunctionCall): function filesAtPath() could not open path " << path << "." << endl;
 				result_SP = gStaticEidosValueNULL;
 			}
+			break;
+		}
+			
+			
+			//	(logical$)deleteFile(string$ filePath)
+			#pragma mark deleteFile
+			
+		case EidosFunctionIdentifier::deleteFileFunction:
+		{
+			EidosValue *arg0_value = p_arguments[0].get();
+			string base_path = arg0_value->StringAtIndex(0, nullptr);
+			string file_path = EidosResolvedPath(base_path);
+			
+			result_SP = ((remove(file_path.c_str()) == 0) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 			break;
 		}
 			
