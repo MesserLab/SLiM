@@ -1293,20 +1293,24 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 				std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 				
 				// For the output stream, we put out a descriptive SLiM-style header for all output types
-				output_stream << "#OUT: " << sim->Generation() << " G " << sample_size << std::endl;
+				output_stream << "#OUT: " << sim->Generation() << " G";
 				
-				switch (p_method_id)
-				{
-					case gID_output:
-						Genome::PrintGenomes_slim(output_stream, genomes);
-						break;
-					case gID_outputMS:
-						Genome::PrintGenomes_ms(output_stream, genomes, chromosome);
-						break;
-					case gID_outputVCF:
-						Genome::PrintGenomes_vcf(output_stream, genomes, output_multiallelics);
-						break;
-				}
+				if (p_method_id == gID_output)
+					output_stream << "S";
+				else if (p_method_id == gID_outputMS)
+					output_stream << "M";
+				else if (p_method_id == gID_outputVCF)
+					output_stream << "V";
+				
+				output_stream << " " << sample_size << std::endl;
+				
+				// Call out to print the actual sample
+				if (p_method_id == gID_output)
+					Genome::PrintGenomes_slim(output_stream, genomes);
+				else if (p_method_id == gID_outputMS)
+					Genome::PrintGenomes_ms(output_stream, genomes, chromosome);
+				else if (p_method_id == gID_outputVCF)
+					Genome::PrintGenomes_vcf(output_stream, genomes, output_multiallelics);
 			}
 			else
 			{
@@ -1322,7 +1326,7 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 					{
 						case gID_output:
 							// For file output, we put out the descriptive SLiM-style header only for SLiM-format output
-							outfile << "#OUT: " << sim->Generation() << " G " << sample_size << std::endl;
+							outfile << "#OUT: " << sim->Generation() << " GS " << sample_size << std::endl;
 							Genome::PrintGenomes_slim(outfile, genomes);
 							break;
 						case gID_outputMS:

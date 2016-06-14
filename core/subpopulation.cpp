@@ -1997,13 +1997,24 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 			if (p_argument_count >= 4)
 				output_multiallelics = arg3_value->LogicalAtIndex(0, nullptr);
 			
-			output_stream << "#OUT: " << sim.Generation() << " R p" << subpopulation_id_ << " " << sample_size;
+			// Output header line
+			output_stream << "#OUT: " << sim.Generation() << " S";
+			
+			if (p_method_id == gID_outputSample)
+				output_stream << "S";
+			else if (p_method_id == gID_outputMSSample)
+				output_stream << "M";
+			else if (p_method_id == gID_outputVCFSample)
+				output_stream << "V";
+			
+			output_stream << " p" << subpopulation_id_ << " " << sample_size;
 			
 			if (sim.SexEnabled())
 				output_stream << " " << requested_sex;
 			
 			output_stream << endl;
 			
+			// Call out to produce the actual sample
 			if (p_method_id == gID_outputSample)
 				population_.PrintSample_slim(output_stream, *this, sample_size, replace, requested_sex);
 			else if (p_method_id == gID_outputMSSample)
