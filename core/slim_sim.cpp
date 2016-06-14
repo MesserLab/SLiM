@@ -2519,7 +2519,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 			
 			//
-			//	*********************	- (void)outputFixedMutations(void)
+			//	*********************	- (void)outputFixedMutations([Ns$ filePath])
 			//
 #pragma mark -outputFixedMutations()
 			
@@ -2533,16 +2533,35 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 				warned_early_output_ = true;
 			}
 			
-			output_stream << "#OUT: " << generation_ << " F" << endl;
-			output_stream << "Mutations:" << endl;
+			std::ofstream outfile;
+			bool has_file = false;
+			
+			if ((p_argument_count == 1) && (arg0_value->Type() != EidosValueType::kValueNULL))
+			{
+				string outfile_path = EidosResolvedPath(arg0_value->StringAtIndex(0, nullptr));
+				
+				outfile.open(outfile_path.c_str());
+				has_file = true;
+				
+				if (!outfile.is_open())
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): outputFixedMutations() could not open "<< outfile_path << "." << eidos_terminate();
+			}
+			
+			std::ostream &out = *(has_file ? dynamic_cast<std::ostream *>(&outfile) : dynamic_cast<std::ostream *>(&output_stream));
+			
+			out << "#OUT: " << generation_ << " F" << endl;
+			out << "Mutations:" << endl;
 			
 			std::vector<Substitution*> &subs = population_.substitutions_;
 			
 			for (unsigned int i = 0; i < subs.size(); i++)
 			{
-				output_stream << i << " ";
-				subs[i]->print(output_stream);
+				out << i << " ";
+				subs[i]->print(out);
 			}
+			
+			if (has_file)
+				outfile.close(); 
 			
 			return gStaticEidosValueNULLInvisible;
 		}
@@ -2614,7 +2633,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 			
 			//
-			//	*********************	- (void)outputMutations(object<Mutation> mutations)
+			//	*********************	- (void)outputMutations(object<Mutation> mutations, [Ns$ filePath])
 			//
 #pragma mark -outputMutations()
 			
@@ -2627,6 +2646,22 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 				output_stream << "#WARNING (SLiMSim::ExecuteInstanceMethod): outputMutations() should probably not be called from an early() event; the output will reflect state at the beginning of the generation, not the end." << std::endl;
 				warned_early_output_ = true;
 			}
+			
+			std::ofstream outfile;
+			bool has_file = false;
+			
+			if ((p_argument_count == 2) && (arg1_value->Type() != EidosValueType::kValueNULL))
+			{
+				string outfile_path = EidosResolvedPath(arg1_value->StringAtIndex(0, nullptr));
+				
+				outfile.open(outfile_path.c_str(), std::ios::out | std::ios::app);
+				has_file = true;
+
+				if (!outfile.is_open())
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): outputMutations() could not open "<< outfile_path << "." << eidos_terminate();
+			}
+			
+			std::ostream &out = *(has_file ? (std::ostream *)&outfile : (std::ostream *)&output_stream);
 			
 			// Extract all of the Mutation objects in mutations; would be nice if there was a simpler way to do this
 			EidosValue_Object *mutations_object = (EidosValue_Object *)arg0_value;
@@ -2659,11 +2694,14 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 					// NOTE the format of this output changed because print_no_id() added the mutation_id_ to its output; BCH 11 June 2016
 					for (const PolymorphismPair &polymorphism_pair : polymorphisms) 
 					{ 
-						output_stream << "#OUT: " << generation_ << " T p" << subpop_pair.first << " ";
-						polymorphism_pair.second.print_no_id(output_stream);
+						out << "#OUT: " << generation_ << " T p" << subpop_pair.first << " ";
+						polymorphism_pair.second.print_no_id(out);
 					}
 				}
 			}
+			
+			if (has_file)
+				outfile.close(); 
 			
 			return gStaticEidosValueNULLInvisible;
 		}
@@ -3045,9 +3083,9 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 		deregisterScriptBlockSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_deregisterScriptBlock, kEidosValueMaskNULL))->AddIntObject("scriptBlocks", gSLiM_SLiMEidosBlock_Class);
 		mutationFrequenciesSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationFrequencies, kEidosValueMaskFloat))->AddObject_N("subpops", gSLiM_Subpopulation_Class)->AddObject_O("mutations", gSLiM_Mutation_Class);
 		mutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
-		outputFixedMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFixedMutations, kEidosValueMaskNULL));
+		outputFixedMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFixedMutations, kEidosValueMaskNULL))->AddString_OSN("filePath");
 		outputFullSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFull, kEidosValueMaskNULL))->AddString_OSN("filePath")->AddLogical_OS("binary");
-		outputMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class);
+		outputMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class)->AddString_OSN("filePath");
 		readFromPopulationFileSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_readFromPopulationFile, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddString_S("filePath");
 		recalculateFitnessSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_recalculateFitness, kEidosValueMaskNULL))->AddInt_OS("generation");
 		registerEarlyEventSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerEarlyEvent, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddInt_OS("start")->AddInt_OS("end");

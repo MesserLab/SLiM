@@ -491,6 +491,8 @@ void RunSLiMTests(void)
 	
 	// Test sim - (void)outputFixedMutations(void)
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 late() { sim.outputFixedMutations(); }");
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 late() { sim.outputFixedMutations(NULL); }");
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 late() { sim.outputFixedMutations('/tmp/slimOutputFixedTest.txt'); }");
 	
 	// Test sim - (void)outputFull([string$ filePath])
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 late() { sim.outputFull(); }");
@@ -507,6 +509,8 @@ void RunSLiMTests(void)
 	SLiMAssertScriptSuccess(gen1_setup_highmut_p1 + "5 late() { sim.outputMutations(sim.mutations[integer(0)]); }");								// legal to specify an empty object vector
 	SLiMAssertScriptSuccess(gen1_setup_highmut_p1 + "5 late() { sim.outputMutations(object()); }");												// legal to specify an empty object vector
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "5 late() { sim.outputMutations(NULL); }", 1, 258, "cannot be type NULL");
+	SLiMAssertScriptSuccess(gen1_setup_highmut_p1 + "5 late() { sim.outputMutations(sim.mutations, NULL); }");
+	SLiMAssertScriptSuccess(gen1_setup_highmut_p1 + "5 late() { sim.outputMutations(sim.mutations, '/tmp/slimOutputMutationsTest.txt'); }");
 	
 	// Test - (void)readFromPopulationFile(string$ filePath)
 	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.readFromPopulationFile('/tmp/slimOutputFullTest.txt'); }");												// legal, read from file path; depends on the outputFull() test above

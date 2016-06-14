@@ -1533,13 +1533,17 @@ The mutation stacking policy applies only within the given mutation type; mutati
 \f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(void)outputFixedMutations(void)
+\f2\fs18 \cf0 \'96\'a0(void)outputFixedMutations([Ns$\'a0filePath])
 \f3 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Output all fixed mutations \'96 all 
 \f2\fs18 Substitution
-\f0\fs20  objects, in other words \'96 in a SLiM native format.  Mutations which have fixed but have not been turned into 
+\f0\fs20  objects, in other words \'96 in a SLiM native format.  Output will be sent to the filesystem path 
+\f2\fs18 filePath
+\f0\fs20  if supplied (and not 
+\f2\fs18 NULL
+\f0\fs20 ), otherwise to Eidos\'92s output stream.  Mutations which have fixed but have not been turned into 
 \f2\fs18 Substitution
 \f0\fs20  objects \'96 typically because 
 \f2\fs18 convertToSubstitution
@@ -1558,7 +1562,7 @@ Output is generally done in a
 
 \f0\fs20 \cf0 Output the state of the entire population.  Output will be sent to the filesystem path 
 \f2\fs18 filePath
-\f0\fs20  if supplied (or 
+\f0\fs20  if supplied (and not 
 \f2\fs18 NULL
 \f0\fs20 ), otherwise to Eidos\'92s output stream.  When writing to a file, a 
 \f2\fs18 logical
@@ -1579,11 +1583,17 @@ Output is generally done in a
 \f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(void)outputMutations(object<Mutation>\'a0mutations)
+\f2\fs18 \cf0 \'96\'a0(void)outputMutations(object<Mutation>\'a0mutations, [Ns$\'a0filePath])
 \f3 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 Output all of the given mutations.  This can be used to output all mutations of a given mutation type, for example.
+\f0\fs20 \cf0 Output all of the given mutations.  This can be used to output all mutations of a given mutation type, for example.  Output will be sent to the filesystem path 
+\f2\fs18 filePath
+\f0\fs20  if supplied (and not 
+\f2\fs18 NULL
+\f0\fs20 ), otherwise to Eidos\'92s output stream.  If output is sent to a file, it will be 
+\i appended
+\i0  to that file, unlike all other SLiM output methods (which replace an existing file).  This is done because tracking mutations is generally done over many generations, with new tracking data being output in each generation.
 \f3 \
 
 \f0 Output is generally done in a 
