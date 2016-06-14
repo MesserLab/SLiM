@@ -2535,10 +2535,11 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 			std::ofstream outfile;
 			bool has_file = false;
+			string outfile_path;
 			
 			if ((p_argument_count == 1) && (arg0_value->Type() != EidosValueType::kValueNULL))
 			{
-				string outfile_path = EidosResolvedPath(arg0_value->StringAtIndex(0, nullptr));
+				outfile_path = EidosResolvedPath(arg0_value->StringAtIndex(0, nullptr));
 				
 				outfile.open(outfile_path.c_str());
 				has_file = true;
@@ -2549,7 +2550,15 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 			std::ostream &out = *(has_file ? dynamic_cast<std::ostream *>(&outfile) : dynamic_cast<std::ostream *>(&output_stream));
 			
-			out << "#OUT: " << generation_ << " F" << endl;
+			// Output header line
+			out << "#OUT: " << generation_ << " F";
+			
+			if (has_file)
+				out << " " << outfile_path;
+			
+			out << endl;
+			
+			// Output Mutations section
 			out << "Mutations:" << endl;
 			
 			std::vector<Substitution*> &subs = population_.substitutions_;

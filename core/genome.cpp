@@ -1326,7 +1326,7 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 					{
 						case gID_output:
 							// For file output, we put out the descriptive SLiM-style header only for SLiM-format output
-							outfile << "#OUT: " << sim->Generation() << " GS " << sample_size << std::endl;
+							outfile << "#OUT: " << sim->Generation() << " GS " << sample_size << " " << outfile_path << std::endl;
 							Genome::PrintGenomes_slim(outfile, genomes);
 							break;
 						case gID_outputMS:
