@@ -433,7 +433,7 @@ public:
 	}
 	
 	// print the sample represented by genomes, using SLiM's own format
-	static void PrintGenomes_slim(std::ostream &p_out, std::vector<Genome *> &genomes);
+	static void PrintGenomes_slim(std::ostream &p_out, std::vector<Genome *> &genomes, slim_objectid_t p_source_subpop_id);
 	
 	// print the sample represented by genomes, using "ms" format
 	static void PrintGenomes_ms(std::ostream &p_out, std::vector<Genome *> &genomes, const Chromosome &p_chromosome);

@@ -2736,7 +2736,7 @@ void Population::PrintSample_slim(std::ostream &p_out, Subpopulation &p_subpop, 
 	}
 	
 	// print the sample using Genome's static member function
-	Genome::PrintGenomes_slim(p_out, sample);
+	Genome::PrintGenomes_slim(p_out, sample, p_subpop.subpopulation_id_);
 }
 
 // print sample of p_sample_size genomes from subpopulation p_subpop_id, using "ms" format

@@ -845,7 +845,7 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 }
 
 // print the sample represented by genomes, using SLiM's own format
-void Genome::PrintGenomes_slim(std::ostream &p_out, std::vector<Genome *> &genomes)
+void Genome::PrintGenomes_slim(std::ostream &p_out, std::vector<Genome *> &genomes, slim_objectid_t p_source_subpop_id)
 {
 	slim_popsize_t sample_size = (slim_popsize_t)genomes.size();
 	
@@ -876,7 +876,12 @@ void Genome::PrintGenomes_slim(std::ostream &p_out, std::vector<Genome *> &genom
 	{
 		Genome &genome = *genomes[j];
 		
-		p_out << j << " " << genome.Type();
+		if (p_source_subpop_id == -1)
+			p_out << "p*:" << j;
+		else
+			p_out << "p" << p_source_subpop_id << ":" << j;
+		
+		p_out << " " << genome.Type();
 		
 		for (int k = 0; k < genome.size(); k++)	// go through all mutations
 		{
@@ -1306,7 +1311,7 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 				
 				// Call out to print the actual sample
 				if (p_method_id == gID_output)
-					Genome::PrintGenomes_slim(output_stream, genomes);
+					Genome::PrintGenomes_slim(output_stream, genomes, -1);	// -1 represents unknown source subpopulation
 				else if (p_method_id == gID_outputMS)
 					Genome::PrintGenomes_ms(output_stream, genomes, chromosome);
 				else if (p_method_id == gID_outputVCF)
@@ -1327,7 +1332,7 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 						case gID_output:
 							// For file output, we put out the descriptive SLiM-style header only for SLiM-format output
 							outfile << "#OUT: " << sim->Generation() << " GS " << sample_size << " " << outfile_path << std::endl;
-							Genome::PrintGenomes_slim(outfile, genomes);
+							Genome::PrintGenomes_slim(outfile, genomes, -1);	// -1 represents unknown source subpopulation
 							break;
 						case gID_outputMS:
 							Genome::PrintGenomes_ms(outfile, genomes, chromosome);
