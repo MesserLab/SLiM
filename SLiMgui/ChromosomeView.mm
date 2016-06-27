@@ -281,12 +281,22 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 - (void)drawGenomicElementsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
 	Chromosome &chromosome = controller->sim->chromosome_;
+	CGFloat previousIntervalLeftEdge = -10000;
 	
 	for (GenomicElement &genomicElement : chromosome)
 	{
 		slim_position_t startPosition = genomicElement.start_position_;
 		slim_position_t endPosition = genomicElement.end_position_;
 		NSRect elementRect = [self rectEncompassingBase:startPosition toBase:endPosition interiorRect:interiorRect displayedRange:displayedRange];
+		BOOL widthOne = (elementRect.size.width == 1);
+		
+		// We want to avoid overdrawing width-one intervals, which are important but small, so if the previous interval was width-one,
+		// and we are not, and we are about to overdraw it, then we scoot our left edge over one pixel to leave it alone.
+		if (!widthOne && (elementRect.origin.x == previousIntervalLeftEdge))
+		{
+			elementRect.origin.x++;
+			elementRect.size.width--;
+		}
 		
 		// if we're drawing recombination intervals as well, then they get the top half and we take the bottom half
 		if (shouldDrawRecombinationIntervals)
@@ -302,6 +312,12 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 			
 			[elementColor set];
 			NSRectFill(elementRect);
+			
+			// if this interval is just one pixel wide, we want to try to make it visible, by avoiding overdrawing it; so we remember its location
+			if (widthOne)
+				previousIntervalLeftEdge = elementRect.origin.x;
+			else
+				previousIntervalLeftEdge = -10000;
 		}
 	}
 }
@@ -311,12 +327,22 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	Chromosome &chromosome = controller->sim->chromosome_;
 	int recombinationIntervalCount = (int)chromosome.recombination_end_positions_.size();
 	slim_position_t intervalStartPosition = 0;
+	CGFloat previousIntervalLeftEdge = -10000;
 	
 	for (int interval = 0; interval < recombinationIntervalCount; ++interval)
 	{
 		slim_position_t intervalEndPosition = chromosome.recombination_end_positions_[interval];
 		double intervalRate = chromosome.recombination_rates_[interval];
 		NSRect intervalRect = [self rectEncompassingBase:intervalStartPosition toBase:intervalEndPosition interiorRect:interiorRect displayedRange:displayedRange];
+		BOOL widthOne = (intervalRect.size.width == 1);
+		
+		// We want to avoid overdrawing width-one intervals, which are important but small, so if the previous interval was width-one,
+		// and we are not, and we are about to overdraw it, then we scoot our left edge over one pixel to leave it alone.
+		if (!widthOne && (intervalRect.origin.x == previousIntervalLeftEdge))
+		{
+			intervalRect.origin.x++;
+			intervalRect.size.width--;
+		}
 		
 		// draw only the visible part, if any
 		intervalRect = NSIntersectionRect(intervalRect, interiorRect);
@@ -354,6 +380,12 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 			
 			[intervalColor set];
 			NSRectFill(intervalRect);
+			
+			// if this interval is just one pixel wide, we want to try to make it visible, by avoiding overdrawing it; so we remember its location
+			if (widthOne)
+				previousIntervalLeftEdge = intervalRect.origin.x;
+			else
+				previousIntervalLeftEdge = -10000;
 		}
 		
 		// the next interval starts at the next base after this one ended
