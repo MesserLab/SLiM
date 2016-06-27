@@ -772,10 +772,12 @@ using std::string;
 				EidosHelpController *helpController = [EidosHelpController sharedController];
 				
 				[helpController enterSearchForString:trimmedWord titlesOnly:YES];
-				[[helpController window] orderFront:self];
+				[[helpController window] makeKeyAndOrderFront:self];
 			}
 		}
 		
+		// We need this to keep the help controller window in front after an option-click, otherwise AppKit forces us back on top again
+		[NSApp preventWindowOrdering];
 		return;
 	}
 	
@@ -784,6 +786,28 @@ using std::string;
 	inEligibleDoubleClick = YES;
 	
 	[super mouseDown:theEvent];
+}
+
+- (BOOL)acceptsFirstMouse:(NSEvent *)theEvent
+{
+	NSUInteger modifiers = [theEvent modifierFlags] & NSDeviceIndependentModifierFlagsMask;		// BCH 4/7/2016: NSEventModifierFlags not defined in 10.9
+	
+	// We need this to keep the help controller window in front after an option-click, otherwise AppKit forces us back on top again
+	if ((modifiers & NSAlternateKeyMask) && !(modifiers & NSControlKeyMask))
+		return YES;
+	
+	return NO;
+}
+
+- (BOOL)shouldDelayWindowOrderingForEvent:(NSEvent *)theEvent
+{
+	NSUInteger modifiers = [theEvent modifierFlags] & NSDeviceIndependentModifierFlagsMask;		// BCH 4/7/2016: NSEventModifierFlags not defined in 10.9
+	
+	// We need this to keep the help controller window in front after an option-click, otherwise AppKit forces us back on top again
+	if ((modifiers & NSAlternateKeyMask) && !(modifiers & NSControlKeyMask))
+		return YES;
+	
+	return NO;
 }
 
 - (NSRange)selectionRangeForProposedRange:(NSRange)proposedCharRange granularity:(NSSelectionGranularity)granularity
