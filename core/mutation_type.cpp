@@ -45,6 +45,7 @@ std::ostream& operator<<(std::ostream& p_out, DFEType p_dfe_type)
 		case DFEType::kExponential:		p_out << gStr_e; break;
 		case DFEType::kNormal:			p_out << gStr_n; break;
 		case DFEType::kWeibull:			p_out << gStr_w; break;
+		case DFEType::kScript:			p_out << gStr_s; break;
 	}
 	
 	return p_out;
@@ -52,14 +53,14 @@ std::ostream& operator<<(std::ostream& p_out, DFEType p_dfe_type)
 
 
 #ifdef SLIMGUI
-MutationType::MutationType(slim_objectid_t p_mutation_type_id, double p_dominance_coeff, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, int p_mutation_type_index) : mutation_type_index_(p_mutation_type_index),
+MutationType::MutationType(slim_objectid_t p_mutation_type_id, double p_dominance_coeff, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, std::vector<std::string> p_dfe_strings, int p_mutation_type_index) : mutation_type_index_(p_mutation_type_index),
 #else
-MutationType::MutationType(slim_objectid_t p_mutation_type_id, double p_dominance_coeff, DFEType p_dfe_type, std::vector<double> p_dfe_parameters) :
+MutationType::MutationType(slim_objectid_t p_mutation_type_id, double p_dominance_coeff, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, std::vector<std::string> p_dfe_strings) :
 #endif
-	mutation_type_id_(p_mutation_type_id), dominance_coeff_(static_cast<slim_selcoeff_t>(p_dominance_coeff)), dfe_type_(p_dfe_type), dfe_parameters_(p_dfe_parameters), convert_to_substitution_(true), stack_policy_(MutationStackPolicy::kStack),
+	mutation_type_id_(p_mutation_type_id), dominance_coeff_(static_cast<slim_selcoeff_t>(p_dominance_coeff)), dfe_type_(p_dfe_type), dfe_parameters_(p_dfe_parameters), dfe_strings_(p_dfe_strings), convert_to_substitution_(true), stack_policy_(MutationStackPolicy::kStack), cached_dfe_script_(nullptr), 
 	self_symbol_(EidosGlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('m', p_mutation_type_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_MutationType_Class)))
 {
-	if (dfe_parameters_.size() == 0)
+	if ((dfe_parameters_.size() == 0) && (dfe_strings_.size() == 0))
 		EIDOS_TERMINATION << "ERROR (MutationType::MutationType): invalid mutation type parameters." << eidos_terminate();
 	// intentionally no bounds checks for DFE parameters; the count of DFE parameters is checked prior to construction
 	// intentionally no bounds check for dominance_coeff_
@@ -67,6 +68,7 @@ MutationType::MutationType(slim_objectid_t p_mutation_type_id, double p_dominanc
 
 MutationType::~MutationType(void)
 {
+	delete cached_dfe_script_;
 }
 
 double MutationType::DrawSelectionCoefficient(void) const
@@ -78,21 +80,134 @@ double MutationType::DrawSelectionCoefficient(void) const
 		case DFEType::kExponential:		return gsl_ran_exponential(gEidos_rng, dfe_parameters_[0]);
 		case DFEType::kNormal:			return gsl_ran_gaussian(gEidos_rng, dfe_parameters_[1]) + dfe_parameters_[0];
 		case DFEType::kWeibull:			return gsl_ran_weibull(gEidos_rng, dfe_parameters_[0], dfe_parameters_[1]);
+			
+		case DFEType::kScript:
+		{
+			// We have a script string that we need to execute, and it will return a float or integer to us.  This
+			// is basically a lambda call, so the code here is parallel to the executeLambda() code in many ways.
+			double sel_coeff;
+			
+			// Errors in lambdas should be reported for the lambda script, not for the calling script,
+			// if possible.  In the GUI this does not work well, however; there, errors should be
+			// reported as occurring in the call to executeLambda().  Here we save off the current
+			// error context and set up the error context for reporting errors inside the lambda,
+			// in case that is possible; see how exceptions are handled below.
+			int error_start_save = gEidosCharacterStartOfError;
+			int error_end_save = gEidosCharacterEndOfError;
+			int error_start_save_UTF16 = gEidosCharacterStartOfErrorUTF16;
+			int error_end_save_UTF16 = gEidosCharacterEndOfErrorUTF16;
+			EidosScript *current_script_save = gEidosCurrentScript;
+			bool executing_runtime_script_save = gEidosExecutingRuntimeScript;
+			
+			// We try to do tokenization and parsing once per script, by caching the script
+			if (!cached_dfe_script_)
+			{
+				std::string script_string = dfe_strings_[0];
+				cached_dfe_script_ = new EidosScript(script_string);
+				
+				gEidosCharacterStartOfError = -1;
+				gEidosCharacterEndOfError = -1;
+				gEidosCharacterStartOfErrorUTF16 = -1;
+				gEidosCharacterEndOfErrorUTF16 = -1;
+				gEidosCurrentScript = cached_dfe_script_;
+				gEidosExecutingRuntimeScript = true;
+				
+				try
+				{
+					cached_dfe_script_->Tokenize();
+					cached_dfe_script_->ParseInterpreterBlockToAST();
+				}
+				catch (std::runtime_error err)
+				{
+					if (gEidosTerminateThrows)
+					{
+						gEidosCharacterStartOfError = error_start_save;
+						gEidosCharacterEndOfError = error_end_save;
+						gEidosCharacterStartOfErrorUTF16 = error_start_save_UTF16;
+						gEidosCharacterEndOfErrorUTF16 = error_end_save_UTF16;
+						gEidosCurrentScript = current_script_save;
+						gEidosExecutingRuntimeScript = executing_runtime_script_save;
+					}
+					
+					delete cached_dfe_script_;
+					cached_dfe_script_ = nullptr;
+					
+					EIDOS_TERMINATION << "ERROR (MutationType::DrawSelectionCoefficient): tokenize/parse error in type 's' DFE callback script." << eidos_terminate(nullptr);
+				}
+			}
+			
+			// Execute inside try/catch so we can handle errors well
+			gEidosCharacterStartOfError = -1;
+			gEidosCharacterEndOfError = -1;
+			gEidosCharacterStartOfErrorUTF16 = -1;
+			gEidosCharacterEndOfErrorUTF16 = -1;
+			gEidosCurrentScript = cached_dfe_script_;
+			gEidosExecutingRuntimeScript = true;
+			
+			try
+			{
+				// The context for these blocks is pure Eidos; no SLiM variables, constants, or functions.
+				// This is because we have no graceful way to get our Context here; but it seems fine.
+				EidosSymbolTable client_symbols(EidosSymbolTableType::kVariablesTable, gEidosConstantsSymbolTable);
+				EidosFunctionMap *function_map = EidosInterpreter::BuiltInFunctionMap();
+				EidosInterpreter interpreter(*cached_dfe_script_, client_symbols, *function_map, nullptr);
+				
+				EidosValue_SP result_SP = interpreter.EvaluateInterpreterBlock(false);
+				EidosValue *result = result_SP.get();
+				EidosValueType result_type = result->Type();
+				int result_count = result->Count();
+				
+				if ((result_type == EidosValueType::kValueFloat) && (result_count == 1))
+					sel_coeff = result->FloatAtIndex(0, nullptr);
+				else if ((result_type == EidosValueType::kValueInt) && (result_count == 1))
+					sel_coeff = result->IntAtIndex(0, nullptr);
+				else
+					EIDOS_TERMINATION << "ERROR (MutationType::DrawSelectionCoefficient): type 's' DFE callbacks must provide a singleton float or integer return value." << eidos_terminate(nullptr);
+				
+				// Output generated by the interpreter goes to our output stream
+				std::string &&output_string = interpreter.ExecutionOutput();
+				
+				if (!output_string.empty())
+					SLIM_OUTSTREAM << output_string;
+			}
+			catch (std::runtime_error err)
+			{
+				// If exceptions throw, then we want to set up the error information to highlight the
+				// executeLambda() that failed, since we can't highlight the actual error.  (If exceptions
+				// don't throw, this catch block will never be hit; exit() will already have been called
+				// and the error will have been reported from the context of the lambda script string.)
+				if (gEidosTerminateThrows)
+				{
+					gEidosCharacterStartOfError = error_start_save;
+					gEidosCharacterEndOfError = error_end_save;
+					gEidosCharacterStartOfErrorUTF16 = error_start_save_UTF16;
+					gEidosCharacterEndOfErrorUTF16 = error_end_save_UTF16;
+					gEidosCurrentScript = current_script_save;
+					gEidosExecutingRuntimeScript = executing_runtime_script_save;
+				}
+				
+				throw;
+			}
+			
+			// Restore the normal error context in the event that no exception occurring within the lambda
+			gEidosCharacterStartOfError = error_start_save;
+			gEidosCharacterEndOfError = error_end_save;
+			gEidosCharacterStartOfErrorUTF16 = error_start_save_UTF16;
+			gEidosCharacterEndOfErrorUTF16 = error_end_save_UTF16;
+			gEidosCurrentScript = current_script_save;
+			gEidosExecutingRuntimeScript = executing_runtime_script_save;
+			
+			return sel_coeff;
+		}
 	}
 }
 
 std::ostream &operator<<(std::ostream &p_outstream, const MutationType &p_mutation_type)
 {
-	p_outstream << "MutationType{dominance_coeff_ " << p_mutation_type.dominance_coeff_ << ", dfe_type_ '" << p_mutation_type.dfe_type_ << "', dfe_parameters_ ";
+	p_outstream << "MutationType{dominance_coeff_ " << p_mutation_type.dominance_coeff_ << ", dfe_type_ '" << p_mutation_type.dfe_type_ << "', dfe_parameters_ <";
 	
-	if (p_mutation_type.dfe_parameters_.size() == 0)
+	if (p_mutation_type.dfe_parameters_.size() > 0)
 	{
-		p_outstream << "*";
-	}
-	else
-	{
-		p_outstream << "<";
-		
 		for (unsigned int i = 0; i < p_mutation_type.dfe_parameters_.size(); ++i)
 		{
 			p_outstream << p_mutation_type.dfe_parameters_[i];
@@ -100,11 +215,19 @@ std::ostream &operator<<(std::ostream &p_outstream, const MutationType &p_mutati
 			if (i < p_mutation_type.dfe_parameters_.size() - 1)
 				p_outstream << " ";
 		}
-		
-		p_outstream << ">";
+	}
+	else
+	{
+		for (unsigned int i = 0; i < p_mutation_type.dfe_strings_.size(); ++i)
+		{
+			p_outstream << "\"" << p_mutation_type.dfe_strings_[i] << "\"";
+			
+			if (i < p_mutation_type.dfe_strings_.size() - 1)
+				p_outstream << " ";
+		}
 	}
 	
-	p_outstream << "}";
+	p_outstream << ">}";
 	
 	return p_outstream;
 }
@@ -145,6 +268,7 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 			static EidosValue_SP static_dfe_string_e;
 			static EidosValue_SP static_dfe_string_n;
 			static EidosValue_SP static_dfe_string_w;
+			static EidosValue_SP static_dfe_string_s;
 			
 			if (!static_dfe_string_f)
 			{
@@ -153,6 +277,7 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 				static_dfe_string_e = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_e));
 				static_dfe_string_n = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_n));
 				static_dfe_string_w = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_w));
+				static_dfe_string_s = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_s));
 			}
 			
 			switch (dfe_type_)
@@ -162,10 +287,16 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 				case DFEType::kExponential:		return static_dfe_string_e;
 				case DFEType::kNormal:			return static_dfe_string_n;
 				case DFEType::kWeibull:			return static_dfe_string_w;
+				case DFEType::kScript:			return static_dfe_string_s;
 			}
 		}
 		case gID_distributionParams:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(dfe_parameters_));
+		{
+			if (dfe_parameters_.size() > 0)
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(dfe_parameters_));
+			else
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector(dfe_strings_));
+		}
 			
 			// variables
 		case gID_convertToSubstitution:
@@ -268,6 +399,8 @@ EidosValue_SP MutationType::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 		DFEType dfe_type;
 		int expected_dfe_param_count = 0;
 		std::vector<double> dfe_parameters;
+		std::vector<std::string> dfe_strings;
+		bool numericParams = true;		// if true, params must be int/float; if false, params must be string
 		
 		if (dfe_type_string.compare(gStr_f) == 0)
 		{
@@ -294,8 +427,14 @@ EidosValue_SP MutationType::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 			dfe_type = DFEType::kWeibull;
 			expected_dfe_param_count = 2;
 		}
+		else if (dfe_type_string.compare(gStr_s) == 0)
+		{
+			dfe_type = DFEType::kScript;
+			expected_dfe_param_count = 1;
+			numericParams = false;
+		}
 		else
-			EIDOS_TERMINATION << "ERROR (MutationType::ExecuteInstanceMethod): setDistribution() distributionType \"" << dfe_type_string << "\" must be \"f\", \"g\", \"e\", \"n\", or \"w\"." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (MutationType::ExecuteInstanceMethod): setDistribution() distributionType \"" << dfe_type_string << "\" must be \"f\", \"g\", \"e\", \"n\", \"w\", or \"s\"." << eidos_terminate();
 		
 		if (p_argument_count != 1 + expected_dfe_param_count)
 			EIDOS_TERMINATION << "ERROR (MutationType::ExecuteInstanceMethod): setDistribution() distributionType \"" << dfe_type << "\" requires exactly " << expected_dfe_param_count << " DFE parameter" << (expected_dfe_param_count == 1 ? "" : "s") << "." << eidos_terminate();
@@ -305,16 +444,28 @@ EidosValue_SP MutationType::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 			EidosValue *dfe_param_value = p_arguments[1 + dfe_param_index].get();
 			EidosValueType dfe_param_type = dfe_param_value->Type();
 			
-			if ((dfe_param_type != EidosValueType::kValueFloat) && (dfe_param_type != EidosValueType::kValueInt))
-				EIDOS_TERMINATION << "ERROR (MutationType::ExecuteInstanceMethod): setDistribution() requires that DFE parameters be numeric (integer or float)." << eidos_terminate();
-			
-			dfe_parameters.emplace_back(dfe_param_value->FloatAtIndex(0, nullptr));
-			// intentionally no bounds checks for DFE parameters
+			if (numericParams)
+			{
+				if ((dfe_param_type != EidosValueType::kValueFloat) && (dfe_param_type != EidosValueType::kValueInt))
+					EIDOS_TERMINATION << "ERROR (MutationType::ExecuteInstanceMethod): setDistribution() requires that the parameters for this DFE be of type numeric (integer or float)." << eidos_terminate();
+				
+				dfe_parameters.emplace_back(dfe_param_value->FloatAtIndex(0, nullptr));
+				// intentionally no bounds checks for DFE parameters
+			}
+			else
+			{
+				if (dfe_param_type != EidosValueType::kValueString)
+					EIDOS_TERMINATION << "ERROR (MutationType::ExecuteInstanceMethod): setDistribution() requires that the parameters for this DFE be of type string." << eidos_terminate();
+				
+				dfe_strings.emplace_back(dfe_param_value->StringAtIndex(0, nullptr));
+				// intentionally no bounds checks for DFE parameters
+			}
 		}
 		
 		// Everything seems to be in order, so replace our distribution info with the new info
 		dfe_type_ = dfe_type;
 		dfe_parameters_ = dfe_parameters;
+		dfe_strings_ = dfe_strings;
 		
 		// check whether we are now using a DFE type that is non-neutral; check and set pure_neutral_
 		if ((dfe_type_ != DFEType::kFixed) || (dfe_parameters_[0] != 0.0))
@@ -407,7 +558,7 @@ const EidosPropertySignature *MutationType_Class::SignatureForProperty(EidosGlob
 		idSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_id,						gID_id,						true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
 		convertToSubstitutionSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_convertToSubstitution,	gID_convertToSubstitution,	false,	kEidosValueMaskLogical | kEidosValueMaskSingleton));
 		distributionTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_distributionType,		gID_distributionType,		true,	kEidosValueMaskString | kEidosValueMaskSingleton));
-		distributionParamsSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_distributionParams,		gID_distributionParams,		true,	kEidosValueMaskFloat));
+		distributionParamsSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_distributionParams,		gID_distributionParams,		true,	kEidosValueMaskFloat | kEidosValueMaskString));
 		dominanceCoeffSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_dominanceCoeff,			gID_dominanceCoeff,			false,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
 		mutationStackPolicySig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationStackPolicy,		gID_mutationStackPolicy,	false,	kEidosValueMaskString | kEidosValueMaskSingleton));
 		tagSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,						gID_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton));

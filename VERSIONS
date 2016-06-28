@@ -26,6 +26,7 @@ Development head:
 	Added file output to outputMutations() and outputFixedMutations()
 	Added deleteFile() function to Eidos
 	Improve display of very narrow recombination regions and genomic elements
+	Added DFE type 's' for user-defined scripts that generate selection coefficients
 
 2.0.4 (build 833; Eidos version 1.0.4)
 	Fix issue with interleaving of output from SLiM versus Eidos

@@ -1555,6 +1555,8 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		DFEType dfe_type;
 		int expected_dfe_param_count = 0;
 		std::vector<double> dfe_parameters;
+		std::vector<std::string> dfe_strings;
+		bool numericParams = true;		// if true, params must be int/float; if false, params must be string
 		
 		if (mutation_types_.count(map_identifier) > 0) 
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() mutation type m" << map_identifier << " already defined." << eidos_terminate();
@@ -1584,8 +1586,14 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 			dfe_type = DFEType::kWeibull;
 			expected_dfe_param_count = 2;
 		}
+		else if (dfe_type_string.compare(gStr_s) == 0)
+		{
+			dfe_type = DFEType::kScript;
+			expected_dfe_param_count = 1;
+			numericParams = false;
+		}
 		else
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() distributionType \"" << dfe_type_string << "\" must be \"f\", \"g\", \"e\", \"n\", or \"w\"." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() distributionType \"" << dfe_type_string << "\" must be \"f\", \"g\", \"e\", \"n\", \"w\", or \"s\"." << eidos_terminate();
 		
 		if (p_argument_count != 3 + expected_dfe_param_count)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() distributionType \"" << dfe_type << "\" requires exactly " << expected_dfe_param_count << " DFE parameter" << (expected_dfe_param_count == 1 ? "" : "s") << "." << eidos_terminate();
@@ -1595,18 +1603,29 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 			EidosValue *dfe_param_value = p_arguments[3 + dfe_param_index].get();
 			EidosValueType dfe_param_type = dfe_param_value->Type();
 			
-			if ((dfe_param_type != EidosValueType::kValueFloat) && (dfe_param_type != EidosValueType::kValueInt))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() requires that DFE parameters be numeric (integer or float)." << eidos_terminate();
-			
-			dfe_parameters.emplace_back(dfe_param_value->FloatAtIndex(0, nullptr));
-			// intentionally no bounds checks for DFE parameters
+			if (numericParams)
+			{
+				if ((dfe_param_type != EidosValueType::kValueFloat) && (dfe_param_type != EidosValueType::kValueInt))
+					EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() requires that DFE parameters be numeric (integer or float)." << eidos_terminate();
+				
+				dfe_parameters.emplace_back(dfe_param_value->FloatAtIndex(0, nullptr));
+				// intentionally no bounds checks for DFE parameters
+			}
+			else
+			{
+				if (dfe_param_type != EidosValueType::kValueString)
+					EIDOS_TERMINATION << "ERROR (MutationType::ExecuteInstanceMethod): setDistribution() requires that the parameters for this DFE be of type string." << eidos_terminate();
+				
+				dfe_strings.emplace_back(dfe_param_value->StringAtIndex(0, nullptr));
+				// intentionally no bounds checks for DFE parameters
+			}
 		}
 		
 #ifdef SLIMGUI
 		// each new mutation type gets a unique zero-based index, used by SLiMgui to categorize mutations
-		MutationType *new_mutation_type = new MutationType(map_identifier, dominance_coeff, dfe_type, dfe_parameters, num_mutation_types_);
+		MutationType *new_mutation_type = new MutationType(map_identifier, dominance_coeff, dfe_type, dfe_parameters, dfe_strings, num_mutation_types_);
 #else
-		MutationType *new_mutation_type = new MutationType(map_identifier, dominance_coeff, dfe_type, dfe_parameters);
+		MutationType *new_mutation_type = new MutationType(map_identifier, dominance_coeff, dfe_type, dfe_parameters, dfe_strings);
 #endif
 		
 		mutation_types_.insert(std::pair<const slim_objectid_t,MutationType*>(map_identifier, new_mutation_type));
@@ -1624,8 +1643,16 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		{
 			output_stream << "initializeMutationType(" << map_identifier << ", " << dominance_coeff << ", \"" << dfe_type << "\"";
 			
-			for (double dfe_param : dfe_parameters)
-				output_stream << ", " << dfe_param;
+			if (numericParams)
+			{
+				for (double dfe_param : dfe_parameters)
+					output_stream << ", " << dfe_param;
+			}
+			else
+			{
+				for (std::string dfe_param : dfe_strings)
+					output_stream << ", \"" << dfe_param << "\"";
+			}
 			
 			output_stream << ");" << endl;
 		}

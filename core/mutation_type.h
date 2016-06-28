@@ -46,7 +46,8 @@ enum class DFEType : char {
 	kGamma,
 	kExponential,
 	kNormal,
-	kWeibull
+	kWeibull,
+	kScript
 };
 
 std::ostream& operator<<(std::ostream& p_out, DFEType p_dfe_type);
@@ -82,13 +83,16 @@ public:
 	
 	slim_selcoeff_t dominance_coeff_;			// dominance coefficient (h)
 	DFEType dfe_type_;							// distribution of fitness effects (DFE) type (f: fixed, g: gamma, e: exponential, n: normal, w: Weibull)
-	std::vector<double> dfe_parameters_;		// DFE parameters
+	std::vector<double> dfe_parameters_;		// DFE parameters, of type double (originally float or integer type)
+	std::vector<std::string> dfe_strings_;		// DFE parameters, of type std::string (originally string type)
 	
 	bool convert_to_substitution_;				// if true (the default), mutations of this type are converted to substitutions
 	MutationStackPolicy stack_policy_;			// the mutation stacking policy; see above (kStack be default)
 	
 	slim_usertag_t tag_value_;					// a user-defined tag value
 
+	mutable EidosScript *cached_dfe_script_;	// used by DFE type 's' to hold a cached script for the DFE
+	
 #ifdef SLIMGUI
 	int mutation_type_index_;					// a zero-based index for this mutation type, used by SLiMgui to bin data by mutation type
 #endif
@@ -97,9 +101,9 @@ public:
 	MutationType& operator=(const MutationType&) = delete;		// no copying
 	MutationType(void) = delete;								// no null construction
 #ifdef SLIMGUI
-	MutationType(slim_objectid_t p_mutation_type_id, double p_dominance_coeff, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, int p_mutation_type_index);
+	MutationType(slim_objectid_t p_mutation_type_id, double p_dominance_coeff, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, std::vector<std::string> p_dfe_strings, int p_mutation_type_index);
 #else
-	MutationType(slim_objectid_t p_mutation_type_id, double p_dominance_coeff, DFEType p_dfe_type, std::vector<double> p_dfe_parameters);
+	MutationType(slim_objectid_t p_mutation_type_id, double p_dominance_coeff, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, std::vector<std::string> p_dfe_strings);
 #endif
 	~MutationType(void);
 	

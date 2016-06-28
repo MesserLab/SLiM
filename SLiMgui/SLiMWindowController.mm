@@ -2476,29 +2476,49 @@
 						case DFEType::kExponential:		return @"exp";
 						case DFEType::kNormal:			return @"normal";
 						case DFEType::kWeibull:			return @"Weibull";
+						case DFEType::kScript:			return @"script";
 					}
 				}
 				else if (aTableColumn == mutTypeDFEParamsColumn)
 				{
 					NSMutableString *paramString = [[NSMutableString alloc] init];
 					
-					for (unsigned int paramIndex = 0; paramIndex < mutationType->dfe_parameters_.size(); ++paramIndex)
+					if (mutationType->dfe_type_ == DFEType::kScript)
 					{
-						NSString *paramSymbol = @"";
-						
-						switch (mutationType->dfe_type_)
+						// DFE type 's' has string parameters
+						for (unsigned int paramIndex = 0; paramIndex < mutationType->dfe_strings_.size(); ++paramIndex)
 						{
-							case DFEType::kFixed:			paramSymbol = @"s"; break;
-							case DFEType::kGamma:			paramSymbol = (paramIndex == 0 ? @"s̄" : @"α"); break;
-							case DFEType::kExponential:		paramSymbol = @"s̄"; break;
-							case DFEType::kNormal:			paramSymbol = (paramIndex == 0 ? @"s̄" : @"σ"); break;
-							case DFEType::kWeibull:			paramSymbol = (paramIndex == 0 ? @"λ" : @"k"); break;
+							const char *dfe_string = mutationType->dfe_strings_[paramIndex].c_str();
+							NSString *ns_dfe_string = [NSString stringWithUTF8String:dfe_string];
+							
+							[paramString appendFormat:@"\"%@\"", ns_dfe_string];
+							
+							if (paramIndex < mutationType->dfe_strings_.size() - 1)
+								[paramString appendString:@", "];
 						}
-						
-						[paramString appendFormat:@"%@=%.3f", paramSymbol, mutationType->dfe_parameters_[paramIndex]];
-						
-						if (paramIndex < mutationType->dfe_parameters_.size() - 1)
-							[paramString appendString:@", "];
+					}
+					else
+					{
+						// All other DFEs have double parameters
+						for (unsigned int paramIndex = 0; paramIndex < mutationType->dfe_parameters_.size(); ++paramIndex)
+						{
+							NSString *paramSymbol = @"";
+							
+							switch (mutationType->dfe_type_)
+							{
+								case DFEType::kFixed:			paramSymbol = @"s"; break;
+								case DFEType::kGamma:			paramSymbol = (paramIndex == 0 ? @"s̄" : @"α"); break;
+								case DFEType::kExponential:		paramSymbol = @"s̄"; break;
+								case DFEType::kNormal:			paramSymbol = (paramIndex == 0 ? @"s̄" : @"σ"); break;
+								case DFEType::kWeibull:			paramSymbol = (paramIndex == 0 ? @"λ" : @"k"); break;
+								case DFEType::kScript:			break;
+							}
+							
+							[paramString appendFormat:@"%@=%.3f", paramSymbol, mutationType->dfe_parameters_[paramIndex]];
+							
+							if (paramIndex < mutationType->dfe_parameters_.size() - 1)
+								[paramString appendString:@", "];
+						}
 					}
 					
 					return [paramString autorelease];
@@ -2598,23 +2618,52 @@
 
 - (NSString *)tableView:(NSTableView *)aTableView toolTipForCell:(NSCell *)aCell rect:(NSRectPointer)rect tableColumn:(NSTableColumn *)aTableColumn row:(NSInteger)rowIndex mouseLocation:(NSPoint)mouseLocation
 {
-	if (aTableView == scriptBlocksTableView)
+	if (!invalidSimulation)
 	{
-		std::vector<SLiMEidosBlock*> &scriptBlocks = sim->script_blocks_;
-		int scriptBlockCount = (int)scriptBlocks.size();
-		
-		if (rowIndex < scriptBlockCount)
+		if (aTableView == scriptBlocksTableView)
 		{
-			SLiMEidosBlock *scriptBlock = scriptBlocks[rowIndex];
-			const char *script_string = scriptBlock->compound_statement_node_->token_->token_string_.c_str();
-			NSString *ns_script_string = [NSString stringWithUTF8String:script_string];
+			std::vector<SLiMEidosBlock*> &scriptBlocks = sim->script_blocks_;
+			int scriptBlockCount = (int)scriptBlocks.size();
 			
-			// change whitespace to non-breaking spaces; we want to force AppKit not to wrap code
-			// note this doesn't really prevent AppKit from wrapping our tooltip, and I'd also like to use Monaco 9; I think I need a custom popup to do that...
-			ns_script_string = [ns_script_string stringByReplacingOccurrencesOfString:@" " withString:@" "];		// second string is an &nbsp;
-			ns_script_string = [ns_script_string stringByReplacingOccurrencesOfString:@"\t" withString:@"   "];		// second string is three &nbsp;s
+			if (rowIndex < scriptBlockCount)
+			{
+				SLiMEidosBlock *scriptBlock = scriptBlocks[rowIndex];
+				const char *script_string = scriptBlock->compound_statement_node_->token_->token_string_.c_str();
+				NSString *ns_script_string = [NSString stringWithUTF8String:script_string];
+				
+				// change whitespace to non-breaking spaces; we want to force AppKit not to wrap code
+				// note this doesn't really prevent AppKit from wrapping our tooltip, and I'd also like to use Monaco 9; I think I need a custom popup to do that...
+				ns_script_string = [ns_script_string stringByReplacingOccurrencesOfString:@" " withString:@" "];		// second string is an &nbsp;
+				ns_script_string = [ns_script_string stringByReplacingOccurrencesOfString:@"\t" withString:@"   "];		// second string is three &nbsp;s
+				
+				return ns_script_string;
+			}
+		}
+		else if (aTableView == mutTypeTableView)
+		{
+			std::map<slim_objectid_t,MutationType*> &mutationTypes = sim->mutation_types_;
+			int mutationTypeCount = (int)mutationTypes.size();
 			
-			return ns_script_string;
+			if (rowIndex < mutationTypeCount)
+			{
+				auto mutTypeIter = mutationTypes.begin();
+				
+				std::advance(mutTypeIter, rowIndex);
+				MutationType *mutationType = mutTypeIter->second;
+				
+				if (mutationType->dfe_type_ == DFEType::kScript)
+				{
+					const char *dfe_string = mutationType->dfe_strings_[0].c_str();
+					NSString *ns_dfe_string = [NSString stringWithUTF8String:dfe_string];
+					
+					// change whitespace to non-breaking spaces; we want to force AppKit not to wrap code
+					// note this doesn't really prevent AppKit from wrapping our tooltip, and I'd also like to use Monaco 9; I think I need a custom popup to do that...
+					ns_dfe_string = [ns_dfe_string stringByReplacingOccurrencesOfString:@" " withString:@" "];		// second string is an &nbsp;
+					ns_dfe_string = [ns_dfe_string stringByReplacingOccurrencesOfString:@"\t" withString:@"   "];		// second string is three &nbsp;s
+					
+					return ns_dfe_string;
+				}
+			}
 		}
 	}
 	
