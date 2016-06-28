@@ -115,6 +115,8 @@ private:
 	int num_gene_conversions_;
 	int num_sex_declarations_;	// SEX ONLY; used to check for sex vs. non-sex errors in the file, so the #SEX tag must come before any reliance on SEX ONLY features
 	
+	slim_position_t last_genomic_element_position = -1;	// used to check new genomic elements for consistency
+	
 	// change flags; used only by SLiMgui, to know that something has changed and a UI update is needed; start as true to provoke an initial display
 	bool mutation_types_changed_ = true;
 	bool genomic_element_types_changed_ = true;

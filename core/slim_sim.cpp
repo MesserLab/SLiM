@@ -1439,6 +1439,22 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		if (end_position < start_position)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElement() end position " << end_position << " is less than start position " << start_position << "." << eidos_terminate();
 		
+		// Check that the new element will not overlap any existing element; if end_position > last_genomic_element_position we are safe.
+		// Otherwise, we have to check all previously defined elements.  The use of last_genomic_element_position is an optimization to
+		// avoid an O(N) scan with each added element; as long as elements are added in sorted order there is no need to scan.
+		if (start_position <= last_genomic_element_position)
+		{
+			for (auto &element : chromosome_)
+			{
+				if ((element.start_position_ <= end_position) && (element.end_position_ >= start_position))
+					EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElement() genomic element from start position " << start_position << " to end position " << end_position << " overlaps existing genomic element." << eidos_terminate();
+			}
+		}
+		
+		if (end_position > last_genomic_element_position)
+			last_genomic_element_position = end_position;
+		
+		// Create and add the new element
 		GenomicElement new_genomic_element(genomic_element_type_ptr, start_position, end_position);
 		
 		bool old_log = GenomicElement::LogGenomicElementCopyAndAssign(false);
