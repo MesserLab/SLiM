@@ -60,7 +60,7 @@
 //	KVC / KVO / properties
 //
 
-@synthesize invalidSimulation, continuousPlayOn, reachedSimulationEnd, generationPlayOn;
+@synthesize invalidSimulation, continuousPlayOn, reachedSimulationEnd, generationPlayOn, scriptVisibleConstraint, scriptHiddenConstraint;
 
 + (NSSet *)keyPathsForValuesAffectingColorForWindowLabels
 {
@@ -414,6 +414,9 @@
 	
 	[genomicElementColorRegistry release];
 	genomicElementColorRegistry = nil;
+	
+	[self setScriptHiddenConstraint:nil];
+	[self setScriptVisibleConstraint:nil];
 	
 	// All graph windows attached to this controller need to be closed, since they refer back to us;
 	// closing them will come back via windowWillClose: and make them release and nil themselves
@@ -852,6 +855,8 @@
 	if (sel == @selector(dumpPopulationToOutput:))
 		return !(invalidSimulation);
 	
+	if (sel == @selector(toggleScriptVisibility:))
+		[menuItem setTitle:(![mainSplitView isHidden] ? @"Hide Script/Output" : @"Show Script/Output")];
 	if (sel == @selector(toggleConsoleVisibility:))
 		return [_consoleController validateMenuItem:menuItem];
 	if (sel == @selector(toggleBrowserVisibility:))
@@ -1477,6 +1482,47 @@
 - (IBAction)showScriptHelp:(id)sender
 {
 	[_consoleController showScriptHelp:sender];
+}
+
+- (IBAction)toggleScriptVisibility:(id)sender
+{
+	if ([mainSplitView isHidden])
+	{
+		// View is hidden, so we need to show it
+		[mainSplitView setHidden:NO];
+		[scriptStatusTextField setHidden:NO];
+		
+		// We want to autosave the window size under a different name when the script/output are hidden
+		[[self window] setFrameAutosaveName:@"SLiMgui"];
+		
+		// Readjust constraints
+		[scriptHiddenConstraint setActive:NO];
+		[scriptVisibleConstraint setActive:YES];
+	}
+	else
+	{
+		// View is visible, so we need to hide it
+		[mainSplitView setHidden:YES];
+		[scriptStatusTextField setHidden:YES];
+		
+		// We want to autosave the window size under a different name when the script/output are hidden
+		[[self window] setFrameAutosaveName:@"SLiMgui Restricted"];
+		
+		// Readjust constraints
+		if (!scriptHiddenConstraint)
+		{
+			NSDictionary *viewsDictionary = @{@"chromosomeZoomed" : chromosomeZoomed};
+			NSArray<NSLayoutConstraint *> *constraints = [NSLayoutConstraint constraintsWithVisualFormat:@"V:[chromosomeZoomed]-20-|" options:0 metrics:nil views:viewsDictionary];
+			
+			if ([constraints count] != 1)
+				NSLog(@"Unexpected constraints");
+			
+			[self setScriptHiddenConstraint:[constraints objectAtIndex:0]];
+		}
+		
+		[scriptVisibleConstraint setActive:NO];
+		[scriptHiddenConstraint setActive:YES];
+	}
 }
 
 - (IBAction)toggleConsoleVisibility:(id)sender

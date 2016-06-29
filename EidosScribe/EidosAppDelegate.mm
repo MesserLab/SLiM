@@ -136,6 +136,30 @@
 	[[EidosHelpController sharedController] showWindow];
 }
 
+// Dummy actions; see validateMenuItem:
+- (IBAction)toggleConsoleVisibility:(id)sender {}
+- (IBAction)toggleBrowserVisibility:(id)sender {}
+
+- (BOOL)validateMenuItem:(NSMenuItem *)menuItem
+{
+	SEL sel = [menuItem action];
+	
+	// Handle validation for menu items that really belong to the console window.  This provides a default validation
+	// for these menu items when no console window is receiving.
+	if (sel == @selector(toggleConsoleVisibility:))
+	{
+		[menuItem setTitle:@"Show Eidos Console"];
+		return NO;
+	}
+	if (sel == @selector(toggleBrowserVisibility:))
+	{
+		[menuItem setTitle:@"Show Variable Browser"];
+		return NO;
+	}
+	
+	return YES;
+}
+
 
 //
 //	EidosConsoleWindowControllerDelegate methods

@@ -280,6 +280,42 @@ typedef enum SLiMLaunchAction
 	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://www.sticksoftware.com/"]];
 }
 
+// Dummy actions; see validateMenuItem:
+- (IBAction)play:(id)sender {}
+- (IBAction)toggleScriptVisibility:(id)sender {}
+- (IBAction)toggleConsoleVisibility:(id)sender {}
+- (IBAction)toggleBrowserVisibility:(id)sender {}
+
+- (BOOL)validateMenuItem:(NSMenuItem *)menuItem
+{
+	SEL sel = [menuItem action];
+	
+	// Handle validation for menu items that really belong to SLiMWindowController.  This provides a default validation
+	// for these menu items when no SLiMWindowController is receiving.
+	if (sel == @selector(play:))
+	{
+		[menuItem setTitle:@"Play"];
+		return NO;
+	}
+	if (sel == @selector(toggleScriptVisibility:))
+	{
+		[menuItem setTitle:@"Show Script/Output"];
+		return NO;
+	}
+	if (sel == @selector(toggleConsoleVisibility:))
+	{
+		[menuItem setTitle:@"Show Eidos Console"];
+		return NO;
+	}
+	if (sel == @selector(toggleBrowserVisibility:))
+	{
+		[menuItem setTitle:@"Show Variable Browser"];
+		return NO;
+	}
+	
+	return YES;
+}
+
 @end
 
 

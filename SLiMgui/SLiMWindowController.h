@@ -128,6 +128,9 @@
 	IBOutlet SLiMMenuButton *genomeCommandsButton;
 	IBOutlet NSMenu *genomeCommandsMenu;
 	
+	IBOutlet NSLayoutConstraint *scriptVisibleConstraint;
+	NSLayoutConstraint *scriptHiddenConstraint;
+	
 	// Graph window ivars
 	IBOutlet NSWindow *graphWindow;				// outlet for GraphWindow.xib; note this does not stay wired up, it is just used transiently
 	
@@ -167,6 +170,10 @@
 @property (nonatomic, readonly) NSColor *colorForWindowLabels;
 
 @property (nonatomic, retain) IBOutlet EidosConsoleWindowController *consoleController;
+
+@property (nonatomic, retain) IBOutlet NSLayoutConstraint *scriptVisibleConstraint;
+@property (nonatomic, retain) IBOutlet NSLayoutConstraint *scriptHiddenConstraint;
+
 
 //
 //	Actions
@@ -209,6 +216,7 @@
 
 - (IBAction)checkScript:(id)sender;
 - (IBAction)showScriptHelp:(id)sender;
+- (IBAction)toggleScriptVisibility:(id)sender;
 - (IBAction)toggleConsoleVisibility:(id)sender;
 - (IBAction)toggleBrowserVisibility:(id)sender;
 - (IBAction)clearOutput:(id)sender;
