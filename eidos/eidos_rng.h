@@ -54,6 +54,7 @@
 
 #include <stdint.h>
 #include "math.h"
+#include "eidos_global.h"
 
 
 // This is a globally shared random number generator.  Note that the globals for random bit generation below are also
@@ -108,6 +109,8 @@ static inline __attribute__((always_inline)) bool eidos_random_bool(gsl_rng *p_r
 // It does make a substantial speed difference, though, so we use the fast version by default in cases
 // where mu is expected to be small.
 
+//#define USE_GSL_POISSON
+
 #ifndef USE_GSL_POISSON
 
 static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson(double p_mu)
@@ -122,6 +125,10 @@ static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson
 		++x;
 		p *= (p_mu / x);
 		s += p;
+		
+		// If p_mu is too large, this loop can hang as p underflows to zero.  This happens somewhere upward of p_mu == 100,
+		// and such large values are not used in SLiM, so this seems harmless.  If it ever does happen, it's easy to diagnose,
+		// too, since it results in a hang right here.
 	}
 	
 	return x;
@@ -130,6 +137,10 @@ static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson
 // This version allows the caller to supply a precalculated exp(-mu) value
 static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson(double p_mu, double p_exp_neg_mu)
 {
+	// Test consistency; normally this is commented out
+	//if (p_exp_neg_mu != exp(-p_mu))
+	//	EIDOS_TERMINATION << "ERROR (eidos_fast_ran_poisson): p_exp_neg_mu incorrect." << eidos_terminate(nullptr);
+	
 	unsigned int x = 0;
 	double p = p_exp_neg_mu;
 	double s = p;
@@ -140,6 +151,10 @@ static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson
 		++x;
 		p *= (p_mu / x);
 		s += p;
+		
+		// If p_mu is too large, this loop can hang as p underflows to zero.  This happens somewhere upward of p_mu == 100,
+		// and such large values are not used in SLiM, so this seems harmless.  If it ever does happen, it's easy to diagnose,
+		// too, since it results in a hang right here.
 	}
 	
 	return x;
@@ -148,6 +163,10 @@ static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson
 // This version specifies that the count is guaranteed not to be zero; zero has been ruled out by a previous test
 static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson_nonzero(double p_mu, double p_exp_neg_mu)
 {
+	// Test consistency; normally this is commented out
+	//if (p_exp_neg_mu != exp(-p_mu))
+	//	EIDOS_TERMINATION << "ERROR (eidos_fast_ran_poisson_nonzero): p_exp_neg_mu incorrect." << eidos_terminate(nullptr);
+	
 	unsigned int x = 0;
 	double p = p_exp_neg_mu;
 	double s = p;
@@ -158,7 +177,7 @@ static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson
 	
 	// do the first round, since we now know u > s
 	++x;
-	p *= p_mu;
+	p *= p_mu;	// divided by x, but x is now 1
 	s += p;
 	
 	while (u > s)

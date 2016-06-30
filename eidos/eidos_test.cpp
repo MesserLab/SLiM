@@ -3292,6 +3292,176 @@ void RunEidosTests(void)
 		std::cerr << *value << endl;
 #endif
 	
+	// Do some tests of our custom math functions
+#if 0
+//#ifndef USE_GSL_POISSON
+	EidosInitializeRNGFromSeed(EidosGenerateSeedFromPIDAndTime());
+	
+	double total;
+	int i;
+	
+	std::cout << std::endl << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+		total += eidos_fast_ran_poisson(1.0);
+	
+	std::cout << "eidos_fast_ran_poisson(1.0): mean = " << (total / 1000000) << ", expected 1.0" << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+		total += gsl_ran_poisson(gEidos_rng, 1.0);
+	
+	std::cout << "gsl_ran_poisson(1.0): mean = " << (total / 1000000) << ", expected 1.0" << std::endl << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+		total += eidos_fast_ran_poisson(0.001);
+	
+	std::cout << "eidos_fast_ran_poisson(0.001): mean = " << (total / 1000000) << ", expected 0.001" << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+		total += gsl_ran_poisson(gEidos_rng, 0.001);
+	
+	std::cout << "gsl_ran_poisson(0.001): mean = " << (total / 1000000) << ", expected 0.001" << std::endl << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+		total += eidos_fast_ran_poisson(0.00001);
+	
+	std::cout << "eidos_fast_ran_poisson(0.00001): mean = " << (total / 1000000) << ", expected 0.00001" << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+		total += gsl_ran_poisson(gEidos_rng, 0.00001);
+	
+	std::cout << "gsl_ran_poisson(0.00001): mean = " << (total / 1000000) << ", expected 0.00001" << std::endl << std::endl;
+	
+	for (total = 0.0, i = 0; i < 100000; i++)
+		total += eidos_fast_ran_poisson(100);
+	
+	std::cout << "eidos_fast_ran_poisson(100): mean = " << (total / 100000) << ", expected 100" << std::endl;
+	
+	for (total = 0.0, i = 0; i < 100000; i++)
+		total += gsl_ran_poisson(gEidos_rng, 100);
+	
+	std::cout << "gsl_ran_poisson(100): mean = " << (total / 100000) << ", expected 100" << std::endl << std::endl;
+	
+	
+	std::cout << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+		total += eidos_fast_ran_poisson(1.0, exp(-1.0));
+	
+	std::cout << "eidos_fast_ran_poisson(1.0): mean = " << (total / 1000000) << ", expected 1.0" << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+		total += gsl_ran_poisson(gEidos_rng, 1.0);
+	
+	std::cout << "gsl_ran_poisson(1.0): mean = " << (total / 1000000) << ", expected 1.0" << std::endl << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+		total += eidos_fast_ran_poisson(0.001, exp(-0.001));
+	
+	std::cout << "eidos_fast_ran_poisson(0.001): mean = " << (total / 1000000) << ", expected 0.001" << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+		total += gsl_ran_poisson(gEidos_rng, 0.001);
+	
+	std::cout << "gsl_ran_poisson(0.001): mean = " << (total / 1000000) << ", expected 0.001" << std::endl << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+		total += eidos_fast_ran_poisson(0.00001, exp(-0.00001));
+	
+	std::cout << "eidos_fast_ran_poisson(0.00001): mean = " << (total / 1000000) << ", expected 0.00001" << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+		total += gsl_ran_poisson(gEidos_rng, 0.00001);
+	
+	std::cout << "gsl_ran_poisson(0.00001): mean = " << (total / 1000000) << ", expected 0.00001" << std::endl << std::endl;
+	
+	for (total = 0.0, i = 0; i < 100000; i++)
+		total += eidos_fast_ran_poisson(100, exp(-100));
+	
+	std::cout << "eidos_fast_ran_poisson(100): mean = " << (total / 100000) << ", expected 100" << std::endl;
+	
+	for (total = 0.0, i = 0; i < 100000; i++)
+		total += gsl_ran_poisson(gEidos_rng, 100);
+	
+	std::cout << "gsl_ran_poisson(100): mean = " << (total / 100000) << ", expected 100" << std::endl << std::endl;
+	
+	
+	std::cout << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+		total += eidos_fast_ran_poisson_nonzero(1.0, exp(-1.0));
+	
+	std::cout << "eidos_fast_ran_poisson(1.0): mean = " << (total / 1000000) << ", expected ~1.58" << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+	{
+		unsigned int x;
+		
+		do {
+			x = gsl_ran_poisson(gEidos_rng, 1.0);
+		} while (x == 0);
+		
+		total += x;
+	}
+	
+	std::cout << "gsl_ran_poisson(1.0): mean = " << (total / 1000000) << ", expected ~1.58" << std::endl << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+		total += eidos_fast_ran_poisson_nonzero(0.001, exp(-0.001));
+	
+	std::cout << "eidos_fast_ran_poisson(0.001): mean = " << (total / 1000000) << ", expected ~1.0005" << std::endl;
+	
+//	for (total = 0.0, i = 0; i < 1000000; i++)
+//	{
+//		unsigned int x;
+//		
+//		do {
+//			x = gsl_ran_poisson(gEidos_rng, 0.001);
+//		} while (x == 0);
+//		
+//		total += x;
+//	}
+//	
+//	std::cout << "gsl_ran_poisson(0.001): mean = " << (total / 1000000) << ", expected ~1.0005" << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+		total += eidos_fast_ran_poisson_nonzero(0.00001, exp(-0.00001));
+	
+	std::cout << std::endl << "eidos_fast_ran_poisson(0.00001): mean = " << (total / 1000000) << ", expected ~1.00001" << std::endl;
+	
+//	for (total = 0.0, i = 0; i < 1000000; i++)
+//	{
+//		unsigned int x;
+//		
+//		do {
+//			x = gsl_ran_poisson(gEidos_rng, 0.00001);
+//		} while (x == 0);
+//		
+//		total += x;
+//	}
+//	
+//	std::cout << "gsl_ran_poisson(0.00001): mean = " << (total / 1000000) << ", expected ~1.00001" << std::endl;
+	
+	for (total = 0.0, i = 0; i < 100000; i++)
+		total += eidos_fast_ran_poisson_nonzero(100, exp(-100));
+	
+	std::cout << std::endl << "eidos_fast_ran_poisson(100): mean = " << (total / 100000) << ", expected ~100" << std::endl;
+	
+	for (total = 0.0, i = 0; i < 100000; i++)
+	{
+		unsigned int x;
+		
+		do {
+			x = gsl_ran_poisson(gEidos_rng, 100);
+		} while (x == 0);
+		
+		total += x;
+	}
+	
+	std::cout << "gsl_ran_poisson(100): mean = " << (total / 100000) << ", expected ~100" << std::endl << std::endl;
+	
+#endif
+	
 	// If we ran tests, the random number seed has been set; let's set it back to a good seed value
 	EidosInitializeRNGFromSeed(EidosGenerateSeedFromPIDAndTime());
 }
