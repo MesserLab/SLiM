@@ -1100,6 +1100,13 @@ void SLiMSim::RunInitializeCallbacks(void)
 	if (num_recombination_rates_ == 0)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): At least one recombination rate interval must be defined in an initialize() callback with initializeRecombinationRate()." << eidos_terminate();
 	
+	if ((chromosome_.recombination_rates_H_.size() != 0) && ((chromosome_.recombination_rates_M_.size() != 0) || (chromosome_.recombination_rates_F_.size() != 0)))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): Cannot define both sex-specific and sex-nonspecific recombination rates." << eidos_terminate();
+	
+	if (((chromosome_.recombination_rates_M_.size() == 0) && (chromosome_.recombination_rates_F_.size() != 0)) ||
+		((chromosome_.recombination_rates_M_.size() != 0) && (chromosome_.recombination_rates_F_.size() == 0)))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): Both sex-specific recombination rates must be defined, not just one (but one may be defined as zero)." << eidos_terminate();
+	
 	// figure out our first generation; it is the earliest generation in which an Eidos event is set up to run,
 	// since an Eidos event that adds a subpopulation is necessary to get things started
 	time_start_ = SLIM_MAX_GENERATION;
@@ -1679,13 +1686,45 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 	
 	
 	//
-	//	*********************	(void)initializeRecombinationRate(numeric rates, [integer ends])
+	//	*********************	(void)initializeRecombinationRate(numeric rates, [integer ends], [string$ sex])
 	//
 	#pragma mark initializeRecombinationRate()
 	
 	else if (p_function_name.compare(gStr_initializeRecombinationRate) == 0)
 	{
 		int rate_count = arg0_value->Count();
+		
+		// Figure out what sex we are being given a map for
+		IndividualSex requested_sex = IndividualSex::kUnspecified;
+		
+		if (p_argument_count >= 3)
+		{
+			std::string sex_string = arg2_value->StringAtIndex(0, nullptr);
+			
+			if (sex_string.compare("M") == 0)
+				requested_sex = IndividualSex::kMale;
+			else if (sex_string.compare("F") == 0)
+				requested_sex = IndividualSex::kFemale;
+			else if (sex_string.compare("*") == 0)
+				requested_sex = IndividualSex::kUnspecified;
+			else
+				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeRecombinationRate() requested sex \"" << sex_string << "\" unsupported." << eidos_terminate();
+		}
+		
+		if ((requested_sex != IndividualSex::kUnspecified) && !sex_enabled_)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeRecombinationRate() sex-specific recombination map supplied in non-sexual simulation." << eidos_terminate();
+		
+		// Make sure specifying a map for that sex is legal, given our current state.  Since single_recombination_map_ has not been set
+		// yet, we just look to see whether the chromosome's policy has already been determined or not.
+		if (((requested_sex == IndividualSex::kUnspecified) && ((chromosome_.recombination_rates_M_.size() != 0) || (chromosome_.recombination_rates_F_.size() != 0))) ||
+			((requested_sex != IndividualSex::kUnspecified) && (chromosome_.recombination_rates_H_.size() != 0)))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeRecombinationRate() cannot change the chromosome between using a single map versus separate maps for the sexes; the original configuration must be preserved." << eidos_terminate();
+		
+		// Set up to replace the requested map
+		vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_.recombination_end_positions_H_ : 
+											  ((requested_sex == IndividualSex::kMale) ? chromosome_.recombination_end_positions_M_ : chromosome_.recombination_end_positions_F_));
+		vector<double> &rates = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_.recombination_rates_H_ : 
+								 ((requested_sex == IndividualSex::kMale) ? chromosome_.recombination_rates_M_ : chromosome_.recombination_rates_F_));
 		
 		if (p_argument_count == 1)
 		{
@@ -1699,13 +1738,13 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeRecombinationRate() requires rates to be >= 0 (" << recombination_rate << " supplied)." << eidos_terminate();
 			
 			// then adopt them
-			chromosome_.recombination_rates_.clear();
-			chromosome_.recombination_end_positions_.clear();
+			rates.clear();
+			positions.clear();
 			
-			chromosome_.recombination_rates_.emplace_back(recombination_rate);
-			//chromosome_.recombination_end_positions_.emplace_back(?);	// deferred; patched in Chromosome::InitializeDraws().
+			rates.emplace_back(recombination_rate);
+			//positions.emplace_back(?);	// deferred; patched in Chromosome::InitializeDraws().
 		}
-		else if (p_argument_count == 2)
+		else if (p_argument_count >= 2)
 		{
 			int end_count = arg1_value->Count();
 			
@@ -1727,16 +1766,16 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 			}
 			
 			// then adopt them
-			chromosome_.recombination_rates_.clear();
-			chromosome_.recombination_end_positions_.clear();
+			rates.clear();
+			positions.clear();
 			
 			for (int interval_index = 0; interval_index < end_count; ++interval_index)
 			{
 				double recombination_rate = arg0_value->FloatAtIndex(interval_index, nullptr);
 				slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(interval_index, nullptr));
 				
-				chromosome_.recombination_rates_.emplace_back(recombination_rate);
-				chromosome_.recombination_end_positions_.emplace_back(recombination_end_position);
+				rates.emplace_back(recombination_rate);
+				positions.emplace_back(recombination_end_position);
 			}
 		}
 		
@@ -1744,15 +1783,15 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		
 		if (DEBUG_INPUT)
 		{
-			int ratesSize = (int)chromosome_.recombination_rates_.size();
-			int endsSize = (int)chromosome_.recombination_end_positions_.size();
+			int ratesSize = (int)rates.size();
+			int endsSize = (int)positions.size();
 			
 			output_stream << "initializeRecombinationRate(";
 			
 			if (ratesSize > 1)
 				output_stream << "c(";
 			for (int interval_index = 0; interval_index < ratesSize; ++interval_index)
-				output_stream << (interval_index == 0 ? "" : ", ") << chromosome_.recombination_rates_[interval_index];
+				output_stream << (interval_index == 0 ? "" : ", ") << rates[interval_index];
 			if (ratesSize > 1)
 				output_stream << ")";
 			
@@ -1763,7 +1802,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 				if (endsSize > 1)
 					output_stream << "c(";
 				for (int interval_index = 0; interval_index < endsSize; ++interval_index)
-					output_stream << (interval_index == 0 ? "" : ", ") << chromosome_.recombination_end_positions_[interval_index];
+					output_stream << (interval_index == 0 ? "" : ", ") << positions[interval_index];
 				if (endsSize > 1)
 					output_stream << ")";
 			}
@@ -1886,7 +1925,7 @@ const std::vector<const EidosFunctionSignature*> *SLiMSim::ZeroGenerationFunctio
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationType, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									->AddIntString_S("id")->AddNumeric_S("dominanceCoeff")->AddString_S("distributionType")->AddEllipsis());
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeRecombinationRate, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
-									->AddNumeric("rates")->AddInt_O("ends"));
+									->AddNumeric("rates")->AddInt_O("ends")->AddString_OS("sex"));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGeneConversion, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									->AddNumeric_S("conversionFraction")->AddNumeric_S("meanLength"));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationRate, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))

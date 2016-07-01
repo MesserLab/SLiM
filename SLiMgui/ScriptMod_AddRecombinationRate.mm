@@ -32,28 +32,9 @@
 	return @"Add Recombination Rate";
 }
 
-- (slim_position_t)lastDefinedRecombinationPosition
-{
-	std::vector<slim_position_t> &endPositions = controller->sim->chromosome_.recombination_end_positions_;
-	slim_position_t lastPosition = 0;
-	
-	for (auto positionIter = endPositions.begin(); positionIter != endPositions.end(); positionIter++)
-	{
-		slim_position_t endPosition = *positionIter;
-		
-		if (endPosition > lastPosition)
-			lastPosition = endPosition;
-	}
-	
-	return lastPosition;
-}
-
 - (void)configSheetLoaded
 {
-	slim_position_t lastDefinedPosition = [self lastDefinedRecombinationPosition];
-	
 	// set initial control values
-	[intervalEndPositionTextField setStringValue:[NSString stringWithFormat:@"%lld", (int64_t)lastDefinedPosition + 1]];
 	[recombinationRateTextField setStringValue:@"0.00000001"];
 	
 	[super configSheetLoaded];
@@ -61,16 +42,8 @@
 
 - (IBAction)validateControls:(id)sender
 {
-	slim_position_t lastDefinedPosition = [self lastDefinedRecombinationPosition];
-	slim_position_t endPosition = SLiMClampToPositionType((int64_t)[intervalEndPositionTextField doubleValue]);		// handle scientific notation
-	
 	// Determine whether we have valid inputs in all of our fields
 	validInput = YES;
-	
-	BOOL endValid = [ScriptMod validIntWithScientificNotationValueInTextField:intervalEndPositionTextField withMin:1 max:SLIM_MAX_BASE_POSITION];
-	endValid = endValid && (!endValid || (endPosition > lastDefinedPosition));
-	validInput = validInput && endValid;
-	[intervalEndPositionTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:endValid]];
 	
 	BOOL rateValid = [ScriptMod validFloatWithScientificNotationValueInTextField:recombinationRateTextField withMin:0.0 max:1.0];
 	validInput = validInput && rateValid;
@@ -85,7 +58,6 @@
 
 - (NSString *)scriptLineWithExecute:(BOOL)executeNow targetGeneration:(slim_generation_t *)targetGenPtr
 {
-	NSString *endPosition = [intervalEndPositionTextField stringValue];
 	NSString *rateString = [recombinationRateTextField stringValue];
 	
 	if (executeNow)
@@ -96,7 +68,7 @@
 	
 	*targetGenPtr = 0;
 	
-	return [NSString stringWithFormat:@"initialize() {\n\tinitializeRecombinationRate(%@, %@);\n}\n", rateString, endPosition];
+	return [NSString stringWithFormat:@"initialize() {\n\tinitializeRecombinationRate(%@);\n}\n", rateString];
 }
 
 @end

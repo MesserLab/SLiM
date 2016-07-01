@@ -248,8 +248,14 @@ extern const std::string gStr_initializeSex;
 extern const std::string gStr_genomicElements;
 extern const std::string gStr_lastPosition;
 extern const std::string gStr_overallRecombinationRate;
+extern const std::string gStr_overallRecombinationRateM;
+extern const std::string gStr_overallRecombinationRateF;
 extern const std::string gStr_recombinationEndPositions;
+extern const std::string gStr_recombinationEndPositionsM;
+extern const std::string gStr_recombinationEndPositionsF;
 extern const std::string gStr_recombinationRates;
+extern const std::string gStr_recombinationRatesM;
+extern const std::string gStr_recombinationRatesF;
 extern const std::string gStr_geneConversionFraction;
 extern const std::string gStr_geneConversionMeanLength;
 extern const std::string gStr_mutationRate;
@@ -410,8 +416,14 @@ enum _SLiMGlobalStringID : int {
 	gID_genomicElements,
 	gID_lastPosition,
 	gID_overallRecombinationRate,
+	gID_overallRecombinationRateM,
+	gID_overallRecombinationRateF,
 	gID_recombinationEndPositions,
+	gID_recombinationEndPositionsM,
+	gID_recombinationEndPositionsF,
 	gID_recombinationRates,
+	gID_recombinationRatesM,
+	gID_recombinationRatesF,
 	gID_geneConversionFraction,
 	gID_geneConversionMeanLength,
 	gID_mutationRate,

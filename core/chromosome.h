@@ -47,18 +47,43 @@ class Chromosome : private std::vector<GenomicElement>, public EidosObjectElemen
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 
+#ifdef SLIMGUI
+public:
+#else
 private:
+#endif
+	
+	// We now allow different recombination maps for males and females, optionally.  Unfortunately, this means we have a bit of an
+	// explosion of state involved with recombination.  We now have _H, _M, and _F versions of many ivars.  The _M and _F versions
+	// are used if sex is enabled and different recombination maps have been specified for males versus females.  The _H version
+	// is used in all other cases – when sex is not enabled (i.e., hermaphrodites), and when separate maps have not been specified.
+	// This flag indicates which option has been chosen; after initialize() time this cannot be changed.
+	bool single_recombination_map_ = true;
 	
 	gsl_ran_discrete_t *lookup_mutation_ = nullptr;			// OWNED POINTER: lookup table for drawing mutations
-	gsl_ran_discrete_t *lookup_recombination_ = nullptr;	// OWNED POINTER: lookup table for drawing recombination breakpoints
+	
+	gsl_ran_discrete_t *lookup_recombination_H_ = nullptr;	// OWNED POINTER: lookup table for drawing recombination breakpoints
+	gsl_ran_discrete_t *lookup_recombination_M_ = nullptr;
+	gsl_ran_discrete_t *lookup_recombination_F_ = nullptr;
 	
 	// caches to speed up Poisson draws in CrossoverMutation()
 	double exp_neg_element_mutation_rate_;
-	double exp_neg_overall_recombination_rate_;
 	
-	double probability_both_0_;
-	double probability_both_0_OR_mut_0_break_non0_;
-	double probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_;
+	double exp_neg_overall_recombination_rate_H_;			
+	double exp_neg_overall_recombination_rate_M_;
+	double exp_neg_overall_recombination_rate_F_;
+	
+	double probability_both_0_H_;
+	double probability_both_0_OR_mut_0_break_non0_H_;
+	double probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_H_;
+	
+	double probability_both_0_M_;
+	double probability_both_0_OR_mut_0_break_non0_M_;
+	double probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_M_;
+	
+	double probability_both_0_F_;
+	double probability_both_0_OR_mut_0_break_non0_F_;
+	double probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_F_;
 	
 public:
 	
@@ -69,15 +94,24 @@ public:
 	using std::vector<GenomicElement>::begin;
 	using std::vector<GenomicElement>::end;
 	
-	vector<slim_position_t> recombination_end_positions_;	// end positions of each defined recombination region
-	vector<double> recombination_rates_;					// recombination rates, in events per base pair
+	vector<slim_position_t> recombination_end_positions_H_;	// end positions of each defined recombination region
+	vector<slim_position_t> recombination_end_positions_M_;
+	vector<slim_position_t> recombination_end_positions_F_;
+	
+	vector<double> recombination_rates_H_;					// recombination rates, in events per base pair
+	vector<double> recombination_rates_M_;
+	vector<double> recombination_rates_F_;
 	
 	slim_position_t last_position_;							// last position; used to be called length_ but it is (length - 1) really
 	EidosValue_SP cached_value_lastpos_;					// a cached value for last_position_; reset() if that changes
 	
 	double overall_mutation_rate_;							// overall mutation rate, as specified by initializeMutationRate()
 	double element_mutation_rate_;							// overall rate * number of nucleotides in elements; the practical mutation rate for SLiM
-	double overall_recombination_rate_;						// overall recombination rate
+	
+	double overall_recombination_rate_H_;					// overall recombination rate
+	double overall_recombination_rate_M_;					// overall recombination rate
+	double overall_recombination_rate_F_;					// overall recombination rate
+	
 	double gene_conversion_fraction_;						// gene conversion fraction
 	double gene_conversion_avg_length_;						// average gene conversion stretch length
 	
@@ -88,12 +122,28 @@ public:
 	Chromosome(void);														// supplied null constructor
 	~Chromosome(void);														// destructor
 	
-	void InitializeDraws(void);												// initialize the random lookup tables used by Chromosome to draw mutation and recombination events
-	int DrawMutationCount(void) const;										// draw the number of mutations that occur, based on the overall mutation rate
-	Mutation *DrawNewMutation(slim_objectid_t p_subpop_index, slim_generation_t p_generation) const;	// draw a new mutation, based on the genomic element types present and their mutational proclivities
-	int DrawBreakpointCount(void) const;									// draw the number of breakpoints that occur, based on the overall recombination rate
-	vector<slim_position_t> DrawBreakpoints(const int p_num_breakpoints) const;	// choose a set of recombination breakpoints, based on recomb. intervals, overall recomb. rate, and gene conversion probability
-	void DrawMutationAndBreakpointCounts(int *p_mut_count, int *p_break_count) const;
+	// initialize the random lookup tables used by Chromosome to draw mutation and recombination events
+	void InitializeDraws(void);
+	void _InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, vector<slim_position_t> &p_end_positions, vector<double> &p_rates, double &p_overall_rate, double &p_exp_neg_overall_rate, double &p_both_0, double &p_both_0_OR_mut_0_break_non0_, double &p_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_);
+	
+	// draw the number of mutations that occur, based on the overall mutation rate
+	int DrawMutationCount(void) const;
+	
+	// draw a new mutation, based on the genomic element types present and their mutational proclivities
+	Mutation *DrawNewMutation(slim_objectid_t p_subpop_index, slim_generation_t p_generation) const;
+	
+	// draw the number of breakpoints that occur, based on the overall recombination rate
+	int DrawBreakpointCount(IndividualSex p_sex) const;
+	
+	// choose a set of recombination breakpoints, based on recomb. intervals, overall recomb. rate, and gene conversion probability
+	vector<slim_position_t> DrawBreakpoints(IndividualSex p_sex, const int p_num_breakpoints) const;
+	
+	// draw both the mutation count and breakpoint count, using a single Poisson draw for speed
+	void DrawMutationAndBreakpointCounts(IndividualSex p_sex, int *p_mut_count, int *p_break_count) const;
+	
+	// an internal method for throwing errors from inline functions when assumptions about the configuration of recombination maps are violated
+	void RecombinationMapConfigError(void) const __attribute__((__noreturn__)) __attribute__((cold));
+	
 	
 	//
 	// Eidos support
@@ -116,54 +166,142 @@ inline __attribute__((always_inline)) int Chromosome::DrawMutationCount(void) co
 }
 
 // draw the number of breakpoints that occur, based on the overall recombination rate
-inline __attribute__((always_inline)) int Chromosome::DrawBreakpointCount(void) const
+inline __attribute__((always_inline)) int Chromosome::DrawBreakpointCount(IndividualSex p_sex) const
 {
 #ifdef USE_GSL_POISSON
-	return gsl_ran_poisson(gEidos_rng, overall_recombination_rate_);
+	if (single_recombination_map_)
+	{
+		// With a single map, we don't care what sex we are passed; same map for all, and sex may be enabled or disabled
+		return gsl_ran_poisson(gEidos_rng, overall_recombination_rate_H_);
+	}
+	else
+	{
+		// With sex-specific maps, we treat males and females separately, and the individual we're given better be one of the two
+		if (p_sex == IndividualSex::kMale)
+		{
+			return gsl_ran_poisson(gEidos_rng, overall_recombination_rate_M_);
+		}
+		else if (p_sex == IndividualSex::kFemale)
+		{
+			return gsl_ran_poisson(gEidos_rng, overall_recombination_rate_F_);
+		}
+		else
+		{
+			RecombinationMapConfigError();
+		}
+	}
 #else
-	return eidos_fast_ran_poisson(overall_recombination_rate_, exp_neg_overall_recombination_rate_);
+	if (single_recombination_map_)
+	{
+		// With a single map, we don't care what sex we are passed; same map for all, and sex may be enabled or disabled
+		return eidos_fast_ran_poisson(overall_recombination_rate_H_, exp_neg_overall_recombination_rate_H_);
+	}
+	else
+	{
+		// With sex-specific maps, we treat males and females separately, and the individual we're given better be one of the two
+		if (p_sex == IndividualSex::kMale)
+		{
+			return eidos_fast_ran_poisson(overall_recombination_rate_M_, exp_neg_overall_recombination_rate_M_);
+		}
+		else if (p_sex == IndividualSex::kFemale)
+		{
+			return eidos_fast_ran_poisson(overall_recombination_rate_F_, exp_neg_overall_recombination_rate_F_);
+		}
+		else
+		{
+			RecombinationMapConfigError();
+		}
+	}
 #endif
 }
 
 // determine both the mutation count and the breakpoint count with (usually) a single RNG draw
-inline __attribute__((always_inline)) void Chromosome::DrawMutationAndBreakpointCounts(int *p_mut_count, int *p_break_count) const
+// this method relies on eidos_fast_ran_poisson_nonzero() and cannot be called when USE_GSL_POISSON is defined
+inline __attribute__((always_inline)) void Chromosome::DrawMutationAndBreakpointCounts(IndividualSex p_sex, int *p_mut_count, int *p_break_count) const
 {
+#ifdef USE_GSL_POISSON
+	EIDOS_TERMINATION << "ERROR (Chromosome::DrawMutationAndBreakpointCounts): (internal error) DrawMutationAndBreakpointCounts() cannot be called when using gsl_ran_poisson()." << eidos_terminate();
+#endif
+	
 	double u = gsl_rng_uniform(gEidos_rng);
 	
-	if (u <= probability_both_0_)
+	if (single_recombination_map_)
 	{
-		*p_mut_count = 0;
-		*p_break_count = 0;
-	}
-	else if (u <= probability_both_0_OR_mut_0_break_non0_)
-	{
-		*p_mut_count = 0;
-		
-#ifdef USE_GSL_POISSON
-		*p_break_count = gsl_ran_poisson(gEidos_rng, overall_recombination_rate_);
-#else
-		*p_break_count = eidos_fast_ran_poisson_nonzero(overall_recombination_rate_, exp_neg_overall_recombination_rate_);
-#endif
-	}
-	else if (u <= probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_)
-	{
-#ifdef USE_GSL_POISSON
-		*p_mut_count = gsl_ran_poisson(gEidos_rng, element_mutation_rate_);
-#else
-		*p_mut_count = eidos_fast_ran_poisson_nonzero(element_mutation_rate_, exp_neg_element_mutation_rate_);
-#endif
-		
-		*p_break_count = 0;
+		// With a single map, we don't care what sex we are passed; same map for all, and sex may be enabled or disabled
+		if (u <= probability_both_0_H_)
+		{
+			*p_mut_count = 0;
+			*p_break_count = 0;
+		}
+		else if (u <= probability_both_0_OR_mut_0_break_non0_H_)
+		{
+			*p_mut_count = 0;
+			*p_break_count = eidos_fast_ran_poisson_nonzero(overall_recombination_rate_H_, exp_neg_overall_recombination_rate_H_);
+		}
+		else if (u <= probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_H_)
+		{
+			*p_mut_count = eidos_fast_ran_poisson_nonzero(element_mutation_rate_, exp_neg_element_mutation_rate_);
+			*p_break_count = 0;
+		}
+		else
+		{
+			*p_mut_count = eidos_fast_ran_poisson_nonzero(element_mutation_rate_, exp_neg_element_mutation_rate_);
+			*p_break_count = eidos_fast_ran_poisson_nonzero(overall_recombination_rate_H_, exp_neg_overall_recombination_rate_H_);
+		}
 	}
 	else
 	{
-#ifdef USE_GSL_POISSON
-		*p_mut_count = gsl_ran_poisson(gEidos_rng, element_mutation_rate_);
-		*p_break_count = gsl_ran_poisson(gEidos_rng, overall_recombination_rate_);
-#else
-		*p_mut_count = eidos_fast_ran_poisson_nonzero(element_mutation_rate_, exp_neg_element_mutation_rate_);
-		*p_break_count = eidos_fast_ran_poisson_nonzero(overall_recombination_rate_, exp_neg_overall_recombination_rate_);
-#endif
+		// With sex-specific maps, we treat males and females separately, and the individual we're given better be one of the two
+		if (p_sex == IndividualSex::kMale)
+		{
+			if (u <= probability_both_0_M_)
+			{
+				*p_mut_count = 0;
+				*p_break_count = 0;
+			}
+			else if (u <= probability_both_0_OR_mut_0_break_non0_M_)
+			{
+				*p_mut_count = 0;
+				*p_break_count = eidos_fast_ran_poisson_nonzero(overall_recombination_rate_M_, exp_neg_overall_recombination_rate_M_);
+			}
+			else if (u <= probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_M_)
+			{
+				*p_mut_count = eidos_fast_ran_poisson_nonzero(element_mutation_rate_, exp_neg_element_mutation_rate_);
+				*p_break_count = 0;
+			}
+			else
+			{
+				*p_mut_count = eidos_fast_ran_poisson_nonzero(element_mutation_rate_, exp_neg_element_mutation_rate_);
+				*p_break_count = eidos_fast_ran_poisson_nonzero(overall_recombination_rate_M_, exp_neg_overall_recombination_rate_M_);
+			}
+		}
+		else if (p_sex == IndividualSex::kFemale)
+		{
+			if (u <= probability_both_0_F_)
+			{
+				*p_mut_count = 0;
+				*p_break_count = 0;
+			}
+			else if (u <= probability_both_0_OR_mut_0_break_non0_F_)
+			{
+				*p_mut_count = 0;
+				*p_break_count = eidos_fast_ran_poisson_nonzero(overall_recombination_rate_F_, exp_neg_overall_recombination_rate_F_);
+			}
+			else if (u <= probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_F_)
+			{
+				*p_mut_count = eidos_fast_ran_poisson_nonzero(element_mutation_rate_, exp_neg_element_mutation_rate_);
+				*p_break_count = 0;
+			}
+			else
+			{
+				*p_mut_count = eidos_fast_ran_poisson_nonzero(element_mutation_rate_, exp_neg_element_mutation_rate_);
+				*p_break_count = eidos_fast_ran_poisson_nonzero(overall_recombination_rate_F_, exp_neg_overall_recombination_rate_F_);
+			}
+		}
+		else
+		{
+			RecombinationMapConfigError();
+		}
 	}
 }
 

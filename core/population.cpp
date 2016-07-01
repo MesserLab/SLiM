@@ -467,6 +467,12 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 		
 		free(current_weights);
 		
+		if (sex_enabled)
+		{
+			if (drawn_parent < p_source_subpop->parent_first_male_index_)
+				EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): second parent chosen by mateChoice() callback is female." << eidos_terminate(last_interventionist_mate_choice_callback->identifier_token_);
+		}
+		
 		return drawn_parent;
 	}
 	
@@ -833,10 +839,37 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 					}
 					else
 					{
-						parent1 = sex_enabled ? source_subpop.DrawFemaleParentUsingFitness() : source_subpop.DrawParentUsingFitness();
+						IndividualSex parent1_sex, parent2_sex;
 						
-						if (selfed)							parent2 = parent1;
-						else if (!mate_choice_callbacks)	parent2 = sex_enabled ? source_subpop.DrawMaleParentUsingFitness() : source_subpop.DrawParentUsingFitness();	// selfing possible!
+						if (sex_enabled)
+						{
+							parent1 = source_subpop.DrawFemaleParentUsingFitness();
+							parent1_sex = IndividualSex::kFemale;
+						}
+						else
+						{
+							parent1 = source_subpop.DrawParentUsingFitness();
+							parent1_sex = IndividualSex::kHermaphrodite;
+						}
+						
+						if (selfed)
+						{
+							parent2 = parent1;
+							parent2_sex = parent1_sex;
+						}
+						else if (!mate_choice_callbacks)
+						{
+							if (sex_enabled)
+							{
+								parent2 = source_subpop.DrawMaleParentUsingFitness();
+								parent2_sex = IndividualSex::kMale;
+							}
+							else
+							{
+								parent2 = source_subpop.DrawParentUsingFitness();	// selfing possible!
+								parent2_sex = IndividualSex::kHermaphrodite;
+							}
+						}
 						else
 						{
 							parent2 = ApplyMateChoiceCallbacks(parent1, &p_subpop, &source_subpop, *mate_choice_callbacks);
@@ -847,11 +880,13 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 								num_tries++;
 								goto retryChild;
 							}
+							
+							parent2_sex = (sex_enabled ? IndividualSex::kMale : IndividualSex::kHermaphrodite);		// guaranteed by ApplyMateChoiceCallbacks()
 						}
 						
 						// recombination, gene-conversion, mutation
-						DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
-						DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex);
+						DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex, parent1_sex);
+						DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex, parent2_sex);
 					}
 					
 					if (modify_child_callbacks)
@@ -897,8 +932,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 					}
 					
 					// recombination, gene-conversion, mutation
-					DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, IndividualSex::kHermaphrodite);
-					DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, IndividualSex::kHermaphrodite);
+					DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite);
+					DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite);
 					
 					if (modify_child_callbacks)
 					{
@@ -1113,10 +1148,37 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 				}
 				else
 				{
-					parent1 = sex_enabled ? source_subpop->DrawFemaleParentUsingFitness() : source_subpop->DrawParentUsingFitness();
+					IndividualSex parent1_sex, parent2_sex;
 					
-					if (selfed)							parent2 = parent1;
-					else if (!mate_choice_callbacks)	parent2 = sex_enabled ? source_subpop->DrawMaleParentUsingFitness() : source_subpop->DrawParentUsingFitness();	// selfing possible!
+					if (sex_enabled)
+					{
+						parent1 = source_subpop->DrawFemaleParentUsingFitness();
+						parent1_sex = IndividualSex::kFemale;
+					}
+					else
+					{
+						parent1 = source_subpop->DrawParentUsingFitness();
+						parent1_sex = IndividualSex::kHermaphrodite;
+					}
+					
+					if (selfed)
+					{
+						parent2 = parent1;
+						parent2_sex = parent1_sex;
+					}
+					else if (!mate_choice_callbacks)
+					{
+						if (sex_enabled)
+						{
+							parent2 = source_subpop->DrawMaleParentUsingFitness();
+							parent2_sex = IndividualSex::kMale;
+						}
+						else
+						{
+							parent2 = source_subpop->DrawParentUsingFitness();	// selfing possible!
+							parent2_sex = IndividualSex::kHermaphrodite;
+						}
+					}
 					else
 					{
 						parent2 = ApplyMateChoiceCallbacks(parent1, &p_subpop, source_subpop, *mate_choice_callbacks);
@@ -1127,11 +1189,13 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 							num_tries++;
 							goto retryWithSameSourceSubpop;
 						}
+						
+						parent2_sex = (sex_enabled ? IndividualSex::kMale : IndividualSex::kHermaphrodite);		// guaranteed by ApplyMateChoiceCallbacks()
 					}
 					
 					// recombination, gene-conversion, mutation
-					DoCrossoverMutation(&p_subpop, source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
-					DoCrossoverMutation(&p_subpop, source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex);
+					DoCrossoverMutation(&p_subpop, source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex, parent1_sex);
+					DoCrossoverMutation(&p_subpop, source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex, parent2_sex);
 				}
 				
 				if (modify_child_callbacks)
@@ -1226,8 +1290,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 								slim_popsize_t parent2 = source_subpop.DrawMaleParentUsingFitness();
 								
 								// recombination, gene-conversion, mutation
-								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
-								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex);
+								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex, IndividualSex::kFemale);
+								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex, IndividualSex::kMale);
 								
 								migrant_count++;
 								child_count++;
@@ -1241,8 +1305,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 								slim_popsize_t parent2 = source_subpop.DrawParentUsingFitness();	// note this does not prohibit selfing!
 								
 								// recombination, gene-conversion, mutation
-								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
-								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex);
+								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex, IndividualSex::kHermaphrodite);
+								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex, IndividualSex::kHermaphrodite);
 								
 								migrant_count++;
 								child_count++;
@@ -1271,21 +1335,42 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 							}
 							else
 							{
-								parent1 = sex_enabled ? source_subpop.DrawFemaleParentUsingFitness() : source_subpop.DrawParentUsingFitness();
+								IndividualSex parent1_sex, parent2_sex;
+								
+								if (sex_enabled)
+								{
+									parent1 = source_subpop.DrawFemaleParentUsingFitness();
+									parent1_sex = IndividualSex::kFemale;
+								}
+								else
+								{
+									parent1 = source_subpop.DrawParentUsingFitness();
+									parent1_sex = IndividualSex::kHermaphrodite;
+								}
 								
 								if (number_to_self > 0)
 								{
 									parent2 = parent1;
+									parent2_sex = parent1_sex;
 									--number_to_self;
 								}
 								else
 								{
-									parent2 = sex_enabled ? source_subpop.DrawMaleParentUsingFitness() : source_subpop.DrawParentUsingFitness();	// selfing possible!
+									if (sex_enabled)
+									{
+										parent2 = source_subpop.DrawMaleParentUsingFitness();
+										parent2_sex = IndividualSex::kMale;
+									}
+									else
+									{
+										parent2 = source_subpop.DrawParentUsingFitness();	// selfing possible!
+										parent2_sex = IndividualSex::kHermaphrodite;
+									}
 								}
 								
 								// recombination, gene-conversion, mutation
-								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
-								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex);
+								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex, parent1_sex);
+								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex, parent2_sex);
 							}
 							
 							// change counters
@@ -1300,7 +1385,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 }
 
 // generate a child genome from parental genomes, with recombination, gene conversion, and mutation
-void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_source_subpop, slim_popsize_t p_child_genome_index, slim_objectid_t p_source_subpop_id, slim_popsize_t p_parent1_genome_index, slim_popsize_t p_parent2_genome_index, const Chromosome &p_chromosome, slim_generation_t p_generation, IndividualSex p_child_sex)
+void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_source_subpop, slim_popsize_t p_child_genome_index, slim_objectid_t p_source_subpop_id, slim_popsize_t p_parent1_genome_index, slim_popsize_t p_parent2_genome_index, const Chromosome &p_chromosome, slim_generation_t p_generation, IndividualSex p_child_sex, IndividualSex p_parent_sex)
 {
 	// child genome p_child_genome_index in subpopulation p_subpop_id is assigned outcome of cross-overs at breakpoints in all_breakpoints
 	// between parent genomes p_parent1_genome_index and p_parent2_genome_index from subpopulation p_source_subpop_id and new mutations added
@@ -1467,11 +1552,15 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 	}
 	else
 	{
+#ifdef USE_GSL_POISSON
+		// When using the GSL's poisson draw, we have to draw the mutation count and breakpoint count separately;
+		// the DrawMutationAndBreakpointCounts() method does not support USE_GSL_POISSON
+		num_mutations = p_chromosome.DrawMutationCount();
+		num_breakpoints = p_chromosome.DrawBreakpointCount();
+#else
 		// get both the number of mutations and the number of breakpoints here; this allows us to draw both jointly, super fast!
-		//int num_mutations = p_chromosome.DrawMutationCount();
-		//int num_breakpoints = p_chromosome.DrawBreakpointCount();
-		
-		p_chromosome.DrawMutationAndBreakpointCounts(&num_mutations, &num_breakpoints);
+		p_chromosome.DrawMutationAndBreakpointCounts(p_parent_sex, &num_mutations, &num_breakpoints);
+#endif
 	}
 	
 	// mutations are usually rare, so let's streamline the case where none occur
@@ -1485,7 +1574,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 		else
 		{
 			// create vector with uniqued recombination breakpoints
-			std::vector<slim_position_t> all_breakpoints = p_chromosome.DrawBreakpoints(num_breakpoints);
+			std::vector<slim_position_t> all_breakpoints = p_chromosome.DrawBreakpoints(p_parent_sex, num_breakpoints);
 			
 			all_breakpoints.emplace_back(p_chromosome.last_position_ + 1);
 			std::sort(all_breakpoints.begin(), all_breakpoints.end());
@@ -1567,7 +1656,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 		}
 		
 		// create vector with uniqued recombination breakpoints
-		std::vector<slim_position_t> all_breakpoints = p_chromosome.DrawBreakpoints(num_breakpoints); 
+		std::vector<slim_position_t> all_breakpoints = p_chromosome.DrawBreakpoints(p_parent_sex, num_breakpoints); 
 		all_breakpoints.emplace_back(p_chromosome.last_position_ + 1);
 		std::sort(all_breakpoints.begin(), all_breakpoints.end());
 		all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());

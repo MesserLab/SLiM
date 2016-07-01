@@ -298,10 +298,6 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 			elementRect.size.width--;
 		}
 		
-		// if we're drawing recombination intervals as well, then they get the top half and we take the bottom half
-		if (shouldDrawRecombinationIntervals)
-			elementRect.size.height = (int)round(elementRect.size.height / 2.0);
-		
 		// draw only the visible part, if any
 		elementRect = NSIntersectionRect(elementRect, interiorRect);
 		
@@ -322,17 +318,16 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	}
 }
 
-- (void)drawRecombinationIntervalsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
+- (void)_drawRecombinationIntervalsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange ends:(std::vector<slim_position_t> &)ends rates:(std::vector<double> &)rates
 {
-	Chromosome &chromosome = controller->sim->chromosome_;
-	int recombinationIntervalCount = (int)chromosome.recombination_end_positions_.size();
+	int recombinationIntervalCount = (int)ends.size();
 	slim_position_t intervalStartPosition = 0;
 	CGFloat previousIntervalLeftEdge = -10000;
 	
 	for (int interval = 0; interval < recombinationIntervalCount; ++interval)
 	{
-		slim_position_t intervalEndPosition = chromosome.recombination_end_positions_[interval];
-		double intervalRate = chromosome.recombination_rates_[interval];
+		slim_position_t intervalEndPosition = ends[interval];
+		double intervalRate = rates[interval];
 		NSRect intervalRect = [self rectEncompassingBase:intervalStartPosition toBase:intervalEndPosition interiorRect:interiorRect displayedRange:displayedRange];
 		BOOL widthOne = (intervalRect.size.width == 1);
 		
@@ -390,6 +385,29 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		
 		// the next interval starts at the next base after this one ended
 		intervalStartPosition = intervalEndPosition + 1;
+	}
+}
+
+- (void)drawRecombinationIntervalsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
+{
+	Chromosome &chromosome = controller->sim->chromosome_;
+	
+	if (chromosome.single_recombination_map_)
+	{
+		[self _drawRecombinationIntervalsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange ends:chromosome.recombination_end_positions_H_ rates:chromosome.recombination_rates_H_];
+	}
+	else
+	{
+		NSRect topInteriorRect = interiorRect, bottomInteriorRect = interiorRect;
+		CGFloat halfHeight = ceil(interiorRect.size.height / 2.0);
+		CGFloat remainingHeight = interiorRect.size.height - halfHeight;
+		
+		topInteriorRect.size.height = halfHeight;
+		topInteriorRect.origin.y += remainingHeight;
+		bottomInteriorRect.size.height = remainingHeight;
+		
+		[self _drawRecombinationIntervalsInInteriorRect:topInteriorRect withController:controller displayedRange:displayedRange ends:chromosome.recombination_end_positions_M_ rates:chromosome.recombination_rates_M_];
+		[self _drawRecombinationIntervalsInInteriorRect:bottomInteriorRect withController:controller displayedRange:displayedRange ends:chromosome.recombination_end_positions_F_ rates:chromosome.recombination_rates_F_];
 	}
 }
 
@@ -699,17 +717,26 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		
 		NSRange displayedRange = [self displayedRange];
 		
+		BOOL splitHeight = (shouldDrawRecombinationIntervals && shouldDrawGenomicElements);
+		NSRect topInteriorRect = interiorRect, bottomInteriorRect = interiorRect;
+		CGFloat halfHeight = ceil(interiorRect.size.height / 2.0);
+		CGFloat remainingHeight = interiorRect.size.height - halfHeight;
+		
+		topInteriorRect.size.height = halfHeight;
+		topInteriorRect.origin.y += remainingHeight;
+		bottomInteriorRect.size.height = remainingHeight;
+		
 		// draw ticks at bottom of content rect
 		if (!NSContainsRect(interiorRect, dirtyRect))
 			[self drawTicksInContentRect:contentRect withController:controller displayedRange:displayedRange];
 		
 		// draw recombination intervals in interior
 		if (shouldDrawRecombinationIntervals)
-			[self drawRecombinationIntervalsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange];
+			[self drawRecombinationIntervalsInInteriorRect:(splitHeight ? topInteriorRect : interiorRect) withController:controller displayedRange:displayedRange];
 		
 		// draw genomic elements in interior
 		if (shouldDrawGenomicElements)
-			[self drawGenomicElementsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange];
+			[self drawGenomicElementsInInteriorRect:(splitHeight ? bottomInteriorRect : interiorRect) withController:controller displayedRange:displayedRange];
 		
 		// draw fixed substitutions in interior
 		if (shouldDrawFixedSubstitutions)

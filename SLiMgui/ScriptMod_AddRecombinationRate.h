@@ -23,7 +23,6 @@
 
 @interface ScriptMod_AddRecombinationRate : ScriptMod
 {
-	IBOutlet NSTextField *intervalEndPositionTextField;
 	IBOutlet NSTextField *recombinationRateTextField;
 }
 @end

@@ -30,7 +30,11 @@
 #include "math.h"
 
 
-Chromosome::Chromosome(void) : lookup_mutation_(nullptr), lookup_recombination_(nullptr), exp_neg_element_mutation_rate_(0.0), exp_neg_overall_recombination_rate_(0.0), probability_both_0_(0.0), probability_both_0_OR_mut_0_break_non0_(0.0), probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_(0.0), last_position_(0), overall_mutation_rate_(0.0), element_mutation_rate_(0.0), overall_recombination_rate_(0.0), gene_conversion_fraction_(0.0), gene_conversion_avg_length_(0.0)
+Chromosome::Chromosome(void) : lookup_mutation_(nullptr), single_recombination_map_(true), lookup_recombination_H_(nullptr), lookup_recombination_M_(nullptr), lookup_recombination_F_(nullptr), exp_neg_element_mutation_rate_(0.0),
+	exp_neg_overall_recombination_rate_H_(0.0), probability_both_0_H_(0.0), probability_both_0_OR_mut_0_break_non0_H_(0.0), probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_H_(0.0), overall_recombination_rate_H_(0.0),
+	exp_neg_overall_recombination_rate_M_(0.0), probability_both_0_M_(0.0), probability_both_0_OR_mut_0_break_non0_M_(0.0), probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_M_(0.0), overall_recombination_rate_M_(0.0),
+	exp_neg_overall_recombination_rate_F_(0.0), probability_both_0_F_(0.0), probability_both_0_OR_mut_0_break_non0_F_(0.0), probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_F_(0.0), overall_recombination_rate_F_(0.0),
+	last_position_(0), overall_mutation_rate_(0.0), element_mutation_rate_(0.0), gene_conversion_fraction_(0.0), gene_conversion_avg_length_(0.0)
 {
 }
 
@@ -41,8 +45,14 @@ Chromosome::~Chromosome(void)
 	if (lookup_mutation_)
 		gsl_ran_discrete_free(lookup_mutation_);
 	
-	if (lookup_recombination_)
-		gsl_ran_discrete_free(lookup_recombination_);
+	if (lookup_recombination_H_)
+		gsl_ran_discrete_free(lookup_recombination_H_);
+	
+	if (lookup_recombination_M_)
+		gsl_ran_discrete_free(lookup_recombination_M_);
+	
+	if (lookup_recombination_F_)
+		gsl_ran_discrete_free(lookup_recombination_F_);
 }
 
 // initialize the random lookup tables used by Chromosome to draw mutation and recombination events
@@ -50,10 +60,20 @@ void Chromosome::InitializeDraws(void)
 {
 	if (size() == 0)
 		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): empty chromosome." << eidos_terminate();
-	if (recombination_rates_.size() == 0)
-		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): recombination rate not specified." << eidos_terminate();
 	if (!(overall_mutation_rate_ >= 0))
 		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): invalid mutation rate " << overall_mutation_rate_ << "." << eidos_terminate();
+	
+	// determine which case we are working with: separate recombination maps for the sexes, or one map
+	auto rates_H_size = recombination_rates_H_.size();
+	auto rates_M_size = recombination_rates_M_.size();
+	auto rates_F_size = recombination_rates_F_.size();
+	
+	if ((rates_H_size > 0) && (rates_M_size == 0) && (rates_F_size == 0))
+		single_recombination_map_ = true;
+	else if ((rates_H_size == 0) && (rates_M_size > 0) && (rates_F_size > 0))
+		single_recombination_map_ = false;
+	else
+		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): (internal error) unclear whether we have separate recombination maps or not, or recombination rate not specified." << eidos_terminate();
 	
 	// calculate the overall mutation rate and the lookup table for mutation locations
 	cached_value_lastpos_.reset();
@@ -79,72 +99,94 @@ void Chromosome::InitializeDraws(void)
 	lookup_mutation_ = gsl_ran_discrete_preproc(size(), A);
 	element_mutation_rate_ = overall_mutation_rate_ * static_cast<double>(l);
 	
+	// Now remake our recombination map info, which we delegate to _InitializeOneRecombinationMap()
+	if (single_recombination_map_)
+	{
+		_InitializeOneRecombinationMap(lookup_recombination_H_, recombination_end_positions_H_, recombination_rates_H_, overall_recombination_rate_H_, exp_neg_overall_recombination_rate_H_, probability_both_0_H_, probability_both_0_OR_mut_0_break_non0_H_, probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_H_);
+	}
+	else
+	{
+		_InitializeOneRecombinationMap(lookup_recombination_M_, recombination_end_positions_M_, recombination_rates_M_, overall_recombination_rate_M_, exp_neg_overall_recombination_rate_M_, probability_both_0_M_, probability_both_0_OR_mut_0_break_non0_M_, probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_M_);
+		_InitializeOneRecombinationMap(lookup_recombination_F_, recombination_end_positions_F_, recombination_rates_F_, overall_recombination_rate_F_, exp_neg_overall_recombination_rate_F_, probability_both_0_F_, probability_both_0_OR_mut_0_break_non0_F_, probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_F_);
+	}
+}
+
+// initialize one recombination map, used internally by InitializeDraws() to avoid code duplication
+void Chromosome::_InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, vector<slim_position_t> &p_end_positions, vector<double> &p_rates, double &p_overall_rate, double &p_exp_neg_overall_rate, double &p_both_0, double &p_both_0_OR_mut_0_break_non0_, double &p_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_)
+{
 	// patch the recombination interval end vector if it is empty; see setRecombinationRate() and initializeRecombinationRate()
 	// basically, the length of the chromosome might not have been known yet when the user set the rate
-	if (recombination_end_positions_.size() == 0)
+	if (p_end_positions.size() == 0)
 	{
 		// patching can only be done when a single uniform rate is specified
-		if (recombination_rates_.size() != 1)
+		if (p_rates.size() != 1)
 			EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): recombination endpoints not specified." << eidos_terminate();
 		
-		recombination_end_positions_.emplace_back(last_position_);
+		p_end_positions.emplace_back(last_position_);
 	}
 	
 	// calculate the overall recombination rate and the lookup table for breakpoints
-	double B[recombination_rates_.size()];
+	double B[p_rates.size()];
 	
-	overall_recombination_rate_ = 0.0;
+	p_overall_rate = 0.0;
 	
-	B[0] = recombination_rates_[0] * static_cast<double>(recombination_end_positions_[0]);	// No +1 here, because the position to the left of the first base is not a valid recombination position.
-																							// So a 1-base model (position 0 to 0) has a recombination end of 0, and thus an overall rate of 0.
-																							// This means that gsl_ran_discrete_preproc() is given an interval with rate 0, but it does not
-																							// seem to mind that.  BCH 4 April 2016
-	overall_recombination_rate_ += B[0];
+	B[0] = p_rates[0] * static_cast<double>(p_end_positions[0]);	// No +1 here, because the position to the left of the first base is not a valid recombination position.
+	// So a 1-base model (position 0 to 0) has a recombination end of 0, and thus an overall rate of 0.
+	// This means that gsl_ran_discrete_preproc() is given an interval with rate 0, but it does not
+	// seem to mind that.  BCH 4 April 2016
+	p_overall_rate += B[0];
 	
-	for (unsigned int i = 1; i < recombination_rates_.size(); i++) 
+	for (unsigned int i = 1; i < p_rates.size(); i++) 
 	{ 
-		B[i] = recombination_rates_[i] * static_cast<double>(recombination_end_positions_[i] - recombination_end_positions_[i - 1]);
-		overall_recombination_rate_+= B[i];
+		B[i] = p_rates[i] * static_cast<double>(p_end_positions[i] - p_end_positions[i - 1]);
+		p_overall_rate += B[i];
 		
-		if (recombination_end_positions_[i] > last_position_)
-			last_position_ = recombination_end_positions_[i];
+		if (p_end_positions[i] > last_position_)
+			last_position_ = p_end_positions[i];
 	}
 	
-	if (recombination_end_positions_[recombination_rates_.size() - 1] < last_position_)
+	if (p_end_positions[p_rates.size() - 1] < last_position_)
 		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): recombination endpoints do not cover all genomic elements." << eidos_terminate();
 	
-	// EIDOS_ERRSTREAM << "overall recombination rate: " << overall_recombination_rate_ << std::endl;
+	// EIDOS_ERRSTREAM << "overall recombination rate: " << p_overall_rate << std::endl;
 	
-	if (lookup_recombination_)
-		gsl_ran_discrete_free(lookup_recombination_);
+	if (p_lookup)
+		gsl_ran_discrete_free(p_lookup);
 	
-	lookup_recombination_ = gsl_ran_discrete_preproc(recombination_rates_.size(), B);
+	p_lookup = gsl_ran_discrete_preproc(p_rates.size(), B);
 	
 	// precalculate probabilities for Poisson draws of mutation count and breakpoint count
 	double prob_mutation_0 = exp(-element_mutation_rate_);
-	double prob_breakpoint_0 = exp(-overall_recombination_rate_);
+	double prob_breakpoint_0 = exp(-p_overall_rate);
 	double prob_mutation_not_0 = 1.0 - prob_mutation_0;
 	double prob_breakpoint_not_0 = 1.0 - prob_breakpoint_0;
 	double prob_both_0 = prob_mutation_0 * prob_breakpoint_0;
 	double prob_mutation_0_breakpoint_not_0 = prob_mutation_0 * prob_breakpoint_not_0;
 	double prob_mutation_not_0_breakpoint_0 = prob_mutation_not_0 * prob_breakpoint_0;
 	
-//	EIDOS_OUTSTREAM << "element_mutation_rate_ == " << element_mutation_rate_ << std::endl;
-//	EIDOS_OUTSTREAM << "prob_mutation_0 == " << prob_mutation_0 << std::endl;
-//	EIDOS_OUTSTREAM << "prob_breakpoint_0 == " << prob_breakpoint_0 << std::endl;
-//	EIDOS_OUTSTREAM << "prob_mutation_not_0 == " << prob_mutation_not_0 << std::endl;
-//	EIDOS_OUTSTREAM << "prob_breakpoint_not_0 == " << prob_breakpoint_not_0 << std::endl;
-//	EIDOS_OUTSTREAM << "prob_both_0 == " << prob_both_0 << std::endl;
-//	EIDOS_OUTSTREAM << "prob_mutation_0_breakpoint_not_0 == " << prob_mutation_0_breakpoint_not_0 << std::endl;
-//	EIDOS_OUTSTREAM << "prob_mutation_not_0_breakpoint_0 == " << prob_mutation_not_0_breakpoint_0 << std::endl;
+	//	EIDOS_OUTSTREAM << "element_mutation_rate_ == " << element_mutation_rate_ << std::endl;
+	//	EIDOS_OUTSTREAM << "prob_mutation_0 == " << prob_mutation_0 << std::endl;
+	//	EIDOS_OUTSTREAM << "prob_breakpoint_0 == " << prob_breakpoint_0 << std::endl;
+	//	EIDOS_OUTSTREAM << "prob_mutation_not_0 == " << prob_mutation_not_0 << std::endl;
+	//	EIDOS_OUTSTREAM << "prob_breakpoint_not_0 == " << prob_breakpoint_not_0 << std::endl;
+	//	EIDOS_OUTSTREAM << "prob_both_0 == " << prob_both_0 << std::endl;
+	//	EIDOS_OUTSTREAM << "prob_mutation_0_breakpoint_not_0 == " << prob_mutation_0_breakpoint_not_0 << std::endl;
+	//	EIDOS_OUTSTREAM << "prob_mutation_not_0_breakpoint_0 == " << prob_mutation_not_0_breakpoint_0 << std::endl;
 	
 	exp_neg_element_mutation_rate_ = prob_mutation_0;
-	exp_neg_overall_recombination_rate_ = prob_breakpoint_0;
+	p_exp_neg_overall_rate = prob_breakpoint_0;
 	
-	probability_both_0_ = prob_both_0;
-	probability_both_0_OR_mut_0_break_non0_ = prob_both_0 + prob_mutation_0_breakpoint_not_0;
-	probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_ = prob_both_0 + (prob_mutation_0_breakpoint_not_0 + prob_mutation_not_0_breakpoint_0);
+	p_both_0 = prob_both_0;
+	p_both_0_OR_mut_0_break_non0_ = prob_both_0 + prob_mutation_0_breakpoint_not_0;
+	p_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_ = prob_both_0 + (prob_mutation_0_breakpoint_not_0 + prob_mutation_not_0_breakpoint_0);
 }
+
+// prints an error message and exits
+void Chromosome::RecombinationMapConfigError(void) const
+{
+	EIDOS_TERMINATION << "ERROR (Chromosome::RecombinationMapConfigError): (internal error) an error occurred in the configuration of recombination maps." << eidos_terminate();
+}
+
 
 // draw a new mutation, based on the genomic element types present and their mutational proclivities
 Mutation *Chromosome::DrawNewMutation(slim_objectid_t p_subpop_index, slim_generation_t p_generation) const
@@ -163,15 +205,42 @@ Mutation *Chromosome::DrawNewMutation(slim_objectid_t p_subpop_index, slim_gener
 }
 
 // choose a set of recombination breakpoints, based on recombination intervals, overall recombination rate, and gene conversion probability
-std::vector<slim_position_t> Chromosome::DrawBreakpoints(const int p_num_breakpoints) const
+std::vector<slim_position_t> Chromosome::DrawBreakpoints(IndividualSex p_sex, const int p_num_breakpoints) const
 {
 	vector<slim_position_t> breakpoints;
+	gsl_ran_discrete_t *lookup;
+	const vector<slim_position_t> *end_positions;
+	
+	if (single_recombination_map_)
+	{
+		// With a single map, we don't care what sex we are passed; same map for all, and sex may be enabled or disabled
+		lookup = lookup_recombination_H_;
+		end_positions = &recombination_end_positions_H_;
+	}
+	else
+	{
+		// With sex-specific maps, we treat males and females separately, and the individual we're given better be one of the two
+		if (p_sex == IndividualSex::kMale)
+		{
+			lookup = lookup_recombination_M_;
+			end_positions = &recombination_end_positions_M_;
+		}
+		else if (p_sex == IndividualSex::kFemale)
+		{
+			lookup = lookup_recombination_F_;
+			end_positions = &recombination_end_positions_F_;
+		}
+		else
+		{
+			RecombinationMapConfigError();
+		}
+	}
 	
 	// draw recombination breakpoints
 	for (int i = 0; i < p_num_breakpoints; i++)
 	{
 		slim_position_t breakpoint = 0;
-		int recombination_interval = static_cast<int>(gsl_ran_discrete(gEidos_rng, lookup_recombination_));
+		int recombination_interval = static_cast<int>(gsl_ran_discrete(gEidos_rng, lookup));
 		
 		// choose a breakpoint anywhere in the chosen recombination interval with equal probability
 		
@@ -205,9 +274,9 @@ std::vector<slim_position_t> Chromosome::DrawBreakpoints(const int p_num_breakpo
 		// since we guarantee that recombination end positions are in strictly ascending order.  So we should never crash.  :->
 		
 		if (recombination_interval == 0)
-			breakpoint = static_cast<slim_position_t>(gsl_rng_uniform_int(gEidos_rng, recombination_end_positions_[recombination_interval]) + 1);
+			breakpoint = static_cast<slim_position_t>(gsl_rng_uniform_int(gEidos_rng, (*end_positions)[recombination_interval]) + 1);
 		else
-			breakpoint = recombination_end_positions_[recombination_interval - 1] + 1 + static_cast<slim_position_t>(gsl_rng_uniform_int(gEidos_rng, recombination_end_positions_[recombination_interval] - recombination_end_positions_[recombination_interval - 1]));
+			breakpoint = (*end_positions)[recombination_interval - 1] + 1 + static_cast<slim_position_t>(gsl_rng_uniform_int(gEidos_rng, (*end_positions)[recombination_interval] - (*end_positions)[recombination_interval - 1]));
 		
 		breakpoints.emplace_back(breakpoint);
 		
@@ -264,12 +333,36 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 				cached_value_lastpos_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(last_position_));
 			return cached_value_lastpos_;
 		}
+			
 		case gID_overallRecombinationRate:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_recombination_rate_));
+			if (!single_recombination_map_) return gStaticEidosValueNULL;
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_recombination_rate_H_));
+		case gID_overallRecombinationRateM:
+			if (single_recombination_map_) return gStaticEidosValueNULL;
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_recombination_rate_M_));
+		case gID_overallRecombinationRateF:
+			if (single_recombination_map_) return gStaticEidosValueNULL;
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_recombination_rate_F_));
+		
 		case gID_recombinationEndPositions:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(recombination_end_positions_));
+			if (!single_recombination_map_) return gStaticEidosValueNULL;
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(recombination_end_positions_H_));
+		case gID_recombinationEndPositionsM:
+			if (single_recombination_map_) return gStaticEidosValueNULL;
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(recombination_end_positions_M_));
+		case gID_recombinationEndPositionsF:
+			if (single_recombination_map_) return gStaticEidosValueNULL;
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(recombination_end_positions_F_));
+		
 		case gID_recombinationRates:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(recombination_rates_));
+			if (!single_recombination_map_) return gStaticEidosValueNULL;
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(recombination_rates_H_));
+		case gID_recombinationRatesM:
+			if (single_recombination_map_) return gStaticEidosValueNULL;
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(recombination_rates_M_));
+		case gID_recombinationRatesF:
+			if (single_recombination_map_) return gStaticEidosValueNULL;
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(recombination_rates_F_));
 			
 			// variables
 		case gID_geneConversionFraction:
@@ -341,15 +434,44 @@ EidosValue_SP Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 {
 	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0].get() : nullptr);
 	EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1].get() : nullptr);
+	EidosValue *arg2_value = ((p_argument_count >= 3) ? p_arguments[2].get() : nullptr);
 	
 	//
-	//	*********************	- (void)setRecombinationRate(numeric rates, [integer ends])
+	//	*********************	- (void)setRecombinationRate(numeric rates, [integer ends], [string$ sex])
 	//
 #pragma mark -setRecombinationRate()
 	
 	if (p_method_id == gID_setRecombinationRate)
 	{
 		int rate_count = arg0_value->Count();
+		
+		// Figure out what sex we are being given a map for
+		IndividualSex requested_sex = IndividualSex::kUnspecified;
+		
+		if (p_argument_count >= 3)
+		{
+			std::string sex_string = arg2_value->StringAtIndex(0, nullptr);
+			
+			if (sex_string.compare("M") == 0)
+				requested_sex = IndividualSex::kMale;
+			else if (sex_string.compare("F") == 0)
+				requested_sex = IndividualSex::kFemale;
+			else if (sex_string.compare("*") == 0)
+				requested_sex = IndividualSex::kUnspecified;
+			else
+				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() requested sex \"" << sex_string << "\" unsupported." << eidos_terminate();
+		}
+		
+		// Make sure specifying a map for that sex is legal, given our current state
+		if (((requested_sex == IndividualSex::kUnspecified) && !single_recombination_map_) ||
+			((requested_sex != IndividualSex::kUnspecified) && single_recombination_map_))
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() cannot change the chromosome between using a single map versus separate maps for the sexes; the original configuration must be preserved." << eidos_terminate();
+		
+		// Set up to replace the requested map
+		vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? recombination_end_positions_H_ : 
+											  ((requested_sex == IndividualSex::kMale) ? recombination_end_positions_M_ : recombination_end_positions_F_));
+		vector<double> &rates = ((requested_sex == IndividualSex::kUnspecified) ? recombination_rates_H_ : 
+								 ((requested_sex == IndividualSex::kMale) ? recombination_rates_M_ : recombination_rates_F_));
 		
 		if (p_argument_count == 1)
 		{
@@ -363,13 +485,13 @@ EidosValue_SP Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() rate " << recombination_rate << " out of range; rates must be >= 0." << eidos_terminate();
 			
 			// then adopt them
-			recombination_rates_.clear();
-			recombination_end_positions_.clear();
+			rates.clear();
+			positions.clear();
 			
-			recombination_rates_.emplace_back(recombination_rate);
-			//recombination_end_positions_.emplace_back(?);	// deferred; patched in Chromosome::InitializeDraws().
+			rates.emplace_back(recombination_rate);
+			//positions.emplace_back(?);	// deferred; patched in Chromosome::InitializeDraws().
 		}
-		else if (p_argument_count == 2)
+		else if (p_argument_count >= 2)
 		{
 			int end_count = arg1_value->Count();
 			
@@ -396,19 +518,19 @@ EidosValue_SP Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 			int64_t new_last_position = arg1_value->IntAtIndex(end_count - 1, nullptr);
 			
 			if (new_last_position != last_position_)
-				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() rate " << new_last_position << " noncomplient; the last interval must end at the last position of the chromosome (" << last_position_ << ")." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() rate " << new_last_position << " noncompliant; the last interval must end at the last position of the chromosome (" << last_position_ << ")." << eidos_terminate();
 			
 			// then adopt them
-			recombination_rates_.clear();
-			recombination_end_positions_.clear();
+			rates.clear();
+			positions.clear();
 			
 			for (int interval_index = 0; interval_index < end_count; ++interval_index)
 			{
 				double recombination_rate = arg0_value->FloatAtIndex(interval_index, nullptr);
 				slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(interval_index, nullptr));
 				
-				recombination_rates_.emplace_back(recombination_rate);
-				recombination_end_positions_.emplace_back(recombination_end_position);
+				rates.emplace_back(recombination_rate);
+				positions.emplace_back(recombination_end_position);
 			}
 		}
 		
@@ -470,8 +592,14 @@ const std::vector<const EidosPropertySignature *> *Chromosome_Class::Properties(
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_genomicElements));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_lastPosition));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_overallRecombinationRate));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_overallRecombinationRateM));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_overallRecombinationRateF));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_recombinationEndPositions));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_recombinationEndPositionsM));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_recombinationEndPositionsF));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_recombinationRates));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_recombinationRatesM));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_recombinationRatesF));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_geneConversionFraction));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_geneConversionMeanLength));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutationRate));
@@ -488,8 +616,14 @@ const EidosPropertySignature *Chromosome_Class::SignatureForProperty(EidosGlobal
 	static EidosPropertySignature *genomicElementsSig = nullptr;
 	static EidosPropertySignature *lastPositionSig = nullptr;
 	static EidosPropertySignature *overallRecombinationRateSig = nullptr;
+	static EidosPropertySignature *overallRecombinationRateMSig = nullptr;
+	static EidosPropertySignature *overallRecombinationRateFSig = nullptr;
 	static EidosPropertySignature *recombinationEndPositionsSig = nullptr;
+	static EidosPropertySignature *recombinationEndPositionsMSig = nullptr;
+	static EidosPropertySignature *recombinationEndPositionsFSig = nullptr;
 	static EidosPropertySignature *recombinationRatesSig = nullptr;
+	static EidosPropertySignature *recombinationRatesMSig = nullptr;
+	static EidosPropertySignature *recombinationRatesFSig = nullptr;
 	static EidosPropertySignature *geneConversionFractionSig = nullptr;
 	static EidosPropertySignature *geneConversionMeanLengthSig = nullptr;
 	static EidosPropertySignature *mutationRateSig = nullptr;
@@ -500,8 +634,14 @@ const EidosPropertySignature *Chromosome_Class::SignatureForProperty(EidosGlobal
 		genomicElementsSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElements,				gID_genomicElements,			true,	kEidosValueMaskObject, gSLiM_GenomicElement_Class));
 		lastPositionSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_lastPosition,				gID_lastPosition,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
 		overallRecombinationRateSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_overallRecombinationRate,	gID_overallRecombinationRate,	true,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
+		overallRecombinationRateMSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_overallRecombinationRateM,	gID_overallRecombinationRateM,	true,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
+		overallRecombinationRateFSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_overallRecombinationRateF,	gID_overallRecombinationRateF,	true,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
 		recombinationEndPositionsSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationEndPositions,	gID_recombinationEndPositions,	true,	kEidosValueMaskInt));
+		recombinationEndPositionsMSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationEndPositionsM,	gID_recombinationEndPositionsM,	true,	kEidosValueMaskInt));
+		recombinationEndPositionsFSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationEndPositionsF,	gID_recombinationEndPositionsF,	true,	kEidosValueMaskInt));
 		recombinationRatesSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationRates,			gID_recombinationRates,			true,	kEidosValueMaskFloat));
+		recombinationRatesMSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationRatesM,			gID_recombinationRatesM,		true,	kEidosValueMaskFloat));
+		recombinationRatesFSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationRatesF,			gID_recombinationRatesF,		true,	kEidosValueMaskFloat));
 		geneConversionFractionSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_geneConversionFraction,		gID_geneConversionFraction,		false,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
 		geneConversionMeanLengthSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_geneConversionMeanLength,	gID_geneConversionMeanLength,	false,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
 		mutationRateSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationRate,				gID_mutationRate,				false,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
@@ -511,15 +651,21 @@ const EidosPropertySignature *Chromosome_Class::SignatureForProperty(EidosGlobal
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_property_id)
 	{
-		case gID_genomicElements:			return genomicElementsSig;
-		case gID_lastPosition:				return lastPositionSig;
-		case gID_overallRecombinationRate:	return overallRecombinationRateSig;
-		case gID_recombinationEndPositions:	return recombinationEndPositionsSig;
-		case gID_recombinationRates:		return recombinationRatesSig;
-		case gID_geneConversionFraction:	return geneConversionFractionSig;
-		case gID_geneConversionMeanLength:	return geneConversionMeanLengthSig;
-		case gID_mutationRate:				return mutationRateSig;
-		case gID_tag:						return tagSig;
+		case gID_genomicElements:				return genomicElementsSig;
+		case gID_lastPosition:					return lastPositionSig;
+		case gID_overallRecombinationRate:		return overallRecombinationRateSig;
+		case gID_overallRecombinationRateM:		return overallRecombinationRateMSig;
+		case gID_overallRecombinationRateF:		return overallRecombinationRateFSig;
+		case gID_recombinationEndPositions:		return recombinationEndPositionsSig;
+		case gID_recombinationEndPositionsM:	return recombinationEndPositionsMSig;
+		case gID_recombinationEndPositionsF:	return recombinationEndPositionsFSig;
+		case gID_recombinationRates:			return recombinationRatesSig;
+		case gID_recombinationRatesM:			return recombinationRatesMSig;
+		case gID_recombinationRatesF:			return recombinationRatesFSig;
+		case gID_geneConversionFraction:		return geneConversionFractionSig;
+		case gID_geneConversionMeanLength:		return geneConversionMeanLengthSig;
+		case gID_mutationRate:					return mutationRateSig;
+		case gID_tag:							return tagSig;
 			
 			// all others, including gID_none
 		default:
@@ -547,7 +693,7 @@ const EidosMethodSignature *Chromosome_Class::SignatureForMethod(EidosGlobalStri
 	
 	if (!setRecombinationRateSig)
 	{
-		setRecombinationRateSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setRecombinationRate, kEidosValueMaskNULL))->AddNumeric("rates")->AddInt_O("ends");
+		setRecombinationRateSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setRecombinationRate, kEidosValueMaskNULL))->AddNumeric("rates")->AddInt_O("ends")->AddString_OS("sex");
 	}
 	
 	if (p_method_id == gID_setRecombinationRate)

@@ -141,11 +141,11 @@ Note that by default, all mutations of a given mutation type will be converted i
 \f0\fs18 T
 \f2\fs20 .
 \f1 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f0\fs18 \cf0 (void)initializeRecombinationRate(numeric\'a0rates, [integer\'a0ends])
+\f0\fs18 \cf0 (void)initializeRecombinationRate(numeric\'a0rates, [integer\'a0ends], [string$\'a0sex])
 \f1 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf0 Set the recombination rate per nucleotide per generation along the chromosome.  There are two ways to call this function.  If the optional 
 \f0\fs18 ends
@@ -167,11 +167,82 @@ Note that by default, all mutations of a given mutation type will be converted i
 \f0\fs18 ends
 \f2\fs20  should extend to the end of the chromosome (i.e. at least to the end of the last genomic element, if not further).  Note that a recombination rate of 1 centimorgan/Mbp corresponds to a recombination rate of 
 \f0\fs18 1e-8
-\f2\fs20  in the units used by SLiM.
-\f1\i \
+\f2\fs20  in the units used by SLiM.\
+For example, if the following call is made:\
+\pard\pardeftab397\ri720\partightenfactor0
+
+\f1 \cf0 	
+\f0\fs18 initializeRecombinationRate(c(0, 0.5, 0), c(5000, 5001, 9999));\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf0 then the result is that the recombination rates between bases 
+\f0\fs18 0
+\f1\fs20 \'a0
+\f2 /\'a0
+\f0\fs18 1
+\f2\fs20 , 
+\f0\fs18 1
+\f1\fs20 \'a0
+\f2 /\'a0
+\f0\fs18 2
+\f1\fs20 ,
+\f2  ..., 
+\f0\fs18 4999
+\f1\fs20 \'a0
+\f2 /\'a0
+\f0\fs18 5000
+\f2\fs20  will be 
+\f0\fs18 0
+\f2\fs20 , the rate between bases 
+\f0\fs18 5000
+\f1\fs20 \'a0
+\f2 /\'a0
+\f0\fs18 5001
+\f2\fs20  will be 
+\f0\fs18 0.5
+\f2\fs20 , and the rate between bases 
+\f0\fs18 5001
+\f1\fs20 \'a0
+\f2 /\'a0
+\f0\fs18 5002
+\f2\fs20  onward (up to 
+\f0\fs18 9998
+\f1\fs20 \'a0
+\f2 /\'a0
+\f0\fs18 9999
+\f2\fs20 ) will again be 
+\f0\fs18 0
+\f1\fs20 .
+\f2   Setting the recombination rate between one specific pair of bases to 
+\f0\fs18 0.5
+\f2\fs20  forces recombination to occur with a probability of 
+\f0\fs18 0.5
+\f2\fs20  between those bases, which effectively breaks the simulated locus into separate chromosomes at that point; this example effectively has one simulated chromosome from base position 
+\f0\fs18 0
+\f2\fs20  to 
+\f0\fs18 5000
+\f2\fs20 , and another from 
+\f0\fs18 5001
+\f2\fs20  to 
+\f0\fs18 9999
+\f1\fs20 .\
+
+\f2 If the 
+\f0\fs18 sex
+\f2\fs20  parameter is omitted or is 
+\f0\fs18 "*"
+\f2\fs20 , the supplied recombination rate map will be used for both sexes (which is the only option for hermaphroditic simulations).  In sexual simulations 
+\f0\fs18 sex
+\f2\fs20  may optionally be 
+\f0\fs18 "M"
+\f2\fs20  or 
+\f0\fs18 "F"
+\f2\fs20 , in which case the supplied recombination map is used only for that sex.  In this case, two calls must be made to 
+\f0\fs18 initializeRecombinationRate()
+\f2\fs20 , one for each sex, even if a rate of zero is desired for the other sex; no default recombination map is supplied.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f0\i0\fs18 \cf0 (void)initializeSex(string$\'a0chromosomeType, [numeric$\'a0xDominanceCoeff])
+\f0\fs18 \cf0 (void)initializeSex(string$\'a0chromosomeType, [numeric$\'a0xDominanceCoeff])
 \f1 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 

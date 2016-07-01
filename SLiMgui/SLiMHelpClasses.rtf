@@ -50,28 +50,111 @@
 \f0\fs20 \cf0 The mutation rate per nucleotide per generation, as specified by 
 \f2\fs18 initializeMutationRate()
 \f3\fs20 .\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 overallRecombinationRate => (float$)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 The overall recombination rate across the whole chromosome determining the overall number of recombination events that will occur anywhere in the chromosome, as calculated from the individual recombination ranges and rates.
+\f0\fs20 \cf0 The overall recombination rate across the whole chromosome determining the overall number of recombination events that will occur anywhere in the chromosome, as calculated from the individual recombination ranges and rates.  When using sex-specific recombination maps, this property will be 
+\f2\fs18 NULL
+\f0\fs20 ; see 
+\f2\fs18 overallRecombinationRateF
+\f0\fs20  and 
+\f2\fs18 overallRecombinationRateM
+\f3\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 overallRecombinationRateF => (float$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The overall recombination rate for females, when using sex-specific recombination maps; 
+\f2\fs18 NULL
+\f0\fs20  otherwise.  See 
+\f2\fs18 overallRecombinationRate
+\f0\fs20  for further explanation.
 \f3 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 overallRecombinationRateM => (float$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The overall recombination rate for males, when using sex-specific recombination maps; 
+\f2\fs18 NULL
+\f0\fs20  otherwise.  See 
+\f2\fs18 overallRecombinationRate
+\f0\fs20  for further explanation.
+\f3 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 recombinationEndPositions => (integer)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 The end positions for recombination regions along the chromosome.  Each recombination region is assumed to start at the position following the end of the previous recombination region; in other words, the regions are assumed to be contiguous.
+\f0\fs20 \cf0 The end positions for recombination regions along the chromosome.  Each recombination region is assumed to start at the position following the end of the previous recombination region; in other words, the regions are assumed to be contiguous.  When using sex-specific recombination maps, this property will be 
+\f2\fs18 NULL
+\f0\fs20 ; see 
+\f2\fs18 recombinationEndPositionsF
+\f0\fs20  and 
+\f2\fs18 recombinationEndPositionsM
+\f3\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 recombinationEndPositionsF => (integer)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The end positions for recombination regions for females, when using sex-specific recombination maps; 
+\f2\fs18 NULL
+\f0\fs20  otherwise.  See 
+\f2\fs18 recombinationEndPositions
+\f0\fs20  for further explanation.
 \f3 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 recombinationEndPositionsM => (integer)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The end positions for recombination regions for males, when using sex-specific recombination maps; 
+\f2\fs18 NULL
+\f0\fs20  otherwise.  See 
+\f2\fs18 recombinationEndPositions
+\f0\fs20  for further explanation.
+\f3 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 recombinationRates => (float)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 The recombination rate for each of the recombination regions specified by 
 \f2\fs18 recombinationEndPositions
+\f3\fs20 .
+\f0   When using sex-specific recombination maps, this property will be 
+\f2\fs18 NULL
+\f0\fs20 ; see 
+\f2\fs18 recombinationRatesF
+\f0\fs20  and 
+\f2\fs18 recombinationRatesM
 \f3\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 recombinationRatesF => (float)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The recombination rate for each of the recombination regions specified by 
+\f2\fs18 recombinationEndPositionsF
+\f0\fs20 , when using sex-specific recombination maps; 
+\f2\fs18 NULL
+\f0\fs20  otherwise.
+\f3 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 recombinationRatesM => (float)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The recombination rate for each of the recombination regions specified by 
+\f2\fs18 recombinationEndPositionsM
+\f0\fs20 , when using sex-specific recombination maps; 
+\f2\fs18 NULL
+\f0\fs20  otherwise.
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 tag <\'96> (integer$)\
@@ -90,11 +173,11 @@
 \f0\i\fs22 \cf0 5.2.2  
 \f1\fs18 Chromosome
 \f0\fs22  methods\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\i0\fs18 \cf0 \'96\'a0(void)setRecombinationRate(numeric\'a0rates, [integer\'a0ends])
+\f2\i0\fs18 \cf0 \'96\'a0(void)setRecombinationRate(numeric\'a0rates, [integer\'a0ends], [string$\'a0sex])
 \f3 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Set the recombination rate per nucleotide per generation along the chromosome.  There are two ways to call this function.  If the optional 
 \f2\fs18 ends
@@ -114,7 +197,29 @@
 \f2\fs18 ends
 \f0\fs20  taken together specify the recombination rates to be used along successive contiguous stretches of the chromosome, from beginning to end; the last position specified in 
 \f2\fs18 ends
-\f0\fs20  should extend to the end of the chromosome (i.e. to exactly the same length as the previously specified recombination intervals extended to).  The recombination intervals are normally a constant in simulations, so be sure you know what you are doing.\
+\f0\fs20  should extend to the end of the chromosome (i.e. to exactly the same length as the previously specified recombination intervals extended to).  See the 
+\f2\fs18 initializeRecombinationRate()
+\f0\fs20  function for further discussion of precisely how these rates and positions are interpreted.\
+If the 
+\f2\fs18 sex
+\f0\fs20  parameter is omitted or is 
+\f2\fs18 "*"
+\f0\fs20 , the supplied recombination rate map will be used for both sexes (which is the only option for hermaphroditic simulations).  In sexual simulations 
+\f2\fs18 sex
+\f0\fs20  may optionally be 
+\f2\fs18 "M"
+\f0\fs20  or 
+\f2\fs18 "F"
+\f0\fs20 , in which case the supplied recombination map is used only for that sex.  Note that whether sex-specific recombination maps will be used is set by the way that the simulation is initially configured with 
+\f2\fs18 initializeRecombinationRate()
+\f0\fs20 , and cannot be changed with this method; so if the simulation was set up to use sex-specific maps then sex must be 
+\f2\fs18 "M"
+\f0\fs20  or 
+\f2\fs18 "F"
+\f0\fs20  here, whereas if it was set up not to, then sex must be 
+\f2\fs18 "*"
+\f0\fs20  or unsupplied here.  If a simulation needs sex-specific recombination maps only some of the time, the male and female maps can simply be set to be identical the rest of the time.\
+The recombination intervals are normally a constant in simulations, so be sure you know what you are doing.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
 \b\fs22 \cf0 5.3  Class Genome\

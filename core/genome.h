@@ -90,7 +90,7 @@ public:
 	Genome(GenomeType p_genome_type_, bool p_is_null);		// a constructor for parent/child genomes, particularly in the SEX ONLY case
 	~Genome(void);
 	
-	void NullGenomeAccessError(void) const;							// prints an error message, a stacktrace, and exits; called only for DEBUG
+	void NullGenomeAccessError(void) const __attribute__((__noreturn__)) __attribute__((cold));		// prints an error message, a stacktrace, and exits; called only for DEBUG
 	
 	inline bool IsNull(void) const									// returns true if the genome is a null (placeholder) genome, false otherwise
 	{
