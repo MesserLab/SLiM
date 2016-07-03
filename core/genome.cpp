@@ -512,7 +512,12 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 				Mutation *mutation = new (gSLiM_Mutation_Pool->AllocateChunk()) Mutation(mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_generation);
 				
 				insert_sorted_mutation(mutation);
-				sim->ThePopulation().mutation_registry_.emplace_back(mutation);
+				
+				// Update the population's registry and cache information
+				Population &pop = sim->ThePopulation();
+				
+				pop.mutation_registry_.emplace_back(mutation);
+				pop.cached_genome_count_ = 0;
 				
 				// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
 				if (selection_coeff != 0.0)
@@ -603,7 +608,12 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 				Mutation *mutation = new (gSLiM_Mutation_Pool->AllocateChunk()) Mutation(mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_generation);
 				
 				insert_sorted_mutation(mutation);
-				sim->ThePopulation().mutation_registry_.emplace_back(mutation);
+				
+				// Update the population's registry and cache information
+				Population &pop = sim->ThePopulation();
+				
+				pop.mutation_registry_.emplace_back(mutation);
+				pop.cached_genome_count_ = 0;
 				
 				// Since the selection coefficient was chosen by the user, we need to check and set pure_neutral_
 				if (selection_coeff != 0.0)

@@ -406,6 +406,8 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			pure_neutral_ = false;
 	}
 	
+	population_.cached_genome_count_ = 0;
+	
 	// If there is an Individuals section (added in SLiM 2.0), we skip it; we don't need any of the information that it gives, it is mainly for human readability
 	if (line.find("Individuals") != string::npos)
 	{
@@ -827,6 +829,8 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		if (selection_coeff != 0.0)
 			pure_neutral_ = false;
 	}
+	
+	population_.cached_genome_count_ = 0;
 	
 	if (p + sizeof(section_end_tag) > buf_end)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unexpected EOF after mutations." << eidos_terminate();
