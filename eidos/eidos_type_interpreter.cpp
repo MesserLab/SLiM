@@ -745,14 +745,19 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_For(const EidosASTNode *p_
 		EidosTypeSpecifier range_type = TypeEvaluateNode(range_node);
 		
 		// we require an identifier to assign into; I toyed with allowing any lvalue, but that is kind of weird / complicated...
-		if (identifier_child->token_->token_type_ != EidosTokenType::kTokenIdentifier)
-			return result_type;
-		
-		EidosGlobalStringID identifier_name = identifier_child->cached_stringID_;
-		
-		if (!defines_only_)
-			global_symbols_.SetTypeForSymbol(identifier_name, range_type);
+		if (identifier_child->token_->token_type_ == EidosTokenType::kTokenIdentifier)
+		{
+			if (!defines_only_)
+			{
+				EidosGlobalStringID identifier_name = identifier_child->cached_stringID_;
+				
+				global_symbols_.SetTypeForSymbol(identifier_name, range_type);
+			}
+		}
 	}
+	
+	if (p_node->children_.size() >= 3)
+		TypeEvaluateNode(p_node->children_[2]);
 	
 	return result_type;
 }
