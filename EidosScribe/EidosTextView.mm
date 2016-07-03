@@ -1370,9 +1370,15 @@ using std::string;
 {
 	NSArray *completions = nil;
 	
-	//std::cout << "<<<<<<<<<<<<<< completionsForPartialWordRange: START" << std::endl;
+#if EIDOS_DEBUG_COMPLETION
+	std::cout << "<<<<<<<<<<<<<< completionsForPartialWordRange: START" << std::endl;
+#endif
+	
 	[self _completionHandlerWithRangeForCompletion:NULL completions:&completions];
-	//std::cout << "<<<<<<<<<<<<<< completionsForPartialWordRange: END" << std::endl;
+	
+#if EIDOS_DEBUG_COMPLETION
+	std::cout << "<<<<<<<<<<<<<< completionsForPartialWordRange: END" << std::endl;
+#endif
 	
 	return completions;
 }
@@ -1381,9 +1387,15 @@ using std::string;
 {
 	NSRange baseRange = NSMakeRange(NSNotFound, 0);
 	
-	//std::cout << "<<<<<<<<<<<<<< rangeForUserCompletion: START" << std::endl;
+#if EIDOS_DEBUG_COMPLETION
+	std::cout << "<<<<<<<<<<<<<< rangeForUserCompletion: START" << std::endl;
+#endif
+	
 	[self _completionHandlerWithRangeForCompletion:&baseRange completions:NULL];
-	//std::cout << "<<<<<<<<<<<<<< rangeForUserCompletion: END" << std::endl;
+	
+#if EIDOS_DEBUG_COMPLETION
+	std::cout << "<<<<<<<<<<<<<< rangeForUserCompletion: END" << std::endl;
+#endif
 	
 	return baseRange;
 }
@@ -1829,28 +1841,37 @@ using std::string;
 			
 			// Next, add type table entries based on parsing and analysis of the user's code
 			EidosScript script(script_string);
-			//std::cout << "Eidos script:\n" << script_string << std::endl << std::endl;
+			
+#if EIDOS_DEBUG_COMPLETION
+			std::cout << "Eidos script:\n" << script_string << std::endl << std::endl;
+#endif
 			
 			script.Tokenize(true, false);				// make bad tokens as needed, do not keep nonsignificant tokens
 			script.ParseInterpreterBlockToAST(true);	// make bad nodes as needed (i.e. never raise, and produce a correct tree)
 			
-			//std::ostringstream parse_stream;
-			//script.PrintAST(parse_stream);
-			//std::cout << "Eidos AST:\n" << parse_stream.str() << std::endl << std::endl;
+#if EIDOS_DEBUG_COMPLETION
+			std::ostringstream parse_stream;
+			script.PrintAST(parse_stream);
+			std::cout << "Eidos AST:\n" << parse_stream.str() << std::endl << std::endl;
+#endif
 			
 			EidosTypeInterpreter typeInterpreter(script, *typeTablePtr, *functionMapPtr);
 			
 			typeInterpreter.TypeEvaluateInterpreterBlock();	// result not used
 		}
 		
-		//std::cout << "Type table:\n" << *typeTablePtr << std::endl;
+#if EIDOS_DEBUG_COMPLETION
+		std::cout << "Type table:\n" << *typeTablePtr << std::endl;
+#endif
 		
 		// Tokenize; we can't use the tokenization done above, as we want whitespace tokens here...
 		EidosScript script(script_string);
 		script.Tokenize(true, true);	// make bad tokens as needed, keep nonsignificant tokens
 		
-		//std::cout << "Eidos token stream:" << std::endl;
-		//script.PrintTokens(std::cout);
+#if EIDOS_DEBUG_COMPLETION
+		std::cout << "Eidos token stream:" << std::endl;
+		script.PrintTokens(std::cout);
+#endif
 		
 		const std::vector<EidosToken> &tokens = script.Tokens();
 		int lastTokenIndex = (int)tokens.size() - 1;

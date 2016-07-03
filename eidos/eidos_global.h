@@ -66,6 +66,15 @@ extern int gEidosErrorLine, gEidosErrorLineCharacter;	// set up by eidos_termina
 
 // *******************************************************************************************************************
 //
+//	Debugging support
+//
+
+// Debugging #defines that can be turned on
+#define EIDOS_DEBUG_COMPLETION	0	// turn on to log information about symbol types whenever doing code completion
+
+
+// *******************************************************************************************************************
+//
 //	Memory usage monitoring
 //
 

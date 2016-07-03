@@ -2002,15 +2002,19 @@
 		std::string script_string([completionScriptString UTF8String]);
 		SLiMEidosScript script(script_string);
 		
-		//std::cout << "SLiM script:\n" << script_string << std::endl << std::endl;
+#if EIDOS_DEBUG_COMPLETION
+		std::cout << "SLiM script:\n" << script_string << std::endl << std::endl;
+#endif
 		
 		// Parse, an "interpreter block" bounded by an EOF rather than a "script block" that requires braces
 		script.Tokenize(true, false);				// make bad tokens as needed, do not keep nonsignificant tokens
 		script.ParseSLiMFileToAST(true);			// make bad nodes as needed (i.e. never raise, and produce a correct tree)
 		
-		//std::ostringstream parse_stream;
-		//script.PrintAST(parse_stream);
-		//std::cout << "SLiM AST:\n" << parse_stream.str() << std::endl << std::endl;
+#if EIDOS_DEBUG_COMPLETION
+		std::ostringstream parse_stream;
+		script.PrintAST(parse_stream);
+		std::cout << "SLiM AST:\n" << parse_stream.str() << std::endl << std::endl;
+#endif
 		
 		// Substitute a type table of class SLiMTypeTable and add any defined symbols to it.  We use SLiMTypeTable so that
 		// variables like pX, gX, mX, and sX have a known object type even if they are not presently defined in the simulation.
