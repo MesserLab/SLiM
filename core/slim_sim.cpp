@@ -1475,7 +1475,17 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		chromosome_changed_ = true;
 		
 		if (DEBUG_INPUT)
-			output_stream << "initializeGenomicElement(g" << genomic_element_type_ptr->genomic_element_type_id_ << ", " << start_position << ", " << end_position << ");" << endl;
+		{
+			if (ABBREVIATE_DEBUG_INPUT && (num_genomic_elements_ > 99))
+			{
+				if (num_genomic_elements_ == 100)
+					output_stream << "(...more initializeGenomicElement() calls omitted...)" << endl;
+			}
+			else
+			{
+				output_stream << "initializeGenomicElement(g" << genomic_element_type_ptr->genomic_element_type_id_ << ", " << start_position << ", " << end_position << ");" << endl;
+			}
+		}
 		
 		num_genomic_elements_++;
 	}
@@ -1556,12 +1566,20 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		
 		if (DEBUG_INPUT)
 		{
-			output_stream << "initializeGenomicElementType(" << map_identifier;
-			
-			for (int mut_type_index = 0; mut_type_index < mut_type_id_count; ++mut_type_index)
-				output_stream << ", " << mutation_types[mut_type_index]->mutation_type_id_ << ", " << arg2_value->FloatAtIndex(mut_type_index, nullptr);
-			
-			output_stream << ");" << endl;
+			if (ABBREVIATE_DEBUG_INPUT && (num_genomic_element_types_ > 99))
+			{
+				if (num_genomic_element_types_ == 100)
+					output_stream << "(...more initializeGenomicElementType() calls omitted...)" << endl;
+			}
+			else
+			{
+				output_stream << "initializeGenomicElementType(" << map_identifier;
+				
+				for (int mut_type_index = 0; mut_type_index < mut_type_id_count; ++mut_type_index)
+					output_stream << ", " << mutation_types[mut_type_index]->mutation_type_id_ << ", " << arg2_value->FloatAtIndex(mut_type_index, nullptr);
+				
+				output_stream << ");" << endl;
+			}
 		}
 		
 		num_genomic_element_types_++;
@@ -1668,20 +1686,28 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		
 		if (DEBUG_INPUT)
 		{
-			output_stream << "initializeMutationType(" << map_identifier << ", " << dominance_coeff << ", \"" << dfe_type << "\"";
-			
-			if (numericParams)
+			if (ABBREVIATE_DEBUG_INPUT && (num_mutation_types_ > 99))
 			{
-				for (double dfe_param : dfe_parameters)
-					output_stream << ", " << dfe_param;
+				if (num_mutation_types_ == 100)
+					output_stream << "(...more initializeMutationType() calls omitted...)" << endl;
 			}
 			else
 			{
-				for (std::string dfe_param : dfe_strings)
-					output_stream << ", \"" << dfe_param << "\"";
+				output_stream << "initializeMutationType(" << map_identifier << ", " << dominance_coeff << ", \"" << dfe_type << "\"";
+				
+				if (numericParams)
+				{
+					for (double dfe_param : dfe_parameters)
+						output_stream << ", " << dfe_param;
+				}
+				else
+				{
+					for (std::string dfe_param : dfe_strings)
+						output_stream << ", \"" << dfe_param << "\"";
+				}
+				
+				output_stream << ");" << endl;
 			}
-			
-			output_stream << ");" << endl;
 		}
 		
 		num_mutation_types_++;
