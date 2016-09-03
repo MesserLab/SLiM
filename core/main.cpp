@@ -32,11 +32,11 @@
 #include "slim_test.h"
 
 
-void PrintUsageAndDie(bool p_fullOutput);
+void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage);
 
-void PrintUsageAndDie(bool p_fullOutput)
+void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 {
-	if (p_fullOutput)
+	if (p_print_header)
 	{
 		SLIM_OUTSTREAM << "SLiM version 2.0.4, built " << __DATE__ << " " __TIME__ << "." << std::endl << std::endl;	// SLIM VERSION
 		
@@ -66,9 +66,25 @@ void PrintUsageAndDie(bool p_fullOutput)
 		SLIM_OUTSTREAM << "---------------------------------------------------------------------------------" << std::endl << std::endl;
 	}
 	
-	SLIM_OUTSTREAM << "usage: slim -version | -usage | -testEidos | -testSLiM | [-seed <seed>] [-time] [-mem] [-Memhist] [-x] <script file>" << std::endl;
+	SLIM_OUTSTREAM << "usage: slim -version | -usage | -testEidos | -testSLiM |" << std::endl;
+	SLIM_OUTSTREAM << "   [-seed <seed>] [-time] [-mem] [-Memhist] [-x] <script file>" << std::endl;
 	
-	if (p_fullOutput)
+	if (p_print_full_usage)
+	{
+		SLIM_OUTSTREAM << std::endl;
+		SLIM_OUTSTREAM << "   -v[ersion]       : print SLiM's version information" << std::endl;
+		SLIM_OUTSTREAM << "   -u[sage]         : print command-line usage help" << std::endl;
+		SLIM_OUTSTREAM << "   -testEidos | -te : run built-in self-diagnostic tests of Eidos" << std::endl;
+		SLIM_OUTSTREAM << "   -testSLiM | -ts  : run built-in self-diagnostic tests of SLiM" << std::endl;
+		SLIM_OUTSTREAM << std::endl;
+		SLIM_OUTSTREAM << "   -s[eed] <seed>   : supply an initial random number seed for SLiM" << std::endl;
+		SLIM_OUTSTREAM << "   -t[ime]          : print SLiM's total execution time (in user clock time)" << std::endl;
+		SLIM_OUTSTREAM << "   -m[em]           : print SLiM's peak memory usage" << std::endl;
+		SLIM_OUTSTREAM << "   -M[emhist]       : print a histogram of SLiM's memory usage" << std::endl;
+		SLIM_OUTSTREAM << "   -x               : disable SLiM's runtime safety/consistency checks" << std::endl;
+	}
+	
+	if (p_print_header || p_print_full_usage)
 		SLIM_OUTSTREAM << std::endl;
 	
 	exit(0);
@@ -86,7 +102,7 @@ int main(int argc, char *argv[])
 	gEidosTerminateThrows = false;
 	
 	if (argc == 1)
-		PrintUsageAndDie(true);
+		PrintUsageAndDie(true, true);
 	
 	for (int arg_index = 1; arg_index < argc; ++arg_index)
 	{
@@ -96,7 +112,7 @@ int main(int argc, char *argv[])
 		if (strcmp(arg, "-seed") == 0 || strcmp(arg, "-s") == 0)
 		{
 			if (++arg_index == argc)
-				PrintUsageAndDie(false);
+				PrintUsageAndDie(false, true);
 			
 			override_seed = strtol(argv[arg_index], NULL, 10);
 			override_seed_ptr = &override_seed;
@@ -166,18 +182,18 @@ int main(int argc, char *argv[])
 		
 		// -usage or -u: print usage information
 		if (strcmp(arg, "-usage") == 0 || strcmp(arg, "-u") == 0 || strcmp(arg, "-?") == 0)
-			PrintUsageAndDie(false);
+			PrintUsageAndDie(false, true);
 		
 		// this is the fall-through, which should be the input file, and should be the last argument given
 		if (arg_index + 1 != argc)
-			PrintUsageAndDie(false);
+			PrintUsageAndDie(false, true);
 		
 		input_file = argv[arg_index];
 	}
 	
 	// check that we got what we need
 	if (!input_file)
-		PrintUsageAndDie(false);
+		PrintUsageAndDie(false, true);
 	
 	// announce if we are running a debug build or are skipping runtime checks
 #ifdef DEBUG
