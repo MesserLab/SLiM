@@ -306,13 +306,13 @@ Calling this will normally affect the fitness values calculated at the end of th
 \f0\fs20 \'92s method 
 \f2\fs18 recalculateFitness()
 \f0\fs20  \'96 but see the documentation of that method for caveats.\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(object<Mutation>$)addNewDrawnMutation(io<MutationType>$\'a0mutationType, integer$\'a0position, [Ni$\'a0originGeneration], [io<Subpopulation>$\'a0originSubpop])
+\f2\fs18 \cf0 +\'a0(object<Mutation>$)addNewDrawnMutation(io<MutationType>$\'a0mutationType, integer$\'a0position, [Ni$\'a0originGeneration], [io<Subpopulation>$\'a0originSubpop])
 \f3 \
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 Add a new mutation to the genome with the specified 
+\f0\fs20 \cf0 Add a new mutation to the target genome(s) with the specified 
 \f2\fs18 mutationType
 \f0\fs20  (specified by the 
 \f2\fs18 MutationType
@@ -330,38 +330,43 @@ Calling this will normally affect the fitness values calculated at the end of th
 \f2\fs18 Subpopulation
 \f0\fs20  object or by 
 \f2\fs18 integer
-\f0\fs20  identifier, or may be missing to specify the subpopulation to which the target genome belongs).  If 
+\f0\fs20  identifier, or may be missing to specify the subpopulation to which the first target genome belongs).  If 
 \f2\fs18 originSubpop
 \f0\fs20  is supplied as an 
 \f2\fs18 integer
 \f0\fs20 , it is intentionally not checked for validity; you may use arbitrary values of 
 \f2\fs18 originSubpop
-\f0\fs20  to \'93tag\'94 the mutations that you create.  The selection coefficient of the mutation is drawn from the mutation type.  The new mutation is returned (unless the addition is prevented by the mutation stacking policy, in which case 
+\f0\fs20  to \'93tag\'94 the mutations that you create (see section 17
+\f3 .
+\f0 7.1).  The selection coefficient of the mutation is drawn from the mutation type.  The new mutation is returned (unless the addition is prevented by the mutation stacking policy, in which case 
 \f2\fs18 NULL
 \f0\fs20  is returned; see the 
 \f2\fs18 mutationStackPolicy
 \f0\fs20  property of 
 \f2\fs18 MutationType
-\f0\fs20 ).\
-Note that if you wish to add the same new mutation to multiple genomes, you should call 
+\f0\fs20 , section 17
+\f3 .
+\f0 8.1).\
+Beginning in SLiM 2.1, this is a class method, not an instance method.  This means that it does not get multiplexed out to all of the elements of the receiver (which would add a different new mutation to each element); instead, it is performed as a single operation, adding the same new mutation object to all of the elements of the receiver.  Before SLiM 2.1, to add the same mutation to multiple genomes, it was necessary to call 
 \f2\fs18 addNewDrawnMutation()
 \f0\fs20  on one of the genomes, and then add the returned 
 \f2\fs18 Mutation
 \f0\fs20  object to all of the other genomes using 
 \f2\fs18 addMutations()
-\f0\fs20 ; calling 
-\f2\fs18 addNewDrawnMutation()
-\f0\fs20  on a vector containing multiple genomes will generate a different drawn mutation object for each genome, since method calls get multiplexed out to all of the elements of the vector (see the Eidos manual).\
+\f3\fs20 .
+\f0   That is not necessary in SLiM 2.1 and later, because of this change (although doing it the old way does no harm and produces identical behavior).  Pre-2.1 code that actually relied upon the old multiplexing behavior will no longer work correctly (but this is expected to be an extremely rare pattern of usage); such code should be converted to add the new mutations using a 
+\f2\fs18 for
+\f0\fs20  loop.\
 Calling this will normally affect the fitness values calculated at the end of the current generation (but not sooner); if you want current fitness values to be affected, you can call 
 \f2\fs18 SLiMSim
 \f0\fs20 \'92s method 
 \f2\fs18 recalculateFitness()
 \f0\fs20  \'96 but see the documentation of that method for caveats.\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(object<Mutation>$)addNewMutation(io<MutationType>$\'a0mutationType, numeric$\'a0selectionCoeff, integer$\'a0position, [Ni$\'a0originGeneration], [io<Subpopulation>$\'a0originSubpop])
+\f2\fs18 \cf0 +\'a0(object<Mutation>$)addNewMutation(io<MutationType>$\'a0mutationType, numeric$\'a0selectionCoeff, integer$\'a0position, [Ni$\'a0originGeneration], [io<Subpopulation>$\'a0originSubpop])
 \f3 \
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Add a new mutation to the genome with the specified 
 \f2\fs18 mutationType
@@ -389,22 +394,29 @@ Calling this will normally affect the fitness values calculated at the end of th
 \f2\fs18 integer
 \f0\fs20 , it is intentionally not checked for validity; you may use arbitrary values of 
 \f2\fs18 originSubpop
-\f0\fs20  to \'93tag\'94 the mutations that you create.  The new mutation is returned (unless the addition is prevented by the mutation stacking policy, in which case 
+\f0\fs20  to \'93tag\'94 the mutations that you create (see section 17
+\f3 .
+\f0 7.1).  The new mutation is returned (unless the addition is prevented by the mutation stacking policy, in which case 
 \f2\fs18 NULL
 \f0\fs20  is returned; see the 
 \f2\fs18 mutationStackPolicy
 \f0\fs20  property of 
 \f2\fs18 MutationType
-\f0\fs20 ).\
-Note that if you wish to add the same new mutation to multiple genomes, you should call 
+\f0\fs20 , section 17
+\f3 .
+\f0 8.1).
+\f3 \
+
+\f0 Beginning in SLiM 2.1, this is a class method, not an instance method.  This means that it does not get multiplexed out to all of the elements of the receiver (which would add a different new mutation to each element); instead, it is performed as a single operation, adding the same new mutation object to all of the elements of the receiver.  Before SLiM 2.1, to add the same mutation to multiple genomes, it was necessary to call 
 \f2\fs18 addNewMutation()
 \f0\fs20  on one of the genomes, and then add the returned 
 \f2\fs18 Mutation
 \f0\fs20  object to all of the other genomes using 
 \f2\fs18 addMutations()
-\f0\fs20 ; calling 
-\f2\fs18 addNewMutation()
-\f0\fs20  on a vector containing multiple genomes will generate a different mutation object for each genome, since method calls get multiplexed out to all of the elements of the vector (see the Eidos manual).\
+\f3\fs20 .
+\f0   That is not necessary in SLiM 2.1 and later, because of this change (although doing it the old way does no harm and produces identical behavior).  Pre-2.1 code that actually relied upon the old multiplexing behavior will no longer work correctly (but this is expected to be an extremely rare pattern of usage); such code should be converted to add the new mutations using a 
+\f2\fs18 for
+\f0\fs20  loop.\
 Calling this will normally affect the fitness values calculated at the end of the current generation (but not sooner); if you want current fitness values to be affected, you can call 
 \f2\fs18 SLiMSim
 \f0\fs20 \'92s method 

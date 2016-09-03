@@ -385,10 +385,7 @@ void Genome::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_
 EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0].get() : nullptr);
-	EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1].get() : nullptr);
-	EidosValue *arg2_value = ((p_argument_count >= 3) ? p_arguments[2].get() : nullptr);
-	EidosValue *arg3_value = ((p_argument_count >= 4) ? p_arguments[3].get() : nullptr);
-	EidosValue *arg4_value = ((p_argument_count >= 5) ? p_arguments[4].get() : nullptr);
+	//EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1].get() : nullptr);
 	
 
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -435,198 +432,6 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			
 			return gStaticEidosValueNULLInvisible;
 		}
-			
-			
-			//
-			//	*********************	- (object<Mutation>)addNewDrawnMutation(io<MutationType>$ mutationType, integer$ position, [Ni$ originGeneration], [io<Subpopulation>$ originSubpop])
-			//
-#pragma mark -addNewDrawnMutation()
-			
-		case gID_addNewDrawnMutation:
-		{
-			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
-			
-			if (!sim)
-				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
-			
-			if ((sim->GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim->warned_early_mutation_add_))
-			{
-				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome::ExecuteInstanceMethod): addNewDrawnMutation() should probably not be called from an early() event; the added mutation will not influence fitness values during offspring generation." << std::endl;
-				sim->warned_early_mutation_add_ = true;
-			}
-			
-			MutationType *mutation_type_ptr = nullptr;
-			
-			if (arg0_value->Type() == EidosValueType::kValueInt)
-			{
-				slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
-				auto found_muttype_pair = sim->MutationTypes().find(mutation_type_id);
-				
-				if (found_muttype_pair != sim->MutationTypes().end())
-					mutation_type_ptr = found_muttype_pair->second;
-				
-				if (!mutation_type_ptr)
-					EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): addNewDrawnMutation() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
-			}
-			else
-			{
-				mutation_type_ptr = dynamic_cast<MutationType *>(arg0_value->ObjectElementAtIndex(0, nullptr));
-			}
-			
-			slim_position_t position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));
-			
-			if (position > sim->TheChromosome().last_position_)
-				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): addNewDrawnMutation() position " << position << " is past the end of the chromosome." << eidos_terminate();
-			
-			slim_generation_t origin_generation;
-			
-			if (!arg2_value || (arg2_value->Type() == EidosValueType::kValueNULL))
-				origin_generation = sim->Generation();
-			else
-				origin_generation = SLiMCastToGenerationTypeOrRaise(arg2_value->IntAtIndex(0, nullptr));
-			
-			slim_objectid_t origin_subpop_id;
-			
-			if (!arg3_value)
-			{
-				Population &pop = sim->ThePopulation();
-				
-				origin_subpop_id = -1;
-				
-				for (auto subpop_iter = pop.begin(); subpop_iter != pop.end(); subpop_iter++)
-					if (subpop_iter->second->ContainsGenome(this))
-						origin_subpop_id = subpop_iter->second->subpopulation_id_;
-				
-				if (origin_subpop_id == -1)
-					EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): addNewDrawnMutation() could not locate the subpopulation for the target genome." << eidos_terminate();
-			}
-			else if (arg3_value->Type() == EidosValueType::kValueInt)
-				origin_subpop_id = SLiMCastToObjectidTypeOrRaise(arg3_value->IntAtIndex(0, nullptr));
-			else
-				origin_subpop_id = dynamic_cast<Subpopulation *>(arg3_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
-			
-			// Generate and add the new mutation
-			if (enforce_stack_policy_for_addition(position, mutation_type_ptr))
-			{
-				double selection_coeff = mutation_type_ptr->DrawSelectionCoefficient();
-				Mutation *mutation = new (gSLiM_Mutation_Pool->AllocateChunk()) Mutation(mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_generation);
-				
-				insert_sorted_mutation(mutation);
-				
-				// Update the population's registry and cache information
-				Population &pop = sim->ThePopulation();
-				
-				pop.mutation_registry_.emplace_back(mutation);
-				pop.cached_genome_count_ = 0;
-				
-				// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
-				if (selection_coeff != 0.0)
-					sim->pure_neutral_ = false;
-				
-				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(mutation, gSLiM_Mutation_Class));
-			}
-			else
-			{
-				return gStaticEidosValueNULLInvisible;
-			}
-		}
-			
-			
-			//
-			//	*********************	- (object<Mutation>)addNewMutation(io<MutationType>$ mutationType, numeric$ selectionCoeff, integer$ position, [Ni$ originGeneration], [io<Subpopulation>$ originSubpop])
-			//
-#pragma mark -addNewMutation()
-			
-		case gID_addNewMutation:
-		{
-			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
-			
-			if (!sim)
-				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
-			
-			if ((sim->GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim->warned_early_mutation_add_))
-			{
-				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome::ExecuteInstanceMethod): addNewMutation() should probably not be called from an early() event; the added mutation will not influence fitness values during offspring generation." << std::endl;
-				sim->warned_early_mutation_add_ = true;
-			}
-			
-			MutationType *mutation_type_ptr = nullptr;
-			
-			if (arg0_value->Type() == EidosValueType::kValueInt)
-			{
-				slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
-				auto found_muttype_pair = sim->MutationTypes().find(mutation_type_id);
-				
-				if (found_muttype_pair != sim->MutationTypes().end())
-					mutation_type_ptr = found_muttype_pair->second;
-				
-				if (!mutation_type_ptr)
-					EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): addNewMutation() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
-			}
-			else
-			{
-				mutation_type_ptr = dynamic_cast<MutationType *>(arg0_value->ObjectElementAtIndex(0, nullptr));
-			}
-			
-			double selection_coeff = arg1_value->FloatAtIndex(0, nullptr);
-			
-			slim_position_t position = SLiMCastToPositionTypeOrRaise(arg2_value->IntAtIndex(0, nullptr));
-			
-			if (position > sim->TheChromosome().last_position_)
-				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): addNewMutation() position " << position << " is past the end of the chromosome." << eidos_terminate();
-			
-			slim_generation_t origin_generation;
-			
-			if (!arg3_value || (arg3_value->Type() == EidosValueType::kValueNULL))
-				origin_generation = sim->Generation();
-			else
-				origin_generation = SLiMCastToGenerationTypeOrRaise(arg3_value->IntAtIndex(0, nullptr));
-			
-			slim_objectid_t origin_subpop_id;
-			
-			if (!arg4_value)
-			{
-				Population &pop = sim->ThePopulation();
-				
-				origin_subpop_id = -1;
-				
-				for (auto subpop_iter = pop.begin(); subpop_iter != pop.end(); subpop_iter++)
-					if (subpop_iter->second->ContainsGenome(this))
-						origin_subpop_id = subpop_iter->second->subpopulation_id_;
-				
-				if (origin_subpop_id == -1)
-					EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): addNewMutation() could not locate the subpopulation for the target genome." << eidos_terminate();
-			}
-			else if (arg4_value->Type() == EidosValueType::kValueInt)
-				origin_subpop_id = SLiMCastToObjectidTypeOrRaise(arg4_value->IntAtIndex(0, nullptr));
-			else
-				origin_subpop_id = dynamic_cast<Subpopulation *>(arg4_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
-			
-			// Generate and add the new mutation
-			if (enforce_stack_policy_for_addition(position, mutation_type_ptr))
-			{
-				Mutation *mutation = new (gSLiM_Mutation_Pool->AllocateChunk()) Mutation(mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_generation);
-				
-				insert_sorted_mutation(mutation);
-				
-				// Update the population's registry and cache information
-				Population &pop = sim->ThePopulation();
-				
-				pop.mutation_registry_.emplace_back(mutation);
-				pop.cached_genome_count_ = 0;
-				
-				// Since the selection coefficient was chosen by the user, we need to check and set pure_neutral_
-				if (selection_coeff != 0.0)
-					sim->pure_neutral_ = false;
-				
-				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(mutation, gSLiM_Mutation_Class));
-			}
-			else
-			{
-				return gStaticEidosValueNULLInvisible;
-			}
-		}
-
 			
 			//
 			//	*********************	- (logical)containsMutations(object<Mutation> mutations)
@@ -1220,28 +1025,28 @@ const std::vector<const EidosMethodSignature *> *Genome_Class::Methods(void) con
 const EidosMethodSignature *Genome_Class::SignatureForMethod(EidosGlobalStringID p_method_id) const
 {
 	static EidosInstanceMethodSignature *addMutationsSig = nullptr;
-	static EidosInstanceMethodSignature *addNewDrawnMutationSig = nullptr;
-	static EidosInstanceMethodSignature *addNewMutationSig = nullptr;
+	static EidosClassMethodSignature *addNewDrawnMutationSig = nullptr;
+	static EidosClassMethodSignature *addNewMutationSig = nullptr;
 	static EidosInstanceMethodSignature *containsMutationsSig = nullptr;
 	static EidosInstanceMethodSignature *countOfMutationsOfTypeSig = nullptr;
 	static EidosInstanceMethodSignature *mutationsOfTypeSig = nullptr;
 	static EidosInstanceMethodSignature *removeMutationsSig = nullptr;
-	static EidosInstanceMethodSignature *outputMSSig = nullptr;
-	static EidosInstanceMethodSignature *outputVCFSig = nullptr;
-	static EidosInstanceMethodSignature *outputSig = nullptr;
+	static EidosClassMethodSignature *outputMSSig = nullptr;
+	static EidosClassMethodSignature *outputVCFSig = nullptr;
+	static EidosClassMethodSignature *outputSig = nullptr;
 	
 	if (!addMutationsSig)
 	{
 		addMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class);
-		addNewDrawnMutationSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addNewDrawnMutation, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Mutation_Class))->AddIntObject_S("mutationType", gSLiM_MutationType_Class)->AddInt_S("position")->AddInt_OSN("originGeneration")->AddIntObject_OS("originSubpop", gSLiM_Subpopulation_Class);
-		addNewMutationSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addNewMutation, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Mutation_Class))->AddIntObject_S("mutationType", gSLiM_MutationType_Class)->AddNumeric_S("selectionCoeff")->AddInt_S("position")->AddInt_OSN("originGeneration")->AddIntObject_OS("originSubpop", gSLiM_Subpopulation_Class);
+		addNewDrawnMutationSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addNewDrawnMutation, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Mutation_Class))->AddIntObject_S("mutationType", gSLiM_MutationType_Class)->AddInt_S("position")->AddInt_OSN("originGeneration")->AddIntObject_OS("originSubpop", gSLiM_Subpopulation_Class);
+		addNewMutationSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addNewMutation, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Mutation_Class))->AddIntObject_S("mutationType", gSLiM_MutationType_Class)->AddNumeric_S("selectionCoeff")->AddInt_S("position")->AddInt_OSN("originGeneration")->AddIntObject_OS("originSubpop", gSLiM_Subpopulation_Class);
 		containsMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMutations, kEidosValueMaskLogical))->AddObject("mutations", gSLiM_Mutation_Class);
 		countOfMutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
 		mutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
 		removeMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_removeMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class);
-		outputMSSig = (EidosInstanceMethodSignature *)(new EidosClassMethodSignature(gStr_outputMS, kEidosValueMaskNULL))->AddString_OSN("filePath");
-		outputVCFSig = (EidosInstanceMethodSignature *)(new EidosClassMethodSignature(gStr_outputVCF, kEidosValueMaskNULL))->AddString_OSN("filePath")->AddLogical_OS("outputMultiallelics");
-		outputSig = (EidosInstanceMethodSignature *)(new EidosClassMethodSignature(gStr_output, kEidosValueMaskNULL))->AddString_OSN("filePath");
+		outputMSSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputMS, kEidosValueMaskNULL))->AddString_OSN("filePath");
+		outputVCFSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputVCF, kEidosValueMaskNULL))->AddString_OSN("filePath")->AddLogical_OS("outputMultiallelics");
+		outputSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_output, kEidosValueMaskNULL))->AddString_OSN("filePath");
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -1268,10 +1073,245 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 {
 	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0].get() : nullptr);
 	EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1].get() : nullptr);
+	EidosValue *arg2_value = ((p_argument_count >= 3) ? p_arguments[2].get() : nullptr);
+	EidosValue *arg3_value = ((p_argument_count >= 4) ? p_arguments[3].get() : nullptr);
+	EidosValue *arg4_value = ((p_argument_count >= 5) ? p_arguments[4].get() : nullptr);
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_method_id)
 	{
+			//
+			//	*********************	+ (object<Mutation>)addNewDrawnMutation(io<MutationType>$ mutationType, integer$ position, [Ni$ originGeneration], [io<Subpopulation>$ originSubpop])
+			//
+#pragma mark +addNewDrawnMutation()
+			
+		case gID_addNewDrawnMutation:
+		{
+			int target_size = p_target->Count();
+			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
+			
+			if (!sim)
+				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
+			
+			if ((sim->GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim->warned_early_mutation_add_))
+			{
+				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome::ExecuteInstanceMethod): addNewDrawnMutation() should probably not be called from an early() event; the added mutation will not influence fitness values during offspring generation." << std::endl;
+				sim->warned_early_mutation_add_ = true;
+			}
+			
+			MutationType *mutation_type_ptr = nullptr;
+			
+			if (arg0_value->Type() == EidosValueType::kValueInt)
+			{
+				slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
+				auto found_muttype_pair = sim->MutationTypes().find(mutation_type_id);
+				
+				if (found_muttype_pair != sim->MutationTypes().end())
+					mutation_type_ptr = found_muttype_pair->second;
+				
+				if (!mutation_type_ptr)
+					EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): addNewDrawnMutation() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+			}
+			else
+			{
+				mutation_type_ptr = dynamic_cast<MutationType *>(arg0_value->ObjectElementAtIndex(0, nullptr));
+			}
+			
+			slim_position_t position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));
+			
+			if (position > sim->TheChromosome().last_position_)
+				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): addNewDrawnMutation() position " << position << " is past the end of the chromosome." << eidos_terminate();
+			
+			slim_generation_t origin_generation;
+			
+			if (!arg2_value || (arg2_value->Type() == EidosValueType::kValueNULL))
+				origin_generation = sim->Generation();
+			else
+				origin_generation = SLiMCastToGenerationTypeOrRaise(arg2_value->IntAtIndex(0, nullptr));
+			
+			slim_objectid_t origin_subpop_id;
+			
+			if (!arg3_value)
+			{
+				Population &pop = sim->ThePopulation();
+				
+				origin_subpop_id = -1;
+				
+				// We set the origin subpopulation based on the first genome in the target
+				if (target_size >= 1)
+				{
+					Genome *first_target = (Genome *)p_target->ObjectElementAtIndex(0, nullptr);
+					
+					for (auto subpop_iter = pop.begin(); subpop_iter != pop.end(); subpop_iter++)
+						if (subpop_iter->second->ContainsGenome(first_target))
+							origin_subpop_id = subpop_iter->second->subpopulation_id_;
+					
+					if (origin_subpop_id == -1)
+						EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): addNewDrawnMutation() could not locate the subpopulation for the target genome." << eidos_terminate();
+				}
+			}
+			else if (arg3_value->Type() == EidosValueType::kValueInt)
+				origin_subpop_id = SLiMCastToObjectidTypeOrRaise(arg3_value->IntAtIndex(0, nullptr));
+			else
+				origin_subpop_id = dynamic_cast<Subpopulation *>(arg3_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
+			
+			// Generate and add the new mutation
+			Mutation *mutation = nullptr;
+			
+			for (int index = 0; index < target_size; ++index)
+			{
+				Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(index, nullptr);
+				
+				if (target_genome->enforce_stack_policy_for_addition(position, mutation_type_ptr))
+				{
+					if (!mutation)
+					{
+						double selection_coeff = mutation_type_ptr->DrawSelectionCoefficient();
+						
+						mutation = new (gSLiM_Mutation_Pool->AllocateChunk()) Mutation(mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_generation);
+						
+						// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
+						if (selection_coeff != 0.0)
+							sim->pure_neutral_ = false;
+						
+					}
+					
+					target_genome->insert_sorted_mutation(mutation);
+				}
+			}
+			
+			if (mutation)
+			{
+				// Update the population's registry and cache information
+				Population &pop = sim->ThePopulation();
+				
+				pop.mutation_registry_.emplace_back(mutation);
+				pop.cached_genome_count_ = 0;
+				
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(mutation, gSLiM_Mutation_Class));
+			}
+			else
+			{
+				return gStaticEidosValueNULLInvisible;
+			}
+		}
+			
+			
+			//
+			//	*********************	+ (object<Mutation>)addNewMutation(io<MutationType>$ mutationType, numeric$ selectionCoeff, integer$ position, [Ni$ originGeneration], [io<Subpopulation>$ originSubpop])
+			//
+#pragma mark +addNewMutation()
+			
+		case gID_addNewMutation:
+		{
+			int target_size = p_target->Count();
+			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
+			
+			if (!sim)
+				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
+			
+			if ((sim->GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim->warned_early_mutation_add_))
+			{
+				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome::ExecuteInstanceMethod): addNewMutation() should probably not be called from an early() event; the added mutation will not influence fitness values during offspring generation." << std::endl;
+				sim->warned_early_mutation_add_ = true;
+			}
+			
+			MutationType *mutation_type_ptr = nullptr;
+			
+			if (arg0_value->Type() == EidosValueType::kValueInt)
+			{
+				slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
+				auto found_muttype_pair = sim->MutationTypes().find(mutation_type_id);
+				
+				if (found_muttype_pair != sim->MutationTypes().end())
+					mutation_type_ptr = found_muttype_pair->second;
+				
+				if (!mutation_type_ptr)
+					EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): addNewMutation() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+			}
+			else
+			{
+				mutation_type_ptr = dynamic_cast<MutationType *>(arg0_value->ObjectElementAtIndex(0, nullptr));
+			}
+			
+			double selection_coeff = arg1_value->FloatAtIndex(0, nullptr);
+			
+			slim_position_t position = SLiMCastToPositionTypeOrRaise(arg2_value->IntAtIndex(0, nullptr));
+			
+			if (position > sim->TheChromosome().last_position_)
+				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): addNewMutation() position " << position << " is past the end of the chromosome." << eidos_terminate();
+			
+			slim_generation_t origin_generation;
+			
+			if (!arg3_value || (arg3_value->Type() == EidosValueType::kValueNULL))
+				origin_generation = sim->Generation();
+			else
+				origin_generation = SLiMCastToGenerationTypeOrRaise(arg3_value->IntAtIndex(0, nullptr));
+			
+			slim_objectid_t origin_subpop_id;
+			
+			if (!arg4_value)
+			{
+				Population &pop = sim->ThePopulation();
+				
+				origin_subpop_id = -1;
+				
+				// We set the origin subpopulation based on the first genome in the target
+				if (target_size >= 1)
+				{
+					Genome *first_target = (Genome *)p_target->ObjectElementAtIndex(0, nullptr);
+					
+					for (auto subpop_iter = pop.begin(); subpop_iter != pop.end(); subpop_iter++)
+						if (subpop_iter->second->ContainsGenome(first_target))
+							origin_subpop_id = subpop_iter->second->subpopulation_id_;
+					
+					if (origin_subpop_id == -1)
+						EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): addNewMutation() could not locate the subpopulation for the target genome." << eidos_terminate();
+				}
+			}
+			else if (arg4_value->Type() == EidosValueType::kValueInt)
+				origin_subpop_id = SLiMCastToObjectidTypeOrRaise(arg4_value->IntAtIndex(0, nullptr));
+			else
+				origin_subpop_id = dynamic_cast<Subpopulation *>(arg4_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
+			
+			// Generate and add the new mutation
+			Mutation *mutation = nullptr;
+			
+			for (int index = 0; index < target_size; ++index)
+			{
+				Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(index, nullptr);
+				
+				if (target_genome->enforce_stack_policy_for_addition(position, mutation_type_ptr))
+				{
+					if (!mutation)
+					{
+						mutation = new (gSLiM_Mutation_Pool->AllocateChunk()) Mutation(mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_generation);
+						
+						// Since the selection coefficient was chosen by the user, we need to check and set pure_neutral_
+						if (selection_coeff != 0.0)
+							sim->pure_neutral_ = false;
+					}
+					
+					target_genome->insert_sorted_mutation(mutation);
+				}
+			}
+			
+			if (mutation)
+			{
+				// Update the population's registry and cache information
+				Population &pop = sim->ThePopulation();
+				
+				pop.mutation_registry_.emplace_back(mutation);
+				pop.cached_genome_count_ = 0;
+				
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(mutation, gSLiM_Mutation_Class));
+			}
+			else
+			{
+				return gStaticEidosValueNULLInvisible;
+			}
+		}
+			
 			//
 			//	*********************	+ (void)output([Ns$ filePath])
 			//	*********************	+ (void)outputMS([Ns$ filePath])

@@ -30,6 +30,7 @@ Development head:
 	Add script/output show/hide menu command for SLiMgui
 	Add support for sex-specific recombination rates/maps
 	Add runtime memory overflow checking, disabled with -x command-line flag
+	Change addNewMutation() and addNewDrawnMutation() to be class methods – BREAKS BACKWARD COMPATIBILITY
 
 2.0.4 (build 833; Eidos version 1.0.4)
 	Fix issue with interleaving of output from SLiM versus Eidos
