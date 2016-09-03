@@ -36,9 +36,9 @@
 #include <unistd.h>
 #include <algorithm>
 #include "string.h"
-#include <cstdio>
-#include <iostream>
-#include <memory>
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 
 
 bool eidos_do_memory_checks = true;
@@ -633,6 +633,8 @@ size_t EidosGetMaxRSS(void)
 	
 	if (!beenHere)
 	{
+#if 0
+		// Find our RSS limit by launching a subshell to run "ulimit -m"
 		std::string limit_string = EidosExec("ulimit -m");
 		
 		std::string unlimited("unlimited");
@@ -662,6 +664,25 @@ size_t EidosGetMaxRSS(void)
 				max_rss *= 1024L;
 			}
 		}
+#else
+		// Find our RSS limit using getrlimit() – easier and safer
+		struct rlimit rlim;
+		
+		if (getrlimit(RLIMIT_RSS, &rlim) == 0)
+		{
+			// This value is in bytes, no scaling needed
+			max_rss = (uint64_t)rlim.rlim_max;
+			
+			// If the claim is that we have more than 1024 TB at our disposal, then we will consider ourselves unlimited :->
+			if (max_rss > 1024L * 1024L * 1024L * 1024L * 1024L)
+				max_rss = 0;
+		}
+		else
+		{
+			// If an error occurs, assume we are unlimited
+			max_rss = 0;
+		}
+#endif
 		
 		beenHere = true;
 	}
