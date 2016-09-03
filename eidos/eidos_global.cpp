@@ -36,7 +36,12 @@
 #include <unistd.h>
 #include <algorithm>
 #include "string.h"
+#include <cstdio>
+#include <iostream>
+#include <memory>
 
+
+bool eidos_do_memory_checks = true;
 
 EidosSymbolTable *gEidosConstantsSymbolTable = nullptr;
 
@@ -605,6 +610,109 @@ std::string EidosResolvedPath(const std::string p_path)
 	}
 	
 	return path;
+}
+
+// run a Un*x command; thanks to http://stackoverflow.com/questions/478898/how-to-execute-a-command-and-get-output-of-command-within-c-using-posix
+std::string EidosExec(const char* cmd)
+{
+	char buffer[128];
+	std::string result = "";
+	std::shared_ptr<FILE> pipe(popen(cmd, "r"), pclose);
+	if (!pipe) throw std::runtime_error("popen() failed!");
+	while (!feof(pipe.get())) {
+		if (fgets(buffer, 128, pipe.get()) != NULL)
+			result += buffer;
+	}
+	return result;
+}
+
+size_t EidosGetMaxRSS(void)
+{
+	static bool beenHere = false;
+	static size_t max_rss = 0;
+	
+	if (!beenHere)
+	{
+		std::string limit_string = EidosExec("ulimit -m");
+		
+		std::string unlimited("unlimited");
+		
+		if (std::mismatch(unlimited.begin(), unlimited.end(), limit_string.begin()).first == unlimited.end())
+		{
+			// "unlimited" is a prefix of foobar, so use 0 to represent that
+			max_rss = 0;
+		}
+		else
+		{
+			errno = 0;
+			
+			const char *c_str = limit_string.c_str();
+			char *last_used_char = nullptr;
+			
+			max_rss = strtoq(c_str, &last_used_char, 10);
+			
+			if (errno || (last_used_char == c_str))
+			{
+				// If an error occurs, assume we are unlimited
+				max_rss = 0;
+			}
+			else
+			{
+				// This value is in 1024-byte units, so multiply to get a limit in bytes
+				max_rss *= 1024L;
+			}
+		}
+		
+		beenHere = true;
+	}
+	
+	return max_rss;
+}
+
+void EidosCheckRSSAgainstMax(std::string p_message1, std::string p_message2)
+{
+	static bool beenHere = false;
+	static size_t max_rss = 0;
+	
+	if (!beenHere)
+	{
+		// The first time we are called, we get the memory limit and sanity-check it
+		max_rss = EidosGetMaxRSS();
+		
+#if 0
+		// Impose a 20 MB limit, for testing
+		max_rss = 20*1024*1024;
+#warning Turn this off!
+#endif
+		
+		if (max_rss != 0)
+		{
+			size_t current_rss = EidosGetCurrentRSS();
+			
+			// If we are already within 10 MB of overrunning our supposed limit, disable checking; assume that
+			// either EidosGetMaxRSS() or EidosGetCurrentRSS() is not telling us the truth.
+			if (current_rss + 10L*1024L*1024L > max_rss)
+				max_rss = 0;
+		}
+		
+		// Switch off our memory check flag if we are not going to enforce a limit anyway;
+		// this allows the caller to skip calling us when possible, for speed
+		if (max_rss == 0)
+			eidos_do_memory_checks = false;
+		
+		beenHere = true;
+	}
+	
+	if (eidos_do_memory_checks && (max_rss != 0))
+	{
+		size_t current_rss = EidosGetCurrentRSS();
+		
+		// If we are within 10 MB of overrunning our limit, then terminate with a message before
+		// the system does it for us.  10 MB gives us a little headroom, so that we detect this
+		// condition before the system does.
+		if (current_rss + 10L*1024L*1024L > max_rss)
+			EIDOS_TERMINATION << "ERROR (" << p_message1 << "): memory usage of " << (current_rss / (1024.0 * 1024.0)) << " MB is dangerously close to the limit of " << (max_rss / (1024.0 * 1024.0)) << " MB returned by 'ulimit -m'; terminating now (to allow this diagnostic message to be printed).  You might raise the per-process memory limit, or modify your model to decrease memory usage.  You can turn off this memory check with the '-x' command-line option.  " << p_message2 << eidos_terminate();
+	}
 }
 
 

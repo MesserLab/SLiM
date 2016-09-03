@@ -37,6 +37,11 @@ void SLiM_WarmUp(void)
 		
 		// Register global strings and IDs for SLiM; this is in addition to the globals set up by Eidos
 		SLiM_RegisterGlobalStringsAndIDs();
+		
+#if DO_MEMORY_CHECKS
+		// Check for a memory limit and prepare for memory-limit testing
+		EidosCheckRSSAgainstMax("SLiM_WarmUp()", "This internal check should never fail!");
+#endif
 	}
 }
 

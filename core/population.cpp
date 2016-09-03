@@ -2436,8 +2436,17 @@ void Population::CheckMutationRegistry(void)
 // print all mutations and all genomes to a stream
 void Population::PrintAll(std::ostream &p_out) const
 {
-	// This function is written to be able to print the population whether child_generation_valid is true or false.
+	// This method is written to be able to print the population whether child_generation_valid is true or false.
 	// This is a little tricky, so be careful when modifying this code!
+	
+#if DO_MEMORY_CHECKS
+	// This method can burn a huge amount of memory and get us killed, if we have a maximum memory usage.  It's nice to
+	// try to check for that and terminate with a proper error message, to help the user diagnose the problem.
+	int mem_check_counter = 0, mem_check_mod = 100;
+	
+	if (eidos_do_memory_checks)
+		EidosCheckRSSAgainstMax("Population::PrintAll", "(The memory usage was already out of bounds on entry.)");
+#endif
 	
 	p_out << "Populations:" << endl;
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
@@ -2455,6 +2464,11 @@ void Population::PrintAll(std::ostream &p_out) const
 			p_out << " H";
 		
 		p_out << endl;
+		
+#if DO_MEMORY_CHECKS
+		if (eidos_do_memory_checks && ((++mem_check_counter) % mem_check_mod == 0))
+			EidosCheckRSSAgainstMax("Population::PrintAll", "(Out of memory while outputting population list.)");
+#endif
 	}
 	
 	PolymorphismMap polymorphisms;
@@ -2474,6 +2488,11 @@ void Population::PrintAll(std::ostream &p_out) const
 				for (int k = 0; k < genome.size(); k++)	// go through all mutations
 					AddMutationToPolymorphismMap(&polymorphisms, genome[k]);
 			}
+			
+#if DO_MEMORY_CHECKS
+			if (eidos_do_memory_checks && ((++mem_check_counter) % mem_check_mod == 0))
+				EidosCheckRSSAgainstMax("Population::PrintAll", "(Out of memory while assembling polymorphisms.)");
+#endif
 		}
 	}
 	
@@ -2481,7 +2500,14 @@ void Population::PrintAll(std::ostream &p_out) const
 	p_out << "Mutations:"  << endl;
 	
 	for (const PolymorphismPair &polymorphism_pair : polymorphisms)
+	{
 		polymorphism_pair.second.print(p_out);							// NOTE this added mutation_id_, BCH 11 June 2016
+		
+#if DO_MEMORY_CHECKS
+		if (eidos_do_memory_checks && ((++mem_check_counter) % mem_check_mod == 0))
+			EidosCheckRSSAgainstMax("Population::PrintAll", "(Out of memory while printing polymorphisms.)");
+#endif
+	}
 	
 	// print all individuals
 	p_out << "Individuals:" << endl;
@@ -2505,6 +2531,11 @@ void Population::PrintAll(std::ostream &p_out) const
 			p_out << "p" << subpop_id << ":" << (i * 2);				// genome identifier 1
 			p_out << " p" << subpop_id << ":" << (i * 2 + 1);			// genome identifier 2
 			p_out << endl;
+			
+#if DO_MEMORY_CHECKS
+			if (eidos_do_memory_checks && ((++mem_check_counter) % mem_check_mod == 0))
+				EidosCheckRSSAgainstMax("Population::PrintAll", "(Out of memory while printing individuals.)");
+#endif
 		}
 	}
 	
@@ -2541,6 +2572,11 @@ void Population::PrintAll(std::ostream &p_out) const
 			}
 			
 			p_out << endl;
+			
+#if DO_MEMORY_CHECKS
+			if (eidos_do_memory_checks && ((++mem_check_counter) % mem_check_mod == 0))
+				EidosCheckRSSAgainstMax("Population::PrintAll", "(Out of memory while printing genomes.)");
+#endif
 		}
 	}
 }

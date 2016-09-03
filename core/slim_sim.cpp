@@ -2662,6 +2662,15 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 			std::ostream &out = *(has_file ? dynamic_cast<std::ostream *>(&outfile) : dynamic_cast<std::ostream *>(&output_stream));
 			
+#if DO_MEMORY_CHECKS
+			// This method can burn a huge amount of memory and get us killed, if we have a maximum memory usage.  It's nice to
+			// try to check for that and terminate with a proper error message, to help the user diagnose the problem.
+			int mem_check_counter = 0, mem_check_mod = 100;
+			
+			if (eidos_do_memory_checks)
+				EidosCheckRSSAgainstMax("SLiMSim::ExecuteInstanceMethod", "(outputFixedMutations(): The memory usage was already out of bounds on entry.)");
+#endif
+			
 			// Output header line
 			out << "#OUT: " << generation_ << " F";
 			
@@ -2679,6 +2688,11 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			{
 				out << i << " ";
 				subs[i]->print(out);
+				
+#if DO_MEMORY_CHECKS
+				if (eidos_do_memory_checks && ((++mem_check_counter) % mem_check_mod == 0))
+					EidosCheckRSSAgainstMax("SLiMSim::ExecuteInstanceMethod", "(outputFixedMutations(): Out of memory while outputting substitution objects.)");
+#endif
 			}
 			
 			if (has_file)

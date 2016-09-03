@@ -66,7 +66,7 @@ void PrintUsageAndDie(bool p_fullOutput)
 		SLIM_OUTSTREAM << "---------------------------------------------------------------------------------" << std::endl << std::endl;
 	}
 	
-	SLIM_OUTSTREAM << "usage: slim -version | -usage | -testEidos | -testSLiM | [-seed <seed>] [-time] [-mem] [-Memhist] <script file>" << std::endl;
+	SLIM_OUTSTREAM << "usage: slim -version | -usage | -testEidos | -testSLiM | [-seed <seed>] [-time] [-mem] [-Memhist] [-x] <script file>" << std::endl;
 	
 	if (p_fullOutput)
 		SLIM_OUTSTREAM << std::endl;
@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
 	unsigned long int override_seed = 0;					// this is the type defined for seeds by gsl_rng_set()
 	unsigned long int *override_seed_ptr = nullptr;			// by default, a seed is generated or supplied in the input file
 	const char *input_file = nullptr;
-	bool keep_time = false, keep_mem = false, keep_mem_hist = false;
+	bool keep_time = false, keep_mem = false, keep_mem_hist = false, skip_checks = false;
 	
 	// command-line SLiM generally terminates rather than throwing
 	gEidosTerminateThrows = false;
@@ -129,6 +129,15 @@ int main(int argc, char *argv[])
 			continue;
 		}
 		
+		// -x: skip runtime checks for greater speed, or to avoid them if they are causing problems
+		if (strcmp(arg, "-x") == 0)
+		{
+			skip_checks = true;
+			eidos_do_memory_checks = false;
+			
+			continue;
+		}
+		
 		// -version or -v: print version information
 		if (strcmp(arg, "-version") == 0 || strcmp(arg, "-v") == 0)
 		{
@@ -170,10 +179,12 @@ int main(int argc, char *argv[])
 	if (!input_file)
 		PrintUsageAndDie(false);
 	
-	// announce if we are running a debug build
+	// announce if we are running a debug build or are skipping runtime checks
 #ifdef DEBUG
 	SLIM_ERRSTREAM << "// ********** DEBUG defined – you are not using a release build of SLiM" << std::endl << std::endl;
 #endif
+	if (skip_checks)
+		SLIM_ERRSTREAM << "// ********** The -x command-line option has disabled some runtime checks" << std::endl << std::endl;
 	
 	// keep time (we do this whether or not the -time flag was passed)
 	clock_t begin = clock();
@@ -209,6 +220,15 @@ int main(int argc, char *argv[])
 	
 	if (sim)
 	{
+#if DO_MEMORY_CHECKS
+		// We check memory usage at the end of every 10 generations, to be able to provide the user with a decent error message
+		// if the maximum memory limit is exceeded.  Every 10 generations is a compromise; these checks do take a little time.
+		// Even with a model that runs through generations very quickly, though, checking every 10 makes little difference.
+		// Models in which the generations take longer will see no measurable difference in runtime at all.  Note that these
+		// checks can be disabled with the -x command-line option.
+		int mem_check_counter = 0, mem_check_mod = 10;
+#endif
+		
 		// Run the simulation to its natural end
 		while (sim->RunOneGeneration())
 		{
@@ -222,6 +242,18 @@ int main(int argc, char *argv[])
 				
 				mem_record[mem_record_index++] = EidosGetCurrentRSS() - mem_record_capacity * sizeof(size_t);
 			}
+			
+#if DO_MEMORY_CHECKS
+			if (eidos_do_memory_checks && ((++mem_check_counter) % mem_check_mod == 0))
+			{
+				// Check memory usage at the end of the generation, so we can print a decent error message
+				std::ostringstream message;
+				
+				message << "(Limit exceeded at end of generation " << sim->Generation() << ".)" << std::endl;
+				
+				EidosCheckRSSAgainstMax("main()", message.str());
+			}
+#endif
 		}
 		
 		// clean up; but this is an unnecessary waste of time in the command-line context

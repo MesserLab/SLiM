@@ -72,6 +72,9 @@ extern int gEidosErrorLine, gEidosErrorLineCharacter;	// set up by eidos_termina
 // Debugging #defines that can be turned on
 #define EIDOS_DEBUG_COMPLETION	0	// turn on to log information about symbol types whenever doing code completion
 
+// Flags for various runtime checks that can be turned on or off; in SLiM, -x turns these off.
+extern bool eidos_do_memory_checks;
+
 
 // *******************************************************************************************************************
 //
@@ -81,6 +84,15 @@ extern int gEidosErrorLine, gEidosErrorLineCharacter;	// set up by eidos_termina
 // Memory-monitoring calls.  See the .cpp for comments.  These return a size in bytes.
 size_t EidosGetPeakRSS(void);
 size_t EidosGetCurrentRSS(void);
+
+// Memory limits, retrieved by calling "ulimit -m"; cached internally.  Returns a size in bytes; 0 means "no limit".
+std::string EidosExec(const char* cmd);
+size_t EidosGetMaxRSS(void);
+
+// This checks whether our memory usage has gotten within 10 MB of the maximum memory usage, and terminates if so.
+// p_message1 should be the name of the calling function/method; p_message2 can be any clarifying message.
+// It is a good idea to check eidos_do_memory_checks before calling this, to save calling overhead.
+void EidosCheckRSSAgainstMax(std::string p_message1, std::string p_message2);
 
 
 // *******************************************************************************************************************

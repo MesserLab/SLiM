@@ -202,6 +202,11 @@ inline __attribute__((always_inline)) slim_usertag_t SLiMClampToUsertagType(int6
 #define ABBREVIATE_DEBUG_INPUT	0
 #endif
 
+// If 1, checks of current memory usage versus maximum allowed memory usage will be done in certain spots
+// where we are particularly likely to run out of memory, to provide the user with a better error message.
+// Note that even when this is 1, the user can disable some of these checks with -x.
+#define DO_MEMORY_CHECKS	1
+
 
 // *******************************************************************************************************************
 //
