@@ -42,13 +42,13 @@ using std::ostream;
 //
 #pragma mark EidosTypeInterpreter
 
-EidosTypeInterpreter::EidosTypeInterpreter(const EidosScript &p_script, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, bool p_defines_only)
-: root_node_(p_script.AST()), global_symbols_(p_symbols), function_map_(p_functions), defines_only_(p_defines_only)
+EidosTypeInterpreter::EidosTypeInterpreter(const EidosScript &p_script, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, EidosCallTypeTable &p_call_types, bool p_defines_only)
+: root_node_(p_script.AST()), global_symbols_(p_symbols), function_map_(p_functions), call_type_map_(p_call_types), defines_only_(p_defines_only)
 {
 }
 
-EidosTypeInterpreter::EidosTypeInterpreter(const EidosASTNode *p_root_node_, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, bool p_defines_only)
-: root_node_(p_root_node_), global_symbols_(p_symbols), function_map_(p_functions), defines_only_(p_defines_only)
+EidosTypeInterpreter::EidosTypeInterpreter(const EidosASTNode *p_root_node_, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, EidosCallTypeTable &p_call_types, bool p_defines_only)
+: root_node_(p_root_node_), global_symbols_(p_symbols), function_map_(p_functions), call_type_map_(p_call_types), defines_only_(p_defines_only)
 {
 }
 
@@ -335,6 +335,11 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_FunctionCall(const EidosAS
 			result_type = _TypeEvaluate_MethodCall_Internal(method_class, method_signature, arguments_ptr, arguments_count);
 		else
 			result_type = _TypeEvaluate_FunctionCall_Internal(*function_name, function_signature, arguments_ptr, arguments_count);
+		
+		// Remember the class returned by function calls, for later use by code completion in cases of ambiguity.
+		// See -[EidosTextView completionsForKeyPathEndingInTokenIndex:...] for more background on this.
+		if ((!method_class) && result_type.object_class)
+			call_type_map_.emplace(EidosCallTypeEntry(function_name_node->token_->token_start_, result_type.object_class));
 	}
 	
 	return result_type;

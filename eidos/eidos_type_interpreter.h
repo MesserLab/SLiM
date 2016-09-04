@@ -35,6 +35,13 @@
 #include "eidos_interpreter.h"
 
 
+// This is used to record the object class returned by function calls encountered during type interpreting.  This is used to recall
+// the return type of a function at the beginning of a key path for code completion, in cases where the function signature is not
+// sufficient to determine that, such as sample(), rep(), etc.  See -[EidosTextView completionsForKeyPathEndingInTokenIndex:...].
+typedef std::pair<int32_t, const EidosObjectClass *> EidosCallTypeEntry;
+typedef std::map<int32_t, const EidosObjectClass *> EidosCallTypeTable;
+
+
 class EidosTypeInterpreter
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
@@ -43,6 +50,7 @@ protected:
 	const EidosASTNode *root_node_;				// not owned
 	EidosTypeTable &global_symbols_;			// NOT OWNED: whoever creates us must give us a reference to a type table, which we use
 	EidosFunctionMap &function_map_;			// NOT OWNED: a map table of EidosFunctionSignature objects, keyed by function name
+	EidosCallTypeTable &call_type_map_;			// NOT OWNED: a map table of types for function calls encountered, keyed by position
 	bool defines_only_;							// if true, we add symbols only for defineConstant() calls, not for assignments
 	
 public:
@@ -51,13 +59,14 @@ public:
 	EidosTypeInterpreter& operator=(const EidosTypeInterpreter&) = delete;		// no copying
 	EidosTypeInterpreter(void) = delete;										// no null construction
 	
-	EidosTypeInterpreter(const EidosScript &p_script, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, bool p_defines_only = false);			// we use the passed symbol table but do not own it
-	EidosTypeInterpreter(const EidosASTNode *p_root_node_, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, bool p_defines_only = false);		// we use the passed symbol table but do not own it
+	EidosTypeInterpreter(const EidosScript &p_script, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, EidosCallTypeTable &p_call_types, bool p_defines_only = false);			// we use the passed symbol table but do not own it
+	EidosTypeInterpreter(const EidosASTNode *p_root_node_, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, EidosCallTypeTable &p_call_types, bool p_defines_only = false);		// we use the passed symbol table but do not own it
 	
 	virtual ~EidosTypeInterpreter(void);										// destructor
 	
 	inline __attribute__((always_inline)) EidosTypeTable &SymbolTable(void) { return global_symbols_; };	// the returned reference is to the symbol table that the interpreter has borrowed
 	inline __attribute__((always_inline)) EidosFunctionMap &FunctionMap(void) { return function_map_; };	// the returned reference is to the function map that the interpreter has borrowed
+	inline __attribute__((always_inline)) EidosCallTypeTable &CallTypeMap(void) { return call_type_map_; };	// the returned reference is to the call type map that the interpreter has borrowed
 	
 	// Evaluation methods; the caller owns the returned EidosValue object
 	EidosTypeSpecifier TypeEvaluateInterpreterBlock();	// the starting point for executed blocks in Eidos, which do not require braces

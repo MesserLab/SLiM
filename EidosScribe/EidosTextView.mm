@@ -1435,7 +1435,7 @@ using std::string;
 	return globals;
 }
 
-- (NSMutableArray *)completionsForKeyPathEndingInTokenIndex:(int)lastDotTokenIndex ofTokenStream:(const std::vector<EidosToken> &)tokens withTypes:(EidosTypeTable *)typeTable functions:(EidosFunctionMap *)functionMap keywords:(NSArray *)keywords
+- (NSMutableArray *)completionsForKeyPathEndingInTokenIndex:(int)lastDotTokenIndex ofTokenStream:(const std::vector<EidosToken> &)tokens withTypes:(EidosTypeTable *)typeTable functions:(EidosFunctionMap *)functionMap callTypes:(EidosCallTypeTable *)callTypeTable keywords:(NSArray *)keywords
 {
 	const EidosToken *token = &tokens[lastDotTokenIndex];
 	EidosTokenType token_type = token->token_type_;
@@ -1452,6 +1452,7 @@ using std::string;
 	// hit a parenthesis, we do similarly.  If we hit other things – a semicolon, a comma, a brace – that terminates the key path chain.
 	vector<string> identifiers;
 	vector<bool> identifiers_are_calls;
+	vector<int32_t> identifier_positions;
 	int bracketCount = 0, parenCount = 0;
 	BOOL lastTokenWasDot = YES, justFinishedParenBlock = NO;
 	
@@ -1531,6 +1532,7 @@ using std::string;
 		{
 			identifiers.emplace_back(token->token_string_);
 			identifiers_are_calls.push_back(justFinishedParenBlock);
+			identifier_positions.emplace_back(token->token_start_);
 			
 			// set up to continue searching the key path backwards
 			lastTokenWasDot = NO;
@@ -1574,6 +1576,22 @@ using std::string;
 			if (sig->function_name_.compare(identifier_name) == 0)
 			{
 				key_path_class = sig->return_class_;
+				
+				// In some cases, the function signature does not have the information we need, because the class of the return value
+				// of the function depends upon its parameters.  This is the case for functions like sample(), rep(), and so forth.
+				// For this case, we have a special mechanism set up, whereby the EidosTypeInterpreter has logged the class of the
+				// return value of function calls that it has evaluated.  We can look up the correct class in that log.  This is kind
+				// of a gross solution, but short of rewriting all the completion code, it seems to be the easiest fix.  (Rewriting
+				// to fix this more properly would involve doing code completion using a type-annotated tree, without any of the
+				// token-stream handling that we have now; that would be a better design, but I'm going to save that rewrite for later.)
+				if (!key_path_class)
+				{
+					auto callTypeIter = callTypeTable->find(identifier_positions[key_path_index]);
+					
+					if (callTypeIter != callTypeTable->end())
+						key_path_class = callTypeIter->second;
+				}
+				
 				break;
 			}
 		}
@@ -1648,7 +1666,7 @@ using std::string;
 	return candidates;
 }
 
-- (NSArray *)completionsForTokenStream:(const std::vector<EidosToken> &)tokens index:(int)lastTokenIndex canExtend:(BOOL)canExtend withTypes:(EidosTypeTable *)typeTable functions:(EidosFunctionMap *)functionMap keywords:(NSArray *)keywords
+- (NSArray *)completionsForTokenStream:(const std::vector<EidosToken> &)tokens index:(int)lastTokenIndex canExtend:(BOOL)canExtend withTypes:(EidosTypeTable *)typeTable functions:(EidosFunctionMap *)functionMap callTypes:(EidosCallTypeTable *)callTypeTable keywords:(NSArray *)keywords
 {
 	// What completions we offer depends on the token stream
 	const EidosToken &token = tokens[lastTokenIndex];
@@ -1696,7 +1714,7 @@ using std::string;
 					// if the token we're on is a dot, we are indeed at the end of a key path, and can fetch the completions for it
 					if (previous_token_type == EidosTokenType::kTokenDot)
 					{
-						completions = [self completionsForKeyPathEndingInTokenIndex:previousTokenIndex ofTokenStream:tokens withTypes:typeTable functions:functionMap keywords:keywords];
+						completions = [self completionsForKeyPathEndingInTokenIndex:previousTokenIndex ofTokenStream:tokens withTypes:typeTable functions:functionMap callTypes:callTypeTable keywords:keywords];
 						break;
 					}
 					
@@ -1741,7 +1759,7 @@ using std::string;
 			
 		case EidosTokenType::kTokenDot:
 			// This is the other tricky case, because we're being asked to extend a key path like foo.bar[5:8].
-			return [self completionsForKeyPathEndingInTokenIndex:lastTokenIndex ofTokenStream:tokens withTypes:typeTable functions:functionMap keywords:keywords];
+			return [self completionsForKeyPathEndingInTokenIndex:lastTokenIndex ofTokenStream:tokens withTypes:typeTable functions:functionMap callTypes:callTypeTable keywords:keywords];
 			
 		case EidosTokenType::kTokenSemicolon:
 		case EidosTokenType::kTokenLBrace:
@@ -1812,17 +1830,20 @@ using std::string;
 		EidosTypeTable *typeTablePtr = &typeTable;
 		EidosFunctionMap functionMap(*EidosInterpreter::BuiltInFunctionMap());
 		EidosFunctionMap *functionMapPtr = &functionMap;
+		EidosCallTypeTable callTypeTable;
+		EidosCallTypeTable *callTypeTablePtr = &callTypeTable;
 		NSMutableArray *keywords = [NSMutableArray arrayWithObjects:@"break", @"do", @"else", @"for", @"if", @"in", @"next", @"return", @"while", nil];
 		BOOL delegateHandled = NO;
 		
-		if ([delegate respondsToSelector:@selector(eidosTextView:completionContextWithScriptString:selection:typeTable:functionMap:keywords:)])
+		if ([delegate respondsToSelector:@selector(eidosTextView:completionContextWithScriptString:selection:typeTable:functionMap:callTypeTable:keywords:)])
 		{
-			delegateHandled = [delegate eidosTextView:self completionContextWithScriptString:scriptSubstring selection:selection typeTable:&typeTablePtr functionMap:&functionMapPtr keywords:keywords];
+			delegateHandled = [delegate eidosTextView:self completionContextWithScriptString:scriptSubstring selection:selection typeTable:&typeTablePtr functionMap:&functionMapPtr callTypeTable:&callTypeTablePtr keywords:keywords];
 		}
 		
 		// set up automatic disposal of a substitute type table or function map provided by delegate
 		std::unique_ptr<EidosTypeTable> raii_typeTablePtr((typeTablePtr != &typeTable) ? typeTablePtr : nullptr);
 		std::unique_ptr<EidosFunctionMap> raii_functionMapPtr((functionMapPtr != &functionMap) ? functionMapPtr : nullptr);
+		std::unique_ptr<EidosCallTypeTable> raii_callTypeTablePtr((callTypeTablePtr != &callTypeTable) ? callTypeTablePtr : nullptr);
 		
 		if (!delegateHandled)
 		{
@@ -1855,7 +1876,7 @@ using std::string;
 			std::cout << "Eidos AST:\n" << parse_stream.str() << std::endl << std::endl;
 #endif
 			
-			EidosTypeInterpreter typeInterpreter(script, *typeTablePtr, *functionMapPtr);
+			EidosTypeInterpreter typeInterpreter(script, *typeTablePtr, *functionMapPtr, *callTypeTablePtr);
 			
 			typeInterpreter.TypeEvaluateInterpreterBlock();	// result not used
 		}
@@ -1985,7 +2006,7 @@ using std::string;
 				}
 				
 				if (baseRange) *baseRange = NSMakeRange(selection.location + rangeOffset, 0);
-				if (completions) *completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:NO withTypes:typeTablePtr functions:functionMapPtr keywords:keywords];
+				if (completions) *completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:NO withTypes:typeTablePtr functions:functionMapPtr callTypes:callTypeTablePtr keywords:keywords];
 				return;
 			}
 			else
@@ -1996,7 +2017,7 @@ using std::string;
 				if (token_type >= EidosTokenType::kTokenIdentifier)
 				{
 					if (baseRange) *baseRange = NSMakeRange(tokenRange.location + rangeOffset, tokenRange.length);
-					if (completions) *completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:YES withTypes:typeTablePtr functions:functionMapPtr keywords:keywords];
+					if (completions) *completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:YES withTypes:typeTablePtr functions:functionMapPtr callTypes:callTypeTablePtr keywords:keywords];
 					return;
 				}
 				
@@ -2008,7 +2029,7 @@ using std::string;
 				}
 				
 				if (baseRange) *baseRange = NSMakeRange(selection.location + rangeOffset, 0);
-				if (completions) *completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:NO withTypes:typeTablePtr functions:functionMapPtr keywords:keywords];
+				if (completions) *completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:NO withTypes:typeTablePtr functions:functionMapPtr callTypes:callTypeTablePtr keywords:keywords];
 				return;
 			}
 		}

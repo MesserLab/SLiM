@@ -194,8 +194,8 @@ public:
 	SLiMTypeInterpreter& operator=(const SLiMTypeInterpreter&) = delete;		// no copying
 	SLiMTypeInterpreter(void) = delete;											// no null construction
 	
-	SLiMTypeInterpreter(const EidosScript &p_script, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, bool p_defines_only = false);			// we use the passed symbol table but do not own it
-	SLiMTypeInterpreter(const EidosASTNode *p_root_node_, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, bool p_defines_only = false);		// we use the passed symbol table but do not own it
+	SLiMTypeInterpreter(const EidosScript &p_script, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, EidosCallTypeTable &p_call_types, bool p_defines_only = false);			// we use the passed symbol table but do not own it
+	SLiMTypeInterpreter(const EidosASTNode *p_root_node_, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, EidosCallTypeTable &p_call_types, bool p_defines_only = false);		// we use the passed symbol table but do not own it
 	
 	virtual ~SLiMTypeInterpreter(void);													// destructor
 	

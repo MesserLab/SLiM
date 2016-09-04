@@ -990,13 +990,13 @@ EidosTypeSpecifier SLiMTypeTable::GetTypeForSymbol(EidosGlobalStringID p_symbol_
 #pragma mark -
 #pragma mark SLiMTypeInterpreter
 
-SLiMTypeInterpreter::SLiMTypeInterpreter(const EidosScript &p_script, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, bool p_defines_only)
-	: EidosTypeInterpreter(p_script, p_symbols, p_functions, p_defines_only)
+SLiMTypeInterpreter::SLiMTypeInterpreter(const EidosScript &p_script, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, EidosCallTypeTable &p_call_types, bool p_defines_only)
+	: EidosTypeInterpreter(p_script, p_symbols, p_functions, p_call_types, p_defines_only)
 {
 }
 
-SLiMTypeInterpreter::SLiMTypeInterpreter(const EidosASTNode *p_root_node_, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, bool p_defines_only)
-	: EidosTypeInterpreter(p_root_node_, p_symbols, p_functions, p_defines_only)
+SLiMTypeInterpreter::SLiMTypeInterpreter(const EidosASTNode *p_root_node_, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, EidosCallTypeTable &p_call_types, bool p_defines_only)
+	: EidosTypeInterpreter(p_root_node_, p_symbols, p_functions, p_call_types, p_defines_only)
 {
 }
 
