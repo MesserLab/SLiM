@@ -39,6 +39,8 @@ extern NSString *defaultsPlaySoundParseFailureKey;
 {
 }
 
+@property (nonatomic, retain) IBOutlet NSMenu *openRecipesMenu;
+
 - (IBAction)newDocument:(id)sender;
 - (IBAction)openDocument:(id)sender;
 

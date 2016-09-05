@@ -162,6 +162,7 @@
 		98A240591B8E3295005C9A30 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 98A240581B8E3295005C9A30 /* Cocoa.framework */; };
 		98A2405A1B8E32D0005C9A30 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 98A240581B8E3295005C9A30 /* Cocoa.framework */; };
 		98A2405D1B8E338E005C9A30 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 98A2405C1B8E338E005C9A30 /* OpenGL.framework */; };
+		98A2FF891D7DF4D7007E3DB8 /* Recipes in Resources */ = {isa = PBXBuildFile; fileRef = 98A2FF881D7DF4D7007E3DB8 /* Recipes */; };
 		98A4EC941B67C1CD00CD92FD /* EidosConsoleWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98A4EC921B67C1CD00CD92FD /* EidosConsoleWindow.xib */; };
 		98A4EC951B67C1D900CD92FD /* EidosConsoleWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98A4EC921B67C1CD00CD92FD /* EidosConsoleWindow.xib */; };
 		98A5134F1B66B69E005A753D /* eidos_token.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98A5134D1B66B69E005A753D /* eidos_token.cpp */; };
@@ -607,6 +608,7 @@
 		98A02F941BA1E648002DDE54 /* EidosConsoleWindowControllerDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = EidosConsoleWindowControllerDelegate.h; sourceTree = "<group>"; };
 		98A240581B8E3295005C9A30 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		98A2405C1B8E338E005C9A30 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
+		98A2FF881D7DF4D7007E3DB8 /* Recipes */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Recipes; sourceTree = "<group>"; };
 		98A4EC931B67C1CD00CD92FD /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/EidosConsoleWindow.xib; sourceTree = "<group>"; };
 		98A5134D1B66B69E005A753D /* eidos_token.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_token.cpp; sourceTree = "<group>"; };
 		98A5134E1B66B69E005A753D /* eidos_token.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_token.h; sourceTree = "<group>"; };
@@ -1220,6 +1222,7 @@
 				989228331BAFB27300429674 /* SLiMHelpCallbacks.rtf */,
 				98D4C1E41A6FD8D600FFB083 /* buttons */,
 				98D4C1B51A6F537B00FFB083 /* Supporting Files */,
+				98A2FF881D7DF4D7007E3DB8 /* Recipes */,
 			);
 			path = SLiMgui;
 			sourceTree = "<group>";
@@ -1435,6 +1438,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				98A2FF891D7DF4D7007E3DB8 /* Recipes in Resources */,
 				98D4C1F51A70040400FFB083 /* play_step.pdf in Resources */,
 				987AD87D1B2CBE4F0035D6C8 /* show_parse.pdf in Resources */,
 				98453F561A76004300C058CB /* open_type_drawer_H.pdf in Resources */,

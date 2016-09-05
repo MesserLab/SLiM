@@ -59,6 +59,8 @@ typedef enum SLiMLaunchAction
 
 @implementation AppDelegate
 
+@synthesize openRecipesMenu;
+
 + (void)initialize
 {
 	[[NSUserDefaults standardUserDefaults] registerDefaults:@{
@@ -79,6 +81,55 @@ typedef enum SLiMLaunchAction
 	// Poke SLiMDocumentController so it gets set up before NSDocumentController gets in.  Note we don't need to keep a
 	// reference to this, because AppKit will return it to us as +[NSDocumentController sharedDocumentController].
 	[[SLiMDocumentController alloc] init];
+	
+	// Create the Open Recipes menu
+	[openRecipesMenu removeAllItems];
+	
+	NSURL *urlForRecipesFolder = [[NSBundle mainBundle] URLForResource:@"Recipes" withExtension:@""];
+	NSFileManager *fm = [NSFileManager defaultManager];
+	NSDirectoryEnumerator *dirEnum = [fm enumeratorAtURL:urlForRecipesFolder includingPropertiesForKeys:@[NSURLNameKey, NSURLIsDirectoryKey] options:(NSDirectoryEnumerationSkipsHiddenFiles | NSDirectoryEnumerationSkipsSubdirectoryDescendants) errorHandler:nil];
+	NSMutableArray *recipeNames = [NSMutableArray array];
+	
+	for (NSURL *fileURL in dirEnum)
+	{
+		NSNumber *isDirectory = nil;
+		
+		[fileURL getResourceValue:&isDirectory forKey:NSURLIsDirectoryKey error:nil];
+		
+		if (![isDirectory boolValue])
+		{
+			NSString *name = nil;
+			
+			[fileURL getResourceValue:&name forKey:NSURLNameKey error:nil];
+			
+			if ([name hasPrefix:@"Recipe "] && [name hasSuffix:@".txt"])
+			{
+				NSString *trimmedName = [name substringWithRange:NSMakeRange(7, [name length] - 11)];
+				
+				[recipeNames addObject:trimmedName];
+			}
+		}
+	}
+	
+	[recipeNames sortUsingDescriptors:@[[NSSortDescriptor sortDescriptorWithKey:@"intValue" ascending:YES]]];
+	
+	NSString *previousItemChapter = nil;
+	
+	for (NSString *recipeName in recipeNames)
+	{
+		NSUInteger firstDotIndex = [recipeName rangeOfString:@"."].location;
+		NSString *recipeChapter = (firstDotIndex != NSNotFound) ? [recipeName substringToIndex:firstDotIndex] : nil;
+		
+		// Add a separator item between recipes from different chapters
+		if (previousItemChapter && recipeChapter && ![recipeChapter isEqualToString:previousItemChapter])
+			[openRecipesMenu addItem:[NSMenuItem separatorItem]];
+		
+		previousItemChapter = recipeChapter;
+		
+		NSMenuItem *menuItem = [openRecipesMenu addItemWithTitle:recipeName action:@selector(openRecipe:) keyEquivalent:@""];
+		
+		[menuItem setTarget:self];
+	}
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
@@ -153,6 +204,28 @@ typedef enum SLiMLaunchAction
 	}
 	
 	[op release];
+}
+
+- (IBAction)openRecipe:(id)sender
+{
+	NSString *recipeName = [sender title];
+	NSString *fullRecipeName = [NSString stringWithFormat:@"Recipe %@", recipeName];
+	NSBundle *bundle = [NSBundle mainBundle];
+	NSURL *urlForRecipe = [bundle URLForResource:fullRecipeName withExtension:@".txt" subdirectory:@"Recipes"];
+	
+	if (urlForRecipe)
+	{
+		NSString *scriptString = [NSString stringWithContentsOfURL:urlForRecipe usedEncoding:NULL error:NULL];
+		
+		if (scriptString)
+		{
+			SLiMWindowController *windowController = [[SLiMWindowController alloc] initWithWindowNibName:@"SLiMWindow"];
+			
+			[windowController setScriptStringAndInitializeSimulation:scriptString];
+			[[windowController window] setTitle:recipeName];
+			[windowController showWindow:nil];
+		}
+	}
 }
 
 - (IBAction)resetSuppressionFlags:(id)sender
