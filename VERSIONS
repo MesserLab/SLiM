@@ -32,6 +32,7 @@ Development head:
 	Add runtime memory overflow checking, disabled with -x command-line flag
 	Change addNewMutation() and addNewDrawnMutation() to be class methods – BREAKS BACKWARD COMPATIBILITY
 	Accelerated vectorized property access for singleton properties
+	Add "Open Recipe" menu in SLiMgui's File menu, for fast recipe access
 
 2.0.4 (build 833; Eidos version 1.0.4)
 	Fix issue with interleaving of output from SLiM versus Eidos
