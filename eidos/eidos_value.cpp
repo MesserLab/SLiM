@@ -1901,11 +1901,77 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 	else if (values_size == 1)
 	{
 		// the singleton case is very common, so it should be special-cased for speed
+		// comment this case out to fully test the accelerated property code below
 		EidosObjectElement *value = values_[0];
 		EidosValue_SP result = value->GetProperty(p_property_id);
 		
 		signature->CheckResultValue(*result);
 		return result;
+	}
+	else if (signature->accelerated_)
+	{
+		// Accelerated property access is enabled for this property, so we will switch on the type of the property, and
+		// assemble the result value directly from the C++ type values we get from the accelerated access methods...
+		EidosValueMask sig_mask = (signature->value_mask_ & kEidosValueMaskFlagStrip);
+		
+		switch (sig_mask)
+		{
+			case kEidosValueMaskLogical:
+			{
+				EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve((int)values_size);
+				std::vector<eidos_logical_t> &logical_result_vec = *logical_result->LogicalVector_Mutable();
+				
+				for (auto value : values_)
+					logical_result_vec.emplace_back(value->GetProperty_Accelerated_Logical(p_property_id));
+				
+				return EidosValue_SP(logical_result);
+			}
+			case kEidosValueMaskInt:
+			{
+				EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->Reserve((int)values_size);
+				
+				for (auto value : values_)
+					int_result->PushInt(value->GetProperty_Accelerated_Int(p_property_id));
+				
+				return EidosValue_SP(int_result);
+			}
+			case kEidosValueMaskFloat:
+			{
+				EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve((int)values_size);
+				
+				for (auto value : values_)
+					float_result->PushFloat(value->GetProperty_Accelerated_Float(p_property_id));
+				
+				return EidosValue_SP(float_result);
+			}
+			case kEidosValueMaskString:
+			{
+				EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve((int)values_size);
+				
+				for (auto value : values_)
+					string_result->PushString(value->GetProperty_Accelerated_String(p_property_id));
+				
+				return EidosValue_SP(string_result);
+			}
+			case kEidosValueMaskObject:
+			{
+				const EidosObjectClass *value_class = signature->value_class_;
+				
+				if (value_class)
+				{
+					EidosValue_Object_vector *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(value_class))->Reserve((int)values_size);
+					
+					for (auto value : values_)
+						object_result->PushObjectElement(value->GetProperty_Accelerated_ObjectElement(p_property_id));
+					
+					return EidosValue_SP(object_result);
+				}
+				else
+					EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::GetPropertyOfElements): (internal error) missing object element class for accelerated property access." << eidos_terminate(nullptr);
+			}
+			default:
+				EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::GetPropertyOfElements): (internal error) unsupported value type for accelerated property access." << eidos_terminate(nullptr);
+		}
 	}
 	else
 	{
@@ -2265,8 +2331,31 @@ EidosObjectElement *EidosObjectElement::Release(void)
 EidosValue_SP EidosObjectElement::GetProperty(EidosGlobalStringID p_property_id)
 {
 	EIDOS_TERMINATION << "ERROR (EidosObjectElement::GetProperty for " << Class()->ElementType() << "): (internal error) attempt to get a value for property " << StringForEidosGlobalStringID(p_property_id) << " was not handled by subclass." << eidos_terminate(nullptr);
-	
-	return EidosValue_SP(nullptr);
+}
+
+eidos_logical_t EidosObjectElement::GetProperty_Accelerated_Logical(EidosGlobalStringID p_property_id)
+{
+	EIDOS_TERMINATION << "ERROR (EidosObjectElement::GetProperty_Accelerated_Logical for " << Class()->ElementType() << "): (internal error) attempt to get a value for accelerated property " << StringForEidosGlobalStringID(p_property_id) << " was not handled by subclass." << eidos_terminate(nullptr);
+}
+
+int64_t EidosObjectElement::GetProperty_Accelerated_Int(EidosGlobalStringID p_property_id)
+{
+	EIDOS_TERMINATION << "ERROR (EidosObjectElement::GetProperty_Accelerated_Int for " << Class()->ElementType() << "): (internal error) attempt to get a value for accelerated property " << StringForEidosGlobalStringID(p_property_id) << " was not handled by subclass." << eidos_terminate(nullptr);
+}
+
+double EidosObjectElement::GetProperty_Accelerated_Float(EidosGlobalStringID p_property_id)
+{
+	EIDOS_TERMINATION << "ERROR (EidosObjectElement::GetProperty_Accelerated_Float for " << Class()->ElementType() << "): (internal error) attempt to get a value for accelerated property " << StringForEidosGlobalStringID(p_property_id) << " was not handled by subclass." << eidos_terminate(nullptr);
+}
+
+std::string EidosObjectElement::GetProperty_Accelerated_String(EidosGlobalStringID p_property_id)
+{
+	EIDOS_TERMINATION << "ERROR (EidosObjectElement::GetProperty_Accelerated_String for " << Class()->ElementType() << "): (internal error) attempt to get a value for accelerated property " << StringForEidosGlobalStringID(p_property_id) << " was not handled by subclass." << eidos_terminate(nullptr);
+}
+
+EidosObjectElement *EidosObjectElement::GetProperty_Accelerated_ObjectElement(EidosGlobalStringID p_property_id)
+{
+	EIDOS_TERMINATION << "ERROR (EidosObjectElement::GetProperty_Accelerated_ObjectElement for " << Class()->ElementType() << "): (internal error) attempt to get a value for accelerated property " << StringForEidosGlobalStringID(p_property_id) << " was not handled by subclass." << eidos_terminate(nullptr);
 }
 
 void EidosObjectElement::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)

@@ -28,14 +28,14 @@ using std::ostream;
 
 
 EidosPropertySignature::EidosPropertySignature(const std::string &p_property_name, EidosGlobalStringID p_property_id, bool p_read_only, EidosValueMask p_value_mask)
-	: property_name_(p_property_name), property_id_(p_property_id), read_only_(p_read_only), value_mask_(p_value_mask), value_class_(nullptr)
+	: property_name_(p_property_name), property_id_(p_property_id), read_only_(p_read_only), value_mask_(p_value_mask), value_class_(nullptr), accelerated_(false)
 {
 	if (!read_only_ && !(value_mask_ & kEidosValueMaskSingleton))
 		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::EidosPropertySignature): (internal error) read-write property " << property_name_ << " must produce a singleton value according to Eidos semantics." << eidos_terminate(nullptr);
 }
 
 EidosPropertySignature::EidosPropertySignature(const std::string &p_property_name, EidosGlobalStringID p_property_id, bool p_read_only, EidosValueMask p_value_mask, const EidosObjectClass *p_value_class)
-	: property_name_(p_property_name), property_id_(p_property_id), read_only_(p_read_only), value_mask_(p_value_mask), value_class_(p_value_class)
+	: property_name_(p_property_name), property_id_(p_property_id), read_only_(p_read_only), value_mask_(p_value_mask), value_class_(p_value_class), accelerated_(false)
 {
 	if (!read_only_ && !(value_mask_ & kEidosValueMaskSingleton))
 		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::EidosPropertySignature): (internal error) read-write property " << property_name_ << " must produce a singleton value according to Eidos semantics." << eidos_terminate(nullptr);
@@ -128,6 +128,29 @@ std::string EidosPropertySignature::PropertyType(void) const
 std::string EidosPropertySignature::PropertySymbol(void) const
 {
 	return (read_only_ ? "=>" : "<–>");
+}
+
+EidosPropertySignature *EidosPropertySignature::DeclareAccelerated(void)
+{
+	uint32_t retmask = value_mask_;
+	bool return_is_singleton = !!(retmask & kEidosValueMaskSingleton);
+	
+	if (!return_is_singleton)
+		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::DeclareAccelerated): (internal error) only singleton properties may be accelerated." << eidos_terminate(nullptr);
+	
+	if ((retmask != (kEidosValueMaskLogical | kEidosValueMaskSingleton)) && 
+		(retmask != (kEidosValueMaskInt | kEidosValueMaskSingleton)) && 
+		(retmask != (kEidosValueMaskFloat | kEidosValueMaskSingleton)) && 
+		(retmask != (kEidosValueMaskString | kEidosValueMaskSingleton)) && 
+		(retmask != (kEidosValueMaskObject | kEidosValueMaskSingleton)))
+		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::DeclareAccelerated): (internal error) only properties returning one guaranteed type may be accelerated." << eidos_terminate(nullptr);
+	
+	if ((retmask == (kEidosValueMaskObject | kEidosValueMaskSingleton)) && (value_class_ == nullptr))
+		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::DeclareAccelerated): (internal error) only object properties that declare their class may be accelerated." << eidos_terminate(nullptr);
+	
+	accelerated_ = true;
+	
+	return this;
 }
 
 ostream &operator<<(ostream &p_outstream, const EidosPropertySignature &p_signature)

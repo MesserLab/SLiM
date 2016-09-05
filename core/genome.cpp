@@ -340,7 +340,7 @@ EidosValue_SP Genome::GetProperty(EidosGlobalStringID p_property_id)
 				case GenomeType::kYChromosome:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_Y));
 			}
 		}
-		case gID_isNullGenome:
+		case gID_isNullGenome:		// ACCELERATED
 			return ((mutations_ == nullptr) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		case gID_mutations:
 		{
@@ -354,12 +354,32 @@ EidosValue_SP Genome::GetProperty(EidosGlobalStringID p_property_id)
 		}
 			
 			// variables
-		case gID_tag:
+		case gID_tag:				// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value_));
 			
 			// all others, including gID_none
 		default:
 			return EidosObjectElement::GetProperty(p_property_id);
+	}
+}
+
+eidos_logical_t Genome::GetProperty_Accelerated_Logical(EidosGlobalStringID p_property_id)
+{
+	switch (p_property_id)
+	{
+		case gID_isNullGenome:		return (mutations_ == nullptr);
+			
+		default:					return EidosObjectElement::GetProperty_Accelerated_Logical(p_property_id);
+	}
+}
+
+int64_t Genome::GetProperty_Accelerated_Int(EidosGlobalStringID p_property_id)
+{
+	switch (p_property_id)
+	{
+		case gID_tag:				return tag_value_;
+			
+		default:					return EidosObjectElement::GetProperty_Accelerated_Int(p_property_id);
 	}
 }
 
@@ -980,9 +1000,9 @@ const EidosPropertySignature *Genome_Class::SignatureForProperty(EidosGlobalStri
 	if (!genomeTypeSig)
 	{
 		genomeTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomeType,		gID_genomeType,		true,	kEidosValueMaskString | kEidosValueMaskSingleton));
-		isNullGenomeSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_isNullGenome,	gID_isNullGenome,	true,	kEidosValueMaskLogical | kEidosValueMaskSingleton));
+		isNullGenomeSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_isNullGenome,	gID_isNullGenome,	true,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAccelerated();
 		mutationsSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutations,		gID_mutations,		true,	kEidosValueMaskObject, gSLiM_Mutation_Class));
-		tagSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,				gID_tag,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
+		tagSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,				gID_tag,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAccelerated();
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup

@@ -163,11 +163,11 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 	switch (p_property_id)
 	{
 			// constants
-		case gID_subpopulation:
+		case gID_subpopulation:		// ACCELERATED
 		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(&subpopulation_, gSLiM_Subpopulation_Class));
 		}
-		case gID_index:
+		case gID_index:				// ACCELERATED
 		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(index_));
 		}
@@ -216,12 +216,35 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 		}
 			
 			// variables
-		case gID_tag:
+		case gID_tag:				// ACCELERATED
+		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value_));
+		}
 			
 			// all others, including gID_none
 		default:
 			return EidosObjectElement::GetProperty(p_property_id);
+	}
+}
+
+int64_t Individual::GetProperty_Accelerated_Int(EidosGlobalStringID p_property_id)
+{
+	switch (p_property_id)
+	{
+		case gID_index:			return index_;
+		case gID_tag:			return tag_value_;
+			
+		default:				return EidosObjectElement::GetProperty_Accelerated_Int(p_property_id);
+	}
+}
+
+EidosObjectElement *Individual::GetProperty_Accelerated_ObjectElement(EidosGlobalStringID p_property_id)
+{
+	switch (p_property_id)
+	{
+		case gID_subpopulation:	return &subpopulation_;
+			
+		default:				return EidosObjectElement::GetProperty_Accelerated_ObjectElement(p_property_id);
 	}
 }
 
@@ -431,11 +454,11 @@ const EidosPropertySignature *Individual_Class::SignatureForProperty(EidosGlobal
 	
 	if (!subpopulationSig)
 	{
-		subpopulationSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopulation,	gID_subpopulation,	true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class));
-		indexSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_index,			gID_index,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
+		subpopulationSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopulation,	gID_subpopulation,	true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->DeclareAccelerated();
+		indexSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_index,			gID_index,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAccelerated();
 		genomesSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomes,			gID_genomes,		true,	kEidosValueMaskObject, gSLiM_Genome_Class));
 		sexSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_sex,				gID_sex,			true,	kEidosValueMaskString | kEidosValueMaskSingleton));
-		tagSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,				gID_tag,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
+		tagSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,				gID_tag,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAccelerated();
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup

@@ -454,6 +454,10 @@ public:
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id);
 	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value);
 	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	
+	// Accelerated property access; see class EidosObjectElement for comments on this mechanism
+	virtual eidos_logical_t GetProperty_Accelerated_Logical(EidosGlobalStringID p_property_id);
+	virtual int64_t GetProperty_Accelerated_Int(EidosGlobalStringID p_property_id);
 };
 
 

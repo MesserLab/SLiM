@@ -106,20 +106,42 @@ EidosValue_SP GenomicElement::GetProperty(EidosGlobalStringID p_property_id)
 	switch (p_property_id)
 	{
 			// constants
-		case gID_genomicElementType:
+		case gID_genomicElementType:	// ACCELERATED
 			return genomic_element_type_ptr_->SymbolTableEntry().second;
-		case gID_startPosition:
+		case gID_startPosition:			// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(start_position_));
-		case gID_endPosition:
+		case gID_endPosition:			// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(end_position_));
 			
 			// variables
-		case gID_tag:
+		case gID_tag:					// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value_));
 			
 			// all others, including gID_none
 		default:
 			return EidosObjectElement::GetProperty(p_property_id);
+	}
+}
+
+int64_t GenomicElement::GetProperty_Accelerated_Int(EidosGlobalStringID p_property_id)
+{
+	switch (p_property_id)
+	{
+		case gID_startPosition:			return start_position_;
+		case gID_endPosition:			return end_position_;
+		case gID_tag:					return tag_value_;
+			
+		default:						return EidosObjectElement::GetProperty_Accelerated_Int(p_property_id);
+	}
+}
+
+EidosObjectElement *GenomicElement::GetProperty_Accelerated_ObjectElement(EidosGlobalStringID p_property_id)
+{
+	switch (p_property_id)
+	{
+		case gID_genomicElementType:	return genomic_element_type_ptr_;
+			
+		default:						return EidosObjectElement::GetProperty_Accelerated_ObjectElement(p_property_id);
 	}
 }
 
@@ -251,10 +273,10 @@ const EidosPropertySignature *GenomicElement_Class::SignatureForProperty(EidosGl
 	
 	if (!genomicElementTypeSig)
 	{
-		genomicElementTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElementType,	gID_genomicElementType,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_GenomicElementType_Class));
-		startPositionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_startPosition,		gID_startPosition,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
-		endPositionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_endPosition,			gID_endPosition,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
-		tagSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					gID_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
+		genomicElementTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElementType,	gID_genomicElementType,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_GenomicElementType_Class))->DeclareAccelerated();
+		startPositionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_startPosition,		gID_startPosition,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAccelerated();
+		endPositionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_endPosition,			gID_endPosition,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAccelerated();
+		tagSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					gID_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAccelerated();
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup

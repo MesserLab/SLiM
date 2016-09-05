@@ -874,6 +874,17 @@ public:
 	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value);
 	
 	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	
+	// Accelerated property access, by returning raw C++ types.  Participation in this scheme is entirely optional
+	// on the part of subclasses; you can just implement GetProperty() if you wish.  If you do choose to opt in to
+	// acceleration, you must still implement GetProperty() fully as well.  Opt in by calling DeclareAccelerated()
+	// on the property signatures that you wish to accelerate, in your class interface code.  Only singleton
+	// properties with a single, fully declared return type may be accelerated.
+	virtual eidos_logical_t GetProperty_Accelerated_Logical(EidosGlobalStringID p_property_id);
+	virtual int64_t GetProperty_Accelerated_Int(EidosGlobalStringID p_property_id);
+	virtual double GetProperty_Accelerated_Float(EidosGlobalStringID p_property_id);
+	virtual std::string GetProperty_Accelerated_String(EidosGlobalStringID p_property_id);
+	virtual EidosObjectElement *GetProperty_Accelerated_ObjectElement(EidosGlobalStringID p_property_id);
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const EidosObjectElement &p_element);

@@ -56,7 +56,7 @@ const EidosObjectClass *Eidos_TestElement::Class(void) const
 
 EidosValue_SP Eidos_TestElement::GetProperty(EidosGlobalStringID p_property_id)
 {
-	if (p_property_id == gEidosID__yolk)
+	if (p_property_id == gEidosID__yolk)				// ACCELERATED
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(yolk_));
 	else if (p_property_id == gEidosID__increment)
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(new Eidos_TestElement(yolk_ + 1), gEidos_TestElementClass));
@@ -64,6 +64,16 @@ EidosValue_SP Eidos_TestElement::GetProperty(EidosGlobalStringID p_property_id)
 	// all others, including gID_none
 	else
 		return EidosObjectElement::GetProperty(p_property_id);
+}
+
+int64_t Eidos_TestElement::GetProperty_Accelerated_Int(EidosGlobalStringID p_property_id)
+{
+	switch (p_property_id)
+	{
+		case gEidosID__yolk:		return yolk_;
+			
+		default:					return EidosObjectElement::GetProperty_Accelerated_Int(p_property_id);
+	}
 }
 
 void Eidos_TestElement::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
@@ -159,7 +169,7 @@ const EidosPropertySignature *Eidos_TestElementClass::SignatureForProperty(Eidos
 	
 	if (!yolkSig)
 	{
-		yolkSig =		(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr__yolk,		gEidosID__yolk,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
+		yolkSig =		(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr__yolk,		gEidosID__yolk,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAccelerated();
 		incrementSig =	(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr__increment,	gEidosID__increment,	true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gEidos_TestElementClass));
 	}
 	
