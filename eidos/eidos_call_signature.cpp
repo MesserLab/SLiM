@@ -21,6 +21,7 @@
 #include "eidos_call_signature.h"
 
 #include <string>
+#include <utility>
 
 
 using std::string;
