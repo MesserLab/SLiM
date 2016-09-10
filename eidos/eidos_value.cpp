@@ -2593,6 +2593,7 @@ const EidosMethodSignature *EidosObjectClass::SignatureForMethodOrRaise(EidosGlo
 
 EidosValue_SP EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
 {
+#pragma unused(p_argument_count)
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_method_id)
 	{
