@@ -143,7 +143,7 @@
 				
 				if (is_optional)
 				{
-					if (arg_default)
+					if (arg_default && (arg_default != gStaticEidosValueNULLInvisible.get()))
 					{
 						[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@" = " attributes:plainAttrs] autorelease]];
 						

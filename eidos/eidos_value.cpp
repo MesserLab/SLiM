@@ -145,7 +145,7 @@ std::string StringForEidosValueMask(const EidosValueMask p_mask, const EidosObje
 	
 	if (is_optional)
 	{
-		if (p_default)
+		if (p_default && (p_default != gStaticEidosValueNULLInvisible.get()))
 		{
 			out_string += " = ";
 			

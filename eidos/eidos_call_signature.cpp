@@ -96,7 +96,7 @@ EidosCallSignature *EidosCallSignature::AddArgWithDefault(EidosValueMask p_arg_m
 		EidosValue *argument = p_default_value.get();
 		EidosValueType arg_type = argument->Type();
 		
-		if (type_mask != kEidosValueMaskAny)
+		if ((type_mask != kEidosValueMaskAny) && (argument != gStaticEidosValueNULLInvisible))	// allow gStaticEidosValueNULLInvisible as a default even if the argument is not labelled as taking NULL; this is for internal use only
 		{
 			bool type_ok = true;
 			
