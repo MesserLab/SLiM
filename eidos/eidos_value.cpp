@@ -2422,7 +2422,7 @@ EidosValue_SP EidosObjectElement::ExecuteInstanceMethod(EidosGlobalStringID p_me
 			const std::string &method_name = StringForEidosGlobalStringID(p_method_id);
 			
 			for (auto method_sig : *methods)
-				if (method_sig->function_name_.compare(method_name) == 0)
+				if (method_sig->call_name_.compare(method_name) == 0)
 					EIDOS_TERMINATION << "ERROR (EidosObjectElement::ExecuteInstanceMethod for " << Class()->ElementType() << "): (internal error) method " << method_name << " was not handled by subclass." << eidos_terminate(nullptr);
 			
 			// Otherwise, we have an unrecognized method, so throw
@@ -2648,7 +2648,7 @@ EidosValue_SP EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_
 				if (!method_sig->is_class_method)
 					continue;
 				
-				const std::string &method_name = method_sig->function_name_;
+				const std::string &method_name = method_sig->call_name_;
 				
 				if (has_match_string && (method_name.compare(match_string) != 0))
 					continue;
@@ -2663,7 +2663,7 @@ EidosValue_SP EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_
 				if (method_sig->is_class_method)
 					continue;
 				
-				const std::string &method_name = method_sig->function_name_;
+				const std::string &method_name = method_sig->call_name_;
 				
 				if (has_match_string && (method_name.compare(match_string) != 0))
 					continue;
@@ -2697,7 +2697,7 @@ EidosValue_SP EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_
 			const std::string &method_name = StringForEidosGlobalStringID(p_method_id);
 			
 			for (auto method_sig : *methods)
-				if (method_sig->function_name_.compare(method_name) == 0)
+				if (method_sig->call_name_.compare(method_name) == 0)
 					EIDOS_TERMINATION << "ERROR (EidosObjectClass::ExecuteClassMethod for " << ElementType() << "): (internal error) method " << method_name << " was not handled by subclass." << eidos_terminate(nullptr);
 			
 			// Otherwise, we have an unrecognized method, so throw

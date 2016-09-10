@@ -911,7 +911,7 @@ int EidosInterpreter::_ProcessArgumentList(const EidosASTNode *p_node, const Eid
 		{
 			// We're beyond the end of the signature's arguments; check whether this argument can qualify as an ellipsis argument
 			if (!p_call_signature->has_ellipsis_)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): too many arguments supplied to function " << p_call_signature->function_name_ << "." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): too many arguments supplied to function " << p_call_signature->call_name_ << "." << eidos_terminate(nullptr);
 			
 			if (child->token_->token_type_ == EidosTokenType::kTokenAssign)
 			{
@@ -985,7 +985,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 			auto signature_iter = function_map_.find(*function_name);
 			
 			if (signature_iter == function_map_.end())
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): unrecognized function name " << *function_name << "." << eidos_terminate(call_identifier_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): unrecognized function name " << *function_name << "." << eidos_terminate(call_identifier_token);
 			
 			function_signature = signature_iter->second;
 		}
@@ -1001,7 +1001,12 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 			EidosValue_SP (arguments_array[5]);
 			int processed_arg_count = _ProcessArgumentList(p_node, function_signature, arguments_array);
 			
-			result_SP = ExecuteFunctionCall(*function_name, function_signature, arguments_array, processed_arg_count);
+			if (function_signature->internal_function_)
+				result_SP = function_signature->internal_function_(arguments_array, processed_arg_count, *this);
+			else if (function_signature->delegate_function_)
+				result_SP = function_signature->delegate_function_(function_signature->delegate_object_, *function_name, arguments_array, processed_arg_count, *this);
+			else
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): unbound function " << *function_name << "." << eidos_terminate(call_identifier_token);
 		}
 		else
 		{
@@ -1012,7 +1017,12 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 			EidosValue_SP *arguments_ptr = arguments.data();
 			int processed_arg_count = _ProcessArgumentList(p_node, function_signature, arguments_ptr);
 			
-			result_SP = ExecuteFunctionCall(*function_name, function_signature, arguments_ptr, processed_arg_count);
+			if (function_signature->internal_function_)
+				result_SP = function_signature->internal_function_(arguments_ptr, processed_arg_count, *this);
+			else if (function_signature->delegate_function_)
+				result_SP = function_signature->delegate_function_(function_signature->delegate_object_, *function_name, arguments_ptr, processed_arg_count, *this);
+			else
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): unbound function " << *function_name << "." << eidos_terminate(call_identifier_token);
 		}
 		
 		// If the code above supplied no return value, invisible NULL is assumed as a default to prevent a crash;
@@ -1059,7 +1069,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		const EidosMethodSignature *method_signature = method_object->Class()->SignatureForMethod(method_id);
 		
 		if (!method_signature)
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteMethodCall): method " << StringForEidosGlobalStringID(method_id) << "() is not defined on object element type " << method_object->ElementType() << "." << eidos_terminate(call_identifier_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): method " << StringForEidosGlobalStringID(method_id) << "() is not defined on object element type " << method_object->ElementType() << "." << eidos_terminate(call_identifier_token);
 		
 		// If an error occurs inside a function or method call, we want to highlight the call
 		EidosErrorPosition error_pos_save = EidosScript::PushErrorPositionFromToken(call_identifier_token);
@@ -4412,7 +4422,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 			{
 				const EidosFunctionSignature *signature = call_name_node->cached_signature_;
 				
-				if (signature && (signature->function_id_ == EidosFunctionIdentifier::seqAlongFunction))
+				if (signature && (signature->internal_function_ == Eidos_ExecuteFunction_seqAlong))
 				{
 					if (range_node->children_.size() == 2)
 					{

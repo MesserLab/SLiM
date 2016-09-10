@@ -375,7 +375,7 @@
 				const EidosFunctionSignature *function_signature = nullptr;
 				
 				for (auto signature_iter = functionList->begin(); signature_iter != functionList->end(); signature_iter++)
-					if ((*signature_iter)->function_name_.compare(function_name) == 0)
+					if ((*signature_iter)->call_name_.compare(function_name) == 0)
 					{
 						function_signature = *signature_iter;
 						break;
@@ -426,7 +426,7 @@
 				const EidosMethodSignature *method_signature = nullptr;
 				
 				for (auto signature_iter = methodList->begin(); signature_iter != methodList->end(); signature_iter++)
-					if ((*signature_iter)->function_name_.compare(method_name) == 0)
+					if ((*signature_iter)->call_name_.compare(method_name) == 0)
 					{
 						method_signature = *signature_iter;
 						break;

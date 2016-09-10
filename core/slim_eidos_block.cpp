@@ -1084,7 +1084,7 @@ EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_MethodCall_Internal(const 
 		{
 			int argument_count = (int)p_arguments.size();
 			
-			const std::string &function_name = p_method_signature->function_name_;
+			const std::string &function_name = p_method_signature->call_name_;
 			
 			if (((function_name == "addSubpop") || (function_name == "addSubpopSplit")) && (argument_count >= 1))
 			{

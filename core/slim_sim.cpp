@@ -1944,19 +1944,19 @@ const std::vector<const EidosFunctionSignature*> *SLiMSim::ZeroGenerationFunctio
 	// Allocate our own EidosFunctionSignature objects; they cannot be statically allocated since they point to us
 	if (!sim_0_signatures_.size())
 	{
-		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElement, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElement, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									->AddIntObject_S("genomicElementType", gSLiM_GenomicElementType_Class)->AddInt_S("start")->AddInt_S("end"));
-		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElementType, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_GenomicElementType_Class, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElementType, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_GenomicElementType_Class, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									->AddIntString_S("id")->AddIntObject("mutationTypes", gSLiM_MutationType_Class)->AddNumeric("proportions"));
-		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationType, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationType, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									->AddIntString_S("id")->AddNumeric_S("dominanceCoeff")->AddString_S("distributionType")->AddEllipsis());
-		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeRecombinationRate, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeRecombinationRate, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
-		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGeneConversion, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGeneConversion, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									->AddNumeric_S("conversionFraction")->AddNumeric_S("meanLength"));
-		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationRate, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationRate, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									->AddNumeric_S("rate"));
-		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSex, EidosFunctionIdentifier::kDelegatedFunction, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSex, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									->AddString_S("chromosomeType")->AddNumeric_OS("xDominanceCoeff", gStaticEidosValue_Float1));
 	}
 	
@@ -1970,7 +1970,7 @@ void SLiMSim::AddZeroGenerationFunctionsToMap(EidosFunctionMap *p_map)
 	if (signatures)
 	{
 		for (const EidosFunctionSignature *signature : *signatures)
-			p_map->insert(EidosFunctionMapPair(signature->function_name_, signature));
+			p_map->insert(EidosFunctionMapPair(signature->call_name_, signature));
 	}
 }
 
@@ -2021,13 +2021,12 @@ const std::vector<const EidosMethodSignature*> *SLiMSim::AllMethodSignatures(voi
 		
 		for (const EidosMethodSignature *sig : *methodSignatures)
 		{
-			if (previous_sig && (sig->function_name_.compare(previous_sig->function_name_) == 0))
+			if (previous_sig && (sig->call_name_.compare(previous_sig->call_name_) == 0))
 			{
 				// We have a name collision.  That is OK as long as the method signatures are identical.
 				if ((typeid(*sig) != typeid(*previous_sig)) ||
 					(sig->is_class_method != previous_sig->is_class_method) ||
-					(sig->function_name_ != previous_sig->function_name_) ||
-					(sig->function_id_ != previous_sig->function_id_) ||
+					(sig->call_name_ != previous_sig->call_name_) ||
 					(sig->return_mask_ != previous_sig->return_mask_) ||
 					(sig->return_class_ != previous_sig->return_class_) ||
 					(sig->arg_masks_ != previous_sig->arg_masks_) ||
@@ -2035,7 +2034,7 @@ const std::vector<const EidosMethodSignature*> *SLiMSim::AllMethodSignatures(voi
 					(sig->arg_classes_ != previous_sig->arg_classes_) ||
 					(sig->has_optional_args_ != previous_sig->has_optional_args_) ||
 					(sig->has_ellipsis_ != previous_sig->has_ellipsis_))
-					std::cout << "Duplicate method name with a different signature: " << sig->function_name_ << std::endl;
+					std::cout << "Duplicate method name with a different signature: " << sig->call_name_ << std::endl;
 			}
 			
 			previous_sig = sig;
@@ -2044,7 +2043,7 @@ const std::vector<const EidosMethodSignature*> *SLiMSim::AllMethodSignatures(voi
 		// log a full list
 		//std::cout << "----------------" << std::endl;
 		//for (const EidosMethodSignature *sig : *methodSignatures)
-		//	std::cout << sig->function_name_ << " (" << sig << ")" << std::endl;
+		//	std::cout << sig->call_name_ << " (" << sig << ")" << std::endl;
 	}
 	
 	return methodSignatures;

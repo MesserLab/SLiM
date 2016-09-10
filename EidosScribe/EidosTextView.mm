@@ -1320,7 +1320,7 @@ using std::string;
 		for (const auto& function_iter : *functionMap)
 		{
 			const EidosFunctionSignature *sig = function_iter.second;
-			const std::string &sig_call_name = sig->function_name_;
+			const std::string &sig_call_name = sig->call_name_;
 			
 			if (sig_call_name.compare(call_name) == 0)
 				return [NSAttributedString eidosAttributedStringForCallSignature:sig];
@@ -1340,7 +1340,7 @@ using std::string;
 		
 		for (const EidosMethodSignature *sig : *methodSignatures)
 		{
-			const std::string &sig_call_name = sig->function_name_;
+			const std::string &sig_call_name = sig->call_name_;
 			
 			if (sig_call_name.compare(call_name) == 0)
 				return [NSAttributedString eidosAttributedStringForCallSignature:sig];
@@ -1422,7 +1422,7 @@ using std::string;
 		for (const auto& function_iter : *functionMap)
 		{
 			const EidosFunctionSignature *sig = function_iter.second;
-			NSString *functionName = [NSString stringWithUTF8String:sig->function_name_.c_str()];
+			NSString *functionName = [NSString stringWithUTF8String:sig->call_name_.c_str()];
 			
 			[globals addObject:[functionName stringByAppendingString:@"()"]];
 		}
@@ -1573,7 +1573,7 @@ using std::string;
 		{
 			const EidosFunctionSignature *sig = function_iter.second;
 			
-			if (sig->function_name_.compare(identifier_name) == 0)
+			if (sig->call_name_.compare(identifier_name) == 0)
 			{
 				key_path_class = sig->return_class_;
 				
@@ -1658,7 +1658,7 @@ using std::string;
 	// Next, a sorted list of methods, with () appended
 	for (auto method_sig : *terminus->Methods())
 	{
-		NSString *methodName = [NSString stringWithUTF8String:method_sig->function_name_.c_str()];
+		NSString *methodName = [NSString stringWithUTF8String:method_sig->call_name_.c_str()];
 		
 		[candidates addObject:[methodName stringByAppendingString:@"()"]];
 	}

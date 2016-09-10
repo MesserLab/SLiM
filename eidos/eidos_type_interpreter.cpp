@@ -178,9 +178,9 @@ EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(str
 		// In figuring this stuff out, we need to be careful about the fact that the p_arguments vector can contain nullptr
 		// values if there were missing arguments, etc.; we try to be error-tolerant, so we allow cases that would raise
 		// in EidosInterpreter.  TypeEvaluateNode() is safe to call with nullptr.
-		EidosFunctionIdentifier function_id = p_function_signature->function_id_;
+		EidosInternalFunctionPtr function_ptr = p_function_signature->internal_function_;
 		
-		if ((function_id == EidosFunctionIdentifier::defineConstantFunction) && (argument_count == 2))
+		if ((function_ptr == Eidos_ExecuteFunction_defineConstant) && (argument_count == 2))
 		{
 			// We know that defineConstant() has the side effect of adding a new symbol, and we want to reflect that in
 			// our type table so that defined constants are always available.
@@ -197,21 +197,21 @@ EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(str
 				}
 			}
 		}
-		else if (((function_id == EidosFunctionIdentifier::repFunction) || (function_id == EidosFunctionIdentifier::repEachFunction) || (function_id == EidosFunctionIdentifier::revFunction) || (function_id == EidosFunctionIdentifier::sampleFunction) || (function_id == EidosFunctionIdentifier::sortByFunction) || (function_id == EidosFunctionIdentifier::uniqueFunction)) && (argument_count >= 1))
+		else if (((function_ptr == Eidos_ExecuteFunction_rep) || (function_ptr == Eidos_ExecuteFunction_repEach) || (function_ptr == Eidos_ExecuteFunction_rev) || (function_ptr == Eidos_ExecuteFunction_sample) || (function_ptr == Eidos_ExecuteFunction_sortBy) || (function_ptr == Eidos_ExecuteFunction_unique)) && (argument_count >= 1))
 		{
 			// These functions are all defined as returning *, but in fact return the same type/class as their first argument.
 			EidosTypeSpecifier argument_type = TypeEvaluateNode(p_arguments[0]);
 			
 			result_type = argument_type;
 		}
-		else if ((function_id == EidosFunctionIdentifier::ifelseFunction) && (argument_count >= 2))
+		else if ((function_ptr == Eidos_ExecuteFunction_ifelse) && (argument_count >= 2))
 		{
 			// These functions are all defined as returning *, but in fact return the same type/class as their second argument.
 			EidosTypeSpecifier argument_type = TypeEvaluateNode(p_arguments[1]);
 			
 			result_type = argument_type;
 		}
-		else if ((function_id == EidosFunctionIdentifier::cFunction) && (argument_count >= 1))
+		else if ((function_ptr == Eidos_ExecuteFunction_c) && (argument_count >= 1))
 		{
 			// The c() function returns the highest type it is passed (in the sense of promotion order).  This is not
 			// important to us, except that if any argument is an object type, we assume the return will mirror that.

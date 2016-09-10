@@ -158,8 +158,6 @@ public:
 	static inline __attribute__((always_inline)) EidosFunctionMap *BuiltInFunctionMap(void) { return built_in_function_map_; }
 	static void CacheBuiltInFunctionMap(void);	// must be called by EidosWarmup() before BuiltInFunctionMap() is called
 	
-	EidosValue_SP ExecuteFunctionCall(const std::string &p_function_name, const EidosFunctionSignature *p_function_signature, const EidosValue_SP *const p_arguments, int p_argument_count);
-	
 	// Utility static methods for numeric conversions
 	static int64_t IntegerForString(const std::string &p_number_string, const EidosToken *p_blame_token);
 	static double FloatForString(const std::string &p_number_string, const EidosToken *p_blame_token);

@@ -41,7 +41,7 @@
 		
 		NSString *prefixString = [NSString stringWithUTF8String:signature->CallPrefix().c_str()];	// "", "– ", or "+ "
 		NSString *returnTypeString = [NSString stringWithUTF8String:StringForEidosValueMask(signature->return_mask_, signature->return_class_, "", nullptr).c_str()];
-		NSString *functionNameString = [NSString stringWithUTF8String:signature->function_name_.c_str()];
+		NSString *functionNameString = [NSString stringWithUTF8String:signature->call_name_.c_str()];
 		
 		NSDictionary *plainAttrs = [NSDictionary eidosOutputAttrs];
 		NSDictionary *typeAttrs = [NSDictionary eidosInputAttrs];
@@ -448,7 +448,7 @@ std::string EidosBeep(std::string p_sound_name)
 		// If the requested sound did not exist, we fall back on the default, which ought to always exist
 		if (!cachedSound)
 		{
-			return_string = "#WARNING (ExecuteFunctionCall): function beep() could not find the requested sound.";
+			return_string = "#WARNING (EidosBeep): function beep() could not find the requested sound.";
 			
 			soundName = @"Pop";
 			cachedSound = [[NSSound soundNamed:soundName] retain];

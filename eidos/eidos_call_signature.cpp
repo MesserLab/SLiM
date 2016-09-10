@@ -35,13 +35,13 @@ using std::ostream;
 //
 #pragma mark EidosCallSignature
 
-EidosCallSignature::EidosCallSignature(const string &p_function_name, EidosFunctionIdentifier p_function_id, EidosValueMask p_return_mask)
-	: function_name_(p_function_name), function_id_(p_function_id), return_mask_(p_return_mask), return_class_(nullptr)
+EidosCallSignature::EidosCallSignature(const string &p_call_name, EidosValueMask p_return_mask)
+	: call_name_(p_call_name), return_mask_(p_return_mask), return_class_(nullptr)
 {
 }
 
-EidosCallSignature::EidosCallSignature(const std::string &p_function_name, EidosFunctionIdentifier p_function_id, EidosValueMask p_return_mask, const EidosObjectClass *p_return_class)
-	: function_name_(p_function_name), function_id_(p_function_id), return_mask_(p_return_mask), return_class_(p_return_class)
+EidosCallSignature::EidosCallSignature(const std::string &p_call_name, EidosValueMask p_return_mask, const EidosObjectClass *p_return_class)
+	: call_name_(p_call_name), return_mask_(p_return_mask), return_class_(p_return_class)
 {
 }
 
@@ -251,10 +251,10 @@ void EidosCallSignature::CheckArguments(const EidosValue_SP *const p_arguments, 
 	if (!has_ellipsis_ && (p_argument_count != arg_masks_size))
 	{
 		if (p_argument_count > arg_masks_size)
-			EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): " << CallType() << " " << function_name_ << "() requires at most " << arg_masks_.size() << " argument(s), but " << p_argument_count << " are supplied (after incorporating default arguments)." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): " << CallType() << " " << call_name_ << "() requires at most " << arg_masks_.size() << " argument(s), but " << p_argument_count << " are supplied (after incorporating default arguments)." << eidos_terminate(nullptr);
 		
 		if (p_argument_count < arg_masks_size)
-			EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): " << CallType() << " " << function_name_ << "() requires " << arg_masks_.size() << " argument(s), but " << p_argument_count << " are supplied (after incorporating default arguments)." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): " << CallType() << " " << call_name_ << "() requires " << arg_masks_.size() << " argument(s), but " << p_argument_count << " are supplied (after incorporating default arguments)." << eidos_terminate(nullptr);
 	}
 	
 	// Check the types of all arguments specified in the signature
@@ -272,7 +272,7 @@ void EidosCallSignature::CheckArguments(const EidosValue_SP *const p_arguments, 
 //			if (is_optional)
 //				break;			// all the rest of the arguments must be optional, so we're done checking
 //			else
-//				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): missing required argument " << arg_names_[arg_index] << " for " << CallType() << " " << function_name_ << "()." << eidos_terminate(nullptr);
+//				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): missing required argument " << arg_names_[arg_index] << " for " << CallType() << " " << call_name_ << "()." << eidos_terminate(nullptr);
 //		}
 		
 		// an argument was passed, so check its type
@@ -307,18 +307,18 @@ void EidosCallSignature::CheckArguments(const EidosValue_SP *const p_arguments, 
 							if ((argument_class == gEidos_UndefinedClassObject) && (argument->Count() == 0))
 								break;
 							
-							EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " cannot be object element type " << argument->ElementType() << " for " << CallType() << " " << function_name_ << "(); expected object element type " << signature_class->ElementType() << "." << eidos_terminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " cannot be object element type " << argument->ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << signature_class->ElementType() << "." << eidos_terminate(nullptr);
 						}
 					}
 					break;
 			}
 			
 			if (!type_ok)
-				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " (" << arg_names_[arg_index] << ") cannot be type " << arg_type << " for " << CallType() << " " << function_name_ << "()." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " (" << arg_names_[arg_index] << ") cannot be type " << arg_type << " for " << CallType() << " " << call_name_ << "()." << eidos_terminate(nullptr);
 			
 			// if NULL is explicitly permitted by the signature, we skip the singleton check
 			if (requires_singleton && (argument->Count() != 1) && (arg_type != EidosValueType::kValueNULL))
-				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " (" << arg_names_[arg_index] << ") must be a singleton (size() == 1) for " << CallType() << " " << function_name_ << "(), but size() == " << argument->Count() << "." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " (" << arg_names_[arg_index] << ") must be a singleton (size() == 1) for " << CallType() << " " << call_name_ << "(), but size() == " << argument->Count() << "." << eidos_terminate(nullptr);
 		}
 	}
 }
@@ -347,18 +347,18 @@ void EidosCallSignature::CheckReturn(const EidosValue &p_result) const
 			// in the signature, check the object element type of the return.  Note this uses pointer equality!
 			if (return_type_ok && return_class_ && (((EidosValue_Object &)p_result).Class() != return_class_))
 			{
-				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): (internal error) object return value cannot be element type " << p_result.ElementType() << " for " << CallType() << " " << function_name_ << "(); expected object element type " << return_class_->ElementType() << "." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): (internal error) object return value cannot be element type " << p_result.ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << return_class_->ElementType() << "." << eidos_terminate(nullptr);
 			}
 			break;
 	}
 	
 	if (!return_type_ok)
-		EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): (internal error) return value cannot be type " << p_result.Type() << " for " << CallType() << " " << function_name_ << "()." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): (internal error) return value cannot be type " << p_result.Type() << " for " << CallType() << " " << call_name_ << "()." << eidos_terminate(nullptr);
 	
 	bool return_is_singleton = !!(retmask & kEidosValueMaskSingleton);
 	
 	if (return_is_singleton && (p_result.Count() != 1))
-		EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): (internal error) return value must be a singleton (size() == 1) for " << CallType() << " " << function_name_ << "(), but size() == " << p_result.Count() << "." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): (internal error) return value must be a singleton (size() == 1) for " << CallType() << " " << call_name_ << "(), but size() == " << p_result.Count() << "." << eidos_terminate(nullptr);
 }
 
 std::string EidosCallSignature::CallDelegate(void) const
@@ -377,7 +377,7 @@ ostream &operator<<(ostream &p_outstream, const EidosCallSignature &p_signature)
 	
 	p_outstream << "(" << StringForEidosValueMask(p_signature.return_mask_, p_signature.return_class_, "", nullptr);
 	
-	p_outstream << ")" << p_signature.function_name_ << "(";
+	p_outstream << ")" << p_signature.call_name_ << "(";
 	
 	int arg_mask_count = (int)p_signature.arg_masks_.size();
 	
@@ -415,7 +415,7 @@ ostream &operator<<(ostream &p_outstream, const EidosCallSignature &p_signature)
 
 bool CompareEidosCallSignatures(const EidosCallSignature *p_i, const EidosCallSignature *p_j)
 {
-	return (p_i->function_name_ < p_j->function_name_);
+	return (p_i->call_name_ < p_j->call_name_);
 }
 
 
@@ -425,23 +425,23 @@ bool CompareEidosCallSignatures(const EidosCallSignature *p_i, const EidosCallSi
 #pragma mark -
 #pragma mark EidosFunctionSignature
 
-EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_name, EidosFunctionIdentifier p_function_id, EidosValueMask p_return_mask)
-	: EidosCallSignature(p_function_name, p_function_id, p_return_mask)
+EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask)
+	: EidosCallSignature(p_function_name, p_return_mask), internal_function_(p_function_ptr)
 {
 }
 
-EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_name, EidosFunctionIdentifier p_function_id, EidosValueMask p_return_mask, const EidosObjectClass *p_return_class)
-	: EidosCallSignature(p_function_name, p_function_id, p_return_mask, p_return_class)
+EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask, const EidosObjectClass *p_return_class)
+	: EidosCallSignature(p_function_name, p_return_mask, p_return_class), internal_function_(p_function_ptr)
 {
 }
 
-EidosFunctionSignature::EidosFunctionSignature(const string &p_function_name, EidosFunctionIdentifier p_function_id, EidosValueMask p_return_mask, EidosDelegateFunctionPtr p_delegate_function, void *p_delegate_object, const string &p_delegate_name)
-	: EidosCallSignature(p_function_name, p_function_id, p_return_mask), delegate_function_(p_delegate_function), delegate_object_(p_delegate_object), delegate_name_(p_delegate_name)
+EidosFunctionSignature::EidosFunctionSignature(const string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask, EidosDelegateFunctionPtr p_delegate_function, void *p_delegate_object, const string &p_delegate_name)
+	: EidosCallSignature(p_function_name, p_return_mask), delegate_function_(p_delegate_function), delegate_object_(p_delegate_object), delegate_name_(p_delegate_name), internal_function_(p_function_ptr)
 {
 }
 
-EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_name, EidosFunctionIdentifier p_function_id, EidosValueMask p_return_mask, const EidosObjectClass *p_return_class, EidosDelegateFunctionPtr p_delegate_function, void *p_delegate_object, const std::string &p_delegate_name)
-	: EidosCallSignature(p_function_name, p_function_id, p_return_mask, p_return_class), delegate_function_(p_delegate_function), delegate_object_(p_delegate_object), delegate_name_(p_delegate_name)
+EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask, const EidosObjectClass *p_return_class, EidosDelegateFunctionPtr p_delegate_function, void *p_delegate_object, const std::string &p_delegate_name)
+	: EidosCallSignature(p_function_name, p_return_mask, p_return_class), delegate_function_(p_delegate_function), delegate_object_(p_delegate_object), delegate_name_(p_delegate_name), internal_function_(p_function_ptr)
 {
 }
 
@@ -483,12 +483,12 @@ std::string EidosFunctionSignature::CallDelegate(void) const
 #pragma mark EidosMethodSignature
 
 EidosMethodSignature::EidosMethodSignature(const std::string &p_function_name, EidosValueMask p_return_mask, bool p_is_class_method)
-	: EidosCallSignature(p_function_name, EidosFunctionIdentifier::kNoFunction, p_return_mask), is_class_method(p_is_class_method)
+	: EidosCallSignature(p_function_name, p_return_mask), is_class_method(p_is_class_method)
 {
 }
 
 EidosMethodSignature::EidosMethodSignature(const std::string &p_function_name, EidosValueMask p_return_mask, const EidosObjectClass *p_return_class, bool p_is_class_method)
-	: EidosCallSignature(p_function_name, EidosFunctionIdentifier::kNoFunction, p_return_mask, p_return_class), is_class_method(p_is_class_method)
+	: EidosCallSignature(p_function_name, p_return_mask, p_return_class), is_class_method(p_is_class_method)
 {
 }
 

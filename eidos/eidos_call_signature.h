@@ -32,8 +32,7 @@
 class EidosCallSignature
 {
 public:
-	std::string function_name_;
-	EidosFunctionIdentifier function_id_;
+	std::string call_name_;
 	
 	EidosValueMask return_mask_;						// a mask specifying the exact return type; the singleton flag is used, the optional flag is not
 	const EidosObjectClass *return_class_;				// optional type-check for object returns; used only if the return is an object and this is not nullptr
@@ -53,8 +52,8 @@ public:
 	EidosCallSignature(void) = delete;										// no null construction
 	virtual ~EidosCallSignature(void);
 	
-	EidosCallSignature(const std::string &p_function_name, EidosFunctionIdentifier p_function_id, EidosValueMask p_return_mask);
-	EidosCallSignature(const std::string &p_function_name, EidosFunctionIdentifier p_function_id, EidosValueMask p_return_mask, const EidosObjectClass *p_return_class);
+	EidosCallSignature(const std::string &p_call_name, EidosValueMask p_return_mask);
+	EidosCallSignature(const std::string &p_call_name, EidosValueMask p_return_mask, const EidosObjectClass *p_return_class);
 	
 	// C++ doesn't have Objective-C's instancetype return, but that's what is needed for all of these...
 	// instead, callers will have to cast back to the correct subclass type
@@ -175,7 +174,10 @@ bool CompareEidosCallSignatures(const EidosCallSignature *p_i, const EidosCallSi
 class EidosFunctionSignature : public EidosCallSignature
 {
 public:
-	// ivars related to delegated function implementations
+	// internal function implementations
+	EidosInternalFunctionPtr internal_function_ = nullptr;
+	
+	// delegated function implementations
 	EidosDelegateFunctionPtr delegate_function_ = nullptr;
 	void *delegate_object_ = nullptr;
 	std::string delegate_name_;
@@ -185,10 +187,10 @@ public:
 	EidosFunctionSignature(void) = delete;														// no null construction
 	virtual ~EidosFunctionSignature(void);
 	
-	EidosFunctionSignature(const std::string &p_function_name, EidosFunctionIdentifier p_function_id, EidosValueMask p_return_mask);
-	EidosFunctionSignature(const std::string &p_function_name, EidosFunctionIdentifier p_function_id, EidosValueMask p_return_mask, const EidosObjectClass *p_return_class);
-	EidosFunctionSignature(const std::string &p_function_name, EidosFunctionIdentifier p_function_id, EidosValueMask p_return_mask, EidosDelegateFunctionPtr p_delegate_function, void *p_delegate_object, const std::string &p_delegate_name);
-	EidosFunctionSignature(const std::string &p_function_name, EidosFunctionIdentifier p_function_id, EidosValueMask p_return_mask, const EidosObjectClass *p_return_class, EidosDelegateFunctionPtr p_delegate_function, void *p_delegate_object, const std::string &p_delegate_name);
+	EidosFunctionSignature(const std::string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask);
+	EidosFunctionSignature(const std::string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask, const EidosObjectClass *p_return_class);
+	EidosFunctionSignature(const std::string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask, EidosDelegateFunctionPtr p_delegate_function, void *p_delegate_object, const std::string &p_delegate_name);
+	EidosFunctionSignature(const std::string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask, const EidosObjectClass *p_return_class, EidosDelegateFunctionPtr p_delegate_function, void *p_delegate_object, const std::string &p_delegate_name);
 	
 	virtual std::string CallType(void) const;
 	virtual std::string CallPrefix(void) const;
