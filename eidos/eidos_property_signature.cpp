@@ -156,7 +156,7 @@ EidosPropertySignature *EidosPropertySignature::DeclareAccelerated(void)
 ostream &operator<<(ostream &p_outstream, const EidosPropertySignature &p_signature)
 {
 	p_outstream << p_signature.property_name_ << " " << p_signature.PropertySymbol() << " (";
-	p_outstream << StringForEidosValueMask(p_signature.value_mask_, p_signature.value_class_, "") << ")";
+	p_outstream << StringForEidosValueMask(p_signature.value_mask_, p_signature.value_class_, "", nullptr) << ")";
 	
 	return p_outstream;
 }

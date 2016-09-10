@@ -497,8 +497,10 @@ void RunSLiMTests(void)
 	// Test sim - (object<Subpopulation>)addSubpop(is$ subpopID, integer$ size, [float$ sexRatio])
 	SLiMAssertScriptStop(gen1_setup + "1 { sim.addSubpop('p1', 10); } " + gen2_stop, __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { sim.addSubpop(1, 10); } " + gen2_stop, __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { sim.addSubpop('p1', 10, 0.5); } " + gen2_stop, 1, 220, "non-sexual simulation", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { sim.addSubpop(1, 10, 0.5); } " + gen2_stop, 1, 220, "non-sexual simulation", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 { sim.addSubpop('p1', 10, 0.5); } " + gen2_stop, __LINE__);	// default value
+	SLiMAssertScriptStop(gen1_setup + "1 { sim.addSubpop(1, 10, 0.5); } " + gen2_stop, __LINE__);	// default value
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.addSubpop('p1', 10, 0.4); } " + gen2_stop, 1, 220, "non-sexual simulation", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.addSubpop(1, 10, 0.4); } " + gen2_stop, 1, 220, "non-sexual simulation", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { sim.addSubpop('p1', 10, 0.5); } " + gen2_stop, __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { sim.addSubpop(1, 10, 0.5); } " + gen2_stop, __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { x = sim.addSubpop('p7', 10); if (x == p7) stop(); }", __LINE__);
@@ -515,8 +517,10 @@ void RunSLiMTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.addSubpopSplit(2, 10, p1); } " + gen2_stop, __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.addSubpopSplit(2, 10, 1); } " + gen2_stop, __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.addSubpopSplit(2, 10, 7); } " + gen2_stop, 1, 251, "not defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.addSubpopSplit('p2', 10, p1, 0.5); } " + gen2_stop, 1, 251, "non-sexual simulation", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.addSubpopSplit(2, 10, p1, 0.5); } " + gen2_stop, 1, 251, "non-sexual simulation", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.addSubpopSplit('p2', 10, p1, 0.5); } " + gen2_stop, __LINE__);	// default value
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.addSubpopSplit(2, 10, p1, 0.5); } " + gen2_stop, __LINE__);	// default value
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.addSubpopSplit('p2', 10, p1, 0.4); } " + gen2_stop, 1, 251, "non-sexual simulation", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.addSubpopSplit(2, 10, p1, 0.4); } " + gen2_stop, 1, 251, "non-sexual simulation", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { sim.addSubpopSplit('p2', 10, p1, 0.5); } " + gen2_stop, __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { sim.addSubpopSplit(2, 10, p1, 0.5); } " + gen2_stop, __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { x = sim.addSubpopSplit('p7', 10, p1); if (x == p7) stop(); }", __LINE__);

@@ -78,7 +78,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluateNode(const EidosASTNode *p_
 			case EidosTokenType::kTokenSemicolon:	return TypeEvaluate_NullStatement(p_node);
 			case EidosTokenType::kTokenColon:		return TypeEvaluate_RangeExpr(p_node);
 			case EidosTokenType::kTokenLBrace:		return TypeEvaluate_CompoundStatement(p_node);
-			case EidosTokenType::kTokenLParen:		return TypeEvaluate_FunctionCall(p_node);
+			case EidosTokenType::kTokenLParen:		return TypeEvaluate_Call(p_node);
 			case EidosTokenType::kTokenLBracket:	return TypeEvaluate_Subset(p_node);
 			case EidosTokenType::kTokenDot:			return TypeEvaluate_MemberRef(p_node);
 			case EidosTokenType::kTokenPlus:		return TypeEvaluate_Plus(p_node);
@@ -161,52 +161,61 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_RangeExpr(const EidosASTNo
 	return result_type;
 }
 
-EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(string const &p_function_name, const EidosFunctionSignature *p_function_signature, const EidosASTNode ** p_arguments, int p_argument_count)
+EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(string const &p_function_name, const EidosFunctionSignature *p_function_signature, const std::vector<EidosASTNode *> &p_arguments)
 {
 #pragma unused(p_function_name)
 	EidosTypeSpecifier result_type = EidosTypeSpecifier{kEidosValueMaskNone, nullptr};
 	
 	if (p_function_signature)
 	{
+		int argument_count = (int)p_arguments.size();
+		
+		// Look up the result type from the function signature, if there is one
 		result_type.type_mask = p_function_signature->return_mask_;
 		result_type.object_class = p_function_signature->return_class_;
 		
 		// We don't call out to functions, but we do have special knowledge of the side effects of built-in Eidos functions.
+		// In figuring this stuff out, we need to be careful about the fact that the p_arguments vector can contain nullptr
+		// values if there were missing arguments, etc.; we try to be error-tolerant, so we allow cases that would raise
+		// in EidosInterpreter.  TypeEvaluateNode() is safe to call with nullptr.
 		EidosFunctionIdentifier function_id = p_function_signature->function_id_;
 		
-		if ((function_id == EidosFunctionIdentifier::defineConstantFunction) && (p_argument_count == 2))
+		if ((function_id == EidosFunctionIdentifier::defineConstantFunction) && (argument_count == 2))
 		{
 			// We know that defineConstant() has the side effect of adding a new symbol, and we want to reflect that in
 			// our type table so that defined constants are always available.
-			if (p_arguments[0]->token_->token_type_ == EidosTokenType::kTokenString)
+			if (p_arguments[0])
 			{
-				const std::string &constant_name = p_arguments[0]->token_->token_string_;
-				EidosGlobalStringID constant_id = EidosGlobalStringIDForString(constant_name);
-				EidosTypeSpecifier constant_type = TypeEvaluateNode(p_arguments[1]);
-				
-				if (constant_type.object_class == nullptr)
-					global_symbols_.SetTypeForSymbol(constant_id, constant_type);
+				if (p_arguments[0]->token_->token_type_ == EidosTokenType::kTokenString)
+				{
+					const std::string &constant_name = p_arguments[0]->token_->token_string_;
+					EidosGlobalStringID constant_id = EidosGlobalStringIDForString(constant_name);
+					EidosTypeSpecifier constant_type = TypeEvaluateNode(p_arguments[1]);
+					
+					if (constant_type.object_class == nullptr)
+						global_symbols_.SetTypeForSymbol(constant_id, constant_type);
+				}
 			}
 		}
-		else if (((function_id == EidosFunctionIdentifier::repFunction) || (function_id == EidosFunctionIdentifier::repEachFunction) || (function_id == EidosFunctionIdentifier::revFunction) || (function_id == EidosFunctionIdentifier::sampleFunction) || (function_id == EidosFunctionIdentifier::sortByFunction) || (function_id == EidosFunctionIdentifier::uniqueFunction)) && (p_argument_count >= 1))
+		else if (((function_id == EidosFunctionIdentifier::repFunction) || (function_id == EidosFunctionIdentifier::repEachFunction) || (function_id == EidosFunctionIdentifier::revFunction) || (function_id == EidosFunctionIdentifier::sampleFunction) || (function_id == EidosFunctionIdentifier::sortByFunction) || (function_id == EidosFunctionIdentifier::uniqueFunction)) && (argument_count >= 1))
 		{
 			// These functions are all defined as returning *, but in fact return the same type/class as their first argument.
 			EidosTypeSpecifier argument_type = TypeEvaluateNode(p_arguments[0]);
 			
 			result_type = argument_type;
 		}
-		else if ((function_id == EidosFunctionIdentifier::ifelseFunction) && (p_argument_count >= 2))
+		else if ((function_id == EidosFunctionIdentifier::ifelseFunction) && (argument_count >= 2))
 		{
 			// These functions are all defined as returning *, but in fact return the same type/class as their second argument.
 			EidosTypeSpecifier argument_type = TypeEvaluateNode(p_arguments[1]);
 			
 			result_type = argument_type;
 		}
-		else if ((function_id == EidosFunctionIdentifier::cFunction) && (p_argument_count >= 1))
+		else if ((function_id == EidosFunctionIdentifier::cFunction) && (argument_count >= 1))
 		{
 			// The c() function returns the highest type it is passed (in the sense of promotion order).  This is not
 			// important to us, except that if any argument is an object type, we assume the return will mirror that.
-			for (int argument_index = 0; argument_index < p_argument_count; ++argument_index)
+			for (int argument_index = 0; argument_index < argument_count; ++argument_index)
 			{
 				EidosTypeSpecifier argument_type = TypeEvaluateNode(p_arguments[argument_index]);
 				
@@ -222,14 +231,14 @@ EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(str
 	return result_type;
 }
 
-EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_MethodCall_Internal(const EidosObjectClass *p_target, const EidosMethodSignature *p_method_signature, const EidosASTNode ** p_arguments, int p_argument_count)
+EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_MethodCall_Internal(const EidosObjectClass *p_target, const EidosMethodSignature *p_method_signature, const std::vector<EidosASTNode *> &p_arguments)
 {
-#pragma unused(p_target, p_arguments, p_argument_count)
+#pragma unused(p_target, p_arguments)
 	EidosTypeSpecifier result_type = EidosTypeSpecifier{kEidosValueMaskNone, nullptr};
 	
-	// We just look up the result type from the method signature, if there is one
 	if (p_method_signature)
 	{
+		// Look up the result type from the method signature, if there is one
 		result_type.type_mask = p_method_signature->return_mask_;
 		result_type.object_class = p_method_signature->return_class_;
 	}
@@ -237,33 +246,121 @@ EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_MethodCall_Internal(const
 	return result_type;
 }
 
-EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_FunctionCall(const EidosASTNode *p_node)
+void EidosTypeInterpreter::_ProcessArgumentListTypes(const EidosASTNode *p_node, const EidosCallSignature *p_call_signature, std::vector<EidosASTNode *> &p_arguments)
+{
+	const std::vector<EidosASTNode *> &node_children = p_node->children_;
+	
+	// Run through the argument nodes, evaluate them, and put the resulting pointers into the arguments buffer,
+	// interleaving default arguments and handling named arguments as we go.
+	auto node_children_end = node_children.end();
+	auto sig_arg_index = 0;
+	auto sig_arg_count = (int)p_call_signature->arg_name_IDs_.size();
+	bool had_named_argument = false;
+	
+	for (auto child_iter = node_children.begin() + 1; child_iter != node_children_end; ++child_iter)
+	{
+		EidosASTNode *child = *child_iter;
+		
+		if (sig_arg_index < sig_arg_count)
+		{
+			if (child->token_->token_type_ != EidosTokenType::kTokenAssign)
+			{
+				// We have a non-named argument; it will go into the next argument slot from the signature
+				// In EidosInterpreter it is an error if had_named_argument is set here; here, we ignore that
+				
+				sig_arg_index++;
+			}
+			else
+			{
+				// We have a named argument; get information on it from its children
+				const std::vector<EidosASTNode *> &child_children = child->children_;
+				
+				if (child_children.size() == 2)	// other than 2 should never happen; raises in EidosInterpreter
+				{
+					EidosASTNode *named_arg_name_node = child_children[0];
+					EidosASTNode *named_arg_value_node = child_children[1];
+					
+					// Get the identifier for the argument name
+					EidosGlobalStringID named_arg_nameID = named_arg_name_node->cached_stringID_;
+					
+					// Now re-point child at the value node
+					child = named_arg_value_node;
+					
+					// While this argument's name doesn't match the expected argument, insert default values for optional arguments
+					do 
+					{
+						EidosGlobalStringID arg_name_ID = p_call_signature->arg_name_IDs_[sig_arg_index];
+						
+						if (named_arg_nameID == arg_name_ID)
+						{
+							sig_arg_index++;
+							break;
+						}
+						
+						// In EidosInterpreter it is an error if a named argument skips over a required argument; here we ignore that
+						// In EidosInterpreter it is an error if an optional argument has no default; here we ignore that
+						
+						// arguments that receive the default value are represented in the argument list here with nullptr, since we have no node for them
+						p_arguments.emplace_back(nullptr);
+						
+						// Move to the next signature argument
+						sig_arg_index++;
+						if (sig_arg_index == sig_arg_count)
+							break;		// this is an error in EidosInterpreter; here we just break out to add the named argument after all the signature args
+					}
+					while (true);
+					
+					had_named_argument = true;
+				}
+			}
+		}
+		else
+		{
+			// We're beyond the end of the signature's arguments; in EidosInterpreter this is complicated because of ellipsis args, here we just let it go
+		}
+		
+		// The child pointer is an argument node, so remember it
+		p_arguments.emplace_back(child);
+	}
+	
+	// Handle any remaining arguments in the signature
+	while (sig_arg_index < sig_arg_count)
+	{
+		// In EidosInterpreter it is an error if a non-optional argument remains unmatched; here we ignore that
+		// In EidosInterpreter it is an error if an optional argument has no default; here we ignore that
+		
+		// arguments that receive the default value are represented in the argument list here with nullptr, since we have no node for them
+		p_arguments.emplace_back(nullptr);
+		
+		sig_arg_index++;
+	}
+}
+
+EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Call(const EidosASTNode *p_node)
 {
 	EidosTypeSpecifier result_type = EidosTypeSpecifier{kEidosValueMaskNone, nullptr};
 	
-	// We do not evaluate the function name node (our first child) to get a function object; there is no such type in
-	// Eidos for now.  Instead, we extract the identifier name directly from the node and work with it.  If the
+	// We do not evaluate the call name node (our first child) to get a function/method object; there is no such type
+	// in Eidos for now.  Instead, we extract the identifier name directly from the node and work with it.  If the
 	// node is an identifier, it is a function call; if it is a dot operator, it is a method call; other constructs
-	// are illegal since expressions cannot evaluate to function objects, there being no function objects in Eidos.
-	EidosASTNode *function_name_node = p_node->children_[0];
-	EidosTokenType function_name_token_type = function_name_node->token_->token_type_;
-	
-	const string *function_name = nullptr;
-	const EidosFunctionSignature *function_signature = nullptr;
-	EidosGlobalStringID method_id = gEidosID_none;
-	const EidosObjectClass *method_class = nullptr;
-	const EidosMethodSignature *method_signature = nullptr;
+	// are illegal since expressions cannot evaluate to function/method objects.
+	const std::vector<EidosASTNode *> &node_children = p_node->children_;
+	EidosASTNode *call_name_node = node_children[0];
+	EidosTokenType call_name_token_type = call_name_node->token_->token_type_;
 	EidosToken *call_identifier_token = nullptr;
 	
-	if (function_name_token_type == EidosTokenType::kTokenIdentifier)
+	if (call_name_token_type == EidosTokenType::kTokenIdentifier)
 	{
+		//
+		//	FUNCTION CALL DISPATCH
+		//
+		call_identifier_token = call_name_node->token_;
+		
 		// OK, we have <identifier>(...); that's a well-formed function call
-		call_identifier_token = function_name_node->token_;
-		function_name = &(call_identifier_token->token_string_);
-		function_signature = function_name_node->cached_signature_;
+		const string *function_name = &(call_identifier_token->token_string_);
+		const EidosFunctionSignature *function_signature = call_name_node->cached_signature_;
 		
 		// If the function call is a built-in Eidos function, we might already have a pointer to its signature cached; if not, we'll have to look it up
-		// This matches the code at the beginning of ExecuteFunctionCall(); at present functions added to the base map don't get their signature cached
 		if (!function_signature)
 		{
 			// Get the function signature
@@ -272,74 +369,58 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_FunctionCall(const EidosAS
 			if (signature_iter != function_map_.end())
 				function_signature = signature_iter->second;
 		}
-	}
-	else if (function_name_token_type == EidosTokenType::kTokenDot)
-	{
-		if (function_name_node->children_.size() >= 2)
+		
+		if (function_signature)
 		{
-			EidosTypeSpecifier first_child_type = TypeEvaluateNode(function_name_node->children_[0]);
-			method_class = first_child_type.object_class;
+			// Argument processing
+			vector<EidosASTNode *> arguments;
+			
+			_ProcessArgumentListTypes(p_node, function_signature, arguments);
+			
+			// Dispatch to determine the return type
+			result_type = _TypeEvaluate_FunctionCall_Internal(*function_name, function_signature, arguments);
+			
+			// Remember the class returned by function calls, for later use by code completion in cases of ambiguity.
+			// See -[EidosTextView completionsForKeyPathEndingInTokenIndex:...] for more background on this.
+			if (result_type.object_class)
+				call_type_map_.emplace(EidosCallTypeEntry(call_name_node->token_->token_start_, result_type.object_class));
+		}
+	}
+	else if (call_name_token_type == EidosTokenType::kTokenDot)
+	{
+		//
+		//	METHOD CALL DISPATCH
+		//
+		if (call_name_node->children_.size() >= 2)
+		{
+			EidosTypeSpecifier first_child_type = TypeEvaluateNode(call_name_node->children_[0]);
+			const EidosObjectClass *method_class = first_child_type.object_class;
 			
 			if (method_class)
 			{
-				EidosASTNode *second_child_node = function_name_node->children_[1];
+				EidosASTNode *second_child_node = call_name_node->children_[1];
 				
 				if (second_child_node->token_->token_type_ == EidosTokenType::kTokenIdentifier)
 				{
 					// OK, we have <object type>.<identifier>(...); that's a well-formed method call
 					call_identifier_token = second_child_node->token_;
-					method_id = second_child_node->cached_stringID_;
-					method_signature = method_class->SignatureForMethod(method_id);
+					
+					EidosGlobalStringID method_id = second_child_node->cached_stringID_;
+					const EidosMethodSignature *method_signature = method_class->SignatureForMethod(method_id);
+					
+					if (method_signature)
+					{
+						// Argument processing
+						vector<EidosASTNode *> arguments;
+						
+						_ProcessArgumentListTypes(p_node, method_signature, arguments);
+						
+						// Dispatch; note that we don't treat class and instance methods differently here the way we do in EidosInterpreter
+						result_type = _TypeEvaluate_MethodCall_Internal(method_class, method_signature, arguments);
+					}
 				}
 			}
 		}
-	}
-	
-	if (call_identifier_token)
-	{
-		const std::vector<EidosASTNode *> &node_children = p_node->children_;
-		auto node_children_end = node_children.end();
-		int arguments_count = 0;
-		
-		// We use a vector for argument-passing; speed is not a concern here the way it is in EidosInterpreter
-		vector<EidosASTNode *> arguments;
-		
-		for (auto child_iter = node_children.begin() + 1; child_iter != node_children_end; ++child_iter)
-		{
-			EidosASTNode *child = *child_iter;
-			
-			if (child->token_->token_type_ == EidosTokenType::kTokenComma)
-			{
-				// a child with token type kTokenComma is an argument list node; we need to take its children and evaluate them
-				std::vector<EidosASTNode *> &child_children = child->children_;
-				auto end_iterator = child_children.end();
-				
-				for (auto arg_list_iter = child_children.begin(); arg_list_iter != end_iterator; ++arg_list_iter)
-					arguments.emplace_back(*arg_list_iter);
-				
-				arguments_count += child->children_.size();
-			}
-			else
-			{
-				// all other children get evaluated, and the results added to the arguments vector
-				arguments.emplace_back(child);
-				
-				arguments_count++;
-			}
-		}
-		
-		// We offload the actual work to ExecuteMethodCall() / ExecuteFunctionCall() to keep things simple here
-		const EidosASTNode **arguments_ptr = (const EidosASTNode **)arguments.data();	// why is this cast needed??
-		
-		if (method_class)
-			result_type = _TypeEvaluate_MethodCall_Internal(method_class, method_signature, arguments_ptr, arguments_count);
-		else
-			result_type = _TypeEvaluate_FunctionCall_Internal(*function_name, function_signature, arguments_ptr, arguments_count);
-		
-		// Remember the class returned by function calls, for later use by code completion in cases of ambiguity.
-		// See -[EidosTextView completionsForKeyPathEndingInTokenIndex:...] for more background on this.
-		if ((!method_class) && result_type.object_class)
-			call_type_map_.emplace(EidosCallTypeEntry(function_name_node->token_->token_start_, result_type.object_class));
 	}
 	
 	return result_type;

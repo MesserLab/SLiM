@@ -108,8 +108,25 @@ extern EidosObjectPool *gEidosValuePool;
 extern EidosValue_NULL_SP gStaticEidosValueNULL;
 extern EidosValue_NULL_SP gStaticEidosValueNULLInvisible;
 
+extern EidosValue_Logical_SP gStaticEidosValue_Logical_ZeroVec;
+extern EidosValue_Int_SP gStaticEidosValue_Integer_ZeroVec;
+extern EidosValue_Float_SP gStaticEidosValue_Float_ZeroVec;
+extern EidosValue_String_SP gStaticEidosValue_String_ZeroVec;
+extern EidosValue_Object_SP gStaticEidosValue_Object_ZeroVec;
+
 extern EidosValue_Logical_SP gStaticEidosValue_LogicalT;
 extern EidosValue_Logical_SP gStaticEidosValue_LogicalF;
+
+extern EidosValue_Int_SP gStaticEidosValue_Integer0;
+extern EidosValue_Int_SP gStaticEidosValue_Integer1;
+
+extern EidosValue_Float_SP gStaticEidosValue_Float0;
+extern EidosValue_Float_SP gStaticEidosValue_Float0Point5;
+extern EidosValue_Float_SP gStaticEidosValue_Float1;
+
+extern EidosValue_String_SP gStaticEidosValue_StringEmpty;
+extern EidosValue_String_SP gStaticEidosValue_StringSpace;
+extern EidosValue_String_SP gStaticEidosValue_StringAsterisk;
 
 
 // EidosValueType is an enum of the possible types for EidosValue objects.  Note that all of these types are vectors of the stated
@@ -170,7 +187,7 @@ const EidosValueMask kEidosValueMaskLogicalEquiv =	(kEidosValueMaskLogical | kEi
 const EidosValueMask kEidosValueMaskAnyBase =		(kEidosValueMaskNULL | kEidosValueMaskLogicalEquiv | kEidosValueMaskString);	// any type except object
 const EidosValueMask kEidosValueMaskAny =			(kEidosValueMaskAnyBase | kEidosValueMaskObject);								// any type including object
 
-std::string StringForEidosValueMask(const EidosValueMask p_mask, const EidosObjectClass *p_object_class, const std::string &p_name);
+std::string StringForEidosValueMask(const EidosValueMask p_mask, const EidosObjectClass *p_object_class, const std::string &p_name, EidosValue *p_default);
 //std::ostream &operator<<(std::ostream &p_outstream, const EidosValueMask p_mask);	// can't do this since EidosValueMask is just uint32_t
 
 
@@ -760,7 +777,7 @@ public:
 	virtual EidosValue_SP GetPropertyOfElements(EidosGlobalStringID p_property_id) const = 0;
 	virtual void SetPropertyOfElements(EidosGlobalStringID p_property_id, const EidosValue &p_value) = 0;
 	
-	virtual EidosValue_SP ExecuteMethodCall(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) = 0;
+	virtual EidosValue_SP ExecuteMethodCall(EidosGlobalStringID p_method_id, const EidosMethodSignature *p_call_signature, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) = 0;
 };
 
 class EidosValue_Object_vector : public EidosValue_Object
@@ -800,7 +817,7 @@ public:
 	virtual EidosValue_SP GetPropertyOfElements(EidosGlobalStringID p_property_id) const;
 	virtual void SetPropertyOfElements(EidosGlobalStringID p_property_id, const EidosValue &p_value);
 	
-	virtual EidosValue_SP ExecuteMethodCall(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	virtual EidosValue_SP ExecuteMethodCall(EidosGlobalStringID p_method_id, const EidosMethodSignature *p_call_signature, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 };
 
 class EidosValue_Object_singleton : public EidosValue_Object
@@ -837,7 +854,7 @@ public:
 	virtual EidosValue_SP GetPropertyOfElements(EidosGlobalStringID p_property_id) const;
 	virtual void SetPropertyOfElements(EidosGlobalStringID p_property_id, const EidosValue &p_value);
 	
-	virtual EidosValue_SP ExecuteMethodCall(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	virtual EidosValue_SP ExecuteMethodCall(EidosGlobalStringID p_method_id, const EidosMethodSignature *p_call_signature, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 };
 
 

@@ -155,7 +155,8 @@ public:
 	EidosASTNode *Parse_UnaryExpr(void);
 	EidosASTNode *Parse_PostfixExpr(void);
 	EidosASTNode *Parse_PrimaryExpr(void);
-	EidosASTNode *Parse_ArgumentExprList(void);
+	void Parse_ArgumentExprList(EidosASTNode *p_parent_node);	// adds to the parent node
+	EidosASTNode *Parse_ArgumentExpr(void);
 	EidosASTNode *Parse_Constant(void);
 };
 

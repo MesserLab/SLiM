@@ -40,7 +40,7 @@
 		NSMutableAttributedString *attrStr = [[[NSMutableAttributedString alloc] init] autorelease];
 		
 		NSString *prefixString = [NSString stringWithUTF8String:signature->CallPrefix().c_str()];	// "", "– ", or "+ "
-		NSString *returnTypeString = [NSString stringWithUTF8String:StringForEidosValueMask(signature->return_mask_, signature->return_class_, "").c_str()];
+		NSString *returnTypeString = [NSString stringWithUTF8String:StringForEidosValueMask(signature->return_mask_, signature->return_class_, "", nullptr).c_str()];
 		NSString *functionNameString = [NSString stringWithUTF8String:signature->function_name_.c_str()];
 		
 		NSDictionary *plainAttrs = [NSDictionary eidosOutputAttrs];
@@ -69,6 +69,7 @@
 				EidosValueMask type_mask = signature->arg_masks_[arg_index];
 				const std::string &arg_name = signature->arg_names_[arg_index];
 				const EidosObjectClass *arg_obj_class = signature->arg_classes_[arg_index];
+				EidosValue_SP arg_default = signature->arg_defaults_[arg_index];
 				
 				if (arg_index > 0)
 					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@", " attributes:plainAttrs] autorelease]];
@@ -141,7 +142,22 @@
 				}
 				
 				if (is_optional)
+				{
+					if (arg_default)
+					{
+						[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@" = " attributes:plainAttrs] autorelease]];
+						
+						std::ostringstream default_string_stream;
+						
+						arg_default->Print(default_string_stream);
+						
+						NSString *defaultString = [NSString stringWithUTF8String:default_string_stream.str().c_str()];
+						
+						[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:defaultString attributes:plainAttrs] autorelease]];
+					}
+					
 					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"]" attributes:plainAttrs] autorelease]];
+				}
 			}
 		}
 		
@@ -179,7 +195,7 @@
 		NSMutableAttributedString *attrStr = [[[NSMutableAttributedString alloc] init] autorelease];
 		
 		NSString *connectorString = [NSString stringWithUTF8String:signature->PropertySymbol().c_str()];	// "<–>" or "=>"
-		NSString *valueTypeString = [NSString stringWithUTF8String:StringForEidosValueMask(signature->value_mask_, signature->value_class_, "").c_str()];
+		NSString *valueTypeString = [NSString stringWithUTF8String:StringForEidosValueMask(signature->value_mask_, signature->value_class_, "", nullptr).c_str()];
 		NSString *propertyNameString = [NSString stringWithUTF8String:signature->property_name_.c_str()];
 		
 		NSDictionary *plainAttrs = [NSDictionary eidosOutputAttrs];

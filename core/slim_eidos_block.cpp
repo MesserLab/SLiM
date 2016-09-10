@@ -1006,76 +1006,91 @@ SLiMTypeInterpreter::~SLiMTypeInterpreter(void)
 
 void SLiMTypeInterpreter::_SetTypeForISArgumentOfClass(const EidosASTNode *p_arg_node, char p_symbol_prefix, const EidosObjectClass *p_type_class)
 {
-	const EidosToken *arg_token = p_arg_node->token_;
-	
-	if (arg_token->token_type_ == EidosTokenType::kTokenString)
+	if (p_arg_node)
 	{
-		// The argument can be a string, in which case it must start with p_symbol_prefix and then have 1+ numeric characters
-		const std::string &constant_name = arg_token->token_string_;
+		const EidosToken *arg_token = p_arg_node->token_;
 		
-		if ((constant_name.length() >= 2) && (constant_name[0] == p_symbol_prefix))
+		if (arg_token->token_type_ == EidosTokenType::kTokenString)
 		{
-			bool all_numeric = true;
+			// The argument can be a string, in which case it must start with p_symbol_prefix and then have 1+ numeric characters
+			const std::string &constant_name = arg_token->token_string_;
 			
-			for (size_t idx = 1; idx < constant_name.length(); ++idx)
-				if (!isdigit(constant_name[idx]))
-					all_numeric = false;
-			
-			if (all_numeric)
+			if ((constant_name.length() >= 2) && (constant_name[0] == p_symbol_prefix))
 			{
-				EidosGlobalStringID constant_id = EidosGlobalStringIDForString(constant_name);
+				bool all_numeric = true;
 				
-				global_symbols_.SetTypeForSymbol(constant_id, EidosTypeSpecifier{kEidosValueMaskObject, p_type_class});
+				for (size_t idx = 1; idx < constant_name.length(); ++idx)
+					if (!isdigit(constant_name[idx]))
+						all_numeric = false;
+				
+				if (all_numeric)
+				{
+					EidosGlobalStringID constant_id = EidosGlobalStringIDForString(constant_name);
+					
+					global_symbols_.SetTypeForSymbol(constant_id, EidosTypeSpecifier{kEidosValueMaskObject, p_type_class});
+				}
 			}
 		}
-	}
-	else if (arg_token->token_type_ == EidosTokenType::kTokenNumber)
-	{
-		// The argument can be numeric, in which case it must have a cached int value that is singleton and within bounds
-		EidosValue *cached_value = p_arg_node->cached_value_.get();
-		
-		if (cached_value && (cached_value->Type() == EidosValueType::kValueInt) && (cached_value->IsSingleton()))
+		else if (arg_token->token_type_ == EidosTokenType::kTokenNumber)
 		{
-			int64_t cached_int = cached_value->IntAtIndex(0, nullptr);
+			// The argument can be numeric, in which case it must have a cached int value that is singleton and within bounds
+			EidosValue *cached_value = p_arg_node->cached_value_.get();
 			
-			if ((cached_int >= 0) && (cached_int <= SLIM_MAX_ID_VALUE))
+			if (cached_value && (cached_value->Type() == EidosValueType::kValueInt) && (cached_value->IsSingleton()))
 			{
-				EidosGlobalStringID constant_id = EidosGlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix(p_symbol_prefix, static_cast<slim_objectid_t>(cached_int)));
+				int64_t cached_int = cached_value->IntAtIndex(0, nullptr);
 				
-				global_symbols_.SetTypeForSymbol(constant_id, EidosTypeSpecifier{kEidosValueMaskObject, p_type_class});
+				if ((cached_int >= 0) && (cached_int <= SLIM_MAX_ID_VALUE))
+				{
+					EidosGlobalStringID constant_id = EidosGlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix(p_symbol_prefix, static_cast<slim_objectid_t>(cached_int)));
+					
+					global_symbols_.SetTypeForSymbol(constant_id, EidosTypeSpecifier{kEidosValueMaskObject, p_type_class});
+				}
 			}
 		}
 	}
 }
 
-EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(string const &p_function_name, const EidosFunctionSignature *p_function_signature, const EidosASTNode **const p_arguments, int p_argument_count)
+EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(string const &p_function_name, const EidosFunctionSignature *p_function_signature, const std::vector<EidosASTNode *> &p_arguments)
 {
-	if ((p_function_name == "initializeGenomicElementType") && (p_argument_count >= 1))
+	// In figuring this stuff out, we need to be careful about the fact that the p_arguments vector can contain nullptr
+	// values if there were missing arguments, etc.; we try to be error-tolerant, so we allow cases that would raise
+	// in EidosInterpreter.  _SetTypeForISArgumentOfClass() is safe to call with nullptr.
+	
+	int argument_count = (int)p_arguments.size();
+	
+	if ((p_function_name == "initializeGenomicElementType") && (argument_count >= 1))
 	{
 		_SetTypeForISArgumentOfClass(p_arguments[0], 'g', gSLiM_GenomicElementType_Class);
 	}
-	else if ((p_function_name == "initializeMutationType") && (p_argument_count >= 1))
+	else if ((p_function_name == "initializeMutationType") && (argument_count >= 1))
 	{
 		_SetTypeForISArgumentOfClass(p_arguments[0], 'm', gSLiM_MutationType_Class);
 	}
 	
 	// call super
-	return EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(p_function_name, p_function_signature, p_arguments, p_argument_count);
+	return EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(p_function_name, p_function_signature, p_arguments);
 }
 
-EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_MethodCall_Internal(const EidosObjectClass *p_target, const EidosMethodSignature *p_method_signature, const EidosASTNode **const p_arguments, int p_argument_count)
+EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_MethodCall_Internal(const EidosObjectClass *p_target, const EidosMethodSignature *p_method_signature, const std::vector<EidosASTNode *> &p_arguments)
 {
+	// In figuring this stuff out, we need to be careful about the fact that the p_arguments vector can contain nullptr
+	// values if there were missing arguments, etc.; we try to be error-tolerant, so we allow cases that would raise
+	// in EidosInterpreter.  _SetTypeForISArgumentOfClass() is safe to call with nullptr.
+	
 	if (p_method_signature)
 	{
 		if (p_target == gSLiM_SLiMSim_Class)
 		{
+			int argument_count = (int)p_arguments.size();
+			
 			const std::string &function_name = p_method_signature->function_name_;
 			
-			if (((function_name == "addSubpop") || (function_name == "addSubpopSplit")) && (p_argument_count >= 1))
+			if (((function_name == "addSubpop") || (function_name == "addSubpopSplit")) && (argument_count >= 1))
 			{
 				_SetTypeForISArgumentOfClass(p_arguments[0], 'p', gSLiM_Subpopulation_Class);
 			}
-			else if (((function_name == "registerEarlyEvent") || (function_name == "registerFitnessCallback") || (function_name == "registerLateEvent") || (function_name == "registerMateChoiceCallback") || (function_name == "registerModifyChildCallback")) && (p_argument_count >= 1))
+			else if (((function_name == "registerEarlyEvent") || (function_name == "registerFitnessCallback") || (function_name == "registerLateEvent") || (function_name == "registerMateChoiceCallback") || (function_name == "registerModifyChildCallback")) && (argument_count >= 1))
 			{
 				_SetTypeForISArgumentOfClass(p_arguments[0], 's', gSLiM_SLiMEidosBlock_Class);
 			}
@@ -1083,7 +1098,7 @@ EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_MethodCall_Internal(const 
 	}
 	
 	// call super
-	return EidosTypeInterpreter::_TypeEvaluate_MethodCall_Internal(p_target, p_method_signature, p_arguments, p_argument_count);
+	return EidosTypeInterpreter::_TypeEvaluate_MethodCall_Internal(p_target, p_method_signature, p_arguments);
 }
 
 

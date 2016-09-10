@@ -1437,7 +1437,7 @@ EidosASTNode *EidosScript::Parse_PostfixExpr(void)
 				}
 				else
 				{
-					node->AddChild(Parse_ArgumentExprList());
+					Parse_ArgumentExprList(node);	// Parse_ArgumentExprList() adds the arguments directly to the function call node
 					
 					Match(EidosTokenType::kTokenRParen, "postfix function call expression");
 				}
@@ -1533,33 +1533,51 @@ EidosASTNode *EidosScript::Parse_PrimaryExpr(void)
 	return node;
 }
 
-EidosASTNode *EidosScript::Parse_ArgumentExprList(void)
+void EidosScript::Parse_ArgumentExprList(EidosASTNode *p_parent_node)
 {
-	EidosASTNode *left_expr = nullptr, *node = nullptr;
+	p_parent_node->AddChild(Parse_ArgumentExpr());
 	
-	try
+	while (current_token_type_ == EidosTokenType::kTokenComma)
 	{
-		left_expr = Parse_AssignmentExpr();
+		Consume();	// note that we no longer use EidosTokenType::kTokenComma in the AST to group call arguments
 		
-		while (current_token_type_ == EidosTokenType::kTokenComma)
+		p_parent_node->AddChild(Parse_ArgumentExpr());
+	}
+}
+
+EidosASTNode *EidosScript::Parse_ArgumentExpr(void)
+{
+	EidosASTNode *identifier = nullptr, *node = nullptr;
+	
+	try {
+		// Look ahead one token for the IDENTIFIER '=' pattern.  The token at parse_index_ + 1 will always be defined,
+		// at least as an EOF; looking ahead two tokens would require a bounds check, but one token does not.
+		if ((current_token_type_ == EidosTokenType::kTokenIdentifier) && (token_stream_.at(parse_index_ + 1).token_type_ == EidosTokenType::kTokenAssign))
 		{
-			if (!node)
+			identifier = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
+			
+			Match(EidosTokenType::kTokenIdentifier, "argument expression identifier");
+			
+			if (current_token_type_ == EidosTokenType::kTokenAssign)
 			{
-				node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_, left_expr);
-				left_expr = nullptr;
+				node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_, identifier);
+				identifier = nullptr;
+				Consume();
+				
+				node->AddChild(Parse_LogicalOrExpr());
 			}
-			
-			Consume();
-			
-			node->AddChild(Parse_AssignmentExpr());
+		}
+		else
+		{
+			return Parse_LogicalOrExpr();
 		}
 	}
 	catch (...)
 	{
-		if (left_expr)
+		if (identifier)
 		{
-			left_expr->~EidosASTNode();
-			gEidosASTNodePool->DisposeChunk(const_cast<EidosASTNode*>(left_expr));
+			identifier->~EidosASTNode();
+			gEidosASTNodePool->DisposeChunk(const_cast<EidosASTNode*>(identifier));
 		}
 		
 		if (node)
@@ -1571,7 +1589,7 @@ EidosASTNode *EidosScript::Parse_ArgumentExprList(void)
 		throw;
 	}
 	
-	return (node ? node : left_expr);
+	return (node ? node : identifier);
 }
 
 EidosASTNode *EidosScript::Parse_Constant(void)

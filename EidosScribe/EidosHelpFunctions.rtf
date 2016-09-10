@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\cocoartf1404\cocoasubrtf460
+{\rtf1\ansi\ansicpg1252\cocoartf1404\cocoasubrtf470
 {\fonttbl\f0\fswiss\fcharset0 Optima-Regular;\f1\fnil\fcharset0 Menlo-Regular;\f2\froman\fcharset0 TimesNewRomanPSMT;
 \f3\fnil\fcharset0 Menlo-Italic;\f4\fswiss\fcharset0 Helvetica;\f5\fnil\fcharset0 Menlo-Bold;
 \f6\ftech\fcharset77 Symbol;}
@@ -784,10 +784,10 @@
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf0 3.3.  Distribution drawing and density functions\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\b0\fs18 \cf0 (float)dnorm(float\'a0x, [numeric\'a0mean], [numeric\'a0sd])\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\f1\b0\fs18 \cf0 (float)dnorm(float\'a0x, [numeric\'a0mean\'a0=\'a00], [numeric\'a0sd\'a0=\'a01])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a vector of 
 \b probability densities for a normal distribution
@@ -803,15 +803,8 @@
 \f1\fs18 sd
 \f0\fs20  parameters may either be singletons, specifying a single value to be used for all of the densities, or they may be vectors of the same length as 
 \f1\fs18 x
-\f0\fs20 , specifying a value for each density computation.  By default, 
-\f1\fs18 mean
-\f0\fs20  is 
-\f1\fs18 0.0
-\f0\fs20  and 
-\f1\fs18 sd
-\f0\fs20  is 
-\f1\fs18 1.0
-\f2\fs20 .\
+\f0\fs20 , specifying a value for each density computation.
+\f2 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (integer)rbinom(integer$
@@ -835,12 +828,12 @@
 \f1\fs18 n
 \f0\fs20 , specifying a value for each draw.
 \f2 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (float)rexp(integer$
 \f2 \'a0
-\f1 n, [numeric\'a0mu])\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\f1 n, [numeric\'a0mu\'a0=\'a01])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a vector of 
 \f1\fs18 n
@@ -854,11 +847,8 @@
 \f1\fs18 mu
 \f0\fs20  parameter may either be a singleton, specifying a single value to be used for all of the draws, or it may be a vector of length 
 \f1\fs18 n
-\f0\fs20 , specifying a value for each draw.  By default, 
-\f1\fs18 mu
-\f0\fs20  is 
-\f1\fs18 1.0
-\f2\fs20 .\
+\f0\fs20 , specifying a value for each draw.
+\f2 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (float)rgamma(integer$
@@ -916,12 +906,12 @@
 \f1\fs18 mean
 \f0\fs20  parameter.
 \f2 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (float)rlnorm(integer$
 \f2 \'a0
-\f1 n, [numeric\'a0meanlog], [numeric\'a0sdlog])\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\f1 n, [numeric\'a0meanlog\'a0=\'a00], [numeric\'a0sdlog\'a0=\'a01])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a vector of 
 \f1\fs18 n
@@ -937,21 +927,14 @@
 \f1\fs18 sdlog
 \f0\fs20  parameters may either be singletons, specifying a single value to be used for all of the draws, or they may be vectors of length 
 \f1\fs18 n
-\f0\fs20 , specifying a value for each draw.  By default, 
-\f1\fs18 meanlog
-\f0\fs20  is 
-\f1\fs18 0.0
-\f0\fs20  and 
-\f1\fs18 sdlog
-\f0\fs20  is 
-\f1\fs18 1.0
-\f2\fs20 .\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\f0\fs20 , specifying a value for each draw.
+\f2 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (float)rnorm(integer$
 \f2 \'a0
-\f1 n, [numeric\'a0mean], [numeric\'a0sd])\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\f1 n, [numeric\'a0mean\'a0=\'a00], [numeric\'a0sd\'a0=\'a01])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a vector of 
 \f1\fs18 n
@@ -967,15 +950,8 @@
 \f1\fs18 sd
 \f0\fs20  parameters may either be singletons, specifying a single value to be used for all of the draws, or they may be vectors of length 
 \f1\fs18 n
-\f0\fs20 , specifying a value for each draw.  By default, 
-\f1\fs18 mean
-\f0\fs20  is 
-\f1\fs18 0.0
-\f0\fs20  and 
-\f1\fs18 sd
-\f0\fs20  is 
-\f1\fs18 1.0
-\f2\fs20 .\
+\f0\fs20 , specifying a value for each draw.
+\f2 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (integer)rpois(integer$
@@ -999,10 +975,12 @@
 \f1\fs18 n
 \f0\fs20 , specifying a value for each draw.
 \f2 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (float)runif(integer$\'a0n, [numeric\'a0min], [numeric\'a0max])\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\f1\fs18 \cf0 (float)runif(integer$\'a0n, [numeric\'a0min\'a0=\'a00], [numeric\'a0max
+\f2 \'a0
+\f1 =\'a01])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a vector of 
 \f1\fs18 n
@@ -1018,15 +996,8 @@
 \f1\fs18 max
 \f0\fs20  parameters may either be singletons, specifying a single value to be used for all of the draws, or they may be vectors of length 
 \f1\fs18 n
-\f0\fs20 , specifying a value for each draw.  By default, 
-\f1\fs18 min
-\f0\fs20  is 
-\f1\fs18 0.0
-\f0\fs20  and 
-\f1\fs18 max
-\f0\fs20  is 
-\f1\fs18 1.0
-\f2\fs20 .\
+\f0\fs20 , specifying a value for each draw.
+\f2 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (float)rweibull(integer$
@@ -1225,7 +1196,7 @@
 
 \f1\fs18 \cf0 (*)sample(*\'a0x, integer$\'a0size, [logical$
 \f2 \'a0
-\f1 replace], [numeric\'a0weights])\
+\f1 replace\'a0=\'a0F], [Nif\'a0weights\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a vector of 
@@ -1239,19 +1210,19 @@
 \f1\fs18 T
 \f0\fs20 , sampling is conducted with replacement (the same element may be drawn more than once); if it is 
 \f1\fs18 F
-\f0\fs20  sampling is done without replacement.  If 
-\f1\fs18 replace
-\f0\fs20  is not specified, it is 
-\f1\fs18 F
-\f0\fs20  by default.  A vector of weights may be supplied in 
+\f0\fs20  (the default), then sampling is done without replacement.  A vector of weights may be supplied in the optional parameter 
 \f1\fs18 weights
-\f0\fs20 ; if supplied, it must be equal in size to 
+\f0\fs20 ; if not 
+\f1\fs18 NULL
+\f0\fs20 , it must be equal in size to 
 \f1\fs18 x
 \f0\fs20 , all weights must be non-negative, and the sum of the weights must be greater than 
 \f1\fs18 0
 \f0\fs20 .  If 
 \f1\fs18 weights
-\f0\fs20  is not supplied, equal weights are used for all elements of 
+\f0\fs20  is 
+\f1\fs18 NULL
+\f0\fs20  (the default), then equal weights are used for all elements of 
 \f1\fs18 x
 \f0\fs20 .  An error occurs if 
 \f1\fs18 sample()
@@ -1269,9 +1240,11 @@
 \f2 \'a0
 \f1 from, numeric$
 \f2 \'a0
-\f1 to, [numeric$
+\f1 to, [Nif$
 \f2 \'a0
-\f1 by])\
+\f1 by
+\f2 \'a0
+\f1 =\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a 
@@ -1282,16 +1255,17 @@
 \f1\fs18 to
 \f0\fs20  until the next value in the sequence would fall beyond 
 \f1\fs18 to
-\f0\fs20 .  By default, the sequence steps by values of 
+\f0\fs20 .  If the optional parameter 
+\f1\fs18 by
+\f0\fs20  is 
+\f1\fs18 NULL
+\f0\fs20  (the default), the sequence steps by values of 
 \f1\fs18 1
 \f0\fs20  or 
 \f1\fs18 -1
 \f0\fs20  (as needed to proceed in the direction of 
 \f1\fs18 to
-\f0\fs20 ); a different step value may optionally be supplied in 
-\f1\fs18 by
-\f2\fs20 .
-\f0   If 
+\f0\fs20 ); a different step value may be used instead, but must similarly have the appropriate sign.  If 
 \f1\fs18 from
 \f0\fs20 , 
 \f1\fs18 to
@@ -1299,7 +1273,9 @@
 \f1\fs18 by
 \f0\fs20  are all 
 \f1\fs18 integer
-\f0\fs20  then the return type will be 
+\f0\fs20  (or 
+\f1\fs18 NULL
+\f0\fs20 ) then the return type will be 
 \f1\fs18 integer
 \f0\fs20 , otherwise it will be 
 \f1\fs18 float
@@ -1397,7 +1373,9 @@
 \f2 \'a0
 \f1 x, [string$
 \f2 \'a0
-\f1 sep])\
+\f1 sep
+\f2 \'a0
+\f1 =\'a0" "])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf0 Concatenates output
@@ -1405,10 +1383,10 @@
 \f1\fs18 sep
 \f0\fs20 .  The value 
 \f1\fs18 x
-\f0\fs20  that is output may be of any type.  By default, sep is a single space, 
-\f1\fs18 " "
-\f0\fs20 .  A newline is not appended to the output, unlike the behavior of 
+\f0\fs20  that is output may be of any type.  A newline is not appended to the output, unlike the behavior of 
 \f1\fs18 print()
+\f0\fs20 ; if a trailing newline is desired, you can use 
+\f1\fs18 "\\n"
 \f2\fs20 .
 \f0   Also unlike 
 \f1\fs18 print()
@@ -1839,7 +1817,9 @@ This is quite similar to a function in R of the same name; note, however, that E
 
 \f1\fs18 \cf0 (string$)paste(*\'a0x, [string$
 \f2 \'a0
-\f1 sep])\
+\f1 sep
+\f2 \'a0
+\f1 =\'a0" "])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a 
@@ -1850,8 +1830,6 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f1\fs18 x
 \f0\fs20 , joined together by 
 \f1\fs18 sep
-\f0\fs20 .  By default, sep is a single space, 
-\f1\fs18 " "
 \f0\fs20 .  Although this function is based upon the R function of the same name, note that it is much simpler and less powerful; in particular, only the elements of a single vector may be joined, rather than the var-args functionality of the R 
 \f1\fs18 paste()
 \f2\fs20 .
@@ -1910,22 +1888,28 @@ This is quite similar to a function in R of the same name; note, however, that E
 
 \f1\fs18 \cf0 (+)sort(+\'a0x, [logical$
 \f2 \'a0
-\f1 ascending])\
+\f1 ascending
+\f2 \'a0
+\f1 =\'a0T])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a 
 \b sorted copy
-\b0  of x: a new vector with the same elements as x, but in ascending sorted order.  If the optional 
+\b0  of x: a new vector with the same elements as x, but in sorted order.  If the optional 
 \f1\fs18 logical
-\f0\fs20  value 
+\f0\fs20  parameter 
 \f1\fs18 ascending
 \f0\fs20  is 
+\f1\fs18 T
+\f0\fs20  (the default), then the sorted order will be ascending; if it is 
 \f1\fs18 F
 \f0\fs20 , the sorted order will be descending.  The ordering is determined according to the same logic as the 
 \f1\fs18 <
 \f0\fs20  and 
 \f1\fs18 >
-\f0\fs20  operators in Eidos.  To sort an object vector, use 
+\f0\fs20  operators in Eidos.  To sort an 
+\f1\fs18 object
+\f0\fs20  vector, use 
 \f1\fs18 sortBy()
 \f2\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -1934,16 +1918,20 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f2 \'a0
 \f1 property, [logical$
 \f2 \'a0
-\f1 ascending])\
+\f1 ascending
+\f2 \'a0
+\f1 =\'a0T])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a 
 \b sorted copy
-\b0  of x: a new vector with the same elements as x, but in ascending sorted order.  If the optional 
+\b0  of x: a new vector with the same elements as x, but in sorted order.  If the optional 
 \f1\fs18 logical
-\f0\fs20  value 
+\f0\fs20  parameter 
 \f1\fs18 ascending
 \f0\fs20  is 
+\f1\fs18 T
+\f0\fs20  (the default), then the sorted order will be ascending; if it is 
 \f1\fs18 F
 \f0\fs20 , the sorted order will be descending.  The ordering is determined according to the same logic as the 
 \f1\fs18 <
@@ -1999,7 +1987,9 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f2 \'a0
 \f1 x, [string$
 \f2 \'a0
-\f1 sep])\
+\f1 sep
+\f2 \'a0
+\f1 =\'a0" "])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns 
@@ -2008,10 +1998,6 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f1\fs18 x
 \f0\fs20  that were separated by the separator string 
 \f1\fs18 sep
-\f0\fs20 .  By default, 
-\f1\fs18 sep
-\f0\fs20  is a single space, 
-\f1\fs18 " "
 \f0\fs20 .  Every substring defined by an occurrence of the separator is included, and thus zero-length substrings may be returned.  For example, 
 \f1\fs18 strsplit(".foo..bar.", ".")
 \f0\fs20  returns a string vector containing 
@@ -2039,7 +2025,7 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f2\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (string)substr(string\'a0x, integer\'a0first, [integer\'a0last])\
+\f1\fs18 \cf0 (string)substr(string\'a0x, integer\'a0first, [Ni\'a0last\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns 
@@ -2060,7 +2046,7 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f1\fs18 last
 \f0\fs20 , an empty string will also result.  If 
 \f1\fs18 last
-\f0\fs20  is omitted, the substring will extend to the end of the string.  The parameters 
+\f0\fs20  is NULL (the default), then the substring will extend to the end of the string.  The parameters 
 \f1\fs18 first
 \f0\fs20  and 
 \f1\fs18 last
@@ -2469,7 +2455,7 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (string)filesAtPath(string$\'a0path, [logical$\'a0fullPaths])
+\f1\fs18 \cf0 (string)filesAtPath(string$\'a0path, [logical$\'a0fullPaths\'a0=\'a0F])
 \f2 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -2480,7 +2466,7 @@ This is quite similar to a function in R of the same name; note, however, that E
 \b0  specified by 
 \f1\fs18 path
 \f2\fs20 .
-\f0   If 
+\f0   If the optional parameter 
 \f1\fs18 fullPaths
 \f0\fs20  is 
 \f1\fs18 T
@@ -2488,7 +2474,7 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f1\fs18 fullPaths
 \f0\fs20  is 
 \f1\fs18 F
-\f0\fs20  or omitted, only the filenames relative to the specified directory are returned.  This list includes directories (i.e. subfolders), including the 
+\f0\fs20  (the default), then only the filenames relative to the specified directory are returned.  This list includes directories (i.e. subfolders), including the 
 \f1\fs18 "."
 \f0\fs20  and 
 \f1\fs18 ".."
@@ -2517,11 +2503,11 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f1\fs18 NULL
 \f0\fs20  will be returned.
 \f2 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (logical$)writeFile(string$\'a0filePath, string\'a0contents, [logical$\'a0append])
+\f1\fs18 \cf0 (logical$)writeFile(string$\'a0filePath, string\'a0contents, [logical$\'a0append\'a0=\'a0F])
 \f2 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf0 Writes or appends to a file
 \b0  specified by 
@@ -2538,7 +2524,7 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f1\fs18 filePath
 \f0\fs20 ; if it is 
 \f1\fs18 F
-\f0\fs20  or omitted, the write will replace an existing file at that path.  Note that newline characters will be added at the ends of the lines in 
+\f0\fs20  (the default), then the write will replace an existing file at that path.  Note that newline characters will be added at the ends of the lines in 
 \f1\fs18 contents
 \f0\fs20 .  If you do not wish to have newlines added, you should use 
 \f1\fs18 paste()
@@ -2675,18 +2661,25 @@ The
 \f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (void)beep([string$\'a0soundName])\
+\f1\fs18 \cf0 (void)beep([Ns$\'a0soundName\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf0 Plays a sound or beeps.
-\b0   On Mac OS X in a GUI environment (i.e., in EidosScribe or SLiMgui), 
+\b0   On Mac OS X in a GUI environment (i.e., in EidosScribe or SLiMgui), the optional parameter 
 \f1\fs18 soundName
-\f0\fs20  is the name of a sound file to play; in other cases (at the command line, and on platforms other than OS X) 
+\f0\fs20  can be the name of a sound file to play; in other cases (if 
+\f1\fs18 soundName
+\f0\fs20  is 
+\f1\fs18 NULL
+\f0\fs20 , or at the command line, or on platforms other than OS X) 
 \f1\fs18 soundName
 \f0\fs20  is ignored and a standard system beep is played.\
-When using 
+When 
 \f1\fs18 soundName
-\f0\fs20 , a sound file in a supported format (such as 
+\f0\fs20  is not 
+\f1\fs18 NULL
+\f2\fs20 ,
+\f0  a sound file in a supported format (such as 
 \f1\fs18 .aiff
 \f0\fs20  or 
 \f1\fs18 .mp3
@@ -2738,8 +2731,7 @@ When using
 \f1\fs18 "Submarine"
 \f0\fs20 , and 
 \f1\fs18 "Tink"
-\f2\fs20 .
-\f0   Do not include the file extension, such as 
+\f0\fs20 .  Do not include the file extension, such as 
 \f1\fs18 .aiff
 \f0\fs20  or 
 \f1\fs18 .mp3
@@ -2748,9 +2740,7 @@ When using
 \f2\fs20 .\
 
 \f0\b CAUTION:
-\b0  When 
-\f1\fs18 soundName
-\f0\fs20  is not used (i.e., when not in EidosScribe or SLiMgui), it is often the case that the only simple means available to play a beep is to send a 
+\b0  When not running in EidosScribe or SLiMgui, it is often the case that the only simple means available to play a beep is to send a 
 \f1\fs18 BEL
 \f0\fs20  character (ASCII 7) to the standard output.  Unfortunately, when this is the case, it means that (1) no beep will be audible if output is being redirected into a file, and (2) a control character, 
 \f1\fs18 ^G
@@ -2760,8 +2750,7 @@ When using
 \f1\fs18 beep()
 \f0\fs20  may result in a beep, and no emitted 
 \f1\fs18 ^G
-\f2\fs20 ,
-\f0  even when output is redirected.  When a 
+\f0\fs20 , even when output is redirected.  When a 
 \f1\fs18 ^G
 \f0\fs20  must be emitted to the standard output to generate the beep, a warning message will also be emitted to make any associated problems easier to diagnose.
 \f2 \
@@ -2819,7 +2808,7 @@ When using
 \f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (*)executeLambda(string$\'a0lambdaSource, [logical$\'a0timed])\
+\f1\fs18 \cf0 (*)executeLambda(string$\'a0lambdaSource, [logical$\'a0timed\'a0=\'a0F])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf0 Executes a block of Eidos code
@@ -2844,13 +2833,10 @@ When using
 \f1\fs18 timed
 \f0\fs20  is 
 \f1\fs18 T
-\f0\fs20 , the total (user clock) execution time for the lambda will be printed after the lambda has completed; the default for 
-\f1\fs18 timed
-\f0\fs20  is 
+\f0\fs20 , the total (user clock) execution time for the lambda will be printed after the lambda has completed; if it is 
 \f1\fs18 F
-\f2\fs20 .\
-
-\f0 The current implementation of 
+\f0\fs20  (the default), no timing information will be printed.\
+The current implementation of 
 \f1\fs18 executeLambda()
 \f0\fs20  caches a tokenized and parsed version of 
 \f1\fs18 lambdaSource
@@ -2900,13 +2886,17 @@ When using
 \f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (void)function([string$
+\f1\fs18 \cf0 (void)function([Ns$
 \f2 \'a0
-\f1 functionName])\
+\f1 functionName
+\f2 \'a0
+\f1 =\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf0 Prints function signatures
-\b0  for all functions, or for the function named by 
+\b0  for all functions (if functionName is 
+\f1\fs18 NULL
+\f0\fs20 , the default), or for the function named by 
 \f1\fs18 functionName
 \f0\fs20 , to Eidos\'92s output stream.  See section 2.7.3 for more information.
 \f2 \
@@ -2941,9 +2931,9 @@ When using
 \f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (void)rm([string
+\f1\fs18 \cf0 (void)rm([Ns\'a0variableNames
 \f2 \'a0
-\f1 variableNames], [logical$\'a0removeConstants])\
+\f1 =\'a0NULL], [logical$\'a0removeConstants\'a0=\'a0F])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf0 Removes global variables
@@ -2953,13 +2943,19 @@ When using
 \f1\fs18 variableNames
 \f0\fs20  parameter.  If the optional 
 \f1\fs18 variableNames
-\f0\fs20  parameter is omitted, 
+\f0\fs20  parameter is 
+\f1\fs18 NULL
+\f0\fs20  (the default), 
 \i all
-\i0  variables will be removed (be careful!).  Attempting to remove a constant is an error unless 
+\i0  variables will be removed (be careful!).  If the optional parameter 
 \f1\fs18 removeConstants
-\f0\fs20  is specified to be 
+\f0\fs20  is 
+\f1\fs18 F
+\f0\fs20  (the default), then attempting to remove a constant is an error; if 
+\f1\fs18 removeConstants
+\f0\fs20  is 
 \f1\fs18 T
-\f0\fs20 ; in that case, constants defined with 
+\f0\fs20 , constants defined with 
 \f1\fs18 defineConstant()
 \f0\fs20  may be removed, but attempting to remove intrinsic Eidos constants is still an error.
 \f2 \
@@ -2975,15 +2971,19 @@ When using
 \f0\fs20  function.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (void)stop([string$
+\f1\fs18 \cf0 (void)stop([Ns$
 \f2 \'a0
-\f1 message])\
+\f1 message
+\f2 \'a0
+\f1 =\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf0 Stops execution
 \b0  of Eidos (and of the Context, such as the running SLiM simulation, if applicable), in the event of an error.  If the optional 
 \f1\fs18 message
-\f0\fs20  parameter is supplied it will be printed to Eidos\'92s output stream prior to stopping.
+\f0\fs20  parameter is not 
+\f1\fs18 NULL
+\f0\fs20 , it will be printed to Eidos\'92s output stream prior to stopping.
 \f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 

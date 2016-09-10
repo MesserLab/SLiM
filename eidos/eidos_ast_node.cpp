@@ -81,11 +81,11 @@ void EidosASTNode::ReplaceTokenWithToken(EidosToken *p_token)
 
 void EidosASTNode::OptimizeTree(void) const
 {
-	_OptimizeConstants();
-	_OptimizeIdentifiers();
-	_OptimizeEvaluators();
-	_OptimizeFor();
-	_OptimizeAssignments();
+	_OptimizeConstants();		// cache values for numeric and string constants, and for return statements and constant compound statements
+	_OptimizeIdentifiers();		// cache unique IDs for identifiers using EidosGlobalStringIDForString()
+	_OptimizeEvaluators();		// cache evaluator functions in cached_evaluator_ for fast node evaluation
+	_OptimizeFor();				// cache information about for loops that allows them to be accelerated at runtime
+	_OptimizeAssignments();		// cache information about assignments that allows simple increment/decrement assignments to be accelerated
 }
 
 void EidosASTNode::_OptimizeConstants(void) const
@@ -161,7 +161,7 @@ void EidosASTNode::_OptimizeEvaluators(void) const
 		case EidosTokenType::kTokenSemicolon:	cached_evaluator_ = &EidosInterpreter::Evaluate_NullStatement;		break;
 		case EidosTokenType::kTokenColon:		cached_evaluator_ = &EidosInterpreter::Evaluate_RangeExpr;			break;
 		case EidosTokenType::kTokenLBrace:		cached_evaluator_ = &EidosInterpreter::Evaluate_CompoundStatement;	break;
-		case EidosTokenType::kTokenLParen:		cached_evaluator_ = &EidosInterpreter::Evaluate_FunctionCall;		break;
+		case EidosTokenType::kTokenLParen:		cached_evaluator_ = &EidosInterpreter::Evaluate_Call;				break;
 		case EidosTokenType::kTokenLBracket:	cached_evaluator_ = &EidosInterpreter::Evaluate_Subset;				break;
 		case EidosTokenType::kTokenDot:			cached_evaluator_ = &EidosInterpreter::Evaluate_MemberRef;			break;
 		case EidosTokenType::kTokenPlus:		cached_evaluator_ = &EidosInterpreter::Evaluate_Plus;				break;
@@ -341,7 +341,7 @@ void EidosASTNode::PrintToken(std::ostream &p_outstream) const
 		case EidosTokenType::kTokenSemicolon:	p_outstream << "NULL_STATEMENT";	break;
 		case EidosTokenType::kTokenLParen:		p_outstream << "CALL";				break;
 		case EidosTokenType::kTokenLBracket:	p_outstream << "SUBSET";			break;
-		case EidosTokenType::kTokenComma:		p_outstream << "ARG_LIST";			break;
+		//case EidosTokenType::kTokenComma:		p_outstream << "ARG_LIST";			break;		// no longer used in the AST
 		default:								p_outstream << *token_;				break;
 	}
 }

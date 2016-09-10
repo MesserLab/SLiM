@@ -135,7 +135,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosTypeTable &p_symb
 		const std::string &symbol_name = *symbol_name_iter;
 		EidosTypeSpecifier symbol_type = p_symbols.GetTypeForSymbol(EidosGlobalStringIDForString(symbol_name));
 		
-		p_outstream << symbol_name << " ~> (" << StringForEidosValueMask(symbol_type.type_mask, symbol_type.object_class, "") << ") " << std::endl;
+		p_outstream << symbol_name << " ~> (" << StringForEidosValueMask(symbol_type.type_mask, symbol_type.object_class, "", nullptr) << ") " << std::endl;
 	}
 	
 	return p_outstream;

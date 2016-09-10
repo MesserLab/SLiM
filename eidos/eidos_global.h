@@ -243,7 +243,7 @@ const std::string &StringForEidosGlobalStringID(EidosGlobalStringID p_string_id)
 
 // This registers a standard string with a given ID; called by Eidos_RegisterGlobalStringsAndIDs(), and can be used by
 // the Context to set up strings that need to have fixed IDs.  All IDs used by the Context should start at gEidosID_LastEntry.
-// This function does not make a copy of the string that it is passed, since it is intended for us with global strings.
+// This function does not make a copy of the string that it is passed, since it is intended for use with global strings.
 void Eidos_RegisterStringForGlobalID(const std::string &p_string, EidosGlobalStringID p_string_id);
 
 // This registers all of the standard Eidos strings, listed below, without copying; the string global is the uniqued string.

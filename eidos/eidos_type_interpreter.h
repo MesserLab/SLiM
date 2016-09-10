@@ -76,7 +76,7 @@ public:
 	EidosTypeSpecifier TypeEvaluate_NullStatement(const EidosASTNode *p_node);
 	EidosTypeSpecifier TypeEvaluate_CompoundStatement(const EidosASTNode *p_node);
 	EidosTypeSpecifier TypeEvaluate_RangeExpr(const EidosASTNode *p_node);
-	EidosTypeSpecifier TypeEvaluate_FunctionCall(const EidosASTNode *p_node);
+	EidosTypeSpecifier TypeEvaluate_Call(const EidosASTNode *p_node);
 	EidosTypeSpecifier TypeEvaluate_Subset(const EidosASTNode *p_node);
 	EidosTypeSpecifier TypeEvaluate_MemberRef(const EidosASTNode *p_node);
 	EidosTypeSpecifier TypeEvaluate_Plus(const EidosASTNode *p_node);
@@ -110,9 +110,12 @@ public:
 	// defineConstant() has the side effect of defining a new symbol of a particular type.  These are
 	// virtual so the Context can subclass this class to define additional functions/methods with such
 	// side effects.
-	virtual EidosTypeSpecifier _TypeEvaluate_FunctionCall_Internal(std::string const &p_function_name, const EidosFunctionSignature *p_function_signature, const EidosASTNode **const p_arguments, int p_argument_count);
+	virtual EidosTypeSpecifier _TypeEvaluate_FunctionCall_Internal(std::string const &p_function_name, const EidosFunctionSignature *p_function_signature, const std::vector<EidosASTNode *> &p_arguments);
 	
-	virtual EidosTypeSpecifier _TypeEvaluate_MethodCall_Internal(const EidosObjectClass *p_target, const EidosMethodSignature *p_method_signature, const EidosASTNode **const p_arguments, int p_argument_count);
+	virtual EidosTypeSpecifier _TypeEvaluate_MethodCall_Internal(const EidosObjectClass *p_target, const EidosMethodSignature *p_method_signature, const std::vector<EidosASTNode *> &p_arguments);
+	
+	// Argument processing; handles default arguments and named arguments
+	void _ProcessArgumentListTypes(const EidosASTNode *p_node, const EidosCallSignature *p_call_signature, std::vector<EidosASTNode *> &p_arguments);
 };
 
 

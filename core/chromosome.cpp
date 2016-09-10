@@ -437,7 +437,7 @@ EidosValue_SP Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 	EidosValue *arg2_value = ((p_argument_count >= 3) ? p_arguments[2].get() : nullptr);
 	
 	//
-	//	*********************	- (void)setRecombinationRate(numeric rates, [integer ends], [string$ sex])
+	//	*********************	– (void)setRecombinationRate(numeric rates, [Ni ends = NULL], [string$ sex = "*"])
 	//
 #pragma mark -setRecombinationRate()
 	
@@ -448,19 +448,16 @@ EidosValue_SP Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 		// Figure out what sex we are being given a map for
 		IndividualSex requested_sex = IndividualSex::kUnspecified;
 		
-		if (p_argument_count >= 3)
-		{
-			std::string sex_string = arg2_value->StringAtIndex(0, nullptr);
-			
-			if (sex_string.compare("M") == 0)
-				requested_sex = IndividualSex::kMale;
-			else if (sex_string.compare("F") == 0)
-				requested_sex = IndividualSex::kFemale;
-			else if (sex_string.compare("*") == 0)
-				requested_sex = IndividualSex::kUnspecified;
-			else
-				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() requested sex \"" << sex_string << "\" unsupported." << eidos_terminate();
-		}
+		std::string sex_string = arg2_value->StringAtIndex(0, nullptr);
+		
+		if (sex_string.compare("M") == 0)
+			requested_sex = IndividualSex::kMale;
+		else if (sex_string.compare("F") == 0)
+			requested_sex = IndividualSex::kFemale;
+		else if (sex_string.compare("*") == 0)
+			requested_sex = IndividualSex::kUnspecified;
+		else
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() requested sex \"" << sex_string << "\" unsupported." << eidos_terminate();
 		
 		// Make sure specifying a map for that sex is legal, given our current state
 		if (((requested_sex == IndividualSex::kUnspecified) && !single_recombination_map_) ||
@@ -473,8 +470,9 @@ EidosValue_SP Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 		vector<double> &rates = ((requested_sex == IndividualSex::kUnspecified) ? recombination_rates_H_ : 
 								 ((requested_sex == IndividualSex::kMale) ? recombination_rates_M_ : recombination_rates_F_));
 		
-		if (p_argument_count == 1)
+		if (arg1_value->Type() == EidosValueType::kValueNULL)
 		{
+			// ends is missing/NULL
 			if (rate_count != 1)
 				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() requires rates to be a singleton if ends is not supplied." << eidos_terminate();
 			
@@ -491,8 +489,9 @@ EidosValue_SP Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 			rates.emplace_back(recombination_rate);
 			//positions.emplace_back(?);	// deferred; patched in Chromosome::InitializeDraws().
 		}
-		else if (p_argument_count >= 2)
+		else
 		{
+			// ends is supplied
 			int end_count = arg1_value->Count();
 			
 			if ((end_count != rate_count) || (end_count == 0))
@@ -693,7 +692,7 @@ const EidosMethodSignature *Chromosome_Class::SignatureForMethod(EidosGlobalStri
 	
 	if (!setRecombinationRateSig)
 	{
-		setRecombinationRateSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setRecombinationRate, kEidosValueMaskNULL))->AddNumeric("rates")->AddInt_O("ends")->AddString_OS("sex");
+		setRecombinationRateSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setRecombinationRate, kEidosValueMaskNULL))->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk);
 	}
 	
 	if (p_method_id == gID_setRecombinationRate)

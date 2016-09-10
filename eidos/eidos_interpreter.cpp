@@ -610,7 +610,7 @@ EidosValue_SP EidosInterpreter::EvaluateNode(const EidosASTNode *p_node)
 		case EidosTokenType::kTokenSemicolon:	return Evaluate_NullStatement(p_node);
 		case EidosTokenType::kTokenColon:		return Evaluate_RangeExpr(p_node);
 		case EidosTokenType::kTokenLBrace:		return Evaluate_CompoundStatement(p_node);
-		case EidosTokenType::kTokenLParen:		return Evaluate_FunctionCall(p_node);
+		case EidosTokenType::kTokenLParen:		return Evaluate_Call(p_node);
 		case EidosTokenType::kTokenLBracket:	return Evaluate_Subset(p_node);
 		case EidosTokenType::kTokenDot:			return Evaluate_MemberRef(p_node);
 		case EidosTokenType::kTokenPlus:		return Evaluate_Plus(p_node);
@@ -826,151 +826,299 @@ EidosValue_SP EidosInterpreter::Evaluate_RangeExpr(const EidosASTNode *p_node)
 	return result_SP;
 }
 
-EidosValue_SP EidosInterpreter::Evaluate_FunctionCall(const EidosASTNode *p_node)
+// This processes the arguments for a call node (either a function call or a method call), ignoring the first child
+// node since that is the call name node, not an argument node.  Named arguments and default arguments are handled
+// here, and a final argument list is placed into the buffer passed in by the caller (guaranteed to be large enough).
+// The final number of arguments for the call is returned.
+int EidosInterpreter::_ProcessArgumentList(const EidosASTNode *p_node, const EidosCallSignature *p_call_signature, EidosValue_SP *p_arg_buffer)
 {
-	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_FunctionCall()");
-	
-	EidosValue_SP result_SP;
-	
-	// We do not evaluate the function name node (our first child) to get a function object; there is no such type in
-	// Eidos for now.  Instead, we extract the identifier name directly from the node and work with it.  If the
-	// node is an identifier, it is a function call; if it is a dot operator, it is a method call; other constructs
-	// are illegal since expressions cannot evaluate to function objects, there being no function objects in Eidos.
-	EidosASTNode *function_name_node = p_node->children_[0];
-	EidosTokenType function_name_token_type = function_name_node->token_->token_type_;
-	
-	const string *function_name = nullptr;
-	const EidosFunctionSignature *function_signature = nullptr;
-	EidosGlobalStringID method_id = gEidosID_none;
-	EidosValue_Object_SP method_object;
-	EidosToken *call_identifier_token = nullptr;
-	
-	if (function_name_token_type == EidosTokenType::kTokenIdentifier)
-	{
-		// OK, we have <identifier>(...); that's a well-formed function call
-		call_identifier_token = function_name_node->token_;
-		function_name = &(call_identifier_token->token_string_);
-		function_signature = function_name_node->cached_signature_;
-	}
-	else if (function_name_token_type == EidosTokenType::kTokenDot)
-	{
-		EIDOS_ASSERT_CHILD_COUNT_X(function_name_node, "'.'", "EidosInterpreter::Evaluate_FunctionCall", 2, function_name_node->token_);
-		
-		EidosValue_SP first_child_value = FastEvaluateNode(function_name_node->children_[0]);
-		EidosValueType first_child_type = first_child_value->Type();
-		
-		if (first_child_type != EidosValueType::kValueObject)
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_FunctionCall): operand type " << first_child_type << " is not supported by the '.' operator." << eidos_terminate(function_name_node->token_);
-		
-		EidosASTNode *second_child_node = function_name_node->children_[1];
-		
-		if (second_child_node->token_->token_type_ != EidosTokenType::kTokenIdentifier)
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_FunctionCall): the '.' operator for x.y requires operand y to be an identifier." << eidos_terminate(function_name_node->token_);
-		
-		// OK, we have <object type>.<identifier>(...); that's a well-formed method call
-		call_identifier_token = second_child_node->token_;
-		method_id = second_child_node->cached_stringID_;
-		method_object = static_pointer_cast<EidosValue_Object>(std::move(first_child_value));	// guaranteed by the Type() call above
-	}
-	else
-	{
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_FunctionCall): type " << function_name_token_type << " is not supported by the '()' operator (illegal operand for a function call operation)." << eidos_terminate(function_name_node->token_);
-	}
-	
-	// Evaluate all arguments; note this occurs before the function call itself is evaluated at all
 	const std::vector<EidosASTNode *> &node_children = p_node->children_;
+	
+	// Run through the argument nodes, evaluate them, and put the resulting pointers into the arguments buffer,
+	// interleaving default arguments and handling named arguments as we go.
+	int processed_arg_count = 0;
 	auto node_children_end = node_children.end();
-	int arguments_count = 0;
+	auto sig_arg_index = 0;
+	auto sig_arg_count = (int)p_call_signature->arg_name_IDs_.size();
+	bool had_named_argument = false;
 	
 	for (auto child_iter = node_children.begin() + 1; child_iter != node_children_end; ++child_iter)
 	{
 		EidosASTNode *child = *child_iter;
 		
-		if (child->token_->token_type_ == EidosTokenType::kTokenComma)
-			arguments_count += child->children_.size();
-		else
-			arguments_count++;
-	}
-	
-	if (arguments_count <= 5)
-	{
-		// We have 5 or fewer arguments, so use a stack-local array of arguments to avoid the malloc/free
-		EidosValue_SP (arguments_array[5]);
-		int argument_index = 0;
-		
-		for (auto child_iter = node_children.begin() + 1; child_iter != node_children_end; ++child_iter)
+		if (sig_arg_index < sig_arg_count)
 		{
-			EidosASTNode *child = *child_iter;
-			
-			if (child->token_->token_type_ == EidosTokenType::kTokenComma)
+			if (child->token_->token_type_ != EidosTokenType::kTokenAssign)
 			{
-				// a child with token type kTokenComma is an argument list node; we need to take its children and evaluate them
-				std::vector<EidosASTNode *> &child_children = child->children_;
-				auto end_iterator = child_children.end();
+				// We have a non-named argument; it will go into the next argument slot from the signature
+				if (had_named_argument)
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): unnamed argument may not follow after named arguments; once named arguments begin, all arguments must be named arguments (or ellipsis arguments)." << eidos_terminate(nullptr);
 				
-				for (auto arg_list_iter = child_children.begin(); arg_list_iter != end_iterator; ++arg_list_iter)
-					arguments_array[argument_index++] = FastEvaluateNode(*arg_list_iter);
+				sig_arg_index++;
 			}
 			else
 			{
-				// all other children get evaluated, and the results added to the arguments vector
-				arguments_array[argument_index++] = FastEvaluateNode(child);
+				// We have a named argument; get information on it from its children
+				const std::vector<EidosASTNode *> &child_children = child->children_;
+				
+				if (child_children.size() != 2)
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): (internal error) named argument node child count != 2." << eidos_terminate(nullptr);
+				
+				EidosASTNode *named_arg_name_node = child_children[0];
+				EidosASTNode *named_arg_value_node = child_children[1];
+				
+				// Get the identifier for the argument name
+				EidosGlobalStringID named_arg_nameID = named_arg_name_node->cached_stringID_;
+				
+				// Now re-point child at the value node
+				child = named_arg_value_node;
+				
+				// While this argument's name doesn't match the expected argument, insert default values for optional arguments
+				do 
+				{
+					EidosGlobalStringID arg_name_ID = p_call_signature->arg_name_IDs_[sig_arg_index];
+					
+					if (named_arg_nameID == arg_name_ID)
+					{
+						sig_arg_index++;
+						break;
+					}
+					
+					EidosValueMask arg_mask = p_call_signature->arg_masks_[sig_arg_index];
+					
+					if (!(arg_mask & kEidosValueMaskOptional))
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument " << named_arg_name_node->token_->token_string_ << " skipped over required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << eidos_terminate(nullptr);
+					
+					EidosValue_SP default_value = p_call_signature->arg_defaults_[sig_arg_index];
+					
+					if (!default_value)
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): (internal error) missing default value for optional argument." << eidos_terminate(nullptr);
+					
+					p_arg_buffer[processed_arg_count] = std::move(default_value);
+					processed_arg_count++;
+					
+					// Move to the next signature argument; if we have run out of them, then treat this argument is illegal
+					sig_arg_index++;
+					if (sig_arg_index == sig_arg_count)
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): ran out of optional arguments while searching for named argument " << named_arg_name_node->token_->token_string_ << "." << eidos_terminate(nullptr);
+				}
+				while (true);
+				
+				had_named_argument = true;
 			}
+		}
+		else
+		{
+			// We're beyond the end of the signature's arguments; check whether this argument can qualify as an ellipsis argument
+			if (!p_call_signature->has_ellipsis_)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): too many arguments supplied to function " << p_call_signature->function_name_ << "." << eidos_terminate(nullptr);
+			
+			if (child->token_->token_type_ == EidosTokenType::kTokenAssign)
+			{
+				if (child->children_.size() == 2)
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument " << child->children_[0]->token_->token_string_ << " in ellipsis argument section (after the last explicit argument)." << eidos_terminate(nullptr);
+				else
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument in ellipsis argument section (after the last explicit argument)." << eidos_terminate(nullptr);
+			}
+		}
+		
+		// Evaluate the child and emplace it in the arguments buffer
+		p_arg_buffer[processed_arg_count] = FastEvaluateNode(child);
+		processed_arg_count++;
+	}
+	
+	// Handle any remaining arguments in the signature
+	while (sig_arg_index < sig_arg_count)
+	{
+		EidosValueMask arg_mask = p_call_signature->arg_masks_[sig_arg_index];
+		
+		if (!(arg_mask & kEidosValueMaskOptional))
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): missing required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << eidos_terminate(nullptr);
+		
+		EidosValue_SP default_value = p_call_signature->arg_defaults_[sig_arg_index];
+		
+		if (!default_value)
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): (internal error) missing default value for optional argument." << eidos_terminate(nullptr);
+		
+		p_arg_buffer[processed_arg_count] = std::move(default_value);
+		processed_arg_count++;
+		
+		sig_arg_index++;
+	}
+	
+	// Now that we have a fully assembled argument list, check it
+	p_call_signature->CheckArguments(p_arg_buffer, processed_arg_count);
+	
+	return processed_arg_count;
+}
+
+EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
+{
+	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Call()");
+	
+	EidosValue_SP result_SP;
+	
+	// We do not evaluate the call name node (our first child) to get a function/method object; there is no such type
+	// in Eidos for now.  Instead, we extract the identifier name directly from the node and work with it.  If the
+	// node is an identifier, it is a function call; if it is a dot operator, it is a method call; other constructs
+	// are illegal since expressions cannot evaluate to function/method objects.
+	const std::vector<EidosASTNode *> &node_children = p_node->children_;
+	EidosASTNode *call_name_node = node_children[0];
+	EidosTokenType call_name_token_type = call_name_node->token_->token_type_;
+	EidosToken *call_identifier_token = nullptr;
+	
+	if (call_name_token_type == EidosTokenType::kTokenIdentifier)
+	{
+		//
+		//	FUNCTION CALL DISPATCH
+		//
+		call_identifier_token = call_name_node->token_;
+		
+		// OK, we have <identifier>(...); that's a well-formed function call
+		const string *function_name = &(call_identifier_token->token_string_);
+		const EidosFunctionSignature *function_signature = call_name_node->cached_signature_;
+		
+		// If the function call is a built-in Eidos function, we might already have a pointer to its signature cached; if not, we'll have to look it up
+		if (!function_signature)
+		{
+			// Get the function signature and check our arguments against it
+			auto signature_iter = function_map_.find(*function_name);
+			
+			if (signature_iter == function_map_.end())
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteFunctionCall): unrecognized function name " << *function_name << "." << eidos_terminate(call_identifier_token);
+			
+			function_signature = signature_iter->second;
 		}
 		
 		// If an error occurs inside a function or method call, we want to highlight the call
 		EidosErrorPosition error_pos_save = EidosScript::PushErrorPositionFromToken(call_identifier_token);
 		
-		// We offload the actual work to ExecuteMethodCall() / ExecuteFunctionCall() to keep things simple here
-		if (method_object)
-			result_SP = method_object->ExecuteMethodCall(method_id, arguments_array, arguments_count, *this);
+		// Argument processing
+		int max_arg_count = (function_signature->has_ellipsis_ ? ((int)(node_children.size() - 1)) + 1 : (int)function_signature->arg_name_IDs_.size() + 1);
+		
+		if (max_arg_count <= 5)
+		{
+			EidosValue_SP (arguments_array[5]);
+			int processed_arg_count = _ProcessArgumentList(p_node, function_signature, arguments_array);
+			
+			result_SP = ExecuteFunctionCall(*function_name, function_signature, arguments_array, processed_arg_count);
+		}
 		else
-			result_SP = ExecuteFunctionCall(*function_name, function_signature, arguments_array, arguments_count);
+		{
+			vector<EidosValue_SP> arguments;
+			
+			arguments.resize(max_arg_count);
+			
+			EidosValue_SP *arguments_ptr = arguments.data();
+			int processed_arg_count = _ProcessArgumentList(p_node, function_signature, arguments_ptr);
+			
+			result_SP = ExecuteFunctionCall(*function_name, function_signature, arguments_ptr, processed_arg_count);
+		}
+		
+		// If the code above supplied no return value, invisible NULL is assumed as a default to prevent a crash;
+		// but this is an internal error so the check is run only when in debug.  Not in debug, we crash.
+#ifdef DEBUG
+		if (!result_SP)
+		{
+			std::cerr << "result_SP not set in function " << *function_name << std::endl;
+			result_SP = gStaticEidosValueNULLInvisible;
+		}
+#endif
+		
+		// Check the return value against the signature
+		function_signature->CheckReturn(*result_SP);
+		
+		// Forget the function token, since it is not responsible for any future errors
+		EidosScript::RestoreErrorPosition(error_pos_save);
+	}
+	else if (call_name_token_type == EidosTokenType::kTokenDot)
+	{
+		//
+		//	METHOD CALL DISPATCH
+		//
+		EIDOS_ASSERT_CHILD_COUNT_X(call_name_node, "'.'", "EidosInterpreter::Evaluate_Call", 2, call_name_node->token_);
+		
+		EidosValue_SP first_child_value = FastEvaluateNode(call_name_node->children_[0]);
+		EidosValueType first_child_type = first_child_value->Type();
+		
+		if (first_child_type != EidosValueType::kValueObject)
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): operand type " << first_child_type << " is not supported by the '.' operator." << eidos_terminate(call_name_node->token_);
+		
+		EidosASTNode *second_child_node = call_name_node->children_[1];
+		
+		if (second_child_node->token_->token_type_ != EidosTokenType::kTokenIdentifier)
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): the '.' operator for x.y requires operand y to be an identifier." << eidos_terminate(call_name_node->token_);
+		
+		// OK, we have <object type>.<identifier>(...); that's a well-formed method call
+		call_identifier_token = second_child_node->token_;
+		
+		EidosGlobalStringID method_id = second_child_node->cached_stringID_;
+		EidosValue_Object_SP method_object = static_pointer_cast<EidosValue_Object>(std::move(first_child_value));	// guaranteed by the Type() call above
+		
+		// Look up the method signature; this could be cached in the tree, probably, since we guarantee that method signatures are unique by name
+		const EidosMethodSignature *method_signature = method_object->Class()->SignatureForMethod(method_id);
+		
+		if (!method_signature)
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::ExecuteMethodCall): method " << StringForEidosGlobalStringID(method_id) << "() is not defined on object element type " << method_object->ElementType() << "." << eidos_terminate(call_identifier_token);
+		
+		// If an error occurs inside a function or method call, we want to highlight the call
+		EidosErrorPosition error_pos_save = EidosScript::PushErrorPositionFromToken(call_identifier_token);
+		
+		// Argument processing
+		int max_arg_count = (method_signature->has_ellipsis_ ? ((int)(node_children.size() - 1)) + 1 : (int)method_signature->arg_name_IDs_.size() + 1);
+		
+		if (max_arg_count <= 5)
+		{
+			EidosValue_SP (arguments_array[5]);
+			int processed_arg_count = _ProcessArgumentList(p_node, method_signature, arguments_array);
+			
+			// If the method is a class method, dispatch it to the class object
+			if (method_signature->is_class_method)
+			{
+				// Note that starting in Eidos 1.1 we pass method_object to ExecuteClassMethod(), to allow class methods to
+				// act as non-multicasting methods that operate on the whole target vector.  BCH 11 June 2016
+				result_SP = method_object->Class()->ExecuteClassMethod(method_id, method_object.get(), arguments_array, processed_arg_count, *this);
+				
+				method_signature->CheckReturn(*result_SP);
+			}
+			else
+			{
+				result_SP = method_object->ExecuteMethodCall(method_id, method_signature, arguments_array, processed_arg_count, *this);
+			}
+		}
+		else
+		{
+			vector<EidosValue_SP> arguments;
+			
+			arguments.resize(max_arg_count);
+			
+			EidosValue_SP *arguments_ptr = arguments.data();
+			int processed_arg_count = _ProcessArgumentList(p_node, method_signature, arguments_ptr);
+			
+			// If the method is a class method, dispatch it to the class object
+			if (method_signature->is_class_method)
+			{
+				// Note that starting in Eidos 1.1 we pass method_object to ExecuteClassMethod(), to allow class methods to
+				// act as non-multicasting methods that operate on the whole target vector.  BCH 11 June 2016
+				result_SP = method_object->Class()->ExecuteClassMethod(method_id, method_object.get(), arguments_ptr, processed_arg_count, *this);
+				
+				method_signature->CheckReturn(*result_SP);
+			}
+			else
+			{
+				result_SP = method_object->ExecuteMethodCall(method_id, method_signature, arguments_ptr, processed_arg_count, *this);
+			}
+		}
 		
 		// Forget the function token, since it is not responsible for any future errors
 		EidosScript::RestoreErrorPosition(error_pos_save);
 	}
 	else
 	{
-		// We have a lot of arguments, so we need to use a vector
-		vector<EidosValue_SP> arguments;
-		
-		for (auto child_iter = node_children.begin() + 1; child_iter != node_children_end; ++child_iter)
-		{
-			EidosASTNode *child = *child_iter;
-			
-			if (child->token_->token_type_ == EidosTokenType::kTokenComma)
-			{
-				// a child with token type kTokenComma is an argument list node; we need to take its children and evaluate them
-				std::vector<EidosASTNode *> &child_children = child->children_;
-				auto end_iterator = child_children.end();
-				
-				for (auto arg_list_iter = child_children.begin(); arg_list_iter != end_iterator; ++arg_list_iter)
-					arguments.emplace_back(FastEvaluateNode(*arg_list_iter));
-			}
-			else
-			{
-				// all other children get evaluated, and the results added to the arguments vector
-				arguments.emplace_back(FastEvaluateNode(child));
-			}
-		}
-		
-		// If an error occurs inside a function or method call, we want to highlight the call
-		EidosErrorPosition error_pos_save = EidosScript::PushErrorPositionFromToken(call_identifier_token);
-		
-		// We offload the actual work to ExecuteMethodCall() / ExecuteFunctionCall() to keep things simple here
-		EidosValue_SP *arguments_ptr = arguments.data();
-		
-		if (method_object)
-			result_SP = method_object->ExecuteMethodCall(method_id, arguments_ptr, arguments_count, *this);
-		else
-			result_SP = ExecuteFunctionCall(*function_name, function_signature, arguments_ptr, arguments_count);
-		
-		// Forget the function token, since it is not responsible for any future errors
-		EidosScript::RestoreErrorPosition(error_pos_save);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): type " << call_name_token_type << " is not supported by the '()' operator (illegal operand for a function call operation)." << eidos_terminate(call_name_node->token_);
 	}
 	
-	EIDOS_EXIT_EXECUTION_LOG("Evaluate_FunctionCall()");
+	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Call()");
 	return result_SP;
 }
 
@@ -4266,11 +4414,11 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				
 				if (signature && (signature->function_id_ == EidosFunctionIdentifier::seqAlongFunction))
 				{
-					const EidosASTNode *argument_node = range_node->children_[1];
-					
-					if (argument_node->token_->token_type_ != EidosTokenType::kTokenComma)
+					if (range_node->children_.size() == 2)
 					{
 						// We have a qualifying seqAlong() call, so evaluate its argument and set up our simple integer sequence
+						const EidosASTNode *argument_node = range_node->children_[1];
+						
 						simpleIntegerRange = true;
 						
 						EidosValue_SP argument_value = FastEvaluateNode(argument_node);

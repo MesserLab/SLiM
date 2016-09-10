@@ -412,7 +412,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_genome2, gID_genome2);
 		Eidos_RegisterStringForGlobalID(gStr_subpop, gID_subpop);
 		Eidos_RegisterStringForGlobalID(gStr_sourceSubpop, gID_sourceSubpop);
-		Eidos_RegisterStringForGlobalID(gStr_weights, gID_weights);
+		//Eidos_RegisterStringForGlobalID(gStr_weights, gID_weights);	// already registered by Eidos
 		Eidos_RegisterStringForGlobalID(gStr_child, gID_child);
 		Eidos_RegisterStringForGlobalID(gStr_childGenome1, gID_childGenome1);
 		Eidos_RegisterStringForGlobalID(gStr_childGenome2, gID_childGenome2);
@@ -447,7 +447,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_f, gID_f);
 		Eidos_RegisterStringForGlobalID(gStr_g, gID_g);
 		Eidos_RegisterStringForGlobalID(gStr_e, gID_e);
-		Eidos_RegisterStringForGlobalID(gStr_n, gID_n);
+		//Eidos_RegisterStringForGlobalID(gStr_n, gID_n);	// already registered by Eidos
 		Eidos_RegisterStringForGlobalID(gStr_w, gID_w);
 		Eidos_RegisterStringForGlobalID(gStr_l, gID_l);
 		Eidos_RegisterStringForGlobalID(gStr_s, gID_s);

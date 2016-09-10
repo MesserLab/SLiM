@@ -37,6 +37,8 @@
 #include "eidos_symbol_table.h"
 #include "eidos_ast_node.h"
 
+class EidosCallSignature;
+
 
 // EidosInterpreter keeps track of the EidosContext object that is in charge of the whole show.  This should
 // be an object of type EidosObjectElement; this allows dynamic_cast to work, whereas void* would not.  This
@@ -113,6 +115,7 @@ public:
 	void _ProcessSubscriptAssignment(EidosValue_SP *p_base_value_ptr, EidosGlobalStringID *p_property_string_id_ptr, std::vector<int> *p_indices_ptr, const EidosASTNode *p_parent_node);
 	void _AssignRValueToLValue(EidosValue_SP p_rvalue, const EidosASTNode *p_lvalue_node);
 	EidosValue_SP _Evaluate_RangeExpr_Internal(const EidosASTNode *p_node, const EidosValue &p_first_child_value, const EidosValue &p_second_child_value);
+	int _ProcessArgumentList(const EidosASTNode *p_node, const EidosCallSignature *p_call_signature, EidosValue_SP *p_arg_buffer);
 	
 	void NullReturnRaiseForNode(const EidosASTNode *p_node);
 	EidosValue_SP EvaluateNode(const EidosASTNode *p_node);
@@ -120,7 +123,7 @@ public:
 	EidosValue_SP Evaluate_NullStatement(const EidosASTNode *p_node);
 	EidosValue_SP Evaluate_CompoundStatement(const EidosASTNode *p_node);
 	EidosValue_SP Evaluate_RangeExpr(const EidosASTNode *p_node);
-	EidosValue_SP Evaluate_FunctionCall(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_Call(const EidosASTNode *p_node);
 	EidosValue_SP Evaluate_Subset(const EidosASTNode *p_node);
 	EidosValue_SP Evaluate_MemberRef(const EidosASTNode *p_node);
 	EidosValue_SP Evaluate_Plus(const EidosASTNode *p_node);

@@ -143,13 +143,15 @@ Note that by default, all mutations of a given mutation type will be converted i
 \f1 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f0\fs18 \cf0 (void)initializeRecombinationRate(numeric\'a0rates, [integer\'a0ends], [string$\'a0sex])
+\f0\fs18 \cf0 (void)initializeRecombinationRate(numeric\'a0rates, [Ni\'a0ends\'a0=\'a0NULL], [string$\'a0sex\'a0=\'a0"*"])
 \f1 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf0 Set the recombination rate per nucleotide per generation along the chromosome.  There are two ways to call this function.  If the optional 
 \f0\fs18 ends
-\f2\fs20  parameter is omitted, 
+\f2\fs20  parameter is 
+\f0\fs18 NULL
+\f2\fs20  (the default), then 
 \f0\fs18 rates
 \f2\fs20  must be a singleton value that specifies a single recombination rate to be used along the entire chromosome.  If, on the other hand, 
 \f0\fs18 ends
@@ -185,8 +187,7 @@ For example, if the following call is made:\
 \f1\fs20 \'a0
 \f2 /\'a0
 \f0\fs18 2
-\f1\fs20 ,
-\f2  ..., 
+\f2\fs20 , ..., 
 \f0\fs18 4999
 \f1\fs20 \'a0
 \f2 /\'a0
@@ -212,8 +213,7 @@ For example, if the following call is made:\
 \f0\fs18 9999
 \f2\fs20 ) will again be 
 \f0\fs18 0
-\f1\fs20 .
-\f2   Setting the recombination rate between one specific pair of bases to 
+\f2\fs20 .  Setting the recombination rate between one specific pair of bases to 
 \f0\fs18 0.5
 \f2\fs20  forces recombination to occur with a probability of 
 \f0\fs18 0.5
@@ -227,24 +227,24 @@ For example, if the following call is made:\
 \f0\fs18 9999
 \f1\fs20 .\
 
-\f2 If the 
+\f2 If the optional 
 \f0\fs18 sex
-\f2\fs20  parameter is omitted or is 
+\f2\fs20  parameter is 
 \f0\fs18 "*"
-\f2\fs20 , the supplied recombination rate map will be used for both sexes (which is the only option for hermaphroditic simulations).  In sexual simulations 
+\f2\fs20  (the default), then the supplied recombination rate map will be used for both sexes (which is the only option for hermaphroditic simulations).  In sexual simulations 
 \f0\fs18 sex
-\f2\fs20  may optionally be 
+\f2\fs20  may be 
 \f0\fs18 "M"
 \f2\fs20  or 
 \f0\fs18 "F"
-\f2\fs20 , in which case the supplied recombination map is used only for that sex.  In this case, two calls must be made to 
+\f2\fs20  instead, in which case the supplied recombination map is used only for that sex.  In this case, two calls must be made to 
 \f0\fs18 initializeRecombinationRate()
 \f2\fs20 , one for each sex, even if a rate of zero is desired for the other sex; no default recombination map is supplied.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f0\fs18 \cf0 (void)initializeSex(string$\'a0chromosomeType, [numeric$\'a0xDominanceCoeff])
+\f0\fs18 \cf0 (void)initializeSex(string$\'a0chromosomeType, [numeric$\'a0xDominanceCoeff\'a0=\'a01])
 \f1 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf0 Enable and configure sex in the simulation.  The argument 
 \f0\fs18 chromosomeType
@@ -258,9 +258,10 @@ For example, if the following call is made:\
 \f0\fs18 chromosomeType
 \f2\fs20  is 
 \f0\fs18 "X"
-\f2\fs20 , 
+\f1\fs20 ,
+\f2  the optional 
 \f0\fs18 xDominanceCoeff
-\f2\fs20  can optionally supply the dominance coefficient used when a mutation is present in an XY male, and is thus \'93heterozygous\'94 (but in a different sense than the heterozygosity of an XX female with one copy of the mutation).  Calling this function has the side effect of enabling sex in the simulation; individuals will be male and female (rather than hermaphroditic) regardless of the 
+\f2\fs20  parameter can supply the dominance coefficient used when a mutation is present in an XY male, and is thus \'93heterozygous\'94 (but in a different sense than the heterozygosity of an XX female with one copy of the mutation).  Calling this function has the side effect of enabling sex in the simulation; individuals will be male and female (rather than hermaphroditic) regardless of the 
 \f0\fs18 chromosomeType
 \f2\fs20  chosen for simulation.  There is no way to disable sex once it has been enabled; if you don\'92t want to have sex, don\'92t call this function.\
 }

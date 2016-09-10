@@ -1058,15 +1058,15 @@ const EidosMethodSignature *Genome_Class::SignatureForMethod(EidosGlobalStringID
 	if (!addMutationsSig)
 	{
 		addMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class);
-		addNewDrawnMutationSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addNewDrawnMutation, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Mutation_Class))->AddIntObject_S("mutationType", gSLiM_MutationType_Class)->AddInt_S("position")->AddInt_OSN("originGeneration")->AddIntObject_OS("originSubpop", gSLiM_Subpopulation_Class);
-		addNewMutationSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addNewMutation, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Mutation_Class))->AddIntObject_S("mutationType", gSLiM_MutationType_Class)->AddNumeric_S("selectionCoeff")->AddInt_S("position")->AddInt_OSN("originGeneration")->AddIntObject_OS("originSubpop", gSLiM_Subpopulation_Class);
+		addNewDrawnMutationSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addNewDrawnMutation, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Mutation_Class))->AddIntObject_S("mutationType", gSLiM_MutationType_Class)->AddInt_S("position")->AddInt_OSN("originGeneration", gStaticEidosValueNULL)->AddIntObject_OSN("originSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL);
+		addNewMutationSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addNewMutation, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Mutation_Class))->AddIntObject_S("mutationType", gSLiM_MutationType_Class)->AddNumeric_S("selectionCoeff")->AddInt_S("position")->AddInt_OSN("originGeneration", gStaticEidosValueNULL)->AddIntObject_OSN("originSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL);
 		containsMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMutations, kEidosValueMaskLogical))->AddObject("mutations", gSLiM_Mutation_Class);
 		countOfMutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
 		mutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
 		removeMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_removeMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class);
-		outputMSSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputMS, kEidosValueMaskNULL))->AddString_OSN("filePath");
-		outputVCFSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputVCF, kEidosValueMaskNULL))->AddString_OSN("filePath")->AddLogical_OS("outputMultiallelics");
-		outputSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_output, kEidosValueMaskNULL))->AddString_OSN("filePath");
+		outputMSSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputMS, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL);
+		outputVCFSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputVCF, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT);
+		outputSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_output, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL);
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -1101,7 +1101,7 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 	switch (p_method_id)
 	{
 			//
-			//	*********************	+ (object<Mutation>)addNewDrawnMutation(io<MutationType>$ mutationType, integer$ position, [Ni$ originGeneration], [io<Subpopulation>$ originSubpop])
+			//	*********************	+ (object<Mutation>$)addNewDrawnMutation(io<MutationType>$ mutationType, integer$ position, [Ni$ originGeneration = NULL], [Nio<Subpopulation>$ originSubpop = NULL])
 			//
 #pragma mark +addNewDrawnMutation()
 			
@@ -1144,14 +1144,14 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 			
 			slim_generation_t origin_generation;
 			
-			if (!arg2_value || (arg2_value->Type() == EidosValueType::kValueNULL))
+			if (arg2_value->Type() == EidosValueType::kValueNULL)
 				origin_generation = sim->Generation();
 			else
 				origin_generation = SLiMCastToGenerationTypeOrRaise(arg2_value->IntAtIndex(0, nullptr));
 			
 			slim_objectid_t origin_subpop_id;
 			
-			if (!arg3_value)
+			if (arg3_value->Type() == EidosValueType::kValueNULL)
 			{
 				Population &pop = sim->ThePopulation();
 				
@@ -1218,7 +1218,7 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 			
 			
 			//
-			//	*********************	+ (object<Mutation>)addNewMutation(io<MutationType>$ mutationType, numeric$ selectionCoeff, integer$ position, [Ni$ originGeneration], [io<Subpopulation>$ originSubpop])
+			//	*********************	+ (object<Mutation>$)addNewMutation(io<MutationType>$ mutationType, numeric$ selectionCoeff, integer$ position, [Ni$ originGeneration = NULL], [Nio<Subpopulation>$ originSubpop = NULL])
 			//
 #pragma mark +addNewMutation()
 			
@@ -1263,14 +1263,14 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 			
 			slim_generation_t origin_generation;
 			
-			if (!arg3_value || (arg3_value->Type() == EidosValueType::kValueNULL))
+			if (arg3_value->Type() == EidosValueType::kValueNULL)
 				origin_generation = sim->Generation();
 			else
 				origin_generation = SLiMCastToGenerationTypeOrRaise(arg3_value->IntAtIndex(0, nullptr));
 			
 			slim_objectid_t origin_subpop_id;
 			
-			if (!arg4_value)
+			if (arg4_value->Type() == EidosValueType::kValueNULL)
 			{
 				Population &pop = sim->ThePopulation();
 				
@@ -1333,9 +1333,9 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 		}
 			
 			//
-			//	*********************	+ (void)output([Ns$ filePath])
-			//	*********************	+ (void)outputMS([Ns$ filePath])
-			//	*********************	+ (void)outputVCF([Ns$ filePath], [logical$ outputMultiallelics])
+			//	*********************	+ (void)output([Ns$ filePath = NULL])
+			//	*********************	+ (void)outputMS([Ns$ filePath = NULL])
+			//	*********************	+ (void)outputVCF([Ns$ filePath = NULL], [logical$ outputMultiallelics = T])
 			//
 #pragma mark +output()
 #pragma mark +outputMS()
@@ -1351,7 +1351,7 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 			// default to outputting multiallelic positions (used by VCF output only)
 			bool output_multiallelics = true;
 			
-			if ((p_method_id == gID_outputVCF) && (p_argument_count == 2))
+			if (p_method_id == gID_outputVCF)
 				output_multiallelics = arg1_value->LogicalAtIndex(0, nullptr);
 			
 			// Get all the genomes we're sampling from p_target
@@ -1362,9 +1362,9 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 				genomes.push_back((Genome *)p_target->ObjectElementAtIndex(index, nullptr));
 			
 			// Now handle stream/file output and dispatch to the actual print method
-			if ((p_argument_count == 0) || (arg0_value->Type() == EidosValueType::kValueNULL))
+			if (arg0_value->Type() == EidosValueType::kValueNULL)
 			{
-				// If filePath is unspecified or NULL, output to our output stream
+				// If filePath is NULL, output to our output stream
 				std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 				
 				// For the output stream, we put out a descriptive SLiM-style header for all output types
