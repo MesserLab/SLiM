@@ -750,7 +750,14 @@ void EidosCheckRSSAgainstMax(std::string p_message1, std::string p_message2)
 		// the system does it for us.  10 MB gives us a little headroom, so that we detect this
 		// condition before the system does.
 		if (current_rss + 10L*1024L*1024L > max_rss)
-			EIDOS_TERMINATION << "ERROR (" << p_message1 << "): memory usage of " << (current_rss / (1024.0 * 1024.0)) << " MB is dangerously close to the limit of " << (max_rss / (1024.0 * 1024.0)) << " MB returned by 'ulimit -m'; terminating now (to allow this diagnostic message to be printed).  You might raise the per-process memory limit, or modify your model to decrease memory usage.  You can turn off this memory check with the '-x' command-line option.  " << p_message2 << eidos_terminate();
+		{
+			// We output our warning to std::cerr, because we may get killed by the OS for exceeding our memory limit before other streams would get flushed
+			std::cerr << "WARNING (" << p_message1 << "): memory usage of " << (current_rss / (1024.0 * 1024.0)) << " MB is dangerously close to the limit of " << (max_rss / (1024.0 * 1024.0)) << " MB reported by the operating system.  This SLiM process may soon be killed by the operating system for exceeding the memory limit.  You might raise the per-process memory limit, or modify your model to decrease memory usage.  You can turn off this memory check with the '-x' command-line option.  " << p_message2 << std::endl;
+			std::cerr.flush();
+			
+			// We want to issue only one warning, so turn off warnings now
+			eidos_do_memory_checks = false;
+		}
 	}
 }
 
