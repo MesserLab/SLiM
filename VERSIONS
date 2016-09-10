@@ -33,6 +33,8 @@ Development head:
 	Change addNewMutation() and addNewDrawnMutation() to be class methods – BREAKS BACKWARD COMPATIBILITY
 	Accelerated vectorized property access for singleton properties
 	Add "Open Recipe" menu in SLiMgui's File menu, for fast recipe access
+	Add default arguments and named arguments to Eidos function/method dispatch
+	Split ExecuteFunctionCall() into separate functions (no user-visible consequence)
 
 2.0.4 (build 833; Eidos version 1.0.4)
 	Fix issue with interleaving of output from SLiM versus Eidos
