@@ -473,7 +473,7 @@ Calling this will normally affect the fitness values calculated at the end of th
 \f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 +\'a0(void)output([Ns$\'a0filePath\'a0=\'a0NULL])
+\f2\fs18 \cf0 +\'a0(void)output([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F])
 \f3 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -493,8 +493,16 @@ Calling this will normally affect the fitness values calculated at the end of th
 \f2\fs18 filePath
 \f0\fs20  is 
 \f2\fs18 NULL
-\f0\fs20  (the default), output is directed to SLiM\'92s standard output; otherwise, the output is sent to the file specified by 
+\f0\fs20  (the default), output is directed to SLiM\'92s standard output.  Otherwise, the output is sent to the file specified by 
 \f2\fs18 filePath
+\f0\fs20 , overwriting that file if 
+\f2\fs18 append
+\f0\fs20  if 
+\f2\fs18 F
+\f0\fs20 , or appending to the end of it if 
+\f2\fs18 append
+\f0\fs20  is 
+\f2\fs18 T
 \f3\fs20 .\
 
 \f0 See 
@@ -507,7 +515,7 @@ Calling this will normally affect the fitness values calculated at the end of th
 \f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 +\'a0(void)outputMS([Ns$\'a0filePath\'a0=\'a0NULL])
+\f2\fs18 \cf0 +\'a0(void)outputMS([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F])
 \f3 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -527,8 +535,16 @@ Calling this will normally affect the fitness values calculated at the end of th
 \f2\fs18 filePath
 \f0\fs20  is 
 \f2\fs18 NULL
-\f0\fs20  (the default), output is directed to SLiM\'92s standard output; otherwise, the output is sent to the file specified by 
+\f0\fs20  (the default), output is directed to SLiM\'92s standard output.  Otherwise, the output is sent to the file specified by 
 \f2\fs18 filePath
+\f0\fs20 , overwriting that file if 
+\f2\fs18 append
+\f0\fs20  if 
+\f2\fs18 F
+\f0\fs20 , or appending to the end of it if 
+\f2\fs18 append
+\f0\fs20  is 
+\f2\fs18 T
 \f3\fs20 .
 \f0   Positions in the output will span the interval [0,1].\
 See 
@@ -540,7 +556,7 @@ See
 \f0\fs20  event, so that the output reflects the state of the simulation at the end of a generation.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 +\'a0(void)outputVCF([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0outputMultiallelics\'a0=\'a0T])
+\f2\fs18 \cf0 +\'a0(void)outputVCF([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0outputMultiallelics\'a0=\'a0T], [logical$\'a0append\'a0=\'a0F])
 \f3 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -560,8 +576,16 @@ See
 \f2\fs18 filePath
 \f0\fs20  is 
 \f2\fs18 NULL
-\f0\fs20  (the default), output is directed to SLiM\'92s standard output; otherwise, the output is sent to the file specified by 
+\f0\fs20  (the default), output is directed to SLiM\'92s standard output.  Otherwise, the output is sent to the file specified by 
 \f2\fs18 filePath
+\f0\fs20 , overwriting that file if 
+\f2\fs18 append
+\f0\fs20  if 
+\f2\fs18 F
+\f0\fs20 , or appending to the end of it if 
+\f2\fs18 append
+\f0\fs20  is 
+\f2\fs18 T
 \f3\fs20 .\
 
 \f0 In SLiM, it is often possible for a single individual to have multiple mutations at a given base position.  Because the VCF format is an explicit-nucleotide format, this property of SLiM does not fit well into VCF.  Since there are only four possible nucleotides at a given base position in VCF, at most one \'93reference\'94 state and three \'93alternate\'94 states could be represented at that base position.  SLiM, on the other hand, can represent any number of alternative possibilities at a given base; in general, if 
@@ -1678,7 +1702,7 @@ The mutation stacking policy applies only within the given mutation type; mutati
 \f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(void)outputFixedMutations([Ns$\'a0filePath\'a0=\'a0NULL])
+\f2\fs18 \cf0 \'96\'a0(void)outputFixedMutations([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F])
 \f3 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -1688,9 +1712,18 @@ The mutation stacking policy applies only within the given mutation type; mutati
 \f2\fs18 filePath
 \f0\fs20  is 
 \f2\fs18 NULL
-\f0\fs20  (the default), output will be sent to Eidos\'92s output stream; otherwise, output will be sent to the filesystem path specified by 
+\f0\fs20  (the default), output will be sent to Eidos\'92s output stream.  Otherwise, output will be sent to the filesystem path specified by 
 \f2\fs18 filePath
-\f0\fs20 .  Mutations which have fixed but have not been turned into 
+\f0\fs20 , overwriting that file if 
+\f2\fs18 append
+\f0\fs20  if 
+\f2\fs18 F
+\f0\fs20 , or appending to the end of it if 
+\f2\fs18 append
+\f0\fs20  is 
+\f2\fs18 T
+\f3\fs20 .
+\f0   Mutations which have fixed but have not been turned into 
 \f2\fs18 Substitution
 \f0\fs20  objects \'96 typically because 
 \f2\fs18 convertToSubstitution
@@ -1703,7 +1736,7 @@ Output is generally done in a
 \f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(void)outputFull([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0binary\'a0=\'a0F])
+\f2\fs18 \cf0 \'96\'a0(void)outputFull([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0binary\'a0=\'a0F], [logical$\'a0append\'a0=\'a0F])
 \f3 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -1711,8 +1744,16 @@ Output is generally done in a
 \f2\fs18 filePath
 \f0\fs20  is 
 \f2\fs18 NULL
-\f0\fs20  (the default), output will be sent to Eidos\'92s output stream; otherwise, output will be sent to the filesystem path specified by 
+\f0\fs20  (the default), output will be sent to Eidos\'92s output stream.  Otherwise, output will be sent to the filesystem path specified by 
 \f2\fs18 filePath
+\f0\fs20 , overwriting that file if 
+\f2\fs18 append
+\f0\fs20  if 
+\f2\fs18 F
+\f0\fs20 , or appending to the end of it if 
+\f2\fs18 append
+\f0\fs20  is 
+\f2\fs18 T
 \f3\fs20 .
 \f0   When writing to a file, a 
 \f2\fs18 logical
@@ -1735,7 +1776,7 @@ Output is generally done in a
 \f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(void)outputMutations(object<Mutation>\'a0mutations, [Ns$\'a0filePath\'a0=\'a0NULL])
+\f2\fs18 \cf0 \'96\'a0(void)outputMutations(object<Mutation>\'a0mutations, [Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F])
 \f3 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -1743,7 +1784,16 @@ Output is generally done in a
 \f2\fs18 filePath
 \f0\fs20  is 
 \f2\fs18 NULL
-\f0\fs20  (the default), output will be sent to Eidos\'92s output stream; otherwise, output will be sent to the filesystem path specified by 
+\f0\fs20  (the default), output will be sent to Eidos\'92s output stream, overwriting that file if 
+\f2\fs18 append
+\f0\fs20  if 
+\f2\fs18 F
+\f0\fs20 , or appending to the end of it if 
+\f2\fs18 append
+\f0\fs20  is 
+\f2\fs18 T
+\f3\fs20 .
+\f0   Otherwise, output will be sent to the filesystem path specified by 
 \f2\fs18 filePath
 \f3\fs20 .
 \f0   If output is sent to a file, it will be 
@@ -2171,7 +2221,7 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(void)outputMSSample(integer$\'a0sampleSize, [logical$\'a0replace\'a0=\'a0T], [string$\'a0requestedSex\'a0=\'a0"*"])
+\f2\fs18 \cf0 \'96\'a0(void)outputMSSample(integer$\'a0sampleSize, [logical$\'a0replace\'a0=\'a0T], [string$\'a0requestedSex\'a0=\'a0"*"], [Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F])
 \f3 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -2192,7 +2242,23 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f0\fs20  method of 
 \f2\fs18 Genome
 \f0\fs20  for a more flexible low-level option.\
-See 
+If the optional parameter 
+\f2\fs18 filePath
+\f0\fs20  is 
+\f2\fs18 NULL
+\f0\fs20  (the default), output will be sent to Eidos\'92s output stream.  Otherwise, output will be sent to the filesystem path specified by 
+\f2\fs18 filePath
+\f0\fs20 , overwriting that file if 
+\f2\fs18 append
+\f0\fs20  if 
+\f2\fs18 F
+\f0\fs20 , or appending to the end of it if 
+\f2\fs18 append
+\f0\fs20  is 
+\f2\fs18 T
+\f3\fs20 .\
+
+\f0 See 
 \f2\fs18 outputSample()
 \f0\fs20  and 
 \f2\fs18 outputVCFSample()
@@ -2201,7 +2267,7 @@ See
 \f0\fs20  event, so that the output reflects the state of the simulation at the end of a generation.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(void)outputSample(integer$\'a0sampleSize, [logical$\'a0replace\'a0=\'a0T], [string$\'a0requestedSex\'a0=\'a0"*"])
+\f2\fs18 \cf0 \'96\'a0(void)outputSample(integer$\'a0sampleSize, [logical$\'a0replace\'a0=\'a0T], [string$\'a0requestedSex\'a0=\'a0"*"], [Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F])
 \f3 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -2222,7 +2288,23 @@ See
 \f0\fs20  method of 
 \f2\fs18 Genome
 \f0\fs20  for a more flexible low-level option.\
-See 
+If the optional parameter 
+\f2\fs18 filePath
+\f0\fs20  is 
+\f2\fs18 NULL
+\f0\fs20  (the default), output will be sent to Eidos\'92s output stream.  Otherwise, output will be sent to the filesystem path specified by 
+\f2\fs18 filePath
+\f0\fs20 , overwriting that file if 
+\f2\fs18 append
+\f0\fs20  if 
+\f2\fs18 F
+\f0\fs20 , or appending to the end of it if 
+\f2\fs18 append
+\f0\fs20  is 
+\f2\fs18 T
+\f3\fs20 .\
+
+\f0 See 
 \f2\fs18 outputMSSample()
 \f0\fs20  and 
 \f2\fs18 outputVCFSample()
@@ -2232,7 +2314,7 @@ See
 \f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(void)outputVCFSample(integer$\'a0sampleSize, [logical$\'a0replace\'a0=\'a0T], [string$\'a0requestedSex\'a0=\'a0"*"], [logical$\'a0outputMultiallelics\'a0=\'a0T])
+\f2\fs18 \cf0 \'96\'a0(void)outputVCFSample(integer$\'a0sampleSize, [logical$\'a0replace\'a0=\'a0T], [string$\'a0requestedSex\'a0=\'a0"*"], [logical$\'a0outputMultiallelics\'a0=\'a0T], [Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F])
 \f3 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -2257,8 +2339,7 @@ See
 \f0\fs20  method of 
 \f2\fs18 Genome
 \f0\fs20  for a more flexible low-level option.\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf0 In SLiM, it is often possible for a single individual to have multiple mutations at a given base position.  Because the VCF format is an explicit-nucleotide format, this property of SLiM does not fit well into VCF.  Since there are only four possible nucleotides at a given base position in VCF, at most one \'93reference\'94 state and three \'93alternate\'94 states could be represented at that base position.  SLiM, on the other hand, can represent any number of alternative possibilities at a given base; in general, if 
+In SLiM, it is often possible for a single individual to have multiple mutations at a given base position.  Because the VCF format is an explicit-nucleotide format, this property of SLiM does not fit well into VCF.  Since there are only four possible nucleotides at a given base position in VCF, at most one \'93reference\'94 state and three \'93alternate\'94 states could be represented at that base position.  SLiM, on the other hand, can represent any number of alternative possibilities at a given base; in general, if 
 \i N
 \i0  different mutations are segregating at a given position, there are 2
 \i \super N
@@ -2283,7 +2364,23 @@ See
 \f0\fs20  is 
 \f2\fs18 F
 \f0\fs20 , on the other hand, SLiM will completely suppress output of all mutations at multiallelic sites \'96 often the simplest option, if doing so does not lead to bias in the subsequent analysis.  This flag has no effect upon the output of sites with only a single mutation present.  Assessment of whether a site is multiallelic is done only within the sample; segregating mutations that are not part of the sample are ignored.\
-See 
+If the optional parameter 
+\f2\fs18 filePath
+\f0\fs20  is 
+\f2\fs18 NULL
+\f0\fs20  (the default), output will be sent to Eidos\'92s output stream.  Otherwise, output will be sent to the filesystem path specified by 
+\f2\fs18 filePath
+\f0\fs20 , overwriting that file if 
+\f2\fs18 append
+\f0\fs20  if 
+\f2\fs18 F
+\f0\fs20 , or appending to the end of it if 
+\f2\fs18 append
+\f0\fs20  is 
+\f2\fs18 T
+\f3\fs20 .\
+
+\f0 See 
 \f2\fs18 outputMSSample()
 \f0\fs20  and 
 \f2\fs18 outputSample()

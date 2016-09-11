@@ -35,6 +35,7 @@ Development head:
 	Add "Open Recipe" menu in SLiMgui's File menu, for fast recipe access
 	Add default arguments and named arguments to Eidos function/method dispatch
 	Split ExecuteFunctionCall() into separate functions (no user-visible consequence)
+	Add file output and append options to all output methods
 
 2.0.4 (build 833; Eidos version 1.0.4)
 	Fix issue with interleaving of output from SLiM versus Eidos

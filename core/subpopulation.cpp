@@ -26,6 +26,7 @@
 #include "eidos_ast_node.h"
 
 #include <iostream>
+#include <fstream>
 #include <algorithm>
 #include <assert.h>
 #include <string>
@@ -1746,6 +1747,8 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 	EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1].get() : nullptr);
 	EidosValue *arg2_value = ((p_argument_count >= 3) ? p_arguments[2].get() : nullptr);
 	EidosValue *arg3_value = ((p_argument_count >= 4) ? p_arguments[3].get() : nullptr);
+	EidosValue *arg4_value = ((p_argument_count >= 5) ? p_arguments[4].get() : nullptr);
+	EidosValue *arg5_value = ((p_argument_count >= 6) ? p_arguments[5].get() : nullptr);
 	
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -1970,9 +1973,9 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 			
 			
 			//
-			//	*********************	– (void)outputMSSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"])
-			//	*********************	– (void)outputVCFSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"], [logical$ outputMultiallelics = T])
-			//	*********************	– (void)outputSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"])
+			//	*********************	– (void)outputMSSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"], [Ns$ filePath = NULL], [logical$ append=F])
+			//	*********************	– (void)outputSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"], [Ns$ filePath = NULL], [logical$ append=F])
+			//	*********************	– (void)outputVCFSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"], [logical$ outputMultiallelics = T], [Ns$ filePath = NULL], [logical$ append=F])
 			//
 #pragma mark -outputMSSample()
 #pragma mark -outputVCFSample()
@@ -2016,30 +2019,60 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 			if (p_method_id == gID_outputVCFSample)
 				output_multiallelics = arg3_value->LogicalAtIndex(0, nullptr);
 			
-			// Output header line
-			output_stream << "#OUT: " << sim.Generation() << " S";
+			// Figure out the right output stream
+			std::ofstream outfile;
+			bool has_file = false;
+			string outfile_path;
+			EidosValue *file_arg = ((p_method_id == gID_outputVCFSample) ? arg4_value : arg3_value);
+			EidosValue *append_arg = ((p_method_id == gID_outputVCFSample) ? arg5_value : arg4_value);
 			
-			if (p_method_id == gID_outputSample)
-				output_stream << "S";
-			else if (p_method_id == gID_outputMSSample)
-				output_stream << "M";
-			else if (p_method_id == gID_outputVCFSample)
-				output_stream << "V";
+			if (file_arg->Type() != EidosValueType::kValueNULL)
+			{
+				outfile_path = EidosResolvedPath(file_arg->StringAtIndex(0, nullptr));
+				bool append = append_arg->LogicalAtIndex(0, nullptr);
+				
+				outfile.open(outfile_path.c_str(), append ? (std::ios_base::app | std::ios_base::out) : std::ios_base::out);
+				has_file = true;
+				
+				if (!outfile.is_open())
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): outputFixedMutations() could not open "<< outfile_path << "." << eidos_terminate();
+			}
 			
-			output_stream << " p" << subpopulation_id_ << " " << sample_size;
+			std::ostream &out = *(has_file ? dynamic_cast<std::ostream *>(&outfile) : dynamic_cast<std::ostream *>(&output_stream));
 			
-			if (sim.SexEnabled())
-				output_stream << " " << requested_sex;
-			
-			output_stream << endl;
+			if (!has_file || (p_method_id == gID_outputSample))
+			{
+				// Output header line
+				out << "#OUT: " << sim.Generation() << " S";
+				
+				if (p_method_id == gID_outputSample)
+					out << "S";
+				else if (p_method_id == gID_outputMSSample)
+					out << "M";
+				else if (p_method_id == gID_outputVCFSample)
+					out << "V";
+				
+				out << " p" << subpopulation_id_ << " " << sample_size;
+				
+				if (sim.SexEnabled())
+					out << " " << requested_sex;
+				
+				if (has_file)
+					out << " " << outfile_path;
+				
+				out << endl;
+			}
 			
 			// Call out to produce the actual sample
 			if (p_method_id == gID_outputSample)
-				population_.PrintSample_slim(output_stream, *this, sample_size, replace, requested_sex);
+				population_.PrintSample_slim(out, *this, sample_size, replace, requested_sex);
 			else if (p_method_id == gID_outputMSSample)
-				population_.PrintSample_ms(output_stream, *this, sample_size, replace, requested_sex, sim.TheChromosome());
+				population_.PrintSample_ms(out, *this, sample_size, replace, requested_sex, sim.TheChromosome());
 			else if (p_method_id == gID_outputVCFSample)
-				population_.PrintSample_vcf(output_stream, *this, sample_size, replace, requested_sex, output_multiallelics);
+				population_.PrintSample_vcf(out, *this, sample_size, replace, requested_sex, output_multiallelics);
+			
+			if (has_file)
+				outfile.close(); 
 			
 			return gStaticEidosValueNULLInvisible;
 		}
@@ -2205,9 +2238,9 @@ const EidosMethodSignature *Subpopulation_Class::SignatureForMethod(EidosGlobalS
 		setSexRatioSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSexRatio, kEidosValueMaskNULL))->AddFloat_S("sexRatio");
 		setSubpopulationSizeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSubpopulationSize, kEidosValueMaskNULL))->AddInt_S("size");
 		cachedFitnessSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_cachedFitness, kEidosValueMaskFloat))->AddInt_N("indices");
-		outputMSSampleSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMSSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk);
-		outputVCFSampleSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputVCFSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT);
-		outputSampleSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk);
+		outputMSSampleSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMSSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF);
+		outputVCFSampleSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputVCFSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF);
+		outputSampleSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF);
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup

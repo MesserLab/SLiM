@@ -757,12 +757,23 @@ void Genome::PrintGenomes_ms(std::ostream &p_out, std::vector<Genome *> &genomes
 	// print the sample's positions
 	if (polymorphisms.size() > 0)
 	{
+		// Save flags/precision
+		std::ios_base::fmtflags oldflags = p_out.flags();
+		std::streamsize oldprecision = p_out.precision();
+		
+		p_out << std::fixed << std::setprecision(7);
+		
+		// Output positions
 		p_out << "positions:";
 		
 		for (const PolymorphismPair &polymorphism_pair : polymorphisms) 
-			p_out << " " << std::fixed << std::setprecision(7) << static_cast<double>(polymorphism_pair.second.mutation_ptr_->position_) / p_chromosome.last_position_;	// this prints positions as being in the interval [0,1], which Philipp decided was the best policy
+			p_out << " " << static_cast<double>(polymorphism_pair.second.mutation_ptr_->position_) / p_chromosome.last_position_;	// this prints positions as being in the interval [0,1], which Philipp decided was the best policy
 		
 		p_out << std::endl;
+		
+		// Restore flags/precision
+		p_out.flags(oldflags);
+		p_out.precision(oldprecision);
 	}
 	
 	// print the sample's genotypes
@@ -1064,9 +1075,9 @@ const EidosMethodSignature *Genome_Class::SignatureForMethod(EidosGlobalStringID
 		countOfMutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
 		mutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
 		removeMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_removeMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class);
-		outputMSSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputMS, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL);
-		outputVCFSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputVCF, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT);
-		outputSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_output, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL);
+		outputMSSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputMS, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF);
+		outputVCFSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputVCF, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddLogical_OS("append", gStaticEidosValue_LogicalF);
+		outputSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_output, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF);
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -1333,9 +1344,9 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 		}
 			
 			//
-			//	*********************	+ (void)output([Ns$ filePath = NULL])
-			//	*********************	+ (void)outputMS([Ns$ filePath = NULL])
-			//	*********************	+ (void)outputVCF([Ns$ filePath = NULL], [logical$ outputMultiallelics = T])
+			//	*********************	+ (void)output([Ns$ filePath = NULL], [logical$ append=F])
+			//	*********************	+ (void)outputMS([Ns$ filePath = NULL], [logical$ append=F])
+			//	*********************	+ (void)outputVCF([Ns$ filePath = NULL], [logical$ outputMultiallelics = T], [logical$ append=F])
 			//
 #pragma mark +output()
 #pragma mark +outputMS()
@@ -1391,9 +1402,10 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 			{
 				// Otherwise, output to filePath
 				std::string outfile_path = EidosResolvedPath(arg0_value->StringAtIndex(0, nullptr));
+				bool append = ((p_method_id == gID_outputVCF) ? arg2_value : arg1_value)->LogicalAtIndex(0, nullptr);
 				std::ofstream outfile;
 				
-				outfile.open(outfile_path.c_str());
+				outfile.open(outfile_path.c_str(), append ? (std::ios_base::app | std::ios_base::out) : std::ios_base::out);
 				
 				if (outfile.is_open())
 				{

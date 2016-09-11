@@ -2626,7 +2626,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 			
 			//
-			//	*********************	– (void)outputFixedMutations([Ns$ filePath = NULL])
+			//	*********************	– (void)outputFixedMutations([Ns$ filePath = NULL], [logical$ append=F])
 			//
 #pragma mark -outputFixedMutations()
 			
@@ -2647,8 +2647,9 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			if (arg0_value->Type() != EidosValueType::kValueNULL)
 			{
 				outfile_path = EidosResolvedPath(arg0_value->StringAtIndex(0, nullptr));
+				bool append = arg1_value->LogicalAtIndex(0, nullptr);
 				
-				outfile.open(outfile_path.c_str());
+				outfile.open(outfile_path.c_str(), append ? (std::ios_base::app | std::ios_base::out) : std::ios_base::out);
 				has_file = true;
 				
 				if (!outfile.is_open())
@@ -2698,7 +2699,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 			
 			//
-			//	*********************	– (void)outputFull([Ns$ filePath = NULL], [logical$ binary = F])
+			//	*********************	– (void)outputFull([Ns$ filePath = NULL], [logical$ binary = F], [logical$ append=F])
 			//
 #pragma mark -outputFull()
 			
@@ -2725,12 +2726,16 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			else
 			{
 				string outfile_path = EidosResolvedPath(arg0_value->StringAtIndex(0, nullptr));
+				bool append = arg2_value->LogicalAtIndex(0, nullptr);
 				std::ofstream outfile;
+				
+				if (use_binary && append)
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): outputFull() cannot append in binary format." << eidos_terminate();
 				
 				if (use_binary)
 					outfile.open(outfile_path.c_str(), std::ios::out | std::ios::binary);
 				else
-					outfile.open(outfile_path.c_str());
+					outfile.open(outfile_path.c_str(), append ? (std::ios_base::app | std::ios_base::out) : std::ios_base::out);
 				
 				if (outfile.is_open())
 				{
@@ -2763,7 +2768,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 			
 			//
-			//	*********************	– (void)outputMutations(object<Mutation> mutations, [Ns$ filePath = NULL])
+			//	*********************	– (void)outputMutations(object<Mutation> mutations, [Ns$ filePath = NULL], [logical$ append=F])
 			//
 #pragma mark -outputMutations()
 			
@@ -2783,10 +2788,11 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			if (arg1_value->Type() != EidosValueType::kValueNULL)
 			{
 				string outfile_path = EidosResolvedPath(arg1_value->StringAtIndex(0, nullptr));
+				bool append = arg2_value->LogicalAtIndex(0, nullptr);
 				
-				outfile.open(outfile_path.c_str(), std::ios::out | std::ios::app);
+				outfile.open(outfile_path.c_str(), append ? (std::ios_base::app | std::ios_base::out) : std::ios_base::out);
 				has_file = true;
-
+				
 				if (!outfile.is_open())
 					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): outputMutations() could not open "<< outfile_path << "." << eidos_terminate();
 			}
@@ -3213,9 +3219,9 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 		deregisterScriptBlockSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_deregisterScriptBlock, kEidosValueMaskNULL))->AddIntObject("scriptBlocks", gSLiM_SLiMEidosBlock_Class);
 		mutationFrequenciesSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationFrequencies, kEidosValueMaskFloat))->AddObject_N("subpops", gSLiM_Subpopulation_Class)->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL);
 		mutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
-		outputFixedMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFixedMutations, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL);
-		outputFullSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFull, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("binary", gStaticEidosValue_LogicalF);
-		outputMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class)->AddString_OSN("filePath", gStaticEidosValueNULL);
+		outputFixedMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFixedMutations, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF);
+		outputFullSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFull, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("binary", gStaticEidosValue_LogicalF)->AddLogical_OS("append", gStaticEidosValue_LogicalF);
+		outputMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF);
 		readFromPopulationFileSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_readFromPopulationFile, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddString_S("filePath");
 		recalculateFitnessSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_recalculateFitness, kEidosValueMaskNULL))->AddInt_OSN("generation", gStaticEidosValueNULL);
 		registerEarlyEventSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerEarlyEvent, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL);
