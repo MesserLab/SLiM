@@ -39,6 +39,7 @@
 #include <cmath>
 #include <vector>
 #include <utility>
+#include <sys/stat.h>
 
 
 // From stackoverflow: http://stackoverflow.com/questions/2342162/stdstring-formatting-like-sprintf/
@@ -237,6 +238,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		//	filesystem access functions
 		//
 		
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("createDirectory",	Eidos_ExecuteFunction_createDirectory,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S("path"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("filesAtPath",		Eidos_ExecuteFunction_filesAtPath,	kEidosValueMaskString))->AddString_S("path")->AddLogical_OS("fullPaths", gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("deleteFile",		Eidos_ExecuteFunction_deleteFile,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S("filePath"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("readFile",			Eidos_ExecuteFunction_readFile,		kEidosValueMaskString))->AddString_S("filePath"));
@@ -4584,6 +4586,67 @@ EidosValue_SP Eidos_ExecuteFunction_type(const EidosValue_SP *const p_arguments,
 #pragma mark Filesystem access functions
 #pragma mark -
 
+
+//	(logical$)createDirectory(string$ path)
+EidosValue_SP Eidos_ExecuteFunction_createDirectory(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *arg0_value = p_arguments[0].get();
+	string base_path = arg0_value->StringAtIndex(0, nullptr);
+	int base_path_length = (int)base_path.length();
+	bool base_path_ends_in_slash = (base_path_length > 0) && (base_path[base_path_length-1] == '/');
+	
+	if (base_path_ends_in_slash)
+		base_path.pop_back();		// remove the trailing slash, which just confuses stat()
+	
+	string path = EidosResolvedPath(base_path);
+	
+	errno = 0;
+	
+	struct stat file_info;
+	bool path_exists = (stat(path.c_str(), &file_info) == 0);
+	
+	if (path_exists)
+	{
+		bool is_directory = !!(file_info.st_mode & S_IFDIR);
+		
+		if (is_directory)
+		{
+			p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_createDirectory): function createDirectory() could not create a directory at " << path << " because a directory at that path already exists." << endl;
+			result_SP = gStaticEidosValue_LogicalT;
+		}
+		else
+		{
+			p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_createDirectory): function createDirectory() could not create a directory at " << path << " because a file at that path already exists." << endl;
+			result_SP = gStaticEidosValue_LogicalF;
+		}
+	}
+	else if (errno == ENOENT)
+	{
+		// The path does not exist, so let's try to create it
+		errno = 0;
+		
+		if (mkdir(path.c_str(), 0777) == 0)
+		{
+			// success
+			result_SP = gStaticEidosValue_LogicalT;
+		}
+		else
+		{
+			p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_createDirectory): function createDirectory() could not create a directory at " << path << " because of an unspecified filesystem error." << endl;
+			result_SP = gStaticEidosValue_LogicalF;
+		}
+	}
+	else
+	{
+		// The stat() call failed for an unknown reason
+		p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_createDirectory): function createDirectory() could not create a directory at " << path << " because of an unspecified filesystem error." << endl;
+		result_SP = gStaticEidosValue_LogicalF;
+	}
+	
+	return result_SP;
+}
 
 //	(string)filesAtPath(string$ path, [logical$ fullPaths = F])
 EidosValue_SP Eidos_ExecuteFunction_filesAtPath(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)

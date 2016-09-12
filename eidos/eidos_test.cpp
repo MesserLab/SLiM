@@ -3126,6 +3126,8 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("deleteFile('/tmp/EidosTest.txt');", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("deleteFile('/tmp/EidosTest.txt');", gStaticEidosValue_LogicalF);
 	
+	// createDirectory() – hard to test this, since it's hard to generate a path to create a folder at that is guaranteed not to exist, especially if this same test has run before on this system...
+	
 	#pragma mark miscellaneous
 	
 	// apply()

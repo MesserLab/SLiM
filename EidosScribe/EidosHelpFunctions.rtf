@@ -2436,9 +2436,32 @@ This is quite similar to a function in R of the same name; note, however, that E
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf0 3.7.  Filesystem access functions\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\b0\fs18 \cf0 (logical$)createDirectory(string$\'a0path)
+\f2 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf0 Creates a new filesystem directory
+\b0  at the path specified by 
+\f1\fs18 path
+\f0\fs20  and returns a 
+\f1\fs18 logical
+\f0\fs20  value indicating if the creation succeeded (
+\f1\fs18 T
+\f0\fs20 ) or failed (
+\f1\fs18 F
+\f0\fs20 ).  If the path already exists, 
+\f1\fs18 createDirectory()
+\f0\fs20  will do nothing to the filesystem, will emit a warning, and will return 
+\f1\fs18 T
+\f0\fs20  to indicate success if the existing path is a directory, or 
+\f1\fs18 F
+\f0\fs20  to indicate failure if the existing path is not a directory.
+\f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\b0\fs18 \cf0 (logical$)deleteFile(string$\'a0filePath)
+\f1\fs18 \cf0 (logical$)deleteFile(string$\'a0filePath)
 \f2 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
