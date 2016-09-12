@@ -53,9 +53,20 @@ void EidosInitializeRNGFromSeed(unsigned long int p_seed)
 		gEidos_rng = gsl_rng_alloc(gsl_rng_taus2);
 	
 	// Then set the seed as requested
-	gsl_rng_set(gEidos_rng, p_seed);
+	
+	// BCH 12 Sept. 2016: it turns out that gsl_rng_taus2 produces exactly the same sequence for seeds 0 and 1.  This is obviously
+	// undesirable; people will often do a set of runs with sequential seeds starting at 0 and counting up, and they will get
+	// identical runs for 0 and 1.  There is no way to re-map the seed space to get rid of the problem altogether; all we can do
+	// is shift it to a place where it is unlikely to cause a problem.  So that's what we do.
+	if ((p_seed > 0) && (p_seed < 10000000000000000000UL))
+		gsl_rng_set(gEidos_rng, p_seed + 1);	// map 1 -> 2, 2-> 3, 3-> 4, etc.
+	else
+		gsl_rng_set(gEidos_rng, p_seed);		// 0 stays 0
 	
 	// remember the seed as part of the RNG state
+	
+	// BCH 12 Sept. 2016: we want to return the user the same seed they requested, if they call getSeed(), so we save the requested
+	// seed, not the seed shifted by one that is actually passed to the GSL above.
 	gEidos_rng_last_seed = p_seed;
 	
 	// These need to be zeroed out, too; they are part of our RNG state
