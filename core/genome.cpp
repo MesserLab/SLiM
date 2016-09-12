@@ -418,6 +418,9 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			
 		case gID_addMutations:
 		{
+			if (IsNull())
+				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): addMutations() cannot be called on a null genome." << eidos_terminate();
+			
 			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
 			
 			if (!sim)
@@ -460,6 +463,9 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			
 		case gID_containsMutations:
 		{
+			if (IsNull())
+				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): containsMutations() cannot be called on a null genome." << eidos_terminate();
+			
 			int arg0_count = arg0_value->Count();
 			int mutation_count = this->size();
 			
@@ -501,6 +507,9 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			
 		case gID_countOfMutationsOfType:
 		{
+			if (IsNull())
+				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): countOfMutationsOfType() cannot be called on a null genome." << eidos_terminate();
+			
 			MutationType *mutation_type_ptr = nullptr;
 			
 			if (arg0_value->Type() == EidosValueType::kValueInt)
@@ -541,6 +550,9 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			
 		case gID_mutationsOfType:
 		{
+			if (IsNull())
+				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): mutationsOfType() cannot be called on a null genome." << eidos_terminate();
+			
 			MutationType *mutation_type_ptr = nullptr;
 			
 			if (arg0_value->Type() == EidosValueType::kValueInt)
@@ -613,6 +625,9 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			
 		case gID_removeMutations:
 		{
+			if (IsNull())
+				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): removeMutations() cannot be called on a null genome." << eidos_terminate();
+			
 			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
 			
 			if (!sim)
@@ -1122,11 +1137,11 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
 			
 			if (!sim)
-				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteClassMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
 			
 			if ((sim->GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim->warned_early_mutation_add_))
 			{
-				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome::ExecuteInstanceMethod): addNewDrawnMutation() should probably not be called from an early() event; the added mutation will not influence fitness values during offspring generation." << std::endl;
+				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteClassMethod): addNewDrawnMutation() should probably not be called from an early() event; the added mutation will not influence fitness values during offspring generation." << std::endl;
 				sim->warned_early_mutation_add_ = true;
 			}
 			
@@ -1141,7 +1156,7 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 					mutation_type_ptr = found_muttype_pair->second;
 				
 				if (!mutation_type_ptr)
-					EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): addNewDrawnMutation() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteClassMethod): addNewDrawnMutation() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
 			}
 			else
 			{
@@ -1151,7 +1166,7 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 			slim_position_t position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));
 			
 			if (position > sim->TheChromosome().last_position_)
-				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): addNewDrawnMutation() position " << position << " is past the end of the chromosome." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteClassMethod): addNewDrawnMutation() position " << position << " is past the end of the chromosome." << eidos_terminate();
 			
 			slim_generation_t origin_generation;
 			
@@ -1178,7 +1193,7 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 							origin_subpop_id = subpop_iter->second->subpopulation_id_;
 					
 					if (origin_subpop_id == -1)
-						EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): addNewDrawnMutation() could not locate the subpopulation for the target genome." << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteClassMethod): addNewDrawnMutation() could not locate the subpopulation for the target genome." << eidos_terminate();
 				}
 			}
 			else if (arg3_value->Type() == EidosValueType::kValueInt)
@@ -1192,6 +1207,9 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 			for (int index = 0; index < target_size; ++index)
 			{
 				Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(index, nullptr);
+				
+				if (target_genome->IsNull())
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteClassMethod): addNewDrawnMutation() cannot be called on a null genome." << eidos_terminate();
 				
 				if (target_genome->enforce_stack_policy_for_addition(position, mutation_type_ptr))
 				{
@@ -1239,11 +1257,11 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
 			
 			if (!sim)
-				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteClassMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
 			
 			if ((sim->GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim->warned_early_mutation_add_))
 			{
-				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome::ExecuteInstanceMethod): addNewMutation() should probably not be called from an early() event; the added mutation will not influence fitness values during offspring generation." << std::endl;
+				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteClassMethod): addNewMutation() should probably not be called from an early() event; the added mutation will not influence fitness values during offspring generation." << std::endl;
 				sim->warned_early_mutation_add_ = true;
 			}
 			
@@ -1258,7 +1276,7 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 					mutation_type_ptr = found_muttype_pair->second;
 				
 				if (!mutation_type_ptr)
-					EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): addNewMutation() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteClassMethod): addNewMutation() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
 			}
 			else
 			{
@@ -1270,7 +1288,7 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 			slim_position_t position = SLiMCastToPositionTypeOrRaise(arg2_value->IntAtIndex(0, nullptr));
 			
 			if (position > sim->TheChromosome().last_position_)
-				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): addNewMutation() position " << position << " is past the end of the chromosome." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteClassMethod): addNewMutation() position " << position << " is past the end of the chromosome." << eidos_terminate();
 			
 			slim_generation_t origin_generation;
 			
@@ -1297,7 +1315,7 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 							origin_subpop_id = subpop_iter->second->subpopulation_id_;
 					
 					if (origin_subpop_id == -1)
-						EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): addNewMutation() could not locate the subpopulation for the target genome." << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteClassMethod): addNewMutation() could not locate the subpopulation for the target genome." << eidos_terminate();
 				}
 			}
 			else if (arg4_value->Type() == EidosValueType::kValueInt)
@@ -1311,6 +1329,9 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 			for (int index = 0; index < target_size; ++index)
 			{
 				Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(index, nullptr);
+				
+				if (target_genome->IsNull())
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteClassMethod): addNewMutation() cannot be called on a null genome." << eidos_terminate();
 				
 				if (target_genome->enforce_stack_policy_for_addition(position, mutation_type_ptr))
 				{
