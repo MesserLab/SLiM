@@ -823,6 +823,11 @@ const std::string gEidosStr__increment = "_increment";
 const std::string gEidosStr__cubicYolk = "_cubicYolk";
 const std::string gEidosStr__squareTest = "_squareTest";
 
+// strings for parameters, function names, etc., that are needed as explicit registrations in a Context and thus have to be
+// explicitly registered by Eidos; see the comment in Eidos_RegisterStringForGlobalID() below
+const std::string gEidosStr_weights = "weights";
+const std::string gEidosStr_n = "n";
+
 
 static std::unordered_map<std::string, EidosGlobalStringID> gStringToID;
 static std::unordered_map<EidosGlobalStringID, const std::string *> gIDToString;
@@ -831,6 +836,20 @@ static EidosGlobalStringID gNextUnusedID = gEidosID_LastContextEntry;
 
 void Eidos_RegisterStringForGlobalID(const std::string &p_string, EidosGlobalStringID p_string_id)
 {
+	// BCH 13 September 2016: So, this is a tricky issue without a good resolution at the moment.  Eidos explicitly registers
+	// a few strings, using this method, right below in Eidos_RegisterGlobalStringsAndIDs().  And SLiM explicitly registers
+	// a bunch more strings, in SLiM_RegisterGlobalStringsAndIDs().  So far so good.  But Eidos also registers a bunch of
+	// strings "in passing", as a side effect of calling EidosGlobalStringIDForString(), because it doesn't care what the
+	// IDs of those strings are, it just wants them to be registered for later matching.  This happens to function names and
+	// parameter names, in particular.  This is good; we don't want to have to explicitly enumerate and register all of those
+	// strings, that would be a tremendous pain.  The problem is that these "in passing" registrations can conflict with
+	// registrations done in the Context, unpredictably.  A new parameter named "weights" is added to a new Eidos function,
+	// and suddenly the explicit registration of "weights" in SLiM has broken and needs to be removed.  At least you know
+	// that that has, happened, because you end up here.  When you end up here, don't just comment out the registration call
+	// in the Context; you also need to add an explicit registration call in Eidos, and remove the string and ID definitions
+	// in the Context, and so forth.  Migrate the whole explicit registration from the Context back into Eidos.  Unfortunate,
+	// but I don't see any good solution.  Sure is nice how uniquing of selectors just happens automatically in Obj-C!  That
+	// is basically what we're trying to duplicate here, without language support.
 	if (gStringToID.find(p_string) != gStringToID.end())
 		EIDOS_TERMINATION << "ERROR (Eidos_RegisterStringForGlobalID): string " << p_string << " has already been registered." << eidos_terminate(nullptr);
 	
@@ -871,6 +890,9 @@ void Eidos_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gEidosStr__increment, gEidosID__increment);
 		Eidos_RegisterStringForGlobalID(gEidosStr__cubicYolk, gEidosID__cubicYolk);
 		Eidos_RegisterStringForGlobalID(gEidosStr__squareTest, gEidosID__squareTest);
+		
+		Eidos_RegisterStringForGlobalID(gEidosStr_weights, gEidosID_weights);
+		Eidos_RegisterStringForGlobalID(gEidosStr_n, gEidosID_n);
 	}
 }
 

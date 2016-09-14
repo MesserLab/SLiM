@@ -339,7 +339,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 				if (mate_choice_callback->contains_weights_)
 				{
 					local_weights_ptr = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(current_weights, weights_length));
-					callback_symbols.InitializeConstantSymbolEntry(gID_weights, local_weights_ptr);
+					callback_symbols.InitializeConstantSymbolEntry(gEidosID_weights, local_weights_ptr);
 				}
 				
 				// Interpret the script; the result from the interpretation can be one of several things, so this is a bit complicated
@@ -598,6 +598,7 @@ bool Population::ApplyModifyChildCallbacks(slim_popsize_t p_child_index, Individ
 // generate children for subpopulation p_subpop_id, drawing from all source populations, handling crossover and mutation
 void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &p_chromosome, slim_generation_t p_generation, bool p_mate_choice_callbacks_present, bool p_modify_child_callbacks_present)
 {
+	bool pedigrees_enabled = sim_.PedigreesEnabled();
 	bool sex_enabled = p_subpop.sex_enabled_;
 	slim_popsize_t total_children = p_subpop.child_subpop_size_;
 	
@@ -836,6 +837,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 						
 						DoClonalMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, p_chromosome, p_generation, child_sex);
 						DoClonalMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
+						
+						if (pedigrees_enabled)
+							p_subpop.child_individuals_[child_count].TrackPedigreeWithParents(source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent1]);
 					}
 					else
 					{
@@ -887,6 +891,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 						// recombination, gene-conversion, mutation
 						DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex, parent1_sex);
 						DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex, parent2_sex);
+						
+						if (pedigrees_enabled)
+							p_subpop.child_individuals_[child_count].TrackPedigreeWithParents(source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2]);
 					}
 					
 					if (modify_child_callbacks)
@@ -934,6 +941,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 					// recombination, gene-conversion, mutation
 					DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite);
 					DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite);
+					
+					if (pedigrees_enabled)
+						p_subpop.child_individuals_[child_count].TrackPedigreeWithParents(source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2]);
 					
 					if (modify_child_callbacks)
 					{
@@ -1145,6 +1155,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 					
 					DoClonalMutation(&p_subpop, source_subpop, 2 * child_count, subpop_id, 2 * parent1, p_chromosome, p_generation, child_sex);
 					DoClonalMutation(&p_subpop, source_subpop, 2 * child_count + 1, subpop_id, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
+					
+					if (pedigrees_enabled)
+						p_subpop.child_individuals_[child_count].TrackPedigreeWithParents(source_subpop->parent_individuals_[parent1], source_subpop->parent_individuals_[parent1]);
 				}
 				else
 				{
@@ -1196,6 +1209,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 					// recombination, gene-conversion, mutation
 					DoCrossoverMutation(&p_subpop, source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex, parent1_sex);
 					DoCrossoverMutation(&p_subpop, source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex, parent2_sex);
+					
+					if (pedigrees_enabled)
+						p_subpop.child_individuals_[child_count].TrackPedigreeWithParents(source_subpop->parent_individuals_[parent1], source_subpop->parent_individuals_[parent2]);
 				}
 				
 				if (modify_child_callbacks)
@@ -1293,6 +1309,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex, IndividualSex::kFemale);
 								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex, IndividualSex::kMale);
 								
+								if (pedigrees_enabled)
+									p_subpop.child_individuals_[child_count].TrackPedigreeWithParents(source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2]);
+								
 								migrant_count++;
 								child_count++;
 							}
@@ -1307,6 +1326,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 								// recombination, gene-conversion, mutation
 								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex, IndividualSex::kHermaphrodite);
 								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex, IndividualSex::kHermaphrodite);
+								
+								if (pedigrees_enabled)
+									p_subpop.child_individuals_[child_count].TrackPedigreeWithParents(source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2]);
 								
 								migrant_count++;
 								child_count++;
@@ -1332,6 +1354,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 								
 								DoClonalMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, p_chromosome, p_generation, child_sex);
 								DoClonalMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
+								
+								if (pedigrees_enabled)
+									p_subpop.child_individuals_[child_count].TrackPedigreeWithParents(source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent1]);
 							}
 							else
 							{
@@ -1371,6 +1396,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 								// recombination, gene-conversion, mutation
 								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex, parent1_sex);
 								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex, parent2_sex);
+								
+								if (pedigrees_enabled)
+									p_subpop.child_individuals_[child_count].TrackPedigreeWithParents(source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2]);
 							}
 							
 							// change counters

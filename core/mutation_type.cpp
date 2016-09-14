@@ -40,12 +40,12 @@ std::ostream& operator<<(std::ostream& p_out, DFEType p_dfe_type)
 {
 	switch (p_dfe_type)
 	{
-		case DFEType::kFixed:			p_out << gStr_f; break;
-		case DFEType::kGamma:			p_out << gStr_g; break;
-		case DFEType::kExponential:		p_out << gStr_e; break;
-		case DFEType::kNormal:			p_out << gStr_n; break;
-		case DFEType::kWeibull:			p_out << gStr_w; break;
-		case DFEType::kScript:			p_out << gStr_s; break;
+		case DFEType::kFixed:			p_out << gStr_f;		break;
+		case DFEType::kGamma:			p_out << gStr_g;		break;
+		case DFEType::kExponential:		p_out << gStr_e;		break;
+		case DFEType::kNormal:			p_out << gEidosStr_n;	break;
+		case DFEType::kWeibull:			p_out << gStr_w;		break;
+		case DFEType::kScript:			p_out << gStr_s;		break;
 	}
 	
 	return p_out;
@@ -275,7 +275,7 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 				static_dfe_string_f = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_f));
 				static_dfe_string_g = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_g));
 				static_dfe_string_e = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_e));
-				static_dfe_string_n = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_n));
+				static_dfe_string_n = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_n));
 				static_dfe_string_w = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_w));
 				static_dfe_string_s = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_s));
 			}
@@ -438,7 +438,7 @@ EidosValue_SP MutationType::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 			dfe_type = DFEType::kExponential;
 			expected_dfe_param_count = 1;
 		}
-		else if (dfe_type_string.compare(gStr_n) == 0)
+		else if (dfe_type_string.compare(gEidosStr_n) == 0)
 		{
 			dfe_type = DFEType::kNormal;
 			expected_dfe_param_count = 2;

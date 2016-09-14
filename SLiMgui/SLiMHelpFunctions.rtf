@@ -264,4 +264,25 @@ For example, if the following call is made:\
 \f2\fs20  parameter can supply the dominance coefficient used when a mutation is present in an XY male, and is thus \'93heterozygous\'94 (but in a different sense than the heterozygosity of an XX female with one copy of the mutation).  Calling this function has the side effect of enabling sex in the simulation; individuals will be male and female (rather than hermaphroditic) regardless of the 
 \f0\fs18 chromosomeType
 \f2\fs20  chosen for simulation.  There is no way to disable sex once it has been enabled; if you don\'92t want to have sex, don\'92t call this function.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f0\fs18 \cf0 (void)initializeSLiMOptions([logical$\'a0keepPedigrees\'a0=\'a0F])
+\f1 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf0 Configure options for the simulation.  If 
+\f0\fs18 initializeSLiMOptions()
+\f2\fs20  is called at all then it must be called before any other initialization function, so that SLiM knows from the outset which optional features are enabled and which are not.\
+If 
+\f0\fs18 keepPedigrees
+\f2\fs20  is 
+\f0\fs18 T
+\f2\fs20 , SLiM will keep pedigree information for every individual in the simulation, tracking the identity of its parents and grandparents.  This allows individuals to assess their degree of pedigree-based relatedness to other individuals (see 
+\f0\fs18 Individual
+\f2\fs20 \'92s 
+\f0\fs18 relatedness()
+\f2\fs20  method), as well as allowing a model to find \'93trios\'94 (two parents and an offspring they generated) using the pedigree properties of 
+\f0\fs18 Individual
+\f2\fs20 .  Note that pedigree-based relatedness doesn\'92t necessarily correspond to genetic relatedness, due to effects such as assortment and recombination.\
+This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
 }

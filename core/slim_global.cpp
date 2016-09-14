@@ -116,6 +116,7 @@ const std::string gStr_initializeGeneConversion = "initializeGeneConversion";
 const std::string gStr_initializeMutationRate = "initializeMutationRate";
 const std::string gStr_initializeRecombinationRate = "initializeRecombinationRate";
 const std::string gStr_initializeSex = "initializeSex";
+const std::string gStr_initializeSLiMOptions = "initializeSLiMOptions";
 
 // mostly property names
 const std::string gStr_genomicElements = "genomicElements";
@@ -179,6 +180,9 @@ const std::string gStr_cloningRate = "cloningRate";
 const std::string gStr_sexRatio = "sexRatio";
 const std::string gStr_individualCount = "individualCount";
 const std::string gStr_fixationGeneration = "fixationGeneration";
+const std::string gStr_pedigreeID = "pedigreeID";
+const std::string gStr_pedigreeParentIDs = "pedigreeParentIDs";
+const std::string gStr_pedigreeGrandparentIDs = "pedigreeGrandparentIDs";
 
 // mostly method names
 const std::string gStr_setRecombinationRate = "setRecombinationRate";
@@ -187,6 +191,7 @@ const std::string gStr_addNewDrawnMutation = "addNewDrawnMutation";
 const std::string gStr_addNewMutation = "addNewMutation";
 const std::string gStr_containsMutations = "containsMutations";
 const std::string gStr_countOfMutationsOfType = "countOfMutationsOfType";
+const std::string gStr_relatedness = "relatedness";
 const std::string gStr_mutationsOfType = "mutationsOfType";
 const std::string gStr_removeMutations = "removeMutations";
 const std::string gStr_setGenomicElementType = "setGenomicElementType";
@@ -232,7 +237,7 @@ const std::string gStr_genome1 = "genome1";
 const std::string gStr_genome2 = "genome2";
 const std::string gStr_subpop = "subpop";
 const std::string gStr_sourceSubpop = "sourceSubpop";
-const std::string gStr_weights = "weights";
+//const std::string gStr_weights = "weights";		now gEidosStr_weights
 const std::string gStr_child = "child";
 const std::string gStr_childGenome1 = "childGenome1";
 const std::string gStr_childGenome2 = "childGenome2";
@@ -269,7 +274,7 @@ const std::string gStr_Y = "Y";
 const std::string gStr_f = "f";
 const std::string gStr_g = "g";
 const std::string gStr_e = "e";
-const std::string gStr_n = "n";
+//const std::string gStr_n = "n";		now gEidosStr_n
 const std::string gStr_w = "w";
 const std::string gStr_l = "l";
 const std::string gStr_s = "s";
@@ -299,6 +304,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_initializeMutationRate, gID_initializeMutationRate);
 		Eidos_RegisterStringForGlobalID(gStr_initializeRecombinationRate, gID_initializeRecombinationRate);
 		Eidos_RegisterStringForGlobalID(gStr_initializeSex, gID_initializeSex);
+		Eidos_RegisterStringForGlobalID(gStr_initializeSLiMOptions, gID_initializeSLiMOptions);
 		
 		Eidos_RegisterStringForGlobalID(gStr_genomicElements, gID_genomicElements);
 		Eidos_RegisterStringForGlobalID(gStr_lastPosition, gID_lastPosition);
@@ -361,12 +367,16 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_sexRatio, gID_sexRatio);
 		Eidos_RegisterStringForGlobalID(gStr_individualCount, gID_individualCount);
 		Eidos_RegisterStringForGlobalID(gStr_fixationGeneration, gID_fixationGeneration);
+		Eidos_RegisterStringForGlobalID(gStr_pedigreeID, gID_pedigreeID);
+		Eidos_RegisterStringForGlobalID(gStr_pedigreeParentIDs, gID_pedigreeParentIDs);
+		Eidos_RegisterStringForGlobalID(gStr_pedigreeGrandparentIDs, gID_pedigreeGrandparentIDs);
 		
 		Eidos_RegisterStringForGlobalID(gStr_setRecombinationRate, gID_setRecombinationRate);
 		Eidos_RegisterStringForGlobalID(gStr_addMutations, gID_addMutations);
 		Eidos_RegisterStringForGlobalID(gStr_addNewDrawnMutation, gID_addNewDrawnMutation);
 		Eidos_RegisterStringForGlobalID(gStr_addNewMutation, gID_addNewMutation);
 		Eidos_RegisterStringForGlobalID(gStr_countOfMutationsOfType, gID_countOfMutationsOfType);
+		Eidos_RegisterStringForGlobalID(gStr_relatedness, gID_relatedness);
 		Eidos_RegisterStringForGlobalID(gStr_containsMutations, gID_containsMutations);
 		Eidos_RegisterStringForGlobalID(gStr_mutationsOfType, gID_mutationsOfType);
 		Eidos_RegisterStringForGlobalID(gStr_removeMutations, gID_removeMutations);
@@ -379,8 +389,6 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_addSubpopSplit, gID_addSubpopSplit);
 		Eidos_RegisterStringForGlobalID(gStr_deregisterScriptBlock, gID_deregisterScriptBlock);
 		Eidos_RegisterStringForGlobalID(gStr_mutationFrequencies, gID_mutationFrequencies);
-		//Eidos_RegisterStringForGlobalID(gStr_mutationsOfType, gID_mutationsOfType);
-		//Eidos_RegisterStringForGlobalID(gStr_countOfMutationsOfType, gID_countOfMutationsOfType);
 		Eidos_RegisterStringForGlobalID(gStr_outputFixedMutations, gID_outputFixedMutations);
 		Eidos_RegisterStringForGlobalID(gStr_outputFull, gID_outputFull);
 		Eidos_RegisterStringForGlobalID(gStr_outputMutations, gID_outputMutations);
@@ -412,7 +420,6 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_genome2, gID_genome2);
 		Eidos_RegisterStringForGlobalID(gStr_subpop, gID_subpop);
 		Eidos_RegisterStringForGlobalID(gStr_sourceSubpop, gID_sourceSubpop);
-		//Eidos_RegisterStringForGlobalID(gStr_weights, gID_weights);	// already registered by Eidos
 		Eidos_RegisterStringForGlobalID(gStr_child, gID_child);
 		Eidos_RegisterStringForGlobalID(gStr_childGenome1, gID_childGenome1);
 		Eidos_RegisterStringForGlobalID(gStr_childGenome2, gID_childGenome2);
@@ -447,7 +454,6 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_f, gID_f);
 		Eidos_RegisterStringForGlobalID(gStr_g, gID_g);
 		Eidos_RegisterStringForGlobalID(gStr_e, gID_e);
-		//Eidos_RegisterStringForGlobalID(gStr_n, gID_n);	// already registered by Eidos
 		Eidos_RegisterStringForGlobalID(gStr_w, gID_w);
 		Eidos_RegisterStringForGlobalID(gStr_l, gID_l);
 		Eidos_RegisterStringForGlobalID(gStr_s, gID_s);

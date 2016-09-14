@@ -257,6 +257,7 @@ extern const std::string gStr_initializeGeneConversion;
 extern const std::string gStr_initializeMutationRate;
 extern const std::string gStr_initializeRecombinationRate;
 extern const std::string gStr_initializeSex;
+extern const std::string gStr_initializeSLiMOptions;
 
 extern const std::string gStr_genomicElements;
 extern const std::string gStr_lastPosition;
@@ -319,6 +320,9 @@ extern const std::string gStr_cloningRate;
 extern const std::string gStr_sexRatio;
 extern const std::string gStr_individualCount;
 extern const std::string gStr_fixationGeneration;
+extern const std::string gStr_pedigreeID;
+extern const std::string gStr_pedigreeParentIDs;
+extern const std::string gStr_pedigreeGrandparentIDs;
 
 extern const std::string gStr_setRecombinationRate;
 extern const std::string gStr_addMutations;
@@ -326,6 +330,7 @@ extern const std::string gStr_addNewDrawnMutation;
 extern const std::string gStr_addNewMutation;
 extern const std::string gStr_containsMutations;
 extern const std::string gStr_countOfMutationsOfType;
+extern const std::string gStr_relatedness;
 extern const std::string gStr_mutationsOfType;
 extern const std::string gStr_removeMutations;
 extern const std::string gStr_setGenomicElementType;
@@ -370,7 +375,7 @@ extern const std::string gStr_genome1;
 extern const std::string gStr_genome2;
 extern const std::string gStr_subpop;
 extern const std::string gStr_sourceSubpop;
-extern const std::string gStr_weights;
+//extern const std::string gStr_weights;		now gEidosStr_weights
 extern const std::string gStr_child;
 extern const std::string gStr_childGenome1;
 extern const std::string gStr_childGenome2;
@@ -405,7 +410,7 @@ extern const std::string gStr_Y;
 extern const std::string gStr_f;
 extern const std::string gStr_g;
 extern const std::string gStr_e;
-extern const std::string gStr_n;
+//extern const std::string gStr_n;		now gEidosStr_n
 extern const std::string gStr_w;
 extern const std::string gStr_l;
 extern const std::string gStr_s;
@@ -425,6 +430,7 @@ enum _SLiMGlobalStringID : int {
 	gID_initializeMutationRate,
 	gID_initializeRecombinationRate,
 	gID_initializeSex,
+	gID_initializeSLiMOptions,
 	
 	gID_genomicElements,
 	gID_lastPosition,
@@ -487,6 +493,9 @@ enum _SLiMGlobalStringID : int {
 	gID_sexRatio,
 	gID_individualCount,
 	gID_fixationGeneration,
+	gID_pedigreeID,
+	gID_pedigreeParentIDs,
+	gID_pedigreeGrandparentIDs,
 	
 	gID_setRecombinationRate,
 	gID_addMutations,
@@ -494,6 +503,7 @@ enum _SLiMGlobalStringID : int {
 	gID_addNewMutation,
 	gID_containsMutations,
 	gID_countOfMutationsOfType,
+	gID_relatedness,
 	gID_mutationsOfType,
 	gID_removeMutations,
 	gID_setGenomicElementType,
@@ -538,7 +548,7 @@ enum _SLiMGlobalStringID : int {
 	gID_genome2,
 	gID_subpop,
 	gID_sourceSubpop,
-	gID_weights,
+	//gID_weights,		now gEidosID_weights
 	gID_child,
 	gID_childGenome1,
 	gID_childGenome2,
@@ -573,7 +583,7 @@ enum _SLiMGlobalStringID : int {
 	gID_f,
 	gID_g,
 	gID_e,
-	gID_n,
+	// gID_n,		now gEidosID_n
 	gID_w,
 	gID_l,
 	gID_s,

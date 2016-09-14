@@ -114,6 +114,7 @@ private:
 	int num_recombination_rates_;
 	int num_gene_conversions_;
 	int num_sex_declarations_;	// SEX ONLY; used to check for sex vs. non-sex errors in the file, so the #SEX tag must come before any reliance on SEX ONLY features
+	int num_options_declarations_;
 	
 	slim_position_t last_genomic_element_position = -1;	// used to check new genomic elements for consistency
 	
@@ -122,6 +123,9 @@ private:
 	bool genomic_element_types_changed_ = true;
 	bool chromosome_changed_ = true;
 	bool scripts_changed_ = true;
+	
+	// pedigree tracking: off by default, optionally turned on at init time to enable calls to TrackPedigreeWithParents()
+	bool pedigrees_enabled_ = false;
 	
 	EidosSymbolTableEntry self_symbol_;												// for fast setup of the symbol table
 	
@@ -167,6 +171,7 @@ public:
 	inline const std::map<slim_objectid_t,GenomicElementType*> &GenomicElementTypes(void) { return genomic_element_types_; }
 	
 	inline bool SexEnabled(void) const												{ return sex_enabled_; }
+	inline bool PedigreesEnabled(void) const										{ return pedigrees_enabled_; }
 	inline GenomeType ModeledChromosomeType(void) const								{ return modeled_chromosome_type_; }
 	inline double XDominanceCoefficient(void) const									{ return x_chromosome_dominance_coeff_; }
 	

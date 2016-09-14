@@ -44,6 +44,9 @@ class Subpopulation;
 
 extern EidosObjectClass *gSLiM_Individual_Class;
 
+// A global counter used to assign all Individual objects a unique ID
+extern slim_mutationid_t gSLiM_next_pedigree_id;
+
 
 class Individual : public EidosObjectElement
 {
@@ -56,6 +59,17 @@ private:
 	Subpopulation &subpopulation_;		// the subpop to which we refer; we get deleted when our subpop gets destructed
 	slim_popsize_t index_;				// the individual index in that subpop (0-based, and not multiplied by 2)
 	slim_usertag_t tag_value_;			// a user-defined tag value
+	
+	// Pedigree-tracking ivars.  These are -1 if unknown, otherwise assigned sequentially from 0 counting upward.  They
+	// uniquely identify individuals within the simulation, so that relatedness of individuals can be assessed.  They can
+	// be accessed through the read-only pedigree properties.  These are only maintained if sim->pedigrees_enabled_ is on.
+	slim_mutationid_t pedigree_id_;		// the id of this individual
+	slim_mutationid_t pedigree_p1_;		// the id of parent 1
+	slim_mutationid_t pedigree_p2_;		// the id of parent 2
+	slim_mutationid_t pedigree_g1_;		// the id of grandparent 1
+	slim_mutationid_t pedigree_g2_;		// the id of grandparent 2
+	slim_mutationid_t pedigree_g3_;		// the id of grandparent 3
+	slim_mutationid_t pedigree_g4_;		// the id of grandparent 4
 	
 #ifdef DEBUG
 	static bool s_log_copy_and_assign_;							// true if logging is disabled (see below)
@@ -81,6 +95,23 @@ public:
 	void GetGenomes(Genome **p_genome1, Genome **p_genome2) const;
 	IndividualSex Sex(void) const;
 	
+	// This sets the receiver up as a new individual, with a newly assigned pedigree id, and gets
+	// parental and grandparental information from the supplied parents.
+	inline void TrackPedigreeWithParents(Individual &parent1, Individual &parent2)
+	{
+		pedigree_id_ = gSLiM_next_pedigree_id++;
+		
+		pedigree_p1_ = parent1.pedigree_id_;
+		pedigree_p2_ = parent2.pedigree_id_;
+		
+		pedigree_g1_ = parent1.pedigree_p1_;
+		pedigree_g2_ = parent1.pedigree_p2_;
+		pedigree_g3_ = parent2.pedigree_p1_;
+		pedigree_g4_ = parent2.pedigree_p2_;
+	}
+	
+	double RelatednessToIndividual(Individual &ind);
+	
 	//
 	// Eidos support
 	//
@@ -96,6 +127,7 @@ public:
 	
 	// Accelerated property access; see class EidosObjectElement for comments on this mechanism
 	virtual int64_t GetProperty_Accelerated_Int(EidosGlobalStringID p_property_id);
+	virtual double GetProperty_Accelerated_Float(EidosGlobalStringID p_property_id);
 	virtual EidosObjectElement *GetProperty_Accelerated_ObjectElement(EidosGlobalStringID p_property_id);
 };
 

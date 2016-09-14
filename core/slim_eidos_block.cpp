@@ -611,7 +611,7 @@ void SLiMEidosBlock::_ScanNodeForIdentifiersUsed(const EidosASTNode *p_scan_node
 		if (token_string.compare(gStr_subpop) == 0)				contains_subpop_ = true;
 		if (token_string.compare(gStr_homozygous) == 0)			contains_homozygous_ = true;
 		if (token_string.compare(gStr_sourceSubpop) == 0)		contains_sourceSubpop_ = true;
-		if (token_string.compare(gStr_weights) == 0)			contains_weights_ = true;
+		if (token_string.compare(gEidosStr_weights) == 0)		contains_weights_ = true;
 		if (token_string.compare(gStr_child) == 0)				contains_child_ = true;
 		if (token_string.compare(gStr_childGenome1) == 0)		contains_childGenome1_ = true;
 		if (token_string.compare(gStr_childGenome2) == 0)		contains_childGenome2_ = true;

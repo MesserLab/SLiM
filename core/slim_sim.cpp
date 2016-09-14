@@ -1073,6 +1073,7 @@ void SLiMSim::RunInitializeCallbacks(void)
 	num_recombination_rates_ = 0;
 	num_gene_conversions_ = 0;
 	num_sex_declarations_ = 0;
+	num_options_declarations_ = 0;
 	
 	if (DEBUG_INPUT)
 		SLIM_OUTSTREAM << "// RunInitializeCallbacks():" << endl;
@@ -1621,7 +1622,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 			dfe_type = DFEType::kExponential;
 			expected_dfe_param_count = 1;
 		}
-		else if (dfe_type_string.compare(gStr_n) == 0)
+		else if (dfe_type_string.compare(gEidosStr_n) == 0)
 		{
 			dfe_type = DFEType::kNormal;
 			expected_dfe_param_count = 2;
@@ -1871,7 +1872,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 	//
 	//	*********************	(void)initializeMutationRate(numeric$ rate)
 	//
-#pragma mark initializeMutationRate()
+	#pragma mark initializeMutationRate()
 	
 	else if (p_function_name.compare(gStr_initializeMutationRate) == 0)
 	{
@@ -1935,6 +1936,36 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		num_sex_declarations_++;
 	}
 	
+	
+	//
+	//	*********************	(void)initializeSLiMOptions([logical$ keepPedigrees = F])
+	//
+	#pragma mark initializeSLiMOptions()
+	
+	else if (p_function_name.compare(gStr_initializeSLiMOptions) == 0)
+	{
+		if (num_options_declarations_ > 0)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeSLiMOptions() may be called only once." << eidos_terminate();
+		
+		if ((num_mutation_types_ > 0) || (num_mutation_rates_ > 0) || (num_genomic_element_types_ > 0) || (num_genomic_elements_ > 0) || (num_recombination_rates_ > 0) || (num_gene_conversions_ > 0) || (num_sex_declarations_ > 0))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeSLiMOptions() must be called before all other initialization functions." << eidos_terminate();
+		
+		bool keep_pedigrees = arg0_value->LogicalAtIndex(0, nullptr);
+		
+		pedigrees_enabled_ = keep_pedigrees;
+		
+		if (DEBUG_INPUT)
+		{
+			output_stream << "initializeSLiMOptions(";
+			
+			output_stream << "keepPedigrees = " << (keep_pedigrees ? "T" : "F");
+			
+			output_stream << ");" << endl;
+		}
+		
+		num_options_declarations_++;
+	}
+	
 	// the initialize...() functions all return invisible NULL
 	return gStaticEidosValueNULLInvisible;
 }
@@ -1957,7 +1988,9 @@ const std::vector<const EidosFunctionSignature*> *SLiMSim::ZeroGenerationFunctio
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationRate, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									->AddNumeric_S("rate"));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSex, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
-									->AddString_S("chromosomeType")->AddNumeric_OS("xDominanceCoeff", gStaticEidosValue_Float1));
+									   ->AddString_S("chromosomeType")->AddNumeric_OS("xDominanceCoeff", gStaticEidosValue_Float1));
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMOptions, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+									   ->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF));
 	}
 	
 	return &sim_0_signatures_;

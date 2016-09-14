@@ -798,6 +798,58 @@ Changing this will normally affect the fitness values calculated at the end of t
 \f0\fs20  vector of its 
 \f2\fs18 Subpopulation
 \f3\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 pedigreeID => (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 If pedigree tracking is turned on with 
+\f2\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f0\fs20 , 
+\f2\fs18 pedigreeID
+\f0\fs20  is a unique non-negative identifier for each individual in a simulation, never re-used throughout the duration of the simulation run.  If pedigree tracking is not on, the value of 
+\f2\fs18 pedigreeID
+\f0\fs20  will be a singleton 
+\f2\fs18 -1
+\f3\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 pedigreeParentIDs => (float)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 If pedigree tracking is turned on with 
+\f2\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f0\fs20 , 
+\f2\fs18 pedigreeParentIDs
+\f0\fs20  contains the values of 
+\f2\fs18 pedigreeID
+\f0\fs20  that were possessed by the parents of an individual; it is thus a vector of two values.  If pedigree tracking is not on, 
+\f2\fs18 pedigreeParentIDs
+\f0\fs20  will contain two 
+\f2\fs18 -1
+\f0\fs20  values.  Parental values may also be 
+\f2\fs18 -1
+\f0\fs20  if insufficient generations have elapsed for that information to be available (because the simulation just started, or because a subpopulation is new).
+\f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 pedigreeGrandparentIDs => (float)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 If pedigree tracking is turned on with 
+\f2\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f0\fs20 , 
+\f2\fs18 pedigreeGrandparentIDs
+\f0\fs20  contains the values of 
+\f2\fs18 pedigreeID
+\f0\fs20  that were possessed by the grandparents of an individual; it is thus a vector of four values.  If pedigree tracking is not on, 
+\f2\fs18 pedigreeGrandparentIDs
+\f0\fs20  will contain four 
+\f2\fs18 -1
+\f0\fs20  values.  Grandparental values may also be 
+\f2\fs18 -1
+\f0\fs20  if insufficient generations have elapsed for that information to be available (because the simulation just started, or because a subpopulation is new).
+\f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 sex => (string$)\
@@ -877,6 +929,61 @@ Changing this will normally affect the fitness values calculated at the end of t
 \f2\fs18 -mutationsOfType()
 \f3\fs20 .
 \f0   This method is provided for speed; it is much faster than the corresponding Eidos code.
+\f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96
+\f3 \'a0
+\f2 (float)relatedness(object<Individual>
+\f3 \'a0
+\f2 individuals)
+\f3 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns a vector containing the degrees of relatedness between the receiver and each of the individuals in 
+\f2\fs18 individuals
+\f3\fs20 .
+\f0   The relatedness between 
+\f2\fs18 A
+\f0\fs20  and 
+\f2\fs18 B
+\f0\fs20  is always 
+\f2\fs18 1.0
+\f0\fs20  if 
+\f2\fs18 A
+\f0\fs20  and 
+\f2\fs18 B
+\f0\fs20  are actually the same individual; this facility works even if SLiM\'92s optional pedigree tracking is turned off (in which case all other relatedness values will be 
+\f2\fs18 0.0
+\f0\fs20 ).  Otherwise, if pedigree tracking is turned on with 
+\f2\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f0\fs20 , this method will use the pedigree information to construct a relatedness estimate.  More specifically, if information about the grandparental generation is available, then each grandparent shared by 
+\f2\fs18 A
+\f0\fs20  and 
+\f2\fs18 B
+\f0\fs20  contributes 
+\f2\fs18 0.125
+\f0\fs20  towards the total relatedness, for a maximum value of 
+\f2\fs18 0.5
+\f0\fs20  with four shared grandparents.  If grandparental information in unavailable, then if parental information is available it is used, with each parent shared by 
+\f2\fs18 A
+\f0\fs20  and 
+\f2\fs18 B
+\f0\fs20  contributing 
+\f2\fs18 0.25
+\f0\fs20 , again for a maximum of 
+\f2\fs18 0.5
+\f0\fs20 .  If even parental information is unavailable, then the relatedness is assumed to be 
+\f2\fs18 0.0
+\f3\fs20 .
+\f0   Again, however, if 
+\f2\fs18 A
+\f0\fs20  and 
+\f2\fs18 B
+\f0\fs20  are the same individual, the relatedness will be 
+\f2\fs18 1.0
+\f0\fs20  in all cases.\
+Note that this relatedness is simply pedigree-based relatedness.  This does not necessarily correspond to genetic relatedness, because of the effects of factors like assortment and recombination.
 \f3 \
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 

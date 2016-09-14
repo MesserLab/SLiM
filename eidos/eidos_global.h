@@ -303,6 +303,9 @@ extern const std::string gEidosStr__increment;
 extern const std::string gEidosStr__cubicYolk;
 extern const std::string gEidosStr__squareTest;
 
+extern const std::string gEidosStr_weights;
+extern const std::string gEidosStr_n;
+
 
 // Not all global strings have a EidosGlobalStringID; basically just ones that we want to scan and pre-cache in the tree,
 // such as property and method names, as well as initialize...() function names (since signatures can't be cached for them).
@@ -329,6 +332,9 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID__increment,
 	gEidosID__cubicYolk,
 	gEidosID__squareTest,
+	
+	gEidosID_weights,
+	gEidosID_n,
 	
 	gEidosID_LastEntry,					// IDs added by the Context should start here
 	gEidosID_LastContextEntry = 10000	// IDs added by the Context must end before this value; Eidos reserves the remaining values
