@@ -2905,10 +2905,12 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("strsplit('$$', '$$');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"", ""}));
 	EidosAssertScriptSuccess("strsplit('  ');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"", "", ""}));
 	EidosAssertScriptSuccess("strsplit('$$$$', '$$');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"", "", ""}));
+	EidosAssertScriptSuccess("strsplit('$$$$', '');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"$", "$", "$", "$"}));
 	EidosAssertScriptSuccess("strsplit('This is a test.');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"This", "is", "a", "test."}));
 	EidosAssertScriptSuccess("strsplit('This is a test.', '$$');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("This is a test.")));
 	EidosAssertScriptSuccess("strsplit('This is a test.', 'i');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"Th", "s ", "s a test."}));
 	EidosAssertScriptSuccess("strsplit('This is a test.', 's');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"Thi", " i", " a te", "t."}));
+	EidosAssertScriptSuccess("strsplit('This is a test.', '');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"T", "h", "i", "s", " ", "i", "s", " ", "a", " ", "t", "e", "s", "t", "."}));
 	
 	// substr()
 	EidosAssertScriptSuccess("substr(string(0), 1);", gStaticEidosValue_String_ZeroVec);

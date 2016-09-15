@@ -3889,19 +3889,29 @@ EidosValue_SP Eidos_ExecuteFunction_strsplit(const EidosValue_SP *const p_argume
 	string separator = p_arguments[1]->StringAtIndex(0, nullptr);
 	string::size_type start_idx = 0, sep_idx;
 	
-	while (true)
+	if (separator.length() == 0)
 	{
-		sep_idx = joined_string.find(separator, start_idx);
-		
-		if (sep_idx == string::npos)
+		// special-case a zero-length separator
+		for (char &ch : joined_string)
+			string_result->PushString(std::string(&ch, 1));
+	}
+	else
+	{
+		// non-zero-length separator
+		while (true)
 		{
-			string_result->PushString(joined_string.substr(start_idx));
-			break;
-		}
-		else
-		{
-			string_result->PushString(joined_string.substr(start_idx, sep_idx - start_idx));
-			start_idx = sep_idx + separator.size();
+			sep_idx = joined_string.find(separator, start_idx);
+			
+			if (sep_idx == string::npos)
+			{
+				string_result->PushString(joined_string.substr(start_idx));
+				break;
+			}
+			else
+			{
+				string_result->PushString(joined_string.substr(start_idx, sep_idx - start_idx));
+				start_idx = sep_idx + separator.size();
+			}
 		}
 	}
 	
