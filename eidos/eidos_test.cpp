@@ -2215,12 +2215,12 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("rbinom(3, 10, 1.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{10, 10, 10}));
 	EidosAssertScriptSuccess("rbinom(3, 0, 0.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 0, 0}));
 	EidosAssertScriptSuccess("rbinom(3, 0, 1.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 0, 0}));
-	EidosAssertScriptSuccess("setSeed(1); rbinom(5, 10, 0.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{4, 8, 5, 3, 4}));
-	EidosAssertScriptSuccess("setSeed(2); rbinom(5, 10, 0.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 6, 3, 6, 3}));
-	EidosAssertScriptSuccess("setSeed(3); rbinom(5, 1000, 0.01);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{11, 16, 10, 14, 10}));
-	EidosAssertScriptSuccess("setSeed(4); rbinom(5, 1000, 0.99);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{992, 990, 995, 991, 995}));
-	EidosAssertScriptSuccess("setSeed(5); rbinom(3, 100, c(0.1, 0.5, 0.9));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 50, 87}));
-	EidosAssertScriptSuccess("setSeed(6); rbinom(3, c(10, 30, 50), 0.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{6, 12, 26}));
+	EidosAssertScriptSuccess("setSeed(0); rbinom(5, 10, 0.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{4, 8, 5, 3, 4}));
+	EidosAssertScriptSuccess("setSeed(1); rbinom(5, 10, 0.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 6, 3, 6, 3}));
+	EidosAssertScriptSuccess("setSeed(2); rbinom(5, 1000, 0.01);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{11, 16, 10, 14, 10}));
+	EidosAssertScriptSuccess("setSeed(3); rbinom(5, 1000, 0.99);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{992, 990, 995, 991, 995}));
+	EidosAssertScriptSuccess("setSeed(4); rbinom(3, 100, c(0.1, 0.5, 0.9));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 50, 87}));
+	EidosAssertScriptSuccess("setSeed(5); rbinom(3, c(10, 30, 50), 0.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{6, 12, 26}));
 	EidosAssertScriptRaise("rbinom(-1, 10, 0.5);", 0, "requires n to be");
 	EidosAssertScriptRaise("rbinom(3, -1, 0.5);", 0, "requires size >= 0");
 	EidosAssertScriptRaise("rbinom(3, 10, -0.1);", 0, "in [0.0, 1.0]");
@@ -2231,10 +2231,10 @@ void RunEidosTests(void)
 	// rexp()
 	EidosAssertScriptSuccess("rexp(0);", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess("rexp(0, float(0));", gStaticEidosValue_Float_ZeroVec);
-	EidosAssertScriptSuccess("setSeed(1); abs(rexp(3) - c(0.206919, 3.01675, 0.788416)) < 0.00001;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, true}));
-	EidosAssertScriptSuccess("setSeed(2); abs(rexp(3, 10) - c(20.7, 12.2, 0.9)) < 0.1;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, true}));
-	EidosAssertScriptSuccess("setSeed(3); abs(rexp(3, 100000) - c(95364.3, 307170.0, 74334.9)) < 0.1;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, true}));
-	EidosAssertScriptSuccess("setSeed(4); abs(rexp(3, c(10, 100, 1000)) - c(2.8, 64.6, 58.8)) < 0.1;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, true}));
+	EidosAssertScriptSuccess("setSeed(0); abs(rexp(3) - c(0.206919, 3.01675, 0.788416)) < 0.00001;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, true}));
+	EidosAssertScriptSuccess("setSeed(1); abs(rexp(3, 10) - c(20.7, 12.2, 0.9)) < 0.1;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, true}));
+	EidosAssertScriptSuccess("setSeed(2); abs(rexp(3, 100000) - c(95364.3, 307170.0, 74334.9)) < 0.1;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, true}));
+	EidosAssertScriptSuccess("setSeed(3); abs(rexp(3, c(10, 100, 1000)) - c(2.8, 64.6, 58.8)) < 0.1;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, true}));
 	EidosAssertScriptRaise("rexp(-1);", 0, "requires n to be");
 	EidosAssertScriptRaise("rexp(3, c(10, 5));", 0, "requires mu to be");
 	
@@ -2242,8 +2242,8 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("rgamma(0, 0, 1000);", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess("rgamma(0, float(0), float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess("rgamma(3, 0, 1000);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{0.0, 0.0, 0.0}));
-	EidosAssertScriptSuccess("setSeed(1); abs(rgamma(3, 1, 100) - c(1.02069, 1.0825, 0.951862)) < 0.0001;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, true}));
-	EidosAssertScriptSuccess("setSeed(1); abs(rgamma(3, -1, 100) - c(-1.02069, -1.0825, -0.951862)) < 0.0001;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, true}));
+	EidosAssertScriptSuccess("setSeed(0); abs(rgamma(3, 1, 100) - c(1.02069, 1.0825, 0.951862)) < 0.0001;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, true}));
+	EidosAssertScriptSuccess("setSeed(0); abs(rgamma(3, -1, 100) - c(-1.02069, -1.0825, -0.951862)) < 0.0001;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, true}));
 	EidosAssertScriptRaise("rgamma(-1, 0, 1000);", 0, "requires n to be");
 	EidosAssertScriptRaise("rgamma(2, 0, 0);", 0, "requires shape");
 	EidosAssertScriptRaise("rgamma(2, c(0.1, 10, 1), 10.0);", 0, "requires mean to be of length");
@@ -2263,11 +2263,11 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("rnorm(0, float(0), float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess("rnorm(3, 0, 0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{0.0, 0.0, 0.0}));
 	EidosAssertScriptSuccess("rnorm(3, 1, 0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{1.0, 1.0, 1.0}));
-	EidosAssertScriptSuccess("setSeed(1); (rnorm(2) - c(-0.785386, 0.132009)) < 0.000001;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
-	EidosAssertScriptSuccess("setSeed(2); (rnorm(2, 10.0) - c(10.38, 10.26)) < 0.01;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
-	EidosAssertScriptSuccess("setSeed(3); (rnorm(2, 10.0, 100.0) - c(59.92, 95.35)) < 0.01;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
-	EidosAssertScriptSuccess("setSeed(4); (rnorm(2, c(-10, 10), 100.0) - c(59.92, 95.35)) < 0.01;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
-	EidosAssertScriptSuccess("setSeed(5); (rnorm(2, 10.0, c(0.1, 10)) - c(59.92, 95.35)) < 0.01;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
+	EidosAssertScriptSuccess("setSeed(0); (rnorm(2) - c(-0.785386, 0.132009)) < 0.000001;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
+	EidosAssertScriptSuccess("setSeed(1); (rnorm(2, 10.0) - c(10.38, 10.26)) < 0.01;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
+	EidosAssertScriptSuccess("setSeed(2); (rnorm(2, 10.0, 100.0) - c(59.92, 95.35)) < 0.01;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
+	EidosAssertScriptSuccess("setSeed(3); (rnorm(2, c(-10, 10), 100.0) - c(59.92, 95.35)) < 0.01;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
+	EidosAssertScriptSuccess("setSeed(4); (rnorm(2, 10.0, c(0.1, 10)) - c(59.92, 95.35)) < 0.01;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
 	EidosAssertScriptRaise("rnorm(-1);", 0, "requires n to be");
 	EidosAssertScriptRaise("rnorm(1, 0, -1);", 0, "requires sd >= 0.0");
 	EidosAssertScriptRaise("rnorm(2, c(-10, 10, 1), 100.0);", 0, "requires mean to be");
@@ -2275,10 +2275,10 @@ void RunEidosTests(void)
 	
 	// rpois()
 	EidosAssertScriptSuccess("rpois(0, 1.0);", gStaticEidosValue_Integer_ZeroVec);
-	EidosAssertScriptSuccess("setSeed(1); rpois(5, 1.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 2, 0, 1, 1}));
-	EidosAssertScriptSuccess("setSeed(2); rpois(5, 0.2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 0, 0, 0, 0}));
-	EidosAssertScriptSuccess("setSeed(3); rpois(5, 10000);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{10205, 10177, 10094, 10227, 9875}));
-	EidosAssertScriptSuccess("setSeed(4); rpois(5, c(1, 10, 100, 1000, 10000));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 8, 97, 994, 9911}));
+	EidosAssertScriptSuccess("setSeed(0); rpois(5, 1.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 2, 0, 1, 1}));
+	EidosAssertScriptSuccess("setSeed(1); rpois(5, 0.2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 0, 0, 0, 0}));
+	EidosAssertScriptSuccess("setSeed(2); rpois(5, 10000);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{10205, 10177, 10094, 10227, 9875}));
+	EidosAssertScriptSuccess("setSeed(3); rpois(5, c(1, 10, 100, 1000, 10000));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 8, 97, 994, 9911}));
 	EidosAssertScriptRaise("rpois(-1, 1.0);", 0, "requires n to be");
 	EidosAssertScriptRaise("rpois(0, 0.0);", 0, "requires lambda");
 	EidosAssertScriptRaise("setSeed(4); rpois(5, c(1, 10, 100, 1000));", 12, "requires lambda");
@@ -2288,11 +2288,11 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("runif(0, float(0), float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess("runif(3, 0, 0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{0.0, 0.0, 0.0}));
 	EidosAssertScriptSuccess("runif(3, 1, 1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{1.0, 1.0, 1.0}));
-	EidosAssertScriptSuccess("setSeed(1); abs(runif(2) - c(0.186915, 0.951040)) < 0.000001;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
-	EidosAssertScriptSuccess("setSeed(2); abs(runif(2, 0.5) - c(0.93, 0.85)) < 0.01;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
-	EidosAssertScriptSuccess("setSeed(3); abs(runif(2, 10.0, 100.0) - c(65.31, 95.82)) < 0.01;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
-	EidosAssertScriptSuccess("setSeed(4); abs(runif(2, c(-100, 1), 10.0) - c(-72.52, 5.28)) < 0.01;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
-	EidosAssertScriptSuccess("setSeed(5); abs(runif(2, -10.0, c(1, 1000)) - c(-8.37, 688.97)) < 0.01;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
+	EidosAssertScriptSuccess("setSeed(0); abs(runif(2) - c(0.186915, 0.951040)) < 0.000001;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
+	EidosAssertScriptSuccess("setSeed(1); abs(runif(2, 0.5) - c(0.93, 0.85)) < 0.01;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
+	EidosAssertScriptSuccess("setSeed(2); abs(runif(2, 10.0, 100.0) - c(65.31, 95.82)) < 0.01;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
+	EidosAssertScriptSuccess("setSeed(3); abs(runif(2, c(-100, 1), 10.0) - c(-72.52, 5.28)) < 0.01;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
+	EidosAssertScriptSuccess("setSeed(4); abs(runif(2, -10.0, c(1, 1000)) - c(-8.37, 688.97)) < 0.01;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
 	EidosAssertScriptRaise("runif(-1);", 0, "requires n to be");
 	EidosAssertScriptRaise("runif(1, 0, -1);", 0, "requires min");
 	EidosAssertScriptRaise("runif(2, c(-10, 10, 1), 100.0);", 0, "requires min");
@@ -2482,13 +2482,13 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("sample(5, 1, F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
 	EidosAssertScriptSuccess("sample(5, 2, T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{5, 5}));
 	EidosAssertScriptRaise("sample(5, 2, F);", 0, "insufficient elements");
-	EidosAssertScriptSuccess("setSeed(1); sample(1:5, 5, T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 5, 3, 1, 2}));
-	EidosAssertScriptSuccess("setSeed(1); sample(1:5, 5, F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 5, 3, 2, 4}));
-	EidosAssertScriptSuccess("setSeed(1); sample(1:5, 6, T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 5, 3, 1, 2, 3}));
-	EidosAssertScriptRaise("setSeed(1); sample(1:5, 6, F);", 12, "insufficient elements");
-	EidosAssertScriptSuccess("setSeed(1); sample(1:5, 5, T, (1:5)^3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{4, 5, 5, 3, 4}));
-	EidosAssertScriptSuccess("setSeed(1); sample(1:5, 5, F, (1:5)^3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{4, 5, 3, 1, 2}));
-	EidosAssertScriptSuccess("setSeed(1); sample(1:5, 5, T, (0:4)^3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{4, 5, 5, 3, 4}));
+	EidosAssertScriptSuccess("setSeed(0); sample(1:5, 5, T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 5, 3, 1, 2}));
+	EidosAssertScriptSuccess("setSeed(0); sample(1:5, 5, F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 5, 3, 2, 4}));
+	EidosAssertScriptSuccess("setSeed(0); sample(1:5, 6, T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 5, 3, 1, 2, 3}));
+	EidosAssertScriptRaise("setSeed(0); sample(1:5, 6, F);", 12, "insufficient elements");
+	EidosAssertScriptSuccess("setSeed(0); sample(1:5, 5, T, (1:5)^3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{4, 5, 5, 3, 4}));
+	EidosAssertScriptSuccess("setSeed(0); sample(1:5, 5, F, (1:5)^3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{4, 5, 3, 1, 2}));
+	EidosAssertScriptSuccess("setSeed(0); sample(1:5, 5, T, (0:4)^3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{4, 5, 5, 3, 4}));
 	EidosAssertScriptRaise("setSeed(1); sample(1:5, 5, F, (0:4)^3);", 12, "weights summing to");
 	EidosAssertScriptRaise("setSeed(1); sample(1:5, 5, T, -1:3);", 12, "requires all weights to be");
 	EidosAssertScriptRaise("setSeed(1); sample(1:5, 5, T, 1:6);", 12, "to be the same length");
