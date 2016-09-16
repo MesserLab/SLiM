@@ -333,6 +333,7 @@ extern const std::string gStr_containsMutations;
 extern const std::string gStr_countOfMutationsOfType;
 extern const std::string gStr_relatedness;
 extern const std::string gStr_mutationsOfType;
+extern const std::string gStr_uniqueMutationsOfType;
 extern const std::string gStr_removeMutations;
 extern const std::string gStr_setGenomicElementType;
 extern const std::string gStr_setMutationFractions;
@@ -507,6 +508,7 @@ enum _SLiMGlobalStringID : int {
 	gID_countOfMutationsOfType,
 	gID_relatedness,
 	gID_mutationsOfType,
+	gID_uniqueMutationsOfType,
 	gID_removeMutations,
 	gID_setGenomicElementType,
 	gID_setMutationFractions,

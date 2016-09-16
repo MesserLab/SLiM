@@ -314,7 +314,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 				Genome &g1 = *genome1, &g2 = *genome2;
 				
 				// We reserve a vector large enough to hold all the mutations from both genomes; probably usually overkill, but it does little harm
-				int g1_size = g1.size(), g2_size = g2.size();
+				int g1_size = (g1.IsNull() ? 0 : g1.size()), g2_size = (g2.IsNull() ? 0 : g2.size());
 				EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->Reserve(g1_size + g2_size);
 				EidosValue_SP result_SP = EidosValue_SP(vec);
 				
@@ -538,7 +538,7 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 				{
 					Mutation *mut = (Mutation *)(arg0_value->ObjectElementAtIndex(0, nullptr));
 					
-					if (genome1->contains_mutation(mut) || genome2->contains_mutation(mut))
+					if ((!genome1->IsNull() && genome1->contains_mutation(mut)) || (genome2->IsNull() && genome2->contains_mutation(mut)))
 						return gStaticEidosValue_LogicalT;
 					else
 						return gStaticEidosValue_LogicalF;
@@ -551,7 +551,7 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
 					{
 						Mutation *mut = (Mutation *)(arg0_value->ObjectElementAtIndex(value_index, nullptr));
-						bool contains_mut = (genome1->contains_mutation(mut) || genome2->contains_mutation(mut));
+						bool contains_mut = ((!genome1->IsNull() && genome1->contains_mutation(mut)) || (genome2->IsNull() && genome2->contains_mutation(mut)));
 						
 						logical_result_vec.emplace_back(contains_mut);
 					}
@@ -602,6 +602,7 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 				// Count the number of mutations of the given type
 				int match_count = 0;
 				
+				if (!genome1->IsNull())
 				{
 					int genome1_count = genome1->size();
 					Mutation **genome1_ptr = genome1->begin_pointer();
@@ -610,6 +611,7 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 						if (genome1_ptr[mut_index]->mutation_type_ptr_ == mutation_type_ptr)
 							++match_count;
 				}
+				if (!genome2->IsNull())
 				{
 					int genome2_count = genome2->size();
 					Mutation **genome2_ptr = genome2->begin_pointer();
@@ -658,6 +660,233 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 			}
 			
 			return gStaticEidosValueNULL;
+		}
+			
+			
+			//
+			//	*********************	- (object<Mutation>)uniqueMutationsOfType(io<MutationType>$ mutType)
+			//
+#pragma mark -uniqueMutationsOfType()
+			
+		case gID_uniqueMutationsOfType:
+		{
+			MutationType *mutation_type_ptr = nullptr;
+			
+			if (arg0_value->Type() == EidosValueType::kValueInt)
+			{
+				SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
+				
+				if (!sim)
+					EIDOS_TERMINATION << "ERROR (Individual::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
+				
+				slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
+				auto found_muttype_pair = sim->MutationTypes().find(mutation_type_id);
+				
+				if (found_muttype_pair == sim->MutationTypes().end())
+					EIDOS_TERMINATION << "ERROR (Individual::ExecuteInstanceMethod): uniqueMutationsOfType() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+				
+				mutation_type_ptr = found_muttype_pair->second;
+			}
+			else
+			{
+				mutation_type_ptr = (MutationType *)(arg0_value->ObjectElementAtIndex(0, nullptr));
+			}
+			
+			// This code is adapted from uniqueMutations and follows its logic closely
+			Genome *genome1, *genome2;
+			
+			GetGenomes(&genome1, &genome2);
+			
+			if (genome1 && genome2)
+			{
+				Genome &g1 = *genome1, &g2 = *genome2;
+				
+				// We try to reserve a vector large enough to hold all the mutations; probably usually overkill, but it does little harm
+				int g1_size = (g1.IsNull() ? 0 : g1.size()), g2_size = (g2.IsNull() ? 0 : g2.size());
+				EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class));
+				EidosValue_SP result_SP = EidosValue_SP(vec);
+				
+				if (g1_size + g2_size < 100)	// an arbitrary limit, but we don't want to make something *too* unnecessarily big...
+					vec->Reserve(g1_size + g2_size);
+				
+				// We want to interleave mutations from the two genomes, keeping only the uniqued mutations.  For a given position, we take mutations
+				// from g1 first, and then look at the mutations in g2 at the same position and add them if they are not in g1.
+				int g1_index = 0, g2_index = 0;
+				
+				if (g1_size && g2_size)
+				{
+					Mutation *g1_mut = g1[g1_index], *g2_mut = g2[g2_index];
+					
+					// At this point, we need to loop forward in g1 and g2 until we have found mutations of the right type in both
+					while (g1_mut->mutation_type_ptr_ != mutation_type_ptr)
+					{
+						if (++g1_index >= g1_size)
+							break;
+						g1_mut = g1[g1_index];
+					}
+					
+					while (g2_mut->mutation_type_ptr_ != mutation_type_ptr)
+					{
+						if (++g2_index >= g2_size)
+							break;
+						g2_mut = g2[g2_index];
+					}
+					
+					if ((g1_index < g1_size) && (g2_index < g2_size))
+					{
+						slim_position_t pos1 = g1_mut->position_;
+						slim_position_t pos2 = g2_mut->position_;
+						
+						// Process mutations as long as both genomes still have mutations left in them
+						do
+						{
+							// Now we have mutations of the right type, so we can start working with them by position
+							if (pos1 < pos2)
+							{
+								vec->PushObjectElement(g1_mut);
+								
+								// Move to the next mutation in g1
+							loopback1:
+								if (++g1_index >= g1_size)
+									break;
+								
+								g1_mut = g1[g1_index];
+								if (g1_mut->mutation_type_ptr_ != mutation_type_ptr)
+									goto loopback1;
+								
+								pos1 = g1_mut->position_;
+							}
+							else if (pos1 > pos2)
+							{
+								vec->PushObjectElement(g2_mut);
+								
+								// Move to the next mutation in g2
+							loopback2:
+								if (++g2_index >= g2_size)
+									break;
+								
+								g2_mut = g2[g2_index];
+								if (g2_mut->mutation_type_ptr_ != mutation_type_ptr)
+									goto loopback2;
+								
+								pos2 = g2_mut->position_;
+							}
+							else
+							{
+								// pos1 == pos2; copy mutations from g1 until we are done with this position, then handle g2
+								slim_position_t focal_pos = pos1;
+								int first_index = g1_index;
+								bool done = false;
+								
+								while (pos1 == focal_pos)
+								{
+									vec->PushObjectElement(g1_mut);
+									
+									// Move to the next mutation in g1
+								loopback3:
+									if (++g1_index >= g1_size)
+									{
+										done = true;
+										break;
+									}
+									g1_mut = g1[g1_index];
+									if (g1_mut->mutation_type_ptr_ != mutation_type_ptr)
+										goto loopback3;
+									
+									pos1 = g1_mut->position_;
+								}
+								
+								// Note that we may be done with g1 here, so be careful
+								int last_index_plus_one = g1_index;
+								
+								while (pos2 == focal_pos)
+								{
+									int check_index;
+									
+									for (check_index = first_index; check_index < last_index_plus_one; ++check_index)
+										if (g1[check_index] == g2_mut)
+											break;
+									
+									// If the check indicates that g2_mut is not in g1, we copy it over
+									if (check_index == last_index_plus_one)
+										vec->PushObjectElement(g2_mut);
+									
+									// Move to the next mutation in g2
+								loopback4:
+									if (++g2_index >= g2_size)
+									{
+										done = true;
+										break;
+									}
+									g2_mut = g2[g2_index];
+									if (g2_mut->mutation_type_ptr_ != mutation_type_ptr)
+										goto loopback4;
+									
+									pos2 = g2_mut->position_;
+								}
+								
+								// Note that we may be done with both g1 and/or g2 here; if so, done will be set and we will break out
+								if (done)
+									break;
+							}
+						}
+						while (true);
+					}
+				}
+				
+				// Finish off any tail ends, which must be unique and sorted already
+				while (g1_index < g1_size)
+				{
+					Mutation *mut = g1[g1_index++];
+					
+					if (mut->mutation_type_ptr_ == mutation_type_ptr)
+						vec->PushObjectElement(mut);
+				}
+				while (g2_index < g2_size)
+				{
+					Mutation *mut = g2[g2_index++];
+					
+					if (mut->mutation_type_ptr_ == mutation_type_ptr)
+						vec->PushObjectElement(mut);
+				}
+				
+				return result_SP;
+			}
+			else
+			{
+				return gStaticEidosValueNULL;
+			}
+			/*
+			 A SLiM model to test the above code:
+			 
+			 initialize() {
+				 initializeMutationRate(1e-5);
+				 initializeMutationType("m1", 0.5, "f", 0.0);
+				 initializeMutationType("m2", 0.5, "f", 0.0);
+				 initializeMutationType("m3", 0.5, "f", 0.0);
+				 initializeGenomicElementType("g1", c(m1, m2, m3), c(1.0, 1.0, 1.0));
+				 initializeGenomicElement(g1, 0, 99999);
+				 initializeRecombinationRate(1e-8);
+			 }
+			 1 {
+				 sim.addSubpop("p1", 500);
+			 }
+			 1:20000 late() {
+				 for (i in p1.individuals)
+				 {
+					 // check m1
+					 um1 = i.uniqueMutationsOfType(m1);
+					 um2 = sortBy(unique(i.genomes.mutationsOfType(m1)), "position");
+					 
+					 if (!identical(um1.position, um2.position))
+					 {
+						 print("Mismatch for m1!");
+						 print(um1.position);
+						 print(um2.position);
+					 }
+				 }
+			 }
+			 */
 		}
 			
 			
@@ -781,6 +1010,7 @@ const std::vector<const EidosMethodSignature *> *Individual_Class::Methods(void)
 		methods->emplace_back(SignatureForMethodOrRaise(gID_containsMutations));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_countOfMutationsOfType));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_relatedness));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_uniqueMutationsOfType));
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	
@@ -792,12 +1022,14 @@ const EidosMethodSignature *Individual_Class::SignatureForMethod(EidosGlobalStri
 	static EidosInstanceMethodSignature *containsMutationsSig = nullptr;
 	static EidosInstanceMethodSignature *countOfMutationsOfTypeSig = nullptr;
 	static EidosInstanceMethodSignature *relatednessSig = nullptr;
+	static EidosInstanceMethodSignature *uniqueMutationsOfTypeSig = nullptr;
 	
 	if (!containsMutationsSig)
 	{
 		containsMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMutations, kEidosValueMaskLogical))->AddObject("mutations", gSLiM_Mutation_Class);
 		countOfMutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
 		relatednessSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_relatedness, kEidosValueMaskFloat))->AddObject("individuals", gSLiM_Individual_Class);
+		uniqueMutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_uniqueMutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -806,6 +1038,7 @@ const EidosMethodSignature *Individual_Class::SignatureForMethod(EidosGlobalStri
 		case gID_containsMutations:			return containsMutationsSig;
 		case gID_countOfMutationsOfType:	return countOfMutationsOfTypeSig;
 		case gID_relatedness:				return relatednessSig;
+		case gID_uniqueMutationsOfType:		return uniqueMutationsOfTypeSig;
 			
 			// all others, including gID_none
 		default:
