@@ -281,25 +281,25 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_pedigreeID:
 		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(pedigree_id_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(pedigree_id_));
 		}
 		case gID_pedigreeParentIDs:
 		{
-			EidosValue_Float_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(2);
+			EidosValue_Int_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->Reserve(2);
 			
-			vec->PushFloat(pedigree_p1_);
-			vec->PushFloat(pedigree_p2_);
+			vec->PushInt(pedigree_p1_);
+			vec->PushInt(pedigree_p2_);
 			
 			return EidosValue_SP(vec);
 		}
 		case gID_pedigreeGrandparentIDs:
 		{
-			EidosValue_Float_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(4);
+			EidosValue_Int_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->Reserve(4);
 			
-			vec->PushFloat(pedigree_g1_);
-			vec->PushFloat(pedigree_g2_);
-			vec->PushFloat(pedigree_g2_);
-			vec->PushFloat(pedigree_g2_);
+			vec->PushInt(pedigree_g1_);
+			vec->PushInt(pedigree_g2_);
+			vec->PushInt(pedigree_g2_);
+			vec->PushInt(pedigree_g2_);
 			
 			return EidosValue_SP(vec);
 		}
@@ -466,19 +466,10 @@ int64_t Individual::GetProperty_Accelerated_Int(EidosGlobalStringID p_property_i
 	switch (p_property_id)
 	{
 		case gID_index:			return index_;
+		case gID_pedigreeID:	return pedigree_id_;
 		case gID_tag:			return tag_value_;
 			
 		default:				return EidosObjectElement::GetProperty_Accelerated_Int(p_property_id);
-	}
-}
-
-double Individual::GetProperty_Accelerated_Float(EidosGlobalStringID p_property_id)
-{
-	switch (p_property_id)
-	{
-		case gID_pedigreeID:	return pedigree_id_;
-			
-		default:				return EidosObjectElement::GetProperty_Accelerated_Float(p_property_id);
 	}
 }
 
@@ -975,9 +966,9 @@ const EidosPropertySignature *Individual_Class::SignatureForProperty(EidosGlobal
 		genomesSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomes,					gID_genomes,					true,	kEidosValueMaskObject, gSLiM_Genome_Class));
 		sexSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_sex,						gID_sex,						true,	kEidosValueMaskString | kEidosValueMaskSingleton));
 		tagSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,						gID_tag,						false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAccelerated();
-		pedigreeIDSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeID,				gID_pedigreeID,					true,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAccelerated();
-		pedigreeParentIDsSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeParentIDs,		gID_pedigreeParentIDs,			true,	kEidosValueMaskFloat));
-		pedigreeGrandparentIDsSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeGrandparentIDs,	gID_pedigreeGrandparentIDs,		true,	kEidosValueMaskFloat));
+		pedigreeIDSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeID,				gID_pedigreeID,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAccelerated();
+		pedigreeParentIDsSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeParentIDs,		gID_pedigreeParentIDs,			true,	kEidosValueMaskInt));
+		pedigreeGrandparentIDsSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeGrandparentIDs,	gID_pedigreeGrandparentIDs,		true,	kEidosValueMaskInt));
 		uniqueMutationsSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_uniqueMutations,			gID_uniqueMutations,			true,	kEidosValueMaskObject, gSLiM_Mutation_Class));
 	}
 	
