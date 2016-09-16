@@ -891,9 +891,29 @@ Changing this will normally affect the fitness values calculated at the end of t
 \f2\fs18 Individual
 \f0\fs20  objects in a later generation.  This is an implementation detail and should not be relied upon.
 \f3 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 uniqueMutations => (object<Mutation>)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 All of the 
+\f2\fs18 Mutation
+\f0\fs20  objects present in this individual.  Mutations present in both genomes will occur only once in this property, and the mutations will be given in sorted order by 
+\f2\fs18 position
+\f0\fs20 , so this property is similar to 
+\f2\fs18 sortBy(unique(individual.genomes.mutations), "position")
+\f3\fs20 .
+\f0   It is not identical to that call, only because if multiple mutations exist at the exact same position, they may be sorted differently by this method than they would be by 
+\f2\fs18 sortBy()
+\f3\fs20 .
+\f0   This method is provided primarily for speed; it executes much faster than the Eidos equivalent above.  Indeed, tests indicate it is more than ten times faster than 
+\f2\fs18 unique(individual.genomes.mutations)
+\f0\fs20 , and slightly faster than just 
+\f2\fs18 individual.genomes.mutations
+\f0\fs20 , so even if the sorting and uniquing are not needed, it is still advantageous unless duplicate entries for homozygous mutations are actually needed.\
 \pard\pardeftab397\ri720\sb120\sa60\partightenfactor0
 
-\f0\i\fs22 \cf0 5.6.2  
+\i\fs22 \cf0 5.6.2  
 \f1\fs18 Individual
 \f0\fs22  methods\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0

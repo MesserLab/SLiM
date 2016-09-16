@@ -39,6 +39,7 @@ Development head:
 	Add createDirectory() function to Eidos
 	Add automatic pedigree tracking to the Individual class
 	Add new initializeSLiMOptions() initialization function
+	Add uniqueMutations property to Individual
 
 2.0.4 (build 833; Eidos version 1.0.4)
 	Fix issue with interleaving of output from SLiM versus Eidos

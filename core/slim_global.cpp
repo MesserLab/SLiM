@@ -136,6 +136,7 @@ const std::string gStr_mutationRate = "mutationRate";
 const std::string gStr_genomeType = "genomeType";
 const std::string gStr_isNullGenome = "isNullGenome";
 const std::string gStr_mutations = "mutations";
+const std::string gStr_uniqueMutations = "uniqueMutations";
 const std::string gStr_genomicElementType = "genomicElementType";
 const std::string gStr_startPosition = "startPosition";
 const std::string gStr_endPosition = "endPosition";
@@ -323,6 +324,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_genomeType, gID_genomeType);
 		Eidos_RegisterStringForGlobalID(gStr_isNullGenome, gID_isNullGenome);
 		Eidos_RegisterStringForGlobalID(gStr_mutations, gID_mutations);
+		Eidos_RegisterStringForGlobalID(gStr_uniqueMutations, gID_uniqueMutations);
 		Eidos_RegisterStringForGlobalID(gStr_genomicElementType, gID_genomicElementType);
 		Eidos_RegisterStringForGlobalID(gStr_startPosition, gID_startPosition);
 		Eidos_RegisterStringForGlobalID(gStr_endPosition, gID_endPosition);

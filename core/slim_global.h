@@ -276,6 +276,7 @@ extern const std::string gStr_mutationRate;
 extern const std::string gStr_genomeType;
 extern const std::string gStr_isNullGenome;
 extern const std::string gStr_mutations;
+extern const std::string gStr_uniqueMutations;
 extern const std::string gStr_genomicElementType;
 extern const std::string gStr_startPosition;
 extern const std::string gStr_endPosition;
@@ -449,6 +450,7 @@ enum _SLiMGlobalStringID : int {
 	gID_genomeType,
 	gID_isNullGenome,
 	gID_mutations,
+	gID_uniqueMutations,
 	gID_genomicElementType,
 	gID_startPosition,
 	gID_endPosition,

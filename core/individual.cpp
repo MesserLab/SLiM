@@ -303,6 +303,151 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			
 			return EidosValue_SP(vec);
 		}
+		case gID_uniqueMutations:
+		{
+			Genome *genome1, *genome2;
+			
+			GetGenomes(&genome1, &genome2);
+			
+			if (genome1 && genome2)
+			{
+				Genome &g1 = *genome1, &g2 = *genome2;
+				
+				// We reserve a vector large enough to hold all the mutations from both genomes; probably usually overkill, but it does little harm
+				int g1_size = g1.size(), g2_size = g2.size();
+				EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->Reserve(g1_size + g2_size);
+				EidosValue_SP result_SP = EidosValue_SP(vec);
+				
+				// We want to interleave mutations from the two genomes, keeping only the uniqued mutations.  For a given position, we take mutations
+				// from g1 first, and then look at the mutations in g2 at the same position and add them if they are not in g1.
+				int g1_index = 0, g2_index = 0;
+				
+				if (g1_size && g2_size)
+				{
+					// Get the position of the mutations at g1_index and g2_index
+					Mutation *g1_mut = g1[g1_index], *g2_mut = g2[g2_index];
+					slim_position_t pos1 = g1_mut->position_, pos2 = g2_mut->position_;
+					
+					// Process mutations as long as both genomes still have mutations left in them
+					do
+					{
+						if (pos1 < pos2)
+						{
+							vec->PushObjectElement(g1_mut);
+							
+							// Move to the next mutation in g1
+							if (++g1_index >= g1_size)
+								break;
+							g1_mut = g1[g1_index];
+							pos1 = g1_mut->position_;
+						}
+						else if (pos1 > pos2)
+						{
+							vec->PushObjectElement(g2_mut);
+							
+							// Move to the next mutation in g2
+							if (++g2_index >= g2_size)
+								break;
+							g2_mut = g2[g2_index];
+							pos2 = g2_mut->position_;
+						}
+						else
+						{
+							// pos1 == pos2; copy mutations from g1 until we are done with this position, then handle g2
+							slim_position_t focal_pos = pos1;
+							int first_index = g1_index;
+							bool done = false;
+							
+							while (pos1 == focal_pos)
+							{
+								vec->PushObjectElement(g1_mut);
+								
+								// Move to the next mutation in g1
+								if (++g1_index >= g1_size)
+								{
+									done = true;
+									break;
+								}
+								g1_mut = g1[g1_index];
+								pos1 = g1_mut->position_;
+							}
+							
+							// Note that we may be done with g1 here, so be careful
+							int last_index_plus_one = g1_index;
+							
+							while (pos2 == focal_pos)
+							{
+								int check_index;
+								
+								for (check_index = first_index; check_index < last_index_plus_one; ++check_index)
+									if (g1[check_index] == g2_mut)
+										break;
+								
+								// If the check indicates that g2_mut is not in g1, we copy it over
+								if (check_index == last_index_plus_one)
+									vec->PushObjectElement(g2_mut);
+								
+								// Move to the next mutation in g2
+								if (++g2_index >= g2_size)
+								{
+									done = true;
+									break;
+								}
+								g2_mut = g2[g2_index];
+								pos2 = g2_mut->position_;
+							}
+							
+							// Note that we may be done with both g1 and/or g2 here; if so, done will be set and we will break out
+							if (done)
+								break;
+						}
+					}
+					while (true);
+				}
+				
+				// Finish off any tail ends, which must be unique and sorted already
+				while (g1_index < g1_size)
+					vec->PushObjectElement(g1[g1_index++]);
+				while (g2_index < g2_size)
+					vec->PushObjectElement(g2[g2_index++]);
+				
+				return result_SP;
+			}
+			else
+			{
+				return gStaticEidosValueNULL;
+			}
+			/*
+			 The code above for uniqueMutations can be tested with the simple SLiM script below.  Positions are tested with
+			 identical() instead of the mutation vectors themselves, only because the sorted order of mutations at exactly
+			 the same position may differ; identical(um1, um2) will occasionally flag these as false positives.
+			 
+			 initialize() {
+				 initializeMutationRate(1e-5);
+				 initializeMutationType("m1", 0.5, "f", 0.0);
+				 initializeGenomicElementType("g1", m1, 1.0);
+				 initializeGenomicElement(g1, 0, 99999);
+				 initializeRecombinationRate(1e-8);
+			 }
+			 1 {
+				sim.addSubpop("p1", 500);
+			 }
+			 1:20000 late() {
+				 for (i in p1.individuals)
+				 {
+					 um1 = i.uniqueMutations;
+					 um2 = sortBy(unique(i.genomes.mutations), "position");
+					 
+					 if (!identical(um1.position, um2.position))
+					 {
+						 print("Mismatch!");
+						 print(um1.position);
+						 print(um2.position);
+					 }
+				 }
+			 }
+			 */
+		}
 			
 			// variables
 		case gID_tag:				// ACCELERATED
@@ -574,6 +719,7 @@ const std::vector<const EidosPropertySignature *> *Individual_Class::Properties(
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_pedigreeID));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_pedigreeParentIDs));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_pedigreeGrandparentIDs));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_uniqueMutations));
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
@@ -591,6 +737,7 @@ const EidosPropertySignature *Individual_Class::SignatureForProperty(EidosGlobal
 	static EidosPropertySignature *pedigreeIDSig = nullptr;
 	static EidosPropertySignature *pedigreeParentIDsSig = nullptr;
 	static EidosPropertySignature *pedigreeGrandparentIDsSig = nullptr;
+	static EidosPropertySignature *uniqueMutationsSig = nullptr;
 	
 	if (!subpopulationSig)
 	{
@@ -602,6 +749,7 @@ const EidosPropertySignature *Individual_Class::SignatureForProperty(EidosGlobal
 		pedigreeIDSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeID,				gID_pedigreeID,					true,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAccelerated();
 		pedigreeParentIDsSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeParentIDs,		gID_pedigreeParentIDs,			true,	kEidosValueMaskFloat));
 		pedigreeGrandparentIDsSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeGrandparentIDs,	gID_pedigreeGrandparentIDs,		true,	kEidosValueMaskFloat));
+		uniqueMutationsSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_uniqueMutations,			gID_uniqueMutations,			true,	kEidosValueMaskObject, gSLiM_Mutation_Class));
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -615,6 +763,7 @@ const EidosPropertySignature *Individual_Class::SignatureForProperty(EidosGlobal
 		case gID_pedigreeID:				return pedigreeIDSig;
 		case gID_pedigreeParentIDs:			return pedigreeParentIDsSig;
 		case gID_pedigreeGrandparentIDs:	return pedigreeGrandparentIDsSig;
+		case gID_uniqueMutations:			return uniqueMutationsSig;
 			
 			// all others, including gID_none
 		default:
