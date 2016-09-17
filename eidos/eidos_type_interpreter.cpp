@@ -197,7 +197,7 @@ EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(str
 				}
 			}
 		}
-		else if (((function_ptr == Eidos_ExecuteFunction_rep) || (function_ptr == Eidos_ExecuteFunction_repEach) || (function_ptr == Eidos_ExecuteFunction_rev) || (function_ptr == Eidos_ExecuteFunction_sample) || (function_ptr == Eidos_ExecuteFunction_sortBy) || (function_ptr == Eidos_ExecuteFunction_unique)) && (argument_count >= 1))
+		else if (((function_ptr == Eidos_ExecuteFunction_rep) || (function_ptr == Eidos_ExecuteFunction_repEach) || (function_ptr == Eidos_ExecuteFunction_rev) || (function_ptr == Eidos_ExecuteFunction_sample) || (function_ptr == Eidos_ExecuteFunction_sortBy) || (function_ptr == Eidos_ExecuteFunction_unique) || (function_ptr == Eidos_ExecuteFunction_setUnion) || (function_ptr == Eidos_ExecuteFunction_setIntersection) || (function_ptr == Eidos_ExecuteFunction_setDifference) || (function_ptr == Eidos_ExecuteFunction_setSymmetricDifference)) && (argument_count >= 1))
 		{
 			// These functions are all defined as returning *, but in fact return the same type/class as their first argument.
 			EidosTypeSpecifier argument_type = TypeEvaluateNode(p_arguments[0]);

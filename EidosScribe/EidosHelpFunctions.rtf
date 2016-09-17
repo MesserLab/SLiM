@@ -1,7 +1,7 @@
 {\rtf1\ansi\ansicpg1252\cocoartf1404\cocoasubrtf470
 {\fonttbl\f0\fswiss\fcharset0 Optima-Regular;\f1\fnil\fcharset0 Menlo-Regular;\f2\froman\fcharset0 TimesNewRomanPSMT;
-\f3\fnil\fcharset0 Menlo-Italic;\f4\fswiss\fcharset0 Helvetica;\f5\fnil\fcharset0 Menlo-Bold;
-\f6\ftech\fcharset77 Symbol;}
+\f3\fnil\fcharset0 Menlo-Italic;\f4\fnil\fcharset0 AppleSymbols;\f5\fswiss\fcharset0 Helvetica;
+\f6\fnil\fcharset0 Menlo-Bold;\f7\ftech\fcharset77 Symbol;}
 {\colortbl;\red255\green255\blue255;}
 {\*\listtable{\list\listtemplateid1\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat0\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid1\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid1}
 {\list\listtemplateid2\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid101\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid2}
@@ -503,6 +503,162 @@
 \f2\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f1\fs18 \cf0 (*)setDifference(*
+\f2 \'a0
+\f1 x, *
+\f2 \'a0
+\f1 y)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns the 
+\b set-theoretic (asymmetric) difference
+\b0  of 
+\f1\fs18 x
+\f0\fs20  and 
+\f1\fs18 y
+\f0\fs20 , denoted 
+\f1\fs18 x
+\f0\fs20  
+\f4 \uc0\u8726 
+\f0  
+\f1\fs18 y
+\f0\fs20 : a vector containing all elements that are in 
+\f1\fs18 x
+\f0\fs20  but are not in 
+\f1\fs18 y
+\f0\fs20 .  Duplicate elements will be stripped out, in the same manner as the 
+\f1\fs18 unique()
+\f0\fs20  function.  The order of elements in the returned vector is arbitrary and should not be relied upon.  The returned vector will be of the same type as 
+\f1\fs18 x
+\f0\fs20  and 
+\f1\fs18 y
+\f2\fs20 ,
+\f0  and 
+\f1\fs18 x
+\f0\fs20  and 
+\f1\fs18 y
+\f0\fs20  must be of the same type.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (*)setIntersection(*
+\f2 \'a0
+\f1 x, *
+\f2 \'a0
+\f1 y)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns the 
+\b set-theoretic intersection
+\b0  of 
+\f1\fs18 x
+\f0\fs20  and 
+\f1\fs18 y
+\f0\fs20 , denoted 
+\f1\fs18 x
+\f0\fs20  
+\f4 \uc0\u8745 
+\f0  
+\f1\fs18 y
+\f0\fs20 : a vector containing all elements that are in both 
+\f1\fs18 x
+\f0\fs20  and 
+\f1\fs18 y
+\f0\fs20  (but not in 
+\i only
+\i0  
+\f1\fs18 x
+\f0\fs20  or 
+\f1\fs18 y
+\f0\fs20 ).  Duplicate elements will be stripped out, in the same manner as the 
+\f1\fs18 unique()
+\f0\fs20  function.  The order of elements in the returned vector is arbitrary and should not be relied upon.  The returned vector will be of the same type as 
+\f1\fs18 x
+\f0\fs20  and 
+\f1\fs18 y
+\f2\fs20 ,
+\f0  and 
+\f1\fs18 x
+\f0\fs20  and 
+\f1\fs18 y
+\f0\fs20  must be of the same type.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (*)setSymmetricDifference(*
+\f2 \'a0
+\f1 x, *
+\f2 \'a0
+\f1 y)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns the 
+\b set-theoretic symmetric difference
+\b0  of 
+\f1\fs18 x
+\f0\fs20  and 
+\f1\fs18 y
+\f0\fs20 , denoted 
+\f1\fs18 x
+\f0\fs20  
+\f4 \uc0\u8710 
+\f0  
+\f1\fs18 y
+\f0\fs20 : a vector containing all elements that are in 
+\f1\fs18 x
+\f0\fs20  or 
+\f1\fs18 y
+\f0\fs20 , but not in both.  Duplicate elements will be stripped out, in the same manner as the 
+\f1\fs18 unique()
+\f0\fs20  function.  The order of elements in the returned vector is arbitrary and should not be relied upon.  The returned vector will be of the same type as 
+\f1\fs18 x
+\f0\fs20  and 
+\f1\fs18 y
+\f2\fs20 ,
+\f0  and 
+\f1\fs18 x
+\f0\fs20  and 
+\f1\fs18 y
+\f0\fs20  must be of the same type.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (*)setUnion(*
+\f2 \'a0
+\f1 x, *
+\f2 \'a0
+\f1 y)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns the 
+\b set-theoretic union
+\b0  of 
+\f1\fs18 x
+\f0\fs20  and 
+\f1\fs18 y
+\f0\fs20 , denoted 
+\f1\fs18 x
+\f0\fs20  
+\f4 \uc0\u8746 
+\f0  
+\f1\fs18 y
+\f0\fs20 : a vector containing all elements that are in 
+\f1\fs18 x
+\f0\fs20  and/or 
+\f1\fs18 y
+\f0\fs20 .  Duplicate elements will be stripped out, in the same manner as the 
+\f1\fs18 unique()
+\f0\fs20  function.  This function is therefore roughly equivalent to 
+\f1\fs18 unique(c(x, y))
+\f0\fs20 , but this function will probably be faster.  The order of elements in the returned vector is arbitrary and should not be relied upon.  The returned vector will be of the same type as 
+\f1\fs18 x
+\f0\fs20  and 
+\f1\fs18 y
+\f2\fs20 ,
+\f0  and 
+\f1\fs18 x
+\f0\fs20  and 
+\f1\fs18 y
+\f0\fs20  must be of the same type.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f1\fs18 \cf0 (float)sin(numeric
 \f2 \'a0
 \f1 x)\
@@ -875,28 +1031,28 @@
 \i0 (
 \i s
 \i0 \'a0|\'a0
-\f4\i \uc0\u945 
+\f5\i \uc0\u945 
 \f2\i0 ,
-\f4\i \uc0\u946 
+\f5\i \uc0\u946 
 \f2\i0 )\'a0= [
-\f4 \uc0\u915 
+\f5 \uc0\u915 
 \f2 (
-\f4\i \uc0\u945 
+\f5\i \uc0\u945 
 \f2\i0 )
-\f4\i \uc0\u946 \u945 
+\f5\i \uc0\u946 \u945 
 \f2\i0 ]\super \uc0\u8722 1\nosupersub exp(\uc0\u8722 
 \i s
 \i0 /
-\f4\i \uc0\u946 
+\f5\i \uc0\u946 
 \f2\i0 )
 \f0 , where 
-\f4\i \uc0\u945 
+\f5\i \uc0\u945 
 \f0\i0  is the shape parameter 
 \f1\fs18 shape
 \f0\fs20 , and the mean of the distribution given by 
 \f1\fs18 mean
 \f0\fs20  is equal to 
-\f4\i \uc0\u945 \u946 
+\f5\i \uc0\u945 \u946 
 \f2\i0 .
 \f0   Values of 
 \f1\fs18 mean
@@ -968,7 +1124,7 @@
 \f0\fs20  (not to be confused with the language concept of a \'93lambda\'94; 
 \f1\fs18 lambda
 \f0\fs20  here is just the name of a parameter, because the symbol typically used for the parameter of a Poisson distribution is the Greek letter 
-\f4 \uc0\u955 
+\f5 \uc0\u955 
 \f0 ).  The 
 \f1\fs18 lambda
 \f0\fs20  parameter may either be a singleton, specifying a single value to be used for all of the draws, or it may be a vector of length 
@@ -1024,20 +1180,20 @@
 \i0 (
 \i s
 \i0 \'a0|\'a0
-\f4\i \uc0\u955 
+\f5\i \uc0\u955 
 \f2\i0 ,
 \i k
 \i0 )\'a0=\'a0(
 \i k
 \i0  / 
-\f4\i \uc0\u955 
+\f5\i \uc0\u955 
 \f2 \super k
 \i0 \nosupersub )\'a0
 \i s\super k
 \i0 \uc0\u8722 1\nosupersub \'a0exp(-(
 \i s
 \i0 /
-\f4\i \uc0\u955 
+\f5\i \uc0\u955 
 \f2\i0 )
 \i \super k
 \i0 \nosupersub ).\
@@ -1064,7 +1220,7 @@
 
 \f0\fs20 \cf0 Returns a 
 \b new 
-\f5\fs18 float
+\f6\fs18 float
 \f0\fs20  vector
 \b0  of the length specified by 
 \f1\fs18 length
@@ -1081,7 +1237,7 @@
 
 \f0\fs20 \cf0 Returns a 
 \b new 
-\f5\fs18 integer
+\f6\fs18 integer
 \f0\fs20  vector
 \b0  of the length specified by 
 \f1\fs18 length
@@ -1098,7 +1254,7 @@
 
 \f0\fs20 \cf0 Returns a 
 \b new 
-\f5\fs18 logical
+\f6\fs18 logical
 \f0\fs20  vector
 \b0  of the length specified by 
 \f1\fs18 length
@@ -1113,7 +1269,7 @@
 
 \f0\fs20 \cf0 Returns a 
 \b new empty 
-\f5\fs18 object
+\f6\fs18 object
 \f0\fs20  vector
 \b0 .  Unlike 
 \f1\fs18 float()
@@ -1203,7 +1359,7 @@
 \f1\fs18 size
 \f0\fs20  containing a 
 \b sample from the elements of 
-\f5\fs18 x
+\f6\fs18 x
 \f0\b0\fs20 .  If 
 \f1\fs18 replace
 \f0\fs20  is 
@@ -1306,7 +1462,7 @@
 
 \f0\fs20 \cf0 Returns a 
 \b new 
-\f5\fs18 string
+\f6\fs18 string
 \f0\fs20  vector
 \b0  of the length specified by 
 \f1\fs18 length
@@ -1328,7 +1484,7 @@
 \f1\fs18 T
 \f0\fs20  if 
 \b all values are 
-\f5\fs18 T
+\f6\fs18 T
 \f0\b0\fs20  in 
 \f1\fs18 x
 \f0\fs20 ; if any value is 
@@ -1353,7 +1509,7 @@
 \f1\fs18 T
 \f0\fs20  if 
 \b any value is 
-\f5\fs18 T
+\f6\fs18 T
 \f0\b0\fs20  in 
 \f1\fs18 x
 \f0\fs20 ; if all values are 
@@ -1455,23 +1611,23 @@ The syntax for
 \'96  Optional flags that modify the style of formatting:\
 \pard\tx1170\tx1890\pardeftab397\li1890\fi-990\ri720\sb60\sa60\partightenfactor0
 \ls2\ilvl0
-\f6\fs18 \cf0 \'a5	
+\f7\fs18 \cf0 \'a5	
 \f1 -
 \f0\fs20  :	The value is left-justified with the field (as opposed to the default of right-justification).\
 \ls2\ilvl0
-\f6\fs18 \'a5	
+\f7\fs18 \'a5	
 \f1 +
 \f0\fs20  :	The sign of the value is always prepended, even if the value is positive (as opposed to the default of appending the sign only if the value is negative).\
 \pard\tx1170\tx1890\pardeftab397\li1890\fi-990\ri720\sb60\sa60\partightenfactor0
 \ls2\ilvl0
-\f6 \cf0 \'a5	
+\f7 \cf0 \'a5	
 \f0\i space
 \i0  :	The value is prepended by a space when a sign is not prepended.  This is ignored if the 
 \f1\fs18 +
 \f0\fs20  flag is present, since values are then always prepended by a sign.\
 \pard\tx1170\tx1890\pardeftab397\li1890\fi-990\ri720\sb60\sa60\partightenfactor0
 \ls2\ilvl0
-\f6\fs18 \cf0 \'a5	
+\f7\fs18 \cf0 \'a5	
 \f1 #
 \f0\fs20  :	An alternative format is used.  For 
 \f1\fs18 %o
@@ -1497,7 +1653,7 @@ The syntax for
 \f1\fs18 %G
 \f0\fs20 , a decimal point is forced even if no zeros follow.\
 \ls2\ilvl0
-\f6\fs18 \'a5	
+\f7\fs18 \'a5	
 \f1 0
 \f0\fs20  :	The value is left-justified with the field (as opposed to the default of right-justification)\
 \pard\pardeftab397\li907\fi-187\ri720\sb60\sa60\partightenfactor0
@@ -2082,7 +2238,7 @@ This is quite similar to a function in R of the same name; note, however, that E
 
 \f0\fs20 \cf0 Returns the 
 \b indices of 
-\f5\fs18 T
+\f6\fs18 T
 \f0\fs20  values
 \b0  in 
 \f1\fs18 x
@@ -2173,7 +2329,7 @@ This is quite similar to a function in R of the same name; note, however, that E
 
 \f0\fs20 \cf0 Returns the 
 \b conversion to 
-\f5\fs18 float
+\f6\fs18 float
 \f0\b0\fs20  of 
 \f1\fs18 x
 \f0\fs20 .  If 
@@ -2193,7 +2349,7 @@ This is quite similar to a function in R of the same name; note, however, that E
 
 \f0\fs20 \cf0 Returns the 
 \b conversion to 
-\f5\fs18 integer
+\f6\fs18 integer
 \f0\b0\fs20  of 
 \f1\fs18 x
 \f0\fs20 .  If 
@@ -2215,7 +2371,7 @@ This is quite similar to a function in R of the same name; note, however, that E
 
 \f0\fs20 \cf0 Returns the 
 \b conversion to 
-\f5\fs18 logical
+\f6\fs18 logical
 \f0\b0\fs20  of 
 \f1\fs18 x
 \f0\fs20 .  Recall that in Eidos the empty 
@@ -2252,7 +2408,7 @@ This is quite similar to a function in R of the same name; note, however, that E
 
 \f0\fs20 \cf0 Returns the 
 \b conversion to 
-\f5\fs18 string
+\f6\fs18 string
 \f0\b0\fs20  of 
 \f1\fs18 x
 \f2\fs20 .\
@@ -2305,7 +2461,7 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f1\fs18 x
 \f0\fs20  
 \b is 
-\f5\fs18 float
+\f6\fs18 float
 \f0\fs20  type
 \b0 , 
 \f1\fs18 F
@@ -2324,7 +2480,7 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f1\fs18 x
 \f0\fs20  
 \b is 
-\f5\fs18 integer
+\f6\fs18 integer
 \f0\fs20  type
 \b0 , 
 \f1\fs18 F
@@ -2343,7 +2499,7 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f1\fs18 x
 \f0\fs20  
 \b is 
-\f5\fs18 logical
+\f6\fs18 logical
 \f0\fs20  type
 \b0 , 
 \f1\fs18 F
@@ -2362,7 +2518,7 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f1\fs18 x
 \f0\fs20  
 \b is 
-\f5\fs18 NULL
+\f6\fs18 NULL
 \f0\fs20  type
 \b0 , 
 \f1\fs18 F
@@ -2381,7 +2537,7 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f1\fs18 x
 \f0\fs20  
 \b is 
-\f5\fs18 object
+\f6\fs18 object
 \f0\fs20  type
 \b0 , 
 \f1\fs18 F
@@ -2400,7 +2556,7 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f1\fs18 x
 \f0\fs20  
 \b is 
-\f5\fs18 string
+\f6\fs18 string
 \f0\fs20  type
 \b0 , 
 \f1\fs18 F

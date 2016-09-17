@@ -108,6 +108,10 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("log2",				Eidos_ExecuteFunction_log2,			kEidosValueMaskFloat))->AddNumeric("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("product",			Eidos_ExecuteFunction_product,		kEidosValueMaskNumeric | kEidosValueMaskSingleton))->AddNumeric("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("round",			Eidos_ExecuteFunction_round,			kEidosValueMaskFloat))->AddFloat("x"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("setUnion",			Eidos_ExecuteFunction_setUnion,		kEidosValueMaskAny))->AddAny("x")->AddAny("y"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("setIntersection",	Eidos_ExecuteFunction_setIntersection,		kEidosValueMaskAny))->AddAny("x")->AddAny("y"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("setDifference",		Eidos_ExecuteFunction_setDifference,		kEidosValueMaskAny))->AddAny("x")->AddAny("y"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("setSymmetricDifference",		Eidos_ExecuteFunction_setSymmetricDifference,		kEidosValueMaskAny))->AddAny("x")->AddAny("y"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("sin",				Eidos_ExecuteFunction_sin,			kEidosValueMaskFloat))->AddNumeric("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("sqrt",				Eidos_ExecuteFunction_sqrt,			kEidosValueMaskFloat))->AddNumeric("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("sum",				Eidos_ExecuteFunction_sum,			kEidosValueMaskNumeric | kEidosValueMaskSingleton))->AddLogicalEquiv("x"));
@@ -523,6 +527,172 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 	
 	return EidosValue_SP(nullptr);
 }
+
+EidosValue_SP UniqueEidosValue(const EidosValue *p_arg0_value, bool p_force_new_vector)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	const EidosValue *arg0_value = p_arg0_value;
+	EidosValueType arg0_type = arg0_value->Type();
+	int arg0_count = arg0_value->Count();
+	
+	if (arg0_count == 0)
+	{
+		result_SP = arg0_value->NewMatchingType();
+	}
+	else if (arg0_count == 1)
+	{
+		if (p_force_new_vector)
+			result_SP = arg0_value->VectorBasedCopy();
+		else
+			result_SP = arg0_value->CopyValues();
+	}
+	else if (arg0_type == EidosValueType::kValueLogical)
+	{
+		const std::vector<eidos_logical_t> &logical_vec = *arg0_value->LogicalVector();
+		bool containsF = false, containsT = false;
+		
+		if (logical_vec[0])
+		{
+			// We have a true, look for a false
+			containsT = true;
+			
+			for (int value_index = 1; value_index < arg0_count; ++value_index)
+				if (!logical_vec[value_index])
+				{
+					containsF = true;
+					break;
+				}
+		}
+		else
+		{
+			// We have a false, look for a true
+			containsF = true;
+			
+			for (int value_index = 1; value_index < arg0_count; ++value_index)
+				if (logical_vec[value_index])
+				{
+					containsT = true;
+					break;
+				}
+		}
+		
+		if (containsF && !containsT)
+			result_SP = (p_force_new_vector ? EidosValue_SP(gStaticEidosValue_LogicalF->VectorBasedCopy()) : (EidosValue_SP)gStaticEidosValue_LogicalF);
+		else if (containsT && !containsF)
+			result_SP = (p_force_new_vector ? EidosValue_SP(gStaticEidosValue_LogicalT->VectorBasedCopy()) : (EidosValue_SP)gStaticEidosValue_LogicalT);
+		else if (!containsT && !containsF)
+			result_SP = (p_force_new_vector ? EidosValue_SP(gStaticEidosValue_Logical_ZeroVec->VectorBasedCopy()) : (EidosValue_SP)gStaticEidosValue_Logical_ZeroVec);
+		else	// containsT && containsF
+		{
+			// In this case, we need to be careful to preserve the order of occurrence
+			EidosValue_Logical *logical_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Logical();
+			result_SP = EidosValue_SP(logical_result);
+			
+			if (logical_vec[0])
+			{
+				logical_result->PushLogical(true);
+				logical_result->PushLogical(false);
+			}
+			else
+			{
+				logical_result->PushLogical(false);
+				logical_result->PushLogical(true);
+			}
+		}
+	}
+	else if (arg0_type == EidosValueType::kValueInt)
+	{
+		// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Int_vector; we can use the fast API
+		const std::vector<int64_t> &int_vec = *arg0_value->IntVector();
+		EidosValue_Int_vector *int_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector();
+		result_SP = EidosValue_SP(int_result);
+		
+		for (int value_index = 0; value_index < arg0_count; ++value_index)
+		{
+			int64_t value = int_vec[value_index];
+			int scan_index;
+			
+			for (scan_index = 0; scan_index < value_index; ++scan_index)
+			{
+				if (value == int_vec[scan_index])
+					break;
+			}
+			
+			if (scan_index == value_index)
+				int_result->PushInt(value);
+		}
+	}
+	else if (arg0_type == EidosValueType::kValueFloat)
+	{
+		// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Float_vector; we can use the fast API
+		const std::vector<double> &float_vec = *arg0_value->FloatVector();
+		EidosValue_Float_vector *float_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector();
+		result_SP = EidosValue_SP(float_result);
+		
+		for (int value_index = 0; value_index < arg0_count; ++value_index)
+		{
+			double value = float_vec[value_index];
+			int scan_index;
+			
+			for (scan_index = 0; scan_index < value_index; ++scan_index)
+			{
+				if (value == float_vec[scan_index])
+					break;
+			}
+			
+			if (scan_index == value_index)
+				float_result->PushFloat(value);
+		}
+	}
+	else if (arg0_type == EidosValueType::kValueString)
+	{
+		// We have arg0_count != 1, so the type of arg0_value must be EidosValue_String_vector; we can use the fast API
+		const std::vector<std::string> &string_vec = *arg0_value->StringVector();
+		EidosValue_String_vector *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector();
+		result_SP = EidosValue_SP(string_result);
+		
+		for (int value_index = 0; value_index < arg0_count; ++value_index)
+		{
+			string value = string_vec[value_index];
+			int scan_index;
+			
+			for (scan_index = 0; scan_index < value_index; ++scan_index)
+			{
+				if (value == string_vec[scan_index])
+					break;
+			}
+			
+			if (scan_index == value_index)
+				string_result->PushString(value);
+		}
+	}
+	else if (arg0_type == EidosValueType::kValueObject)
+	{
+		// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Object_vector; we can use the fast API
+		const std::vector<EidosObjectElement*> &object_vec = *arg0_value->ObjectElementVector();
+		EidosValue_Object_vector *object_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(((EidosValue_Object *)arg0_value)->Class());
+		result_SP = EidosValue_SP(object_result);
+		
+		for (int value_index = 0; value_index < arg0_count; ++value_index)
+		{
+			EidosObjectElement *value = object_vec[value_index];
+			int scan_index;
+			
+			for (scan_index = 0; scan_index < value_index; ++scan_index)
+			{
+				if (value == object_vec[scan_index])
+					break;
+			}
+			
+			if (scan_index == value_index)
+				object_result->PushObjectElement(value);
+		}
+	}
+	
+	return result_SP;
+}
+
 
 
 // ************************************************************************************
@@ -1306,6 +1476,1430 @@ EidosValue_SP Eidos_ExecuteFunction_product(const EidosValue_SP *const p_argumen
 				product *= float_vec[value_index];
 			
 			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(product));
+		}
+	}
+	
+	return result_SP;
+}
+
+//	(*)setUnion(* x, * y)
+EidosValue_SP Eidos_ExecuteFunction_setUnion(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValueType arg0_type = arg0_value->Type();
+	int arg0_count = arg0_value->Count();
+	
+	EidosValue *arg1_value = p_arguments[1].get();
+	EidosValueType arg1_type = arg1_value->Type();
+	int arg1_count = arg1_value->Count();
+	
+	if (arg0_type != arg1_type)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setUnion): function setUnion() requires that both operands have the same type." << eidos_terminate(nullptr);
+	
+	EidosValueType arg_type = arg0_type;
+	const EidosObjectClass *class0 = nullptr, *class1 = nullptr;
+	
+	if (arg_type == EidosValueType::kValueObject)
+	{
+		class0 = ((EidosValue_Object *)arg0_value)->Class();
+		class1 = ((EidosValue_Object *)arg1_value)->Class();
+		
+		if ((class0 != class1) && (class0 != gEidos_UndefinedClassObject) && (class1 != gEidos_UndefinedClassObject))
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setUnion): function setUnion() requires that both operands of object type have the same class (or undefined class)." << eidos_terminate(nullptr);
+	}
+	
+	if (arg0_count + arg1_count == 0)
+	{
+		if (class1 && (class1 != gEidos_UndefinedClassObject))
+			result_SP = arg1_value->NewMatchingType();
+		else
+			result_SP = arg0_value->NewMatchingType();
+	}
+	else if ((arg0_count == 1) && (arg1_count == 0))
+	{
+		result_SP = arg0_value->CopyValues();
+	}
+	else if ((arg0_count == 0) && (arg1_count == 1))
+	{
+		result_SP = arg1_value->CopyValues();
+	}
+	else if (arg_type == EidosValueType::kValueLogical)
+	{
+		// Because EidosValue_Logical works differently than other EidosValue types, this code can handle
+		// both the singleton and non-singleton cases; LogicalVector() is always available
+		const std::vector<eidos_logical_t> &logical_vec0 = *arg0_value->LogicalVector();
+		const std::vector<eidos_logical_t> &logical_vec1 = *arg1_value->LogicalVector();
+		bool containsF = false, containsT = false;
+		
+		if (((arg0_count > 0) && logical_vec0[0]) || ((arg1_count > 0) && logical_vec1[0]))
+		{
+			// We have a true value; look for a false value
+			containsT = true;
+			
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				if (!logical_vec0[value_index])
+				{
+					containsF = true;
+					break;
+				}
+			
+			if (!containsF)
+				for (int value_index = 0; value_index < arg1_count; ++value_index)
+					if (!logical_vec1[value_index])
+					{
+						containsF = true;
+						break;
+					}
+		}
+		else
+		{
+			// We have a false value; look for a true value
+			containsF = true;
+			
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				if (logical_vec0[value_index])
+				{
+					containsT = true;
+					break;
+				}
+			
+			if (!containsT)
+				for (int value_index = 0; value_index < arg1_count; ++value_index)
+					if (logical_vec1[value_index])
+					{
+						containsT = true;
+						break;
+					}
+		}
+		
+		if (containsF && !containsT)
+			result_SP = gStaticEidosValue_LogicalF;
+		else if (containsT && !containsF)
+			result_SP = gStaticEidosValue_LogicalT;
+		else if (!containsT && !containsF)
+			result_SP = gStaticEidosValue_Logical_ZeroVec;
+		else	// containsT && containsF
+		{
+			EidosValue_Logical *logical_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Logical();
+			result_SP = EidosValue_SP(logical_result);
+			
+			logical_result->PushLogical(false);
+			logical_result->PushLogical(true);
+		}
+	}
+	else if (arg0_count == 0)
+	{
+		// arg0 is zero-length, arg1 is >1, so we just need to unique arg1
+		result_SP = UniqueEidosValue(arg1_value, false);
+	}
+	else if (arg1_count == 0)
+	{
+		// arg1 is zero-length, arg0 is >1, so we just need to unique arg0
+		result_SP = UniqueEidosValue(arg0_value, false);
+	}
+	else if ((arg0_count == 1) && (arg1_count == 1))
+	{
+		// Make a bit of an effort to produce a singleton result, while handling the singleton/singleton case
+		if (arg_type == EidosValueType::kValueInt)
+		{
+			int64_t int0 = arg0_value->IntAtIndex(0, nullptr), int1 = arg1_value->IntAtIndex(0, nullptr);
+			
+			if (int0 == int1)
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(int0));
+			else
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{int0, int1});
+		}
+		else if (arg_type == EidosValueType::kValueFloat)
+		{
+			double float0 = arg0_value->FloatAtIndex(0, nullptr), float1 = arg1_value->FloatAtIndex(0, nullptr);
+			
+			if (float0 == float1)
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(float0));
+			else
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{float0, float1});
+		}
+		else if (arg_type == EidosValueType::kValueString)
+		{
+			std::string string0 = arg0_value->StringAtIndex(0, nullptr), string1 = arg1_value->StringAtIndex(0, nullptr);
+			
+			if (string0 == string1)
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(string0));
+			else
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{string0, string1});
+		}
+		else if (arg_type == EidosValueType::kValueObject)
+		{
+			EidosObjectElement *obj0 = arg0_value->ObjectElementAtIndex(0, nullptr), *obj1 = arg1_value->ObjectElementAtIndex(0, nullptr);
+			
+			if (obj0 == obj1)
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(obj0, ((EidosValue_Object *)arg0_value)->Class()));
+			else
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector({obj0, obj1}, ((EidosValue_Object *)arg0_value)->Class()));
+		}
+	}
+	else if ((arg0_count == 1) || (arg1_count == 1))
+	{
+		// We have one value that is a singleton, one that is a vector.  We'd like this case to be fast,
+		// so that addition of a single element to a set is a fast operation.
+		if (arg0_count == 1)
+		{
+			std::swap(arg0_count, arg1_count);
+			std::swap(arg0_value, arg1_value);
+		}
+		
+		// now arg0_count > 1, arg1_count == 1
+		result_SP = UniqueEidosValue(arg0_value, true);
+		
+		int result_count = result_SP->Count();
+		
+		// result_SP is modifiable and is guaranteed to be a vector, so now add arg1 if necessary using the fast APIs
+		if (arg_type == EidosValueType::kValueInt)
+		{
+			int64_t value = arg1_value->IntAtIndex(0, nullptr);
+			const std::vector<int64_t> &int_vec = *result_SP->IntVector();
+			int scan_index;
+			
+			for (scan_index = 0; scan_index < result_count; ++scan_index)
+			{
+				if (value == int_vec[scan_index])
+					break;
+			}
+			
+			if (scan_index == result_count)
+				((EidosValue_Int_vector *)(result_SP.get()))->PushInt(value);
+		}
+		else if (arg_type == EidosValueType::kValueFloat)
+		{
+			double value = arg1_value->FloatAtIndex(0, nullptr);
+			const std::vector<double> &float_vec = *result_SP->FloatVector();
+			int scan_index;
+			
+			for (scan_index = 0; scan_index < result_count; ++scan_index)
+			{
+				if (value == float_vec[scan_index])
+					break;
+			}
+			
+			if (scan_index == result_count)
+				((EidosValue_Float_vector *)(result_SP.get()))->PushFloat(value);
+		}
+		else if (arg_type == EidosValueType::kValueString)
+		{
+			std::string value = arg1_value->StringAtIndex(0, nullptr);
+			const std::vector<std::string> &string_vec = *result_SP->StringVector();
+			int scan_index;
+			
+			for (scan_index = 0; scan_index < result_count; ++scan_index)
+			{
+				if (value == string_vec[scan_index])
+					break;
+			}
+			
+			if (scan_index == result_count)
+				((EidosValue_String_vector *)(result_SP.get()))->PushString(value);
+		}
+		else if (arg_type == EidosValueType::kValueObject)
+		{
+			EidosObjectElement *value = arg1_value->ObjectElementAtIndex(0, nullptr);
+			const std::vector<EidosObjectElement *> &object_vec = *result_SP->ObjectElementVector();
+			int scan_index;
+			
+			for (scan_index = 0; scan_index < result_count; ++scan_index)
+			{
+				if (value == object_vec[scan_index])
+					break;
+			}
+			
+			if (scan_index == result_count)
+				((EidosValue_Object_vector *)(result_SP.get()))->PushObjectElement(value);
+		}
+	}
+	else
+	{
+		// We have two arguments which are both vectors of >1 value, so this is the base case.  We construct
+		// a new EidosValue containing all elements from both arguments, and then call UniqueEidosValue() to unique it.
+		// This code might look slow, but really the uniquing is O(N^2) and everything else is O(N), so since
+		// we are in the vector/vector case here, it really isn't worth worrying about optimizing the O(N) part.
+		result_SP = ConcatenateEidosValues(p_arguments, 2, false);
+		result_SP = UniqueEidosValue(result_SP.get(), false);
+	}
+	
+	return result_SP;
+}
+
+//	(*)setIntersection(* x, * y)
+EidosValue_SP Eidos_ExecuteFunction_setIntersection(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValueType arg0_type = arg0_value->Type();
+	int arg0_count = arg0_value->Count();
+	
+	EidosValue *arg1_value = p_arguments[1].get();
+	EidosValueType arg1_type = arg1_value->Type();
+	int arg1_count = arg1_value->Count();
+	
+	if (arg0_type != arg1_type)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setIntersection): function setIntersection() requires that both operands have the same type." << eidos_terminate(nullptr);
+	
+	EidosValueType arg_type = arg0_type;
+	const EidosObjectClass *class0 = nullptr, *class1 = nullptr;
+	
+	if (arg_type == EidosValueType::kValueObject)
+	{
+		class0 = ((EidosValue_Object *)arg0_value)->Class();
+		class1 = ((EidosValue_Object *)arg1_value)->Class();
+		
+		if ((class0 != class1) && (class0 != gEidos_UndefinedClassObject) && (class1 != gEidos_UndefinedClassObject))
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setIntersection): function setIntersection() requires that both operands of object type have the same class (or undefined class)." << eidos_terminate(nullptr);
+	}
+	
+	if ((arg0_count == 0) || (arg1_count == 0))
+	{
+		// If either argument is empty, the intersection is the empty set
+		if (class1 && (class1 != gEidos_UndefinedClassObject))
+			result_SP = arg1_value->NewMatchingType();
+		else
+			result_SP = arg0_value->NewMatchingType();
+	}
+	else if (arg_type == EidosValueType::kValueLogical)
+	{
+		// Because EidosValue_Logical works differently than other EidosValue types, this code can handle
+		// both the singleton and non-singleton cases; LogicalVector() is always available
+		const std::vector<eidos_logical_t> &logical_vec0 = *arg0_value->LogicalVector();
+		const std::vector<eidos_logical_t> &logical_vec1 = *arg1_value->LogicalVector();
+		bool containsF0 = false, containsT0 = false, containsF1 = false, containsT1 = false;
+		
+		if (logical_vec0[0])
+		{
+			containsT0 = true;
+			
+			for (int value_index = 1; value_index < arg0_count; ++value_index)
+				if (!logical_vec0[value_index])
+				{
+					containsF0 = true;
+					break;
+				}
+		}
+		else
+		{
+			containsF0 = true;
+			
+			for (int value_index = 1; value_index < arg0_count; ++value_index)
+				if (logical_vec0[value_index])
+				{
+					containsT0 = true;
+					break;
+				}
+		}
+		
+		if (logical_vec1[0])
+		{
+			containsT1 = true;
+			
+			for (int value_index = 1; value_index < arg1_count; ++value_index)
+				if (!logical_vec1[value_index])
+				{
+					containsF1 = true;
+					break;
+				}
+		}
+		else
+		{
+			containsF1 = true;
+			
+			for (int value_index = 1; value_index < arg1_count; ++value_index)
+				if (logical_vec1[value_index])
+				{
+					containsT1 = true;
+					break;
+				}
+		}
+		
+		if (containsF0 && containsT0 && containsF1 && containsT1)
+		{
+			EidosValue_Logical *logical_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Logical();
+			result_SP = EidosValue_SP(logical_result);
+			
+			logical_result->PushLogical(false);
+			logical_result->PushLogical(true);
+		}
+		else if (containsF0 && containsF1)
+			result_SP = gStaticEidosValue_LogicalF;
+		else if (containsT0 && containsT1)
+			result_SP = gStaticEidosValue_LogicalT;
+		else
+			result_SP = gStaticEidosValue_Logical_ZeroVec;
+	}
+	else if ((arg0_count == 1) && (arg1_count == 1))
+	{
+		// If both arguments are singleton, handle that case with a simple equality check
+		if (arg_type == EidosValueType::kValueInt)
+		{
+			int64_t int0 = arg0_value->IntAtIndex(0, nullptr), int1 = arg1_value->IntAtIndex(0, nullptr);
+			
+			if (int0 == int1)
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(int0));
+			else
+				result_SP = gStaticEidosValue_Integer_ZeroVec;
+		}
+		else if (arg_type == EidosValueType::kValueFloat)
+		{
+			double float0 = arg0_value->FloatAtIndex(0, nullptr), float1 = arg1_value->FloatAtIndex(0, nullptr);
+			
+			if (float0 == float1)
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(float0));
+			else
+				result_SP = gStaticEidosValue_Float_ZeroVec;
+		}
+		else if (arg_type == EidosValueType::kValueString)
+		{
+			std::string string0 = arg0_value->StringAtIndex(0, nullptr), string1 = arg1_value->StringAtIndex(0, nullptr);
+			
+			if (string0 == string1)
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(string0));
+			else
+				result_SP = gStaticEidosValue_String_ZeroVec;
+		}
+		else if (arg_type == EidosValueType::kValueObject)
+		{
+			EidosObjectElement *obj0 = arg0_value->ObjectElementAtIndex(0, nullptr), *obj1 = arg1_value->ObjectElementAtIndex(0, nullptr);
+			
+			if (obj0 == obj1)
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(obj0, ((EidosValue_Object *)arg0_value)->Class()));
+			else
+				result_SP = arg0_value->NewMatchingType();
+		}
+	}
+	else if ((arg0_count == 1) || (arg1_count == 1))
+	{
+		// If either argument is singleton (but not both), handle that case with a fast check
+		if (arg0_count == 1)
+		{
+			std::swap(arg0_count, arg1_count);
+			std::swap(arg0_value, arg1_value);
+		}
+		
+		// now arg0_count > 1, arg1_count == 1
+		bool found_match = false;
+		
+		if (arg_type == EidosValueType::kValueInt)
+		{
+			int64_t value = arg1_value->IntAtIndex(0, nullptr);
+			const std::vector<int64_t> &int_vec = *arg0_value->IntVector();
+			
+			for (int scan_index = 0; scan_index < arg0_count; ++scan_index)
+				if (value == int_vec[scan_index])
+				{
+					found_match = true;
+					break;
+				}
+		}
+		else if (arg_type == EidosValueType::kValueFloat)
+		{
+			double value = arg1_value->FloatAtIndex(0, nullptr);
+			const std::vector<double> &float_vec = *arg0_value->FloatVector();
+			
+			for (int scan_index = 0; scan_index < arg0_count; ++scan_index)
+				if (value == float_vec[scan_index])
+				{
+					found_match = true;
+					break;
+				}
+		}
+		else if (arg_type == EidosValueType::kValueString)
+		{
+			std::string value = arg1_value->StringAtIndex(0, nullptr);
+			const std::vector<std::string> &string_vec = *arg0_value->StringVector();
+			
+			for (int scan_index = 0; scan_index < arg0_count; ++scan_index)
+				if (value == string_vec[scan_index])
+				{
+					found_match = true;
+					break;
+				}
+		}
+		else if (arg_type == EidosValueType::kValueObject)
+		{
+			EidosObjectElement *value = arg1_value->ObjectElementAtIndex(0, nullptr);
+			const std::vector<EidosObjectElement *> &object_vec = *arg0_value->ObjectElementVector();
+			
+			for (int scan_index = 0; scan_index < arg0_count; ++scan_index)
+				if (value == object_vec[scan_index])
+				{
+					found_match = true;
+					break;
+				}
+		}
+		
+		if (found_match)
+			result_SP = arg1_value->CopyValues();
+		else
+			result_SP = arg0_value->NewMatchingType();
+	}
+	else
+	{
+		// Both arguments have size >1, so we can use fast APIs for both
+		if (arg0_type == EidosValueType::kValueInt)
+		{
+			const std::vector<int64_t> &int_vec0 = *arg0_value->IntVector();
+			const std::vector<int64_t> &int_vec1 = *arg1_value->IntVector();
+			EidosValue_Int_vector *int_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector();
+			result_SP = EidosValue_SP(int_result);
+			
+			for (int value_index0 = 0; value_index0 < arg0_count; ++value_index0)
+			{
+				int64_t value = int_vec0[value_index0];
+				
+				// First check that the value also exists in arg1
+				for (int value_index1 = 0; value_index1 < arg1_count; ++value_index1)
+					if (value == int_vec1[value_index1])
+					{
+						// Then check that we have not already handled the same value (uniquing)
+						int scan_index;
+						
+						for (scan_index = 0; scan_index < value_index0; ++scan_index)
+						{
+							if (value == int_vec0[scan_index])
+								break;
+						}
+						
+						if (scan_index == value_index0)
+							int_result->PushInt(value);
+						break;
+					}
+			}
+		}
+		else if (arg0_type == EidosValueType::kValueFloat)
+		{
+			const std::vector<double> &float_vec0 = *arg0_value->FloatVector();
+			const std::vector<double> &float_vec1 = *arg1_value->FloatVector();
+			EidosValue_Float_vector *float_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector();
+			result_SP = EidosValue_SP(float_result);
+			
+			for (int value_index0 = 0; value_index0 < arg0_count; ++value_index0)
+			{
+				double value = float_vec0[value_index0];
+				
+				// First check that the value also exists in arg1
+				for (int value_index1 = 0; value_index1 < arg1_count; ++value_index1)
+					if (value == float_vec1[value_index1])
+					{
+						// Then check that we have not already handled the same value (uniquing)
+						int scan_index;
+						
+						for (scan_index = 0; scan_index < value_index0; ++scan_index)
+						{
+							if (value == float_vec0[scan_index])
+								break;
+						}
+						
+						if (scan_index == value_index0)
+							float_result->PushFloat(value);
+						break;
+					}
+			}
+		}
+		else if (arg0_type == EidosValueType::kValueString)
+		{
+			const std::vector<std::string> &string_vec0 = *arg0_value->StringVector();
+			const std::vector<std::string> &string_vec1 = *arg1_value->StringVector();
+			EidosValue_String_vector *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector();
+			result_SP = EidosValue_SP(string_result);
+			
+			for (int value_index0 = 0; value_index0 < arg0_count; ++value_index0)
+			{
+				std::string value = string_vec0[value_index0];
+				
+				// First check that the value also exists in arg1
+				for (int value_index1 = 0; value_index1 < arg1_count; ++value_index1)
+					if (value == string_vec1[value_index1])
+					{
+						// Then check that we have not already handled the same value (uniquing)
+						int scan_index;
+						
+						for (scan_index = 0; scan_index < value_index0; ++scan_index)
+						{
+							if (value == string_vec0[scan_index])
+								break;
+						}
+						
+						if (scan_index == value_index0)
+							string_result->PushString(value);
+						break;
+					}
+			}
+		}
+		else if (arg0_type == EidosValueType::kValueObject)
+		{
+			const std::vector<EidosObjectElement*> &object_vec0 = *arg0_value->ObjectElementVector();
+			const std::vector<EidosObjectElement*> &object_vec1 = *arg1_value->ObjectElementVector();
+			EidosValue_Object_vector *object_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(((EidosValue_Object *)arg0_value)->Class());
+			result_SP = EidosValue_SP(object_result);
+			
+			for (int value_index0 = 0; value_index0 < arg0_count; ++value_index0)
+			{
+				EidosObjectElement *value = object_vec0[value_index0];
+				
+				// First check that the value also exists in arg1
+				for (int value_index1 = 0; value_index1 < arg1_count; ++value_index1)
+					if (value == object_vec1[value_index1])
+					{
+						// Then check that we have not already handled the same value (uniquing)
+						int scan_index;
+						
+						for (scan_index = 0; scan_index < value_index0; ++scan_index)
+						{
+							if (value == object_vec0[scan_index])
+								break;
+						}
+						
+						if (scan_index == value_index0)
+							object_result->PushObjectElement(value);
+						break;
+					}
+			}
+		}
+	}
+	
+	return result_SP;
+}
+
+//	(*)setDifference(* x, * y)
+EidosValue_SP Eidos_ExecuteFunction_setDifference(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValueType arg0_type = arg0_value->Type();
+	int arg0_count = arg0_value->Count();
+	
+	EidosValue *arg1_value = p_arguments[1].get();
+	EidosValueType arg1_type = arg1_value->Type();
+	int arg1_count = arg1_value->Count();
+	
+	if (arg0_type != arg1_type)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setDifference): function setDifference() requires that both operands have the same type." << eidos_terminate(nullptr);
+	
+	EidosValueType arg_type = arg0_type;
+	const EidosObjectClass *class0 = nullptr, *class1 = nullptr;
+	
+	if (arg_type == EidosValueType::kValueObject)
+	{
+		class0 = ((EidosValue_Object *)arg0_value)->Class();
+		class1 = ((EidosValue_Object *)arg1_value)->Class();
+		
+		if ((class0 != class1) && (class0 != gEidos_UndefinedClassObject) && (class1 != gEidos_UndefinedClassObject))
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setDifference): function setDifference() requires that both operands of object type have the same class (or undefined class)." << eidos_terminate(nullptr);
+	}
+	
+	if (arg0_count == 0)
+	{
+		// If arg0 is empty, the difference is the empty set
+		if (class1 && (class1 != gEidos_UndefinedClassObject))
+			result_SP = arg1_value->NewMatchingType();
+		else
+			result_SP = arg0_value->NewMatchingType();
+	}
+	else if (arg1_count == 0)
+	{
+		// If arg1 is empty, the difference is arg0, uniqued
+		result_SP = UniqueEidosValue(arg0_value, false);
+	}
+	else if (arg_type == EidosValueType::kValueLogical)
+	{
+		// Because EidosValue_Logical works differently than other EidosValue types, this code can handle
+		// both the singleton and non-singleton cases; LogicalVector() is always available
+		const std::vector<eidos_logical_t> &logical_vec0 = *arg0_value->LogicalVector();
+		const std::vector<eidos_logical_t> &logical_vec1 = *arg1_value->LogicalVector();
+		bool containsF0 = false, containsT0 = false, containsF1 = false, containsT1 = false;
+		
+		if (logical_vec0[0])
+		{
+			containsT0 = true;
+			
+			for (int value_index = 1; value_index < arg0_count; ++value_index)
+				if (!logical_vec0[value_index])
+				{
+					containsF0 = true;
+					break;
+				}
+		}
+		else
+		{
+			containsF0 = true;
+			
+			for (int value_index = 1; value_index < arg0_count; ++value_index)
+				if (logical_vec0[value_index])
+				{
+					containsT0 = true;
+					break;
+				}
+		}
+		
+		if (logical_vec1[0])
+		{
+			containsT1 = true;
+			
+			for (int value_index = 1; value_index < arg1_count; ++value_index)
+				if (!logical_vec1[value_index])
+				{
+					containsF1 = true;
+					break;
+				}
+		}
+		else
+		{
+			containsF1 = true;
+			
+			for (int value_index = 1; value_index < arg1_count; ++value_index)
+				if (logical_vec1[value_index])
+				{
+					containsT1 = true;
+					break;
+				}
+		}
+		
+		if (containsF1 && containsT1)
+			result_SP = gStaticEidosValue_Logical_ZeroVec;
+		else if (containsT0 && containsF0 && !containsT1 && !containsF1)
+		{
+			EidosValue_Logical *logical_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Logical();
+			result_SP = EidosValue_SP(logical_result);
+			
+			logical_result->PushLogical(false);
+			logical_result->PushLogical(true);
+		}
+		else if (containsT0 && !containsT1)
+			result_SP = gStaticEidosValue_LogicalT;
+		else if (containsF0 && !containsF1)
+			result_SP = gStaticEidosValue_LogicalF;
+		else
+			result_SP = gStaticEidosValue_Logical_ZeroVec;
+	}
+	else if ((arg0_count == 1) && (arg1_count == 1))
+	{
+		// If both arguments are singleton, handle that case with a simple equality check
+		if (arg_type == EidosValueType::kValueInt)
+		{
+			int64_t int0 = arg0_value->IntAtIndex(0, nullptr), int1 = arg1_value->IntAtIndex(0, nullptr);
+			
+			if (int0 == int1)
+				result_SP = gStaticEidosValue_Integer_ZeroVec;
+			else
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(int0));
+		}
+		else if (arg_type == EidosValueType::kValueFloat)
+		{
+			double float0 = arg0_value->FloatAtIndex(0, nullptr), float1 = arg1_value->FloatAtIndex(0, nullptr);
+			
+			if (float0 == float1)
+				result_SP = gStaticEidosValue_Float_ZeroVec;
+			else
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(float0));
+		}
+		else if (arg_type == EidosValueType::kValueString)
+		{
+			std::string string0 = arg0_value->StringAtIndex(0, nullptr), string1 = arg1_value->StringAtIndex(0, nullptr);
+			
+			if (string0 == string1)
+				result_SP = gStaticEidosValue_String_ZeroVec;
+			else
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(string0));
+		}
+		else if (arg_type == EidosValueType::kValueObject)
+		{
+			EidosObjectElement *obj0 = arg0_value->ObjectElementAtIndex(0, nullptr), *obj1 = arg1_value->ObjectElementAtIndex(0, nullptr);
+			
+			if (obj0 == obj1)
+				result_SP = arg0_value->NewMatchingType();
+			else
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(obj0, ((EidosValue_Object *)arg0_value)->Class()));
+		}
+	}
+	else if (arg0_count == 1)
+	{
+		// If any element in arg1 matches the element in arg0, the result is an empty vector
+		if (arg_type == EidosValueType::kValueInt)
+		{
+			int64_t int0 = arg0_value->IntAtIndex(0, nullptr);
+			const std::vector<int64_t> &int_vec = *arg1_value->IntVector();
+			
+			for (int value_index = 0; value_index < arg1_count; ++value_index)
+				if (int0 == int_vec[value_index])
+					return gStaticEidosValue_Integer_ZeroVec;
+			
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(int0));
+		}
+		else if (arg_type == EidosValueType::kValueFloat)
+		{
+			double float0 = arg0_value->FloatAtIndex(0, nullptr);
+			const std::vector<double> &float_vec = *arg1_value->FloatVector();
+			
+			for (int value_index = 0; value_index < arg1_count; ++value_index)
+				if (float0 == float_vec[value_index])
+					return gStaticEidosValue_Float_ZeroVec;
+			
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(float0));
+		}
+		else if (arg_type == EidosValueType::kValueString)
+		{
+			std::string string0 = arg0_value->StringAtIndex(0, nullptr);
+			const std::vector<std::string> &string_vec = *arg1_value->StringVector();
+			
+			for (int value_index = 0; value_index < arg1_count; ++value_index)
+				if (string0 == string_vec[value_index])
+					return gStaticEidosValue_String_ZeroVec;
+			
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(string0));
+		}
+		else if (arg_type == EidosValueType::kValueObject)
+		{
+			EidosObjectElement *obj0 = arg0_value->ObjectElementAtIndex(0, nullptr);
+			const std::vector<EidosObjectElement *> &object_vec = *arg1_value->ObjectElementVector();
+			
+			for (int value_index = 0; value_index < arg1_count; ++value_index)
+				if (obj0 == object_vec[value_index])
+					return arg0_value->NewMatchingType();
+			
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(obj0, ((EidosValue_Object *)arg0_value)->Class()));
+		}
+	}
+	else if (arg1_count == 1)
+	{
+		// The result is arg0 uniqued, minus the element in arg1 if it matches
+		result_SP = UniqueEidosValue(arg0_value, true);
+		
+		if (arg_type == EidosValueType::kValueInt)
+		{
+			int64_t int1 = arg1_value->IntAtIndex(0, nullptr);
+			std::vector<int64_t> &int_vec = *result_SP->IntVector_Mutable();
+			
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				if (int1 == int_vec[value_index])
+				{
+					int_vec.erase(int_vec.begin() + value_index);
+					break;
+				}
+		}
+		else if (arg_type == EidosValueType::kValueFloat)
+		{
+			double float1 = arg1_value->FloatAtIndex(0, nullptr);
+			std::vector<double> &float_vec = *result_SP->FloatVector_Mutable();
+			
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				if (float1 == float_vec[value_index])
+				{
+					float_vec.erase(float_vec.begin() + value_index);
+					break;
+				}
+		}
+		else if (arg_type == EidosValueType::kValueString)
+		{
+			std::string string1 = arg1_value->StringAtIndex(0, nullptr);
+			std::vector<std::string> &string_vec = *result_SP->StringVector_Mutable();
+			
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				if (string1 == string_vec[value_index])
+				{
+					string_vec.erase(string_vec.begin() + value_index);
+					break;
+				}
+		}
+		else if (arg_type == EidosValueType::kValueObject)
+		{
+			EidosObjectElement *obj1 = arg1_value->ObjectElementAtIndex(0, nullptr);
+			std::vector<EidosObjectElement *> &object_vec = *result_SP->ObjectElementVector_Mutable();
+			
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				if (obj1 == object_vec[value_index])
+				{
+					obj1->Release();
+					object_vec.erase(object_vec.begin() + value_index);
+					break;
+				}
+		}
+	}
+	else
+	{
+		// Both arguments have size >1, so we can use fast APIs for both
+		if (arg0_type == EidosValueType::kValueInt)
+		{
+			const std::vector<int64_t> &int_vec0 = *arg0_value->IntVector();
+			const std::vector<int64_t> &int_vec1 = *arg1_value->IntVector();
+			EidosValue_Int_vector *int_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector();
+			result_SP = EidosValue_SP(int_result);
+			
+			for (int value_index0 = 0; value_index0 < arg0_count; ++value_index0)
+			{
+				int64_t value = int_vec0[value_index0];
+				int value_index1, scan_index;
+				
+				// First check that the value does not exist in arg1
+				for (value_index1 = 0; value_index1 < arg1_count; ++value_index1)
+					if (value == int_vec1[value_index1])
+						break;
+				
+				if (value_index1 < arg1_count)
+					continue;
+				
+				// Then check that we have not already handled the same value (uniquing)
+				for (scan_index = 0; scan_index < value_index0; ++scan_index)
+					if (value == int_vec0[scan_index])
+						break;
+				
+				if (scan_index < value_index0)
+					continue;
+				
+				int_result->PushInt(value);
+			}
+		}
+		else if (arg0_type == EidosValueType::kValueFloat)
+		{
+			const std::vector<double> &float_vec0 = *arg0_value->FloatVector();
+			const std::vector<double> &float_vec1 = *arg1_value->FloatVector();
+			EidosValue_Float_vector *float_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector();
+			result_SP = EidosValue_SP(float_result);
+			
+			for (int value_index0 = 0; value_index0 < arg0_count; ++value_index0)
+			{
+				double value = float_vec0[value_index0];
+				int value_index1, scan_index;
+				
+				// First check that the value does not exist in arg1
+				for (value_index1 = 0; value_index1 < arg1_count; ++value_index1)
+					if (value == float_vec1[value_index1])
+						break;
+				
+				if (value_index1 < arg1_count)
+					continue;
+				
+				// Then check that we have not already handled the same value (uniquing)
+				for (scan_index = 0; scan_index < value_index0; ++scan_index)
+					if (value == float_vec0[scan_index])
+						break;
+				
+				if (scan_index < value_index0)
+					continue;
+				
+				float_result->PushFloat(value);
+			}
+		}
+		else if (arg0_type == EidosValueType::kValueString)
+		{
+			const std::vector<std::string> &string_vec0 = *arg0_value->StringVector();
+			const std::vector<std::string> &string_vec1 = *arg1_value->StringVector();
+			EidosValue_String_vector *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector();
+			result_SP = EidosValue_SP(string_result);
+			
+			for (int value_index0 = 0; value_index0 < arg0_count; ++value_index0)
+			{
+				std::string value = string_vec0[value_index0];
+				int value_index1, scan_index;
+				
+				// First check that the value does not exist in arg1
+				for (value_index1 = 0; value_index1 < arg1_count; ++value_index1)
+					if (value == string_vec1[value_index1])
+						break;
+				
+				if (value_index1 < arg1_count)
+					continue;
+				
+				// Then check that we have not already handled the same value (uniquing)
+				for (scan_index = 0; scan_index < value_index0; ++scan_index)
+					if (value == string_vec0[scan_index])
+						break;
+				
+				if (scan_index < value_index0)
+					continue;
+				
+				string_result->PushString(value);
+			}
+		}
+		else if (arg0_type == EidosValueType::kValueObject)
+		{
+			const std::vector<EidosObjectElement*> &object_vec0 = *arg0_value->ObjectElementVector();
+			const std::vector<EidosObjectElement*> &object_vec1 = *arg1_value->ObjectElementVector();
+			EidosValue_Object_vector *object_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(((EidosValue_Object *)arg0_value)->Class());
+			result_SP = EidosValue_SP(object_result);
+			
+			for (int value_index0 = 0; value_index0 < arg0_count; ++value_index0)
+			{
+				EidosObjectElement *value = object_vec0[value_index0];
+				int value_index1, scan_index;
+				
+				// First check that the value does not exist in arg1
+				for (value_index1 = 0; value_index1 < arg1_count; ++value_index1)
+					if (value == object_vec1[value_index1])
+						break;
+				
+				if (value_index1 < arg1_count)
+					continue;
+				
+				// Then check that we have not already handled the same value (uniquing)
+				for (scan_index = 0; scan_index < value_index0; ++scan_index)
+					if (value == object_vec0[scan_index])
+						break;
+				
+				if (scan_index < value_index0)
+					continue;
+				
+				object_result->PushObjectElement(value);
+			}
+		}
+	}
+	
+	return result_SP;
+}
+
+//	(*)setSymmetricDifference(* x, * y)
+EidosValue_SP Eidos_ExecuteFunction_setSymmetricDifference(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValueType arg0_type = arg0_value->Type();
+	int arg0_count = arg0_value->Count();
+	
+	EidosValue *arg1_value = p_arguments[1].get();
+	EidosValueType arg1_type = arg1_value->Type();
+	int arg1_count = arg1_value->Count();
+	
+	if (arg0_type != arg1_type)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setSymmetricDifference): function setSymmetricDifference() requires that both operands have the same type." << eidos_terminate(nullptr);
+	
+	EidosValueType arg_type = arg0_type;
+	const EidosObjectClass *class0 = nullptr, *class1 = nullptr;
+	
+	if (arg_type == EidosValueType::kValueObject)
+	{
+		class0 = ((EidosValue_Object *)arg0_value)->Class();
+		class1 = ((EidosValue_Object *)arg1_value)->Class();
+		
+		if ((class0 != class1) && (class0 != gEidos_UndefinedClassObject) && (class1 != gEidos_UndefinedClassObject))
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setSymmetricDifference): function setSymmetricDifference() requires that both operands of object type have the same class (or undefined class)." << eidos_terminate(nullptr);
+	}
+	
+	if (arg0_count + arg1_count == 0)
+	{
+		if (class1 && (class1 != gEidos_UndefinedClassObject))
+			result_SP = arg1_value->NewMatchingType();
+		else
+			result_SP = arg0_value->NewMatchingType();
+	}
+	else if ((arg0_count == 1) && (arg1_count == 0))
+	{
+		result_SP = arg0_value->CopyValues();
+	}
+	else if ((arg0_count == 0) && (arg1_count == 1))
+	{
+		result_SP = arg1_value->CopyValues();
+	}
+	else if (arg0_count == 0)
+	{
+		result_SP = UniqueEidosValue(arg1_value, false);
+	}
+	else if (arg1_count == 0)
+	{
+		result_SP = UniqueEidosValue(arg0_value, false);
+	}
+	else if (arg_type == EidosValueType::kValueLogical)
+	{
+		// Because EidosValue_Logical works differently than other EidosValue types, this code can handle
+		// both the singleton and non-singleton cases; LogicalVector() is always available
+		const std::vector<eidos_logical_t> &logical_vec0 = *arg0_value->LogicalVector();
+		const std::vector<eidos_logical_t> &logical_vec1 = *arg1_value->LogicalVector();
+		bool containsF0 = false, containsT0 = false, containsF1 = false, containsT1 = false;
+		
+		if (logical_vec0[0])
+		{
+			containsT0 = true;
+			
+			for (int value_index = 1; value_index < arg0_count; ++value_index)
+				if (!logical_vec0[value_index])
+				{
+					containsF0 = true;
+					break;
+				}
+		}
+		else
+		{
+			containsF0 = true;
+			
+			for (int value_index = 1; value_index < arg0_count; ++value_index)
+				if (logical_vec0[value_index])
+				{
+					containsT0 = true;
+					break;
+				}
+		}
+		
+		if (logical_vec1[0])
+		{
+			containsT1 = true;
+			
+			for (int value_index = 1; value_index < arg1_count; ++value_index)
+				if (!logical_vec1[value_index])
+				{
+					containsF1 = true;
+					break;
+				}
+		}
+		else
+		{
+			containsF1 = true;
+			
+			for (int value_index = 1; value_index < arg1_count; ++value_index)
+				if (logical_vec1[value_index])
+				{
+					containsT1 = true;
+					break;
+				}
+		}
+		
+		if ((containsF0 != containsF1) && (containsT0 != containsT1))
+		{
+			EidosValue_Logical *logical_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Logical();
+			result_SP = EidosValue_SP(logical_result);
+			
+			logical_result->PushLogical(false);
+			logical_result->PushLogical(true);
+		}
+		else if ((containsF0 == containsF1) && (containsT0 == containsT1))
+			result_SP = gStaticEidosValue_Logical_ZeroVec;
+		else if (containsT0 != containsT1)
+			result_SP = gStaticEidosValue_LogicalT;
+		else // (containsF0 != containsF1)
+			result_SP = gStaticEidosValue_LogicalF;
+	}
+	else if ((arg0_count == 1) && (arg1_count == 1))
+	{
+		// If both arguments are singleton, handle that case with a simple equality check
+		if (arg_type == EidosValueType::kValueInt)
+		{
+			int64_t int0 = arg0_value->IntAtIndex(0, nullptr), int1 = arg1_value->IntAtIndex(0, nullptr);
+			
+			if (int0 == int1)
+				result_SP = gStaticEidosValue_Integer_ZeroVec;
+			else
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{int0, int1});
+		}
+		else if (arg_type == EidosValueType::kValueFloat)
+		{
+			double float0 = arg0_value->FloatAtIndex(0, nullptr), float1 = arg1_value->FloatAtIndex(0, nullptr);
+			
+			if (float0 == float1)
+				result_SP = gStaticEidosValue_Float_ZeroVec;
+			else
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{float0, float1});
+		}
+		else if (arg_type == EidosValueType::kValueString)
+		{
+			std::string string0 = arg0_value->StringAtIndex(0, nullptr), string1 = arg1_value->StringAtIndex(0, nullptr);
+			
+			if (string0 == string1)
+				result_SP = gStaticEidosValue_String_ZeroVec;
+			else
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{string0, string1});
+		}
+		else if (arg_type == EidosValueType::kValueObject)
+		{
+			EidosObjectElement *obj0 = arg0_value->ObjectElementAtIndex(0, nullptr), *obj1 = arg1_value->ObjectElementAtIndex(0, nullptr);
+			
+			if (obj0 == obj1)
+				result_SP = arg0_value->NewMatchingType();
+			else
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector({obj0, obj1}, ((EidosValue_Object *)arg0_value)->Class()));
+		}
+	}
+	else if ((arg0_count == 1) || (arg1_count == 1))
+	{
+		// We have one value that is a singleton, one that is a vector.  We'd like this case to be fast,
+		// so that addition of a single element to a set is a fast operation.
+		if (arg0_count == 1)
+		{
+			std::swap(arg0_count, arg1_count);
+			std::swap(arg0_value, arg1_value);
+		}
+		
+		// now arg0_count > 1, arg1_count == 1
+		result_SP = UniqueEidosValue(arg0_value, true);
+		
+		int result_count = result_SP->Count();
+		
+		// result_SP is modifiable and is guaranteed to be a vector, so now the result is arg0 uniqued,
+		// minus the element in arg1 if it matches, but plus the element in arg1 if it does not match
+		if (arg_type == EidosValueType::kValueInt)
+		{
+			int64_t int1 = arg1_value->IntAtIndex(0, nullptr);
+			std::vector<int64_t> &int_vec = *result_SP->IntVector_Mutable();
+			int value_index;
+			
+			for (value_index = 0; value_index < result_count; ++value_index)
+				if (int1 == int_vec[value_index])
+					break;
+			
+			if (value_index == result_count)
+				int_vec.push_back(int1);
+			else
+				int_vec.erase(int_vec.begin() + value_index);
+		}
+		else if (arg_type == EidosValueType::kValueFloat)
+		{
+			double float1 = arg1_value->FloatAtIndex(0, nullptr);
+			std::vector<double> &float_vec = *result_SP->FloatVector_Mutable();
+			int value_index;
+			
+			for (value_index = 0; value_index < result_count; ++value_index)
+				if (float1 == float_vec[value_index])
+					break;
+			
+			if (value_index == result_count)
+				float_vec.push_back(float1);
+			else
+				float_vec.erase(float_vec.begin() + value_index);
+		}
+		else if (arg_type == EidosValueType::kValueString)
+		{
+			std::string string1 = arg1_value->StringAtIndex(0, nullptr);
+			std::vector<std::string> &string_vec = *result_SP->StringVector_Mutable();
+			int value_index;
+			
+			for (value_index = 0; value_index < result_count; ++value_index)
+				if (string1 == string_vec[value_index])
+					break;
+			
+			if (value_index == result_count)
+				string_vec.push_back(string1);
+			else
+				string_vec.erase(string_vec.begin() + value_index);
+		}
+		else if (arg_type == EidosValueType::kValueObject)
+		{
+			EidosObjectElement *obj1 = arg1_value->ObjectElementAtIndex(0, nullptr);
+			std::vector<EidosObjectElement *> &object_vec = *result_SP->ObjectElementVector_Mutable();
+			int value_index;
+			
+			for (value_index = 0; value_index < result_count; ++value_index)
+				if (obj1 == object_vec[value_index])
+					break;
+			
+			if (value_index == result_count)
+			{
+				obj1->Retain();
+				object_vec.push_back(obj1);
+			}
+			else
+			{
+				obj1->Release();
+				object_vec.erase(object_vec.begin() + value_index);
+			}
+		}
+	}
+	else
+	{
+		// Both arguments have size >1, so we can use fast APIs for both.  Loop through arg0 adding
+		// unique values not in arg1, then loop through arg1 adding unique values not in arg0.
+		int value_index0, value_index1, scan_index;
+		
+		if (arg0_type == EidosValueType::kValueInt)
+		{
+			const std::vector<int64_t> &int_vec0 = *arg0_value->IntVector();
+			const std::vector<int64_t> &int_vec1 = *arg1_value->IntVector();
+			EidosValue_Int_vector *int_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector();
+			result_SP = EidosValue_SP(int_result);
+			
+			for (value_index0 = 0; value_index0 < arg0_count; ++value_index0)
+			{
+				int64_t value = int_vec0[value_index0];
+				
+				// First check that the value also exists in arg1
+				for (value_index1 = 0; value_index1 < arg1_count; ++value_index1)
+					if (value == int_vec1[value_index1])
+						break;
+				
+				if (value_index1 == arg1_count)
+				{
+					// Then check that we have not already handled the same value (uniquing)
+					for (scan_index = 0; scan_index < value_index0; ++scan_index)
+						if (value == int_vec0[scan_index])
+							break;
+					
+					if (scan_index == value_index0)
+						int_result->PushInt(value);
+				}
+			}
+			
+			for (value_index1 = 0; value_index1 < arg1_count; ++value_index1)
+			{
+				int64_t value = int_vec1[value_index1];
+				
+				// First check that the value also exists in arg1
+				for (value_index0 = 0; value_index0 < arg0_count; ++value_index0)
+					if (value == int_vec0[value_index0])
+						break;
+				
+				if (value_index0 == arg0_count)
+				{
+					// Then check that we have not already handled the same value (uniquing)
+					for (scan_index = 0; scan_index < value_index1; ++scan_index)
+						if (value == int_vec1[scan_index])
+							break;
+					
+					if (scan_index == value_index1)
+						int_result->PushInt(value);
+				}
+			}
+		}
+		else if (arg0_type == EidosValueType::kValueFloat)
+		{
+			const std::vector<double> &float_vec0 = *arg0_value->FloatVector();
+			const std::vector<double> &float_vec1 = *arg1_value->FloatVector();
+			EidosValue_Float_vector *float_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector();
+			result_SP = EidosValue_SP(float_result);
+			
+			for (value_index0 = 0; value_index0 < arg0_count; ++value_index0)
+			{
+				double value = float_vec0[value_index0];
+				
+				// First check that the value also exists in arg1
+				for (value_index1 = 0; value_index1 < arg1_count; ++value_index1)
+					if (value == float_vec1[value_index1])
+						break;
+				
+				if (value_index1 == arg1_count)
+				{
+					// Then check that we have not already handled the same value (uniquing)
+					for (scan_index = 0; scan_index < value_index0; ++scan_index)
+						if (value == float_vec0[scan_index])
+							break;
+					
+					if (scan_index == value_index0)
+						float_result->PushFloat(value);
+				}
+			}
+			
+			for (value_index1 = 0; value_index1 < arg1_count; ++value_index1)
+			{
+				double value = float_vec1[value_index1];
+				
+				// First check that the value also exists in arg1
+				for (value_index0 = 0; value_index0 < arg0_count; ++value_index0)
+					if (value == float_vec0[value_index0])
+						break;
+				
+				if (value_index0 == arg0_count)
+				{
+					// Then check that we have not already handled the same value (uniquing)
+					for (scan_index = 0; scan_index < value_index1; ++scan_index)
+						if (value == float_vec1[scan_index])
+							break;
+					
+					if (scan_index == value_index1)
+						float_result->PushFloat(value);
+				}
+			}
+		}
+		else if (arg0_type == EidosValueType::kValueString)
+		{
+			const std::vector<std::string> &string_vec0 = *arg0_value->StringVector();
+			const std::vector<std::string> &string_vec1 = *arg1_value->StringVector();
+			EidosValue_String_vector *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector();
+			result_SP = EidosValue_SP(string_result);
+			
+			for (value_index0 = 0; value_index0 < arg0_count; ++value_index0)
+			{
+				std::string value = string_vec0[value_index0];
+				
+				// First check that the value also exists in arg1
+				for (value_index1 = 0; value_index1 < arg1_count; ++value_index1)
+					if (value == string_vec1[value_index1])
+						break;
+				
+				if (value_index1 == arg1_count)
+				{
+					// Then check that we have not already handled the same value (uniquing)
+					for (scan_index = 0; scan_index < value_index0; ++scan_index)
+						if (value == string_vec0[scan_index])
+							break;
+					
+					if (scan_index == value_index0)
+						string_result->PushString(value);
+				}
+			}
+			
+			for (value_index1 = 0; value_index1 < arg1_count; ++value_index1)
+			{
+				std::string value = string_vec1[value_index1];
+				
+				// First check that the value also exists in arg1
+				for (value_index0 = 0; value_index0 < arg0_count; ++value_index0)
+					if (value == string_vec0[value_index0])
+						break;
+				
+				if (value_index0 == arg0_count)
+				{
+					// Then check that we have not already handled the same value (uniquing)
+					for (scan_index = 0; scan_index < value_index1; ++scan_index)
+						if (value == string_vec1[scan_index])
+							break;
+					
+					if (scan_index == value_index1)
+						string_result->PushString(value);
+				}
+			}
+		}
+		else if (arg0_type == EidosValueType::kValueObject)
+		{
+			const std::vector<EidosObjectElement*> &object_vec0 = *arg0_value->ObjectElementVector();
+			const std::vector<EidosObjectElement*> &object_vec1 = *arg1_value->ObjectElementVector();
+			EidosValue_Object_vector *object_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(((EidosValue_Object *)arg0_value)->Class());
+			result_SP = EidosValue_SP(object_result);
+			
+			for (value_index0 = 0; value_index0 < arg0_count; ++value_index0)
+			{
+				EidosObjectElement *value = object_vec0[value_index0];
+				
+				// First check that the value also exists in arg1
+				for (value_index1 = 0; value_index1 < arg1_count; ++value_index1)
+					if (value == object_vec1[value_index1])
+						break;
+				
+				if (value_index1 == arg1_count)
+				{
+					// Then check that we have not already handled the same value (uniquing)
+					for (scan_index = 0; scan_index < value_index0; ++scan_index)
+						if (value == object_vec0[scan_index])
+							break;
+					
+					if (scan_index == value_index0)
+						object_result->PushObjectElement(value);
+				}
+			}
+			
+			for (value_index1 = 0; value_index1 < arg1_count; ++value_index1)
+			{
+				EidosObjectElement *value = object_vec1[value_index1];
+				
+				// First check that the value also exists in arg1
+				for (value_index0 = 0; value_index0 < arg0_count; ++value_index0)
+					if (value == object_vec0[value_index0])
+						break;
+				
+				if (value_index0 == arg0_count)
+				{
+					// Then check that we have not already handled the same value (uniquing)
+					for (scan_index = 0; scan_index < value_index1; ++scan_index)
+						if (value == object_vec1[scan_index])
+							break;
+					
+					if (scan_index == value_index1)
+						object_result->PushObjectElement(value);
+				}
+			}
 		}
 	}
 	
@@ -4041,147 +5635,7 @@ EidosValue_SP Eidos_ExecuteFunction_substr(const EidosValue_SP *const p_argument
 //	(*)unique(* x)
 EidosValue_SP Eidos_ExecuteFunction_unique(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
-	EidosValue_SP result_SP(nullptr);
-	
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValueType arg0_type = arg0_value->Type();
-	int arg0_count = arg0_value->Count();
-	
-	if (arg0_count == 0)
-	{
-		result_SP = arg0_value->NewMatchingType();
-	}
-	else if (arg0_count == 1)
-	{
-		result_SP = arg0_value->CopyValues();
-	}
-	else if (arg0_type == EidosValueType::kValueLogical)
-	{
-		const std::vector<eidos_logical_t> &logical_vec = *arg0_value->LogicalVector();
-		bool containsF = false, containsT = false;
-		
-		for (int value_index = 0; value_index < arg0_count; ++value_index)
-		{
-			if (logical_vec[value_index])
-				containsT = true;
-			else
-				containsF = true;
-		}
-		
-		if (containsF && !containsT)
-			result_SP = gStaticEidosValue_LogicalF;
-		else if (containsT && !containsF)
-			result_SP = gStaticEidosValue_LogicalT;
-		else if (!containsT && !containsF)
-			result_SP = gStaticEidosValue_Logical_ZeroVec;
-		else	// containsT && containsF
-		{
-			// In this case, we need to be careful to preserve the order of occurrence
-			EidosValue_Logical *logical_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Logical();
-			result_SP = EidosValue_SP(logical_result);
-			
-			if (logical_vec[0])
-			{
-				logical_result->PushLogical(true);
-				logical_result->PushLogical(false);
-			}
-			else
-			{
-				logical_result->PushLogical(false);
-				logical_result->PushLogical(true);
-			}
-		}
-	}
-	else if (arg0_type == EidosValueType::kValueInt)
-	{
-		// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Int_vector; we can use the fast API
-		const std::vector<int64_t> &int_vec = *arg0_value->IntVector();
-		EidosValue_Int_vector *int_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector();
-		result_SP = EidosValue_SP(int_result);
-		
-		for (int value_index = 0; value_index < arg0_count; ++value_index)
-		{
-			int64_t value = int_vec[value_index];
-			int scan_index;
-			
-			for (scan_index = 0; scan_index < value_index; ++scan_index)
-			{
-				if (value == int_vec[scan_index])
-					break;
-			}
-			
-			if (scan_index == value_index)
-				int_result->PushInt(value);
-		}
-	}
-	else if (arg0_type == EidosValueType::kValueFloat)
-	{
-		// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Float_vector; we can use the fast API
-		const std::vector<double> &float_vec = *arg0_value->FloatVector();
-		EidosValue_Float_vector *float_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector();
-		result_SP = EidosValue_SP(float_result);
-		
-		for (int value_index = 0; value_index < arg0_count; ++value_index)
-		{
-			double value = float_vec[value_index];
-			int scan_index;
-			
-			for (scan_index = 0; scan_index < value_index; ++scan_index)
-			{
-				if (value == float_vec[scan_index])
-					break;
-			}
-			
-			if (scan_index == value_index)
-				float_result->PushFloat(value);
-		}
-	}
-	else if (arg0_type == EidosValueType::kValueString)
-	{
-		// We have arg0_count != 1, so the type of arg0_value must be EidosValue_String_vector; we can use the fast API
-		const std::vector<std::string> &string_vec = *arg0_value->StringVector();
-		EidosValue_String_vector *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector();
-		result_SP = EidosValue_SP(string_result);
-		
-		for (int value_index = 0; value_index < arg0_count; ++value_index)
-		{
-			string value = string_vec[value_index];
-			int scan_index;
-			
-			for (scan_index = 0; scan_index < value_index; ++scan_index)
-			{
-				if (value == string_vec[scan_index])
-					break;
-			}
-			
-			if (scan_index == value_index)
-				string_result->PushString(value);
-		}
-	}
-	else if (arg0_type == EidosValueType::kValueObject)
-	{
-		// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Object_vector; we can use the fast API
-		const std::vector<EidosObjectElement*> &object_vec = *arg0_value->ObjectElementVector();
-		EidosValue_Object_vector *object_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(((EidosValue_Object *)arg0_value)->Class());
-		result_SP = EidosValue_SP(object_result);
-		
-		for (int value_index = 0; value_index < arg0_count; ++value_index)
-		{
-			EidosObjectElement *value = object_vec[value_index];
-			int scan_index;
-			
-			for (scan_index = 0; scan_index < value_index; ++scan_index)
-			{
-				if (value == object_vec[scan_index])
-					break;
-			}
-			
-			if (scan_index == value_index)
-				object_result->PushObjectElement(value);
-		}
-	}
-	
-	return result_SP;
+	return UniqueEidosValue(p_arguments[0].get(), false);
 }
 
 //	(integer)which(logical x)
