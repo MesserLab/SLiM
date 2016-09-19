@@ -67,14 +67,14 @@ EidosValue_SP Eidos_ExecuteFunction_log(const EidosValue_SP *const p_arguments, 
 EidosValue_SP Eidos_ExecuteFunction_log10(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_log2(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_product(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+EidosValue_SP Eidos_ExecuteFunction_round(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+EidosValue_SP Eidos_ExecuteFunction_sin(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_setUnion(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_setIntersection(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_setDifference(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_setSymmetricDifference(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
-EidosValue_SP Eidos_ExecuteFunction_sum(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
-EidosValue_SP Eidos_ExecuteFunction_round(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
-EidosValue_SP Eidos_ExecuteFunction_sin(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_sqrt(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+EidosValue_SP Eidos_ExecuteFunction_sum(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_tan(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_trunc(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 
@@ -150,8 +150,8 @@ EidosValue_SP Eidos_ExecuteFunction_type(const EidosValue_SP *const p_arguments,
 
 //	filesystem access functions
 EidosValue_SP Eidos_ExecuteFunction_createDirectory(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
-EidosValue_SP Eidos_ExecuteFunction_filesAtPath(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_deleteFile(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+EidosValue_SP Eidos_ExecuteFunction_filesAtPath(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_readFile(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_writeFile(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 
@@ -164,11 +164,11 @@ EidosValue_SP Eidos_ExecuteFunction_doCall(const EidosValue_SP *const p_argument
 EidosValue_SP Eidos_ExecuteFunction_executeLambda(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_exists(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_function(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+EidosValue_SP Eidos_ExecuteFunction_getSeed(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_ls(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_license(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_rm(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_setSeed(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
-EidosValue_SP Eidos_ExecuteFunction_getSeed(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_stop(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_time(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_version(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
