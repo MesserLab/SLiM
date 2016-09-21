@@ -79,7 +79,7 @@ void Chromosome::InitializeDraws(void)
 	cached_value_lastpos_.reset();
 	last_position_ = 0;
 	
-	double A[size()];
+	std::vector<double> A(size());
 	int l = 0;
 	
 	for (unsigned int i = 0; i < size(); i++) 
@@ -96,7 +96,7 @@ void Chromosome::InitializeDraws(void)
 	if (lookup_mutation_)
 		gsl_ran_discrete_free(lookup_mutation_);
 	
-	lookup_mutation_ = gsl_ran_discrete_preproc(size(), A);
+	lookup_mutation_ = gsl_ran_discrete_preproc(size(), A.data());
 	element_mutation_rate_ = overall_mutation_rate_ * static_cast<double>(l);
 	
 	// Now remake our recombination map info, which we delegate to _InitializeOneRecombinationMap()
@@ -126,7 +126,7 @@ void Chromosome::_InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, v
 	}
 	
 	// calculate the overall recombination rate and the lookup table for breakpoints
-	double B[p_rates.size()];
+	std::vector<double> B(p_rates.size());
 	
 	p_overall_rate = 0.0;
 	
@@ -153,7 +153,7 @@ void Chromosome::_InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, v
 	if (p_lookup)
 		gsl_ran_discrete_free(p_lookup);
 	
-	p_lookup = gsl_ran_discrete_preproc(p_rates.size(), B);
+	p_lookup = gsl_ran_discrete_preproc(p_rates.size(), B.data());
 	
 	// precalculate probabilities for Poisson draws of mutation count and breakpoint count
 	double prob_mutation_0 = exp(-element_mutation_rate_);

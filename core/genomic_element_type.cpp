@@ -62,7 +62,7 @@ void GenomicElementType::InitializeDraws(void)
 	if (mutation_type_count)
 	{
 		// Prepare to randomly draw mutation types
-		double A[mutation_type_count];
+		std::vector<double> A(mutation_type_count);
 		bool nonzero_seen = false;
 		
 		for (unsigned int i = 0; i < mutation_type_count; i++)
@@ -78,7 +78,7 @@ void GenomicElementType::InitializeDraws(void)
 		// A mutation type vector with all zero proportions is treated the same as an empty vector: we allow it
 		// on the assumption that it will be fixed later, but if it isn't, that will be an error.
 		if (nonzero_seen)
-			lookup_mutation_type_ = gsl_ran_discrete_preproc(mutation_type_count, A);
+			lookup_mutation_type_ = gsl_ran_discrete_preproc(mutation_type_count, A.data());
 	}
 }
 

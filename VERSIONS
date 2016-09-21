@@ -7,6 +7,9 @@ Note that not every commit will be logged here; that is what the Github commit h
 The build numbers given here are visible in SLiMgui's about panel.  They are not visible in any way on non-OSX platforms, unfortunately, because they are maintained by a "Run Script" build phase in the Xcode project that places the current git commit count into a field in the Info.plist file of SLiMgui (and EidosScribe).  This mechanism works only on OSX, so the build number is not available on Linux and other platforms.
 
 
+development head:
+	fix segfault with very large recombination maps (thanks Martin Petr)
+
 2.1 (build 907; Eidos version 1.1):
 	Improve the fitness~time plot (display of subpopulation fitnesses, point/line plotting option)
 	Fix for minor code-completion and status line bugs
