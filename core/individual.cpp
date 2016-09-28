@@ -529,7 +529,7 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 				{
 					Mutation *mut = (Mutation *)(arg0_value->ObjectElementAtIndex(0, nullptr));
 					
-					if ((!genome1->IsNull() && genome1->contains_mutation(mut)) || (genome2->IsNull() && genome2->contains_mutation(mut)))
+					if ((!genome1->IsNull() && genome1->contains_mutation(mut)) || (!genome2->IsNull() && genome2->contains_mutation(mut)))
 						return gStaticEidosValue_LogicalT;
 					else
 						return gStaticEidosValue_LogicalF;
@@ -542,7 +542,7 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 					for (int value_index = 0; value_index < arg0_count; ++value_index)
 					{
 						Mutation *mut = (Mutation *)(arg0_value->ObjectElementAtIndex(value_index, nullptr));
-						bool contains_mut = ((!genome1->IsNull() && genome1->contains_mutation(mut)) || (genome2->IsNull() && genome2->contains_mutation(mut)));
+						bool contains_mut = ((!genome1->IsNull() && genome1->contains_mutation(mut)) || (!genome2->IsNull() && genome2->contains_mutation(mut)));
 						
 						logical_result_vec.emplace_back(contains_mut);
 					}
