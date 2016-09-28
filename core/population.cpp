@@ -665,7 +665,10 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 		// CALLBACKS PRESENT: We need to generate offspring in a randomized order.  This way the callbacks are presented with potential offspring
 		// a random order, and so it is much easier to write a callback that runs for less than the full offspring generation phase (influencing a
 		// limited number of mating events, for example).  So in this code branch, we prepare an overall plan for migration and sex, and then execute
-		// that plan in an order randomized with gsl_ran_shuffle().
+		// that plan in an order randomized with gsl_ran_shuffle().  BCH 28 September 2016: When sex is enabled, we want to generate male and female
+		// offspring in shuffled order.  However, the vector of child genomes is organized into females first, then males, so we need to fill that
+		// vector in an unshuffled order or we end up trying to generate a male offspring into a female slot, or vice versa.  See the usage of
+		// child_index_F, child_index_M, and child_index in the shuffle cases below.
 		
 		if (migrant_source_count == 0)
 		{
@@ -764,6 +767,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 				gsl_ran_shuffle(gEidos_rng, planned_offspring, total_children, sizeof(offspring_plan));
 				
 				// Now we can run through our plan vector and generate each planned child in order.
+				slim_popsize_t child_index_F = 0, child_index_M = total_female_children, child_index;
+				
 				for (child_count = 0; child_count < total_children; ++child_count)
 				{
 					// Get the plan for this offspring from our shuffled plan vector
@@ -772,6 +777,19 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 					IndividualSex child_sex = offspring_plan_ptr->planned_sex;
 					bool selfed, cloned;
 					int num_tries = 0;
+					
+					// Find the appropriate index for the child we are generating; we need to put males and females in the right spots
+					if (sex_enabled)
+					{
+						if (child_sex == IndividualSex::kFemale)
+							child_index = child_index_F++;
+						else
+							child_index = child_index_M++;
+					}
+					else
+					{
+						child_index = child_count;
+					}
 					
 					// We loop back to here to retry child generation if a mateChoice() or modifyChild() callback causes our first attempt at
 					// child generation to fail.  The first time we generate a given child index, we follow our plan; subsequent times, we
@@ -835,11 +853,11 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 						
 						parent2 = parent1;
 						
-						DoClonalMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, p_chromosome, p_generation, child_sex);
-						DoClonalMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
+						DoClonalMutation(&p_subpop, &source_subpop, 2 * child_index, subpop_id, 2 * parent1, p_chromosome, p_generation, child_sex);
+						DoClonalMutation(&p_subpop, &source_subpop, 2 * child_index + 1, subpop_id, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
 						
 						if (pedigrees_enabled)
-							p_subpop.child_individuals_[child_count].TrackPedigreeWithParents(source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent1]);
+							p_subpop.child_individuals_[child_index].TrackPedigreeWithParents(source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent1]);
 					}
 					else
 					{
@@ -889,16 +907,16 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 						}
 						
 						// recombination, gene-conversion, mutation
-						DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex, parent1_sex);
-						DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex, parent2_sex);
+						DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_index, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex, parent1_sex);
+						DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_index + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex, parent2_sex);
 						
 						if (pedigrees_enabled)
-							p_subpop.child_individuals_[child_count].TrackPedigreeWithParents(source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2]);
+							p_subpop.child_individuals_[child_index].TrackPedigreeWithParents(source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2]);
 					}
 					
 					if (modify_child_callbacks)
 					{
-						if (!ApplyModifyChildCallbacks(child_count, child_sex, parent1, parent2, selfed, cloned, &p_subpop, &source_subpop, *modify_child_callbacks))
+						if (!ApplyModifyChildCallbacks(child_index, child_sex, parent1, parent2, selfed, cloned, &p_subpop, &source_subpop, *modify_child_callbacks))
 						{
 							// The modifyChild() callbacks suppressed the child altogether; this is juvenile migrant mortality, basically, so
 							// we need to even change the source subpop for our next attempt.  In this case, however, we have no migration.
@@ -1064,6 +1082,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 			gsl_ran_shuffle(gEidos_rng, planned_offspring, total_children, sizeof(offspring_plan));
 			
 			// Now we can run through our plan vector and generate each planned child in order.
+			slim_popsize_t child_index_F = 0, child_index_M = total_female_children, child_index;
+			
 			for (child_count = 0; child_count < total_children; ++child_count)
 			{
 				// Get the plan for this offspring from our shuffled plan vector
@@ -1073,6 +1093,19 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 				IndividualSex child_sex = offspring_plan_ptr->planned_sex;
 				bool selfed, cloned;
 				int num_tries = 0;
+				
+				// Find the appropriate index for the child we are generating; we need to put males and females in the right spots
+				if (sex_enabled)
+				{
+					if (child_sex == IndividualSex::kFemale)
+						child_index = child_index_F++;
+					else
+						child_index = child_index_M++;
+				}
+				else
+				{
+					child_index = child_count;
+				}
 				
 				// We loop back to here to retry child generation if a modifyChild() callback causes our first attempt at
 				// child generation to fail.  The first time we generate a given child index, we follow our plan; subsequent times, we
@@ -1153,11 +1186,11 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 					
 					parent2 = parent1;
 					
-					DoClonalMutation(&p_subpop, source_subpop, 2 * child_count, subpop_id, 2 * parent1, p_chromosome, p_generation, child_sex);
-					DoClonalMutation(&p_subpop, source_subpop, 2 * child_count + 1, subpop_id, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
+					DoClonalMutation(&p_subpop, source_subpop, 2 * child_index, subpop_id, 2 * parent1, p_chromosome, p_generation, child_sex);
+					DoClonalMutation(&p_subpop, source_subpop, 2 * child_index + 1, subpop_id, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
 					
 					if (pedigrees_enabled)
-						p_subpop.child_individuals_[child_count].TrackPedigreeWithParents(source_subpop->parent_individuals_[parent1], source_subpop->parent_individuals_[parent1]);
+						p_subpop.child_individuals_[child_index].TrackPedigreeWithParents(source_subpop->parent_individuals_[parent1], source_subpop->parent_individuals_[parent1]);
 				}
 				else
 				{
@@ -1207,16 +1240,16 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 					}
 					
 					// recombination, gene-conversion, mutation
-					DoCrossoverMutation(&p_subpop, source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex, parent1_sex);
-					DoCrossoverMutation(&p_subpop, source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex, parent2_sex);
+					DoCrossoverMutation(&p_subpop, source_subpop, 2 * child_index, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex, parent1_sex);
+					DoCrossoverMutation(&p_subpop, source_subpop, 2 * child_index + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex, parent2_sex);
 					
 					if (pedigrees_enabled)
-						p_subpop.child_individuals_[child_count].TrackPedigreeWithParents(source_subpop->parent_individuals_[parent1], source_subpop->parent_individuals_[parent2]);
+						p_subpop.child_individuals_[child_index].TrackPedigreeWithParents(source_subpop->parent_individuals_[parent1], source_subpop->parent_individuals_[parent2]);
 				}
 				
 				if (modify_child_callbacks)
 				{
-					if (!ApplyModifyChildCallbacks(child_count, child_sex, parent1, parent2, selfed, cloned, &p_subpop, source_subpop, *modify_child_callbacks))
+					if (!ApplyModifyChildCallbacks(child_index, child_sex, parent1, parent2, selfed, cloned, &p_subpop, source_subpop, *modify_child_callbacks))
 					{
 						// The modifyChild() callbacks suppressed the child altogether; this is juvenile migrant mortality, basically, so
 						// we need to even change the source subpop for our next attempt, so that differential mortality between different
