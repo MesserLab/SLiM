@@ -23,7 +23,9 @@
 #include <fstream>
 #include <iomanip>
 #include <algorithm>
-#include <cmath>
+//#include <cmath>	BCH 19 October 2016 removed; we use math.h elsewhere, and we should not use both
+// as it causes namespace problems for some compilers.  Reported as a problem for gcc 5.4.0 on Linux.
+// http://stackoverflow.com/questions/18128899/is-isnan-in-the-std-namespace-more-in-general-when-is-std-necessary-optio
 #include <utility>
 
 #include "slim_sim.h"

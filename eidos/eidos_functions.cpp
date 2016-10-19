@@ -36,7 +36,9 @@
 #include <fstream>
 #include <stdexcept>
 #include <algorithm>
-#include <cmath>
+//#include <cmath>	BCH 19 October 2016 removed; math.h is included above, and we should not use both
+// as it causes namespace problems for some compilers.  Reported as a problem for gcc 5.4.0 on Linux.
+// http://stackoverflow.com/questions/18128899/is-isnan-in-the-std-namespace-more-in-general-when-is-std-necessary-optio
 #include <vector>
 #include <utility>
 #include <sys/stat.h>
