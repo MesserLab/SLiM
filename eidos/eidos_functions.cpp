@@ -70,6 +70,15 @@ using std::istringstream;
 using std::istream;
 using std::ostream;
 
+// BCH 20 October 2016: continuing to try to fix problems with gcc 5.4.0 on Linux without breaking other
+// builds.  It appears that on that platform <cmath> is included as a side effect of other headers we
+// include, and (incorrectly) undefines the global math symbols such as isinf() and isnan(), requiring
+// them to be qualified with the std:: namespace.  On other plaforms, however, <cmath> is not included,
+// and so the std:: qualification would fail; our intention here is to use the "math.h" non-namespaced
+// functions.  So I'll try adding these using statements to get things to work on all platforms.  Ugh.
+using std::isinf;
+using std::isnan;
+
 
 //
 //	Construct our built-in function map
