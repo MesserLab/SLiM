@@ -25,8 +25,6 @@
 #include "eidos_rng.h"
 #include "eidos_beep.h"
 
-#include "math.h"
-
 #include <ctime>
 #include <stdio.h>
 #include <sys/types.h>
