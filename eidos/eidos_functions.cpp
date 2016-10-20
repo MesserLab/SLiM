@@ -34,10 +34,17 @@
 #include <fstream>
 #include <stdexcept>
 #include <algorithm>
-#include <cmath>
 #include <vector>
 #include <utility>
 #include <sys/stat.h>
+
+// BCH 20 October 2016: continuing to try to fix problems with gcc 5.4.0 on Linux without breaking other
+// builds.  We will switch to including <cmath> and using the std:: namespace math functions, since on
+// that platform <cmath> is included as a side effect even if we don't include it ourselves, and on
+// that platform that actually (incorrectly) undefines the global functions defined by math.h.  On other
+// platforms, we get the global math.h functions defined as well, so we can't use using to select the
+// <cmath> functions, we have to specify them explicitly.
+#include <cmath>
 
 
 // From stackoverflow: http://stackoverflow.com/questions/2342162/stdstring-formatting-like-sprintf/
@@ -65,13 +72,6 @@ using std::endl;
 using std::istringstream;
 using std::istream;
 using std::ostream;
-
-// BCH 20 October 2016: continuing to try to fix problems with gcc 5.4.0 on Linux without breaking other
-// builds.  We will switch to including <cmath> and using the std:: namespace math functions, since on
-// that platform <cmath> is included as a side effect even if we don't include it ourselves, and on
-// that platform that actually (incorrectly) undefines the global functions defined by math.h.  Ugh.
-using std::isinf;
-using std::isnan;
 
 
 //
@@ -1298,7 +1298,7 @@ EidosValue_SP Eidos_ExecuteFunction_isInfinite(const EidosValue_SP *const p_argu
 	
 	if (arg0_count == 1)
 	{
-		result_SP = (isinf(arg0_value->FloatAtIndex(0, nullptr)) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+		result_SP = (std::isinf(arg0_value->FloatAtIndex(0, nullptr)) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 	}
 	else
 	{
@@ -1309,7 +1309,7 @@ EidosValue_SP Eidos_ExecuteFunction_isInfinite(const EidosValue_SP *const p_argu
 		result_SP = EidosValue_SP(logical_result);
 		
 		for (int value_index = 0; value_index < arg0_count; ++value_index)
-			logical_result_vec.emplace_back(isinf(float_vec[value_index]));
+			logical_result_vec.emplace_back(std::isinf(float_vec[value_index]));
 	}
 	
 	return result_SP;
@@ -1325,7 +1325,7 @@ EidosValue_SP Eidos_ExecuteFunction_isNAN(const EidosValue_SP *const p_arguments
 	
 	if (arg0_count == 1)
 	{
-		result_SP = (isnan(arg0_value->FloatAtIndex(0, nullptr)) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+		result_SP = (std::isnan(arg0_value->FloatAtIndex(0, nullptr)) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 	}
 	else
 	{
@@ -1336,7 +1336,7 @@ EidosValue_SP Eidos_ExecuteFunction_isNAN(const EidosValue_SP *const p_arguments
 		result_SP = EidosValue_SP(logical_result);
 		
 		for (int value_index = 0; value_index < arg0_count; ++value_index)
-			logical_result_vec.emplace_back(isnan(float_vec[value_index]));
+			logical_result_vec.emplace_back(std::isnan(float_vec[value_index]));
 	}
 	
 	return result_SP;
