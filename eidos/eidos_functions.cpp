@@ -36,9 +36,7 @@
 #include <fstream>
 #include <stdexcept>
 #include <algorithm>
-//#include <cmath>	BCH 19 October 2016 removed; math.h is included above, and we should not use both
-// as it causes namespace problems for some compilers.  Reported as a problem for gcc 5.4.0 on Linux.
-// http://stackoverflow.com/questions/18128899/is-isnan-in-the-std-namespace-more-in-general-when-is-std-necessary-optio
+#include <cmath>
 #include <vector>
 #include <utility>
 #include <sys/stat.h>
@@ -71,11 +69,9 @@ using std::istream;
 using std::ostream;
 
 // BCH 20 October 2016: continuing to try to fix problems with gcc 5.4.0 on Linux without breaking other
-// builds.  It appears that on that platform <cmath> is included as a side effect of other headers we
-// include, and (incorrectly) undefines the global math symbols such as isinf() and isnan(), requiring
-// them to be qualified with the std:: namespace.  On other plaforms, however, <cmath> is not included,
-// and so the std:: qualification would fail; our intention here is to use the "math.h" non-namespaced
-// functions.  So I'll try adding these using statements to get things to work on all platforms.  Ugh.
+// builds.  We will switch to including <cmath> and using the std:: namespace math functions, since on
+// that platform <cmath> is included as a side effect even if we don't include it ourselves, and on
+// that platform that actually (incorrectly) undefines the global functions defined by math.h.  Ugh.
 using std::isinf;
 using std::isnan;
 
