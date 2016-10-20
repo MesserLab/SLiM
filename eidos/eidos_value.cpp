@@ -1282,14 +1282,14 @@ void EidosValue_Float_vector::Print(std::ostream &p_ostream) const
 				p_ostream << ' ';
 			
 			// Customize our output a bit to look like Eidos, not C++
-			if (isinf(value))
+			if (std::isinf(value))
 			{
 				if (std::signbit(value))
 					p_ostream << gEidosStr_MINUS_INF;
 				else
 					p_ostream << gEidosStr_INF;
 			}
-			else if (isnan(value))
+			else if (std::isnan(value))
 				p_ostream << gEidosStr_NAN;
 			else
 				p_ostream << value;
@@ -1304,7 +1304,7 @@ eidos_logical_t EidosValue_Float_vector::LogicalAtIndex(int p_idx, EidosToken *p
 	
 	double value = values_[p_idx];
 	
-	if (isnan(value))
+	if (std::isnan(value))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::LogicalAtIndex): NAN cannot be converted to logical type." << eidos_terminate(p_blame_token);
 	
 	return (value == 0 ? false : true);
@@ -1320,14 +1320,14 @@ std::string EidosValue_Float_vector::StringAtIndex(int p_idx, EidosToken *p_blam
 	double value = values_[p_idx];
 	
 	// Customize our output a bit to look like Eidos, not C++
-	if (isinf(value))
+	if (std::isinf(value))
 	{
 		if (std::signbit(value))
 			ss << gEidosStr_MINUS_INF;
 		else
 			ss << gEidosStr_INF;
 	}
-	else if (isnan(value))
+	else if (std::isnan(value))
 		ss << gEidosStr_NAN;
 	else
 		ss << value;
@@ -1342,9 +1342,9 @@ int64_t EidosValue_Float_vector::IntAtIndex(int p_idx, EidosToken *p_blame_token
 	
 	double value = values_[p_idx];
 	
-	if (isnan(value))
+	if (std::isnan(value))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::IntAtIndex): NAN cannot be converted to integer type." << eidos_terminate(p_blame_token);
-	if (isinf(value))
+	if (std::isinf(value))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::IntAtIndex): INF cannot be converted to integer type." << eidos_terminate(p_blame_token);
 	
 	// nwellnhof on stackoverflow points out that the >= here is correct even though it looks wrong, because reasons...
@@ -1419,14 +1419,14 @@ int EidosValue_Float_singleton::Count_Virtual(void) const
 void EidosValue_Float_singleton::Print(std::ostream &p_ostream) const
 {
 	// Customize our output a bit to look like Eidos, not C++
-	if (isinf(value_))
+	if (std::isinf(value_))
 	{
 		if (std::signbit(value_))
 			p_ostream << gEidosStr_MINUS_INF;
 		else
 			p_ostream << gEidosStr_INF;
 	}
-	else if (isnan(value_))
+	else if (std::isnan(value_))
 		p_ostream << gEidosStr_NAN;
 	else
 		p_ostream << value_;
@@ -1437,7 +1437,7 @@ eidos_logical_t EidosValue_Float_singleton::LogicalAtIndex(int p_idx, EidosToken
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton::LogicalAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
-	if (isnan(value_))
+	if (std::isnan(value_))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton::LogicalAtIndex): NAN cannot be converted to logical type." << eidos_terminate(p_blame_token);
 	
 	return (value_ == 0 ? false : true);
@@ -1452,14 +1452,14 @@ std::string EidosValue_Float_singleton::StringAtIndex(int p_idx, EidosToken *p_b
 	std::ostringstream ss;
 	
 	// Customize our output a bit to look like Eidos, not C++
-	if (isinf(value_))
+	if (std::isinf(value_))
 	{
 		if (std::signbit(value_))
 			ss << gEidosStr_MINUS_INF;
 		else
 			ss << gEidosStr_INF;
 	}
-	else if (isnan(value_))
+	else if (std::isnan(value_))
 		ss << gEidosStr_NAN;
 	else
 		ss << value_;
@@ -1472,9 +1472,9 @@ int64_t EidosValue_Float_singleton::IntAtIndex(int p_idx, EidosToken *p_blame_to
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton::IntAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
 	
-	if (isnan(value_))
+	if (std::isnan(value_))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton::IntAtIndex): NAN cannot be converted to integer type." << eidos_terminate(p_blame_token);
-	if (isinf(value_))
+	if (std::isinf(value_))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton::IntAtIndex): INF cannot be converted to integer type." << eidos_terminate(p_blame_token);
 	
 	// nwellnhof on stackoverflow points out that the >= here is correct even though it looks wrong, because reasons...

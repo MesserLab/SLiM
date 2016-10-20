@@ -734,7 +734,7 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 		double first_float = p_first_child_value.FloatAtIndex(0, operator_token);
 		double second_float = p_second_child_value.FloatAtIndex(0, operator_token);
 		
-		if (isnan(first_float) || isnan(second_float))
+		if (std::isnan(first_float) || std::isnan(second_float))
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): operands of the ':' operator must not be NAN." << eidos_terminate(operator_token);
 		
 		if (first_float <= second_float)
