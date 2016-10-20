@@ -27,7 +27,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <utility>
-#include "math.h"
+#include <cmath>
 
 
 using std::string;

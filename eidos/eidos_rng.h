@@ -53,7 +53,7 @@
 
 
 #include <stdint.h>
-#include "math.h"
+#include <cmath>
 #include "eidos_global.h"
 
 

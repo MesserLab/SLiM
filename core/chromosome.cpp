@@ -27,7 +27,7 @@
 #include <iostream>
 #include <algorithm>
 #include <string>
-#include "math.h"
+#include <cmath>
 
 
 Chromosome::Chromosome(void) : lookup_mutation_(nullptr), single_recombination_map_(true), lookup_recombination_H_(nullptr), lookup_recombination_M_(nullptr), lookup_recombination_F_(nullptr), exp_neg_element_mutation_rate_(0.0),
