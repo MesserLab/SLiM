@@ -36,6 +36,16 @@
 # http://stackoverflow.com/questions/40164827/how-to-make-a-makefile-for-c-and-c-with-sources-in-subdirectories
 #
 
+#
+# For some reason this makefile generates "multiple definition of..." errors
+# at link, where the standard makefile does not.  This is all inside the GSL
+# code, which does weird stuff with inline functions and includes and stuff.
+# I am not motivated enough to delve into this at present, since the issue
+# that got me started on this alternate makefile has been resolved in another
+# way anyhow.  So, at present this makefile does not work, for reasons TBD.
+# BCH 20 Oct 2016
+#
+
 SHELL = /bin/sh
 CC = gcc
 CXX = g++
