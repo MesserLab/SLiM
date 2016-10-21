@@ -40,8 +40,8 @@ SHELL = /bin/sh
 CC = gcc
 CXX = g++
 INCLUDES = -iquote./eidos -iquote./gsl -iquote./gsl/rng -iquote./gsl/randist -iquote./gsl/sys -iquote./gsl/specfunc -iquote./gsl/complex
-CFLAGS = -O3 -v $(INCLUDES)
-CXXFLAGS = -O3 -v $(INCLUDES) -std=c++11
+CFLAGS = -O3 $(INCLUDES)
+CXXFLAGS = -O3 $(INCLUDES) -std=c++11
 
 OUTPUTDIR = ./bin/
 MKDIR = mkdir -p $(OUTPUTDIR)
