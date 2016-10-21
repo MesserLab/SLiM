@@ -1,0 +1,151 @@
+# Makefile for the "slim" and "eidos" command-line tools
+#
+# Created by Ben Haller on 20 October 2016.
+# Copyright (c) 2016 Philipp Messer.  All rights reserved.
+# A product of the Messer Lab, http://messerlab.org/software/
+#
+#
+# This file is part of SLiM.
+#
+# SLiM is free software: you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License,
+# or (at your option) any later version.
+#
+# SLiM is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
+
+#
+# Note that if you are on OS X, you should build all SLiM targets in Xcode,
+# not using make!  Note also that this makefile is very dumb.  If somebody
+# wants to make it smarter, feel free.  However, development of SLiM is done
+# exclusively on OS X, so this Makefile is really just used to build SLiM
+# on a user's machine; doing minimal builds is really not important.
+#
+
+#
+# This alternative makefile generates separate .o files for each source file
+# and then links them together.  It may be faster and/or more memory-efficient
+# than the default makefile.  However, it requires that the list of source
+# files be maintained manually.  See my question on SO:
+# http://stackoverflow.com/questions/40164827/how-to-make-a-makefile-for-c-and-c-with-sources-in-subdirectories
+#
+
+SHELL = /bin/sh
+CC = gcc
+CXX = g++
+INCLUDES = -iquote./eidos -iquote./gsl -iquote./gsl/rng -iquote./gsl/randist -iquote./gsl/sys -iquote./gsl/specfunc -iquote./gsl/complex
+CFLAGS = -O3 -v $(INCLUDES)
+CXXFLAGS = -O3 -v $(INCLUDES) -std=c++11
+
+OUTPUTDIR = ./bin/
+MKDIR = mkdir -p $(OUTPUTDIR)
+
+CSOURCES = \
+	gsl/complex/inline.c \
+	gsl/complex/math.c \
+	gsl/err/error.c \
+	gsl/err/message.c \
+	gsl/err/stream.c \
+	gsl/randist/beta.c \
+	gsl/randist/binomial_tpe.c \
+	gsl/randist/discrete.c \
+	gsl/randist/exponential.c \
+	gsl/randist/gamma.c \
+	gsl/randist/gauss.c \
+	gsl/randist/gausszig.c \
+	gsl/randist/geometric.c \
+	gsl/randist/lognormal.c \
+	gsl/randist/multinomial.c \
+	gsl/randist/poisson.c \
+	gsl/randist/shuffle.c \
+	gsl/randist/weibull.c \
+	gsl/rng/inline.c \
+	gsl/rng/mt.c \
+	gsl/rng/rng.c \
+	gsl/rng/taus.c \
+	gsl/specfunc/elementary.c \
+	gsl/specfunc/exp.c \
+	gsl/specfunc/gamma.c \
+	gsl/specfunc/log.c \
+	gsl/specfunc/pow_int.c \
+	gsl/specfunc/psi.c \
+	gsl/specfunc/trig.c \
+	gsl/specfunc/zeta.c \
+	gsl/sys/coerce.c \
+	gsl/sys/fdiv.c \
+	gsl/sys/infnan.c \
+	gsl/sys/minmax.c \
+	gsl/sys/pow_int.c
+
+COMMON_CXXSOURCES = \
+	eidos/eidos_ast_node.cpp \
+	eidos/eidos_beep.cpp \
+	eidos/eidos_call_signature.cpp \
+	eidos/eidos_functions.cpp \
+	eidos/eidos_global.cpp \
+	eidos/eidos_interpreter.cpp \
+	eidos/eidos_property_signature.cpp \
+	eidos/eidos_rng.cpp \
+	eidos/eidos_script.cpp \
+	eidos/eidos_symbol_table.cpp \
+	eidos/eidos_test.cpp \
+	eidos/eidos_test_element.cpp \
+	eidos/eidos_token.cpp \
+	eidos/eidos_type_interpreter.cpp \
+	eidos/eidos_type_table.cpp \
+	eidos/eidos_value.cpp
+
+SLIM_CXXSOURCES = \
+	core/chromosome.cpp \
+	core/genome.cpp \
+	core/genomic_element.cpp \
+	core/genomic_element_type.cpp \
+	core/individual.cpp \
+	core/main.cpp \
+	core/mutation.cpp \
+	core/mutation_type.cpp \
+	core/polymorphism.cpp \
+	core/population.cpp \
+	core/slim_eidos_block.cpp \
+	core/slim_global.cpp \
+	core/slim_sim.cpp \
+	core/slim_test.cpp \
+	core/subpopulation.cpp \
+	core/substitution.cpp
+
+EIDOS_CXXSOURCES = \
+	eidostool/main.cpp
+
+COMMON_OBJS = $(CSOURCES:.c=.c.o) $(COMMON_CXXSOURCES:.cpp=.cpp.o)
+SLIM_OBJS = $(SLIM_CXXSOURCES:.cpp=.cpp.o)
+EIDOS_OBJS = $(EIDOS_CXXSOURCES:.cpp=.cpp.o)
+
+all: slim eidos
+
+slim: $(SLIM_OBJS) $(COMMON_OBJS)
+	$(MKDIR)
+	$(CXX) $(CXXFLAGS) $^ -o ./bin/slim
+
+eidos: $(EIDOS_OBJS) $(COMMON_OBJS)
+	$(MKDIR)
+	$(CXX) $(CXXFLAGS) $^ -o ./bin/eidos
+
+%.c.o : %.c
+	$(CC) $(INCLUDES) $(CFLAGS) $< -c -o $@
+
+%.cpp.o : %.cpp
+	$(CXX) $(INCLUDES) $(CXXFLAGS) $< -c -o $@
+
+clean:
+	rm -rf $(OUTPUTDIR)
+	rm -f slim eidos $(COMMON_OBJS) $(SLIM_OBJS) $(EIDOS_OBJS)
+
+
+
+
