@@ -35,7 +35,7 @@
 
 class Polymorphism;
 
-// This used to be a multimap that indexed by position, allowing collisions.  Now is is a std::map that indexes by mutation_id_,
+// This used to be a multimap that indexed by position, allowing collisions.  Now it is a std::map that indexes by mutation_id_,
 // which avoids any possibility of collisions, making the code simpler and faster.  BCH 11 June 2016
 typedef std::map<const slim_mutationid_t,Polymorphism> PolymorphismMap;
 typedef std::pair<const slim_mutationid_t,Polymorphism> PolymorphismPair;
@@ -57,6 +57,11 @@ public:
 	
 	void print(std::ostream &p_out) const;			// includes polymorphism_id_ at the beginning
 	void print_no_id(std::ostream &p_out) const;	// does not include polymorphism_id_
+	
+	friend bool operator<(const Polymorphism& l, const Polymorphism& r)
+	{
+		return l.mutation_ptr_->position_ < r.mutation_ptr_->position_; // keep the same order
+	}
 };
 
 

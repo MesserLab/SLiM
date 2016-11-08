@@ -752,25 +752,37 @@ void Genome::PrintGenomes_ms(std::ostream &p_out, std::vector<Genome *> &genomes
 {
 	slim_popsize_t sample_size = (slim_popsize_t)genomes.size();
 	
-	// get the polymorphisms within the sample
-	PolymorphismMap polymorphisms;
+	// BCH 7 Nov. 2016: sort the polymorphisms by position since that is the expected sort
+	// order in MS output.  In other types of output, sorting by the mutation id seems to
+	// be fine.
+	std::vector<Polymorphism> sorted_polymorphisms;
 	
-	for (slim_popsize_t s = 0; s < sample_size; s++)
 	{
-		Genome &genome = *genomes[s];
+		// get the polymorphisms within the sample
+		PolymorphismMap polymorphisms;
 		
-		if (genome.IsNull())
-			EIDOS_TERMINATION << "ERROR (Genome::PrintGenomes_ms): cannot output null genomes." << eidos_terminate();
+		for (slim_popsize_t s = 0; s < sample_size; s++)
+		{
+			Genome &genome = *genomes[s];
+			
+			if (genome.IsNull())
+				EIDOS_TERMINATION << "ERROR (Genome::PrintGenomes_ms): cannot output null genomes." << eidos_terminate();
+			
+			for (int k = 0; k < genome.size(); k++)			// go through all mutations
+				AddMutationToPolymorphismMap(&polymorphisms, genome[k]);
+		}
 		
-		for (int k = 0; k < genome.size(); k++)			// go through all mutations
-			AddMutationToPolymorphismMap(&polymorphisms, genome[k]);
+		for (const PolymorphismPair &polymorphism_pair : polymorphisms)
+			sorted_polymorphisms.push_back(polymorphism_pair.second);
+		
+		std::sort(sorted_polymorphisms.begin(), sorted_polymorphisms.end());
 	}
 	
 	// print header
-	p_out << "//" << std::endl << "segsites: " << polymorphisms.size() << std::endl;
+	p_out << "//" << std::endl << "segsites: " << sorted_polymorphisms.size() << std::endl;
 	
 	// print the sample's positions
-	if (polymorphisms.size() > 0)
+	if (sorted_polymorphisms.size() > 0)
 	{
 		// Save flags/precision
 		std::ios_base::fmtflags oldflags = p_out.flags();
@@ -781,8 +793,8 @@ void Genome::PrintGenomes_ms(std::ostream &p_out, std::vector<Genome *> &genomes
 		// Output positions
 		p_out << "positions:";
 		
-		for (const PolymorphismPair &polymorphism_pair : polymorphisms) 
-			p_out << " " << static_cast<double>(polymorphism_pair.second.mutation_ptr_->position_) / p_chromosome.last_position_;	// this prints positions as being in the interval [0,1], which Philipp decided was the best policy
+		for (const Polymorphism &polymorphism : sorted_polymorphisms) 
+			p_out << " " << static_cast<double>(polymorphism.mutation_ptr_->position_) / p_chromosome.last_position_;	// this prints positions as being in the interval [0,1], which Philipp decided was the best policy
 		
 		p_out << std::endl;
 		
@@ -795,17 +807,16 @@ void Genome::PrintGenomes_ms(std::ostream &p_out, std::vector<Genome *> &genomes
 	for (slim_popsize_t j = 0; j < sample_size; j++)														// go through all individuals
 	{
 		Genome &genome = *genomes[j];
-		std::string genotype(polymorphisms.size(), '0'); // fill with 0s
+		std::string genotype(sorted_polymorphisms.size(), '0'); // fill with 0s
 		
 		for (int k = 0; k < genome.size(); k++)	// go through all mutations
 		{
 			const Mutation *mutation = genome[k];
-			slim_mutationid_t mutation_id = mutation->mutation_id_;
 			int genotype_string_position = 0;
 			
-			for (const PolymorphismPair &polymorphism_pair : polymorphisms) 
+			for (const Polymorphism &polymorphism : sorted_polymorphisms) 
 			{
-				if (polymorphism_pair.first == mutation_id)
+				if (polymorphism.mutation_ptr_ == mutation)
 				{
 					// mark this polymorphism as present in the genome, and move on since this mutation can't also match any other polymorphism
 					genotype.replace(genotype_string_position, 1, "1");
