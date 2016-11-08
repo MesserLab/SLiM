@@ -158,15 +158,43 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 	old_log = Individual::LogIndividualCopyAndAssign(false);
 #endif
 	
-	while (parent_individuals_size < max_subpop_size)
+	// BCH 7 November 2016: If we are going to resize a vector containing individuals, we have
+	// to be quite careful, because the vector can resize, changing the addresses of all of the
+	// Individual objects, which means that any cached pointers are invalid!  This is not an issue
+	// with most SLiM objects since we don't store them in vectors, we allocate them.  We also
+	// have to be careful with Genomes, which are also kept in vectors.
+	if (parent_individuals_size < max_subpop_size)
 	{
-		parent_individuals_.emplace_back(Individual(*this, parent_individuals_size));
-		parent_individuals_size++;
+		// Clear any EidosValue cache of our individuals that we have made for the individuals property
+		cached_parent_individuals_value_.reset();
+		
+		// Clear any cached EidosValue self-references inside the Individual objects themselves
+		for (Individual &parent_ind : parent_individuals_)
+			parent_ind.ClearCachedEidosValue();
+		
+		do
+		{
+			parent_individuals_.emplace_back(Individual(*this, parent_individuals_size));
+			parent_individuals_size++;
+		}
+		while (parent_individuals_size < max_subpop_size);
 	}
-	while (child_individuals_size < max_subpop_size)
+	
+	if (child_individuals_size < max_subpop_size)
 	{
-		child_individuals_.emplace_back(Individual(*this, child_individuals_size));
-		child_individuals_size++;
+		// Clear any EidosValue cache of our individuals that we have made for the individuals property
+		cached_child_individuals_value_.reset();
+		
+		// Clear any cached EidosValue self-references inside the Individual objects themselves
+		for (Individual &child_ind : child_individuals_)
+			child_ind.ClearCachedEidosValue();
+		
+		do
+		{
+			child_individuals_.emplace_back(Individual(*this, child_individuals_size));
+			child_individuals_size++;
+		}
+		while (child_individuals_size < max_subpop_size);
 	}
 	
 #ifdef DEBUG
@@ -1619,6 +1647,8 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 				slim_popsize_t subpop_size = child_subpop_size_;
 				
 				// Check for an outdated cache and detach from it
+				// BCH 7 November 2016: This probably never occurs any more; we reset() in
+				// GenerateChildrenToFit() now, pre-emptively.  See the comment there.
 				if (cached_child_individuals_value_ && (cached_child_individuals_value_->Count() != subpop_size))
 					cached_child_individuals_value_.reset();
 				
@@ -1639,6 +1669,8 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 				slim_popsize_t subpop_size = parent_subpop_size_;
 				
 				// Check for an outdated cache and detach from it
+				// BCH 7 November 2016: This probably never occurs any more; we reset() in
+				// GenerateChildrenToFit() now, pre-emptively.  See the comment there.
 				if (cached_parent_individuals_value_ && (cached_parent_individuals_value_->Count() != subpop_size))
 					cached_parent_individuals_value_.reset();
 				

@@ -141,6 +141,8 @@ void Individual::GenerateCachedEidosValue(void)
 {
 	// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
 	// live for at least as long as the symbol table it may be placed into!
+	// BCH 7 November 2016: Well, that's putting it a bit strongly.  :->  Note that
+	// GenerateChildrenToFit() can clear these caches, but it does it at a safe time.
 	self_value_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Individual_Class));
 }
 
