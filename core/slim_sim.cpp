@@ -2496,10 +2496,13 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 			//
 			//	*********************	– (float)mutationFrequencies(No<Subpopulation> subpops, [No<Mutation> mutations = NULL])
+			//	*********************	– (integer)mutationCounts(No<Subpopulation> subpops, [No<Mutation> mutations = NULL])
 			//
 #pragma mark -mutationFrequencies()
+#pragma mark -mutationCounts()
 			
 		case gID_mutationFrequencies:
+		case gID_mutationCounts:
 		{
 			slim_refcount_t total_genome_count = 0;
 			
@@ -2525,9 +2528,21 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			}
 			
 			// OK, now construct our result vector from the tallies for just the requested mutations
-			EidosValue_Float_vector *float_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector();
-			EidosValue_SP result_SP = EidosValue_SP(float_result);
+			EidosValue_Float_vector *float_result = nullptr;
+			EidosValue_Int_vector *int_result = nullptr;
+			EidosValue_SP result_SP;
 			double denominator = 1.0 / total_genome_count;
+
+			if (p_method_id == gID_mutationFrequencies)
+			{
+				float_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector();
+				result_SP = EidosValue_SP(float_result);
+			}
+			else // p_method_id == gID_mutationCounts
+			{
+				int_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector();
+				result_SP = EidosValue_SP(int_result);
+			}
 			
 			if (arg1_value->Type() != EidosValueType::kValueNULL)
 			{
@@ -2536,8 +2551,16 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 				
 				if (arg1_count)
 				{
-					for (int value_index = 0; value_index < arg1_count; ++value_index)
-						float_result->PushFloat(((Mutation *)(arg1_value->ObjectElementAtIndex(value_index, nullptr)))->reference_count_ * denominator);
+					if (p_method_id == gID_mutationFrequencies)
+					{
+						for (int value_index = 0; value_index < arg1_count; ++value_index)
+							float_result->PushFloat(((Mutation *)(arg1_value->ObjectElementAtIndex(value_index, nullptr)))->reference_count_ * denominator);
+					}
+					else // p_method_id == gID_mutationCounts
+					{
+						for (int value_index = 0; value_index < arg1_count; ++value_index)
+							int_result->PushInt(((Mutation *)(arg1_value->ObjectElementAtIndex(value_index, nullptr)))->reference_count_);
+					}
 				}
 			}
 			else
@@ -2545,8 +2568,16 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 				// no mutation vector was given, so return all frequencies from the registry
 				Mutation **registry_iter_end = population_.mutation_registry_.end_pointer();
 				
-				for (Mutation **registry_iter = population_.mutation_registry_.begin_pointer(); registry_iter != registry_iter_end; ++registry_iter)
-					float_result->PushFloat((*registry_iter)->reference_count_ * denominator);
+				if (p_method_id == gID_mutationFrequencies)
+				{
+					for (Mutation **registry_iter = population_.mutation_registry_.begin_pointer(); registry_iter != registry_iter_end; ++registry_iter)
+						float_result->PushFloat((*registry_iter)->reference_count_ * denominator);
+				}
+				else // p_method_id == gID_mutationCounts
+				{
+					for (Mutation **registry_iter = population_.mutation_registry_.begin_pointer(); registry_iter != registry_iter_end; ++registry_iter)
+						int_result->PushInt((*registry_iter)->reference_count_);
+				}
 			}
 			
 			return result_SP;
@@ -3204,6 +3235,7 @@ const std::vector<const EidosMethodSignature *> *SLiMSim_Class::Methods(void) co
 		methods->emplace_back(SignatureForMethodOrRaise(gID_addSubpopSplit));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_deregisterScriptBlock));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_mutationFrequencies));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_mutationCounts));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_mutationsOfType));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_countOfMutationsOfType));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_outputFixedMutations));
@@ -3230,6 +3262,7 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 	static EidosInstanceMethodSignature *addSubpopSplitSig = nullptr;
 	static EidosInstanceMethodSignature *deregisterScriptBlockSig = nullptr;
 	static EidosInstanceMethodSignature *mutationFrequenciesSig = nullptr;
+	static EidosInstanceMethodSignature *mutationCountsSig = nullptr;
 	static EidosInstanceMethodSignature *mutationsOfTypeSig = nullptr;
 	static EidosInstanceMethodSignature *countOfMutationsOfTypeSig = nullptr;
 	static EidosInstanceMethodSignature *outputFixedMutationsSig = nullptr;
@@ -3251,6 +3284,7 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 		countOfMutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
 		deregisterScriptBlockSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_deregisterScriptBlock, kEidosValueMaskNULL))->AddIntObject("scriptBlocks", gSLiM_SLiMEidosBlock_Class);
 		mutationFrequenciesSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationFrequencies, kEidosValueMaskFloat))->AddObject_N("subpops", gSLiM_Subpopulation_Class)->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL);
+		mutationCountsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationCounts, kEidosValueMaskInt))->AddObject_N("subpops", gSLiM_Subpopulation_Class)->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL);
 		mutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
 		outputFixedMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFixedMutations, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF);
 		outputFullSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFull, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("binary", gStaticEidosValue_LogicalF)->AddLogical_OS("append", gStaticEidosValue_LogicalF);
@@ -3273,6 +3307,7 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 		case gID_countOfMutationsOfType:				return countOfMutationsOfTypeSig;
 		case gID_deregisterScriptBlock:					return deregisterScriptBlockSig;
 		case gID_mutationFrequencies:					return mutationFrequenciesSig;
+		case gID_mutationCounts:						return mutationCountsSig;
 		case gID_mutationsOfType:						return mutationsOfTypeSig;
 		case gID_outputFixedMutations:					return outputFixedMutationsSig;
 		case gID_outputFull:							return outputFullSig;

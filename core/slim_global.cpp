@@ -205,6 +205,7 @@ const std::string gStr_addSubpop = "addSubpop";
 const std::string gStr_addSubpopSplit = "addSubpopSplit";
 const std::string gStr_deregisterScriptBlock = "deregisterScriptBlock";
 const std::string gStr_mutationFrequencies = "mutationFrequencies";
+const std::string gStr_mutationCounts = "mutationCounts";
 //const std::string gStr_mutationsOfType = "mutationsOfType";
 //const std::string gStr_countOfMutationsOfType = "countOfMutationsOfType";
 const std::string gStr_outputFixedMutations = "outputFixedMutations";
@@ -393,6 +394,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_addSubpopSplit, gID_addSubpopSplit);
 		Eidos_RegisterStringForGlobalID(gStr_deregisterScriptBlock, gID_deregisterScriptBlock);
 		Eidos_RegisterStringForGlobalID(gStr_mutationFrequencies, gID_mutationFrequencies);
+		Eidos_RegisterStringForGlobalID(gStr_mutationCounts, gID_mutationCounts);
 		Eidos_RegisterStringForGlobalID(gStr_outputFixedMutations, gID_outputFixedMutations);
 		Eidos_RegisterStringForGlobalID(gStr_outputFull, gID_outputFull);
 		Eidos_RegisterStringForGlobalID(gStr_outputMutations, gID_outputMutations);

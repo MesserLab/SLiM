@@ -1803,6 +1803,46 @@ The mutation stacking policy applies only within the given mutation type; mutati
 \f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f2\fs18 \cf0 \'96\'a0(integer)mutationCounts(No<Subpopulation>\'a0subpops, [No<Mutation>\'a0mutations\'a0=\'a0NULL])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Return an 
+\f2\fs18 integer
+\f0\fs20  vector with the frequency counts of all of the 
+\f2\fs18 Mutation
+\f0\fs20  objects passed in 
+\f2\fs18 mutations
+\f0\fs20 , within the 
+\f2\fs18 Subpopulation
+\f0\fs20  objects in 
+\f2\fs18 subpops
+\f0\fs20 .  The 
+\f2\fs18 subpops
+\f0\fs20  argument is required, but you may pass 
+\f2\fs18 NULL
+\f0\fs20  to get population-wide frequency counts.  If the optional 
+\f2\fs18 mutations
+\f0\fs20  argument is 
+\f2\fs18 NULL
+\f0\fs20  (the default), frequency counts will be returned for all of the active 
+\f2\fs18 Mutation
+\f0\fs20  objects in the simulation \'96 the same 
+\f2\fs18 Mutation
+\f0\fs20  objects, and in the same order, as would be returned by the 
+\f2\fs18 mutations
+\f0\fs20  property of 
+\f2\fs18 sim
+\f0\fs20 , in other words.\
+See the 
+\f2\fs18 -mutationFrequencies()
+\f0\fs20  method to obtain 
+\f2\fs18 float
+\f0\fs20  frequencies instead of 
+\f2\fs18 integer
+\f0\fs20  counts.
+\f3 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f2\fs18 \cf0 \'96\'a0(float)mutationFrequencies(No<Subpopulation>\'a0subpops, [No<Mutation>\'a0mutations\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -1833,6 +1873,15 @@ The mutation stacking policy applies only within the given mutation type; mutati
 \f0\fs20  property of 
 \f2\fs18 sim
 \f0\fs20 , in other words.
+\f3 \
+
+\f0 See the 
+\f2\fs18 -mutationCounts()
+\f0\fs20  method to obtain 
+\f2\fs18 integer
+\f0\fs20  counts instead of 
+\f2\fs18 float
+\f0\fs20  frequencies.
 \f3 \
 \pard\pardeftab529\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
