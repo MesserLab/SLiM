@@ -92,6 +92,7 @@ public:
 	
 	std::vector<SLiMEidosBlock*> registered_mate_choice_callbacks_;	// NOT OWNED: valid only during EvolveSubpopulation; callbacks used when this subpop is parental
 	std::vector<SLiMEidosBlock*> registered_modify_child_callbacks_;	// NOT OWNED: valid only during EvolveSubpopulation; callbacks used when this subpop is parental
+	std::vector<SLiMEidosBlock*> registered_recombination_callbacks_;	// NOT OWNED: valid only during EvolveSubpopulation; callbacks used when this subpop is parental
 	
 	double *cached_parental_fitness_ = nullptr;		// OWNED POINTER: cached in UpdateFitness(), used by SLiMgui and by the fitness() methods of Subpopulation
 	double *cached_male_fitness_ = nullptr;			// OWNED POINTER: SEX ONLY: same as cached_parental_fitness_ but with 0 for all females

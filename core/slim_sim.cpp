@@ -1204,12 +1204,15 @@ bool SLiMSim::_RunOneGeneration(void)
 		
 		std::vector<SLiMEidosBlock*> mate_choice_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosMateChoiceCallback, -1, -1);
 		std::vector<SLiMEidosBlock*> modify_child_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosModifyChildCallback, -1, -1);
+		std::vector<SLiMEidosBlock*> recombination_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosRecombinationCallback, -1, -1);
 		bool mate_choice_callbacks_present = mate_choice_callbacks.size();
 		bool modify_child_callbacks_present = modify_child_callbacks.size();
+		bool recombination_callbacks_present = recombination_callbacks.size();
 		bool no_active_callbacks = true;
 		
-		// if there are no active callbacks, we can pretend there are no callbacks at all
-		if (mate_choice_callbacks_present || modify_child_callbacks_present)
+		// if there are no active callbacks of any type, we can pretend there are no callbacks at all
+		// if there is a callback of any type, however, then inactive callbacks could become active
+		if (mate_choice_callbacks_present || modify_child_callbacks_present || recombination_callbacks_present)
 		{
 			for (SLiMEidosBlock *callback : mate_choice_callbacks)
 				if (callback->active_)
@@ -1225,12 +1228,20 @@ bool SLiMSim::_RunOneGeneration(void)
 						no_active_callbacks = false;
 						break;
 					}
+			
+			if (no_active_callbacks)
+				for (SLiMEidosBlock *callback : recombination_callbacks)
+					if (callback->active_)
+					{
+						no_active_callbacks = false;
+						break;
+					}
 		}
 		
 		if (no_active_callbacks)
 		{
 			for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
-				population_.EvolveSubpopulation(*subpop_pair.second, chromosome_, generation_, false, false);
+				population_.EvolveSubpopulation(*subpop_pair.second, chromosome_, generation_, false, false, false);
 		}
 		else
 		{
@@ -1241,6 +1252,8 @@ bool SLiMSim::_RunOneGeneration(void)
 				Subpopulation *subpop = subpop_pair.second;
 				
 				// Get mateChoice() callbacks that apply to this subpopulation
+				subpop->registered_mate_choice_callbacks_.clear();
+				
 				for (SLiMEidosBlock *callback : mate_choice_callbacks)
 				{
 					slim_objectid_t callback_subpop_id = callback->subpopulation_id_;
@@ -1250,6 +1263,8 @@ bool SLiMSim::_RunOneGeneration(void)
 				}
 				
 				// Get modifyChild() callbacks that apply to this subpopulation
+				subpop->registered_modify_child_callbacks_.clear();
+				
 				for (SLiMEidosBlock *callback : modify_child_callbacks)
 				{
 					slim_objectid_t callback_subpop_id = callback->subpopulation_id_;
@@ -1257,20 +1272,22 @@ bool SLiMSim::_RunOneGeneration(void)
 					if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
 						subpop->registered_modify_child_callbacks_.emplace_back(callback);
 				}
+				
+				// Get recombination() callbacks that apply to this subpopulation
+				subpop->registered_recombination_callbacks_.clear();
+				
+				for (SLiMEidosBlock *callback : recombination_callbacks)
+				{
+					slim_objectid_t callback_subpop_id = callback->subpopulation_id_;
+					
+					if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
+						subpop->registered_recombination_callbacks_.emplace_back(callback);
+				}
 			}
 			
 			// then evolve each subpop
 			for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
-				population_.EvolveSubpopulation(*subpop_pair.second, chromosome_, generation_, mate_choice_callbacks_present, modify_child_callbacks_present);
-			
-			// then remove the cached callbacks, for safety and because we'd have to do it eventually anyway
-			for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
-			{
-				Subpopulation *subpop = subpop_pair.second;
-				
-				subpop->registered_mate_choice_callbacks_.clear();
-				subpop->registered_modify_child_callbacks_.clear();
-			}
+				population_.EvolveSubpopulation(*subpop_pair.second, chromosome_, generation_, mate_choice_callbacks_present, modify_child_callbacks_present, recombination_callbacks_present);
 		}
 		
 		// then switch to the child generation; we don't want to do this until all callbacks have executed for all subpops
@@ -3043,12 +3060,15 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			//
 			//	*********************	– (object<SLiMEidosBlock>$)registerMateChoiceCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
 			//	*********************	– (object<SLiMEidosBlock>$)registerModifyChildCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
+			//	*********************	– (object<SLiMEidosBlock>$)registerRecombinationCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
 			//
 #pragma mark -registerMateChoiceCallback()
 #pragma mark -registerModifyChildCallback()
+#pragma mark -registerRecombinationCallback()
 			
 		case gID_registerMateChoiceCallback:
 		case gID_registerModifyChildCallback:
+		case gID_registerRecombinationCallback:
 		{
 			slim_objectid_t script_id = -1;		// used if the arg0 is NULL, to indicate an anonymous block
 			string script_string = arg1_value->StringAtIndex(0, nullptr);
@@ -3065,7 +3085,12 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			if (start_generation > end_generation)
 				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): " << StringForEidosGlobalStringID(p_method_id) << " requires start <= end." << eidos_terminate();
 			
-			SLiMEidosBlockType block_type = ((p_method_id == gID_registerMateChoiceCallback) ? SLiMEidosBlockType::SLiMEidosMateChoiceCallback : SLiMEidosBlockType::SLiMEidosModifyChildCallback);
+			SLiMEidosBlockType block_type;
+			
+			if (p_method_id == gID_registerMateChoiceCallback)				block_type = SLiMEidosBlockType::SLiMEidosMateChoiceCallback;
+			else if (p_method_id == gID_registerModifyChildCallback)		block_type = SLiMEidosBlockType::SLiMEidosModifyChildCallback;
+			else /* (p_method_id == gID_registerRecombinationCallback) */	block_type = SLiMEidosBlockType::SLiMEidosRecombinationCallback;
+			
 			SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, block_type, start_generation, end_generation);
 			
 			new_script_block->subpopulation_id_ = subpop_id;
@@ -3248,6 +3273,7 @@ const std::vector<const EidosMethodSignature *> *SLiMSim_Class::Methods(void) co
 		methods->emplace_back(SignatureForMethodOrRaise(gID_registerFitnessCallback));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_registerMateChoiceCallback));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_registerModifyChildCallback));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_registerRecombinationCallback));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_simulationFinished));
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
@@ -3275,6 +3301,7 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 	static EidosInstanceMethodSignature *registerFitnessCallbackSig = nullptr;
 	static EidosInstanceMethodSignature *registerMateChoiceCallbackSig = nullptr;
 	static EidosInstanceMethodSignature *registerModifyChildCallbackSig = nullptr;
+	static EidosInstanceMethodSignature *registerRecombinationCallbackSig = nullptr;
 	static EidosInstanceMethodSignature *simulationFinishedSig = nullptr;
 	
 	if (!addSubpopSig)
@@ -3296,6 +3323,7 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 		registerFitnessCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerFitnessCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_S("mutType", gSLiM_MutationType_Class)->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL);
 		registerMateChoiceCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerMateChoiceCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL);
 		registerModifyChildCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerModifyChildCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL);
+		registerRecombinationCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerRecombinationCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL);
 		simulationFinishedSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_simulationFinished, kEidosValueMaskNULL));
 	}
 	
@@ -3319,6 +3347,7 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 		case gID_registerFitnessCallback:				return registerFitnessCallbackSig;
 		case gID_registerMateChoiceCallback:			return registerMateChoiceCallbackSig;
 		case gID_registerModifyChildCallback:			return registerModifyChildCallbackSig;
+		case gID_registerRecombinationCallback:			return registerRecombinationCallbackSig;
 		case gID_simulationFinished:					return simulationFinishedSig;
 			
 			// all others, including gID_none

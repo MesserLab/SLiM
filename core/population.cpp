@@ -596,7 +596,7 @@ bool Population::ApplyModifyChildCallbacks(slim_popsize_t p_child_index, Individ
 }
 
 // generate children for subpopulation p_subpop_id, drawing from all source populations, handling crossover and mutation
-void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &p_chromosome, slim_generation_t p_generation, bool p_mate_choice_callbacks_present, bool p_modify_child_callbacks_present)
+void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &p_chromosome, slim_generation_t p_generation, bool p_mate_choice_callbacks_present, bool p_modify_child_callbacks_present, bool p_recombination_callbacks_present)
 {
 	bool pedigrees_enabled = sim_.PedigreesEnabled();
 	bool sex_enabled = p_subpop.sex_enabled_;
@@ -660,7 +660,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 			EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): sex ratio " << sex_ratio << " results in a unisexual child population." << eidos_terminate();
 	}
 	
-	if (p_mate_choice_callbacks_present || p_modify_child_callbacks_present)
+	if (p_mate_choice_callbacks_present || p_modify_child_callbacks_present || p_recombination_callbacks_present)
 	{
 		// CALLBACKS PRESENT: We need to generate offspring in a randomized order.  This way the callbacks are presented with potential offspring
 		// a random order, and so it is much easier to write a callback that runs for less than the full offspring generation phase (influencing a
@@ -682,12 +682,14 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 			double cloning_fraction = source_subpop.female_clone_fraction_;
 			
 			// figure out our callback situation for this source subpop; callbacks come from the source, not the destination
-			std::vector<SLiMEidosBlock*> *mate_choice_callbacks = nullptr, *modify_child_callbacks = nullptr;
+			std::vector<SLiMEidosBlock*> *mate_choice_callbacks = nullptr, *modify_child_callbacks = nullptr, *recombination_callbacks = nullptr;
 			
 			if (p_mate_choice_callbacks_present && source_subpop.registered_mate_choice_callbacks_.size())
 				mate_choice_callbacks = &source_subpop.registered_mate_choice_callbacks_;
 			if (p_modify_child_callbacks_present && source_subpop.registered_modify_child_callbacks_.size())
 				modify_child_callbacks = &source_subpop.registered_modify_child_callbacks_;
+			if (p_recombination_callbacks_present && source_subpop.registered_recombination_callbacks_.size())
+				recombination_callbacks = &source_subpop.registered_recombination_callbacks_;
 			
 			if (sex_enabled || (selfing_fraction > 0.0) || (cloning_fraction > 0.0))
 			{
@@ -907,8 +909,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 						}
 						
 						// recombination, gene-conversion, mutation
-						DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_index, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex, parent1_sex);
-						DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_index + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex, parent2_sex);
+						DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_index, subpop_id, parent1, p_chromosome, p_generation, child_sex, parent1_sex, recombination_callbacks);
+						DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_index + 1, subpop_id, parent2, p_chromosome, p_generation, child_sex, parent2_sex, recombination_callbacks);
 						
 						if (pedigrees_enabled)
 							p_subpop.child_individuals_[child_index].TrackPedigreeWithParents(source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2]);
@@ -957,8 +959,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 					}
 					
 					// recombination, gene-conversion, mutation
-					DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite);
-					DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite);
+					DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, parent1, p_chromosome, p_generation, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, recombination_callbacks);
+					DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, parent2, p_chromosome, p_generation, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, recombination_callbacks);
 					
 					if (pedigrees_enabled)
 						p_subpop.child_individuals_[child_count].TrackPedigreeWithParents(source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2]);
@@ -1116,12 +1118,14 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 				slim_objectid_t subpop_id = source_subpop->subpopulation_id_;
 				
 				// figure out our callback situation for this source subpop; callbacks come from the source, not the destination
-				std::vector<SLiMEidosBlock*> *mate_choice_callbacks = nullptr, *modify_child_callbacks = nullptr;
+				std::vector<SLiMEidosBlock*> *mate_choice_callbacks = nullptr, *modify_child_callbacks = nullptr, *recombination_callbacks = nullptr;
 				
 				if (source_subpop->registered_mate_choice_callbacks_.size())
 					mate_choice_callbacks = &source_subpop->registered_mate_choice_callbacks_;
 				if (source_subpop->registered_modify_child_callbacks_.size())
 					modify_child_callbacks = &source_subpop->registered_modify_child_callbacks_;
+				if (source_subpop->registered_recombination_callbacks_.size())
+					recombination_callbacks = &source_subpop->registered_recombination_callbacks_;
 				
 				// Similar to retryWithNewSourceSubpop: but assumes that the subpop remains unchanged; used after a failed mateChoice()
 				// callback, which rejects parent1 but does not cause a redraw of the source subpop.
@@ -1240,8 +1244,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 					}
 					
 					// recombination, gene-conversion, mutation
-					DoCrossoverMutation(&p_subpop, source_subpop, 2 * child_index, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex, parent1_sex);
-					DoCrossoverMutation(&p_subpop, source_subpop, 2 * child_index + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex, parent2_sex);
+					DoCrossoverMutation(&p_subpop, source_subpop, 2 * child_index, subpop_id, parent1, p_chromosome, p_generation, child_sex, parent1_sex, recombination_callbacks);
+					DoCrossoverMutation(&p_subpop, source_subpop, 2 * child_index + 1, subpop_id, parent2, p_chromosome, p_generation, child_sex, parent2_sex, recombination_callbacks);
 					
 					if (pedigrees_enabled)
 						p_subpop.child_individuals_[child_index].TrackPedigreeWithParents(source_subpop->parent_individuals_[parent1], source_subpop->parent_individuals_[parent2]);
@@ -1339,8 +1343,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 								slim_popsize_t parent2 = source_subpop.DrawMaleParentUsingFitness();
 								
 								// recombination, gene-conversion, mutation
-								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex, IndividualSex::kFemale);
-								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex, IndividualSex::kMale);
+								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, parent1, p_chromosome, p_generation, child_sex, IndividualSex::kFemale, nullptr);
+								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, parent2, p_chromosome, p_generation, child_sex, IndividualSex::kMale, nullptr);
 								
 								if (pedigrees_enabled)
 									p_subpop.child_individuals_[child_count].TrackPedigreeWithParents(source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2]);
@@ -1357,8 +1361,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 								slim_popsize_t parent2 = source_subpop.DrawParentUsingFitness();	// note this does not prohibit selfing!
 								
 								// recombination, gene-conversion, mutation
-								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex, IndividualSex::kHermaphrodite);
-								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex, IndividualSex::kHermaphrodite);
+								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, parent1, p_chromosome, p_generation, child_sex, IndividualSex::kHermaphrodite, nullptr);
+								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, parent2, p_chromosome, p_generation, child_sex, IndividualSex::kHermaphrodite, nullptr);
 								
 								if (pedigrees_enabled)
 									p_subpop.child_individuals_[child_count].TrackPedigreeWithParents(source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2]);
@@ -1427,8 +1431,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 								}
 								
 								// recombination, gene-conversion, mutation
-								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, 2 * parent1 + 1, p_chromosome, p_generation, child_sex, parent1_sex);
-								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, 2 * parent2, 2 * parent2 + 1, p_chromosome, p_generation, child_sex, parent2_sex);
+								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, parent1, p_chromosome, p_generation, child_sex, parent1_sex, nullptr);
+								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count + 1, subpop_id, parent2, p_chromosome, p_generation, child_sex, parent2_sex, nullptr);
 								
 								if (pedigrees_enabled)
 									p_subpop.child_individuals_[child_count].TrackPedigreeWithParents(source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2]);
@@ -1445,9 +1449,185 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 	}
 }
 
-// generate a child genome from parental genomes, with recombination, gene conversion, and mutation
-void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_source_subpop, slim_popsize_t p_child_genome_index, slim_objectid_t p_source_subpop_id, slim_popsize_t p_parent1_genome_index, slim_popsize_t p_parent2_genome_index, const Chromosome &p_chromosome, slim_generation_t p_generation, IndividualSex p_child_sex, IndividualSex p_parent_sex)
+// apply recombination() callbacks to a generated child; a return of true means breakpoints were changed
+bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Genome *p_genome1, Genome *p_genome2, Subpopulation *p_source_subpop, std::vector<slim_position_t> &p_crossovers, std::vector<slim_position_t> &p_gc_starts, std::vector<slim_position_t> &p_gc_ends, std::vector<SLiMEidosBlock*> &p_recombination_callbacks)
 {
+	bool crossovers_changed = false, gcstarts_changed = false, gcends_changed = false;
+	EidosValue_SP local_crossovers_ptr, local_gcstarts_ptr, local_gcends_ptr;
+	
+	for (SLiMEidosBlock *recombination_callback : p_recombination_callbacks)
+	{
+		if (recombination_callback->active_)
+		{
+			// The callback is active, so we need to execute it
+			EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim_.SymbolTable());
+			EidosSymbolTable client_symbols(EidosSymbolTableType::kVariablesTable, &callback_symbols);
+			EidosFunctionMap *function_map = EidosInterpreter::BuiltInFunctionMap();
+			EidosInterpreter interpreter(recombination_callback->compound_statement_node_, client_symbols, *function_map, &sim_);
+			
+			if (recombination_callback->contains_self_)
+				callback_symbols.InitializeConstantSymbolEntry(recombination_callback->SelfSymbolTableEntry());		// define "self"
+			
+			// Set all of the callback's parameters; note we use InitializeConstantSymbolEntry() for speed.
+			// We can use that method because we know the lifetime of the symbol table is shorter than that of
+			// the value objects, and we know that the values we are setting here will not change (the objects
+			// referred to by the values may change, but the values themselves will not change).
+			if (recombination_callback->contains_individual_)
+			{
+				Individual *individual = &(p_source_subpop->parent_individuals_[p_parent_index]);
+				callback_symbols.InitializeConstantSymbolEntry(gID_individual, individual->CachedEidosValue());
+			}
+			if (recombination_callback->contains_genome1_)
+				callback_symbols.InitializeConstantSymbolEntry(gID_genome1, p_genome1->CachedEidosValue());
+			if (recombination_callback->contains_genome2_)
+				callback_symbols.InitializeConstantSymbolEntry(gID_genome2, p_genome2->CachedEidosValue());
+			if (recombination_callback->contains_subpop_)
+				callback_symbols.InitializeConstantSymbolEntry(gID_subpop, p_source_subpop->SymbolTableEntry().second);
+			
+			// All the variable entries for the crossovers and gene conversion start/end points
+			// FIXME these need to be variables!
+			if (recombination_callback->contains_breakpoints_)
+			{
+				if (!local_crossovers_ptr)
+					local_crossovers_ptr = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(p_crossovers));
+				client_symbols.SetValueForSymbolNoCopy(gID_breakpoints, local_crossovers_ptr);
+			}
+			if (recombination_callback->contains_gcStarts_)
+			{
+				if (!local_gcstarts_ptr)
+					local_gcstarts_ptr = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(p_gc_starts));
+				client_symbols.SetValueForSymbolNoCopy(gID_gcStarts, local_gcstarts_ptr);
+			}
+			if (recombination_callback->contains_gcEnds_)
+			{
+				if (!local_gcends_ptr)
+					local_gcends_ptr = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(p_gc_ends));
+				client_symbols.SetValueForSymbolNoCopy(gID_gcEnds, local_gcends_ptr);
+			}
+			
+			// Interpret the script; the result from the interpretation must be a singleton logical, T if breakpoints have been changed, F otherwise
+			EidosValue_SP result_SP = interpreter.EvaluateInternalBlock(recombination_callback->script_);
+			EidosValue *result = result_SP.get();
+			
+			if ((result->Type() != EidosValueType::kValueLogical) || (result->Count() != 1))
+				EIDOS_TERMINATION << "ERROR (Population::ApplyRecombinationCallbacks): recombination() callbacks must provide a logical singleton return value." << eidos_terminate(recombination_callback->identifier_token_);
+			
+			eidos_logical_t breakpoints_changed = result->LogicalAtIndex(0, nullptr);
+			
+			// If the callback says that breakpoints were changed, check for an actual change in value for the variables referenced by the callback
+			if (breakpoints_changed)
+			{
+				if (recombination_callback->contains_breakpoints_)
+				{
+					EidosValue_SP new_crossovers = client_symbols.GetValueOrRaiseForSymbol(gID_breakpoints);
+					
+					if (new_crossovers != local_crossovers_ptr)
+					{
+						if (new_crossovers->Type() != EidosValueType::kValueInt)
+							EIDOS_TERMINATION << "ERROR (Population::ApplyRecombinationCallbacks): recombination() callbacks must provide output values (breakpoints) of type integer." << eidos_terminate(recombination_callback->identifier_token_);
+						
+						new_crossovers.swap(local_crossovers_ptr);
+						crossovers_changed = true;
+					}
+				}
+				if (recombination_callback->contains_gcStarts_)
+				{
+					EidosValue_SP new_gcstarts = client_symbols.GetValueOrRaiseForSymbol(gID_gcStarts);
+					
+					if (new_gcstarts != local_gcstarts_ptr)
+					{
+						if (new_gcstarts->Type() != EidosValueType::kValueInt)
+							EIDOS_TERMINATION << "ERROR (Population::ApplyRecombinationCallbacks): recombination() callbacks must provide output values (gcStarts) of type integer." << eidos_terminate(recombination_callback->identifier_token_);
+						
+						new_gcstarts.swap(local_gcstarts_ptr);
+						gcstarts_changed = true;
+					}
+				}
+				if (recombination_callback->contains_gcEnds_)
+				{
+					EidosValue_SP new_gcends = client_symbols.GetValueOrRaiseForSymbol(gID_gcEnds);
+					
+					if (new_gcends != local_gcends_ptr)
+					{
+						if (new_gcends->Type() != EidosValueType::kValueInt)
+							EIDOS_TERMINATION << "ERROR (Population::ApplyRecombinationCallbacks): recombination() callbacks must provide output values (gcEnds) of type integer." << eidos_terminate(recombination_callback->identifier_token_);
+						
+						new_gcends.swap(local_gcends_ptr);
+						gcends_changed = true;
+					}
+				}
+			}
+			
+			// Output generated by the interpreter goes to our output stream
+			SLIM_OUTSTREAM << interpreter.ExecutionOutput();
+		}
+	}
+	
+	// Read out the final values of breakpoint vectors that changed
+	// We really want to use EidosValue_Int_vector's IntVector() method to get the values; if the dynamic_cast
+	// fails, we presumably have an EidosValue_Int_singleton and must get its value with IntAtIndex.
+	bool breakpoints_changed = false;
+	
+	if (crossovers_changed)
+	{
+		p_crossovers.clear();
+		
+		EidosValue_Int_vector *new_crossover_vector = dynamic_cast<EidosValue_Int_vector *>(local_crossovers_ptr.get());
+		
+		if (new_crossover_vector)
+		{
+			for (int64_t value : *new_crossover_vector->IntVector())
+				p_crossovers.push_back((slim_position_t)value);
+		}
+		else
+			p_crossovers.push_back((slim_position_t)local_crossovers_ptr->IntAtIndex(0, nullptr));
+		
+		breakpoints_changed = true;
+	}
+	
+	if (gcstarts_changed)
+	{
+		p_gc_starts.clear();
+		
+		EidosValue_Int_vector *new_gcstarts_vector = dynamic_cast<EidosValue_Int_vector *>(local_gcstarts_ptr.get());
+		
+		if (new_gcstarts_vector)
+		{
+			for (int64_t value : *new_gcstarts_vector->IntVector())
+				p_gc_starts.push_back((slim_position_t)value);
+		}
+		else
+			p_gc_starts.push_back((slim_position_t)local_gcstarts_ptr->IntAtIndex(0, nullptr));
+		
+		breakpoints_changed = true;
+	}
+	
+	if (gcends_changed)
+	{
+		p_gc_ends.clear();
+		
+		EidosValue_Int_vector *new_gcends_vector = dynamic_cast<EidosValue_Int_vector *>(local_gcends_ptr.get());
+		
+		if (new_gcends_vector)
+		{
+			for (int64_t value : *new_gcends_vector->IntVector())
+				p_gc_ends.push_back((slim_position_t)value);
+		}
+		else
+			p_gc_ends.push_back((slim_position_t)local_gcends_ptr->IntAtIndex(0, nullptr));
+		
+		breakpoints_changed = true;
+	}
+	
+	return breakpoints_changed;
+}
+
+// generate a child genome from parental genomes, with recombination, gene conversion, and mutation
+void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_source_subpop, slim_popsize_t p_child_genome_index, slim_objectid_t p_source_subpop_id, slim_popsize_t p_parent_index, const Chromosome &p_chromosome, slim_generation_t p_generation, IndividualSex p_child_sex, IndividualSex p_parent_sex, std::vector<SLiMEidosBlock*> *p_recombination_callbacks)
+{
+	slim_popsize_t parent_genome_1_index = p_parent_index * 2;
+	slim_popsize_t parent_genome_2_index = parent_genome_1_index + 1;
+	
 	// child genome p_child_genome_index in subpopulation p_subpop_id is assigned outcome of cross-overs at breakpoints in all_breakpoints
 	// between parent genomes p_parent1_genome_index and p_parent2_genome_index from subpopulation p_source_subpop_id and new mutations added
 	// 
@@ -1471,9 +1651,9 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 	
 	Genome &child_genome = p_subpop->child_genomes_[p_child_genome_index];
 	GenomeType child_genome_type = child_genome.Type();
-	Genome *parent_genome_1 = &(p_source_subpop->parent_genomes_[p_parent1_genome_index]);
+	Genome *parent_genome_1 = &(p_source_subpop->parent_genomes_[parent_genome_1_index]);
 	GenomeType parent1_genome_type = parent_genome_1->Type();
-	Genome *parent_genome_2 = &(p_source_subpop->parent_genomes_[p_parent2_genome_index]);
+	Genome *parent_genome_2 = &(p_source_subpop->parent_genomes_[parent_genome_2_index]);
 	GenomeType parent2_genome_type = parent_genome_2->Type();
 	
 	if (child_genome_type == GenomeType::kAutosome)
@@ -1545,9 +1725,9 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 	// swap strands in half of cases to assure random assortment (or in all cases, if use_only_strand_1 == true, meaning that crossover cannot occur)
 	if (do_swap && (use_only_strand_1 || eidos_random_bool(gEidos_rng)))
 	{
-		slim_popsize_t swap = p_parent1_genome_index;
-		p_parent1_genome_index = p_parent2_genome_index;
-		p_parent2_genome_index = swap;
+		slim_popsize_t swap = parent_genome_1_index;
+		parent_genome_1_index = parent_genome_2_index;
+		parent_genome_2_index = swap;
 		
 		Genome *swap2 = parent_genome_1;
 		parent_genome_1 = parent_genome_2;
@@ -1605,11 +1785,17 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 	
 	// determine how many mutations and breakpoints we have
 	int num_mutations, num_breakpoints;
+	std::vector<slim_position_t> all_breakpoints;
 	
 	if (use_only_strand_1)
 	{
 		num_breakpoints = 0;
 		num_mutations = p_chromosome.DrawMutationCount();
+		
+		// no call to recombination() callbacks here, since recombination is not possible
+		
+		// Note that we do not add the (p_chromosome.last_position_ + 1) breakpoint here, for speed in the
+		// cases where it is not needed; this needs to be patched up below in the cases where it *is* needed
 	}
 	else
 	{
@@ -1622,6 +1808,53 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 		// get both the number of mutations and the number of breakpoints here; this allows us to draw both jointly, super fast!
 		p_chromosome.DrawMutationAndBreakpointCounts(p_parent_sex, &num_mutations, &num_breakpoints);
 #endif
+		
+		// handle recombination() breakpoints here, if any
+		if (p_recombination_callbacks)
+		{
+			// first draw breakpoints, distinguing between crossovers and gene conversion start/end points
+			std::vector<slim_position_t> crossovers, gc_starts, gc_ends;
+			
+			if (num_breakpoints)
+				p_chromosome.DrawBreakpoints_Detailed(p_parent_sex, num_breakpoints, crossovers, gc_starts, gc_ends);
+			
+			// next, apply the recombination callbacks
+			ApplyRecombinationCallbacks(p_parent_index, parent_genome_1, parent_genome_2, p_source_subpop, crossovers, gc_starts, gc_ends, *p_recombination_callbacks);
+			
+			// Finally, combine the crossovers and gene conversion start/end points into a single sorted, uniqued vector
+			num_breakpoints = (int)(crossovers.size() + gc_starts.size() + gc_ends.size());
+			
+			if (num_breakpoints)
+			{
+				all_breakpoints.reserve(num_breakpoints + 1);
+				all_breakpoints.insert(all_breakpoints.end(), crossovers.begin(), crossovers.end());
+				all_breakpoints.insert(all_breakpoints.end(), gc_starts.begin(), gc_starts.end());
+				all_breakpoints.insert(all_breakpoints.end(), gc_ends.begin(), gc_ends.end());
+				all_breakpoints.emplace_back(p_chromosome.last_position_ + 1);
+				
+				std::sort(all_breakpoints.begin(), all_breakpoints.end());
+				all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
+			}
+			else
+			{
+				// Note that we do not add the (p_chromosome.last_position_ + 1) breakpoint here, for speed in the
+				// cases where it is not needed; this needs to be patched up below in the cases where it *is* needed
+			}
+		}
+		else if (num_breakpoints)
+		{
+			// just draw, sort, and unique breakpoints in the standard way
+			all_breakpoints = p_chromosome.DrawBreakpoints(p_parent_sex, num_breakpoints);
+			
+			all_breakpoints.emplace_back(p_chromosome.last_position_ + 1);
+			std::sort(all_breakpoints.begin(), all_breakpoints.end());
+			all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
+		}
+		else
+		{
+			// Note that we do not add the (p_chromosome.last_position_ + 1) breakpoint here, for speed in the
+			// cases where it is not needed; this needs to be patched up below in the cases where it *is* needed
+		}
 	}
 	
 	// mutations are usually rare, so let's streamline the case where none occur
@@ -1630,23 +1863,16 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 		if (num_breakpoints == 0)
 		{
 			// no mutations and no crossovers, so the child genome is just a copy of the parental genome
-			child_genome.copy_from_genome(p_source_subpop->parent_genomes_[p_parent1_genome_index]);
+			child_genome.copy_from_genome(p_source_subpop->parent_genomes_[parent_genome_1_index]);
 		}
 		else
 		{
-			// create vector with uniqued recombination breakpoints
-			std::vector<slim_position_t> all_breakpoints = p_chromosome.DrawBreakpoints(p_parent_sex, num_breakpoints);
-			
-			all_breakpoints.emplace_back(p_chromosome.last_position_ + 1);
-			std::sort(all_breakpoints.begin(), all_breakpoints.end());
-			all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
-			
 			// do the crossover
-			Mutation **parent1_iter		= p_source_subpop->parent_genomes_[p_parent1_genome_index].begin_pointer();
-			Mutation **parent2_iter		= p_source_subpop->parent_genomes_[p_parent2_genome_index].begin_pointer();
+			Mutation **parent1_iter		= p_source_subpop->parent_genomes_[parent_genome_1_index].begin_pointer();
+			Mutation **parent2_iter		= p_source_subpop->parent_genomes_[parent_genome_2_index].begin_pointer();
 			
-			Mutation **parent1_iter_max	= p_source_subpop->parent_genomes_[p_parent1_genome_index].end_pointer();
-			Mutation **parent2_iter_max	= p_source_subpop->parent_genomes_[p_parent2_genome_index].end_pointer();
+			Mutation **parent1_iter_max	= p_source_subpop->parent_genomes_[parent_genome_1_index].end_pointer();
+			Mutation **parent2_iter_max	= p_source_subpop->parent_genomes_[parent_genome_2_index].end_pointer();
 			
 			Mutation **parent_iter		= parent1_iter;
 			Mutation **parent_iter_max	= parent1_iter_max;
@@ -1716,18 +1942,17 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 			// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
 		}
 		
-		// create vector with uniqued recombination breakpoints
-		std::vector<slim_position_t> all_breakpoints = p_chromosome.DrawBreakpoints(p_parent_sex, num_breakpoints); 
-		all_breakpoints.emplace_back(p_chromosome.last_position_ + 1);
-		std::sort(all_breakpoints.begin(), all_breakpoints.end());
-		all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
+		// fix up the breakpoints vector; above we allow it to be completely empty, for maximal speed in the
+		// 0-mutation/0-breakpoint case, but here we need a defined end breakpoint, so we add it now if necessary
+		if (all_breakpoints.size() == 0)
+			all_breakpoints.emplace_back(p_chromosome.last_position_ + 1);
 		
 		// do the crossover
-		Mutation **parent1_iter		= p_source_subpop->parent_genomes_[p_parent1_genome_index].begin_pointer();
-		Mutation **parent2_iter		= (num_breakpoints == 0) ? nullptr : p_source_subpop->parent_genomes_[p_parent2_genome_index].begin_pointer();
+		Mutation **parent1_iter		= p_source_subpop->parent_genomes_[parent_genome_1_index].begin_pointer();
+		Mutation **parent2_iter		= (num_breakpoints == 0) ? nullptr : p_source_subpop->parent_genomes_[parent_genome_2_index].begin_pointer();
 		
-		Mutation **parent1_iter_max	= p_source_subpop->parent_genomes_[p_parent1_genome_index].end_pointer();
-		Mutation **parent2_iter_max	= (num_breakpoints == 0) ? nullptr : p_source_subpop->parent_genomes_[p_parent2_genome_index].end_pointer();
+		Mutation **parent1_iter_max	= p_source_subpop->parent_genomes_[parent_genome_1_index].end_pointer();
+		Mutation **parent2_iter_max	= (num_breakpoints == 0) ? nullptr : p_source_subpop->parent_genomes_[parent_genome_2_index].end_pointer();
 		
 		Mutation **mutation_iter		= mutations_to_add.begin_pointer();
 		Mutation **mutation_iter_max	= mutations_to_add.end_pointer();

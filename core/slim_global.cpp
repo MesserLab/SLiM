@@ -218,6 +218,7 @@ const std::string gStr_registerLateEvent = "registerLateEvent";
 const std::string gStr_registerFitnessCallback = "registerFitnessCallback";
 const std::string gStr_registerMateChoiceCallback = "registerMateChoiceCallback";
 const std::string gStr_registerModifyChildCallback = "registerModifyChildCallback";
+const std::string gStr_registerRecombinationCallback = "registerRecombinationCallback";
 const std::string gStr_simulationFinished = "simulationFinished";
 const std::string gStr_setMigrationRates = "setMigrationRates";
 const std::string gStr_setCloningRate = "setCloningRate";
@@ -256,6 +257,9 @@ const std::string gStr_parent2Genome2 = "parent2Genome2";
 const std::string gStr_mut = "mut";
 const std::string gStr_relFitness = "relFitness";
 const std::string gStr_homozygous = "homozygous";
+const std::string gStr_breakpoints = "breakpoints";
+const std::string gStr_gcStarts = "gcStarts";
+const std::string gStr_gcEnds = "gcEnds";
 
 // mostly SLiM element types
 const std::string gStr_Chromosome = "Chromosome";
@@ -287,6 +291,7 @@ const std::string gStr_initialize = "initialize";
 const std::string gStr_fitness = "fitness";
 const std::string gStr_mateChoice = "mateChoice";
 const std::string gStr_modifyChild = "modifyChild";
+const std::string gStr_recombination = "recombination";
 
 
 void SLiM_RegisterGlobalStringsAndIDs(void)
@@ -405,6 +410,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_registerFitnessCallback, gID_registerFitnessCallback);
 		Eidos_RegisterStringForGlobalID(gStr_registerMateChoiceCallback, gID_registerMateChoiceCallback);
 		Eidos_RegisterStringForGlobalID(gStr_registerModifyChildCallback, gID_registerModifyChildCallback);
+		Eidos_RegisterStringForGlobalID(gStr_registerRecombinationCallback, gID_registerRecombinationCallback);
 		Eidos_RegisterStringForGlobalID(gStr_simulationFinished, gID_simulationFinished);
 		Eidos_RegisterStringForGlobalID(gStr_setMigrationRates, gID_setMigrationRates);
 		Eidos_RegisterStringForGlobalID(gStr_setCloningRate, gID_setCloningRate);
@@ -441,6 +447,9 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_mut, gID_mut);
 		Eidos_RegisterStringForGlobalID(gStr_relFitness, gID_relFitness);
 		Eidos_RegisterStringForGlobalID(gStr_homozygous, gID_homozygous);
+		Eidos_RegisterStringForGlobalID(gStr_breakpoints, gID_breakpoints);
+		Eidos_RegisterStringForGlobalID(gStr_gcStarts, gID_gcStarts);
+		Eidos_RegisterStringForGlobalID(gStr_gcEnds, gID_gcEnds);
 		
 		Eidos_RegisterStringForGlobalID(gStr_Chromosome, gID_Chromosome);
 		Eidos_RegisterStringForGlobalID(gStr_Genome, gID_Genome);
@@ -469,6 +478,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_fitness, gID_fitness);
 		Eidos_RegisterStringForGlobalID(gStr_mateChoice, gID_mateChoice);
 		Eidos_RegisterStringForGlobalID(gStr_modifyChild, gID_modifyChild);
+		Eidos_RegisterStringForGlobalID(gStr_recombination, gID_recombination);
 	}
 }
 

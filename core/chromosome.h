@@ -137,6 +137,7 @@ public:
 	
 	// choose a set of recombination breakpoints, based on recomb. intervals, overall recomb. rate, and gene conversion probability
 	vector<slim_position_t> DrawBreakpoints(IndividualSex p_sex, const int p_num_breakpoints) const;
+	void DrawBreakpoints_Detailed(IndividualSex p_sex, const int p_num_breakpoints, vector<slim_position_t> &p_crossovers, vector<slim_position_t> &p_gcstarts, vector<slim_position_t> &p_gcends) const;
 	
 	// draw both the mutation count and breakpoint count, using a single Poisson draw for speed
 	void DrawMutationAndBreakpointCounts(IndividualSex p_sex, int *p_mut_count, int *p_break_count) const;

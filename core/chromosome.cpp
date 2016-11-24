@@ -205,6 +205,7 @@ Mutation *Chromosome::DrawNewMutation(slim_objectid_t p_subpop_index, slim_gener
 }
 
 // choose a set of recombination breakpoints, based on recombination intervals, overall recombination rate, and gene conversion probability
+// BEWARE!  Chromosome::DrawBreakpoints_Detailed() below must be altered in parallel with this method!
 std::vector<slim_position_t> Chromosome::DrawBreakpoints(IndividualSex p_sex, const int p_num_breakpoints) const
 {
 	vector<slim_position_t> breakpoints;
@@ -297,6 +298,75 @@ std::vector<slim_position_t> Chromosome::DrawBreakpoints(IndividualSex p_sex, co
 	}
 	
 	return breakpoints;
+}
+
+// The same logic as Chromosome::DrawBreakpoints() above, but breaks results down into crossovers versus
+// gene conversion stand/end points.  See Chromosome::DrawBreakpoints for comments on the logic.
+void Chromosome::DrawBreakpoints_Detailed(IndividualSex p_sex, const int p_num_breakpoints, vector<slim_position_t> &p_crossovers, vector<slim_position_t> &p_gcstarts, vector<slim_position_t> &p_gcends) const
+{
+	gsl_ran_discrete_t *lookup;
+	const vector<slim_position_t> *end_positions;
+	
+	if (single_recombination_map_)
+	{
+		// With a single map, we don't care what sex we are passed; same map for all, and sex may be enabled or disabled
+		lookup = lookup_recombination_H_;
+		end_positions = &recombination_end_positions_H_;
+	}
+	else
+	{
+		// With sex-specific maps, we treat males and females separately, and the individual we're given better be one of the two
+		if (p_sex == IndividualSex::kMale)
+		{
+			lookup = lookup_recombination_M_;
+			end_positions = &recombination_end_positions_M_;
+		}
+		else if (p_sex == IndividualSex::kFemale)
+		{
+			lookup = lookup_recombination_F_;
+			end_positions = &recombination_end_positions_F_;
+		}
+		else
+		{
+			RecombinationMapConfigError();
+		}
+	}
+	
+	// draw recombination breakpoints
+	for (int i = 0; i < p_num_breakpoints; i++)
+	{
+		slim_position_t breakpoint = 0;
+		int recombination_interval = static_cast<int>(gsl_ran_discrete(gEidos_rng, lookup));
+		
+		// choose a breakpoint anywhere in the chosen recombination interval with equal probability
+		if (recombination_interval == 0)
+			breakpoint = static_cast<slim_position_t>(gsl_rng_uniform_int(gEidos_rng, (*end_positions)[recombination_interval]) + 1);
+		else
+			breakpoint = (*end_positions)[recombination_interval - 1] + 1 + static_cast<slim_position_t>(gsl_rng_uniform_int(gEidos_rng, (*end_positions)[recombination_interval] - (*end_positions)[recombination_interval - 1]));
+		
+		// recombination can result in gene conversion, with probability gene_conversion_fraction_
+		if (gene_conversion_fraction_ > 0.0)
+		{
+			if ((gene_conversion_fraction_ < 1.0) && (gsl_rng_uniform(gEidos_rng) < gene_conversion_fraction_))
+			{
+				p_gcstarts.emplace_back(breakpoint);
+				
+				// for gene conversion, choose a second breakpoint that is relatively likely to be near to the first
+				// note that this second breakpoint does not count toward the total number of breakpoints we need to
+				// generate; this means that when gene conversion occurs, we return more breakpoints than requested!
+				slim_position_t breakpoint2 = SLiMClampToPositionType(breakpoint + gsl_ran_geometric(gEidos_rng, 1.0 / gene_conversion_avg_length_));
+				
+				if (breakpoint2 <= last_position_)	// used to always add; added this 17 August 2015 BCH, but shouldn't really matter
+					p_gcends.emplace_back(breakpoint2);
+				else
+					p_gcends.emplace_back(last_position_ + 1);	// so every start has an end; harmless and will be removed by unique()
+				
+				continue;
+			}
+		}
+		
+		p_crossovers.emplace_back(breakpoint);
+	}
 }
 
 

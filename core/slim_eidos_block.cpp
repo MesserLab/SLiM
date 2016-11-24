@@ -247,10 +247,28 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 				
 				Match(EidosTokenType::kTokenRParen, "SLiM modifyChild() callback");
 			}
+			else if (current_token_->token_string_.compare(gStr_recombination) == 0)
+			{
+				EidosASTNode *callback_info_node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
+				slim_script_block_node->AddChild(callback_info_node);
+				
+				Match(EidosTokenType::kTokenIdentifier, "SLiM recombination() callback");
+				Match(EidosTokenType::kTokenLParen, "SLiM recombination() callback");
+				
+				// A (optional) subpopulation id is present; add it
+				if (current_token_type_ == EidosTokenType::kTokenIdentifier)
+				{
+					callback_info_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
+					
+					Match(EidosTokenType::kTokenIdentifier, "SLiM recombination() callback");
+				}
+				
+				Match(EidosTokenType::kTokenRParen, "SLiM recombination() callback");
+			}
 			else
 			{
 				if (!parse_make_bad_nodes_)
-					EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected identifier " << *current_token_ << "; expected a callback declaration (initialize, early, late, fitness, mateChoice, or modifyChild) or a compound statement." << eidos_terminate(current_token_);
+					EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected identifier " << *current_token_ << "; expected a callback declaration (initialize, early, late, fitness, mateChoice, modifyChild, or recombination) or a compound statement." << eidos_terminate(current_token_);
 				
 				// Consume the stray identifier, to be error-tolerant
 				Consume();
@@ -524,6 +542,20 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 				
 				type_ = SLiMEidosBlockType::SLiMEidosModifyChildCallback;
 			}
+			else if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_recombination) == 0))
+			{
+				if ((n_callback_children != 0) && (n_callback_children != 1))
+					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): recombination() callback needs 0 or 1 parameters." << eidos_terminate(callback_token);
+				
+				if (n_callback_children == 1)
+				{
+					EidosToken *subpop_id_token = callback_children[0]->token_;
+					
+					subpopulation_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(subpop_id_token->token_string_, 'p', subpop_id_token);
+				}
+				
+				type_ = SLiMEidosBlockType::SLiMEidosRecombinationCallback;
+			}
 			else
 			{
 				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): unknown callback type." << eidos_terminate(callback_token);
@@ -624,6 +656,9 @@ void SLiMEidosBlock::_ScanNodeForIdentifiersUsed(const EidosASTNode *p_scan_node
 		if (token_string.compare(gStr_parent2) == 0)			contains_parent2_ = true;
 		if (token_string.compare(gStr_parent2Genome1) == 0)		contains_parent2Genome1_ = true;
 		if (token_string.compare(gStr_parent2Genome2) == 0)		contains_parent2Genome2_ = true;
+		if (token_string.compare(gStr_breakpoints) == 0)		contains_breakpoints_ = true;
+		if (token_string.compare(gStr_gcStarts) == 0)			contains_gcStarts_ = true;
+		if (token_string.compare(gStr_gcEnds) == 0)				contains_gcEnds_ = true;
 	}
 }
 
@@ -653,6 +688,9 @@ void SLiMEidosBlock::ScanTreeForIdentifiersUsed(void)
 		contains_isSelfing_ = true;
 		contains_parent2Genome1_ = true;
 		contains_parent2Genome2_ = true;
+		contains_breakpoints_ = true;
+		contains_gcStarts_ = true;
+		contains_gcEnds_ = true;
 	}
 }
 
@@ -684,12 +722,13 @@ void SLiMEidosBlock::Print(std::ostream &p_ostream) const
 	
 	switch (type_)
 	{
-		case SLiMEidosBlockType::SLiMEidosEventEarly:			p_ostream << gStr_early; break;
-		case SLiMEidosBlockType::SLiMEidosEventLate:			p_ostream << gStr_late; break;
-		case SLiMEidosBlockType::SLiMEidosInitializeCallback:	p_ostream << gStr_initialize; break;
-		case SLiMEidosBlockType::SLiMEidosFitnessCallback:		p_ostream << gStr_fitness; break;
-		case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:	p_ostream << gStr_mateChoice; break;
-		case SLiMEidosBlockType::SLiMEidosModifyChildCallback:	p_ostream << gStr_modifyChild; break;
+		case SLiMEidosBlockType::SLiMEidosEventEarly:				p_ostream << gStr_early; break;
+		case SLiMEidosBlockType::SLiMEidosEventLate:				p_ostream << gStr_late; break;
+		case SLiMEidosBlockType::SLiMEidosInitializeCallback:		p_ostream << gStr_initialize; break;
+		case SLiMEidosBlockType::SLiMEidosFitnessCallback:			p_ostream << gStr_fitness; break;
+		case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		p_ostream << gStr_mateChoice; break;
+		case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		p_ostream << gStr_modifyChild; break;
+		case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	p_ostream << gStr_recombination; break;
 	}
 	
 	p_ostream << ">";
@@ -715,12 +754,13 @@ EidosValue_SP SLiMEidosBlock::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			switch (type_)
 			{
-				case SLiMEidosBlockType::SLiMEidosEventEarly:			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_early));
-				case SLiMEidosBlockType::SLiMEidosEventLate:			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_late));
-				case SLiMEidosBlockType::SLiMEidosInitializeCallback:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_initialize));
-				case SLiMEidosBlockType::SLiMEidosFitnessCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_fitness));
-				case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_mateChoice));
-				case SLiMEidosBlockType::SLiMEidosModifyChildCallback:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_modifyChild));
+				case SLiMEidosBlockType::SLiMEidosEventEarly:				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_early));
+				case SLiMEidosBlockType::SLiMEidosEventLate:				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_late));
+				case SLiMEidosBlockType::SLiMEidosInitializeCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_initialize));
+				case SLiMEidosBlockType::SLiMEidosFitnessCallback:			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_fitness));
+				case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_mateChoice));
+				case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_modifyChild));
+				case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_recombination));
 			}
 		}
 		case gID_source:
@@ -1090,7 +1130,7 @@ EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_MethodCall_Internal(const 
 			{
 				_SetTypeForISArgumentOfClass(p_arguments[0], 'p', gSLiM_Subpopulation_Class);
 			}
-			else if (((function_name == "registerEarlyEvent") || (function_name == "registerFitnessCallback") || (function_name == "registerLateEvent") || (function_name == "registerMateChoiceCallback") || (function_name == "registerModifyChildCallback")) && (argument_count >= 1))
+			else if (((function_name == "registerEarlyEvent") || (function_name == "registerFitnessCallback") || (function_name == "registerLateEvent") || (function_name == "registerMateChoiceCallback") || (function_name == "registerModifyChildCallback") || (function_name == "registerRecombinationCallback")) && (argument_count >= 1))
 			{
 				_SetTypeForISArgumentOfClass(p_arguments[0], 's', gSLiM_SLiMEidosBlock_Class);
 			}

@@ -1889,6 +1889,7 @@
 	if ([clickedText isEqualToString:@"fitness"])		return @"fitness() callbacks";
 	if ([clickedText isEqualToString:@"mateChoice"])	return @"mateChoice() callbacks";
 	if ([clickedText isEqualToString:@"modifyChild"])	return @"modifyChild() callbacks";
+	if ([clickedText isEqualToString:@"recombination"])	return @"recombination() callbacks";
 	
 	return nil;
 }
@@ -2067,6 +2068,7 @@
 							else if (child_string.compare(gStr_fitness) == 0)		block_type = SLiMEidosBlockType::SLiMEidosFitnessCallback;
 							else if (child_string.compare(gStr_mateChoice) == 0)	block_type = SLiMEidosBlockType::SLiMEidosMateChoiceCallback;
 							else if (child_string.compare(gStr_modifyChild) == 0)	block_type = SLiMEidosBlockType::SLiMEidosModifyChildCallback;
+							else if (child_string.compare(gStr_recombination) == 0)	block_type = SLiMEidosBlockType::SLiMEidosRecombinationCallback;
 							
 							// Check for an sX designation on a script block and, if found, add a symbol for it
 							else if ((block_child == script_block_node->children_[0]) && (child_string.length() >= 2))
@@ -2152,6 +2154,15 @@
 									(*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
 									(*typeTable)->SetTypeForSymbol(gID_sourceSubpop,	EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
 									break;
+								case SLiMEidosBlockType::SLiMEidosRecombinationCallback:
+									(*typeTable)->SetTypeForSymbol(gID_individual,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
+									(*typeTable)->SetTypeForSymbol(gID_genome1,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
+									(*typeTable)->SetTypeForSymbol(gID_genome2,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
+									(*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
+									(*typeTable)->SetTypeForSymbol(gID_breakpoints,		EidosTypeSpecifier{kEidosValueMaskInt, nullptr});
+									(*typeTable)->SetTypeForSymbol(gID_gcStarts,		EidosTypeSpecifier{kEidosValueMaskInt, nullptr});
+									(*typeTable)->SetTypeForSymbol(gID_gcEnds,			EidosTypeSpecifier{kEidosValueMaskInt, nullptr});
+									break;
 							}
 							
 							// Get a function map and add initialization functions to it if we're completing inside an initialize() callback
@@ -2187,9 +2198,9 @@
 		// have a compound statement (meaning its starting brace has not yet been typed), or if we're completing outside of any
 		// existing script block.  In these sorts of cases, we want to return completions for the outer level of a SLiM script.
 		// This means that standard Eidos language keywords like "while", "next", etc. are not legal, but SLiM script block
-		// keywords like "fitness" and "modifyChild" are.
+		// keywords like "fitness" and "mateChoice" and "modifyChild" and "recombination" are.
 		[keywords removeAllObjects];
-		[keywords addObjectsFromArray:@[@"initialize() {\n\n}\n", @"early() {\n\n}\n", @"late() {\n\n}\n", @"fitness() {\n\n}\n", @"mateChoice() {\n\n}\n", @"modifyChild() {\n\n}\n"]];
+		[keywords addObjectsFromArray:@[@"initialize() {\n\n}\n", @"early() {\n\n}\n", @"late() {\n\n}\n", @"fitness() {\n\n}\n", @"mateChoice() {\n\n}\n", @"modifyChild() {\n\n}\n", @"recombination() {\n\n}\n"]];
 		
 		// At the outer level, functions are also not legal
 		(*functionMap)->clear();
@@ -2347,6 +2358,15 @@
 			
 			if (!callbackSig)
 				callbackSig = (new EidosFunctionSignature("modifyChild", nullptr, kEidosValueMaskNULL))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
+			
+			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig];
+		}
+		else if ([signatureString hasPrefix:@"recombination()"])
+		{
+			static EidosCallSignature *callbackSig = nullptr;
+			
+			if (!callbackSig)
+				callbackSig = (new EidosFunctionSignature("recombination", nullptr, kEidosValueMaskNULL))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
 			
 			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig];
 		}
@@ -2651,12 +2671,13 @@
 				{
 					switch (scriptBlock->type_)
 					{
-						case SLiMEidosBlockType::SLiMEidosEventEarly:			return @"early()";
-						case SLiMEidosBlockType::SLiMEidosEventLate:			return @"late()";
-						case SLiMEidosBlockType::SLiMEidosInitializeCallback:	return @"initialize()";
-						case SLiMEidosBlockType::SLiMEidosFitnessCallback:		return @"fitness()";
-						case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:	return @"mateChoice()";
-						case SLiMEidosBlockType::SLiMEidosModifyChildCallback:	return @"modifyChild()";
+						case SLiMEidosBlockType::SLiMEidosEventEarly:				return @"early()";
+						case SLiMEidosBlockType::SLiMEidosEventLate:				return @"late()";
+						case SLiMEidosBlockType::SLiMEidosInitializeCallback:		return @"initialize()";
+						case SLiMEidosBlockType::SLiMEidosFitnessCallback:			return @"fitness()";
+						case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		return @"mateChoice()";
+						case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		return @"modifyChild()";
+						case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	return @"recombination()";
 					}
 				}
 			}

@@ -42,7 +42,8 @@ enum class SLiMEidosBlockType {
 	SLiMEidosInitializeCallback,
 	SLiMEidosFitnessCallback,
 	SLiMEidosMateChoiceCallback,
-	SLiMEidosModifyChildCallback
+	SLiMEidosModifyChildCallback,
+	SLiMEidosRecombinationCallback
 };
 
 
@@ -117,10 +118,10 @@ public:
 	bool contains_self_ = false;				// "self"
 	bool contains_mut_ = false;					// "mut" (fitness callback parameter)
 	bool contains_relFitness_ = false;			// "relFitness" (fitness callback parameter)
-	bool contains_individual_ = false;			// "individual" (fitness/mateChoice callback parameter)
-	bool contains_genome1_ = false;				// "genome1" (fitness/mateChoice callback parameter)
-	bool contains_genome2_ = false;				// "genome2" (fitness/mateChoice callback parameter)
-	bool contains_subpop_ = false;				// "subpop" (fitness/mateChoice/modifyChild callback parameter)
+	bool contains_individual_ = false;			// "individual" (fitness/mateChoice/recombination callback parameter)
+	bool contains_genome1_ = false;				// "genome1" (fitness/mateChoice/recombination callback parameter)
+	bool contains_genome2_ = false;				// "genome2" (fitness/mateChoice/recombination callback parameter)
+	bool contains_subpop_ = false;				// "subpop" (fitness/mateChoice/modifyChild/recombination callback parameter)
 	bool contains_homozygous_ = false;			// "homozygous" (fitness callback parameter)
 	bool contains_sourceSubpop_ = false;		// "sourceSubpop" (mateChoice/modifyChild callback parameter)
 	bool contains_weights_ = false;				// "weights" (mateChoice callback parameter)
@@ -136,6 +137,9 @@ public:
 	bool contains_parent2_ = false;				// "parent2" (modifyChild callback parameter)
 	bool contains_parent2Genome1_ = false;		// "parent2Genome1" (modifyChild callback parameter)
 	bool contains_parent2Genome2_ = false;		// "parent2Genome2" (modifyChild callback parameter)
+	bool contains_breakpoints_ = false;			// "breakpoints" (recombination callback parameter)
+	bool contains_gcStarts_ = false;			// "gcStarts" (recombination callback parameter)
+	bool contains_gcEnds_ = false;				// "gcEnds" (recombination callback parameter)
 	
 	SLiMEidosBlock(const SLiMEidosBlock&) = delete;					// no copying
 	SLiMEidosBlock& operator=(const SLiMEidosBlock&) = delete;		// no copying
