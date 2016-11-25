@@ -331,6 +331,7 @@ extern const std::string gStr_addNewDrawnMutation;
 extern const std::string gStr_addNewMutation;
 extern const std::string gStr_containsMutations;
 extern const std::string gStr_countOfMutationsOfType;
+extern const std::string gStr_containsMarkerMutation;
 extern const std::string gStr_relatedness;
 extern const std::string gStr_mutationsOfType;
 extern const std::string gStr_uniqueMutationsOfType;
@@ -512,6 +513,7 @@ enum _SLiMGlobalStringID : int {
 	gID_addNewMutation,
 	gID_containsMutations,
 	gID_countOfMutationsOfType,
+	gID_containsMarkerMutation,
 	gID_relatedness,
 	gID_mutationsOfType,
 	gID_uniqueMutationsOfType,
