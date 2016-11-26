@@ -494,52 +494,72 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			if (marker_position > sim->TheChromosome().last_position_)
 				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): containsMarkerMutation() position " << marker_position << " is past the end of the chromosome." << eidos_terminate();
 			
-			// Find the requested position by binary search
 			int mutation_count = this->size();
 			int mut_index;
-			slim_position_t mut_pos;
 			
+			if (marker_position == 0)
 			{
-				int L = 0, R = mutation_count - 1;
+				// The marker is supposed to be at position 0.  This is a very common case, so we special-case it
+				// to avoid an inefficient binary search.  Instead, we just look at the beginning.
+				if (mutation_count == 0)
+					return gStaticEidosValue_LogicalF;
 				
-				do
+				if (mutations_[0]->position_ > 0)
+					return gStaticEidosValue_LogicalF;
+				
+				if (mutations_[0]->mutation_type_ptr_ == mutation_type_ptr)
+					return gStaticEidosValue_LogicalT;
+				
+				mut_index = 0;	// drop through to forward scan
+			}
+			else
+			{
+				// Find the requested position by binary search
+				slim_position_t mut_pos;
+				
 				{
-					if (L > R)
-						return gStaticEidosValue_LogicalF;
+					int L = 0, R = mutation_count - 1;
 					
-					mut_index = (L + R) / 2;	// overflow-safe because base positions have a max of 1000000000L
-					mut_pos = mutations_[mut_index]->position_;
-					
-					if (mut_pos < marker_position)
+					do
 					{
-						L = mut_index + 1;
-						continue;
+						if (L > R)
+							return gStaticEidosValue_LogicalF;
+						
+						mut_index = (L + R) / 2;	// overflow-safe because base positions have a max of 1000000000L
+						mut_pos = mutations_[mut_index]->position_;
+						
+						if (mut_pos < marker_position)
+						{
+							L = mut_index + 1;
+							continue;
+						}
+						if (mut_pos > marker_position)
+						{
+							R = mut_index - 1;
+							continue;
+						}
+						
+						// mut_pos == marker_position
+						break;
 					}
-					if (mut_pos > marker_position)
-					{
-						R = mut_index - 1;
-						continue;
-					}
-					
-					// mut_pos == marker_position
-					break;
+					while (true);
 				}
-				while (true);
-			}
-			
-			// The mutation at mut_index is at marker_position, but it may not be the only such
-			// We check it first, then we check before it scanning backwards, and check after it scanning forwards
-			if (mutations_[mut_index]->mutation_type_ptr_ == mutation_type_ptr)
-				return gStaticEidosValue_LogicalT;
-			
-			{
-				slim_position_t back_scan = mut_index;
 				
-				while ((back_scan > 0) && (mutations_[--back_scan]->position_ == marker_position))
-					if (mutations_[back_scan]->mutation_type_ptr_ == mutation_type_ptr)
-						return gStaticEidosValue_LogicalT;
+				// The mutation at mut_index is at marker_position, but it may not be the only such
+				// We check it first, then we check before it scanning backwards, and check after it scanning forwards
+				if (mutations_[mut_index]->mutation_type_ptr_ == mutation_type_ptr)
+					return gStaticEidosValue_LogicalT;
+				
+				{
+					slim_position_t back_scan = mut_index;
+					
+					while ((back_scan > 0) && (mutations_[--back_scan]->position_ == marker_position))
+						if (mutations_[back_scan]->mutation_type_ptr_ == mutation_type_ptr)
+							return gStaticEidosValue_LogicalT;
+				}
 			}
 			
+			// forward scan is shared by both code paths
 			{
 				slim_position_t forward_scan = mut_index;
 				
