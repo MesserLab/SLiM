@@ -26,6 +26,8 @@
 
 #include <iostream>
 
+#include "time.h"
+
 #include "slim_sim.h"
 #include "slim_global.h"
 #include "eidos_test.h"

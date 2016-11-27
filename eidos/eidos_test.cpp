@@ -3611,6 +3611,9 @@ void RunEidosTests(void)
 	//EidosAssertScriptSuccess("beep();", gStaticEidosValueNULL);
 	//EidosAssertScriptSuccess("beep('Submarine');", gStaticEidosValueNULL);
 	
+	// clock()
+	EidosAssertScriptSuccess("c = clock(); isFloat(c);", gStaticEidosValue_LogicalT);
+	
 	// date()
 	EidosAssertScriptSuccess("size(strsplit(date(), '-'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
 	EidosAssertScriptRaise("date(NULL);", 0, "too many arguments supplied");

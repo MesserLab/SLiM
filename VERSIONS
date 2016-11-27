@@ -12,6 +12,7 @@ development head:
 	add containsMarkerMutation() method to Genome
 	add example recipe for recombination() callbacks, section 13.5
 	fix so final output from stop(), etc., gets to the output stream
+	added clock() function to Eidos for CPU time usage monitoring
 
 2.1.1 (build 924; Eidos version 1.1.1):
 	fix segfault with very large recombination maps (thanks Martin Petr)

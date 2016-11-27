@@ -2933,6 +2933,23 @@ When
 \f1\fs18 ^G
 \f0\fs20  must be emitted to the standard output to generate the beep, a warning message will also be emitted to make any associated problems easier to diagnose.
 \f2 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (float$)clock(void)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns the 
+\b current CPU usage clock
+\b0 .  This is the amount of CPU time used by the current process, in seconds; it is unrelated to the current time of day (for that, see the 
+\f1\fs18 time()
+\f0\fs20  function).  This is useful mainly for determining how much processor time a given section of code takes; 
+\f1\fs18 clock()
+\f0\fs20  can be called before and after a block of code, and the end clock minus the start clock gives the elapsed CPU time consumed in the execution of the block of code.  See also the 
+\f1\fs18 timed
+\f0\fs20  parameter of 
+\f1\fs18 executeLambda()
+\f0\fs20 , which automates this procedure.
+\f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (string$)date(void)\
@@ -3012,7 +3029,11 @@ When
 \f1\fs18 timed
 \f0\fs20  is 
 \f1\fs18 T
-\f0\fs20 , the total (user clock) execution time for the lambda will be printed after the lambda has completed; if it is 
+\f0\fs20 , the total (user clock) execution time for the lambda will be printed after the lambda has completed
+\fs22  (see 
+\f1\fs18 clock()
+\f0\fs22 )
+\fs20 ; if it is 
 \f1\fs18 F
 \f0\fs20  (the default), no timing information will be printed.\
 The current implementation of 

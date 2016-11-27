@@ -12,6 +12,8 @@
 #include <string.h>
 #include <string>
 
+#include "time.h"
+
 #include "eidos_global.h"
 #include "eidos_interpreter.h"
 #include "eidos_test.h"
