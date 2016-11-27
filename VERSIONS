@@ -14,6 +14,7 @@ development head:
 	fix so final output from stop(), etc., gets to the output stream
 	added clock() function to Eidos for CPU time usage monitoring
 	improve tick labels in SLiMgui chromosome view
+	bounce the SLiMgui icon once when a run completes, for notification of the user
 
 2.1.1 (build 924; Eidos version 1.1.1):
 	fix segfault with very large recombination maps (thanks Martin Petr)

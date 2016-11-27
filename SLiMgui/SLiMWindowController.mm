@@ -1190,6 +1190,9 @@
 			[self updateAfterTickFull:YES];
 			[playButton setState:NSOffState];
 			[self play:nil];
+			
+			// bounce our icon; if we are not the active app, to signal that the run is done
+			[NSApp requestUserAttention:NSInformationalRequest];
 		}
 	}
 }
@@ -1288,6 +1291,9 @@
 			// stop playing
 			[self updateAfterTickFull:YES];
 			[self generationChanged:nil];
+			
+			// bounce our icon; if we are not the active app, to signal that the run is done
+			[NSApp requestUserAttention:NSInformationalRequest];
 		}
 	}
 }
