@@ -649,11 +649,11 @@ See
 \f2\fs18 late()
 \f0\fs20  event, so that the output reflects the state of the simulation at the end of a generation.
 \f3 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(void)removeMutations(object<Mutation>\'a0mutations)
+\f2\fs18 \cf0 +\'a0(void)removeMutations(object<Mutation>\'a0mutations, [logical$\'a0substitute\'a0=\'a0F])
 \f3 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Remove the mutations in 
 \f2\fs18 mutations
@@ -669,6 +669,27 @@ Changing this will normally affect the fitness values calculated at the end of t
 \f0\fs20 \'92s method 
 \f2\fs18 recalculateFitness()
 \f0\fs20  \'96 but see the documentation of that method for caveats.\
+The optional parameter 
+\f2\fs18 substitute
+\f0\fs20  was added in SLiM 2.2, with a default of 
+\f2\fs18 F
+\f0\fs20  for backward compatibility.  If 
+\f2\fs18 substitute
+\f0\fs20  is 
+\f2\fs18 T
+\f0\fs20 , 
+\f2\fs18 Substitution
+\f0\fs20  objects will be created for all of the removed mutations so that they are recorded in the simulation as having fixed, just as if they had reached fixation and been removed by SLiM\'92s own internal machinery.  This will occur regardless of whether the mutations have in fact fixed, regardless of the 
+\f2\fs18 convertToSubstitution
+\f0\fs20  property of the relevant mutation types, and regardless of whether all copies of the mutations have even been removed from the simulation (making it possible to create 
+\f2\fs18 Substitution
+\f0\fs20  objects for mutations that are still segregating).  It is up to the caller to perform whatever checks are necessary to preserve the integrity of the simulation\'92s records.  Typically 
+\f2\fs18 substitute
+\f0\fs20  will only be set to 
+\f2\fs18 T
+\f0\fs20  in the context of calls like 
+\f2\fs18 sim.subpopulations.genomes.removeMutations(muts, T)
+\f0\fs20 , such that the substituted mutations are guaranteed to be entirely removed from circulation.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
 \b\fs22 \cf0 5.4  Class GenomicElement\

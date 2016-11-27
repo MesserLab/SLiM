@@ -751,76 +751,6 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 		}
 			
 			
-			//
-			//	*********************	- (void)removeMutations(object mutations)
-			//
-#pragma mark -removeMutations()
-			
-		case gID_removeMutations:
-		{
-			if (IsNull())
-				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): removeMutations() cannot be called on a null genome." << eidos_terminate();
-			
-			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
-			
-			if (!sim)
-				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
-			
-			if ((sim->GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim->warned_early_mutation_remove_))
-			{
-				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome::ExecuteInstanceMethod): removeMutations() should probably not be called from an early() event; the removed mutation(s) will still influence fitness values during offspring generation." << std::endl;
-				sim->warned_early_mutation_remove_ = true;
-			}
-			
-			int arg0_count = arg0_value->Count();
-			
-			if (arg0_count)
-			{
-				if (mutations_ == nullptr)
-					NullGenomeAccessError();
-				
-				// Remove the specified mutations; see RemoveFixedMutations for the origins of this code
-				Mutation **genome_iter = begin_pointer();
-				Mutation **genome_backfill_iter = begin_pointer();
-				Mutation **genome_max = end_pointer();
-				
-				// genome_iter advances through the mutation list; for each entry it hits, the entry is either removed (skip it) or not removed (copy it backward to the backfill pointer)
-				while (genome_iter != genome_max)
-				{
-					Mutation *candidate_mutation = *genome_iter;
-					bool should_remove = false;
-					
-					for (int value_index = 0; value_index < arg0_count; ++value_index)
-						if (arg0_value->ObjectElementAtIndex(value_index, nullptr) == candidate_mutation)
-						{
-							should_remove = true;
-							break;
-						}
-					
-					if (should_remove)
-					{
-						// Removed mutation; we want to omit it, so we just advance our pointer
-						++genome_iter;
-					}
-					else
-					{
-						// Unremoved mutation; we want to keep it, so we copy it backward and advance our backfill pointer as well as genome_iter
-						if (genome_backfill_iter != genome_iter)
-							*genome_backfill_iter = *genome_iter;
-						
-						++genome_backfill_iter;
-						++genome_iter;
-					}
-				}
-				
-				// excess mutations at the end have been copied back already; we just adjust mutation_count_ and forget about them
-				mutation_count_ -= (genome_iter - genome_backfill_iter);
-			}
-			
-			return gStaticEidosValueNULLInvisible;
-		}
-			
-			
 			// all others, including gID_none
 		default:
 			return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
@@ -1222,7 +1152,7 @@ const EidosMethodSignature *Genome_Class::SignatureForMethod(EidosGlobalStringID
 	static EidosInstanceMethodSignature *containsMutationsSig = nullptr;
 	static EidosInstanceMethodSignature *countOfMutationsOfTypeSig = nullptr;
 	static EidosInstanceMethodSignature *mutationsOfTypeSig = nullptr;
-	static EidosInstanceMethodSignature *removeMutationsSig = nullptr;
+	static EidosClassMethodSignature *removeMutationsSig = nullptr;
 	static EidosClassMethodSignature *outputMSSig = nullptr;
 	static EidosClassMethodSignature *outputVCFSig = nullptr;
 	static EidosClassMethodSignature *outputSig = nullptr;
@@ -1236,7 +1166,7 @@ const EidosMethodSignature *Genome_Class::SignatureForMethod(EidosGlobalStringID
 		containsMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMutations, kEidosValueMaskLogical))->AddObject("mutations", gSLiM_Mutation_Class);
 		countOfMutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
 		mutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
-		removeMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_removeMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class);
+		removeMutationsSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_removeMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class)->AddLogical_OS("substitute", gStaticEidosValue_LogicalF);
 		outputMSSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputMS, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF);
 		outputVCFSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputVCF, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddLogical_OS("append", gStaticEidosValue_LogicalF);
 		outputSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_output, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF);
@@ -1598,6 +1528,95 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 				else
 				{
 					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteClassMethod): could not open "<< outfile_path << "." << eidos_terminate();
+				}
+			}
+			
+			return gStaticEidosValueNULLInvisible;
+		}
+			
+			
+			//
+			//	*********************	+ (void)removeMutations(object mutations, [logical$ substitute = F])
+			//
+#pragma mark +removeMutations()
+			
+		case gID_removeMutations:
+		{
+			int target_size = p_target->Count();
+			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
+			
+			if (!sim)
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteClassMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
+			
+			if ((sim->GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim->warned_early_mutation_remove_))
+			{
+				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteClassMethod): removeMutations() should probably not be called from an early() event; the removed mutation(s) will still influence fitness values during offspring generation." << std::endl;
+				sim->warned_early_mutation_remove_ = true;
+			}
+			
+			int arg0_count = arg0_value->Count();
+			
+			bool create_substitutions = arg1_value->LogicalAtIndex(0, nullptr);
+			Population &pop = sim->ThePopulation();
+			slim_generation_t generation = sim->Generation();
+			
+			if (arg0_count)
+			{
+				if (create_substitutions)
+				{
+					// If substitutions are requested, create them now.  Note we don't test for the mutations
+					// actually being fixed; that is the caller's responsibility to manage if they request this.
+					for (int value_index = 0; value_index < arg0_count; ++value_index)
+					{
+						Mutation *mut = (Mutation *)arg0_value->ObjectElementAtIndex(value_index, nullptr);
+						
+						pop.substitutions_.emplace_back(new Substitution(*mut, generation));
+					}
+				}
+				
+				for (int index = 0; index < target_size; ++index)
+				{
+					Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(index, nullptr);
+					
+					if (target_genome->IsNull())
+						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteClassMethod): removeMutations() cannot be called on a null genome." << eidos_terminate();
+					
+					// Remove the specified mutations; see RemoveFixedMutations for the origins of this code
+					Mutation **genome_iter = target_genome->begin_pointer();
+					Mutation **genome_backfill_iter = target_genome->begin_pointer();
+					Mutation **genome_max = target_genome->end_pointer();
+					
+					// genome_iter advances through the mutation list; for each entry it hits, the entry is either removed (skip it) or not removed (copy it backward to the backfill pointer)
+					while (genome_iter != genome_max)
+					{
+						Mutation *candidate_mutation = *genome_iter;
+						bool should_remove = false;
+						
+						for (int value_index = 0; value_index < arg0_count; ++value_index)
+							if (arg0_value->ObjectElementAtIndex(value_index, nullptr) == candidate_mutation)
+							{
+								should_remove = true;
+								break;
+							}
+						
+						if (should_remove)
+						{
+							// Removed mutation; we want to omit it, so we just advance our pointer
+							++genome_iter;
+						}
+						else
+						{
+							// Unremoved mutation; we want to keep it, so we copy it backward and advance our backfill pointer as well as genome_iter
+							if (genome_backfill_iter != genome_iter)
+								*genome_backfill_iter = *genome_iter;
+							
+							++genome_backfill_iter;
+							++genome_iter;
+						}
+					}
+					
+					// excess mutations at the end have been copied back already; we just adjust mutation_count_ and forget about them
+					target_genome->mutation_count_ -= (genome_iter - genome_backfill_iter);
 				}
 			}
 			
