@@ -250,7 +250,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	
 	for (int tickIndex = 0; tickIndex <= lastTickIndex; ++tickIndex)
 	{
-		slim_position_t tickBase = (slim_position_t)displayedRange.location + (slim_position_t)floor((displayedRange.length - 1) * (tickIndex / tickIndexDivisor));	// -1 because we are choosing an in-between-base position that falls, at most, to the left of the last base
+		slim_position_t tickBase = (slim_position_t)displayedRange.location + (slim_position_t)ceil((displayedRange.length - 1) * (tickIndex / tickIndexDivisor));	// -1 because we are choosing an in-between-base position that falls, at most, to the left of the last base
 		NSRect tickRect = [self rectEncompassingBase:tickBase toBase:tickBase interiorRect:interiorRect displayedRange:displayedRange];
 		
 		tickRect.origin.y = contentRect.origin.y - tickLength;
