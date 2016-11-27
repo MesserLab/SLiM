@@ -522,8 +522,8 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	Population &pop = sim->population_;
 	double totalGenomeCount = pop.gui_total_genome_count_;				// this includes only genomes in the selected subpopulations
 	Genome &mutationRegistry = pop.mutation_registry_;
-	Mutation **mutations = mutationRegistry.mutations_;
-	int mutationCount = mutationRegistry.mutation_count_;
+	Mutation **mutations = mutationRegistry.begin_pointer();
+	int mutationCount = (int)(mutationRegistry.end_pointer() - mutations);
 	
 	if ((mutationCount < 1000) || (displayedRange.length < interiorRect.size.width))
 	{

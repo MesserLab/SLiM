@@ -52,11 +52,7 @@ class Genome : public EidosObjectElement
 	
 	EidosValue_SP self_value_;									// cached EidosValue object for speed
 	
-#ifdef SLIMGUI
-public:
-#else
 private:
-#endif
 	
 	GenomeType genome_type_ = GenomeType::kAutosome;			// SEX ONLY: the type of chromosome represented by this genome
 	
@@ -458,6 +454,8 @@ public:
 	// Accelerated property access; see class EidosObjectElement for comments on this mechanism
 	virtual eidos_logical_t GetProperty_Accelerated_Logical(EidosGlobalStringID p_property_id);
 	virtual int64_t GetProperty_Accelerated_Int(EidosGlobalStringID p_property_id);
+	
+	friend class Genome_Class;
 };
 
 

@@ -86,8 +86,8 @@
 	
 	double totalGenomeCount = pop.total_genome_count_;
 	Genome &mutationRegistry = pop.mutation_registry_;
-	Mutation **mutations = mutationRegistry.mutations_;
-	int mutationCount = mutationRegistry.mutation_count_;
+	Mutation **mutations = mutationRegistry.begin_pointer();
+	int mutationCount = (int)(mutationRegistry.end_pointer() - mutations);
 	
 	for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
 	{
