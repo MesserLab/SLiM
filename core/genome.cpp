@@ -490,8 +490,9 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			
 			EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1].get() : nullptr);
 			slim_position_t marker_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));
+			slim_position_t last_position = sim->TheChromosome().last_position_;
 			
-			if (marker_position > sim->TheChromosome().last_position_)
+			if (marker_position > last_position)
 				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): containsMarkerMutation() position " << marker_position << " is past the end of the chromosome." << eidos_terminate();
 			
 			int mutation_count = this->size();
@@ -511,6 +512,23 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 					return gStaticEidosValue_LogicalT;
 				
 				mut_index = 0;	// drop through to forward scan
+			}
+			else if (marker_position == last_position)
+			{
+				// The marker is supposed to be at the very end of the chromosome.  This is also a common case,
+				// so we special-case it by starting at the last mutation in the genome.
+				if (mutation_count == 0)
+					return gStaticEidosValue_LogicalF;
+				
+				mut_index = mutation_count - 1;
+				
+				if (mutations_[mut_index]->position_ < last_position)
+					return gStaticEidosValue_LogicalF;
+				
+				if (mutations_[mut_index]->mutation_type_ptr_ == mutation_type_ptr)
+					return gStaticEidosValue_LogicalT;
+				
+				// drop through to backward scan
 			}
 			else
 			{
@@ -549,17 +567,17 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 				// We check it first, then we check before it scanning backwards, and check after it scanning forwards
 				if (mutations_[mut_index]->mutation_type_ptr_ == mutation_type_ptr)
 					return gStaticEidosValue_LogicalT;
-				
-				{
-					slim_position_t back_scan = mut_index;
-					
-					while ((back_scan > 0) && (mutations_[--back_scan]->position_ == marker_position))
-						if (mutations_[back_scan]->mutation_type_ptr_ == mutation_type_ptr)
-							return gStaticEidosValue_LogicalT;
-				}
 			}
 			
-			// forward scan is shared by both code paths
+			// backward & forward scan are shared by both code paths
+			{
+				slim_position_t back_scan = mut_index;
+				
+				while ((back_scan > 0) && (mutations_[--back_scan]->position_ == marker_position))
+					if (mutations_[back_scan]->mutation_type_ptr_ == mutation_type_ptr)
+						return gStaticEidosValue_LogicalT;
+			}
+			
 			{
 				slim_position_t forward_scan = mut_index;
 				
