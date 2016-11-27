@@ -608,7 +608,7 @@
 		98A02F941BA1E648002DDE54 /* EidosConsoleWindowControllerDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = EidosConsoleWindowControllerDelegate.h; sourceTree = "<group>"; };
 		98A240581B8E3295005C9A30 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		98A2405C1B8E338E005C9A30 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
-		98A2FF881D7DF4D7007E3DB8 /* Recipes */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Recipes; sourceTree = "<group>"; };
+		98A2FF881D7DF4D7007E3DB8 /* Recipes */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Recipes; path = SLiMgui/Recipes; sourceTree = "<group>"; };
 		98A4EC931B67C1CD00CD92FD /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/EidosConsoleWindow.xib; sourceTree = "<group>"; };
 		98A5134D1B66B69E005A753D /* eidos_token.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_token.cpp; sourceTree = "<group>"; };
 		98A5134E1B66B69E005A753D /* eidos_token.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_token.h; sourceTree = "<group>"; };
@@ -872,6 +872,7 @@
 				982556AA1BA8E77C0054CB3F /* eidostool */,
 				985724B01AD478630047C223 /* EidosScribe */,
 				98D4C1B41A6F537B00FFB083 /* SLiMgui */,
+				98A2FF881D7DF4D7007E3DB8 /* Recipes */,
 				98A2405B1B8E32F4005C9A30 /* Shared Frameworks */,
 				982663511A3BABD300A0CBBF /* Products */,
 			);
@@ -1222,7 +1223,6 @@
 				989228331BAFB27300429674 /* SLiMHelpCallbacks.rtf */,
 				98D4C1E41A6FD8D600FFB083 /* buttons */,
 				98D4C1B51A6F537B00FFB083 /* Supporting Files */,
-				98A2FF881D7DF4D7007E3DB8 /* Recipes */,
 			);
 			path = SLiMgui;
 			sourceTree = "<group>";
