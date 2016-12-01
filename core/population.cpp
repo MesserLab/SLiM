@@ -2381,12 +2381,42 @@ void Population::ClearParentalGenomes(void)
 		slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
 		std::vector<Genome> &subpop_genomes = subpop->parent_genomes_;
 		
-		for (slim_popsize_t i = 0; i < subpop_genome_count; i++)							// child genomes
+		for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
 		{
 			Genome &genome = subpop_genomes[i];
 			
 			if (!genome.IsNull())
 				genome.set_to_run(new_empty_mutation);
+		}
+	}
+	
+	// We have to clear out removed subpops, too, for as long as they stick around
+	for (Subpopulation *subpop : removed_subpops_)
+	{
+		{
+			slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
+			std::vector<Genome> &subpop_genomes = subpop->parent_genomes_;
+			
+			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+			{
+				Genome &genome = subpop_genomes[i];
+				
+				if (!genome.IsNull())
+					genome.set_to_run(new_empty_mutation);
+			}
+		}
+		
+		{
+			slim_popsize_t subpop_genome_count = 2 * subpop->child_subpop_size_;
+			std::vector<Genome> &subpop_genomes = subpop->child_genomes_;
+			
+			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+			{
+				Genome &genome = subpop_genomes[i];
+				
+				if (!genome.IsNull())
+					genome.set_to_run(new_empty_mutation);
+			}
 		}
 	}
 }
