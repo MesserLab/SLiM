@@ -243,7 +243,7 @@
 	SLiMWindowController *controller = [self slimWindowController];
 	SLiMSim *sim = controller->sim;
 	Population &population = sim->population_;
-	Genome &mutationRegistry = population.mutation_registry_;
+	MutationRun &mutationRegistry = population.mutation_registry_;
 	static BOOL alreadyHere = NO;
 	
 	if (population.child_generation_valid_)
@@ -303,8 +303,8 @@
 	//
 	int subpop_total_genome_count = 0;
 	
-	Mutation **registry_iter = mutationRegistry.begin_pointer();
-	Mutation **registry_iter_end = mutationRegistry.end_pointer();
+	Mutation *const *registry_iter = mutationRegistry.begin_pointer_const();
+	Mutation *const *registry_iter_end = mutationRegistry.end_pointer_const();
 	
 	for (; registry_iter != registry_iter_end; ++registry_iter)
 		(*registry_iter)->gui_scratch_reference_count_ = 0;
@@ -324,8 +324,8 @@
 				
 				if (!genome.IsNull())
 				{
-					Mutation **genome_iter = genome.begin_pointer();
-					Mutation **genome_end_iter = genome.end_pointer();
+					Mutation *const *genome_iter = genome.begin_pointer_const();
+					Mutation *const *genome_end_iter = genome.end_pointer_const();
 					
 					for (; genome_iter != genome_end_iter; ++genome_iter)
 					{
@@ -342,7 +342,7 @@
 	}
 	
 	// Now we can run through the mutations and use the tallies in gui_scratch_reference_count to update our histories
-	for (registry_iter = mutationRegistry.begin_pointer(); registry_iter != registry_iter_end; ++registry_iter)
+	for (registry_iter = mutationRegistry.begin_pointer_const(); registry_iter != registry_iter_end; ++registry_iter)
 	{
 		const Mutation *mutation = *registry_iter;
 		slim_refcount_t refcount = mutation->gui_scratch_reference_count_;
@@ -383,8 +383,8 @@
 		if (!history->updated)
 		{
 			slim_mutationid_t historyID = history->mutationID;
-			Mutation **mutation_iter = mutationRegistry.begin_pointer();
-			Mutation **mutation_iter_end = mutationRegistry.end_pointer();
+			Mutation *const *mutation_iter = mutationRegistry.begin_pointer_const();
+			Mutation *const *mutation_iter_end = mutationRegistry.end_pointer_const();
 			BOOL mutationStillExists = NO;
 			
 			for ( ; mutation_iter != mutation_iter_end; ++mutation_iter)

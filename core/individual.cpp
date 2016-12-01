@@ -598,7 +598,7 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 				if (!genome1->IsNull())
 				{
 					int genome1_count = genome1->size();
-					Mutation **genome1_ptr = genome1->begin_pointer();
+					Mutation *const *genome1_ptr = genome1->begin_pointer_const();
 					
 					for (int mut_index = 0; mut_index < genome1_count; ++mut_index)
 						if (genome1_ptr[mut_index]->mutation_type_ptr_ == mutation_type_ptr)
@@ -607,7 +607,7 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 				if (!genome2->IsNull())
 				{
 					int genome2_count = genome2->size();
-					Mutation **genome2_ptr = genome2->begin_pointer();
+					Mutation *const *genome2_ptr = genome2->begin_pointer_const();
 					
 					for (int mut_index = 0; mut_index < genome2_count; ++mut_index)
 						if (genome2_ptr[mut_index]->mutation_type_ptr_ == mutation_type_ptr)

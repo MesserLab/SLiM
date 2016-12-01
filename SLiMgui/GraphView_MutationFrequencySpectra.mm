@@ -85,9 +85,9 @@
 	pop.TallyMutationReferences(nullptr, false);	// update tallies; usually this will just use the cache set up by Population::MaintainRegistry()
 	
 	double totalGenomeCount = pop.total_genome_count_;
-	Genome &mutationRegistry = pop.mutation_registry_;
-	Mutation **mutations = mutationRegistry.begin_pointer();
-	int mutationCount = (int)(mutationRegistry.end_pointer() - mutations);
+	MutationRun &mutationRegistry = pop.mutation_registry_;
+	Mutation *const *mutations = mutationRegistry.begin_pointer_const();
+	int mutationCount = (int)(mutationRegistry.end_pointer_const() - mutations);
 	
 	for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
 	{

@@ -38,6 +38,7 @@
 #include "chromosome.h"
 #include "slim_global.h"
 #include "slim_eidos_block.h"
+#include "mutation_run.h"
 
 
 class SLiMSim;
@@ -69,7 +70,7 @@ public:
 	using std::map<slim_objectid_t,Subpopulation*>::size;
 	
 	SLiMSim &sim_;											// We have a reference back to our simulation
-	Genome mutation_registry_;								// OWNED POINTERS: a registry of all mutations that have been added to this population
+	MutationRun mutation_registry_;							// OWNED POINTERS: a registry of all mutations that have been added to this population
 	slim_refcount_t total_genome_count_ = 0;				// the number of modeled genomes in the population; a fixed mutation has this frequency
 #ifdef SLIMGUI
 	slim_refcount_t gui_total_genome_count_ = 0;			// the number of modeled genomes in the selected subpopulations in SLiMgui
@@ -140,6 +141,9 @@ public:
 	// Recalculate all fitness values for the parental generation, including the use of fitness() callbacks
 	void RecalculateFitness(slim_generation_t p_generation);
 	
+	// Set all parental genomes to use an empty marker run so they don't mess up our MutationRun refcounts
+	void ClearParentalGenomes(void);
+	
 	// Tally mutations and remove fixed/lost mutations
 	void MaintainRegistry(void);
 	
@@ -148,6 +152,7 @@ public:
 	
 	// count the total number of times that each Mutation in the registry is referenced by a population, and set total_genome_count_ to the maximum possible number of references (i.e. fixation)
 	slim_refcount_t TallyMutationReferences(std::vector<Subpopulation*> *p_subpops_to_tally, bool p_force_recache);
+	slim_refcount_t TallyMutationReferences_FAST(void);
 	
 	// handle negative fixation (remove from the registry) and positive fixation (convert to Substitution), using reference counts from TallyMutationReferences()
 	void RemoveFixedMutations(void);

@@ -20,6 +20,7 @@
 
 #include "slim_global.h"
 #include "mutation.h"
+#include "mutation_run.h"
 
 #include <string>
 

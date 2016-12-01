@@ -216,7 +216,7 @@ inline __attribute__((always_inline)) slim_usertag_t SLiMClampToUsertagType(int6
 // This enumeration represents the type of chromosome represented by a genome: autosome, X, or Y.  Note that this is somewhat
 // separate from the sex of the individual; one can model sexual individuals but model only an autosome, in which case the sex
 // of the individual cannot be determined from its modeled genome.
-enum class GenomeType {
+enum class GenomeType : uint8_t {
 	kAutosome = 0,
 	kXChromosome,
 	kYChromosome

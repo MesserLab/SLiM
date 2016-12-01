@@ -82,50 +82,82 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 		switch (modeled_chromosome_type_)
 		{
 			case GenomeType::kAutosome:
-				// produces default Genome objects of type GenomeType::kAutosome
-				child_genomes_.resize(2 * child_subpop_size_);
-				if (p_parents_also)
-					parent_genomes_.resize(2 * parent_subpop_size_);
-				break;
-			case GenomeType::kXChromosome:
-			case GenomeType::kYChromosome:
 			{
-				// if we are not modeling a given chromosome type, then instances of it are null – they will log and exit if used
-				Genome x_model = Genome(GenomeType::kXChromosome, modeled_chromosome_type_ != GenomeType::kXChromosome);
-				Genome y_model = Genome(GenomeType::kYChromosome, modeled_chromosome_type_ != GenomeType::kYChromosome);
-				
-				child_genomes_.reserve(2 * child_subpop_size_);
-				
-				// females get two Xs
-				for (slim_popsize_t i = 0; i < child_first_male_index_; ++i)
+				// set up genomes of type GenomeType::kAutosome with a shared empty MutationRun for efficiency
 				{
-					child_genomes_.emplace_back(x_model);
-					child_genomes_.emplace_back(x_model);
-				}
-				
-				// males get an X and a Y
-				for (slim_popsize_t i = child_first_male_index_; i < child_subpop_size_; ++i)
-				{
-					child_genomes_.emplace_back(x_model);
-					child_genomes_.emplace_back(y_model);
+					child_genomes_.reserve(2 * child_subpop_size_);
+					
+					MutationRun *shared_empty_run = MutationRun::NewMutationRun();
+					Genome aut_model = Genome(GenomeType::kAutosome, false, shared_empty_run);
+					
+					for (slim_popsize_t i = 0; i < child_subpop_size_; ++i)
+					{
+						child_genomes_.emplace_back(aut_model);
+						child_genomes_.emplace_back(aut_model);
+					}
 				}
 				
 				if (p_parents_also)
 				{
 					parent_genomes_.reserve(2 * parent_subpop_size_);
 					
+					MutationRun *shared_empty_run_parental = MutationRun::NewMutationRun();
+					Genome aut_model_parental = Genome(GenomeType::kAutosome, false, shared_empty_run_parental);
+					
+					for (slim_popsize_t i = 0; i < parent_subpop_size_; ++i)
+					{
+						parent_genomes_.emplace_back(aut_model_parental);
+						parent_genomes_.emplace_back(aut_model_parental);
+					}
+				}
+				break;
+			}
+			case GenomeType::kXChromosome:
+			case GenomeType::kYChromosome:
+			{
+				// if we are not modeling a given chromosome type, then instances of it are null – they will log and exit if used
+				{
+					child_genomes_.reserve(2 * child_subpop_size_);
+					
+					MutationRun *shared_empty_run = MutationRun::NewMutationRun();
+					Genome x_model = Genome(GenomeType::kXChromosome, modeled_chromosome_type_ != GenomeType::kXChromosome, shared_empty_run);
+					Genome y_model = Genome(GenomeType::kYChromosome, modeled_chromosome_type_ != GenomeType::kYChromosome, shared_empty_run);
+					
+					// females get two Xs
+					for (slim_popsize_t i = 0; i < child_first_male_index_; ++i)
+					{
+						child_genomes_.emplace_back(x_model);
+						child_genomes_.emplace_back(x_model);
+					}
+					
+					// males get an X and a Y
+					for (slim_popsize_t i = child_first_male_index_; i < child_subpop_size_; ++i)
+					{
+						child_genomes_.emplace_back(x_model);
+						child_genomes_.emplace_back(y_model);
+					}
+				}
+				
+				if (p_parents_also)
+				{
+					parent_genomes_.reserve(2 * parent_subpop_size_);
+					
+					MutationRun *shared_empty_run_parental = MutationRun::NewMutationRun();
+					Genome x_model_parental = Genome(GenomeType::kXChromosome, modeled_chromosome_type_ != GenomeType::kXChromosome, shared_empty_run_parental);
+					Genome y_model_parental = Genome(GenomeType::kYChromosome, modeled_chromosome_type_ != GenomeType::kYChromosome, shared_empty_run_parental);
+					
 					// females get two Xs
 					for (slim_popsize_t i = 0; i < parent_first_male_index_; ++i)
 					{
-						parent_genomes_.emplace_back(x_model);
-						parent_genomes_.emplace_back(x_model);
+						parent_genomes_.emplace_back(x_model_parental);
+						parent_genomes_.emplace_back(x_model_parental);
 					}
 					
 					// males get an X and a Y
 					for (slim_popsize_t i = parent_first_male_index_; i < parent_subpop_size_; ++i)
 					{
-						parent_genomes_.emplace_back(x_model);
-						parent_genomes_.emplace_back(y_model);
+						parent_genomes_.emplace_back(x_model_parental);
+						parent_genomes_.emplace_back(y_model_parental);
 					}
 				}
 				break;
@@ -134,10 +166,33 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 	}
 	else
 	{
-		// produces default Genome objects of type GenomeType::kAutosome
-		child_genomes_.resize(2 * child_subpop_size_);
+		// set up genomes of type GenomeType::kAutosome with a shared empty MutationRun for efficiency
+		{
+			child_genomes_.reserve(2 * child_subpop_size_);
+			
+			MutationRun *shared_empty_run = MutationRun::NewMutationRun();
+			Genome aut_model = Genome(GenomeType::kAutosome, false, shared_empty_run);
+			
+			for (slim_popsize_t i = 0; i < child_subpop_size_; ++i)
+			{
+				child_genomes_.emplace_back(aut_model);
+				child_genomes_.emplace_back(aut_model);
+			}
+		}
+		
 		if (p_parents_also)
-			parent_genomes_.resize(2 * parent_subpop_size_);
+		{
+			parent_genomes_.reserve(2 * parent_subpop_size_);
+			
+			MutationRun *shared_empty_run_parental = MutationRun::NewMutationRun();
+			Genome aut_model_parental = Genome(GenomeType::kAutosome, false, shared_empty_run_parental);
+			
+			for (slim_popsize_t i = 0; i < parent_subpop_size_; ++i)
+			{
+				parent_genomes_.emplace_back(aut_model_parental);
+				parent_genomes_.emplace_back(aut_model_parental);
+			}
+		}
 	}
 	
 #ifdef DEBUG
@@ -570,8 +625,8 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_
 	{
 		// SEX ONLY: one genome is null, so we just need to scan through the modeled genome and account for its mutations, including the x-dominance coefficient
 		const Genome *genome = genome1_null ? genome2 : genome1;
-		Mutation **genome_iter = genome->begin_pointer();
-		Mutation **genome_max = genome->end_pointer();
+		Mutation *const *genome_iter = genome->begin_pointer_const();
+		Mutation *const *genome_max = genome->end_pointer_const();
 		
 		if (genome->Type() == GenomeType::kXChromosome)
 		{
@@ -617,11 +672,11 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_
 	else
 	{
 		// both genomes are being modeled, so we need to scan through and figure out which mutations are heterozygous and which are homozygous
-		Mutation **genome1_iter = genome1->begin_pointer();
-		Mutation **genome2_iter = genome2->begin_pointer();
+		Mutation *const *genome1_iter = genome1->begin_pointer_const();
+		Mutation *const *genome2_iter = genome2->begin_pointer_const();
 		
-		Mutation **genome1_max = genome1->end_pointer();
-		Mutation **genome2_max = genome2->end_pointer();
+		Mutation *const *genome1_max = genome1->end_pointer_const();
+		Mutation *const *genome2_max = genome2->end_pointer_const();
 		
 		// first, handle the situation before either genome iterator has reached the end of its genome, for simplicity/speed
 		if (genome1_iter != genome1_max && genome2_iter != genome2_max)
@@ -679,7 +734,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_
 				{
 					// Look for homozygosity: genome1_iter_position == genome2_iter_position
 					slim_position_t position = genome1_iter_position;
-					Mutation **genome1_start = genome1_iter;
+					Mutation *const *genome1_start = genome1_iter;
 					
 					// advance through genome1 as long as we remain at the same position, handling one mutation at a time
 					do
@@ -688,7 +743,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_
 						
 						if (selection_coeff != 0.0f)
 						{
-							Mutation **genome2_matchscan = genome2_iter; 
+							Mutation *const *genome2_matchscan = genome2_iter; 
 							bool homozygous = false;
 							
 							// advance through genome2 with genome2_matchscan, looking for a match for the current mutation in genome1, to determine whether we are homozygous or not
@@ -736,7 +791,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_
 						
 						if (selection_coeff != 0.0f)
 						{
-							Mutation **genome1_matchscan = genome1_start; 
+							Mutation *const *genome1_matchscan = genome1_start; 
 							bool homozygous = false;
 							
 							// advance through genome1 with genome1_matchscan, looking for a match for the current mutation in genome2, to determine whether we are homozygous or not
@@ -842,8 +897,8 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 	{
 		// SEX ONLY: one genome is null, so we just need to scan through the modeled genome and account for its mutations, including the x-dominance coefficient
 		const Genome *genome = genome1_null ? genome2 : genome1;
-		Mutation **genome_iter = genome->begin_pointer();
-		Mutation **genome_max = genome->end_pointer();
+		Mutation *const *genome_iter = genome->begin_pointer_const();
+		Mutation *const *genome_max = genome->end_pointer_const();
 		
 		if (genome->Type() == GenomeType::kXChromosome)
 		{
@@ -885,11 +940,11 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 	else
 	{
 		// both genomes are being modeled, so we need to scan through and figure out which mutations are heterozygous and which are homozygous
-		Mutation **genome1_iter = genome1->begin_pointer();
-		Mutation **genome2_iter = genome2->begin_pointer();
+		Mutation *const *genome1_iter = genome1->begin_pointer_const();
+		Mutation *const *genome2_iter = genome2->begin_pointer_const();
 		
-		Mutation **genome1_max = genome1->end_pointer();
-		Mutation **genome2_max = genome2->end_pointer();
+		Mutation *const *genome1_max = genome1->end_pointer_const();
+		Mutation *const *genome2_max = genome2->end_pointer_const();
 		
 		// first, handle the situation before either genome iterator has reached the end of its genome, for simplicity/speed
 		if (genome1_iter != genome1_max && genome2_iter != genome2_max)
@@ -943,12 +998,12 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 				{
 					// Look for homozygosity: genome1_iter_position == genome2_iter_position
 					slim_position_t position = genome1_iter_position;
-					Mutation **genome1_start = genome1_iter;
+					Mutation *const *genome1_start = genome1_iter;
 					
 					// advance through genome1 as long as we remain at the same position, handling one mutation at a time
 					do
 					{
-						Mutation **genome2_matchscan = genome2_iter; 
+						Mutation *const *genome2_matchscan = genome2_iter; 
 						bool homozygous = false;
 						
 						// advance through genome2 with genome2_matchscan, looking for a match for the current mutation in genome1, to determine whether we are homozygous or not
@@ -995,7 +1050,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 					// advance through genome2 as long as we remain at the same position, handling one mutation at a time
 					do
 					{
-						Mutation **genome1_matchscan = genome1_start; 
+						Mutation *const *genome1_matchscan = genome1_start; 
 						bool homozygous = false;
 						
 						// advance through genome1 with genome1_matchscan, looking for a match for the current mutation in genome2, to determine whether we are homozygous or not
@@ -1098,8 +1153,8 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 	{
 		// SEX ONLY: one genome is null, so we just need to scan through the modeled genome and account for its mutations, including the x-dominance coefficient
 		const Genome *genome = genome1_null ? genome2 : genome1;
-		Mutation **genome_iter = genome->begin_pointer();
-		Mutation **genome_max = genome->end_pointer();
+		Mutation *const *genome_iter = genome->begin_pointer_const();
+		Mutation *const *genome_max = genome->end_pointer_const();
 		
 		if (genome->Type() == GenomeType::kXChromosome)
 		{
@@ -1169,11 +1224,11 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 	else
 	{
 		// both genomes are being modeled, so we need to scan through and figure out which mutations are heterozygous and which are homozygous
-		Mutation **genome1_iter = genome1->begin_pointer();
-		Mutation **genome2_iter = genome2->begin_pointer();
+		Mutation *const *genome1_iter = genome1->begin_pointer_const();
+		Mutation *const *genome2_iter = genome2->begin_pointer_const();
 		
-		Mutation **genome1_max = genome1->end_pointer();
-		Mutation **genome2_max = genome2->end_pointer();
+		Mutation *const *genome1_max = genome1->end_pointer_const();
+		Mutation *const *genome2_max = genome2->end_pointer_const();
 		
 		// first, handle the situation before either genome iterator has reached the end of its genome, for simplicity/speed
 		if (genome1_iter != genome1_max && genome2_iter != genome2_max)
@@ -1257,7 +1312,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 				{
 					// Look for homozygosity: genome1_iter_position == genome2_iter_position
 					slim_position_t position = genome1_iter_position;
-					Mutation **genome1_start = genome1_iter;
+					Mutation *const *genome1_start = genome1_iter;
 					
 					// advance through genome1 as long as we remain at the same position, handling one mutation at a time
 					do
@@ -1266,7 +1321,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 						
 						if (genome1_muttype == p_single_callback_mut_type)
 						{
-							Mutation **genome2_matchscan = genome2_iter; 
+							Mutation *const *genome2_matchscan = genome2_iter; 
 							bool homozygous = false;
 							
 							// advance through genome2 with genome2_matchscan, looking for a match for the current mutation in genome1, to determine whether we are homozygous or not
@@ -1306,7 +1361,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 							
 							if (selection_coeff != 0.0f)
 							{
-								Mutation **genome2_matchscan = genome2_iter; 
+								Mutation *const *genome2_matchscan = genome2_iter; 
 								bool homozygous = false;
 								
 								// advance through genome2 with genome2_matchscan, looking for a match for the current mutation in genome1, to determine whether we are homozygous or not
@@ -1355,7 +1410,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 						
 						if (genome2_muttype == p_single_callback_mut_type)
 						{
-							Mutation **genome1_matchscan = genome1_start; 
+							Mutation *const *genome1_matchscan = genome1_start; 
 							bool homozygous = false;
 							
 							// advance through genome1 with genome1_matchscan, looking for a match for the current mutation in genome2, to determine whether we are homozygous or not
@@ -1388,7 +1443,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 							
 							if (selection_coeff != 0.0f)
 							{
-								Mutation **genome1_matchscan = genome1_start; 
+								Mutation *const *genome1_matchscan = genome1_start; 
 								bool homozygous = false;
 								
 								// advance through genome1 with genome1_matchscan, looking for a match for the current mutation in genome2, to determine whether we are homozygous or not

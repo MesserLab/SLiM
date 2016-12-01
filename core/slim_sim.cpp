@@ -488,6 +488,8 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 					continue;
 			}
 			
+			genome.WillModifyRun(0);
+			
 			do
 			{
 				int64_t polymorphismid_long = EidosInterpreter::IntegerForString(sub, nullptr);
@@ -951,7 +953,10 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			}
 			
 			if (mutcount > 0)
+			{
+				genome.WillModifyRun(0);
 				genome.emplace_back_bulk(genomebuf, mutcount);
+			}
 		}
 	}
 	
@@ -1305,6 +1310,8 @@ bool SLiMSim::_RunOneGeneration(void)
 		// Stage 3: Remove fixed mutations and associated tasks
 		//
 		generation_stage_ = SLiMGenerationStage::kStage3RemoveFixedMutations;
+		
+		population_.ClearParentalGenomes();		// added 30 November 2016 so MutationRun refcounts reflect their usage count in the simulation
 		
 		population_.MaintainRegistry();
 		
@@ -2226,7 +2233,7 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_mutations:
 		{
-			Genome &mutation_registry = population_.mutation_registry_;
+			MutationRun &mutation_registry = population_.mutation_registry_;
 			int mutation_count = mutation_registry.size();
 			EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->Reserve(mutation_count);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
@@ -2587,12 +2594,12 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 				
 				if (p_method_id == gID_mutationFrequencies)
 				{
-					for (Mutation **registry_iter = population_.mutation_registry_.begin_pointer(); registry_iter != registry_iter_end; ++registry_iter)
+					for (Mutation *const *registry_iter = population_.mutation_registry_.begin_pointer_const(); registry_iter != registry_iter_end; ++registry_iter)
 						float_result->PushFloat((*registry_iter)->reference_count_ * denominator);
 				}
 				else // p_method_id == gID_mutationCounts
 				{
-					for (Mutation **registry_iter = population_.mutation_registry_.begin_pointer(); registry_iter != registry_iter_end; ++registry_iter)
+					for (Mutation *const *registry_iter = population_.mutation_registry_.begin_pointer_const(); registry_iter != registry_iter_end; ++registry_iter)
 						int_result->PushInt((*registry_iter)->reference_count_);
 				}
 			}
@@ -2627,7 +2634,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 			// Count the number of mutations of the given type, so we can reserve the right vector size
 			// To avoid having to scan the registry twice for the simplest case of a single mutation, we cache the first mutation found
-			Genome &mutation_registry = population_.mutation_registry_;
+			MutationRun &mutation_registry = population_.mutation_registry_;
 			int mutation_count = mutation_registry.size();
 			int match_count = 0, mut_index;
 			Mutation *first_match = nullptr;
@@ -2694,7 +2701,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			}
 			
 			// Count the number of mutations of the given type
-			Genome &mutation_registry = population_.mutation_registry_;
+			MutationRun &mutation_registry = population_.mutation_registry_;
 			int mutation_count = mutation_registry.size();
 			int match_count = 0, mut_index;
 			
