@@ -450,58 +450,6 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 	switch (p_method_id)
 	{
 			//
-			//	*********************	- (void)addMutations(object mutations)
-			//
-#pragma mark -addMutations()
-			
-		case gID_addMutations:
-		{
-			if (IsNull())
-				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): addMutations() cannot be called on a null genome." << eidos_terminate();
-			
-			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
-			
-			if (!sim)
-				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
-			
-			if ((sim->GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim->warned_early_mutation_add_))
-			{
-				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome::ExecuteInstanceMethod): addMutations() should probably not be called from an early() event; the added mutation(s) will not influence fitness values during offspring generation." << std::endl;
-				sim->warned_early_mutation_add_ = true;
-			}
-			
-			int arg0_count = arg0_value->Count();
-			
-			if (arg0_count)
-			{
-#warning Need to convert to a class method so that WillModifyRunForBulkOperation() works...
-				int64_t operation_id = ++gSLiM_MutationRun_OperationID;
-				
-				// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
-				if (WillModifyRunForBulkOperation(0, operation_id))
-				{
-					for (int value_index = 0; value_index < arg0_count; ++value_index)
-					{
-						Mutation *new_mutation = (Mutation *)(arg0_value->ObjectElementAtIndex(value_index, nullptr));
-						
-						if (enforce_stack_policy_for_addition(new_mutation->position_, new_mutation->mutation_type_ptr_))
-						{
-							insert_sorted_mutation_if_unique(new_mutation);
-							
-							// I think this is not needed; how would the user ever get a Mutation that was not already in the registry?
-							//if (!registry.contains_mutation(new_mutation))
-							//	registry.emplace_back(new_mutation);
-							
-							// Similarly, no need to check and set pure_neutral_; the mutation is already in the system
-						}
-					}
-				}
-			}
-			
-			return gStaticEidosValueNULLInvisible;
-		}
-			
-			//
 			//	*********************	- (logical$)containsMarkerMutation(io<MutationType>$ mutType, integer$ position)
 			//
 #pragma mark -containsMarkerMutation()
@@ -1194,7 +1142,7 @@ const std::vector<const EidosMethodSignature *> *Genome_Class::Methods(void) con
 
 const EidosMethodSignature *Genome_Class::SignatureForMethod(EidosGlobalStringID p_method_id) const
 {
-	static EidosInstanceMethodSignature *addMutationsSig = nullptr;
+	static EidosClassMethodSignature *addMutationsSig = nullptr;
 	static EidosClassMethodSignature *addNewDrawnMutationSig = nullptr;
 	static EidosClassMethodSignature *addNewMutationSig = nullptr;
 	static EidosInstanceMethodSignature *containsMarkerMutationSig = nullptr;
@@ -1208,7 +1156,7 @@ const EidosMethodSignature *Genome_Class::SignatureForMethod(EidosGlobalStringID
 	
 	if (!addMutationsSig)
 	{
-		addMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class);
+		addMutationsSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class);
 		addNewDrawnMutationSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addNewDrawnMutation, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Mutation_Class))->AddIntObject_S("mutationType", gSLiM_MutationType_Class)->AddInt_S("position")->AddInt_OSN("originGeneration", gStaticEidosValueNULL)->AddIntObject_OSN("originSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL);
 		addNewMutationSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addNewMutation, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Mutation_Class))->AddIntObject_S("mutationType", gSLiM_MutationType_Class)->AddNumeric_S("selectionCoeff")->AddInt_S("position")->AddInt_OSN("originGeneration", gStaticEidosValueNULL)->AddIntObject_OSN("originSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL);
 		containsMarkerMutationSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMarkerMutation, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class)->AddInt_S("position");
@@ -1253,6 +1201,64 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_method_id)
 	{
+			//
+			//	*********************	+ (void)addMutations(object mutations)
+			//
+#pragma mark +addMutations()
+			
+		case gID_addMutations:
+		{
+			int target_size = p_target->Count();
+			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
+			
+			if (!sim)
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteClassMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
+			
+			if ((sim->GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim->warned_early_mutation_add_))
+			{
+				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteClassMethod): addMutations() should probably not be called from an early() event; the added mutation(s) will not influence fitness values during offspring generation." << std::endl;
+				sim->warned_early_mutation_add_ = true;
+			}
+			
+			int arg0_count = arg0_value->Count();
+			
+			if (arg0_count)
+			{
+				int64_t operation_id = ++gSLiM_MutationRun_OperationID;
+				
+				for (int index = 0; index < target_size; ++index)
+				{
+					Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(index, nullptr);
+					
+					if (target_genome->IsNull())
+						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteClassMethod): addMutations() cannot be called on a null genome." << eidos_terminate();
+					
+					// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
+					if (target_genome->WillModifyRunForBulkOperation(0, operation_id))
+					{
+						for (int value_index = 0; value_index < arg0_count; ++value_index)
+						{
+							Mutation *new_mutation = (Mutation *)(arg0_value->ObjectElementAtIndex(value_index, nullptr));
+							
+							if (target_genome->enforce_stack_policy_for_addition(new_mutation->position_, new_mutation->mutation_type_ptr_))
+							{
+								target_genome->insert_sorted_mutation_if_unique(new_mutation);
+								
+								// I think this is not needed; how would the user ever get a Mutation that was not already in the registry?
+								//if (!registry.contains_mutation(new_mutation))
+								//	registry.emplace_back(new_mutation);
+								
+								// Similarly, no need to check and set pure_neutral_; the mutation is already in the system
+							}
+						}
+					}
+				}
+			}
+			
+			return gStaticEidosValueNULLInvisible;
+		}
+			
+			
 			//
 			//	*********************	+ (object<Mutation>$)addNewDrawnMutation(io<MutationType>$ mutationType, integer$ position, [Ni$ originGeneration = NULL], [Nio<Subpopulation>$ originSubpop = NULL])
 			//
