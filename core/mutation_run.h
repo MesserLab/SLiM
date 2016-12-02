@@ -34,6 +34,8 @@
 #include "eidos_intrusive_ptr.h"
 #include "eidos_object_pool.h"
 
+#include <string.h>
+
 
 class MutationRun;
 

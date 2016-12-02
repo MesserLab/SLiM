@@ -30,6 +30,8 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <map>
+#include <utility>
 
 
 #ifdef DEBUG

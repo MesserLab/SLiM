@@ -20,6 +20,8 @@
 
 #include "mutation_run.h"
 
+#include <vector>
+
 
 // For doing bulk operations across all MutationRun objects; see header
 int64_t gSLiM_MutationRun_OperationID = 0;
