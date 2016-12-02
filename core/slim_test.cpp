@@ -241,6 +241,33 @@ void SLiMAssertScriptStop(const string &p_script_string, int lineNumber)
 	gEidosExecutingRuntimeScript = false;
 }
 
+
+// Test subfunction prototypes
+static void _RunBasicTests(void);
+static void _RunInitTests(void);
+static void _RunSLiMSimTests(void);
+static void _RunMutationTypeTests(void);
+static void _RunGenomicElementTypeTests(void);
+static void _RunGenomicElementTests(void);
+static void _RunChromosomeTests(void);
+static void _RunMutationTests(void);
+static void _RunGenomeTests(void);
+static void _RunSubpopulationTests(void);
+static void _RunIndividualTests(void);
+static void _RunSubstitutionTests(void);
+static void _RunSLiMEidosBlockTests(void);
+
+
+// Test function shared strings
+static std::string gen1_setup("initialize() { initializeMutationRate(1e-7); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } ");
+static std::string gen1_setup_sex("initialize() { initializeMutationRate(1e-7); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeSex('X'); } ");
+static std::string gen2_stop(" 2 { stop(); } ");
+static std::string gen1_setup_highmut_p1("initialize() { initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } 1 { sim.addSubpop('p1', 10); } ");
+static std::string gen1_setup_p1(gen1_setup + "1 { sim.addSubpop('p1', 10); } ");
+static std::string gen1_setup_sex_p1(gen1_setup_sex + "1 { sim.addSubpop('p1', 10); } ");
+static std::string gen1_setup_p1p2p3(gen1_setup + "1 { sim.addSubpop('p1', 10); sim.addSubpop('p2', 10); sim.addSubpop('p3', 10); } ");
+
+
 void RunSLiMTests(void)
 {
 	// Test SLiM.  The goal here is not really to test that the core code of SLiM is working properly – that simulations
@@ -248,16 +275,46 @@ void RunSLiMTests(void)
 	// is to test all of the Eidos-related APIs in SLiM – to make sure that all properties, methods, and functions in
 	// SLiM's Eidos interface work properly.  SLiM itself will get a little incidental testing along the way.
 	
-	// Note that the code here uses C++11 raw string literals, which Xcode's prettyprinting and autoindent code does not
-	// presently understand.  The line/character positions for SLiMAssertScriptRaise() depend upon the indenting that
-	// Xcode has chosen to give the Eidos scripts below.  Be careful, therefore, not to re-indent this code!
-	
-	
 	// Reset error counts
 	gSLiMTestSuccessCount = 0;
 	gSLiMTestFailureCount = 0;
 	
-	#pragma mark basic tests
+	// Run tests
+	_RunBasicTests();
+	_RunInitTests();
+	_RunSLiMSimTests();
+	_RunMutationTypeTests();
+	_RunGenomicElementTypeTests();
+	_RunGenomicElementTests();
+	_RunChromosomeTests();
+	_RunMutationTests();
+	_RunGenomeTests();
+	_RunSubpopulationTests();
+	_RunIndividualTests();
+	_RunSubstitutionTests();
+	_RunSLiMEidosBlockTests();
+	
+	// ************************************************************************************
+	//
+	//	Print a summary of test results
+	//
+	std::cerr << endl;
+	if (gSLiMTestFailureCount)
+		std::cerr << "" << EIDOS_OUTPUT_FAILURE_TAG << " count: " << gSLiMTestFailureCount << endl;
+	std::cerr << EIDOS_OUTPUT_SUCCESS_TAG << " count: " << gSLiMTestSuccessCount << endl;
+	std::cerr.flush();
+	
+	// Clear out the SLiM output stream post-test
+	gSLiMOut.clear();
+	gSLiMOut.str("");
+}
+
+#pragma mark basic tests
+void _RunBasicTests(void)
+{
+	// Note that the code here uses C++11 raw string literals, which Xcode's prettyprinting and autoindent code does not
+	// presently understand.  The line/character positions for SLiMAssertScriptRaise() depend upon the indenting that
+	// Xcode has chosen to give the Eidos scripts below.  Be careful, therefore, not to re-indent this code!
 	
 	// Test that a basic script works
 	std::string basic_script(R"V0G0N(
@@ -302,13 +359,15 @@ void RunSLiMTests(void)
 	SLiMAssertScriptStop("initialize() { stop(); } :1 {}", __LINE__);
 	SLiMAssertScriptStop("initialize() { stop(); } 1:10 {}", __LINE__);
 	SLiMAssertScriptRaise("initialize() { stop(); } : {}", 1, 27, "unexpected token", __LINE__);
-	
-	
+}
+
+#pragma mark initialize() tests
+void _RunInitTests(void)
+{	
 	// ************************************************************************************
 	//
 	//	Initialization function tests
 	//
-	#pragma mark initialize() tests
 	
 	// Test (void)initializeGeneConversion(numeric$ conversionFraction, numeric$ meanLength)
 	SLiMAssertScriptStop("initialize() { initializeGeneConversion(0.5, 10000000000000); stop(); }", __LINE__);										// legal; no max for meanLength
@@ -460,17 +519,15 @@ void RunSLiMTests(void)
 	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(keepPedigrees=NULL); stop(); }", 1, 15, "cannot be type NULL", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(); initializeSLiMOptions(); stop(); }", 1, 40, "may be called only once", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeMutationRate(0.0); initializeSLiMOptions(); stop(); }", 1, 44, "must be called before all other initialization functions", __LINE__);
-	
-	
+}
+
+#pragma mark SLiMSim tests
+void _RunSLiMSimTests(void)
+{
 	// ************************************************************************************
 	//
 	//	Gen 1+ tests: SLiMSim
 	//
-	#pragma mark SLiMSim tests
-	
-	std::string gen1_setup("initialize() { initializeMutationRate(1e-7); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } ");
-	std::string gen1_setup_sex("initialize() { initializeMutationRate(1e-7); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeSex('X'); } ");
-	std::string gen2_stop(" 2 { stop(); } ");
 	
 	// Test sim properties
 	SLiMAssertScriptStop(gen1_setup + "1 { } " + gen2_stop, __LINE__);
@@ -519,9 +576,6 @@ void RunSLiMTests(void)
 	SLiMAssertScriptRaise(gen1_setup + "1 { sim.addSubpop('p7', 10); sim.addSubpop(7, 10); stop(); }", 1, 245, "already exists", __LINE__);
 	
 	// Test sim - (object<Subpopulation>)addSubpopSplit(is$ subpopID, integer$ size, io<Subpopulation>$ sourceSubpop, [float$ sexRatio])
-	std::string gen1_setup_p1(gen1_setup + "1 { sim.addSubpop('p1', 10); } ");
-	std::string gen1_setup_sex_p1(gen1_setup_sex + "1 { sim.addSubpop('p1', 10); } ");
-	
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.addSubpopSplit('p2', 10, p1); } " + gen2_stop, __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.addSubpopSplit('p2', 10, 1); } " + gen2_stop, __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.addSubpopSplit(2, 10, p1); } " + gen2_stop, __LINE__);
@@ -550,8 +604,6 @@ void RunSLiMTests(void)
 	SLiMAssertScriptSuccess(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(c(1, 2)); } s1 2 { stop(); } s2 3 { stop(); }", __LINE__);
 	
 	// Test sim - (float)mutationFrequencies(No<Subpopulation> subpops, [object<Mutation> mutations])
-	std::string gen1_setup_p1p2p3(gen1_setup + "1 { sim.addSubpop('p1', 10); sim.addSubpop('p2', 10); sim.addSubpop('p3', 10); } ");
-	
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(p1); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(c(p1, p2)); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(NULL); }", __LINE__);													// legal, requests population-wide frequencies
@@ -588,8 +640,6 @@ void RunSLiMTests(void)
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 late() { sim.outputFull('/tmp/slimOutputFullTest.slimbinary', T); }", __LINE__);						// legal, output to file path; this test might work only on Un*x systems
 	
 	// Test sim - (void)outputMutations(object<Mutation> mutations)
-	std::string gen1_setup_highmut_p1("initialize() { initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } 1 { sim.addSubpop('p1', 10); } ");
-	
 	SLiMAssertScriptSuccess(gen1_setup_highmut_p1 + "5 late() { sim.outputMutations(sim.mutations); }", __LINE__);											// legal; should have some mutations by gen 5
 	SLiMAssertScriptSuccess(gen1_setup_highmut_p1 + "5 late() { sim.outputMutations(sim.mutations[0]); }", __LINE__);										// legal; output just one mutation
 	SLiMAssertScriptSuccess(gen1_setup_highmut_p1 + "5 late() { sim.outputMutations(sim.mutations[integer(0)]); }", __LINE__);								// legal to specify an empty object vector
@@ -681,13 +731,15 @@ void RunSLiMTests(void)
 	// Test sim - (void)simulationFinished(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "11 { stop(); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup_p1 + "10 { sim.simulationFinished(); } 11 { stop(); }", __LINE__);
-	
-	
+}
+
+#pragma mark MutationType tests
+void _RunMutationTypeTests(void)
+{	
 	// ************************************************************************************
 	//
 	//	Gen 1+ tests: MutationType
 	//
-	#pragma mark MutationType tests
 	
 	// Test MutationType properties
 	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.convertToSubstitution == T) stop(); }", __LINE__);
@@ -746,13 +798,15 @@ void RunSLiMTests(void)
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { m1.setDistribution('s', 'return foo;'); } 100 { stop(); }", -1, -1, "undefined identifier foo", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { m1.setDistribution('s', 'x >< 5;'); } 100 { stop(); }", -1, -1, "tokenize/parse error in type 's' DFE callback script", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { m1.setDistribution('s', 'x $ 5;'); } 100 { stop(); }", -1, -1, "tokenize/parse error in type 's' DFE callback script", __LINE__);
-	
-	
+}
+
+#pragma mark GenomicElementType tests
+void _RunGenomicElementTypeTests(void)
+{
 	// ************************************************************************************
 	//
 	//	Gen 1+ tests: GenomicElementType
 	//
-	#pragma mark GenomicElementType tests
 	
 	// Test GenomicElementType properties
 	SLiMAssertScriptStop(gen1_setup + "1 { if (g1.id == 1) stop(); }", __LINE__);
@@ -777,13 +831,15 @@ void RunSLiMTests(void)
 	SLiMAssertScriptRaise(gen1_setup + "initialize() { initializeMutationType('m2', 0.7, 'e', 0.5); } 1 { g1.setMutationFractions(c(2,3), c(1, 2)); stop(); }", 1, 281, "not defined", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "initialize() { initializeMutationType('m2', 0.7, 'e', 0.5); } 1 { g1.setMutationFractions(c(m2,m2), c(1, 2)); stop(); }", 1, 281, "used more than once", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "initialize() { initializeMutationType('m2', 0.7, 'e', 0.5); } 1 { g1.setMutationFractions(c(2,2), c(1, 2)); stop(); }", 1, 281, "used more than once", __LINE__);
-	
-	
+}
+
+#pragma mark GenomicElement tests
+void _RunGenomicElementTests(void)
+{	
 	// ************************************************************************************
 	//
 	//	Gen 1+ tests: GenomicElement
 	//
-	#pragma mark GenomicElement tests
 	
 	std::string gen1_setup_2ge("initialize() { initializeMutationRate(1e-7); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 999); initializeGenomicElement(g1, 1000, 99999); initializeRecombinationRate(1e-8); } ");
 	
@@ -814,13 +870,15 @@ void RunSLiMTests(void)
 	SLiMAssertScriptStop(gen1_setup_2ge + "initialize() { initializeGenomicElement(g1, 100000, 100000); stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_2ge + "initialize() { initializeGenomicElement(g1, 99999, 100000); stop(); }", 1, 268, "overlaps existing genomic element", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_2ge + "initialize() { initializeGenomicElement(g1, -2, -1); stop(); }", 1, 268, "chromosome position or length is out of range", __LINE__);
-	
-	
+}
+
+#pragma mark Chromosome tests
+void _RunChromosomeTests(void)
+{
 	// ************************************************************************************
 	//
 	//	Gen 1+ tests: Chromosome
 	//
-	#pragma mark Chromosome tests
 	
 	// Test Chromosome properties
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.geneConversionFraction == 0.0) stop(); }", __LINE__);
@@ -1028,12 +1086,15 @@ void RunSLiMTests(void)
 	SLiMAssertScriptRaise(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 99999), 'M'); stop(); }", 1, 319, "must be >= 0", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 2000), 'M'); stop(); }", 1, 319, "must be >= 0", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 100000), 'M'); stop(); }", 1, 319, "must be >= 0", __LINE__);
-	
+}
+
+#pragma mark Mutation tests
+void _RunMutationTests(void)
+{
 	// ************************************************************************************
 	//
 	//	Gen 1+ tests: Mutation
 	//
-	#pragma mark Mutation tests
 	
 	// Test Mutation properties
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; if (mut.mutationType == m1) stop(); }", __LINE__);
@@ -1057,13 +1118,15 @@ void RunSLiMTests(void)
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.setSelectionCoeff(1); if (mut.selectionCoeff == 1) stop(); }", 1, 276, "cannot be type integer", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.setSelectionCoeff(-500.0); if (mut.selectionCoeff == -500.0) stop(); }", __LINE__);	// legal; no lower bound
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.setSelectionCoeff(500.0); if (mut.selectionCoeff == 500.0) stop(); }", __LINE__);		// legal; no upper bound
-	
-	
+}
+
+#pragma mark Genome tests
+void _RunGenomeTests(void)
+{
 	// ************************************************************************************
 	//
 	//	Gen 1+ tests: Genome
 	//
-	#pragma mark Genome tests
 	
 	// Test Genome properties
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; if (gen.genomeType == 'A') stop(); }", __LINE__);
@@ -1234,13 +1297,15 @@ void RunSLiMTests(void)
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.individuals, 100, T).genomes.outputVCF(NULL, F); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.individuals, 0, T).genomes.outputVCF('/tmp/slimOutputVCFTest7.txt', F); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.individuals, 100, T).genomes.outputVCF('/tmp/slimOutputVCFTest8.txt', F); stop(); }", __LINE__);
-	
-	
+}
+
+#pragma mark Subpopulation tests
+void _RunSubpopulationTests(void)
+{
 	// ************************************************************************************
 	//
 	//	Gen 1+ tests: Subpopulation
 	//
-	#pragma mark Subpopulation tests
 	
 	// Test Subpopulation properties
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (p1.cloningRate == 0.0) stop(); }", __LINE__);
@@ -1478,13 +1543,15 @@ void RunSLiMTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSubpopulationSize(20); if (p1.individualCount == 10) stop(); }", __LINE__);					// does not take visible effect until child generation
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSubpopulationSize(20); } 2 { if (p1.individualCount == 20) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.setSubpopulationSize(-1); stop(); }", 1, 250, "out of range", __LINE__);
-	
-	
+}
+
+#pragma mark Individual tests
+void _RunIndividualTests(void)
+{	
 	// ************************************************************************************
 	//
 	//	Gen 1+ tests: Individual
 	//
-	#pragma mark Individual tests
 	
 	// Test Individual properties
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; if (size(i.genomes) == 20) stop(); }", __LINE__);
@@ -1544,13 +1611,15 @@ void RunSLiMTests(void)
 	SLiMAssertScriptStop(gen1_setup_rel + "5 { if (p1.individuals[0].relatedness(p1.individuals[0]) == 1.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_rel + "5 { if (p1.individuals[0].relatedness(p1.individuals[1]) <= 0.5) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_rel + "5 { if (all(p1.individuals[0].relatedness(p1.individuals[1:9]) <= 0.5)) stop(); }", __LINE__);
-	
-	
+}
+
+#pragma mark Substitution tests
+void _RunSubstitutionTests(void)
+{
 	// ************************************************************************************
 	//
 	//	Gen 1+ tests: Substitution
 	//
-	#pragma mark Substitution tests
 	
 	// Test Substitution properties
 	std::string gen1_setup_fixmut_p1("initialize() { initializeMutationRate(1e-4); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } 1 { sim.addSubpop('p1', 10); } 10 { sim.mutations[0].setSelectionCoeff(500.0); sim.recalculateFitness(); } ");
@@ -1570,13 +1639,15 @@ void RunSLiMTests(void)
 	SLiMAssertScriptStop(gen1_setup_fixmut_p1 + "30 { sub = sim.substitutions[0]; sub.subpopID = 237; if (sub.subpopID == 237) stop(); }", __LINE__);						// legal; this field may be used as a user tag
 	
 	// No methods on Substitution
-	
-	
+}
+
+#pragma mark SLiMEidosBlock tests
+void _RunSLiMEidosBlockTests(void)
+{
 	// ************************************************************************************
 	//
 	//	Gen 1+ tests: SLiMEidosBlock
 	//
-	#pragma mark SLiMEidosBlock tests
 	
 	// Test SLiMEidosBlock properties
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (s1.active == -1) stop(); } s1 2:4 { sim = 10; } ", __LINE__);
@@ -1597,22 +1668,8 @@ void RunSLiMTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1.type = 'event'; stop(); } s1 2:4 { sim = 10; } ", 1, 255, "read-only property", __LINE__);
 	
 	// No methods on SLiMEidosBlock
-	
-	
-	// ************************************************************************************
-	//
-	//	Print a summary of test results
-	//
-	std::cerr << endl;
-	if (gSLiMTestFailureCount)
-		std::cerr << "" << EIDOS_OUTPUT_FAILURE_TAG << " count: " << gSLiMTestFailureCount << endl;
-	std::cerr << EIDOS_OUTPUT_SUCCESS_TAG << " count: " << gSLiMTestSuccessCount << endl;
-	std::cerr.flush();
-	
-	// Clear out the SLiM output stream post-test
-	gSLiMOut.clear();
-	gSLiMOut.str("");
 }
+	
 
 
 

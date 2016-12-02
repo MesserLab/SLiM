@@ -205,14 +205,292 @@ void EidosAssertScriptRaise(const string &p_script_string, const int p_bad_posit
 	gEidosExecutingRuntimeScript = false;
 }
 
+
+// Test subfunction prototypes
+static void _RunLiteralsIdentifiersAndTokenizationTests(void);
+static void _RunSymbolsAndVariablesTests(void);
+static void _RunParsingTests(void);
+static void _RunFunctionDispatchTests(void);
+static void _RunRuntimeErrorTests(void);
+static void _RunVectorsAndSingletonsTests(void);
+static void _RunOperatorPlusTests(void);
+static void _RunOperatorMinusTests(void);
+static void _RunOperatorMultTests(void);
+static void _RunOperatorDivTests(void);
+static void _RunOperatorModTests(void);
+static void _RunOperatorSubsetTests(void);
+static void _RunOperatorAssignTests(void);
+static void _RunOperatorGtTests(void);
+static void _RunOperatorLtTests(void);
+static void _RunOperatorGtEqTests(void);
+static void _RunOperatorLtEqTests(void);
+static void _RunOperatorEqTests(void);
+static void _RunOperatorNotEqTests(void);
+static void _RunOperatorRangeTests(void);
+static void _RunOperatorExpTests(void);
+static void _RunOperatorLogicalAndTests(void);
+static void _RunOperatorLogicalOrTests(void);
+static void _RunOperatorLogicalNotTests(void);
+static void _RunKeywordIfTests(void);
+static void _RunKeywordDoTests(void);
+static void _RunKeywordWhileTests(void);
+static void _RunKeywordForInTests(void);
+static void _RunKeywordNextTests(void);
+static void _RunKeywordBreakTests(void);
+static void _RunKeywordReturnTests(void);
+static void _RunFunctionMathTests(void);
+static void _RunFunctionSummaryStatsTests(void);
+static void _RunFunctionVectorConstructionTests(void);
+static void _RunFunctionValueInspectionManipulationTests(void);
+static void _RunFunctionValueTestingCoercionTests(void);
+static void _RunFunctionFilesystemTests(void);
+static void _RunFunctionMiscTests(void);
+static void _RunMethodTests(void);
+static void _RunCodeExampleTests(void);
+
+
 void RunEidosTests(void)
 {
 	// Reset error counts
 	gEidosTestSuccessCount = 0;
 	gEidosTestFailureCount = 0;
 	
+	// Run tests
+	_RunLiteralsIdentifiersAndTokenizationTests();
+	_RunSymbolsAndVariablesTests();
+	_RunParsingTests();
+	_RunFunctionDispatchTests();
+	_RunRuntimeErrorTests();
+	_RunVectorsAndSingletonsTests();
+	_RunOperatorPlusTests();
+	_RunOperatorMinusTests();
+	_RunOperatorMultTests();
+	_RunOperatorDivTests();
+	_RunOperatorModTests();
+	_RunOperatorSubsetTests();
+	_RunOperatorAssignTests();
+	_RunOperatorGtTests();
+	_RunOperatorLtTests();
+	_RunOperatorGtEqTests();
+	_RunOperatorLtEqTests();
+	_RunOperatorEqTests();
+	_RunOperatorNotEqTests();
+	_RunOperatorRangeTests();
+	_RunOperatorExpTests();
+	_RunOperatorLogicalAndTests();
+	_RunOperatorLogicalOrTests();
+	_RunOperatorLogicalNotTests();
+	_RunKeywordIfTests();
+	_RunKeywordDoTests();
+	_RunKeywordWhileTests();
+	_RunKeywordForInTests();
+	_RunKeywordNextTests();
+	_RunKeywordBreakTests();
+	_RunKeywordReturnTests();
+	_RunFunctionMathTests();
+	_RunFunctionSummaryStatsTests();
+	_RunFunctionVectorConstructionTests();
+	_RunFunctionValueInspectionManipulationTests();
+	_RunFunctionValueTestingCoercionTests();
+	_RunFunctionFilesystemTests();
+	_RunFunctionMiscTests();
+	_RunMethodTests();
+	_RunCodeExampleTests();
+	
+	// ************************************************************************************
+	//
+	//	Print a summary of test results
+	//
+	std::cerr << endl;
+	if (gEidosTestFailureCount)
+		std::cerr << "" << EIDOS_OUTPUT_FAILURE_TAG << " count: " << gEidosTestFailureCount << endl;
+	std::cerr << EIDOS_OUTPUT_SUCCESS_TAG << " count: " << gEidosTestSuccessCount << endl;
+	
+	// If we are tracking allocations, print a count
+#ifdef EIDOS_TRACK_VALUE_ALLOCATION
+	std::cerr << "EidosValue allocation count: " << EidosValue::valueTrackingCount << endl;
+	for (EidosValue *value : EidosValue::valueTrackingVector)
+		std::cerr << *value << endl;
+#endif
+	
+	// Do some tests of our custom math functions
+#if 0
+	//#ifndef USE_GSL_POISSON
+	EidosInitializeRNGFromSeed(EidosGenerateSeedFromPIDAndTime());
+	
+	double total;
+	int i;
+	
+	std::cout << std::endl << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+		total += eidos_fast_ran_poisson(1.0);
+	
+	std::cout << "eidos_fast_ran_poisson(1.0): mean = " << (total / 1000000) << ", expected 1.0" << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+		total += gsl_ran_poisson(gEidos_rng, 1.0);
+	
+	std::cout << "gsl_ran_poisson(1.0): mean = " << (total / 1000000) << ", expected 1.0" << std::endl << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+		total += eidos_fast_ran_poisson(0.001);
+	
+	std::cout << "eidos_fast_ran_poisson(0.001): mean = " << (total / 1000000) << ", expected 0.001" << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+		total += gsl_ran_poisson(gEidos_rng, 0.001);
+	
+	std::cout << "gsl_ran_poisson(0.001): mean = " << (total / 1000000) << ", expected 0.001" << std::endl << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+		total += eidos_fast_ran_poisson(0.00001);
+	
+	std::cout << "eidos_fast_ran_poisson(0.00001): mean = " << (total / 1000000) << ", expected 0.00001" << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+		total += gsl_ran_poisson(gEidos_rng, 0.00001);
+	
+	std::cout << "gsl_ran_poisson(0.00001): mean = " << (total / 1000000) << ", expected 0.00001" << std::endl << std::endl;
+	
+	for (total = 0.0, i = 0; i < 100000; i++)
+		total += eidos_fast_ran_poisson(100);
+	
+	std::cout << "eidos_fast_ran_poisson(100): mean = " << (total / 100000) << ", expected 100" << std::endl;
+	
+	for (total = 0.0, i = 0; i < 100000; i++)
+		total += gsl_ran_poisson(gEidos_rng, 100);
+	
+	std::cout << "gsl_ran_poisson(100): mean = " << (total / 100000) << ", expected 100" << std::endl << std::endl;
+	
+	
+	std::cout << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+		total += eidos_fast_ran_poisson(1.0, exp(-1.0));
+	
+	std::cout << "eidos_fast_ran_poisson(1.0): mean = " << (total / 1000000) << ", expected 1.0" << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+		total += gsl_ran_poisson(gEidos_rng, 1.0);
+	
+	std::cout << "gsl_ran_poisson(1.0): mean = " << (total / 1000000) << ", expected 1.0" << std::endl << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+		total += eidos_fast_ran_poisson(0.001, exp(-0.001));
+	
+	std::cout << "eidos_fast_ran_poisson(0.001): mean = " << (total / 1000000) << ", expected 0.001" << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+		total += gsl_ran_poisson(gEidos_rng, 0.001);
+	
+	std::cout << "gsl_ran_poisson(0.001): mean = " << (total / 1000000) << ", expected 0.001" << std::endl << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+		total += eidos_fast_ran_poisson(0.00001, exp(-0.00001));
+	
+	std::cout << "eidos_fast_ran_poisson(0.00001): mean = " << (total / 1000000) << ", expected 0.00001" << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+		total += gsl_ran_poisson(gEidos_rng, 0.00001);
+	
+	std::cout << "gsl_ran_poisson(0.00001): mean = " << (total / 1000000) << ", expected 0.00001" << std::endl << std::endl;
+	
+	for (total = 0.0, i = 0; i < 100000; i++)
+		total += eidos_fast_ran_poisson(100, exp(-100));
+	
+	std::cout << "eidos_fast_ran_poisson(100): mean = " << (total / 100000) << ", expected 100" << std::endl;
+	
+	for (total = 0.0, i = 0; i < 100000; i++)
+		total += gsl_ran_poisson(gEidos_rng, 100);
+	
+	std::cout << "gsl_ran_poisson(100): mean = " << (total / 100000) << ", expected 100" << std::endl << std::endl;
+	
+	
+	std::cout << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+		total += eidos_fast_ran_poisson_nonzero(1.0, exp(-1.0));
+	
+	std::cout << "eidos_fast_ran_poisson(1.0): mean = " << (total / 1000000) << ", expected ~1.58" << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+	{
+		unsigned int x;
+		
+		do {
+			x = gsl_ran_poisson(gEidos_rng, 1.0);
+		} while (x == 0);
+		
+		total += x;
+	}
+	
+	std::cout << "gsl_ran_poisson(1.0): mean = " << (total / 1000000) << ", expected ~1.58" << std::endl << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+		total += eidos_fast_ran_poisson_nonzero(0.001, exp(-0.001));
+	
+	std::cout << "eidos_fast_ran_poisson(0.001): mean = " << (total / 1000000) << ", expected ~1.0005" << std::endl;
+	
+	//	for (total = 0.0, i = 0; i < 1000000; i++)
+	//	{
+	//		unsigned int x;
+	//		
+	//		do {
+	//			x = gsl_ran_poisson(gEidos_rng, 0.001);
+	//		} while (x == 0);
+	//		
+	//		total += x;
+	//	}
+	//	
+	//	std::cout << "gsl_ran_poisson(0.001): mean = " << (total / 1000000) << ", expected ~1.0005" << std::endl;
+	
+	for (total = 0.0, i = 0; i < 1000000; i++)
+		total += eidos_fast_ran_poisson_nonzero(0.00001, exp(-0.00001));
+	
+	std::cout << std::endl << "eidos_fast_ran_poisson(0.00001): mean = " << (total / 1000000) << ", expected ~1.00001" << std::endl;
+	
+	//	for (total = 0.0, i = 0; i < 1000000; i++)
+	//	{
+	//		unsigned int x;
+	//		
+	//		do {
+	//			x = gsl_ran_poisson(gEidos_rng, 0.00001);
+	//		} while (x == 0);
+	//		
+	//		total += x;
+	//	}
+	//	
+	//	std::cout << "gsl_ran_poisson(0.00001): mean = " << (total / 1000000) << ", expected ~1.00001" << std::endl;
+	
+	for (total = 0.0, i = 0; i < 100000; i++)
+		total += eidos_fast_ran_poisson_nonzero(100, exp(-100));
+	
+	std::cout << std::endl << "eidos_fast_ran_poisson(100): mean = " << (total / 100000) << ", expected ~100" << std::endl;
+	
+	for (total = 0.0, i = 0; i < 100000; i++)
+	{
+		unsigned int x;
+		
+		do {
+			x = gsl_ran_poisson(gEidos_rng, 100);
+		} while (x == 0);
+		
+		total += x;
+	}
+	
+	std::cout << "gsl_ran_poisson(100): mean = " << (total / 100000) << ", expected ~100" << std::endl << std::endl;
+	
+#endif
+	
+	// If we ran tests, the random number seed has been set; let's set it back to a good seed value
+	EidosInitializeRNGFromSeed(EidosGenerateSeedFromPIDAndTime());
+}
+
+#pragma mark literals & identifiers
+void _RunLiteralsIdentifiersAndTokenizationTests(void)
+{
 	// test literals, built-in identifiers, and tokenization
-	#pragma mark literals & identifiers
 	EidosAssertScriptSuccess("3;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
 	EidosAssertScriptSuccess("3e2;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(300)));
 	EidosAssertScriptSuccess("3.1;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(3.1)));
@@ -257,9 +535,12 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("NAN = 5;", 4, "is a constant");
 	EidosAssertScriptRaise("E = 5;", 2, "is a constant");
 	EidosAssertScriptRaise("PI = 5;", 3, "is a constant");
-	
-	// test symbol table and variable dynamics
+}
+
 #pragma mark symbol table
+void _RunSymbolsAndVariablesTests(void)
+{
+	// test symbol table and variable dynamics
 	EidosAssertScriptSuccess("x = 3; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
 	EidosAssertScriptSuccess("x = 3.1; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(3.1)));
 	EidosAssertScriptSuccess("x = 'foo'; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foo")));
@@ -283,9 +564,12 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("x = 1:5; y = x; y[1] = 0; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3, 4, 5}));
 	EidosAssertScriptSuccess("x = 1:5; y = x; y[1] = 0; y;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 0, 3, 4, 5}));
 	EidosAssertScriptSuccess("for (i in 1:3) { x = 1:5; x[1] = x[1] + 1; } x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 3, 3, 4, 5}));
-	
+}
+
+#pragma mark parsing
+void _RunParsingTests(void)
+{
 	// test some simple parsing errors
-	#pragma mark parsing
 	EidosAssertScriptRaise("5 + 5", 5, "unexpected token");					// missing ;
 	EidosAssertScriptRaise("{ 5;", 4, "unexpected token");					// missing }
 	EidosAssertScriptRaise("5 };", 2, "unexpected token");					// missing {
@@ -312,9 +596,12 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("for x in 3:5) ;", 4, "unexpected token");		// missing (
 	EidosAssertScriptRaise("next 5;", 5, "unexpected token");				// missing ;
 	EidosAssertScriptRaise("break 5;", 6, "unexpected token");				// missing ;
-	
+}
+
+#pragma mark dispatch
+void _RunFunctionDispatchTests(void)
+{
 	// test function dispatch, default arguments, and named arguments
-	#pragma mark dispatch
 	EidosAssertScriptSuccess("abs(-10);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(10)));
 	EidosAssertScriptRaise("abs();", 0, "missing required argument x");
 	EidosAssertScriptRaise("abs(-10, -10);", 0, "too many arguments supplied");
@@ -359,9 +646,12 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("doCall('abs', function=-10);", 0, "named argument function in ellipsis argument section");
 	EidosAssertScriptRaise("doCall(x='abs');", 0, "skipped over required argument");
 	EidosAssertScriptRaise("doCall(function='abs');", 0, "requires 1 argument(s), but 0 are supplied");
-	
+}
+
+#pragma mark runtime
+void _RunRuntimeErrorTests(void)
+{
 	// test some simple runtime errors
-	#pragma mark runtime
 	EidosAssertScriptRaise("x = y * 3;", 4, "undefined identifier");									// undefined variable referenced
 	EidosAssertScriptRaise("print(y * 3);", 6, "undefined identifier");									// undefined variable referenced as function argument
 	
@@ -409,15 +699,12 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("x = rep(_Test(8), 2); x[-1];", 23, "out of range");					// subscript out of range (vector object)
 	EidosAssertScriptRaise("x = rep(_Test(8), 2); x[2] = _Test(6);", 23, "out-of-range index");		// subscript out of range in assignment (vector object)
 	EidosAssertScriptRaise("x = rep(_Test(8), 2); x[-1] = _Test(6);", 23, "out-of-range index");		// subscript out of range in assignment (vector object)
+}
 
-	
-	// ************************************************************************************
-	//
-	//	Operator tests
-	//
-	
+#pragma mark vectors & singletons
+void _RunVectorsAndSingletonsTests(void)
+{	
 	// test vector-to-singleton comparisons for integers, and multiplexing of methods and properties declared as singleton
-	#pragma mark vectors & singletons
 	EidosAssertScriptSuccess("rep(1:3, 2) == 2;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true, false, false, true, false}));
 	EidosAssertScriptSuccess("rep(1:3, 2) != 2;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, true, true, false, true}));
 	EidosAssertScriptSuccess("rep(1:3, 2) < 2;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, false, true, false, false}));
@@ -455,14 +742,21 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("_Test(2)._squareTest()._cubicYolk();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(64)));
 	EidosAssertScriptSuccess("c(_Test(2),_Test(3))._squareTest()._cubicYolk();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{64, 729}));
 	EidosAssertScriptSuccess("_Test(2)[F]._squareTest()._cubicYolk();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{}));
-	
+}
+
+	// ************************************************************************************
+	//
+	//	Operator tests
+	//
 	
 	#pragma mark -
 	#pragma mark Operators
 	#pragma mark -
 	
+#pragma mark operator +
+void _RunOperatorPlusTests(void)
+{
 	// operator +
-	#pragma mark operator +
 	EidosAssertScriptRaise("NULL+T;", 4, "combination of operand types");
 	EidosAssertScriptRaise("NULL+0;", 4, "combination of operand types");
 	EidosAssertScriptRaise("NULL+0.5;", 4, "combination of operand types");
@@ -522,9 +816,12 @@ void RunEidosTests(void)
 #else
 	std::cout << "WARNING: This build of Eidos does not detect integer arithmetic overflows.  Compiling Eidos with GCC version 5.0 or later, or Clang version 3.9 or later, is required for this feature.  This means that integer addition, subtraction, or multiplication that overflows the 64-bit range of Eidos (" << INT64_MIN << " to " << INT64_MAX << ") will not be detected." << std::endl;
 #endif
-	
+}
+
+#pragma mark operator −
+void _RunOperatorMinusTests(void)
+{
 	// operator -
-	#pragma mark operator −
 	EidosAssertScriptRaise("NULL-T;", 4, "is not supported by");
 	EidosAssertScriptRaise("NULL-0;", 4, "is not supported by");
 	EidosAssertScriptRaise("NULL-0.5;", 4, "is not supported by");
@@ -572,9 +869,12 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("c(0, 0, -5e18, 0) - 5e18;", 18, "overflow with the binary");
 	EidosAssertScriptRaise("c(0, 0, -5e18, 0) - c(0, 0, 5e18, 0);", 18, "overflow with the binary");
 #endif
-	
+}
+
+#pragma mark operator *
+void _RunOperatorMultTests(void)
+{
     // operator *
-	#pragma mark operator *
 	EidosAssertScriptRaise("NULL*T;", 4, "is not supported by");
 	EidosAssertScriptRaise("NULL*0;", 4, "is not supported by");
 	EidosAssertScriptRaise("NULL*0.5;", 4, "is not supported by");
@@ -621,9 +921,12 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("c(0, 0, 2, 0) * c(0, 0, 5e18, 0);", 14, "multiplication overflow");
 	EidosAssertScriptRaise("c(0, 0, 5e18, 0) * c(0, 0, 2, 0);", 17, "multiplication overflow");
 #endif
-	
+}
+
+#pragma mark operator /
+void _RunOperatorDivTests(void)
+{
     // operator /
-	#pragma mark operator /
 	EidosAssertScriptRaise("NULL/T;", 4, "is not supported by");
 	EidosAssertScriptRaise("NULL/0;", 4, "is not supported by");
 	EidosAssertScriptRaise("NULL/0.5;", 4, "is not supported by");
@@ -658,9 +961,12 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("/T;", 0, "unexpected token");
     EidosAssertScriptSuccess("3/4/5;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(0.15)));
 	EidosAssertScriptSuccess("6/0;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(std::numeric_limits<double>::infinity())));
-    
+}
+
+#pragma mark operator %
+void _RunOperatorModTests(void)
+{
     // operator %
-	#pragma mark operator %
 	EidosAssertScriptRaise("NULL%T;", 4, "is not supported by");
 	EidosAssertScriptRaise("NULL%0;", 4, "is not supported by");
 	EidosAssertScriptRaise("NULL%0.5;", 4, "is not supported by");
@@ -694,9 +1000,12 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("%'foo';", 0, "unexpected token");
 	EidosAssertScriptRaise("%T;", 0, "unexpected token");
     EidosAssertScriptSuccess("3%4%5;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(3)));
+}
 
+#pragma mark operator []
+void _RunOperatorSubsetTests(void)
+{
 	// operator []
-	#pragma mark operator []
 	EidosAssertScriptRaise("x = 1:5; x[NULL];", 10, "is not supported by");
 	EidosAssertScriptSuccess("x = 1:5; NULL[x];", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("x = 1:5; NULL[NULL];", gStaticEidosValueNULL);
@@ -718,9 +1027,12 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("x = 1:5; x[c(T, F, T, F, T)];", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 3, 5}));
 	EidosAssertScriptSuccess("x = 1:5; x[c(T, T, T, T, T)];", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3, 4, 5}));
 	EidosAssertScriptSuccess("x = 1:5; x[c(F, F, F, F, F)];", gStaticEidosValue_Integer_ZeroVec);
-	
+}
+
+#pragma mark operator = with []
+void _RunOperatorAssignTests(void)
+{
 	// operator = (especially in conjunction with operator [])
-	#pragma mark operator = with []
 	EidosAssertScriptSuccess("x = 5; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
 	EidosAssertScriptSuccess("x = 1:5; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3, 4, 5}));
 	EidosAssertScriptSuccess("x = 1:5; x[x % 2 == 1] = 10; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{10, 2, 10, 4, 10}));
@@ -750,7 +1062,6 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("x = 'foo'; x[0] = 'bar'; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("bar")));
 	
 	// operator = (especially in conjunction with operator .)
-	#pragma mark operator = with .
 	EidosAssertScriptSuccess("x=_Test(9); x._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(9)));
 	EidosAssertScriptRaise("x=_Test(NULL);", 2, "cannot be type NULL");
 	EidosAssertScriptRaise("x=_Test(9); x._yolk = NULL;", 20, "assignment to a property requires");
@@ -766,7 +1077,6 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("x=_Test(9); y=_Test(7); z=c(x,y,x,y); z[2]=6.5; z._yolk;", 42, "type mismatch");
 	
 	// operator = (with compound-operator optimizations)
-	#pragma mark operator = with +-/%*^
 	EidosAssertScriptSuccess("x = 5; x = x + 3; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(8)));
 	EidosAssertScriptSuccess("x = 5:6; x = x + 3; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{8, 9}));
 	EidosAssertScriptSuccess("x = 5:6; x = x + 3:4; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{8, 10}));
@@ -868,9 +1178,12 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("x = 5.0:6.0; x = x ^ c(2,3); x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{25.0, 216.0}));
 	EidosAssertScriptRaise("x = 5.0:7.0; x = x ^ (3.0:4.0); x;", 19, "operator requires that either");
 	EidosAssertScriptRaise("x = 5.0:6.0; x = x ^ (3.0:5.0); x;", 19, "operator requires that either");
-	
+}
+
+#pragma mark operator >
+void _RunOperatorGtTests(void)
+{
 	// operator >
-	#pragma mark operator >
 	EidosAssertScriptRaise("NULL>T;", 4, "testing NULL with");
 	EidosAssertScriptRaise("NULL>0;", 4, "testing NULL with");
 	EidosAssertScriptRaise("NULL>0.5;", 4, "testing NULL with");
@@ -926,9 +1239,12 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("'5' > 5;", gStaticEidosValue_LogicalF);
 	EidosAssertScriptSuccess("'foo' > 'foo';", gStaticEidosValue_LogicalF);
 	EidosAssertScriptRaise("_Test(9) > _Test(9);", 9, "cannot be used with type");
-	
+}
+
+#pragma mark operator <
+void _RunOperatorLtTests(void)
+{
 	// operator <
-	#pragma mark operator <
 	EidosAssertScriptRaise("NULL<T;", 4, "testing NULL with");
 	EidosAssertScriptRaise("NULL<0;", 4, "testing NULL with");
 	EidosAssertScriptRaise("NULL<0.5;", 4, "testing NULL with");
@@ -984,9 +1300,12 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("'5' < 5;", gStaticEidosValue_LogicalF);
 	EidosAssertScriptSuccess("'foo' < 'foo';", gStaticEidosValue_LogicalF);
 	EidosAssertScriptRaise("_Test(9) < _Test(9);", 9, "cannot be used with type");
-	
+}
+
+#pragma mark operator >=
+void _RunOperatorGtEqTests(void)
+{
 	// operator >=
-	#pragma mark operator >=
 	EidosAssertScriptRaise("NULL>=T;", 4, "testing NULL with");
 	EidosAssertScriptRaise("NULL>=0;", 4, "testing NULL with");
 	EidosAssertScriptRaise("NULL>=0.5;", 4, "testing NULL with");
@@ -1042,9 +1361,12 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("'5' >= 5;", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("'foo' >= 'foo';", gStaticEidosValue_LogicalT);
 	EidosAssertScriptRaise("_Test(9) >= _Test(9);", 9, "cannot be used with type");
-	
+}
+
+#pragma mark operator <=
+void _RunOperatorLtEqTests(void)
+{
 	// operator <=
-	#pragma mark operator <=
 	EidosAssertScriptRaise("NULL<=T;", 4, "testing NULL with");
 	EidosAssertScriptRaise("NULL<=0;", 4, "testing NULL with");
 	EidosAssertScriptRaise("NULL<=0.5;", 4, "testing NULL with");
@@ -1100,9 +1422,12 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("'5' <= 5;", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("'foo' <= 'foo';", gStaticEidosValue_LogicalT);
 	EidosAssertScriptRaise("_Test(9) <= _Test(9);", 9, "cannot be used with type");
-	
+}
+
+#pragma mark operator ==
+void _RunOperatorEqTests(void)
+{
 	// operator ==
-	#pragma mark operator ==
 	EidosAssertScriptRaise("NULL==T;", 4, "testing NULL with");
 	EidosAssertScriptRaise("NULL==0;", 4, "testing NULL with");
 	EidosAssertScriptRaise("NULL==0.5;", 4, "testing NULL with");
@@ -1158,9 +1483,12 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("'5' == 5;", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("'foo' == 'foo';", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("_Test(9) == _Test(9);", gStaticEidosValue_LogicalF);	// not the same object
-	
+}
+
+#pragma mark operator !=
+void _RunOperatorNotEqTests(void)
+{
 	// operator !=
-	#pragma mark operator !=
 	EidosAssertScriptRaise("NULL!=T;", 4, "testing NULL with");
 	EidosAssertScriptRaise("NULL!=0;", 4, "testing NULL with");
 	EidosAssertScriptRaise("NULL!=0.5;", 4, "testing NULL with");
@@ -1216,9 +1544,12 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("'5' != 5;", gStaticEidosValue_LogicalF);
 	EidosAssertScriptSuccess("'foo' != 'foo';", gStaticEidosValue_LogicalF);
 	EidosAssertScriptSuccess("_Test(9) != _Test(9);", gStaticEidosValue_LogicalT);	// not the same object
-	
+}
+
+#pragma mark operator :
+void _RunOperatorRangeTests(void)
+{
 	// operator :
-	#pragma mark operator :
 	EidosAssertScriptRaise("NULL:T;", 4, "is not supported by");
 	EidosAssertScriptRaise("NULL:0;", 4, "is not supported by");
 	EidosAssertScriptRaise("NULL:0.5;", 4, "is not supported by");
@@ -1259,9 +1590,12 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("1.5:NAN;", 3, "must not be NAN");
 	EidosAssertScriptRaise("INF:1.5;", 3, "range with more than");
 	EidosAssertScriptRaise("NAN:1.5;", 3, "must not be NAN");
-	
+}
+
+#pragma mark operator ^
+void _RunOperatorExpTests(void)
+{
 	// operator ^
-	#pragma mark operator ^
 	EidosAssertScriptRaise("NULL^T;", 4, "is not supported by");
 	EidosAssertScriptRaise("NULL^0;", 4, "is not supported by");
 	EidosAssertScriptRaise("NULL^0.5;", 4, "is not supported by");
@@ -1300,9 +1634,12 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("^T;", 0, "unexpected token");
 	EidosAssertScriptSuccess("4^(3^2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(262144)));		// right-associative!
 	EidosAssertScriptSuccess("4^3^2;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(262144)));		// right-associative!
-	
+}
+
+#pragma mark operator &
+void _RunOperatorLogicalAndTests(void)
+{
 	// operator &
-	#pragma mark operator &
 	EidosAssertScriptRaise("NULL&T;", 4, "is not supported by");
 	EidosAssertScriptRaise("NULL&0;", 4, "is not supported by");
 	EidosAssertScriptRaise("NULL&0.5;", 4, "is not supported by");
@@ -1382,9 +1719,12 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("'foo' & c(T,F,T,F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, true, false}));
 	EidosAssertScriptSuccess("c('foo','','foo','') & c(T,T,F,F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, false, false}));
 	EidosAssertScriptSuccess("c(T,F,T,F) & c('','','foo','foo');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false, true, false}));
-	
+}
+
+#pragma mark operator |
+void _RunOperatorLogicalOrTests(void)
+{
 	// operator |
-	#pragma mark operator |
 	EidosAssertScriptRaise("NULL|T;", 4, "is not supported by");
 	EidosAssertScriptRaise("NULL|0;", 4, "is not supported by");
 	EidosAssertScriptRaise("NULL|0.5;", 4, "is not supported by");
@@ -1464,9 +1804,12 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("'foo' | c(T,F,T,F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, true, true}));
 	EidosAssertScriptSuccess("c('foo','','foo','') | c(T,T,F,F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, true, false}));
 	EidosAssertScriptSuccess("c(T,F,T,F) | c('','','foo','foo');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, true, true}));
-	
+}
+
+#pragma mark operator !
+void _RunOperatorLogicalNotTests(void)
+{
 	// operator !
-	#pragma mark operator !
 	EidosAssertScriptRaise("!NULL;", 0, "is not supported by");
 	EidosAssertScriptSuccess("!T;", gStaticEidosValue_LogicalF);
 	EidosAssertScriptSuccess("!F;", gStaticEidosValue_LogicalT);
@@ -1477,15 +1820,17 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("!c(0,INF,0,1.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, true, false}));
 	EidosAssertScriptSuccess("!c('','foo','','bar');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, true, false}));
 	EidosAssertScriptRaise("!_Test(5);", 0, "is not supported by");
-	
+}
 	
 	// ************************************************************************************
 	//
 	//	Keyword tests
 	//
 	
+#pragma mark if
+void _RunKeywordIfTests(void)
+{
 	// if
-	#pragma mark if
 	EidosAssertScriptSuccess("if (T) 23;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(23)));
 	EidosAssertScriptSuccess("if (F) 23;", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("if (6 > 5) 23;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(23)));
@@ -1497,7 +1842,6 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("if (NULL) 23;", 0, "condition for if statement has size()");
 	
 	// if-else
-	#pragma mark if-else
 	EidosAssertScriptSuccess("if (T) 23; else 42;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(23)));
 	EidosAssertScriptSuccess("if (F) 23; else 42;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(42)));
 	EidosAssertScriptSuccess("if (6 > 5) 23; else 42;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(23)));
@@ -1507,9 +1851,12 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("if ((6 == (6:9))[1]) 23; else 42;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(42)));
 	EidosAssertScriptRaise("if (_Test(6)) 23; else 42;", 0, "cannot be converted");
 	EidosAssertScriptRaise("if (NULL) 23; else 42;", 0, "condition for if statement has size()");
-	
+}
+
+#pragma mark do
+void _RunKeywordDoTests(void)
+{
 	// do
-	#pragma mark do
 	EidosAssertScriptSuccess("x=1; do x=x*2; while (x<100); x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(128)));
 	EidosAssertScriptSuccess("x=200; do x=x*2; while (x<100); x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(400)));
 	EidosAssertScriptSuccess("x=1; do { x=x*2; x=x+1; } while (x<100); x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(127)));
@@ -1520,9 +1867,12 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("x=200; do x=x*2; while ((x < 100:102)[0]); x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(400)));
 	EidosAssertScriptRaise("x=200; do x=x*2; while (_Test(6)); x;", 7, "cannot be converted");
 	EidosAssertScriptRaise("x=200; do x=x*2; while (NULL); x;", 7, "condition for do-while loop has size()");
-	
+}
+
+#pragma mark while
+void _RunKeywordWhileTests(void)
+{
 	// while
-	#pragma mark while
 	EidosAssertScriptSuccess("x=1; while (x<100) x=x*2; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(128)));
 	EidosAssertScriptSuccess("x=200; while (x<100) x=x*2; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(200)));
 	EidosAssertScriptSuccess("x=1; while (x<100) { x=x*2; x=x+1; } x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(127)));
@@ -1533,9 +1883,12 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("x=200; while ((x < 100:102)[0]) x=x*2; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(200)));
 	EidosAssertScriptRaise("x=200; while (_Test(6)) x=x*2; x;", 7, "cannot be converted");
 	EidosAssertScriptRaise("x=200; while (NULL) x=x*2; x;", 7, "condition for while loop has size()");
-	
+}
+
+#pragma mark for / in
+void _RunKeywordForInTests(void)
+{
 	// for and in
-	#pragma mark for / in
 	EidosAssertScriptSuccess("x=0; for (y in integer(0)) x=x+1; x;", gStaticEidosValue_Integer0);
 	EidosAssertScriptSuccess("x=0; for (y in float(0)) x=x+1; x;", gStaticEidosValue_Integer0);
 	EidosAssertScriptSuccess("x=0; for (y in 33) x=x+y; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(33)));
@@ -1562,9 +1915,12 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("x=0; q=11:20; for (y in seqAlong()) x=x+y; x;", 24, "missing required");
 	EidosAssertScriptSuccess("x=0; for (y in seq(1,10)) x=x+y; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(55)));
 	EidosAssertScriptSuccess("x=0; for (y in seq(1,10)) x=x+1; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(10)));
-	
+}
+
+#pragma mark next
+void _RunKeywordNextTests(void)
+{
 	// next
-	#pragma mark next
 	EidosAssertScriptRaise("next;", 0, "encountered with no enclosing loop");
 	EidosAssertScriptRaise("if (T) next;", 7, "encountered with no enclosing loop");
 	EidosAssertScriptSuccess("if (F) next;", gStaticEidosValueNULL);
@@ -1575,9 +1931,12 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("x=1; do { x=x*2; if (x>50) next; x=x+1; } while (x<100); x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(124)));
 	EidosAssertScriptSuccess("x=1; while (x<100) { x=x*2; if (x>50) next; x=x+1; } x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(124)));
 	EidosAssertScriptSuccess("x=0; for (y in 1:10) { if (y==5) next; x=x+y; } x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(50)));
-	
+}
+
+#pragma mark break
+void _RunKeywordBreakTests(void)
+{
 	// break
-	#pragma mark break
 	EidosAssertScriptRaise("break;", 0, "encountered with no enclosing loop");
 	EidosAssertScriptRaise("if (T) break;", 7, "encountered with no enclosing loop");
 	EidosAssertScriptSuccess("if (F) break;", gStaticEidosValueNULL);
@@ -1588,9 +1947,12 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("x=1; do { x=x*2; if (x>50) break; x=x+1; } while (x<100); x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(62)));
 	EidosAssertScriptSuccess("x=1; while (x<100) { x=x*2; if (x>50) break; x=x+1; } x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(62)));
 	EidosAssertScriptSuccess("x=0; for (y in 1:10) { if (y==5) break; x=x+y; } x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(10)));
-	
+}
+
+#pragma mark return
+void _RunKeywordReturnTests(void)
+{
 	// return
-	#pragma mark return
 	EidosAssertScriptSuccess("return;", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("return -13;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-13)));
 	EidosAssertScriptSuccess("if (T) return;", gStaticEidosValueNULL);
@@ -1611,7 +1973,7 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("x=1; while (x<100) { x=x*2; if (x>50) return x-5; x=x+1; } x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(57)));
 	EidosAssertScriptSuccess("x=0; for (y in 1:10) { if (y==5) return; x=x+y; } x;", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("x=0; for (y in 1:10) { if (y==5) return x-5; x=x+y; } x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
-	
+}
 	
 	// ************************************************************************************
 	//
@@ -1621,8 +1983,9 @@ void RunEidosTests(void)
 	#pragma mark Functions
 	#pragma mark -
 	
-	#pragma mark math
-	
+#pragma mark math
+void _RunFunctionMathTests(void)
+{
 	// abs()
 	EidosAssertScriptSuccess("abs(5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
 	EidosAssertScriptSuccess("abs(-5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
@@ -2518,9 +2881,11 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("trunc(integer(0));", 0, "cannot be type");
 	EidosAssertScriptSuccess("trunc(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("trunc(string(0));", 0, "cannot be type");
-	
-	#pragma mark summary statistics
-	
+}
+
+#pragma mark summary statistics
+void _RunFunctionSummaryStatsTests(void)
+{
 	// max()
 	EidosAssertScriptSuccess("max(T);", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("max(3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
@@ -2770,9 +3135,11 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("rweibull(-1, 1, 1);", 0, "requires n to be");
 	EidosAssertScriptRaise("rweibull(2, c(10, 0, 1), 100.0);", 0, "requires lambda to be");
 	EidosAssertScriptRaise("rweibull(2, 10.0, c(0.1, 0, 1));", 0, "requires k to be");
-	
-	#pragma mark vector construction
-	
+}
+
+#pragma mark vector construction
+void _RunFunctionVectorConstructionTests(void)
+{
 	// c()
 	EidosAssertScriptSuccess("c();", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("c(NULL);", gStaticEidosValueNULL);
@@ -3000,9 +3367,11 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("string(-10000);", 0, "to be greater than or equal to");
 	EidosAssertScriptRaise("string(NULL);", 0, "cannot be type NULL");
 	EidosAssertScriptRaise("string(integer(0));", 0, "must be a singleton");
-	
-	#pragma mark value inspection / manipulation
-	
+}
+
+#pragma mark value inspection / manipulation
+void _RunFunctionValueInspectionManipulationTests(void)
+{
 	// all()
 	EidosAssertScriptRaise("all(NULL);", 0, "cannot be type");
 	EidosAssertScriptRaise("all(0);", 0, "cannot be type");
@@ -3454,9 +3823,11 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("whichMin(integer(0));", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("whichMin(float(0));", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("whichMin(string(0));", gStaticEidosValueNULL);
-	
-	#pragma mark value type testing / coercion
-	
+}
+
+#pragma mark value type testing / coercion
+void _RunFunctionValueTestingCoercionTests(void)
+{
 	// asFloat()
 	EidosAssertScriptSuccess("asFloat(-1:3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{-1,0,1,2,3}));
 	EidosAssertScriptSuccess("asFloat(-1.0:3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{-1,0,1,2,3}));
@@ -3572,9 +3943,11 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("type('foo');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("string")));
 	EidosAssertScriptSuccess("type(_Test(7));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("object")));
 	EidosAssertScriptSuccess("type(object());", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("object")));
-	
-	#pragma mark filesystem access
-	
+}
+
+#pragma mark filesystem access
+void _RunFunctionFilesystemTests(void)
+{
 	// filesAtPath() – hard to know how to test this!  These tests should be true on Un*x machines, anyway – but might be disallowed by file permissions.
 	EidosAssertScriptSuccess("type(filesAtPath('/tmp')) == 'string';", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("sum(filesAtPath('/') == 'bin');", gStaticEidosValue_Integer1);
@@ -3594,9 +3967,11 @@ void RunEidosTests(void)
 	EidosAssertScriptSuccess("deleteFile('/tmp/EidosTest.txt');", gStaticEidosValue_LogicalF);
 	
 	// createDirectory() – hard to test this, since it's hard to generate a path to create a folder at that is guaranteed not to exist, especially if this same test has run before on this system...
-	
-	#pragma mark miscellaneous
-	
+}
+
+#pragma mark miscellaneous
+void _RunFunctionMiscTests(void)
+{
 	// apply()
 	EidosAssertScriptSuccess("x=integer(0); apply(x, 'applyValue^2;');", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("x=1:5; apply(x, 'applyValue^2;');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{1, 4, 9, 16, 25}));
@@ -3750,9 +4125,11 @@ void RunEidosTests(void)
 	EidosAssertScriptRaise("version(3.5);", 0, "too many arguments supplied");
 	EidosAssertScriptRaise("version('foo');", 0, "too many arguments supplied");
 	EidosAssertScriptRaise("version(_Test(7));", 0, "too many arguments supplied");
-	
+}
+
 #pragma mark methods
-	
+void _RunMethodTests(void)
+{
 	// method()
 	EidosAssertScriptSuccess("_Test(7).method();", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("_Test(7).method('method');", gStaticEidosValueNULL);
@@ -3767,9 +4144,11 @@ void RunEidosTests(void)
 	
 	// str()
 	EidosAssertScriptSuccess("_Test(7).str();", gStaticEidosValueNULL);
-	
+}
+
 #pragma mark code examples
-	
+void _RunCodeExampleTests(void)
+{
 	// Fibonacci sequence; see Eidos manual section 2.6.1-ish
 	EidosAssertScriptSuccess(	"fib = c(1, 1);												\
 								while (size(fib) < 20)										\
@@ -3804,195 +4183,6 @@ void RunEidosTests(void)
 								} while (T);				\
 								c(p, x);",
 							 EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97,101,103,107,109,113,127,131,137,139,149,151,157,163,167,173,179,181,191,193,197,199}));
-	
-	// ************************************************************************************
-	//
-    //	Print a summary of test results
-	//
-    std::cerr << endl;
-    if (gEidosTestFailureCount)
-        std::cerr << "" << EIDOS_OUTPUT_FAILURE_TAG << " count: " << gEidosTestFailureCount << endl;
-    std::cerr << EIDOS_OUTPUT_SUCCESS_TAG << " count: " << gEidosTestSuccessCount << endl;
-	
-	// If we are tracking allocations, print a count
-#ifdef EIDOS_TRACK_VALUE_ALLOCATION
-	std::cerr << "EidosValue allocation count: " << EidosValue::valueTrackingCount << endl;
-	for (EidosValue *value : EidosValue::valueTrackingVector)
-		std::cerr << *value << endl;
-#endif
-	
-	// Do some tests of our custom math functions
-#if 0
-//#ifndef USE_GSL_POISSON
-	EidosInitializeRNGFromSeed(EidosGenerateSeedFromPIDAndTime());
-	
-	double total;
-	int i;
-	
-	std::cout << std::endl << std::endl;
-	
-	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += eidos_fast_ran_poisson(1.0);
-	
-	std::cout << "eidos_fast_ran_poisson(1.0): mean = " << (total / 1000000) << ", expected 1.0" << std::endl;
-	
-	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += gsl_ran_poisson(gEidos_rng, 1.0);
-	
-	std::cout << "gsl_ran_poisson(1.0): mean = " << (total / 1000000) << ", expected 1.0" << std::endl << std::endl;
-	
-	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += eidos_fast_ran_poisson(0.001);
-	
-	std::cout << "eidos_fast_ran_poisson(0.001): mean = " << (total / 1000000) << ", expected 0.001" << std::endl;
-	
-	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += gsl_ran_poisson(gEidos_rng, 0.001);
-	
-	std::cout << "gsl_ran_poisson(0.001): mean = " << (total / 1000000) << ", expected 0.001" << std::endl << std::endl;
-	
-	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += eidos_fast_ran_poisson(0.00001);
-	
-	std::cout << "eidos_fast_ran_poisson(0.00001): mean = " << (total / 1000000) << ", expected 0.00001" << std::endl;
-	
-	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += gsl_ran_poisson(gEidos_rng, 0.00001);
-	
-	std::cout << "gsl_ran_poisson(0.00001): mean = " << (total / 1000000) << ", expected 0.00001" << std::endl << std::endl;
-	
-	for (total = 0.0, i = 0; i < 100000; i++)
-		total += eidos_fast_ran_poisson(100);
-	
-	std::cout << "eidos_fast_ran_poisson(100): mean = " << (total / 100000) << ", expected 100" << std::endl;
-	
-	for (total = 0.0, i = 0; i < 100000; i++)
-		total += gsl_ran_poisson(gEidos_rng, 100);
-	
-	std::cout << "gsl_ran_poisson(100): mean = " << (total / 100000) << ", expected 100" << std::endl << std::endl;
-	
-	
-	std::cout << std::endl;
-	
-	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += eidos_fast_ran_poisson(1.0, exp(-1.0));
-	
-	std::cout << "eidos_fast_ran_poisson(1.0): mean = " << (total / 1000000) << ", expected 1.0" << std::endl;
-	
-	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += gsl_ran_poisson(gEidos_rng, 1.0);
-	
-	std::cout << "gsl_ran_poisson(1.0): mean = " << (total / 1000000) << ", expected 1.0" << std::endl << std::endl;
-	
-	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += eidos_fast_ran_poisson(0.001, exp(-0.001));
-	
-	std::cout << "eidos_fast_ran_poisson(0.001): mean = " << (total / 1000000) << ", expected 0.001" << std::endl;
-	
-	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += gsl_ran_poisson(gEidos_rng, 0.001);
-	
-	std::cout << "gsl_ran_poisson(0.001): mean = " << (total / 1000000) << ", expected 0.001" << std::endl << std::endl;
-	
-	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += eidos_fast_ran_poisson(0.00001, exp(-0.00001));
-	
-	std::cout << "eidos_fast_ran_poisson(0.00001): mean = " << (total / 1000000) << ", expected 0.00001" << std::endl;
-	
-	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += gsl_ran_poisson(gEidos_rng, 0.00001);
-	
-	std::cout << "gsl_ran_poisson(0.00001): mean = " << (total / 1000000) << ", expected 0.00001" << std::endl << std::endl;
-	
-	for (total = 0.0, i = 0; i < 100000; i++)
-		total += eidos_fast_ran_poisson(100, exp(-100));
-	
-	std::cout << "eidos_fast_ran_poisson(100): mean = " << (total / 100000) << ", expected 100" << std::endl;
-	
-	for (total = 0.0, i = 0; i < 100000; i++)
-		total += gsl_ran_poisson(gEidos_rng, 100);
-	
-	std::cout << "gsl_ran_poisson(100): mean = " << (total / 100000) << ", expected 100" << std::endl << std::endl;
-	
-	
-	std::cout << std::endl;
-	
-	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += eidos_fast_ran_poisson_nonzero(1.0, exp(-1.0));
-	
-	std::cout << "eidos_fast_ran_poisson(1.0): mean = " << (total / 1000000) << ", expected ~1.58" << std::endl;
-	
-	for (total = 0.0, i = 0; i < 1000000; i++)
-	{
-		unsigned int x;
-		
-		do {
-			x = gsl_ran_poisson(gEidos_rng, 1.0);
-		} while (x == 0);
-		
-		total += x;
-	}
-	
-	std::cout << "gsl_ran_poisson(1.0): mean = " << (total / 1000000) << ", expected ~1.58" << std::endl << std::endl;
-	
-	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += eidos_fast_ran_poisson_nonzero(0.001, exp(-0.001));
-	
-	std::cout << "eidos_fast_ran_poisson(0.001): mean = " << (total / 1000000) << ", expected ~1.0005" << std::endl;
-	
-//	for (total = 0.0, i = 0; i < 1000000; i++)
-//	{
-//		unsigned int x;
-//		
-//		do {
-//			x = gsl_ran_poisson(gEidos_rng, 0.001);
-//		} while (x == 0);
-//		
-//		total += x;
-//	}
-//	
-//	std::cout << "gsl_ran_poisson(0.001): mean = " << (total / 1000000) << ", expected ~1.0005" << std::endl;
-	
-	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += eidos_fast_ran_poisson_nonzero(0.00001, exp(-0.00001));
-	
-	std::cout << std::endl << "eidos_fast_ran_poisson(0.00001): mean = " << (total / 1000000) << ", expected ~1.00001" << std::endl;
-	
-//	for (total = 0.0, i = 0; i < 1000000; i++)
-//	{
-//		unsigned int x;
-//		
-//		do {
-//			x = gsl_ran_poisson(gEidos_rng, 0.00001);
-//		} while (x == 0);
-//		
-//		total += x;
-//	}
-//	
-//	std::cout << "gsl_ran_poisson(0.00001): mean = " << (total / 1000000) << ", expected ~1.00001" << std::endl;
-	
-	for (total = 0.0, i = 0; i < 100000; i++)
-		total += eidos_fast_ran_poisson_nonzero(100, exp(-100));
-	
-	std::cout << std::endl << "eidos_fast_ran_poisson(100): mean = " << (total / 100000) << ", expected ~100" << std::endl;
-	
-	for (total = 0.0, i = 0; i < 100000; i++)
-	{
-		unsigned int x;
-		
-		do {
-			x = gsl_ran_poisson(gEidos_rng, 100);
-		} while (x == 0);
-		
-		total += x;
-	}
-	
-	std::cout << "gsl_ran_poisson(100): mean = " << (total / 100000) << ", expected ~100" << std::endl << std::endl;
-	
-#endif
-	
-	// If we ran tests, the random number seed has been set; let's set it back to a good seed value
-	EidosInitializeRNGFromSeed(EidosGenerateSeedFromPIDAndTime());
 }
 
 
