@@ -68,6 +68,12 @@ private:
 	static bool s_log_copy_and_assign_;							// true if logging is disabled (see below)
 #endif
 	
+	// Bulk operation optimization; see WillModifyRunForBulkOperation().  The idea is to keep track of changes to MutationRun
+	// objects in a bulk operation, and short-circuit the operation for all Genomes with the same initial MutationRun (since
+	// the bulk operation will produce the same product MutationRun given the same initial MutationRun).
+	static int64_t s_bulk_operation_id;
+	static std::map<MutationRun*, MutationRun*> s_bulk_operation_runs;
+	
 public:
 	
 	//
@@ -109,7 +115,9 @@ public:
 	// about the operation being performed; it just plays around with MutationRun pointers, recognizing when they are identical.  The
 	// first call for a new operation ID will always return T, and the caller will then perform the operation; subsequent calls for
 	// genomes with the same starting MutationRun will substitute the same final MutationRun and return F.
+	static void BulkOperationStart(int64_t p_operation_id);
 	bool WillModifyRunForBulkOperation(int p_run_index, int64_t p_operation_id);
+	static void BulkOperationEnd(int64_t p_operation_id);
 	
 	GenomeType Type(void) const										// returns the type of the genome: automosomal, X chromosome, or Y chromosome
 	{

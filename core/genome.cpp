@@ -36,6 +36,10 @@
 bool Genome::s_log_copy_and_assign_ = true;
 #endif
 
+// Static class variables in support of Genome's bulk operation optimization; see Genome::WillModifyRunForBulkOperation()
+int64_t Genome::s_bulk_operation_id = 0;
+std::map<MutationRun*, MutationRun*> Genome::s_bulk_operation_runs;
+
 
 // default constructor; gives a non-null genome of type GenomeType::kAutosome
 Genome::Genome(void)
@@ -99,21 +103,46 @@ void Genome::WillModifyRun(int p_run_index)
 	if (p_run_index >= run_count_)
 		EIDOS_TERMINATION << "ERROR (Genome::WillModifyRun): (internal error) attempt to modify an out-of-index run." << eidos_terminate();
 	
-	MutationRun *old_run = runs_[p_run_index].get();
+	MutationRun *original_run = runs_[p_run_index].get();
 	
-	if (old_run->use_count() > 1)
+	if (original_run->use_count() > 1)
 	{
 		MutationRun *new_run = MutationRun::NewMutationRun();	// take from shared pool of used objects
 		
-		new_run->copy_from_run(*old_run);
-		
+		new_run->copy_from_run(*original_run);
 		runs_[p_run_index] = MutationRun_SP(new_run);
+	}
+}
+
+void Genome::BulkOperationStart(int64_t p_operation_id)
+{
+	if (p_operation_id != s_bulk_operation_id)
+	{
+		if (s_bulk_operation_id != 0)
+		{
+			//EIDOS_TERMINATION << "ERROR (Genome::BulkOperationStart): (internal error) unmatched bulk operation start." << eidos_terminate();
+			
+			// It would be nice to be able to throw an exception here, but in the present design, the
+			// bulk operation info can get messed up if the bulk operation throws an exception that
+			// blows through the call to Genome::BulkOperationEnd().  It would be nice to have a design
+			// that was robust to that; I guess a stack-allocated token returned by this casll that
+			// performs the call to Genome::BulkOperationEnd() when it gets dealloced?  FIXME
+			
+			// For now, we assume that the end call got blown through, and we close out the old operation.
+			Genome::BulkOperationEnd(s_bulk_operation_id);
+		}
+		
+		s_bulk_operation_id = p_operation_id;
 	}
 }
 
 bool Genome::WillModifyRunForBulkOperation(int p_run_index, int64_t p_operation_id)
 {
-#if 1
+	if (p_run_index >= run_count_)
+		EIDOS_TERMINATION << "ERROR (Genome::WillModifyRunForBulkOperation): (internal error) attempt to modify an out-of-index run." << eidos_terminate();
+	
+#if 0
+#warning Genome::WillModifyRunForBulkOperation disabled...
 	// The trivial version of this function just calls WillModifyRun() and returns T,
 	// requesting that the caller perform the operation
 	WillModifyRun(p_run_index);
@@ -121,8 +150,50 @@ bool Genome::WillModifyRunForBulkOperation(int p_run_index, int64_t p_operation_
 #else
 	// The interesting version remembers the operation in progress, using the ID, and
 	// tracks original/final MutationRun pointers, returning F if an original is matched.
+	MutationRun *original_run = runs_[p_run_index].get();
 	
+	if (p_operation_id != s_bulk_operation_id)
+			EIDOS_TERMINATION << "ERROR (Genome::WillModifyRunForBulkOperation): (internal error) missing bulk operation start." << eidos_terminate();
+	
+	auto found_run_pair = s_bulk_operation_runs.find(original_run);
+	
+	if (found_run_pair == s_bulk_operation_runs.end())
+	{
+		// This MutationRun is not in the map, so we need to set up a new entry
+		MutationRun *product_run = MutationRun::NewMutationRun();
+		
+		product_run->copy_from_run(*original_run);
+		runs_[p_run_index] = MutationRun_SP(product_run);
+		
+		s_bulk_operation_runs.insert(std::pair<MutationRun*, MutationRun*>(original_run, product_run));
+		
+		//std::cout << "WillModifyRunForBulkOperation() created product for " << original_run << std::endl;
+		
+		return true;
+	}
+	else
+	{
+		// This MutationRun is in the map, so we can just return it
+		runs_[p_run_index] = MutationRun_SP(found_run_pair->second);
+		
+		//std::cout << "   WillModifyRunForBulkOperation() substituted known product for " << original_run << std::endl;
+		
+		return false;
+	}
 #endif
+}
+
+void Genome::BulkOperationEnd(int64_t p_operation_id)
+{
+	if (p_operation_id == s_bulk_operation_id)
+	{
+		s_bulk_operation_runs.clear();
+		s_bulk_operation_id = 0;
+	}
+	else
+	{
+		EIDOS_TERMINATION << "ERROR (Genome::BulkOperationEnd): (internal error) unmatched bulk operation end." << eidos_terminate();
+	}
 }
 
 // Remove all mutations in p_genome that have a refcount of p_fixed_count, indicating that they have fixed
@@ -1226,6 +1297,8 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 			{
 				int64_t operation_id = ++gSLiM_MutationRun_OperationID;
 				
+				Genome::BulkOperationStart(operation_id);
+				
 				for (int index = 0; index < target_size; ++index)
 				{
 					Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(index, nullptr);
@@ -1253,6 +1326,8 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 						}
 					}
 				}
+				
+				Genome::BulkOperationEnd(operation_id);
 			}
 			
 			return gStaticEidosValueNULLInvisible;
@@ -1338,6 +1413,8 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 			Mutation *mutation = nullptr;
 			int64_t operation_id = ++gSLiM_MutationRun_OperationID;
 			
+			Genome::BulkOperationStart(operation_id);
+			
 			for (int index = 0; index < target_size; ++index)
 			{
 				Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(index, nullptr);
@@ -1366,6 +1443,8 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 					}
 				}
 			}
+			
+			Genome::BulkOperationEnd(operation_id);
 			
 			if (mutation)
 			{
@@ -1465,6 +1544,8 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 			Mutation *mutation = nullptr;
 			int64_t operation_id = ++gSLiM_MutationRun_OperationID;
 			
+			Genome::BulkOperationStart(operation_id);
+			
 			for (int index = 0; index < target_size; ++index)
 			{
 				Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(index, nullptr);
@@ -1490,6 +1571,8 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 					}
 				}
 			}
+			
+			Genome::BulkOperationEnd(operation_id);
 			
 			if (mutation)
 			{
@@ -1641,6 +1724,8 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 				
 				int64_t operation_id = ++gSLiM_MutationRun_OperationID;
 				
+				Genome::BulkOperationStart(operation_id);
+				
 				for (int index = 0; index < target_size; ++index)
 				{
 					Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(index, nullptr);
@@ -1689,6 +1774,8 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 						target_genome->runs_[0]->set_size(target_genome->runs_[0]->size() - (int)(genome_iter - genome_backfill_iter));
 					}
 				}
+				
+				Genome::BulkOperationEnd(operation_id);
 			}
 			
 			return gStaticEidosValueNULLInvisible;
