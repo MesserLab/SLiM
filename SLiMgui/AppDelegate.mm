@@ -23,6 +23,7 @@
 #import "EidosHelpController.h"
 #import "CocoaExtra.h"
 #import "EidosCocoaExtra.h"
+#import "TipsWindowController.h"
 #import <WebKit/WebKit.h>
 
 
@@ -145,6 +146,8 @@ typedef enum SLiMLaunchAction
 			[self openDocument:nil];
 			break;
 	}
+	
+	[TipsWindowController showTipsWindowOnLaunch];
 }
 
 - (void)applicationWillTerminate:(NSNotification *)aNotification
@@ -233,6 +236,9 @@ typedef enum SLiMLaunchAction
 	NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
 	
 	[defaults removeObjectForKey:EidosDefaultsSuppressScriptCheckSuccessPanelKey];
+	
+	[defaults removeObjectForKey:SLiMDefaultsShowTipsPanelKey];
+	[defaults removeObjectForKey:SLiMDefaultsTipsIndexKey];
 }
 
 
