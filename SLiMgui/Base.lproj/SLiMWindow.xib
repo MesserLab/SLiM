@@ -69,7 +69,7 @@
         <window title="SLiMgui" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" restorable="NO" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" frameAutosaveName="SLiMgui" animationBehavior="default" id="HDg-UE-KLh">
             <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES" unifiedTitleAndToolbar="YES"/>
             <windowPositionMask key="initialPositionMask" topStrut="YES" bottomStrut="YES"/>
-            <rect key="contentRect" x="748" y="451" width="1180" height="978"/>
+            <rect key="contentRect" x="740" y="50" width="1180" height="978"/>
             <rect key="screenRect" x="0.0" y="0.0" width="1920" height="1057"/>
             <view key="contentView" id="esE-Q8-bJT">
                 <rect key="frame" x="0.0" y="0.0" width="1180" height="978"/>
