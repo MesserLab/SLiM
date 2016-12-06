@@ -17,6 +17,7 @@ development head:
 	bounce the SLiMgui icon once when a run completes, for notification of the user
 	add MutationRun class for storing shared runs of mutations (performance enhancement)
 	add a tips/tricks window visible at startup, and make some items for it
+	converted the chromosome view to draw with OpenGL (performance enhancement)
 
 2.1.1 (build 924; Eidos version 1.1.1):
 	fix segfault with very large recombination maps (thanks Martin Petr)

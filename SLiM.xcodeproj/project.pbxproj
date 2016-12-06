@@ -62,6 +62,7 @@
 		98453F5F1A76004300C058CB /* show_recombination.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98453F551A76004300C058CB /* show_recombination.pdf */; };
 		98453F621A76041200C058CB /* edit_submenu_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98453F601A76041200C058CB /* edit_submenu_H.pdf */; };
 		98453F631A76041200C058CB /* edit_submenu.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98453F611A76041200C058CB /* edit_submenu.pdf */; };
+		984AD1961DF54E3C002D4AC8 /* ChromosomeGLView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 984AD1951DF54E3C002D4AC8 /* ChromosomeGLView.mm */; };
 		985301EC1B72582E001520DF /* change_cloning_rate.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 985301EB1B72582E001520DF /* change_cloning_rate.pdf */; };
 		985301EF1B7262CC001520DF /* ScriptMod_ChangeCloning.mm in Sources */ = {isa = PBXBuildFile; fileRef = 985301EE1B7262CC001520DF /* ScriptMod_ChangeCloning.mm */; };
 		985301F21B7262E5001520DF /* ScriptMod_ChangeCloning.xib in Resources */ = {isa = PBXBuildFile; fileRef = 985301F01B7262E5001520DF /* ScriptMod_ChangeCloning.xib */; };
@@ -527,6 +528,8 @@
 		98453F551A76004300C058CB /* show_recombination.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = show_recombination.pdf; sourceTree = "<group>"; };
 		98453F601A76041200C058CB /* edit_submenu_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = edit_submenu_H.pdf; sourceTree = "<group>"; };
 		98453F611A76041200C058CB /* edit_submenu.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = edit_submenu.pdf; sourceTree = "<group>"; };
+		984AD1941DF54E3C002D4AC8 /* ChromosomeGLView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ChromosomeGLView.h; sourceTree = "<group>"; };
+		984AD1951DF54E3C002D4AC8 /* ChromosomeGLView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ChromosomeGLView.mm; sourceTree = "<group>"; };
 		985301EB1B72582E001520DF /* change_cloning_rate.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = change_cloning_rate.pdf; sourceTree = "<group>"; };
 		985301ED1B7262CC001520DF /* ScriptMod_ChangeCloning.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScriptMod_ChangeCloning.h; sourceTree = "<group>"; };
 		985301EE1B7262CC001520DF /* ScriptMod_ChangeCloning.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ScriptMod_ChangeCloning.mm; sourceTree = "<group>"; };
@@ -1229,6 +1232,8 @@
 				98D4C2061A704EA700FFB083 /* PopulationView.mm */,
 				98D4C2081A7086FF00FFB083 /* ChromosomeView.h */,
 				98D4C2091A7086FF00FFB083 /* ChromosomeView.mm */,
+				984AD1941DF54E3C002D4AC8 /* ChromosomeGLView.h */,
+				984AD1951DF54E3C002D4AC8 /* ChromosomeGLView.mm */,
 				98F65D521DF145230058BD29 /* TipsWindowController.h */,
 				98F65D531DF145230058BD29 /* TipsWindowController.m */,
 				98D4C1BC1A6F537B00FFB083 /* Images.xcassets */,
@@ -1862,6 +1867,7 @@
 				98D4C1D91A6F542900FFB083 /* mutation_type.cpp in Sources */,
 				98D4C1DE1A6F543900FFB083 /* polymorphism.cpp in Sources */,
 				98D4C1D41A6F541700FFB083 /* slim_sim.cpp in Sources */,
+				984AD1961DF54E3C002D4AC8 /* ChromosomeGLView.mm in Sources */,
 				98C8215D1C7A983700548839 /* zeta.c in Sources */,
 				98C821591C7A983700548839 /* log.c in Sources */,
 				98DE4C281B713F4C004FDF5F /* ScriptMod_OutputSubpopSample.mm in Sources */,

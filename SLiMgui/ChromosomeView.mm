@@ -23,6 +23,70 @@
 #import "CocoaExtra.h"
 
 
+// We now use OpenGL to do some of our drawing, so we need these headers
+#import <OpenGL/OpenGL.h>
+#include <OpenGL/glu.h>
+#include <GLKit/GLKMatrix4.h>
+
+// OpenGL constants
+static const int kMaxGLRects = 4000;				// 4000 rects
+static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
+
+// OpenGL macros
+#define SLIM_GL_PREPARE()										\
+	int displayListIndex = 0;									\
+	float *vertices = glArrayVertices, *colors = glArrayColors;	\
+																\
+	glEnableClientState(GL_VERTEX_ARRAY);						\
+	glVertexPointer(2, GL_FLOAT, 0, glArrayVertices);			\
+	glEnableClientState(GL_COLOR_ARRAY);						\
+	glColorPointer(4, GL_FLOAT, 0, glArrayColors);
+
+#define SLIM_GL_DEFCOORDS(rect)									\
+	float left = (float)rect.origin.x;							\
+	float top = (float)rect.origin.y;							\
+	float right = left + (float)rect.size.width;				\
+	float bottom = top + (float)rect.size.height;
+
+#define SLIM_GL_PUSHRECT()										\
+	*(vertices++) = left;										\
+	*(vertices++) = top;										\
+	*(vertices++) = left;										\
+	*(vertices++) = bottom;										\
+	*(vertices++) = right;										\
+	*(vertices++) = bottom;										\
+	*(vertices++) = right;										\
+	*(vertices++) = top;
+
+#define SLIM_GL_PUSHRECT_COLORS()								\
+	for (int j = 0; j < 4; ++j)									\
+	{															\
+		*(colors++) = colorRed;									\
+		*(colors++) = colorGreen;								\
+		*(colors++) = colorBlue;								\
+		*(colors++) = colorAlpha;								\
+	}
+
+#define SLIM_GL_CHECKBUFFERS()									\
+	displayListIndex++;											\
+																\
+	if (displayListIndex == kMaxGLRects)						\
+	{															\
+		glDrawArrays(GL_QUADS, 0, 4 * displayListIndex);		\
+																\
+		vertices = glArrayVertices;								\
+		colors = glArrayColors;									\
+		displayListIndex = 0;									\
+	}
+
+#define SLIM_GL_FINISH()										\
+	if (displayListIndex)										\
+	glDrawArrays(GL_QUADS, 0, 4 * displayListIndex);			\
+																\
+	glDisableClientState(GL_VERTEX_ARRAY);						\
+	glDisableClientState(GL_COLOR_ARRAY);
+
+
 NSString *SLiMChromosomeSelectionChangedNotification = @"SLiMChromosomeSelectionChangedNotification";
 
 static NSDictionary *tickAttrs = nil;
@@ -31,6 +95,7 @@ static const int tickLength = 5;
 static const int heightForTicks = 16;
 static const int selectionKnobSizeExtension = 2;	// a 5-pixel-width knob is 2: 2 + 1 + 2, an extension on each side plus the one pixel of the bar in the middle
 static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExtension + 1;
+
 
 @implementation ChromosomeView
 
@@ -67,6 +132,18 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 - (void)awakeFromNib
 {
 	[self bind:@"enabled" toObject:[[self window] windowController] withKeyPath:@"invalidSimulation" options:@{NSValueTransformerNameBindingOption : NSNegateBooleanTransformerName}];
+	
+	if (_proxyGLView)
+	{
+		//NSLog(@"Setting up OpenGL buffers...");
+		
+		// Set up the vertex and color arrays
+		if (!glArrayVertices)
+			glArrayVertices = (float *)malloc(kMaxVertices * 2 * sizeof(float));		// 2 floats per vertex, AK_POPULATION_VIEW_GL_ARRAY_SIZE vertices
+		
+		if (!glArrayColors)
+			glArrayColors = (float *)malloc(kMaxVertices * 4 * sizeof(float));		// 4 floats per color, AK_POPULATION_VIEW_GL_ARRAY_SIZE colors
+	}
 }
 
 - (void)removeSelectionMarkers
@@ -87,6 +164,18 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	[self unbind:@"enabled"];
 	
 	[self removeSelectionMarkers];
+	
+	if (glArrayVertices)
+	{
+		free(glArrayVertices);
+		glArrayVertices = NULL;
+	}
+	
+	if (!glArrayColors)
+	{
+		free(glArrayColors);
+		glArrayColors = NULL;
+	}
 	
 	[super dealloc];
 }
@@ -226,6 +315,25 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	return NSMakeRect(leftEdge, interiorRect.origin.y, rightEdge - leftEdge, interiorRect.size.height);
 }
 
+- (NSRect)contentRect
+{
+	NSRect bounds = [self bounds];
+	
+	// Two things are going on here.  The width gets inset by two pixels on each side because our frame is outset that much from our apparent frame, to
+	// make room for the selection knobs to spill over a bit.  The height gets adjusted because our "content rect" does not include our ticks.
+	return NSMakeRect(bounds.origin.x + 2, bounds.origin.y + heightForTicks, bounds.size.width - 4, bounds.size.height - heightForTicks);
+}
+
+- (NSRect)interiorRect
+{
+	return NSInsetRect([self contentRect], 1, 1);
+}
+
+- (void)setNeedsDisplayInInterior
+{
+	[self setNeedsDisplayInRect:[self interiorRect]];
+}
+
 // This is a fast macro for when all we need is the offset of a base from the left edge of interiorRect; interiorRect.origin.x is not added here!
 // This is based on the same math as rectEncompassingBase:toBase:interiorRect:displayedRange: above, and must be kept in synch with that method.
 #define LEFT_OFFSET_OF_BASE(startBase, interiorRect, displayedRange) ((int)floor(((startBase - (slim_position_t)displayedRange.location) / (double)(displayedRange.length)) * interiorRect.size.width))
@@ -237,6 +345,8 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	
 	return base;
 }
+
+#pragma mark Drawing ticks
 
 - (void)drawTicksInContentRect:(NSRect)contentRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
@@ -282,6 +392,8 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	}
 }
 
+#pragma mark Drawing genomic elements
+
 - (void)drawGenomicElementsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
 	Chromosome &chromosome = controller->sim->chromosome_;
@@ -321,6 +433,60 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		}
 	}
 }
+
+- (void)glDrawGenomicElementsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
+{
+	Chromosome &chromosome = controller->sim->chromosome_;
+	CGFloat previousIntervalLeftEdge = -10000;
+	
+	SLIM_GL_PREPARE();
+	
+	for (GenomicElement &genomicElement : chromosome)
+	{
+		slim_position_t startPosition = genomicElement.start_position_;
+		slim_position_t endPosition = genomicElement.end_position_;
+		NSRect elementRect = [self rectEncompassingBase:startPosition toBase:endPosition interiorRect:interiorRect displayedRange:displayedRange];
+		BOOL widthOne = (elementRect.size.width == 1);
+		
+		// We want to avoid overdrawing width-one intervals, which are important but small, so if the previous interval was width-one,
+		// and we are not, and we are about to overdraw it, then we scoot our left edge over one pixel to leave it alone.
+		if (!widthOne && (elementRect.origin.x == previousIntervalLeftEdge))
+		{
+			elementRect.origin.x++;
+			elementRect.size.width--;
+		}
+		
+		// draw only the visible part, if any
+		elementRect = NSIntersectionRect(elementRect, interiorRect);
+		
+		if (!NSIsEmptyRect(elementRect))
+		{
+			slim_objectid_t elementTypeID = genomicElement.genomic_element_type_ptr_->genomic_element_type_id_;
+			NSColor *elementColor = [controller colorForGenomicElementTypeID:elementTypeID];
+			
+			double r, g, b, a;
+			
+			[elementColor getRed:&r green:&g blue:&b alpha:&a];
+			
+			float colorRed = (float)r, colorGreen = (float)g, colorBlue = (float)b, colorAlpha = (float)a;
+			
+			SLIM_GL_DEFCOORDS(elementRect);
+			SLIM_GL_PUSHRECT();
+			SLIM_GL_PUSHRECT_COLORS();
+			SLIM_GL_CHECKBUFFERS();
+			
+			// if this interval is just one pixel wide, we want to try to make it visible, by avoiding overdrawing it; so we remember its location
+			if (widthOne)
+				previousIntervalLeftEdge = elementRect.origin.x;
+			else
+				previousIntervalLeftEdge = -10000;
+		}
+	}
+	
+	SLIM_GL_FINISH();
+}
+
+#pragma mark Drawing recombination intervals
 
 - (void)_drawRecombinationIntervalsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange ends:(std::vector<slim_position_t> &)ends rates:(std::vector<double> &)rates
 {
@@ -392,6 +558,88 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	}
 }
 
+- (void)_glDrawRecombinationIntervalsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange ends:(std::vector<slim_position_t> &)ends rates:(std::vector<double> &)rates
+{
+	int recombinationIntervalCount = (int)ends.size();
+	slim_position_t intervalStartPosition = 0;
+	CGFloat previousIntervalLeftEdge = -10000;
+	
+	SLIM_GL_PREPARE();
+	
+	for (int interval = 0; interval < recombinationIntervalCount; ++interval)
+	{
+		slim_position_t intervalEndPosition = ends[interval];
+		double intervalRate = rates[interval];
+		NSRect intervalRect = [self rectEncompassingBase:intervalStartPosition toBase:intervalEndPosition interiorRect:interiorRect displayedRange:displayedRange];
+		BOOL widthOne = (intervalRect.size.width == 1);
+		
+		// We want to avoid overdrawing width-one intervals, which are important but small, so if the previous interval was width-one,
+		// and we are not, and we are about to overdraw it, then we scoot our left edge over one pixel to leave it alone.
+		if (!widthOne && (intervalRect.origin.x == previousIntervalLeftEdge))
+		{
+			intervalRect.origin.x++;
+			intervalRect.size.width--;
+		}
+		
+		// draw only the visible part, if any
+		intervalRect = NSIntersectionRect(intervalRect, interiorRect);
+		
+		if (!NSIsEmptyRect(intervalRect))
+		{
+			// color according to how "hot" the region is
+			double brightness = 0.0;
+			double saturation = 1.0;
+			
+			if (intervalRate > 0.0)
+			{
+				if (intervalRate > 1.0e-8)
+				{
+					if (intervalRate < 5.0e-8)
+					{
+						brightness = 0.5 + 0.5 * ((intervalRate - 1.0e-8) / 4.0e-8);
+					}
+					else
+					{
+						brightness = 1.0;
+						
+						if (intervalRate < 1.0e-7)
+							saturation = 1.0 - ((intervalRate - 5.0e-8) * 2.0e7);
+						else
+							saturation = 0.0;
+					}
+				}
+				else
+				{
+					brightness = 0.5;
+				}
+			}
+			NSColor *intervalColor = [NSColor colorWithCalibratedHue:0.65 saturation:saturation brightness:brightness alpha:1.0];
+			
+			double r, g, b, a;
+			
+			[intervalColor getRed:&r green:&g blue:&b alpha:&a];
+			
+			float colorRed = (float)r, colorGreen = (float)g, colorBlue = (float)b, colorAlpha = (float)a;
+			
+			SLIM_GL_DEFCOORDS(intervalRect);
+			SLIM_GL_PUSHRECT();
+			SLIM_GL_PUSHRECT_COLORS();
+			SLIM_GL_CHECKBUFFERS();
+			
+			// if this interval is just one pixel wide, we want to try to make it visible, by avoiding overdrawing it; so we remember its location
+			if (widthOne)
+				previousIntervalLeftEdge = intervalRect.origin.x;
+			else
+				previousIntervalLeftEdge = -10000;
+		}
+		
+		// the next interval starts at the next base after this one ended
+		intervalStartPosition = intervalEndPosition + 1;
+	}
+	
+	SLIM_GL_FINISH();
+}
+
 - (void)drawRecombinationIntervalsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
 	Chromosome &chromosome = controller->sim->chromosome_;
@@ -414,6 +662,31 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		[self _drawRecombinationIntervalsInInteriorRect:bottomInteriorRect withController:controller displayedRange:displayedRange ends:chromosome.recombination_end_positions_F_ rates:chromosome.recombination_rates_F_];
 	}
 }
+
+- (void)glDrawRecombinationIntervalsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
+{
+	Chromosome &chromosome = controller->sim->chromosome_;
+	
+	if (chromosome.single_recombination_map_)
+	{
+		[self _glDrawRecombinationIntervalsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange ends:chromosome.recombination_end_positions_H_ rates:chromosome.recombination_rates_H_];
+	}
+	else
+	{
+		NSRect topInteriorRect = interiorRect, bottomInteriorRect = interiorRect;
+		CGFloat halfHeight = ceil(interiorRect.size.height / 2.0);
+		CGFloat remainingHeight = interiorRect.size.height - halfHeight;
+		
+		topInteriorRect.size.height = halfHeight;
+		topInteriorRect.origin.y += remainingHeight;
+		bottomInteriorRect.size.height = remainingHeight;
+		
+		[self _glDrawRecombinationIntervalsInInteriorRect:topInteriorRect withController:controller displayedRange:displayedRange ends:chromosome.recombination_end_positions_M_ rates:chromosome.recombination_rates_M_];
+		[self _glDrawRecombinationIntervalsInInteriorRect:bottomInteriorRect withController:controller displayedRange:displayedRange ends:chromosome.recombination_end_positions_F_ rates:chromosome.recombination_rates_F_];
+	}
+}
+
+#pragma mark Drawing substitutions
 
 - (void)drawFixedSubstitutionsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
@@ -514,6 +787,114 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		free(subBuffer);
 	}
 }
+
+- (void)glDrawFixedSubstitutionsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
+{
+	double scalingFactor = controller->selectionColorScale;
+	SLiMSim *sim = controller->sim;
+	Population &pop = sim->population_;
+	std::vector<Substitution*> &substitutions = pop.substitutions_;
+	
+	// Set up to draw rects
+	float colorRed = 0.2f, colorGreen = 0.2f, colorBlue = 1.0f, colorAlpha = 1.0;
+	
+	SLIM_GL_PREPARE();
+	
+	if ((substitutions.size() < 1000) || (displayedRange.length < interiorRect.size.width))
+	{
+		// This is the simple version of the display code, avoiding the memory allocations and such
+		for (const Substitution *substitution : substitutions)
+		{
+			slim_position_t substitutionPosition = substitution->position_;
+			NSRect substitutionTickRect = [self rectEncompassingBase:substitutionPosition toBase:substitutionPosition interiorRect:interiorRect displayedRange:displayedRange];
+			
+			if (!shouldDrawMutations)
+			{
+				// If we're drawing mutations as well, then substitutions just get colored blue (set above), to contrast
+				// If we're not drawing mutations as well, then substitutions get colored by selection coefficient, like mutations
+				RGBForSelectionCoeff(substitution->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+			}
+			
+			SLIM_GL_DEFCOORDS(substitutionTickRect);
+			SLIM_GL_PUSHRECT();
+			SLIM_GL_PUSHRECT_COLORS();
+			SLIM_GL_CHECKBUFFERS();
+		}
+	}
+	else
+	{
+		// We have a lot of substitutions, so do a radix sort, as we do in drawMutationsInInteriorRect: below.
+		int displayPixelWidth = (int)interiorRect.size.width;
+		const Substitution **subBuffer = (const Substitution **)calloc(displayPixelWidth, sizeof(Substitution *));
+		
+		for (const Substitution *substitution : substitutions)
+		{
+			slim_position_t substitutionPosition = substitution->position_;
+			double startFraction = (substitutionPosition - (slim_position_t)displayedRange.location) / (double)(displayedRange.length);
+			int xPos = (int)floor(startFraction * interiorRect.size.width);
+			
+			if ((xPos >= 0) && (xPos < displayPixelWidth))
+				subBuffer[xPos] = substitution;
+		}
+		
+		if (shouldDrawMutations)
+		{
+			// If we're drawing mutations as well, then substitutions just get colored blue, to contrast
+			NSRect mutationTickRect = NSMakeRect(interiorRect.origin.x, interiorRect.origin.y, 1, interiorRect.size.height);
+			
+			for (int binIndex = 0; binIndex < displayPixelWidth; ++binIndex)
+			{
+				const Substitution *substitution = subBuffer[binIndex];
+				
+				if (substitution)
+				{
+					mutationTickRect.origin.x = interiorRect.origin.x + binIndex;
+					mutationTickRect.size.width = 1;
+					
+					// consolidate adjacent lines together, since they are all the same color
+					while ((binIndex + 1 < displayPixelWidth) && subBuffer[binIndex + 1])
+					{
+						mutationTickRect.size.width++;
+						binIndex++;
+					}
+					
+					SLIM_GL_DEFCOORDS(mutationTickRect);
+					SLIM_GL_PUSHRECT();
+					SLIM_GL_PUSHRECT_COLORS();
+					SLIM_GL_CHECKBUFFERS();
+				}
+			}
+		}
+		else
+		{
+			// If we're not drawing mutations as well, then substitutions get colored by selection coefficient, like mutations
+			NSRect mutationTickRect = NSMakeRect(interiorRect.origin.x, interiorRect.origin.y, 1, interiorRect.size.height);
+			
+			for (int binIndex = 0; binIndex < displayPixelWidth; ++binIndex)
+			{
+				const Substitution *substitution = subBuffer[binIndex];
+				
+				if (substitution)
+				{
+					mutationTickRect.origin.x = interiorRect.origin.x + binIndex;
+					
+					RGBForSelectionCoeff(substitution->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+					
+					SLIM_GL_DEFCOORDS(mutationTickRect);
+					SLIM_GL_PUSHRECT();
+					SLIM_GL_PUSHRECT_COLORS();
+					SLIM_GL_CHECKBUFFERS();
+				}
+			}
+		}
+		
+		free(subBuffer);
+	}
+	
+	SLIM_GL_FINISH();
+}
+
+#pragma mark Drawing mutations
 
 - (void)drawMutationsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
@@ -698,6 +1079,207 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	}
 }
 
+- (void)glDrawMutationsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
+{
+	double scalingFactor = controller->selectionColorScale;
+	SLiMSim *sim = controller->sim;
+	Population &pop = sim->population_;
+	double totalGenomeCount = pop.gui_total_genome_count_;				// this includes only genomes in the selected subpopulations
+	MutationRun &mutationRegistry = pop.mutation_registry_;
+	Mutation *const *mutations = mutationRegistry.begin_pointer_const();
+	int mutationCount = (int)(mutationRegistry.end_pointer_const() - mutations);
+	
+	// Set up to draw rects
+	float colorRed = 0.0f, colorGreen = 0.0f, colorBlue = 0.0f, colorAlpha = 1.0;
+	
+	SLIM_GL_PREPARE();
+	
+	if ((mutationCount < 1000) || (displayedRange.length < interiorRect.size.width))
+	{
+		// This is the simple version of the display code, avoiding the memory allocations and such
+		for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+		{
+			const Mutation *mutation = mutations[mutIndex];
+			slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
+			slim_position_t mutationPosition = mutation->position_;
+			NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
+			
+			mutationTickRect.size.height = (int)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
+			RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+			
+			SLIM_GL_DEFCOORDS(mutationTickRect);
+			SLIM_GL_PUSHRECT();
+			SLIM_GL_PUSHRECT_COLORS();
+			SLIM_GL_CHECKBUFFERS();
+		}
+	}
+	else
+	{
+		// We have a lot of mutations, so let's try to be smarter.  It's hard to be smarter.  The overhead from allocating the NSColors and such
+		// is pretty negligible; practially all the time is spent in NSRectFill().  Unfortunately, NSRectFillListWithColors() provides basically
+		// no speedup; Apple doesn't appear to have optimized it.  So, here's what I came up with.  For each mutation type that uses a fixed DFE,
+		// and thus a fixed color, we can do a radix sort of mutations into bins corresponding to each pixel in our displayed image.  Then we
+		// can draw each bin just once, making one bar for the highest bar in that bin.  Mutations from non-fixed DFEs, and mutations which have
+		// had their selection coefficient changed, will be drawn at the end in the usual (slow) way.
+		int displayPixelWidth = (int)interiorRect.size.width;
+		int16_t *heightBuffer = (int16_t *)malloc(displayPixelWidth * sizeof(int16_t));
+		bool *mutationsPlotted = (bool *)calloc(mutationCount, sizeof(bool));	// faster than using gui_scratch_reference_count_ because of cache locality
+		int64_t remainingMutations = mutationCount;
+		
+		// First zero out the scratch refcount, which we use to track which mutations we have drawn already
+		//for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+		//	mutations[mutIndex]->gui_scratch_reference_count_ = 0;
+		
+		// Then loop through the declared mutation types
+		std::map<slim_objectid_t,MutationType*> &mut_types = controller->sim->mutation_types_;
+		
+		for (auto mutationTypeIter = mut_types.begin(); mutationTypeIter != mut_types.end(); ++mutationTypeIter)
+		{
+			MutationType *mut_type = mutationTypeIter->second;
+			
+			// We optimize fixed-DFE mutation types only
+			if (mut_type->dfe_type_ == DFEType::kFixed)
+			{
+				slim_selcoeff_t mut_type_selcoeff = (slim_selcoeff_t)mut_type->dfe_parameters_[0];
+				
+				bzero(heightBuffer, displayPixelWidth * sizeof(int16_t));
+				
+				// Scan through the mutation list for mutations of this type with the right selcoeff
+				for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+				{
+					const Mutation *mutation = mutations[mutIndex];
+					
+					if ((mutation->mutation_type_ptr_ == mut_type) && (mutation->selection_coeff_ == mut_type_selcoeff))
+					{
+						slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// includes only refs from the selected subpopulations
+						slim_position_t mutationPosition = mutation->position_;
+						//NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
+						//int xPos = (int)(mutationTickRect.origin.x - interiorRect.origin.x);
+						int xPos = LEFT_OFFSET_OF_BASE(mutationPosition, interiorRect, displayedRange);
+						int16_t height = (int16_t)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
+						
+						if ((xPos >= 0) && (xPos < displayPixelWidth))
+							if (height > heightBuffer[xPos])
+								heightBuffer[xPos] = height;
+						
+						// tally this mutation as handled
+						//mutation->gui_scratch_reference_count_ = 1;
+						mutationsPlotted[mutIndex] = true;
+						--remainingMutations;
+					}
+				}
+				
+				// Now draw all of the mutations we found, by looping through our radix bins
+				RGBForSelectionCoeff(mut_type_selcoeff, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+				
+				for (int binIndex = 0; binIndex < displayPixelWidth; ++binIndex)
+				{
+					int height = heightBuffer[binIndex];
+					
+					if (height)
+					{
+						NSRect mutationTickRect = NSMakeRect(interiorRect.origin.x + binIndex, interiorRect.origin.y, 1, height);
+						
+						SLIM_GL_DEFCOORDS(mutationTickRect);
+						SLIM_GL_PUSHRECT();
+						SLIM_GL_PUSHRECT_COLORS();
+						SLIM_GL_CHECKBUFFERS();
+					}
+				}
+			}
+		}
+		
+		// Draw any undrawn mutations on top
+		if (remainingMutations)
+		{
+			if (remainingMutations < 1000)
+			{
+				// Plot the remainder by brute force, since there are not that many
+				for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+				{
+					//if (mutation->gui_scratch_reference_count_ == 0)
+					if (!mutationsPlotted[mutIndex])
+					{
+						const Mutation *mutation = mutations[mutIndex];
+						slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
+						slim_position_t mutationPosition = mutation->position_;
+						NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
+						
+						mutationTickRect.size.height = (int)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
+						RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+						
+						SLIM_GL_DEFCOORDS(mutationTickRect);
+						SLIM_GL_PUSHRECT();
+						SLIM_GL_PUSHRECT_COLORS();
+						SLIM_GL_CHECKBUFFERS();
+					}
+				}
+			}
+			else
+			{
+				// OK, we have a lot of mutations left to draw.  Here we will again use the radix sort trick, to keep track of only the tallest bar in each column
+				const Mutation **mutationBuffer = (const Mutation **)malloc(displayPixelWidth * sizeof(Mutation *));
+				
+				bzero(heightBuffer, displayPixelWidth * sizeof(int16_t));
+				bzero(mutationBuffer, displayPixelWidth * sizeof(Mutation *));
+				
+				// Find the tallest bar in each column
+				for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+				{
+					//if (mutation->gui_scratch_reference_count_ == 0)
+					if (!mutationsPlotted[mutIndex])
+					{
+						const Mutation *mutation = mutations[mutIndex];
+						slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
+						slim_position_t mutationPosition = mutation->position_;
+						//NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
+						//int xPos = (int)(mutationTickRect.origin.x - interiorRect.origin.x);
+						int xPos = LEFT_OFFSET_OF_BASE(mutationPosition, interiorRect, displayedRange);
+						int16_t height = (int16_t)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
+						
+						if ((xPos >= 0) && (xPos < displayPixelWidth))
+						{
+							if (height > heightBuffer[xPos])
+							{
+								heightBuffer[xPos] = height;
+								mutationBuffer[xPos] = mutation;
+							}
+						}
+					}
+				}
+				
+				// Now plot the bars
+				for (int binIndex = 0; binIndex < displayPixelWidth; ++binIndex)
+				{
+					int height = heightBuffer[binIndex];
+					
+					if (height)
+					{
+						NSRect mutationTickRect = NSMakeRect(interiorRect.origin.x + binIndex, interiorRect.origin.y, 1, height);
+						const Mutation *mutation = mutationBuffer[binIndex];
+						
+						RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+						
+						SLIM_GL_DEFCOORDS(mutationTickRect);
+						SLIM_GL_PUSHRECT();
+						SLIM_GL_PUSHRECT_COLORS();
+						SLIM_GL_CHECKBUFFERS();
+					}
+				}
+				
+				free(mutationBuffer);
+			}
+		}
+		
+		free(heightBuffer);
+		free(mutationsPlotted);
+	}
+	
+	SLIM_GL_FINISH();
+}
+
+#pragma mark Other drawing
+
 - (void)overlaySelectionInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
 	if (hasSelection)
@@ -746,25 +1328,6 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	}
 }
 
-- (NSRect)contentRect
-{
-	NSRect bounds = [self bounds];
-	
-	// Two things are going on here.  The width gets inset by two pixels on each side because our frame is outset that much from our apparent frame, to
-	// make room for the selection knobs to spill over a bit.  The height gets adjusted because our "content rect" does not include our ticks.
-	return NSMakeRect(bounds.origin.x + 2, bounds.origin.y + heightForTicks, bounds.size.width - 4, bounds.size.height - heightForTicks);
-}
-
-- (NSRect)interiorRect
-{
-	return NSInsetRect([self contentRect], 1, 1);
-}
-
-- (void)setNeedsDisplayInInterior
-{
-	[self setNeedsDisplayInRect:[self interiorRect]];
-}
-
 - (void)drawRect:(NSRect)dirtyRect
 {
 	SLiMWindowController *controller = (SLiMWindowController *)[[self window] windowController];
@@ -798,21 +1361,27 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		if (!NSContainsRect(interiorRect, dirtyRect))
 			[self drawTicksInContentRect:contentRect withController:controller displayedRange:displayedRange];
 		
-		// draw recombination intervals in interior
-		if (shouldDrawRecombinationIntervals)
-			[self drawRecombinationIntervalsInInteriorRect:(splitHeight ? topInteriorRect : interiorRect) withController:controller displayedRange:displayedRange];
-		
-		// draw genomic elements in interior
-		if (shouldDrawGenomicElements)
-			[self drawGenomicElementsInInteriorRect:(splitHeight ? bottomInteriorRect : interiorRect) withController:controller displayedRange:displayedRange];
-		
-		// draw fixed substitutions in interior
-		if (shouldDrawFixedSubstitutions)
-			[self drawFixedSubstitutionsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange];
-		
-		// draw mutations in interior
-		if (shouldDrawMutations)
-			[self drawMutationsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange];
+		if (!_proxyGLView)
+		{
+			// If we have a proxy NSOpenGLView set up, then it does all of our interior drawing.  It will call glDrawRect: on us
+			// for us to draw on its behalf.  That method, below, does all of the tasks here, but with OpenGL calls instead.
+			
+			// draw recombination intervals in interior
+			if (shouldDrawRecombinationIntervals)
+				[self drawRecombinationIntervalsInInteriorRect:(splitHeight ? topInteriorRect : interiorRect) withController:controller displayedRange:displayedRange];
+			
+			// draw genomic elements in interior
+			if (shouldDrawGenomicElements)
+				[self drawGenomicElementsInInteriorRect:(splitHeight ? bottomInteriorRect : interiorRect) withController:controller displayedRange:displayedRange];
+			
+			// draw fixed substitutions in interior
+			if (shouldDrawFixedSubstitutions)
+				[self drawFixedSubstitutionsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange];
+			
+			// draw mutations in interior
+			if (shouldDrawMutations)
+				[self drawMutationsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange];
+		}
 		
 		// frame near the end, so that any roundoff errors that caused overdrawing by a pixel get cleaned up
 		[[NSColor colorWithCalibratedWhite:0.6 alpha:1.0] set];
@@ -833,6 +1402,66 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		NSFrameRect(contentRect);
 	}
 }
+
+- (void)glDrawRect:(NSRect)dirtyRect
+{
+	SLiMWindowController *controller = (SLiMWindowController *)[[self window] windowController];
+	bool ready = ([self enabled] && ![controller invalidSimulation]);
+	NSRect interiorRect = [self interiorRect];
+	
+	interiorRect.origin = NSZeroPoint;	// We're drawing in the OpenGLView's coordinates, which have an origin of zero for the interior rect
+	
+	// if the simulation is at generation 0, it is not ready
+	if (ready)
+		if (controller->sim->generation_ == 0)
+			ready = NO;
+	
+	if (ready)
+	{
+		// erase the content area itself
+		glColor3f(0.0f, 0.0f, 0.0f);
+		glRecti(0, 0, (int)interiorRect.size.width, (int)interiorRect.size.height);
+		
+		NSRange displayedRange = [self displayedRange];
+		
+		BOOL splitHeight = (shouldDrawRecombinationIntervals && shouldDrawGenomicElements);
+		NSRect topInteriorRect = interiorRect, bottomInteriorRect = interiorRect;
+		CGFloat halfHeight = ceil(interiorRect.size.height / 2.0);
+		CGFloat remainingHeight = interiorRect.size.height - halfHeight;
+		
+		topInteriorRect.size.height = halfHeight;
+		topInteriorRect.origin.y += remainingHeight;
+		bottomInteriorRect.size.height = remainingHeight;
+		
+		// draw recombination intervals in interior
+		if (shouldDrawRecombinationIntervals)
+			[self glDrawRecombinationIntervalsInInteriorRect:(splitHeight ? topInteriorRect : interiorRect) withController:controller displayedRange:displayedRange];
+		
+		// draw genomic elements in interior
+		if (shouldDrawGenomicElements)
+			[self glDrawGenomicElementsInInteriorRect:(splitHeight ? bottomInteriorRect : interiorRect) withController:controller displayedRange:displayedRange];
+		
+		// draw fixed substitutions in interior
+		if (shouldDrawFixedSubstitutions)
+			[self glDrawFixedSubstitutionsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange];
+		
+		// draw mutations in interior
+		if (shouldDrawMutations)
+			[self glDrawMutationsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange];
+		
+		// overlay the selection last, since it bridges over the frame
+		if (hasSelection)
+			NSLog(@"Selection set on a ChromosomeView that is drawing using OpenGL!");
+	}
+	else
+	{
+		// erase the content area itself
+		glColor3f(0.88f, 0.88f, 0.88f);
+		glRecti(0, 0, (int)interiorRect.size.width, (int)interiorRect.size.height);
+	}
+}
+
+#pragma mark Mouse tracking
 
 - (void)mouseDown:(NSEvent *)theEvent
 {
