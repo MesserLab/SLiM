@@ -1571,6 +1571,10 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 	child_individuals_.swap(parent_individuals_);
 	cached_child_individuals_value_.swap(cached_parent_individuals_value_);
 	
+	// Clear out any dictionary values stored in what are now the child individuals
+	for (Individual &child : child_individuals_)
+		child.RemoveAllKeys();
+	
 	// The parents now have the values that used to belong to the children.
 	parent_subpop_size_ = child_subpop_size_;
 	parent_sex_ratio_ = child_sex_ratio_;
@@ -2174,7 +2178,7 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+			return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 	}
 }
 
@@ -2185,7 +2189,7 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 #pragma mark -
 #pragma mark Subpopulation_Class
 
-class Subpopulation_Class : public EidosObjectClass
+class Subpopulation_Class : public SLiMEidosDictionary_Class
 {
 public:
 	Subpopulation_Class(const Subpopulation_Class &p_original) = delete;	// no copy-construct
@@ -2296,7 +2300,7 @@ const std::vector<const EidosMethodSignature *> *Subpopulation_Class::Methods(vo
 	
 	if (!methods)
 	{
-		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
+		methods = new std::vector<const EidosMethodSignature *>(*SLiMEidosDictionary_Class::Methods());
 		methods->emplace_back(SignatureForMethodOrRaise(gID_setMigrationRates));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_setCloningRate));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_setSelfingRate));
@@ -2353,7 +2357,7 @@ const EidosMethodSignature *Subpopulation_Class::SignatureForMethod(EidosGlobalS
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectClass::SignatureForMethod(p_method_id);
+			return SLiMEidosDictionary_Class::SignatureForMethod(p_method_id);
 	}
 }
 

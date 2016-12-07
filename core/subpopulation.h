@@ -37,6 +37,7 @@
 #include "eidos_value.h"
 #include "slim_eidos_block.h"
 #include "individual.h"
+#include "slim_eidos_dictionary.h"
 
 #include <vector>
 #include "limits.h"
@@ -48,7 +49,7 @@ class Population;
 extern EidosObjectClass *gSLiM_Subpopulation_Class;
 
 
-class Subpopulation : public EidosObjectElement
+class Subpopulation : public SLiMEidosDictionary
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 

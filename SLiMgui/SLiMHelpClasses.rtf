@@ -924,7 +924,7 @@ The optional parameter
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 tag <\'96> (integer$)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 A user-defined 
 \f2\fs18 integer
@@ -932,13 +932,24 @@ The optional parameter
 \f2\fs18 tag
 \f0\fs20  is initially undefined; if you wish it to have a defined value, you must arrange that yourself.  The value of 
 \f2\fs18 tag
-\f0\fs20  is not used by SLiM; it is free for you to use.  Note that SLiM reuses 
+\f0\fs20  is not used by SLiM; it is free for you to use.  See also the 
+\f2\fs18 getValue()
+\f0\fs20  and 
+\f2\fs18 setValue()
+\f0\fs20  methods, for another way of attaching state to individuals.\
+Note that the 
 \f2\fs18 Individual
-\f0\fs20  objects internally, and so previously used 
+\f0\fs20  objects used by SLiM are (conceptually) new with every generation, so the 
 \f2\fs18 tag
-\f0\fs20  values may reappear in the 
-\f2\fs18 Individual
-\f0\fs20  objects in a later generation.  This is an implementation detail and should not be relied upon.
+\f0\fs20  value of each new offspring generated in each generation will be initially undefined.  If you set a 
+\f2\fs18 tag
+\f0\fs20  value for an offspring individual inside a 
+\f2\fs18 modifyChild()
+\f0\fs20  callback, that 
+\f2\fs18 tag
+\f0\fs20  value will be preserved as the offspring individual becomes a parent (across the generation boundary, in other words).  If you take advantage of this, however, you should be careful to set up initial values for the tag values of 
+\i all
+\i0  offspring, otherwise undefined initial values might happen to match the values that you are trying to use to tag particular individuals.  A rule of thumb in programming: undefined values should always be assumed to take on the most inconvenient value possible.
 \f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -1001,6 +1012,32 @@ The optional parameter
 
 \f2\fs18 \cf0 \'96
 \f3 \'a0
+\f2 (+)getValue(string$\'a0key)
+\f3 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns the value previously set for the dictionary entry identifier 
+\f2\fs18 key
+\f0\fs20  using 
+\f2\fs18 setValue()
+\f0\fs20 , or 
+\f2\fs18 NULL
+\f0\fs20  if no value has been set.  This dictionary-style functionality is actually provided by the superclass of 
+\f2\fs18 Individual
+\f0\fs20 , 
+\f2\fs18 SLiMEidosDictionary
+\f0\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.  This functionality is shared by the other subclasses of 
+\f2\fs18 SLiMEidosDictionary
+\f0\fs20 : 
+\f2\fs18 SLiMSim
+\f0\fs20  and 
+\f2\fs18 Subpopulation
+\f0\fs20 , at present.
+\f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96
+\f3 \'a0
 \f2 (float)relatedness(object<Individual>
 \f3 \'a0
 \f2 individuals)
@@ -1051,6 +1088,33 @@ The optional parameter
 \f2\fs18 1.0
 \f0\fs20  in all cases.\
 Note that this relatedness is simply pedigree-based relatedness.  This does not necessarily correspond to genetic relatedness, because of the effects of factors like assortment and recombination.
+\f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96
+\f3 \'a0
+\f2 (void)setValue(string$\'a0key, +\'a0value)
+\f3 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Sets a value for the dictionary entry identifier 
+\f2\fs18 key
+\f3\fs20 .
+\f0   The value, which may be of any type other than 
+\f2\fs18 object
+\f0\fs20 , can be fetched later using 
+\f2\fs18 getValue()
+\f0\fs20 .  This dictionary-style functionality is actually provided by the superclass of 
+\f2\fs18 Individual
+\f0\fs20 , 
+\f2\fs18 SLiMEidosDictionary
+\f0\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.  This functionality is shared by the other subclasses of 
+\f2\fs18 SLiMEidosDictionary
+\f0\fs20 : 
+\f2\fs18 SLiMSim
+\f0\fs20  and 
+\f2\fs18 Subpopulation
+\f0\fs20 , at present.
 \f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -1756,7 +1820,11 @@ The mutation stacking policy applies only within the given mutation type; mutati
 \f2\fs18 tag
 \f0\fs20  is initially undefined; if you wish it to have a defined value, you must arrange that yourself.  The value of 
 \f2\fs18 tag
-\f0\fs20  is not used by SLiM; it is free for you to use.
+\f0\fs20  is not used by SLiM; it is free for you to use.  See also the 
+\f2\fs18 getValue()
+\f0\fs20  and 
+\f2\fs18 setValue()
+\f0\fs20  methods, for another way of attaching state to the simulation.
 \f3 \
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
@@ -1853,6 +1921,32 @@ The mutation stacking policy applies only within the given mutation type; mutati
 \f0\fs20  identifiers) will be scheduled for deregistration.  The deregistered blocks remain valid, and may even still be executed in the current stage of the current generation; the blocks are not actually deregistered and deallocated until sometime after the currently executing script block has completed.  To immediately prevent a script block from executing, even when it is scheduled to execute in the current stage of the current generation, use the 
 \f2\fs18 active
 \f0\fs20  property of the script block.
+\f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96
+\f3 \'a0
+\f2 (+)getValue(string$\'a0key)
+\f3 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns the value previously set for the dictionary entry identifier 
+\f2\fs18 key
+\f0\fs20  using 
+\f2\fs18 setValue()
+\f0\fs20 , or 
+\f2\fs18 NULL
+\f0\fs20  if no value has been set.  This dictionary-style functionality is actually provided by the superclass of 
+\f2\fs18 SLiMSim
+\f0\fs20 , 
+\f2\fs18 SLiMEidosDictionary
+\f0\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.  This functionality is shared by the other subclasses of 
+\f2\fs18 SLiMEidosDictionary
+\f0\fs20 : 
+\f2\fs18 Individual
+\f0\fs20  and 
+\f2\fs18 Subpopulation
+\f0\fs20 , at present.
 \f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -2369,6 +2463,33 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f2\fs18 SLiMEidosBlock
 \f0\fs20  will be defined as a global variable immediately by this method, and will also be returned by this method.
 \f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96
+\f3 \'a0
+\f2 (void)setValue(string$\'a0key, +\'a0value)
+\f3 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Sets a value for the dictionary entry identifier 
+\f2\fs18 key
+\f3\fs20 .
+\f0   The value, which may be of any type other than 
+\f2\fs18 object
+\f0\fs20 , can be fetched later using 
+\f2\fs18 getValue()
+\f0\fs20 .  This dictionary-style functionality is actually provided by the superclass of 
+\f2\fs18 SLiMSim
+\f0\fs20 , 
+\f2\fs18 SLiMEidosDictionary
+\f0\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.  This functionality is shared by the other subclasses of 
+\f2\fs18 SLiMEidosDictionary
+\f0\fs20 : 
+\f2\fs18 Individual
+\f0\fs20  and 
+\f2\fs18 Subpopulation
+\f0\fs20 , at present.
+\f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96\'a0(void)simulationFinished(void)\
@@ -2498,7 +2619,11 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f2\fs18 tag
 \f0\fs20  is initially undefined; if you wish it to have a defined value, you must arrange that yourself.  The value of 
 \f2\fs18 tag
-\f0\fs20  is not used by SLiM; it is free for you to use.\
+\f0\fs20  is not used by SLiM; it is free for you to use.  See also the 
+\f2\fs18 getValue()
+\f0\fs20  and 
+\f2\fs18 setValue()
+\f0\fs20  methods, for another way of attaching state to subpopulations.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \i\fs22 \cf0 5.11.2  
@@ -2514,6 +2639,32 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f0\fs20  is passed, fitness values for all individuals in the subpopulation are returned.  The fitness values returned are cached values; 
 \f2\fs18 fitness()
 \f0\fs20  callbacks are therefore not called as a side effect of this method.
+\f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96
+\f3 \'a0
+\f2 (+)getValue(string$\'a0key)
+\f3 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns the value previously set for the dictionary entry identifier 
+\f2\fs18 key
+\f0\fs20  using 
+\f2\fs18 setValue()
+\f0\fs20 , or 
+\f2\fs18 NULL
+\f0\fs20  if no value has been set.  This dictionary-style functionality is actually provided by the superclass of 
+\f2\fs18 Subpopulation
+\f0\fs20 , 
+\f2\fs18 SLiMEidosDictionary
+\f0\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.  This functionality is shared by the other subclasses of 
+\f2\fs18 SLiMEidosDictionary
+\f0\fs20 : 
+\f2\fs18 Individual
+\f0\fs20  and 
+\f2\fs18 SLiMSim
+\f0\fs20 , at present.
 \f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -2753,9 +2904,36 @@ If the optional parameter
 \f0\fs20 \cf0 Set the size of this subpopulation to 
 \f2\fs18 size
 \f0\fs20  individuals (see the SLiM manual for further details).  This will take effect when children are next generated; it does not change the current subpopulation state.  Setting a subpopulation to a size of 0 does have some immediate effects that serve to disconnect it from the simulation: the subpopulation is removed from the list of active subpopulations, the subpopulation is removed as a source of migration for all other subpopulations, and the symbol representing the subpopulation is undefined.  In this case, the subpopulation itself remains unchanged until children are next generated (at which point it is deallocated), but it is no longer part of the simulation and should not be used.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96
+\f3 \'a0
+\f2 (void)setValue(string$\'a0key, +\'a0value)
+\f3 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Sets a value for the dictionary entry identifier 
+\f2\fs18 key
+\f3\fs20 .
+\f0   The value, which may be of any type other than 
+\f2\fs18 object
+\f0\fs20 , can be fetched later using 
+\f2\fs18 getValue()
+\f0\fs20 .  This dictionary-style functionality is actually provided by the superclass of 
+\f2\fs18 Subpopulation
+\f0\fs20 , 
+\f2\fs18 SLiMEidosDictionary
+\f0\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.  This functionality is shared by the other subclasses of 
+\f2\fs18 SLiMEidosDictionary
+\f0\fs20 : 
+\f2\fs18 Individual
+\f0\fs20  and 
+\f2\fs18 SLiMSim
+\f0\fs20 , at present.
+\f3 \
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\b\fs22 \cf0 5.12  Class Substitution\
+\f0\b\fs22 \cf0 5.12  Class Substitution\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \i\b0 \cf0 5.12.1  

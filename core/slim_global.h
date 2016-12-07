@@ -259,6 +259,9 @@ extern const std::string gStr_initializeRecombinationRate;
 extern const std::string gStr_initializeSex;
 extern const std::string gStr_initializeSLiMOptions;
 
+extern const std::string gStr_getValue;
+extern const std::string gStr_setValue;
+
 extern const std::string gStr_genomicElements;
 extern const std::string gStr_lastPosition;
 extern const std::string gStr_overallRecombinationRate;
@@ -400,6 +403,7 @@ extern const std::string gStr_breakpoints;
 extern const std::string gStr_gcStarts;
 extern const std::string gStr_gcEnds;
 
+extern const std::string gStr_SLiMEidosDictionary;
 extern const std::string gStr_Chromosome;
 extern const std::string gStr_Genome;
 extern const std::string gStr_GenomicElement;
@@ -440,6 +444,9 @@ enum _SLiMGlobalStringID : int {
 	gID_initializeRecombinationRate,
 	gID_initializeSex,
 	gID_initializeSLiMOptions,
+	
+	gID_getValue,
+	gID_setValue,
 	
 	gID_genomicElements,
 	gID_lastPosition,

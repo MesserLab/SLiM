@@ -119,6 +119,10 @@ const std::string gStr_initializeRecombinationRate = "initializeRecombinationRat
 const std::string gStr_initializeSex = "initializeSex";
 const std::string gStr_initializeSLiMOptions = "initializeSLiMOptions";
 
+// SLiMEidosDictionary
+const std::string gStr_getValue = "getValue";
+const std::string gStr_setValue = "setValue";
+
 // mostly property names
 const std::string gStr_genomicElements = "genomicElements";
 const std::string gStr_lastPosition = "lastPosition";
@@ -264,6 +268,7 @@ const std::string gStr_gcStarts = "gcStarts";
 const std::string gStr_gcEnds = "gcEnds";
 
 // mostly SLiM element types
+const std::string gStr_SLiMEidosDictionary = "SLiMEidosDictionary";
 const std::string gStr_Chromosome = "Chromosome";
 const std::string gStr_Genome = "Genome";
 const std::string gStr_GenomicElement = "GenomicElement";
@@ -315,6 +320,9 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_initializeRecombinationRate, gID_initializeRecombinationRate);
 		Eidos_RegisterStringForGlobalID(gStr_initializeSex, gID_initializeSex);
 		Eidos_RegisterStringForGlobalID(gStr_initializeSLiMOptions, gID_initializeSLiMOptions);
+		
+		Eidos_RegisterStringForGlobalID(gStr_getValue, gID_getValue);
+		Eidos_RegisterStringForGlobalID(gStr_setValue, gID_setValue);
 		
 		Eidos_RegisterStringForGlobalID(gStr_genomicElements, gID_genomicElements);
 		Eidos_RegisterStringForGlobalID(gStr_lastPosition, gID_lastPosition);

@@ -731,6 +731,11 @@ void _RunSLiMSimTests(void)
 	// Test sim - (void)simulationFinished(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "11 { stop(); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup_p1 + "10 { sim.simulationFinished(); } 11 { stop(); }", __LINE__);
+	
+	// Test sim SLiMEidosDictionary functionality: - (+)getValue(string$ key) and - (void)setValue(string$ key, + value)
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.setValue('foo', 7:9); sim.setValue('bar', 'baz'); } 10 { if (identical(sim.getValue('foo'), 7:9) & identical(sim.getValue('bar'), 'baz')) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.setValue('foo', 3:5); sim.setValue('foo', 'foobar'); } 10 { if (identical(sim.getValue('foo'), 'foobar')) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.setValue('foo', 3:5); sim.setValue('foo', NULL); } 10 { if (isNULL(sim.getValue('foo'))) stop(); }", __LINE__);
 }
 
 #pragma mark MutationType tests
@@ -1543,6 +1548,11 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSubpopulationSize(20); if (p1.individualCount == 10) stop(); }", __LINE__);					// does not take visible effect until child generation
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setSubpopulationSize(20); } 2 { if (p1.individualCount == 20) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.setSubpopulationSize(-1); stop(); }", 1, 250, "out of range", __LINE__);
+	
+	// Test Subpopulation SLiMEidosDictionary functionality: - (+)getValue(string$ key) and - (void)setValue(string$ key, + value)
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setValue('foo', 7:9); p1.setValue('bar', 'baz'); } 10 { if (identical(p1.getValue('foo'), 7:9) & identical(p1.getValue('bar'), 'baz')) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setValue('foo', 3:5); p1.setValue('foo', 'foobar'); } 10 { if (identical(p1.getValue('foo'), 'foobar')) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setValue('foo', 3:5); p1.setValue('foo', NULL); } 10 { if (isNULL(p1.getValue('foo'))) stop(); }", __LINE__);
 }
 
 #pragma mark Individual tests
@@ -1611,6 +1621,11 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptStop(gen1_setup_rel + "5 { if (p1.individuals[0].relatedness(p1.individuals[0]) == 1.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_rel + "5 { if (p1.individuals[0].relatedness(p1.individuals[1]) <= 0.5) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_rel + "5 { if (all(p1.individuals[0].relatedness(p1.individuals[1:9]) <= 0.5)) stop(); }", __LINE__);
+	
+	// Test Individual SLiMEidosDictionary functionality: - (+)getValue(string$ key) and - (void)setValue(string$ key, + value)
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals[0]; i.setValue('foo', 7:9); i.setValue('bar', 'baz'); if (identical(i.getValue('foo'), 7:9) & identical(i.getValue('bar'), 'baz')) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals[0]; i.setValue('foo', 3:5); i.setValue('foo', 'foobar'); if (identical(i.getValue('foo'), 'foobar')) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals[0]; i.setValue('foo', 3:5); i.setValue('foo', NULL); if (isNULL(i.getValue('foo'))) stop(); }", __LINE__);
 }
 
 #pragma mark Substitution tests

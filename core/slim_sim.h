@@ -41,6 +41,7 @@
 #include "eidos_value.h"
 #include "eidos_functions.h"
 #include "slim_eidos_block.h"
+#include "slim_eidos_dictionary.h"
 
 
 class EidosInterpreter;
@@ -61,7 +62,7 @@ enum class SLiMGenerationStage
 };
 
 
-class SLiMSim : public EidosObjectElement
+class SLiMSim : public SLiMEidosDictionary
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	

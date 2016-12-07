@@ -885,7 +885,7 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+			return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 	}
 }
 
@@ -896,7 +896,7 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 #pragma mark -
 #pragma mark Individual_Class
 
-class Individual_Class : public EidosObjectClass
+class Individual_Class : public SLiMEidosDictionary_Class
 {
 public:
 	Individual_Class(const Individual_Class &p_original) = delete;	// no copy-construct
@@ -999,7 +999,7 @@ const std::vector<const EidosMethodSignature *> *Individual_Class::Methods(void)
 	
 	if (!methods)
 	{
-		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
+		methods = new std::vector<const EidosMethodSignature *>(*SLiMEidosDictionary_Class::Methods());
 		methods->emplace_back(SignatureForMethodOrRaise(gID_containsMutations));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_countOfMutationsOfType));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_relatedness));
@@ -1035,7 +1035,7 @@ const EidosMethodSignature *Individual_Class::SignatureForMethod(EidosGlobalStri
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectClass::SignatureForMethod(p_method_id);
+			return SLiMEidosDictionary_Class::SignatureForMethod(p_method_id);
 	}
 }
 

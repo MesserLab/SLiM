@@ -63,6 +63,8 @@
 		98453F621A76041200C058CB /* edit_submenu_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98453F601A76041200C058CB /* edit_submenu_H.pdf */; };
 		98453F631A76041200C058CB /* edit_submenu.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98453F611A76041200C058CB /* edit_submenu.pdf */; };
 		984AD1961DF54E3C002D4AC8 /* ChromosomeGLView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 984AD1951DF54E3C002D4AC8 /* ChromosomeGLView.mm */; };
+		984AD1991DF6B588002D4AC8 /* slim_eidos_dictionary.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 984AD1971DF6B588002D4AC8 /* slim_eidos_dictionary.cpp */; };
+		984AD19A1DF6B588002D4AC8 /* slim_eidos_dictionary.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 984AD1971DF6B588002D4AC8 /* slim_eidos_dictionary.cpp */; };
 		985301EC1B72582E001520DF /* change_cloning_rate.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 985301EB1B72582E001520DF /* change_cloning_rate.pdf */; };
 		985301EF1B7262CC001520DF /* ScriptMod_ChangeCloning.mm in Sources */ = {isa = PBXBuildFile; fileRef = 985301EE1B7262CC001520DF /* ScriptMod_ChangeCloning.mm */; };
 		985301F21B7262E5001520DF /* ScriptMod_ChangeCloning.xib in Resources */ = {isa = PBXBuildFile; fileRef = 985301F01B7262E5001520DF /* ScriptMod_ChangeCloning.xib */; };
@@ -530,6 +532,8 @@
 		98453F611A76041200C058CB /* edit_submenu.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = edit_submenu.pdf; sourceTree = "<group>"; };
 		984AD1941DF54E3C002D4AC8 /* ChromosomeGLView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ChromosomeGLView.h; sourceTree = "<group>"; };
 		984AD1951DF54E3C002D4AC8 /* ChromosomeGLView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ChromosomeGLView.mm; sourceTree = "<group>"; };
+		984AD1971DF6B588002D4AC8 /* slim_eidos_dictionary.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = slim_eidos_dictionary.cpp; sourceTree = "<group>"; };
+		984AD1981DF6B588002D4AC8 /* slim_eidos_dictionary.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = slim_eidos_dictionary.h; sourceTree = "<group>"; };
 		985301EB1B72582E001520DF /* change_cloning_rate.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = change_cloning_rate.pdf; sourceTree = "<group>"; };
 		985301ED1B7262CC001520DF /* ScriptMod_ChangeCloning.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScriptMod_ChangeCloning.h; sourceTree = "<group>"; };
 		985301EE1B7262CC001520DF /* ScriptMod_ChangeCloning.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ScriptMod_ChangeCloning.mm; sourceTree = "<group>"; };
@@ -940,6 +944,8 @@
 				98C92AEB1D0B07A6001C82BC /* individual.cpp */,
 				98AB597A1B2531F10077CB4A /* slim_eidos_block.h */,
 				98AB59791B2531F10077CB4A /* slim_eidos_block.cpp */,
+				984AD1981DF6B588002D4AC8 /* slim_eidos_dictionary.h */,
+				984AD1971DF6B588002D4AC8 /* slim_eidos_dictionary.cpp */,
 				98800DC31B7EDCB50046F5F9 /* slim_test.h */,
 				98800DC21B7EDCB50046F5F9 /* slim_test.cpp */,
 			);
@@ -1653,6 +1659,7 @@
 				98EFE62F1ADB611100CBEC78 /* eidos_symbol_table.cpp in Sources */,
 				9893C7E91CDFE9870029AC94 /* eidos_type_interpreter.cpp in Sources */,
 				986D73E81B07E89E007FBB70 /* eidos_call_signature.cpp in Sources */,
+				984AD1991DF6B588002D4AC8 /* slim_eidos_dictionary.cpp in Sources */,
 				98C8212C1C7A980000548839 /* gamma.c in Sources */,
 				98C8212D1C7A980000548839 /* gauss.c in Sources */,
 				98C8213B1C7A980000548839 /* log.c in Sources */,
@@ -1878,6 +1885,7 @@
 				98C821441C7A983700548839 /* math.c in Sources */,
 				980DD51D1AB0B01F00D5B7B8 /* GraphView_MutationFrequencyTrajectory.mm in Sources */,
 				987AD88A1B2CDBB80035D6C8 /* EidosConsoleWindowController.mm in Sources */,
+				984AD19A1DF6B588002D4AC8 /* slim_eidos_dictionary.cpp in Sources */,
 				98DE4C241B713F3E004FDF5F /* ScriptMod_ChangeSexRatio.mm in Sources */,
 				986926E51AA3FF000000E138 /* GraphView_MutationFixationTimeHistogram.mm in Sources */,
 				98C8214D1C7A983700548839 /* gausszig.c in Sources */,

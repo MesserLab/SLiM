@@ -38,6 +38,7 @@
 
 
 #include "genome.h"
+#include "slim_eidos_dictionary.h"
 
 
 class Subpopulation;
@@ -48,7 +49,7 @@ extern EidosObjectClass *gSLiM_Individual_Class;
 extern slim_mutationid_t gSLiM_next_pedigree_id;
 
 
-class Individual : public EidosObjectElement
+class Individual : public SLiMEidosDictionary
 {
 	// This class has a restricted copying policy; see below
 	
