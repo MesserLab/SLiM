@@ -243,8 +243,9 @@ int main(int argc, char *argv[])
 	
 	// run the simulation
 	Eidos_WarmUp();
-	Eidos_DefineConstantsFromCommandLine(defined_constants);
 	SLiM_WarmUp();
+	
+	Eidos_DefineConstantsFromCommandLine(defined_constants);
 	
 	SLiMSim *sim = new SLiMSim(input_file);
 	sim->InitializeRNGFromSeed(override_seed_ptr);

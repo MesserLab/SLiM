@@ -156,51 +156,99 @@ void Eidos_DefineConstantsFromCommandLine(std::vector<std::string> p_constants)
 					if (left_node && (left_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (left_node->children_.size() == 0))
 					{
 						std::string symbol_name = left_node->token_->token_string_;
-						const EidosASTNode *right_node = top_node->children_[1];
+						bool good_symbol = true;
 						
-						if (right_node && (right_node->children_.size() == 0))
+						// Eidos constants are reserved
+						if ((symbol_name == "T") || (symbol_name == "F") || (symbol_name == "NULL") || (symbol_name == "PI") || (symbol_name == "E") || (symbol_name == "INF") || (symbol_name == "NAN"))
+							good_symbol = false;
+						
+						// Eidos keywords are reserved (probably won't reach here anyway)
+						if ((symbol_name == "if") || (symbol_name == "else") || (symbol_name == "do") || (symbol_name == "while") || (symbol_name == "for") || (symbol_name == "in") || (symbol_name == "next") || (symbol_name == "break") || (symbol_name == "return"))
+							good_symbol = false;
+						
+						// SLiM constants are reserved too; this code belongs in SLiM, but only
+						// SLiM uses this facility right now anyway, so I'm not going to sweat it...
+						if (symbol_name == "sim")
+							good_symbol = false;
+						
+						int len = (int)symbol_name.length();
+						
+						if (len >= 2)
 						{
-							EidosValue_SP x_value_sp;
+							char first_ch = symbol_name[0];
 							
-							try
+							if ((first_ch == 'p') || (first_ch == 'g') || (first_ch == 'm') || (first_ch == 's'))
 							{
-								if (right_node->token_->token_type_ == EidosTokenType::kTokenNumber)
+								int ch_index;
+								
+								for (ch_index = 1; ch_index < len; ++ch_index)
 								{
-									// integer or float; we don't know which, just from tokenizing
-									x_value_sp = EidosInterpreter::NumericValueForString(right_node->token_->token_string_, nullptr);
-								}
-								else if (right_node->token_->token_type_ == EidosTokenType::kTokenString)
-								{
-									// string
-									x_value_sp = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(right_node->token_->token_string_));
-								}
-								else if (right_node->token_->token_type_ == EidosTokenType::kTokenIdentifier)
-								{
-									// must be either T or F; other identifiers are not legal here
-									const std::string &logical_string = right_node->token_->token_string_;
+									char idx_ch = symbol_name[ch_index];
 									
-									if (logical_string == "F")
-										x_value_sp = gStaticEidosValue_LogicalF;
-									else if (logical_string == "T")
-										x_value_sp = gStaticEidosValue_LogicalT;
+									if ((idx_ch < '0') || (idx_ch > '9'))
+										break;
+								}
+								
+								if (ch_index == len)
+									good_symbol = false;
+							}
+						}
+						
+						// OK, if the symbol name is acceptable, keep digging
+						if (good_symbol)
+						{
+							const EidosASTNode *right_node = top_node->children_[1];
+							
+							if (right_node && (right_node->children_.size() == 0))
+							{
+								EidosValue_SP x_value_sp;
+								
+								try
+								{
+									if (right_node->token_->token_type_ == EidosTokenType::kTokenNumber)
+									{
+										// integer or float; we don't know which, just from tokenizing
+										x_value_sp = EidosInterpreter::NumericValueForString(right_node->token_->token_string_, nullptr);
+									}
+									else if (right_node->token_->token_type_ == EidosTokenType::kTokenString)
+									{
+										// string
+										x_value_sp = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(right_node->token_->token_string_));
+									}
+									else if (right_node->token_->token_type_ == EidosTokenType::kTokenIdentifier)
+									{
+										// must be either T or F; other identifiers are not legal here
+										const std::string &logical_string = right_node->token_->token_string_;
+										
+										if (logical_string == "F")
+											x_value_sp = gStaticEidosValue_LogicalF;
+										else if (logical_string == "T")
+											x_value_sp = gStaticEidosValue_LogicalT;
+									}
+								}
+								catch (...)
+								{
+								}
+								
+								if (x_value_sp)
+								{
+									//std::cout << "define " << symbol_name << " = " << right_node->token_->token_string_ << std::endl;
+									
+									// Permanently alter the global Eidos symbol table; don't do this at home!
+									EidosGlobalStringID symbol_id = EidosGlobalStringIDForString(symbol_name);
+									EidosSymbolTableEntry table_entry(symbol_id, x_value_sp);
+									
+									gEidosConstantsSymbolTable->InitializeConstantSymbolEntry(table_entry);
+									
+									continue;
 								}
 							}
-							catch (...)
-							{
-							}
+						}
+						else
+						{
+							gEidosTerminateThrows = save_throws;
 							
-							if (x_value_sp)
-							{
-								//std::cout << "define " << symbol_name << " = " << right_node->token_->token_string_ << std::endl;
-								
-								// Permanently alter the global Eidos symbol table; don't do this at home!
-								EidosGlobalStringID symbol_id = EidosGlobalStringIDForString(symbol_name);
-								EidosSymbolTableEntry table_entry(symbol_id, x_value_sp);
-								
-								gEidosConstantsSymbolTable->InitializeConstantSymbolEntry(table_entry);
-								
-								continue;
-							}
+							EIDOS_TERMINATION << "ERROR (Eidos_DefineConstantsFromCommandLine): illegal defined constant name \"" << symbol_name << "\"." << eidos_terminate(nullptr);
 						}
 					}
 				}
