@@ -8,6 +8,9 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 
 development head:
+
+
+2.2 (build 955; Eidos version 1.2):
 	added recombination() callback for individual-level recombination modifications
 	add containsMarkerMutation() method to Genome
 	add example recipe for recombination() callbacks, section 13.5
