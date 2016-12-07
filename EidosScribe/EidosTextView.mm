@@ -1424,7 +1424,9 @@ using std::string;
 			const EidosFunctionSignature *sig = function_iter.second;
 			NSString *functionName = [NSString stringWithUTF8String:sig->call_name_.c_str()];
 			
-			[globals addObject:[functionName stringByAppendingString:@"()"]];
+			// Exclude internal functions such as _Test()
+			if (![functionName hasPrefix:@"_"])
+				[globals addObject:[functionName stringByAppendingString:@"()"]];
 		}
 	}
 	
