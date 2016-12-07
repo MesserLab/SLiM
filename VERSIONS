@@ -19,6 +19,7 @@ development head:
 	add a tips/tricks window visible at startup, and make some items for it
 	converted the chromosome view to draw with OpenGL (performance enhancement)
 	add setValue()/getValue() dictionary capabilities to SLiMSim, Subpopulation, and Individual
+	revise recipe 11.1 to use setValue()/getValue()
 
 2.1.1 (build 924; Eidos version 1.1.1):
 	fix segfault with very large recombination maps (thanks Martin Petr)
