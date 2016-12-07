@@ -25,6 +25,8 @@
 
 
 #include <iostream>
+#include <string>
+#include <vector>
 
 #include "time.h"
 
@@ -69,7 +71,7 @@ void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 	}
 	
 	SLIM_OUTSTREAM << "usage: slim -version | -usage | -testEidos | -testSLiM |" << std::endl;
-	SLIM_OUTSTREAM << "   [-seed <seed>] [-time] [-mem] [-Memhist] [-x] <script file>" << std::endl;
+	SLIM_OUTSTREAM << "   [-seed <seed>] [-time] [-mem] [-Memhist] [-x] [-define <def>] <script file>" << std::endl;
 	
 	if (p_print_full_usage)
 	{
@@ -84,6 +86,7 @@ void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 		SLIM_OUTSTREAM << "   -m[em]           : print SLiM's peak memory usage" << std::endl;
 		SLIM_OUTSTREAM << "   -M[emhist]       : print a histogram of SLiM's memory usage" << std::endl;
 		SLIM_OUTSTREAM << "   -x               : disable SLiM's runtime safety/consistency checks" << std::endl;
+		SLIM_OUTSTREAM << "   -d[efine] <def>  : define an Eidos constant, such as \"mu=1e-7\"" << std::endl;
 	}
 	
 	if (p_print_header || p_print_full_usage)
@@ -99,6 +102,7 @@ int main(int argc, char *argv[])
 	unsigned long int *override_seed_ptr = nullptr;			// by default, a seed is generated or supplied in the input file
 	const char *input_file = nullptr;
 	bool keep_time = false, keep_mem = false, keep_mem_hist = false, skip_checks = false;
+	std::vector<std::string> defined_constants;
 	
 	// command-line SLiM generally terminates rather than throwing
 	gEidosTerminateThrows = false;
@@ -186,6 +190,17 @@ int main(int argc, char *argv[])
 		if (strcmp(arg, "-usage") == 0 || strcmp(arg, "-u") == 0 || strcmp(arg, "-?") == 0)
 			PrintUsageAndDie(false, true);
 		
+		// -define or -d: define Eidos constants
+		if (strcmp(arg, "-define") == 0 || strcmp(arg, "-d") == 0)
+		{
+			if (++arg_index == argc)
+				PrintUsageAndDie(false, true);
+			
+			defined_constants.push_back(argv[arg_index]);
+			
+			continue;
+		}
+		
 		// this is the fall-through, which should be the input file, and should be the last argument given
 		if (arg_index + 1 != argc)
 			PrintUsageAndDie(false, true);
@@ -228,6 +243,7 @@ int main(int argc, char *argv[])
 	
 	// run the simulation
 	Eidos_WarmUp();
+	Eidos_DefineConstantsFromCommandLine(defined_constants);
 	SLiM_WarmUp();
 	
 	SLiMSim *sim = new SLiMSim(input_file);

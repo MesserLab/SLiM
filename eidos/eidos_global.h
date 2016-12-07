@@ -24,6 +24,8 @@
 #include <stdio.h>
 #include <iostream>
 #include <sstream>
+#include <vector>
+#include <string>
 
 class EidosScript;
 class EidosToken;
@@ -31,6 +33,9 @@ class EidosToken;
 
 // This should be called once at startup to give Eidos an opportunity to initialize static state
 void Eidos_WarmUp(void);
+
+// This can be called at startup, after Eidos_WarmUp(), to define global constants from the command line
+void Eidos_DefineConstantsFromCommandLine(std::vector<std::string> p_constants);
 
 
 // *******************************************************************************************************************

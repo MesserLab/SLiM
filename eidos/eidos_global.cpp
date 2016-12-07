@@ -113,6 +113,121 @@ void Eidos_WarmUp(void)
 	}
 }
 
+void Eidos_DefineConstantsFromCommandLine(std::vector<std::string> p_constants)
+{
+	// We want to throw exceptions, even in SLiM, so that we can catch them here
+	bool save_throws = gEidosTerminateThrows;
+	
+	gEidosTerminateThrows = true;
+	
+	for (std::string &constant : p_constants)
+	{
+		// Each constant must be in the form x=y, where x is a valid identifier and y is a valid singleton
+		// Eidos value (integer, float, logical, or string).  Of course this could be broadened later.
+		// We parse the assignment using EidosScript, and work with the resulting AST, for generality.
+		EidosScript script(constant);
+		bool malformed = false;
+		
+		try
+		{
+			script.SetFinalSemicolonOptional(true);
+			script.Tokenize();
+			script.ParseInterpreterBlockToAST();
+		}
+		catch (...)
+		{
+			malformed = true;
+		}
+		
+		if (!malformed)
+		{
+			//script.PrintAST(std::cout);
+			
+			const EidosASTNode *AST = script.AST();
+			
+			if (AST && (AST->token_->token_type_ == EidosTokenType::kTokenInterpreterBlock) && (AST->children_.size() == 1))
+			{
+				const EidosASTNode *top_node = AST->children_[0];
+				
+				if (top_node && (top_node->token_->token_type_ == EidosTokenType::kTokenAssign) && (top_node->children_.size() == 2))
+				{
+					const EidosASTNode *left_node = top_node->children_[0];
+					
+					if (left_node && (left_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (left_node->children_.size() == 0))
+					{
+						std::string symbol_name = left_node->token_->token_string_;
+						const EidosASTNode *right_node = top_node->children_[1];
+						
+						if (right_node && (right_node->children_.size() == 0))
+						{
+							EidosValue_SP x_value_sp;
+							
+							try
+							{
+								if (right_node->token_->token_type_ == EidosTokenType::kTokenNumber)
+								{
+									// integer or float; we don't know which, just from tokenizing
+									x_value_sp = EidosInterpreter::NumericValueForString(right_node->token_->token_string_, nullptr);
+								}
+								else if (right_node->token_->token_type_ == EidosTokenType::kTokenString)
+								{
+									// string
+									x_value_sp = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(right_node->token_->token_string_));
+								}
+								else if (right_node->token_->token_type_ == EidosTokenType::kTokenIdentifier)
+								{
+									// must be either T or F; other identifiers are not legal here
+									const std::string &logical_string = right_node->token_->token_string_;
+									
+									if (logical_string == "F")
+										x_value_sp = gStaticEidosValue_LogicalF;
+									else if (logical_string == "T")
+										x_value_sp = gStaticEidosValue_LogicalT;
+								}
+							}
+							catch (...)
+							{
+							}
+							
+							if (x_value_sp)
+							{
+								//std::cout << "define " << symbol_name << " = " << right_node->token_->token_string_ << std::endl;
+								
+								// Permanently alter the global Eidos symbol table; don't do this at home!
+								EidosGlobalStringID symbol_id = EidosGlobalStringIDForString(symbol_name);
+								EidosSymbolTableEntry table_entry(symbol_id, x_value_sp);
+								
+								gEidosConstantsSymbolTable->InitializeConstantSymbolEntry(table_entry);
+								
+								continue;
+							}
+						}
+					}
+				}
+			}
+		}
+		
+		gEidosTerminateThrows = save_throws;
+		
+		// Terminate without putting out a script line/character diagnostic; that looks weird
+		EIDOS_TERMINATION << "ERROR (Eidos_DefineConstantsFromCommandLine): malformed command-line constant definition: " << constant;
+		
+		if (gEidosTerminateThrows)
+		{
+			EIDOS_TERMINATION << eidos_terminate(nullptr);
+		}
+		else
+		{
+			// This is from operator<<(std::ostream& p_out, const eidos_terminate &p_terminator)
+			EIDOS_TERMINATION << std::endl;
+			EIDOS_TERMINATION.flush();
+			exit(EXIT_FAILURE);
+		}
+	}
+	
+	gEidosTerminateThrows = save_throws;
+}
+
 
 // Information on the Context within which Eidos is running (if any).
 std::string gEidosContextVersion;
