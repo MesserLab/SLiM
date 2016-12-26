@@ -22,9 +22,19 @@ some valgrind commands:
 cpplint.py for checking includes (https://github.com/google/styleguide/tree/gh-pages/cpplint):
 	cpplint.py --filter=-,+build/include_what_you_use ./core/*.cpp ./eidos/*.cpp ./eidostool/*.cpp
 
-
-
-
+finding out the generation number of a running simulation in lldb:
+	lldb /usr/local/bin/slim
+	process attach --pid X (from ps -ax | grep slim)
+	breakpoint set --method _RunOneGeneration
+	c
+	(lldb breaks at _RunOneGeneration...)
+	si (repeat until you reach movl   $0x0, 0x40(%r15) which is perhaps around +30; this is generation_stage_ = SLiMGenerationStage::kStage0PreGeneration)
+	(now %r15 is the this pointer...)
+	register read r15 --format hex
+	memory read --size 4 --format x --count 50 `0x00007f9e28413f80`		(where the hex value of r15 goes in the backquotes)
+	the generation is at the end of the fourth line, as SLiM is currently set up:
+	0x7f9e28413fb0: 0x28414310 0x00007f9e 0x00000001 0x000021ef		-> 0x000021ef is the generation
+	if the memory layout moves, just look for 0x00000007 which will be the generation stage at this point in the code; the generation is immediately before it
 
 
 
