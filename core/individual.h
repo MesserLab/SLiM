@@ -60,6 +60,7 @@ private:
 	Subpopulation &subpopulation_;		// the subpop to which we refer; we get deleted when our subpop gets destructed
 	slim_popsize_t index_;				// the individual index in that subpop (0-based, and not multiplied by 2)
 	slim_usertag_t tag_value_;			// a user-defined tag value
+	double tagF_value_;					// a user-defined tag value of float type
 	
 	// Pedigree-tracking ivars.  These are -1 if unknown, otherwise assigned sequentially from 0 counting upward.  They
 	// uniquely identify individuals within the simulation, so that relatedness of individuals can be assessed.  They can
@@ -129,6 +130,7 @@ public:
 	
 	// Accelerated property access; see class EidosObjectElement for comments on this mechanism
 	virtual int64_t GetProperty_Accelerated_Int(EidosGlobalStringID p_property_id);
+	virtual double GetProperty_Accelerated_Float(EidosGlobalStringID p_property_id);
 	virtual EidosObjectElement *GetProperty_Accelerated_ObjectElement(EidosGlobalStringID p_property_id);
 };
 

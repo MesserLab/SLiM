@@ -921,14 +921,18 @@ The optional parameter
 \f2\fs18 Subpopulation
 \f0\fs20  object to which the individual belongs.
 \f3 \
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 tag <\'96> (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 A user-defined 
 \f2\fs18 integer
-\f0\fs20  value.  The value of 
+\f0\fs20  value (as opposed to 
+\f2\fs18 tagF
+\f0\fs20 , which is of type 
+\f2\fs18 float
+\f0\fs20 ).  The value of 
 \f2\fs18 tag
 \f0\fs20  is initially undefined; if you wish it to have a defined value, you must arrange that yourself.  The value of 
 \f2\fs18 tag
@@ -950,6 +954,43 @@ Note that the
 \f0\fs20  value will be preserved as the offspring individual becomes a parent (across the generation boundary, in other words).  If you take advantage of this, however, you should be careful to set up initial values for the tag values of 
 \i all
 \i0  offspring, otherwise undefined initial values might happen to match the values that you are trying to use to tag particular individuals.  A rule of thumb in programming: undefined values should always be assumed to take on the most inconvenient value possible.
+\f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 tagF <\'96> (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 A user-defined 
+\f2\fs18 float
+\f0\fs20  value (as opposed to 
+\f2\fs18 tag
+\f0\fs20 , which is of type 
+\f2\fs18 integer
+\f0\fs20 ).  The value of 
+\f2\fs18 tagF
+\f0\fs20  is initially undefined; if you wish it to have a defined value, you must arrange that yourself.  The value of 
+\f2\fs18 tagF
+\f0\fs20  is not used by SLiM; it is free for you to use.  See also the 
+\f2\fs18 getValue()
+\f0\fs20  and 
+\f2\fs18 setValue()
+\f0\fs20  methods, for another way of attaching state to individuals.\
+Note that at present, although many classes in SLiM have an 
+\f2\fs18 integer
+\f0\fs20 -type 
+\f2\fs18 tag
+\f0\fs20  property, only 
+\f2\fs18 Individual
+\f0\fs20  has a 
+\f2\fs18 float
+\f0\fs20 -type 
+\f2\fs18 tagF
+\f0\fs20  property, because attaching model state to individuals seems to be particularly common and useful.  If a 
+\f2\fs18 tagF
+\f0\fs20  property would be helpful on another class, it would be easy to add.\
+See the description of the 
+\f2\fs18 tag
+\f0\fs20  property above for additional comments.
 \f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 

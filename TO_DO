@@ -28,6 +28,9 @@ finding out the generation number of a running simulation in lldb:
 	breakpoint set --method _RunOneGeneration
 	c
 	(lldb breaks at _RunOneGeneration...)
+	
+	if you have symbols, just p generation_; if not:
+	
 	si (repeat until you reach movl   $0x0, 0x40(%r15) which is perhaps around +30; this is generation_stage_ = SLiMGenerationStage::kStage0PreGeneration)
 	(now %r15 is the this pointer...)
 	register read r15 --format hex

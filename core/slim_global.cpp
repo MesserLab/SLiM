@@ -173,6 +173,7 @@ const std::string gStr_substitutions = "substitutions";
 const std::string gStr_dominanceCoeffX = "dominanceCoeffX";
 const std::string gStr_generation = "generation";
 const std::string gStr_tag = "tag";
+const std::string gStr_tagF = "tagF";
 const std::string gStr_firstMaleIndex = "firstMaleIndex";
 const std::string gStr_genomes = "genomes";
 const std::string gStr_sex = "sex";
@@ -373,6 +374,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_dominanceCoeffX, gID_dominanceCoeffX);
 		Eidos_RegisterStringForGlobalID(gStr_generation, gID_generation);
 		Eidos_RegisterStringForGlobalID(gStr_tag, gID_tag);
+		Eidos_RegisterStringForGlobalID(gStr_tagF, gID_tagF);
 		Eidos_RegisterStringForGlobalID(gStr_firstMaleIndex, gID_firstMaleIndex);
 		Eidos_RegisterStringForGlobalID(gStr_genomes, gID_genomes);
 		Eidos_RegisterStringForGlobalID(gStr_sex, gID_sex);
