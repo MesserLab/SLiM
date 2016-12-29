@@ -103,7 +103,8 @@ static inline __attribute__((always_inline)) bool eidos_random_bool(gsl_rng *p_r
 // Non-Uniform Random Variate Generation (Springer-Verlag, New York, 1986), chapter 10, page 505.
 // The expected number of mutations / breakpoints will always be quite small, so we should be safe using
 // this algorithm.  The GSL Poisson draw code is similarly fast for very small mu, but it does not
-// allow us to precalculate the exp() value, nor does it allow us to inline, so there are some good
+// allow us to precalculate the exp() value, nor does it allow us to inline, and it gets much slower for
+// mu substantially greater than 1 (which does happen in SLiM fairly often), so there are some good
 // reasons for us to roll our own here.  If someone does not trust our Poisson code, they can define
 // USE_GSL_POISSON at compile time (i.e., -D USE_GSL_POISSON) to use the gsl_ran_poisson() instead.
 // It does make a substantial speed difference, though, so we use the fast version by default in cases
@@ -115,6 +116,12 @@ static inline __attribute__((always_inline)) bool eidos_random_bool(gsl_rng *p_r
 
 static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson(double p_mu)
 {
+	// See comments in eidos_fast_ran_poisson_PRECALCULATE().  For this version of the function, we test and
+	// defer to the GSL.  For the versions below, which are what SLiM actually uses, we front-load the bounds
+	// check by doing it at the point that exp(-mu) is precalculated, and raise there if mu is too large.
+	if (p_mu > 720)
+		return gsl_ran_poisson(gEidos_rng, p_mu);
+	
 	unsigned int x = 0;
 	double p = exp(-p_mu);
 	double s = p;
@@ -126,9 +133,7 @@ static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson
 		p *= (p_mu / x);
 		s += p;
 		
-		// If p_mu is too large, this loop can hang as p underflows to zero.  This happens somewhere upward of p_mu == 100,
-		// and such large values are not used in SLiM, so this seems harmless.  If it ever does happen, it's easy to diagnose,
-		// too, since it results in a hang right here.
+		// If p_mu is too large, this loop can hang as p underflows to zero.
 	}
 	
 	return x;
@@ -152,9 +157,7 @@ static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson
 		p *= (p_mu / x);
 		s += p;
 		
-		// If p_mu is too large, this loop can hang as p underflows to zero.  This happens somewhere upward of p_mu == 100,
-		// and such large values are not used in SLiM, so this seems harmless.  If it ever does happen, it's easy to diagnose,
-		// too, since it results in a hang right here.
+		// If p_mu is too large, this loop can hang as p underflows to zero.
 	}
 	
 	return x;
@@ -185,10 +188,15 @@ static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson
 		++x;
 		p *= (p_mu / x);
 		s += p;
+		
+		// If p_mu is too large, this loop can hang as p underflows to zero.
 	}
 	
 	return x;
 }
+
+double eidos_fast_ran_poisson_PRECALCULATE(double p_mu);	// raises if p_mu > 720 (see comments in code), otherwise exp(-mu)
+
 
 #endif // USE_GSL_POISSON
 

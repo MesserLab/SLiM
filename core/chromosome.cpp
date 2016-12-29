@@ -156,8 +156,8 @@ void Chromosome::_InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, v
 	p_lookup = gsl_ran_discrete_preproc(p_rates.size(), B.data());
 	
 	// precalculate probabilities for Poisson draws of mutation count and breakpoint count
-	double prob_mutation_0 = exp(-element_mutation_rate_);
-	double prob_breakpoint_0 = exp(-p_overall_rate);
+	double prob_mutation_0 = eidos_fast_ran_poisson_PRECALCULATE(element_mutation_rate_);		// exp(-mu)
+	double prob_breakpoint_0 = eidos_fast_ran_poisson_PRECALCULATE(p_overall_rate);				// exp(-mu)
 	double prob_mutation_not_0 = 1.0 - prob_mutation_0;
 	double prob_breakpoint_not_0 = 1.0 - prob_breakpoint_0;
 	double prob_both_0 = prob_mutation_0 * prob_breakpoint_0;
@@ -174,6 +174,7 @@ void Chromosome::_InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, v
 	//	EIDOS_OUTSTREAM << "prob_mutation_not_0_breakpoint_0 == " << prob_mutation_not_0_breakpoint_0 << std::endl;
 	
 	// Bounds-check our overall rates; if they are too high (i.e., neg exp. is too low) then we break down
+	// This should already have been done by eidos_fast_ran_poisson_PRECALCULATE(), in the current design, but no harm in making sure
 	if (prob_mutation_0 == 0.0)
 		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): (internal error) underflow of prob_mutation_0; overall mutation rate is too high for the Poisson draw algorithm." << eidos_terminate();
 	if (prob_breakpoint_0 == 0.0)
