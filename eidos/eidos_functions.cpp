@@ -228,6 +228,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_apply,	Eidos_ExecuteFunction_apply,			kEidosValueMaskAny))->AddAny("x")->AddString_S("lambdaSource"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("beep",				Eidos_ExecuteFunction_beep,			kEidosValueMaskNULL))->AddString_OSN("soundName", gStaticEidosValueNULL));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("citation",			Eidos_ExecuteFunction_citation,		kEidosValueMaskNULL)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("clock",				Eidos_ExecuteFunction_clock,		kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("date",				Eidos_ExecuteFunction_date,			kEidosValueMaskString | kEidosValueMaskSingleton)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("defineConstant",	Eidos_ExecuteFunction_defineConstant,	kEidosValueMaskNULL))->AddString_S("symbol")->AddAnyBase("value"));
@@ -6444,6 +6445,28 @@ EidosValue_SP Eidos_ExecuteFunction_beep(const EidosValue_SP *const p_arguments,
 	return result_SP;
 }
 
+//	(void)citation(void)
+EidosValue_SP Eidos_ExecuteFunction_citation(__attribute__((unused)) const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
+	
+	output_stream << "To cite Eidos in publications please use:" << std::endl << std::endl;
+	output_stream << "Haller, B.C. (2016). Eidos: A Simple Scripting Language." << std::endl;
+	output_stream << "URL: http://benhaller.com/slim/Eidos_Manual.pdf" << std::endl << std::endl;
+	
+	if (gEidosContextCitation.length())
+	{
+		output_stream << "---------------------------------------------------------" << endl << endl;
+		output_stream << gEidosContextCitation << endl;
+	}
+	
+	result_SP = gStaticEidosValueNULLInvisible;
+	
+	return result_SP;
+}
+
 //	(float$)clock(void)
 EidosValue_SP Eidos_ExecuteFunction_clock(__attribute__((unused)) const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
@@ -6746,11 +6769,11 @@ EidosValue_SP Eidos_ExecuteFunction_license(__attribute__((unused)) const EidosV
 	
 	output_stream << "You should have received a copy of the GNU General" << endl;
 	output_stream << "Public License along with Eidos.  If not, see" << endl;
-	output_stream << "<http://www.gnu.org/licenses/>." << endl;
+	output_stream << "<http://www.gnu.org/licenses/>." << endl << endl;
 	
 	if (gEidosContextLicense.length())
 	{
-		output_stream << endl << "------------------------------------------------------" << endl << endl;
+		output_stream << "---------------------------------------------------------" << endl << endl;
 		output_stream << gEidosContextLicense << endl;
 	}
 	

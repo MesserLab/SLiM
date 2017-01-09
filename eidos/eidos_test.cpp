@@ -3986,6 +3986,15 @@ void _RunFunctionMiscTests(void)
 	//EidosAssertScriptSuccess("beep();", gStaticEidosValueNULL);
 	//EidosAssertScriptSuccess("beep('Submarine');", gStaticEidosValueNULL);
 	
+	// citation()
+	EidosAssertScriptSuccess("citation();", gStaticEidosValueNULL);
+	EidosAssertScriptRaise("citation(NULL);", 0, "too many arguments supplied");
+	EidosAssertScriptRaise("citation(T);", 0, "too many arguments supplied");
+	EidosAssertScriptRaise("citation(3);", 0, "too many arguments supplied");
+	EidosAssertScriptRaise("citation(3.5);", 0, "too many arguments supplied");
+	EidosAssertScriptRaise("citation('foo');", 0, "too many arguments supplied");
+	EidosAssertScriptRaise("citation(_Test(7));", 0, "too many arguments supplied");
+	
 	// clock()
 	EidosAssertScriptSuccess("c = clock(); isFloat(c);", gStaticEidosValue_LogicalT);
 	

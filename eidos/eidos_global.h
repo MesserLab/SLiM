@@ -44,10 +44,11 @@ void Eidos_DefineConstantsFromCommandLine(std::vector<std::string> p_constants);
 //
 
 // Information on the Context within which Eidos is running (if any).  This is basically a way to let the Context
-// customize the version and license information printed by Eidos.
+// customize the version and license and citation information printed by Eidos.
 
 extern std::string gEidosContextVersion;
 extern std::string gEidosContextLicense;
+extern std::string gEidosContextCitation;
 
 
 // *******************************************************************************************************************

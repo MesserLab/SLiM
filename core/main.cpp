@@ -45,8 +45,15 @@ void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 		SLIM_OUTSTREAM << "SLiM version 2.2, built " << __DATE__ << " " __TIME__ << "." << std::endl << std::endl;	// SLIM VERSION
 		
 		SLIM_OUTSTREAM << "SLiM is a product of the Messer Lab, http://messerlab.org/" << std::endl;
-		SLIM_OUTSTREAM << "Copyright 2016 Philipp Messer.  All rights reserved." << std::endl << std::endl;
+		SLIM_OUTSTREAM << "Copyright 2016-2017 Philipp Messer.  All rights reserved." << std::endl << std::endl;
 		SLIM_OUTSTREAM << "By Benjamin C. Haller, http://benhaller.com/, and Philipp Messer." << std::endl << std::endl;
+		
+		SLIM_OUTSTREAM << "---------------------------------------------------------------------------------" << std::endl << std::endl;
+		
+		SLIM_OUTSTREAM << "To cite SLiM in publications please use:" << std::endl << std::endl;
+		SLIM_OUTSTREAM << "Haller, B.C., and Messer, P.W. (2017). SLiM 2: Flexible, Interactive Forward" << std::endl;
+		SLIM_OUTSTREAM << "Genetic Simulations. Molecular Biology and Evolution 34(1), 230-240." << std::endl;
+		SLIM_OUTSTREAM << "DOI: 10.1093/molbev/msw211" << std::endl << std::endl;
 		
 		SLIM_OUTSTREAM << "---------------------------------------------------------------------------------" << std::endl << std::endl;
 		

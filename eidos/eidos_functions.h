@@ -158,6 +158,7 @@ EidosValue_SP Eidos_ExecuteFunction_writeFile(const EidosValue_SP *const p_argum
 //	miscellaneous functions
 EidosValue_SP Eidos_ExecuteFunction_apply(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_beep(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+EidosValue_SP Eidos_ExecuteFunction_citation(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_clock(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_date(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_defineConstant(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
