@@ -156,29 +156,22 @@ void Chromosome::_InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, v
 	p_lookup = gsl_ran_discrete_preproc(p_rates.size(), B.data());
 	
 	// precalculate probabilities for Poisson draws of mutation count and breakpoint count
-	double prob_mutation_0 = eidos_fast_ran_poisson_PRECALCULATE(element_mutation_rate_);		// exp(-mu)
-	double prob_breakpoint_0 = eidos_fast_ran_poisson_PRECALCULATE(p_overall_rate);				// exp(-mu)
+	double prob_mutation_0 = eidos_fast_ran_poisson_PRECALCULATE(element_mutation_rate_);		// exp(-mu); can be 0 due to underflow
+	double prob_breakpoint_0 = eidos_fast_ran_poisson_PRECALCULATE(p_overall_rate);				// exp(-mu); can be 0 due to underflow
 	double prob_mutation_not_0 = 1.0 - prob_mutation_0;
 	double prob_breakpoint_not_0 = 1.0 - prob_breakpoint_0;
 	double prob_both_0 = prob_mutation_0 * prob_breakpoint_0;
 	double prob_mutation_0_breakpoint_not_0 = prob_mutation_0 * prob_breakpoint_not_0;
 	double prob_mutation_not_0_breakpoint_0 = prob_mutation_not_0 * prob_breakpoint_0;
 	
-	//	EIDOS_OUTSTREAM << "element_mutation_rate_ == " << element_mutation_rate_ << std::endl;
-	//	EIDOS_OUTSTREAM << "prob_mutation_0 == " << prob_mutation_0 << std::endl;
-	//	EIDOS_OUTSTREAM << "prob_breakpoint_0 == " << prob_breakpoint_0 << std::endl;
-	//	EIDOS_OUTSTREAM << "prob_mutation_not_0 == " << prob_mutation_not_0 << std::endl;
-	//	EIDOS_OUTSTREAM << "prob_breakpoint_not_0 == " << prob_breakpoint_not_0 << std::endl;
-	//	EIDOS_OUTSTREAM << "prob_both_0 == " << prob_both_0 << std::endl;
-	//	EIDOS_OUTSTREAM << "prob_mutation_0_breakpoint_not_0 == " << prob_mutation_0_breakpoint_not_0 << std::endl;
-	//	EIDOS_OUTSTREAM << "prob_mutation_not_0_breakpoint_0 == " << prob_mutation_not_0_breakpoint_0 << std::endl;
-	
-	// Bounds-check our overall rates; if they are too high (i.e., neg exp. is too low) then we break down
-	// This should already have been done by eidos_fast_ran_poisson_PRECALCULATE(), in the current design, but no harm in making sure
-	if (prob_mutation_0 == 0.0)
-		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): (internal error) underflow of prob_mutation_0; overall mutation rate is too high for the Poisson draw algorithm." << eidos_terminate();
-	if (prob_breakpoint_0 == 0.0)
-		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): (internal error) underflow of prob_breakpoint_0; overall recombination rate is too high for the Poisson draw algorithm." << eidos_terminate();
+	//	std::cout << "element_mutation_rate_ == " << element_mutation_rate_ << std::endl;
+	//	std::cout << "prob_mutation_0 == " << prob_mutation_0 << std::endl;
+	//	std::cout << "prob_breakpoint_0 == " << prob_breakpoint_0 << std::endl;
+	//	std::cout << "prob_mutation_not_0 == " << prob_mutation_not_0 << std::endl;
+	//	std::cout << "prob_breakpoint_not_0 == " << prob_breakpoint_not_0 << std::endl;
+	//	std::cout << "prob_both_0 == " << prob_both_0 << std::endl;
+	//	std::cout << "prob_mutation_0_breakpoint_not_0 == " << prob_mutation_0_breakpoint_not_0 << std::endl;
+	//	std::cout << "prob_mutation_not_0_breakpoint_0 == " << prob_mutation_not_0_breakpoint_0 << std::endl;
 	
 	exp_neg_element_mutation_rate_ = prob_mutation_0;
 	p_exp_neg_overall_rate = prob_breakpoint_0;

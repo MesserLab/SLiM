@@ -83,8 +83,11 @@ double eidos_fast_ran_poisson_PRECALCULATE(double p_mu)
 	// that strict; as long as the Poisson draw distribution is close enough to give basically the right mutation and
 	// recombination rates, tiny numerical errors are not important to us.  My testing with poisson_test.R indicates that
 	// our error is very small even at the largest values of p_mu that we allow.
-	if (p_mu > 720)
-		EIDOS_TERMINATION << "ERROR (eidos_fast_ran_poisson_PRECALCULATE): rate for Poisson draws is too large; please compile SLiM with -D USE_GSL_POISSON if you really want to use a mutation or recombination rate this high." << eidos_terminate(nullptr);
+	
+	// We no longer raise for mu > 720.  Instead, we defer to the GSL in that case, when the draw actually occurs.
+	//
+	//if (p_mu > 720)
+	//	EIDOS_TERMINATION << "ERROR (eidos_fast_ran_poisson_PRECALCULATE): rate for Poisson draws is too large; please compile SLiM with -D USE_GSL_POISSON if you really want to use a mutation or recombination rate this high." << eidos_terminate(nullptr);
 	
 	return exp(-p_mu);
 }

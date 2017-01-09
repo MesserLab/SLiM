@@ -483,6 +483,65 @@ void RunEidosTests(void)
 	
 #endif
 	
+#if 0
+	// Speed tests of gsl_ran_poisson() vs. eidos_fast_ran_poisson()
+	// When built with optimization, this indicates that (on my present machine) the GSL's method
+	// starts to be faster at about mu > 250, so we will cross over at that point.
+	for (int iteration = 0; iteration <= 19; ++iteration)
+	{
+		double mu = 0, exp_neg_mu;
+		
+		if (iteration == 0) mu = 0.1;
+		if (iteration == 1) mu = 0.4;
+		if (iteration == 2) mu = 1.0;
+		if (iteration == 3) mu = 4.0;
+		if (iteration == 4) mu = 10.0;
+		if (iteration == 5) mu = 40.0;
+		if (iteration == 6) mu = 100.0;
+		if (iteration == 7) mu = 200.0;
+		if (iteration == 8) mu = 220.0;
+		if (iteration == 9) mu = 240.0;
+		if (iteration == 10) mu = 260.0;
+		if (iteration == 11) mu = 280.0;
+		if (iteration == 12) mu = 300.0;
+		if (iteration == 13) mu = 400.0;
+		if (iteration == 14) mu = 500.0;
+		if (iteration == 15) mu = 600.0;
+		if (iteration == 16) mu = 700.0;
+		if (iteration == 17) mu = 1000.0;
+		if (iteration == 18) mu = 10000.0;
+		if (iteration == 19) mu = 100000.0;
+		
+		exp_neg_mu = eidos_fast_ran_poisson_PRECALCULATE(mu);
+		
+		for (int type = 0; type <= 2; ++type)
+		{
+			double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+			double total = 0.0;
+			
+			if (type == 0)
+			{
+				for (int i = 0; i < 1000000; i++)
+					total += eidos_fast_ran_poisson(mu);
+			}
+			else if (type == 1)
+			{
+				for (int i = 0; i < 1000000; i++)
+					total += eidos_fast_ran_poisson(mu, exp_neg_mu);
+			}
+			else if (type == 2)
+			{
+				for (int i = 0; i < 1000000; i++)
+					total += gsl_ran_poisson(gEidos_rng, mu);
+			}
+			
+			double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+			
+			std::cout << "mu " << mu << " T " << type << ": total = " << total << ", time == " << (end_time - start_time) << std::endl;
+		}
+	}
+#endif
+	
 	// If we ran tests, the random number seed has been set; let's set it back to a good seed value
 	EidosInitializeRNGFromSeed(EidosGenerateSeedFromPIDAndTime());
 }

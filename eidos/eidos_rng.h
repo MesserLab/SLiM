@@ -101,14 +101,16 @@ static inline __attribute__((always_inline)) bool eidos_random_bool(gsl_rng *p_r
 
 // Fast Poisson drawing, usable when mu is small; algorithm from Wikipedia, referenced to Luc Devroye,
 // Non-Uniform Random Variate Generation (Springer-Verlag, New York, 1986), chapter 10, page 505.
-// The expected number of mutations / breakpoints will always be quite small, so we should be safe using
-// this algorithm.  The GSL Poisson draw code is similarly fast for very small mu, but it does not
-// allow us to precalculate the exp() value, nor does it allow us to inline, and it gets much slower for
-// mu substantially greater than 1 (which does happen in SLiM fairly often), so there are some good
-// reasons for us to roll our own here.  If someone does not trust our Poisson code, they can define
-// USE_GSL_POISSON at compile time (i.e., -D USE_GSL_POISSON) to use the gsl_ran_poisson() instead.
-// It does make a substantial speed difference, though, so we use the fast version by default in cases
-// where mu is expected to be small.
+// The GSL Poisson code does not allow us to precalculate the exp() value, it is more than three times
+// slower for some mu values, it doesn't let us force a non-zero draw, and it is not inlined (without
+// modifying the GSL code), so there are good reasons for us to roll our own.  However, our version is
+// safe only for mu < ~720, and the GSL's version is faster for mu > 250 anyway, so we cross over
+// to using the GSL for mu > 250.  This is done on a per-draw basis.
+
+// If someone does not trust our Poisson code, they can define USE_GSL_POISSON at compile time
+// (i.e., -D USE_GSL_POISSON) to use the gsl_ran_poisson() instead.  It does make a substantial
+// speed difference, though, so that option is turned off by default.  Note that at present the
+// rpois() Eidos function always uses the GSL in any case.
 
 //#define USE_GSL_POISSON
 
@@ -116,10 +118,8 @@ static inline __attribute__((always_inline)) bool eidos_random_bool(gsl_rng *p_r
 
 static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson(double p_mu)
 {
-	// See comments in eidos_fast_ran_poisson_PRECALCULATE().  For this version of the function, we test and
-	// defer to the GSL.  For the versions below, which are what SLiM actually uses, we front-load the bounds
-	// check by doing it at the point that exp(-mu) is precalculated, and raise there if mu is too large.
-	if (p_mu > 720)
+	// Defer to the GSL for large values of mu; see comments above.
+	if (p_mu > 250)
 		return gsl_ran_poisson(gEidos_rng, p_mu);
 	
 	unsigned int x = 0;
@@ -133,7 +133,7 @@ static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson
 		p *= (p_mu / x);
 		s += p;
 		
-		// If p_mu is too large, this loop can hang as p underflows to zero.
+		// If p_mu is too large (> ~720), this loop can hang as p underflows to zero.
 	}
 	
 	return x;
@@ -142,6 +142,10 @@ static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson
 // This version allows the caller to supply a precalculated exp(-mu) value
 static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson(double p_mu, double p_exp_neg_mu)
 {
+	// Defer to the GSL for large values of mu; see comments above.
+	if (p_mu > 250)
+		return gsl_ran_poisson(gEidos_rng, p_mu);
+	
 	// Test consistency; normally this is commented out
 	//if (p_exp_neg_mu != exp(-p_mu))
 	//	EIDOS_TERMINATION << "ERROR (eidos_fast_ran_poisson): p_exp_neg_mu incorrect." << eidos_terminate(nullptr);
@@ -157,7 +161,7 @@ static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson
 		p *= (p_mu / x);
 		s += p;
 		
-		// If p_mu is too large, this loop can hang as p underflows to zero.
+		// If p_mu is too large (> ~720), this loop can hang as p underflows to zero.
 	}
 	
 	return x;
@@ -166,6 +170,20 @@ static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson
 // This version specifies that the count is guaranteed not to be zero; zero has been ruled out by a previous test
 static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson_nonzero(double p_mu, double p_exp_neg_mu)
 {
+	// Defer to the GSL for large values of mu; see comments above.
+	if (p_mu > 250)
+	{
+		unsigned int result;
+		
+		do
+		{
+			result = gsl_ran_poisson(gEidos_rng, p_mu);
+		}
+		while (result == 0);
+		
+		return result;
+	}
+	
 	// Test consistency; normally this is commented out
 	//if (p_exp_neg_mu != exp(-p_mu))
 	//	EIDOS_TERMINATION << "ERROR (eidos_fast_ran_poisson_nonzero): p_exp_neg_mu incorrect." << eidos_terminate(nullptr);
@@ -189,13 +207,13 @@ static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson
 		p *= (p_mu / x);
 		s += p;
 		
-		// If p_mu is too large, this loop can hang as p underflows to zero.
+		// If p_mu is too large (> ~720), this loop can hang as p underflows to zero.
 	}
 	
 	return x;
 }
 
-double eidos_fast_ran_poisson_PRECALCULATE(double p_mu);	// raises if p_mu > 720 (see comments in code), otherwise exp(-mu)
+double eidos_fast_ran_poisson_PRECALCULATE(double p_mu);	// exp(-mu); can underflow to zero, in which case the GSL will be used
 
 
 #endif // USE_GSL_POISSON
