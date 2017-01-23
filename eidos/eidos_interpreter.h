@@ -159,7 +159,7 @@ public:
 	static void CacheBuiltInFunctionMap(void);	// must be called by EidosWarmup() before BuiltInFunctionMap() is called
 	
 	// Utility static methods for numeric conversions
-	static int64_t IntegerForString(const std::string &p_number_string, const EidosToken *p_blame_token);
+	static int64_t NonnegativeIntegerForString(const std::string &p_number_string, const EidosToken *p_blame_token);
 	static double FloatForString(const std::string &p_number_string, const EidosToken *p_blame_token);
 	static EidosValue_SP NumericValueForString(const std::string &p_number_string, const EidosToken *p_blame_token);
 	

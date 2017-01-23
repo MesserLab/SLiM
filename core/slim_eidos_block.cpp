@@ -414,7 +414,7 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 		
 		if (start_gen_token->token_type_ == EidosTokenType::kTokenNumber)
 		{
-			int64_t long_start = EidosInterpreter::IntegerForString(start_gen_token->token_string_, start_gen_token);
+			int64_t long_start = EidosInterpreter::NonnegativeIntegerForString(start_gen_token->token_string_, start_gen_token);
 			
 			// We do our own range checking here so that we can highlight the bad token
 			if ((long_start < 1) || (long_start > SLIM_MAX_GENERATION))
@@ -444,7 +444,7 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 		
 		if (end_gen_token->token_type_ == EidosTokenType::kTokenNumber)
 		{
-			int64_t long_end = EidosInterpreter::IntegerForString(end_gen_token->token_string_, end_gen_token);
+			int64_t long_end = EidosInterpreter::NonnegativeIntegerForString(end_gen_token->token_string_, end_gen_token);
 			
 			// We do our own range checking here so that we can highlight the bad token
 			if ((long_end < 1) || (long_end > SLIM_MAX_GENERATION))

@@ -275,7 +275,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		iss >> sub;		// #OUT:
 		
 		iss >> sub;		// generation
-		int64_t generation_long = EidosInterpreter::IntegerForString(sub, nullptr);
+		int64_t generation_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
 		file_generation = SLiMCastToGenerationTypeOrRaise(generation_long);
 	}
 	
@@ -304,7 +304,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		slim_objectid_t subpop_index = SLiMEidosScript::ExtractIDFromStringWithPrefix(sub.c_str(), 'p', nullptr);
 		
 		iss >> sub;
-		int64_t subpop_size_long = EidosInterpreter::IntegerForString(sub, nullptr);
+		int64_t subpop_size_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
 		slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(subpop_size_long);
 		
 		// SLiM 2.0 output format has <H | S <ratio>> here; if that is missing or "H" is given, the population is hermaphroditic and the ratio given is irrelevant
@@ -346,7 +346,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		istringstream iss(line);
 		
 		iss >> sub;
-		int64_t polymorphismid_long = EidosInterpreter::IntegerForString(sub, nullptr);
+		int64_t polymorphismid_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
 		slim_polymorphismid_t polymorphism_id = SLiMCastToPolymorphismidTypeOrRaise(polymorphismid_long);
 		
 		// Added in version 2 output, starting in SLiM 2.1
@@ -359,7 +359,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		}
 		else
 		{
-			mutation_id = EidosInterpreter::IntegerForString(sub, nullptr);
+			mutation_id = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
 			
 			iss >> sub;		// queue up sub for mutation_type_id
 		}
@@ -367,7 +367,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		slim_objectid_t mutation_type_id = SLiMEidosScript::ExtractIDFromStringWithPrefix(sub.c_str(), 'm', nullptr);
 		
 		iss >> sub;
-		int64_t position_long = EidosInterpreter::IntegerForString(sub, nullptr);
+		int64_t position_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
 		slim_position_t position = SLiMCastToPositionTypeOrRaise(position_long);
 		
 		iss >> sub;
@@ -380,7 +380,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		slim_objectid_t subpop_index = SLiMEidosScript::ExtractIDFromStringWithPrefix(sub.c_str(), 'p', nullptr);
 		
 		iss >> sub;
-		int64_t generation_long = EidosInterpreter::IntegerForString(sub, nullptr);
+		int64_t generation_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
 		slim_generation_t generation = SLiMCastToGenerationTypeOrRaise(generation_long);
 		
 		// look up the mutation type from its index
@@ -445,7 +445,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		Subpopulation &subpop = *subpop_pair->second;
 		
 		sub.erase(0, pos + 1);	// remove the subpop_id and the colon
-		int64_t genome_index_long = EidosInterpreter::IntegerForString(sub, nullptr);
+		int64_t genome_index_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
 		
 		if ((genome_index_long < 0) || (genome_index_long > SLIM_MAX_SUBPOP_SIZE * 2))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): genome index out of permitted range." << eidos_terminate();
@@ -492,7 +492,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			
 			do
 			{
-				int64_t polymorphismid_long = EidosInterpreter::IntegerForString(sub, nullptr);
+				int64_t polymorphismid_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
 				slim_polymorphismid_t polymorphism_id = SLiMCastToPolymorphismidTypeOrRaise(polymorphismid_long);
 				
 				auto found_mut_pair = mutations.find(polymorphism_id);

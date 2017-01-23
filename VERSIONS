@@ -14,7 +14,7 @@ development head:
 	added tagF property to Individual
 	fix code completion key binding problem on OS X 10.12
 	add recipe for true local ancestry tracking (recipe 13.9)
-
+	fix a bug preventing negative constant definitions at the command line
 
 2.2 (build 955; Eidos version 1.2):
 	added recombination() callback for individual-level recombination modifications

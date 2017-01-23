@@ -141,6 +141,7 @@ void Eidos_DefineConstantsFromCommandLine(std::vector<std::string> p_constants)
 		
 		if (!malformed)
 		{
+			//script.PrintTokens(std::cout);
 			//script.PrintAST(std::cout);
 			
 			const EidosASTNode *AST = script.AST();
@@ -199,48 +200,76 @@ void Eidos_DefineConstantsFromCommandLine(std::vector<std::string> p_constants)
 						{
 							const EidosASTNode *right_node = top_node->children_[1];
 							
-							if (right_node && (right_node->children_.size() == 0))
+							if (right_node)
 							{
-								EidosValue_SP x_value_sp;
+								auto right_child_count = right_node->children_.size();
+								bool is_under_unary_minus = false;
 								
-								try
+								if (right_child_count == 1)
 								{
-									if (right_node->token_->token_type_ == EidosTokenType::kTokenNumber)
+									// if this is a unary minus negating a numeric constant, track that and move down to the operand node
+									if (right_node->token_->token_type_ == EidosTokenType::kTokenMinus)
 									{
-										// integer or float; we don't know which, just from tokenizing
-										x_value_sp = EidosInterpreter::NumericValueForString(right_node->token_->token_string_, nullptr);
+										right_node = right_node->children_[0];
+										right_child_count = right_node->children_.size();
+										is_under_unary_minus = true;
 									}
-									else if (right_node->token_->token_type_ == EidosTokenType::kTokenString)
+								}
+								
+								if (right_child_count == 0)
+								{
+									EidosValue_SP x_value_sp;
+									std::string value_string;
+									
+									try
 									{
-										// string
-										x_value_sp = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(right_node->token_->token_string_));
+										if (right_node->token_->token_type_ == EidosTokenType::kTokenNumber)
+										{
+											// integer or float; we don't know which, just from tokenizing
+											value_string = right_node->token_->token_string_;
+											
+											if (is_under_unary_minus)
+												value_string = "-" + value_string;
+											
+											x_value_sp = EidosInterpreter::NumericValueForString(value_string, nullptr);
+										}
+										else if (!is_under_unary_minus)
+										{
+											if (right_node->token_->token_type_ == EidosTokenType::kTokenString)
+											{
+												// string
+												value_string = right_node->token_->token_string_;
+												
+												x_value_sp = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(value_string));
+											}
+											else if (right_node->token_->token_type_ == EidosTokenType::kTokenIdentifier)
+											{
+												// must be either T or F; other identifiers are not legal here
+												value_string = right_node->token_->token_string_;
+												
+												if (value_string == "F")
+													x_value_sp = gStaticEidosValue_LogicalF;
+												else if (value_string == "T")
+													x_value_sp = gStaticEidosValue_LogicalT;
+											}
+										}
 									}
-									else if (right_node->token_->token_type_ == EidosTokenType::kTokenIdentifier)
+									catch (...)
 									{
-										// must be either T or F; other identifiers are not legal here
-										const std::string &logical_string = right_node->token_->token_string_;
+									}
+									
+									if (x_value_sp)
+									{
+										//std::cout << "define " << symbol_name << " = " << value_string << std::endl;
 										
-										if (logical_string == "F")
-											x_value_sp = gStaticEidosValue_LogicalF;
-										else if (logical_string == "T")
-											x_value_sp = gStaticEidosValue_LogicalT;
+										// Permanently alter the global Eidos symbol table; don't do this at home!
+										EidosGlobalStringID symbol_id = EidosGlobalStringIDForString(symbol_name);
+										EidosSymbolTableEntry table_entry(symbol_id, x_value_sp);
+										
+										gEidosConstantsSymbolTable->InitializeConstantSymbolEntry(table_entry);
+										
+										continue;
 									}
-								}
-								catch (...)
-								{
-								}
-								
-								if (x_value_sp)
-								{
-									//std::cout << "define " << symbol_name << " = " << right_node->token_->token_string_ << std::endl;
-									
-									// Permanently alter the global Eidos symbol table; don't do this at home!
-									EidosGlobalStringID symbol_id = EidosGlobalStringIDForString(symbol_name);
-									EidosSymbolTableEntry table_entry(symbol_id, x_value_sp);
-									
-									gEidosConstantsSymbolTable->InitializeConstantSymbolEntry(table_entry);
-									
-									continue;
 								}
 							}
 						}

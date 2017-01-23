@@ -4020,9 +4020,12 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 }
 
 // A utility static method for getting an int for a string outside of a EidosInterpreter session
-int64_t EidosInterpreter::IntegerForString(const std::string &p_number_string, const EidosToken *p_blame_token)
+int64_t EidosInterpreter::NonnegativeIntegerForString(const std::string &p_number_string, const EidosToken *p_blame_token)
 {
 	// This needs to use the same criteria as NumericValueForString() below; it raises if the number is a float.
+	// BCH 23 Jan. 2017: actually, this is *slightly* different from NumericValueForString(), because this
+	// function will only parse/return non-negative ints; it does not allow a leading minus sign.  I'm changing
+	// the name of this function to reflect this fact, since it is the expected/desired behavior for this function.
 	const char *c_str = p_number_string.c_str();
 	char *last_used_char = nullptr;
 	
@@ -4083,11 +4086,11 @@ EidosValue_SP EidosInterpreter::NumericValueForString(const std::string &p_numbe
 	errno = 0;
 	
 	// At this point, we have to decide whether to instantiate an int or a float.  If it has a decimal point or
-	// a minus sign in it (which would be in the exponent), we'll make a float.  Otherwise, we'll make an int.
+	// a non-leading minus sign (which would be in the exponent), we'll make a float.  Otherwise, we'll make an int.
 	// This might need revision in future; 1.2e3 could be an int, for example.  However, it is an ambiguity in
 	// the syntax that will never be terribly comfortable; it's the price we pay for wanting ints to be
 	// expressable using scientific notation.
-	if ((p_number_string.find('.') != string::npos) || (p_number_string.find('-') != string::npos))				// requires a float
+	if ((p_number_string.find('.') != string::npos) || (p_number_string.find('-', 1) != string::npos))			// requires a float
 	{
 		double converted_value = strtod(c_str, &last_used_char);
 		
