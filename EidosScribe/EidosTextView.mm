@@ -1366,6 +1366,34 @@ using std::string;
 #pragma mark -
 #pragma mark Auto-completion
 
+- (void)keyDown:(NSEvent *)event
+{
+	// Sometimes esc and command-. do not seem to be bound to complete:.  I'm not sure if that is a change on 10.12,
+	// or a matter of individual key bindings.  In any case, we make sure, in this override, that they always work.
+	NSString *chars = [event charactersIgnoringModifiers];
+	NSUInteger flags = [event modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask;		// BCH 4/7/2016: NSEventModifierFlags not defined in 10.9
+	
+	if ([chars length] == 1)
+	{
+		unichar keyChar = [chars characterAtIndex:0];
+		
+		if ((keyChar == 0x1B) && (flags == 0))
+		{
+			// escape key pressed
+			[self doCommandBySelector:@selector(complete:)];
+			return;
+		}
+		if ((keyChar == '.') && (flags == NSEventModifierFlagCommand))
+		{
+			// command-. pressed
+			[self doCommandBySelector:@selector(complete:)];
+			return;
+		}
+	}
+	
+	[super keyDown:event];
+}
+
 - (NSArray *)completionsForPartialWordRange:(NSRange)charRange indexOfSelectedItem:(NSInteger *)index
 {
 	NSArray *completions = nil;

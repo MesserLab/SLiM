@@ -12,6 +12,7 @@ development head:
 	added recipe to show suppression of baseline hermaphroditic selfing (recipe 12.4)
 	added recipe for estimating model parameters with ABC (recipe 13.8)
 	added tagF property to Individual
+	fix code completion key binding problem on OS X 10.12
 
 
 2.2 (build 955; Eidos version 1.2):
