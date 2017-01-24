@@ -47,6 +47,10 @@ bool eidos_do_memory_checks = true;
 EidosSymbolTable *gEidosConstantsSymbolTable = nullptr;
 
 
+bool Eidos_GoodSymbolForDefine(std::string &p_symbol_name);
+EidosValue_SP Eidos_ValueForCommandLineExpression(std::string &p_value_expression);
+
+
 void Eidos_WarmUp(void)
 {
 	static bool been_here = false;
@@ -113,6 +117,72 @@ void Eidos_WarmUp(void)
 	}
 }
 
+bool Eidos_GoodSymbolForDefine(std::string &p_symbol_name)
+{
+	bool good_symbol = true;
+	
+	// Eidos constants are reserved
+	if ((p_symbol_name == "T") || (p_symbol_name == "F") || (p_symbol_name == "NULL") || (p_symbol_name == "PI") || (p_symbol_name == "E") || (p_symbol_name == "INF") || (p_symbol_name == "NAN"))
+		good_symbol = false;
+	
+	// Eidos keywords are reserved (probably won't reach here anyway)
+	if ((p_symbol_name == "if") || (p_symbol_name == "else") || (p_symbol_name == "do") || (p_symbol_name == "while") || (p_symbol_name == "for") || (p_symbol_name == "in") || (p_symbol_name == "next") || (p_symbol_name == "break") || (p_symbol_name == "return"))
+		good_symbol = false;
+	
+	// SLiM constants are reserved too; this code belongs in SLiM, but only
+	// SLiM uses this facility right now anyway, so I'm not going to sweat it...
+	if (p_symbol_name == "sim")
+		good_symbol = false;
+	
+	int len = (int)p_symbol_name.length();
+	
+	if (len >= 2)
+	{
+		char first_ch = p_symbol_name[0];
+		
+		if ((first_ch == 'p') || (first_ch == 'g') || (first_ch == 'm') || (first_ch == 's'))
+		{
+			int ch_index;
+			
+			for (ch_index = 1; ch_index < len; ++ch_index)
+			{
+				char idx_ch = p_symbol_name[ch_index];
+				
+				if ((idx_ch < '0') || (idx_ch > '9'))
+					break;
+			}
+			
+			if (ch_index == len)
+				good_symbol = false;
+		}
+	}
+	
+	return good_symbol;
+}
+
+EidosValue_SP Eidos_ValueForCommandLineExpression(std::string &p_value_expression)
+{
+	EidosValue_SP value;
+	EidosScript script(p_value_expression);
+	
+	try
+	{
+		script.SetFinalSemicolonOptional(true);
+		script.Tokenize();
+		script.ParseInterpreterBlockToAST();
+		
+		EidosSymbolTable symbol_table(EidosSymbolTableType::kVariablesTable, gEidosConstantsSymbolTable);
+		EidosInterpreter interpreter(script, symbol_table, *EidosInterpreter::BuiltInFunctionMap(), nullptr);
+		
+		value = interpreter.EvaluateInterpreterBlock(false);
+	}
+	catch (...)
+	{
+	}
+	
+	return value;
+}
+
 void Eidos_DefineConstantsFromCommandLine(std::vector<std::string> p_constants)
 {
 	// We want to throw exceptions, even in SLiM, so that we can catch them here
@@ -122,8 +192,7 @@ void Eidos_DefineConstantsFromCommandLine(std::vector<std::string> p_constants)
 	
 	for (std::string &constant : p_constants)
 	{
-		// Each constant must be in the form x=y, where x is a valid identifier and y is a valid singleton
-		// Eidos value (integer, float, logical, or string).  Of course this could be broadened later.
+		// Each constant must be in the form x=y, where x is a valid identifier and y is a valid Eidos expression.
 		// We parse the assignment using EidosScript, and work with the resulting AST, for generality.
 		EidosScript script(constant);
 		bool malformed = false;
@@ -157,119 +226,33 @@ void Eidos_DefineConstantsFromCommandLine(std::vector<std::string> p_constants)
 					if (left_node && (left_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (left_node->children_.size() == 0))
 					{
 						std::string symbol_name = left_node->token_->token_string_;
-						bool good_symbol = true;
-						
-						// Eidos constants are reserved
-						if ((symbol_name == "T") || (symbol_name == "F") || (symbol_name == "NULL") || (symbol_name == "PI") || (symbol_name == "E") || (symbol_name == "INF") || (symbol_name == "NAN"))
-							good_symbol = false;
-						
-						// Eidos keywords are reserved (probably won't reach here anyway)
-						if ((symbol_name == "if") || (symbol_name == "else") || (symbol_name == "do") || (symbol_name == "while") || (symbol_name == "for") || (symbol_name == "in") || (symbol_name == "next") || (symbol_name == "break") || (symbol_name == "return"))
-							good_symbol = false;
-						
-						// SLiM constants are reserved too; this code belongs in SLiM, but only
-						// SLiM uses this facility right now anyway, so I'm not going to sweat it...
-						if (symbol_name == "sim")
-							good_symbol = false;
-						
-						int len = (int)symbol_name.length();
-						
-						if (len >= 2)
-						{
-							char first_ch = symbol_name[0];
-							
-							if ((first_ch == 'p') || (first_ch == 'g') || (first_ch == 'm') || (first_ch == 's'))
-							{
-								int ch_index;
-								
-								for (ch_index = 1; ch_index < len; ++ch_index)
-								{
-									char idx_ch = symbol_name[ch_index];
-									
-									if ((idx_ch < '0') || (idx_ch > '9'))
-										break;
-								}
-								
-								if (ch_index == len)
-									good_symbol = false;
-							}
-						}
 						
 						// OK, if the symbol name is acceptable, keep digging
-						if (good_symbol)
+						if (Eidos_GoodSymbolForDefine(symbol_name))
 						{
 							const EidosASTNode *right_node = top_node->children_[1];
 							
 							if (right_node)
 							{
-								auto right_child_count = right_node->children_.size();
-								bool is_under_unary_minus = false;
+								// Rather than try to make a new script with right_node as its root, we simply take the substring
+								// to the right of the = operator and make a new script object from that, and evaluate that.
+								// Note that the expression also parsed in the context of "value = <expr>", so this limits the
+								// syntax allowed; the value cannot be a compound statement, for example.
+								int32_t assign_end = top_node->token_->token_end_;
+								std::string value_expression = constant.substr(assign_end + 1);
+								EidosValue_SP x_value_sp = Eidos_ValueForCommandLineExpression(value_expression);
 								
-								if (right_child_count == 1)
+								if (x_value_sp)
 								{
-									// if this is a unary minus negating a numeric constant, track that and move down to the operand node
-									if (right_node->token_->token_type_ == EidosTokenType::kTokenMinus)
-									{
-										right_node = right_node->children_[0];
-										right_child_count = right_node->children_.size();
-										is_under_unary_minus = true;
-									}
-								}
-								
-								if (right_child_count == 0)
-								{
-									EidosValue_SP x_value_sp;
-									std::string value_string;
+									//std::cout << "define " << symbol_name << " = " << value_expression << std::endl;
 									
-									try
-									{
-										if (right_node->token_->token_type_ == EidosTokenType::kTokenNumber)
-										{
-											// integer or float; we don't know which, just from tokenizing
-											value_string = right_node->token_->token_string_;
-											
-											if (is_under_unary_minus)
-												value_string = "-" + value_string;
-											
-											x_value_sp = EidosInterpreter::NumericValueForString(value_string, nullptr);
-										}
-										else if (!is_under_unary_minus)
-										{
-											if (right_node->token_->token_type_ == EidosTokenType::kTokenString)
-											{
-												// string
-												value_string = right_node->token_->token_string_;
-												
-												x_value_sp = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(value_string));
-											}
-											else if (right_node->token_->token_type_ == EidosTokenType::kTokenIdentifier)
-											{
-												// must be either T or F; other identifiers are not legal here
-												value_string = right_node->token_->token_string_;
-												
-												if (value_string == "F")
-													x_value_sp = gStaticEidosValue_LogicalF;
-												else if (value_string == "T")
-													x_value_sp = gStaticEidosValue_LogicalT;
-											}
-										}
-									}
-									catch (...)
-									{
-									}
+									// Permanently alter the global Eidos symbol table; don't do this at home!
+									EidosGlobalStringID symbol_id = EidosGlobalStringIDForString(symbol_name);
+									EidosSymbolTableEntry table_entry(symbol_id, x_value_sp);
 									
-									if (x_value_sp)
-									{
-										//std::cout << "define " << symbol_name << " = " << value_string << std::endl;
-										
-										// Permanently alter the global Eidos symbol table; don't do this at home!
-										EidosGlobalStringID symbol_id = EidosGlobalStringIDForString(symbol_name);
-										EidosSymbolTableEntry table_entry(symbol_id, x_value_sp);
-										
-										gEidosConstantsSymbolTable->InitializeConstantSymbolEntry(table_entry);
-										
-										continue;
-									}
+									gEidosConstantsSymbolTable->InitializeConstantSymbolEntry(table_entry);
+									
+									continue;
 								}
 							}
 						}

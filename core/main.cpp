@@ -252,10 +252,10 @@ int main(int argc, char *argv[])
 	Eidos_WarmUp();
 	SLiM_WarmUp();
 	
-	Eidos_DefineConstantsFromCommandLine(defined_constants);
-	
 	SLiMSim *sim = new SLiMSim(input_file);
 	sim->InitializeRNGFromSeed(override_seed_ptr);
+	
+	Eidos_DefineConstantsFromCommandLine(defined_constants);	// do this after the RNG has been set up
 	
 	if (keep_mem_hist)
 		mem_record[mem_record_index++] = EidosGetCurrentRSS() - mem_record_capacity * sizeof(size_t);
