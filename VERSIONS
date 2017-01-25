@@ -17,6 +17,7 @@ development head:
 	fix a bug preventing negative constant definitions at the command line
 	generalize command-line defines to allow arbitrary expressions
 	add order() function to obtain indices for sorting
+	add recipe for heritability with quantitative genetics (recipe 13.10)
 
 
 2.2 (build 955; Eidos version 1.2):
