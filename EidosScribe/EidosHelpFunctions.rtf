@@ -1970,6 +1970,51 @@ This is quite similar to a function in R of the same name; note, however, that E
 \b0  in the string-elements of 
 \f1\fs18 x
 \f2\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (integer)order(+\'a0x, [logical$
+\f2 \'a0
+\f1 ascending
+\f2 \'a0
+\f1 =\'a0T])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns a 
+\b vector of sorting indices
+\b0  for 
+\f1\fs18 x
+\f0\fs20 : a new 
+\f1\fs18 integer
+\f0\fs20  vector of the same length as 
+\f1\fs18 x
+\f0\fs20 , containing the indices into 
+\f1\fs18 x
+\f0\fs20  that would sort 
+\f1\fs18 x
+\f0\fs20 .  In other words, 
+\f1\fs18 x[order(x)]==sort(x)
+\f0\fs20 .  This can be useful for more complex sorting problems, such as sorting several vectors in parallel by a sort order determined by one of the vectors.  If the optional 
+\f1\fs18 logical
+\f0\fs20  parameter 
+\f1\fs18 ascending
+\f0\fs20  is 
+\f1\fs18 T
+\f0\fs20  (the default), then the sorted order will be ascending; if it is 
+\f1\fs18 F
+\f0\fs20 , the sorted order will be descending.  The ordering is determined according to the same logic as the 
+\f1\fs18 <
+\f0\fs20  and 
+\f1\fs18 >
+\f0\fs20  operators in Eidos.  To easily sort vectors in a single step, use 
+\f1\fs18 sort()
+\f0\fs20  or 
+\f1\fs18 sortBy()
+\f0\fs20 , for non-
+\f1\fs18 object
+\f0\fs20  and 
+\f1\fs18 object
+\f0\fs20  vectors respectively.
+\f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (string$)paste(*\'a0x, [string$
@@ -2041,18 +2086,22 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f0\fs20 : the number of elements contained in 
 \f1\fs18 x
 \f2\fs20 .\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (+)sort(+\'a0x, [logical$
 \f2 \'a0
 \f1 ascending
 \f2 \'a0
 \f1 =\'a0T])\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a 
 \b sorted copy
-\b0  of x: a new vector with the same elements as x, but in sorted order.  If the optional 
+\b0  of 
+\f1\fs18 x
+\f0\fs20 : a new vector with the same elements as 
+\f1\fs18 x
+\f0\fs20 , but in sorted order.  If the optional 
 \f1\fs18 logical
 \f0\fs20  parameter 
 \f1\fs18 ascending
@@ -2068,8 +2117,11 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f1\fs18 object
 \f0\fs20  vector, use 
 \f1\fs18 sortBy()
+\f2\fs20 .
+\f0   To obtain indices for sorting, use 
+\f1\fs18 order()
 \f2\fs20 .\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (object)sortBy(object\'a0x, string$
 \f2 \'a0
@@ -2078,11 +2130,15 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f1 ascending
 \f2 \'a0
 \f1 =\'a0T])\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a 
 \b sorted copy
-\b0  of x: a new vector with the same elements as x, but in sorted order.  If the optional 
+\b0  of 
+\f1\fs18 x
+\f0\fs20 : a new vector with the same elements as 
+\f1\fs18 x
+\f0\fs20 , but in sorted order.  If the optional 
 \f1\fs18 logical
 \f0\fs20  parameter 
 \f1\fs18 ascending
@@ -2104,6 +2160,14 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f1\fs18 "selectionCoeff"
 \f0\fs20 , including the quotes, for 
 \f1\fs18 property
+\f2\fs20 .
+\f0   To sort a non-
+\f1\fs18 object
+\f0\fs20  vector, use 
+\f1\fs18 sortBy()
+\f2\fs20 .
+\f0   To obtain indices for sorting, use 
+\f1\fs18 order()
 \f2\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 

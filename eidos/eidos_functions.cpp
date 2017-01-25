@@ -36,6 +36,7 @@
 #include <algorithm>
 #include <vector>
 #include <utility>
+#include <numeric>
 #include <sys/stat.h>
 
 #include "time.h"
@@ -187,6 +188,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("ifelse",			Eidos_ExecuteFunction_ifelse,		kEidosValueMaskAny))->AddLogical("test")->AddAny("trueValues")->AddAny("falseValues"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("match",			Eidos_ExecuteFunction_match,			kEidosValueMaskInt))->AddAny("x")->AddAny("table"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("nchar",			Eidos_ExecuteFunction_nchar,			kEidosValueMaskInt))->AddString("x"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("order",				Eidos_ExecuteFunction_order,			kEidosValueMaskInt))->AddAnyBase("x")->AddLogical_OS("ascending", gStaticEidosValue_LogicalT));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("paste",			Eidos_ExecuteFunction_paste,			kEidosValueMaskString | kEidosValueMaskSingleton))->AddAny("x")->AddString_OS("sep", gStaticEidosValue_StringSpace));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("print",			Eidos_ExecuteFunction_print,			kEidosValueMaskNULL))->AddAny("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rev",				Eidos_ExecuteFunction_rev,			kEidosValueMaskAny))->AddAny("x"));
@@ -5334,6 +5336,64 @@ EidosValue_SP Eidos_ExecuteFunction_nchar(const EidosValue_SP *const p_arguments
 		
 		for (int value_index = 0; value_index < arg0_count; ++value_index)
 			int_result->PushInt(string_vec[value_index].size());
+	}
+	
+	return result_SP;
+}
+
+// Get indexes that would result in sorted ordering of a vector.  This rather nice code is adapted from http://stackoverflow.com/a/12399290/2752221
+template <typename T>
+vector<int64_t> EidosSortIndexes(const vector<T> &v, bool ascending = true)
+{
+	// initialize original index locations
+	vector<int64_t> idx(v.size());
+	std::iota(idx.begin(), idx.end(), 0);
+	
+	// sort indexes based on comparing values in v
+	if (ascending)
+		std::sort(idx.begin(), idx.end(), [&v](int64_t i1, int64_t i2) {return v[i1] < v[i2];});
+	else
+		std::sort(idx.begin(), idx.end(), [&v](int64_t i1, int64_t i2) {return v[i1] > v[i2];});
+	
+	return idx;
+}
+
+//	(integer)order(+ x, [logical$ ascending = T])
+EidosValue_SP Eidos_ExecuteFunction_order(const EidosValue_SP *const p_arguments, int __attribute__((unused)) p_argument_count, EidosInterpreter __attribute__((unused)) &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *arg0_value = p_arguments[0].get();
+	int arg0_count = arg0_value->Count();
+	
+	if (arg0_count == 0)
+	{
+		// This handles all the zero-length cases by returning integer(0)
+		result_SP = gStaticEidosValue_Integer_ZeroVec;
+	}
+	else if (arg0_count == 1)
+	{
+		// This handles all the singleton cases by returning 0
+		result_SP = gStaticEidosValue_Integer0;
+	}
+	else
+	{
+		// Here we handle the vector cases, which can be done with direct access
+		EidosValueType arg0_type = arg0_value->Type();
+		bool ascending = p_arguments[1]->LogicalAtIndex(0, nullptr);
+		vector<int64_t> order;
+		
+		if (arg0_type == EidosValueType::kValueLogical)
+			order = EidosSortIndexes(*arg0_value->LogicalVector(), ascending);
+		else if (arg0_type == EidosValueType::kValueInt)
+			order = EidosSortIndexes(*arg0_value->IntVector(), ascending);
+		else if (arg0_type == EidosValueType::kValueFloat)
+			order = EidosSortIndexes(*arg0_value->FloatVector(), ascending);
+		else if (arg0_type == EidosValueType::kValueString)
+			order = EidosSortIndexes(*arg0_value->StringVector(), ascending);
+		
+		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(order));
+		result_SP = EidosValue_SP(int_result);
 	}
 	
 	return result_SP;
