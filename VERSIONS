@@ -18,6 +18,7 @@ development head:
 	generalize command-line defines to allow arbitrary expressions
 	add order() function to obtain indices for sorting
 	add recipe for heritability with quantitative genetics (recipe 13.10)
+	add properties (color, colorSubstitution) to allow custom coloring of individuals, genomic element types, and mutation types in SLiMgui
 
 
 2.2 (build 955; Eidos version 1.2):

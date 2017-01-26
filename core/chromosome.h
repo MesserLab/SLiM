@@ -115,6 +115,9 @@ public:
 	double gene_conversion_fraction_;						// gene conversion fraction
 	double gene_conversion_avg_length_;						// average gene conversion stretch length
 	
+	std::string color_sub_;										// color to use for substitutions by default (in SLiMgui)
+	float color_sub_red_, color_sub_green_, color_sub_blue_;	// cached color components from color_sub_; should always be in sync
+	
 	slim_usertag_t tag_value_;								// a user-defined tag value
 	
 	Chromosome(const Chromosome&) = delete;									// no copying

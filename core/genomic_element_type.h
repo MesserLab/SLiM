@@ -59,6 +59,9 @@ public:
 	std::vector<MutationType*> mutation_type_ptrs_;						// mutation types identifiers in this element
 	std::vector<double> mutation_fractions_;							// relative fractions of each mutation type
 	
+	std::string color_;													// color to use when displayed (in SLiMgui)
+	float color_red_, color_green_, color_blue_;						// cached color components from color_; should always be in sync
+	
 	slim_usertag_t tag_value_;											// a user-defined tag value
 	
 	GenomicElementType(const GenomicElementType&) = delete;				// no copying

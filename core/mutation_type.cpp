@@ -299,6 +299,10 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 		}
 			
 			// variables
+		case gID_color:
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(color_));
+		case gID_colorSubstitution:
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(color_sub_));
 		case gID_convertToSubstitution:
 			return (convert_to_substitution_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		case gID_dominanceCoeff:			// ACCELERATED
@@ -358,6 +362,22 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_property_id)
 	{
+		case gID_color:
+		{
+			color_ = p_value.StringAtIndex(0, nullptr);
+			if (!color_.empty())
+				SLiMGetColorComponents(color_, &color_red_, &color_green_, &color_blue_);
+			return;
+		}
+			
+		case gID_colorSubstitution:
+		{
+			color_sub_ = p_value.StringAtIndex(0, nullptr);
+			if (!color_sub_.empty())
+				SLiMGetColorComponents(color_sub_, &color_sub_red_, &color_sub_green_, &color_sub_blue_);
+			return;
+		}
+			
 		case gID_convertToSubstitution:
 		{
 			eidos_logical_t value = p_value.LogicalAtIndex(0, nullptr);
@@ -557,6 +577,8 @@ const std::vector<const EidosPropertySignature *> *MutationType_Class::Propertie
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_dominanceCoeff));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutationStackPolicy));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_tag));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_color));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_colorSubstitution));
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
@@ -573,6 +595,8 @@ const EidosPropertySignature *MutationType_Class::SignatureForProperty(EidosGlob
 	static EidosPropertySignature *dominanceCoeffSig = nullptr;
 	static EidosPropertySignature *mutationStackPolicySig = nullptr;
 	static EidosPropertySignature *tagSig = nullptr;
+	static EidosPropertySignature *colorSig = nullptr;
+	static EidosPropertySignature *colorSubstitutionSig = nullptr;
 	
 	if (!idSig)
 	{
@@ -583,6 +607,8 @@ const EidosPropertySignature *MutationType_Class::SignatureForProperty(EidosGlob
 		dominanceCoeffSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_dominanceCoeff,			gID_dominanceCoeff,			false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAccelerated();
 		mutationStackPolicySig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationStackPolicy,		gID_mutationStackPolicy,	false,	kEidosValueMaskString | kEidosValueMaskSingleton));
 		tagSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,						gID_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAccelerated();
+		colorSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_color,					gID_color,					false,	kEidosValueMaskString | kEidosValueMaskSingleton));
+		colorSubstitutionSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_colorSubstitution,		gID_colorSubstitution,		false,	kEidosValueMaskString | kEidosValueMaskSingleton));
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -595,6 +621,8 @@ const EidosPropertySignature *MutationType_Class::SignatureForProperty(EidosGlob
 		case gID_dominanceCoeff:		return dominanceCoeffSig;
 		case gID_mutationStackPolicy:	return mutationStackPolicySig;
 		case gID_tag:					return tagSig;
+		case gID_color:					return colorSig;
+		case gID_colorSubstitution:		return colorSubstitutionSig;
 			
 			// all others, including gID_none
 		default:

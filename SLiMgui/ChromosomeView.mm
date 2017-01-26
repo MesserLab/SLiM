@@ -419,8 +419,13 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		
 		if (!NSIsEmptyRect(elementRect))
 		{
-			slim_objectid_t elementTypeID = genomicElement.genomic_element_type_ptr_->genomic_element_type_id_;
-			NSColor *elementColor = [controller colorForGenomicElementTypeID:elementTypeID];
+			GenomicElementType *geType = genomicElement.genomic_element_type_ptr_;
+			NSColor *elementColor = nil;
+			
+			if (!geType->color_.empty())
+				elementColor = [NSColor colorWithCalibratedRed:geType->color_red_ green:geType->color_green_ blue:geType->color_blue_ alpha:1.0];
+			else
+				elementColor = [controller colorForGenomicElementTypeID:geType->genomic_element_type_id_];
 			
 			[elementColor set];
 			NSRectFill(elementRect);
@@ -461,14 +466,29 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		
 		if (!NSIsEmptyRect(elementRect))
 		{
-			slim_objectid_t elementTypeID = genomicElement.genomic_element_type_ptr_->genomic_element_type_id_;
-			NSColor *elementColor = [controller colorForGenomicElementTypeID:elementTypeID];
+			GenomicElementType *geType = genomicElement.genomic_element_type_ptr_;
+			float colorRed, colorGreen, colorBlue, colorAlpha;
 			
-			double r, g, b, a;
-			
-			[elementColor getRed:&r green:&g blue:&b alpha:&a];
-			
-			float colorRed = (float)r, colorGreen = (float)g, colorBlue = (float)b, colorAlpha = (float)a;
+			if (!geType->color_.empty())
+			{
+				colorRed = geType->color_red_;
+				colorGreen = geType->color_green_;
+				colorBlue = geType->color_blue_;
+				colorAlpha = 1.0;
+			}
+			else
+			{
+				slim_objectid_t elementTypeID = geType->genomic_element_type_id_;
+				NSColor *elementColor = [controller colorForGenomicElementTypeID:elementTypeID];
+				double r, g, b, a;
+				
+				[elementColor getRed:&r green:&g blue:&b alpha:&a];
+				
+				colorRed = (float)r;
+				colorGreen = (float)g;
+				colorBlue = (float)b;
+				colorAlpha = (float)a;
+			}
 			
 			SLIM_GL_DEFCOORDS(elementRect);
 			SLIM_GL_PUSHRECT();
@@ -693,6 +713,20 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	double scalingFactor = controller->selectionColorScale;
 	SLiMSim *sim = controller->sim;
 	Population &pop = sim->population_;
+	Chromosome &chromosome = sim->chromosome_;
+	bool chromosomeHasDefaultColor = !chromosome.color_sub_.empty();
+	
+	float colorRed = 0.2f, colorGreen = 0.2f, colorBlue = 1.0f;
+	
+	if (chromosomeHasDefaultColor)
+	{
+		colorRed = chromosome.color_sub_red_;
+		colorGreen = chromosome.color_sub_green_;
+		colorBlue = chromosome.color_sub_blue_;
+	}
+	
+	[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
+	
 	std::vector<Substitution*> &substitutions = pop.substitutions_;
 	
 	if ((substitutions.size() < 1000) || (displayedRange.length < interiorRect.size.width))
@@ -703,18 +737,21 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 			slim_position_t substitutionPosition = substitution->position_;
 			NSRect substitutionTickRect = [self rectEncompassingBase:substitutionPosition toBase:substitutionPosition interiorRect:interiorRect displayedRange:displayedRange];
 			
-			if (shouldDrawMutations)
+			if (!shouldDrawMutations || !chromosomeHasDefaultColor)
 			{
 				// If we're drawing mutations as well, then substitutions just get colored blue, to contrast
-				[[NSColor colorWithCalibratedRed:0.2 green:0.2 blue:1.0 alpha:1.0] set];
-			}
-			else
-			{
 				// If we're not drawing mutations as well, then substitutions get colored by selection coefficient, like mutations
-				float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0;
+				const MutationType *mutType = substitution->mutation_type_ptr_;
 				
-				RGBForSelectionCoeff(substitution->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
-				[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
+				if (!mutType->color_sub_.empty())
+				{
+					[[NSColor colorWithCalibratedRed:mutType->color_sub_red_ green:mutType->color_sub_green_ blue:mutType->color_sub_blue_ alpha:1.0] set];
+				}
+				else
+				{
+					RGBForSelectionCoeff(substitution->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+					[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
+				}
 			}
 			
 			NSRectFill(substitutionTickRect);
@@ -736,12 +773,10 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 				subBuffer[xPos] = substitution;
 		}
 		
-		if (shouldDrawMutations)
+		if (shouldDrawMutations && chromosomeHasDefaultColor)
 		{
 			// If we're drawing mutations as well, then substitutions just get colored blue, to contrast
 			NSRect mutationTickRect = NSMakeRect(interiorRect.origin.x, interiorRect.origin.y, 1, interiorRect.size.height);
-			
-			[[NSColor colorWithCalibratedRed:0.2 green:0.2 blue:1.0 alpha:1.0] set];
 			
 			for (int binIndex = 0; binIndex < displayPixelWidth; ++binIndex)
 			{
@@ -767,7 +802,6 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		{
 			// If we're not drawing mutations as well, then substitutions get colored by selection coefficient, like mutations
 			NSRect mutationTickRect = NSMakeRect(interiorRect.origin.x, interiorRect.origin.y, 1, interiorRect.size.height);
-			float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0;
 			
 			for (int binIndex = 0; binIndex < displayPixelWidth; ++binIndex)
 			{
@@ -775,10 +809,19 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 				
 				if (substitution)
 				{
-					mutationTickRect.origin.x = interiorRect.origin.x + binIndex;
+					const MutationType *mutType = substitution->mutation_type_ptr_;
 					
-					RGBForSelectionCoeff(substitution->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
-					[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
+					if (!mutType->color_sub_.empty())
+					{
+						[[NSColor colorWithCalibratedRed:mutType->color_sub_red_ green:mutType->color_sub_green_ blue:mutType->color_sub_blue_ alpha:1.0] set];
+					}
+					else
+					{
+						RGBForSelectionCoeff(substitution->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+						[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
+					}
+					
+					mutationTickRect.origin.x = interiorRect.origin.x + binIndex;
 					NSRectFill(mutationTickRect);
 				}
 			}
@@ -793,10 +836,19 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	double scalingFactor = controller->selectionColorScale;
 	SLiMSim *sim = controller->sim;
 	Population &pop = sim->population_;
+	Chromosome &chromosome = sim->chromosome_;
+	bool chromosomeHasDefaultColor = !chromosome.color_sub_.empty();
 	std::vector<Substitution*> &substitutions = pop.substitutions_;
 	
 	// Set up to draw rects
 	float colorRed = 0.2f, colorGreen = 0.2f, colorBlue = 1.0f, colorAlpha = 1.0;
+	
+	if (chromosomeHasDefaultColor)
+	{
+		colorRed = chromosome.color_sub_red_;
+		colorGreen = chromosome.color_sub_green_;
+		colorBlue = chromosome.color_sub_blue_;
+	}
 	
 	SLIM_GL_PREPARE();
 	
@@ -808,11 +860,22 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 			slim_position_t substitutionPosition = substitution->position_;
 			NSRect substitutionTickRect = [self rectEncompassingBase:substitutionPosition toBase:substitutionPosition interiorRect:interiorRect displayedRange:displayedRange];
 			
-			if (!shouldDrawMutations)
+			if (!shouldDrawMutations || !chromosomeHasDefaultColor)
 			{
 				// If we're drawing mutations as well, then substitutions just get colored blue (set above), to contrast
 				// If we're not drawing mutations as well, then substitutions get colored by selection coefficient, like mutations
-				RGBForSelectionCoeff(substitution->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+				const MutationType *mutType = substitution->mutation_type_ptr_;
+				
+				if (!mutType->color_sub_.empty())
+				{
+					colorRed = mutType->color_sub_red_;
+					colorGreen = mutType->color_sub_green_;
+					colorBlue = mutType->color_sub_blue_;
+				}
+				else
+				{
+					RGBForSelectionCoeff(substitution->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+				}
 			}
 			
 			SLIM_GL_DEFCOORDS(substitutionTickRect);
@@ -837,7 +900,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 				subBuffer[xPos] = substitution;
 		}
 		
-		if (shouldDrawMutations)
+		if (shouldDrawMutations && chromosomeHasDefaultColor)
 		{
 			// If we're drawing mutations as well, then substitutions just get colored blue, to contrast
 			NSRect mutationTickRect = NSMakeRect(interiorRect.origin.x, interiorRect.origin.y, 1, interiorRect.size.height);
@@ -876,10 +939,20 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 				
 				if (substitution)
 				{
+					const MutationType *mutType = substitution->mutation_type_ptr_;
+					
+					if (!mutType->color_sub_.empty())
+					{
+						colorRed = mutType->color_sub_red_;
+						colorGreen = mutType->color_sub_green_;
+						colorBlue = mutType->color_sub_blue_;
+					}
+					else
+					{
+						RGBForSelectionCoeff(substitution->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+					}
+					
 					mutationTickRect.origin.x = interiorRect.origin.x + binIndex;
-					
-					RGBForSelectionCoeff(substitution->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
-					
 					SLIM_GL_DEFCOORDS(mutationTickRect);
 					SLIM_GL_PUSHRECT();
 					SLIM_GL_PUSHRECT_COLORS();
@@ -912,14 +985,23 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
 		{
 			const Mutation *mutation = mutations[mutIndex];
+			const MutationType *mutType = mutation->mutation_type_ptr_;
 			slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
 			slim_position_t mutationPosition = mutation->position_;
 			NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
-			float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0;
+			
+			if (!mutType->color_.empty())
+			{
+				[[NSColor colorWithCalibratedRed:mutType->color_red_ green:mutType->color_green_ blue:mutType->color_blue_ alpha:1.0] set];
+			}
+			else
+			{
+				float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0;
+				RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+				[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
+			}
 			
 			mutationTickRect.size.height = (int)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
-			RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
-			[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
 			NSRectFill(mutationTickRect);
 		}
 	}
@@ -947,9 +1029,10 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		for (auto mutationTypeIter = mut_types.begin(); mutationTypeIter != mut_types.end(); ++mutationTypeIter)
 		{
 			MutationType *mut_type = mutationTypeIter->second;
+			bool mut_type_fixed_color = !mut_type->color_.empty();
 			
-			// We optimize fixed-DFE mutation types only
-			if (mut_type->dfe_type_ == DFEType::kFixed)
+			// We optimize fixed-DFE mutation types only, and those using a fixed color set by the user
+			if ((mut_type->dfe_type_ == DFEType::kFixed) || mut_type_fixed_color)
 			{
 				slim_selcoeff_t mut_type_selcoeff = (slim_selcoeff_t)mut_type->dfe_parameters_[0];
 				
@@ -960,7 +1043,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 				{
 					const Mutation *mutation = mutations[mutIndex];
 					
-					if ((mutation->mutation_type_ptr_ == mut_type) && (mutation->selection_coeff_ == mut_type_selcoeff))
+					if ((mutation->mutation_type_ptr_ == mut_type) && (mut_type_fixed_color || (mutation->selection_coeff_ == mut_type_selcoeff)))
 					{
 						slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// includes only refs from the selected subpopulations
 						slim_position_t mutationPosition = mutation->position_;
@@ -981,8 +1064,15 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 				}
 				
 				// Now draw all of the mutations we found, by looping through our radix bins
-				RGBForSelectionCoeff(mut_type_selcoeff, &colorRed, &colorGreen, &colorBlue, scalingFactor);
-				[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
+				if (mut_type_fixed_color)
+				{
+					[[NSColor colorWithCalibratedRed:mut_type->color_red_ green:mut_type->color_green_ blue:mut_type->color_blue_ alpha:1.0] set];
+				}
+				else
+				{
+					RGBForSelectionCoeff(mut_type_selcoeff, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+					[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
+				}
 				
 				for (int binIndex = 0; binIndex < displayPixelWidth; ++binIndex)
 				{
@@ -998,7 +1088,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 			}
 		}
 		
-		// Draw any undrawn mutations on top
+		// Draw any undrawn mutations on top; these are guaranteed not to use a fixed color set by the user, since those are all handled above
 		if (remainingMutations)
 		{
 			if (remainingMutations < 1000)
@@ -1100,13 +1190,23 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
 		{
 			const Mutation *mutation = mutations[mutIndex];
+			const MutationType *mutType = mutation->mutation_type_ptr_;
 			slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
 			slim_position_t mutationPosition = mutation->position_;
 			NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
 			
-			mutationTickRect.size.height = (int)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
-			RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+			if (!mutType->color_.empty())
+			{
+				colorRed = mutType->color_red_;
+				colorGreen = mutType->color_green_;
+				colorBlue = mutType->color_blue_;
+			}
+			else
+			{
+				RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+			}
 			
+			mutationTickRect.size.height = (int)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
 			SLIM_GL_DEFCOORDS(mutationTickRect);
 			SLIM_GL_PUSHRECT();
 			SLIM_GL_PUSHRECT_COLORS();
@@ -1136,9 +1236,10 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		for (auto mutationTypeIter = mut_types.begin(); mutationTypeIter != mut_types.end(); ++mutationTypeIter)
 		{
 			MutationType *mut_type = mutationTypeIter->second;
+			bool mut_type_fixed_color = !mut_type->color_.empty();
 			
-			// We optimize fixed-DFE mutation types only
-			if (mut_type->dfe_type_ == DFEType::kFixed)
+			// We optimize fixed-DFE mutation types only, and those using a fixed color set by the user
+			if ((mut_type->dfe_type_ == DFEType::kFixed) || mut_type_fixed_color)
 			{
 				slim_selcoeff_t mut_type_selcoeff = (slim_selcoeff_t)mut_type->dfe_parameters_[0];
 				
@@ -1149,7 +1250,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 				{
 					const Mutation *mutation = mutations[mutIndex];
 					
-					if ((mutation->mutation_type_ptr_ == mut_type) && (mutation->selection_coeff_ == mut_type_selcoeff))
+					if ((mutation->mutation_type_ptr_ == mut_type) && (mut_type_fixed_color || (mutation->selection_coeff_ == mut_type_selcoeff)))
 					{
 						slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// includes only refs from the selected subpopulations
 						slim_position_t mutationPosition = mutation->position_;
@@ -1170,7 +1271,16 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 				}
 				
 				// Now draw all of the mutations we found, by looping through our radix bins
-				RGBForSelectionCoeff(mut_type_selcoeff, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+				if (mut_type_fixed_color)
+				{
+					colorRed = mut_type->color_red_;
+					colorGreen = mut_type->color_green_;
+					colorBlue = mut_type->color_blue_;
+				}
+				else
+				{
+					RGBForSelectionCoeff(mut_type_selcoeff, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+				}
 				
 				for (int binIndex = 0; binIndex < displayPixelWidth; ++binIndex)
 				{
@@ -1189,7 +1299,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 			}
 		}
 		
-		// Draw any undrawn mutations on top
+		// Draw any undrawn mutations on top; these are guaranteed not to use a fixed color set by the user, since those are all handled above
 		if (remainingMutations)
 		{
 			if (remainingMutations < 1000)

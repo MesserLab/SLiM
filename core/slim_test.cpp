@@ -747,12 +747,20 @@ void _RunMutationTypeTests(void)
 	//
 	
 	// Test MutationType properties
+	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.color == '') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.colorSubstitution == '') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.convertToSubstitution == T) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.mutationStackPolicy == 's') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.distributionParams == 0.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.distributionType == 'f') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.dominanceCoeff == 0.5) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.id == 1) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 { m1.color = ''; } 2 { if (m1.color == '') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 { m1.color = 'red'; } 2 { if (m1.color == 'red') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 { m1.color = '#FF0000'; } 2 { if (m1.color == '#FF0000') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 { m1.colorSubstitution = ''; } 2 { if (m1.colorSubstitution == '') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 { m1.colorSubstitution = 'red'; } 2 { if (m1.colorSubstitution == 'red') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 { m1.colorSubstitution = '#FF0000'; } 2 { if (m1.colorSubstitution == '#FF0000') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { m1.tag = 17; } 2 { if (m1.tag == 17) stop(); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 { m1.convertToSubstitution = F; }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 { m1.mutationStackPolicy = 's'; }", __LINE__);
@@ -814,11 +822,15 @@ void _RunGenomicElementTypeTests(void)
 	//
 	
 	// Test GenomicElementType properties
+	SLiMAssertScriptStop(gen1_setup + "1 { if (g1.color == '') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { if (g1.id == 1) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 { g1.id = 2; }", 1, 222, "read-only property", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { if (g1.mutationFractions == 1.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { if (g1.mutationTypes == m1) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 { m1.tag = 17; } 2 { if (m1.tag == 17) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 { g1.color = ''; } 2 { if (g1.color == '') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 { g1.color = 'red'; } 2 { if (g1.color == 'red') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 { g1.color = '#FF0000'; } 2 { if (g1.color == '#FF0000') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 { g1.tag = 17; } 2 { if (g1.tag == 17) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 { g1.mutationFractions = 1.0; }", 1, 237, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 { g1.mutationTypes = m1; }", 1, 233, "read-only property", __LINE__);
 	
@@ -886,6 +898,7 @@ void _RunChromosomeTests(void)
 	//
 	
 	// Test Chromosome properties
+	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.colorSubstitution == '#3333FF') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.geneConversionFraction == 0.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.geneConversionMeanLength == 0.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.genomicElements[0].genomicElementType == g1) stop(); }", __LINE__);
@@ -900,6 +913,9 @@ void _RunChromosomeTests(void)
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.recombinationRates == 1e-8) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (isNULL(ch.recombinationRatesM)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (isNULL(ch.recombinationRatesF)) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.colorSubstitution = ''; if (ch.colorSubstitution == '') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.colorSubstitution = 'red'; if (ch.colorSubstitution == 'red') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.colorSubstitution = '#FF0000'; if (ch.colorSubstitution == '#FF0000') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.tag = 3294; if (ch.tag == 3294) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.geneConversionFraction = 0.1; if (ch.geneConversionFraction == 0.1) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.geneConversionFraction = -0.001; stop(); }", 1, 263, "out of range", __LINE__);
@@ -924,6 +940,7 @@ void _RunChromosomeTests(void)
 	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.recombinationRatesM = 1e-8; stop(); }", 1, 260, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.recombinationRatesF = 1e-8; stop(); }", 1, 260, "read-only property", __LINE__);
 	
+	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; if (ch.colorSubstitution == '#3333FF') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; if (ch.geneConversionFraction == 0.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; if (ch.geneConversionMeanLength == 0.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; if (ch.genomicElements[0].genomicElementType == g1) stop(); }", __LINE__);
@@ -938,6 +955,9 @@ void _RunChromosomeTests(void)
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; if (ch.recombinationRates == 1e-8) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; if (isNULL(ch.recombinationRatesM)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; if (isNULL(ch.recombinationRatesF)) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; ch.colorSubstitution = ''; if (ch.colorSubstitution == '') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; ch.colorSubstitution = 'red'; if (ch.colorSubstitution == 'red') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; ch.colorSubstitution = '#FF0000'; if (ch.colorSubstitution == '#FF0000') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; ch.tag = 3294; if (ch.tag == 3294) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; ch.geneConversionFraction = 0.1; if (ch.geneConversionFraction == 0.1) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.geneConversionFraction = -0.001; stop(); }", 1, 283, "out of range", __LINE__);
@@ -964,6 +984,7 @@ void _RunChromosomeTests(void)
 	
 	std::string gen1_setup_sex_2rates("initialize() { initializeMutationRate(1e-7); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeSex('X'); initializeRecombinationRate(1e-8, 99999, 'M'); initializeRecombinationRate(1e-7, 99999, 'F'); } ");
 	
+	SLiMAssertScriptStop(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; if (ch.colorSubstitution == '#3333FF') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; if (ch.geneConversionFraction == 0.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; if (ch.geneConversionMeanLength == 0.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; if (ch.genomicElements[0].genomicElementType == g1) stop(); }", __LINE__);
@@ -978,6 +999,9 @@ void _RunChromosomeTests(void)
 	SLiMAssertScriptStop(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; if (isNULL(ch.recombinationRates)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; if (ch.recombinationRatesM == 1e-8) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; if (ch.recombinationRatesF == 1e-7) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.colorSubstitution = ''; if (ch.colorSubstitution == '') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.colorSubstitution = 'red'; if (ch.colorSubstitution == 'red') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.colorSubstitution = '#FF0000'; if (ch.colorSubstitution == '#FF0000') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.tag = 3294; if (ch.tag == 3294) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.geneConversionFraction = 0.1; if (ch.geneConversionFraction == 0.1) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.geneConversionFraction = -0.001; stop(); }", 1, 342, "out of range", __LINE__);
@@ -1597,10 +1621,12 @@ void _RunIndividualTests(void)
 	//
 	
 	// Test Individual properties
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; if (all(i.color == '')) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; if (size(i.genomes) == 20) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; if (all(i.index == (0:9))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; if (all(i.subpopulation == rep(p1, 10))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; if (all(i.sex == rep('H', 10))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; i.color = 'red'; if (all(i.color == 'red')) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; i.tag = 135; if (all(i.tag == 135)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; i.tagF = 135.0; if (all(i.tagF == 135.0)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { i = p1.individuals; i.uniqueMutations; stop(); }", __LINE__);
@@ -1611,10 +1637,12 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { i = p1.individuals; i.sex = i[0].sex; stop(); }", 1, 273, "read-only property", __LINE__);
 	//SLiMAssertScriptRaise(gen1_setup_p1 + "10 { i = p1.individuals; i.uniqueMutations = sim.mutations[0]; stop(); }", 1, 287, "read-only property", __LINE__);
 	
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { i = p1.individuals; if (all(i.color == '')) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { i = p1.individuals; if (size(i.genomes) == 20) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { i = p1.individuals; if (all(i.index == (0:9))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { i = p1.individuals; if (all(i.subpopulation == rep(p1, 10))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { i = p1.individuals; if (all(i.sex == repEach(c('F','M'), 5))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { i = p1.individuals; i.color = 'red'; if (all(i.color == 'red')) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { i = p1.individuals; i.tag = 135; if (all(i.tag == 135)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { i = p1.individuals; i.tagF = 135.0; if (all(i.tagF == 135.0)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 { i = p1.individuals; i.uniqueMutations; stop(); }", __LINE__);

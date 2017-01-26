@@ -141,8 +141,6 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 		
 		for (individualArrayIndex = 0; individualArrayIndex < subpopSize; ++individualArrayIndex)
 		{
-			//AKIndividual *individual = individuals[individualArrayIndex];
-			
 			// Figure out the rect to draw in; note we now use individualArrayIndex here, because the hit-testing code doesn't have an easy way to calculate the displayed individual index...
 			float left = (float)(individualArea.origin.x + (individualArrayIndex % viewColumns) * (squareSize + squareSpacing));
 			float top = (float)(individualArea.origin.y + (individualArrayIndex / viewColumns) * (squareSize + squareSpacing));
@@ -160,10 +158,31 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 			
 			float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0, colorAlpha = 1.0;
 			
-			// use individual trait values to determine color; we used fitness values cached in UpdateFitness, so we don't have to call out to fitness callbacks
-			double fitness = (useCachedFitness ? subpop_fitness[individualArrayIndex] : 1.0);
-			
-			RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+			if (gSLiM_Individual_custom_colors)
+			{
+				Individual &individual = subpop->parent_individuals_[individualArrayIndex];
+				
+				if (!individual.color_.empty())
+				{
+					colorRed = individual.color_red_;
+					colorGreen = individual.color_green_;
+					colorBlue = individual.color_blue_;
+				}
+				else
+				{
+					// use individual trait values to determine color; we used fitness values cached in UpdateFitness, so we don't have to call out to fitness callbacks
+					double fitness = (useCachedFitness ? subpop_fitness[individualArrayIndex] : 1.0);
+					
+					RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+				}
+			}
+			else
+			{
+				// use individual trait values to determine color; we used fitness values cached in UpdateFitness, so we don't have to call out to fitness callbacks
+				double fitness = (useCachedFitness ? subpop_fitness[individualArrayIndex] : 1.0);
+				
+				RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+			}
 			
 			for (int j = 0; j < 4; ++j)
 			{

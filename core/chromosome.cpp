@@ -36,6 +36,10 @@ Chromosome::Chromosome(void) : lookup_mutation_(nullptr), single_recombination_m
 	exp_neg_overall_recombination_rate_F_(0.0), probability_both_0_F_(0.0), probability_both_0_OR_mut_0_break_non0_F_(0.0), probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_F_(0.0), overall_recombination_rate_F_(0.0),
 	last_position_(0), overall_mutation_rate_(0.0), element_mutation_rate_(0.0), gene_conversion_fraction_(0.0), gene_conversion_avg_length_(0.0)
 {
+	// Set up the default color for fixed mutations in SLiMgui
+	color_sub_ = "#3333FF";
+	if (!color_sub_.empty())
+		SLiMGetColorComponents(color_sub_, &color_sub_red_, &color_sub_green_, &color_sub_blue_);
 }
 
 Chromosome::~Chromosome(void)
@@ -435,6 +439,8 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(recombination_rates_F_));
 			
 			// variables
+		case gID_colorSubstitution:
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(color_sub_));
 		case gID_geneConversionFraction:
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gene_conversion_fraction_));
 		case gID_geneConversionMeanLength:
@@ -455,6 +461,13 @@ void Chromosome::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_property_id)
 	{
+		case gID_colorSubstitution:
+		{
+			color_sub_ = p_value.StringAtIndex(0, nullptr);
+			if (!color_sub_.empty())
+				SLiMGetColorComponents(color_sub_, &color_sub_red_, &color_sub_green_, &color_sub_blue_);
+			return;
+		}
 		case gID_geneConversionFraction:
 		{
 			double value = p_value.FloatAtIndex(0, nullptr);
@@ -673,6 +686,7 @@ const std::vector<const EidosPropertySignature *> *Chromosome_Class::Properties(
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_geneConversionMeanLength));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutationRate));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_tag));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_colorSubstitution));
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
@@ -697,6 +711,7 @@ const EidosPropertySignature *Chromosome_Class::SignatureForProperty(EidosGlobal
 	static EidosPropertySignature *geneConversionMeanLengthSig = nullptr;
 	static EidosPropertySignature *mutationRateSig = nullptr;
 	static EidosPropertySignature *tagSig = nullptr;
+	static EidosPropertySignature *colorSubstitutionSig = nullptr;
 	
 	if (!genomicElementsSig)
 	{
@@ -715,6 +730,7 @@ const EidosPropertySignature *Chromosome_Class::SignatureForProperty(EidosGlobal
 		geneConversionMeanLengthSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_geneConversionMeanLength,	gID_geneConversionMeanLength,	false,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
 		mutationRateSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationRate,				gID_mutationRate,				false,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
 		tagSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,							gID_tag,						false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
+		colorSubstitutionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_colorSubstitution,			gID_colorSubstitution,			false,	kEidosValueMaskString | kEidosValueMaskSingleton));
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -735,6 +751,7 @@ const EidosPropertySignature *Chromosome_Class::SignatureForProperty(EidosGlobal
 		case gID_geneConversionMeanLength:		return geneConversionMeanLengthSig;
 		case gID_mutationRate:					return mutationRateSig;
 		case gID_tag:							return tagSig;
+		case gID_colorSubstitution:				return colorSubstitutionSig;
 			
 			// all others, including gID_none
 		default:

@@ -1,7 +1,8 @@
-{\rtf1\ansi\ansicpg1252\cocoartf1404\cocoasubrtf470
+{\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf760
 {\fonttbl\f0\fswiss\fcharset0 Optima-Regular;\f1\fnil\fcharset0 Menlo-Italic;\f2\fnil\fcharset0 Menlo-Regular;
 \f3\froman\fcharset0 TimesNewRomanPSMT;\f4\fswiss\fcharset0 Helvetica;}
 {\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
 \margl1440\margr1440\vieww9000\viewh19740\viewkind0
 \deftab720
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
@@ -12,9 +13,27 @@
 \i\b0 \cf0 5.2.1  
 \f1\fs18 Chromosome
 \f0\fs22  properties\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\i0\fs18 \cf0 colorSubstitution <\'96> (string$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The color used to display substitutions in SLiMgui when both mutations and substitutions are being displayed in the chromosome view.  Outside of SLiMgui, this property still exists, but is not used by SLiM.  Colors may be specified by name, or with hexadecimal RGB values of the form 
+\f2\fs18 "#RRGGBB"
+\f0\fs20 .  If 
+\f2\fs18 colorSubstitution
+\f0\fs20  is the empty string, 
+\f2\fs18 ""
+\f0\fs20 , SLiMgui will defer to the color scheme of each 
+\f2\fs18 MutationType
+\f0\fs20 , just as it does when only substitutions are being displayed.  The default, 
+\f2\fs18 "3333FF"
+\f0\fs20 , causes all substitutions to be shown as dark blue when displayed in conjunction with mutations, to prevent the view from becoming too noisy.  Note that when substitutions are displayed without mutations also being displayed, this value is ignored by SLiMgui and the substitutions use the color scheme of each 
+\f2\fs18 MutationType
+\f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\i0\fs18 \cf0 geneConversionFraction <\'96> (float$)\
+\f2\fs18 \cf0 geneConversionFraction <\'96> (float$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 The fraction of crossover events that result in gene conversion; see SLiM\'92s manual for details.
@@ -758,9 +777,23 @@ The optional parameter
 \i\b0 \cf0 5.5.1  
 \f1\fs18 GenomicElementType
 \f0\fs22  properties\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\i0\fs18 \cf0 color <\'96> (string$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The color used to display genomic elements of this type in SLiMgui.  Outside of SLiMgui, this property still exists, but is not used by SLiM.  Colors may be specified by name, or with hexadecimal RGB values of the form 
+\f2\fs18 "#RRGGBB"
+\f0\fs20 .  If 
+\f2\fs18 color
+\f0\fs20  is the empty string, 
+\f2\fs18 ""
+\f0\fs20 , SLiMgui\'92s default color scheme is used; this is the default for new 
+\f2\fs18 GenomicElementType
+\f0\fs20  objects.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\i0\fs18 \cf0 id => (integer$)\
+\f2\fs18 \cf0 id => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 The identifier for this genomic element type; for genomic element type 
@@ -830,7 +863,21 @@ The optional parameter
 \f0\fs22  properties\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\i0\fs18 \cf0 genomes => (object<Genome>)\
+\f2\i0\fs18 \cf0 color <\'96> (string$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The color used to display the individual in SLiMgui.  Outside of SLiMgui, this property still exists, but is not used by SLiM.  Colors may be specified by name, or with hexadecimal RGB values of the form 
+\f2\fs18 "#RRGGBB"
+\f0\fs20 .  If 
+\f2\fs18 color
+\f0\fs20  is the empty string, 
+\f2\fs18 ""
+\f0\fs20 , SLiMgui\'92s default (fitness-based) color scheme is used; this is the default for new 
+\f2\fs18 Individual
+\f0\fs20  objects.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 genomes => (object<Genome>)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 The pair of 
@@ -1291,9 +1338,41 @@ This is normally a constant in simulations, so be sure you know what you are doi
 \i\b0 \cf0 5.8.1  
 \f1\fs18 MutationType
 \f0\fs22  properties\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\i0\fs18 \cf0 color <\'96> (string$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The color used to display mutations of this type in SLiMgui.  Outside of SLiMgui, this property still exists, but is not used by SLiM.  Colors may be specified by name, or with hexadecimal RGB values of the form 
+\f2\fs18 "#RRGGBB"
+\f0\fs20 .  If 
+\f2\fs18 color
+\f0\fs20  is the empty string, 
+\f2\fs18 ""
+\f0\fs20 , SLiMgui\'92s default (selection-coefficient\'96based) color scheme is used; this is the default for new 
+\f2\fs18 MutationType
+\f0\fs20  objects.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 colorSubstitution <\'96> (string$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The color used to display substitutions of this type in SLiMgui (see the discussion for the 
+\f2\fs18 colorSubstitution
+\f0\fs20  property of the 
+\f2\fs18 Chromosome
+\f0\fs20  class for details).  Outside of SLiMgui, this property still exists, but is not used by SLiM.  Colors may be specified by name, or with hexadecimal RGB values of the form 
+\f2\fs18 "#RRGGBB"
+\f0\fs20 .  If 
+\f2\fs18 colorSubstitution
+\f0\fs20  is the empty string, 
+\f2\fs18 ""
+\f0\fs20 , SLiMgui\'92s default (selection-coefficient\'96based) color scheme is used; this is the default for new 
+\f2\fs18 MutationType
+\f0\fs20  objects.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\i0\fs18 \cf0 convertToSubstitution <\'96> (logical$)\
+\f2\fs18 \cf0 convertToSubstitution <\'96> (logical$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 This property governs whether mutations of this mutation type will be converted to 

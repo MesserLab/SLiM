@@ -310,6 +310,8 @@ extern const std::string gStr_subpopulations;
 extern const std::string gStr_substitutions;
 extern const std::string gStr_dominanceCoeffX;
 extern const std::string gStr_generation;
+extern const std::string gStr_color;
+extern const std::string gStr_colorSubstitution;
 extern const std::string gStr_tag;
 extern const std::string gStr_tagF;
 extern const std::string gStr_firstMaleIndex;
@@ -497,6 +499,8 @@ enum _SLiMGlobalStringID : int {
 	gID_substitutions,
 	gID_dominanceCoeffX,
 	gID_generation,
+	gID_color,
+	gID_colorSubstitution,
 	gID_tag,
 	gID_tagF,
 	gID_firstMaleIndex,
@@ -621,6 +625,21 @@ enum _SLiMGlobalStringID : int {
 	gID_modifyChild,
 	gID_recombination,
 };
+
+
+// *******************************************************************************************************************
+//
+//	Support for named / specified colors in SLiM
+//
+
+typedef struct {
+	const char *name;
+	uint8_t red, green, blue;
+} SLiMNamedColor;
+
+extern SLiMNamedColor gSLiMNamedColors[];
+
+void SLiMGetColorComponents(std::string &p_color_name, float *p_red_component, float *p_green_component, float *p_blue_component);
 
 
 #endif /* defined(__SLiM__slim_global__) */

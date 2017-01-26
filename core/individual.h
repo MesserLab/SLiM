@@ -48,17 +48,28 @@ extern EidosObjectClass *gSLiM_Individual_Class;
 // A global counter used to assign all Individual objects a unique ID
 extern slim_mutationid_t gSLiM_next_pedigree_id;
 
+// A global flag used to indicate whether custom colors have ever been used by Individual, to save work in the display code
+extern bool gSLiM_Individual_custom_colors;
+
 
 class Individual : public SLiMEidosDictionary
 {
 	// This class has a restricted copying policy; see below
 	
+#ifdef SLIMGUI
+public:
+#else
 private:
+#endif
 	
 	EidosValue_SP self_value_;			// cached EidosValue object for speed
 	
 	Subpopulation &subpopulation_;		// the subpop to which we refer; we get deleted when our subpop gets destructed
 	slim_popsize_t index_;				// the individual index in that subpop (0-based, and not multiplied by 2)
+	
+	std::string color_;								// color to use when displayed (in SLiMgui)
+	float color_red_, color_green_, color_blue_;	// cached color components from color_; should always be in sync
+	
 	slim_usertag_t tag_value_;			// a user-defined tag value
 	double tagF_value_;					// a user-defined tag value of float type
 	
@@ -96,6 +107,8 @@ public:
 	
 	void GetGenomes(Genome **p_genome1, Genome **p_genome2) const;
 	IndividualSex Sex(void) const;
+	
+	inline void ClearColor(void) { color_.clear(); }
 	
 	// This sets the receiver up as a new individual, with a newly assigned pedigree id, and gets
 	// parental and grandparental information from the supplied parents.

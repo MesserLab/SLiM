@@ -89,6 +89,11 @@ public:
 	bool convert_to_substitution_;				// if true (the default), mutations of this type are converted to substitutions
 	MutationStackPolicy stack_policy_;			// the mutation stacking policy; see above (kStack be default)
 	
+	std::string color_;											// color to use when displayed (in SLiMgui), when segregating
+	float color_red_, color_green_, color_blue_;				// cached color components from color_; should always be in sync
+	std::string color_sub_;										// color to use when displayed (in SLiMgui), when fixed
+	float color_sub_red_, color_sub_green_, color_sub_blue_;	// cached color components from color_sub_; should always be in sync
+	
 	slim_usertag_t tag_value_;					// a user-defined tag value
 
 	mutable EidosScript *cached_dfe_script_;	// used by DFE type 's' to hold a cached script for the DFE

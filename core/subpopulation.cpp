@@ -1571,9 +1571,12 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 	child_individuals_.swap(parent_individuals_);
 	cached_child_individuals_value_.swap(cached_parent_individuals_value_);
 	
-	// Clear out any dictionary values stored in what are now the child individuals
+	// Clear out any dictionary values and color values stored in what are now the child individuals
 	for (Individual &child : child_individuals_)
+	{
 		child.RemoveAllKeys();
+		child.ClearColor();
+	}
 	
 	// The parents now have the values that used to belong to the children.
 	parent_subpop_size_ = child_subpop_size_;
