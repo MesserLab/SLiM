@@ -387,6 +387,7 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 				}
 				else
 				{
+					// CODE COVERAGE: This is dead code
 					for (int value_index = 0; value_index < arg_value_count; ++value_index)
 						result_vec->emplace_back(arg_value->LogicalAtIndex(value_index, nullptr));
 				}
@@ -523,6 +524,7 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 				}
 				else
 				{
+					// CODE COVERAGE: This is dead code
 					for (int value_index = 0; value_index < arg_value_count; ++value_index)
 						result->PushObjectElement(arg_value->ObjectElementAtIndex(value_index, nullptr));
 				}
@@ -1590,7 +1592,7 @@ EidosValue_SP Eidos_ExecuteFunction_setUnion(const EidosValue_SP *const p_argume
 		else if (containsT && !containsF)
 			result_SP = gStaticEidosValue_LogicalT;
 		else if (!containsT && !containsF)
-			result_SP = gStaticEidosValue_Logical_ZeroVec;
+			result_SP = gStaticEidosValue_Logical_ZeroVec;		// CODE COVERAGE: This is dead code
 		else	// containsT && containsF
 		{
 			EidosValue_Logical *logical_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Logical();
@@ -2178,6 +2180,7 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const EidosValue_SP *const p_a
 			result_SP = gStaticEidosValue_Logical_ZeroVec;
 		else if (containsT0 && containsF0 && !containsT1 && !containsF1)
 		{
+			// CODE COVERAGE: This is dead code
 			EidosValue_Logical *logical_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Logical();
 			result_SP = EidosValue_SP(logical_result);
 			
@@ -4066,9 +4069,6 @@ EidosValue_SP Eidos_ExecuteFunction_runif(const EidosValue_SP *const p_arguments
 		}
 		else
 		{
-			if (num_draws < 0)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_runif): function runif() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << eidos_terminate(nullptr);
-			
 			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve((int)num_draws);
 			result_SP = EidosValue_SP(float_result);
 			
@@ -4409,7 +4409,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const EidosValue_SP *const p_argument
 		for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
 		{
 			if (contender_count <= 0)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() ran out of eligible elements from which to sample." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() ran out of eligible elements from which to sample." << eidos_terminate(nullptr);		// CODE COVERAGE: This is dead code
 			if (weights_sum <= 0.0)
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() encountered weights summing to <= 0." << eidos_terminate(nullptr);
 			
@@ -4460,7 +4460,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const EidosValue_SP *const p_argument
 			{
 				// this error should never occur, since we checked the count above
 				if (contender_count <= 0)
-					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): (internal error) function sample() ran out of eligible elements from which to sample." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): (internal error) function sample() ran out of eligible elements from which to sample." << eidos_terminate(nullptr);		// CODE COVERAGE: This is dead code
 				
 				int rose_index = (int)gsl_rng_uniform_int(gEidos_rng, contender_count);
 				
@@ -4841,7 +4841,7 @@ EidosValue_SP Eidos_ExecuteFunction_format(const EidosValue_SP *const p_argument
 		else if (conv_ch == 'X')
 			new_conv_string = PRIX64;
 		else
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_format): (internal error) bad format string in function format(); conversion specifier '" << conv_ch << "' not recognized in format string fix code." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_format): (internal error) bad format string in function format(); conversion specifier '" << conv_ch << "' not recognized." << eidos_terminate(nullptr);		// CODE COVERAGE: This is dead code
 		
 		format.replace(conversion_specifier_pos, 1, new_conv_string);
 	}
@@ -6310,7 +6310,8 @@ EidosValue_SP Eidos_ExecuteFunction_writeFile(const EidosValue_SP *const p_argum
 	{
 		if (arg1_count == 1)
 		{
-			file_stream << arg1_value->StringAtIndex(0, nullptr);
+			// BCH 27 January 2017: changed to add a newline after the last line, too, so appending new content to a file produces correct line breaks
+			file_stream << arg1_value->StringAtIndex(0, nullptr) << endl;
 		}
 		else
 		{
@@ -6321,7 +6322,8 @@ EidosValue_SP Eidos_ExecuteFunction_writeFile(const EidosValue_SP *const p_argum
 				file_stream << string_vec[value_index];
 				
 				// Add newlines after all lines but the last
-				if (value_index + 1 < arg1_count)
+				// BCH 27 January 2017: changed to add a newline after the last line, too, so appending new content to a file produces correct line breaks
+				//if (value_index + 1 < arg1_count)
 					file_stream << endl;
 			}
 		}
