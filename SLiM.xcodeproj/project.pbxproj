@@ -65,6 +65,8 @@
 		984AD1961DF54E3C002D4AC8 /* ChromosomeGLView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 984AD1951DF54E3C002D4AC8 /* ChromosomeGLView.mm */; };
 		984AD1991DF6B588002D4AC8 /* slim_eidos_dictionary.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 984AD1971DF6B588002D4AC8 /* slim_eidos_dictionary.cpp */; };
 		984AD19A1DF6B588002D4AC8 /* slim_eidos_dictionary.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 984AD1971DF6B588002D4AC8 /* slim_eidos_dictionary.cpp */; };
+		984D5FB31E3AF18C00473719 /* EidosTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 984D5FB21E3AF18C00473719 /* EidosTests.mm */; };
+		984D5FB51E3AF1F000473719 /* SLiMTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 984D5FB41E3AF1F000473719 /* SLiMTests.mm */; };
 		985301EC1B72582E001520DF /* change_cloning_rate.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 985301EB1B72582E001520DF /* change_cloning_rate.pdf */; };
 		985301EF1B7262CC001520DF /* ScriptMod_ChangeCloning.mm in Sources */ = {isa = PBXBuildFile; fileRef = 985301EE1B7262CC001520DF /* ScriptMod_ChangeCloning.mm */; };
 		985301F21B7262E5001520DF /* ScriptMod_ChangeCloning.xib in Resources */ = {isa = PBXBuildFile; fileRef = 985301F01B7262E5001520DF /* ScriptMod_ChangeCloning.xib */; };
@@ -420,6 +422,16 @@
 		98F65D5A1DF39F9D0058BD29 /* Tip_END.rtfd in Resources */ = {isa = PBXBuildFile; fileRef = 98F65D591DF39F9D0058BD29 /* Tip_END.rtfd */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		984D5FAD1E3AF0D200473719 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 982663481A3BABD300A0CBBF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 98D4C1B21A6F537B00FFB083;
+			remoteInfo = SLiMgui;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXCopyFilesBuildPhase section */
 		982556A71BA8E77B0054CB3F /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
@@ -534,6 +546,10 @@
 		984AD1951DF54E3C002D4AC8 /* ChromosomeGLView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ChromosomeGLView.mm; sourceTree = "<group>"; };
 		984AD1971DF6B588002D4AC8 /* slim_eidos_dictionary.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = slim_eidos_dictionary.cpp; sourceTree = "<group>"; };
 		984AD1981DF6B588002D4AC8 /* slim_eidos_dictionary.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = slim_eidos_dictionary.h; sourceTree = "<group>"; };
+		984D5FA81E3AF0D200473719 /* EidosSLiMTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EidosSLiMTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		984D5FAC1E3AF0D200473719 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		984D5FB21E3AF18C00473719 /* EidosTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = EidosTests.mm; sourceTree = "<group>"; };
+		984D5FB41E3AF1F000473719 /* SLiMTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SLiMTests.mm; sourceTree = "<group>"; };
 		985301EB1B72582E001520DF /* change_cloning_rate.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = change_cloning_rate.pdf; sourceTree = "<group>"; };
 		985301ED1B7262CC001520DF /* ScriptMod_ChangeCloning.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScriptMod_ChangeCloning.h; sourceTree = "<group>"; };
 		985301EE1B7262CC001520DF /* ScriptMod_ChangeCloning.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ScriptMod_ChangeCloning.mm; sourceTree = "<group>"; };
@@ -791,6 +807,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		984D5FA51E3AF0D200473719 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		985724AC1AD478630047C223 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -895,6 +918,7 @@
 				98A2FF881D7DF4D7007E3DB8 /* Recipes */,
 				98F65D551DF14DA40058BD29 /* Tips */,
 				98A2405B1B8E32F4005C9A30 /* Shared Frameworks */,
+				984D5FA91E3AF0D200473719 /* EidosSLiMTests */,
 				982663511A3BABD300A0CBBF /* Products */,
 			);
 			sourceTree = "<group>";
@@ -906,6 +930,7 @@
 				98D4C1B31A6F537B00FFB083 /* SLiMgui.app */,
 				985724AF1AD478630047C223 /* EidosScribe.app */,
 				982556A91BA8E77B0054CB3F /* eidos */,
+				984D5FA81E3AF0D200473719 /* EidosSLiMTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -950,6 +975,16 @@
 				98800DC21B7EDCB50046F5F9 /* slim_test.cpp */,
 			);
 			path = core;
+			sourceTree = "<group>";
+		};
+		984D5FA91E3AF0D200473719 /* EidosSLiMTests */ = {
+			isa = PBXGroup;
+			children = (
+				984D5FB41E3AF1F000473719 /* SLiMTests.mm */,
+				984D5FB21E3AF18C00473719 /* EidosTests.mm */,
+				984D5FAC1E3AF0D200473719 /* Info.plist */,
+			);
+			path = EidosSLiMTests;
 			sourceTree = "<group>";
 		};
 		9857249E1AD34B120047C223 /* eidos */ = {
@@ -1349,6 +1384,24 @@
 			productReference = 982663501A3BABD300A0CBBF /* slim */;
 			productType = "com.apple.product-type.tool";
 		};
+		984D5FA71E3AF0D200473719 /* EidosSLiMTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 984D5FB11E3AF0D200473719 /* Build configuration list for PBXNativeTarget "EidosSLiMTests" */;
+			buildPhases = (
+				984D5FA41E3AF0D200473719 /* Sources */,
+				984D5FA51E3AF0D200473719 /* Frameworks */,
+				984D5FA61E3AF0D200473719 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				984D5FAE1E3AF0D200473719 /* PBXTargetDependency */,
+			);
+			name = EidosSLiMTests;
+			productName = EidosSLiMTests;
+			productReference = 984D5FA81E3AF0D200473719 /* EidosSLiMTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		985724AE1AD478630047C223 /* EidosScribe */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 985724C91AD478640047C223 /* Build configuration list for PBXNativeTarget "EidosScribe" */;
@@ -1400,6 +1453,12 @@
 					9826634F1A3BABD300A0CBBF = {
 						CreatedOnToolsVersion = 6.1.1;
 					};
+					984D5FA71E3AF0D200473719 = {
+						CreatedOnToolsVersion = 8.2.1;
+						DevelopmentTeam = C5P6M43RZ7;
+						ProvisioningStyle = Automatic;
+						TestTargetID = 98D4C1B21A6F537B00FFB083;
+					};
 					985724AE1AD478630047C223 = {
 						CreatedOnToolsVersion = 6.1.1;
 					};
@@ -1425,11 +1484,19 @@
 				98D4C1B21A6F537B00FFB083 /* SLiMgui */,
 				985724AE1AD478630047C223 /* EidosScribe */,
 				982556A81BA8E77B0054CB3F /* eidos */,
+				984D5FA71E3AF0D200473719 /* EidosSLiMTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		984D5FA61E3AF0D200473719 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		985724AD1AD478630047C223 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -1728,6 +1795,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		984D5FA41E3AF0D200473719 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				984D5FB51E3AF1F000473719 /* SLiMTests.mm in Sources */,
+				984D5FB31E3AF18C00473719 /* EidosTests.mm in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		985724AB1AD478630047C223 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -1910,6 +1986,14 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		984D5FAE1E3AF0D200473719 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 98D4C1B21A6F537B00FFB083 /* SLiMgui */;
+			targetProxy = 984D5FAD1E3AF0D200473719 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		980DD5181AAE42F900D5B7B8 /* GraphAxisRescaleSheet.xib */ = {
@@ -2288,6 +2372,49 @@
 			};
 			name = Release;
 		};
+		984D5FAF1E3AF0D200473719 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = C5P6M43RZ7;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				INFOPLIST_FILE = EidosSLiMTests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
+				PRODUCT_BUNDLE_IDENTIFIER = com.stick.EidosSLiMTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SLiMgui.app/Contents/MacOS/SLiMgui";
+			};
+			name = Debug;
+		};
+		984D5FB01E3AF0D200473719 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				COPY_PHASE_STRIP = NO;
+				DEVELOPMENT_TEAM = C5P6M43RZ7;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				INFOPLIST_FILE = EidosSLiMTests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
+				PRODUCT_BUNDLE_IDENTIFIER = com.stick.EidosSLiMTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SLiMgui.app/Contents/MacOS/SLiMgui";
+			};
+			name = Release;
+		};
 		985724CA1AD478640047C223 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -2387,6 +2514,14 @@
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
+		};
+		984D5FB11E3AF0D200473719 /* Build configuration list for PBXNativeTarget "EidosSLiMTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				984D5FAF1E3AF0D200473719 /* Debug */,
+				984D5FB01E3AF0D200473719 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
 		};
 		985724C91AD478640047C223 /* Build configuration list for PBXNativeTarget "EidosScribe" */ = {
 			isa = XCConfigurationList;
