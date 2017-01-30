@@ -512,7 +512,7 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_property_id)
 	{
-		case gID_color:
+		case gID_color:			// ACCELERATED
 		{
 			color_ = p_value.StringAtIndex(0, nullptr);
 			if (!color_.empty())
@@ -522,14 +522,14 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 			}
 			return;
 		}
-		case gID_tag:
+		case gID_tag:			// ACCELERATED
 		{
 			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
 			
 			tag_value_ = value;
 			return;
 		}
-		case gID_tagF:
+		case gID_tagF:			// ACCELERATED
 		{
 			tagF_value_ = p_value.FloatAtIndex(0, nullptr);
 			return;
@@ -538,6 +538,43 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 			// all others, including gID_none
 		default:
 			return EidosObjectElement::SetProperty(p_property_id, p_value);
+	}
+}
+
+void Individual::SetProperty_Accelerated_Int(EidosGlobalStringID p_property_id, int64_t p_value)
+{
+	switch (p_property_id)
+	{
+		case gID_tag:			tag_value_ = p_value; return;	// SLiMCastToUsertagTypeOrRaise() is a no-op at present
+			
+		default:				return EidosObjectElement::SetProperty_Accelerated_Int(p_property_id, p_value);
+	}
+}
+
+void Individual::SetProperty_Accelerated_Float(EidosGlobalStringID p_property_id, double p_value)
+{
+	switch (p_property_id)
+	{
+		case gID_tagF:			tagF_value_ = p_value; return;
+			
+		default:				return EidosObjectElement::SetProperty_Accelerated_Float(p_property_id, p_value);
+	}
+}
+
+void Individual::SetProperty_Accelerated_String(EidosGlobalStringID p_property_id, const std::string &p_value)
+{
+	switch (p_property_id)
+	{
+		case gID_color:
+			color_ = p_value;
+			if (!color_.empty())
+			{
+				SLiMGetColorComponents(color_, &color_red_, &color_green_, &color_blue_);
+				gSLiM_Individual_custom_colors = true;	// notify the display code that custom colors are being used
+			}
+			return;
+			
+		default:				return EidosObjectElement::SetProperty_Accelerated_String(p_property_id, p_value);
 	}
 }
 
@@ -1004,17 +1041,17 @@ const EidosPropertySignature *Individual_Class::SignatureForProperty(EidosGlobal
 	
 	if (!subpopulationSig)
 	{
-		subpopulationSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopulation,			gID_subpopulation,				true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->DeclareAccelerated();
-		indexSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_index,					gID_index,						true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAccelerated();
+		subpopulationSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopulation,			gID_subpopulation,				true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->DeclareAcceleratedGet();
+		indexSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_index,					gID_index,						true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
 		genomesSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomes,					gID_genomes,					true,	kEidosValueMaskObject, gSLiM_Genome_Class));
 		sexSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_sex,						gID_sex,						true,	kEidosValueMaskString | kEidosValueMaskSingleton));
-		tagSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,						gID_tag,						false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAccelerated();
-		tagFSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_tagF,					gID_tagF,						false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAccelerated();
-		pedigreeIDSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeID,				gID_pedigreeID,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAccelerated();
+		tagSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,						gID_tag,						false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet()->DeclareAcceleratedSet();
+		tagFSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_tagF,					gID_tagF,						false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet()->DeclareAcceleratedSet();
+		pedigreeIDSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeID,				gID_pedigreeID,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
 		pedigreeParentIDsSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeParentIDs,		gID_pedigreeParentIDs,			true,	kEidosValueMaskInt));
 		pedigreeGrandparentIDsSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeGrandparentIDs,	gID_pedigreeGrandparentIDs,		true,	kEidosValueMaskInt));
 		uniqueMutationsSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_uniqueMutations,			gID_uniqueMutations,			true,	kEidosValueMaskObject, gSLiM_Mutation_Class));
-		colorSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_color,					gID_color,						false,	kEidosValueMaskString | kEidosValueMaskSingleton));
+		colorSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_color,					gID_color,						false,	kEidosValueMaskString | kEidosValueMaskSingleton))->DeclareAcceleratedSet();
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup

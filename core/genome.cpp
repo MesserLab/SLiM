@@ -498,7 +498,7 @@ void Genome::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_
 {
 	switch (p_property_id)
 	{
-		case gID_tag:
+		case gID_tag:				// ACCELERATED
 		{
 			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
 			
@@ -510,6 +510,16 @@ void Genome::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_
 		{
 			return EidosObjectElement::SetProperty(p_property_id, p_value);
 		}
+	}
+}
+
+void Genome::SetProperty_Accelerated_Int(EidosGlobalStringID p_property_id, int64_t p_value)
+{
+	switch (p_property_id)
+	{
+		case gID_tag:			tag_value_ = p_value; return;		// SLiMCastToUsertagTypeOrRaise() is a no-op at present
+			
+		default:				return EidosObjectElement::SetProperty_Accelerated_Int(p_property_id, p_value);
 	}
 }
 
@@ -1170,9 +1180,9 @@ const EidosPropertySignature *Genome_Class::SignatureForProperty(EidosGlobalStri
 	if (!genomeTypeSig)
 	{
 		genomeTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomeType,		gID_genomeType,		true,	kEidosValueMaskString | kEidosValueMaskSingleton));
-		isNullGenomeSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_isNullGenome,	gID_isNullGenome,	true,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAccelerated();
+		isNullGenomeSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_isNullGenome,	gID_isNullGenome,	true,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
 		mutationsSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutations,		gID_mutations,		true,	kEidosValueMaskObject, gSLiM_Mutation_Class));
-		tagSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,				gID_tag,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAccelerated();
+		tagSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,				gID_tag,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet()->DeclareAcceleratedSet();
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup

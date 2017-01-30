@@ -28,14 +28,14 @@ using std::ostream;
 
 
 EidosPropertySignature::EidosPropertySignature(const std::string &p_property_name, EidosGlobalStringID p_property_id, bool p_read_only, EidosValueMask p_value_mask)
-	: property_name_(p_property_name), property_id_(p_property_id), read_only_(p_read_only), value_mask_(p_value_mask), value_class_(nullptr), accelerated_(false)
+	: property_name_(p_property_name), property_id_(p_property_id), read_only_(p_read_only), value_mask_(p_value_mask), value_class_(nullptr), accelerated_get_(false), accelerated_set_(false)
 {
 	if (!read_only_ && !(value_mask_ & kEidosValueMaskSingleton))
 		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::EidosPropertySignature): (internal error) read-write property " << property_name_ << " must produce a singleton value according to Eidos semantics." << eidos_terminate(nullptr);
 }
 
 EidosPropertySignature::EidosPropertySignature(const std::string &p_property_name, EidosGlobalStringID p_property_id, bool p_read_only, EidosValueMask p_value_mask, const EidosObjectClass *p_value_class)
-	: property_name_(p_property_name), property_id_(p_property_id), read_only_(p_read_only), value_mask_(p_value_mask), value_class_(p_value_class), accelerated_(false)
+	: property_name_(p_property_name), property_id_(p_property_id), read_only_(p_read_only), value_mask_(p_value_mask), value_class_(p_value_class), accelerated_get_(false), accelerated_set_(false)
 {
 	if (!read_only_ && !(value_mask_ & kEidosValueMaskSingleton))
 		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::EidosPropertySignature): (internal error) read-write property " << property_name_ << " must produce a singleton value according to Eidos semantics." << eidos_terminate(nullptr);
@@ -53,11 +53,11 @@ void EidosPropertySignature::CheckAssignedValue(const EidosValue &p_value) const
 	switch (p_value.Type())
 	{
 		case EidosValueType::kValueNULL:
-			// A return type of NULL is always allowed, in fact; we don't want to have to specify this in the return type
-			// This is a little fishy, but since NULL is used to indicate error conditions, NULL returns are exceptional,
-			// and the return type indicates the type ordinarily returned in non-exceptional cases.  We just return here,
-			// since we also don't want to do the singleton check below (since it would raise too).
-			return;
+			// BCH 30 January 2017: setting NULL into a property used to be allowed here without declaration (as it is
+			// when getting the value of a property), but I think that was just a bug.  I'm modifying this to throw an
+			// exception unless NULL is explicitly declared as acceptable in the signature.
+			value_type_ok = !!(retmask & kEidosValueMaskNULL);
+			break;
 		case EidosValueType::kValueLogical:	value_type_ok = !!(retmask & (kEidosValueMaskLogical | kEidosValueMaskInt | kEidosValueMaskFloat)); break;		// can give logical to an int or float property
 		case EidosValueType::kValueInt:		value_type_ok = !!(retmask & (kEidosValueMaskInt | kEidosValueMaskFloat)); break;							// can give int to a float property
 		case EidosValueType::kValueFloat:	value_type_ok = !!(retmask & kEidosValueMaskFloat); break;
@@ -93,6 +93,14 @@ void EidosPropertySignature::CheckResultValue(const EidosValue &p_value) const
 			// This is a little fishy, but since NULL is used to indicate error conditions, NULL returns are exceptional,
 			// and the return type indicates the type ordinarily returned in non-exceptional cases.  We just return here,
 			// since we also don't want to do the singleton check below (since it would raise too).
+			
+			// BCH 30 January 2017: Modifying this a bit.  The policy is still that a return type of NULL is always
+			// allowed.  However, this is incompatible with accelerated gets, so if a property is declared as accelerated,
+			// the code here will throw an error.  This should probably never happen, since if someone tries to accelerate
+			// a property that can return NULL they will immediately realize the error of their ways, as they will find it
+			// to be impossible to implement.  :->  Still, for clarity and possible debugging value, I'm adding a check.
+			if (accelerated_get_ && !(retmask & kEidosValueMaskNULL))
+				EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckResultValue): (internal error) NULL returned for accelerated property " << property_name_ << "." << eidos_terminate(nullptr);
 			return;
 		case EidosValueType::kValueLogical:	value_type_ok = !!(retmask & kEidosValueMaskLogical);	break;
 		case EidosValueType::kValueInt:		value_type_ok = !!(retmask & kEidosValueMaskInt);		break;
@@ -130,25 +138,51 @@ std::string EidosPropertySignature::PropertySymbol(void) const
 	return (read_only_ ? "=>" : "<–>");
 }
 
-EidosPropertySignature *EidosPropertySignature::DeclareAccelerated(void)
+EidosPropertySignature *EidosPropertySignature::DeclareAcceleratedGet(void)
 {
 	uint32_t retmask = value_mask_;
 	bool return_is_singleton = !!(retmask & kEidosValueMaskSingleton);
 	
 	if (!return_is_singleton)
-		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::DeclareAccelerated): (internal error) only singleton properties may be accelerated." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::DeclareAcceleratedGet): (internal error) only singleton properties may be accelerated." << eidos_terminate(nullptr);
 	
 	if ((retmask != (kEidosValueMaskLogical | kEidosValueMaskSingleton)) && 
 		(retmask != (kEidosValueMaskInt | kEidosValueMaskSingleton)) && 
 		(retmask != (kEidosValueMaskFloat | kEidosValueMaskSingleton)) && 
 		(retmask != (kEidosValueMaskString | kEidosValueMaskSingleton)) && 
 		(retmask != (kEidosValueMaskObject | kEidosValueMaskSingleton)))
-		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::DeclareAccelerated): (internal error) only properties returning one guaranteed type may be accelerated." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::DeclareAcceleratedGet): (internal error) only properties returning one guaranteed type may be accelerated." << eidos_terminate(nullptr);
 	
 	if ((retmask == (kEidosValueMaskObject | kEidosValueMaskSingleton)) && (value_class_ == nullptr))
-		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::DeclareAccelerated): (internal error) only object properties that declare their class may be accelerated." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::DeclareAcceleratedGet): (internal error) only object properties that declare their class may be accelerated." << eidos_terminate(nullptr);
 	
-	accelerated_ = true;
+	accelerated_get_ = true;
+	
+	return this;
+}
+
+EidosPropertySignature *EidosPropertySignature::DeclareAcceleratedSet(void)
+{
+	if (read_only_)
+		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::DeclareAcceleratedSet): (internal error) only read-write properties may be accelerated." << eidos_terminate(nullptr);
+	
+	uint32_t retmask = value_mask_;
+	bool return_is_singleton = !!(retmask & kEidosValueMaskSingleton);
+	
+	if (!return_is_singleton)
+		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::DeclareAcceleratedSet): (internal error) only singleton properties may be accelerated." << eidos_terminate(nullptr);
+	
+	if ((retmask != (kEidosValueMaskLogical | kEidosValueMaskSingleton)) && 
+		(retmask != (kEidosValueMaskInt | kEidosValueMaskSingleton)) && 
+		(retmask != (kEidosValueMaskFloat | kEidosValueMaskSingleton)) && 
+		(retmask != (kEidosValueMaskString | kEidosValueMaskSingleton)) && 
+		(retmask != (kEidosValueMaskObject | kEidosValueMaskSingleton)))
+		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::DeclareAcceleratedSet): (internal error) only properties returning one guaranteed type may be accelerated." << eidos_terminate(nullptr);
+	
+	if ((retmask == (kEidosValueMaskObject | kEidosValueMaskSingleton)) && (value_class_ == nullptr))
+		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::DeclareAcceleratedSet): (internal error) only object properties that declare their class may be accelerated." << eidos_terminate(nullptr);
+	
+	accelerated_set_ = true;
 	
 	return this;
 }

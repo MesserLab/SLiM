@@ -145,6 +145,11 @@ public:
 	virtual int64_t GetProperty_Accelerated_Int(EidosGlobalStringID p_property_id);
 	virtual double GetProperty_Accelerated_Float(EidosGlobalStringID p_property_id);
 	virtual EidosObjectElement *GetProperty_Accelerated_ObjectElement(EidosGlobalStringID p_property_id);
+	
+	// Accelerated property writing; see class EidosObjectElement for comments on this mechanism
+	virtual void SetProperty_Accelerated_Int(EidosGlobalStringID p_property_id, int64_t p_value);
+	virtual void SetProperty_Accelerated_Float(EidosGlobalStringID p_property_id, double p_value);
+	virtual void SetProperty_Accelerated_String(EidosGlobalStringID p_property_id, const std::string &p_value);
 };
 
 

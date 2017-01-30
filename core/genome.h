@@ -354,6 +354,9 @@ public:
 	virtual eidos_logical_t GetProperty_Accelerated_Logical(EidosGlobalStringID p_property_id);
 	virtual int64_t GetProperty_Accelerated_Int(EidosGlobalStringID p_property_id);
 	
+	// Accelerated property writing; see class EidosObjectElement for comments on this mechanism
+	virtual void SetProperty_Accelerated_Int(EidosGlobalStringID p_property_id, int64_t p_value);
+	
 	friend class Genome_Class;
 };
 

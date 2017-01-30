@@ -34,7 +34,8 @@ public:
 	EidosValueMask value_mask_;							// a mask for the type returned; singleton is used, optional is not
 	const EidosObjectClass *value_class_;				// optional type-check for object values; used only if this is not nullptr
 	
-	bool accelerated_;									// if true, can be read using the fast-access GetProperty_X() methods
+	bool accelerated_get_;									// if true, can be read using the fast-access GetProperty_X() methods
+	bool accelerated_set_;									// if true, can be written using the fast-access SetProperty_X() methods
 	
 	EidosPropertySignature(const EidosPropertySignature&) = delete;					// no copying
 	EidosPropertySignature& operator=(const EidosPropertySignature&) = delete;		// no copying
@@ -53,7 +54,8 @@ public:
 	std::string PropertySymbol(void) const;				// "=>" or "–>"
 	
 	// property access acceleration
-	EidosPropertySignature *DeclareAccelerated(void);
+	EidosPropertySignature *DeclareAcceleratedGet(void);
+	EidosPropertySignature *DeclareAcceleratedSet(void);
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const EidosPropertySignature &p_signature);
