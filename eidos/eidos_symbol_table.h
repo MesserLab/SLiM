@@ -119,7 +119,6 @@ private:
 	size_t internal_symbol_count_;
 	
 	// If using_internal_symbols_==false, we have switched over to this external hash table using std::unordered_map.
-	// It is likely that a much faster hash table for our purposes could be implemented.  FIXME
 	std::unordered_map<EidosGlobalStringID, EidosValue_SP> hash_symbols_;
 	
 	// Symbol tables can be chained.  This is invisible to the user; there appears to be a single global symbol table for a given

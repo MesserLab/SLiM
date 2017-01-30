@@ -127,7 +127,7 @@ void Genome::BulkOperationStart(int64_t p_operation_id)
 			// It would be nice to be able to throw an exception here, but in the present design, the
 			// bulk operation info can get messed up if the bulk operation throws an exception that
 			// blows through the call to Genome::BulkOperationEnd().  It would be nice to have a design
-			// that was robust to that; I guess a stack-allocated token returned by this casll that
+			// that was robust to that; I guess a stack-allocated token returned by this call that
 			// performs the call to Genome::BulkOperationEnd() when it gets dealloced?  FIXME
 			
 			// For now, we assume that the end call got blown through, and we close out the old operation.

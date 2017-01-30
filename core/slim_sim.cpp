@@ -2944,10 +2944,6 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			// note that we do this not only in our constants table, but in the user's variables as well; we can leave no stone unturned
 			// FIXME: Note that we presently have no way of clearing out EidosScribe/SLiMgui references (the variable browser, in particular),
 			// and so EidosConsoleWindowController has to do an ugly and only partly effective hack to work around this issue.
-			// FIXME we also have the issue that if the file is corrupt in some way, we have no fallback; we have cleared out the old
-			// mutation, genome, and subpopulation information, and we have no way to restore it.  We can at least check for the
-			// existence of the file to be read; if the user gives us a file that exists but is invalid, then to some extent it is their
-			// fault if things go south (but it would be nice to be more robust nevertheless).
 			const char *file_path_cstr = file_path.c_str();
 			slim_generation_t file_generation = InitializePopulationFromFile(file_path_cstr, &p_interpreter);
 			

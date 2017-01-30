@@ -1515,7 +1515,6 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 				callback_symbols.InitializeConstantSymbolEntry(gID_subpop, p_source_subpop->SymbolTableEntry().second);
 			
 			// All the variable entries for the crossovers and gene conversion start/end points
-			// FIXME these need to be variables!
 			if (recombination_callback->contains_breakpoints_)
 			{
 				if (!local_crossovers_ptr)

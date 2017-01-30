@@ -43,8 +43,6 @@
 @interface EidosConsoleTextView : EidosTextView
 {
 @public
-	// At present this class is designed very quickly; EidosConsoleWindowController rummages around inside its
-	// ivars freely.  It would be nice to clean up this design at some point.  FIXME
 	NSRange lastPromptRange;
 	
 	NSMutableArray *history;
