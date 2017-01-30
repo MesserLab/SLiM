@@ -707,7 +707,7 @@ void _RunFunctionDispatchTests(void)
 	EidosAssertScriptRaise("doCall(function='abs');", 0, "requires 1 argument(s), but 0 are supplied");
 	
 	EidosAssertScriptRaise("foobaz();", 0, "unrecognized function name");
-	EidosAssertScriptRaise("_Test(7).foobaz();", 0, "unrecognized function name");
+	EidosAssertScriptRaise("_Test(7).foobaz();", 9, "method foobaz() is not defined");
 }
 
 #pragma mark runtime
@@ -1090,7 +1090,7 @@ void _RunOperatorSubsetTests(void)
 	EidosAssertScriptSuccess("x = 1:5; x[2.0:3];", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3, 4}));
 	EidosAssertScriptSuccess("x = 1:5; x[c(0.0, 2, 4)];", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 3, 5}));
 	EidosAssertScriptSuccess("x = 1:5; x[0.0:4];", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3, 4, 5}));
-	EidosAssertScriptRaise("x = 1:5; x[c(7,8)];", 10, "operator requires that the size()");
+	EidosAssertScriptRaise("x = 1:5; x[c(7,8)];", 10, "out-of-range index");
 	EidosAssertScriptRaise("x = 1:5; x[logical(0)];", 10, "operator requires that the size()");
 	EidosAssertScriptRaise("x = 1:5; x[T];", 10, "operator requires that the size()");
 	EidosAssertScriptRaise("x = 1:5; x[c(T, T)];", 10, "operator requires that the size()");
@@ -1104,37 +1104,37 @@ void _RunOperatorSubsetTests(void)
 	EidosAssertScriptSuccess("x = c('foo', 'bar', 'foobaz', 'baz', 'xyzzy'); x[c(T, F, T, F, T)];", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foo", "foobaz", "xyzzy"}));
 	
 	EidosAssertScriptSuccess("x = c(T,T,F,T,F); x[c(2,3)];", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptRaise("x = c(T,T,F,T,F); x[c(2,3,7)];", 10, "operator requires that the size()");
+	EidosAssertScriptRaise("x = c(T,T,F,T,F); x[c(2,3,7)];", 19, "out-of-range index");
 	EidosAssertScriptSuccess("x = c(T,T,F,T,F); x[c(2.0,3)];", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptRaise("x = c(T,T,F,T,F); x[c(2.0,3,7)];", 10, "operator requires that the size()");
+	EidosAssertScriptRaise("x = c(T,T,F,T,F); x[c(2.0,3,7)];", 19, "out-of-range index");
 	
 	EidosAssertScriptSuccess("x = 1:5; x[c(2,3)];", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3, 4}));
-	EidosAssertScriptRaise("x = 1:5; x[c(2,3,7)];", 10, "operator requires that the size()");
+	EidosAssertScriptRaise("x = 1:5; x[c(2,3,7)];", 10, "out-of-range index");
 	EidosAssertScriptSuccess("x = 1:5; x[c(2.0,3)];", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3, 4}));
-	EidosAssertScriptRaise("x = 1:5; x[c(2.0,3,7)];", 10, "operator requires that the size()");
+	EidosAssertScriptRaise("x = 1:5; x[c(2.0,3,7)];", 10, "out-of-range index");
 	
 	EidosAssertScriptSuccess("x = 1.0:5; x[c(2,3)];", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.0, 4.0}));
-	EidosAssertScriptRaise("x = 1.0:5; x[c(2,3,7)];", 10, "operator requires that the size()");
+	EidosAssertScriptRaise("x = 1.0:5; x[c(2,3,7)];", 12, "out-of-range index");
 	EidosAssertScriptSuccess("x = 1.0:5; x[c(2.0,3)];", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.0, 4.0}));
-	EidosAssertScriptRaise("x = 1.0:5; x[c(2.0,3,7)];", 10, "operator requires that the size()");
+	EidosAssertScriptRaise("x = 1.0:5; x[c(2.0,3,7)];", 12, "out-of-range index");
 	
 	EidosAssertScriptSuccess("x = c('foo', 'bar', 'foobaz', 'baz', 'xyzzy'); x[c(2,3)];", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foobaz", "baz"}));
-	EidosAssertScriptRaise("x = c('foo', 'bar', 'foobaz', 'baz', 'xyzzy'); x[c(2,3,7)];", 10, "operator requires that the size()");
+	EidosAssertScriptRaise("x = c('foo', 'bar', 'foobaz', 'baz', 'xyzzy'); x[c(2,3,7)];", 48, "out-of-range index");
 	EidosAssertScriptSuccess("x = c('foo', 'bar', 'foobaz', 'baz', 'xyzzy'); x[c(2.0,3)];", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foobaz", "baz"}));
-	EidosAssertScriptRaise("x = c('foo', 'bar', 'foobaz', 'baz', 'xyzzy'); x[c(2.0,3,7)];", 10, "operator requires that the size()");
+	EidosAssertScriptRaise("x = c('foo', 'bar', 'foobaz', 'baz', 'xyzzy'); x[c(2.0,3,7)];", 48, "out-of-range index");
 	
-	EidosAssertScriptSuccess("x = c(_Test(1), _Test(2), _Test(3), _Test(4), _Test(5)); x[c(2,3)]; x._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3, 4}));
-	EidosAssertScriptRaise("x = c(_Test(1), _Test(2), _Test(3), _Test(4), _Test(5)); x[c(2,3,7)]; x._yolk;", 10, "operator requires that the size()");
-	EidosAssertScriptSuccess("x = c(_Test(1), _Test(2), _Test(3), _Test(4), _Test(5)); x[c(2.0,3)]; x._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3, 4}));
-	EidosAssertScriptRaise("x = c(_Test(1), _Test(2), _Test(3), _Test(4), _Test(5)); x[c(2.0,3,7)]; x._yolk;", 10, "operator requires that the size()");
+	EidosAssertScriptSuccess("x = c(_Test(1), _Test(2), _Test(3), _Test(4), _Test(5)); x = x[c(2,3)]; x._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3, 4}));
+	EidosAssertScriptRaise("x = c(_Test(1), _Test(2), _Test(3), _Test(4), _Test(5)); x = x[c(2,3,7)]; x._yolk;", 62, "out-of-range index");
+	EidosAssertScriptSuccess("x = c(_Test(1), _Test(2), _Test(3), _Test(4), _Test(5)); x = x[c(2.0,3)]; x._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3, 4}));
+	EidosAssertScriptRaise("x = c(_Test(1), _Test(2), _Test(3), _Test(4), _Test(5)); x = x[c(2.0,3,7)]; x._yolk;", 62, "out-of-range index");
 }
 
 #pragma mark operator = with []
 void _RunOperatorAssignTests(void)
 {
 	// operator =
-	EidosAssertScriptRaise("E = 7;", 27, "cannot assign into a constant");
-	EidosAssertScriptRaise("E = E + 7;", 27, "cannot assign into a constant");
+	EidosAssertScriptRaise("E = 7;", 2, "cannot be redefined because it is a constant");
+	EidosAssertScriptRaise("E = E + 7;", 2, "cannot assign into a constant");
 	
 	// operator = (especially in conjunction with operator [])
 	EidosAssertScriptSuccess("x = 5; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
@@ -1165,11 +1165,11 @@ void _RunOperatorAssignTests(void)
 	EidosAssertScriptSuccess("x = T; x[0] = F; x;", gStaticEidosValue_LogicalF);
 	EidosAssertScriptSuccess("x = 'foo'; x[0] = 'bar'; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("bar")));
 	EidosAssertScriptSuccess("x = 1:5; x[c(T,T,F,T,F)] = 7:9; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 8, 3, 9, 5}));
-	EidosAssertScriptRaise("x = 1:5; x[c(T,T,F,T,F,T)] = 7:9; x;", 14, "assignment to a subscript requires");
+	EidosAssertScriptRaise("x = 1:5; x[c(T,T,F,T,F,T)] = 7:9; x;", 10, "must match the size()");
 	EidosAssertScriptSuccess("x = 1:5; x[c(2,3)] = c(9, 5); x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 9, 5, 5}));
-	EidosAssertScriptRaise("x = 1:5; x[c(7,8)] = 7; x;", 14, "assignment to a subscript requires");
+	EidosAssertScriptRaise("x = 1:5; x[c(7,8)] = 7; x;", 10, "out-of-range index");
 	EidosAssertScriptSuccess("x = 1:5; x[c(2.0,3)] = c(9, 5); x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 9, 5, 5}));
-	EidosAssertScriptRaise("x = 1:5; x[c(7.0,8)] = 7; x;", 14, "assignment to a subscript requires");
+	EidosAssertScriptRaise("x = 1:5; x[c(7.0,8)] = 7; x;", 10, "out-of-range index");
 	
 	// operator = (especially in conjunction with operator .)
 	EidosAssertScriptSuccess("x=_Test(9); x._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(9)));
@@ -1185,7 +1185,7 @@ void _RunOperatorAssignTests(void)
 	EidosAssertScriptRaise("x=_Test(9); y=_Test(7); z=c(x,y,x,y); z[2:3]._yolk=6.5; z._yolk;", 50, "value cannot be type");
 	EidosAssertScriptRaise("x=_Test(9); y=_Test(7); z=c(x,y,x,y); z._yolk[2:3]=6.5; z._yolk;", 50, "value cannot be type");
 	EidosAssertScriptRaise("x=_Test(9); y=_Test(7); z=c(x,y,x,y); z[2]=6.5; z._yolk;", 42, "type mismatch");
-	EidosAssertScriptRaise("x = 1:5; x.foo[5] = 7;", 42, "type mismatch");
+	EidosAssertScriptRaise("x = 1:5; x.foo[5] = 7;", 10, "operand type integer is not supported");
 	
 	// operator = (with compound-operator optimizations)
 	EidosAssertScriptSuccess("x = 5; x = x + 3; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(8)));
@@ -1290,12 +1290,12 @@ void _RunOperatorAssignTests(void)
 	EidosAssertScriptRaise("x = 5.0:7.0; x = x ^ (3.0:4.0); x;", 19, "operator requires that either");
 	EidosAssertScriptRaise("x = 5.0:6.0; x = x ^ (3.0:5.0); x;", 19, "operator requires that either");
 	
-	EidosAssertScriptRaise("x = 5e18; x = x + 5e18;", 5, "overflow with the binary");
-	EidosAssertScriptRaise("x = c(5e18, 0); x = x + 5e18;", 5, "overflow with the binary");
-	EidosAssertScriptRaise("x = -5e18; x = x - 5e18;", 6, "overflow with the binary");
-	EidosAssertScriptRaise("x = c(-5e18, 0); x = x - 5e18;", 6, "overflow with the binary");
-	EidosAssertScriptRaise("x = 5e18; x = x * 2;", 5, "multiplication overflow");
-	EidosAssertScriptRaise("x = c(5e18, 0); x = x * 2;", 5, "multiplication overflow");
+	EidosAssertScriptRaise("x = 5e18; x = x + 5e18;", 16, "overflow with the binary");
+	EidosAssertScriptRaise("x = c(5e18, 0); x = x + 5e18;", 22, "overflow with the binary");
+	EidosAssertScriptRaise("x = -5e18; x = x - 5e18;", 17, "overflow with the binary");
+	EidosAssertScriptRaise("x = c(-5e18, 0); x = x - 5e18;", 23, "overflow with the binary");
+	EidosAssertScriptRaise("x = 5e18; x = x * 2;", 16, "multiplication overflow");
+	EidosAssertScriptRaise("x = c(5e18, 0); x = x * 2;", 22, "multiplication overflow");
 }
 
 #pragma mark operator >
@@ -1359,21 +1359,21 @@ void _RunOperatorGtTests(void)
 	EidosAssertScriptRaise("_Test(9) > _Test(9);", 9, "cannot be used with type");
 	
 	EidosAssertScriptSuccess("T > c(T, F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("5 > c(5, 6);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("5.0 > c(5.0, 6.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess("5 > c(5, 6);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false}));
+	EidosAssertScriptSuccess("5.0 > c(5.0, 6.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false}));
 	EidosAssertScriptSuccess("'foo' > c('foo', 'bar');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
 	
-	EidosAssertScriptSuccess("c(T, F) > T;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess("c(T, F) > T;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false}));
 	EidosAssertScriptSuccess("c(5, 6) > 5;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
 	EidosAssertScriptSuccess("c(5.0, 6.0) > 5.0;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("c('foo', 'bar') > 'foo';", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess("c('foo', 'bar') > 'foo';", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false}));
 	
-	EidosAssertScriptSuccess("c(T, F) > c(T, T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("c(5, 6) > c(5, 8);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("c(5.0, 6.0) > c(5.0, 8.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("c('foo', 'bar') > c('foo', 'baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess("c(T, F) > c(T, T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false}));
+	EidosAssertScriptSuccess("c(5, 6) > c(5, 8);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false}));
+	EidosAssertScriptSuccess("c(5.0, 6.0) > c(5.0, 8.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false}));
+	EidosAssertScriptSuccess("c('foo', 'bar') > c('foo', 'baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false}));
 	
-	EidosAssertScriptRaise("c(5,6) > c(5,6,7);", 2, "cannot be converted to");
+	EidosAssertScriptRaise("c(5,6) > c(5,6,7);", 7, "operator requires that either");
 }
 
 #pragma mark operator <
@@ -1436,14 +1436,14 @@ void _RunOperatorLtTests(void)
 	EidosAssertScriptSuccess("'foo' < 'foo';", gStaticEidosValue_LogicalF);
 	EidosAssertScriptRaise("_Test(9) < _Test(9);", 9, "cannot be used with type");
 	
-	EidosAssertScriptSuccess("T < c(T, F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess("T < c(T, F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false}));
 	EidosAssertScriptSuccess("5 < c(5, 6);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
 	EidosAssertScriptSuccess("5.0 < c(5.0, 6.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("'foo' < c('foo', 'bar');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess("'foo' < c('foo', 'bar');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false}));
 	
 	EidosAssertScriptSuccess("c(T, F) < T;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("c(5, 6) < 5;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("c(5.0, 6.0) < 5.0;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess("c(5, 6) < 5;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false}));
+	EidosAssertScriptSuccess("c(5.0, 6.0) < 5.0;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false}));
 	EidosAssertScriptSuccess("c('foo', 'bar') < 'foo';", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
 	
 	EidosAssertScriptSuccess("c(T, F) < c(T, T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
@@ -1451,7 +1451,7 @@ void _RunOperatorLtTests(void)
 	EidosAssertScriptSuccess("c(5.0, 6.0) < c(5.0, 8.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
 	EidosAssertScriptSuccess("c('foo', 'bar') < c('foo', 'baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
 	
-	EidosAssertScriptRaise("c(5,6) < c(5,6,7);", 2, "cannot be converted to");
+	EidosAssertScriptRaise("c(5,6) < c(5,6,7);", 7, "operator requires that either");
 }
 
 #pragma mark operator >=
@@ -1514,22 +1514,22 @@ void _RunOperatorGtEqTests(void)
 	EidosAssertScriptSuccess("'foo' >= 'foo';", gStaticEidosValue_LogicalT);
 	EidosAssertScriptRaise("_Test(9) >= _Test(9);", 9, "cannot be used with type");
 	
-	EidosAssertScriptSuccess("T >= c(T, F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("5 >= c(5, 6);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("5.0 >= c(5.0, 6.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("'foo' >= c('foo', 'bar');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess("T >= c(T, F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
+	EidosAssertScriptSuccess("5 >= c(5, 6);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
+	EidosAssertScriptSuccess("5.0 >= c(5.0, 6.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
+	EidosAssertScriptSuccess("'foo' >= c('foo', 'bar');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
 	
-	EidosAssertScriptSuccess("c(T, F) >= T;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("c(5, 6) >= 5;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("c(5.0, 6.0) >= 5.0;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("c('foo', 'bar') >= 'foo';", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess("c(T, F) >= T;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
+	EidosAssertScriptSuccess("c(5, 6) >= 5;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
+	EidosAssertScriptSuccess("c(5.0, 6.0) >= 5.0;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
+	EidosAssertScriptSuccess("c('foo', 'bar') >= 'foo';", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
 	
-	EidosAssertScriptSuccess("c(T, F) >= c(T, T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("c(5, 6) >= c(5, 8);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("c(5.0, 6.0) >= c(5.0, 8.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("c('foo', 'bar') >= c('foo', 'baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess("c(T, F) >= c(T, T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
+	EidosAssertScriptSuccess("c(5, 6) >= c(5, 8);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
+	EidosAssertScriptSuccess("c(5.0, 6.0) >= c(5.0, 8.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
+	EidosAssertScriptSuccess("c('foo', 'bar') >= c('foo', 'baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
 	
-	EidosAssertScriptRaise("c(5,6) >= c(5,6,7);", 2, "cannot be converted to");
+	EidosAssertScriptRaise("c(5,6) >= c(5,6,7);", 7, "operator requires that either");
 }
 
 #pragma mark operator <=
@@ -1592,22 +1592,22 @@ void _RunOperatorLtEqTests(void)
 	EidosAssertScriptSuccess("'foo' <= 'foo';", gStaticEidosValue_LogicalT);
 	EidosAssertScriptRaise("_Test(9) <= _Test(9);", 9, "cannot be used with type");
 	
-	EidosAssertScriptSuccess("T <= c(T, F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("5 <= c(5, 6);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("5.0 <= c(5.0, 6.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("'foo' <= c('foo', 'bar');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess("T <= c(T, F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
+	EidosAssertScriptSuccess("5 <= c(5, 6);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
+	EidosAssertScriptSuccess("5.0 <= c(5.0, 6.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
+	EidosAssertScriptSuccess("'foo' <= c('foo', 'bar');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
 	
-	EidosAssertScriptSuccess("c(T, F) <= T;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("c(5, 6) <= 5;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("c(5.0, 6.0) <= 5.0;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("c('foo', 'bar') <= 'foo';", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess("c(T, F) <= T;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
+	EidosAssertScriptSuccess("c(5, 6) <= 5;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
+	EidosAssertScriptSuccess("c(5.0, 6.0) <= 5.0;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
+	EidosAssertScriptSuccess("c('foo', 'bar') <= 'foo';", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
 	
-	EidosAssertScriptSuccess("c(T, F) <= c(T, T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("c(5, 6) <= c(5, 8);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("c(5.0, 6.0) <= c(5.0, 8.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("c('foo', 'bar') <= c('foo', 'baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess("c(T, F) <= c(T, T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
+	EidosAssertScriptSuccess("c(5, 6) <= c(5, 8);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
+	EidosAssertScriptSuccess("c(5.0, 6.0) <= c(5.0, 8.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
+	EidosAssertScriptSuccess("c('foo', 'bar') <= c('foo', 'baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
 	
-	EidosAssertScriptRaise("c(5,6) <= c(5,6,7);", 2, "cannot be converted to");
+	EidosAssertScriptRaise("c(5,6) <= c(5,6,7);", 7, "operator requires that either");
 }
 
 #pragma mark operator ==
@@ -1688,7 +1688,7 @@ void _RunOperatorEqTests(void)
 	EidosAssertScriptSuccess("c('foo', 'bar') == c('foo', 'baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
 	EidosAssertScriptSuccess("x = _Test(9); c(x, _Test(9)) == c(x, x);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
 	
-	EidosAssertScriptRaise("c(5,6) == c(5,6,7);", 2, "cannot be converted to");
+	EidosAssertScriptRaise("c(5,6) == c(5,6,7);", 7, "operator requires that either");
 }
 
 #pragma mark operator !=
@@ -1769,7 +1769,7 @@ void _RunOperatorNotEqTests(void)
 	EidosAssertScriptSuccess("c('foo', 'bar') != c('foo', 'baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
 	EidosAssertScriptSuccess("x = _Test(9); c(x, _Test(9)) != c(x, x);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
 	
-	EidosAssertScriptRaise("c(5,6) != c(5,6,7);", 2, "cannot be converted to");
+	EidosAssertScriptRaise("c(5,6) != c(5,6,7);", 7, "operator requires that either");
 }
 
 #pragma mark operator :
@@ -1816,8 +1816,8 @@ void _RunOperatorRangeTests(void)
 	EidosAssertScriptRaise("1.5:NAN;", 3, "must not be NAN");
 	EidosAssertScriptRaise("INF:1.5;", 3, "range with more than");
 	EidosAssertScriptRaise("NAN:1.5;", 3, "must not be NAN");
-	EidosAssertScriptRaise("1:1000010;", 2, "more than 1000000 entries");
-	EidosAssertScriptRaise("1000010:1;", 2, "more than 1000000 entries");
+	EidosAssertScriptRaise("1:1000010;", 1, "more than 1000000 entries");
+	EidosAssertScriptRaise("1000010:1;", 7, "more than 1000000 entries");
 }
 
 #pragma mark operator ^
@@ -3936,9 +3936,9 @@ void _RunFunctionValueInspectionManipulationTests(void)
 	EidosAssertScriptSuccess("order(3, F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(0)));
 	EidosAssertScriptSuccess("order(c(6, 19, -3, 5, 2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 4, 3, 0, 1}));
 	EidosAssertScriptSuccess("order(c(6, 19, -3, 5, 2), T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 4, 3, 0, 1}));
-	EidosAssertScriptSuccess("order(c(2, 5, -3, 19, 6), T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 4, 3, 0, 1}));
+	EidosAssertScriptSuccess("order(c(2, 5, -3, 19, 6), T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 0, 1, 4, 3}));
 	EidosAssertScriptSuccess("order(c(6, 19, -3, 5, 2), F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 0, 3, 4, 2}));
-	EidosAssertScriptSuccess("order(c(2, 5, -3, 19, 6), F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 0, 3, 4, 2}));
+	EidosAssertScriptSuccess("order(c(2, 5, -3, 19, 6), F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3, 4, 1, 0, 2}));
 	EidosAssertScriptSuccess("order(c(T, F));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 0}));
 	EidosAssertScriptSuccess("order(c(6.1, 19.3, -3.7, 5.2, 2.3));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 4, 3, 0, 1}));
 	EidosAssertScriptSuccess("order(c('a', 'q', 'm', 'f', 'w'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 3, 2, 1, 4}));

@@ -127,12 +127,10 @@ private:
 	// until a hit is found or the last symbol table declares a miss.  Adds go in the symbol table that receives the request.
 	EidosSymbolTable *parent_symbol_table_ = nullptr;	// NOT OWNED
 	
-	// A cached flag used by LastLookupWasConstant(); this design is a hack, but simpler / faster since only one spot in the code needs it
-	mutable bool last_get_was_const_ = false;
-	
 	// Utility methods called by the public methods to do the real work
 	std::vector<std::string> _SymbolNames(bool p_include_constants, bool p_include_variables) const;
 	EidosValue_SP _GetValue(EidosGlobalStringID p_symbol_name, const EidosToken *p_symbol_token) const;
+	EidosValue_SP _GetValue_IsConst(EidosGlobalStringID p_symbol_name, const EidosToken *p_symbol_token, bool *p_is_const) const;
 	void _RemoveSymbol(EidosGlobalStringID p_symbol_name, bool p_remove_constant);
 	void _InitializeConstantSymbolEntry(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value);
 	void _SwitchToHash(void);
@@ -167,8 +165,9 @@ public:
 	inline __attribute__((always_inline)) EidosValue_SP GetValueOrRaiseForASTNode(const EidosASTNode *p_symbol_node) const { return _GetValue(p_symbol_node->cached_stringID_, p_symbol_node->token_); }
 	inline __attribute__((always_inline)) EidosValue_SP GetValueOrRaiseForSymbol(EidosGlobalStringID p_symbol_name) const { return _GetValue(p_symbol_name, nullptr); }
 	
-	// For the last Get...() call, returns whether the symbol fetched was a constant; apologies for the hack
-	inline __attribute__((always_inline)) bool LastLookupWasConstant(void) const { return last_get_was_const_; }
+	// Special getters that return a boolean flag, true if the fetched symbol is a constant
+	inline __attribute__((always_inline)) EidosValue_SP GetValueOrRaiseForASTNode_IsConst(const EidosASTNode *p_symbol_node, bool *p_is_const) const { return _GetValue_IsConst(p_symbol_node->cached_stringID_, p_symbol_node->token_, p_is_const); }
+	inline __attribute__((always_inline)) EidosValue_SP GetValueOrRaiseForSymbol_IsConst(EidosGlobalStringID p_symbol_name, bool *p_is_const) const { return _GetValue_IsConst(p_symbol_name, nullptr, p_is_const); }
 	
 	// Special-purpose methods used for fast setup of new symbol tables with constants.
 	//

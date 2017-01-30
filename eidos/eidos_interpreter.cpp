@@ -422,7 +422,7 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue_SP *p_base_value_p
 			EidosValueType first_child_type = first_child_value->Type();
 			
 			if (first_child_type != EidosValueType::kValueObject)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): operand type " << first_child_type << " is not supported by the '.' operator." << eidos_terminate(parent_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): operand type " << first_child_type << " is not supported by the '.' operator (not an object)." << eidos_terminate(parent_token);
 			
 			if (right_operand->token_->token_type_ != EidosTokenType::kTokenIdentifier)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): the '.' operator for x.y requires operand y to be an identifier." << eidos_terminate(parent_token);
@@ -3058,10 +3058,11 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 		// if _OptimizeAssignments() set this flag, this assignment is of the form "x = x <operator> <number>",
 		// where x is a simple identifier and the operator is one of +-/%*^; we try to optimize that case
 		EidosASTNode *lvalue_node = p_node->children_[0];
-		EidosValue_SP lvalue_SP = global_symbols_.GetValueOrRaiseForASTNode(lvalue_node);
+		bool is_const;
+		EidosValue_SP lvalue_SP = global_symbols_.GetValueOrRaiseForASTNode_IsConst(lvalue_node, &is_const);
 		
-		if (global_symbols_.LastLookupWasConstant())
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): cannot assign into a constant." << eidos_terminate(lvalue_node->token_);
+		if (is_const)
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): cannot assign into a constant." << eidos_terminate(p_node->token_);
 		
 		EidosValue *lvalue = lvalue_SP.get();
 		int lvalue_count = lvalue->Count();

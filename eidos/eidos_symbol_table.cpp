@@ -163,8 +163,37 @@ EidosValue_SP EidosSymbolTable::_GetValue(EidosGlobalStringID p_symbol_name, con
 			const EidosSymbolTable_InternalSlot *symbol_slot = internal_symbols_ + symbol_index;
 			
 			if (symbol_slot->symbol_name_ == p_symbol_name)
+				return symbol_slot->symbol_value_SP_;
+		}
+	}
+	else
+	{
+		auto symbol_slot_iter = hash_symbols_.find(p_symbol_name);
+		
+		if (symbol_slot_iter != hash_symbols_.end())
+			return symbol_slot_iter->second;
+	}
+	
+	// We didn't get a hit, so try our parent table
+	if (parent_symbol_table_)
+		return parent_symbol_table_->_GetValue(p_symbol_name, p_symbol_token);
+	
+	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_GetValue): undefined identifier " << StringForEidosGlobalStringID(p_symbol_name) << "." << eidos_terminate(p_symbol_token);
+}
+
+// same as above except for handling the p_is_const flag
+EidosValue_SP EidosSymbolTable::_GetValue_IsConst(EidosGlobalStringID p_symbol_name, const EidosToken *p_symbol_token, bool *p_is_const) const
+{
+	if (using_internal_symbols_)
+	{
+		// We can compare global string IDs; since all symbol names should be uniqued, this should be safe
+		for (int symbol_index = (int)internal_symbol_count_ - 1; symbol_index >= 0; --symbol_index)
+		{
+			const EidosSymbolTable_InternalSlot *symbol_slot = internal_symbols_ + symbol_index;
+			
+			if (symbol_slot->symbol_name_ == p_symbol_name)
 			{
-				last_get_was_const_ = (table_type_ != EidosSymbolTableType::kVariablesTable);
+				*p_is_const = (table_type_ != EidosSymbolTableType::kVariablesTable);
 				return symbol_slot->symbol_value_SP_;
 			}
 		}
@@ -175,19 +204,14 @@ EidosValue_SP EidosSymbolTable::_GetValue(EidosGlobalStringID p_symbol_name, con
 		
 		if (symbol_slot_iter != hash_symbols_.end())
 		{
-			last_get_was_const_ = (table_type_ != EidosSymbolTableType::kVariablesTable);
+			*p_is_const = (table_type_ != EidosSymbolTableType::kVariablesTable);
 			return symbol_slot_iter->second;
 		}
 	}
 	
 	// We didn't get a hit, so try our parent table
 	if (parent_symbol_table_)
-	{
-		EidosValue_SP parent_result = parent_symbol_table_->_GetValue(p_symbol_name, p_symbol_token);
-		
-		if (parent_result)
-			return parent_result;	// the parent should have set last_get_was_const_ already
-	}
+		return parent_symbol_table_->_GetValue_IsConst(p_symbol_name, p_symbol_token, p_is_const);	// the parent sets p_is_const
 	
 	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_GetValue): undefined identifier " << StringForEidosGlobalStringID(p_symbol_name) << "." << eidos_terminate(p_symbol_token);
 }
