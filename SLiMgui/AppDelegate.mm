@@ -112,7 +112,9 @@ typedef enum SLiMLaunchAction
 		}
 	}
 	
-	[recipeNames sortUsingDescriptors:@[[NSSortDescriptor sortDescriptorWithKey:@"intValue" ascending:YES]]];
+	[recipeNames sortUsingComparator:^NSComparisonResult(id obj1, id obj2) {
+		return [(NSString *)obj1 compare:(NSString *)obj2 options:NSNumericSearch];
+	}];
 	
 	NSString *previousItemChapter = nil;
 	
