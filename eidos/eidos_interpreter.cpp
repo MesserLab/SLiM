@@ -468,7 +468,7 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue_SP *p_base_value_p
 			break;
 		}
 		default:
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): unexpected node token type " << token_type << "; lvalue required." << eidos_terminate(parent_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): (internal error) unexpected node token type " << token_type << "; lvalue required." << eidos_terminate(parent_token);
 			break;
 	}
 }
@@ -577,12 +577,12 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue_SP p_rvalue, const Eidos
 			EidosValueType first_child_type = first_child_value->Type();
 			
 			if (first_child_type != EidosValueType::kValueObject)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): operand type " << first_child_type << " is not supported by the '.' operator." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): (internal error) operand type " << first_child_type << " is not supported by the '.' operator." << eidos_terminate(nullptr);
 			
 			EidosASTNode *second_child_node = p_lvalue_node->children_[1];
 			
 			if (second_child_node->token_->token_type_ != EidosTokenType::kTokenIdentifier)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): the '.' operator for x.y requires operand y to be an identifier." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): (internal error) the '.' operator for x.y requires operand y to be an identifier." << eidos_terminate(nullptr);
 			
 			// OK, we have <object type>.<identifier>; we can work with that
 			static_cast<EidosValue_Object *>(first_child_value.get())->SetPropertyOfElements(second_child_node->cached_stringID_, *p_rvalue);
@@ -754,6 +754,7 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 				
 				if (next_index == range_index)
 				{
+					// CODE COVERAGE: This is dead code
 					underflow = true;
 					break;
 				}
@@ -780,6 +781,7 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 				
 				if (next_index == range_index)
 				{
+					// CODE COVERAGE: This is dead code
 					underflow = true;
 					break;
 				}
@@ -792,7 +794,7 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 	}
 	
 	if (underflow)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): the floating-point range could not be constructed due to underflow." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): the floating-point range could not be constructed due to underflow." << eidos_terminate(operator_token);	// CODE COVERAGE: This is dead code
 	
 	return result_SP;
 }
@@ -1052,12 +1054,12 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		EidosValueType first_child_type = first_child_value->Type();
 		
 		if (first_child_type != EidosValueType::kValueObject)
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): operand type " << first_child_type << " is not supported by the '.' operator." << eidos_terminate(call_name_node->token_);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): (internal error) operand type " << first_child_type << " is not supported by the '.' operator." << eidos_terminate(call_name_node->token_);
 		
 		EidosASTNode *second_child_node = call_name_node->children_[1];
 		
 		if (second_child_node->token_->token_type_ != EidosTokenType::kTokenIdentifier)
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): the '.' operator for x.y requires operand y to be an identifier." << eidos_terminate(call_name_node->token_);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): (internal error) the '.' operator for x.y requires operand y to be an identifier." << eidos_terminate(call_name_node->token_);
 		
 		// OK, we have <object type>.<identifier>(...); that's a well-formed method call
 		call_identifier_token = second_child_node->token_;
@@ -1125,7 +1127,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 	}
 	else
 	{
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): type " << call_name_token_type << " is not supported by the '()' operator (illegal operand for a function call operation)." << eidos_terminate(call_name_node->token_);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): (internal error) type " << call_name_token_type << " is not supported by the '()' operator (illegal operand for a function call operation)." << eidos_terminate(call_name_node->token_);
 	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Call()");
@@ -1451,6 +1453,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 				else
 				{
 					// This is the general case; it should never be hit
+					// CODE COVERAGE: This is dead code
 					result_SP = first_child_value->NewMatchingType();
 					
 					EidosValue *result = result_SP.get();
@@ -1485,13 +1488,13 @@ EidosValue_SP EidosInterpreter::Evaluate_MemberRef(const EidosASTNode *p_node)
 	EidosValueType first_child_type = first_child_value->Type();
 	
 	if (first_child_type != EidosValueType::kValueObject)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_MemberRef): operand type " << first_child_type << " is not supported by the '.' operator." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_MemberRef): (internal error) operand type " << first_child_type << " is not supported by the '.' operator." << eidos_terminate(operator_token);
 	
 	EidosASTNode *second_child_node = p_node->children_[1];
 	EidosToken *second_child_token = second_child_node->token_;
 	
 	if (second_child_token->token_type_ != EidosTokenType::kTokenIdentifier)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_MemberRef): the '.' operator for x.y requires operand y to be an identifier." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_MemberRef): (internal error) the '.' operator for x.y requires operand y to be an identifier." << eidos_terminate(operator_token);
 	
 	// If an error occurs inside a function or method call, we want to highlight the call
 	EidosErrorPosition error_pos_save = EidosScript::PushErrorPositionFromToken(second_child_token);
@@ -1505,7 +1508,7 @@ EidosValue_SP EidosInterpreter::Evaluate_MemberRef(const EidosASTNode *p_node)
 	
 	// check result; this should never happen, since GetProperty should check
 	if (!result_SP)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_MemberRef): undefined property " << StringForEidosGlobalStringID(property_string_ID) << "." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_MemberRef): undefined property " << StringForEidosGlobalStringID(property_string_ID) << "." << eidos_terminate(operator_token);		// CODE COVERAGE: This is dead code
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_MemberRef()");
 	return result_SP;
@@ -3214,6 +3217,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 						}
 							
 						default:
+							// CODE COVERAGE: This is dead code
 							break;
 					}
 					
@@ -3263,6 +3267,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 							goto compoundAssignmentSuccess;
 							
 						default:
+							// CODE COVERAGE: This is dead code
 							break;
 					}
 				}
@@ -4133,6 +4138,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Number(const EidosASTNode *p_node)
 	
 	if (!result_SP)
 	{
+		// CODE COVERAGE: This is dead code
 		EidosToken *string_token = p_node->token_;
 		
 		result_SP = EidosInterpreter::NumericValueForString(string_token->token_string_, string_token);
@@ -4151,7 +4157,10 @@ EidosValue_SP EidosInterpreter::Evaluate_String(const EidosASTNode *p_node)
 	EidosValue_SP result_SP = p_node->cached_value_;
 	
 	if (!result_SP)
+	{
+		// CODE COVERAGE: This is dead code
 		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(p_node->token_->token_string_));
+	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_String()");
 	return result_SP;

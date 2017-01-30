@@ -20,6 +20,7 @@ development head:
 	add recipe for heritability with quantitative genetics (recipe 13.10)
 	add properties (color, colorSubstitution) to allow custom coloring of individuals, genomic element types, and mutation types in SLiMgui
 	add recipe for custom coloring in SLiMgui (recipe 7.4)
+	add/modify tests to improve code coverage
 
 
 2.2 (build 955; Eidos version 1.2):
