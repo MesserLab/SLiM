@@ -41,9 +41,6 @@ extern NSString *defaultsPlaySoundParseFailureKey;
 
 @property (nonatomic, retain) IBOutlet NSMenu *openRecipesMenu;
 
-- (IBAction)newDocument:(id)sender;
-- (IBAction)openDocument:(id)sender;
-
 - (IBAction)resetSuppressionFlags:(id)sender;
 
 - (IBAction)showAboutWindow:(id)sender;

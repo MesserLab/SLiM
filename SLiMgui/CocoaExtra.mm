@@ -32,11 +32,6 @@
 @end
 
 
-@implementation SLiMDocumentController
-
-@end
-
-
 static NSDictionary *tickAttrs = nil;
 static NSDictionary *disabledTickAttrs = nil;
 static const int numberOfTicks = 4;
@@ -583,7 +578,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 
 @end
 
-@implementation NSPopUpButton (SLiMTinting)
+@implementation NSButton (SLiMTinting)
 
 - (void)slimSetTintColor:(NSColor *)tintColor
 {

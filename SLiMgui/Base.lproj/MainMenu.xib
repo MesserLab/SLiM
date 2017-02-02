@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="11762" systemVersion="16C67" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="11762" systemVersion="16D32" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
         <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="11762"/>
@@ -112,6 +112,21 @@
                                     <action selector="performClose:" target="-1" id="HmO-Ls-i7Q"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Save…" keyEquivalent="s" id="FOH-MY-HoQ">
+                                <connections>
+                                    <action selector="saveDocument:" target="-1" id="nmz-Mk-g6b"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Save As…" keyEquivalent="S" id="Mba-jh-XE9">
+                                <connections>
+                                    <action selector="saveDocumentAs:" target="-1" id="Vow-xY-MZe"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Revert to Saved" keyEquivalent="r" id="fZ7-ye-Fv9">
+                                <connections>
+                                    <action selector="revertDocumentToSaved:" target="-1" id="tJQ-op-CyX"/>
+                                </connections>
+                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="gwe-3i-esM"/>
                             <menuItem title="Import Population..." keyEquivalent="o" id="Nop-c8-tfu">
                                 <modifierMask key="keyEquivalentModifierMask" option="YES" command="YES"/>
@@ -120,18 +135,20 @@
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="7By-NI-6sc"/>
-                            <menuItem title="Export Script..." keyEquivalent="s" id="gMO-ZD-eo1">
+                            <menuItem title="Export Script..." id="gMO-ZD-eo1">
+                                <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="exportScript:" target="-1" id="OIF-da-O99"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Export Output..." keyEquivalent="S" id="HJb-0L-PzV">
+                            <menuItem title="Export Output..." id="HJb-0L-PzV">
+                                <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="exportOutput:" target="-1" id="oa4-mp-Id1"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Export Population..." keyEquivalent="s" id="syB-pF-RCP">
-                                <modifierMask key="keyEquivalentModifierMask" option="YES" command="YES"/>
+                            <menuItem title="Export Population..." id="syB-pF-RCP">
+                                <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="exportPopulation:" target="-1" id="mM7-7a-BIs"/>
                                 </connections>
@@ -260,19 +277,18 @@
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <menu key="submenu" title="Simulation" id="lGi-Wg-1SI">
                         <items>
-                            <menuItem title="Step" keyEquivalent="]" id="C9p-mA-fVt">
+                            <menuItem title="Step" keyEquivalent="" id="C9p-mA-fVt">
+                                <modifierMask key="keyEquivalentModifierMask" shift="YES" command="YES"/>
                                 <connections>
                                     <action selector="playOneStep:" target="-1" id="SjN-uK-tIt"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Play" keyEquivalent="]" id="EyD-tq-95A">
-                                <modifierMask key="keyEquivalentModifierMask" shift="YES" command="YES"/>
+                            <menuItem title="Play" keyEquivalent="" id="EyD-tq-95A">
                                 <connections>
                                     <action selector="play:" target="-1" id="AGn-8l-Bub"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Recycle" keyEquivalent="[" id="MtH-g3-zh4">
-                                <modifierMask key="keyEquivalentModifierMask" shift="YES" command="YES"/>
+                            <menuItem title="Recycle" keyEquivalent="" id="MtH-g3-zh4">
                                 <connections>
                                     <action selector="recycle:" target="-1" id="Jo1-Sx-pAg"/>
                                 </connections>

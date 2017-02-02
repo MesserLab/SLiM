@@ -27,10 +27,6 @@
 @interface SLiMTableView : NSTableView
 @end
 
-// An NSDocumentController subclass to make the Recent Documents menu work; well, maybe we don't need it after all...
-@interface SLiMDocumentController : NSDocumentController
-@end
-
 // A view to show a color stripe for the range of values of a metric such as fitness or selection coefficient
 @interface SLiMColorStripeView : NSView
 @property (nonatomic) int metricToPlot;		// 1 == fitness, 2 == selection coefficient; this changes which function below gets called
@@ -74,7 +70,7 @@ void RGBForSelectionCoeff(double selectionCoeff, float *colorRed, float *colorGr
 @end
 
 // A category to add tinting of NSPopUpButton, used in the ScriptMod panels for validation
-@interface NSPopUpButton (SLiMTinting)
+@interface NSButton (SLiMTinting)
 - (void)slimSetTintColor:(NSColor *)tintColor;
 @end
 

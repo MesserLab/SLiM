@@ -145,18 +145,25 @@
 	int openedGraphCount;						// used for new graph window positioning
 }
 
-+ (NSString *)defaultScriptString;
 + (NSColor *)blackContrastingColorForIndex:(int)index;
 + (NSColor *)whiteContrastingColorForIndex:(int)index;
 
+- (instancetype)init;
+- (instancetype)initWithWindow:(NSWindow *)window __attribute__((unavailable));
+- (instancetype)initWithWindowNibName:(NSString *)windowNibName __attribute__((unavailable));
+- (instancetype)initWithWindowNibName:(NSString *)windowNibName owner:(id)owner __attribute__((unavailable));
+- (instancetype)initWithWindowNibPath:(NSString *)windowNibPath owner:(id)owner __attribute__((unavailable));
+- (instancetype)initWithCoder:(NSCoder *)coder __attribute__((unavailable));
+
 - (void)setScriptStringAndInitializeSimulation:(NSString *)string;
-- (void)setDefaultScriptStringAndInitializeSimulation;
 
 - (std::vector<Subpopulation*>)selectedSubpopulations;
 
 - (NSColor *)colorForGenomicElementTypeID:(slim_objectid_t)elementTypeID;
 
 - (void)addScriptBlockToSimulation:(SLiMEidosBlock *)scriptBlock;
+
+- (void)updateRecycleHighlightForChangeCount:(int)changeCount;
 
 
 //

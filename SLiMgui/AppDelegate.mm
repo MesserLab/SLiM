@@ -20,6 +20,7 @@
 
 #import "AppDelegate.h"
 #import "SLiMWindowController.h"
+#import "SLiMDocument.h"
 #import "EidosHelpController.h"
 #import "CocoaExtra.h"
 #import "EidosCocoaExtra.h"
@@ -79,10 +80,6 @@ typedef enum SLiMLaunchAction
 	Eidos_WarmUp();
 	SLiM_WarmUp();
 	
-	// Poke SLiMDocumentController so it gets set up before NSDocumentController gets in.  Note we don't need to keep a
-	// reference to this, because AppKit will return it to us as +[NSDocumentController sharedDocumentController].
-	[[SLiMDocumentController alloc] init];
-	
 	// Create the Open Recipes menu
 	[openRecipesMenu removeAllItems];
 	
@@ -137,78 +134,49 @@ typedef enum SLiMLaunchAction
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
-	switch ((SLiMLaunchAction)[[NSUserDefaults standardUserDefaults] integerForKey:defaultsLaunchActionKey])
+	SLiMLaunchAction launchAction = (SLiMLaunchAction)[[NSUserDefaults standardUserDefaults] integerForKey:defaultsLaunchActionKey];
+	
+	switch (launchAction)
 	{
 		case kLaunchDoNothing:
 			break;
 		case kLaunchNewScriptWindow:
-			[self newDocument:nil];
+			[self performSelector:@selector(openNewDocumentIfNeeded:) withObject:nil afterDelay:0.01];
 			break;
 		case kLaunchRunOpenPanel:
-			[self openDocument:nil];
+			[[NSDocumentController sharedDocumentController] openDocument:nil];
 			break;
 	}
 	
 	[TipsWindowController showTipsWindowOnLaunch];
 }
 
+- (void)openNewDocumentIfNeeded:(id)sender
+{
+	NSUInteger documentCount = [[[NSDocumentController sharedDocumentController] documents] count];
+	
+	// Open an untitled document if there is no document (restored, opened)
+	if (documentCount == 0)
+		[[NSDocumentController sharedDocumentController] openUntitledDocumentAndDisplay:YES error:NULL];
+}
+
+- (BOOL)applicationShouldOpenUntitledFile:(NSApplication *)sender
+{
+	// Prevent AppKit from opening a new untitled window on launch.  We do this because we do this ourselves
+	// instead; and we do it ourselves instead because Apple seems to have screwed it up.  (I.e., sometimes
+	// this method does not get called even when no other document is being restored.)
+	return NO;
+}
+
+- (BOOL)applicationShouldHandleReopen:(NSApplication *)sender hasVisibleWindows:(BOOL)flag
+{
+	// Prevent a new untitled window from opening if we are already running, have no open windows, and are activated.
+	// This is non-standard behavior, but I really hate the standard behavior, so.
+	return NO;
+}
+
 - (void)applicationWillTerminate:(NSNotification *)aNotification
 {
-}
-
-- (IBAction)newDocument:(id)sender
-{
-	SLiMWindowController *windowController = [[SLiMWindowController alloc] initWithWindowNibName:@"SLiMWindow"];
-	
-	[windowController setDefaultScriptStringAndInitializeSimulation];
-	[windowController showWindow:nil];
-}
-
-- (BOOL)application:(NSApplication *)theApplication openFile:(NSString *)filename
-{
-	NSURL *fileURL = [NSURL fileURLWithPath:filename];
-	NSString *scriptString = [NSString stringWithContentsOfURL:fileURL usedEncoding:NULL error:NULL];
-	SLiMWindowController *windowController = [[SLiMWindowController alloc] initWithWindowNibName:@"SLiMWindow"];
-	
-	[windowController setScriptStringAndInitializeSimulation:scriptString];
-	[[windowController window] setTitleWithRepresentedFilename:[fileURL path]];
-	[windowController showWindow:nil];
-	
-	[[NSDocumentController sharedDocumentController] noteNewRecentDocumentURL:fileURL];	// remember this script file in the Recent Documents menu
-	
-	return YES;
-}
-
-- (IBAction)openDocument:(id)sender
-{
-	NSOpenPanel *op = [[NSOpenPanel openPanel] retain];
-	
-	[op setCanChooseDirectories:NO];
-	[op setCanChooseFiles:YES];
-	[op setAllowsMultipleSelection:NO];
-	[op setExtensionHidden:NO];
-	[op setCanSelectHiddenExtension:NO];
-	[op setAllowedFileTypes:@[@"txt"]];
-	[op setTitle:@"Open Script"];
-	
-	if ([op runModal] == NSFileHandlingPanelOKButton)
-	{
-		NSURL *fileURL = [op URL];
-		NSString *scriptString = [NSString stringWithContentsOfURL:fileURL usedEncoding:NULL error:NULL];
-		
-		if (scriptString)
-		{
-			[[NSDocumentController sharedDocumentController] noteNewRecentDocumentURL:fileURL];	// remember this script file in the Recent Documents menu
-			
-			SLiMWindowController *windowController = [[SLiMWindowController alloc] initWithWindowNibName:@"SLiMWindow"];
-			
-			[windowController setScriptStringAndInitializeSimulation:scriptString];
-			[[windowController window] setTitleWithRepresentedFilename:[fileURL path]];
-			[windowController showWindow:nil];
-		}
-	}
-	
-	[op release];
 }
 
 - (IBAction)openRecipe:(id)sender
@@ -224,11 +192,14 @@ typedef enum SLiMLaunchAction
 		
 		if (scriptString)
 		{
-			SLiMWindowController *windowController = [[SLiMWindowController alloc] initWithWindowNibName:@"SLiMWindow"];
+			SLiMDocument *doc = [[NSDocumentController sharedDocumentController] openUntitledDocumentAndDisplay:YES error:NULL];
 			
-			[windowController setScriptStringAndInitializeSimulation:scriptString];
-			[[windowController window] setTitle:recipeName];
-			[windowController showWindow:nil];
+			if (doc)
+			{
+				[doc setDocumentScriptString:scriptString];
+				[doc setRecipeName:recipeName];					// tell the doc it's a recipe doc, so it can manage its title properly
+				[[doc slimWindowController] synchronizeWindowTitleWithDocumentName];	// remake the window title
+			}
 		}
 	}
 }
@@ -377,7 +348,8 @@ typedef enum SLiMLaunchAction
 	SEL sel = [menuItem action];
 	
 	// Handle validation for menu items that really belong to SLiMWindowController.  This provides a default validation
-	// for these menu items when no SLiMWindowController is receiving.
+	// for these menu items when no SLiMWindowController is receiving.  The point is to reset the titles of these menu
+	// items back to their base state, not just to disable them (which would happen anyway).
 	if (sel == @selector(play:))
 	{
 		[menuItem setTitle:@"Play"];

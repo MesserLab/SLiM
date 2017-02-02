@@ -505,8 +505,8 @@
 	[scriptLines insertObject:lineToInsert atIndex:bestInsertionIndex];
 	
 	// Set the doctored string back into the textview
-	[scriptTextView setString:[scriptLines componentsJoinedByString:@"\n"]];
-	[controller textDidChange:[NSNotification notificationWithName:NSTextDidChangeNotification object:scriptTextView]];
+	[scriptTextView setSelectedRange:NSMakeRange(0, [[scriptTextView textStorage] length])];
+	[scriptTextView insertText:[scriptLines componentsJoinedByString:@"\n"]];
 	
 	// Select the inserted line
 	NSUInteger lineStartCharacter = 0;

@@ -19,6 +19,7 @@
 
 
 #import "SLiMWindowController.h"
+#import "SLiMDocument.h"
 #import "AppDelegate.h"
 #import "GraphView_MutationFrequencySpectra.h"
 #import "GraphView_MutationLossTimeHistogram.h"
@@ -102,36 +103,6 @@
 #pragma mark -
 #pragma mark Core class methods
 
-+ (NSString *)defaultScriptString
-{
-	static NSString *str = @"// set up a simple neutral simulation\n"
-							"initialize() {\n"
-							"	initializeMutationRate(1e-7);\n"
-							"	\n"
-							"	// m1 mutation type: neutral\n"
-							"	initializeMutationType(\"m1\", 0.5, \"f\", 0.0);\n"
-							"	\n"
-							"	// g1 genomic element type: uses m1 for all mutations\n"
-							"	initializeGenomicElementType(\"g1\", m1, 1.0);\n"
-							"	\n"
-							"	// uniform chromosome of length 100 kb with uniform recombination\n"
-							"	initializeGenomicElement(g1, 0, 99999);\n"
-							"	initializeRecombinationRate(1e-8);\n"
-							"}\n"
-							"\n"
-							"// create a population of 500 individuals\n"
-							"1 {\n"
-							"	sim.addSubpop(\"p1\", 500);\n"
-							"}\n"
-							"\n"
-							"// output samples of 10 genomes periodically, all fixed mutations at end\n"
-							"1000 late() { p1.outputSample(10); }\n"
-							"2000 late() { p1.outputSample(10); }\n"
-							"2000 late() { sim.outputFixedMutations(); }\n";
-	
-	return str;
-}
-
 + (NSColor *)blackContrastingColorForIndex:(int)index
 {
 	static NSColor **colorArray = NULL;
@@ -173,9 +144,9 @@
 	return ((index >= 0) && (index <= 5)) ? colorArray[index] : colorArray[6];
 }
 
-- (id)initWithWindow:(NSWindow *)window
+- (instancetype)init
 {
-	if (self = [super initWithWindow:window])
+	if (self = [super initWithWindowNibName:@"SLiMWindow"])
 	{
 		// observe preferences that we care about
 		[[NSUserDefaults standardUserDefaults] addObserver:self forKeyPath:defaultsSyntaxHighlightScriptKey options:0 context:NULL];
@@ -193,6 +164,100 @@
 	}
 	
 	return self;
+}
+
+- (void)dealloc
+{
+	//NSLog(@"[SLiMWindowController dealloc]");
+	if ([self document])
+		[self setDocument:nil];
+	
+	[[NSNotificationCenter defaultCenter] removeObserver:self];
+	
+	// Disconnect delegate relationships
+	[mainSplitView setDelegate:nil];
+	mainSplitView = nil;
+	
+	[scriptTextView setDelegate:nil];
+	scriptTextView = nil;
+	
+	[outputTextView setDelegate:nil];
+	outputTextView = nil;
+	
+	[_consoleController setDelegate:nil];
+	
+	// Remove observers
+	NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+	
+	[defaults removeObserver:self forKeyPath:defaultsSyntaxHighlightScriptKey context:NULL];
+	[defaults removeObserver:self forKeyPath:defaultsSyntaxHighlightOutputKey context:NULL];
+	
+	[[NSNotificationCenter defaultCenter] removeObserver:self];
+	
+	// Free resources
+	[scriptString release];
+	scriptString = nil;
+	
+	delete sim;
+	sim = nullptr;
+	
+	gsl_rng_free(sim_rng);
+	sim_rng = nil;
+	
+	[continuousPlayStartDate release];
+	continuousPlayStartDate = nil;
+	
+	[genomicElementColorRegistry release];
+	genomicElementColorRegistry = nil;
+	
+	[self setScriptHiddenConstraint:nil];
+	[self setScriptVisibleConstraint:nil];
+	
+	// All graph windows attached to this controller need to be closed, since they refer back to us;
+	// closing them will come back via windowWillClose: and make them release and nil themselves
+	[self sendAllGraphWindowsSelector:@selector(close)];
+	
+	// We also need to close and release our console window and its associated variable browser window.
+	// We don't track the console or var browser in windowWillClose: since we want those windows to
+	// continue to exist even when they are hidden, unlike graph windows.
+	[[_consoleController browserController] hideWindow];
+	[_consoleController hideWindow];
+	[self setConsoleController:nil];
+	
+	[super dealloc];
+}
+
+- (void)setDocument:(id)document
+{
+	[super setDocument:document];
+	
+	// The document currently has our model information, but we keep the model, so we need to pull it over
+	if ([self document])
+		[self setScriptStringAndInitializeSimulation:[[self document] documentScriptString]];
+}
+
+- (NSString *)windowTitleForDocumentDisplayName:(NSString *)displayName
+{
+	NSString *superString = [super windowTitleForDocumentDisplayName:displayName];
+	SLiMDocument *document = [self document];
+	NSString *recipeName = [document recipeName];
+	NSURL *docURL = [document fileURL];
+	
+	// If we have a recipe name, *and* we are an unsaved (i.e. untitled) document, then we want to customize the window title
+	if (recipeName && !docURL && [displayName hasPrefix:[document defaultDraftName]])
+	{
+		NSRange spaceRange = [recipeName rangeOfString:@" "];
+		
+		if (spaceRange.location != NSNotFound)
+		{
+			NSString *recipeNumber = [recipeName substringToIndex:spaceRange.location];
+			
+			if ([recipeNumber length])
+				return [NSString stringWithFormat:@"%@ [Recipe %@]", superString, recipeNumber];
+		}
+	}
+	
+	return superString;
 }
 
 - (void)browserWillShow:(NSNotification *)note
@@ -319,11 +384,6 @@
 	[self startNewSimulationFromScript];
 }
 
-- (void)setDefaultScriptStringAndInitializeSimulation
-{
-	[self setScriptStringAndInitializeSimulation:[SLiMWindowController defaultScriptString]];
-}
-
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context
 {
 	NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
@@ -371,65 +431,6 @@
 	[graphWindowMutationFixationTimeHistogram performSelector:selector];
 	[graphWindowFitnessOverTime performSelector:selector];
 	[graphWindowPopulationVisualization performSelector:selector];
-}
-
-- (void)dealloc
-{
-	//NSLog(@"[SLiMWindowController dealloc]");
-	
-	[[NSNotificationCenter defaultCenter] removeObserver:self];
-	
-	// Disconnect delegate relationships
-	[mainSplitView setDelegate:nil];
-	mainSplitView = nil;
-	
-	[scriptTextView setDelegate:nil];
-	scriptTextView = nil;
-	
-	[outputTextView setDelegate:nil];
-	outputTextView = nil;
-	
-	[_consoleController setDelegate:nil];
-	
-	// Remove observers
-	NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-	
-	[defaults removeObserver:self forKeyPath:defaultsSyntaxHighlightScriptKey context:NULL];
-	[defaults removeObserver:self forKeyPath:defaultsSyntaxHighlightOutputKey context:NULL];
-	
-	[[NSNotificationCenter defaultCenter] removeObserver:self];
-	
-	// Free resources
-	[scriptString release];
-	scriptString = nil;
-	
-	delete sim;
-	sim = nullptr;
-	
-	gsl_rng_free(sim_rng);
-	sim_rng = nil;
-	
-	[continuousPlayStartDate release];
-	continuousPlayStartDate = nil;
-	
-	[genomicElementColorRegistry release];
-	genomicElementColorRegistry = nil;
-	
-	[self setScriptHiddenConstraint:nil];
-	[self setScriptVisibleConstraint:nil];
-	
-	// All graph windows attached to this controller need to be closed, since they refer back to us;
-	// closing them will come back via windowWillClose: and make them release and nil themselves
-	[self sendAllGraphWindowsSelector:@selector(close)];
-	
-	// We also need to close and release our console window and its associated variable browser window.
-	// We don't track the console or var browser in windowWillClose: since we want those windows to
-	// continue to exist even when they are hidden, unlike graph windows.
-	[[_consoleController browserController] hideWindow];
-	[_consoleController hideWindow];
-	[self setConsoleController:nil];
-	
-	[super dealloc];
 }
 
 - (void)updateOutputTextView
@@ -888,6 +889,14 @@
 		[scriptBlocksTableView reloadData];
 		[scriptBlocksTableView setNeedsDisplay];
 	}
+}
+
+- (void)updateRecycleHighlightForChangeCount:(int)changeCount
+{
+	if (changeCount)
+		[recycleButton slimSetTintColor:[NSColor colorWithCalibratedHue:0.33 saturation:0.4 brightness:1.0 alpha:1.0]];
+	else
+		[recycleButton slimSetTintColor:nil];
 }
 
 
@@ -1367,6 +1376,12 @@
 	[_consoleController validateSymbolTable];
 	[self updateAfterTickFull:YES];
 	
+	// A bit of playing with undo.  We want to break undo coalescing at the point of recycling, so that undo and redo stop
+	// at the moment that we recycled.  Then we reset a change counter that we use to know if we have changed relative to
+	// the recycle point, so we can highlight the recycle button to show that the executing script is out of date.
+	[scriptTextView breakUndoCoalescing];
+	[[self document] resetSLiMChangeCount];
+	
 	// Update the status field so that if the selection is in an initialize...() function the right signature is shown.  This call would
 	// be more technically correct in -updateAfterTick, but I don't want the tokenization overhead there, it's too heavyweight.  The
 	// only negative consequence of not having it there is that when the user steps out of initialization time into generation 1, an
@@ -1821,7 +1836,7 @@
 		[self eidosConsoleWindowControllerWillExecuteScript:_consoleController];
 		
 		// Add SLiM help items; we need a SLiMSim instance here to get function prototypes
-		std::istringstream infile([[SLiMWindowController defaultScriptString] UTF8String]);
+		std::istringstream infile([[SLiMDocument defaultScriptString] UTF8String]);
 		
 		SLiMSim signature_sim(infile);
 		// note no sim->InitializeRNGFromSeed() here; we don't need the RNG and don't want it to log or have side effects
@@ -2243,8 +2258,7 @@
 		[_consoleController finalize];
 		[self setConsoleController:nil];
 		
-		//[self setWindow:nil];
-		[self autorelease];
+		// NSWindowController takes care of the rest; we don't need to release ourselves, or ask our document to close, or anything
 	}
 	else if (closingWindow == graphWindowMutationFreqSpectrum)
 	{
@@ -2296,14 +2310,6 @@
 //
 #pragma mark -
 #pragma mark NSTextView delegate
-
-- (void)textDidChange:(NSNotification *)notification
-{
-	NSTextView *textView = (NSTextView *)[notification object];
-	
-	if (textView == scriptTextView)
-		[self setDocumentEdited:YES];	// this still doesn't set up the "Edited" marker in the window title bar, because we're not using NSDocument
-}
 
 - (void)updateStatusFieldFromSelection
 {
