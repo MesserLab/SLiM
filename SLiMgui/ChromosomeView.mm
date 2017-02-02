@@ -420,12 +420,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		if (!NSIsEmptyRect(elementRect))
 		{
 			GenomicElementType *geType = genomicElement.genomic_element_type_ptr_;
-			NSColor *elementColor = nil;
-			
-			if (!geType->color_.empty())
-				elementColor = [NSColor colorWithCalibratedRed:geType->color_red_ green:geType->color_green_ blue:geType->color_blue_ alpha:1.0];
-			else
-				elementColor = [controller colorForGenomicElementTypeID:geType->genomic_element_type_id_];
+			NSColor *elementColor = [controller colorForGenomicElementType:geType withID:geType->genomic_element_type_id_];
 			
 			[elementColor set];
 			NSRectFill(elementRect);
@@ -479,7 +474,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 			else
 			{
 				slim_objectid_t elementTypeID = geType->genomic_element_type_id_;
-				NSColor *elementColor = [controller colorForGenomicElementTypeID:elementTypeID];
+				NSColor *elementColor = [controller colorForGenomicElementType:geType withID:elementTypeID];
 				double r, g, b, a;
 				
 				[elementColor getRed:&r green:&g blue:&b alpha:&a];

@@ -802,23 +802,30 @@
 	return selectedSubpops;
 }
 
-- (NSColor *)colorForGenomicElementTypeID:(slim_objectid_t)elementTypeID
+- (NSColor *)colorForGenomicElementType:(GenomicElementType *)elementType withID:(slim_objectid_t)elementTypeID
 {
-	if (!genomicElementColorRegistry)
-		genomicElementColorRegistry = [[NSMutableDictionary alloc] init];
-	
-	NSNumber *key = [NSNumber numberWithInteger:elementTypeID];
-	NSColor *elementColor = [genomicElementColorRegistry objectForKey:key];
-	
-	if (!elementColor)
+	if (elementType && !elementType->color_.empty())
 	{
-		int elementCount = (int)[genomicElementColorRegistry count];
-		
-		elementColor = [SLiMWindowController blackContrastingColorForIndex:elementCount];
-		[genomicElementColorRegistry setObject:elementColor forKey:key];
+		return [NSColor colorWithCalibratedRed:elementType->color_red_ green:elementType->color_green_ blue:elementType->color_blue_ alpha:1.0];
 	}
-	
-	return elementColor;
+	else
+	{
+		if (!genomicElementColorRegistry)
+			genomicElementColorRegistry = [[NSMutableDictionary alloc] init];
+		
+		NSNumber *key = [NSNumber numberWithInteger:elementTypeID];
+		NSColor *elementColor = [genomicElementColorRegistry objectForKey:key];
+		
+		if (!elementColor)
+		{
+			int elementCount = (int)[genomicElementColorRegistry count];
+			
+			elementColor = [SLiMWindowController blackContrastingColorForIndex:elementCount];
+			[genomicElementColorRegistry setObject:elementColor forKey:key];
+		}
+		
+		return elementColor;
+	}
 }
 
 - (BOOL)validateMenuItem:(NSMenuItem *)menuItem
@@ -2676,7 +2683,7 @@
 				}
 				else if (aTableColumn == genomicElementTypeColorColumn)
 				{
-					return [self colorForGenomicElementTypeID:genomicElementTypeID];
+					return [self colorForGenomicElementType:genomicElementType withID:genomicElementTypeID];
 				}
 				else if (aTableColumn == genomicElementTypeMutationTypesColumn)
 				{

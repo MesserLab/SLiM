@@ -162,7 +162,7 @@
 
 - (std::vector<Subpopulation*>)selectedSubpopulations;
 
-- (NSColor *)colorForGenomicElementTypeID:(slim_objectid_t)elementTypeID;
+- (NSColor *)colorForGenomicElementType:(GenomicElementType *)elementType withID:(slim_objectid_t)elementTypeID;
 
 - (void)addScriptBlockToSimulation:(SLiMEidosBlock *)scriptBlock;
 
