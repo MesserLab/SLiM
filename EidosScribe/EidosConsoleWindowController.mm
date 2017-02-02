@@ -122,7 +122,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	
 	[[NSNotificationCenter defaultCenter] removeObserver:self];
 	
-	[self finalize];
+	[self cleanup];
 	
 	[self setMainSplitView:nil];
 	[self setScriptTextView:nil];
@@ -169,7 +169,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	[scriptWindow performClose:nil];
 }
 
-- (void)finalize
+- (void)cleanup
 {
 	delete global_symbols;
 	global_symbols = nil;
@@ -180,7 +180,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	[scriptWindow setDelegate:nil];
 	[self setScriptWindow:nil];
 	
-	[browserController finalize];
+	[browserController cleanup];
 	[self setBrowserController:nil];
 	
 	[self setDelegate:nil];

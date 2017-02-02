@@ -151,6 +151,7 @@
 		// observe preferences that we care about
 		[[NSUserDefaults standardUserDefaults] addObserver:self forKeyPath:defaultsSyntaxHighlightScriptKey options:0 context:NULL];
 		[[NSUserDefaults standardUserDefaults] addObserver:self forKeyPath:defaultsSyntaxHighlightOutputKey options:0 context:NULL];
+		observingKeyPaths = YES;
 		
 		// Observe notifications to keep our variable browser toggle button up to date
 		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(browserWillShow:) name:EidosVariableBrowserWillShowNotification object:nil];
@@ -166,11 +167,9 @@
 	return self;
 }
 
-- (void)dealloc
+- (void)cleanup
 {
-	//NSLog(@"[SLiMWindowController dealloc]");
-	if ([self document])
-		[self setDocument:nil];
+	//NSLog(@"[SLiMWindowController cleanup]");
 	
 	[[NSNotificationCenter defaultCenter] removeObserver:self];
 	
@@ -187,10 +186,15 @@
 	[_consoleController setDelegate:nil];
 	
 	// Remove observers
-	NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+	if (observingKeyPaths)
+	{
+		NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
 	
-	[defaults removeObserver:self forKeyPath:defaultsSyntaxHighlightScriptKey context:NULL];
-	[defaults removeObserver:self forKeyPath:defaultsSyntaxHighlightOutputKey context:NULL];
+		[defaults removeObserver:self forKeyPath:defaultsSyntaxHighlightScriptKey context:NULL];
+		[defaults removeObserver:self forKeyPath:defaultsSyntaxHighlightOutputKey context:NULL];
+		
+		observingKeyPaths = NO;
+	}
 	
 	[[NSNotificationCenter defaultCenter] removeObserver:self];
 	
@@ -198,11 +202,17 @@
 	[scriptString release];
 	scriptString = nil;
 	
-	delete sim;
-	sim = nullptr;
+	if (sim)
+	{
+		delete sim;
+		sim = nullptr;
+	}
 	
-	gsl_rng_free(sim_rng);
-	sim_rng = nil;
+	if (sim_rng)
+	{
+		gsl_rng_free(sim_rng);
+		sim_rng = nil;
+	}
 	
 	[continuousPlayStartDate release];
 	continuousPlayStartDate = nil;
@@ -215,7 +225,22 @@
 	
 	// All graph windows attached to this controller need to be closed, since they refer back to us;
 	// closing them will come back via windowWillClose: and make them release and nil themselves
+	[self sendAllGraphViewsSelector:@selector(cleanup)];
 	[self sendAllGraphWindowsSelector:@selector(close)];
+	
+	[graphWindowMutationFreqSpectrum autorelease];
+	[graphWindowMutationFreqTrajectories autorelease];
+	[graphWindowMutationLossTimeHistogram autorelease];
+	[graphWindowMutationFixationTimeHistogram autorelease];
+	[graphWindowFitnessOverTime autorelease];
+	[graphWindowPopulationVisualization autorelease];
+	
+	graphWindowMutationFreqSpectrum = nil;
+	graphWindowMutationFreqTrajectories = nil;
+	graphWindowMutationLossTimeHistogram = nil;
+	graphWindowMutationFixationTimeHistogram = nil;
+	graphWindowFitnessOverTime = nil;
+	graphWindowPopulationVisualization = nil;
 	
 	// We also need to close and release our console window and its associated variable browser window.
 	// We don't track the console or var browser in windowWillClose: since we want those windows to
@@ -223,6 +248,16 @@
 	[[_consoleController browserController] hideWindow];
 	[_consoleController hideWindow];
 	[self setConsoleController:nil];
+}
+
+- (void)dealloc
+{
+	//NSLog(@"[SLiMWindowController dealloc]");
+	
+	[self cleanup];
+	
+	if ([self document])
+		[self setDocument:nil];
 	
 	[super dealloc];
 }
@@ -2253,40 +2288,46 @@
 	
 	if (closingWindow == [self window])
 	{
+		//NSLog(@"SLiMWindowController window closing...");
 		[closingWindow setDelegate:nil];
 		
-		[_consoleController finalize];
-		[self setConsoleController:nil];
+		[self cleanup];
 		
 		// NSWindowController takes care of the rest; we don't need to release ourselves, or ask our document to close, or anything
 	}
 	else if (closingWindow == graphWindowMutationFreqSpectrum)
 	{
+		//NSLog(@"graphWindowMutationFreqSpectrum window closing...");
 		[graphWindowMutationFreqSpectrum autorelease];
 		graphWindowMutationFreqSpectrum = nil;
 	}
 	else if (closingWindow == graphWindowMutationFreqTrajectories)
 	{
+		//NSLog(@"graphWindowMutationFreqTrajectories window closing...");
 		[graphWindowMutationFreqTrajectories autorelease];
 		graphWindowMutationFreqTrajectories = nil;
 	}
 	else if (closingWindow == graphWindowMutationLossTimeHistogram)
 	{
+		//NSLog(@"graphWindowMutationLossTimeHistogram window closing...");
 		[graphWindowMutationLossTimeHistogram autorelease];
 		graphWindowMutationLossTimeHistogram = nil;
 	}
 	else if (closingWindow == graphWindowMutationFixationTimeHistogram)
 	{
+		//NSLog(@"graphWindowMutationFixationTimeHistogram window closing...");
 		[graphWindowMutationFixationTimeHistogram autorelease];
 		graphWindowMutationFixationTimeHistogram = nil;
 	}
 	else if (closingWindow == graphWindowFitnessOverTime)
 	{
+		//NSLog(@"graphWindowFitnessOverTime window closing...");
 		[graphWindowFitnessOverTime autorelease];
 		graphWindowFitnessOverTime = nil;
 	}
 	else if (closingWindow == graphWindowPopulationVisualization)
 	{
+		//NSLog(@"graphWindowPopulationVisualization window closing...");
 		[graphWindowPopulationVisualization autorelease];
 		graphWindowPopulationVisualization = nil;
 	}

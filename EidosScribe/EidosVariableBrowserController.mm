@@ -67,7 +67,7 @@ NSString *EidosVariableBrowserWillShowNotification = @"EidosVariableBrowserWillS
 	[expandedSet release];
 	expandedSet = nil;
 	
-	[self finalize];
+	[self cleanup];
 	
 	[super dealloc];
 }
@@ -101,7 +101,7 @@ NSString *EidosVariableBrowserWillShowNotification = @"EidosVariableBrowserWillS
 	}
 }
 
-- (void)finalize
+- (void)cleanup
 {
 	[[self browserWindow] setDelegate:nil];
 	[self setBrowserWindow:nil];

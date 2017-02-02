@@ -143,6 +143,9 @@
 		// don't forget to add new graph windows in -dealloc, -updateAfterTick, and -windowWillClose:
 	
 	int openedGraphCount;						// used for new graph window positioning
+	
+	// Misc
+	bool observingKeyPaths;
 }
 
 + (NSColor *)blackContrastingColorForIndex:(int)index;

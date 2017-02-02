@@ -83,7 +83,7 @@ extern NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey;
 - (void)hideWindow;
 
 // Tell the controller that the console window should be disposed of, not just closed; breaks retain loops
-- (void)finalize;
+- (void)cleanup;
 
 // Get the console textview; this can be used to append new output in the console, for example
 - (EidosConsoleTextView *)textView;

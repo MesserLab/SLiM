@@ -109,9 +109,10 @@
 	return self;
 }
 
-- (void)dealloc
+- (void)cleanup
 {
-	//NSLog(@"[GraphView dealloc]");
+	//NSLog(@"[GraphView cleanup]");
+	
 	[self invalidateDrawingCache];
 	
 	[_xAxisLabel release];
@@ -120,6 +121,14 @@
 	[_yAxisLabel release];
 	_yAxisLabel = nil;
 	
+	_slimWindowController = nil;
+}
+
+- (void)dealloc
+{
+	//NSLog(@"[GraphView dealloc]");
+	
+	[self cleanup];
 	[super dealloc];
 }
 

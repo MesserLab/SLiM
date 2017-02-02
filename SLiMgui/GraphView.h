@@ -84,6 +84,8 @@
 
 - (id)initWithFrame:(NSRect)frameRect withController:(SLiMWindowController *)controller;		// designated initializer
 
+- (void)cleanup;
+
 - (void)setXAxisLabelString:(NSString *)labelString;
 - (void)setYAxisLabelString:(NSString *)labelString;
 

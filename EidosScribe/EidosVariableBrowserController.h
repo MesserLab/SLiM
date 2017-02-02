@@ -68,7 +68,7 @@ extern NSString *EidosVariableBrowserWillShowNotification;
 - (void)hideWindow;
 
 // Tell the controller that the browser window should be disposed of, not just closed; breaks retain loops
-- (void)finalize;
+- (void)cleanup;
 
 // Trigger a reload of the variable browser when symbols have changed
 - (void)reloadBrowser;

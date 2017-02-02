@@ -70,6 +70,8 @@
 
 - (void)dealloc
 {
+	//NSLog(@"[SLiMDocument dealloc]");
+	
 	[documentScriptString release];
 	documentScriptString = nil;
 	
