@@ -102,8 +102,10 @@
 {
 	NSArray *myControllers = [self windowControllers];
 	
-	// If this document displaced a transient document, it will already have been assigned a window controller. If that is not the case, create one.
-	if ([myControllers count] == 0) {
+	// If this document displaced a transient document, it will already have been assigned
+	// a window controller. If that is not the case, create one.
+	if ([myControllers count] == 0)
+	{
 		SLiMWindowController *controller = [[[SLiMWindowController alloc] init] autorelease];
 		
 		[controller setShouldCloseDocument:YES];
@@ -201,6 +203,9 @@
 // recycle to bring their changes into force.
 - (void)updateChangeCount:(NSDocumentChangeType)change
 {
+	// When a document is changed, it ceases to be transient.
+	[self setTransient:NO];
+	
 	[super updateChangeCount:change];
 	
 	// Mask off flags in the high bits.  Apple is not explicit about this, but NSChangeDiscardable
@@ -221,6 +226,35 @@
 	
 	[[self slimWindowController] updateRecycleHighlightForChangeCount:slimChangeCount];
 }
+
+
+// Transient document support: adapted from TextEdit.  A transient document is an untitled document that
+// was opened automatically. If a real document is opened before the transient document is edited, the
+// real document should replace the transient. If a transient document is edited, it ceases to be transient. 
+
+- (BOOL)isTransient
+{
+	return transient;
+}
+
+- (void)setTransient:(BOOL)flag
+{
+	transient = flag;
+}
+
+- (BOOL)isTransientAndCanBeReplaced
+{
+	if (![self isTransient])
+		return NO;
+	
+	// We can't replace transient document that have sheets on them.
+	for (NSWindowController *controller in [self windowControllers])
+		if ([[controller window] attachedSheet])
+			return NO;
+	
+	return YES;
+}
+
 
 // Opt out of all of Apple's autosaving, versioning, etc.  Partly because I dislike those features,
 // partly because I don't want a user's model to be saved until they explicitly save since

@@ -237,6 +237,8 @@
 - (IBAction)showMutationsButtonToggled:(id)sender;
 - (IBAction)showFixedSubstitutionsButtonToggled:(id)sender;
 
+- (IBAction)drawerButtonToggled:(id)sender;
+
 - (IBAction)importPopulation:(id)sender;		// wired through firstResponder because these are menu items
 
 - (IBAction)exportScript:(id)sender;			// wired through firstResponder because these are menu items

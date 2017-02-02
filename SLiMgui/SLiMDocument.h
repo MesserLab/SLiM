@@ -34,6 +34,9 @@
 	
 	// Change count tracking relative to our last recycle
 	int slimChangeCount;
+	
+	// Transient document support
+	BOOL transient;
 }
 
 @property (retain, nonatomic) NSString *recipeName;
@@ -46,6 +49,11 @@
 - (SLiMWindowController *)slimWindowController;
 
 - (void)resetSLiMChangeCount;
+
+// Transient documents
+- (BOOL)isTransient;
+- (void)setTransient:(BOOL)flag;
+- (BOOL)isTransientAndCanBeReplaced;
 
 @end
 

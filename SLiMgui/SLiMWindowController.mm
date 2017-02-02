@@ -1106,6 +1106,8 @@
 
 - (NSWindow *)graphWindowWithTitle:(NSString *)windowTitle viewClass:(Class)viewClass
 {
+	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
+	
 	[[NSBundle mainBundle] loadNibNamed:@"GraphWindow" owner:self topLevelObjects:NULL];
 	
 	// Set the graph window title
@@ -1179,6 +1181,8 @@
 
 - (BOOL)runSimOneGeneration
 {
+	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
+	
 	// This method should always be used when calling out to run the simulation, because it swaps the correct random number
 	// generator stuff in and out bracketing the call to RunOneGeneration().  This bracketing would need to be done around
 	// any other call out to the simulation that caused it to use random numbers, too, such as subsample output.
@@ -1421,6 +1425,8 @@
 
 - (IBAction)recycle:(id)sender
 {
+	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
+	
 	[_consoleController invalidateSymbolTable];
 	[self clearOutput:nil];
 	[self setScriptStringAndInitializeSimulation:[scriptTextView string]];
@@ -1446,6 +1452,8 @@
 
 - (IBAction)playSpeedChanged:(id)sender
 {
+	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
+	
 	// We want our speed to be from the point when the slider changed, not from when play started
 	[continuousPlayStartDate release];
 	continuousPlayStartDate = [[NSDate date] retain];
@@ -1454,6 +1462,8 @@
 
 - (IBAction)fitnessColorSliderChanged:(id)sender
 {
+	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
+	
 	fitnessColorScale = [fitnessColorSlider doubleValue];
 	fitnessColorScale *= fitnessColorScale;
 	
@@ -1465,6 +1475,8 @@
 
 - (IBAction)selectionColorSliderChanged:(id)sender
 {
+	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
+	
 	selectionColorScale = [selectionColorSlider doubleValue];
 	selectionColorScale *= selectionColorScale;
 	
@@ -1476,6 +1488,8 @@
 
 - (IBAction)checkScript:(id)sender
 {
+	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
+	
 	// Note this does *not* check out scriptString, which represents the state of the script when the SLiMSim object was created
 	// Instead, it checks the current script in the script TextView – which is not used for anything until the recycle button is clicked.
 	NSString *currentScriptString = [scriptTextView string];
@@ -1558,6 +1572,8 @@
 
 - (IBAction)toggleScriptVisibility:(id)sender
 {
+	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
+	
 	if ([mainSplitView isHidden])
 	{
 		// View is hidden, so we need to show it
@@ -1599,21 +1615,29 @@
 
 - (IBAction)toggleConsoleVisibility:(id)sender
 {
+	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
+	
 	[_consoleController toggleConsoleVisibility:sender];
 }
 
 - (IBAction)toggleBrowserVisibility:(id)sender
 {
+	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
+	
 	[[_consoleController browserController] toggleBrowserVisibility:self];
 }
 
 - (IBAction)clearOutput:(id)sender
 {
+	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
+	
 	[outputTextView setString:@""];
 }
 
 - (IBAction)dumpPopulationToOutput:(id)sender
 {
+	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
+	
 	try
 	{
 		// dump the population
@@ -1641,6 +1665,8 @@
 
 - (IBAction)showRecombinationIntervalsButtonToggled:(id)sender
 {
+	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
+	
 	BOOL newValue = ([showRecombinationIntervalsButton state] == NSOnState);
 	
 	if (newValue != zoomedChromosomeShowsRecombinationIntervals)
@@ -1653,6 +1679,8 @@
 
 - (IBAction)showGenomicElementsButtonToggled:(id)sender
 {
+	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
+	
 	BOOL newValue = ([showGenomicElementsButton state] == NSOnState);
 	
 	if (newValue != zoomedChromosomeShowsGenomicElements)
@@ -1665,6 +1693,8 @@
 
 - (IBAction)showMutationsButtonToggled:(id)sender
 {
+	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
+	
 	BOOL newValue = ([showMutationsButton state] == NSOnState);
 	
 	if (newValue != zoomedChromosomeShowsMutations)
@@ -1677,6 +1707,8 @@
 
 - (IBAction)showFixedSubstitutionsButtonToggled:(id)sender
 {
+	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
+	
 	BOOL newValue = ([showFixedSubstitutionsButton state] == NSOnState);
 	
 	if (newValue != zoomedChromosomeShowsFixedSubstitutions)
@@ -1687,8 +1719,17 @@
 	}
 }
 
+- (IBAction)drawerButtonToggled:(id)sender
+{
+	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
+	
+	[drawer toggle:sender];
+}
+
 - (IBAction)importPopulation:(id)sender
 {
+	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
+	
 	if (invalidSimulation || continuousPlayOn || generationPlayOn || reachedSimulationEnd || hasImported || !sim || !sim->simulationValid || (sim->generation_ != 1))
 	{
 		// Can only import when in a very specific state
@@ -1768,6 +1809,8 @@
 
 - (IBAction)exportScript:(id)sender
 {
+	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
+	
 	NSSavePanel *sp = [[NSSavePanel savePanel] retain];
 	
 	[sp setTitle:@"Export Script"];
@@ -1791,6 +1834,8 @@
 
 - (IBAction)exportOutput:(id)sender
 {
+	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
+	
 	NSSavePanel *sp = [[NSSavePanel savePanel] retain];
 	
 	[sp setTitle:@"Export Output"];
@@ -1814,6 +1859,8 @@
 
 - (IBAction)exportPopulation:(id)sender
 {
+	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
+	
 	NSSavePanel *sp = [[NSSavePanel savePanel] retain];
 	
 	[sp setTitle:@"Export Population"];
@@ -2355,12 +2402,20 @@
 
 - (void)windowDidResize:(NSNotification *)notification
 {
+	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
+	
 	NSWindow *resizingWindow = [notification object];
 	NSView *contentView = [resizingWindow contentView];
 
 	if ([contentView isKindOfClass:[GraphView class]])
 		[(GraphView *)contentView graphWindowResized];
 }
+
+- (void)windowDidMove:(NSNotification *)notification
+{
+	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
+}
+
 
 //
 //	NSTextView delegate methods
@@ -2830,6 +2885,11 @@
 - (CGFloat)splitView:(NSSplitView *)splitView constrainMinCoordinate:(CGFloat)proposedMin ofSubviewAt:(NSInteger)dividerIndex
 {
 	return proposedMin + 240;
+}
+
+- (void)splitViewDidResizeSubviews:(NSNotification *)notification
+{
+	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
 }
 
 

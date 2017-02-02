@@ -128,7 +128,7 @@ typedef enum SLiMLaunchAction
 		
 		NSMenuItem *menuItem = [openRecipesMenu addItemWithTitle:recipeName action:@selector(openRecipe:) keyEquivalent:@""];
 		
-		[menuItem setTarget:self];
+		[menuItem setTarget:[NSDocumentController sharedDocumentController]];
 	}
 }
 
@@ -157,7 +157,11 @@ typedef enum SLiMLaunchAction
 	
 	// Open an untitled document if there is no document (restored, opened)
 	if (documentCount == 0)
-		[[NSDocumentController sharedDocumentController] openUntitledDocumentAndDisplay:YES error:NULL];
+	{
+		SLiMDocument *doc = [[NSDocumentController sharedDocumentController] openUntitledDocumentAndDisplay:YES error:NULL];
+		
+		[doc setTransient:YES];
+	}
 }
 
 - (BOOL)applicationShouldOpenUntitledFile:(NSApplication *)sender
@@ -177,31 +181,6 @@ typedef enum SLiMLaunchAction
 
 - (void)applicationWillTerminate:(NSNotification *)aNotification
 {
-}
-
-- (IBAction)openRecipe:(id)sender
-{
-	NSString *recipeName = [sender title];
-	NSString *fullRecipeName = [NSString stringWithFormat:@"Recipe %@", recipeName];
-	NSBundle *bundle = [NSBundle mainBundle];
-	NSURL *urlForRecipe = [bundle URLForResource:fullRecipeName withExtension:@".txt" subdirectory:@"Recipes"];
-	
-	if (urlForRecipe)
-	{
-		NSString *scriptString = [NSString stringWithContentsOfURL:urlForRecipe usedEncoding:NULL error:NULL];
-		
-		if (scriptString)
-		{
-			SLiMDocument *doc = [[NSDocumentController sharedDocumentController] openUntitledDocumentAndDisplay:YES error:NULL];
-			
-			if (doc)
-			{
-				[doc setDocumentScriptString:scriptString];
-				[doc setRecipeName:recipeName];					// tell the doc it's a recipe doc, so it can manage its title properly
-				[[doc slimWindowController] synchronizeWindowTitleWithDocumentName];	// remake the window title
-			}
-		}
-	}
 }
 
 - (IBAction)resetSuppressionFlags:(id)sender

@@ -1,8 +1,8 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="10117" systemVersion="15G1108" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="11762" systemVersion="16D32" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
-        <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="10117"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="11762"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="SLiMWindowController">
@@ -178,7 +178,6 @@
                                     </connections>
                                 </tableView>
                             </subviews>
-                            <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
                         </clipView>
                         <constraints>
                             <constraint firstAttribute="width" constant="257" id="PI4-wd-zFt"/>
@@ -583,7 +582,7 @@
                         </connections>
                     </button>
                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Bdq-3V-iQ8">
-                        <rect key="frame" x="962" y="851" width="80" height="17"/>
+                        <rect key="frame" x="962" y="853" width="80" height="17"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Generation:" id="fmB-1c-4a3">
                             <font key="font" metaFont="systemBold"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -594,7 +593,7 @@
                         </connections>
                     </textField>
                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="2Li-Tb-lf1">
-                        <rect key="frame" x="962" y="817" width="101" height="17"/>
+                        <rect key="frame" x="962" y="819" width="101" height="17"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Fitness values:" id="ud2-EE-3Fg">
                             <font key="font" metaFont="systemBold"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -605,7 +604,7 @@
                         </connections>
                     </textField>
                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="MEL-RZ-Op6">
-                        <rect key="frame" x="962" y="752" width="150" height="17"/>
+                        <rect key="frame" x="962" y="754" width="150" height="17"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Selection coefficients:" id="i3E-i5-VhN">
                             <font key="font" metaFont="systemBold"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -616,7 +615,7 @@
                         </connections>
                     </textField>
                     <textField toolTip="the generation that is about to execute" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Yfj-bi-uzJ" customClass="SLiMAutoselectTextField">
-                        <rect key="frame" x="1071" y="848" width="89" height="22"/>
+                        <rect key="frame" x="1071" y="850" width="89" height="22"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" title="1" drawsBackground="YES" id="bq2-MX-jxa">
                             <numberFormatter key="formatter" formatterBehavior="default10_4" numberStyle="decimal" minimumIntegerDigits="1" maximumIntegerDigits="2000000000" maximumFractionDigits="3" id="9R9-Iu-e40"/>
                             <font key="font" metaFont="system"/>
@@ -674,7 +673,7 @@
                         </connections>
                     </textField>
                     <slider toolTip="simulation playing speed" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="kRU-NC-9qC">
-                        <rect key="frame" x="1030" y="877" width="64" height="15"/>
+                        <rect key="frame" x="1030" y="879" width="64" height="13"/>
                         <sliderCell key="cell" controlSize="mini" continuous="YES" state="on" alignment="left" maxValue="1" doubleValue="1" tickMarkPosition="below" sliderType="linear" id="kmr-mp-1sk"/>
                         <connections>
                             <action selector="playSpeedChanged:" target="-2" id="PVe-yr-IZh"/>
@@ -712,18 +711,16 @@
                                     <scrollView horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="yeL-B5-ZLS" userLabel="Bordered Scroll View - Eidos Text View">
                                         <rect key="frame" x="0.0" y="0.0" width="570" height="505"/>
                                         <clipView key="contentView" id="lOc-28-sSJ">
-                                            <rect key="frame" x="1" y="1" width="223" height="133"/>
+                                            <rect key="frame" x="1" y="1" width="553" height="503"/>
                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <subviews>
-                                                <textView importsGraphics="NO" richText="NO" findStyle="bar" allowsUndo="YES" verticallyResizable="YES" id="N45-af-9rm" userLabel="Eidos Text View" customClass="EidosTextView">
-                                                    <rect key="frame" x="0.0" y="0.0" width="223" height="524"/>
+                                                <textView importsGraphics="NO" richText="NO" findStyle="bar" allowsUndo="YES" id="N45-af-9rm" userLabel="Eidos Text View" customClass="EidosTextView">
+                                                    <rect key="frame" x="0.0" y="0.0" width="553" height="503"/>
                                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                     <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                                                     <size key="minSize" width="553" height="503"/>
                                                     <size key="maxSize" width="1123" height="10000000"/>
                                                     <color key="insertionPointColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                                    <size key="minSize" width="553" height="503"/>
-                                                    <size key="maxSize" width="1123" height="10000000"/>
                                                     <connections>
                                                         <binding destination="-2" name="editable" keyPath="continuousPlayOn" id="44K-3N-tcx">
                                                             <dictionary key="options">
@@ -857,18 +854,16 @@
                                     <scrollView horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Fql-QB-8ET" userLabel="Bordered Scroll View - Eidos Text View">
                                         <rect key="frame" x="0.0" y="0.0" width="561" height="505"/>
                                         <clipView key="contentView" id="Fsf-qx-R06">
-                                            <rect key="frame" x="1" y="1" width="223" height="133"/>
+                                            <rect key="frame" x="1" y="1" width="544" height="503"/>
                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <subviews>
-                                                <textView editable="NO" importsGraphics="NO" richText="NO" findStyle="bar" allowsUndo="YES" verticallyResizable="YES" allowsNonContiguousLayout="YES" id="z1f-09-60b" userLabel="Eidos Text View" customClass="EidosTextView">
-                                                    <rect key="frame" x="0.0" y="0.0" width="223" height="524"/>
+                                                <textView editable="NO" importsGraphics="NO" richText="NO" findStyle="bar" allowsUndo="YES" allowsNonContiguousLayout="YES" id="z1f-09-60b" userLabel="Eidos Text View" customClass="EidosTextView">
+                                                    <rect key="frame" x="0.0" y="0.0" width="544" height="503"/>
                                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                     <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                                                     <size key="minSize" width="544" height="503"/>
                                                     <size key="maxSize" width="1123" height="10000000"/>
                                                     <color key="insertionPointColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                                    <size key="minSize" width="544" height="503"/>
-                                                    <size key="maxSize" width="1123" height="10000000"/>
                                                     <connections>
                                                         <outlet property="delegate" destination="-2" id="c3D-5f-8j3"/>
                                                     </connections>
@@ -1001,24 +996,24 @@
                         </connections>
                     </splitView>
                     <progressIndicator wantsLayer="YES" horizontalHuggingPriority="750" verticalHuggingPriority="750" maxValue="100" displayedWhenStopped="NO" bezeled="NO" indeterminate="YES" controlSize="small" style="spinning" translatesAutoresizingMaskIntoConstraints="NO" id="VWw-o4-Pjo">
-                        <rect key="frame" x="1049" y="850" width="16" height="16"/>
+                        <rect key="frame" x="1049" y="852" width="16" height="16"/>
                     </progressIndicator>
                     <customView translatesAutoresizingMaskIntoConstraints="NO" id="34c-xZ-32c" userLabel="SLiM Color Stripe View" customClass="SLiMColorStripeView">
-                        <rect key="frame" x="966" y="782" width="182" height="27"/>
+                        <rect key="frame" x="966" y="784" width="182" height="27"/>
                         <constraints>
                             <constraint firstAttribute="height" constant="27" id="3F2-1a-Am5"/>
                             <constraint firstAttribute="width" constant="182" id="DvR-yi-fiy"/>
                         </constraints>
                     </customView>
                     <customView translatesAutoresizingMaskIntoConstraints="NO" id="SGz-ny-AvE" userLabel="SLiM Color Stripe View" customClass="SLiMColorStripeView">
-                        <rect key="frame" x="966" y="717" width="182" height="27"/>
+                        <rect key="frame" x="966" y="719" width="182" height="27"/>
                         <constraints>
                             <constraint firstAttribute="width" constant="182" id="F6U-Qr-9aI"/>
                             <constraint firstAttribute="height" constant="27" id="z5A-Wl-aoP"/>
                         </constraints>
                     </customView>
                     <slider toolTip="fitness coloring scale factor" horizontalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="4kM-3W-gya">
-                        <rect key="frame" x="1146" y="781" width="15" height="53"/>
+                        <rect key="frame" x="1146" y="783" width="13" height="53"/>
                         <sliderCell key="cell" controlSize="mini" continuous="YES" alignment="left" minValue="0.80000000000000004" maxValue="3" doubleValue="1.5" tickMarkPosition="right" sliderType="linear" id="5GY-Bd-ALg"/>
                         <connections>
                             <action selector="fitnessColorSliderChanged:" target="-2" id="CaX-3v-mmq"/>
@@ -1030,7 +1025,7 @@
                         </connections>
                     </slider>
                     <slider toolTip="selection coefficient coloring scale factor" horizontalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="mYQ-CE-Kge">
-                        <rect key="frame" x="1146" y="716" width="15" height="53"/>
+                        <rect key="frame" x="1146" y="718" width="13" height="53"/>
                         <sliderCell key="cell" controlSize="mini" continuous="YES" alignment="left" minValue="0.80000000000000004" maxValue="10" doubleValue="3.5" tickMarkPosition="right" sliderType="linear" id="Sts-DM-74l"/>
                         <connections>
                             <action selector="selectionColorSliderChanged:" target="-2" id="xTV-BA-jvz"/>
@@ -1052,7 +1047,7 @@
                             <font key="font" metaFont="system"/>
                         </buttonCell>
                         <connections>
-                            <action selector="toggle:" target="Sdd-Vl-XmH" id="agx-G1-tIt"/>
+                            <action selector="drawerButtonToggled:" target="-2" id="DLd-gY-khQ"/>
                         </connections>
                     </button>
                     <button toolTip="toggle recombination interval visibility" translatesAutoresizingMaskIntoConstraints="NO" id="LwJ-mt-MjQ">
@@ -1442,7 +1437,6 @@
                                 </connections>
                             </tableView>
                         </subviews>
-                        <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
                     </clipView>
                     <scroller key="horizontalScroller" hidden="YES" verticalHuggingPriority="750" horizontal="YES" id="dCE-DQ-skE">
                         <rect key="frame" x="1" y="119" width="223" height="15"/>
@@ -1521,7 +1515,6 @@
                                 </connections>
                             </tableView>
                         </subviews>
-                        <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
                     </clipView>
                     <scroller key="horizontalScroller" hidden="YES" verticalHuggingPriority="750" horizontal="YES" id="1bV-Dp-xL5">
                         <rect key="frame" x="1" y="119" width="223" height="15"/>
@@ -1624,7 +1617,6 @@
                                 </connections>
                             </tableView>
                         </subviews>
-                        <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
                     </clipView>
                     <scroller key="horizontalScroller" hidden="YES" verticalHuggingPriority="750" horizontal="YES" id="l1i-oT-WJF">
                         <rect key="frame" x="1" y="119" width="223" height="15"/>

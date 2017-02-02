@@ -239,6 +239,8 @@
 
 + (void)runWithController:(SLiMWindowController *)windowController
 {
+	[[windowController document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
+	
 	ScriptMod *scriptMod = [[[self class] alloc] initWithController:windowController];
 	
 	if ([scriptMod checkEligibility])
