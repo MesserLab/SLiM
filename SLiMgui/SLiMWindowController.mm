@@ -476,8 +476,17 @@
 	{
 		const char *cstr = newOutput.c_str();
 		NSString *str = [NSString stringWithUTF8String:cstr];
-		NSScrollView *enclosingScrollView = [outputTextView enclosingScrollView];
-		BOOL scrolledToBottom = (![enclosingScrollView hasVerticalScroller] || [[enclosingScrollView verticalScroller] doubleValue] == 1.0);
+		
+		// So, ideally we would stay pinned at the bottom if the user had scrolled to the bottom, but would stay
+		// at the user's chosen scroll position above the bottom if they chose such a position.  Unfortunately,
+		// this doesn't seem to work.  I'm not quite sure why.  Particularly when large amounts of output get
+		// added quickly, the scroller doesn't seem to catch up, and then it reads here as not being at the
+		// bottom, and so we become unpinned even though we used to be pinned.  I'm going to just give up, for
+		// now, and always scroll to the bottom when new output comes out.  That's what many other such apps
+		// do anyway; it's a little annoying if you're trying to read old output, but so it goes.
+		
+		//NSScrollView *enclosingScrollView = [outputTextView enclosingScrollView];
+		BOOL scrolledToBottom = YES; //(![enclosingScrollView hasVerticalScroller] || [[enclosingScrollView verticalScroller] doubleValue] == 1.0);
 		
 		[outputTextView replaceCharactersInRange:NSMakeRange([[outputTextView string] length], 0) withString:str];
 		[outputTextView setFont:[NSFont fontWithName:@"Menlo" size:11.0]];
