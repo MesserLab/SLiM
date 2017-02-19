@@ -730,9 +730,7 @@
 	
 	// Set the script textview to show its string, with correct formatting
 	[scriptTextView setString:scriptString];
-	
-	if ([[NSUserDefaults standardUserDefaults] boolForKey:defaultsSyntaxHighlightScriptKey])
-		[scriptTextView setSyntaxColoring:kEidosSyntaxColoringEidos];
+	[scriptTextView recolorAfterChanges];
 	
 	// Set up our chromosome views to show the proper stuff
 	[chromosomeOverview setReferenceChromosomeView:nil];

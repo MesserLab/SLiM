@@ -608,7 +608,7 @@ using std::string;
 				if ([self shouldChangeTextInRange:changeRange replacementString:@"//"])
 				{
 					[ts replaceCharactersInRange:changeRange withString:@"//"];
-					[ts setAttributes:[NSDictionary eidosTextAttributesWithColor:[NSColor blackColor]] range:NSMakeRange(scanPosition, 2)];
+					//[ts setAttributes:[NSDictionary eidosTextAttributesWithColor:[NSColor blackColor]] range:NSMakeRange(scanPosition, 2)];
 					[self didChangeText];
 					
 					[scriptString replaceCharactersInRange:changeRange withString:@"//"];
@@ -999,24 +999,24 @@ using std::string;
 	}
 	
 	// Syntax color!
-	NSTextStorage *ts = [self textStorage];
+	NSRange fullRange = NSMakeRange(0, [[self textStorage] length]);
+	NSLayoutManager *lm = [self layoutManager];
 	
-	[ts beginEditing];
-	
-	[ts removeAttribute:NSForegroundColorAttributeName range:NSMakeRange(0, [ts length])];
+	[lm ensureGlyphsForCharacterRange:fullRange];
+	[lm removeTemporaryAttribute:NSForegroundColorAttributeName forCharacterRange:fullRange];
 	
 	for (const EidosToken &token : script.Tokens())
 	{
 		NSRange tokenRange = NSMakeRange(token.token_UTF16_start_, token.token_UTF16_end_ - token.token_UTF16_start_ + 1);
 		
 		if (token.token_type_ == EidosTokenType::kTokenNumber)
-			[ts addAttribute:NSForegroundColorAttributeName value:numberLiteralColor range:tokenRange];
+			[lm addTemporaryAttribute:NSForegroundColorAttributeName value:numberLiteralColor forCharacterRange:tokenRange];
 		if (token.token_type_ == EidosTokenType::kTokenString)
-			[ts addAttribute:NSForegroundColorAttributeName value:stringLiteralColor range:tokenRange];
+			[lm addTemporaryAttribute:NSForegroundColorAttributeName value:stringLiteralColor forCharacterRange:tokenRange];
 		if (token.token_type_ == EidosTokenType::kTokenComment)
-			[ts addAttribute:NSForegroundColorAttributeName value:commentColor range:tokenRange];
+			[lm addTemporaryAttribute:NSForegroundColorAttributeName value:commentColor forCharacterRange:tokenRange];
 		if (token.token_type_ > EidosTokenType::kFirstIdentifierLikeToken)
-			[ts addAttribute:NSForegroundColorAttributeName value:keywordColor range:tokenRange];
+			[lm addTemporaryAttribute:NSForegroundColorAttributeName value:keywordColor forCharacterRange:tokenRange];
 		if (token.token_type_ == EidosTokenType::kTokenIdentifier)
 		{
 			// most identifiers are left as black; only special ones get colored
@@ -1029,23 +1029,22 @@ using std::string;
 				(token_string.compare("INF") == 0) ||
 				(token_string.compare("NAN") == 0) ||
 				(token_string.compare("NULL") == 0))
-				[ts addAttribute:NSForegroundColorAttributeName value:identifierColor range:tokenRange];
+				[lm addTemporaryAttribute:NSForegroundColorAttributeName value:identifierColor forCharacterRange:tokenRange];
 			else
 			{
 				// we also let the Context specify special identifiers that we will syntax color
 				if ([delegate respondsToSelector:@selector(eidosTextView:tokenStringIsSpecialIdentifier:)])
 					if ([delegate eidosTextView:self tokenStringIsSpecialIdentifier:token_string])
-						[ts addAttribute:NSForegroundColorAttributeName value:identifierColor range:tokenRange];
+						[lm addTemporaryAttribute:NSForegroundColorAttributeName value:identifierColor forCharacterRange:tokenRange];
 			}
 		}
 	}
-	
-	[ts endEditing];
 }
 
 - (void)syntaxColorForOutput
 {
-	NSTextStorage *textStorage = [self textStorage];
+	NSRange fullRange = NSMakeRange(0, [[self textStorage] length]);
+	NSLayoutManager *lm = [self layoutManager];
 	NSString *string = [self string];
 	NSArray *lines = [string componentsSeparatedByString:@"\n"];
 	int lineCount = (int)[lines count];
@@ -1068,8 +1067,7 @@ using std::string;
 	}
 	
 	// And then tokenize and color
-	[textStorage beginEditing];
-	[textStorage removeAttribute:NSForegroundColorAttributeName range:NSMakeRange(0, [textStorage length])];
+	[lm removeTemporaryAttribute:NSForegroundColorAttributeName forCharacterRange:fullRange];
 	
 	for (int lineIndex = 0; lineIndex < lineCount; ++lineIndex)
 	{
@@ -1088,7 +1086,7 @@ using std::string;
 			{
 				int commentLength = (int)(lineRange.length - commentRange.location);
 				
-				[textStorage addAttributes:commentAttrs range:NSMakeRange(lineRange.location + commentRange.location, commentLength)];
+				[lm addTemporaryAttributes:commentAttrs forCharacterRange:NSMakeRange(lineRange.location + commentRange.location, commentLength)];
 				
 				lineRange.length -= commentLength;
 				line = [line substringToIndex:commentRange.location];
@@ -1125,7 +1123,7 @@ using std::string;
 				{
 					// find pound directives and color them
 					if ([line characterAtIndex:0] == '#')
-						[textStorage addAttributes:poundDirectiveAttrs range:lineRange];
+						[lm addTemporaryAttributes:poundDirectiveAttrs forCharacterRange:lineRange];
 					else
 					{
 						NSRange scanRange = NSMakeRange(0, lineRange.length);
@@ -1147,7 +1145,7 @@ using std::string;
 								syntaxAttrs = mutationTypeAttrs;
 							
 							if (syntaxAttrs)
-								[textStorage addAttributes:syntaxAttrs range:NSMakeRange(tokenRange.location + lineRange.location, tokenRange.length)];
+								[lm addTemporaryAttributes:syntaxAttrs forCharacterRange:NSMakeRange(tokenRange.location + lineRange.location, tokenRange.length)];
 							
 							scanRange.length = (scanRange.location + scanRange.length) - (tokenRange.location + tokenRange.length);
 							scanRange.location = (tokenRange.location + tokenRange.length);
@@ -1162,17 +1160,15 @@ using std::string;
 		
 		stringPosition = nextStringPosition;
 	}
-	
-	[textStorage endEditing];
 }
 
 - (void)clearSyntaxColoring
 {
-	NSTextStorage *textStorage = [self textStorage];
+	NSRange fullRange = NSMakeRange(0, [[self textStorage] length]);
+	NSLayoutManager *lm = [self layoutManager];
 	
-	[textStorage beginEditing];
-	[textStorage removeAttribute:NSForegroundColorAttributeName range:NSMakeRange(0, [textStorage length])];
-	[textStorage endEditing];
+	[lm ensureGlyphsForCharacterRange:fullRange];
+	[lm removeTemporaryAttribute:NSForegroundColorAttributeName forCharacterRange:fullRange];
 }
 
 - (void)updateSyntaxColoring
@@ -1212,10 +1208,14 @@ using std::string;
 		[self updateSyntaxColoring];
 }
 
-- (void)textStorageDidProcessEditing:(NSNotification *)notification
+- (void)didChangeText
 {
-	// I used to do this in an override of -didChangeText, but that did not work well; I think the text system
-	// did not expect attribute changes at that time.  This delegate method is specifically intended for this.
+	// When we used regular attributes on the text storage for syntax coloring, this was done in
+	// textStorageDidProcessEditing: since that is the right time to change attributes in response
+	// to other changes.  Now that we use temporary attributes, though, we need to do it in this
+	// method, so that the layout manager is completely synchronized with the new, changed text.
+	[super didChangeText];
+	
 	if (_shouldRecolorAfterChanges)
 		[self recolorAfterChanges];
 }

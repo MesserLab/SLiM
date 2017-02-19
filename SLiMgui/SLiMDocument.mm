@@ -151,6 +151,7 @@
 	if (mainController)
 	{
 		[mainController->scriptTextView setString:newString];
+		[mainController->scriptTextView recolorAfterChanges];
 		[mainController recycle:nil];
 	}
 }
