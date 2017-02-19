@@ -21,6 +21,7 @@
 #import "AppDelegate.h"
 #import "SLiMWindowController.h"
 #import "SLiMDocument.h"
+#import "SLiMDocumentController.h"
 #import "EidosHelpController.h"
 #import "CocoaExtra.h"
 #import "EidosCocoaExtra.h"

@@ -35,6 +35,8 @@
 - (SLiMDocument *)transientDocumentToReplace;
 - (void)replaceTransientDocument:(NSArray *)documents;
 
+- (IBAction)openRecipe:(id)sender;
+
 @end
 
 
