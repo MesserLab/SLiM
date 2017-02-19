@@ -10,7 +10,7 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 development head:
 
 
-2.2.1 (build 987; Eidos version 1.2.1):
+2.2.1 (build 988; Eidos version 1.2.1):
 	added recipe to demonstrate forcing a pedigree during mating (recipe 13.7)
 	added recipe to show suppression of baseline hermaphroditic selfing (recipe 12.4)
 	added recipe for estimating model parameters with ABC (recipe 13.8)
@@ -27,6 +27,7 @@ development head:
 	accelerate bulk setting of some common read-write SLiM properties (up to a 3x speedup for test cases)
 	switch SLiMgui over to a full document-based model (.slim files, save, revert, etc.)
 	highlight the recycle button green when changes have been made to the script since the last recycle
+	make multiple calls to initializeRecombinationRate() illegal, to prevent misunderstandings about how to make complex recombination maps
 
 2.2 (build 955; Eidos version 1.2):
 	added recombination() callback for individual-level recombination modifications
