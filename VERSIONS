@@ -10,7 +10,7 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 development head:
 
 
-2.2.1 (build 990; Eidos version 1.2.1):
+2.2.1 (build 992; Eidos version 1.2.1):
 	added recipe to demonstrate forcing a pedigree during mating (recipe 13.7)
 	added recipe to show suppression of baseline hermaphroditic selfing (recipe 12.4)
 	added recipe for estimating model parameters with ABC (recipe 13.8)
@@ -29,6 +29,7 @@ development head:
 	highlight the recycle button green when changes have been made to the script since the last recycle
 	make multiple calls to initializeRecombinationRate() illegal, to prevent misunderstandings about how to make complex recombination maps
 	speed up syntax coloring for large files
+	fix hang during mate choice when all individuals are fitness <= 0.0
 
 2.2 (build 955; Eidos version 1.2):
 	added recombination() callback for individual-level recombination modifications
