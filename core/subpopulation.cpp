@@ -333,10 +333,8 @@ Subpopulation::~Subpopulation(void)
 
 void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callbacks)
 {
-#ifdef SLIMGUI
-	// When running under SLiMgui, this function calculates the population mean fitness as a side effect
+	// This function calculates the population mean fitness as a side effect
 	double totalFitness = 0.0;
-#endif
 	
 	// Figure out our callback scenario: zero, one, or many?  See the comment below, above FitnessOfParentWithGenomeIndices_NoCallbacks(),
 	// for more info on this complication.  Here we just figure out which version to call and set up for it.
@@ -387,6 +385,8 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 	if (sex_enabled_)
 	{
 		// SEX ONLY
+		double totalMaleFitness = 0.0, totalFemaleFitness = 0.0;
+		
 		gsl_ran_discrete_free(lookup_female_parent_);
 		lookup_female_parent_ = nullptr;
 		
@@ -410,10 +410,12 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 			cached_parental_fitness_[i] = fitness;
 			cached_male_fitness_[i] = 0;				// this vector has 0 for all females, for mateChoice() callbacks
 			
-#ifdef SLIMGUI
-			totalFitness += fitness;
-#endif
+			totalFemaleFitness += fitness;
 		}
+		
+		totalFitness += totalFemaleFitness;
+		if (totalFemaleFitness <= 0.0)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of females is <= 0.0." << eidos_terminate(nullptr);
 		
 		lookup_female_parent_ = gsl_ran_discrete_preproc(parent_first_male_index_, cached_parental_fitness_);
 		
@@ -437,10 +439,12 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 			cached_parental_fitness_[individual_index] = fitness;
 			cached_male_fitness_[individual_index] = fitness;
 			
-#ifdef SLIMGUI
-			totalFitness += fitness;
-#endif
+			totalMaleFitness += fitness;
 		}
+		
+		totalFitness += totalMaleFitness;
+		if (totalMaleFitness <= 0.0)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of males is <= 0.0." << eidos_terminate(nullptr);
 		
 		lookup_male_parent_ = gsl_ran_discrete_preproc(num_males, cached_parental_fitness_ + parent_first_male_index_);
 	}
@@ -466,10 +470,11 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 			
 			*(fitness_buffer_ptr++) = fitness;
 			
-#ifdef SLIMGUI
 			totalFitness += fitness;
-#endif
 		}
+		
+		if (totalFitness <= 0.0)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of all individuals is <= 0.0." << eidos_terminate(nullptr);
 		
 		lookup_parent_ = gsl_ran_discrete_preproc(parent_subpop_size_, cached_parental_fitness_);
 	}
