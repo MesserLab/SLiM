@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf760
+{\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf810
 {\fonttbl\f0\fswiss\fcharset0 Optima-Regular;\f1\fnil\fcharset0 Menlo-Italic;\f2\fnil\fcharset0 Menlo-Regular;
 \f3\froman\fcharset0 TimesNewRomanPSMT;\f4\fswiss\fcharset0 Helvetica;}
 {\colortbl;\red255\green255\blue255;}
@@ -1057,9 +1057,87 @@ See the description of the
 \f0   This method is provided primarily for speed; it executes much faster than the Eidos equivalent above.  Indeed, it is faster than just 
 \f2\fs18 individual.genomes.mutations
 \f0\fs20 , and gives uniquing and sorting on top of that, so it is advantageous unless duplicate entries for homozygous mutations are actually needed.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 x <\'96> (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 A user-defined 
+\f2\fs18 float
+\f0\fs20  value.  The value of 
+\f2\fs18 x
+\f0\fs20  is initially undefined; if you wish it to have a defined value, you must arrange that yourself, typically in a 
+\f2\fs18 modifyChild()
+\f0\fs20  callback.  The value of 
+\f2\fs18 x
+\f0\fs20  is not used by SLiM unless the optional \'93continuous space\'94 facility is enabled with the 
+\f2\fs18 continuousSpace
+\f0\fs20  parameter to 
+\f2\fs18 initializeSLiMOptions()
+\f0\fs20 , in which case 
+\f2\fs18 x
+\f0\fs20  will be understood to represent the 
+\i x
+\i0  coordinate of the individual in space.  If continuous space is not enabled, you may use 
+\f2\fs18 x
+\f0\fs20  as an additional tag value of type 
+\f2\fs18 float
+\f3\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 y <\'96> (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 A user-defined 
+\f2\fs18 float
+\f0\fs20  value.  The value of 
+\f2\fs18 y
+\f0\fs20  is initially undefined; if you wish it to have a defined value, you must arrange that yourself, typically in a 
+\f2\fs18 modifyChild()
+\f0\fs20  callback.  The value of 
+\f2\fs18 y
+\f0\fs20  is not used by SLiM unless the optional \'93continuous space\'94 facility is enabled with the 
+\f2\fs18 continuousSpace
+\f0\fs20  parameter to 
+\f2\fs18 initializeSLiMOptions()
+\f0\fs20 , in which case 
+\f2\fs18 y
+\f0\fs20  will be understood to represent the 
+\i y
+\i0  coordinate of the individual in space.  If continuous space is not enabled, you may use 
+\f2\fs18 y
+\f0\fs20  as an additional tag value of type 
+\f2\fs18 float
+\f3\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 z <\'96> (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 A user-defined 
+\f2\fs18 float
+\f0\fs20  value.  The value of 
+\f2\fs18 z
+\f0\fs20  is initially undefined; if you wish it to have a defined value, you must arrange that yourself, typically in a 
+\f2\fs18 modifyChild()
+\f0\fs20  callback.  The value of 
+\f2\fs18 z
+\f0\fs20  is not used by SLiM unless the optional \'93continuous space\'94 facility is enabled with the 
+\f2\fs18 continuousSpace
+\f0\fs20  parameter to 
+\f2\fs18 initializeSLiMOptions()
+\f0\fs20 , in which case 
+\f2\fs18 z
+\f0\fs20  will be understood to represent the 
+\i z
+\i0  coordinate of the individual in space.  If continuous space is not enabled, you may use 
+\f2\fs18 z
+\f0\fs20  as an additional tag value of type 
+\f2\fs18 float
+\f3\fs20 .\
 \pard\pardeftab397\ri720\sb120\sa60\partightenfactor0
 
-\i\fs22 \cf0 5.6.2  
+\f0\i\fs22 \cf0 5.6.2  
 \f1\fs18 Individual
 \f0\fs22  methods\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0

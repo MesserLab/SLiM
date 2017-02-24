@@ -1629,6 +1629,9 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; i.color = 'red'; if (all(i.color == 'red')) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; i.tag = 135; if (all(i.tag == 135)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; i.tagF = 135.0; if (all(i.tagF == 135.0)) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; i.x = 135.0; if (all(i.x == 135.0)) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; i.y = 135.0; if (all(i.y == 135.0)) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; i.z = 135.0; if (all(i.z == 135.0)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { i = p1.individuals; i.uniqueMutations; stop(); }", __LINE__);
 	
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { i = p1.individuals; i.genomes = i[0].genomes[0]; stop(); }", 1, 277, "read-only property", __LINE__);
@@ -1645,6 +1648,9 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { i = p1.individuals; i.color = 'red'; if (all(i.color == 'red')) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { i = p1.individuals; i.tag = 135; if (all(i.tag == 135)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { i = p1.individuals; i.tagF = 135.0; if (all(i.tagF == 135.0)) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { i = p1.individuals; i.x = 135.0; if (all(i.x == 135.0)) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { i = p1.individuals; i.y = 135.0; if (all(i.y == 135.0)) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { i = p1.individuals; i.z = 135.0; if (all(i.z == 135.0)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 { i = p1.individuals; i.uniqueMutations; stop(); }", __LINE__);
 	
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { i = p1.individuals; i.genomes = i[0].genomes[0]; stop(); }", 1, 297, "read-only property", __LINE__);
@@ -1659,6 +1665,15 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; i.tagF = (seqAlong(i) % 2 == 0); if (all(i.tagF == (seqAlong(i) % 2 == 0))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; i.tagF = seqAlong(i); if (all(i.tagF == seqAlong(i))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; i.tagF = asFloat(seqAlong(i)); if (all(i.tagF == seqAlong(i))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; i.x = (seqAlong(i) % 2 == 0); if (all(i.x == (seqAlong(i) % 2 == 0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; i.x = seqAlong(i); if (all(i.x == seqAlong(i))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; i.x = asFloat(seqAlong(i)); if (all(i.x == seqAlong(i))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; i.y = (seqAlong(i) % 2 == 0); if (all(i.y == (seqAlong(i) % 2 == 0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; i.y = seqAlong(i); if (all(i.y == seqAlong(i))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; i.y = asFloat(seqAlong(i)); if (all(i.y == seqAlong(i))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; i.z = (seqAlong(i) % 2 == 0); if (all(i.z == (seqAlong(i) % 2 == 0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; i.z = seqAlong(i); if (all(i.z == seqAlong(i))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; i.z = asFloat(seqAlong(i)); if (all(i.z == seqAlong(i))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; i.color = format('#%.6X', seqAlong(i)); if (all(i.color == format('#%.6X', seqAlong(i)))) stop(); }", __LINE__);
 	
 	// Test Individual - (logical)containsMutations(object<Mutation> mutations)

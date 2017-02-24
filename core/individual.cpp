@@ -42,7 +42,7 @@ bool gSLiM_Individual_custom_colors = false;
 
 
 Individual::Individual(const Individual &p_original) : subpopulation_(p_original.subpopulation_), index_(p_original.index_),
-	tag_value_(p_original.tag_value_), tagF_value_(p_original.tagF_value_),
+	tag_value_(p_original.tag_value_), tagF_value_(p_original.tagF_value_), spatial_x_(p_original.spatial_x_), spatial_y_(p_original.spatial_y_), spatial_z_(p_original.spatial_z_),
 	pedigree_id_(p_original.pedigree_id_), pedigree_p1_(p_original.pedigree_p1_), pedigree_p2_(p_original.pedigree_p2_),
 	pedigree_g1_(p_original.pedigree_g1_), pedigree_g2_(p_original.pedigree_g2_), pedigree_g3_(p_original.pedigree_g3_), pedigree_g4_(p_original.pedigree_g4_)
 {
@@ -468,6 +468,18 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(tagF_value_));
 		}
+		case gEidosID_x:			// ACCELERATED
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(spatial_x_));
+		}
+		case gEidosID_y:			// ACCELERATED
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(spatial_y_));
+		}
+		case gEidosID_z:			// ACCELERATED
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(spatial_z_));
+		}
 			
 			// all others, including gID_none
 		default:
@@ -492,6 +504,9 @@ double Individual::GetProperty_Accelerated_Float(EidosGlobalStringID p_property_
 	switch (p_property_id)
 	{
 		case gID_tagF:			return tagF_value_;
+		case gEidosID_x:		return spatial_x_;
+		case gEidosID_y:		return spatial_y_;
+		case gEidosID_z:		return spatial_z_;
 			
 		default:				return EidosObjectElement::GetProperty_Accelerated_Float(p_property_id);
 	}
@@ -534,6 +549,21 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 			tagF_value_ = p_value.FloatAtIndex(0, nullptr);
 			return;
 		}
+		case gEidosID_x:		// ACCELERATED
+		{
+			spatial_x_ = p_value.FloatAtIndex(0, nullptr);
+			return;
+		}
+		case gEidosID_y:		// ACCELERATED
+		{
+			spatial_y_ = p_value.FloatAtIndex(0, nullptr);
+			return;
+		}
+		case gEidosID_z:		// ACCELERATED
+		{
+			spatial_z_ = p_value.FloatAtIndex(0, nullptr);
+			return;
+		}
 			
 			// all others, including gID_none
 		default:
@@ -556,6 +586,9 @@ void Individual::SetProperty_Accelerated_Float(EidosGlobalStringID p_property_id
 	switch (p_property_id)
 	{
 		case gID_tagF:			tagF_value_ = p_value; return;
+		case gEidosID_x:		spatial_x_ = p_value; return;
+		case gEidosID_y:		spatial_y_ = p_value; return;
+		case gEidosID_z:		spatial_z_ = p_value; return;
 			
 		default:				return EidosObjectElement::SetProperty_Accelerated_Float(p_property_id, p_value);
 	}
@@ -1013,6 +1046,9 @@ const std::vector<const EidosPropertySignature *> *Individual_Class::Properties(
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_sex));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_tag));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_tagF));
+		properties->emplace_back(SignatureForPropertyOrRaise(gEidosID_x));
+		properties->emplace_back(SignatureForPropertyOrRaise(gEidosID_y));
+		properties->emplace_back(SignatureForPropertyOrRaise(gEidosID_z));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_pedigreeID));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_pedigreeParentIDs));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_pedigreeGrandparentIDs));
@@ -1033,6 +1069,9 @@ const EidosPropertySignature *Individual_Class::SignatureForProperty(EidosGlobal
 	static EidosPropertySignature *sexSig = nullptr;
 	static EidosPropertySignature *tagSig = nullptr;
 	static EidosPropertySignature *tagFSig = nullptr;
+	static EidosPropertySignature *xSig = nullptr;
+	static EidosPropertySignature *ySig = nullptr;
+	static EidosPropertySignature *zSig = nullptr;
 	static EidosPropertySignature *pedigreeIDSig = nullptr;
 	static EidosPropertySignature *pedigreeParentIDsSig = nullptr;
 	static EidosPropertySignature *pedigreeGrandparentIDsSig = nullptr;
@@ -1047,6 +1086,9 @@ const EidosPropertySignature *Individual_Class::SignatureForProperty(EidosGlobal
 		sexSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_sex,						gID_sex,						true,	kEidosValueMaskString | kEidosValueMaskSingleton));
 		tagSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,						gID_tag,						false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet()->DeclareAcceleratedSet();
 		tagFSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_tagF,					gID_tagF,						false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet()->DeclareAcceleratedSet();
+		xSig =							(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_x,					gEidosID_x,						false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet()->DeclareAcceleratedSet();
+		ySig =							(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_y,					gEidosID_y,						false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet()->DeclareAcceleratedSet();
+		zSig =							(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_z,					gEidosID_z,						false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet()->DeclareAcceleratedSet();
 		pedigreeIDSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeID,				gID_pedigreeID,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
 		pedigreeParentIDsSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeParentIDs,		gID_pedigreeParentIDs,			true,	kEidosValueMaskInt));
 		pedigreeGrandparentIDsSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeGrandparentIDs,	gID_pedigreeGrandparentIDs,		true,	kEidosValueMaskInt));
@@ -1063,6 +1105,9 @@ const EidosPropertySignature *Individual_Class::SignatureForProperty(EidosGlobal
 		case gID_sex:						return sexSig;
 		case gID_tag:						return tagSig;
 		case gID_tagF:						return tagFSig;
+		case gEidosID_x:					return xSig;
+		case gEidosID_y:					return ySig;
+		case gEidosID_z:					return zSig;
 		case gID_pedigreeID:				return pedigreeIDSig;
 		case gID_pedigreeParentIDs:			return pedigreeParentIDsSig;
 		case gID_pedigreeGrandparentIDs:	return pedigreeGrandparentIDsSig;

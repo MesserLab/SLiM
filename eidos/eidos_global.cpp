@@ -1003,6 +1003,9 @@ const std::string gEidosStr__squareTest = "_squareTest";
 // explicitly registered by Eidos; see the comment in Eidos_RegisterStringForGlobalID() below
 const std::string gEidosStr_weights = "weights";
 const std::string gEidosStr_n = "n";
+const std::string gEidosStr_x = "x";
+const std::string gEidosStr_y = "y";
+const std::string gEidosStr_z = "z";
 
 
 static std::unordered_map<std::string, EidosGlobalStringID> gStringToID;
@@ -1021,7 +1024,7 @@ void Eidos_RegisterStringForGlobalID(const std::string &p_string, EidosGlobalStr
 	// strings, that would be a tremendous pain.  The problem is that these "in passing" registrations can conflict with
 	// registrations done in the Context, unpredictably.  A new parameter named "weights" is added to a new Eidos function,
 	// and suddenly the explicit registration of "weights" in SLiM has broken and needs to be removed.  At least you know
-	// that that has, happened, because you end up here.  When you end up here, don't just comment out the registration call
+	// that that has happened, because you end up here.  When you end up here, don't just comment out the registration call
 	// in the Context; you also need to add an explicit registration call in Eidos, and remove the string and ID definitions
 	// in the Context, and so forth.  Migrate the whole explicit registration from the Context back into Eidos.  Unfortunate,
 	// but I don't see any good solution.  Sure is nice how uniquing of selectors just happens automatically in Obj-C!  That
@@ -1069,6 +1072,9 @@ void Eidos_RegisterGlobalStringsAndIDs(void)
 		
 		Eidos_RegisterStringForGlobalID(gEidosStr_weights, gEidosID_weights);
 		Eidos_RegisterStringForGlobalID(gEidosStr_n, gEidosID_n);
+		Eidos_RegisterStringForGlobalID(gEidosStr_x, gEidosID_x);
+		Eidos_RegisterStringForGlobalID(gEidosStr_y, gEidosID_y);
+		Eidos_RegisterStringForGlobalID(gEidosStr_z, gEidosID_z);
 	}
 }
 
