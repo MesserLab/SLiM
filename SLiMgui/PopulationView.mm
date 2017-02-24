@@ -228,10 +228,174 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	}
 }
 
+- (void)drawSpatialIndividualsFromSubpopulation:(Subpopulation *)subpop inArea:(NSRect)bounds
+{
+	SLiMWindowController *controller = [[self window] windowController];
+	double scalingFactor = controller->fitnessColorScale;
+	slim_popsize_t subpopSize = subpop->parent_subpop_size_;				// this used to be child_subpop_size_ but that seems clearly wrong...
+	double *subpop_fitness = subpop->cached_parental_fitness_;
+	BOOL useCachedFitness = (subpop->cached_fitness_size_ == subpopSize);	// needs to have the right number of entries, otherwise we punt
+	
+	NSRect individualArea = NSMakeRect(bounds.origin.x + 1, bounds.origin.y + 1, bounds.size.width - 3, bounds.size.height - 3);
+	
+	static float *glArrayVertices = nil;
+	static float *glArrayColors = nil;
+	int individualArrayIndex, displayListIndex;
+	float *vertices = NULL, *colors = NULL;
+	
+	// Set up the vertex and color arrays
+	if (!glArrayVertices)
+		glArrayVertices = (float *)malloc(kMaxVertices * 2 * sizeof(float));		// 2 floats per vertex, AK_POPULATION_VIEW_GL_ARRAY_SIZE vertices
+	
+	if (!glArrayColors)
+		glArrayColors = (float *)malloc(kMaxVertices * 4 * sizeof(float));		// 4 floats per color, AK_POPULATION_VIEW_GL_ARRAY_SIZE colors
+	
+	// Set up to draw rects
+	displayListIndex = 0;
+	
+	vertices = glArrayVertices;
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glVertexPointer(2, GL_FLOAT, 0, glArrayVertices);
+	
+	colors = glArrayColors;
+	glEnableClientState(GL_COLOR_ARRAY);
+	glColorPointer(4, GL_FLOAT, 0, glArrayColors);
+	
+	// First we outline all individuals
+	for (individualArrayIndex = 0; individualArrayIndex < subpopSize; ++individualArrayIndex)
+	{
+		// Figure out the rect to draw in; note we now use individualArrayIndex here, because the hit-testing code doesn't have an easy way to calculate the displayed individual index...
+		Individual &individual = subpop->parent_individuals_[individualArrayIndex];
+		float centerX = (float)(individualArea.origin.x + round((individual.spatial_x_ / 1.0f) * individualArea.size.width) + 0.5);
+		float centerY = (float)(individualArea.origin.y + individualArea.size.height - round((individual.spatial_y_ / 1.0f) * individualArea.size.height) + 0.5);
+		float left = centerX - 2.5f;
+		float top = centerY - 2.5f;
+		float right = centerX + 2.5f;
+		float bottom = centerY + 2.5f;
+		
+		if (left < individualArea.origin.x) left = (float)individualArea.origin.x;
+		if (top < individualArea.origin.y) top = (float)individualArea.origin.y;
+		if (right > individualArea.origin.x + individualArea.size.width + 1) right = (float)(individualArea.origin.x + individualArea.size.width + 1);
+		if (bottom > individualArea.origin.y + individualArea.size.height + 1) bottom = (float)(individualArea.origin.y + individualArea.size.height + 1);
+		
+		*(vertices++) = left;
+		*(vertices++) = top;
+		*(vertices++) = left;
+		*(vertices++) = bottom;
+		*(vertices++) = right;
+		*(vertices++) = bottom;
+		*(vertices++) = right;
+		*(vertices++) = top;
+		
+		for (int j = 0; j < 4; ++j)
+		{
+			*(colors++) = 0.25;
+			*(colors++) = 0.25;
+			*(colors++) = 0.25;
+			*(colors++) = 1.0;
+		}
+		
+		displayListIndex++;
+		
+		// If we've filled our buffers, get ready to draw more
+		if (displayListIndex == kMaxGLRects)
+		{
+			// Draw our arrays
+			glDrawArrays(GL_QUADS, 0, 4 * displayListIndex);
+			
+			// And get ready to draw more
+			vertices = glArrayVertices;
+			colors = glArrayColors;
+			displayListIndex = 0;
+		}
+	}
+	
+	// Then we draw all individuals
+	for (individualArrayIndex = 0; individualArrayIndex < subpopSize; ++individualArrayIndex)
+	{
+		// Figure out the rect to draw in; note we now use individualArrayIndex here, because the hit-testing code doesn't have an easy way to calculate the displayed individual index...
+		Individual &individual = subpop->parent_individuals_[individualArrayIndex];
+		float centerX = (float)(individualArea.origin.x + round((individual.spatial_x_ / 1.0f) * individualArea.size.width) + 0.5);
+		float centerY = (float)(individualArea.origin.y + individualArea.size.height - round((individual.spatial_y_ / 1.0f) * individualArea.size.height) + 0.5);
+		float left = centerX - 1.5f;
+		float top = centerY - 1.5f;
+		float right = centerX + 1.5f;
+		float bottom = centerY + 1.5f;
+		
+		*(vertices++) = left;
+		*(vertices++) = top;
+		*(vertices++) = left;
+		*(vertices++) = bottom;
+		*(vertices++) = right;
+		*(vertices++) = bottom;
+		*(vertices++) = right;
+		*(vertices++) = top;
+		
+		float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0, colorAlpha = 1.0;
+		
+		if (gSLiM_Individual_custom_colors)
+		{
+			if (!individual.color_.empty())
+			{
+				colorRed = individual.color_red_;
+				colorGreen = individual.color_green_;
+				colorBlue = individual.color_blue_;
+			}
+			else
+			{
+				// use individual trait values to determine color; we used fitness values cached in UpdateFitness, so we don't have to call out to fitness callbacks
+				double fitness = (useCachedFitness ? subpop_fitness[individualArrayIndex] : 1.0);
+				
+				RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+			}
+		}
+		else
+		{
+			// use individual trait values to determine color; we used fitness values cached in UpdateFitness, so we don't have to call out to fitness callbacks
+			double fitness = (useCachedFitness ? subpop_fitness[individualArrayIndex] : 1.0);
+			
+			RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+		}
+		
+		for (int j = 0; j < 4; ++j)
+		{
+			*(colors++) = colorRed;
+			*(colors++) = colorGreen;
+			*(colors++) = colorBlue;
+			*(colors++) = colorAlpha;
+		}
+		
+		displayListIndex++;
+		
+		// If we've filled our buffers, get ready to draw more
+		if (displayListIndex == kMaxGLRects)
+		{
+			// Draw our arrays
+			glDrawArrays(GL_QUADS, 0, 4 * displayListIndex);
+			
+			// And get ready to draw more
+			vertices = glArrayVertices;
+			colors = glArrayColors;
+			displayListIndex = 0;
+		}
+	}
+	
+	// Draw any leftovers
+	if (displayListIndex)
+	{
+		// Draw our arrays
+		glDrawArrays(GL_QUADS, 0, 4 * displayListIndex);
+	}
+	
+	glDisableClientState(GL_VERTEX_ARRAY);
+	glDisableClientState(GL_COLOR_ARRAY);
+}
+
 - (void)drawRect:(NSRect)rect
 {
 	NSRect bounds = [self bounds];
 	SLiMWindowController *controller = [[self window] windowController];
+	SLiMSim *sim = controller->sim;
 	std::vector<Subpopulation*> selectedSubpopulations = [controller selectedSubpopulations];
 	int selectedSubpopCount = (int)(selectedSubpopulations.size());
 	
@@ -268,15 +432,40 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	{
 		Subpopulation *subpop = selectedSubpopulations[0];
 		
-		// Clear to white
-		glColor3f(1.0, 1.0, 1.0);
-		glRecti(0, 0, (int)bounds.size.width, (int)bounds.size.height);
-		
-		// Frame our view
-		[self drawViewFrameInBounds:bounds];
-		
-		// Draw all the individuals
-		[self drawIndividualsFromSubpopulation:subpop inArea:bounds];
+		if (sim->continuous_space_dimensions_ > 0)
+		{
+			// clear to a shade of gray
+			glColor3f(0.9f, 0.9f, 0.9f);
+			glRecti(0, 0, (int)bounds.size.width, (int)bounds.size.height);
+			
+			// Frame our view
+			[self drawViewFrameInBounds:bounds];
+			
+			// Now determine a square subframe and draw spatial information inside that
+			NSRect spatialDisplayBounds = bounds;
+			
+			spatialDisplayBounds.origin.x += floor((spatialDisplayBounds.size.width - spatialDisplayBounds.size.height) / 2.0);
+			spatialDisplayBounds.size.width = spatialDisplayBounds.size.height;
+			
+			glColor3f(0.0, 0.0, 0.0);
+			glRecti((int)spatialDisplayBounds.origin.x, (int)spatialDisplayBounds.origin.y, (int)(spatialDisplayBounds.origin.x + spatialDisplayBounds.size.width), (int)(spatialDisplayBounds.origin.y + spatialDisplayBounds.size.height));
+			
+			[self drawSpatialIndividualsFromSubpopulation:subpop inArea:spatialDisplayBounds];
+			
+			[self drawViewFrameInBounds:spatialDisplayBounds];
+		}
+		else
+		{
+			// Clear to white
+			glColor3f(1.0, 1.0, 1.0);
+			glRecti(0, 0, (int)bounds.size.width, (int)bounds.size.height);
+			
+			// Frame our view
+			[self drawViewFrameInBounds:bounds];
+			
+			// Draw all the individuals
+			[self drawIndividualsFromSubpopulation:subpop inArea:bounds];
+		}
 	}
 	else
 	{
