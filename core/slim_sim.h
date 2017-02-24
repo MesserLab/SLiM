@@ -128,6 +128,9 @@ private:
 	// pedigree tracking: off by default, optionally turned on at init time to enable calls to TrackPedigreeWithParents()
 	bool pedigrees_enabled_ = false;
 	
+	// continuous space support
+	int continuous_space_dimensions_ = 0;
+	
 	EidosSymbolTableEntry self_symbol_;												// for fast setup of the symbol table
 	
 	slim_usertag_t tag_value_;														// a user-defined tag value

@@ -1965,7 +1965,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 	
 	
 	//
-	//	*********************	(void)initializeSLiMOptions([logical$ keepPedigrees = F])
+	//	*********************	(void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ continuousSpace = ""])
 	//
 	#pragma mark initializeSLiMOptions()
 	
@@ -1977,15 +1977,54 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		if ((num_mutation_types_ > 0) || (num_mutation_rates_ > 0) || (num_genomic_element_types_ > 0) || (num_genomic_elements_ > 0) || (num_recombination_rates_ > 0) || (num_gene_conversions_ > 0) || (num_sex_declarations_ > 0))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeSLiMOptions() must be called before all other initialization functions." << eidos_terminate();
 		
-		bool keep_pedigrees = arg0_value->LogicalAtIndex(0, nullptr);
+		{
+			// [logical$ keepPedigrees = F]
+			bool keep_pedigrees = arg0_value->LogicalAtIndex(0, nullptr);
 		
-		pedigrees_enabled_ = keep_pedigrees;
+			pedigrees_enabled_ = keep_pedigrees;
+		}
+		
+		{
+			// [string$ continuousSpace = ""]
+			std::string space = arg1_value->StringAtIndex(0, nullptr);
+			
+			if (space.length() != 0)
+			{
+				if (space == "x")
+					continuous_space_dimensions_ = 1;
+				else if (space == "xy")
+					continuous_space_dimensions_ = 2;
+				else if (space == "xyz")
+					continuous_space_dimensions_ = 3;
+				else
+					EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): in initializeSLiMOptions(), legal non-empty values for parameter continuousSpace are only 'x', 'xy', and 'xyz'." << eidos_terminate();
+			}
+		}
 		
 		if (DEBUG_INPUT)
 		{
 			output_stream << "initializeSLiMOptions(";
 			
-			output_stream << "keepPedigrees = " << (keep_pedigrees ? "T" : "F");
+			bool previous_params = false;
+			
+			if (pedigrees_enabled_)
+			{
+				if (previous_params) output_stream << ", ";
+				output_stream << "keepPedigrees = " << (pedigrees_enabled_ ? "T" : "F");
+				previous_params = true;
+			}
+			
+			if (continuous_space_dimensions_ != 0)
+			{
+				if (previous_params) output_stream << ", ";
+				output_stream << "continuousSpace = ";
+				
+				if (continuous_space_dimensions_ == 1) output_stream << "'x'";
+				else if (continuous_space_dimensions_ == 2) output_stream << "'xy'";
+				else if (continuous_space_dimensions_ == 3) output_stream << "'xyz'";
+				
+				previous_params = true;
+			}
 			
 			output_stream << ");" << endl;
 		}
@@ -2017,7 +2056,7 @@ const std::vector<const EidosFunctionSignature*> *SLiMSim::ZeroGenerationFunctio
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSex, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									   ->AddString_S("chromosomeType")->AddNumeric_OS("xDominanceCoeff", gStaticEidosValue_Float1));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMOptions, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
-									   ->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF));
+									   ->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("continuousSpace", gStaticEidosValue_StringEmpty));
 	}
 	
 	return &sim_0_signatures_;
