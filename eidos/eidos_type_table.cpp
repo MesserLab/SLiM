@@ -112,6 +112,19 @@ void EidosTypeTable::RemoveTypeForSymbol(EidosGlobalStringID p_symbol_name)
 		hash_symbols_.erase(remove_iter);
 }
 
+void EidosTypeTable::RemoveSymbolsOfClass(const EidosObjectClass *p_object_class)
+{
+	std::vector<EidosGlobalStringID> symbolIDs = AllSymbolIDs();
+	
+	for (EidosGlobalStringID symbolID : symbolIDs)
+	{
+		EidosTypeSpecifier type = GetTypeForSymbol(symbolID);
+		
+		if ((type.type_mask & kEidosValueMaskObject) && (type.object_class == p_object_class))
+			RemoveTypeForSymbol(symbolID);
+	}
+}
+
 EidosTypeSpecifier EidosTypeTable::GetTypeForSymbol(EidosGlobalStringID p_symbol_name) const
 {
 	auto symbol_slot_iter = hash_symbols_.find(p_symbol_name);

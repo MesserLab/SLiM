@@ -70,6 +70,7 @@ public:
 	
 	// Remove symbols
 	void RemoveTypeForSymbol(EidosGlobalStringID p_symbol_name);
+	void RemoveSymbolsOfClass(const EidosObjectClass *p_object_class);
 	
 	// Get the type for a symbol
 	virtual EidosTypeSpecifier GetTypeForSymbol(EidosGlobalStringID p_symbol_name) const;

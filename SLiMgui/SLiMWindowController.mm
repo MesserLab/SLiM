@@ -2224,6 +2224,20 @@
 						else
 							(*typeTable)->SetTypeForSymbol(gID_sim, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMSim_Class});
 						
+						// Do the same for the zero-generation functions, which should be defined in initialization() blocks and
+						// not in other blocks; we add and remove them dynamically so they are defined as appropriate.  We ought
+						// to do this for other block-specific stuff as well (like the stuff below), but it is unlikely to matter.
+						if (block_type == SLiMEidosBlockType::SLiMEidosInitializeCallback)
+						{
+							if (sim)
+								sim->AddZeroGenerationFunctionsToMap(*functionMap);
+						}
+						else
+						{
+							if (sim)
+								sim->RemoveZeroGenerationFunctionsFromMap(*functionMap);
+						}
+						
 						if (script_block_node == completion_block)
 						{
 							// This is the block we're actually completing in the context of; it is also the last block in the script
@@ -2237,6 +2251,7 @@
 								case SLiMEidosBlockType::SLiMEidosEventLate:
 									break;
 								case SLiMEidosBlockType::SLiMEidosInitializeCallback:
+									(*typeTable)->RemoveSymbolsOfClass(gSLiM_Subpopulation_Class);	// subpops defined upstream from us still do not exist for us
 									break;
 								case SLiMEidosBlockType::SLiMEidosFitnessCallback:
 									(*typeTable)->SetTypeForSymbol(gID_mut,				EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class});
@@ -2281,11 +2296,6 @@
 									(*typeTable)->SetTypeForSymbol(gID_gcEnds,			EidosTypeSpecifier{kEidosValueMaskInt, nullptr});
 									break;
 							}
-							
-							// Get a function map and add initialization functions to it if we're completing inside an initialize() callback
-							if (block_type == SLiMEidosBlockType::SLiMEidosInitializeCallback)
-								if (sim)
-									sim->AddZeroGenerationFunctionsToMap(*functionMap);
 							
 							// Make a type interpreter and add symbols to our type table using it
 							// We use SLiMTypeInterpreter because we want to pick up definitions of SLiM constants
