@@ -11,6 +11,7 @@ development head:
 	added x, y, and z properties to Individual for tracking spatial location
 	add continuousSpace parameter to initializeSLiMOptions() to allow simulations to register as using continuous space
 	make SLiMgui display subpopulations spatially when continuous space is enabled
+	fix autocompletion bug with simulation symbols
 
 
 2.2.1 (build 992; Eidos version 1.2.1):
