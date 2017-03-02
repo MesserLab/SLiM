@@ -704,8 +704,8 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 		
 		if (first_int <= second_int)
 		{
-			if (second_int - first_int + 1 >= 1000000)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 1000000 entries cannot be constructed." << eidos_terminate(operator_token);
+			if (second_int - first_int + 1 >= 10000000)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 10000000 entries cannot be constructed." << eidos_terminate(operator_token);
 			
 			EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 			EidosValue_Int_vector *int_result = int_result_SP->Reserve((int)(second_int - first_int + 1));
@@ -717,8 +717,8 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 		}
 		else
 		{
-			if (first_int - second_int + 1 >= 1000000)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 1000000 entries cannot be constructed." << eidos_terminate(operator_token);
+			if (first_int - second_int + 1 >= 10000000)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 10000000 entries cannot be constructed." << eidos_terminate(operator_token);
 			
 			EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 			EidosValue_Int_vector *int_result = int_result_SP->Reserve((int)(first_int - second_int + 1));
@@ -739,8 +739,8 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 		
 		if (first_float <= second_float)
 		{
-			if (second_float - first_float + 1 >= 1000000)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 1000000 entries cannot be constructed." << eidos_terminate(operator_token);
+			if (second_float - first_float + 1 >= 10000000)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 10000000 entries cannot be constructed." << eidos_terminate(operator_token);
 			
 			EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 			EidosValue_Float_vector *float_result = float_result_SP->Reserve((int)(second_float - first_float + 1));
@@ -766,8 +766,8 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 		}
 		else
 		{
-			if (first_float - second_float + 1 >= 1000000)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 1000000 entries cannot be constructed." << eidos_terminate(operator_token);
+			if (first_float - second_float + 1 >= 10000000)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 10000000 entries cannot be constructed." << eidos_terminate(operator_token);
 			
 			EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 			EidosValue_Float_vector *float_result = float_result_SP->Reserve((int)(first_float - second_float + 1));
@@ -1255,6 +1255,24 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 				// Subsetting with a singleton int/float vector is common and should return a singleton value for speed
 				// This is guaranteed to return a singleton value (when available), and bounds-checks for us
 				result_SP = first_child_value->GetValueAtIndex((int)second_child_value->IntAtIndex(0, operator_token), operator_token);
+			}
+			else if (first_child_count == 1)
+			{
+				// We can't use direct access on first_child_value if it is a singleton, so this needs to be special-cased
+				// Note this is identical to the general-case code below that is never hit
+				result_SP = first_child_value->NewMatchingType();
+				
+				EidosValue *result = result_SP.get();
+				
+				for (int value_idx = 0; value_idx < second_child_count; value_idx++)
+				{
+					int64_t index_value = second_child_value->IntAtIndex(value_idx, operator_token);
+					
+					if ((index_value < 0) || (index_value >= first_child_count))
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(operator_token);
+					else
+						result->PushValueFromIndexOfEidosValue((int)index_value, *first_child_value, operator_token);
+				}
 			}
 			else
 			{
@@ -3034,13 +3052,37 @@ EidosValue_SP EidosInterpreter::Evaluate_Not(const EidosASTNode *p_node)
 		}
 		else
 		{
-			// for other cases, we just clone the negation of child_result – but note that it may not be of type logical
+			// for other cases, we just create the negation of first_child_value – but note that it may not be of type logical
 			result_SP = EidosValue_Logical_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve(first_child_count));
-			
 			std::vector<eidos_logical_t> &logical_result_vec = *result_SP->LogicalVector_Mutable();
 			
-			for (int value_index = 0; value_index < first_child_count; ++value_index)
-				logical_result_vec.emplace_back(!first_child_value->LogicalAtIndex(value_index, operator_token));
+			if (first_child_type == EidosValueType::kValueLogical)
+			{
+				const std::vector<eidos_logical_t> &child_vec = (*first_child_value->LogicalVector());
+				
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
+					logical_result_vec.emplace_back(!child_vec[value_index]);
+			}
+			else if (first_child_type == EidosValueType::kValueInt)
+			{
+				const std::vector<int64_t> &child_vec = (*first_child_value->IntVector());
+				
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
+					logical_result_vec.emplace_back(child_vec[value_index] == 0);
+			}
+			else if (first_child_type == EidosValueType::kValueString)
+			{
+				const std::vector<std::string> &child_vec = (*first_child_value->StringVector());
+				
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
+					logical_result_vec.emplace_back(child_vec[value_index].length() == 0);
+			}
+			else
+			{
+				// General case; hit by type float, since we don't want to duplicate the NAN check here
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
+					logical_result_vec.emplace_back(!first_child_value->LogicalAtIndex(value_index, operator_token));
+			}
 		}
 	}
 	

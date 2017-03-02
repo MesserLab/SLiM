@@ -12,6 +12,8 @@ development head:
 	add continuousSpace parameter to initializeSLiMOptions() to allow simulations to register as using continuous space
 	make SLiMgui display subpopulations spatially when continuous space is enabled
 	fix autocompletion bug with simulation symbols
+	fix an omitted case in Eidos subsetting (which raised an exception)
+	optimize ifelse() and operator ! in Eidos
 
 
 2.2.1 (build 992; Eidos version 1.2.1):
