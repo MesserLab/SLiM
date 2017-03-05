@@ -1,7 +1,9 @@
-{\rtf1\ansi\ansicpg1252\cocoartf1404\cocoasubrtf460
+{\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf810
 {\fonttbl\f0\fswiss\fcharset0 Optima-Regular;\f1\fnil\fcharset0 Menlo-Italic;\f2\fnil\fcharset0 Menlo-Regular;
 \f3\froman\fcharset0 TimesNewRomanPSMT;}
 {\colortbl;\red255\green255\blue255;\red28\green0\blue207;\red63\green110\blue116;\red196\green26\blue22;
+}
+{\*\expandedcolortbl;;\csgenericrgb\c10980\c0\c81176;\csgenericrgb\c24706\c43137\c45490;\csgenericrgb\c76863\c10196\c8627;
 }
 \margl1440\margr1440\vieww9000\viewh8400\viewkind0
 \deftab720
@@ -413,7 +415,8 @@ When a
 \f0\fs22  callback).  In a sexual (rather than hermaphroditic) simulation, this will be the female parent; SLiM does not currently support males as the choosy sex.  The second parent \'96 the male parent, in a sexual simulation \'96 will then be chosen based upon the results of the 
 \f2\fs18 mateChoice()
 \f0\fs22  callback.\
-More specifically, the callback must return a vector of weights, one for each individual in the subpopulation; SLiM will then choose a parent with probability proportional to weight.  The 
+\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
+\cf0 More specifically, the callback must return a vector of weights, one for each individual in the subpopulation; SLiM will then choose a parent with probability proportional to weight.  The 
 \f2\fs18 mateChoice()
 \f0\fs22  callback could therefore determine the choice of mate completely, by setting the weight for the chosen parent to 
 \f2\fs18 1
@@ -431,10 +434,28 @@ More specifically, the callback must return a vector of weights, one for each in
 \f2\fs18 float(0)
 \f0\fs22  and 
 \f2\fs18 NULL
-\f0\fs22 , the vector of weights must contain the same number of values as the size of the subpopulation, all weights must be non-negative, and the sum of the weights must be greater than zero.  Note that the vector of weights is not required to sum to 
+\f0\fs22 , the vector of weights must contain the same number of values as the size of the subpopulation, and all weights must be non-negative.  Note that the vector of weights is not required to sum to 
 \f2\fs18 1
 \f0\fs22 , however; SLiM will convert relative weights on any scale to probabilities for you.\
-In addition to the standard SLiM globals, a 
+If the sum of the returned weights vector is zero, SLiM treats it as meaning the same thing as a return of 
+\f2\fs18 float(0)
+\f0\fs22  \'96 a suitable mate could not be found, and a new first parent will thus be drawn.  (This is a change in policy beginning in SLiM 2.3; prior to that, returning a vector of sum zero was considered a runtime error.)  There is a subtle difference in semantics between this and a return of 
+\f2\fs18 float(0)
+\f0\fs22 : returning 
+\f2\fs18 float(0)
+\f0\fs22  immediately short-circuits mate choice for the current first parent, whereas returning a vector of zeros allows further applicable 
+\f2\fs18 mateChoice()
+\f0\fs22  callbacks to be called, one of which might \'93rescue\'94 the first parent by returning a non-zero weights vector.  In most models this distinction is irrelevant, since chaining 
+\f2\fs18 mateChoice()
+\f0\fs22  callbacks is uncommon.  When the choice is otherwise unimportant, returning 
+\f2\fs18 float(0)
+\f0\fs22  will be handled more quickly by SLiM; but if a model is constructing a vector of weights anyway, checking for 
+\f2\fs18 sum(...)\'a0==\'a00
+\f0\fs22  in order to return 
+\f2\fs18 float(0)
+\f0\fs22  if the weights all happen to be zero is complicated and slow \'96 which is why this policy was changed.\
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
+\cf0 In addition to the standard SLiM globals, a 
 \f2\fs18 mateChoice()
 \f0\fs22  callback is supplied with some additional information passed through global variables:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40\partightenfactor0
@@ -709,4 +730,135 @@ Note that
 \f0\fs22  callback returns 
 \f2\fs18 F
 \f0\fs22 , however, indicating that the child should be generated, the remaining callbacks in the chain will not be called.\
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
+
+\i \cf0 5.13.5  ITEM: 6. 
+\f1\fs18 recombination()
+\f0\fs22  callbacks\
+\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
+
+\i0 \cf0 Typically, a simulation sets up a recombination map at the beginning of the run with 
+\f2\fs18 initializeRecombinationRate()
+\f0\fs22 , and that map is used for the duration of the run.  Less commonly, the recombination map is changed dynamically from generation to generation, with 
+\f2\fs18 Chromosome
+\f0\fs22 \'92s method 
+\f2\fs18 setRecombinationRate()
+\f0\fs22 ; but still, a single recombination map applies for all individuals in a given generation.  However, in unusual circumstances a simulation may need to modify the way that recombination works on an individual basis; for this, the 
+\f2\fs18 recombination()
+\f0\fs22  callback mechanism is provided.  This can be useful for models involving chromosomal inversions that prevent recombination within a region for some individuals, for example, or for models of the evolution of recombination.\
+A 
+\f2\fs18 recombination()
+\f0\fs22  callback is defined with a syntax much like that of other callbacks:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab543\li547\ri1440\sb180\sa180\partightenfactor0
+
+\f2\fs18 \cf0 [id] [gen1 [: gen2]] recombination([<subpop-id>]) \{ ... \}\
+\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
+
+\f0\fs22 \cf0 The 
+\f2\fs18 recombination()
+\f0\fs22  callback will be called during the generation of every gamete during the generation(s) in which it is active.  It may optionally be restricted to apply only to gametes generated by parents in a specified subpopulation, using the 
+\f2\fs18 <subpop-id>
+\f0\fs22  specifier.\
+When a 
+\f2\fs18 recombination()
+\f0\fs22  callback is called, a parent has already been chosen to generate a gamete, and candidate recombination breakpoints for use in recombining the parental genomes have been drawn.  The genomes of the focal parent are provided to the callback, as is the focal parent itself (as an 
+\f2\fs18 Individual
+\f0\fs22  object) and the subpopulation in which it resides.  Furthermore, the proposed breakpoints are provided to the callback, divided into three categories: ordinary recombination breakpoints, and start/end positions for gene conversion events (if gene conversion is enabled).  The callback may modify these variables in order to change the breakpoints used, in which case it must return 
+\f2\fs18 T
+\f0\fs22  to indicate that changes were made, or it may leave the proposed breakpoints unmodified, in which case it must return 
+\f2\fs18 F
+\f3\fs22 .
+\f0   (The behavior of SLiM is undefined if the callback returns the wrong 
+\f2\fs18 logical
+\f0\fs22  value.)\
+In addition to the standard SLiM globals, then, a 
+\f2\fs18 recombination()
+\f0\fs22  callback is supplied with additional information passed through global variables:\
+\pard\tx2520\pardeftab720\fi547\ri720\sb40\sa40\partightenfactor0
+
+\f2\fs18 \cf0 individual
+\f3\fs22 	
+\f0 The focal parent that is generating a gamete\
+
+\f2\fs18 genome1
+\f3\fs22 	
+\f0 One genome of the focal parent; this is the initial copy strand\
+
+\f2\fs18 genome2
+\f3\fs22 	
+\f0 The other genome of the focal parent
+\f2\fs18 \
+subpop
+\f3\fs22 	
+\f0 The subpopulation to which the focal parent belongs
+\f2\fs18 \
+breakpoints
+\f3\fs22 	
+\f0 An 
+\f2\fs18 integer
+\f0\fs22  vector of ordinary recombination breakpoints
+\f2\fs18 \
+gcStarts
+\f3\fs22 	
+\f0 An 
+\f2\fs18 integer
+\f0\fs22  vector of the start positions of gene conversion spans
+\f3 \
+
+\f2\fs18 gcEnds
+\f3\fs22 	
+\f0 An 
+\f2\fs18 integer
+\f0\fs22  vector of the end positions of gene conversion spans
+\f3 \
+\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
+
+\f0 \cf0 These globals may be used in the 
+\f2\fs18 recombination()
+\f0\fs22  callback to determine the final recombination breakpoints used by SLiM.  The positions in 
+\f2\fs18 gcStarts
+\f0\fs22  and 
+\f2\fs18 gcEnds
+\f0\fs22  constitute matched pairs (a corresponding end for each start), so the lengths of those two vectors are guaranteed to be equal.  If values are set into 
+\f2\fs18 breakpoints
+\f0\fs22 , 
+\f2\fs18 gcStarts
+\f0\fs22 , and/or 
+\f2\fs18 gcEnds
+\f0\fs22 , the new values must be of type 
+\f2\fs18 integer
+\f0\fs22 , and 
+\f2\fs18 gcStarts
+\f0\fs22  and 
+\f2\fs18 gcEnds
+\f0\fs22  must be set to vectors of the same length (again, constituting matched pairs).  If any of 
+\f2\fs18 breakpoints
+\f0\fs22 , 
+\f2\fs18 gcStarts
+\f0\fs22 , or 
+\f2\fs18 gcEnds
+\f0\fs22  are modified by the callback, 
+\f2\fs18 T
+\f0\fs22  should be returned, otherwise 
+\f2\fs18 F
+\f0\fs22  should be returned (this is a speed optimization, so that SLiM does not have to spend time checking for changes when no changes have been made).\
+The positions specified in 
+\f2\fs18 breakpoints
+\f0\fs22 , 
+\f2\fs18 gcStarts
+\f0\fs22 , and 
+\f2\fs18 gcEnds
+\f0\fs22  mean that a crossover will occur immediately 
+\i before
+\i0  the specified base position (between the preceding base and the specified base, in other words).  The genome specified by 
+\f2\fs18 genome1
+\f0\fs22  will be used as the initial copy strand when SLiM executes the recombination; this cannot presently be changed by the callback.\
+In this design, the recombination callback does not specify a custom recombination map (although that is a possible extension to this design that could be implemented if it would be useful).  Instead, the callback can add or remove breakpoints at specific locations.  To implement a chromosomal inversion, for example, if the parent is heterozygous for the inversion mutation then crossovers within the inversion region are removed by the callback.  As another example, to implement a model of the evolution of the overall recombination rate, a model could (1) set the global recombination rate to the highest rate attainable in the simulation, (2) for each individual, within the 
+\f2\fs18 recombination()
+\f0\fs22  callback, calculate the fraction of that maximum rate that the focal individual would experience based upon its genetics, and (3) probabilistically remove proposed crossover points based upon random uniform draws compared to that threshold fraction, thus achieving the individual effective recombination rate desired.  Other similar treatments could actually vary the effective recombination map, not just the overall rate, by removing proposed crossovers with probabilities that depend upon their position, allowing for the evolution of localized recombination hot-spots and cold-spots.  Crossovers and gene conversion events may also be added, not just removed, by 
+\f2\fs18 recombination()
+\f0\fs22  callbacks.\
+As with the other callback types, multiple 
+\f2\fs18 recombination()
+\f0\fs22  callbacks may be registered and active.  In this case, all registered and active callbacks will be called for each gamete generated, in the order that the callbacks were registered.\
 }

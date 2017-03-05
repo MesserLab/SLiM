@@ -449,7 +449,18 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 		}
 		
 		if (weights_sum <= 0.0)
-			EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): weights returned by mateChoice() callback sum to 0.0 or less." << eidos_terminate(last_interventionist_mate_choice_callback->identifier_token_);
+		{
+			// We used to consider this an error; now we consider it to represent the first parent having no acceptable choice, so we
+			// re-draw.  Returning float(0) is essentially equivalent, except that it short-circuits the whole mateChoice() callback
+			// chain, whereas returning a vector of 0 values can be modified by a downstream mateChoice() callback.  Usually that is
+			// not an important distinction.  Returning float(0) is faster in principle, but if one is already constructing a vector
+			// of weights that can simply end up being all zero, then this path is much easier.  BCH 5 March 2017
+			//EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): weights returned by mateChoice() callback sum to 0.0 or less." << eidos_terminate(last_interventionist_mate_choice_callback->identifier_token_);
+			if (weights_modified)
+				free(current_weights);
+			
+			return -1;
+		}
 		
 		// then we draw from the weights vector
 		if (positive_count == 1)
