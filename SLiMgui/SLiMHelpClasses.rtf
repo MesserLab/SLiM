@@ -1443,11 +1443,11 @@ Note that this relatedness is simply pedigree-based relatedness.  This does not 
 \f0 7.2  
 \f1\fs18 InteractionType
 \f0\fs22  methods\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\i0\fs18 \cf0 \'96\'a0(float)distance(object<Individual>\'a0individuals1, [No<Individual>\'a0individuals2\'a0=\'a0NULL])
 \f3 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a vector containing distances between individuals in 
 \f2\fs18 individuals1
@@ -1463,7 +1463,9 @@ Note that this relatedness is simply pedigree-based relatedness.  This does not 
 \f2\fs18 NULL
 \f0\fs20  (the default), then 
 \f2\fs18 individuals1
-\f0\fs20  must be singleton, and a vector of the distances from that individual to all individuals in its subpopulation (including itself) is returned.\
+\f0\fs20  must be singleton, and a vector of the distances from that individual to all individuals in its subpopulation (including itself) is returned; this case may be handled by the k-d tree engine for greater speed, so supplying 
+\f2\fs18 NULL
+\f0\fs20  is preferable to supplying the vector of all individuals in the subpopulation explicitly even though that should produce identical results.\
 Importantly, distances are calculated according to the spatiality of the 
 \f2\fs18 InteractionType
 \f0\fs20  (as declared in 
@@ -1473,11 +1475,11 @@ Importantly, distances are calculated according to the spatiality of the
 \f0\fs20 ).  The distances are therefore interaction distances: the distances that are used to calculate interaction strengths.  If the 
 \f2\fs18 InteractionType
 \f0\fs20  is non-spatial, this method may not be called.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96\'a0(float)distanceToPoint(object<Individual>\'a0individuals1, float\'a0point)
 \f3 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a vector containing distances between individuals in 
 \f2\fs18 individuals1
@@ -1516,16 +1518,21 @@ Importantly, distances are calculated according to the spatiality of the
 \f3\fs20 .
 \f0   The probability of drawing particular individuals is proportional to their strength of interaction with 
 \f2\fs18 individual
-\f0\fs20 .  This method may be used with either spatial or non-spatial interactions, but will be much more efficient with spatial interactions that set a conservative maximum interaction distance.  Draws are done with replacement, so the same individual may be drawn more than once.  If more than one draw will be needed, it is much more efficient to use a single call to 
+\f0\fs20 .  This method may be used with either spatial or non-spatial interactions, but will be more efficient with spatial interactions that set a short maximum interaction distance.  Draws are done with replacement, so the same individual may be drawn more than once; sometimes using 
+\f2\fs18 unique()
+\f0\fs20  on the result of this call is therefore desirable.  If more than one draw will be needed, it is much more efficient to use a single call to 
 \f2\fs18 drawByStrength()
-\f0\fs20 , rather than drawing them one at a time.  Note that if no individuals within the maximum interaction distance have a non-zero interaction with 
+\f0\fs20 , rather than drawing individuals one at a time.  Note that if no individuals have a non-zero interaction with 
 \f2\fs18 individual
-\f0\fs20 , the vector returned will be zero-length; it is important to check for this possibility when using this method with spatial interactions.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\f0\fs20 , the vector returned will be zero-length; it is important to consider this possibility.\
+If the needed interaction strengths have already been calculated, those cached values are simply used.  Otherwise, calling this method triggers evaluation of the needed interactions, including calls to any applicable 
+\f2\fs18 interaction()
+\f0\fs20  callbacks.\
+\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96\'a0(void)evaluate([No<Subpopulation>\'a0subpops\'a0=\'a0NULL], [logical$\'a0immediate\'a0=\'a0F])
 \f3 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Triggers evaluation of the interaction for the subpopulations specified by 
 \f2\fs18 subpops
@@ -1533,23 +1540,23 @@ Importantly, distances are calculated according to the spatiality of the
 \f2\fs18 subpops
 \f0\fs20  is 
 \f2\fs18 NULL
-\f0\fs20 ).  By default, the effects of this may be limited, however, since the underlying implementation may choose to postpone some computations lazily.  At a minimum, is it guaranteed that this method will discard all previous evaluation data for the subpopulation(s), and cache the current positions of all individuals (so that individuals may then move without disturbing the state of the interaction at the moment of evaluation).  Notably, 
+\f0\fs20 ).  By default, the effects of this may be limited, however, since the underlying implementation may choose to postpone some computations lazily.  At a minimum, is it guaranteed that this method will discard all previously cached data for the subpopulation(s), and will cache the current positions of all individuals (so that individuals may then move without disturbing the state of the interaction at the moment of evaluation).  Notably, 
 \f2\fs18 interaction()
-\f0\fs20  callbacks may not be called in response to this method; instead, their evaluation may be deferred until required to satisfy queries.\
+\f0\fs20  callbacks may not be called in response to this method; instead, their evaluation may be deferred until required to satisfy queries (at which point the generation counter may have advanced by one, so be careful with the generation ranges used in defining such callbacks).\
 If 
 \f2\fs18 T
 \f0\fs20  is passed for 
 \f2\fs18 immediate
 \f0\fs20 , the interaction will immediately and synchronously evaluate all interactions between all individuals in the subpopulation(s), calling any applicable 
 \f2\fs18 interaction()
-\f0\fs20  callbacks as necessary.  However, depending upon what queries are later executed, this may represent considerable wasted computation, since it is an O(N\super 2\nosupersub ) operation.  Immediate evaluation usually generates only a slight performance improvement if the interactions between all pairs of individuals are eventually accessed; the main reason to choose immediate evaluation, then, is if deferred calculation of interactions would lead to incorrect results due to changes in model state.\
+\f0\fs20  callbacks as necessary.  However, depending upon what queries are later executed, this may represent considerable wasted computation, since it is an O(N\super 2\nosupersub ) operation.  Immediate evaluation usually generates only a slight performance improvement even if the interactions between all pairs of individuals are eventually accessed; the main reason to choose immediate evaluation, then, is that deferred calculation of interactions would lead to incorrect results due to changes in model state.\
 If an interaction is never evaluated for a given subpopulation, it is guaranteed that there will be essentially no memory or computational overhead associated with the interaction for that subpopulation.  Furthermore, attempting to query an interaction for an individual in a subpopulation that has not been evaluated is guaranteed to raise an error.
 \f3 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96\'a0(object<Individual>)nearestNeighbors(object<Individual>$\'a0individual, [integer$\'a0count\'a0=\'a01])
 \f3 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns up to 
 \f2\fs18 count
@@ -1569,11 +1576,11 @@ If an interaction is never evaluated for a given subpopulation, it is guaranteed
 \f0\fs20  individuals are within the maximum interaction distance, the vector returned may be shorter than 
 \f2\fs18 count
 \f0\fs20 , or even zero-length; it is important to check for this possibility even when requesting a single neighbor.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96\'a0(object<Individual>)nearestNeighborsOfPoint(object<Subpopulation>$\'a0subpop, float\'a0point, [integer$\'a0count\'a0=\'a01])
 \f3 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns up to 
 \f2\fs18 count
@@ -1595,11 +1602,11 @@ If an interaction is never evaluated for a given subpopulation, it is guaranteed
 \f0\fs20  individuals are within the maximum interaction distance, the vector returned may be shorter than 
 \f2\fs18 count
 \f0\fs20 , or even zero-length; it is important to check for this possibility even when requesting a single neighbor.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96\'a0(void)setInteractionFunction(string$\'a0functionType, ...)
 \f3 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Set the function used to translate spatial distances into interaction strengths for an interaction type.  The 
 \f2\fs18 functionType
@@ -1625,18 +1632,16 @@ If an interaction is never evaluated for a given subpopulation, it is guaranteed
 \f2\fs18 numeric$
 \f0\fs20  maximum strength and a 
 \f2\fs18 numeric$
-\f0\fs20  sigma (standard deviation) parameter for a Gaussian function.  See section 17
-\f3 .
-\f0 7 above for discussions of these interaction functions.  Non-spatial interactions must use function type 
+\f0\fs20  sigma (standard deviation) parameter for a Gaussian function.  Non-spatial interactions must use function type 
 \f2\fs18 "f"
 \f0\fs20 , since no distance values are available in that case.\
-The interaction function for an interaction type is normally a constant in simulations; in any case, it cannot be changed when an interaction has been evaluated for a given generation of individuals.
+The interaction function for an interaction type is normally a constant in simulations; in any case, it cannot be changed when an interaction has already been evaluated for a given generation of individuals.
 \f3 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96\'a0(float)strength(object<Individual>\'a0individuals1, [No<Individual>\'a0individuals2\'a0=\'a0NULL])
 \f3 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a vector containing interaction strengths between individuals in 
 \f2\fs18 individuals1
@@ -1652,15 +1657,17 @@ The interaction function for an interaction type is normally a constant in simul
 \f2\fs18 NULL
 \f0\fs20  (the default), then 
 \f2\fs18 individuals1
-\f0\fs20  must be singleton, and a vector of the interaction strengths from that individual to all individuals in its subpopulation (including itself) is returned.\
+\f0\fs20  must be singleton, and a vector of the interaction strengths from that individual to all individuals in its subpopulation (including itself) is returned; this case may be handled by the k-d tree engine for greater speed, so supplying 
+\f2\fs18 NULL
+\f0\fs20  is preferable to supplying the vector of all individuals in the subpopulation explicitly even though that should produce identical results.\
 If the needed interaction strengths have already been calculated, those cached values are simply returned.  Otherwise, calling this method triggers evaluation of the needed interactions, including calls to any applicable 
 \f2\fs18 interaction()
 \f0\fs20  callbacks.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96\'a0(float)totalOfNeighborStrengths(object<Individual>\'a0individuals)
 \f3 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a vector of the total interaction strength felt by each individual in 
 \f2\fs18 individuals
@@ -1677,14 +1684,19 @@ For one individual, this is essentially the same as calling
 \f2\fs18 sum()
 \f0\fs20 .  This method is much faster than that implementation, however, since all of that work is done as a single operation.  Also, 
 \f2\fs18 totalOfNeighborStrengths()
-\f0\fs20  can assess more than one individual at a time.\
+\f0\fs20  can total up interactions for more than one focal individual in a single call.\
 Similarly, for one individual this is essentially the same as calling 
 \f2\fs18 strength()
 \f0\fs20  to get the interaction strengths between the focal individual and all other individuals, and then calling 
 \f2\fs18 sum()
-\f0\fs20 .  Again, this method should be much faster, since this algorithm looks only at neighbors, whereas calling strength() directly assesses interaction strengths with all other individuals.  This will make a particularly large difference when the subpopulation size is large and the maximum distance of the 
+\f0\fs20 .  Again, this method should be much faster, since this algorithm looks only at neighbors, whereas calling 
+\f2\fs18 strength()
+\f0\fs20  directly assesses interaction strengths with all other individuals.  This will make a particularly large difference when the subpopulation size is large and the maximum distance of the 
 \f2\fs18 InteractionType
 \f0\fs20  is small.\
+If the needed interaction strengths have already been calculated, those cached values are simply used.  Otherwise, calling this method triggers evaluation of the needed interactions, including calls to any applicable 
+\f2\fs18 interaction()
+\f0\fs20  callbacks.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
 \b\fs22 \cf0 5.8  Class Mutation\
