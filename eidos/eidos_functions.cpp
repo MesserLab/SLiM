@@ -3261,11 +3261,37 @@ EidosValue_SP Eidos_ExecuteFunction_mean(const EidosValue_SP *const p_arguments,
 	{
 		result_SP = gStaticEidosValueNULL;
 	}
+	else if (arg0_count == 1)
+	{
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(arg0_value->FloatAtIndex(0, nullptr)));
+	}
 	else
 	{
+		EidosValueType arg0_type = arg0_value->Type();
 		double sum = 0;
-		for (int value_index = 0; value_index < arg0_count; ++value_index)
-			sum += arg0_value->FloatAtIndex(value_index, nullptr);
+		
+		if (arg0_type == EidosValueType::kValueInt)
+		{
+			// Accelerated integer case
+			const std::vector<int64_t> &int_vec = *arg0_value->IntVector();
+			
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				sum += int_vec[value_index];
+		}
+		else if (arg0_type == EidosValueType::kValueFloat)
+		{
+			// Accelerated float case
+			const std::vector<double> &float_vec = *arg0_value->FloatVector();
+			
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				sum += float_vec[value_index];
+		}
+		else
+		{
+			// General case, never hit
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				sum += arg0_value->FloatAtIndex(value_index, nullptr);
+		}
 		
 		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(sum / arg0_count));
 	}
