@@ -511,7 +511,7 @@ void _RunInitTests(void)
 	SLiMAssertScriptStop("initialize() { initializeSex('X', 10000); stop(); }", __LINE__);															// legal: no maximum value for dominance coeff
 	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeSex('A'); stop(); }", 1, 35, "may be called only once", __LINE__);
 	
-	// Test (void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ continuousSpace = ""])
+	// Test (void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""])
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(F); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(T); stop(); }", __LINE__);
@@ -520,13 +520,13 @@ void _RunInitTests(void)
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(F, 'xyz'); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(T, 'xyz'); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(keepPedigrees=T); stop(); }", __LINE__);
-	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(continuousSpace=''); stop(); }", __LINE__);
-	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(continuousSpace='x'); stop(); }", __LINE__);
-	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(continuousSpace='xy'); stop(); }", __LINE__);
-	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(continuousSpace='xyz'); stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality=''); stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='x'); stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='xy'); stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='xyz'); stop(); }", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(keepPedigrees=NULL); stop(); }", 1, 15, "cannot be type NULL", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(continuousSpace=NULL); stop(); }", 1, 15, "cannot be type NULL", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(continuousSpace='foo'); stop(); }", 1, 15, "legal non-empty values", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(dimensionality=NULL); stop(); }", 1, 15, "cannot be type NULL", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(dimensionality='foo'); stop(); }", 1, 15, "legal non-empty values", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(); initializeSLiMOptions(); stop(); }", 1, 40, "may be called only once", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeMutationRate(0.0); initializeSLiMOptions(); stop(); }", 1, 44, "must be called before all other initialization functions", __LINE__);
 }

@@ -258,6 +258,7 @@ extern const std::string gStr_initializeMutationRate;
 extern const std::string gStr_initializeRecombinationRate;
 extern const std::string gStr_initializeSex;
 extern const std::string gStr_initializeSLiMOptions;
+extern const std::string gStr_initializeInteractionType;
 
 extern const std::string gStr_getValue;
 extern const std::string gStr_setValue;
@@ -304,6 +305,7 @@ extern const std::string gStr_active;
 extern const std::string gStr_chromosome;
 extern const std::string gStr_chromosomeType;
 extern const std::string gStr_genomicElementTypes;
+extern const std::string gStr_interactionTypes;
 extern const std::string gStr_scriptBlocks;
 extern const std::string gStr_sexEnabled;
 extern const std::string gStr_subpopulations;
@@ -330,6 +332,12 @@ extern const std::string gStr_fixationGeneration;
 extern const std::string gStr_pedigreeID;
 extern const std::string gStr_pedigreeParentIDs;
 extern const std::string gStr_pedigreeGrandparentIDs;
+extern const std::string gStr_reciprocality;
+extern const std::string gStr_sexSegregation;
+extern const std::string gStr_dimensionality;
+extern const std::string gStr_spatiality;
+extern const std::string gStr_spatialPosition;
+extern const std::string gStr_maxDistance;
 
 extern const std::string gStr_setRecombinationRate;
 extern const std::string gStr_addMutations;
@@ -378,6 +386,15 @@ extern const std::string gStr_outputSample;
 extern const std::string gStr_outputMS;
 extern const std::string gStr_outputVCF;
 extern const std::string gStr_output;
+extern const std::string gStr_evaluate;
+extern const std::string gStr_distance;
+extern const std::string gStr_distanceToPoint;
+extern const std::string gStr_nearestNeighbors;
+extern const std::string gStr_nearestNeighborsOfPoint;
+extern const std::string gStr_setInteractionFunction;
+extern const std::string gStr_strength;
+extern const std::string gStr_totalOfNeighborStrengths;
+extern const std::string gStr_drawByStrength;
 
 extern const std::string gStr_sim;
 extern const std::string gStr_self;
@@ -418,6 +435,7 @@ extern const std::string gStr_SLiMSim;
 extern const std::string gStr_Subpopulation;
 extern const std::string gStr_Individual;
 extern const std::string gStr_Substitution;
+extern const std::string gStr_InteractionType;
 
 extern const std::string gStr_A;
 extern const std::string gStr_X;
@@ -447,6 +465,7 @@ enum _SLiMGlobalStringID : int {
 	gID_initializeRecombinationRate,
 	gID_initializeSex,
 	gID_initializeSLiMOptions,
+	gID_initializeInteractionType,
 	
 	gID_getValue,
 	gID_setValue,
@@ -493,6 +512,7 @@ enum _SLiMGlobalStringID : int {
 	gID_chromosome,
 	gID_chromosomeType,
 	gID_genomicElementTypes,
+	gID_interactionTypes,
 	gID_scriptBlocks,
 	gID_sexEnabled,
 	gID_subpopulations,
@@ -519,6 +539,12 @@ enum _SLiMGlobalStringID : int {
 	gID_pedigreeID,
 	gID_pedigreeParentIDs,
 	gID_pedigreeGrandparentIDs,
+	gID_reciprocality,
+	gID_sexSegregation,
+	gID_dimensionality,
+	gID_spatiality,
+	gID_spatialPosition,
+	gID_maxDistance,
 	
 	gID_setRecombinationRate,
 	gID_addMutations,
@@ -567,6 +593,15 @@ enum _SLiMGlobalStringID : int {
 	gID_outputMS,
 	gID_outputVCF,
 	gID_output,
+	gID_evaluate,
+	gID_distance,
+	gID_distanceToPoint,
+	gID_nearestNeighbors,
+	gID_nearestNeighborsOfPoint,
+	gID_setInteractionFunction,
+	gID_strength,
+	gID_totalOfNeighborStrengths,
+	gID_drawByStrength,
 	
 	gID_sim,
 	gID_self,
@@ -606,6 +641,7 @@ enum _SLiMGlobalStringID : int {
 	gID_Subpopulation,
 	gID_Individual,
 	gID_Substitution,
+	gID_InteractionType,
 	
 	gID_A,
 	gID_X,

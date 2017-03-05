@@ -118,6 +118,7 @@ const std::string gStr_initializeMutationRate = "initializeMutationRate";
 const std::string gStr_initializeRecombinationRate = "initializeRecombinationRate";
 const std::string gStr_initializeSex = "initializeSex";
 const std::string gStr_initializeSLiMOptions = "initializeSLiMOptions";
+const std::string gStr_initializeInteractionType = "initializeInteractionType";
 
 // SLiMEidosDictionary
 const std::string gStr_getValue = "getValue";
@@ -166,6 +167,7 @@ const std::string gStr_active = "active";
 const std::string gStr_chromosome = "chromosome";
 const std::string gStr_chromosomeType = "chromosomeType";
 const std::string gStr_genomicElementTypes = "genomicElementTypes";
+const std::string gStr_interactionTypes = "interactionTypes";
 const std::string gStr_scriptBlocks = "scriptBlocks";
 const std::string gStr_sexEnabled = "sexEnabled";
 const std::string gStr_subpopulations = "subpopulations";
@@ -192,6 +194,12 @@ const std::string gStr_fixationGeneration = "fixationGeneration";
 const std::string gStr_pedigreeID = "pedigreeID";
 const std::string gStr_pedigreeParentIDs = "pedigreeParentIDs";
 const std::string gStr_pedigreeGrandparentIDs = "pedigreeGrandparentIDs";
+const std::string gStr_reciprocality = "reciprocality";
+const std::string gStr_sexSegregation = "sexSegregation";
+const std::string gStr_dimensionality = "dimensionality";
+const std::string gStr_spatiality = "spatiality";
+const std::string gStr_spatialPosition = "spatialPosition";
+const std::string gStr_maxDistance = "maxDistance";
 
 // mostly method names
 const std::string gStr_setRecombinationRate = "setRecombinationRate";
@@ -241,6 +249,15 @@ const std::string gStr_outputSample = "outputSample";
 const std::string gStr_outputMS = "outputMS";
 const std::string gStr_outputVCF = "outputVCF";
 const std::string gStr_output = "output";
+const std::string gStr_evaluate = "evaluate";
+const std::string gStr_distance = "distance";
+const std::string gStr_distanceToPoint = "distanceToPoint";
+const std::string gStr_nearestNeighbors = "nearestNeighbors";
+const std::string gStr_nearestNeighborsOfPoint = "nearestNeighborsOfPoint";
+const std::string gStr_setInteractionFunction = "setInteractionFunction";
+const std::string gStr_strength = "strength";
+const std::string gStr_totalOfNeighborStrengths = "totalOfNeighborStrengths";
+const std::string gStr_drawByStrength = "drawByStrength";
 
 // mostly SLiM variable names used in callbacks and such
 const std::string gStr_sim = "sim";
@@ -283,6 +300,7 @@ const std::string gStr_SLiMSim = "SLiMSim";
 const std::string gStr_Subpopulation = "Subpopulation";
 const std::string gStr_Individual = "Individual";
 const std::string gStr_Substitution = "Substitution";
+const std::string gStr_InteractionType = "InteractionType";
 
 // mostly other fixed strings
 const std::string gStr_A = "A";
@@ -324,6 +342,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_initializeRecombinationRate, gID_initializeRecombinationRate);
 		Eidos_RegisterStringForGlobalID(gStr_initializeSex, gID_initializeSex);
 		Eidos_RegisterStringForGlobalID(gStr_initializeSLiMOptions, gID_initializeSLiMOptions);
+		Eidos_RegisterStringForGlobalID(gStr_initializeInteractionType, gID_initializeInteractionType);
 		
 		Eidos_RegisterStringForGlobalID(gStr_getValue, gID_getValue);
 		Eidos_RegisterStringForGlobalID(gStr_setValue, gID_setValue);
@@ -370,6 +389,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_chromosome, gID_chromosome);
 		Eidos_RegisterStringForGlobalID(gStr_chromosomeType, gID_chromosomeType);
 		Eidos_RegisterStringForGlobalID(gStr_genomicElementTypes, gID_genomicElementTypes);
+		Eidos_RegisterStringForGlobalID(gStr_interactionTypes, gID_interactionTypes);
 		Eidos_RegisterStringForGlobalID(gStr_scriptBlocks, gID_scriptBlocks);
 		Eidos_RegisterStringForGlobalID(gStr_sexEnabled, gID_sexEnabled);
 		Eidos_RegisterStringForGlobalID(gStr_subpopulations, gID_subpopulations);
@@ -396,6 +416,12 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_pedigreeID, gID_pedigreeID);
 		Eidos_RegisterStringForGlobalID(gStr_pedigreeParentIDs, gID_pedigreeParentIDs);
 		Eidos_RegisterStringForGlobalID(gStr_pedigreeGrandparentIDs, gID_pedigreeGrandparentIDs);
+		Eidos_RegisterStringForGlobalID(gStr_reciprocality, gID_reciprocality);
+		Eidos_RegisterStringForGlobalID(gStr_sexSegregation, gID_sexSegregation);
+		Eidos_RegisterStringForGlobalID(gStr_dimensionality, gID_dimensionality);
+		Eidos_RegisterStringForGlobalID(gStr_spatiality, gID_spatiality);
+		Eidos_RegisterStringForGlobalID(gStr_spatialPosition, gID_spatialPosition);
+		Eidos_RegisterStringForGlobalID(gStr_maxDistance, gID_maxDistance);
 		
 		Eidos_RegisterStringForGlobalID(gStr_setRecombinationRate, gID_setRecombinationRate);
 		Eidos_RegisterStringForGlobalID(gStr_addMutations, gID_addMutations);
@@ -442,6 +468,15 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_outputMS, gID_outputMS);
 		Eidos_RegisterStringForGlobalID(gStr_outputVCF, gID_outputVCF);
 		Eidos_RegisterStringForGlobalID(gStr_output, gID_output);
+		Eidos_RegisterStringForGlobalID(gStr_evaluate, gID_evaluate);
+		Eidos_RegisterStringForGlobalID(gStr_distance, gID_distance);
+		Eidos_RegisterStringForGlobalID(gStr_distanceToPoint, gID_distanceToPoint);
+		Eidos_RegisterStringForGlobalID(gStr_nearestNeighbors, gID_nearestNeighbors);
+		Eidos_RegisterStringForGlobalID(gStr_nearestNeighborsOfPoint, gID_nearestNeighborsOfPoint);
+		Eidos_RegisterStringForGlobalID(gStr_setInteractionFunction, gID_setInteractionFunction);
+		Eidos_RegisterStringForGlobalID(gStr_strength, gID_strength);
+		Eidos_RegisterStringForGlobalID(gStr_totalOfNeighborStrengths, gID_totalOfNeighborStrengths);
+		Eidos_RegisterStringForGlobalID(gStr_drawByStrength, gID_drawByStrength);
 		
 		Eidos_RegisterStringForGlobalID(gStr_sim, gID_sim);
 		Eidos_RegisterStringForGlobalID(gStr_self, gID_self);
@@ -480,6 +515,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_Subpopulation, gID_Subpopulation);
 		Eidos_RegisterStringForGlobalID(gStr_Individual, gID_Individual);
 		Eidos_RegisterStringForGlobalID(gStr_Substitution, gID_Substitution);
+		Eidos_RegisterStringForGlobalID(gStr_InteractionType, gID_InteractionType);
 		
 		Eidos_RegisterStringForGlobalID(gStr_A, gID_A);
 		Eidos_RegisterStringForGlobalID(gStr_X, gID_X);

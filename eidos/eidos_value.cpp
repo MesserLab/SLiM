@@ -64,10 +64,12 @@ EidosValue_Int_SP gStaticEidosValue_Integer1;
 EidosValue_Float_SP gStaticEidosValue_Float0;
 EidosValue_Float_SP gStaticEidosValue_Float0Point5;
 EidosValue_Float_SP gStaticEidosValue_Float1;
+EidosValue_Float_SP gStaticEidosValue_FloatINF;
 
 EidosValue_String_SP gStaticEidosValue_StringEmpty;
 EidosValue_String_SP gStaticEidosValue_StringSpace;
 EidosValue_String_SP gStaticEidosValue_StringAsterisk;
+EidosValue_String_SP gStaticEidosValue_StringDoubleAsterisk;
 
 EidosObjectClass *gEidos_UndefinedClassObject = new EidosObjectClass();
 

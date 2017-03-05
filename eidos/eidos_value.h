@@ -123,10 +123,12 @@ extern EidosValue_Int_SP gStaticEidosValue_Integer1;
 extern EidosValue_Float_SP gStaticEidosValue_Float0;
 extern EidosValue_Float_SP gStaticEidosValue_Float0Point5;
 extern EidosValue_Float_SP gStaticEidosValue_Float1;
+extern EidosValue_Float_SP gStaticEidosValue_FloatINF;
 
 extern EidosValue_String_SP gStaticEidosValue_StringEmpty;
 extern EidosValue_String_SP gStaticEidosValue_StringSpace;
 extern EidosValue_String_SP gStaticEidosValue_StringAsterisk;
+extern EidosValue_String_SP gStaticEidosValue_StringDoubleAsterisk;
 
 
 // EidosValueType is an enum of the possible types for EidosValue objects.  Note that all of these types are vectors of the stated

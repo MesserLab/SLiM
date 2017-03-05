@@ -432,7 +432,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	{
 		Subpopulation *subpop = selectedSubpopulations[0];
 		
-		if (sim->continuous_space_dimensions_ > 0)
+		if (sim->spatial_dimensionality_ > 0)
 		{
 			// clear to a shade of gray
 			glColor3f(0.9f, 0.9f, 0.9f);

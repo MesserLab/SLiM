@@ -85,6 +85,9 @@ SLiMSim::~SLiMSim(void)
 	for (auto genomic_element_type : genomic_element_types_)
 		delete genomic_element_type.second;
 	
+	for (auto interaction_type : interaction_types_)
+		delete interaction_type.second;
+	
 	for (auto script_block : script_blocks_)
 		delete script_block;
 	
@@ -1071,6 +1074,7 @@ void SLiMSim::DeregisterScheduledScriptBlocks(void)
 void SLiMSim::RunInitializeCallbacks(void)
 {
 	// zero out the initialization check counts
+	num_interaction_types_ = 0;
 	num_mutation_types_ = 0;
 	num_mutation_rates_ = 0;
 	num_genomic_element_types_ = 0;
@@ -1315,6 +1319,10 @@ bool SLiMSim::_RunOneGeneration(void)
 		
 		population_.MaintainRegistry();
 		
+		// Invalidate interactions, now that the generation they were valid for is disappearing
+		for (auto int_type = interaction_types_.begin(); int_type != interaction_types_.end(); ++int_type)
+			int_type->second->Invalidate();
+		
 		
 		// ******************************************************************
 		//
@@ -1439,6 +1447,8 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0].get() : nullptr);
 	EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1].get() : nullptr);
 	EidosValue *arg2_value = ((p_argument_count >= 3) ? p_arguments[2].get() : nullptr);
+	EidosValue *arg3_value = ((p_argument_count >= 4) ? p_arguments[3].get() : nullptr);
+	EidosValue *arg4_value = ((p_argument_count >= 5) ? p_arguments[4].get() : nullptr);
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	// we only define initialize...() functions; so we must be in an initialize() callback
@@ -1613,6 +1623,86 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 	
 	
 	//
+	//	*********************	(object<InteractionType>$)initializeInteractionType(is$ id, string$ spatiality, [logical$ reciprocality = T], [numeric$ maxDistance = INF], [string$ sexSegregation = "**"])
+	//
+	#pragma mark initializeInteractionType()
+	
+	else if (p_function_name.compare(gStr_initializeInteractionType) == 0)
+	{
+		slim_objectid_t map_identifier = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 'i', nullptr);
+		string spatiality_string = arg1_value->StringAtIndex(0, nullptr);
+		bool reciprocality = arg2_value->LogicalAtIndex(0, nullptr);
+		double maxDistance = arg3_value->FloatAtIndex(0, nullptr);
+		string sex_string = arg4_value->StringAtIndex(0, nullptr);
+		int spatiality;
+		IndividualSex target_sex = IndividualSex::kUnspecified, source_sex = IndividualSex::kUnspecified;
+		
+		if (interaction_types_.count(map_identifier) > 0) 
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() mutation type m" << map_identifier << " already defined." << eidos_terminate();
+		
+		if (spatiality_string.length() == 0)					spatiality = 0;
+		else if (spatiality_string.compare(gEidosStr_x) == 0)	spatiality = 1;
+		else if (spatiality_string.compare("xy") == 0)			spatiality = 2;
+		else if (spatiality_string.compare("xyz") == 0)			spatiality = 3;
+		else
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() spatiality \"" << spatiality_string << "\" must be \"\", \"x\", \"xy\", or \"xyz\"." << eidos_terminate();
+		
+		if (spatiality > spatial_dimensionality_)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() spatiality cannot exceed the spatial dimensions set in initializeSLiMOptions()." << eidos_terminate();
+		
+		if (maxDistance < 0.0)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() maxDistance must be >= 0.0." << eidos_terminate();
+		
+		if (sex_string == "**")			{ target_sex = IndividualSex::kUnspecified;		source_sex = IndividualSex::kUnspecified;	}
+		else if (sex_string == "*M")	{ target_sex = IndividualSex::kUnspecified;		source_sex = IndividualSex::kMale;			}
+		else if (sex_string == "*F")	{ target_sex = IndividualSex::kUnspecified;		source_sex = IndividualSex::kFemale;		}
+		else if (sex_string == "M*")	{ target_sex = IndividualSex::kMale;			source_sex = IndividualSex::kUnspecified;	}
+		else if (sex_string == "MM")	{ target_sex = IndividualSex::kMale;			source_sex = IndividualSex::kMale;			}
+		else if (sex_string == "MF")	{ target_sex = IndividualSex::kMale;			source_sex = IndividualSex::kFemale;		}
+		else if (sex_string == "F*")	{ target_sex = IndividualSex::kFemale;			source_sex = IndividualSex::kUnspecified;	}
+		else if (sex_string == "FM")	{ target_sex = IndividualSex::kFemale;			source_sex = IndividualSex::kMale;			}
+		else if (sex_string == "FF")	{ target_sex = IndividualSex::kFemale;			source_sex = IndividualSex::kFemale;		}
+		else
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() unsupported sexSegregation value (must be '**', '*M', '*F', 'M*', 'MM', 'MF', 'F*', 'FM', or 'FF')." << eidos_terminate();
+		
+		if (((target_sex != IndividualSex::kUnspecified) || (source_sex != IndividualSex::kUnspecified)) && !sex_enabled_)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() sexSegregation value other than '**' unsupported in non-sexual simulation." << eidos_terminate();
+		
+		InteractionType *new_interaction_type = new InteractionType(map_identifier, spatiality, reciprocality, maxDistance, target_sex, source_sex);
+		
+		interaction_types_.insert(std::pair<const slim_objectid_t,InteractionType*>(map_identifier, new_interaction_type));
+		interaction_types_changed_ = true;
+		
+		// define a new Eidos variable to refer to the new mutation type
+		EidosSymbolTableEntry &symbol_entry = new_interaction_type->SymbolTableEntry();
+		
+		if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() symbol " << StringForEidosGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << eidos_terminate();
+		
+		simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
+		
+		if (DEBUG_INPUT)
+		{
+			output_stream << "initializeInteractionType(" << map_identifier << ", \"" << spatiality_string;
+			
+			if (reciprocality == false)
+				output_stream << "\", reciprocality=F";
+			
+			if (maxDistance != 0.0)
+				output_stream << "\", maxDistance=" << maxDistance;
+			
+			if (sex_string != "**")
+				output_stream << "\", sexSegregation=" << sex_string;
+			
+			output_stream << ");" << endl;
+		}
+		
+		num_interaction_types_++;
+		return symbol_entry.second;
+	}
+	
+	
+	//
 	//	*********************	(object<MutationType>$)initializeMutationType(is$ id, numeric$ dominanceCoeff, string$ distributionType, ...)
 	//
 	#pragma mark initializeMutationType()
@@ -1684,7 +1774,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 			else
 			{
 				if (dfe_param_type != EidosValueType::kValueString)
-					EIDOS_TERMINATION << "ERROR (MutationType::ExecuteInstanceMethod): setDistribution() requires that the parameters for this DFE be of type string." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (MutationType::ExecuteInstanceMethod): initializeMutationType() requires that the parameters for this DFE be of type string." << eidos_terminate();
 				
 				dfe_strings.emplace_back(dfe_param_value->StringAtIndex(0, nullptr));
 				// intentionally no bounds checks for DFE parameters
@@ -1965,7 +2055,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 	
 	
 	//
-	//	*********************	(void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ continuousSpace = ""])
+	//	*********************	(void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""])
 	//
 	#pragma mark initializeSLiMOptions()
 	
@@ -1974,7 +2064,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		if (num_options_declarations_ > 0)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeSLiMOptions() may be called only once." << eidos_terminate();
 		
-		if ((num_mutation_types_ > 0) || (num_mutation_rates_ > 0) || (num_genomic_element_types_ > 0) || (num_genomic_elements_ > 0) || (num_recombination_rates_ > 0) || (num_gene_conversions_ > 0) || (num_sex_declarations_ > 0))
+		if ((num_interaction_types_ > 0) || (num_mutation_types_ > 0) || (num_mutation_rates_ > 0) || (num_genomic_element_types_ > 0) || (num_genomic_elements_ > 0) || (num_recombination_rates_ > 0) || (num_gene_conversions_ > 0) || (num_sex_declarations_ > 0))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeSLiMOptions() must be called before all other initialization functions." << eidos_terminate();
 		
 		{
@@ -1985,19 +2075,19 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		}
 		
 		{
-			// [string$ continuousSpace = ""]
+			// [string$ dimensionality = ""]
 			std::string space = arg1_value->StringAtIndex(0, nullptr);
 			
 			if (space.length() != 0)
 			{
 				if (space == "x")
-					continuous_space_dimensions_ = 1;
+					spatial_dimensionality_ = 1;
 				else if (space == "xy")
-					continuous_space_dimensions_ = 2;
+					spatial_dimensionality_ = 2;
 				else if (space == "xyz")
-					continuous_space_dimensions_ = 3;
+					spatial_dimensionality_ = 3;
 				else
-					EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): in initializeSLiMOptions(), legal non-empty values for parameter continuousSpace are only 'x', 'xy', and 'xyz'." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): in initializeSLiMOptions(), legal non-empty values for parameter dimensionality are only 'x', 'xy', and 'xyz'." << eidos_terminate();
 			}
 		}
 		
@@ -2014,14 +2104,14 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 				previous_params = true;
 			}
 			
-			if (continuous_space_dimensions_ != 0)
+			if (spatial_dimensionality_ != 0)
 			{
 				if (previous_params) output_stream << ", ";
-				output_stream << "continuousSpace = ";
+				output_stream << "dimensionality = ";
 				
-				if (continuous_space_dimensions_ == 1) output_stream << "'x'";
-				else if (continuous_space_dimensions_ == 2) output_stream << "'xy'";
-				else if (continuous_space_dimensions_ == 3) output_stream << "'xyz'";
+				if (spatial_dimensionality_ == 1) output_stream << "'x'";
+				else if (spatial_dimensionality_ == 2) output_stream << "'xy'";
+				else if (spatial_dimensionality_ == 3) output_stream << "'xyz'";
 				
 				previous_params = true;
 			}
@@ -2045,8 +2135,10 @@ const std::vector<const EidosFunctionSignature*> *SLiMSim::ZeroGenerationFunctio
 									->AddIntObject_S("genomicElementType", gSLiM_GenomicElementType_Class)->AddInt_S("start")->AddInt_S("end"));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElementType, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_GenomicElementType_Class, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									->AddIntString_S("id")->AddIntObject("mutationTypes", gSLiM_MutationType_Class)->AddNumeric("proportions"));
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeInteractionType, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_InteractionType_Class, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
+									   ->AddIntString_S("id")->AddString_S(gStr_spatiality)->AddLogical_OS(gStr_reciprocality, gStaticEidosValue_LogicalT)->AddNumeric_OS(gStr_maxDistance, gStaticEidosValue_FloatINF)->AddString_OS(gStr_sexSegregation, gStaticEidosValue_StringDoubleAsterisk));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationType, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
-									->AddIntString_S("id")->AddNumeric_S("dominanceCoeff")->AddString_S("distributionType")->AddEllipsis());
+									   ->AddIntString_S("id")->AddNumeric_S("dominanceCoeff")->AddString_S("distributionType")->AddEllipsis());
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeRecombinationRate, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGeneConversion, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
@@ -2056,7 +2148,7 @@ const std::vector<const EidosFunctionSignature*> *SLiMSim::ZeroGenerationFunctio
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSex, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
 									   ->AddString_S("chromosomeType")->AddNumeric_OS("xDominanceCoeff", gStaticEidosValue_Float1));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMOptions, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
-									   ->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("continuousSpace", gStaticEidosValue_StringEmpty));
+									   ->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("dimensionality", gStaticEidosValue_StringEmpty));
 	}
 	
 	return &sim_0_signatures_;
@@ -2073,6 +2165,17 @@ void SLiMSim::AddZeroGenerationFunctionsToMap(EidosFunctionMap *p_map)
 	}
 }
 
+void SLiMSim::RemoveZeroGenerationFunctionsFromMap(EidosFunctionMap *p_map)
+{
+	const std::vector<const EidosFunctionSignature*> *signatures = ZeroGenerationFunctionSignatures();
+	
+	if (signatures)
+	{
+		for (const EidosFunctionSignature *signature : *signatures)
+			p_map->erase(signature->call_name_);
+	}
+}
+
 const std::vector<const EidosMethodSignature*> *SLiMSim::AllMethodSignatures(void)
 {
 	static std::vector<const EidosMethodSignature*> *methodSignatures = nullptr;
@@ -2085,6 +2188,7 @@ const std::vector<const EidosMethodSignature*> *SLiMSim::AllMethodSignatures(voi
 		auto methodsGenomicElement =		gSLiM_GenomicElement_Class->Methods();
 		auto methodsGenomicElementType =	gSLiM_GenomicElementType_Class->Methods();
 		auto methodsIndividual =			gSLiM_Individual_Class->Methods();
+		auto methodsInteractionType =		gSLiM_InteractionType_Class->Methods();
 		auto methodsMutation =				gSLiM_Mutation_Class->Methods();
 		auto methodsMutationType =			gSLiM_MutationType_Class->Methods();
 		auto methodsSLiMEidosBlock =		gSLiM_SLiMEidosBlock_Class->Methods();
@@ -2099,6 +2203,7 @@ const std::vector<const EidosMethodSignature*> *SLiMSim::AllMethodSignatures(voi
 		methodSignatures->insert(methodSignatures->end(), methodsGenomicElement->begin(), methodsGenomicElement->end());
 		methodSignatures->insert(methodSignatures->end(), methodsGenomicElementType->begin(), methodsGenomicElementType->end());
 		methodSignatures->insert(methodSignatures->end(), methodsIndividual->begin(), methodsIndividual->end());
+		methodSignatures->insert(methodSignatures->end(), methodsInteractionType->begin(), methodsInteractionType->end());
 		methodSignatures->insert(methodSignatures->end(), methodsMutation->begin(), methodsMutation->end());
 		methodSignatures->insert(methodSignatures->end(), methodsMutationType->begin(), methodsMutationType->end());
 		methodSignatures->insert(methodSignatures->end(), methodsSLiMEidosBlock->begin(), methodsSLiMEidosBlock->end());
@@ -2160,6 +2265,7 @@ const std::vector<const EidosPropertySignature*> *SLiMSim::AllPropertySignatures
 		auto propertiesGenomicElement =			gSLiM_GenomicElement_Class->Properties();
 		auto propertiesGenomicElementType =		gSLiM_GenomicElementType_Class->Properties();
 		auto propertiesIndividual =				gSLiM_Individual_Class->Properties();
+		auto propertiesInteractionType =		gSLiM_InteractionType_Class->Properties();
 		auto propertiesMutation =				gSLiM_Mutation_Class->Properties();
 		auto propertiesMutationType =			gSLiM_MutationType_Class->Properties();
 		auto propertiesSLiMEidosBlock =			gSLiM_SLiMEidosBlock_Class->Properties();
@@ -2174,6 +2280,7 @@ const std::vector<const EidosPropertySignature*> *SLiMSim::AllPropertySignatures
 		propertySignatures->insert(propertySignatures->end(), propertiesGenomicElement->begin(), propertiesGenomicElement->end());
 		propertySignatures->insert(propertySignatures->end(), propertiesGenomicElementType->begin(), propertiesGenomicElementType->end());
 		propertySignatures->insert(propertySignatures->end(), propertiesIndividual->begin(), propertiesIndividual->end());
+		propertySignatures->insert(propertySignatures->end(), propertiesInteractionType->begin(), propertiesInteractionType->end());
 		propertySignatures->insert(propertySignatures->end(), propertiesMutation->begin(), propertiesMutation->end());
 		propertySignatures->insert(propertySignatures->end(), propertiesMutationType->begin(), propertiesMutationType->end());
 		propertySignatures->insert(propertySignatures->end(), propertiesSLiMEidosBlock->begin(), propertiesSLiMEidosBlock->end());
@@ -2263,6 +2370,27 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 				case GenomeType::kYChromosome:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_Y));
 			}
 		}
+		case gID_dimensionality:
+		{
+			static EidosValue_SP static_dimensionality_string_x;
+			static EidosValue_SP static_dimensionality_string_xy;
+			static EidosValue_SP static_dimensionality_string_xyz;
+			
+			if (!static_dimensionality_string_x)
+			{
+				static_dimensionality_string_x = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_x));
+				static_dimensionality_string_xy = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xy"));
+				static_dimensionality_string_xyz = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xyz"));
+			}
+			
+			switch (spatial_dimensionality_)
+			{
+				case 0:		return gStaticEidosValue_StringEmpty;
+				case 1:		return static_dimensionality_string_x;
+				case 2:		return static_dimensionality_string_xy;
+				case 3:		return static_dimensionality_string_xyz;
+			}
+		}
 		case gID_genomicElementTypes:
 		{
 			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_GenomicElementType_Class);
@@ -2270,6 +2398,16 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 			
 			for (auto ge_type = genomic_element_types_.begin(); ge_type != genomic_element_types_.end(); ++ge_type)
 				vec->PushObjectElement(ge_type->second);
+			
+			return result_SP;
+		}
+		case gID_interactionTypes:
+		{
+			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_InteractionType_Class);
+			EidosValue_SP result_SP = EidosValue_SP(vec);
+			
+			for (auto int_type = interaction_types_.begin(); int_type != interaction_types_.end(); ++int_type)
+				vec->PushObjectElement(int_type->second);
 			
 			return result_SP;
 		}
@@ -3224,7 +3362,9 @@ const std::vector<const EidosPropertySignature *> *SLiMSim_Class::Properties(voi
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_chromosome));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_chromosomeType));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_dimensionality));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_genomicElementTypes));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_interactionTypes));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutations));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutationTypes));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_scriptBlocks));
@@ -3245,7 +3385,9 @@ const EidosPropertySignature *SLiMSim_Class::SignatureForProperty(EidosGlobalStr
 	// Signatures are all preallocated, for speed
 	static EidosPropertySignature *chromosomeSig = nullptr;
 	static EidosPropertySignature *chromosomeTypeSig = nullptr;
+	static EidosPropertySignature *dimensionalitySig = nullptr;
 	static EidosPropertySignature *genomicElementTypesSig = nullptr;
+	static EidosPropertySignature *interactionTypesSig = nullptr;
 	static EidosPropertySignature *mutationsSig = nullptr;
 	static EidosPropertySignature *mutationTypesSig = nullptr;
 	static EidosPropertySignature *scriptBlocksSig = nullptr;
@@ -3260,7 +3402,9 @@ const EidosPropertySignature *SLiMSim_Class::SignatureForProperty(EidosGlobalStr
 	{
 		chromosomeSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosome,			gID_chromosome,				true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Chromosome_Class));
 		chromosomeTypeSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosomeType,		gID_chromosomeType,			true,	kEidosValueMaskString | kEidosValueMaskSingleton));
+		dimensionalitySig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_dimensionality,		gID_dimensionality,			true,	kEidosValueMaskString | kEidosValueMaskSingleton));
 		genomicElementTypesSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElementTypes,	gID_genomicElementTypes,	true,	kEidosValueMaskObject, gSLiM_GenomicElementType_Class));
+		interactionTypesSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_interactionTypes,	gID_interactionTypes,		true,	kEidosValueMaskObject, gSLiM_InteractionType_Class));
 		mutationsSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutations,			gID_mutations,				true,	kEidosValueMaskObject, gSLiM_Mutation_Class));
 		mutationTypesSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationTypes,		gID_mutationTypes,			true,	kEidosValueMaskObject, gSLiM_MutationType_Class));
 		scriptBlocksSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_scriptBlocks,		gID_scriptBlocks,			true,	kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class));
@@ -3277,7 +3421,9 @@ const EidosPropertySignature *SLiMSim_Class::SignatureForProperty(EidosGlobalStr
 	{
 		case gID_chromosome:			return chromosomeSig;
 		case gID_chromosomeType:		return chromosomeTypeSig;
+		case gID_dimensionality:		return dimensionalitySig;
 		case gID_genomicElementTypes:	return genomicElementTypesSig;
+		case gID_interactionTypes:		return interactionTypesSig;
 		case gID_mutations:				return mutationsSig;
 		case gID_mutationTypes:			return mutationTypesSig;
 		case gID_scriptBlocks:			return scriptBlocksSig;

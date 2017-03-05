@@ -16,6 +16,7 @@ development head:
 	optimize ifelse() and operator ! in Eidos
 	change mateChoice() policy for all-zero return to be equivalent to returning float(0) – reject the first parent
 	optimization for mean() in Eidos
+	add InteractionType class, initializeInteractionType(), and spatial queries
 
 
 2.2.1 (build 992; Eidos version 1.2.1):

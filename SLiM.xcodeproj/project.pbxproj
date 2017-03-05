@@ -371,6 +371,9 @@
 		98D4C2281A71F8AD00FFB083 /* check.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98D4C2241A71F8AD00FFB083 /* check.pdf */; };
 		98D4C2291A71F8AD00FFB083 /* delete_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98D4C2251A71F8AD00FFB083 /* delete_H.pdf */; };
 		98D4C22A1A71F8AD00FFB083 /* delete.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98D4C2261A71F8AD00FFB083 /* delete.pdf */; };
+		98DB3D6F1E6122AE00E2C200 /* interaction_type.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DB3D6D1E6122AE00E2C200 /* interaction_type.cpp */; };
+		98DB3D701E6122AE00E2C200 /* interaction_type.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DB3D6D1E6122AE00E2C200 /* interaction_type.cpp */; };
+		98DB3D711E6122AE00E2C200 /* interaction_type.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DB3D6D1E6122AE00E2C200 /* interaction_type.cpp */; };
 		98DC7BBB1DF13CD60037A1DD /* TipsWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98DC7BB91DF13CD50037A1DD /* TipsWindow.xib */; };
 		98DE4C131B6F9657004FDF5F /* eidos_property_signature.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DE4C111B6F9657004FDF5F /* eidos_property_signature.cpp */; };
 		98DE4C141B6F9657004FDF5F /* eidos_property_signature.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DE4C111B6F9657004FDF5F /* eidos_property_signature.cpp */; };
@@ -765,6 +768,8 @@
 		98D4C2241A71F8AD00FFB083 /* check.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = check.pdf; sourceTree = "<group>"; };
 		98D4C2251A71F8AD00FFB083 /* delete_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = delete_H.pdf; sourceTree = "<group>"; };
 		98D4C2261A71F8AD00FFB083 /* delete.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = delete.pdf; sourceTree = "<group>"; };
+		98DB3D6D1E6122AE00E2C200 /* interaction_type.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = interaction_type.cpp; sourceTree = "<group>"; };
+		98DB3D6E1E6122AE00E2C200 /* interaction_type.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = interaction_type.h; sourceTree = "<group>"; };
 		98DC7BBA1DF13CD50037A1DD /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/TipsWindow.xib; sourceTree = "<group>"; };
 		98DE4C111B6F9657004FDF5F /* eidos_property_signature.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_property_signature.cpp; sourceTree = "<group>"; };
 		98DE4C121B6F9657004FDF5F /* eidos_property_signature.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_property_signature.h; sourceTree = "<group>"; };
@@ -975,6 +980,8 @@
 				98E9A6AC1A3CD5D3000AD4FC /* population.cpp */,
 				98C92AEC1D0B07A6001C82BC /* individual.h */,
 				98C92AEB1D0B07A6001C82BC /* individual.cpp */,
+				98DB3D6E1E6122AE00E2C200 /* interaction_type.h */,
+				98DB3D6D1E6122AE00E2C200 /* interaction_type.cpp */,
 				98AB597A1B2531F10077CB4A /* slim_eidos_block.h */,
 				98AB59791B2531F10077CB4A /* slim_eidos_block.cpp */,
 				984AD1981DF6B588002D4AC8 /* slim_eidos_dictionary.h */,
@@ -1795,6 +1802,7 @@
 				98C821251C7A980000548839 /* math.c in Sources */,
 				98E9A6931A3CD4EF000AD4FC /* genomic_element.cpp in Sources */,
 				9898172F1A59750300F7417C /* slim_global.cpp in Sources */,
+				98DB3D6F1E6122AE00E2C200 /* interaction_type.cpp in Sources */,
 				98E9A6AB1A3CD5BB000AD4FC /* subpopulation.cpp in Sources */,
 				98C821341C7A980000548839 /* mt.c in Sources */,
 				9857249C1AD08A810047C223 /* eidos_interpreter.cpp in Sources */,
@@ -1813,6 +1821,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				98DB3D711E6122AE00E2C200 /* interaction_type.cpp in Sources */,
 				984D5FB51E3AF1F000473719 /* SLiMTests.mm in Sources */,
 				984D5FB31E3AF18C00473719 /* EidosTests.mm in Sources */,
 			);
@@ -1907,6 +1916,7 @@
 				986926D91AA140550000E138 /* GraphView.mm in Sources */,
 				98C821471C7A983700548839 /* stream.c in Sources */,
 				98EFE6301ADB611100CBEC78 /* eidos_symbol_table.cpp in Sources */,
+				98DB3D701E6122AE00E2C200 /* interaction_type.cpp in Sources */,
 				98D4C1E21A6F544800FFB083 /* subpopulation.cpp in Sources */,
 				98D218C51B2E213200156FC3 /* EidosTextView.mm in Sources */,
 				985724AA1AD4551C0047C223 /* eidos_test.cpp in Sources */,

@@ -14,6 +14,7 @@
 #include "eidos_property_signature.h"
 #include "eidos_ast_node.h"
 #include "slim_sim.h"
+#include "interaction_type.h"
 
 #include "errno.h"
 #include "string.h"
@@ -1106,6 +1107,10 @@ EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(stri
 	else if ((p_function_name == "initializeMutationType") && (argument_count >= 1))
 	{
 		_SetTypeForISArgumentOfClass(p_arguments[0], 'm', gSLiM_MutationType_Class);
+	}
+	else if ((p_function_name == "initializeInteractionType") && (argument_count >= 1))
+	{
+		_SetTypeForISArgumentOfClass(p_arguments[0], 'i', gSLiM_InteractionType_Class);
 	}
 	
 	// call super

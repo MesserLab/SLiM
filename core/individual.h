@@ -153,6 +153,9 @@ public:
 	virtual void SetProperty_Accelerated_Int(EidosGlobalStringID p_property_id, int64_t p_value);
 	virtual void SetProperty_Accelerated_Float(EidosGlobalStringID p_property_id, double p_value);
 	virtual void SetProperty_Accelerated_String(EidosGlobalStringID p_property_id, const std::string &p_value);
+	
+	// Interactions get to see our spatial position
+	friend class InteractionType;
 };
 
 

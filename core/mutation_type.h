@@ -39,8 +39,7 @@
 extern EidosObjectClass *gSLiM_MutationType_Class;
 
 
-// This enumeration represents a type of distribution of fitness effects (DFE)
-// that a mutation type can draw from; at present three types are supported
+// This enumeration represents a type of distribution of fitness effects (DFE) that a mutation type can draw from
 enum class DFEType : char {
 	kFixed = 0,
 	kGamma,

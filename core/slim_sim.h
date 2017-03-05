@@ -42,6 +42,7 @@
 #include "eidos_functions.h"
 #include "slim_eidos_block.h"
 #include "slim_eidos_dictionary.h"
+#include "interaction_type.h"
 
 
 class EidosInterpreter;
@@ -88,6 +89,7 @@ private:
 	// std::map is used instead of std::unordered_map mostly for convenience, for sorted order in the UI; these are unlikely to be bottlenecks I think
 	std::map<slim_objectid_t,MutationType*> mutation_types_;						// OWNED POINTERS: this map is the owner of all allocated MutationType objects
 	std::map<slim_objectid_t,GenomicElementType*> genomic_element_types_;			// OWNED POINTERS: this map is the owner of all allocated GenomicElementType objects
+	std::map<slim_objectid_t,InteractionType*> interaction_types_;					// OWNED POINTERS: this map is the owner of all allocated InteractionType objects
 	
 	// SEX ONLY: sex-related instance variables
 	bool sex_enabled_ = false;														// true if sex is tracked for individuals; if false, all individuals are hermaphroditic
@@ -108,6 +110,7 @@ private:
 	void InitializeFromFile(std::istream &p_infile);								// parse a input file and set up the simulation state from its contents
 	
 	// initialization completeness check counts; used only when running initialize() callbacks
+	int num_interaction_types_;
 	int num_mutation_types_;
 	int num_mutation_rates_;
 	int num_genomic_element_types_;
@@ -120,6 +123,7 @@ private:
 	slim_position_t last_genomic_element_position = -1;	// used to check new genomic elements for consistency
 	
 	// change flags; used only by SLiMgui, to know that something has changed and a UI update is needed; start as true to provoke an initial display
+	bool interaction_types_changed_ = true;
 	bool mutation_types_changed_ = true;
 	bool genomic_element_types_changed_ = true;
 	bool chromosome_changed_ = true;
@@ -129,7 +133,7 @@ private:
 	bool pedigrees_enabled_ = false;
 	
 	// continuous space support
-	int continuous_space_dimensions_ = 0;
+	int spatial_dimensionality_ = 0;
 	
 	EidosSymbolTableEntry self_symbol_;												// for fast setup of the symbol table
 	
@@ -173,11 +177,13 @@ public:
 	inline Population &ThePopulation(void)											{ return population_; }
 	inline const std::map<slim_objectid_t,MutationType*> &MutationTypes(void) const	{ return mutation_types_; }
 	inline const std::map<slim_objectid_t,GenomicElementType*> &GenomicElementTypes(void) { return genomic_element_types_; }
+	inline const std::map<slim_objectid_t,InteractionType*> &InteractionTypes(void) { return interaction_types_; }
 	
 	inline bool SexEnabled(void) const												{ return sex_enabled_; }
 	inline bool PedigreesEnabled(void) const										{ return pedigrees_enabled_; }
 	inline GenomeType ModeledChromosomeType(void) const								{ return modeled_chromosome_type_; }
 	inline double XDominanceCoefficient(void) const									{ return x_chromosome_dominance_coeff_; }
+	inline int SpatialDimensionality(void) const									{ return spatial_dimensionality_; }
 	
 	//
 	// Eidos support
@@ -191,6 +197,7 @@ public:
 	EidosFunctionMap *FunctionMapFromBaseMap(EidosFunctionMap *p_base_map, bool p_force_addition = false);	// derive a function map, adding zero-gen functions if needed
 	const std::vector<const EidosFunctionSignature*> *ZeroGenerationFunctionSignatures(void);		// all zero-gen functions
 	void AddZeroGenerationFunctionsToMap(EidosFunctionMap *p_map);
+	void RemoveZeroGenerationFunctionsFromMap(EidosFunctionMap *p_map);
 	static const std::vector<const EidosMethodSignature*> *AllMethodSignatures(void);		// does not depend on sim state, so can be a class method
 	static const std::vector<const EidosPropertySignature*> *AllPropertySignatures(void);	// does not depend on sim state, so can be a class method
 	

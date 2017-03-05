@@ -959,6 +959,32 @@ The optional parameter
 \f2\fs18 "M"
 \f0\fs20  as appropriate.
 \f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 spatialPosition => (float)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The spatial position of the individual.  The length of the 
+\f2\fs18 spatialPosition
+\f0\fs20  property (the number of coordinates in the spatial position of an individual) depends upon the spatial dimensionality declared with 
+\f2\fs18 initializeSLiMOptions()
+\f0\fs20 .  If the spatial dimensionality is zero (as it is by default), it is an error to access this property.  The elements of this property are identical to the values of the 
+\f2\fs18 x
+\f0\fs20 , 
+\f2\fs18 y
+\f0\fs20 , and 
+\f2\fs18 z
+\f0\fs20  properties (if those properties are encompassed by the spatial dimensionality of the simulation).  In other words, if the declared dimensionality is 
+\f2\fs18 "xy"
+\f3\fs20 ,
+\f0  the 
+\f2\fs18 individual.spatialPosition
+\f0\fs20  property is equivalent to 
+\f2\fs18 c(individual.x,\'a0individual.y)
+\f0\fs20 ; 
+\f2\fs18 individual.z
+\f0\fs20  is not used since it is not encompassed by the simulation\'92s dimensionality.
+\f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 subpopulation => (object<Subpopulation>$)\
@@ -1071,7 +1097,7 @@ See the description of the
 \f0\fs20  callback.  The value of 
 \f2\fs18 x
 \f0\fs20  is not used by SLiM unless the optional \'93continuous space\'94 facility is enabled with the 
-\f2\fs18 continuousSpace
+\f2\fs18 dimensionality
 \f0\fs20  parameter to 
 \f2\fs18 initializeSLiMOptions()
 \f0\fs20 , in which case 
@@ -1097,14 +1123,22 @@ See the description of the
 \f0\fs20  callback.  The value of 
 \f2\fs18 y
 \f0\fs20  is not used by SLiM unless the optional \'93continuous space\'94 facility is enabled with the 
-\f2\fs18 continuousSpace
+\f2\fs18 dimensionality
 \f0\fs20  parameter to 
 \f2\fs18 initializeSLiMOptions()
 \f0\fs20 , in which case 
 \f2\fs18 y
 \f0\fs20  will be understood to represent the 
 \i y
-\i0  coordinate of the individual in space.  If continuous space is not enabled, you may use 
+\i0  coordinate of the individual in space (if the dimensionality is 
+\f2\fs18 "xy"
+\f0\fs20  or 
+\f2\fs18 "xyz"
+\f0\fs20 ).  If continuous space is not enabled, or the dimensionality is not 
+\f2\fs18 "xy"
+\f0\fs20  or 
+\f2\fs18 "xyz"
+\f0\fs20 , you may use 
 \f2\fs18 y
 \f0\fs20  as an additional tag value of type 
 \f2\fs18 float
@@ -1123,14 +1157,18 @@ See the description of the
 \f0\fs20  callback.  The value of 
 \f2\fs18 z
 \f0\fs20  is not used by SLiM unless the optional \'93continuous space\'94 facility is enabled with the 
-\f2\fs18 continuousSpace
+\f2\fs18 dimensionality
 \f0\fs20  parameter to 
 \f2\fs18 initializeSLiMOptions()
 \f0\fs20 , in which case 
 \f2\fs18 z
 \f0\fs20  will be understood to represent the 
 \i z
-\i0  coordinate of the individual in space.  If continuous space is not enabled, you may use 
+\i0  coordinate of the individual in space (if the dimensionality is 
+\f2\fs18 "xyz"
+\f0\fs20 ).  If continuous space is not enabled, or the dimensionality is not 
+\f2\fs18 "xyz"
+\f0\fs20 , you may use 
 \f2\fs18 z
 \f0\fs20  as an additional tag value of type 
 \f2\fs18 float
@@ -1312,10 +1350,347 @@ Note that this relatedness is simply pedigree-based relatedness.  This does not 
 \f3 \
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 5.7  Class Mutation\
+\f0\b\fs22 \cf0 17
+\f3 .
+\f0 7  Class InteractionType\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\i\b0 \cf0 5.7.1  
+\i\b0 \cf0 17
+\f3 .
+\f0 7.1  
+\f1\fs18 InteractionType
+\f0\fs22  properties\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\i0\fs18 \cf0 id => (integer$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The identifier for this interaction type; for interaction type 
+\f2\fs18 i3
+\f0\fs20 , for example, this is 
+\f2\fs18 3
+\f3\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 maxDistance <\'96> (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The maximum distance over which this interaction will be evaluated.  For inter-individual distances greater than 
+\f2\fs18 maxDistance
+\f3\fs20 ,
+\f0  the interaction strength will be zero.
+\f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 reciprocality => (logical$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The reciprocality of the interaction, as specified in 
+\f2\fs18 initializeInteractionType()
+\f0\fs20 .  This will be 
+\f2\fs18 T
+\f0\fs20  for reciprocal interactions (those for which the interaction strength of B upon A is equal to the interaction strength of A upon B), and 
+\f2\fs18 F
+\f0\fs20  otherwise.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 sexSegregation => (string$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The sex-segregation of the interaction, as specified in 
+\f2\fs18 initializeInteractionType()
+\f0\fs20 .  For non-sexual simulations, this will be 
+\f2\fs18 "**"
+\f3\fs20 .
+\f0   For sexual simulations, this 
+\f2\fs18 string
+\f0\fs20  value indicates the sex of individuals feeling the interaction, and the sex of individuals exerting the interaction; see 
+\f2\fs18 initializeInteractionType()
+\f0\fs20  for details.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 spatiality => (string$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The spatial dimensions used by the interaction, as specified in 
+\f2\fs18 initializeInteractionType()
+\f0\fs20 .  This will be 
+\f2\fs18 ""
+\f0\fs20  (the empty string) for non-spatial interactions, or 
+\f2\fs18 "x"
+\f0\fs20 , 
+\f2\fs18 "xy"
+\f0\fs20 , or 
+\f2\fs18 "xyz"
+\f0\fs20 , for interactions using those spatial dimensions respectively.  The specified dimensions are used to calculate the distances between individuals for this interaction.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 tag <\'96> (integer$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 A user-defined 
+\f2\fs18 integer
+\f0\fs20  value.  The value of 
+\f2\fs18 tag
+\f0\fs20  is initially undefined; if you wish it to have a defined value, you must arrange that yourself.  The value of 
+\f2\fs18 tag
+\f0\fs20  is not used by SLiM; it is free for you to use.
+\f3 \
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
+
+\f0\i\fs22 \cf0 17
+\f3 .
+\f0 7.2  
+\f1\fs18 InteractionType
+\f0\fs22  methods\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\i0\fs18 \cf0 \'96\'a0(float)distance(object<Individual>\'a0individuals1, [No<Individual>\'a0individuals2\'a0=\'a0NULL])
+\f3 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns a vector containing distances between individuals in 
+\f2\fs18 individuals1
+\f0\fs20  and 
+\f2\fs18 individuals2
+\f0\fs20 .  At least one of 
+\f2\fs18 individuals1
+\f0\fs20  or 
+\f2\fs18 individuals2
+\f0\fs20  must be singleton, so that the distances evaluated are either from one individual to many, or from many to one (which are equivalent, in fact); evaluating distances for many to many individuals cannot be done in a single call.  If 
+\f2\fs18 individuals2
+\f0\fs20  is 
+\f2\fs18 NULL
+\f0\fs20  (the default), then 
+\f2\fs18 individuals1
+\f0\fs20  must be singleton, and a vector of the distances from that individual to all individuals in its subpopulation (including itself) is returned.\
+Importantly, distances are calculated according to the spatiality of the 
+\f2\fs18 InteractionType
+\f0\fs20  (as declared in 
+\f2\fs18 initializeInteractionType()
+\f0\fs20 ) not the dimensionality of the model as a whole (as declared in 
+\f2\fs18 initializeSLiMOptions()
+\f0\fs20 ).  The distances are therefore interaction distances: the distances that are used to calculate interaction strengths.  If the 
+\f2\fs18 InteractionType
+\f0\fs20  is non-spatial, this method may not be called.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96\'a0(float)distanceToPoint(object<Individual>\'a0individuals1, float\'a0point)
+\f3 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns a vector containing distances between individuals in 
+\f2\fs18 individuals1
+\f0\fs20  and the point given by the spatial coordinates in 
+\f2\fs18 point
+\f0\fs20  (interpreted as a vector of 
+\i x
+\i0 , 
+\i y
+\i0 , 
+\i z
+\i0  values).\
+Importantly, distances are calculated according to the spatiality of the 
+\f2\fs18 InteractionType
+\f0\fs20  (as declared in 
+\f2\fs18 initializeInteractionType()
+\f0\fs20 ) not the dimensionality of the model as a whole (as declared in 
+\f2\fs18 initializeSLiMOptions()
+\f0\fs20 ).  The distances are therefore interaction distances: the distances that are used to calculate interaction strengths.  If the 
+\f2\fs18 InteractionType
+\f0\fs20  is non-spatial, this method may not be called.  The vector 
+\f2\fs18 point
+\f0\fs20  must be at least as long as the spatiality of the 
+\f2\fs18 InteractionType
+\f0\fs20 ; extra values may be present but will be ignored.\
+\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96\'a0(object<Individual>)drawByStrength(object<Individual>$\'a0individual, [integer$\'a0count\'a0=\'a01])
+\f3 \
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns up to 
+\f2\fs18 count
+\f0\fs20  individuals drawn from the subpopulation of 
+\f2\fs18 individual
+\f3\fs20 .
+\f0   The probability of drawing particular individuals is proportional to their strength of interaction with 
+\f2\fs18 individual
+\f0\fs20 .  This method may be used with either spatial or non-spatial interactions, but will be much more efficient with spatial interactions that set a conservative maximum interaction distance.  Draws are done with replacement, so the same individual may be drawn more than once.  If more than one draw will be needed, it is much more efficient to use a single call to 
+\f2\fs18 drawByStrength()
+\f0\fs20 , rather than drawing them one at a time.  Note that if no individuals within the maximum interaction distance have a non-zero interaction with 
+\f2\fs18 individual
+\f0\fs20 , the vector returned will be zero-length; it is important to check for this possibility when using this method with spatial interactions.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96\'a0(void)evaluate([No<Subpopulation>\'a0subpops\'a0=\'a0NULL], [logical$\'a0immediate\'a0=\'a0F])
+\f3 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Triggers evaluation of the interaction for the subpopulations specified by 
+\f2\fs18 subpops
+\f0\fs20  (or for all subpopulations, if 
+\f2\fs18 subpops
+\f0\fs20  is 
+\f2\fs18 NULL
+\f0\fs20 ).  By default, the effects of this may be limited, however, since the underlying implementation may choose to postpone some computations lazily.  At a minimum, is it guaranteed that this method will discard all previous evaluation data for the subpopulation(s), and cache the current positions of all individuals (so that individuals may then move without disturbing the state of the interaction at the moment of evaluation).  Notably, 
+\f2\fs18 interaction()
+\f0\fs20  callbacks may not be called in response to this method; instead, their evaluation may be deferred until required to satisfy queries.\
+If 
+\f2\fs18 T
+\f0\fs20  is passed for 
+\f2\fs18 immediate
+\f0\fs20 , the interaction will immediately and synchronously evaluate all interactions between all individuals in the subpopulation(s), calling any applicable 
+\f2\fs18 interaction()
+\f0\fs20  callbacks as necessary.  However, depending upon what queries are later executed, this may represent considerable wasted computation, since it is an O(N\super 2\nosupersub ) operation.  Immediate evaluation usually generates only a slight performance improvement if the interactions between all pairs of individuals are eventually accessed; the main reason to choose immediate evaluation, then, is if deferred calculation of interactions would lead to incorrect results due to changes in model state.\
+If an interaction is never evaluated for a given subpopulation, it is guaranteed that there will be essentially no memory or computational overhead associated with the interaction for that subpopulation.  Furthermore, attempting to query an interaction for an individual in a subpopulation that has not been evaluated is guaranteed to raise an error.
+\f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96\'a0(object<Individual>)nearestNeighbors(object<Individual>$\'a0individual, [integer$\'a0count\'a0=\'a01])
+\f3 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns up to 
+\f2\fs18 count
+\f0\fs20  individuals that are spatially closest to 
+\f2\fs18 individual
+\f0\fs20 , according to the distance metric of the 
+\f2\fs18 InteractionType
+\f3\fs20 .
+\f0   To obtain all of the individuals within the maximum interaction distance of 
+\f2\fs18 individual
+\f0\fs20 , simply pass a value for 
+\f2\fs18 count
+\f0\fs20  that is greater than or equal to the size of 
+\f2\fs18 individual
+\f0\fs20 \'92s subpopulation.  Note that if fewer than 
+\f2\fs18 count
+\f0\fs20  individuals are within the maximum interaction distance, the vector returned may be shorter than 
+\f2\fs18 count
+\f0\fs20 , or even zero-length; it is important to check for this possibility even when requesting a single neighbor.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96\'a0(object<Individual>)nearestNeighborsOfPoint(object<Subpopulation>$\'a0subpop, float\'a0point, [integer$\'a0count\'a0=\'a01])
+\f3 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns up to 
+\f2\fs18 count
+\f0\fs20  individuals in 
+\f2\fs18 subpop
+\f0\fs20  that are spatially closest to 
+\f2\fs18 point
+\f0\fs20 , according to the distance metric of the 
+\f2\fs18 InteractionType
+\f3\fs20 .
+\f0   To obtain all of the individuals within the maximum interaction distance of 
+\f2\fs18 point
+\f0\fs20 , simply pass a value for 
+\f2\fs18 count
+\f0\fs20  that is greater than or equal to the size of 
+\f2\fs18 subpop
+\f0\fs20 .  Note that if fewer than 
+\f2\fs18 count
+\f0\fs20  individuals are within the maximum interaction distance, the vector returned may be shorter than 
+\f2\fs18 count
+\f0\fs20 , or even zero-length; it is important to check for this possibility even when requesting a single neighbor.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96\'a0(void)setInteractionFunction(string$\'a0functionType, ...)
+\f3 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Set the function used to translate spatial distances into interaction strengths for an interaction type.  The 
+\f2\fs18 functionType
+\f0\fs20  may be 
+\f2\fs18 "f"
+\f0\fs20 , in which case the ellipsis 
+\f2\fs18 ...
+\f0\fs20  should supply a 
+\f2\fs18 numeric$
+\f0\fs20  fixed interaction strength; 
+\f2\fs18 "l"
+\f0\fs20 , in which case the ellipsis should supply a 
+\f2\fs18 numeric$
+\f0\fs20  maximum strength for a linear function; 
+\f2\fs18 "e"
+\f0\fs20 , in which case the ellipsis should supply a 
+\f2\fs18 numeric$
+\f0\fs20  maximum strength and a 
+\f2\fs18 numeric$
+\f0\fs20  lambda (shape) parameter for a negative exponential function; or 
+\f2\fs18 "n"
+\f0\fs20 , in which case the ellipsis should supply a 
+\f2\fs18 numeric$
+\f0\fs20  maximum strength and a 
+\f2\fs18 numeric$
+\f0\fs20  sigma (standard deviation) parameter for a Gaussian function.  See section 17
+\f3 .
+\f0 7 above for discussions of these interaction functions.  Non-spatial interactions must use function type 
+\f2\fs18 "f"
+\f0\fs20 , since no distance values are available in that case.\
+The interaction function for an interaction type is normally a constant in simulations; in any case, it cannot be changed when an interaction has been evaluated for a given generation of individuals.
+\f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96\'a0(float)strength(object<Individual>\'a0individuals1, [No<Individual>\'a0individuals2\'a0=\'a0NULL])
+\f3 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns a vector containing interaction strengths between individuals in 
+\f2\fs18 individuals1
+\f0\fs20  and 
+\f2\fs18 individuals2
+\f0\fs20 .  At least one of 
+\f2\fs18 individuals1
+\f0\fs20  or 
+\f2\fs18 individuals2
+\f0\fs20  must be singleton, so that the strengths evaluated are either from one individual to many, or from many to one (which are equivalent, in fact); evaluating strengths for many to many individuals cannot be done in a single call.  If 
+\f2\fs18 individuals2
+\f0\fs20  is 
+\f2\fs18 NULL
+\f0\fs20  (the default), then 
+\f2\fs18 individuals1
+\f0\fs20  must be singleton, and a vector of the interaction strengths from that individual to all individuals in its subpopulation (including itself) is returned.\
+If the needed interaction strengths have already been calculated, those cached values are simply returned.  Otherwise, calling this method triggers evaluation of the needed interactions, including calls to any applicable 
+\f2\fs18 interaction()
+\f0\fs20  callbacks.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96\'a0(float)totalOfNeighborStrengths(object<Individual>\'a0individuals)
+\f3 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns a vector of the total interaction strength felt by each individual in 
+\f2\fs18 individuals
+\f0\fs20 , which does not need to be a singleton; indeed, it can be a vector of all of the individuals in a given subpopulation.  However, all of the individuals in 
+\f2\fs18 individuals
+\f0\fs20  must be in the same subpopulation.\
+For one individual, this is essentially the same as calling 
+\f2\fs18 nearestNeighbors()
+\f0\fs20  with a large 
+\f2\fs18 count
+\f0\fs20  so as to obtain the complete vector of all neighbors, calling 
+\f2\fs18 strength()
+\f0\fs20  for each of those interactions to get each interaction strength, and adding those interaction strengths together with 
+\f2\fs18 sum()
+\f0\fs20 .  This method is much faster than that implementation, however, since all of that work is done as a single operation.  Also, 
+\f2\fs18 totalOfNeighborStrengths()
+\f0\fs20  can assess more than one individual at a time.\
+Similarly, for one individual this is essentially the same as calling 
+\f2\fs18 strength()
+\f0\fs20  to get the interaction strengths between the focal individual and all other individuals, and then calling 
+\f2\fs18 sum()
+\f0\fs20 .  Again, this method should be much faster, since this algorithm looks only at neighbors, whereas calling strength() directly assesses interaction strengths with all other individuals.  This will make a particularly large difference when the subpopulation size is large and the maximum distance of the 
+\f2\fs18 InteractionType
+\f0\fs20  is small.\
+\pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
+
+\b\fs22 \cf0 5.8  Class Mutation\
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
+
+\i\b0 \cf0 5.8.1  
 \f1\fs18 Mutation
 \f0\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -1367,7 +1742,7 @@ Note that this relatedness is simply pedigree-based relatedness.  This does not 
 \f0\fs20 , however, since SLiM object identifiers are limited to nonnegative integers).\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\i\fs22 \cf0 5.7.2  
+\i\fs22 \cf0 5.8.2  
 \f1\fs18 Mutation
 \f0\fs22  methods\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -1403,17 +1778,17 @@ The mutation type of a mutation is normally a constant in simulations, so be sur
 \f0\fs20  object (note that the dominance coefficient will remain unchanged, as it is determined by the mutation type).\
 This is normally a constant in simulations, so be sure you know what you are doing; often setting up a 
 \f2\fs18 fitness()
-\f0\fs20  callback (see section 17.2) is preferable, in order to modify the selection coefficient in a more limited and controlled fashion.  Changing this will normally affect the fitness values calculated at the end of the current generation; if you want current fitness values to be affected, you can call 
+\f0\fs20  callback is preferable, in order to modify the selection coefficient in a more limited and controlled fashion.  Changing this will normally affect the fitness values calculated at the end of the current generation; if you want current fitness values to be affected, you can call 
 \f2\fs18 SLiMSim
 \f0\fs20 \'92s method 
 \f2\fs18 recalculateFitness()
 \f0\fs20  \'96 but see the documentation of that method for caveats.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\b\fs22 \cf0 5.8  Class MutationType\
+\b\fs22 \cf0 5.9  Class MutationType\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\i\b0 \cf0 5.8.1  
+\i\b0 \cf0 5.9.1  
 \f1\fs18 MutationType
 \f0\fs22  properties\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -1735,7 +2110,7 @@ The mutation stacking policy applies only within the given mutation type; mutati
 \f3 \
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f0\i\fs22 \cf0 5.8.2  
+\f0\i\fs22 \cf0 5.9.2  
 \f1\fs18 MutationType
 \f0\fs22  methods\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -1786,10 +2161,10 @@ The mutation stacking policy applies only within the given mutation type; mutati
 \f3 \
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 5.9  Class SLiMEidosBlock\
+\f0\b\fs22 \cf0 5.10  Class SLiMEidosBlock\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\i\b0 \cf0 5.9.1  
+\i\b0 \cf0 5.10.1  
 \f1\fs18 SLiMEidosBlock
 \f0\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -1888,7 +2263,7 @@ The mutation stacking policy applies only within the given mutation type; mutati
 \f2\fs18 \
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f0\i\fs22 \cf0 5.9.2  
+\f0\i\fs22 \cf0 5.10.2  
 \f1\fs18 SLiMEidosBlock
 \f0\fs22  methods\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
@@ -1896,10 +2271,10 @@ The mutation stacking policy applies only within the given mutation type; mutati
 \f3\i0 \cf0 \
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\f0\b \cf0 5.10  Class SLiMSim\
+\f0\b \cf0 5.11  Class SLiMSim\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\i\b0 \cf0 5.10.1  
+\i\b0 \cf0 5.11.1  
 \f1\fs18 SLiMSim
 \f0\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -1926,6 +2301,22 @@ The mutation stacking policy applies only within the given mutation type; mutati
 \f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f2\fs18 \cf0 dimensionality => (string$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The spatial dimensionality of the simulation, as specified in 
+\f2\fs18 initializeSLiMOptions()
+\f0\fs20 .  This will be 
+\f2\fs18 ""
+\f0\fs20  (the empty string) for non-spatial simulations (the default), or 
+\f2\fs18 "x"
+\f0\fs20 , 
+\f2\fs18 "xy"
+\f0\fs20 , or 
+\f2\fs18 "xyz"
+\f0\fs20 , for simulations using those spatial dimensions respectively.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f2\fs18 \cf0 dominanceCoeffX <\'96> (float$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -1949,6 +2340,15 @@ The mutation stacking policy applies only within the given mutation type; mutati
 
 \f0\fs20 \cf0 The 
 \f2\fs18 GenomicElementType
+\f0\fs20  objects being used in the simulation.
+\f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 interactionTypes => (object<InteractionType>)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The 
+\f2\fs18 InteractionType
 \f0\fs20  objects being used in the simulation.
 \f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -2026,7 +2426,7 @@ The mutation stacking policy applies only within the given mutation type; mutati
 \f3 \
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f0\i\fs22 \cf0 5.10.2  
+\f0\i\fs22 \cf0 5.11.2  
 \f1\fs18 SLiMSim
 \f0\fs22  methods\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -2701,10 +3101,10 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f3 \
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 5.11  Class Subpopulation\
+\f0\b\fs22 \cf0 5.12  Class Subpopulation\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\i\b0 \cf0 5.11.1  
+\i\b0 \cf0 5.12.1  
 \f1\fs18 Subpopulation
 \f0\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -2824,7 +3224,7 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f0\fs20  methods, for another way of attaching state to subpopulations.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\i\fs22 \cf0 5.11.2  
+\i\fs22 \cf0 5.12.2  
 \f1\fs18 Subpopulation
 \f0\fs22  methods\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -3131,10 +3531,10 @@ If the optional parameter
 \f3 \
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 5.12  Class Substitution\
+\f0\b\fs22 \cf0 5.13  Class Substitution\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\i\b0 \cf0 5.12.1  
+\i\b0 \cf0 5.13.1  
 \f1\fs18 Substitution
 \f0\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -3193,7 +3593,7 @@ If the optional parameter
 \f0\fs20  is a read-write property to allow it to be used as a \'93tag\'94 in the same way, if the origin subpopulation identifier is not needed.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\i\fs22 \cf0 5.12.2  
+\i\fs22 \cf0 5.13.2  
 \f1\fs18 Substitution
 \f0\fs22  methods\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0

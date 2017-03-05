@@ -480,6 +480,25 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(spatial_z_));
 		}
+		case gID_spatialPosition:
+		{
+			SLiMSim *sim = &(subpopulation_.population_.sim_);
+			
+			if (!sim)
+				EIDOS_TERMINATION << "ERROR (Individual::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
+			
+			switch (sim->SpatialDimensionality())
+			{
+				case 0:
+					EIDOS_TERMINATION << "ERROR (Individual::ExecuteInstanceMethod): position cannot be accessed in non-spatial simulations." << eidos_terminate();
+				case 1:
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(spatial_x_));
+				case 2:
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{spatial_x_, spatial_y_});
+				case 3:
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{spatial_x_, spatial_y_, spatial_z_});
+			}
+		}
 			
 			// all others, including gID_none
 		default:
@@ -1052,6 +1071,7 @@ const std::vector<const EidosPropertySignature *> *Individual_Class::Properties(
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_pedigreeID));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_pedigreeParentIDs));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_pedigreeGrandparentIDs));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_spatialPosition));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_uniqueMutations));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_color));
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
@@ -1075,6 +1095,7 @@ const EidosPropertySignature *Individual_Class::SignatureForProperty(EidosGlobal
 	static EidosPropertySignature *pedigreeIDSig = nullptr;
 	static EidosPropertySignature *pedigreeParentIDsSig = nullptr;
 	static EidosPropertySignature *pedigreeGrandparentIDsSig = nullptr;
+	static EidosPropertySignature *spatialPositionSig = nullptr;
 	static EidosPropertySignature *uniqueMutationsSig = nullptr;
 	static EidosPropertySignature *colorSig = nullptr;
 	
@@ -1092,6 +1113,7 @@ const EidosPropertySignature *Individual_Class::SignatureForProperty(EidosGlobal
 		pedigreeIDSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeID,				gID_pedigreeID,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
 		pedigreeParentIDsSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeParentIDs,		gID_pedigreeParentIDs,			true,	kEidosValueMaskInt));
 		pedigreeGrandparentIDsSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeGrandparentIDs,	gID_pedigreeGrandparentIDs,		true,	kEidosValueMaskInt));
+		spatialPositionSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_spatialPosition,	gID_spatialPosition,			true,	kEidosValueMaskFloat));
 		uniqueMutationsSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_uniqueMutations,			gID_uniqueMutations,			true,	kEidosValueMaskObject, gSLiM_Mutation_Class));
 		colorSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_color,					gID_color,						false,	kEidosValueMaskString | kEidosValueMaskSingleton))->DeclareAcceleratedSet();
 	}
@@ -1111,6 +1133,7 @@ const EidosPropertySignature *Individual_Class::SignatureForProperty(EidosGlobal
 		case gID_pedigreeID:				return pedigreeIDSig;
 		case gID_pedigreeParentIDs:			return pedigreeParentIDsSig;
 		case gID_pedigreeGrandparentIDs:	return pedigreeGrandparentIDsSig;
+		case gID_spatialPosition:			return spatialPositionSig;
 		case gID_uniqueMutations:			return uniqueMutationsSig;
 		case gID_color:						return colorSig;
 			

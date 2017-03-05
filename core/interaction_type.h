@@ -1,0 +1,234 @@
+//
+//  interaction_type.h
+//  SLiM
+//
+//  Created by Ben Haller on 2/25/17.
+//  Copyright (c) 2017 Philipp Messer.  All rights reserved.
+//	A product of the Messer Lab, http://messerlab.org/slim/
+//
+
+//	This file is part of SLiM.
+//
+//	SLiM is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by
+//	the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+//
+//	SLiM is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+//
+//	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
+
+/*
+ 
+ The class InteractionType represents a type of interaction defined in the input file, such as spatial competition, phenotype-based
+ resource competition, or spatial mating preference.  A particular interaction is defined by a spatiality (x, xy, xyz, or none), a
+ maximum distance threshold, and callbacks that map from distance to interaction strength (while also perhaps involving genetic and
+ environmental factors that modify the interaction).
+ 
+ */
+
+#ifndef __SLiM__interaction_type__
+#define __SLiM__interaction_type__
+
+
+#include <vector>
+#include <string>
+#include <map>
+
+#include "eidos_value.h"
+#include "eidos_symbol_table.h"
+#include "slim_global.h"
+
+class Subpopulation;
+class Individual;
+
+
+extern EidosObjectClass *gSLiM_InteractionType_Class;
+
+
+// This enumeration represents a type of interaction function (IF) that an
+// interaction type can use to convert distances to interaction strengths
+enum class IFType : char {
+	kFixed = 0,
+	kLinear,
+	kExponential,
+	kNormal
+};
+
+std::ostream& operator<<(std::ostream& p_out, IFType p_if_type);
+
+
+// This class uses an internal implementation of kd-trees for fast nearest-neighbor finding.  We use the same data structure to
+// save computed distances and interaction strengths.  A value of NaN is used as a placeholder to indicate that a given value
+// has not yet been calculated, and we fill the data structure in lazily.  We keep one such data structure per evaluated
+// subpopulation; if a subpopulation is not evaluated there is no overhead.
+#define SLIM_MAX_DIMENSIONALITY		3
+
+struct _SLiM_kdNode
+{
+	double x[SLIM_MAX_DIMENSIONALITY];		// the coordinates of the individual
+	slim_popsize_t individual_index_;		// the index of the individual in its subpopulation
+	struct _SLiM_kdNode *left;				// the index of the KDNode for the left side
+	struct _SLiM_kdNode *right;				// the index of the KDNode for the right side
+};
+typedef struct _SLiM_kdNode SLiM_kdNode;
+
+struct _InteractionsData
+{
+	// This flag is true when the interaction has been evaluated.  What that means in practice is that allocated blocks below
+	// are in sync with the state of the population.  Interactions automatically become un-evaluated at the end of each offspring
+	// generation phase, when the parental generation that they are based upon expires.  They then need to be re-evaluated,
+	// which re-synchronizes their state with the state of the new parental generation.  If an interaction is marked as unevaluated,
+	// it may still have allocated blocks, and their size will be indicated by individual_count_; but individual_count_ may no
+	// longer have anything to do with the subpopulation for this InteractionsData block.  The intent of this design is to allow
+	// us to avoid freeing and mallocing large blocks; we want to allocate them once and keep them for the lifetime of the model,
+	// unless the subpopulation size changes (which forces a reallocation).  This is important because these blocks can be so large
+	// that they are considered "large blocks" by malloc, triggering some very slow processing such as madvise() that is to be
+	// avoided at all costs.
+	bool evaluated_;
+	
+	slim_popsize_t individual_count_ = 0;	// the number of individuals managed; this will be equal to the size of the corresponding subpopulation
+	double *positions_ = nullptr;			// individual_count_ * SLIM_MAX_DIMENSIONALITY entries, holding coordinate positions
+	double *distances_ = nullptr;			// individual_count_ ^ 2 entries, holding distances between pairs of individuals
+	double *strengths_ = nullptr;			// individual_count_ ^ 2 entries, holding interaction strengths between pairs of individuals
+	SLiM_kdNode *kd_nodes_ = nullptr;		// individual_count_ entries, holding the nodes of the k-d tree
+	SLiM_kdNode *kd_root_ = nullptr;		// the root of the k-d tree
+	
+	_InteractionsData(const _InteractionsData&) = delete;					// no copying
+	_InteractionsData& operator=(const _InteractionsData&) = delete;		// no copying
+	_InteractionsData(_InteractionsData&&);									// move constructor, for std::map compatibility
+	_InteractionsData& operator=(_InteractionsData&&);						// move assignment, for std::map compatibility
+	_InteractionsData(void);												// null construction, for std::map compatibility
+	_InteractionsData(slim_popsize_t p_individual_count);
+	~_InteractionsData(void);
+};
+typedef struct _InteractionsData InteractionsData;
+
+
+class InteractionType : public EidosObjectElement
+{
+	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
+	
+	EidosSymbolTableEntry self_symbol_;							// for fast setup of the symbol table
+	
+	slim_objectid_t interaction_type_id_;		// the id by which this interaction type is indexed in the chromosome
+	EidosValue_SP cached_value_inttype_id_;		// a cached value for interaction_type_id_; reset() if that changes
+	
+	int spatiality_;							// 0=none, 1=x, 2=xy, 3=xyz
+	bool reciprocality_;						// if true, interaction strengths A->B == B->A
+	double max_distance_;						// the maximum distance, beyond which interaction strength is assumed to be zero
+	double max_distance_sq_;					// the maximum distance squared, cached for speed
+	IndividualSex target_sex_;					// the sex of the individuals that feel the interaction
+	IndividualSex source_sex_;					// the sex of the individuals that exert the interaction
+	
+	slim_usertag_t tag_value_;					// a user-defined tag value
+	
+	IFType if_type_;							// the interaction function (IF) to use
+	double if_param1_, if_param2_;				// the parameters for that IF (not all of which may be used)
+	
+	std::map<slim_objectid_t, InteractionsData> data_;		// cached data for the interaction, for each subpopulation
+	
+	void CalculateAllInteractions(Subpopulation *p_subpop);
+	double CalculateDistance(double *position1, double *position2);
+	double CalculateStrengthNoCallbacks(double p_distance);
+	double CalculateStrengthCallbacks(double p_distance, Individual *receiver, Individual *exerter, Subpopulation *p_subpop);
+	void EnsureDistancesPresent(InteractionsData &p_subpop_data);
+	void InitializeDistances(InteractionsData &p_subpop_data);
+	void EnsureStrengthsPresent(InteractionsData &p_subpop_data);
+	void InitializeStrengths(InteractionsData &p_subpop_data);
+	
+	SLiM_kdNode *FindMedian_p0(SLiM_kdNode *start, SLiM_kdNode *end);
+	SLiM_kdNode *FindMedian_p1(SLiM_kdNode *start, SLiM_kdNode *end);
+	SLiM_kdNode *FindMedian_p2(SLiM_kdNode *start, SLiM_kdNode *end);
+	SLiM_kdNode *MakeKDTree1_p0(SLiM_kdNode *t, int len);
+	SLiM_kdNode *MakeKDTree2_p0(SLiM_kdNode *t, int len);
+	SLiM_kdNode *MakeKDTree2_p1(SLiM_kdNode *t, int len);
+	SLiM_kdNode *MakeKDTree3_p0(SLiM_kdNode *t, int len);
+	SLiM_kdNode *MakeKDTree3_p1(SLiM_kdNode *t, int len);
+	SLiM_kdNode *MakeKDTree3_p2(SLiM_kdNode *t, int len);
+	void EnsureKDTreePresent(InteractionsData &p_subpop_data);
+	
+	void FindNeighbors1_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SLiM_kdNode **best, double *best_dist);
+	void FindNeighbors1_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SLiM_kdNode **best, double *best_dist, int p_phase);
+	void FindNeighbors1_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SLiM_kdNode **best, double *best_dist, int p_phase);
+	void FindNeighborsA_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, std::vector<EidosObjectElement *> &p_result_vec, std::vector<Individual> &p_individuals);
+	void FindNeighborsA_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, std::vector<EidosObjectElement *> &p_result_vec, std::vector<Individual> &p_individuals, int p_phase);
+	void FindNeighborsA_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, std::vector<EidosObjectElement *> &p_result_vec, std::vector<Individual> &p_individuals, int p_phase);
+	void FindNeighborsN_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, int p_count, SLiM_kdNode **best, double *best_dist);
+	void FindNeighborsN_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, int p_count, SLiM_kdNode **best, double *best_dist, int p_phase);
+	void FindNeighborsN_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, int p_count, SLiM_kdNode **best, double *best_dist, int p_phase);
+	void FindNeighbors(Subpopulation *p_subpop, InteractionsData &p_subpop_data, double *p_point, int p_count, std::vector<EidosObjectElement *> &p_result_vec, Individual *p_excluded_individual);
+	
+	double TotalNeighborStrengthA_1(SLiM_kdNode *root, double *nd, double *p_focal_strengths);
+	double TotalNeighborStrengthA_2(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_focal_distances, int p_phase);
+	double TotalNeighborStrengthA_3(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_focal_distances, int p_phase);
+	double TotalNeighborStrength(Subpopulation *p_subpop, InteractionsData &p_subpop_data, double *p_point, Individual *p_excluded_individual);
+	
+	void FillNeighborStrengthsA_1(SLiM_kdNode *root, double *nd, double *p_focal_strengths, std::vector<double> &p_result_vec);
+	void FillNeighborStrengthsA_2(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_focal_distances, std::vector<double> &p_result_vec, int p_phase);
+	void FillNeighborStrengthsA_3(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_focal_distances, std::vector<double> &p_result_vec, int p_phase);
+	void FillNeighborStrengths(Subpopulation *p_subpop, InteractionsData &p_subpop_data, double *p_point, Individual *p_excluded_individual, std::vector<double> &p_result_vec);
+
+public:
+	
+	InteractionType(const InteractionType&) = delete;					// no copying
+	InteractionType& operator=(const InteractionType&) = delete;		// no copying
+	InteractionType(void) = delete;										// no null construction
+	InteractionType(slim_objectid_t p_interaction_type_id, int p_spatiality, bool p_reciprocality, double p_max_distance, IndividualSex p_target_sex, IndividualSex p_source_sex);
+	~InteractionType(void);
+	
+	void EvaluateSubpopulation(Subpopulation *p_subpop, bool p_immediate);
+	void Invalidate(void);
+	
+	//
+	// Eidos support
+	//
+	EidosSymbolTableEntry &SymbolTableEntry(void) { return self_symbol_; }
+	
+	virtual const EidosObjectClass *Class(void) const;
+	virtual void Print(std::ostream &p_ostream) const;
+	
+	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id);
+	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value);
+	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	
+	// Accelerated property access; see class EidosObjectElement for comments on this mechanism
+	virtual int64_t GetProperty_Accelerated_Int(EidosGlobalStringID p_property_id);
+};
+
+
+#endif /* __SLiM__interaction_type__ */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
