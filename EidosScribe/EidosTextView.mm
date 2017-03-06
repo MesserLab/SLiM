@@ -288,14 +288,30 @@ using std::string;
 }
 
 // NSTextView copies only plain text for us, because it is set to have rich text turned off.  That setting only means it is turned off for the user; the
-// user can't change the font, size, etc.  But we still can, and do, programatically to do our syntax formatting.  We want that style information to get
-// copied to the pasteboard, and as far as I can tell this subclass is necessary to make it happen.  Seems kind of lame.
+// user can't change the font, size, etc.  But we still can, and do, programatically do our syntax formatting.  We want that style information to get
+// copied to the pasteboard.  This has gotten even trickier now that our syntax coloring is done with temporary attributes; we need to translate those
+// into real attributes here.
 - (IBAction)copy:(id)sender
 {
 	NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
 	NSAttributedString *attrString = [self textStorage];
 	NSRange selectedRange = [self selectedRange];
-	NSAttributedString *attrStringInRange = [attrString attributedSubstringFromRange:selectedRange];
+	NSMutableAttributedString *attrStringInRange = [[[attrString attributedSubstringFromRange:selectedRange] mutableCopy] autorelease];
+	
+	// Loop over the temporary color attributes and set them on the attributed string as real attributes
+	NSLayoutManager *lm = [self layoutManager];
+	NSRange effectiveRange = NSMakeRange(0, 0);
+	NSUInteger charIndex = selectedRange.location;
+	
+	while (charIndex < selectedRange.location + selectedRange.length)
+	{
+		NSColor *color = [lm temporaryAttribute:NSForegroundColorAttributeName atCharacterIndex:charIndex longestEffectiveRange:&effectiveRange inRange:selectedRange];
+		
+		if (color)
+			[attrStringInRange addAttribute:NSForegroundColorAttributeName value:color range:NSMakeRange(effectiveRange.location - selectedRange.location, effectiveRange.length)];
+		
+		charIndex = effectiveRange.location + effectiveRange.length;
+	}
 	
 	// The documentation sucks, but as far as I can tell, this puts both a plain-text and a rich-text representation on the pasteboard
 	[pasteboard clearContents];
