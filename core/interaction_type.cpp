@@ -73,18 +73,26 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 		
 		if (subpop_data->individual_count_ != subpop_size)
 		{
-			// The population has changed size, so we will realloc buffers as needed
+			// The population has changed size, so we will realloc buffers as needed.  If buffers have not yet been
+			// allocated, we don't need to allocate them now; we will continue to defer until they are needed.
 			int matrix_size = subpop_size * subpop_size;
 			
-			subpop_data->distances_ = (double *)realloc(subpop_data->distances_, matrix_size * sizeof(double));
-			subpop_data->strengths_ = (double *)realloc(subpop_data->strengths_, matrix_size * sizeof(double));
+			if (subpop_data->distances_)
+				subpop_data->distances_ = (double *)realloc(subpop_data->distances_, matrix_size * sizeof(double));
+			
+			if (subpop_data->strengths_)
+				subpop_data->strengths_ = (double *)realloc(subpop_data->strengths_, matrix_size * sizeof(double));
+			
 			subpop_data->individual_count_ = subpop_size;
 		}
 		
 		// Now we have to make sure that the data in the buffers is useable; we want to leave them in the same state
 		// as the EnsureDistancesPresent() and EnsureStrengthsPresent() functions.
-		InitializeDistances(*subpop_data);
-		InitializeStrengths(*subpop_data);
+		if (subpop_data->distances_)
+			InitializeDistances(*subpop_data);
+		
+		if (subpop_data->strengths_)
+			InitializeStrengths(*subpop_data);
 	}
 	
 	subpop_data->evaluated_ = true;
