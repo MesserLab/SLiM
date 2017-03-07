@@ -1791,6 +1791,19 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(female_clone_fraction_));
 		case gID_sexRatio:				// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(child_generation_valid_ ? child_sex_ratio_ : parent_sex_ratio_));
+		case gID_spatialBounds:
+		{
+			SLiMSim &sim = population_.sim_;
+			int dimensionality = sim.SpatialDimensionality();
+			
+			switch (dimensionality)
+			{
+				case 0: return gStaticEidosValue_Float_ZeroVec;
+				case 1: return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{bounds_x0_, bounds_x1_});
+				case 2: return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{bounds_x0_, bounds_y0_, bounds_x1_, bounds_y1_});
+				case 3: return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{bounds_x0_, bounds_y0_, bounds_z0_, bounds_x1_, bounds_y1_, bounds_z1_});
+			}
+		}
 		case gID_individualCount:		// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(child_generation_valid_ ? child_subpop_size_ : parent_subpop_size_));
 			
@@ -1912,6 +1925,229 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 			
 			
 			//
+			//	*********************	– (logical$)pointInBounds(float point)
+			//
+#pragma mark -pointInBounds()
+			
+		case gID_pointInBounds:
+		{
+			SLiMSim &sim = population_.sim_;
+			
+			int dimensionality = sim.SpatialDimensionality();
+			int value_count = arg0_value->Count();
+			
+			if (dimensionality == 0)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): pointInBounds() cannot be called in non-spatial simulations." << eidos_terminate();
+			if (value_count < dimensionality)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): pointInBounds() requires at least as many coordinates as the spatial dimensionality of the simulation." << eidos_terminate();
+			
+			switch (dimensionality)
+			{
+				case 1:
+				{
+					double x = arg0_value->FloatAtIndex(0, nullptr);
+					return ((x >= bounds_x0_) && (x <= bounds_x1_))
+						? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+				}
+				case 2:
+				{
+					double x = arg0_value->FloatAtIndex(0, nullptr);
+					double y = arg0_value->FloatAtIndex(1, nullptr);
+					return ((x >= bounds_x0_) && (x <= bounds_x1_) && (y >= bounds_y0_) && (y <= bounds_y1_))
+						? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+				}
+				case 3:
+				{
+					double x = arg0_value->FloatAtIndex(0, nullptr);
+					double y = arg0_value->FloatAtIndex(1, nullptr);
+					double z = arg0_value->FloatAtIndex(2, nullptr);
+					return ((x >= bounds_x0_) && (x <= bounds_x1_) && (y >= bounds_y0_) && (y <= bounds_y1_) && (z >= bounds_z0_) && (z <= bounds_z1_))
+						? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+				}
+			}
+			
+			return gStaticEidosValueNULLInvisible;
+		}			
+			
+			
+			//
+			//	*********************	– (float)pointReflected(float point)
+			//
+#pragma mark -pointReflected()
+			
+		case gID_pointReflected:
+		{
+			SLiMSim &sim = population_.sim_;
+			
+			int dimensionality = sim.SpatialDimensionality();
+			int value_count = arg0_value->Count();
+			
+			if (dimensionality == 0)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): pointReflected() cannot be called in non-spatial simulations." << eidos_terminate();
+			if (value_count < dimensionality)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): pointReflected() requires at least as many coordinates as the spatial dimensionality of the simulation." << eidos_terminate();
+			
+			switch (dimensionality)
+			{
+				case 1:
+				{
+					double x = arg0_value->FloatAtIndex(0, nullptr);
+					
+					while (true)
+					{
+						if (x < bounds_x0_) x = bounds_x0_ + (bounds_x0_ - x);
+						else if (x > bounds_x1_) x = bounds_x1_ - (x - bounds_x1_);
+						else break;
+					}
+					
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(x));
+				}
+				case 2:
+				{
+					double x = arg0_value->FloatAtIndex(0, nullptr);
+					double y = arg0_value->FloatAtIndex(1, nullptr);
+					
+					while (true)
+					{
+						if (x < bounds_x0_) x = bounds_x0_ + (bounds_x0_ - x);
+						else if (x > bounds_x1_) x = bounds_x1_ - (x - bounds_x1_);
+						else break;
+					}
+					
+					while (true)
+					{
+						if (y < bounds_y0_) y = bounds_y0_ + (bounds_y0_ - y);
+						else if (y > bounds_y1_) y = bounds_y1_ - (y - bounds_y1_);
+						else break;
+					}
+					
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{x, y});
+				}
+				case 3:
+				{
+					double x = arg0_value->FloatAtIndex(0, nullptr);
+					double y = arg0_value->FloatAtIndex(1, nullptr);
+					double z = arg0_value->FloatAtIndex(2, nullptr);
+					
+					while (true)
+					{
+						if (x < bounds_x0_) x = bounds_x0_ + (bounds_x0_ - x);
+						else if (x > bounds_x1_) x = bounds_x1_ - (x - bounds_x1_);
+						else break;
+					}
+					
+					while (true)
+					{
+						if (y < bounds_y0_) y = bounds_y0_ + (bounds_y0_ - y);
+						else if (y > bounds_y1_) y = bounds_y1_ - (y - bounds_y1_);
+						else break;
+					}
+					
+					while (true)
+					{
+						if (z < bounds_z0_) z = bounds_z0_ + (bounds_z0_ - z);
+						else if (z > bounds_z1_) z = bounds_z1_ - (z - bounds_z1_);
+						else break;
+					}
+					
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{x, y, z});
+				}
+			}
+			
+			return gStaticEidosValueNULLInvisible;
+		}			
+			
+			
+			//
+			//	*********************	– (float)pointStopped(float point)
+			//
+#pragma mark -pointStopped()
+			
+		case gID_pointStopped:
+		{
+			SLiMSim &sim = population_.sim_;
+			
+			int dimensionality = sim.SpatialDimensionality();
+			int value_count = arg0_value->Count();
+			
+			if (dimensionality == 0)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): pointStopped() cannot be called in non-spatial simulations." << eidos_terminate();
+			if (value_count < dimensionality)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): pointStopped() requires at least as many coordinates as the spatial dimensionality of the simulation." << eidos_terminate();
+			
+			switch (dimensionality)
+			{
+				case 1:
+				{
+					double x = std::max(bounds_x0_, std::min(bounds_x1_, arg0_value->FloatAtIndex(0, nullptr)));
+					
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(x));
+				}
+				case 2:
+				{
+					double x = std::max(bounds_x0_, std::min(bounds_x1_, arg0_value->FloatAtIndex(0, nullptr)));
+					double y = std::max(bounds_y0_, std::min(bounds_y1_, arg0_value->FloatAtIndex(1, nullptr)));
+					
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{x, y});
+				}
+				case 3:
+				{
+					double x = std::max(bounds_x0_, std::min(bounds_x1_, arg0_value->FloatAtIndex(0, nullptr)));
+					double y = std::max(bounds_y0_, std::min(bounds_y1_, arg0_value->FloatAtIndex(1, nullptr)));
+					double z = std::max(bounds_z0_, std::min(bounds_z1_, arg0_value->FloatAtIndex(2, nullptr)));
+					
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{x, y, z});
+				}
+			}
+			
+			return gStaticEidosValueNULLInvisible;
+		}			
+			
+			
+			//
+			//	*********************	– (float)pointUniform(void)
+			//
+#pragma mark -pointUniform()
+			
+		case gID_pointUniform:
+		{
+			SLiMSim &sim = population_.sim_;
+			
+			int dimensionality = sim.SpatialDimensionality();
+			
+			if (dimensionality == 0)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): pointUniform() cannot be called in non-spatial simulations." << eidos_terminate();
+			
+			switch (dimensionality)
+			{
+				case 1:
+				{
+					double x = gsl_rng_uniform(gEidos_rng) * (bounds_x1_ - bounds_x0_) + bounds_x0_;
+					
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(x));
+				}
+				case 2:
+				{
+					double x = gsl_rng_uniform(gEidos_rng) * (bounds_x1_ - bounds_x0_) + bounds_x0_;
+					double y = gsl_rng_uniform(gEidos_rng) * (bounds_y1_ - bounds_y0_) + bounds_y0_;
+					
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{x, y});
+				}
+				case 3:
+				{
+					double x = gsl_rng_uniform(gEidos_rng) * (bounds_x1_ - bounds_x0_) + bounds_x0_;
+					double y = gsl_rng_uniform(gEidos_rng) * (bounds_y1_ - bounds_y0_) + bounds_y0_;
+					double z = gsl_rng_uniform(gEidos_rng) * (bounds_z1_ - bounds_z0_) + bounds_z0_;
+					
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{x, y, z});
+				}
+			}
+			
+			return gStaticEidosValueNULLInvisible;
+		}			
+			
+			
+			//
 			//	*********************	- (void)setCloningRate(numeric rate)
 			//
 #pragma mark -setCloningRate()
@@ -2004,6 +2240,61 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 			
 			return gStaticEidosValueNULLInvisible;
 		}
+			
+			
+			//
+			//	*********************	– (void)setSpatialBounds(float position)
+			//
+#pragma mark -setSpatialBounds()
+			
+		case gID_setSpatialBounds:
+		{
+			SLiMSim &sim = population_.sim_;
+			
+			int dimensionality = sim.SpatialDimensionality();
+			int value_count = arg0_value->Count();
+			
+			if (dimensionality == 0)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setSpatialBounds() cannot be called in non-spatial simulations." << eidos_terminate();
+			
+			if (value_count != dimensionality * 2)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setSpatialBounds() requires twice as many coordinates as the spatial dimensionality of the simulation." << eidos_terminate();
+			
+			bool bad_bounds = false;
+			
+			switch (dimensionality)
+			{
+				case 1:
+					bounds_x0_ = arg0_value->FloatAtIndex(0, nullptr);	bounds_x1_ = arg0_value->FloatAtIndex(1, nullptr);
+					
+					if (bounds_x1_ <= bounds_x0_)
+						bad_bounds = true;
+					
+					break;
+				case 2:
+					bounds_x0_ = arg0_value->FloatAtIndex(0, nullptr);	bounds_x1_ = arg0_value->FloatAtIndex(2, nullptr);
+					bounds_y0_ = arg0_value->FloatAtIndex(1, nullptr);	bounds_y1_ = arg0_value->FloatAtIndex(3, nullptr);
+					
+					if ((bounds_x1_ <= bounds_x0_) || (bounds_y1_ <= bounds_y0_))
+						bad_bounds = true;
+					
+					break;
+				case 3:
+					bounds_x0_ = arg0_value->FloatAtIndex(0, nullptr);	bounds_x1_ = arg0_value->FloatAtIndex(3, nullptr);
+					bounds_y0_ = arg0_value->FloatAtIndex(1, nullptr);	bounds_y1_ = arg0_value->FloatAtIndex(4, nullptr);
+					bounds_z0_ = arg0_value->FloatAtIndex(2, nullptr);	bounds_z1_ = arg0_value->FloatAtIndex(5, nullptr);
+					
+					if ((bounds_x1_ <= bounds_x0_) || (bounds_y1_ <= bounds_y0_) || (bounds_z1_ <= bounds_z0_))
+						bad_bounds = true;
+					
+					break;
+			}
+			
+			if (bad_bounds)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): setSpatialBounds() requires min coordinates to be less than max coordinates." << eidos_terminate();
+			
+			return gStaticEidosValueNULLInvisible;
+		}			
 			
 			
 			//
@@ -2243,6 +2534,7 @@ const std::vector<const EidosPropertySignature *> *Subpopulation_Class::Properti
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_selfingRate));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_cloningRate));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_sexRatio));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_spatialBounds));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_individualCount));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_tag));
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
@@ -2263,6 +2555,7 @@ const EidosPropertySignature *Subpopulation_Class::SignatureForProperty(EidosGlo
 	static EidosPropertySignature *selfingRateSig = nullptr;
 	static EidosPropertySignature *cloningRateSig = nullptr;
 	static EidosPropertySignature *sexRatioSig = nullptr;
+	static EidosPropertySignature *spatialBoundsSig = nullptr;
 	static EidosPropertySignature *sizeSig = nullptr;
 	static EidosPropertySignature *tagSig = nullptr;
 	
@@ -2277,6 +2570,7 @@ const EidosPropertySignature *Subpopulation_Class::SignatureForProperty(EidosGlo
 		selfingRateSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_selfingRate,					gID_selfingRate,				true,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
 		cloningRateSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_cloningRate,					gID_cloningRate,				true,	kEidosValueMaskFloat));
 		sexRatioSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_sexRatio,					gID_sexRatio,					true,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
+		spatialBoundsSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_spatialBounds,				gID_spatialBounds,				true,	kEidosValueMaskFloat));
 		sizeSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_individualCount,				gID_individualCount,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
 		tagSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,							gID_tag,						false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
 	}
@@ -2293,6 +2587,7 @@ const EidosPropertySignature *Subpopulation_Class::SignatureForProperty(EidosGlo
 		case gID_selfingRate:				return selfingRateSig;
 		case gID_cloningRate:				return cloningRateSig;
 		case gID_sexRatio:					return sexRatioSig;
+		case gID_spatialBounds:				return spatialBoundsSig;
 		case gID_individualCount:			return sizeSig;
 		case gID_tag:						return tagSig;
 			
@@ -2310,9 +2605,14 @@ const std::vector<const EidosMethodSignature *> *Subpopulation_Class::Methods(vo
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*SLiMEidosDictionary_Class::Methods());
 		methods->emplace_back(SignatureForMethodOrRaise(gID_setMigrationRates));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_pointInBounds));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_pointReflected));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_pointStopped));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_pointUniform));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_setCloningRate));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_setSelfingRate));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_setSexRatio));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_setSpatialBounds));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_setSubpopulationSize));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_cachedFitness));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_outputMSSample));
@@ -2328,9 +2628,14 @@ const EidosMethodSignature *Subpopulation_Class::SignatureForMethod(EidosGlobalS
 {
 	// Signatures are all preallocated, for speed
 	static EidosInstanceMethodSignature *setMigrationRatesSig = nullptr;
+	static EidosInstanceMethodSignature *pointInBoundsSig = nullptr;
+	static EidosInstanceMethodSignature *pointReflectedSig = nullptr;
+	static EidosInstanceMethodSignature *pointStoppedSig = nullptr;
+	static EidosInstanceMethodSignature *pointUniformSig = nullptr;
 	static EidosInstanceMethodSignature *setCloningRateSig = nullptr;
 	static EidosInstanceMethodSignature *setSelfingRateSig = nullptr;
 	static EidosInstanceMethodSignature *setSexRatioSig = nullptr;
+	static EidosInstanceMethodSignature *setSpatialBoundsSig = nullptr;
 	static EidosInstanceMethodSignature *setSubpopulationSizeSig = nullptr;
 	static EidosInstanceMethodSignature *cachedFitnessSig = nullptr;
 	static EidosInstanceMethodSignature *outputMSSampleSig = nullptr;
@@ -2340,9 +2645,14 @@ const EidosMethodSignature *Subpopulation_Class::SignatureForMethod(EidosGlobalS
 	if (!setMigrationRatesSig)
 	{
 		setMigrationRatesSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMigrationRates, kEidosValueMaskNULL))->AddIntObject("sourceSubpops", gSLiM_Subpopulation_Class)->AddNumeric("rates");
+		pointInBoundsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointInBounds, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddFloat("point");
+		pointReflectedSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointReflected, kEidosValueMaskFloat))->AddFloat("point");
+		pointStoppedSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointStopped, kEidosValueMaskFloat))->AddFloat("point");
+		pointUniformSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointUniform, kEidosValueMaskFloat));
 		setCloningRateSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setCloningRate, kEidosValueMaskNULL))->AddNumeric("rate");
 		setSelfingRateSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSelfingRate, kEidosValueMaskNULL))->AddNumeric_S("rate");
 		setSexRatioSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSexRatio, kEidosValueMaskNULL))->AddFloat_S("sexRatio");
+		setSpatialBoundsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSpatialBounds, kEidosValueMaskNULL))->AddFloat("bounds");
 		setSubpopulationSizeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSubpopulationSize, kEidosValueMaskNULL))->AddInt_S("size");
 		cachedFitnessSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_cachedFitness, kEidosValueMaskFloat))->AddInt_N("indices");
 		outputMSSampleSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMSSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF);
@@ -2354,9 +2664,14 @@ const EidosMethodSignature *Subpopulation_Class::SignatureForMethod(EidosGlobalS
 	switch (p_method_id)
 	{
 		case gID_setMigrationRates:		return setMigrationRatesSig;
+		case gID_pointInBounds:			return pointInBoundsSig;
+		case gID_pointReflected:		return pointReflectedSig;
+		case gID_pointStopped:			return pointStoppedSig;
+		case gID_pointUniform:			return pointUniformSig;
 		case gID_setCloningRate:		return setCloningRateSig;
 		case gID_setSelfingRate:		return setSelfingRateSig;
 		case gID_setSexRatio:			return setSexRatioSig;
+		case gID_setSpatialBounds:		return setSpatialBoundsSig;
 		case gID_setSubpopulationSize:	return setSubpopulationSizeSig;
 		case gID_cachedFitness:			return cachedFitnessSig;
 		case gID_outputMSSample:		return outputMSSampleSig;

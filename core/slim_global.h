@@ -327,6 +327,7 @@ extern const std::string gStr_immigrantSubpopFractions;
 extern const std::string gStr_selfingRate;
 extern const std::string gStr_cloningRate;
 extern const std::string gStr_sexRatio;
+extern const std::string gStr_spatialBounds;
 extern const std::string gStr_individualCount;
 extern const std::string gStr_fixationGeneration;
 extern const std::string gStr_pedigreeID;
@@ -376,9 +377,14 @@ extern const std::string gStr_registerModifyChildCallback;
 extern const std::string gStr_registerRecombinationCallback;
 extern const std::string gStr_simulationFinished;
 extern const std::string gStr_setMigrationRates;
+extern const std::string gStr_pointInBounds;
+extern const std::string gStr_pointReflected;
+extern const std::string gStr_pointStopped;
+extern const std::string gStr_pointUniform;
 extern const std::string gStr_setCloningRate;
 extern const std::string gStr_setSelfingRate;
 extern const std::string gStr_setSexRatio;
+extern const std::string gStr_setSpatialBounds;
 extern const std::string gStr_setSubpopulationSize;
 extern const std::string gStr_cachedFitness;
 extern const std::string gStr_outputMSSample;
@@ -535,6 +541,7 @@ enum _SLiMGlobalStringID : int {
 	gID_selfingRate,
 	gID_cloningRate,
 	gID_sexRatio,
+	gID_spatialBounds,
 	gID_individualCount,
 	gID_fixationGeneration,
 	gID_pedigreeID,
@@ -584,9 +591,14 @@ enum _SLiMGlobalStringID : int {
 	gID_registerRecombinationCallback,
 	gID_simulationFinished,
 	gID_setMigrationRates,
+	gID_pointInBounds,
+	gID_pointReflected,
+	gID_pointStopped,
+	gID_pointUniform,
 	gID_setCloningRate,
 	gID_setSelfingRate,
 	gID_setSexRatio,
+	gID_setSpatialBounds,
 	gID_setSubpopulationSize,
 	gID_cachedFitness,
 	gID_outputMSSample,

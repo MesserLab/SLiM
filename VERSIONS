@@ -19,6 +19,7 @@ development head:
 	add InteractionType class, initializeInteractionType(), and spatial queries
 	fix copy so syntax coloring gets copied to the clipboard again
 	add setSpatialPosition() method to Individual
+	add spatialBounds, pointInBounds(), pointReflected(), pointStopped(), pointUniform(), and setSpatialBounds() to Subpopulation
 
 
 2.2.1 (build 992; Eidos version 1.2.1):

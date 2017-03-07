@@ -105,6 +105,11 @@ public:
 	GenomeType modeled_chromosome_type_ = GenomeType::kAutosome;	// ...and needs to know what type of chromosomes its individuals are modeling; this should match SLiMSim
 	double x_chromosome_dominance_coeff_ = 1.0;						// the dominance coefficient for heterozygosity at the X locus (i.e. males); this is global
 	
+	// continuous-space bounds
+	double bounds_x0_ = 0.0, bounds_x1_ = 1.0;
+	double bounds_y0_ = 0.0, bounds_y1_ = 1.0;
+	double bounds_z0_ = 0.0, bounds_z1_ = 1.0;
+	
 	slim_usertag_t tag_value_;										// a user-defined tag value
 	
 #ifdef SLIMGUI

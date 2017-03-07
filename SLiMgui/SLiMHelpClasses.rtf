@@ -3225,6 +3225,12 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 
 \f0\fs20 \cf0 The identifiers of the particular subpopulations from which immigrants will arrive in the next generation.
 \f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 individualCount => (integer$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The number of individuals in the subpopulation; one-half of the number of genomes.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 individuals => (object<Individual>)\
@@ -3251,10 +3257,29 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 individualCount => (integer$)\
+\f2\fs18 \cf0 spatialBounds => (float)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 The number of individuals in the subpopulation; one-half of the number of genomes.\
+\f0\fs20 \cf0 The spatial boundaries of the subpopulation.  The length of the 
+\f2\fs18 spatialBounds
+\f0\fs20  property depends upon the spatial dimensionality declared with 
+\f2\fs18 initializeSLiMOptions()
+\f0\fs20 .  If the spatial dimensionality is zero (as it is by default), the value of this property is 
+\f2\fs18 float(0)
+\f0\fs20  (a zero-length 
+\f2\fs18 float
+\f0\fs20  vector).  Otherwise, minimums are supplied for each coordinate used by the dimensionality of the simulation, followed by maximums for each.  In other words, if the declared dimensionality is 
+\f2\fs18 "xy"
+\f0\fs20 , the 
+\f2\fs18 spatialBounds
+\f0\fs20  property will contain values 
+\f2\fs18 (x0,\'a0y0,\'a0x1,\'a0y1)
+\f0\fs20 ; bounds for the 
+\i z
+\i0  coordinate will not be included in that case, since that coordinate is not used in the simulation\'92s dimensionality.  This property cannot be set, but the 
+\f2\fs18 setSpatialBounds()
+\f0\fs20  method may be used to achieve the same thing.
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 tag <\'96> (integer$)\
@@ -3482,6 +3507,73 @@ If the optional parameter
 \f2\fs18 late()
 \f0\fs20  event, so that the output reflects the state of the simulation at the end of a generation.
 \f3 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96\'a0(logical$)pointInBounds(float\'a0point)
+\f3 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns 
+\f2\fs18 T
+\f0\fs20  if 
+\f2\fs18 point
+\f0\fs20  is inside the spatial boundaries of the subpopulation, 
+\f2\fs18 F
+\f0\fs20  otherwise.  For example, for a simulation with 
+\f2\fs18 "xy"
+\f0\fs20  dimensionality, 
+\f2\fs18 point
+\f0\fs20  must contain at least two values, and the result will be 
+\f2\fs18 T
+\f0\fs20  if and only if 
+\f2\fs18 ((point[0]>=x0) & (point[0]<=x1) & (point[1]>=y0) & (point[1]<=y1))
+\f0\fs20  given spatial bounds 
+\f2\fs18 (x0, y0, x1, y1)
+\f3\fs20 .
+\f0   This method is useful for implementing absorbing or reprising boundary conditions.  This may only be called in simulations for which continuous space has been enabled with 
+\f2\fs18 initializeSLiMOptions()
+\f3\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96\'a0(float)pointReflected(float\'a0point)
+\f3 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns a revised version of 
+\f2\fs18 point
+\f0\fs20  that has been brought inside the spatial boundaries of the subpopulation by reflection.  In brief, if a coordinate of 
+\f2\fs18 point
+\f0\fs20  lies beyond a spatial boundary, that coordinate is reflected across the boundary, so that it lies inside the boundary by the same magnitude that it previously lay outside the boundary.  This is done iteratively until all coordinates lie inside the subpopulation\'92s boundaries.  This method is useful for implementing reflecting boundary conditions.  This may only be called in simulations for which continuous space has been enabled with 
+\f2\fs18 initializeSLiMOptions()
+\f0\fs20 , and only elements of 
+\f2\fs18 point
+\f0\fs20  within the dimensionality of the simulation will be used (extra values will be ignored, and supplying too few values is an error).
+\f3 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96\'a0(float)pointStopped(float\'a0point)
+\f3 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns a revised version of 
+\f2\fs18 point
+\f0\fs20  that has been brought inside the spatial boundaries of the subpopulation by clamping.  In brief, if a coordinate of 
+\f2\fs18 point
+\f0\fs20  lies beyond a spatial boundary, that coordinate is set to exactly the position of the boundary, so that it lies on the edge of the spatial boundary.  This method is useful for implementing stopping boundary conditions.  This may only be called in simulations for which continuous space has been enabled with 
+\f2\fs18 initializeSLiMOptions()
+\f0\fs20 , and only elements of 
+\f2\fs18 point
+\f0\fs20  within the dimensionality of the simulation will be used (extra values will be ignored, and supplying too few values is an error).
+\f3 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96\'a0(float)pointUniform(void)
+\f3 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns a new point generated from uniform draws for each coordinate, within the spatial boundaries of the subpopulation.  The number of coordinates returned will be equal to the dimensionality of the simulation.  This may only be called in simulations for which continuous space has been enabled with 
+\f2\fs18 initializeSLiMOptions()
+\f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96\'a0(void)setCloningRate(numeric\'a0rate)
@@ -3542,6 +3634,47 @@ If the optional parameter
 \f2\fs18 sexRatio
 \f0\fs20 .  As defined in SLiM, this is actually the fraction of the subpopulation that is male; in other words, the M:(M+F) ratio.  This will take effect when children are next generated; it does not change the current subpopulation state.  Unlike the selfing rate, the cloning rate, and migration rates, the sex ratio is deterministic: SLiM will generate offspring that exactly satisfy the requested sex ratio (within integer roundoff limits).
 \f3 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96\'a0(void)setSpatialBounds(float\'a0bounds)
+\f3 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Set the spatial boundaries of the subpopulation to 
+\f2\fs18 bounds
+\f3\fs20 .
+\f0   This method may be called only for simulations in which continuous space has been enabled with 
+\f2\fs18 initializeSLiMOptions()
+\f0\fs20 .  The length of 
+\f2\fs18 bounds
+\f0\fs20  must be double the spatial dimensionality, so that it supplies both minimum and maximum values for each coordinate.  More specifically, for a dimensionality of 
+\f2\fs18 "x"
+\f0\fs20 , 
+\f2\fs18 bounds
+\f0\fs20  should supply 
+\f2\fs18 (x0,\'a0x1)
+\f0\fs20  values; for dimensionality 
+\f2\fs18 "xy"
+\f0\fs20  it should supply 
+\f2\fs18 (x0,\'a0y0,\'a0x1,\'a0y1)
+\f0\fs20  values; and for dimensionality 
+\f2\fs18 "xyz"
+\f0\fs20  it should supply 
+\f2\fs18 (x0,\'a0y0,\'a0z0,\'a0x1,\'a0y1,\'a0z1)
+\f0\fs20  (in that order).  These boundaries will be used by SLiMgui to calibrate the display of the subpopulation, and will be used by methods such as 
+\f2\fs18 pointInBounds()
+\f0\fs20 , 
+\f2\fs18 pointReflected()
+\f0\fs20 , 
+\f2\fs18 pointStopped()
+\f0\fs20 , and 
+\f2\fs18 pointUniform()
+\f3\fs20 .
+\f0   The default spatial boundaries for all subpopulations span the interval 
+\f2\fs18 [0,1]
+\f0\fs20  in each dimension.  The current spatial bounds for the subpopulation may be obtained through the 
+\f2\fs18 spatialBounds
+\f0\fs20  property.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96\'a0(void)setSubpopulationSize(integer$\'a0size)
