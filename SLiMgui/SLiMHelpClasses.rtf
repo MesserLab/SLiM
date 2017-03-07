@@ -1293,6 +1293,43 @@ See the description of the
 \f0\fs20  in all cases.\
 Note that this relatedness is simply pedigree-based relatedness.  This does not necessarily correspond to genetic relatedness, because of the effects of factors like assortment and recombination.
 \f3 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96
+\f3 \'a0
+\f2 (void)setSpatialPosition(float
+\f3 \'a0
+\f2 position)
+\f3 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Sets the spatial position of the individual (as accessed through the 
+\f2\fs18 spatialPosition
+\f0\fs20  property).  The length of 
+\f2\fs18 position
+\f0\fs20  (the number of coordinates in the spatial position of an individual) depends upon the spatial dimensionality declared with 
+\f2\fs18 initializeSLiMOptions()
+\f0\fs20 .  If the spatial dimensionality is zero (as it is by default), it is an error to call this method.  The elements of 
+\f2\fs18 position
+\f0\fs20  are set into the values of the 
+\f2\fs18 x
+\f0\fs20 , 
+\f2\fs18 y
+\f0\fs20 , and 
+\f2\fs18 z
+\f0\fs20  properties (if those properties are encompassed by the spatial dimensionality of the simulation).  In other words, if the declared dimensionality is 
+\f2\fs18 "xy"
+\f3\fs20 ,
+\f0  calling 
+\f2\fs18 individual.setSpatialPosition(c(1.0, 0.5))
+\f0\fs20  property is equivalent to 
+\f2\fs18 individual.x\'a0=\'a01.0; individual.y\'a0=\'a00.5
+\f0\fs20 ; 
+\f2\fs18 individual.z
+\f0\fs20  is not set (even if a third value is supplied in 
+\f2\fs18 position
+\f0\fs20 ) since it is not encompassed by the simulation\'92s dimensionality in this example.
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96

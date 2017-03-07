@@ -18,6 +18,7 @@ development head:
 	optimization for mean() in Eidos
 	add InteractionType class, initializeInteractionType(), and spatial queries
 	fix copy so syntax coloring gets copied to the clipboard again
+	add setSpatialPosition() method to Individual
 
 
 2.2.1 (build 992; Eidos version 1.2.1):

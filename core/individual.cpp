@@ -309,6 +309,25 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			
 			return EidosValue_SP(vec);
 		}
+		case gID_spatialPosition:
+		{
+			SLiMSim *sim = &(subpopulation_.population_.sim_);
+			
+			if (!sim)
+				EIDOS_TERMINATION << "ERROR (Individual::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
+			
+			switch (sim->SpatialDimensionality())
+			{
+				case 0:
+					EIDOS_TERMINATION << "ERROR (Individual::ExecuteInstanceMethod): position cannot be accessed in non-spatial simulations." << eidos_terminate();
+				case 1:
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(spatial_x_));
+				case 2:
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{spatial_x_, spatial_y_});
+				case 3:
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{spatial_x_, spatial_y_, spatial_z_});
+			}
+		}
 		case gID_uniqueMutations:
 		{
 			Genome *genome1, *genome2;
@@ -479,25 +498,6 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 		case gEidosID_z:			// ACCELERATED
 		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(spatial_z_));
-		}
-		case gID_spatialPosition:
-		{
-			SLiMSim *sim = &(subpopulation_.population_.sim_);
-			
-			if (!sim)
-				EIDOS_TERMINATION << "ERROR (Individual::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
-			
-			switch (sim->SpatialDimensionality())
-			{
-				case 0:
-					EIDOS_TERMINATION << "ERROR (Individual::ExecuteInstanceMethod): position cannot be accessed in non-spatial simulations." << eidos_terminate();
-				case 1:
-					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(spatial_x_));
-				case 2:
-					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{spatial_x_, spatial_y_});
-				case 3:
-					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{spatial_x_, spatial_y_, spatial_z_});
-			}
 		}
 			
 			// all others, including gID_none
@@ -780,6 +780,47 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 			
 			return gStaticEidosValueNULL;
 		}
+			
+			
+			//
+			//	*********************	– (void)setSpatialPosition(float position)
+			//
+			#pragma mark -setSpatialPosition()
+			
+		case gID_setSpatialPosition:
+		{
+			SLiMSim *sim = &(subpopulation_.population_.sim_);
+			
+			if (!sim)
+				EIDOS_TERMINATION << "ERROR (Individual::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
+			
+			int dimensionality = sim->SpatialDimensionality();
+			int value_count = arg0_value->Count();
+			
+			if (dimensionality == 0)
+				EIDOS_TERMINATION << "ERROR (Individual::ExecuteInstanceMethod): setPosition() cannot be called in non-spatial simulations." << eidos_terminate();
+			
+			if (value_count < dimensionality)
+				EIDOS_TERMINATION << "ERROR (Individual::ExecuteInstanceMethod): setPosition() requires at least as many coordinates as the spatial dimensionality of the simulation." << eidos_terminate();
+			
+			switch (dimensionality)
+			{
+				case 1:
+					spatial_x_ = arg0_value->FloatAtIndex(0, nullptr);
+					break;
+				case 2:
+					spatial_x_ = arg0_value->FloatAtIndex(0, nullptr);
+					spatial_y_ = arg0_value->FloatAtIndex(1, nullptr);
+					break;
+				case 3:
+					spatial_x_ = arg0_value->FloatAtIndex(0, nullptr);
+					spatial_y_ = arg0_value->FloatAtIndex(1, nullptr);
+					spatial_z_ = arg0_value->FloatAtIndex(2, nullptr);
+					break;
+			}
+			
+			return gStaticEidosValueNULLInvisible;
+		}			
 			
 			
 			//
@@ -1153,6 +1194,7 @@ const std::vector<const EidosMethodSignature *> *Individual_Class::Methods(void)
 		methods->emplace_back(SignatureForMethodOrRaise(gID_containsMutations));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_countOfMutationsOfType));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_relatedness));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_setSpatialPosition));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_uniqueMutationsOfType));
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
@@ -1165,6 +1207,7 @@ const EidosMethodSignature *Individual_Class::SignatureForMethod(EidosGlobalStri
 	static EidosInstanceMethodSignature *containsMutationsSig = nullptr;
 	static EidosInstanceMethodSignature *countOfMutationsOfTypeSig = nullptr;
 	static EidosInstanceMethodSignature *relatednessSig = nullptr;
+	static EidosInstanceMethodSignature *setSpatialPositionSig = nullptr;
 	static EidosInstanceMethodSignature *uniqueMutationsOfTypeSig = nullptr;
 	
 	if (!containsMutationsSig)
@@ -1172,6 +1215,7 @@ const EidosMethodSignature *Individual_Class::SignatureForMethod(EidosGlobalStri
 		containsMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMutations, kEidosValueMaskLogical))->AddObject("mutations", gSLiM_Mutation_Class);
 		countOfMutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
 		relatednessSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_relatedness, kEidosValueMaskFloat))->AddObject("individuals", gSLiM_Individual_Class);
+		setSpatialPositionSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSpatialPosition, kEidosValueMaskNULL))->AddFloat("position");
 		uniqueMutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_uniqueMutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
 	}
 	
@@ -1181,6 +1225,7 @@ const EidosMethodSignature *Individual_Class::SignatureForMethod(EidosGlobalStri
 		case gID_containsMutations:			return containsMutationsSig;
 		case gID_countOfMutationsOfType:	return countOfMutationsOfTypeSig;
 		case gID_relatedness:				return relatednessSig;
+		case gID_setSpatialPosition:		return setSpatialPositionSig;
 		case gID_uniqueMutationsOfType:		return uniqueMutationsOfTypeSig;
 			
 			// all others, including gID_none
