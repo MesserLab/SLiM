@@ -1630,6 +1630,10 @@
 	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
 	
 	[outputTextView setString:@""];
+	
+	// Just in case we have any buffered output, clear the output stream
+	gSLiMOut.clear();
+	gSLiMOut.str("");
 }
 
 - (IBAction)dumpPopulationToOutput:(id)sender
