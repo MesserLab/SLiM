@@ -125,8 +125,36 @@ typedef enum SLiMLaunchAction
 		if (previousItemChapter && recipeChapter && ![recipeChapter isEqualToString:previousItemChapter])
 			[openRecipesMenu addItem:[NSMenuItem separatorItem]];
 		
+		// Add a section title item before each chapter
+		if (recipeChapter && ![recipeChapter isEqualToString:previousItemChapter])
+		{
+			int recipeChapterValue = [recipeChapter intValue];
+			NSString *chapterName = nil;
+			
+			switch (recipeChapterValue)
+			{
+				case 4: chapterName = @"Getting started: Neutral evolution in a panmictic population";		break;
+				case 5: chapterName = @"Demography and population structure";								break;
+				case 6: chapterName = @"Sexual reproduction";												break;
+				case 7: chapterName = @"Mutation types, genomic elements, and chromosome structure";		break;
+				case 8: chapterName = @"SLiMgui visualizations for polymorphism patterns";					break;
+				case 9:	chapterName = @"Context-dependent selection using fitness() callbacks";				break;
+				case 10:chapterName = @"Selective sweeps";													break;
+				case 11:chapterName = @"Complex mating schemes using mateChoice() callbacks";				break;
+				case 12:chapterName = @"Direct child modifications using modifyChild() callbacks";			break;
+				case 13:chapterName = @"Advanced models";													break;
+				case 14:chapterName = @"Continuous-space models and interactions";							break;
+				default: break;
+			}
+			
+			if (chapterName)
+				[openRecipesMenu addItemWithTitle:chapterName action:NULL keyEquivalent:@""];
+		}
+		
+		// Move on to the current chapter
 		previousItemChapter = recipeChapter;
 		
+		// And now add the menu item for the recipe
 		NSMenuItem *menuItem = [openRecipesMenu addItemWithTitle:recipeName action:@selector(openRecipe:) keyEquivalent:@""];
 		
 		[menuItem setTarget:[NSDocumentController sharedDocumentController]];
