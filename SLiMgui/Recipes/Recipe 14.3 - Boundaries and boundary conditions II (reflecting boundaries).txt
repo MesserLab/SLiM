@@ -1,0 +1,36 @@
+initialize() {
+	initializeSLiMOptions(dimensionality="xy");
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 0.5, "f", 0.0);   // marker
+	m2.convertToSubstitution = F;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+	
+	initializeInteractionType(1, "xy", maxDistance=0.3);  // competition
+	i1.setInteractionFunction("n", 3.0, 0.1);
+}
+1 late() {
+	sim.addSubpop("p1", 500);
+	p1.individuals.genomes.addNewDrawnMutation(m2, 0);
+	
+	// Initial positions are random within spatialBounds
+	for (ind in p1.individuals)
+		ind.setSpatialPosition(p1.pointUniform());
+}
+1: late() {
+	i1.evaluate();
+}
+fitness(m2) {
+	totalStrength = i1.totalOfNeighborStrengths(individual);
+	return 1.1 - totalStrength / p1.individualCount;
+}
+modifyChild() {
+	// Reflecting boundary conditions
+	pos = parent1.spatialPosition + rnorm(2, 0, 0.02);
+	child.setSpatialPosition(p1.pointReflected(pos));
+	
+	return T;
+}
+2000 late() { sim.outputFixedMutations(); }
