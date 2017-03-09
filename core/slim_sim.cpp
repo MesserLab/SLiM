@@ -1653,6 +1653,11 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		if (maxDistance < 0.0)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() maxDistance must be >= 0.0." << eidos_terminate();
 		
+		// FIXME disable the use of sexSegregation for now...
+		if (sex_string != "**")
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() sexSegregation values other than '**' are not presently supported; check back later." << eidos_terminate();
+		// FIXME disable the use of sexSegregation for now...
+		
 		if (sex_string == "**")			{ target_sex = IndividualSex::kUnspecified;		source_sex = IndividualSex::kUnspecified;	}
 		else if (sex_string == "*M")	{ target_sex = IndividualSex::kUnspecified;		source_sex = IndividualSex::kMale;			}
 		else if (sex_string == "*F")	{ target_sex = IndividualSex::kUnspecified;		source_sex = IndividualSex::kFemale;		}
