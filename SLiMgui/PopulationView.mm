@@ -65,7 +65,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 {
 	SLiMWindowController *controller = [[self window] windowController];
 	double scalingFactor = controller->fitnessColorScale;
-	slim_popsize_t subpopSize = subpop->parent_subpop_size_;				// this used to be child_subpop_size_ but that seems clearly wrong...
+	slim_popsize_t subpopSize = subpop->parent_subpop_size_;
 	double *subpop_fitness = subpop->cached_parental_fitness_;
 	BOOL useCachedFitness = (subpop->cached_fitness_size_ == subpopSize);	// needs to have the right number of entries, otherwise we punt
 	
@@ -228,11 +228,14 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	}
 }
 
-- (void)drawSpatialIndividualsFromSubpopulation:(Subpopulation *)subpop inArea:(NSRect)bounds
+- (void)drawSpatialIndividualsFromSubpopulation:(Subpopulation *)subpop inArea:(NSRect)bounds dimensionality:(int)dimensionality
 {
 	SLiMWindowController *controller = [[self window] windowController];
 	double scalingFactor = controller->fitnessColorScale;
-	slim_popsize_t subpopSize = subpop->parent_subpop_size_;				// this used to be child_subpop_size_ but that seems clearly wrong...
+	slim_popsize_t subpopSize = subpop->parent_subpop_size_;
+	double bounds_x0 = subpop->bounds_x0_, bounds_x1 = subpop->bounds_x1_;
+	double bounds_y0 = subpop->bounds_y0_, bounds_y1 = subpop->bounds_y1_;
+	double bounds_x_size = bounds_x1 - bounds_x0, bounds_y_size = bounds_y1 - bounds_y0;
 	double *subpop_fitness = subpop->cached_parental_fitness_;
 	BOOL useCachedFitness = (subpop->cached_fitness_size_ == subpopSize);	// needs to have the right number of entries, otherwise we punt
 	
@@ -262,12 +265,35 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	glColorPointer(4, GL_FLOAT, 0, glArrayColors);
 	
 	// First we outline all individuals
+	if (dimensionality == 1)
+		srandom(controller->sim->Generation());
+	
 	for (individualArrayIndex = 0; individualArrayIndex < subpopSize; ++individualArrayIndex)
 	{
 		// Figure out the rect to draw in; note we now use individualArrayIndex here, because the hit-testing code doesn't have an easy way to calculate the displayed individual index...
 		Individual &individual = subpop->parent_individuals_[individualArrayIndex];
-		float centerX = (float)(individualArea.origin.x + round((individual.spatial_x_ / 1.0f) * individualArea.size.width) + 0.5);
-		float centerY = (float)(individualArea.origin.y + individualArea.size.height - round((individual.spatial_y_ / 1.0f) * individualArea.size.height) + 0.5);
+		float position_x, position_y;
+		
+		if (dimensionality == 1)
+		{
+			position_x = (float)((individual.spatial_x_ - bounds_x0) / bounds_x_size);
+			position_y = (float)(random() / (double)INT32_MAX);
+			
+			if ((position_x < 0.0) || (position_x > 1.0))		// skip points that are out of bounds
+				continue;
+		}
+		else
+		{
+			position_x = (float)((individual.spatial_x_ - bounds_x0) / bounds_x_size);
+			position_y = (float)((individual.spatial_y_ - bounds_y0) / bounds_y_size);
+			
+			if ((position_x < 0.0) || (position_x > 1.0) || (position_y < 0.0) || (position_y > 1.0))		// skip points that are out of bounds
+				continue;
+		}
+		
+		float centerX = (float)(individualArea.origin.x + round(position_x * individualArea.size.width) + 0.5);
+		float centerY = (float)(individualArea.origin.y + individualArea.size.height - round(position_y * individualArea.size.height) + 0.5);
+		
 		float left = centerX - 2.5f;
 		float top = centerY - 2.5f;
 		float right = centerX + 2.5f;
@@ -311,12 +337,34 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	}
 	
 	// Then we draw all individuals
+	if (dimensionality == 1)
+		srandom(controller->sim->Generation());
+	
 	for (individualArrayIndex = 0; individualArrayIndex < subpopSize; ++individualArrayIndex)
 	{
 		// Figure out the rect to draw in; note we now use individualArrayIndex here, because the hit-testing code doesn't have an easy way to calculate the displayed individual index...
 		Individual &individual = subpop->parent_individuals_[individualArrayIndex];
-		float centerX = (float)(individualArea.origin.x + round((individual.spatial_x_ / 1.0f) * individualArea.size.width) + 0.5);
-		float centerY = (float)(individualArea.origin.y + individualArea.size.height - round((individual.spatial_y_ / 1.0f) * individualArea.size.height) + 0.5);
+		float position_x, position_y;
+		
+		if (dimensionality == 1)
+		{
+			position_x = (float)((individual.spatial_x_ - bounds_x0) / bounds_x_size);
+			position_y = (float)(random() / (double)INT32_MAX);
+			
+			if ((position_x < 0.0) || (position_x > 1.0))		// skip points that are out of bounds
+				continue;
+		}
+		else
+		{
+			position_x = (float)((individual.spatial_x_ - bounds_x0) / bounds_x_size);
+			position_y = (float)((individual.spatial_y_ - bounds_y0) / bounds_y_size);
+			
+			if ((position_x < 0.0) || (position_x > 1.0) || (position_y < 0.0) || (position_y > 1.0))		// skip points that are out of bounds
+				continue;
+		}
+		
+		float centerX = (float)(individualArea.origin.x + round(position_x * individualArea.size.width) + 0.5);
+		float centerY = (float)(individualArea.origin.y + individualArea.size.height - round(position_y * individualArea.size.height) + 0.5);
 		float left = centerX - 1.5f;
 		float top = centerY - 1.5f;
 		float right = centerX + 1.5f;
@@ -432,7 +480,19 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	{
 		Subpopulation *subpop = selectedSubpopulations[0];
 		
-		if (sim->spatial_dimensionality_ > 0)
+		if (sim->spatial_dimensionality_ == 1)
+		{
+			glColor3f(0.0, 0.0, 0.0);
+			glRecti(0, 0, (int)bounds.size.width, (int)bounds.size.height);
+			
+			// Now determine a square subframe and draw spatial information inside that
+			NSRect spatialDisplayBounds = bounds;
+			
+			[self drawSpatialIndividualsFromSubpopulation:subpop inArea:spatialDisplayBounds dimensionality:sim->spatial_dimensionality_];
+			
+			[self drawViewFrameInBounds:spatialDisplayBounds];
+		}
+		else if (sim->spatial_dimensionality_ > 1)
 		{
 			// clear to a shade of gray
 			glColor3f(0.9f, 0.9f, 0.9f);
@@ -441,16 +501,41 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 			// Frame our view
 			[self drawViewFrameInBounds:bounds];
 			
-			// Now determine a square subframe and draw spatial information inside that
+			// Now determine a subframe and draw spatial information inside that.  The subframe we use is the maximal subframe
+			// with integer boundaries that preserves, as closely as possible, the aspect ratio of the subpop's bounds.
 			NSRect spatialDisplayBounds = bounds;
+			double displayAspect = bounds.size.width / bounds.size.height;
+			double bounds_x0 = subpop->bounds_x0_, bounds_x1 = subpop->bounds_x1_;
+			double bounds_y0 = subpop->bounds_y0_, bounds_y1 = subpop->bounds_y1_;
+			double bounds_x_size = bounds_x1 - bounds_x0, bounds_y_size = bounds_y1 - bounds_y0;
+			double subpopAspect = bounds_x_size / bounds_y_size;
 			
-			spatialDisplayBounds.origin.x += floor((spatialDisplayBounds.size.width - spatialDisplayBounds.size.height) / 2.0);
-			spatialDisplayBounds.size.width = spatialDisplayBounds.size.height;
+			if (subpopAspect > displayAspect)
+			{
+				// The display bounds will need to shrink vertically to match the subpop
+				double idealSize = round(bounds.size.width / subpopAspect);
+				double roundedOffset = round((bounds.size.height - idealSize) / 2.0);
+				
+				spatialDisplayBounds.origin.y += roundedOffset;
+				spatialDisplayBounds.size.height = idealSize;
+			}
+			else if (subpopAspect < displayAspect)
+			{
+				// The display bounds will need to shrink horizontally to match the subpop
+				double idealSize = round(bounds.size.height * subpopAspect);
+				double roundedOffset = round((bounds.size.width - idealSize) / 2.0);
+				
+				spatialDisplayBounds.origin.x += roundedOffset;
+				spatialDisplayBounds.size.width = idealSize;
+			}
+			
+			//spatialDisplayBounds.origin.x += floor((spatialDisplayBounds.size.width - spatialDisplayBounds.size.height) / 2.0);
+			//spatialDisplayBounds.size.width = spatialDisplayBounds.size.height;
 			
 			glColor3f(0.0, 0.0, 0.0);
 			glRecti((int)spatialDisplayBounds.origin.x, (int)spatialDisplayBounds.origin.y, (int)(spatialDisplayBounds.origin.x + spatialDisplayBounds.size.width), (int)(spatialDisplayBounds.origin.y + spatialDisplayBounds.size.height));
 			
-			[self drawSpatialIndividualsFromSubpopulation:subpop inArea:spatialDisplayBounds];
+			[self drawSpatialIndividualsFromSubpopulation:subpop inArea:spatialDisplayBounds dimensionality:sim->spatial_dimensionality_];
 			
 			[self drawViewFrameInBounds:spatialDisplayBounds];
 		}
