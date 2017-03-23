@@ -2912,12 +2912,12 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \i0  be eligible to execute in the current generation.  The new 
 \f2\fs18 SLiMEidosBlock
 \f0\fs20  will be defined as a global variable immediately by this method, and will also be returned by this method.\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>$)registerFitnessCallback(Nis$\'a0id, string$\'a0source, io<MutationType>$\'a0mutType, [Nio<Subpopulation>$\'a0subpop
 \f3 \'a0
 \f2 =\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Register a block of Eidos source code, represented as the 
 \f2\fs18 string
@@ -2926,7 +2926,7 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f0\fs20 , as an Eidos 
 \f2\fs18 fitness()
 \f0\fs20  callback in the current simulation, with a required mutation type 
-\f2\fs18 muttype
+\f2\fs18 mutType
 \f0\fs20  (which may be an 
 \f2\fs18 integer
 \f0\fs20  identifier), optional subpopulation 
@@ -2955,7 +2955,56 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \i may
 \i0  be eligible to execute in the current generation.  The new 
 \f2\fs18 SLiMEidosBlock
-\f0\fs20  will be defined as a global variable immediately by this method, and will also be returned by this method.
+\f0\fs20  will be defined as a global variable immediately by this method (see section 18
+\f3 .
+\f0 10), and will also be returned by this method.
+\f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>$)registerInteractionCallback(Nis$\'a0id, string$\'a0source, io<InteractionType>$\'a0intType, [Nio<Subpopulation>$\'a0subpop
+\f3 \'a0
+\f2 =\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Register a block of Eidos source code, represented as the 
+\f2\fs18 string
+\f0\fs20  singleton 
+\f2\fs18 source
+\f0\fs20 , as an Eidos 
+\f2\fs18 interaction()
+\f0\fs20  callback in the current simulation, with a required interaction type 
+\f2\fs18 intType
+\f0\fs20  (which may be an 
+\f2\fs18 integer
+\f0\fs20  identifier), optional subpopulation 
+\f2\fs18 subpop
+\f0\fs20  (which may also be an 
+\f2\fs18 integer
+\f0\fs20  identifier, or 
+\f2\fs18 NULL
+\f0\fs20 , the default, to indicate all subpopulations), and optional 
+\f2\fs18 start
+\f0\fs20  and 
+\f2\fs18 end
+\f0\fs20  generations all limiting its applicability.  The script block will be given identifier 
+\f2\fs18 id
+\f0\fs20  (specified as an 
+\f2\fs18 integer
+\f0\fs20 , or as a 
+\f2\fs18 string
+\f0\fs20  symbolic name such as 
+\f2\fs18 "s5"
+\f0\fs20 ); this may be 
+\f2\fs18 NULL
+\f0\fs20  if there is no need to be able to refer to the block later.  The registered callback is added to the end of the list of registered 
+\f2\fs18 SLiMEidosBlock
+\f0\fs20  objects, and is active immediately; it will be eligible to execute the next time an 
+\f2\fs18 InteractionType
+\f0\fs20  is evaluated.  The new 
+\f2\fs18 SLiMEidosBlock
+\f0\fs20  will be defined as a global variable immediately by this method (see section 18
+\f3 .
+\f0 10), and will also be returned by this method.
 \f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 

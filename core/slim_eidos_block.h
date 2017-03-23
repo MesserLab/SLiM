@@ -41,6 +41,7 @@ enum class SLiMEidosBlockType {
 	SLiMEidosEventLate,
 	SLiMEidosInitializeCallback,
 	SLiMEidosFitnessCallback,
+	SLiMEidosInteractionCallback,
 	SLiMEidosMateChoiceCallback,
 	SLiMEidosModifyChildCallback,
 	SLiMEidosRecombinationCallback
@@ -104,6 +105,7 @@ public:
 	slim_generation_t start_generation_ = -1, end_generation_ = SLIM_MAX_GENERATION;		// the generation range to which the block is limited
 	slim_objectid_t mutation_type_id_ = -1;						// -1 if not limited by this
 	slim_objectid_t subpopulation_id_ = -1;						// -1 if not limited by this
+	slim_objectid_t interaction_type_id_ = -1;					// -1 if not limited by this
 	
 	EidosScript *script_ = nullptr;								// OWNED: nullptr indicates that we are derived from the input file script
 	const EidosASTNode *root_node_ = nullptr;					// NOT OWNED: the root node for the whole block, including its generation range and type nodes
@@ -121,7 +123,7 @@ public:
 	bool contains_individual_ = false;			// "individual" (fitness/mateChoice/recombination callback parameter)
 	bool contains_genome1_ = false;				// "genome1" (fitness/mateChoice/recombination callback parameter)
 	bool contains_genome2_ = false;				// "genome2" (fitness/mateChoice/recombination callback parameter)
-	bool contains_subpop_ = false;				// "subpop" (fitness/mateChoice/modifyChild/recombination callback parameter)
+	bool contains_subpop_ = false;				// "subpop" (fitness/interaction/mateChoice/modifyChild/recombination callback parameter)
 	bool contains_homozygous_ = false;			// "homozygous" (fitness callback parameter)
 	bool contains_sourceSubpop_ = false;		// "sourceSubpop" (mateChoice/modifyChild callback parameter)
 	bool contains_weights_ = false;				// "weights" (mateChoice callback parameter)
@@ -140,6 +142,10 @@ public:
 	bool contains_breakpoints_ = false;			// "breakpoints" (recombination callback parameter)
 	bool contains_gcStarts_ = false;			// "gcStarts" (recombination callback parameter)
 	bool contains_gcEnds_ = false;				// "gcEnds" (recombination callback parameter)
+	bool contains_distance_ = false;			// "distance" (interaction callback parameter)
+	bool contains_strength_ = false;			// "strength" (interaction callback parameter)
+	bool contains_receiver_ = false;			// "receiver" (interaction callback parameter)
+	bool contains_exerter_ = false;				// "exerter" (interaction callback parameter)
 	
 	SLiMEidosBlock(const SLiMEidosBlock&) = delete;					// no copying
 	SLiMEidosBlock& operator=(const SLiMEidosBlock&) = delete;		// no copying

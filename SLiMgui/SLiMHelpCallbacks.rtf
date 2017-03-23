@@ -861,4 +861,140 @@ In this design, the recombination callback does not specify a custom recombinati
 As with the other callback types, multiple 
 \f2\fs18 recombination()
 \f0\fs22  callbacks may be registered and active.  In this case, all registered and active callbacks will be called for each gamete generated, in the order that the callbacks were registered.\
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
+
+\i \cf0 5.13.6  ITEM: 7. 
+\f1\fs18 interaction()
+\f0\fs22  callbacks\
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
+
+\i0 \cf0 The 
+\f2\fs18 InteractionType
+\f0\fs22  class provides various built-in interaction functions that translate from distances to interaction strengths.  However, it may sometimes be useful to define a custom function for that purpose; for that reason, SLiM allows 
+\f2\fs18 interaction()
+\f0\fs22  callbacks to be defined that modify the standard interaction strength calculated by 
+\f2\fs18 InteractionType
+\f0\fs22 .  In particular, this mechanism allows the strength of interactions to depend upon not only the distance between individuals, but also the genetics and other state of the individuals, the spatial position of the individuals, and other environmental variables.\
+An 
+\f2\fs18 interaction()
+\f0\fs22  callback is called by SLiM when it is determining the strength of the interaction between one individual (the receiver of the interaction) and another individual (the exerter of the interaction).  This may occur when the 
+\f2\fs18 evaluate()
+\f0\fs22  method of 
+\f2\fs18 InteractionType
+\f0\fs22  is called, if immediate evaluation is requested; or it may occur at some point after evaluation of the 
+\f2\fs18 InteractionType
+\f0\fs22 , when the interaction strength is needed, if immediate evaluation was not requested.  This means that 
+\f2\fs18 interaction()
+\f0\fs22  callbacks() may be called at a variety of points in the generation cycle, unlike the other callback types in SLiM, which are each called at a specific point.  If you write an 
+\f2\fs18 interaction()
+\f0\fs22  callback, you need to take this into account; assuming that the generation cycle is at a particular stage, or even that the generation count is the same as it was when 
+\f2\fs18 evaluate()
+\f0\fs22  was called, may be dangerous.\
+When an interaction strength is needed, the first thing SLiM does is calculate the default interaction strength using the interaction function that has been defined for the InteractionType.  If the receiver is the same as the exerter, the interaction strength is always zero; and in spatial simulations if the distance between the receiver and the exerter is greater than the maximum distance set for the InteractionType, the interaction strength is also always zero.  In these cases, interaction() callbacks will not be called, and there is no way to redefine these interaction strengths.\
+Otherwise, SLiM will then call 
+\f2\fs18 interaction()
+\f0\fs22  callbacks that apply to the interaction type and subpopulation for the interaction being evaluated.  An 
+\f2\fs18 interaction()
+\f0\fs22  callback is defined with a variation of the syntax used for other callbacks:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri1440\sb180\sa180\partightenfactor0
+
+\f2\fs18 \cf0 [id] [gen1 [: gen2]] interaction(<int-type-id> [, <subpop-id>]) \{ ... \}\
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
+
+\f0\fs22 \cf0 For example, if the callback were defined as:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri1440\sb180\sa180\partightenfactor0
+
+\f2\fs18 \cf0 1000:2000 interaction(i2, p3) \{ 1.0; \}\
+\pard\pardeftab720\ri720\sb40\sa40\partightenfactor0
+
+\f0\fs22 \cf0 then an interaction strength of 
+\f2\fs18 1.0
+\f0\fs22  would be used for all interactions of interaction type 
+\f2\fs18 i2
+\f0\fs22  in subpopulation 
+\f2\fs18 p3
+\f0\fs22  from generation 
+\f2\fs18 1000
+\f0\fs22  to generation 
+\f2\fs18 2000
+\f3\fs22 .\
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
+
+\f0 \cf0 In addition to the standard SLiM globals, an 
+\f2\fs18 interaction()
+\f0\fs22  callback is supplied with some additional information passed through global variables:\
+\pard\tx2520\pardeftab720\fi547\ri720\sb40\sa40\partightenfactor0
+
+\f2\fs18 \cf0 distance
+\f3\fs22 	
+\f0 The distance from receiver to exerter, in spatial simulations; 
+\f2\fs18 NAN
+\f0\fs22  otherwise\
+
+\f2\fs18 strength
+\f3\fs22 	
+\f0 The default interaction strength calculated by the interaction function\
+
+\f2\fs18 receiver
+\f3\fs22 	
+\f0 The individual receiving the interaction (an object of class 
+\f2\fs18 Individual
+\f0\fs22 )
+\f3 \
+
+\f2\fs18 exerter
+\f3\fs22 	
+\f0 The individual exerting the interaction (an object of class 
+\f2\fs18 Individual
+\f0\fs22 )
+\f3 \
+
+\f2\fs18 subpop
+\f3\fs22 	
+\f0 The subpopulation in which the receiver and exerter live\
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
+\cf0 These globals may be used in the 
+\f2\fs18 interaction()
+\f0\fs22  callback to compute an interaction strength.  To simply use the default interaction strength that SLiM would use if a callback had not been defined for interaction type 
+\f2\fs18 i1
+\f0\fs22 , for example, you could do this:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40\partightenfactor0
+
+\f2\fs18 \cf0 interaction(i1) \{\
+      return strength;\
+\}\
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
+
+\f0\fs22 \cf0 Usually an 
+\f2\fs18 interaction()
+\f0\fs22  callback will modify that default strength based upon factors such as the genetics of the receiver and/or the exerter, the spatial positions of the two individuals, or some other simulation state.  Any finite 
+\f2\fs18 float
+\f0\fs22  value greater than or equal to 
+\f2\fs18 0.0
+\f0\fs22  may be returned.  The value returned will be cached by SLiM; if the interaction strength between the same two individuals is needed again later, the 
+\f2\fs18 interaction()
+\f0\fs22  callback will not be called again (something to keep in mind if the interaction strength includes a stochastic component).\
+More than one 
+\f2\fs18 interaction()
+\f0\fs22  callback may be defined to operate in the same generation.  As with other callbacks, multiple callbacks will be called in the order in which they were defined in the input file.  Furthermore, each callback will be given the 
+\f2\fs18 strength
+\f0\fs22  value returned by the previous callback \'96 so the value of 
+\f2\fs18 strength
+\f0\fs22  is not necessarily the default value, in fact, but is the result of all previous 
+\f2\fs18 interaction()
+\f0\fs22  callbacks for the interaction in question.  In this way, the effects of multiple callbacks can \'93stack\'94.\
+The 
+\f2\fs18 interaction()
+\f0\fs22  callback mechanism is extremely powerful and flexible, allowing any sort of user-defined interactions whatsoever to be queried dynamically using the methods of 
+\f2\fs18 InteractionType
+\f0\fs22 .  However, in the general case a simulation may call for the evaluation of the interaction strength between each individual and every other individual, making the computation of the full interaction network an O(N\super 2\nosupersub ) problem.  Since 
+\f2\fs18 interaction()
+\f0\fs22  callbacks may be called for each of those N\super 2\nosupersub  interaction evaluations, they can slow down a simulation considerably, so it is recommended that they be used sparingly.  This is the reason that the various interaction functions of 
+\f2\fs18 InteractionType
+\f0\fs22  were provided; when an interaction does not depend upon individual state, the intention is to avoid the necessity of an 
+\f2\fs18 interaction()
+\f0\fs22  callback altogether.  Furthermore, constraining the number of cases in which interaction strengths need to be calculated \'96 using a short maximum interaction distance, querying the nearest neighbors of the focal individual rather than querying all possible interactions with that individual, and specifying the reciprocality and sex segregation of the 
+\f2\fs18 InteractionType
+\f0\fs22 , for example \'96 may greatly decrease the computational overhead of interaction evaluation.
+\f3 \
 }

@@ -37,6 +37,7 @@
 #include "eidos_value.h"
 #include "eidos_symbol_table.h"
 #include "slim_global.h"
+#include "slim_eidos_block.h"
 
 class Subpopulation;
 class Individual;
@@ -85,6 +86,7 @@ struct _InteractionsData
 	// that they are considered "large blocks" by malloc, triggering some very slow processing such as madvise() that is to be
 	// avoided at all costs.
 	bool evaluated_;
+	std::vector<SLiMEidosBlock*> evaluation_interaction_callbacks_;
 	
 	slim_popsize_t individual_count_ = 0;	// the number of individuals managed; this will be equal to the size of the corresponding subpopulation
 	double *positions_ = nullptr;			// individual_count_ * SLIM_MAX_DIMENSIONALITY entries, holding coordinate positions
@@ -110,9 +112,6 @@ class InteractionType : public EidosObjectElement
 	
 	EidosSymbolTableEntry self_symbol_;							// for fast setup of the symbol table
 	
-	slim_objectid_t interaction_type_id_;		// the id by which this interaction type is indexed in the chromosome
-	EidosValue_SP cached_value_inttype_id_;		// a cached value for interaction_type_id_; reset() if that changes
-	
 	int spatiality_;							// 0=none, 1=x, 2=xy, 3=xyz
 	bool reciprocality_;						// if true, interaction strengths A->B == B->A
 	double max_distance_;						// the maximum distance, beyond which interaction strength is assumed to be zero
@@ -130,7 +129,7 @@ class InteractionType : public EidosObjectElement
 	void CalculateAllInteractions(Subpopulation *p_subpop);
 	double CalculateDistance(double *position1, double *position2);
 	double CalculateStrengthNoCallbacks(double p_distance);
-	double CalculateStrengthCallbacks(double p_distance, Individual *receiver, Individual *exerter, Subpopulation *p_subpop);
+	double CalculateStrengthWithCallbacks(double p_distance, Individual *receiver, Individual *exerter, Subpopulation *p_subpop, std::vector<SLiMEidosBlock*> &p_interaction_callbacks);
 	void EnsureDistancesPresent(InteractionsData &p_subpop_data);
 	void InitializeDistances(InteractionsData &p_subpop_data);
 	void EnsureStrengthsPresent(InteractionsData &p_subpop_data);
@@ -170,6 +169,10 @@ class InteractionType : public EidosObjectElement
 
 public:
 	
+	slim_objectid_t interaction_type_id_;		// the id by which this interaction type is indexed in the chromosome
+	EidosValue_SP cached_value_inttype_id_;		// a cached value for interaction_type_id_; reset() if that changes
+	
+	
 	InteractionType(const InteractionType&) = delete;					// no copying
 	InteractionType& operator=(const InteractionType&) = delete;		// no copying
 	InteractionType(void) = delete;										// no null construction
@@ -178,6 +181,10 @@ public:
 	
 	void EvaluateSubpopulation(Subpopulation *p_subpop, bool p_immediate);
 	void Invalidate(void);
+
+	// apply interaction() callbacks to an interaction strength; the return value is the final interaction strength
+	double ApplyInteractionCallbacks(Individual *p_receiver, Individual *p_exerter, Subpopulation *p_subpop, double p_strength, double p_distance, std::vector<SLiMEidosBlock*> &p_interaction_callbacks);
+	
 	
 	//
 	// Eidos support

@@ -531,7 +531,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 	{
 		slim_objectid_t subpop_id = subpop_pair.first;
 		Subpopulation *subpop = subpop_pair.second;
-		std::vector<SLiMEidosBlock*> fitness_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosFitnessCallback, -1, subpop_id);
+		std::vector<SLiMEidosBlock*> fitness_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosFitnessCallback, -1, -1, subpop_id);
 		
 		subpop->UpdateFitness(fitness_callbacks);
 	}
@@ -994,7 +994,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	{
 		slim_objectid_t subpop_id = subpop_pair.first;
 		Subpopulation *subpop = subpop_pair.second;
-		std::vector<SLiMEidosBlock*> fitness_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosFitnessCallback, -1, subpop_id);
+		std::vector<SLiMEidosBlock*> fitness_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosFitnessCallback, -1, -1, subpop_id);
 		
 		subpop->UpdateFitness(fitness_callbacks);
 	}
@@ -1007,7 +1007,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	return file_generation;
 }
 
-std::vector<SLiMEidosBlock*> SLiMSim::ScriptBlocksMatching(slim_generation_t p_generation, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_subpopulation_id)
+std::vector<SLiMEidosBlock*> SLiMSim::ScriptBlocksMatching(slim_generation_t p_generation, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id)
 {
 	std::vector<SLiMEidosBlock*> matches;
 	
@@ -1027,6 +1027,15 @@ std::vector<SLiMEidosBlock*> SLiMSim::ScriptBlocksMatching(slim_generation_t p_g
 			slim_objectid_t mutation_type_id = script_block->mutation_type_id_;
 			
 			if ((mutation_type_id != -1) && (p_mutation_type_id != mutation_type_id))
+				continue;
+		}
+		
+		// check that the interaction type id matches, if requested
+		if (p_interaction_type_id != -1)
+		{
+			slim_objectid_t interaction_type_id = script_block->interaction_type_id_;
+			
+			if ((interaction_type_id != -1) && (p_interaction_type_id != interaction_type_id))
 				continue;
 		}
 		
@@ -1088,7 +1097,7 @@ void SLiMSim::RunInitializeCallbacks(void)
 		SLIM_OUTSTREAM << "// RunInitializeCallbacks():" << endl;
 	
 	// execute initialize() callbacks, which should always have a generation of 0 set
-	std::vector<SLiMEidosBlock*> init_blocks = ScriptBlocksMatching(0, SLiMEidosBlockType::SLiMEidosInitializeCallback, -1, -1);
+	std::vector<SLiMEidosBlock*> init_blocks = ScriptBlocksMatching(0, SLiMEidosBlockType::SLiMEidosInitializeCallback, -1, -1, -1);
 	
 	for (auto script_block : init_blocks)
 	{
@@ -1195,7 +1204,7 @@ bool SLiMSim::_RunOneGeneration(void)
 		//
 		generation_stage_ = SLiMGenerationStage::kStage1ExecuteEarlyScripts;
 		
-		std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1);
+		std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1, -1);
 		
 		for (auto script_block : early_blocks)
 			if (script_block->active_)
@@ -1211,9 +1220,9 @@ bool SLiMSim::_RunOneGeneration(void)
 		//
 		generation_stage_ = SLiMGenerationStage::kStage2GenerateOffspring;
 		
-		std::vector<SLiMEidosBlock*> mate_choice_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosMateChoiceCallback, -1, -1);
-		std::vector<SLiMEidosBlock*> modify_child_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosModifyChildCallback, -1, -1);
-		std::vector<SLiMEidosBlock*> recombination_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosRecombinationCallback, -1, -1);
+		std::vector<SLiMEidosBlock*> mate_choice_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosMateChoiceCallback, -1, -1, -1);
+		std::vector<SLiMEidosBlock*> modify_child_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosModifyChildCallback, -1, -1, -1);
+		std::vector<SLiMEidosBlock*> recombination_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosRecombinationCallback, -1, -1, -1);
 		bool mate_choice_callbacks_present = mate_choice_callbacks.size();
 		bool modify_child_callbacks_present = modify_child_callbacks.size();
 		bool recombination_callbacks_present = recombination_callbacks.size();
@@ -1339,7 +1348,7 @@ bool SLiMSim::_RunOneGeneration(void)
 		//
 		generation_stage_ = SLiMGenerationStage::kStage5ExecuteLateScripts;
 		
-		std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1);
+		std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1, -1);
 		
 		for (auto script_block : late_blocks)
 			if (script_block->active_)
@@ -3246,6 +3255,54 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 			
 			//
+			//	*********************	– (object<SLiMEidosBlock>$)registerInteractionCallback(Nis$ id, string$ source, io<InteractionType>$ intType, [Nio<Subpopulation>$ subpop = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
+			//
+#pragma mark -registerInteractionCallback()
+			
+		case gID_registerInteractionCallback:
+		{
+			slim_objectid_t script_id = -1;		// used if the arg0 is NULL, to indicate an anonymous block
+			string script_string = arg1_value->StringAtIndex(0, nullptr);
+			slim_objectid_t int_type_id = (arg2_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg2_value->IntAtIndex(0, nullptr)) : ((InteractionType *)arg2_value->ObjectElementAtIndex(0, nullptr))->interaction_type_id_;
+			slim_objectid_t subpop_id = -1;
+			slim_generation_t start_generation = ((arg4_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(arg4_value->IntAtIndex(0, nullptr)) : 1);
+			slim_generation_t end_generation = ((arg5_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(arg5_value->IntAtIndex(0, nullptr)) : SLIM_MAX_GENERATION);
+			
+			if (arg0_value->Type() != EidosValueType::kValueNULL)
+				script_id = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 's', nullptr);
+			
+			if (arg3_value->Type() != EidosValueType::kValueNULL)
+				subpop_id = (arg3_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg3_value->IntAtIndex(0, nullptr)) : ((Subpopulation *)arg3_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
+			
+			if (start_generation > end_generation)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerInteractionCallback() requires start <= end." << eidos_terminate();
+			
+			SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, SLiMEidosBlockType::SLiMEidosInteractionCallback, start_generation, end_generation);
+			
+			new_script_block->interaction_type_id_ = int_type_id;
+			new_script_block->subpopulation_id_ = subpop_id;
+			
+			script_blocks_.emplace_back(new_script_block);		// takes ownership from us
+			scripts_changed_ = true;
+			
+			new_script_block->TokenizeAndParse();	// can raise
+			
+			if (script_id != -1)
+			{
+				// define a new Eidos variable to refer to the new script
+				EidosSymbolTableEntry &symbol_entry = new_script_block->ScriptBlockSymbolTableEntry();
+				
+				if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerInteractionCallback() symbol " << StringForEidosGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << eidos_terminate();
+				
+				simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
+			}
+			
+			return new_script_block->SelfSymbolTableEntry().second;
+		}
+			
+			
+			//
 			//	*********************	– (object<SLiMEidosBlock>$)registerMateChoiceCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
 			//	*********************	– (object<SLiMEidosBlock>$)registerModifyChildCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
 			//	*********************	– (object<SLiMEidosBlock>$)registerRecombinationCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
@@ -3467,6 +3524,7 @@ const std::vector<const EidosMethodSignature *> *SLiMSim_Class::Methods(void) co
 		methods->emplace_back(SignatureForMethodOrRaise(gID_registerEarlyEvent));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_registerLateEvent));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_registerFitnessCallback));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_registerInteractionCallback));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_registerMateChoiceCallback));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_registerModifyChildCallback));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_registerRecombinationCallback));
@@ -3495,6 +3553,7 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 	static EidosInstanceMethodSignature *registerEarlyEventSig = nullptr;
 	static EidosInstanceMethodSignature *registerLateEventSig = nullptr;
 	static EidosInstanceMethodSignature *registerFitnessCallbackSig = nullptr;
+	static EidosInstanceMethodSignature *registerInteractionCallbackSig = nullptr;
 	static EidosInstanceMethodSignature *registerMateChoiceCallbackSig = nullptr;
 	static EidosInstanceMethodSignature *registerModifyChildCallbackSig = nullptr;
 	static EidosInstanceMethodSignature *registerRecombinationCallbackSig = nullptr;
@@ -3517,6 +3576,7 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 		registerEarlyEventSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerEarlyEvent, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL);
 		registerLateEventSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerLateEvent, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL);
 		registerFitnessCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerFitnessCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_S("mutType", gSLiM_MutationType_Class)->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL);
+		registerInteractionCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerInteractionCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_S("intType", gSLiM_InteractionType_Class)->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL);
 		registerMateChoiceCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerMateChoiceCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL);
 		registerModifyChildCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerModifyChildCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL);
 		registerRecombinationCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerRecombinationCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL);
@@ -3541,6 +3601,7 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 		case gID_registerEarlyEvent:					return registerEarlyEventSig;
 		case gID_registerLateEvent:						return registerLateEventSig;
 		case gID_registerFitnessCallback:				return registerFitnessCallbackSig;
+		case gID_registerInteractionCallback:			return registerInteractionCallbackSig;
 		case gID_registerMateChoiceCallback:			return registerMateChoiceCallbackSig;
 		case gID_registerModifyChildCallback:			return registerModifyChildCallbackSig;
 		case gID_registerRecombinationCallback:			return registerRecombinationCallbackSig;

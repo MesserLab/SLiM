@@ -93,6 +93,8 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 		
 		if (subpop_data->strengths_)
 			InitializeStrengths(*subpop_data);
+		
+		subpop_data->evaluation_interaction_callbacks_.clear();
 	}
 	
 	subpop_data->evaluated_ = true;
@@ -137,6 +139,12 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 		}
 	}
 	
+	// Cache the interaction() callbacks applicable at this moment, for this subpopulation and this interaction type
+	SLiMSim &sim = p_subpop->population_.sim_;
+	slim_generation_t generation = sim.Generation();
+	
+	subpop_data->evaluation_interaction_callbacks_ = sim.ScriptBlocksMatching(generation, SLiMEidosBlockType::SLiMEidosInteractionCallback, -1, interaction_type_id_, subpop_id);
+	
 	// If we're supposed to evaluate it immediately, do so
 	if (p_immediate)
 	{
@@ -177,6 +185,8 @@ void InteractionType::Invalidate(void)
 		}
 		
 		data.kd_root_ = nullptr;
+		
+		data.evaluation_interaction_callbacks_.clear();
 	}
 }
 
@@ -186,6 +196,8 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 	slim_popsize_t subpop_size = p_subpop->parent_subpop_size_;
 	Individual *subpop_individuals = p_subpop->parent_individuals_.data();
 	InteractionsData &subpop_data = data_[subpop_id];
+	std::vector<SLiMEidosBlock*> &callbacks = subpop_data.evaluation_interaction_callbacks_;
+	bool no_callbacks = (callbacks.size() == 0);
 	
 	if (spatiality_ == 0)
 	{
@@ -215,8 +227,10 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 				else
 				{
 					// Calculate the interaction strength
-					*exerting_strength = CalculateStrengthNoCallbacks(NAN);
-					//*exerting_strength = CalculateStrengthCallbacks(NAN, receiving_individual, exerting_individual, p_subpop);
+					if (no_callbacks)
+						*exerting_strength = CalculateStrengthNoCallbacks(NAN);
+					else
+						*exerting_strength = CalculateStrengthWithCallbacks(NAN, receiving_individual, exerting_individual, p_subpop, callbacks);
 				}
 				
 				exerting_index++, exerting_strength++, exerting_individual++;
@@ -287,8 +301,12 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 					*exerting_distance = distance;
 					
 					if (distance <= max_distance_)
-						*exerting_strength = CalculateStrengthNoCallbacks(distance);
-						//*exerting_strength = CalculateStrengthCallbacks(distance, receiving_individual, exerting_individual, p_subpop);
+					{
+						if (no_callbacks)
+							*exerting_strength = CalculateStrengthNoCallbacks(distance);
+						else
+							*exerting_strength = CalculateStrengthWithCallbacks(distance, receiving_individual, exerting_individual, p_subpop, callbacks);
+					}
 					else
 						*exerting_strength = 0.0;
 				}
@@ -346,14 +364,112 @@ double InteractionType::CalculateStrengthNoCallbacks(double p_distance)
 	}
 }
 
-double InteractionType::CalculateStrengthCallbacks(double p_distance, Individual *receiver, Individual *exerter, Subpopulation *p_subpop)
+double InteractionType::CalculateStrengthWithCallbacks(double p_distance, Individual *receiver, Individual *exerter, Subpopulation *p_subpop, std::vector<SLiMEidosBlock*> &p_interaction_callbacks)
 {
 	// CAUTION: This method should only be called when p_distance <= max_distance_ (or is NAN).
 	// It is the caller's responsibility to do that filtering, for performance reasons!
 	// NOTE: The caller does *not* need to guarantee that this is not a self-interaction.
 	// That is taken care of automatically by the logic in EnsureStrengthsPresent(), which
 	// zeroes out all self-interactions at the outset.  This will never be called in that case.
-	return CalculateStrengthNoCallbacks(p_distance);
+	double strength = CalculateStrengthNoCallbacks(p_distance);
+	
+	strength = ApplyInteractionCallbacks(receiver, exerter, p_subpop, strength, p_distance, p_interaction_callbacks);
+	
+	return strength;
+}
+
+double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Individual *p_exerter, Subpopulation *p_subpop, double p_strength, double p_distance, std::vector<SLiMEidosBlock*> &p_interaction_callbacks)
+{
+	SLiMSim &sim = p_subpop->population_.sim_;
+	
+	for (SLiMEidosBlock *interaction_callback : p_interaction_callbacks)
+	{
+		if (interaction_callback->active_)
+		{
+			// The callback is active and matches our interaction type id, so we need to execute it
+			const EidosASTNode *compound_statement_node = interaction_callback->compound_statement_node_;
+			
+			if (compound_statement_node->cached_value_)
+			{
+				// The script is a constant expression such as "{ return 1.1; }", so we can short-circuit it completely
+				EidosValue_SP result_SP = compound_statement_node->cached_value_;
+				EidosValue *result = result_SP.get();
+				
+				if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyInteractionCallbacks): interaction() callbacks must provide a float singleton return value." << eidos_terminate(interaction_callback->identifier_token_);
+				
+				p_strength = result->FloatAtIndex(0, nullptr);
+				
+				// the cached value is owned by the tree, so we do not dispose of it
+				// there is also no script output to handle
+			}
+			else
+			{
+				// local variables for the callback parameters that we might need to allocate here, and thus need to free below
+				EidosValue_Float_singleton local_distance(p_distance);
+				EidosValue_Float_singleton local_strength(p_strength);
+				
+				// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
+				{
+					EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &p_subpop->population_.sim_.SymbolTable());
+					EidosSymbolTable client_symbols(EidosSymbolTableType::kVariablesTable, &callback_symbols);
+					EidosFunctionMap *function_map = EidosInterpreter::BuiltInFunctionMap();
+					EidosInterpreter interpreter(interaction_callback->compound_statement_node_, client_symbols, *function_map, &sim);
+					
+					if (interaction_callback->contains_self_)
+						callback_symbols.InitializeConstantSymbolEntry(interaction_callback->SelfSymbolTableEntry());		// define "self"
+					
+					// Set all of the callback's parameters; note we use InitializeConstantSymbolEntry() for speed.
+					// We can use that method because we know the lifetime of the symbol table is shorter than that of
+					// the value objects, and we know that the values we are setting here will not change (the objects
+					// referred to by the values may change, but the values themselves will not change).
+					if (interaction_callback->contains_distance_)
+					{
+						local_distance.stack_allocated();		// prevent Eidos_intrusive_ptr from trying to delete this
+						callback_symbols.InitializeConstantSymbolEntry(gID_distance, EidosValue_SP(&local_distance));
+					}
+					if (interaction_callback->contains_strength_)
+					{
+						local_strength.stack_allocated();		// prevent Eidos_intrusive_ptr from trying to delete this
+						callback_symbols.InitializeConstantSymbolEntry(gID_strength, EidosValue_SP(&local_strength));
+					}
+					if (interaction_callback->contains_receiver_)
+						callback_symbols.InitializeConstantSymbolEntry(gID_receiver, p_receiver->CachedEidosValue());
+					if (interaction_callback->contains_exerter_)
+						callback_symbols.InitializeConstantSymbolEntry(gID_exerter, p_exerter->CachedEidosValue());
+					if (interaction_callback->contains_subpop_)
+						callback_symbols.InitializeConstantSymbolEntry(gID_subpop, p_subpop->SymbolTableEntry().second);
+					
+					try
+					{
+						// Interpret the script; the result from the interpretation must be a singleton double used as a new fitness value
+						EidosValue_SP result_SP = interpreter.EvaluateInternalBlock(interaction_callback->script_);
+						EidosValue *result = result_SP.get();
+						
+						if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
+							EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyInteractionCallbacks): interaction() callbacks must provide a float singleton return value." << eidos_terminate(interaction_callback->identifier_token_);
+						
+						p_strength = result->FloatAtIndex(0, nullptr);
+						
+						if (isnan(p_strength) || isinf(p_strength) || (p_strength < 0.0))
+							EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyInteractionCallbacks): interaction() callbacks must return a finite value >= 0.0." << eidos_terminate(interaction_callback->identifier_token_);
+						
+						// Output generated by the interpreter goes to our output stream
+						SLIM_OUTSTREAM << interpreter.ExecutionOutput();
+					}
+					catch (...)
+					{
+						// Emit final output even on a throw, so that stop() messages and such get printed
+						SLIM_OUTSTREAM << interpreter.ExecutionOutput();
+						
+						throw;
+					}
+				}
+			}
+		}
+	}
+	
+	return p_strength;
 }
 
 void InteractionType::EnsureDistancesPresent(InteractionsData &p_subpop_data)
@@ -1277,6 +1393,12 @@ void InteractionType::FindNeighbors(Subpopulation *p_subpop, InteractionsData &p
 #pragma mark -
 #pragma mark k-d tree total strength calculation
 
+// the functions below can work with the globals here to execute callbacks; it would be slightly faster to replicate all the code
+// and eliminate the if (!gSLiM_Recursive_callbacks), but that is only hit when we find a neighbor with an uncalculated strength
+static Subpopulation *gSLiM_Recursive_subpop = nullptr;
+static Individual *gSLiM_Recursive_receiver = nullptr;
+static std::vector<SLiMEidosBlock*> *gSLiM_Recursive_callbacks = nullptr;
+
 // total all neighbor strengths in 1D
 double InteractionType::TotalNeighborStrengthA_1(SLiM_kdNode *root, double *nd, double *p_focal_strengths)
 {
@@ -1293,7 +1415,11 @@ double InteractionType::TotalNeighborStrengthA_1(SLiM_kdNode *root, double *nd, 
 		
 		if (isnan(strength))
 		{
-			strength = CalculateStrengthNoCallbacks(distance);
+			if (!gSLiM_Recursive_callbacks)
+				strength = CalculateStrengthNoCallbacks(distance);
+			else
+				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, &gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
+			
 			p_focal_strengths[root_individual_index] = strength;
 		}
 		
@@ -1346,7 +1472,11 @@ double InteractionType::TotalNeighborStrengthA_2(SLiM_kdNode *root, double *nd, 
 		
 		if (isnan(strength))
 		{
-			strength = CalculateStrengthNoCallbacks(distance);
+			if (!gSLiM_Recursive_callbacks)
+				strength = CalculateStrengthNoCallbacks(distance);
+			else
+				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, &gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
+			
 			p_focal_strengths[root_individual_index] = strength;
 		}
 		
@@ -1401,7 +1531,11 @@ double InteractionType::TotalNeighborStrengthA_3(SLiM_kdNode *root, double *nd, 
 		
 		if (isnan(strength))
 		{
-			strength = CalculateStrengthNoCallbacks(distance);
+			if (!gSLiM_Recursive_callbacks)
+				strength = CalculateStrengthNoCallbacks(distance);
+			else
+				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, &gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
+			
 			p_focal_strengths[root_individual_index] = strength;
 		}
 		
@@ -1453,15 +1587,43 @@ double InteractionType::TotalNeighborStrength(Subpopulation *p_subpop, Interacti
 		slim_popsize_t focal_index = p_excluded_individual->index_;
 		double *focal_strengths = p_subpop_data.strengths_ + focal_index * p_subpop_data.individual_count_;
 		double *focal_distances = p_subpop_data.distances_ + focal_index * p_subpop_data.individual_count_;
+		std::vector<SLiMEidosBlock*> &callbacks = p_subpop_data.evaluation_interaction_callbacks_;
 		
-		switch (spatiality_)
+		if (callbacks.size() == 0)
 		{
-			case 1: return TotalNeighborStrengthA_1(p_subpop_data.kd_root_, p_point, focal_strengths);
-			case 2: return TotalNeighborStrengthA_2(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, 0);
-			case 3: return TotalNeighborStrengthA_3(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, 0);
+			// No callbacks; we can assume that the callback-related globals are nilled out
+			switch (spatiality_)
+			{
+				case 1: return TotalNeighborStrengthA_1(p_subpop_data.kd_root_, p_point, focal_strengths);
+				case 2: return TotalNeighborStrengthA_2(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, 0);
+				case 3: return TotalNeighborStrengthA_3(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, 0);
+			}
+			
+			return 0.0;
 		}
-		
-		return 0.0;
+		else
+		{
+			// We have callbacks, so populate our callback-related globals
+			gSLiM_Recursive_subpop = p_subpop;
+			gSLiM_Recursive_receiver = p_excluded_individual;
+			gSLiM_Recursive_callbacks = &callbacks;
+			
+			double total;
+			
+			switch (spatiality_)
+			{
+				case 1: total = TotalNeighborStrengthA_1(p_subpop_data.kd_root_, p_point, focal_strengths); break;
+				case 2: total = TotalNeighborStrengthA_2(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, 0); break;
+				case 3: total = TotalNeighborStrengthA_3(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, 0); break;
+				default: total = 0.0; break;
+			}
+			
+			gSLiM_Recursive_subpop = nullptr;
+			gSLiM_Recursive_receiver = nullptr;
+			gSLiM_Recursive_callbacks = nullptr;
+			
+			return total;
+		}
 	}
 }
 
@@ -1484,7 +1646,11 @@ void InteractionType::FillNeighborStrengthsA_1(SLiM_kdNode *root, double *nd, do
 		
 		if (isnan(strength))
 		{
-			strength = CalculateStrengthNoCallbacks(distance);
+			if (!gSLiM_Recursive_callbacks)
+				strength = CalculateStrengthNoCallbacks(distance);
+			else
+				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, &gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
+			
 			p_focal_strengths[root_individual_index] = strength;
 		}
 		
@@ -1534,7 +1700,11 @@ void InteractionType::FillNeighborStrengthsA_2(SLiM_kdNode *root, double *nd, do
 		
 		if (isnan(strength))
 		{
-			strength = CalculateStrengthNoCallbacks(distance);
+			if (!gSLiM_Recursive_callbacks)
+				strength = CalculateStrengthNoCallbacks(distance);
+			else
+				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, &gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
+			
 			p_focal_strengths[root_individual_index] = strength;
 		}
 		
@@ -1586,7 +1756,11 @@ void InteractionType::FillNeighborStrengthsA_3(SLiM_kdNode *root, double *nd, do
 		
 		if (isnan(strength))
 		{
-			strength = CalculateStrengthNoCallbacks(distance);
+			if (!gSLiM_Recursive_callbacks)
+				strength = CalculateStrengthNoCallbacks(distance);
+			else
+				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, &gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
+			
 			p_focal_strengths[root_individual_index] = strength;
 		}
 		
@@ -1636,12 +1810,35 @@ void InteractionType::FillNeighborStrengths(Subpopulation *p_subpop, Interaction
 		slim_popsize_t focal_index = p_excluded_individual->index_;
 		double *focal_strengths = p_subpop_data.strengths_ + focal_index * p_subpop_data.individual_count_;
 		double *focal_distances = p_subpop_data.distances_ + focal_index * p_subpop_data.individual_count_;
+		std::vector<SLiMEidosBlock*> &callbacks = p_subpop_data.evaluation_interaction_callbacks_;
 		
-		switch (spatiality_)
+		if (callbacks.size() == 0)
 		{
-			case 1: FillNeighborStrengthsA_1(p_subpop_data.kd_root_, p_point, focal_strengths, p_result_vec); break;
-			case 2: FillNeighborStrengthsA_2(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, p_result_vec, 0); break;
-			case 3: FillNeighborStrengthsA_3(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, p_result_vec, 0); break;
+			// No callbacks; we can assume that the callback-related globals are nilled out
+			switch (spatiality_)
+			{
+				case 1: FillNeighborStrengthsA_1(p_subpop_data.kd_root_, p_point, focal_strengths, p_result_vec); break;
+				case 2: FillNeighborStrengthsA_2(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, p_result_vec, 0); break;
+				case 3: FillNeighborStrengthsA_3(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, p_result_vec, 0); break;
+			}
+		}
+		else
+		{
+			// We have callbacks, so populate our callback-related globals
+			gSLiM_Recursive_subpop = p_subpop;
+			gSLiM_Recursive_receiver = p_excluded_individual;
+			gSLiM_Recursive_callbacks = &callbacks;
+			
+			switch (spatiality_)
+			{
+				case 1: FillNeighborStrengthsA_1(p_subpop_data.kd_root_, p_point, focal_strengths, p_result_vec); break;
+				case 2: FillNeighborStrengthsA_2(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, p_result_vec, 0); break;
+				case 3: FillNeighborStrengthsA_3(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, p_result_vec, 0); break;
+			}
+			
+			gSLiM_Recursive_subpop = nullptr;
+			gSLiM_Recursive_receiver = nullptr;
+			gSLiM_Recursive_callbacks = nullptr;
 		}
 	}
 }
@@ -1950,6 +2147,8 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 			
 			// Find the neighbors
 			InteractionsData &subpop_data = subpop_data_iter->second;
+			std::vector<SLiMEidosBlock*> &callbacks = subpop_data.evaluation_interaction_callbacks_;
+			bool no_callbacks = (callbacks.size() == 0);
 			
 			EnsureKDTreePresent(subpop_data);
 			EnsureStrengthsPresent(subpop_data);
@@ -1992,7 +2191,11 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 					
 					if (isnan(strength))
 					{
-						strength = CalculateStrengthNoCallbacks(NAN);
+						if (no_callbacks)
+							strength = CalculateStrengthNoCallbacks(NAN);
+						else
+							strength = CalculateStrengthWithCallbacks(NAN, individual, ind2, subpop, callbacks);
+						
 						ind1_strengths[ind2_index_in_subpop] = strength;
 					}
 					
@@ -2024,7 +2227,18 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 							ind1_distances[ind2_index_in_subpop] = distance;
 						}
 						
-						strength = ((distance <= max_distance_) ? CalculateStrengthNoCallbacks(distance) : 0.0);
+						if (distance <= max_distance_)
+						{
+							if (no_callbacks)
+								strength = CalculateStrengthNoCallbacks(distance);
+							else
+								strength = CalculateStrengthWithCallbacks(distance, individual, ind2, subpop, callbacks);
+						}
+						else
+						{
+							strength = 0.0;
+						}
+						
 						ind1_strengths[ind2_index_in_subpop] = strength;
 					}
 					
@@ -2327,6 +2541,8 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): strength() requires that the interaction has been evaluated for the subpopulation first." << eidos_terminate();
 			
 			InteractionsData &subpop_data = subpop_data_iter->second;
+			std::vector<SLiMEidosBlock*> &callbacks = subpop_data.evaluation_interaction_callbacks_;
+			bool no_callbacks = (callbacks.size() == 0);
 			
 			EnsureStrengthsPresent(subpop_data);
 			
@@ -2364,7 +2580,18 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 									ind1_distances[ind2_index] = distance;
 								}
 								
-								strength = ((distance <= max_distance_) ? CalculateStrengthNoCallbacks(distance) : 0.0);
+								if (distance <= max_distance_)
+								{
+									if (no_callbacks)
+										strength = CalculateStrengthNoCallbacks(distance);
+									else
+										strength = CalculateStrengthWithCallbacks(distance, ind1, &subpop1->parent_individuals_[ind2_index], subpop1, callbacks);
+								}
+								else
+								{
+									strength = 0.0;
+								}
+								
 								ind1_strengths[ind2_index] = strength;
 							}
 							
@@ -2419,7 +2646,18 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 								ind1_distances[ind2_index_in_subpop] = distance;
 							}
 							
-							strength = ((distance <= max_distance_) ? CalculateStrengthNoCallbacks(distance) : 0.0);
+							if (distance <= max_distance_)
+							{
+								if (no_callbacks)
+									strength = CalculateStrengthNoCallbacks(distance);
+								else
+									strength = CalculateStrengthWithCallbacks(distance, ind1, ind2, subpop1, callbacks);
+							}
+							else
+							{
+								strength = 0.0;
+							}
+							
 							ind1_strengths[ind2_index_in_subpop] = strength;
 						}
 						
@@ -2448,7 +2686,11 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 						
 						if (isnan(strength))
 						{
-							strength = CalculateStrengthNoCallbacks(NAN);
+							if (no_callbacks)
+								strength = CalculateStrengthNoCallbacks(NAN);
+							else
+								strength = CalculateStrengthWithCallbacks(NAN, ind1, &subpop1->parent_individuals_[ind2_index], subpop1, callbacks);
+							
 							ind1_strengths[ind2_index] = strength;
 						}
 						
@@ -2474,7 +2716,11 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 						
 						if (isnan(strength))
 						{
-							strength = CalculateStrengthNoCallbacks(NAN);
+							if (no_callbacks)
+								strength = CalculateStrengthNoCallbacks(NAN);
+							else
+								strength = CalculateStrengthWithCallbacks(NAN, ind1, ind2, subpop1, callbacks);
+							
 							ind1_strengths[ind2_index_in_subpop] = strength;
 						}
 						
@@ -2718,6 +2964,7 @@ EidosValue_SP InteractionType_Class::ExecuteClassMethod(EidosGlobalStringID p_me
 _InteractionsData::_InteractionsData(_InteractionsData&& source)
 {
 	evaluated_ = source.evaluated_;
+	evaluation_interaction_callbacks_.swap(source.evaluation_interaction_callbacks_);
 	individual_count_ = source.individual_count_;
 	positions_ = source.positions_;
 	distances_ = source.distances_;
@@ -2726,6 +2973,7 @@ _InteractionsData::_InteractionsData(_InteractionsData&& source)
 	kd_root_ = source.kd_root_;
 	
 	source.evaluated_ = false;
+	source.evaluation_interaction_callbacks_.clear();
 	source.individual_count_ = 0;
 	source.positions_ = nullptr;
 	source.distances_ = nullptr;
@@ -2748,6 +2996,7 @@ _InteractionsData& _InteractionsData::operator=(_InteractionsData&& source)
 			free(kd_nodes_);
 		
 		evaluated_ = source.evaluated_;
+		evaluation_interaction_callbacks_.swap(source.evaluation_interaction_callbacks_);
 		individual_count_ = source.individual_count_;
 		positions_ = source.positions_;
 		distances_ = source.distances_;
@@ -2756,6 +3005,7 @@ _InteractionsData& _InteractionsData::operator=(_InteractionsData&& source)
 		kd_root_ = source.kd_root_;
 		
 		source.evaluated_ = false;
+		source.evaluation_interaction_callbacks_.clear();
 		source.individual_count_ = 0;
 		source.positions_ = nullptr;
 		source.distances_ = nullptr;

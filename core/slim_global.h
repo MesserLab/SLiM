@@ -372,6 +372,7 @@ extern const std::string gStr_recalculateFitness;
 extern const std::string gStr_registerEarlyEvent;
 extern const std::string gStr_registerLateEvent;
 extern const std::string gStr_registerFitnessCallback;
+extern const std::string gStr_registerInteractionCallback;
 extern const std::string gStr_registerMateChoiceCallback;
 extern const std::string gStr_registerModifyChildCallback;
 extern const std::string gStr_registerRecombinationCallback;
@@ -429,6 +430,8 @@ extern const std::string gStr_homozygous;
 extern const std::string gStr_breakpoints;
 extern const std::string gStr_gcStarts;
 extern const std::string gStr_gcEnds;
+extern const std::string gStr_receiver;
+extern const std::string gStr_exerter;
 
 extern const std::string gStr_SLiMEidosDictionary;
 extern const std::string gStr_Chromosome;
@@ -458,6 +461,7 @@ extern const std::string gStr_early;
 extern const std::string gStr_late;
 extern const std::string gStr_initialize;
 extern const std::string gStr_fitness;
+extern const std::string gStr_interaction;
 extern const std::string gStr_mateChoice;
 extern const std::string gStr_modifyChild;
 extern const std::string gStr_recombination;
@@ -586,6 +590,7 @@ enum _SLiMGlobalStringID : int {
 	gID_registerEarlyEvent,
 	gID_registerLateEvent,
 	gID_registerFitnessCallback,
+	gID_registerInteractionCallback,
 	gID_registerMateChoiceCallback,
 	gID_registerModifyChildCallback,
 	gID_registerRecombinationCallback,
@@ -643,6 +648,8 @@ enum _SLiMGlobalStringID : int {
 	gID_breakpoints,
 	gID_gcStarts,
 	gID_gcEnds,
+	gID_receiver,
+	gID_exerter,
 	
 	gID_Chromosome,
 	gID_Genome,
@@ -671,6 +678,7 @@ enum _SLiMGlobalStringID : int {
 	gID_late,
 	gID_initialize,
 	gID_fitness,
+	gID_interaction,
 	gID_mateChoice,
 	gID_modifyChild,
 	gID_recombination,
