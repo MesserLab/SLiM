@@ -298,6 +298,8 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 	double *current_weights = standard_weights;
 	slim_popsize_t weights_length = p_source_subpop->cached_fitness_size_;
 	bool weights_modified = false;
+	Individual *chosen_mate = nullptr;			// callbacks can return an Individual instead of a weights vector, held here
+	bool weights_reflect_chosen_mate = false;	// if T, a weights vector has been created with a 1 for the chosen mate, to pass to the next callback
 	SLiMEidosBlock *last_interventionist_mate_choice_callback = nullptr;
 	
 	for (SLiMEidosBlock *mate_choice_callback : p_mate_choice_callbacks)
@@ -307,6 +309,22 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 			// local variables for the callback parameters that we might need to allocate here, and thus need to free below
 			EidosValue_SP local_weights_ptr;
 			bool redraw_mating = false;
+			
+			if (chosen_mate && !weights_reflect_chosen_mate && mate_choice_callback->contains_weights_)
+			{
+				// A previous callback said it wanted a specific individual to be the mate.  We now need to make a weights vector
+				// to represent that, since we have another callback that wants an incoming weights vector.
+				if (!weights_modified)
+				{
+					current_weights = (double *)malloc(sizeof(double) * weights_length);	// allocate a new weights vector
+					weights_modified = true;
+				}
+				
+				bzero(current_weights, sizeof(double) * weights_length);
+				current_weights[chosen_mate->index_] = 1.0;
+				
+				weights_reflect_chosen_mate = true;
+			}
 			
 			// The callback is active, so we need to execute it; we start a block here to manage the lifetime of the symbol table
 			{
@@ -362,6 +380,22 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 					{
 						// NULL indicates that the mateChoice() callback did not wish to alter the weights, so we do nothing
 					}
+					else if (result->Type() == EidosValueType::kValueObject)
+					{
+						// A singleton vector of type Individual may be returned to choose a specific mate
+						if ((result->Count() == 1) && (((EidosValue_Object *)result)->Class() == gSLiM_Individual_Class))
+						{
+							chosen_mate = (Individual *)result->ObjectElementAtIndex(0, mate_choice_callback->identifier_token_);
+							weights_reflect_chosen_mate = false;
+							
+							// remember this callback for error attribution below
+							last_interventionist_mate_choice_callback = mate_choice_callback;
+						}
+						else
+						{
+							EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): invalid return value for mateChoice() callback." << eidos_terminate(mate_choice_callback->identifier_token_);
+						}
+					}
 					else if (result->Type() == EidosValueType::kValueFloat)
 					{
 						int result_count = result->Count();
@@ -373,6 +407,10 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 						}
 						else if (result_count == weights_length)
 						{
+							// if we used to have a specific chosen mate, we don't any more
+							chosen_mate = nullptr;
+							weights_reflect_chosen_mate = false;
+							
 							// a non-zero float vector must match the size of the source subpop, and provides a new set of weights for us to use
 							if (!weights_modified)
 							{
@@ -423,6 +461,23 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 				return -1;
 			}
 		}
+	}
+	
+	// If we have a specific chosen mate, then we don't need to draw, but we do need to check the sex of the proposed mate
+	if (chosen_mate)
+	{
+		slim_popsize_t drawn_parent = chosen_mate->index_;
+		
+		if (weights_modified)
+			free(current_weights);
+		
+		if (sex_enabled)
+		{
+			if (drawn_parent < p_source_subpop->parent_first_male_index_)
+				EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): second parent chosen by mateChoice() callback is female." << eidos_terminate(last_interventionist_mate_choice_callback->identifier_token_);
+		}
+		
+		return drawn_parent;
 	}
 	
 	// If a callback supplied a different set of weights, we need to use those weights to draw a male parent
