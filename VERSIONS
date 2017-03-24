@@ -26,6 +26,7 @@ development head:
 	make the mutation-type argument for fitness() callbacks allow NULL, to allow non-mutation-based fitness callbacks
 	rewrite recipes 13.1, 13.3, 13.10, 14.2, 14.3, 14.4, and 14.5 to use global fitness callbacks instead of marker mutations
 	allow mateChoice() callbacks to return a singleton Individual that is the chosen mate
+	rewrite recipe 11.2 to return a singleton Individual from its mateChoice() callback
 
 
 2.2.1 (build 992; Eidos version 1.2.1):
