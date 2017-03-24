@@ -1897,6 +1897,9 @@ This is normally a constant in simulations, so be sure you know what you are doi
 \f3 .
 \f0   Other script-defined behaviors in 
 \f2\fs18 fitness()
+\f3\fs20 ,
+\f0  
+\f2\fs18 interaction()
 \f0\fs20 , 
 \f2\fs18 mateChoice()
 \f0\fs20 , 
@@ -2867,7 +2870,7 @@ The optional parameter
 \f2\fs18 fitness()
 \f0\fs20  callbacks for the previous generation, as if the changes that you have made to fitness-influencing parameters were already in effect at the end of the previous generation when the new generation was first created and evaluated (usually it is simpler to just make such changes in a 
 \f2\fs18 late()
-\f0\fs20  event instead, however, in which calling 
+\f0\fs20  event instead, however, in which case calling 
 \f2\fs18 recalculateFitness()
 \f0\fs20  is probably not necessary at all since fitness values will be recalculated immediately afterwards).  Regardless of the value supplied for 
 \f2\fs18 generation
@@ -2914,7 +2917,7 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f0\fs20  will be defined as a global variable immediately by this method, and will also be returned by this method.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>$)registerFitnessCallback(Nis$\'a0id, string$\'a0source, io<MutationType>$\'a0mutType, [Nio<Subpopulation>$\'a0subpop
+\f2\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>$)registerFitnessCallback(Nis$\'a0id, string$\'a0source, Nio<MutationType>$\'a0mutType, [Nio<Subpopulation>$\'a0subpop
 \f3 \'a0
 \f2 =\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
@@ -2929,7 +2932,11 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f2\fs18 mutType
 \f0\fs20  (which may be an 
 \f2\fs18 integer
-\f0\fs20  identifier), optional subpopulation 
+\f0\fs20  mutation type identifier, or 
+\f2\fs18 NULL
+\f0\fs20  to indicate a global 
+\f2\fs18 fitness()
+\f0\fs20  callback), optional subpopulation 
 \f2\fs18 subpop
 \f0\fs20  (which may also be an 
 \f2\fs18 integer
@@ -2955,9 +2962,7 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \i may
 \i0  be eligible to execute in the current generation.  The new 
 \f2\fs18 SLiMEidosBlock
-\f0\fs20  will be defined as a global variable immediately by this method (see section 18
-\f3 .
-\f0 10), and will also be returned by this method.
+\f0\fs20  will be defined as a global variable immediately by this method, and will also be returned by this method.
 \f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 

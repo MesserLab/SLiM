@@ -331,7 +331,7 @@ Subpopulation::~Subpopulation(void)
 		free(cached_male_fitness_);
 }
 
-void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callbacks)
+void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callbacks, std::vector<SLiMEidosBlock*> &p_global_fitness_callbacks)
 {
 	// This function calculates the population mean fitness as a side effect
 	double totalFitness = 0.0;
@@ -367,6 +367,11 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		}
 	}
 	
+	// Figure out global callbacks; these are callbacks with NULL supplied for the mut-type id, which means that they are called
+	// exactly once per individual, for every individual regardless of genetics, to provide an entry point for alternate fitness definitions
+	int global_fitness_callback_count = (int)p_global_fitness_callbacks.size();
+	bool global_fitness_callbacks_exist = (global_fitness_callback_count > 0);
+	
 	// We cache the calculated fitness values, for use in PopulationView and mateChoice() callbacks and such
 	if (cached_fitness_capacity_ < parent_subpop_size_)
 	{
@@ -379,7 +384,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 	cached_fitness_size_ = 0;	// while we're refilling, the fitness cache is invalid
 	
 	// We optimize the pure neutral case, as long as no fitness callbacks are defined; fitness values are then simply 1.0, for everybody.
-	bool pure_neutral = (!fitness_callbacks_exist && population_.sim_.pure_neutral_);
+	bool pure_neutral = (!fitness_callbacks_exist && !global_fitness_callbacks_exist && population_.sim_.pure_neutral_);
 	
 	// calculate fitnesses in parent population and create new lookup table
 	if (sex_enabled_)
@@ -400,12 +405,19 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 			
 			if (pure_neutral)
 				fitness = 1.0;
-			else if (!fitness_callbacks_exist)
-				fitness = FitnessOfParentWithGenomeIndices_NoCallbacks(i);
-			else if (single_fitness_callback)
-				fitness = FitnessOfParentWithGenomeIndices_SingleCallback(i, p_fitness_callbacks, single_callback_mut_type);
 			else
-				fitness = FitnessOfParentWithGenomeIndices_Callbacks(i, p_fitness_callbacks);
+			{
+				if (!fitness_callbacks_exist)
+					fitness = FitnessOfParentWithGenomeIndices_NoCallbacks(i);
+				else if (single_fitness_callback)
+					fitness = FitnessOfParentWithGenomeIndices_SingleCallback(i, p_fitness_callbacks, single_callback_mut_type);
+				else
+					fitness = FitnessOfParentWithGenomeIndices_Callbacks(i, p_fitness_callbacks);
+				
+				// multiply in the effects of any global fitness callbacks (muttype==NULL)
+				if (global_fitness_callbacks_exist && (fitness > 0.0))
+					fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, i);
+			}
 			
 			cached_parental_fitness_[i] = fitness;
 			cached_male_fitness_[i] = 0;				// this vector has 0 for all females, for mateChoice() callbacks
@@ -429,12 +441,19 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 			
 			if (pure_neutral)
 				fitness = 1.0;
-			else if (!fitness_callbacks_exist)
-				fitness = FitnessOfParentWithGenomeIndices_NoCallbacks(individual_index);
-			else if (single_fitness_callback)
-				fitness = FitnessOfParentWithGenomeIndices_SingleCallback(individual_index, p_fitness_callbacks, single_callback_mut_type);
 			else
-				fitness = FitnessOfParentWithGenomeIndices_Callbacks(individual_index, p_fitness_callbacks);
+			{
+				if (!fitness_callbacks_exist)
+					fitness = FitnessOfParentWithGenomeIndices_NoCallbacks(individual_index);
+				else if (single_fitness_callback)
+					fitness = FitnessOfParentWithGenomeIndices_SingleCallback(individual_index, p_fitness_callbacks, single_callback_mut_type);
+				else
+					fitness = FitnessOfParentWithGenomeIndices_Callbacks(individual_index, p_fitness_callbacks);
+				
+				// multiply in the effects of any global fitness callbacks (muttype==NULL)
+				if (global_fitness_callbacks_exist && (fitness > 0.0))
+					fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, individual_index);
+			}
 			
 			cached_parental_fitness_[individual_index] = fitness;
 			cached_male_fitness_[individual_index] = fitness;
@@ -461,12 +480,19 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 			
 			if (pure_neutral)
 				fitness = 1.0;
-			else if (!fitness_callbacks_exist)
-				fitness = FitnessOfParentWithGenomeIndices_NoCallbacks(i);
-			else if (single_fitness_callback)
-				fitness = FitnessOfParentWithGenomeIndices_SingleCallback(i, p_fitness_callbacks, single_callback_mut_type);
 			else
-				fitness = FitnessOfParentWithGenomeIndices_Callbacks(i, p_fitness_callbacks);
+			{
+				if (!fitness_callbacks_exist)
+					fitness = FitnessOfParentWithGenomeIndices_NoCallbacks(i);
+				else if (single_fitness_callback)
+					fitness = FitnessOfParentWithGenomeIndices_SingleCallback(i, p_fitness_callbacks, single_callback_mut_type);
+				else
+					fitness = FitnessOfParentWithGenomeIndices_Callbacks(i, p_fitness_callbacks);
+				
+				// multiply in the effects of any global fitness callbacks (muttype==NULL)
+				if (global_fitness_callbacks_exist && (fitness > 0.0))
+					fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, i);
+			}
 			
 			*(fitness_buffer_ptr++) = fitness;
 			
@@ -595,6 +621,102 @@ double Subpopulation::ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygo
 	}
 	
 	return p_computed_fitness;
+}
+
+// This calculates the effects of global fitness callbacks, i.e. those with muttype==NULL and which therefore do not reference any mutation
+double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &p_fitness_callbacks, slim_popsize_t p_individual_index)
+{
+	double computed_fitness = 1.0;
+	Individual *individual = &(parent_individuals_[p_individual_index]);
+	Genome *genome1 = &(parent_genomes_[p_individual_index * 2]);
+	Genome *genome2 = &(parent_genomes_[p_individual_index * 2 + 1]);
+	SLiMSim &sim = population_.sim_;
+	
+	for (SLiMEidosBlock *fitness_callback : p_fitness_callbacks)
+	{
+		if (fitness_callback->active_)
+		{
+			// The callback is active, so we need to execute it
+			// This code is similar to Population::ExecuteScript, but we set up an additional symbol table, and we use the return value
+			const EidosASTNode *compound_statement_node = fitness_callback->compound_statement_node_;
+			
+			if (compound_statement_node->cached_value_)
+			{
+				// The script is a constant expression such as "{ return 1.1; }", so we can short-circuit it completely
+				EidosValue_SP result_SP = compound_statement_node->cached_value_;
+				EidosValue *result = result_SP.get();
+				
+				if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyGlobalFitnessCallbacks): fitness() callbacks must provide a float singleton return value." << eidos_terminate(fitness_callback->identifier_token_);
+				
+				computed_fitness *= result->FloatAtIndex(0, nullptr);
+				
+				// the cached value is owned by the tree, so we do not dispose of it
+				// there is also no script output to handle
+			}
+			else
+			{
+				// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
+				{
+					EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &population_.sim_.SymbolTable());
+					EidosSymbolTable client_symbols(EidosSymbolTableType::kVariablesTable, &callback_symbols);
+					EidosFunctionMap *function_map = EidosInterpreter::BuiltInFunctionMap();
+					EidosInterpreter interpreter(fitness_callback->compound_statement_node_, client_symbols, *function_map, &sim);
+					
+					if (fitness_callback->contains_self_)
+						callback_symbols.InitializeConstantSymbolEntry(fitness_callback->SelfSymbolTableEntry());		// define "self"
+					
+					// Set all of the callback's parameters; note we use InitializeConstantSymbolEntry() for speed.
+					// We can use that method because we know the lifetime of the symbol table is shorter than that of
+					// the value objects, and we know that the values we are setting here will not change (the objects
+					// referred to by the values may change, but the values themselves will not change).
+					if (fitness_callback->contains_mut_)
+						callback_symbols.InitializeConstantSymbolEntry(gID_mut, gStaticEidosValueNULL);
+					if (fitness_callback->contains_relFitness_)
+						callback_symbols.InitializeConstantSymbolEntry(gID_relFitness, gStaticEidosValue_Float1);
+					if (fitness_callback->contains_individual_)
+						callback_symbols.InitializeConstantSymbolEntry(gID_individual, individual->CachedEidosValue());
+					if (fitness_callback->contains_genome1_)
+						callback_symbols.InitializeConstantSymbolEntry(gID_genome1, genome1->CachedEidosValue());
+					if (fitness_callback->contains_genome2_)
+						callback_symbols.InitializeConstantSymbolEntry(gID_genome2, genome2->CachedEidosValue());
+					if (fitness_callback->contains_subpop_)
+						callback_symbols.InitializeConstantSymbolEntry(gID_subpop, SymbolTableEntry().second);
+					if (fitness_callback->contains_homozygous_)
+						callback_symbols.InitializeConstantSymbolEntry(gID_homozygous, gStaticEidosValueNULL);
+					
+					try
+					{
+						// Interpret the script; the result from the interpretation must be a singleton double used as a new fitness value
+						EidosValue_SP result_SP = interpreter.EvaluateInternalBlock(fitness_callback->script_);
+						EidosValue *result = result_SP.get();
+						
+						if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
+							EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyGlobalFitnessCallbacks): fitness() callbacks must provide a float singleton return value." << eidos_terminate(fitness_callback->identifier_token_);
+						
+						computed_fitness *= result->FloatAtIndex(0, nullptr);
+						
+						// Output generated by the interpreter goes to our output stream
+						SLIM_OUTSTREAM << interpreter.ExecutionOutput();
+					}
+					catch (...)
+					{
+						// Emit final output even on a throw, so that stop() messages and such get printed
+						SLIM_OUTSTREAM << interpreter.ExecutionOutput();
+						
+						throw;
+					}
+					
+				}
+			}
+			
+			// If any callback puts us at or below zero, we can short-circuit the rest
+			if (computed_fitness <= 0.0)
+				return 0.0;
+		}
+	}
+	
+	return computed_fitness;
 }
 
 // FitnessOfParentWithGenomeIndices has three versions, for no callbacks, a single callback, and multiple callbacks.  This is for two reasons.  First,

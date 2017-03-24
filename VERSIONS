@@ -23,6 +23,7 @@ development head:
 	add chapter 14 recipes
 	add chapter headers inside the Recipes menu
 	add support for interaction() callbacks
+	make the mutation-type argument for fitness() callbacks allow NULL, to allow non-mutation-based fitness callbacks
 
 
 2.2.1 (build 992; Eidos version 1.2.1):

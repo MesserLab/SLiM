@@ -2340,6 +2340,7 @@ void Population::RecalculateFitness(slim_generation_t p_generation)
 	// as per the SLiM design spec, we get the list of callbacks once, and use that list throughout this stage, but we construct
 	// subsets of it for each subpopulation, so that UpdateFitness() can just use the callback list as given to it
 	std::vector<SLiMEidosBlock*> fitness_callbacks = sim_.ScriptBlocksMatching(p_generation, SLiMEidosBlockType::SLiMEidosFitnessCallback, -1, -1, -1);
+	std::vector<SLiMEidosBlock*> global_fitness_callbacks = sim_.ScriptBlocksMatching(p_generation, SLiMEidosBlockType::SLiMEidosFitnessCallback, -2, -1, -1);
 	bool no_active_callbacks = true;
 	
 	for (SLiMEidosBlock *callback : fitness_callbacks)
@@ -2348,13 +2349,20 @@ void Population::RecalculateFitness(slim_generation_t p_generation)
 			no_active_callbacks = false;
 			break;
 		}
+	if (no_active_callbacks)
+		for (SLiMEidosBlock *callback : global_fitness_callbacks)
+			if (callback->active_)
+			{
+				no_active_callbacks = false;
+				break;
+			}
 	
 	if (no_active_callbacks)
 	{
 		std::vector<SLiMEidosBlock*> no_fitness_callbacks;
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
-			subpop_pair.second->UpdateFitness(no_fitness_callbacks);
+			subpop_pair.second->UpdateFitness(no_fitness_callbacks, no_fitness_callbacks);
 	}
 	else
 	{
@@ -2363,6 +2371,7 @@ void Population::RecalculateFitness(slim_generation_t p_generation)
 			slim_objectid_t subpop_id = subpop_pair.first;
 			Subpopulation *subpop = subpop_pair.second;
 			std::vector<SLiMEidosBlock*> subpop_fitness_callbacks;
+			std::vector<SLiMEidosBlock*> subpop_global_fitness_callbacks;
 			
 			// Get fitness callbacks that apply to this subpopulation
 			for (SLiMEidosBlock *callback : fitness_callbacks)
@@ -2372,9 +2381,16 @@ void Population::RecalculateFitness(slim_generation_t p_generation)
 				if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
 					subpop_fitness_callbacks.emplace_back(callback);
 			}
+			for (SLiMEidosBlock *callback : global_fitness_callbacks)
+			{
+				slim_objectid_t callback_subpop_id = callback->subpopulation_id_;
+				
+				if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
+					subpop_global_fitness_callbacks.emplace_back(callback);
+			}
 			
 			// Update fitness values, using the callbacks
-			subpop->UpdateFitness(subpop_fitness_callbacks);
+			subpop->UpdateFitness(subpop_fitness_callbacks, subpop_global_fitness_callbacks);
 		}
 	}
 }

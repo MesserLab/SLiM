@@ -171,7 +171,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 				
 				if (current_token_type_ == EidosTokenType::kTokenIdentifier)
 				{
-					// A (required) mutation type id is present; add it
+					// A (required) mutation type id (or NULL) is present; add it
 					callback_info_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
 					
 					Match(EidosTokenType::kTokenIdentifier, "SLiM fitness() callback");
@@ -555,7 +555,10 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 				
 				EidosToken *mutation_type_id_token = callback_children[0]->token_;
 				
-				mutation_type_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(mutation_type_id_token->token_string_, 'm', mutation_type_id_token);
+				if (mutation_type_id_token->token_string_ == gEidosStr_NULL)
+					mutation_type_id_ = -2;	// special placeholder that indicates a NULL mutation type identifier
+				else
+					mutation_type_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(mutation_type_id_token->token_string_, 'm', mutation_type_id_token);
 				
 				if (n_callback_children == 2)
 				{

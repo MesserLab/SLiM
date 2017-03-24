@@ -135,7 +135,7 @@ public:
 	
 	void GenerateChildrenToFit(const bool p_parents_also);											// given the subpop size and sex ratio currently set for the child generation, make new genomes to fit
 	inline IndividualSex SexOfIndividual(slim_popsize_t p_individual_index);						// return the sex of the individual at the given index; uses child_generation_valid
-	void UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callbacks);							// update the fitness lookup table based upon current mutations
+	void UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callbacks, std::vector<SLiMEidosBlock*> &p_global_fitness_callbacks);							// update the fitness lookup table based upon current mutations
 	
 	// calculate the fitness of a given individual; the x dominance coeff is used only if the X is modeled
 	double FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_t p_individual_index);
@@ -143,6 +143,8 @@ public:
 	double FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_fitness_callbacks, MutationType *p_single_callback_mut_type);
 	
 	double ApplyFitnessCallbacks(Mutation *p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_fitness_callbacks, Individual *p_individual, Genome *p_genome1, Genome *p_genome2);
+	double ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &p_fitness_callbacks, slim_popsize_t p_individual_index);
+	
 	void SwapChildAndParentGenomes(void);															// switch to the next generation by swapping; the children become the parents
 	bool ContainsGenome(Genome *p_genome);
 	

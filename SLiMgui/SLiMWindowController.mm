@@ -2484,7 +2484,7 @@
 			static EidosCallSignature *callbackSig = nullptr;
 			
 			if (!callbackSig)
-				callbackSig = (new EidosFunctionSignature("fitness", nullptr, kEidosValueMaskNULL))->AddObject_S("mutationType", gSLiM_MutationType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
+				callbackSig = (new EidosFunctionSignature("fitness", nullptr, kEidosValueMaskNULL))->AddObject_SN("mutationType", gSLiM_MutationType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
 			
 			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig];
 		}

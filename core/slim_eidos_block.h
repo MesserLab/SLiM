@@ -103,7 +103,7 @@ public:
 	EidosValue_SP cached_value_block_id_;						// a cached value for block_id_; reset() if that changes
 	
 	slim_generation_t start_generation_ = -1, end_generation_ = SLIM_MAX_GENERATION;		// the generation range to which the block is limited
-	slim_objectid_t mutation_type_id_ = -1;						// -1 if not limited by this
+	slim_objectid_t mutation_type_id_ = -1;						// -1 if not limited by this; -2 indicates a NULL mutation-type id
 	slim_objectid_t subpopulation_id_ = -1;						// -1 if not limited by this
 	slim_objectid_t interaction_type_id_ = -1;					// -1 if not limited by this
 	

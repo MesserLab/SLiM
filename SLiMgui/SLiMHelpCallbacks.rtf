@@ -350,6 +350,37 @@ More than one
 \f0\fs22  is not necessarily the default value, in fact, but is the result of all previous 
 \f2\fs18 fitness()
 \f0\fs22  callbacks for that individual in that generation.  In this way, the effects of multiple callbacks can \'93stack\'94.\
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
+\cf0 In SLiM version 2.3 and later, it is possible to define 
+\i global
+\i0  
+\f2\fs18 fitness()
+\f0\fs22  callbacks, which are applied exactly once to every individual (within a given subpopulation, if the 
+\f2\fs18 fitness()
+\f0\fs22  callback is declared to be limited to one subpopulation, as usual).  Global 
+\f2\fs18 fitness()
+\f0\fs22  callbacks do not reference a particular mutation type, and are not called in reference to any specific mutation in the individual; instead, they provide an opportunity for the model script to define fitness effects that are independent of specific mutations (although their fitness effects may still depend upon some aggregate genetic state).  For example, they are useful for defining the fitness effect of an individual\'92s overall phenotype (perhaps determined by multiple loci, and perhaps by developmental noise, phenotypic plasticity, etc.), or for defining the fitness effects of behavioral interactions between individuals such as competition or altruism
+\f3 .
+\f0   A global 
+\f2\fs18 fitness()
+\f0\fs22  callback is defined by giving 
+\f2\fs18 NULL
+\f0\fs22  as the mutation type identifier in the callback\'92s declaration.  These callbacks will be called once per individual in each generation.  When a global 
+\f2\fs18 fitness()
+\f0\fs22  callback is running, the 
+\f2\fs18 mut
+\f0\fs22  and 
+\f2\fs18 homozygous
+\f0\fs22  variables are defined to be 
+\f2\fs18 NULL
+\f0\fs22  (since there is no focal mutation), and 
+\f2\fs18 relFitness
+\f0\fs22  is defined to be 
+\f2\fs18 1.0
+\f3\fs22 .
+\f0   The fitness effect for the callback is simply returned as a singleton 
+\f2\fs18 float
+\f0\fs22  value, as usual.\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 \cf0 One caveat to be aware of is that 
 \f2\fs18 fitness()
