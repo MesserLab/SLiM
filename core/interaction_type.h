@@ -112,7 +112,8 @@ class InteractionType : public EidosObjectElement
 	
 	EidosSymbolTableEntry self_symbol_;							// for fast setup of the symbol table
 	
-	int spatiality_;							// 0=none, 1=x, 2=xy, 3=xyz
+	std::string spatiality_string_;				// can be "x", "y", "z", "xy", "xz", "yz", or "xyz"; this determines spatiality_
+	int spatiality_;							// 0=none, 1=1D (x/y/z), 2=2D (xy/xz/yz), 3=3D (xyz)
 	bool reciprocality_;						// if true, interaction strengths A->B == B->A
 	double max_distance_;						// the maximum distance, beyond which interaction strength is assumed to be zero
 	double max_distance_sq_;					// the maximum distance squared, cached for speed
@@ -176,7 +177,7 @@ public:
 	InteractionType(const InteractionType&) = delete;					// no copying
 	InteractionType& operator=(const InteractionType&) = delete;		// no copying
 	InteractionType(void) = delete;										// no null construction
-	InteractionType(slim_objectid_t p_interaction_type_id, int p_spatiality, bool p_reciprocality, double p_max_distance, IndividualSex p_target_sex, IndividualSex p_source_sex);
+	InteractionType(slim_objectid_t p_interaction_type_id, std::string p_spatiality_string, bool p_reciprocality, double p_max_distance, IndividualSex p_target_sex, IndividualSex p_source_sex);
 	~InteractionType(void);
 	
 	void EvaluateSubpopulation(Subpopulation *p_subpop, bool p_immediate);

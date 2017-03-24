@@ -1656,21 +1656,25 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		bool reciprocality = arg2_value->LogicalAtIndex(0, nullptr);
 		double maxDistance = arg3_value->FloatAtIndex(0, nullptr);
 		string sex_string = arg4_value->StringAtIndex(0, nullptr);
-		int spatiality;
+		int required_dimensionality;
 		IndividualSex target_sex = IndividualSex::kUnspecified, source_sex = IndividualSex::kUnspecified;
 		
 		if (interaction_types_.count(map_identifier) > 0) 
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() mutation type m" << map_identifier << " already defined." << eidos_terminate();
 		
-		if (spatiality_string.length() == 0)					spatiality = 0;
-		else if (spatiality_string.compare(gEidosStr_x) == 0)	spatiality = 1;
-		else if (spatiality_string.compare("xy") == 0)			spatiality = 2;
-		else if (spatiality_string.compare("xyz") == 0)			spatiality = 3;
+		if (spatiality_string.length() == 0)					required_dimensionality = 0;
+		else if (spatiality_string.compare(gEidosStr_x) == 0)	required_dimensionality = 1;
+		else if (spatiality_string.compare(gEidosStr_y) == 0)	required_dimensionality = 2;
+		else if (spatiality_string.compare(gEidosStr_z) == 0)	required_dimensionality = 3;
+		else if (spatiality_string.compare("xy") == 0)			required_dimensionality = 2;
+		else if (spatiality_string.compare("xz") == 0)			required_dimensionality = 3;
+		else if (spatiality_string.compare("yz") == 0)			required_dimensionality = 3;
+		else if (spatiality_string.compare("xyz") == 0)			required_dimensionality = 3;
 		else
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() spatiality \"" << spatiality_string << "\" must be \"\", \"x\", \"xy\", or \"xyz\"." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() spatiality \"" << spatiality_string << "\" must be \"\", \"x\", \"y\", \"z\", \"xy\", \"xz\", \"yz\", or \"xyz\"." << eidos_terminate();
 		
-		if (spatiality > spatial_dimensionality_)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() spatiality cannot exceed the spatial dimensions set in initializeSLiMOptions()." << eidos_terminate();
+		if (required_dimensionality > spatial_dimensionality_)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() spatiality cannot utilize spatial dimensions beyond those set in initializeSLiMOptions()." << eidos_terminate();
 		
 		if (maxDistance < 0.0)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() maxDistance must be >= 0.0." << eidos_terminate();
@@ -1695,7 +1699,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		if (((target_sex != IndividualSex::kUnspecified) || (source_sex != IndividualSex::kUnspecified)) && !sex_enabled_)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() sexSegregation value other than '**' unsupported in non-sexual simulation." << eidos_terminate();
 		
-		InteractionType *new_interaction_type = new InteractionType(map_identifier, spatiality, reciprocality, maxDistance, target_sex, source_sex);
+		InteractionType *new_interaction_type = new InteractionType(map_identifier, spatiality_string, reciprocality, maxDistance, target_sex, source_sex);
 		
 		interaction_types_.insert(std::pair<const slim_objectid_t,InteractionType*>(map_identifier, new_interaction_type));
 		interaction_types_changed_ = true;

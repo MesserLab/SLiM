@@ -41,11 +41,21 @@ std::ostream& operator<<(std::ostream& p_out, IFType p_if_type)
 }
 
 
-InteractionType::InteractionType(slim_objectid_t p_interaction_type_id, int p_spatiality, bool p_reciprocality, double p_max_distance, IndividualSex p_target_sex, IndividualSex p_source_sex) :
-	interaction_type_id_(p_interaction_type_id), spatiality_(p_spatiality), reciprocality_(p_reciprocality), max_distance_(p_max_distance), max_distance_sq_(p_max_distance * p_max_distance), target_sex_(p_target_sex), source_sex_(p_source_sex), if_type_(IFType::kFixed), if_param1_(1.0), if_param2_(0.0),
+InteractionType::InteractionType(slim_objectid_t p_interaction_type_id, std::string p_spatiality_string, bool p_reciprocality, double p_max_distance, IndividualSex p_target_sex, IndividualSex p_source_sex) :
+	interaction_type_id_(p_interaction_type_id), spatiality_string_(p_spatiality_string), reciprocality_(p_reciprocality), max_distance_(p_max_distance), max_distance_sq_(p_max_distance * p_max_distance), target_sex_(p_target_sex), source_sex_(p_source_sex), if_type_(IFType::kFixed), if_param1_(1.0), if_param2_(0.0),
 	self_symbol_(EidosGlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('i', p_interaction_type_id)),
 				 EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_InteractionType_Class)))
 {
+	if (spatiality_string_ == "")
+		spatiality_ = 0;
+	else if ((spatiality_string_ == "x") || (spatiality_string_ == "y") || (spatiality_string_ == "z"))
+		spatiality_ = 1;
+	else if ((spatiality_string_ == "xy") || (spatiality_string_ == "xz") || (spatiality_string_ == "yz"))
+		spatiality_ = 2;
+	else if (spatiality_string_ == "xyz")
+		spatiality_ = 3;
+	else
+		EIDOS_TERMINATION << "ERROR (InteractionType::InteractionType): illegal spatiality string value" << eidos_terminate();
 }
 
 InteractionType::~InteractionType(void)
@@ -110,7 +120,15 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 		Individual *individual = subpop_individuals;
 		double *ind_positions = positions;
 		
-		if (spatiality_ == 1)
+		// IMPORTANT: This is the only place in InteractionType's code where the spatial position of the individuals is
+		// accessed.  We cache all positions here, and then use the cache everywhere else.  This means that except for
+		// here, we can treat "x", "y", and "z" identically as 1D spatiality, "xy", "xz", and "yz" identically as 2D
+		// spatiality, and of course "xyz" as 3D spatiality.  We do that by storing the cached position information in
+		// the same slots regardless of which original coordinates it represents.  This also means that this is the
+		// only place in the code where spatiality_string_ should be used (apart from the property accessor); everywhere
+		// else, spatiality_ should suffice.  Be careful to keep following this convention, and the different spatiality
+		// values will just automatically work.
+		if (spatiality_string_ == "x")
 		{
 			while (ind_index < subpop_size)
 			{
@@ -118,7 +136,23 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 				++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
 			}
 		}
-		else if (spatiality_ == 2)
+		else if (spatiality_string_ == "y")
+		{
+			while (ind_index < subpop_size)
+			{
+				ind_positions[0] = individual->spatial_y_;
+				++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+			}
+		}
+		else if (spatiality_string_ == "z")
+		{
+			while (ind_index < subpop_size)
+			{
+				ind_positions[0] = individual->spatial_z_;
+				++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+			}
+		}
+		else if (spatiality_string_ == "xy")
 		{
 			while (ind_index < subpop_size)
 			{
@@ -127,7 +161,25 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 				++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
 			}
 		}
-		else if (spatiality_ == 3)
+		else if (spatiality_string_ == "xz")
+		{
+			while (ind_index < subpop_size)
+			{
+				ind_positions[0] = individual->spatial_x_;
+				ind_positions[1] = individual->spatial_z_;
+				++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+			}
+		}
+		else if (spatiality_string_ == "yz")
+		{
+			while (ind_index < subpop_size)
+			{
+				ind_positions[0] = individual->spatial_y_;
+				ind_positions[1] = individual->spatial_z_;
+				++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+			}
+		}
+		else if (spatiality_string_ == "xyz")
 		{
 			while (ind_index < subpop_size)
 			{
@@ -136,6 +188,10 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 				ind_positions[2] = individual->spatial_z_;
 				++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
 			}
+		}
+		else
+		{
+			EIDOS_TERMINATION << "ERROR (InteractionType::EvaluateSubpopulation): (internal error) illegal spatiality string value" << eidos_terminate();
 		}
 	}
 	
@@ -1878,44 +1934,27 @@ EidosValue_SP InteractionType::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_sexSegregation:
 		{
-			std::string spatiality_string;
+			std::string sex_segregation_string;
 			
 			switch (target_sex_)
 			{
-				case IndividualSex::kFemale:	spatiality_string += "F"; break;
-				case IndividualSex::kMale:		spatiality_string += "M"; break;
-				default:						spatiality_string += "*"; break;
+				case IndividualSex::kFemale:	sex_segregation_string += "F"; break;
+				case IndividualSex::kMale:		sex_segregation_string += "M"; break;
+				default:						sex_segregation_string += "*"; break;
 			}
 			
 			switch (source_sex_)
 			{
-				case IndividualSex::kFemale:	spatiality_string += "F"; break;
-				case IndividualSex::kMale:		spatiality_string += "M"; break;
-				default:						spatiality_string += "*"; break;
+				case IndividualSex::kFemale:	sex_segregation_string += "F"; break;
+				case IndividualSex::kMale:		sex_segregation_string += "M"; break;
+				default:						sex_segregation_string += "*"; break;
 			}
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(spatiality_string));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(sex_segregation_string));
 		}
 		case gID_spatiality:
 		{
-			static EidosValue_SP static_spatiality_string_x;
-			static EidosValue_SP static_spatiality_string_xy;
-			static EidosValue_SP static_spatiality_string_xyz;
-			
-			if (!static_spatiality_string_x)
-			{
-				static_spatiality_string_x = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_x));
-				static_spatiality_string_xy = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xy"));
-				static_spatiality_string_xyz = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xyz"));
-			}
-			
-			switch (spatiality_)
-			{
-				case 0:		return gStaticEidosValue_StringEmpty;
-				case 1:		return static_spatiality_string_x;
-				case 2:		return static_spatiality_string_xy;
-				case 3:		return static_spatiality_string_xyz;
-			}
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(spatiality_string_));
 		}
 			
 			// variables

@@ -86,33 +86,50 @@
 \f2\fs20  giving the name of the new interaction type (such as 
 \f0\fs18 "i5"
 \f2\fs20  to specify an ID of 5).\
-The 
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf0 The 
 \f0\fs18 spatiality
 \f2\fs20  may be 
 \f0\fs18 ""
-\f2\fs20 , for non-spatial interactions (i.e., interactions that do not depend upon the distance between individuals); or 
+\f2\fs20 , for non-spatial interactions (i.e., interactions that do not depend upon the distance between individuals); 
+\f0\fs18 "x"
+\f1\fs20 ,
+\f2  
+\f0\fs18 "y"
+\f2\fs20 , or 
+\f0\fs18 "z"
+\f2\fs20  for one-dimensional interactions; 
+\f0\fs18 "xy"
+\f2\fs20 , 
+\f0\fs18 "xz"
+\f2\fs20 , or 
+\f0\fs18 "yz"
+\f2\fs20  for two-dimensional interactions; or 
+\f0\fs18 "xyz"
+\f2\fs20  for three-dimensional interactions.  The dimensions referenced by spatiality must have been previously defined as spatial dimensions with 
+\f0\fs18 initializeSLiMOptions()
+\f2\fs20 ; if the simulation has dimensionality 
+\f0\fs18 "xy"
+\f2\fs20 , for example, then interactions in the simulation may have spatiality 
+\f0\fs18 ""
+\f2\fs20 , 
 \f0\fs18 "x"
 \f2\fs20 , 
+\f0\fs18 "y"
+\f2\fs20 , or 
 \f0\fs18 "xy"
+\f2\fs20 , but may not reference spatial dimension 
+\i z
+\i0  and thus may not have spatiality 
+\f0\fs18 "xz"
+\f2\fs20 , 
+\f0\fs18 "yz"
 \f2\fs20 , or 
 \f0\fs18 "xyz"
-\f2\fs20 , for interactions that depend on the (
-\i x
-\i0 ), (
-\i x
-\f1\i0 ,
-\f2  
-\i y
-\i0 ), or (
-\i x
-\i0 , 
-\i y
-\i0 , 
-\i z
-\i0 ) coordinates of individuals, respectively.  The dimensions referenced by spatiality must have been previously defined as spatial dimensions with 
-\f0\fs18 initializeSLiMOptions()
-\f2\fs20 ; if no spatial dimensions have been configured, only non-spatial interactions may be defined.\
-The 
+\f1\fs20 .
+\f2   If no spatial dimensions have been configured, only non-spatial interactions may be defined.\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf0 The 
 \f0\fs18 reciprocality
 \f2\fs20  may be 
 \f0\fs18 T

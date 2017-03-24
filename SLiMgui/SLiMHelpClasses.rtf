@@ -1447,7 +1447,7 @@ Note that this relatedness is simply pedigree-based relatedness.  This does not 
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 spatiality => (string$)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 The spatial dimensions used by the interaction, as specified in 
 \f2\fs18 initializeInteractionType()
@@ -1456,10 +1456,20 @@ Note that this relatedness is simply pedigree-based relatedness.  This does not 
 \f0\fs20  (the empty string) for non-spatial interactions, or 
 \f2\fs18 "x"
 \f0\fs20 , 
+\f2\fs18 "y"
+\f0\fs20 , 
+\f2\fs18 "z"
+\f0\fs20 , 
 \f2\fs18 "xy"
+\f0\fs20 , 
+\f2\fs18 "xz"
+\f0\fs20 , 
+\f2\fs18 "yz"
 \f0\fs20 , or 
 \f2\fs18 "xyz"
-\f0\fs20 , for interactions using those spatial dimensions respectively.  The specified dimensions are used to calculate the distances between individuals for this interaction.\
+\f0\fs20 , for interactions using those spatial dimensions respectively.  The specified dimensions are used to calculate the distances between individuals for this interaction.  The value of this property is always the same as the value given to 
+\f2\fs18 initializeInteractionType()
+\f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 tag <\'96> (integer$)\
@@ -1516,20 +1526,38 @@ Importantly, distances are calculated according to the spatiality of the
 
 \f2\fs18 \cf0 \'96\'a0(float)distanceToPoint(object<Individual>\'a0individuals1, float\'a0point)
 \f3 \
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a vector containing distances between individuals in 
 \f2\fs18 individuals1
 \f0\fs20  and the point given by the spatial coordinates in 
 \f2\fs18 point
-\f0\fs20  (interpreted as a vector of 
+\f3\fs20 .
+\f0   The 
+\f2\fs18 point
+\f0\fs20  vector is interpreted as providing coordinates precisely as specified by the spatiality of the interaction type; if the interaction type\'92s spatiality is 
+\f2\fs18 "xz"
+\f0\fs20 , for example, then 
+\f2\fs18 point[0]
+\f0\fs20  is assumed to be an 
 \i x
-\i0 , 
-\i y
-\i0 , 
+\i0  value, 
+\f2\fs18 point[1]
+\f0\fs20  is assumed to be a 
 \i z
-\i0  values).\
-Importantly, distances are calculated according to the spatiality of the 
+\i0  value, and further elements are not used.  Be careful; this means that in general it is not safe to pass an individual\'92s 
+\f2\fs18 spatialPosition
+\f0\fs20  property for 
+\f2\fs18 point
+\f0\fs20 , for example (although it does happen to be safe for interaction types with spatiality 
+\f2\fs18 "x"
+\f0\fs20 , 
+\f2\fs18 "xy"
+\f0\fs20 , or 
+\f2\fs18 "xyz"
+\f0\fs20 ).\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf0 Importantly, distances are calculated according to the spatiality of the 
 \f2\fs18 InteractionType
 \f0\fs20  (as declared in 
 \f2\fs18 initializeInteractionType()
