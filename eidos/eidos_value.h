@@ -155,17 +155,17 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosValueType p_type)
 // the appropriate promotion of values needs to happen.  The first function here handles the general case; the
 // other functions allow optimization in bottlenecks.  Even more optimization is possible using type-specific
 // methods.  Returns -1 if value1[index1] < value2[index2], 0 if ==, 1 if value1[index1] > value2[index2].
-int CompareEidosValues(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, EidosToken *p_blame_token);
+int CompareEidosValues(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token);
 
-int CompareEidosValues_Object(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, EidosToken *p_blame_token);
-int CompareEidosValues_String(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, EidosToken *p_blame_token);
-int CompareEidosValues_Float(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, EidosToken *p_blame_token);
-int CompareEidosValues_Int(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, EidosToken *p_blame_token);
-int CompareEidosValues_Logical(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, EidosToken *p_blame_token);
+int CompareEidosValues_Object(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token);
+int CompareEidosValues_String(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token);
+int CompareEidosValues_Float(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token);
+int CompareEidosValues_Int(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token);
+int CompareEidosValues_Logical(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token);
 
-typedef int (*EidosCompareFunctionPtr)(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, EidosToken *p_blame_token);
+typedef int (*EidosCompareFunctionPtr)(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token);
 
-EidosCompareFunctionPtr EidosGetCompareFunctionForTypes(EidosValueType p_type1, EidosValueType p_type2, EidosToken *p_blame_token);
+EidosCompareFunctionPtr EidosGetCompareFunctionForTypes(EidosValueType p_type1, EidosValueType p_type2, const EidosToken *p_blame_token);
 
 
 // EidosValueMask is a uint32_t used as a bit mask to identify permitted types for EidosValue objects (arguments, returns)
@@ -231,21 +231,21 @@ public:
 	inline __attribute__((always_inline)) bool Invisible(void) const							{ return invisible_; }
 	
 	// basic subscript access; abstract here since we want to force subclasses to define this
-	virtual EidosValue_SP GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const = 0;
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token) = 0;
+	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const = 0;
+	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) = 0;
 	
 	// fetching individual values; these convert type if necessary, and (base class behavior) raise if impossible
-	virtual eidos_logical_t LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;
-	virtual std::string StringAtIndex(int p_idx, EidosToken *p_blame_token) const;
-	virtual int64_t IntAtIndex(int p_idx, EidosToken *p_blame_token) const;
-	virtual double FloatAtIndex(int p_idx, EidosToken *p_blame_token) const;
-	virtual EidosObjectElement *ObjectElementAtIndex(int p_idx, EidosToken *p_blame_token) const;
+	virtual eidos_logical_t LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual EidosObjectElement *ObjectElementAtIndex(int p_idx, const EidosToken *p_blame_token) const;
 	
 	// methods to allow type-agnostic manipulation of EidosValues
 	virtual EidosValue_SP VectorBasedCopy(void) const;				// just calls CopyValues() by default, but guarantees a mutable copy
 	virtual EidosValue_SP CopyValues(void) const = 0;				// a deep copy of the receiver with invisible_ == false
 	virtual EidosValue_SP NewMatchingType(void) const = 0;			// a new EidosValue instance of the same type as the receiver
-	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token) = 0;	// copy a value
+	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token) = 0;	// copy a value
 	virtual void Sort(bool p_ascending) = 0;
 	
 	// Methods to get a type-specific vector for fast manipulation; these raise if called on a value that does not support them.
@@ -325,12 +325,12 @@ public:
 	virtual int Count_Virtual(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
-	virtual EidosValue_SP GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const;
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token);
+	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const;
+	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token);
 
 	virtual EidosValue_SP CopyValues(void) const;
 	virtual EidosValue_SP NewMatchingType(void) const;
-	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token);
+	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token);
 	virtual void Sort(bool p_ascending);
 };
 
@@ -367,20 +367,20 @@ public:
 	virtual std::vector<eidos_logical_t> *LogicalVector_Mutable(void) { return &values_; }
 	virtual EidosValue_Logical *Reserve(int p_reserved_size);	// returns this, for chaining with new
 	
-	virtual eidos_logical_t LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;
-	virtual std::string StringAtIndex(int p_idx, EidosToken *p_blame_token) const;
-	virtual int64_t IntAtIndex(int p_idx, EidosToken *p_blame_token) const;
-	virtual double FloatAtIndex(int p_idx, EidosToken *p_blame_token) const;
+	virtual eidos_logical_t LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const;
 	
 	virtual void PushLogical(eidos_logical_t p_logical);
-	virtual void SetLogicalAtIndex(const int p_idx, eidos_logical_t p_logical, EidosToken *p_blame_token);
+	virtual void SetLogicalAtIndex(const int p_idx, eidos_logical_t p_logical, const EidosToken *p_blame_token);
 	
-	virtual EidosValue_SP GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const;
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token);
+	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const;
+	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token);
 	
 	virtual EidosValue_SP CopyValues(void) const;
 	virtual EidosValue_SP NewMatchingType(void) const;
-	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token);
+	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token);
 	virtual void Sort(bool p_ascending);
 };
 
@@ -402,9 +402,9 @@ public:
 	virtual std::vector<eidos_logical_t> *LogicalVector_Mutable(void) { RaiseForUnimplementedVectorCall(); }
 	virtual EidosValue_Logical *Reserve(int p_reserved_size);
 	virtual void PushLogical(eidos_logical_t p_logical);
-	virtual void SetLogicalAtIndex(const int p_idx, eidos_logical_t p_logical, EidosToken *p_blame_token);
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token);
-	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token);
+	virtual void SetLogicalAtIndex(const int p_idx, eidos_logical_t p_logical, const EidosToken *p_blame_token);
+	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token);
+	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token);
 	virtual void Sort(bool p_ascending);
 };
 
@@ -431,17 +431,17 @@ public:
 	virtual int Count_Virtual(void) const = 0;
 	virtual void Print(std::ostream &p_ostream) const = 0;
 	
-	virtual eidos_logical_t LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const = 0;
-	virtual std::string StringAtIndex(int p_idx, EidosToken *p_blame_token) const = 0;
-	virtual int64_t IntAtIndex(int p_idx, EidosToken *p_blame_token) const = 0;
-	virtual double FloatAtIndex(int p_idx, EidosToken *p_blame_token) const = 0;
+	virtual eidos_logical_t LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
+	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
+	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
+	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
 	
-	virtual EidosValue_SP GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const = 0;
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token) = 0;
+	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const = 0;
+	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) = 0;
 	
 	virtual EidosValue_SP CopyValues(void) const = 0;
 	virtual EidosValue_SP NewMatchingType(void) const;
-	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token) = 0;
+	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token) = 0;
 	virtual void Sort(bool p_ascending) = 0;
 };
 
@@ -469,16 +469,16 @@ public:
 	inline __attribute__((always_inline)) void PushString(const std::string &p_string) { values_.emplace_back(p_string); }
 	inline __attribute__((always_inline)) EidosValue_String_vector *Reserve(int p_reserved_size) { values_.reserve(p_reserved_size); return this; }
 	
-	virtual eidos_logical_t LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;
-	virtual std::string StringAtIndex(int p_idx, EidosToken *p_blame_token) const;
-	virtual int64_t IntAtIndex(int p_idx, EidosToken *p_blame_token) const;
-	virtual double FloatAtIndex(int p_idx, EidosToken *p_blame_token) const;
+	virtual eidos_logical_t LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const;
 	
-	virtual EidosValue_SP GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const;
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token);
+	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const;
+	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token);
 	
 	virtual EidosValue_SP CopyValues(void) const;
-	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token);
+	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token);
 	virtual void Sort(bool p_ascending);
 };
 
@@ -501,19 +501,19 @@ public:
 	inline __attribute__((always_inline)) std::string &StringValue_Mutable(void) { delete cached_script_; cached_script_ = nullptr; return value_; }
 	inline __attribute__((always_inline)) void SetValue(const std::string &p_string) { delete cached_script_; cached_script_ = nullptr; value_ = p_string; }
 	
-	virtual eidos_logical_t LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;
-	virtual std::string StringAtIndex(int p_idx, EidosToken *p_blame_token) const;
-	virtual int64_t IntAtIndex(int p_idx, EidosToken *p_blame_token) const;
-	virtual double FloatAtIndex(int p_idx, EidosToken *p_blame_token) const;
+	virtual eidos_logical_t LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const;
 	
-	virtual EidosValue_SP GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const;
+	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const;
 	virtual EidosValue_SP CopyValues(void) const;
 	
 	virtual EidosValue_SP VectorBasedCopy(void) const;
 	
 	// prohibited actions because there is no backing vector
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token);
-	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token);
+	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token);
+	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token);
 	virtual void Sort(bool p_ascending);
 	
 	// script caching; this is something that only EidosValue_String_singleton does!
@@ -544,17 +544,17 @@ public:
 	virtual int Count_Virtual(void) const = 0;
 	virtual void Print(std::ostream &p_ostream) const = 0;
 	
-	virtual eidos_logical_t LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const = 0;
-	virtual std::string StringAtIndex(int p_idx, EidosToken *p_blame_token) const = 0;
-	virtual int64_t IntAtIndex(int p_idx, EidosToken *p_blame_token) const = 0;
-	virtual double FloatAtIndex(int p_idx, EidosToken *p_blame_token) const = 0;
+	virtual eidos_logical_t LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
+	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
+	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
+	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
 	
-	virtual EidosValue_SP GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const = 0;
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token) = 0;
+	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const = 0;
+	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) = 0;
 	
 	virtual EidosValue_SP CopyValues(void) const = 0;
 	virtual EidosValue_SP NewMatchingType(void) const;
-	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token) = 0;
+	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token) = 0;
 	virtual void Sort(bool p_ascending) = 0;
 };
 
@@ -583,16 +583,16 @@ public:
 	inline __attribute__((always_inline)) void PushInt(int64_t p_int) { values_.emplace_back(p_int); }
 	inline __attribute__((always_inline)) EidosValue_Int_vector *Reserve(int p_reserved_size) { values_.reserve(p_reserved_size); return this; }
 	
-	virtual eidos_logical_t LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;
-	virtual std::string StringAtIndex(int p_idx, EidosToken *p_blame_token) const;
-	virtual int64_t IntAtIndex(int p_idx, EidosToken *p_blame_token) const;
-	virtual double FloatAtIndex(int p_idx, EidosToken *p_blame_token) const;
+	virtual eidos_logical_t LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const;
 	
-	virtual EidosValue_SP GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const;
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token);
+	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const;
+	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token);
 	
 	virtual EidosValue_SP CopyValues(void) const;
-	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token);
+	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token);
 	virtual void Sort(bool p_ascending);
 };
 
@@ -614,19 +614,19 @@ public:
 	inline __attribute__((always_inline)) int64_t &IntValue_Mutable(void) { return value_; }
 	inline __attribute__((always_inline)) void SetValue(int64_t p_int) { value_ = p_int; }
 	
-	virtual eidos_logical_t LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;
-	virtual std::string StringAtIndex(int p_idx, EidosToken *p_blame_token) const;
-	virtual int64_t IntAtIndex(int p_idx, EidosToken *p_blame_token) const;
-	virtual double FloatAtIndex(int p_idx, EidosToken *p_blame_token) const;
+	virtual eidos_logical_t LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const;
 	
-	virtual EidosValue_SP GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const;
+	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const;
 	virtual EidosValue_SP CopyValues(void) const;
 	
 	virtual EidosValue_SP VectorBasedCopy(void) const;
 	
 	// prohibited actions because there is no backing vector
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token);
-	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token);
+	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token);
+	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token);
 	virtual void Sort(bool p_ascending);
 };
 
@@ -653,17 +653,17 @@ public:
 	virtual int Count_Virtual(void) const = 0;
 	virtual void Print(std::ostream &p_ostream) const = 0;
 	
-	virtual eidos_logical_t LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const = 0;
-	virtual std::string StringAtIndex(int p_idx, EidosToken *p_blame_token) const = 0;
-	virtual int64_t IntAtIndex(int p_idx, EidosToken *p_blame_token) const = 0;
-	virtual double FloatAtIndex(int p_idx, EidosToken *p_blame_token) const = 0;
+	virtual eidos_logical_t LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
+	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
+	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
+	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
 	
-	virtual EidosValue_SP GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const = 0;
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token) = 0;
+	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const = 0;
+	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) = 0;
 	
 	virtual EidosValue_SP CopyValues(void) const = 0;
 	virtual EidosValue_SP NewMatchingType(void) const;
-	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token) = 0;
+	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token) = 0;
 	virtual void Sort(bool p_ascending) = 0;
 };
 
@@ -691,16 +691,16 @@ public:
 	inline __attribute__((always_inline)) void PushFloat(double p_float) { values_.emplace_back(p_float); }
 	inline __attribute__((always_inline)) EidosValue_Float_vector *Reserve(int p_reserved_size) { values_.reserve(p_reserved_size); return this; }
 	
-	virtual eidos_logical_t LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;
-	virtual std::string StringAtIndex(int p_idx, EidosToken *p_blame_token) const;
-	virtual int64_t IntAtIndex(int p_idx, EidosToken *p_blame_token) const;
-	virtual double FloatAtIndex(int p_idx, EidosToken *p_blame_token) const;
+	virtual eidos_logical_t LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const;
 	
-	virtual EidosValue_SP GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const;
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token);
+	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const;
+	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token);
 	
 	virtual EidosValue_SP CopyValues(void) const;
-	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token);
+	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token);
 	virtual void Sort(bool p_ascending);
 };
 
@@ -722,19 +722,19 @@ public:
 	inline __attribute__((always_inline)) double &FloatValue_Mutable(void) { return value_; }
 	inline __attribute__((always_inline)) void SetValue(double p_float) { value_ = p_float; }
 	
-	virtual eidos_logical_t LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const;
-	virtual std::string StringAtIndex(int p_idx, EidosToken *p_blame_token) const;
-	virtual int64_t IntAtIndex(int p_idx, EidosToken *p_blame_token) const;
-	virtual double FloatAtIndex(int p_idx, EidosToken *p_blame_token) const;
+	virtual eidos_logical_t LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const;
 	
-	virtual EidosValue_SP GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const;
+	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const;
 	virtual EidosValue_SP CopyValues(void) const;
 	
 	virtual EidosValue_SP VectorBasedCopy(void) const;
 	
 	// prohibited actions because there is no backing vector
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token);
-	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token);
+	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token);
+	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token);
 	virtual void Sort(bool p_ascending);
 };
 
@@ -764,14 +764,14 @@ public:
 	virtual int Count_Virtual(void) const = 0;
 	virtual void Print(std::ostream &p_ostream) const = 0;
 	
-	virtual EidosObjectElement *ObjectElementAtIndex(int p_idx, EidosToken *p_blame_token) const = 0;
+	virtual EidosObjectElement *ObjectElementAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
 	
-	virtual EidosValue_SP GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const = 0;
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token) = 0;
+	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const = 0;
+	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) = 0;
 	
 	virtual EidosValue_SP CopyValues(void) const = 0;
 	virtual EidosValue_SP NewMatchingType(void) const;
-	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token) = 0;
+	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token) = 0;
 	virtual void Sort(bool p_ascending);
 	
 	// Property and method support; defined only on EidosValue_Object, not EidosValue.  The methods that a
@@ -800,18 +800,18 @@ public:
 	virtual int Count_Virtual(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
-	virtual EidosObjectElement *ObjectElementAtIndex(int p_idx, EidosToken *p_blame_token) const;
+	virtual EidosObjectElement *ObjectElementAtIndex(int p_idx, const EidosToken *p_blame_token) const;
 	
 	virtual const std::vector<EidosObjectElement *> *ObjectElementVector(void) const { return &values_; }
 	virtual std::vector<EidosObjectElement *> *ObjectElementVector_Mutable(void) { return &values_; }
 	void PushObjectElement(EidosObjectElement *p_element);
 	inline __attribute__((always_inline)) EidosValue_Object_vector *Reserve(int p_reserved_size) { values_.reserve(p_reserved_size); return this; }
 	
-	virtual EidosValue_SP GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const;
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token);
+	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const;
+	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token);
 	
 	virtual EidosValue_SP CopyValues(void) const;
-	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token);
+	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token);
 	void SortBy(const std::string &p_property, bool p_ascending);
 	
 	// Property and method support; defined only on EidosValue_Object, not EidosValue.  The methods that a
@@ -837,19 +837,19 @@ public:
 	virtual int Count_Virtual(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
-	virtual EidosObjectElement *ObjectElementAtIndex(int p_idx, EidosToken *p_blame_token) const;
+	virtual EidosObjectElement *ObjectElementAtIndex(int p_idx, const EidosToken *p_blame_token) const;
 	
 	inline __attribute__((always_inline)) EidosObjectElement * &ObjectElementValue_Mutable(void) { return value_; }	// don't forget Retain()/Relase() on the elements!
 	void SetValue(EidosObjectElement *p_element);
 	
-	virtual EidosValue_SP GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const;
+	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const;
 	virtual EidosValue_SP CopyValues(void) const;
 	
 	virtual EidosValue_SP VectorBasedCopy(void) const;
 	
 	// prohibited actions because there is no backing vector
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token);
-	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token);
+	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token);
+	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token);
 	
 	// Property and method support; defined only on EidosValue_Object, not EidosValue.  The methods that a
 	// EidosValue_Object instance defines depend upon the type of the EidosObjectElement objects it contains.

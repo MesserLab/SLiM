@@ -165,7 +165,7 @@ std::string StringForEidosValueMask(const EidosValueMask p_mask, const EidosObje
 }
 
 // returns -1 if value1[index1] < value2[index2], 0 if ==, 1 if >, with full type promotion
-int CompareEidosValues(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, EidosToken *p_blame_token)
+int CompareEidosValues(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token)
 {
 	EidosValueType type1 = p_value1.Type();
 	EidosValueType type2 = p_value2.Type();
@@ -224,7 +224,7 @@ int CompareEidosValues(const EidosValue &p_value1, int p_index1, const EidosValu
 	return 0;
 }
 
-int CompareEidosValues_Object(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, EidosToken *p_blame_token)
+int CompareEidosValues_Object(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token)
 {
 	EidosObjectElement *element1 = p_value1.ObjectElementAtIndex(p_index1, p_blame_token);
 	EidosObjectElement *element2 = p_value2.ObjectElementAtIndex(p_index2, p_blame_token);
@@ -232,7 +232,7 @@ int CompareEidosValues_Object(const EidosValue &p_value1, int p_index1, const Ei
 	return (element1 == element2) ? 0 : -1;		// no relative ordering, just equality comparison; enforced in script_interpreter
 }
 
-int CompareEidosValues_String(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, EidosToken *p_blame_token)
+int CompareEidosValues_String(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token)
 {
 	string string1 = p_value1.StringAtIndex(p_index1, p_blame_token);
 	string string2 = p_value2.StringAtIndex(p_index2, p_blame_token);
@@ -241,7 +241,7 @@ int CompareEidosValues_String(const EidosValue &p_value1, int p_index1, const Ei
 	return (compare_result < 0) ? -1 : ((compare_result > 0) ? 1 : 0);
 }
 
-int CompareEidosValues_Float(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, EidosToken *p_blame_token)
+int CompareEidosValues_Float(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token)
 {
 	double float1 = p_value1.FloatAtIndex(p_index1, p_blame_token);
 	double float2 = p_value2.FloatAtIndex(p_index2, p_blame_token);
@@ -249,7 +249,7 @@ int CompareEidosValues_Float(const EidosValue &p_value1, int p_index1, const Eid
 	return (float1 < float2) ? -1 : ((float1 > float2) ? 1 : 0);
 }
 
-int CompareEidosValues_Int(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, EidosToken *p_blame_token)
+int CompareEidosValues_Int(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token)
 {
 	int64_t int1 = p_value1.IntAtIndex(p_index1, p_blame_token);
 	int64_t int2 = p_value2.IntAtIndex(p_index2, p_blame_token);
@@ -257,7 +257,7 @@ int CompareEidosValues_Int(const EidosValue &p_value1, int p_index1, const Eidos
 	return (int1 < int2) ? -1 : ((int1 > int2) ? 1 : 0);
 }
 
-int CompareEidosValues_Logical(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, EidosToken *p_blame_token)
+int CompareEidosValues_Logical(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token)
 {
 	eidos_logical_t logical1 = p_value1.LogicalAtIndex(p_index1, p_blame_token);
 	eidos_logical_t logical2 = p_value2.LogicalAtIndex(p_index2, p_blame_token);
@@ -265,7 +265,7 @@ int CompareEidosValues_Logical(const EidosValue &p_value1, int p_index1, const E
 	return (logical1 < logical2) ? -1 : ((logical1 > logical2) ? 1 : 0);
 }
 
-EidosCompareFunctionPtr EidosGetCompareFunctionForTypes(EidosValueType p_type1, EidosValueType p_type2, EidosToken *p_blame_token)
+EidosCompareFunctionPtr EidosGetCompareFunctionForTypes(EidosValueType p_type1, EidosValueType p_type2, const EidosToken *p_blame_token)
 {
 	if ((p_type1 == EidosValueType::kValueNULL) || (p_type2 == EidosValueType::kValueNULL))
 		EIDOS_TERMINATION << "ERROR (EidosGetCompareFunctionForTypes): (internal error) comparison with NULL is illegal." << eidos_terminate(p_blame_token);
@@ -323,31 +323,31 @@ EidosValue::~EidosValue(void)
 #endif
 }
 
-eidos_logical_t EidosValue::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
+eidos_logical_t EidosValue::LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 #pragma unused(p_idx)
 	EIDOS_TERMINATION << "ERROR (EidosValue::LogicalAtIndex): operand type " << this->Type() << " cannot be converted to type logical." << eidos_terminate(p_blame_token);
 }
 
-std::string EidosValue::StringAtIndex(int p_idx, EidosToken *p_blame_token) const
+std::string EidosValue::StringAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 #pragma unused(p_idx)
 	EIDOS_TERMINATION << "ERROR (EidosValue::StringAtIndex): operand type " << this->Type() << " cannot be converted to type string." << eidos_terminate(p_blame_token);
 }
 
-int64_t EidosValue::IntAtIndex(int p_idx, EidosToken *p_blame_token) const
+int64_t EidosValue::IntAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 #pragma unused(p_idx)
 	EIDOS_TERMINATION << "ERROR (EidosValue::IntAtIndex): operand type " << this->Type() << " cannot be converted to type integer." << eidos_terminate(p_blame_token);
 }
 
-double EidosValue::FloatAtIndex(int p_idx, EidosToken *p_blame_token) const
+double EidosValue::FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 #pragma unused(p_idx)
 	EIDOS_TERMINATION << "ERROR (EidosValue::FloatAtIndex): operand type " << this->Type() << " cannot be converted to type float." << eidos_terminate(p_blame_token);
 }
 
-EidosObjectElement *EidosValue::ObjectElementAtIndex(int p_idx, EidosToken *p_blame_token) const
+EidosObjectElement *EidosValue::ObjectElementAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 #pragma unused(p_idx)
 	EIDOS_TERMINATION << "ERROR (EidosValue::ObjectElementAtIndex): operand type " << this->Type() << " cannot be converted to type object." << eidos_terminate(p_blame_token);
@@ -414,13 +414,13 @@ void EidosValue_NULL::Print(std::ostream &p_ostream) const
 	p_ostream << gEidosStr_NULL;
 }
 
-EidosValue_SP EidosValue_NULL::GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const
+EidosValue_SP EidosValue_NULL::GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const
 {
 #pragma unused(p_idx, p_blame_token)
 	return gStaticEidosValueNULL;
 }
 
-void EidosValue_NULL::SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token)
+void EidosValue_NULL::SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token)
 {
 #pragma unused(p_idx, p_value)
 	EIDOS_TERMINATION << "ERROR (EidosValue_NULL::SetValueAtIndex): operand type " << this->Type() << " does not support setting values with the subscript operator ('[]')." << eidos_terminate(p_blame_token);
@@ -436,7 +436,7 @@ EidosValue_SP EidosValue_NULL::NewMatchingType(void) const
 	return gStaticEidosValueNULL;
 }
 
-void EidosValue_NULL::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token)
+void EidosValue_NULL::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
 {
 #pragma unused(p_idx)
 	if (p_source_script_value.Type() == EidosValueType::kValueNULL)
@@ -520,7 +520,7 @@ EidosValue_Logical *EidosValue_Logical::Reserve(int p_reserved_size)
 	return this;
 }
 
-eidos_logical_t EidosValue_Logical::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
+eidos_logical_t EidosValue_Logical::LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Logical::LogicalAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -528,7 +528,7 @@ eidos_logical_t EidosValue_Logical::LogicalAtIndex(int p_idx, EidosToken *p_blam
 	return values_[p_idx];
 }
 
-std::string EidosValue_Logical::StringAtIndex(int p_idx, EidosToken *p_blame_token) const
+std::string EidosValue_Logical::StringAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Logical::StringAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -536,7 +536,7 @@ std::string EidosValue_Logical::StringAtIndex(int p_idx, EidosToken *p_blame_tok
 	return (values_[p_idx] ? gEidosStr_T : gEidosStr_F);
 }
 
-int64_t EidosValue_Logical::IntAtIndex(int p_idx, EidosToken *p_blame_token) const
+int64_t EidosValue_Logical::IntAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Logical::IntAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -544,7 +544,7 @@ int64_t EidosValue_Logical::IntAtIndex(int p_idx, EidosToken *p_blame_token) con
 	return (values_[p_idx] ? 1 : 0);
 }
 
-double EidosValue_Logical::FloatAtIndex(int p_idx, EidosToken *p_blame_token) const
+double EidosValue_Logical::FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Logical::FloatAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -557,7 +557,7 @@ void EidosValue_Logical::PushLogical(eidos_logical_t p_logical)
 	values_.emplace_back(p_logical);
 }
 
-void EidosValue_Logical::SetLogicalAtIndex(const int p_idx, eidos_logical_t p_logical, EidosToken *p_blame_token)
+void EidosValue_Logical::SetLogicalAtIndex(const int p_idx, eidos_logical_t p_logical, const EidosToken *p_blame_token)
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Logical::SetLogicalAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -565,7 +565,7 @@ void EidosValue_Logical::SetLogicalAtIndex(const int p_idx, eidos_logical_t p_lo
 	values_[p_idx] = p_logical;
 }
 
-EidosValue_SP EidosValue_Logical::GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const
+EidosValue_SP EidosValue_Logical::GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Logical::GetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -573,7 +573,7 @@ EidosValue_SP EidosValue_Logical::GetValueAtIndex(const int p_idx, EidosToken *p
 	return (values_[p_idx] ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 }
 
-void EidosValue_Logical::SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token)
+void EidosValue_Logical::SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token)
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Logical::SetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -591,7 +591,7 @@ EidosValue_SP EidosValue_Logical::NewMatchingType(void) const
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 }
 
-void EidosValue_Logical::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token)
+void EidosValue_Logical::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
 {
 	if (p_source_script_value.Type() == EidosValueType::kValueLogical)
 		values_.emplace_back(p_source_script_value.LogicalAtIndex(p_idx, p_blame_token));
@@ -653,19 +653,19 @@ void EidosValue_Logical_const::PushLogical(eidos_logical_t p_logical)
 	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::PushLogical): (internal error) EidosValue_Logical_const is not modifiable." << eidos_terminate(nullptr);
 }
 
-void EidosValue_Logical_const::SetLogicalAtIndex(const int p_idx, eidos_logical_t p_logical, EidosToken *p_blame_token)
+void EidosValue_Logical_const::SetLogicalAtIndex(const int p_idx, eidos_logical_t p_logical, const EidosToken *p_blame_token)
 {
 #pragma unused(p_idx, p_logical)
 	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::SetLogicalAtIndex): (internal error) EidosValue_Logical_const is not modifiable." << eidos_terminate(p_blame_token);
 }
 
-void EidosValue_Logical_const::SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token)
+void EidosValue_Logical_const::SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token)
 {
 #pragma unused(p_idx, p_value)
 	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::SetValueAtIndex): (internal error) EidosValue_Logical_const is not modifiable." << eidos_terminate(p_blame_token);
 }
 
-void EidosValue_Logical_const::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token)
+void EidosValue_Logical_const::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
 {
 #pragma unused(p_idx, p_source_script_value)
 	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::PushValueFromIndexOfEidosValue): (internal error) EidosValue_Logical_const is not modifiable." << eidos_terminate(p_blame_token);
@@ -759,7 +759,7 @@ void EidosValue_String_vector::Print(std::ostream &p_ostream) const
 	}
 }
 
-eidos_logical_t EidosValue_String_vector::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
+eidos_logical_t EidosValue_String_vector::LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_String_vector::LogicalAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -767,7 +767,7 @@ eidos_logical_t EidosValue_String_vector::LogicalAtIndex(int p_idx, EidosToken *
 	return (values_[p_idx].length() > 0);
 }
 
-std::string EidosValue_String_vector::StringAtIndex(int p_idx, EidosToken *p_blame_token) const
+std::string EidosValue_String_vector::StringAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_String_vector::StringAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -775,7 +775,7 @@ std::string EidosValue_String_vector::StringAtIndex(int p_idx, EidosToken *p_bla
 	return values_[p_idx];
 }
 
-int64_t EidosValue_String_vector::IntAtIndex(int p_idx, EidosToken *p_blame_token) const
+int64_t EidosValue_String_vector::IntAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_String_vector::IntAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -791,7 +791,7 @@ int64_t EidosValue_String_vector::IntAtIndex(int p_idx, EidosToken *p_blame_toke
 	return static_cast<int64_t>(converted_value);
 }
 
-double EidosValue_String_vector::FloatAtIndex(int p_idx, EidosToken *p_blame_token) const
+double EidosValue_String_vector::FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_String_vector::FloatAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -799,7 +799,7 @@ double EidosValue_String_vector::FloatAtIndex(int p_idx, EidosToken *p_blame_tok
 	return EidosInterpreter::FloatForString(values_[p_idx], p_blame_token);
 }
 
-EidosValue_SP EidosValue_String_vector::GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const
+EidosValue_SP EidosValue_String_vector::GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_String_vector::GetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -807,7 +807,7 @@ EidosValue_SP EidosValue_String_vector::GetValueAtIndex(const int p_idx, EidosTo
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(values_[p_idx]));
 }
 
-void EidosValue_String_vector::SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token)
+void EidosValue_String_vector::SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token)
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_String_vector::SetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -820,7 +820,7 @@ EidosValue_SP EidosValue_String_vector::CopyValues(void) const
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector(values_));
 }
 
-void EidosValue_String_vector::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token)
+void EidosValue_String_vector::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
 {
 	if (p_source_script_value.Type() == EidosValueType::kValueString)
 		values_.emplace_back(p_source_script_value.StringAtIndex(p_idx, p_blame_token));
@@ -870,7 +870,7 @@ void EidosValue_String_singleton::Print(std::ostream &p_ostream) const
 	}
 }
 
-eidos_logical_t EidosValue_String_singleton::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
+eidos_logical_t EidosValue_String_singleton::LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_String_singleton::LogicalAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -878,7 +878,7 @@ eidos_logical_t EidosValue_String_singleton::LogicalAtIndex(int p_idx, EidosToke
 	return (value_.length() > 0);
 }
 
-std::string EidosValue_String_singleton::StringAtIndex(int p_idx, EidosToken *p_blame_token) const
+std::string EidosValue_String_singleton::StringAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_String_singleton::StringAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -886,7 +886,7 @@ std::string EidosValue_String_singleton::StringAtIndex(int p_idx, EidosToken *p_
 	return value_;
 }
 
-int64_t EidosValue_String_singleton::IntAtIndex(int p_idx, EidosToken *p_blame_token) const
+int64_t EidosValue_String_singleton::IntAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_String_singleton::IntAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -902,7 +902,7 @@ int64_t EidosValue_String_singleton::IntAtIndex(int p_idx, EidosToken *p_blame_t
 	return static_cast<int64_t>(converted_value);
 }
 
-double EidosValue_String_singleton::FloatAtIndex(int p_idx, EidosToken *p_blame_token) const
+double EidosValue_String_singleton::FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_String_singleton::FloatAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -910,7 +910,7 @@ double EidosValue_String_singleton::FloatAtIndex(int p_idx, EidosToken *p_blame_
 	return EidosInterpreter::FloatForString(value_, p_blame_token);
 }
 
-EidosValue_SP EidosValue_String_singleton::GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const
+EidosValue_SP EidosValue_String_singleton::GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_String_singleton::GetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -932,13 +932,13 @@ EidosValue_SP EidosValue_String_singleton::VectorBasedCopy(void) const
 	return new_vec;
 }
 
-void EidosValue_String_singleton::SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token)
+void EidosValue_String_singleton::SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token)
 {
 #pragma unused(p_idx, p_value)
 	EIDOS_TERMINATION << "ERROR (EidosValue_String_singleton::SetValueAtIndex): (internal error) EidosValue_String_singleton is not modifiable." << eidos_terminate(p_blame_token);
 }
 
-void EidosValue_String_singleton::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token)
+void EidosValue_String_singleton::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
 {
 #pragma unused(p_idx, p_source_script_value)
 	EIDOS_TERMINATION << "ERROR (EidosValue_String_singleton::PushValueFromIndexOfEidosValue): (internal error) EidosValue_String_singleton is not modifiable." << eidos_terminate(p_blame_token);
@@ -1037,7 +1037,7 @@ void EidosValue_Int_vector::Print(std::ostream &p_ostream) const
 	}
 }
 
-eidos_logical_t EidosValue_Int_vector::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
+eidos_logical_t EidosValue_Int_vector::LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Int_vector::LogicalAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -1045,7 +1045,7 @@ eidos_logical_t EidosValue_Int_vector::LogicalAtIndex(int p_idx, EidosToken *p_b
 	return (values_[p_idx] == 0 ? false : true);
 }
 
-std::string EidosValue_Int_vector::StringAtIndex(int p_idx, EidosToken *p_blame_token) const
+std::string EidosValue_Int_vector::StringAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Int_vector::StringAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -1058,7 +1058,7 @@ std::string EidosValue_Int_vector::StringAtIndex(int p_idx, EidosToken *p_blame_
 	return ss.str();
 }
 
-int64_t EidosValue_Int_vector::IntAtIndex(int p_idx, EidosToken *p_blame_token) const
+int64_t EidosValue_Int_vector::IntAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Int_vector::IntAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -1066,7 +1066,7 @@ int64_t EidosValue_Int_vector::IntAtIndex(int p_idx, EidosToken *p_blame_token) 
 	return values_[p_idx];
 }
 
-double EidosValue_Int_vector::FloatAtIndex(int p_idx, EidosToken *p_blame_token) const
+double EidosValue_Int_vector::FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Int_vector::FloatAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -1074,7 +1074,7 @@ double EidosValue_Int_vector::FloatAtIndex(int p_idx, EidosToken *p_blame_token)
 	return values_[p_idx];
 }
 
-EidosValue_SP EidosValue_Int_vector::GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const
+EidosValue_SP EidosValue_Int_vector::GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Int_vector::GetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -1082,7 +1082,7 @@ EidosValue_SP EidosValue_Int_vector::GetValueAtIndex(const int p_idx, EidosToken
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(values_[p_idx]));
 }
 
-void EidosValue_Int_vector::SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token)
+void EidosValue_Int_vector::SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token)
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Int_vector::SetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -1095,7 +1095,7 @@ EidosValue_SP EidosValue_Int_vector::CopyValues(void) const
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(values_));
 }
 
-void EidosValue_Int_vector::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token)
+void EidosValue_Int_vector::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
 {
 	if (p_source_script_value.Type() == EidosValueType::kValueInt)
 		values_.emplace_back(p_source_script_value.IntAtIndex(p_idx, p_blame_token));
@@ -1134,7 +1134,7 @@ void EidosValue_Int_singleton::Print(std::ostream &p_ostream) const
 	p_ostream << value_;
 }
 
-eidos_logical_t EidosValue_Int_singleton::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
+eidos_logical_t EidosValue_Int_singleton::LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton::LogicalAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -1142,7 +1142,7 @@ eidos_logical_t EidosValue_Int_singleton::LogicalAtIndex(int p_idx, EidosToken *
 	return (value_ == 0 ? false : true);
 }
 
-std::string EidosValue_Int_singleton::StringAtIndex(int p_idx, EidosToken *p_blame_token) const
+std::string EidosValue_Int_singleton::StringAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton::StringAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -1155,7 +1155,7 @@ std::string EidosValue_Int_singleton::StringAtIndex(int p_idx, EidosToken *p_bla
 	return ss.str();
 }
 
-int64_t EidosValue_Int_singleton::IntAtIndex(int p_idx, EidosToken *p_blame_token) const
+int64_t EidosValue_Int_singleton::IntAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton::IntAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -1163,7 +1163,7 @@ int64_t EidosValue_Int_singleton::IntAtIndex(int p_idx, EidosToken *p_blame_toke
 	return value_;
 }
 
-double EidosValue_Int_singleton::FloatAtIndex(int p_idx, EidosToken *p_blame_token) const
+double EidosValue_Int_singleton::FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton::FloatAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -1171,7 +1171,7 @@ double EidosValue_Int_singleton::FloatAtIndex(int p_idx, EidosToken *p_blame_tok
 	return value_;
 }
 
-EidosValue_SP EidosValue_Int_singleton::GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const
+EidosValue_SP EidosValue_Int_singleton::GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton::GetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -1193,13 +1193,13 @@ EidosValue_SP EidosValue_Int_singleton::VectorBasedCopy(void) const
 	return new_vec;
 }
 
-void EidosValue_Int_singleton::SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token)
+void EidosValue_Int_singleton::SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token)
 {
 #pragma unused(p_idx, p_value)
 	EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton::SetValueAtIndex): (internal error) EidosValue_Float_singleton is not modifiable." << eidos_terminate(p_blame_token);
 }
 
-void EidosValue_Int_singleton::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token)
+void EidosValue_Int_singleton::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
 {
 #pragma unused(p_idx, p_source_script_value)
 	EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton::PushValueFromIndexOfEidosValue): (internal error) EidosValue_Float_singleton is not modifiable." << eidos_terminate(p_blame_token);
@@ -1299,7 +1299,7 @@ void EidosValue_Float_vector::Print(std::ostream &p_ostream) const
 	}
 }
 
-eidos_logical_t EidosValue_Float_vector::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
+eidos_logical_t EidosValue_Float_vector::LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::LogicalAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -1312,7 +1312,7 @@ eidos_logical_t EidosValue_Float_vector::LogicalAtIndex(int p_idx, EidosToken *p
 	return (value == 0 ? false : true);
 }
 
-std::string EidosValue_Float_vector::StringAtIndex(int p_idx, EidosToken *p_blame_token) const
+std::string EidosValue_Float_vector::StringAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::StringAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -1337,7 +1337,7 @@ std::string EidosValue_Float_vector::StringAtIndex(int p_idx, EidosToken *p_blam
 	return ss.str();
 }
 
-int64_t EidosValue_Float_vector::IntAtIndex(int p_idx, EidosToken *p_blame_token) const
+int64_t EidosValue_Float_vector::IntAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::IntAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -1356,7 +1356,7 @@ int64_t EidosValue_Float_vector::IntAtIndex(int p_idx, EidosToken *p_blame_token
 	return static_cast<int64_t>(value);
 }
 
-double EidosValue_Float_vector::FloatAtIndex(int p_idx, EidosToken *p_blame_token) const
+double EidosValue_Float_vector::FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::FloatAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -1364,7 +1364,7 @@ double EidosValue_Float_vector::FloatAtIndex(int p_idx, EidosToken *p_blame_toke
 	return values_[p_idx];
 }
 
-EidosValue_SP EidosValue_Float_vector::GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const
+EidosValue_SP EidosValue_Float_vector::GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::GetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -1372,7 +1372,7 @@ EidosValue_SP EidosValue_Float_vector::GetValueAtIndex(const int p_idx, EidosTok
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(values_[p_idx]));
 }
 
-void EidosValue_Float_vector::SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token)
+void EidosValue_Float_vector::SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token)
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::SetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -1385,7 +1385,7 @@ EidosValue_SP EidosValue_Float_vector::CopyValues(void) const
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(values_));
 }
 
-void EidosValue_Float_vector::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token)
+void EidosValue_Float_vector::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
 {
 	if (p_source_script_value.Type() == EidosValueType::kValueFloat)
 		values_.emplace_back(p_source_script_value.FloatAtIndex(p_idx, p_blame_token));
@@ -1434,7 +1434,7 @@ void EidosValue_Float_singleton::Print(std::ostream &p_ostream) const
 		p_ostream << value_;
 }
 
-eidos_logical_t EidosValue_Float_singleton::LogicalAtIndex(int p_idx, EidosToken *p_blame_token) const
+eidos_logical_t EidosValue_Float_singleton::LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton::LogicalAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -1445,7 +1445,7 @@ eidos_logical_t EidosValue_Float_singleton::LogicalAtIndex(int p_idx, EidosToken
 	return (value_ == 0 ? false : true);
 }
 
-std::string EidosValue_Float_singleton::StringAtIndex(int p_idx, EidosToken *p_blame_token) const
+std::string EidosValue_Float_singleton::StringAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton::StringAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -1469,7 +1469,7 @@ std::string EidosValue_Float_singleton::StringAtIndex(int p_idx, EidosToken *p_b
 	return ss.str();
 }
 
-int64_t EidosValue_Float_singleton::IntAtIndex(int p_idx, EidosToken *p_blame_token) const
+int64_t EidosValue_Float_singleton::IntAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton::IntAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -1486,7 +1486,7 @@ int64_t EidosValue_Float_singleton::IntAtIndex(int p_idx, EidosToken *p_blame_to
 	return static_cast<int64_t>(value_);
 }
 
-double EidosValue_Float_singleton::FloatAtIndex(int p_idx, EidosToken *p_blame_token) const
+double EidosValue_Float_singleton::FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton::FloatAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -1494,7 +1494,7 @@ double EidosValue_Float_singleton::FloatAtIndex(int p_idx, EidosToken *p_blame_t
 	return value_;
 }
 
-EidosValue_SP EidosValue_Float_singleton::GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const
+EidosValue_SP EidosValue_Float_singleton::GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton::GetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -1516,13 +1516,13 @@ EidosValue_SP EidosValue_Float_singleton::VectorBasedCopy(void) const
 	return new_vec;
 }
 
-void EidosValue_Float_singleton::SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token)
+void EidosValue_Float_singleton::SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token)
 {
 #pragma unused(p_idx, p_value)
 	EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton::SetValueAtIndex): (internal error) EidosValue_Float_singleton is not modifiable." << eidos_terminate(p_blame_token);
 }
 
-void EidosValue_Float_singleton::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token)
+void EidosValue_Float_singleton::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
 {
 #pragma unused(p_idx, p_source_script_value)
 	EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton::PushValueFromIndexOfEidosValue): (internal error) EidosValue_Float_singleton is not modifiable." << eidos_terminate(p_blame_token);
@@ -1646,7 +1646,7 @@ void EidosValue_Object_vector::Print(std::ostream &p_ostream) const
 	}
 }
 
-EidosObjectElement *EidosValue_Object_vector::ObjectElementAtIndex(int p_idx, EidosToken *p_blame_token) const
+EidosObjectElement *EidosValue_Object_vector::ObjectElementAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::ObjectElementAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -1669,7 +1669,7 @@ void EidosValue_Object_vector::PushObjectElement(EidosObjectElement *p_element)
 	values_.emplace_back(p_element->Retain());
 }
 
-EidosValue_SP EidosValue_Object_vector::GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const
+EidosValue_SP EidosValue_Object_vector::GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::GetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -1677,7 +1677,7 @@ EidosValue_SP EidosValue_Object_vector::GetValueAtIndex(const int p_idx, EidosTo
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(values_[p_idx], Class()));
 }
 
-void EidosValue_Object_vector::SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token)
+void EidosValue_Object_vector::SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token)
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -1705,7 +1705,7 @@ EidosValue_SP EidosValue_Object_vector::CopyValues(void) const
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(*this));
 }
 
-void EidosValue_Object_vector::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token)
+void EidosValue_Object_vector::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
 {
 	if (p_source_script_value.Type() == EidosValueType::kValueObject)
 	{
@@ -2368,7 +2368,7 @@ void EidosValue_Object_singleton::Print(std::ostream &p_ostream) const
 	p_ostream << *value_;
 }
 
-EidosObjectElement *EidosValue_Object_singleton::ObjectElementAtIndex(int p_idx, EidosToken *p_blame_token) const
+EidosObjectElement *EidosValue_Object_singleton::ObjectElementAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton::ObjectElementAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -2376,7 +2376,7 @@ EidosObjectElement *EidosValue_Object_singleton::ObjectElementAtIndex(int p_idx,
 	return value_;
 }
 
-EidosValue_SP EidosValue_Object_singleton::GetValueAtIndex(const int p_idx, EidosToken *p_blame_token) const
+EidosValue_SP EidosValue_Object_singleton::GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton::GetValueAtIndex): subscript " << p_idx << " out of range." << eidos_terminate(p_blame_token);
@@ -2410,13 +2410,13 @@ EidosValue_SP EidosValue_Object_singleton::VectorBasedCopy(void) const
 	return new_vec;
 }
 
-void EidosValue_Object_singleton::SetValueAtIndex(const int p_idx, const EidosValue &p_value, EidosToken *p_blame_token)
+void EidosValue_Object_singleton::SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token)
 {
 #pragma unused(p_idx, p_value)
 	EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton::SetValueAtIndex): (internal error) EidosValue_Object_singleton is not modifiable." << eidos_terminate(p_blame_token);
 }
 
-void EidosValue_Object_singleton::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, EidosToken *p_blame_token)
+void EidosValue_Object_singleton::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
 {
 #pragma unused(p_idx, p_source_script_value)
 	EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton::PushValueFromIndexOfEidosValue): (internal error) EidosValue_Object_singleton is not modifiable." << eidos_terminate(p_blame_token);
