@@ -2,8 +2,6 @@ initialize() {
 	initializeSLiMOptions(dimensionality="xy");
 	initializeMutationRate(1e-7);
 	initializeMutationType("m1", 0.5, "f", 0.0);
-	initializeMutationType("m2", 0.5, "f", 0.0);   // marker
-	m2.convertToSubstitution = F;
 	initializeGenomicElementType("g1", m1, 1.0);
 	initializeGenomicElement(g1, 0, 99999);
 	initializeRecombinationRate(1e-8);
@@ -15,7 +13,6 @@ initialize() {
 }
 1 late() {
 	sim.addSubpop("p1", 500);
-	p1.individuals.genomes.addNewDrawnMutation(m2, 0);
 	
 	for (ind in p1.individuals)
 		ind.setSpatialPosition(p1.pointUniform());
@@ -24,7 +21,7 @@ initialize() {
 	i1.evaluate();
 	i2.evaluate();
 }
-fitness(m2) {
+fitness(NULL) {
 	totalStrength = i1.totalOfNeighborStrengths(individual);
 	return 1.1 - totalStrength / p1.individualCount;
 }
