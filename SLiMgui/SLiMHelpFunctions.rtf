@@ -155,13 +155,14 @@
 \f2\fs20 , 
 \f0\fs18 INF
 \f2\fs20  (positive infinity), indicates that there is no maximum interaction distance; note that this can make some interaction queries much less efficient, and is therefore not recommended.\
-The 
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf0 The 
 \f0\fs18 sexSegregation
-\f2\fs20  parameter governs the applicability of the interaction to each sex, in sexual simulations.  The default, 
+\f2\fs20  parameter governs the applicability of the interaction to each sex, in sexual simulations.  It does not affect distance calculations in any way; it only modifies the way in which interaction strengths are calculated.  The default, 
 \f0\fs18 "**"
 \f2\fs20 , implies that the interaction is felt by both sexes (the first character of the 
 \f0\fs18 string
-\f2\fs20  value) and is influenced by both sexes (the second character of the 
+\f2\fs20  value) and is exerted by both sexes (the second character of the 
 \f0\fs18 string
 \f2\fs20  value).  Either or both characters may be 
 \f0\fs18 M
@@ -186,10 +187,9 @@ The
 \f0\fs18 F
 \f2\fs20  for this reason; SLiM will take the sex-segregation of the interaction into account for you.  The value of 
 \f0\fs18 reciprocality
-\f2\fs20  may therefore be interpreted as meaning: in those cases, if any, in which A interacts with B and B interacts with A, is the interaction strength guaranteed to be the same in both directions?  \cf2 Note: this parameter is not yet used by SLiM.
-\f1 \cf0 \
-
-\f2 By default, the interaction strength is 
+\f2\fs20  may therefore be interpreted as meaning: in those cases, if any, in which A interacts with B and B interacts with A, is the interaction strength guaranteed to be the same in both directions?\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf0 By default, the interaction strength is 
 \f0\fs18 1.0
 \f2\fs20  for all interactions within 
 \f0\fs18 maxDistance

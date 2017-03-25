@@ -89,6 +89,8 @@ struct _InteractionsData
 	std::vector<SLiMEidosBlock*> evaluation_interaction_callbacks_;
 	
 	slim_popsize_t individual_count_ = 0;	// the number of individuals managed; this will be equal to the size of the corresponding subpopulation
+	slim_popsize_t first_male_index_ = 0;	// from the subpopulation's value; needed for sex-segregation handling
+	
 	double *positions_ = nullptr;			// individual_count_ * SLIM_MAX_DIMENSIONALITY entries, holding coordinate positions
 	double *distances_ = nullptr;			// individual_count_ ^ 2 entries, holding distances between pairs of individuals
 	double *strengths_ = nullptr;			// individual_count_ ^ 2 entries, holding interaction strengths between pairs of individuals
@@ -100,7 +102,8 @@ struct _InteractionsData
 	_InteractionsData(_InteractionsData&&);									// move constructor, for std::map compatibility
 	_InteractionsData& operator=(_InteractionsData&&);						// move assignment, for std::map compatibility
 	_InteractionsData(void);												// null construction, for std::map compatibility
-	_InteractionsData(slim_popsize_t p_individual_count);
+	
+	_InteractionsData(slim_popsize_t p_individual_count, slim_popsize_t p_first_male_index);
 	~_InteractionsData(void);
 };
 typedef struct _InteractionsData InteractionsData;
@@ -117,8 +120,8 @@ class InteractionType : public EidosObjectElement
 	bool reciprocality_;						// if true, interaction strengths A->B == B->A
 	double max_distance_;						// the maximum distance, beyond which interaction strength is assumed to be zero
 	double max_distance_sq_;					// the maximum distance squared, cached for speed
-	IndividualSex target_sex_;					// the sex of the individuals that feel the interaction
-	IndividualSex source_sex_;					// the sex of the individuals that exert the interaction
+	IndividualSex receiver_sex_;				// the sex of the individuals that feel the interaction
+	IndividualSex exerter_sex_;					// the sex of the individuals that exert the interaction
 	
 	slim_usertag_t tag_value_;					// a user-defined tag value
 	
@@ -177,7 +180,7 @@ public:
 	InteractionType(const InteractionType&) = delete;					// no copying
 	InteractionType& operator=(const InteractionType&) = delete;		// no copying
 	InteractionType(void) = delete;										// no null construction
-	InteractionType(slim_objectid_t p_interaction_type_id, std::string p_spatiality_string, bool p_reciprocality, double p_max_distance, IndividualSex p_target_sex, IndividualSex p_source_sex);
+	InteractionType(slim_objectid_t p_interaction_type_id, std::string p_spatiality_string, bool p_reciprocality, double p_max_distance, IndividualSex p_receiver_sex, IndividualSex p_exerter_sex);
 	~InteractionType(void);
 	
 	void EvaluateSubpopulation(Subpopulation *p_subpop, bool p_immediate);

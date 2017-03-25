@@ -1657,7 +1657,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		double maxDistance = arg3_value->FloatAtIndex(0, nullptr);
 		string sex_string = arg4_value->StringAtIndex(0, nullptr);
 		int required_dimensionality;
-		IndividualSex target_sex = IndividualSex::kUnspecified, source_sex = IndividualSex::kUnspecified;
+		IndividualSex receiver_sex = IndividualSex::kUnspecified, exerter_sex = IndividualSex::kUnspecified;
 		
 		if (interaction_types_.count(map_identifier) > 0) 
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() mutation type m" << map_identifier << " already defined." << eidos_terminate();
@@ -1679,27 +1679,22 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		if (maxDistance < 0.0)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() maxDistance must be >= 0.0." << eidos_terminate();
 		
-		// FIXME disable the use of sexSegregation for now...
-		if (sex_string != "**")
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() sexSegregation values other than '**' are not presently supported; check back later." << eidos_terminate();
-		// FIXME disable the use of sexSegregation for now...
-		
-		if (sex_string == "**")			{ target_sex = IndividualSex::kUnspecified;		source_sex = IndividualSex::kUnspecified;	}
-		else if (sex_string == "*M")	{ target_sex = IndividualSex::kUnspecified;		source_sex = IndividualSex::kMale;			}
-		else if (sex_string == "*F")	{ target_sex = IndividualSex::kUnspecified;		source_sex = IndividualSex::kFemale;		}
-		else if (sex_string == "M*")	{ target_sex = IndividualSex::kMale;			source_sex = IndividualSex::kUnspecified;	}
-		else if (sex_string == "MM")	{ target_sex = IndividualSex::kMale;			source_sex = IndividualSex::kMale;			}
-		else if (sex_string == "MF")	{ target_sex = IndividualSex::kMale;			source_sex = IndividualSex::kFemale;		}
-		else if (sex_string == "F*")	{ target_sex = IndividualSex::kFemale;			source_sex = IndividualSex::kUnspecified;	}
-		else if (sex_string == "FM")	{ target_sex = IndividualSex::kFemale;			source_sex = IndividualSex::kMale;			}
-		else if (sex_string == "FF")	{ target_sex = IndividualSex::kFemale;			source_sex = IndividualSex::kFemale;		}
+		if (sex_string == "**")			{ receiver_sex = IndividualSex::kUnspecified;	exerter_sex = IndividualSex::kUnspecified;	}
+		else if (sex_string == "*M")	{ receiver_sex = IndividualSex::kUnspecified;	exerter_sex = IndividualSex::kMale;			}
+		else if (sex_string == "*F")	{ receiver_sex = IndividualSex::kUnspecified;	exerter_sex = IndividualSex::kFemale;		}
+		else if (sex_string == "M*")	{ receiver_sex = IndividualSex::kMale;			exerter_sex = IndividualSex::kUnspecified;	}
+		else if (sex_string == "MM")	{ receiver_sex = IndividualSex::kMale;			exerter_sex = IndividualSex::kMale;			}
+		else if (sex_string == "MF")	{ receiver_sex = IndividualSex::kMale;			exerter_sex = IndividualSex::kFemale;		}
+		else if (sex_string == "F*")	{ receiver_sex = IndividualSex::kFemale;		exerter_sex = IndividualSex::kUnspecified;	}
+		else if (sex_string == "FM")	{ receiver_sex = IndividualSex::kFemale;		exerter_sex = IndividualSex::kMale;			}
+		else if (sex_string == "FF")	{ receiver_sex = IndividualSex::kFemale;		exerter_sex = IndividualSex::kFemale;		}
 		else
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() unsupported sexSegregation value (must be '**', '*M', '*F', 'M*', 'MM', 'MF', 'F*', 'FM', or 'FF')." << eidos_terminate();
 		
-		if (((target_sex != IndividualSex::kUnspecified) || (source_sex != IndividualSex::kUnspecified)) && !sex_enabled_)
+		if (((receiver_sex != IndividualSex::kUnspecified) || (exerter_sex != IndividualSex::kUnspecified)) && !sex_enabled_)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() sexSegregation value other than '**' unsupported in non-sexual simulation." << eidos_terminate();
 		
-		InteractionType *new_interaction_type = new InteractionType(map_identifier, spatiality_string, reciprocality, maxDistance, target_sex, source_sex);
+		InteractionType *new_interaction_type = new InteractionType(map_identifier, spatiality_string, reciprocality, maxDistance, receiver_sex, exerter_sex);
 		
 		interaction_types_.insert(std::pair<const slim_objectid_t,InteractionType*>(map_identifier, new_interaction_type));
 		interaction_types_changed_ = true;

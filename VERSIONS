@@ -28,6 +28,7 @@ development head:
 	allow mateChoice() callbacks to return a singleton Individual that is the chosen mate
 	rewrite recipe 11.2 to return a singleton Individual from its mateChoice() callback
 	broaden spatiality of InteractionType to allow "y", "z", "xz", "yz"
+	implement the sex-segregation feature of InteractionType
 
 
 2.2.1 (build 992; Eidos version 1.2.1):

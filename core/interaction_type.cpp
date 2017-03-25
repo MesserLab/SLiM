@@ -41,11 +41,12 @@ std::ostream& operator<<(std::ostream& p_out, IFType p_if_type)
 }
 
 
-InteractionType::InteractionType(slim_objectid_t p_interaction_type_id, std::string p_spatiality_string, bool p_reciprocality, double p_max_distance, IndividualSex p_target_sex, IndividualSex p_source_sex) :
-	interaction_type_id_(p_interaction_type_id), spatiality_string_(p_spatiality_string), reciprocality_(p_reciprocality), max_distance_(p_max_distance), max_distance_sq_(p_max_distance * p_max_distance), target_sex_(p_target_sex), source_sex_(p_source_sex), if_type_(IFType::kFixed), if_param1_(1.0), if_param2_(0.0),
+InteractionType::InteractionType(slim_objectid_t p_interaction_type_id, std::string p_spatiality_string, bool p_reciprocality, double p_max_distance, IndividualSex p_receiver_sex, IndividualSex p_exerter_sex) :
+	interaction_type_id_(p_interaction_type_id), spatiality_string_(p_spatiality_string), reciprocality_(p_reciprocality), max_distance_(p_max_distance), max_distance_sq_(p_max_distance * p_max_distance), receiver_sex_(p_receiver_sex), exerter_sex_(p_exerter_sex), if_type_(IFType::kFixed), if_param1_(1.0), if_param2_(0.0),
 	self_symbol_(EidosGlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('i', p_interaction_type_id)),
 				 EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_InteractionType_Class)))
 {
+	// Figure out our spatiality, which is the number of spatial dimensions we actively use for distances
 	if (spatiality_string_ == "")
 		spatiality_ = 0;
 	else if ((spatiality_string_ == "x") || (spatiality_string_ == "y") || (spatiality_string_ == "z"))
@@ -56,6 +57,12 @@ InteractionType::InteractionType(slim_objectid_t p_interaction_type_id, std::str
 		spatiality_ = 3;
 	else
 		EIDOS_TERMINATION << "ERROR (InteractionType::InteractionType): illegal spatiality string value" << eidos_terminate();
+	
+	// Correct our reciprocality for sex-segregation.  Basically, male-male, female-female, and *-* interactions
+	// can be reciprocal because the receivers are the same set of individuals as the exerters; others cannot be,
+	// although some subset of the full interaction may indeed be reciprocal (we're not smart enough to use that).
+	if (receiver_sex_ != exerter_sex_)
+		reciprocality_ = false;
 }
 
 InteractionType::~InteractionType(void)
@@ -74,7 +81,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 	if (data_iter == data_.end())
 	{
 		// No entry in our map table for this subpop_id, so we need to make a new entry
-		subpop_data = &(data_.insert(std::pair<slim_objectid_t, InteractionsData>(subpop_id, InteractionsData(p_subpop->parent_subpop_size_))).first->second);
+		subpop_data = &(data_.insert(std::pair<slim_objectid_t, InteractionsData>(subpop_id, InteractionsData(p_subpop->parent_subpop_size_, p_subpop->parent_first_male_index_))).first->second);
 	}
 	else
 	{
@@ -96,17 +103,29 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 			subpop_data->individual_count_ = subpop_size;
 		}
 		
-		// Now we have to make sure that the data in the buffers is useable; we want to leave them in the same state
-		// as the EnsureDistancesPresent() and EnsureStrengthsPresent() functions.
-		if (subpop_data->distances_)
-			InitializeDistances(*subpop_data);
+		subpop_data->first_male_index_ = p_subpop->parent_first_male_index_;
 		
-		if (subpop_data->strengths_)
-			InitializeStrengths(*subpop_data);
+		// Ensure that other parts of the subpop data block are correctly reset to the same state that Invalidate()
+		// uses; normally this has already been done by Initialize(), but not necessarily.
+		if (subpop_data->positions_)
+		{
+			free(subpop_data->positions_);
+			subpop_data->positions_ = nullptr;
+		}
+		
+		if (subpop_data->kd_nodes_)
+		{
+			free(subpop_data->kd_nodes_);
+			subpop_data->kd_nodes_ = nullptr;
+		}
+		
+		subpop_data->kd_root_ = nullptr;
 		
 		subpop_data->evaluation_interaction_callbacks_.clear();
 	}
 	
+	// At this point, positions_ is guaranteed to be nullptr; distances_ and strengths_ are either (1) nullptr,
+	// or (2) allocated, but containing garbage.  Now we mark ourselves evaluated and fill in the buffers as needed.
 	subpop_data->evaluated_ = true;
 	
 	// At a minimum, fetch positional data from the subpopulation; this is guaranteed to be present (for spatiality > 0)
@@ -204,16 +223,22 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 	// If we're supposed to evaluate it immediately, do so
 	if (p_immediate)
 	{
-		// We do not set up the kd-tree here at the moment, because we don't know whether or not we'll use it, and we have
-		// all the information we need to set it up later (since it doesn't depend on interactions or even distances).
-		// If we eventually want to make CalculateAllInteractions() use the kd-tree, though, then we would set it up here.
-		
+		// We do not set up the kd-tree here, because we don't know whether or not we'll use it, and we have all the
+		// information we need to set it up later (since it doesn't depend on interactions or even distances).
+		// Note that if distances_ and strengths_ are allocated, they contain garbage; CalculateAllInteractions()
+		// expects that, so we don't fix it in this code path, to avoid writing values to memory twice.
 		CalculateAllInteractions(p_subpop);
 	}
 	else
 	{
 		// We don't know whether we will be queried about distances or strengths at all; the user may only be interested in
 		// using the kd-tree facility to do nearest-neighbor searches.  So we do not allocate distances_ or strengths_ here.
+		// If they are already allocated, however, they presently contain garbage, so we have to clean them up.
+		if (subpop_data->distances_)
+			InitializeDistances(*subpop_data);
+		
+		if (subpop_data->strengths_)
+			InitializeStrengths(*subpop_data);
 	}
 }
 
@@ -255,16 +280,38 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 	std::vector<SLiMEidosBlock*> &callbacks = subpop_data.evaluation_interaction_callbacks_;
 	bool no_callbacks = (callbacks.size() == 0);
 	
+	// When this method is called, distances_ and strengths_ may be nullptr, or they may be allocated.  If they are allocated,
+	// they contain garbage, so we have to be a bit careful.  If we have any sort of sex-segregation going on, we want to
+	// force allocation and initialization of strengths_, since that will give us sex-segregation info set up to make the
+	// interaction calculations more efficient.  If sex-segregation is not enabled, we want to force allocation but not
+	// initialization of strengths_, since we will overwrite every entry anyway.  We always want to force allocation but not
+	// initialization of distances_, because we will overwrite all values in it whether we are sex-segregated or not.
+	bool is_sex_segregated = ((receiver_sex_ != IndividualSex::kUnspecified) || (exerter_sex_ != IndividualSex::kUnspecified));
+	
+	if (is_sex_segregated)
+	{
+		// Sex-segregation of some type; force allocation of both, and initialization of strengths_
+		if (!subpop_data.distances_)
+			subpop_data.distances_ = (double *)malloc(subpop_size * subpop_size * sizeof(double));
+		if (!subpop_data.strengths_)
+			subpop_data.strengths_ = (double *)malloc(subpop_size * subpop_size * sizeof(double));
+		InitializeStrengths(subpop_data);
+	}
+	else
+	{
+		// No sex-segregation; force allocation but not initialization
+		if (!subpop_data.distances_)
+			subpop_data.distances_ = (double *)malloc(subpop_size * subpop_size * sizeof(double));
+		if (!subpop_data.strengths_)
+			subpop_data.strengths_ = (double *)malloc(subpop_size * subpop_size * sizeof(double));
+	}
+	
 	if (spatiality_ == 0)
 	{
 		// Non-spatial interactions do not involve distances
-		// FIXME this could be optimized according to reciprocality and spatiality and sex-segregation and presence of interaction() callbacks...
-		double *strengths = (double *)malloc(subpop_size * subpop_size * sizeof(double));
-		
-		subpop_data.strengths_ = strengths;
-		
+		// FIXME this could be optimized according to reciprocality...
 		int receiving_index = 0;
-		double *receiving_strength = strengths;
+		double *receiving_strength = subpop_data.strengths_;
 		Individual *receiving_individual = subpop_individuals;
 		
 		while (receiving_index < subpop_size)
@@ -273,23 +320,44 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 			double *exerting_strength = receiving_strength;		// follow the row of receiver data
 			Individual *exerting_individual = subpop_individuals;
 			
-			while (exerting_index < subpop_size)
+			// The inner loop depends on sex-segregation.  If it is enabled, we need to check the existing strength value
+			// and fill only when necessary; if not, we fill in all values with no check because we're overwriting garbage.
+			if (is_sex_segregated)
 			{
-				if (receiving_index == exerting_index)
+				while (exerting_index < subpop_size)
 				{
-					// Individuals exert no interaction strength on themselves
-					*exerting_strength = 0;
+					if (isnan(*exerting_strength))
+					{
+						// Calculate the interaction strength; no need to check for self-interaction here
+						if (no_callbacks)
+							*exerting_strength = CalculateStrengthNoCallbacks(NAN);
+						else
+							*exerting_strength = CalculateStrengthWithCallbacks(NAN, receiving_individual, exerting_individual, p_subpop, callbacks);
+					}
+					
+					exerting_index++, exerting_strength++, exerting_individual++;
 				}
-				else
+			}
+			else
+			{
+				while (exerting_index < subpop_size)
 				{
-					// Calculate the interaction strength
-					if (no_callbacks)
-						*exerting_strength = CalculateStrengthNoCallbacks(NAN);
+					if (receiving_index == exerting_index)
+					{
+						// Individuals exert no interaction strength on themselves
+						*exerting_strength = 0;
+					}
 					else
-						*exerting_strength = CalculateStrengthWithCallbacks(NAN, receiving_individual, exerting_individual, p_subpop, callbacks);
+					{
+						// Calculate the interaction strength
+						if (no_callbacks)
+							*exerting_strength = CalculateStrengthNoCallbacks(NAN);
+						else
+							*exerting_strength = CalculateStrengthWithCallbacks(NAN, receiving_individual, exerting_individual, p_subpop, callbacks);
+					}
+					
+					exerting_index++, exerting_strength++, exerting_individual++;
 				}
-				
-				exerting_index++, exerting_strength++, exerting_individual++;
 			}
 			
 			receiving_index++, receiving_strength += subpop_size, receiving_individual++;
@@ -297,20 +365,12 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 	}
 	else
 	{
-		double *distances = (double *)malloc(subpop_size * subpop_size * sizeof(double));
-		double *strengths = (double *)malloc(subpop_size * subpop_size * sizeof(double));
-		
-		subpop_data.distances_ = distances;
-		subpop_data.strengths_ = strengths;
-		
-		// We could try to get fancy here, by first filling with NaN and then finding all the neighbors for each individual
-		// within the max distance and calculating those values... but in the end we need to fill the NxN arrays with values,
-		// and it saves memory accesses if we just do it all at once.  I will revisit this once the kd-tree is implemented.
-		// FIXME this could be optimized according to reciprocality and spatiality and sex-segregation and presence of interaction() callbacks...
+		// Spatial interactions involve distances, so we need to calculate those, too
+		// FIXME this could be optimized according to reciprocality...
 		int receiving_index = 0;
 		double *receiving_position = subpop_data.positions_;
-		double *receiving_distance = distances;
-		double *receiving_strength = strengths;
+		double *receiving_distance = subpop_data.distances_;
+		double *receiving_strength = subpop_data.strengths_;
 		Individual *receiving_individual = subpop_individuals;
 		
 		while (receiving_index < subpop_size)
@@ -321,17 +381,16 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 			double *exerting_strength = receiving_strength;		// follow the row of receiver data
 			Individual *exerting_individual = subpop_individuals;
 			
-			while (exerting_index < subpop_size)
+			// The inner loop depends on sex-segregation.  If it is enabled, we need to check the existing strength value
+			// and fill only when necessary; if not, we fill in all values with no check because we're overwriting garbage.
+			if (is_sex_segregated)
 			{
-				if (receiving_index == exerting_index)
+				while (exerting_index < subpop_size)
 				{
-					// Individuals are at zero distance from themselves, but exert no interaction strength
-					*exerting_distance = 0;
-					*exerting_strength = 0;
-				}
-				else
-				{
-					// Calculate the distance and the interaction strength
+					// First, we always calculate the distance; we've already fetched the cache lines containing the
+					// positions, and we would need to at least write a NAN for the distance, so we should just do it.
+					// We skip the check for self-interaction here; the distance will come out 0, and we avoid a test
+					// and branch.  For large population sizes, that will matter more than doing the work one extra time.
 					double distance;
 					
 					if (spatiality_ == 1)
@@ -356,18 +415,73 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 					
 					*exerting_distance = distance;
 					
-					if (distance <= max_distance_)
+					// Then we calculate the strength, only if it is NAN; no need to check for self-interaction here
+					if (isnan(*exerting_strength))
 					{
-						if (no_callbacks)
-							*exerting_strength = CalculateStrengthNoCallbacks(distance);
+						if (distance <= max_distance_)
+						{
+							if (no_callbacks)
+								*exerting_strength = CalculateStrengthNoCallbacks(distance);
+							else
+								*exerting_strength = CalculateStrengthWithCallbacks(distance, receiving_individual, exerting_individual, p_subpop, callbacks);
+						}
 						else
-							*exerting_strength = CalculateStrengthWithCallbacks(distance, receiving_individual, exerting_individual, p_subpop, callbacks);
+							*exerting_strength = 0.0;
+					}
+					
+					exerting_index++, exerting_position += SLIM_MAX_DIMENSIONALITY, exerting_distance++, exerting_strength++, exerting_individual++;
+				}
+			}
+			else
+			{
+				while (exerting_index < subpop_size)
+				{
+					if (receiving_index == exerting_index)
+					{
+						// Individuals are at zero distance from themselves, but exert no interaction strength
+						*exerting_distance = 0;
+						*exerting_strength = 0;
 					}
 					else
-						*exerting_strength = 0.0;
+					{
+						// Calculate the distance and the interaction strength
+						double distance;
+						
+						if (spatiality_ == 1)
+						{
+							distance = fabs(exerting_position[0] - receiving_position[0]);
+						}
+						else if (spatiality_ == 2)
+						{
+							double distance_x = (exerting_position[0] - receiving_position[0]);
+							double distance_y = (exerting_position[1] - receiving_position[1]);
+							
+							distance = sqrt(distance_x * distance_x + distance_y * distance_y);
+						}
+						else if (spatiality_ == 3)
+						{
+							double distance_x = (exerting_position[0] - receiving_position[0]);
+							double distance_y = (exerting_position[1] - receiving_position[1]);
+							double distance_z = (exerting_position[2] - receiving_position[2]);
+							
+							distance = sqrt(distance_x * distance_x + distance_y * distance_y + distance_z * distance_z);
+						}
+						
+						*exerting_distance = distance;
+						
+						if (distance <= max_distance_)
+						{
+							if (no_callbacks)
+								*exerting_strength = CalculateStrengthNoCallbacks(distance);
+							else
+								*exerting_strength = CalculateStrengthWithCallbacks(distance, receiving_individual, exerting_individual, p_subpop, callbacks);
+						}
+						else
+							*exerting_strength = 0.0;
+					}
+					
+					exerting_index++, exerting_position += SLIM_MAX_DIMENSIONALITY, exerting_distance++, exerting_strength++, exerting_individual++;
 				}
-				
-				exerting_index++, exerting_position += SLIM_MAX_DIMENSIONALITY, exerting_distance++, exerting_strength++, exerting_individual++;
 			}
 			
 			receiving_index++, receiving_position += SLIM_MAX_DIMENSIONALITY, receiving_distance += subpop_size, receiving_strength += subpop_size, receiving_individual++;
@@ -590,19 +704,92 @@ void InteractionType::InitializeStrengths(InteractionsData &p_subpop_data)
 	double *values = p_subpop_data.strengths_;
 	slim_popsize_t subpop_size = p_subpop_data.individual_count_;
 	int matrix_size = subpop_size * subpop_size;
+	bool is_sex_segregated = ((receiver_sex_ != IndividualSex::kUnspecified) || (exerter_sex_ != IndividualSex::kUnspecified));
 	
-	// Fill with NAN initially, to mark that the distance values have not been calculated.
-	// The compiler is smart enough to replace this with _platform_memset_pattern16...(),
-	// so it ends up being as optimized as it can get, probably, on OS X at least.
-	double *value_ptr = values;
-	double *values_end = values + matrix_size;
-	
-	while (value_ptr < values_end)
-		*(value_ptr++) = NAN;
+	if (is_sex_segregated)
+	{
+		// If we have some sort of sex-segregation going on, we take the slow path here.  We
+		// set interactions that are enabled by the sex-segregation to NAN, to indicate that
+		// they need to be calculated; others are set to 0.0 to short-circuit calculation.
+		// This is not just an optimization; it is how sex-segregation works at all.
+		slim_popsize_t first_male_index = p_subpop_data.first_male_index_;
+		int receiving_index = 0;
+		double *receiving_strength = p_subpop_data.strengths_;
+		
+		while (receiving_index < subpop_size)
+		{
+			int exerting_index = 0;
+			double *exerting_strength = receiving_strength;		// follow the row of receiver data
+			
+			if (((receiver_sex_ == IndividualSex::kMale) && (receiving_index < first_male_index)) || ((receiver_sex_ == IndividualSex::kFemale) && (receiving_index >= first_male_index)))
+			{
+				// The receiver is the wrong sex; the whole row can be filled with 0.0 (no interaction)
+				while (exerting_index < subpop_size)
+				{
+					*exerting_strength = 0.0;
+					exerting_index++, exerting_strength++;
+				}
+			}
+			else
+			{
+				// The receiver is of the right sex; only the exerter now needs to be checked
+				if (exerter_sex_ == IndividualSex::kMale)
+				{
+					// 0.0 (no interaction) for female exerters, NAN (uncalculated) for male exerters
+					while (exerting_index < first_male_index)
+					{
+						*exerting_strength = 0.0;
+						exerting_index++, exerting_strength++;
+					}
+					while (exerting_index < subpop_size)
+					{
+						*exerting_strength = NAN;
+						exerting_index++, exerting_strength++;
+					}
+				}
+				else if (exerter_sex_ == IndividualSex::kFemale)
+				{
+					// NAN (uncalculated) for female exerters, 0.0 (no interaction) for male exerters
+					while (exerting_index < first_male_index)
+					{
+						*exerting_strength = NAN;
+						exerting_index++, exerting_strength++;
+					}
+					while (exerting_index < subpop_size)
+					{
+						*exerting_strength = 0.0;
+						exerting_index++, exerting_strength++;
+					}
+				}
+				else if (exerter_sex_ == IndividualSex::kUnspecified)
+				{
+					// NAN (uncalculated) for all exerters
+					while (exerting_index < subpop_size)
+					{
+						*exerting_strength = NAN;
+						exerting_index++, exerting_strength++;
+					}
+				}
+			}
+			
+			receiving_index++, receiving_strength += subpop_size;
+		}
+	}
+	else
+	{
+		// Fill with NAN initially, to mark that the distance values have not been calculated.
+		// The compiler is smart enough to replace this with _platform_memset_pattern16...(),
+		// so it ends up being as optimized as it can get, probably, on OS X at least.
+		double *value_ptr = values;
+		double *values_end = values + matrix_size;
+		
+		while (value_ptr < values_end)
+			*(value_ptr++) = NAN;
+	}
 	
 	// Set interactions between an individual and itself to zero.  By doing this here, we
 	// eliminate the need to check for this case elsewhere; even when a strength has not
-	// been cached in general, it can be assumed that self-interactions are cached
+	// been cached in general, it can be assumed that self-interactions are cached.
 	for (int ind_index = 0; ind_index < subpop_size; ++ind_index)
 		values[ind_index * (subpop_size + 1)] = 0.0;
 }
@@ -1936,14 +2123,14 @@ EidosValue_SP InteractionType::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			std::string sex_segregation_string;
 			
-			switch (target_sex_)
+			switch (receiver_sex_)
 			{
 				case IndividualSex::kFemale:	sex_segregation_string += "F"; break;
 				case IndividualSex::kMale:		sex_segregation_string += "M"; break;
 				default:						sex_segregation_string += "*"; break;
 			}
 			
-			switch (source_sex_)
+			switch (exerter_sex_)
 			{
 				case IndividualSex::kFemale:	sex_segregation_string += "F"; break;
 				case IndividualSex::kMale:		sex_segregation_string += "M"; break;
@@ -3005,6 +3192,7 @@ _InteractionsData::_InteractionsData(_InteractionsData&& source)
 	evaluated_ = source.evaluated_;
 	evaluation_interaction_callbacks_.swap(source.evaluation_interaction_callbacks_);
 	individual_count_ = source.individual_count_;
+	first_male_index_ = source.first_male_index_;
 	positions_ = source.positions_;
 	distances_ = source.distances_;
 	strengths_ = source.strengths_;
@@ -3014,6 +3202,7 @@ _InteractionsData::_InteractionsData(_InteractionsData&& source)
 	source.evaluated_ = false;
 	source.evaluation_interaction_callbacks_.clear();
 	source.individual_count_ = 0;
+	source.first_male_index_ = 0;
 	source.positions_ = nullptr;
 	source.distances_ = nullptr;
 	source.strengths_ = nullptr;
@@ -3037,6 +3226,7 @@ _InteractionsData& _InteractionsData::operator=(_InteractionsData&& source)
 		evaluated_ = source.evaluated_;
 		evaluation_interaction_callbacks_.swap(source.evaluation_interaction_callbacks_);
 		individual_count_ = source.individual_count_;
+		first_male_index_ = source.first_male_index_;
 		positions_ = source.positions_;
 		distances_ = source.distances_;
 		strengths_ = source.strengths_;
@@ -3046,6 +3236,7 @@ _InteractionsData& _InteractionsData::operator=(_InteractionsData&& source)
 		source.evaluated_ = false;
 		source.evaluation_interaction_callbacks_.clear();
 		source.individual_count_ = 0;
+		source.first_male_index_ = 0;
 		source.positions_ = nullptr;
 		source.distances_ = nullptr;
 		source.strengths_ = nullptr;
@@ -3060,7 +3251,7 @@ _InteractionsData::_InteractionsData(void)
 {
 }
 
-_InteractionsData::_InteractionsData(slim_popsize_t p_individual_count) : individual_count_(p_individual_count)
+_InteractionsData::_InteractionsData(slim_popsize_t p_individual_count, slim_popsize_t p_first_male_index) : individual_count_(p_individual_count), first_male_index_(p_first_male_index)
 {
 }
 
@@ -3091,6 +3282,9 @@ _InteractionsData::~_InteractionsData(void)
 	}
 	
 	kd_root_ = nullptr;
+	
+	// Unnecessary since it's about to be destroyed anyway
+	//evaluation_interaction_callbacks_.clear();
 }
 
 
