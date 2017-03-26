@@ -1,8 +1,8 @@
 {\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf810
 {\fonttbl\f0\fnil\fcharset0 Menlo-Regular;\f1\froman\fcharset0 TimesNewRomanPSMT;\f2\fswiss\fcharset0 Optima-Regular;
 \f3\fswiss\fcharset0 Helvetica;}
-{\colortbl;\red255\green255\blue255;\red255\green0\blue0;}
-{\*\expandedcolortbl;;\csgenericrgb\c100000\c0\c0;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
 \margl1440\margr1440\vieww9000\viewh8400\viewkind0
 \deftab720
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -71,7 +71,7 @@
 \f1 \
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f0\fs18 \cf0 (object<InteractionType>$)initializeInteractionType(is$\'a0id, string$\'a0spatiality, [logical$\'a0reciprocality\'a0=\'a0T], [numeric$\'a0maxDistance\'a0=\'a0INF], [string$\'a0sexSegregation\'a0=\'a0"**"])
+\f0\fs18 \cf0 (object<InteractionType>$)initializeInteractionType(is$\'a0id, string$\'a0spatiality, [logical$\'a0reciprocality\'a0=\'a0F], [numeric$\'a0maxDistance\'a0=\'a0INF], [string$\'a0sexSegregation\'a0=\'a0"**"])
 \f1 \
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -128,10 +128,10 @@
 \f0\fs18 "xyz"
 \f1\fs20 .
 \f2   If no spatial dimensions have been configured, only non-spatial interactions may be defined.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 The 
 \f0\fs18 reciprocality
-\f2\fs20  may be 
+\f2\fs20  flag may be 
 \f0\fs18 T
 \f2\fs20 , in which case the interaction is guaranteed by the user to be 
 \i reciprocal
@@ -141,14 +141,32 @@
 \f0\fs18 reciprocality
 \f2\fs20  is 
 \f0\fs18 F
-\f2\fs20 , the interaction is not guaranteed to be reciprocal and each interaction will be computed independently.  The built-in interaction formulas are all reciprocal, so this is 
-\f0\fs18 T
-\f2\fs20  by default, but if you implement an 
+\f2\fs20 , the interaction is not guaranteed to be reciprocal and each interaction will be computed independently.  The built-in interaction formulas are all reciprocal, but if you implement an 
 \f0\fs18 interaction()
-\f2\fs20  callback, you must consider whether the callback you have implemented preserves reciprocality or not.  See below for a note regarding reciprocality in sexual simulations.  \cf2 Note: this parameter is not yet used by SLiM.
-\f1 \cf0 \
-
-\f2 The 
+\f2\fs20  callback (see section 19.6), you must consider whether the callback you have implemented preserves reciprocality or not.  For this reason, the default is 
+\f0\fs18 reciprocality=F
+\f2\fs20 , so that bugs are not inadvertently introduced by an invalid assumption of reciprocality.  See below for a note regarding reciprocality in sexual simulations when using the 
+\f0\fs18 sexSegregation
+\f2\fs20  flag.\
+Note that even if an interaction is reciprocal, it may occasionally be slightly faster for 
+\f0\fs18 reciprocality
+\f2\fs20  to be set to 
+\f0\fs18 F
+\f2\fs20 .  This is most likely when the amount of computation per interaction is very small (particularly if no 
+\f0\fs18 interaction()
+\f2\fs20  callbacks are involved), and when it is unlikely that the reciprocal of a queried interaction will also be queried.  Even in such cases, however, the slowdown for 
+\f0\fs18 reciprocality=T
+\f2\fs20  should be fairly small.  In most usage cases, setting 
+\f0\fs18 reciprocality
+\f2\fs20  to 
+\f0\fs18 T
+\f2\fs20  (when the interaction is in fact reciprocal) will result in at least equal performance, if not better; with a very slow 
+\f0\fs18 interaction()
+\f2\fs20  callback, the performance can be as much as double, making it generally worthwhile to use 
+\f0\fs18 reciprocality=T
+\f2\fs20  when possible.  However, for maximal performance one might wish to time and compare runs with reciprocality enabled and disabled (using the same random number seed).\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf0 The 
 \f0\fs18 maxDistance
 \f2\fs20  parameter supplies the maximum distance over which interactions of this type will be evaluated; at greater distances, the interaction strength is considered to be zero (for efficiency).  The default value of 
 \f0\fs18 maxDistance
