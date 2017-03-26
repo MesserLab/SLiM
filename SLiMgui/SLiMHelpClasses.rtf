@@ -1762,9 +1762,25 @@ Similarly, for one individual this is essentially the same as calling
 If the needed interaction strengths have already been calculated, those cached values are simply used.  Otherwise, calling this method triggers evaluation of the needed interactions, including calls to any applicable 
 \f2\fs18 interaction()
 \f0\fs20  callbacks.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96\'a0(void)unevaluate(void)
+\f3 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Discards all evaluation of this interaction, for all subpopulations.  The state of the 
+\f2\fs18 InteractionType
+\f0\fs20  is reset to a state prior to evaluation.  This can be useful if the model state has changed in such a way that the evaluation already conducted is no longer valid.  For example, if the maximum distance or the interaction function of the 
+\f2\fs18 InteractionType
+\f0\fs20  need to be changed with immediate effect, or if the data used by an interaction() callback has changed in such a way that previously calculated interaction strengths are no longer correct, 
+\f2\fs18 unevaluate()
+\f0\fs20  allows the interaction to begin again from scratch.\
+Note that all interactions are automatically reset to an unevaluated state at the moment when the new offspring generation becomes the parental generation (at step 4 in the generation cycle).  Most simulations therefore never have any reason to call 
+\f2\fs18 unevaluate()
+\f3\fs20 .\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\b\fs22 \cf0 5.8  Class Mutation\
+\f0\b\fs22 \cf0 5.8  Class Mutation\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \i\b0 \cf0 5.8.1  

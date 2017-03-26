@@ -265,6 +265,7 @@ const std::string gStr_nearestNeighborsOfPoint = "nearestNeighborsOfPoint";
 const std::string gStr_setInteractionFunction = "setInteractionFunction";
 const std::string gStr_strength = "strength";
 const std::string gStr_totalOfNeighborStrengths = "totalOfNeighborStrengths";
+const std::string gStr_unevaluate = "unevaluate";
 const std::string gStr_drawByStrength = "drawByStrength";
 
 // mostly SLiM variable names used in callbacks and such
@@ -495,6 +496,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_setInteractionFunction, gID_setInteractionFunction);
 		Eidos_RegisterStringForGlobalID(gStr_strength, gID_strength);
 		Eidos_RegisterStringForGlobalID(gStr_totalOfNeighborStrengths, gID_totalOfNeighborStrengths);
+		Eidos_RegisterStringForGlobalID(gStr_unevaluate, gID_unevaluate);
 		Eidos_RegisterStringForGlobalID(gStr_drawByStrength, gID_drawByStrength);
 		
 		Eidos_RegisterStringForGlobalID(gStr_sim, gID_sim);

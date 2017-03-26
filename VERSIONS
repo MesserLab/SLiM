@@ -30,6 +30,7 @@ development head:
 	broaden spatiality of InteractionType to allow "y", "z", "xz", "yz"
 	implement the sex-segregation feature of InteractionType
 	implement the reciprocality feature of InteractionType, change default for reciprocality to F
+	adding unevaluate() to allow interactions to be reused with fresh calculations within a generation
 
 
 2.2.1 (build 992; Eidos version 1.2.1):

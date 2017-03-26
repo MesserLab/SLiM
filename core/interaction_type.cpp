@@ -242,6 +242,19 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 	}
 }
 
+bool InteractionType::AnyEvaluated(void)
+{
+	for (auto &data_iter : data_)
+	{
+		InteractionsData &data = data_iter.second;
+		
+		if (data.evaluated_)
+			return true;
+	}
+	
+	return false;
+}
+
 void InteractionType::Invalidate(void)
 {
 	// Called by SLiM when the old generation goes away; should invalidate all evaluation.  We avoid actually freeing the
@@ -2767,6 +2780,9 @@ void InteractionType::SetProperty(EidosGlobalStringID p_property_id, const Eidos
 	{
 		case gID_maxDistance:
 		{
+			if (AnyEvaluated())
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): maxDistance cannot be changed while the interaction is being evaluated; call unevaluate() first, or set maxDistance prior to evaluation of the interaction." << eidos_terminate();
+			
 			max_distance_ = p_value.FloatAtIndex(0, nullptr);
 			max_distance_sq_ = max_distance_ * max_distance_;
 			return;
@@ -3318,6 +3334,9 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 			std::vector<double> if_parameters;
 			std::vector<std::string> if_strings;
 			
+			if (AnyEvaluated())
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): setInteractionFunction() cannot be called while the interaction is being evaluated; call unevaluate() first, or call setInteractionFunction() prior to evaluation of the interaction." << eidos_terminate();
+			
 			if (if_type_string.compare(gStr_f) == 0)
 			{
 				if_type = IFType::kFixed;
@@ -3719,6 +3738,19 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 			return EidosValue_SP(result_vec);
 		}
 			
+			
+			//
+			//	*********************	– (float)unevaluate(void)
+			//
+			#pragma mark -unevaluate()
+			
+		case gID_unevaluate:
+		{
+			Invalidate();
+			
+			return gStaticEidosValueNULLInvisible;
+		}
+			
 			// all others, including gID_none
 		default:
 			return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
@@ -3833,6 +3865,7 @@ const std::vector<const EidosMethodSignature *> *InteractionType_Class::Methods(
 		methods->emplace_back(SignatureForMethodOrRaise(gID_setInteractionFunction));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_strength));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_totalOfNeighborStrengths));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_unevaluate));
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	
@@ -3850,6 +3883,7 @@ const EidosMethodSignature *InteractionType_Class::SignatureForMethod(EidosGloba
 	static EidosInstanceMethodSignature *setInteractionFunctionSig = nullptr;
 	static EidosInstanceMethodSignature *strengthSig = nullptr;
 	static EidosInstanceMethodSignature *totalOfNeighborStrengthsSig = nullptr;
+	static EidosInstanceMethodSignature *unevaluateSig = nullptr;
 	
 	if (!evaluateSig)
 	{
@@ -3862,6 +3896,7 @@ const EidosMethodSignature *InteractionType_Class::SignatureForMethod(EidosGloba
 		setInteractionFunctionSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setInteractionFunction, kEidosValueMaskNULL))->AddString_S("functionType")->AddEllipsis();
 		strengthSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_strength, kEidosValueMaskFloat))->AddObject("individuals1", gSLiM_Individual_Class)->AddObject_ON("individuals2", gSLiM_Individual_Class, gStaticEidosValueNULL);
 		totalOfNeighborStrengthsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_totalOfNeighborStrengths, kEidosValueMaskFloat))->AddObject("individuals", gSLiM_Individual_Class);
+		unevaluateSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_unevaluate, kEidosValueMaskNULL));
 	}
 	
 	switch (p_method_id)
@@ -3875,6 +3910,7 @@ const EidosMethodSignature *InteractionType_Class::SignatureForMethod(EidosGloba
 		case gID_setInteractionFunction:	return setInteractionFunctionSig;
 		case gID_strength:					return strengthSig;
 		case gID_totalOfNeighborStrengths:	return totalOfNeighborStrengthsSig;
+		case gID_unevaluate:				return unevaluateSig;
 			
 			// all others, including gID_none
 		default:

@@ -190,6 +190,7 @@ public:
 	~InteractionType(void);
 	
 	void EvaluateSubpopulation(Subpopulation *p_subpop, bool p_immediate);
+	bool AnyEvaluated(void);
 	void Invalidate(void);
 
 	// apply interaction() callbacks to an interaction strength; the return value is the final interaction strength
