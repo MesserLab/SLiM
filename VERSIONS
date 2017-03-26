@@ -31,6 +31,7 @@ development head:
 	implement the sex-segregation feature of InteractionType
 	implement the reciprocality feature of InteractionType, change default for reciprocality to F
 	adding unevaluate() to allow interactions to be reused with fresh calculations within a generation
+	fix a code completion bug when the simulation is invalid
 
 
 2.2.1 (build 992; Eidos version 1.2.1):

@@ -2235,13 +2235,25 @@
 						// to do this for other block-specific stuff as well (like the stuff below), but it is unlikely to matter.
 						if (block_type == SLiMEidosBlockType::SLiMEidosInitializeCallback)
 						{
-							if (sim)
-								sim->AddZeroGenerationFunctionsToMap(*functionMap);
+							// Equivalent to sim->AddZeroGenerationFunctionsToMap(), but works even when sim is nullptr
+							const std::vector<const EidosFunctionSignature*> *initialize_signatures = SLiMSim::ZeroGenerationFunctionSignatures_NO_DELEGATE();
+							
+							if (initialize_signatures)
+							{
+								for (const EidosFunctionSignature *signature : *initialize_signatures)
+									(*functionMap)->insert(EidosFunctionMapPair(signature->call_name_, signature));
+							}
 						}
 						else
 						{
-							if (sim)
-								sim->RemoveZeroGenerationFunctionsFromMap(*functionMap);
+							// Equivalent to sim->RemoveZeroGenerationFunctionsFromMap(), but works even when sim is nullptr
+							const std::vector<const EidosFunctionSignature*> *initialize_signatures = SLiMSim::ZeroGenerationFunctionSignatures_NO_DELEGATE();
+							
+							if (initialize_signatures)
+							{
+								for (const EidosFunctionSignature *signature : *initialize_signatures)
+									(*functionMap)->erase(signature->call_name_);
+							}
 						}
 						
 						if (script_block_node == completion_block)

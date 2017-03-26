@@ -2152,30 +2152,52 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 	return gStaticEidosValueNULLInvisible;
 }
 
+void SLiMSim::_AddZeroGenerationFunctionsToSignatureVector(std::vector<const EidosFunctionSignature*> &p_signature_vector, SLiMSim *p_delegate)
+{
+	// This is the lowest-level funnel for adding zero-generation (i.e. initialize() callback) functions.  It takes
+	// a pointer to a SLiMSim object to be used as a delegate, which allows the code completion facility to work
+	// even when the simulation is invalid, by passing nullptr for the delegate.
+	if (!p_signature_vector.size())
+	{
+		void *delegate = static_cast<void *>(p_delegate);
+		
+		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElement, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))
+									   ->AddIntObject_S("genomicElementType", gSLiM_GenomicElementType_Class)->AddInt_S("start")->AddInt_S("end"));
+		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElementType, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_GenomicElementType_Class, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))
+									   ->AddIntString_S("id")->AddIntObject("mutationTypes", gSLiM_MutationType_Class)->AddNumeric("proportions"));
+		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeInteractionType, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_InteractionType_Class, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))
+									   ->AddIntString_S("id")->AddString_S(gStr_spatiality)->AddLogical_OS(gStr_reciprocality, gStaticEidosValue_LogicalF)->AddNumeric_OS(gStr_maxDistance, gStaticEidosValue_FloatINF)->AddString_OS(gStr_sexSegregation, gStaticEidosValue_StringDoubleAsterisk));
+		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationType, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))
+									   ->AddIntString_S("id")->AddNumeric_S("dominanceCoeff")->AddString_S("distributionType")->AddEllipsis());
+		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeRecombinationRate, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))
+									   ->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
+		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGeneConversion, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))
+									   ->AddNumeric_S("conversionFraction")->AddNumeric_S("meanLength"));
+		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationRate, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))
+									   ->AddNumeric_S("rate"));
+		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSex, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))
+									   ->AddString_S("chromosomeType")->AddNumeric_OS("xDominanceCoeff", gStaticEidosValue_Float1));
+		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMOptions, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))
+									   ->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("dimensionality", gStaticEidosValue_StringEmpty));
+	}
+}
+
+const std::vector<const EidosFunctionSignature*> *SLiMSim::ZeroGenerationFunctionSignatures_NO_DELEGATE(void)
+{
+	// Allocate our own EidosFunctionSignature objects; for this method, the signatures have a nullptr delegate and must not be called
+	static std::vector<const EidosFunctionSignature*> gSLiMZeroGenSignatures_NO_DELEGATE;
+	
+	if (!gSLiMZeroGenSignatures_NO_DELEGATE.size())
+		_AddZeroGenerationFunctionsToSignatureVector(gSLiMZeroGenSignatures_NO_DELEGATE, nullptr);
+	
+	return &gSLiMZeroGenSignatures_NO_DELEGATE;
+}
+
 const std::vector<const EidosFunctionSignature*> *SLiMSim::ZeroGenerationFunctionSignatures(void)
 {
 	// Allocate our own EidosFunctionSignature objects; they cannot be statically allocated since they point to us
 	if (!sim_0_signatures_.size())
-	{
-		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElement, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
-									->AddIntObject_S("genomicElementType", gSLiM_GenomicElementType_Class)->AddInt_S("start")->AddInt_S("end"));
-		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElementType, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_GenomicElementType_Class, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
-									->AddIntString_S("id")->AddIntObject("mutationTypes", gSLiM_MutationType_Class)->AddNumeric("proportions"));
-		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeInteractionType, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_InteractionType_Class, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
-									   ->AddIntString_S("id")->AddString_S(gStr_spatiality)->AddLogical_OS(gStr_reciprocality, gStaticEidosValue_LogicalF)->AddNumeric_OS(gStr_maxDistance, gStaticEidosValue_FloatINF)->AddString_OS(gStr_sexSegregation, gStaticEidosValue_StringDoubleAsterisk));
-		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationType, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
-									   ->AddIntString_S("id")->AddNumeric_S("dominanceCoeff")->AddString_S("distributionType")->AddEllipsis());
-		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeRecombinationRate, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
-									->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
-		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGeneConversion, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
-									->AddNumeric_S("conversionFraction")->AddNumeric_S("meanLength"));
-		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationRate, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
-									->AddNumeric_S("rate"));
-		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSex, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
-									   ->AddString_S("chromosomeType")->AddNumeric_OS("xDominanceCoeff", gStaticEidosValue_Float1));
-		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMOptions, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, static_cast<void *>(this), "SLiM"))
-									   ->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("dimensionality", gStaticEidosValue_StringEmpty));
-	}
+		_AddZeroGenerationFunctionsToSignatureVector(sim_0_signatures_, this);
 	
 	return &sim_0_signatures_;
 }

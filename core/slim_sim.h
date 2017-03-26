@@ -195,6 +195,10 @@ public:
 	
 	EidosSymbolTable *SymbolsFromBaseSymbols(EidosSymbolTable *p_base_symbols);				// derive a symbol table, adding our own symbols if needed
 	EidosFunctionMap *FunctionMapFromBaseMap(EidosFunctionMap *p_base_map, bool p_force_addition = false);	// derive a function map, adding zero-gen functions if needed
+	
+	static void _AddZeroGenerationFunctionsToSignatureVector(std::vector<const EidosFunctionSignature*> &p_signature_vector, SLiMSim *p_delegate);	// low-level funnel
+	static const std::vector<const EidosFunctionSignature*> *ZeroGenerationFunctionSignatures_NO_DELEGATE(void);									// for code-completion only!
+	
 	const std::vector<const EidosFunctionSignature*> *ZeroGenerationFunctionSignatures(void);		// all zero-gen functions
 	void AddZeroGenerationFunctionsToMap(EidosFunctionMap *p_map);
 	void RemoveZeroGenerationFunctionsFromMap(EidosFunctionMap *p_map);
