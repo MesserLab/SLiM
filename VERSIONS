@@ -32,6 +32,7 @@ development head:
 	implement the reciprocality feature of InteractionType, change default for reciprocality to F
 	adding unevaluate() to allow interactions to be reused with fresh calculations within a generation
 	fix a code completion bug when the simulation is invalid
+	first passes at recipes 14.6, 14.7, 14.8, and 14.9
 
 
 2.2.1 (build 992; Eidos version 1.2.1):

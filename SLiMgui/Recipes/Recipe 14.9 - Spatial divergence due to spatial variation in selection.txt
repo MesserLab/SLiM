@@ -1,0 +1,41 @@
+initialize() {
+	defineConstant("sigma_C", 0.1);
+	defineConstant("sigma_K", 0.5);
+	defineConstant("slope", 1.0);
+	defineConstant("N", 500);
+	
+	initializeSLiMOptions(dimensionality="xyz");	initializeMutationRate(1e-6);	initializeMutationType("m1", 0.5, "f", 0.0);        // neutral	initializeMutationType("m2", 0.5, "n", 0.0, 1.0);   // QTL	m2.convertToSubstitution = F;		initializeGenomicElementType("g1", c(m1, m2), c(1, 0.1));	initializeGenomicElement(g1, 0, 1e5 - 1);	initializeRecombinationRate(1e-8);		initializeInteractionType(1, "xyz", reciprocality=T);     // competition	i1.setInteractionFunction("n", 1.0, sigma_C);
+	
+	initializeInteractionType(2, "xyz", reciprocality=T);     // mate choice	i2.setInteractionFunction("n", 1.0, 0.1);
+}1 late() {	sim.addSubpop("p1", N);
+	
+	p1.setSpatialBounds(c(0.0, 0.0, -slope, 1.0, 1.0, slope));	
+	for (ind in p1.individuals)
+		ind.setSpatialPosition(p1.pointUniform());
+	p1.individuals.z = 0.0;
+}modifyChild() {
+	// set offspring position based on parental position
+	do
+		pos = c(parent1.spatialPosition[0:1] + rnorm(2, 0, 0.005), 0.0);
+	while (!p1.pointInBounds(pos));
+	child.setSpatialPosition(pos);
+	
+	return T;
+}
+1: late() {	// construct phenotypes from the additive effects of QTLs	inds = sim.subpopulations.individuals;
+	phenotype = apply(inds,		"sum(applyValue.genomes.mutationsOfType(m2).selectionCoeff);");	inds.z = phenotype;
+	
+	// color individuals according to phenotype
+	phenotype = pmin(phenotype, rep(slope, N));
+	phenotype = pmax(phenotype, rep(-slope, N));
+	phenotype = (phenotype + slope) / (slope * 2);
+	phenotype = asInteger(phenotype * 255);
+	phenotype = format("#%.2X0000", phenotype);
+	inds.color = phenotype;
+		// evaluate interactions	i1.evaluate();	i2.evaluate();
+}fitness(m2) {			// make QTLs intrinsically neutral	return 1.0;}fitness(NULL) {		// reward proximity to the optimum
+	optimum = (individual.x - 0.5) * slope;	return 1.0 + dnorm(optimum - individual.z, mean=0.0, sd=sigma_K);}fitness(NULL) {		// phenotypic competition	totalStrength = sum(i1.strength(individual));	return 1.0 - totalStrength / p1.individualCount;}
+mateChoice() {
+	// spatial mate choice
+	return i2.strength(individual);
+}1:99999 late() {	if (sim.generation == 1)		cat("  gen    mean      sd\n");		if (sim.generation % 100 == 1)	{		tags = p1.individuals.z;		cat(format("%5d  ", sim.generation));		cat(format("%6.2f  ", mean(tags)));		cat(format("%6.2f\n", sd(tags)));	}}
