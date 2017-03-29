@@ -1654,7 +1654,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		slim_objectid_t map_identifier = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 'i', nullptr);
 		string spatiality_string = arg1_value->StringAtIndex(0, nullptr);
 		bool reciprocal = arg2_value->LogicalAtIndex(0, nullptr);
-		double maxDistance = arg3_value->FloatAtIndex(0, nullptr);
+		double max_distance = arg3_value->FloatAtIndex(0, nullptr);
 		string sex_string = arg4_value->StringAtIndex(0, nullptr);
 		int required_dimensionality;
 		IndividualSex receiver_sex = IndividualSex::kUnspecified, exerter_sex = IndividualSex::kUnspecified;
@@ -1676,7 +1676,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		if (required_dimensionality > spatial_dimensionality_)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() spatiality cannot utilize spatial dimensions beyond those set in initializeSLiMOptions()." << eidos_terminate();
 		
-		if (maxDistance < 0.0)
+		if (max_distance < 0.0)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() maxDistance must be >= 0.0." << eidos_terminate();
 		
 		if (sex_string == "**")			{ receiver_sex = IndividualSex::kUnspecified;	exerter_sex = IndividualSex::kUnspecified;	}
@@ -1694,7 +1694,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		if (((receiver_sex != IndividualSex::kUnspecified) || (exerter_sex != IndividualSex::kUnspecified)) && !sex_enabled_)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() sexSegregation value other than '**' unsupported in non-sexual simulation." << eidos_terminate();
 		
-		InteractionType *new_interaction_type = new InteractionType(map_identifier, spatiality_string, reciprocal, maxDistance, receiver_sex, exerter_sex);
+		InteractionType *new_interaction_type = new InteractionType(map_identifier, spatiality_string, reciprocal, max_distance, receiver_sex, exerter_sex);
 		
 		interaction_types_.insert(std::pair<const slim_objectid_t,InteractionType*>(map_identifier, new_interaction_type));
 		interaction_types_changed_ = true;
@@ -1714,8 +1714,8 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 			if (reciprocal == true)
 				output_stream << "\", reciprocal=T";
 			
-			if (maxDistance != 0.0)
-				output_stream << "\", maxDistance=" << maxDistance;
+			if (!isinf(max_distance))
+				output_stream << "\", maxDistance=" << max_distance;
 			
 			if (sex_string != "**")
 				output_stream << "\", sexSegregation=" << sex_string;

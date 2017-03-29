@@ -2788,6 +2788,12 @@ void InteractionType::SetProperty(EidosGlobalStringID p_property_id, const Eidos
 			
 			max_distance_ = p_value.FloatAtIndex(0, nullptr);
 			max_distance_sq_ = max_distance_ * max_distance_;
+			
+			if (max_distance_ < 0.0)
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): the maximum interaction distance must be greater than or equal to zero." << eidos_terminate();
+			if ((if_type_ == IFType::kLinear) && (isinf(max_distance_) || (max_distance_ <= 0.0)))
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): the maximum interaction distance must be finite and greater than zero when interaction type 'l' has been chosen." << eidos_terminate();
+			
 			return;
 		}
 			
@@ -3349,6 +3355,9 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 			{
 				if_type = IFType::kLinear;
 				expected_if_param_count = 1;
+				
+				if (isinf(max_distance_) || (max_distance_ <= 0.0))
+					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): interaction type 'l' cannot be set in setInteractionFunction() unless a finite maximum interaction distance greater than zero has been set." << eidos_terminate();
 			}
 			else if (if_type_string.compare(gStr_e) == 0)
 			{
