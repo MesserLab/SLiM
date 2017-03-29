@@ -283,7 +283,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 #endif
 		}
 	}
-	catch (std::runtime_error err)
+	catch (...)
 	{
 		*errorString = [NSString stringWithUTF8String:EidosGetUntrimmedRaiseMessage().c_str()];
 		return nil;
@@ -303,7 +303,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 			*parseString = [NSString stringWithUTF8String:parse_stream.str().c_str()];
 		}
 	}
-	catch (std::runtime_error err)
+	catch (...)
 	{
 		*errorString = [NSString stringWithUTF8String:EidosGetUntrimmedRaiseMessage().c_str()];
 		return nil;
@@ -352,7 +352,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		if (executionString)
 			*executionString = [NSString stringWithUTF8String:interpreter.ExecutionLog().c_str()];
 	}
-	catch (std::runtime_error err)
+	catch (...)
 	{
 		if ([delegate respondsToSelector:@selector(eidosConsoleWindowControllerDidExecuteScript:)])
 			[delegate eidosConsoleWindowControllerDidExecuteScript:self];
@@ -521,7 +521,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 			script.Tokenize();
 			script.ParseInterpreterBlockToAST();
 		}
-		catch (std::runtime_error err)
+		catch (...)
 		{
 			errorDiagnostic = [[NSString stringWithUTF8String:EidosGetTrimmedRaiseMessage().c_str()] retain];
 		}

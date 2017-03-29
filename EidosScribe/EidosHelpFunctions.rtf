@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf760
+{\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf810
 {\fonttbl\f0\fswiss\fcharset0 Optima-Regular;\f1\fnil\fcharset0 Menlo-Regular;\f2\froman\fcharset0 TimesNewRomanPSMT;
 \f3\fnil\fcharset0 Menlo-Italic;\f4\fnil\fcharset0 AppleSymbols;\f5\fswiss\fcharset0 Helvetica;
 \f6\fnil\fcharset0 Menlo-Bold;\f7\ftech\fcharset77 Symbol;}
@@ -2784,7 +2784,79 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f0\fs20  will be returned.\
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
-\b\fs22 \cf0 3.8.  Miscellaneous functions\
+\b\fs22 \cf0 3.8.  Color manipulation functions\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\b0\fs18 \cf0 (float)color2rgb(string$\'a0color)
+\f2 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf0 Converts a color string to RGB
+\f2\b0 .
+\f0   The color string specified in 
+\f1\fs18 color
+\f0\fs20  may be either a named color (see section X) or a color in hexadecimal format such as 
+\f1\fs18 "#007FC0"
+\f0\fs20 .  The equivalent RGB color is returned as a 
+\f1\fs18 float
+\f0\fs20  vector of length three (red, green, blue).  Returned RGB values will be in the interval [0, 1].
+\f2 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (float)hsv2rgb(float\'a0hsv)
+\f2 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf0 Converts an HSV color to RGB
+\f2\b0 .
+\f0   The HSV color is specified in 
+\f1\fs18 hsv
+\f0\fs20  as a 
+\f1\fs18 float
+\f0\fs20  vector of length three (hue, saturation, value), and the equivalent RGB color is returned as a 
+\f1\fs18 float
+\f0\fs20  vector of length three (red, green, blue).  HSV values will be clamped to the interval [0, 1], and returned RGB values will also be in the interval [0, 1].
+\f2 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (string$)rgb2color(float\'a0rgb)
+\f2 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf0 Converts an RGB color to a color string
+\f2\b0 .
+\f0   The RGB color is specified in 
+\f1\fs18 rgb
+\f0\fs20  as a 
+\f1\fs18 float
+\f0\fs20  vector of length three (red, green, blue).  The equivalent color string is returned as singleton 
+\f1\fs18 string
+\f0\fs20  specifying the color in the format 
+\f1\fs18 "#RRGGBB"
+\f0\fs20 , such as 
+\f1\fs18 "#007FC0"
+\f2\fs20 .
+\f0   RGB values will be clamped to the interval [0, 1].
+\f2 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (float)rgb2hsv(float\'a0rgb)
+\f2 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf0 Converts an RGB color to HSV
+\f2\b0 .
+\f0   The RGB color is specified in 
+\f1\fs18 rgb
+\f0\fs20  as a 
+\f1\fs18 float
+\f0\fs20  vector of length three (red, green, blue), and the equivalent HSV color is returned as a 
+\f1\fs18 float
+\f0\fs20  vector of length three (hue, saturation, value).  RGB values will be clamped to the interval [0, 1], and returned HSV values will also be in the interval [0, 1].
+\f2 \
+\pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
+
+\f0\b\fs22 \cf0 3.9.  Miscellaneous functions\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\b0\fs18 \cf0 (*)apply(*\'a0x, string$\'a0lambdaSource)\

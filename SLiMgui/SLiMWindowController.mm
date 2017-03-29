@@ -402,7 +402,7 @@
 		[self setInvalidSimulation:NO];
 		hasImported = NO;
 	}
-	catch (std::runtime_error)
+	catch (...)
 	{
 		if (sim)
 			sim->simulationValid = false;
@@ -1506,7 +1506,7 @@
 			script.Tokenize();
 			script.ParseSLiMFileToAST();
 		}
-		catch (std::runtime_error err)
+		catch (...)
 		{
 			errorDiagnostic = [[NSString stringWithUTF8String:EidosGetTrimmedRaiseMessage().c_str()] retain];
 		}
@@ -1660,7 +1660,7 @@
 		// now send SLIM_OUTSTREAM to the output textview
 		[self updateOutputTextView];
 	}
-	catch (std::runtime_error err)
+	catch (...)
 	{
 	}
 }

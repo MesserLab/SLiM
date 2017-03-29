@@ -117,7 +117,7 @@ double MutationType::DrawSelectionCoefficient(void) const
 					cached_dfe_script_->Tokenize();
 					cached_dfe_script_->ParseInterpreterBlockToAST();
 				}
-				catch (std::runtime_error err)
+				catch (...)
 				{
 					if (gEidosTerminateThrows)
 					{
@@ -170,7 +170,7 @@ double MutationType::DrawSelectionCoefficient(void) const
 				if (!output_string.empty())
 					SLIM_OUTSTREAM << output_string;
 			}
-			catch (std::runtime_error err)
+			catch (...)
 			{
 				// If exceptions throw, then we want to set up the error information to highlight the
 				// executeLambda() that failed, since we can't highlight the actual error.  (If exceptions
@@ -299,7 +299,7 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 		}
 			
 			// variables
-		case gID_color:
+		case gEidosID_color:
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(color_));
 		case gID_colorSubstitution:
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(color_sub_));
@@ -362,11 +362,11 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_property_id)
 	{
-		case gID_color:
+		case gEidosID_color:
 		{
 			color_ = p_value.StringAtIndex(0, nullptr);
 			if (!color_.empty())
-				SLiMGetColorComponents(color_, &color_red_, &color_green_, &color_blue_);
+				EidosGetColorComponents(color_, &color_red_, &color_green_, &color_blue_);
 			return;
 		}
 			
@@ -374,7 +374,7 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 		{
 			color_sub_ = p_value.StringAtIndex(0, nullptr);
 			if (!color_sub_.empty())
-				SLiMGetColorComponents(color_sub_, &color_sub_red_, &color_sub_green_, &color_sub_blue_);
+				EidosGetColorComponents(color_sub_, &color_sub_red_, &color_sub_green_, &color_sub_blue_);
 			return;
 		}
 			
@@ -577,7 +577,7 @@ const std::vector<const EidosPropertySignature *> *MutationType_Class::Propertie
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_dominanceCoeff));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutationStackPolicy));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_tag));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_color));
+		properties->emplace_back(SignatureForPropertyOrRaise(gEidosID_color));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_colorSubstitution));
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
@@ -607,7 +607,7 @@ const EidosPropertySignature *MutationType_Class::SignatureForProperty(EidosGlob
 		dominanceCoeffSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_dominanceCoeff,			gID_dominanceCoeff,			false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
 		mutationStackPolicySig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationStackPolicy,		gID_mutationStackPolicy,	false,	kEidosValueMaskString | kEidosValueMaskSingleton));
 		tagSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,						gID_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
-		colorSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_color,					gID_color,					false,	kEidosValueMaskString | kEidosValueMaskSingleton));
+		colorSig =					(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_color,				gEidosID_color,				false,	kEidosValueMaskString | kEidosValueMaskSingleton));
 		colorSubstitutionSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_colorSubstitution,		gID_colorSubstitution,		false,	kEidosValueMaskString | kEidosValueMaskSingleton));
 	}
 	
@@ -621,7 +621,7 @@ const EidosPropertySignature *MutationType_Class::SignatureForProperty(EidosGlob
 		case gID_dominanceCoeff:		return dominanceCoeffSig;
 		case gID_mutationStackPolicy:	return mutationStackPolicySig;
 		case gID_tag:					return tagSig;
-		case gID_color:					return colorSig;
+		case gEidosID_color:			return colorSig;
 		case gID_colorSubstitution:		return colorSubstitutionSig;
 			
 			// all others, including gID_none

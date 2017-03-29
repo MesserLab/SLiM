@@ -225,6 +225,17 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		
 		// ************************************************************************************
 		//
+		//	color manipulation functions
+		//
+		
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("hsv2rgb",			Eidos_ExecuteFunction_hsv2rgb,		kEidosValueMaskFloat))->AddFloat("hsv"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rgb2hsv",			Eidos_ExecuteFunction_rgb2hsv,		kEidosValueMaskFloat))->AddFloat("rgb"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rgb2color",			Eidos_ExecuteFunction_rgb2color,	kEidosValueMaskString | kEidosValueMaskSingleton))->AddFloat("rgb"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("color2rgb",			Eidos_ExecuteFunction_color2rgb,	kEidosValueMaskFloat))->AddString_S(gEidosStr_color));
+		
+		
+		// ************************************************************************************
+		//
 		//	miscellaneous functions
 		//
 		
@@ -6538,6 +6549,164 @@ EidosValue_SP Eidos_ExecuteFunction_writeFile(const EidosValue_SP *const p_argum
 
 // ************************************************************************************
 //
+//	color manipulation functions
+//
+#pragma mark -
+#pragma mark Color manipulation functions
+#pragma mark -
+
+
+//	(float)hsv2rgb(float hsv)
+EidosValue_SP Eidos_ExecuteFunction_hsv2rgb(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *arg0_value = p_arguments[0].get();
+	int arg0_count = arg0_value->Count();
+	
+	if (arg0_count != 3)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgb2color): rgb must contain exactly three elements." << eidos_terminate(nullptr);
+	
+	double h = arg0_value->FloatAtIndex(0, nullptr);
+	double s = arg0_value->FloatAtIndex(1, nullptr);
+	double v = arg0_value->FloatAtIndex(2, nullptr);
+	
+	if (h < 0.0) h = 0.0;
+	if (h > 1.0) h = 1.0;
+	if (s < 0.0) s = 0.0;
+	if (s > 1.0) s = 1.0;
+	if (v < 0.0) v = 0.0;
+	if (v > 1.0) v = 1.0;
+	
+	double c = v * s;
+	double x = c * (1.0 - fabs(fmod(h * 6.0, 2.0) - 1.0));
+	double m = v - c;
+	double r, g, b;
+	
+	if (h < 1.0 / 6.0)			{	r = c;	g = x;	b = 0;	}
+	else if (h < 2.0 / 6.0)		{	r = x;	g = c;	b = 0;	}
+	else if (h < 3.0 / 6.0)		{	r = 0;	g = c;	b = x;	}
+	else if (h < 4.0 / 6.0)		{	r = 0;	g = x;	b = c;	}
+	else if (h < 5.0 / 6.0)		{	r = x;	g = 0;	b = c;	}
+	else						{	r = c;	g = 0;	b = x;	}
+	
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{r + m, g + m, b + m});
+	
+	return result_SP;
+}
+
+//	(float)rgb2hsv(float rgb)
+EidosValue_SP Eidos_ExecuteFunction_rgb2hsv(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *arg0_value = p_arguments[0].get();
+	int arg0_count = arg0_value->Count();
+	
+	if (arg0_count != 3)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgb2hsv): rgb must contain exactly three elements." << eidos_terminate(nullptr);
+	
+	double r = arg0_value->FloatAtIndex(0, nullptr);
+	double g = arg0_value->FloatAtIndex(1, nullptr);
+	double b = arg0_value->FloatAtIndex(2, nullptr);
+	
+	if (r < 0.0) r = 0.0;
+	if (r > 1.0) r = 1.0;
+	if (g < 0.0) g = 0.0;
+	if (g > 1.0) g = 1.0;
+	if (b < 0.0) b = 0.0;
+	if (b > 1.0) b = 1.0;
+	
+	double c_max = (r > g) ? ((r > b) ? r : b) : ((g > b) ? g : b);
+	double c_min = (r < g) ? ((r < b) ? r : b) : ((g < b) ? g : b);
+	double delta = c_max - c_min;
+	double h, s, v;
+	
+	if (delta == 0)
+		h = 0.0;
+	else if (c_max == r)
+		h = (1.0/6.0) * fmod(((g - b) / delta) + 6.0, 6.0);
+	else if (c_max == g)
+		h = (1.0/6.0) * (((b - r) / delta) + 2.0);
+	else if (c_max == b)
+		h = (1.0/6.0) * (((r - g) / delta) + 4.0);
+	
+	if (c_max == 0.0)
+		s = 0.0;
+	else
+		s = delta / c_max;
+	
+	v = c_max;
+	
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{h, s, v});
+	
+	return result_SP;
+}
+
+//	(string$)rgb2color(float rgb)
+EidosValue_SP Eidos_ExecuteFunction_rgb2color(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *arg0_value = p_arguments[0].get();
+	int arg0_count = arg0_value->Count();
+	
+	if (arg0_count != 3)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgb2color): rgb must contain exactly three elements." << eidos_terminate(nullptr);
+	
+	double r = arg0_value->FloatAtIndex(0, nullptr);
+	double g = arg0_value->FloatAtIndex(1, nullptr);
+	double b = arg0_value->FloatAtIndex(2, nullptr);
+	
+	if (r < 0.0) r = 0.0;
+	if (r > 1.0) r = 1.0;
+	if (g < 0.0) g = 0.0;
+	if (g > 1.0) g = 1.0;
+	if (b < 0.0) b = 0.0;
+	if (b > 1.0) b = 1.0;
+	
+	int r_i = (int)round(r * 255.0);
+	int g_i = (int)round(g * 255.0);
+	int b_i = (int)round(b * 255.0);
+	
+	static char hex[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+	char hex_chars[8];
+	
+	hex_chars[0] = '#';
+	hex_chars[1] = hex[r_i / 16];
+	hex_chars[2] = hex[r_i % 16];
+	hex_chars[3] = hex[g_i / 16];
+	hex_chars[4] = hex[g_i % 16];
+	hex_chars[5] = hex[b_i / 16];
+	hex_chars[6] = hex[b_i % 16];
+	hex_chars[7] = 0;
+	
+	std::string hex_string(hex_chars);
+	
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(hex_string));
+	
+	return result_SP;
+}
+
+//	(float)color2rgb(string$ color)
+EidosValue_SP Eidos_ExecuteFunction_color2rgb(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *arg0_value = p_arguments[0].get();
+	std::string color_string = arg0_value->StringAtIndex(0, nullptr);
+	float r, g, b;
+	
+	EidosGetColorComponents(color_string, &r, &g, &b);
+	
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{r, g, b});
+	
+	return result_SP;
+}
+
+
+// ************************************************************************************
+//
 //	miscellaneous functions
 //
 #pragma mark -
@@ -6586,7 +6755,7 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const EidosValue_SP *const p_arguments
 			script->Tokenize();
 			script->ParseInterpreterBlockToAST();
 		}
-		catch (std::runtime_error err)
+		catch (...)
 		{
 			if (gEidosTerminateThrows)
 			{
@@ -6641,7 +6810,7 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const EidosValue_SP *const p_arguments
 		p_interpreter.ExecutionOutputStream() << interpreter.ExecutionOutput();
 		result_SP = ConcatenateEidosValues(results.data(), (int)results.size(), true);
 	}
-	catch (std::runtime_error err)
+	catch (...)
 	{
 		// If exceptions throw, then we want to set up the error information to highlight the
 		// apply() that failed, since we can't highlight the actual error.  (If exceptions
@@ -6844,7 +7013,7 @@ EidosValue_SP Eidos_ExecuteFunction_executeLambda(const EidosValue_SP *const p_a
 			script->Tokenize();
 			script->ParseInterpreterBlockToAST();
 		}
-		catch (std::runtime_error err)
+		catch (...)
 		{
 			if (gEidosTerminateThrows)
 			{
@@ -6895,7 +7064,7 @@ EidosValue_SP Eidos_ExecuteFunction_executeLambda(const EidosValue_SP *const p_a
 		
 		p_interpreter.ExecutionOutputStream() << interpreter.ExecutionOutput();
 	}
-	catch (std::runtime_error err)
+	catch (...)
 	{
 		// If exceptions throw, then we want to set up the error information to highlight the
 		// executeLambda() that failed, since we can't highlight the actual error.  (If exceptions

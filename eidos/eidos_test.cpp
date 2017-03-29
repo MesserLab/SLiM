@@ -65,7 +65,7 @@ void EidosAssertScriptSuccess(const string &p_script_string, EidosValue_SP p_cor
 	try {
 		script.Tokenize();
 	}
-	catch (std::runtime_error err)
+	catch (...)
 	{
 		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during Tokenize(): " << EidosGetTrimmedRaiseMessage() << endl;
 		
@@ -77,7 +77,7 @@ void EidosAssertScriptSuccess(const string &p_script_string, EidosValue_SP p_cor
 	try {
 		script.ParseInterpreterBlockToAST();
 	}
-	catch (std::runtime_error err)
+	catch (...)
 	{
 		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during ParseToAST(): " << EidosGetTrimmedRaiseMessage() << endl;
 		
@@ -91,7 +91,7 @@ void EidosAssertScriptSuccess(const string &p_script_string, EidosValue_SP p_cor
 		
 		result = interpreter.EvaluateInterpreterBlock(true);
 	}
-	catch (std::runtime_error err)
+	catch (...)
 	{
 		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during EvaluateInterpreterBlock(): " << EidosGetTrimmedRaiseMessage() << endl;
 		
@@ -160,7 +160,7 @@ void EidosAssertScriptRaise(const string &p_script_string, const int p_bad_posit
 		
 		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : no raise during EvaluateInterpreterBlock()." << endl;
 	}
-	catch (std::runtime_error err)
+	catch (...)
 	{
 		// We need to call EidosGetTrimmedRaiseMessage() here to empty the error stringstream, even if we don't log the error
 		std::string raise_message = EidosGetTrimmedRaiseMessage();

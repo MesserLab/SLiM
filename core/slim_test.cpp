@@ -43,7 +43,7 @@ void SLiMAssertScriptSuccess(const string &p_script_string, int lineNumber)
 		sim = new SLiMSim(infile);
 		sim->InitializeRNGFromSeed(nullptr);
 	}
-	catch (std::runtime_error err)
+	catch (...)
 	{
 		if (lineNumber != -1)
 			std::cerr << "[" << lineNumber << "] ";
@@ -58,7 +58,7 @@ void SLiMAssertScriptSuccess(const string &p_script_string, int lineNumber)
 	try {
 		while (sim->_RunOneGeneration());
 	}
-	catch (std::runtime_error err)
+	catch (...)
 	{
 		delete sim;
 		
@@ -102,7 +102,7 @@ void SLiMAssertScriptRaise(const string &p_script_string, const int p_bad_line, 
 		
 		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : no raise during SLiM execution (expected \"" << p_reason_snip << "\")." << endl;
 	}
-	catch (std::runtime_error err)
+	catch (...)
 	{
 		// We need to call EidosGetTrimmedRaiseMessage() here to empty the error stringstream, even if we don't log the error
 		std::string raise_message = EidosGetTrimmedRaiseMessage();
@@ -204,7 +204,7 @@ void SLiMAssertScriptStop(const string &p_script_string, int lineNumber)
 		
 		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : no raise during SLiM execution." << endl;
 	}
-	catch (std::runtime_error err)
+	catch (...)
 	{
 		// We need to call EidosGetTrimmedRaiseMessage() here to empty the error stringstream, even if we don't log the error
 		std::string raise_message = EidosGetTrimmedRaiseMessage();

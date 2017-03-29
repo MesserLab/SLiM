@@ -1426,7 +1426,7 @@ bool SLiMSim::RunOneGeneration(void)
 			return _RunOneGeneration();
 #ifdef SLIMGUI
 		}
-		catch (std::runtime_error err)
+		catch (...)
 		{
 			simulationValid = false;
 			

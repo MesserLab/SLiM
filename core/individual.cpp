@@ -475,7 +475,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 		}
 			
 			// variables
-		case gID_color:
+		case gEidosID_color:
 		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(color_));
 		}
@@ -546,12 +546,12 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_property_id)
 	{
-		case gID_color:			// ACCELERATED
+		case gEidosID_color:	// ACCELERATED
 		{
 			color_ = p_value.StringAtIndex(0, nullptr);
 			if (!color_.empty())
 			{
-				SLiMGetColorComponents(color_, &color_red_, &color_green_, &color_blue_);
+				EidosGetColorComponents(color_, &color_red_, &color_green_, &color_blue_);
 				gSLiM_Individual_custom_colors = true;	// notify the display code that custom colors are being used
 			}
 			return;
@@ -617,11 +617,11 @@ void Individual::SetProperty_Accelerated_String(EidosGlobalStringID p_property_i
 {
 	switch (p_property_id)
 	{
-		case gID_color:
+		case gEidosID_color:
 			color_ = p_value;
 			if (!color_.empty())
 			{
-				SLiMGetColorComponents(color_, &color_red_, &color_green_, &color_blue_);
+				EidosGetColorComponents(color_, &color_red_, &color_green_, &color_blue_);
 				gSLiM_Individual_custom_colors = true;	// notify the display code that custom colors are being used
 			}
 			return;
@@ -1114,7 +1114,7 @@ const std::vector<const EidosPropertySignature *> *Individual_Class::Properties(
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_pedigreeGrandparentIDs));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_spatialPosition));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_uniqueMutations));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_color));
+		properties->emplace_back(SignatureForPropertyOrRaise(gEidosID_color));
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
@@ -1156,7 +1156,7 @@ const EidosPropertySignature *Individual_Class::SignatureForProperty(EidosGlobal
 		pedigreeGrandparentIDsSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeGrandparentIDs,	gID_pedigreeGrandparentIDs,		true,	kEidosValueMaskInt));
 		spatialPositionSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_spatialPosition,	gID_spatialPosition,			true,	kEidosValueMaskFloat));
 		uniqueMutationsSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_uniqueMutations,			gID_uniqueMutations,			true,	kEidosValueMaskObject, gSLiM_Mutation_Class));
-		colorSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_color,					gID_color,						false,	kEidosValueMaskString | kEidosValueMaskSingleton))->DeclareAcceleratedSet();
+		colorSig =						(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_color,				gEidosID_color,					false,	kEidosValueMaskString | kEidosValueMaskSingleton))->DeclareAcceleratedSet();
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -1176,7 +1176,7 @@ const EidosPropertySignature *Individual_Class::SignatureForProperty(EidosGlobal
 		case gID_pedigreeGrandparentIDs:	return pedigreeGrandparentIDsSig;
 		case gID_spatialPosition:			return spatialPositionSig;
 		case gID_uniqueMutations:			return uniqueMutationsSig;
-		case gID_color:						return colorSig;
+		case gEidosID_color:				return colorSig;
 			
 			// all others, including gID_none
 		default:

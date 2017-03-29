@@ -182,7 +182,7 @@ EidosValue_SP GenomicElementType::GetProperty(EidosGlobalStringID p_property_id)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(mutation_fractions_));
 			
 			// variables
-		case gID_color:
+		case gEidosID_color:
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(color_));
 		case gID_tag:			// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value_));
@@ -208,11 +208,11 @@ void GenomicElementType::SetProperty(EidosGlobalStringID p_property_id, const Ei
 {
 	switch (p_property_id)
 	{
-		case gID_color:
+		case gEidosID_color:
 		{
 			color_ = p_value.StringAtIndex(0, nullptr);
 			if (!color_.empty())
-				SLiMGetColorComponents(color_, &color_red_, &color_green_, &color_blue_);
+				EidosGetColorComponents(color_, &color_red_, &color_green_, &color_blue_);
 			return;
 		}
 		case gID_tag:
@@ -360,7 +360,7 @@ const std::vector<const EidosPropertySignature *> *GenomicElementType_Class::Pro
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutationTypes));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutationFractions));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_tag));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_color));
+		properties->emplace_back(SignatureForPropertyOrRaise(gEidosID_color));
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
@@ -382,7 +382,7 @@ const EidosPropertySignature *GenomicElementType_Class::SignatureForProperty(Eid
 		mutationTypesSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationTypes,		gID_mutationTypes,		true,	kEidosValueMaskObject, gSLiM_MutationType_Class));
 		mutationFractionsSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationFractions,	gID_mutationFractions,	true,	kEidosValueMaskFloat));
 		tagSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					gID_tag,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
-		colorSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_color,				gID_color,				false,	kEidosValueMaskString | kEidosValueMaskSingleton));
+		colorSig =				(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_color,			gEidosID_color,			false,	kEidosValueMaskString | kEidosValueMaskSingleton));
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -392,7 +392,7 @@ const EidosPropertySignature *GenomicElementType_Class::SignatureForProperty(Eid
 		case gID_mutationTypes:		return mutationTypesSig;
 		case gID_mutationFractions:	return mutationFractionsSig;
 		case gID_tag:				return tagSig;
-		case gID_color:				return colorSig;
+		case gEidosID_color:		return colorSig;
 			
 			// all others, including gID_none
 		default:

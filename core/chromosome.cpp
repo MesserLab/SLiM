@@ -39,7 +39,7 @@ Chromosome::Chromosome(void) : lookup_mutation_(nullptr), single_recombination_m
 	// Set up the default color for fixed mutations in SLiMgui
 	color_sub_ = "#3333FF";
 	if (!color_sub_.empty())
-		SLiMGetColorComponents(color_sub_, &color_sub_red_, &color_sub_green_, &color_sub_blue_);
+		EidosGetColorComponents(color_sub_, &color_sub_red_, &color_sub_green_, &color_sub_blue_);
 }
 
 Chromosome::~Chromosome(void)
@@ -465,7 +465,7 @@ void Chromosome::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 		{
 			color_sub_ = p_value.StringAtIndex(0, nullptr);
 			if (!color_sub_.empty())
-				SLiMGetColorComponents(color_sub_, &color_sub_red_, &color_sub_green_, &color_sub_blue_);
+				EidosGetColorComponents(color_sub_, &color_sub_red_, &color_sub_green_, &color_sub_blue_);
 			return;
 		}
 		case gID_geneConversionFraction:
