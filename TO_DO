@@ -21,6 +21,7 @@ some valgrind commands:
 
 cpplint.py for checking includes (https://github.com/google/styleguide/tree/gh-pages/cpplint):
 	cpplint.py --filter=-,+build/include_what_you_use ./core/*.cpp ./eidos/*.cpp ./eidostool/*.cpp
+	python2.7 /Users/bhaller/bin/cpplint.py --filter=-,+build/include_what_you_use ./core/*.cpp ./eidos/*.cpp ./eidostool/*.cpp
 
 finding out the generation number of a running simulation in lldb:
 	lldb /usr/local/bin/slim

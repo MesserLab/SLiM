@@ -25,6 +25,9 @@
 #include "subpopulation.h"
 #include "slim_sim.h"
 
+#include <utility>
+#include <algorithm>
+
 
 // stream output for enumerations
 std::ostream& operator<<(std::ostream& p_out, IFType p_if_type)
