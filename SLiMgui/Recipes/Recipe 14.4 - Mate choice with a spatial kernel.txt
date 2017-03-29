@@ -6,9 +6,12 @@ initialize() {
 	initializeGenomicElement(g1, 0, 99999);
 	initializeRecombinationRate(1e-8);
 	
-	initializeInteractionType(1, "xy", maxDistance=0.3);  // competition
+	// spatial competition
+	initializeInteractionType(1, "xy", reciprocal=T, maxDistance=0.3);
 	i1.setInteractionFunction("n", 3.0, 0.1);
-	initializeInteractionType(2, "xy", maxDistance=0.1);  // mate choice
+	
+	// spatial mate choice
+	initializeInteractionType(2, "xy", reciprocal=T, maxDistance=0.1);
 	i2.setInteractionFunction("n", 1.0, 0.02);
 }
 1 late() {

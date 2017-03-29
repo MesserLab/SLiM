@@ -2,15 +2,16 @@ initialize() {
 	defineConstant("optimum", 5.0);
 	defineConstant("sigma_C", 0.4);
 	defineConstant("sigma_K", 1.0);
+	defineConstant("sigma_M", 0.5);
 	
-	initializeSLiMOptions(dimensionality="x");	initializeMutationRate(1e-6);	initializeMutationType("m1", 0.5, "f", 0.0);        // neutral	initializeMutationType("m2", 0.5, "n", 0.0, 1.0);   // QTL	m2.convertToSubstitution = F;		initializeGenomicElementType("g1", c(m1, m2), c(1, 0.01));	initializeGenomicElement(g1, 0, 1e5 - 1);	initializeRecombinationRate(1e-8);		initializeInteractionType(1, "x", reciprocality=T);     // competition	i1.setInteractionFunction("n", 1.0, sigma_C);
+	initializeSLiMOptions(dimensionality="x");	initializeMutationRate(1e-6);	initializeMutationType("m1", 0.5, "f", 0.0);        // neutral	initializeMutationType("m2", 0.5, "n", 0.0, 1.0);   // QTL	m2.convertToSubstitution = F;		initializeGenomicElementType("g1", c(m1, m2), c(1, 0.01));	initializeGenomicElement(g1, 0, 1e5 - 1);	initializeRecombinationRate(1e-8);		initializeInteractionType(1, "x", reciprocal=T);     // competition	i1.setInteractionFunction("n", 1.0, sigma_C);
 	
-	initializeInteractionType(2, "x", reciprocality=T);     // mate choice	i2.setInteractionFunction("n", 1.0, 0.5);
+	initializeInteractionType(2, "x", reciprocal=T);     // mate choice	i2.setInteractionFunction("n", 1.0, sigma_M);
 }1 late() {	sim.addSubpop("p1", 500);
 	
 	p1.setSpatialBounds(c(0.0, 10.0));}1: late() {	// construct phenotypes from the additive effects of QTLs	inds = sim.subpopulations.individuals;
-	inds.x = apply(inds,		"sum(applyValue.genomes.mutationsOfType(m2).selectionCoeff);");		// evaluate interactions	i1.evaluate(immediate=T);	i2.evaluate();
-}fitness(m2) {			// make QTLs intrinsically neutral	return 1.0;}fitness(NULL) {		// reward proximity to the optimum	return 1.0 + dnorm(optimum - individual.x, mean=0.0, sd=sigma_K);}fitness(NULL) {		// phenotypic competition	totalStrength = sum(i1.strength(individual));	return 1.0 - totalStrength / p1.individualCount;}
+	inds.x = apply(inds,		"sum(applyValue.genomes.mutationsOfType(m2).selectionCoeff);");		// evaluate interactions	i1.evaluate();	i2.evaluate();
+}fitness(m2) {      // make QTLs intrinsically neutral	return 1.0;}fitness(NULL) {    // reward proximity to the optimum	return 1.0 + dnorm(optimum - individual.x, mean=0.0, sd=sigma_K);}fitness(NULL) {    // phenotypic competition	totalStrength = sum(i1.strength(individual));	return 1.0 - totalStrength / p1.individualCount;}
 mateChoice() {
 	// spatial mate choice
 	return i2.strength(individual);

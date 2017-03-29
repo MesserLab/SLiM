@@ -6,7 +6,7 @@ initialize() {
 	initializeGenomicElement(g1, 0, 99999);
 	initializeRecombinationRate(1e-8);
 	
-	initializeInteractionType(1, "xy", maxDistance=0.3);  // competition
+	initializeInteractionType(1, "xy", reciprocal=T, maxDistance=0.3);  // competition
 	i1.setInteractionFunction("n", 3.0, 0.1);
 }
 1 late() {

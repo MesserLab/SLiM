@@ -7,7 +7,7 @@ initialize() {
 	initializeRecombinationRate(1e-8);
 	
 	// Set up an interaction for spatial competition
-	initializeInteractionType(1, "xy", maxDistance=0.3);
+	initializeInteractionType(1, "xy", reciprocal=T, maxDistance=0.3);
 	i1.setInteractionFunction("n", 3.0, 0.1);
 }
 1 late() {
