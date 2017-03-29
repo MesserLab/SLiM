@@ -44,8 +44,8 @@ std::ostream& operator<<(std::ostream& p_out, IFType p_if_type)
 }
 
 
-InteractionType::InteractionType(slim_objectid_t p_interaction_type_id, std::string p_spatiality_string, bool p_reciprocality, double p_max_distance, IndividualSex p_receiver_sex, IndividualSex p_exerter_sex) :
-	interaction_type_id_(p_interaction_type_id), spatiality_string_(p_spatiality_string), reciprocality_(p_reciprocality), max_distance_(p_max_distance), max_distance_sq_(p_max_distance * p_max_distance), receiver_sex_(p_receiver_sex), exerter_sex_(p_exerter_sex), if_type_(IFType::kFixed), if_param1_(1.0), if_param2_(0.0),
+InteractionType::InteractionType(slim_objectid_t p_interaction_type_id, std::string p_spatiality_string, bool p_reciprocal, double p_max_distance, IndividualSex p_receiver_sex, IndividualSex p_exerter_sex) :
+	interaction_type_id_(p_interaction_type_id), spatiality_string_(p_spatiality_string), reciprocal_(p_reciprocal), max_distance_(p_max_distance), max_distance_sq_(p_max_distance * p_max_distance), receiver_sex_(p_receiver_sex), exerter_sex_(p_exerter_sex), if_type_(IFType::kFixed), if_param1_(1.0), if_param2_(0.0),
 	self_symbol_(EidosGlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('i', p_interaction_type_id)),
 				 EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_InteractionType_Class)))
 {
@@ -65,7 +65,7 @@ InteractionType::InteractionType(slim_objectid_t p_interaction_type_id, std::str
 	// can be reciprocal because the receivers are the same set of individuals as the exerters; others cannot be,
 	// although some subset of the full interaction may indeed be reciprocal (we're not smart enough to use that).
 	if (receiver_sex_ != exerter_sex_)
-		reciprocality_ = false;
+		reciprocal_ = false;
 }
 
 InteractionType::~InteractionType(void)
@@ -325,7 +325,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 	if (spatiality_ == 0)
 	{
 		// Non-spatial interactions do not involve distances
-		if (!reciprocality_)
+		if (!reciprocal_)
 		{
 			// No reciprocality, so we don't need to mirror; just go through strengths_ sequentially
 			int receiving_index = 0;
@@ -449,7 +449,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 	else
 	{
 		// Spatial interactions involve distances, so we need to calculate those, too
-		if (!reciprocality_)
+		if (!reciprocal_)
 		{
 			// No reciprocality, so we don't need to mirror; just go through strengths_ sequentially
 			int receiving_index = 0;
@@ -2230,7 +2230,7 @@ double InteractionType::TotalNeighborStrength(Subpopulation *p_subpop, Interacti
 		if (callbacks.size() == 0)
 		{
 			// No callbacks; we can assume that the callback-related globals are nilled out
-			if (!reciprocality_)
+			if (!reciprocal_)
 			{
 				switch (spatiality_)
 				{
@@ -2260,7 +2260,7 @@ double InteractionType::TotalNeighborStrength(Subpopulation *p_subpop, Interacti
 			
 			double total;
 			
-			if (!reciprocality_)
+			if (!reciprocal_)
 			{
 				switch (spatiality_)
 				{
@@ -2643,7 +2643,7 @@ void InteractionType::FillNeighborStrengths(Subpopulation *p_subpop, Interaction
 		if (callbacks.size() == 0)
 		{
 			// No callbacks; we can assume that the callback-related globals are nilled out
-			if (!reciprocality_)
+			if (!reciprocal_)
 			{
 				switch (spatiality_)
 				{
@@ -2669,7 +2669,7 @@ void InteractionType::FillNeighborStrengths(Subpopulation *p_subpop, Interaction
 			gSLiM_Recursive_receiver = p_excluded_individual;
 			gSLiM_Recursive_callbacks = &callbacks;
 			
-			if (!reciprocality_)
+			if (!reciprocal_)
 			{
 				switch (spatiality_)
 				{
@@ -2724,9 +2724,9 @@ EidosValue_SP InteractionType::GetProperty(EidosGlobalStringID p_property_id)
 				cached_value_inttype_id_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(interaction_type_id_));
 			return cached_value_inttype_id_;
 		}
-		case gID_reciprocality:
+		case gID_reciprocal:
 		{
-			return (reciprocality_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+			return (reciprocal_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		}
 		case gID_sexSegregation:
 		{
@@ -2862,7 +2862,7 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 				// NULL means return distances from individuals1 (which must be singleton) to all individuals in the subpopulation
 				EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(subpop1_size);
 				
-				if (!reciprocality_)
+				if (!reciprocal_)
 				{
 					// No reciprocality, so we don't mirror
 					for (int ind2_index = 0; ind2_index < subpop1_size; ++ind2_index)
@@ -2921,7 +2921,7 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 						
 						// If reciprocality is enabled, push the calculated distance into the reciprocal entry.  There's
 						// enough cruft in this version of the loop that it doesn't seem worth cloning the whole loop.
-						if (reciprocality_)
+						if (reciprocal_)
 							*(mirror_ind1_distances + ind2_index_in_subpop * subpop1_size) = distance;
 					}
 					
@@ -3065,7 +3065,7 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 						
 						ind1_strengths[ind2_index_in_subpop] = strength;
 						
-						if (reciprocality_)
+						if (reciprocal_)
 							*(mirror_ind1_strengths + ind2_index_in_subpop * subpop_size) = strength;
 					}
 					
@@ -3098,7 +3098,7 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 							distance = CalculateDistance(ind1_position, position_data + ind2_index_in_subpop * SLIM_MAX_DIMENSIONALITY);
 							ind1_distances[ind2_index_in_subpop] = distance;
 							
-							if (reciprocality_)
+							if (reciprocal_)
 								*(mirror_ind1_distances + ind2_index_in_subpop * subpop_size) = distance;
 						}
 						
@@ -3116,7 +3116,7 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 						
 						ind1_strengths[ind2_index_in_subpop] = strength;
 						
-						if (reciprocality_)
+						if (reciprocal_)
 							*(mirror_ind1_strengths + ind2_index_in_subpop * subpop_size) = strength;
 					}
 					
@@ -3449,7 +3449,7 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 					{
 						// This is the brute-force approach – loop through the subpop, calculate distances and strengths for everyone.
 						// If the interaction is non-local (max_distance_ of INF) then this makes sense; all this work will need to be done.
-						if (!reciprocality_)
+						if (!reciprocal_)
 						{
 							for (int ind2_index = 0; ind2_index < subpop1_size; ++ind2_index)
 							{
@@ -3567,7 +3567,7 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 								distance = CalculateDistance(ind1_position, position_data + ind2_index_in_subpop * SLIM_MAX_DIMENSIONALITY);
 								ind1_distances[ind2_index_in_subpop] = distance;
 								
-								if (reciprocality_)
+								if (reciprocal_)
 									*(mirror_ind1_distances + ind2_index_in_subpop * subpop1_size) = distance;
 							}
 							
@@ -3585,7 +3585,7 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 							
 							ind1_strengths[ind2_index_in_subpop] = strength;
 							
-							if (reciprocality_)
+							if (reciprocal_)
 								*(mirror_ind1_strengths + ind2_index_in_subpop * subpop1_size) = strength;
 						}
 						
@@ -3609,7 +3609,7 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 					// NULL means return strengths from individuals1 (which must be singleton) to all individuals in the subpopulation
 					EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(subpop1_size);
 					
-					if (!reciprocality_)
+					if (!reciprocal_)
 					{
 						for (int ind2_index = 0; ind2_index < subpop1_size; ++ind2_index)
 						{
@@ -3675,7 +3675,7 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 							
 							ind1_strengths[ind2_index_in_subpop] = strength;
 							
-							if (reciprocality_)
+							if (reciprocal_)
 								*(mirror_ind1_strengths + ind2_index_in_subpop * subpop1_size) = strength;
 						}
 						
@@ -3805,7 +3805,7 @@ const std::vector<const EidosPropertySignature *> *InteractionType_Class::Proper
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_id));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_reciprocality));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_reciprocal));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_sexSegregation));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_spatiality));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_maxDistance));
@@ -3820,7 +3820,7 @@ const EidosPropertySignature *InteractionType_Class::SignatureForProperty(EidosG
 {
 	// Signatures are all preallocated, for speed
 	static EidosPropertySignature *idSig = nullptr;
-	static EidosPropertySignature *reciprocalitySig = nullptr;
+	static EidosPropertySignature *reciprocalSig = nullptr;
 	static EidosPropertySignature *sexSegregationSig = nullptr;
 	static EidosPropertySignature *spatialitySig = nullptr;
 	static EidosPropertySignature *maxDistanceSig = nullptr;
@@ -3829,7 +3829,7 @@ const EidosPropertySignature *InteractionType_Class::SignatureForProperty(EidosG
 	if (!idSig)
 	{
 		idSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_id,				gID_id,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
-		reciprocalitySig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_reciprocality,	gID_reciprocality,	true,	kEidosValueMaskLogical | kEidosValueMaskSingleton));
+		reciprocalSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_reciprocal,		gID_reciprocal,		true,	kEidosValueMaskLogical | kEidosValueMaskSingleton));
 		sexSegregationSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_sexSegregation,	gID_sexSegregation,	true,	kEidosValueMaskString | kEidosValueMaskSingleton));
 		spatialitySig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_spatiality,		gID_spatiality,		true,	kEidosValueMaskString | kEidosValueMaskSingleton));
 		maxDistanceSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_maxDistance,		gID_maxDistance,	false,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
@@ -3840,7 +3840,7 @@ const EidosPropertySignature *InteractionType_Class::SignatureForProperty(EidosG
 	switch (p_property_id)
 	{
 		case gID_id:				return idSig;
-		case gID_reciprocality:		return reciprocalitySig;
+		case gID_reciprocal:		return reciprocalSig;
 		case gID_sexSegregation:	return sexSegregationSig;
 		case gID_spatiality:		return spatialitySig;
 		case gID_maxDistance:		return maxDistanceSig;

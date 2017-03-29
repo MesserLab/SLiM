@@ -1645,7 +1645,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 	
 	
 	//
-	//	*********************	(object<InteractionType>$)initializeInteractionType(is$ id, string$ spatiality, [logical$ reciprocality = F], [numeric$ maxDistance = INF], [string$ sexSegregation = "**"])
+	//	*********************	(object<InteractionType>$)initializeInteractionType(is$ id, string$ spatiality, [logical$ reciprocal = F], [numeric$ maxDistance = INF], [string$ sexSegregation = "**"])
 	//
 	#pragma mark initializeInteractionType()
 	
@@ -1653,7 +1653,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 	{
 		slim_objectid_t map_identifier = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 'i', nullptr);
 		string spatiality_string = arg1_value->StringAtIndex(0, nullptr);
-		bool reciprocality = arg2_value->LogicalAtIndex(0, nullptr);
+		bool reciprocal = arg2_value->LogicalAtIndex(0, nullptr);
 		double maxDistance = arg3_value->FloatAtIndex(0, nullptr);
 		string sex_string = arg4_value->StringAtIndex(0, nullptr);
 		int required_dimensionality;
@@ -1694,7 +1694,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		if (((receiver_sex != IndividualSex::kUnspecified) || (exerter_sex != IndividualSex::kUnspecified)) && !sex_enabled_)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() sexSegregation value other than '**' unsupported in non-sexual simulation." << eidos_terminate();
 		
-		InteractionType *new_interaction_type = new InteractionType(map_identifier, spatiality_string, reciprocality, maxDistance, receiver_sex, exerter_sex);
+		InteractionType *new_interaction_type = new InteractionType(map_identifier, spatiality_string, reciprocal, maxDistance, receiver_sex, exerter_sex);
 		
 		interaction_types_.insert(std::pair<const slim_objectid_t,InteractionType*>(map_identifier, new_interaction_type));
 		interaction_types_changed_ = true;
@@ -1711,8 +1711,8 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		{
 			output_stream << "initializeInteractionType(" << map_identifier << ", \"" << spatiality_string;
 			
-			if (reciprocality == false)
-				output_stream << "\", reciprocality=F";
+			if (reciprocal == true)
+				output_stream << "\", reciprocal=T";
 			
 			if (maxDistance != 0.0)
 				output_stream << "\", maxDistance=" << maxDistance;
@@ -2166,7 +2166,7 @@ void SLiMSim::_AddZeroGenerationFunctionsToSignatureVector(std::vector<const Eid
 		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElementType, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_GenomicElementType_Class, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))
 									   ->AddIntString_S("id")->AddIntObject("mutationTypes", gSLiM_MutationType_Class)->AddNumeric("proportions"));
 		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeInteractionType, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_InteractionType_Class, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))
-									   ->AddIntString_S("id")->AddString_S(gStr_spatiality)->AddLogical_OS(gStr_reciprocality, gStaticEidosValue_LogicalF)->AddNumeric_OS(gStr_maxDistance, gStaticEidosValue_FloatINF)->AddString_OS(gStr_sexSegregation, gStaticEidosValue_StringDoubleAsterisk));
+									   ->AddIntString_S("id")->AddString_S(gStr_spatiality)->AddLogical_OS(gStr_reciprocal, gStaticEidosValue_LogicalF)->AddNumeric_OS(gStr_maxDistance, gStaticEidosValue_FloatINF)->AddString_OS(gStr_sexSegregation, gStaticEidosValue_StringDoubleAsterisk));
 		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationType, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))
 									   ->AddIntString_S("id")->AddNumeric_S("dominanceCoeff")->AddString_S("distributionType")->AddEllipsis());
 		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeRecombinationRate, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))
