@@ -109,6 +109,7 @@ public:
 	~Individual(void);																	// destructor
 	
 	void GetGenomes(Genome **p_genome1, Genome **p_genome2) const;
+	inline slim_popsize_t IndexInSubpopulation(void) const { return index_; }
 	IndividualSex Sex(void) const;
 	
 	inline void ClearColor(void) { color_.clear(); }

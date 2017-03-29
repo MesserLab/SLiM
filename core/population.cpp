@@ -321,7 +321,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 				}
 				
 				bzero(current_weights, sizeof(double) * weights_length);
-				current_weights[chosen_mate->index_] = 1.0;
+				current_weights[chosen_mate->IndexInSubpopulation()] = 1.0;
 				
 				weights_reflect_chosen_mate = true;
 			}
@@ -466,7 +466,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 	// If we have a specific chosen mate, then we don't need to draw, but we do need to check the sex of the proposed mate
 	if (chosen_mate)
 	{
-		slim_popsize_t drawn_parent = chosen_mate->index_;
+		slim_popsize_t drawn_parent = chosen_mate->IndexInSubpopulation();
 		
 		if (weights_modified)
 			free(current_weights);
