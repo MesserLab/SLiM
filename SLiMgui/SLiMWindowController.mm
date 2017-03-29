@@ -1984,7 +1984,7 @@
 	{
 		unichar first_ch = token_string[0];
 		
-		if ((first_ch == 'p') || (first_ch == 'g') || (first_ch == 'm') || (first_ch == 's'))
+		if ((first_ch == 'p') || (first_ch == 'g') || (first_ch == 'm') || (first_ch == 's') || (first_ch == 'i'))
 		{
 			for (int ch_index = 1; ch_index < len; ++ch_index)
 			{

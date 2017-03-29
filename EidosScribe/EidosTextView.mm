@@ -1152,13 +1152,15 @@ using std::string;
 							
 							NSString *substring = [line substringWithRange:tokenRange];
 							NSDictionary *syntaxAttrs = nil;
+							unichar firstChar = [substring characterAtIndex:0];
 							
-							if ([substring characterAtIndex:0] == 'p')
+							if (firstChar == 'p')
 								syntaxAttrs = subpopAttrs;
-							else if ([substring characterAtIndex:0] == 'g')
+							else if (firstChar == 'g')
 								syntaxAttrs = genomicElementAttrs;
-							else if ([substring characterAtIndex:0] == 'm')
+							else if (firstChar == 'm')
 								syntaxAttrs = mutationTypeAttrs;
+							// we don't presently color sX or iX in the output
 							
 							if (syntaxAttrs)
 								[lm addTemporaryAttributes:syntaxAttrs forCharacterRange:NSMakeRange(tokenRange.location + lineRange.location, tokenRange.length)];

@@ -1042,7 +1042,7 @@ bool SLiMTypeTable::ContainsSymbol(EidosGlobalStringID p_symbol_name) const
 		{
 			char first_ch = token_string[0];
 			
-			if ((first_ch == 'p') || (first_ch == 'g') || (first_ch == 'm') || (first_ch == 's'))
+			if ((first_ch == 'p') || (first_ch == 'g') || (first_ch == 'm') || (first_ch == 's') || (first_ch == 'i'))
 			{
 				for (int ch_index = 1; ch_index < len; ++ch_index)
 				{
@@ -1079,7 +1079,7 @@ EidosTypeSpecifier SLiMTypeTable::GetTypeForSymbol(EidosGlobalStringID p_symbol_
 		{
 			char first_ch = token_string[0];
 			
-			if ((first_ch == 'p') || (first_ch == 'g') || (first_ch == 'm') || (first_ch == 's'))
+			if ((first_ch == 'p') || (first_ch == 'g') || (first_ch == 'm') || (first_ch == 's') || (first_ch == 'i'))
 			{
 				for (int ch_index = 1; ch_index < len; ++ch_index)
 				{
@@ -1097,6 +1097,8 @@ EidosTypeSpecifier SLiMTypeTable::GetTypeForSymbol(EidosGlobalStringID p_symbol_
 					return EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_MutationType_Class};
 				if (first_ch == 's')
 					return EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class};
+				if (first_ch == 'i')
+					return EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_InteractionType_Class};
 			}
 		}
 		

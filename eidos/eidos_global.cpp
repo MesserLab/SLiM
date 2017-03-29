@@ -143,7 +143,7 @@ bool Eidos_GoodSymbolForDefine(std::string &p_symbol_name)
 	{
 		char first_ch = p_symbol_name[0];
 		
-		if ((first_ch == 'p') || (first_ch == 'g') || (first_ch == 'm') || (first_ch == 's'))
+		if ((first_ch == 'p') || (first_ch == 'g') || (first_ch == 'm') || (first_ch == 's') || (first_ch == 'i'))
 		{
 			int ch_index;
 			
