@@ -1093,6 +1093,27 @@ void SLiMSim::DeregisterScheduledScriptBlocks(void)
 	}
 }
 
+void SLiMSim::DeregisterScheduledInteractionBlocks(void)
+{
+	// Identical to DeregisterScheduledScriptBlocks() above, but for the interaction() dereg list; see deregisterScriptBlock()
+	for (SLiMEidosBlock *block_to_dereg : scheduled_interaction_deregs_)
+	{
+		auto script_block_position = std::find(script_blocks_.begin(), script_blocks_.end(), block_to_dereg);
+		
+		if (script_block_position != script_blocks_.end())
+		{
+			// Remove the symbol for it first
+			if (block_to_dereg->block_id_ != -1)
+				simulation_constants_->RemoveConstantForSymbol(block_to_dereg->ScriptBlockSymbolTableEntry().first);
+			
+			// Then remove it from our script block list and deallocate it
+			script_blocks_.erase(script_block_position);
+			scripts_changed_ = true;
+			delete block_to_dereg;
+		}
+	}
+}
+
 void SLiMSim::RunInitializeCallbacks(void)
 {
 	// zero out the initialization check counts
@@ -1344,6 +1365,9 @@ bool SLiMSim::_RunOneGeneration(void)
 		// Invalidate interactions, now that the generation they were valid for is disappearing
 		for (auto int_type = interaction_types_.begin(); int_type != interaction_types_.end(); ++int_type)
 			int_type->second->Invalidate();
+		
+		// Deregister any interaction() callbacks that have been scheduled for deregistration, since it is now safe to do so
+		DeregisterScheduledInteractionBlocks();
 		
 		
 		// ******************************************************************
@@ -2736,10 +2760,24 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 					block = dynamic_cast<SLiMEidosBlock *>(arg0_value->ObjectElementAtIndex(block_index, nullptr));
 				}
 				
-				if (std::find(scheduled_deregistrations_.begin(), scheduled_deregistrations_.end(), block) != scheduled_deregistrations_.end())
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): deregisterScriptBlock() called twice on the same script block." << eidos_terminate();
-				
-				scheduled_deregistrations_.emplace_back(block);
+				if (block->type_ == SLiMEidosBlockType::SLiMEidosInteractionCallback)
+				{
+					// interaction() callbacks have to work differently, because they can be called at any time after an
+					// interaction has been evaluated, up until the interaction is invalidated; we can't make pointers
+					// to interaction() callbacks go stale except at that specific point in the generation cycle
+					if (std::find(scheduled_interaction_deregs_.begin(), scheduled_interaction_deregs_.end(), block) != scheduled_interaction_deregs_.end())
+						EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): deregisterScriptBlock() called twice on the same script block." << eidos_terminate();
+					
+					scheduled_interaction_deregs_.emplace_back(block);
+				}
+				else
+				{
+					// all other script blocks go on the main list and get cleared out at the end of each generation stage
+					if (std::find(scheduled_deregistrations_.begin(), scheduled_deregistrations_.end(), block) != scheduled_deregistrations_.end())
+						EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): deregisterScriptBlock() called twice on the same script block." << eidos_terminate();
+					
+					scheduled_deregistrations_.emplace_back(block);
+				}
 			}
 			
 			return gStaticEidosValueNULLInvisible;
