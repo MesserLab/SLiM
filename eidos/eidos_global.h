@@ -367,7 +367,7 @@ typedef struct {
 
 extern EidosNamedColor gEidosNamedColors[];
 
-void EidosGetColorComponents(std::string &p_color_name, float *p_red_component, float *p_green_component, float *p_blue_component);
+void EidosGetColorComponents(const std::string &p_color_name, float *p_red_component, float *p_green_component, float *p_blue_component);
 
 
 #endif /* defined(__Eidos__eidos_global__) */

@@ -1785,7 +1785,7 @@ EidosNamedColor gEidosNamedColors[] = {
 	{nullptr, 0, 0, 0}
 };
 
-void EidosGetColorComponents(std::string &p_color_name, float *p_red_component, float *p_green_component, float *p_blue_component)
+void EidosGetColorComponents(const std::string &p_color_name, float *p_red_component, float *p_green_component, float *p_blue_component)
 {
 	// Colors can be specified either in hex as "#RRGGBB" or as a named color from the list above
 	if ((p_color_name.length() == 7) && (p_color_name[0] == '#'))
