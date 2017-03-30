@@ -489,7 +489,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 							
 							distance = sqrt(distance_x * distance_x + distance_y * distance_y);
 						}
-						else if (spatiality_ == 3)
+						else // if (spatiality_ == 3)
 						{
 							double distance_x = (exerting_position[0] - receiving_position[0]);
 							double distance_y = (exerting_position[1] - receiving_position[1]);
@@ -543,7 +543,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 								
 								distance = sqrt(distance_x * distance_x + distance_y * distance_y);
 							}
-							else if (spatiality_ == 3)
+							else // if (spatiality_ == 3)
 							{
 								double distance_x = (exerting_position[0] - receiving_position[0]);
 								double distance_y = (exerting_position[1] - receiving_position[1]);
@@ -611,7 +611,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 							
 							distance = sqrt(distance_x * distance_x + distance_y * distance_y);
 						}
-						else if (spatiality_ == 3)
+						else // if (spatiality_ == 3)
 						{
 							double distance_x = (exerting_position[0] - receiving_position[0]);
 							double distance_y = (exerting_position[1] - receiving_position[1]);
@@ -670,7 +670,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 								
 								distance = sqrt(distance_x * distance_x + distance_y * distance_y);
 							}
-							else if (spatiality_ == 3)
+							else // if (spatiality_ == 3)
 							{
 								double distance_x = (exerting_position[0] - receiving_position[0]);
 								double distance_y = (exerting_position[1] - receiving_position[1]);

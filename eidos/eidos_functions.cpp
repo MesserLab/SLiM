@@ -5373,7 +5373,7 @@ EidosValue_SP Eidos_ExecuteFunction_match(const EidosValue_SP *const p_arguments
 					break;
 				}
 		}
-		else if (arg0_type == EidosValueType::kValueObject)
+		else // if (arg0_type == EidosValueType::kValueObject)
 		{
 			EidosObjectElement *value0 = arg0_value->ObjectElementAtIndex(0, nullptr);
 			const std::vector<EidosObjectElement *> &objelement_vec1 = *arg1_value->ObjectElementVector();
@@ -6628,7 +6628,7 @@ EidosValue_SP Eidos_ExecuteFunction_rgb2hsv(const EidosValue_SP *const p_argumen
 		h = (1.0/6.0) * fmod(((g - b) / delta) + 6.0, 6.0);
 	else if (c_max == g)
 		h = (1.0/6.0) * (((b - r) / delta) + 2.0);
-	else if (c_max == b)
+	else // if (c_max == b)
 		h = (1.0/6.0) * (((r - g) / delta) + 4.0);
 	
 	if (c_max == 0.0)
