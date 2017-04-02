@@ -35,6 +35,7 @@ development head:
 	first passes at recipes 14.6, 14.7, 14.8, and 14.9
 	move color-related code from SLiM to Eidos, add new color-conversion functions to Eidos
 	add support for spatial maps: defineSpatialMap(), spatialMapValue(), spatialMapColor()
+	add recipes 14.10 and 14.11
 
 
 2.2.1 (build 992; Eidos version 1.2.1):
