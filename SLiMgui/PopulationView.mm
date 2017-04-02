@@ -228,6 +228,514 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	}
 }
 
+- (void)cacheDisplayBufferForMap:(SpatialMap *)background_map subpopulation:(Subpopulation *)subpop
+{
+	// Cache a display buffer for the given background map.  This method should be called only in the 2D "xy"
+	// case; in the 1D case we can't know the maximum width ahead of time, so we just draw rects without caching,
+	// and in the 3D "xyz" case we don't know which z-slice to use so we can't display the spatial map.
+	// The window might be too narrow to display a full-size map right now, but we want to premake a full-size map.
+	// The sizing logic here is taken from drawRect:, assuming that we are not constrained in width.
+	
+	// By the way, it may occur to the reader to wonder why we keep the buffer as uint8_t values, given that we
+	// convert to and from uin8_t for the display code that uses float RGB components.  My rationale is that
+	// this drastically cuts the amount of memory that has to be accessed, and that the display code, in particular,
+	// is probably memory-bound since most of the work is done in the GPU.  I haven't done any speed tests to
+	// confirm that hunch, though.  In any case, it's plenty fast and I don't see significant display artifacts.
+	
+	NSRect full_bounds = NSInsetRect([self bounds], 1, 1);
+	int max_height = (int)full_bounds.size.height;
+	double bounds_x0 = subpop->bounds_x0_, bounds_x1 = subpop->bounds_x1_;
+	double bounds_y0 = subpop->bounds_y0_, bounds_y1 = subpop->bounds_y1_;
+	double bounds_x_size = bounds_x1 - bounds_x0, bounds_y_size = bounds_y1 - bounds_y0;
+	double subpopAspect = bounds_x_size / bounds_y_size;
+	int max_width = (int)round(max_height * subpopAspect);
+	
+	// If we have a display buffer of the wrong size, free it.  This should only happen when the user changes
+	// the Subpopulation's spatialBounds after it has displayed; it should not happen with a window resize.
+	// The user has no way to change the map or the colormap except to set a whole new map, which will also
+	// result in the old one being freed, so we're already safe in those circumstances.
+	if (background_map->display_buffer_ && ((background_map->buffer_width_ != max_width) || (background_map->buffer_height_ != max_height)))
+	{
+		free(background_map->display_buffer_);
+		background_map->display_buffer_ = nullptr;
+	}
+	
+	// Now allocate and validate the display buffer if we haven't already done so.
+	if (!background_map->display_buffer_)
+	{
+		uint8_t *display_buf = (uint8_t *)malloc(max_width * max_height * 3 * sizeof(uint8_t));
+		background_map->display_buffer_ = display_buf;
+		background_map->buffer_width_ = max_width;
+		background_map->buffer_height_ = max_height;
+		
+		uint8_t *buf_ptr = display_buf;
+		int64_t xsize = background_map->grid_size_[0];
+		int64_t ysize = background_map->grid_size_[1];
+		double *values = background_map->values_;
+		bool interpolate = background_map->interpolate_;
+		
+		for (int y = 0; y < max_height; y++)
+		{
+			for (int x = 0; x < max_width; x++)
+			{
+				// Look up the nearest map point and get its value; interpolate if requested
+				double x_fraction = (x + 0.5) / max_width;		// pixel center
+				double y_fraction = (y + 0.5) / max_height;		// pixel center
+				double value;
+				
+				if (interpolate)
+				{
+					double x_map = x_fraction * (xsize - 1);
+					double y_map = y_fraction * (ysize - 1);
+					int x1_map = (int)floor(x_map);
+					int y1_map = (int)floor(y_map);
+					int x2_map = (int)ceil(x_map);
+					int y2_map = (int)ceil(y_map);
+					double fraction_x2 = x_map - x1_map;
+					double fraction_x1 = 1.0 - fraction_x2;
+					double fraction_y2 = y_map - y1_map;
+					double fraction_y1 = 1.0 - fraction_y2;
+					double value_x1_y1 = values[x1_map + y1_map * xsize] * fraction_x1 * fraction_y1;
+					double value_x2_y1 = values[x2_map + y1_map * xsize] * fraction_x2 * fraction_y1;
+					double value_x1_y2 = values[x1_map + y2_map * xsize] * fraction_x1 * fraction_y2;
+					double value_x2_y2 = values[x2_map + y2_map * xsize] * fraction_x2 * fraction_y2;
+					
+					value = value_x1_y1 + value_x2_y1 + value_x1_y2 + value_x2_y2;
+				}
+				else
+				{
+					int x_map = (int)round(x_fraction * (xsize - 1));
+					int y_map = (int)round(y_fraction * (ysize - 1));
+					
+					value = values[x_map + y_map * xsize];
+				}
+				
+				// Given the (interpolated?) value, look up the color, interpolating if necessary
+				double rgb[3];
+				
+				background_map->ColorForValue(value, rgb);
+				
+				// Write the color values to the buffer
+				*(buf_ptr++) = (uint8_t)round(rgb[0] * 255.0);
+				*(buf_ptr++) = (uint8_t)round(rgb[1] * 255.0);
+				*(buf_ptr++) = (uint8_t)round(rgb[2] * 255.0);
+			}
+		}
+	}
+}
+
+- (void)drawSpatialBackgroundInBounds:(NSRect)bounds forSubpopulation:(Subpopulation *)subpop dimensionality:(int)dimensionality
+{
+	SpatialMapMap &spatial_maps = subpop->spatial_maps_;
+	SpatialMap *background_map = nullptr;
+	
+	for (const SpatialMapPair &map_pair : spatial_maps)
+	{
+		SpatialMap *map = map_pair.second;
+		
+		if (map->n_colors_ > 0)
+		{
+			// Having a color map means this spatial map wants to be displayed in SLiMgui.  We take the best one we find:
+			// an "xy" map is preferred to an "x" or a "y" map.  Other map types are not allowed.  We can't display a z
+			// coordinate, and we can't display even the x or y portion of "xz", "yz", and "xyz" maps since we don't know
+			// which z-slice through the map to use.
+			if ((map->spatiality_string_ == "x") || (map->spatiality_string_ == "y") || (map->spatiality_string_ == "xy"))
+			{
+				if (!background_map || (map->spatiality_ > background_map->spatiality_))
+				{
+					background_map = map;
+					
+					// if we found an xy map, we won't do better than that; otherwise, keep looking
+					if (background_map->spatiality_ == 2)
+						break;
+				}
+			}
+		}
+	}
+	
+	if (background_map)
+	{
+		// We have a spatial map with a color map, so use it to draw the background
+		int bounds_x1 = (int)bounds.origin.x;
+		int bounds_y1 = (int)bounds.origin.y;
+		int bounds_x2 = (int)(bounds.origin.x + bounds.size.width);
+		int bounds_y2 = (int)(bounds.origin.y + bounds.size.height);
+		
+		//glColor3f(0.0, 0.0, 0.0);
+		//glRecti(bounds_x1, bounds_y1, bounds_x2, bounds_y2);
+		
+		static float *glArrayVertices = nil;
+		static float *glArrayColors = nil;
+		int displayListIndex;
+		float *vertices = NULL, *colors = NULL;
+		
+		// Set up the vertex and color arrays
+		if (!glArrayVertices)
+			glArrayVertices = (float *)malloc(kMaxVertices * 2 * sizeof(float));		// 2 floats per vertex, AK_POPULATION_VIEW_GL_ARRAY_SIZE vertices
+		
+		if (!glArrayColors)
+			glArrayColors = (float *)malloc(kMaxVertices * 4 * sizeof(float));		// 4 floats per color, AK_POPULATION_VIEW_GL_ARRAY_SIZE colors
+		
+		// Set up to draw rects
+		displayListIndex = 0;
+		
+		vertices = glArrayVertices;
+		glEnableClientState(GL_VERTEX_ARRAY);
+		glVertexPointer(2, GL_FLOAT, 0, glArrayVertices);
+		
+		colors = glArrayColors;
+		glEnableClientState(GL_COLOR_ARRAY);
+		glColorPointer(4, GL_FLOAT, 0, glArrayColors);
+		
+		if (background_map->spatiality_ == 1)
+		{
+			// This is the spatiality "x" and "y" cases; they are the only 1D spatiality values for which SLiMgui will draw
+			// In the 1D case we can't cache a display buffer, since we don't know what aspect ratio to use, so we just
+			// draw rects.  Whether those rects are horizontal or vertical will depend on the spatiality of the map.  Most
+			// of the code is identical, though, because of the way we handle dimensions, so we share the two cases here.
+			bool spatiality_is_x = (background_map->spatiality_string_ == "x");
+			int64_t xsize = background_map->grid_size_[0];
+			double *values = background_map->values_;
+			
+			if (background_map->interpolate_)
+			{
+				// Interpolation, so we need to draw every line individually
+				int min_coord = (spatiality_is_x ? bounds_x1 : bounds_y1);
+				int max_coord = (spatiality_is_x ? bounds_x2 : bounds_y2);
+				
+				for (int x = min_coord; x < max_coord; ++x)
+				{
+					double x_fraction = (x + 0.5 - min_coord) / (max_coord - min_coord);	// values evaluated at pixel centers
+					double x_map = x_fraction * (xsize - 1);
+					int x1_map = (int)floor(x_map);
+					int x2_map = (int)ceil(x_map);
+					double fraction_x2 = x_map - x1_map;
+					double fraction_x1 = 1.0 - fraction_x2;
+					double value_x1 = values[x1_map] * fraction_x1;
+					double value_x2 = values[x2_map] * fraction_x2;
+					double value = value_x1 + value_x2;
+					
+					int x1, x2, y1, y2;
+					
+					if (spatiality_is_x)
+					{
+						x1 = x;
+						x2 = x + 1;
+						y1 = bounds_y1;
+						y2 = bounds_y2;
+					}
+					else
+					{
+						y1 = (max_coord - 1) - x + min_coord;	// flip for y, to use Cartesian coordinates
+						y2 = y1 + 1;
+						x1 = bounds_x1;
+						x2 = bounds_x2;
+					}
+					
+					float rgb[3];
+					
+					background_map->ColorForValue(value, rgb);
+					
+					//glColor3f(red, green, blue);
+					//glRecti(x1, y1, x2, y2);
+					
+					*(vertices++) = x1;
+					*(vertices++) = y1;
+					*(vertices++) = x1;
+					*(vertices++) = y2;
+					*(vertices++) = x2;
+					*(vertices++) = y2;
+					*(vertices++) = x2;
+					*(vertices++) = y1;
+					
+					for (int j = 0; j < 4; ++j)
+					{
+						*(colors++) = rgb[0];
+						*(colors++) = rgb[1];
+						*(colors++) = rgb[2];
+						*(colors++) = 1.0;
+					}
+					
+					displayListIndex++;
+					
+					// If we've filled our buffers, get ready to draw more
+					if (displayListIndex == kMaxGLRects)
+					{
+						// Draw our arrays
+						glDrawArrays(GL_QUADS, 0, 4 * displayListIndex);
+						
+						// And get ready to draw more
+						vertices = glArrayVertices;
+						colors = glArrayColors;
+						displayListIndex = 0;
+					}
+				}
+			}
+			else
+			{
+				// No interpolation, so we can draw whole grid blocks
+				for (int x = 0; x < xsize; x++)
+				{
+					double value = (spatiality_is_x ? values[x] : values[(xsize - 1) - x]);	// flip for y, to use Cartesian coordinates
+					int x1, x2, y1, y2;
+					
+					if (spatiality_is_x)
+					{
+						x1 = (int)round(((x - 0.5) / (xsize - 1)) * bounds.size.width + bounds.origin.x);
+						x2 = (int)round(((x + 0.5) / (xsize - 1)) * bounds.size.width + bounds.origin.x);
+						
+						if (x1 < bounds_x1) x1 = bounds_x1;
+						if (x2 > bounds_x2) x2 = bounds_x2;
+						
+						y1 = bounds_y1;
+						y2 = bounds_y2;
+					}
+					else
+					{
+						y1 = (int)round(((x - 0.5) / (xsize - 1)) * bounds.size.height + bounds.origin.y);
+						y2 = (int)round(((x + 0.5) / (xsize - 1)) * bounds.size.height + bounds.origin.y);
+						
+						if (y1 < bounds_y1) y1 = bounds_y1;
+						if (y2 > bounds_y2) y2 = bounds_y2;
+						
+						x1 = bounds_x1;
+						x2 = bounds_x2;
+					}
+					
+					float rgb[3];
+					
+					background_map->ColorForValue(value, rgb);
+					
+					//glColor3f(red, green, blue);
+					//glRecti(x1, y1, x2, y2);
+					
+					*(vertices++) = x1;
+					*(vertices++) = y1;
+					*(vertices++) = x1;
+					*(vertices++) = y2;
+					*(vertices++) = x2;
+					*(vertices++) = y2;
+					*(vertices++) = x2;
+					*(vertices++) = y1;
+					
+					for (int j = 0; j < 4; ++j)
+					{
+						*(colors++) = rgb[0];
+						*(colors++) = rgb[1];
+						*(colors++) = rgb[2];
+						*(colors++) = 1.0;
+					}
+					
+					displayListIndex++;
+					
+					// If we've filled our buffers, get ready to draw more
+					if (displayListIndex == kMaxGLRects)
+					{
+						// Draw our arrays
+						glDrawArrays(GL_QUADS, 0, 4 * displayListIndex);
+						
+						// And get ready to draw more
+						vertices = glArrayVertices;
+						colors = glArrayColors;
+						displayListIndex = 0;
+					}
+				}
+			}
+		}
+		else // if (background_map->spatiality_ == 2)
+		{
+			// This is the spatiality "xy" case; it is the only 2D spatiality for which SLiMgui will draw
+			
+			// First, cache the display buffer if needed.  If this succeeds, we'll use it.
+			// It should always succeed, so the tile-drawing code below is dead code, kept for parallelism with the 1D case.
+			[self cacheDisplayBufferForMap:background_map subpopulation:subpop];
+			
+			uint8_t *display_buf = background_map->display_buffer_;
+			
+			if (display_buf)
+			{
+				// Use a cached display buffer to draw.
+				int buf_width = background_map->buffer_width_;
+				int buf_height = background_map->buffer_height_;
+				bool display_full_size = (((int)bounds.size.width == buf_width) && ((int)bounds.size.height == buf_height));
+				float scale_x = (float)(bounds.size.width / buf_width);
+				float scale_y = (float)(bounds.size.height / buf_height);
+				
+				// Then run through the pixels in the display buffer and draw them; this could be done
+				// with some sort of OpenGL image-drawing method instead, but it's actually already
+				// remarkably fast, at least on my machine, and drawing an image with OpenGL seems very
+				// gross, and I tried it once before and couldn't get it to work well...
+				for (int y = 0; y < buf_height; y++)
+				{
+					// We flip the buffer vertically; it's the simplest way to get it into the right coordinate space
+					uint8_t *buf_ptr = display_buf + ((buf_height - 1) - y) * buf_width * 3;
+					
+					for (int x = 0; x < buf_width; x++)
+					{
+						float red = *(buf_ptr++) / 255.0f;
+						float green = *(buf_ptr++) / 255.0f;
+						float blue = *(buf_ptr++) / 255.0f;
+						float left, right, top, bottom;
+						
+						if (display_full_size)
+						{
+							left = bounds_x1 + x;
+							right = left + 1.0f;
+							top = bounds_y1 + y;
+							bottom = top + 1.0f;
+						}
+						else
+						{
+							left = bounds_x1 + x * scale_x;
+							right = bounds_x1 + (x + 1) * scale_x;
+							top = bounds_y1 + y * scale_y;
+							bottom = bounds_y1 + (y + 1) * scale_y;
+						}
+						
+						*(vertices++) = left;
+						*(vertices++) = top;
+						*(vertices++) = left;
+						*(vertices++) = bottom;
+						*(vertices++) = right;
+						*(vertices++) = bottom;
+						*(vertices++) = right;
+						*(vertices++) = top;
+						
+						for (int j = 0; j < 4; ++j)
+						{
+							*(colors++) = red;
+							*(colors++) = green;
+							*(colors++) = blue;
+							*(colors++) = 1.0;
+						}
+						
+						displayListIndex++;
+						
+						// If we've filled our buffers, get ready to draw more
+						if (displayListIndex == kMaxGLRects)
+						{
+							// Draw our arrays
+							glDrawArrays(GL_QUADS, 0, 4 * displayListIndex);
+							
+							// And get ready to draw more
+							vertices = glArrayVertices;
+							colors = glArrayColors;
+							displayListIndex = 0;
+						}
+					}
+				}
+			}
+			else
+			{
+				// Draw rects for each map tile, without caching.  Not as slow as you might expect,
+				// but for really big maps it does get cumbersome.  This is dead code now, overridden
+				// by the buffer-drawing code above, which also handles interpolation correctly.
+				int64_t xsize = background_map->grid_size_[0];
+				int64_t ysize = background_map->grid_size_[1];
+				double *values = background_map->values_;
+				int n_colors = background_map->n_colors_;
+				
+				for (int y = 0; y < ysize; y++)
+				{
+					int y1 = (int)round(((y - 0.5) / (ysize - 1)) * bounds.size.height + bounds.origin.y);
+					int y2 = (int)round(((y + 0.5) / (ysize - 1)) * bounds.size.height + bounds.origin.y);
+					
+					if (y1 < bounds_y1) y1 = bounds_y1;
+					if (y2 > bounds_y2) y2 = bounds_y2;
+					
+					// Flip our display, since our coordinate system is flipped relative to our buffer
+					double *values_row = values + ((ysize - 1) - y) * xsize;
+					
+					for (int x = 0; x < xsize; x++)
+					{
+						double value = *(values_row + x);
+						int x1 = (int)round(((x - 0.5) / (xsize - 1)) * bounds.size.width + bounds.origin.x);
+						int x2 = (int)round(((x + 0.5) / (xsize - 1)) * bounds.size.width + bounds.origin.x);
+						
+						if (x1 < bounds_x1) x1 = bounds_x1;
+						if (x2 > bounds_x2) x2 = bounds_x2;
+						
+						float value_fraction = (float)((value - background_map->min_value_) / (background_map->max_value_ - background_map->min_value_));
+						float color_index = value_fraction * (n_colors - 1);
+						int color_index_1 = (int)floorf(color_index);
+						int color_index_2 = (int)ceilf(color_index);
+						
+						if (color_index_1 < 0) color_index_1 = 0;
+						if (color_index_1 >= n_colors) color_index_1 = n_colors - 1;
+						if (color_index_2 < 0) color_index_2 = 0;
+						if (color_index_2 >= n_colors) color_index_2 = n_colors - 1;
+						
+						float color_2_weight = color_index - color_index_1;
+						float color_1_weight = 1.0f - color_2_weight;
+						
+						float red1 = background_map->red_components_[color_index_1];
+						float green1 = background_map->green_components_[color_index_1];
+						float blue1 = background_map->blue_components_[color_index_1];
+						float red2 = background_map->red_components_[color_index_2];
+						float green2 = background_map->green_components_[color_index_2];
+						float blue2 = background_map->blue_components_[color_index_2];
+						float red = red1 * color_1_weight + red2 * color_2_weight;
+						float green = green1 * color_1_weight + green2 * color_2_weight;
+						float blue = blue1 * color_1_weight + blue2 * color_2_weight;
+						
+						//glColor3f(red, green, blue);
+						//glRecti(x1, y1, x2, y2);
+
+						*(vertices++) = x1;
+						*(vertices++) = y1;
+						*(vertices++) = x1;
+						*(vertices++) = y2;
+						*(vertices++) = x2;
+						*(vertices++) = y2;
+						*(vertices++) = x2;
+						*(vertices++) = y1;
+						
+						for (int j = 0; j < 4; ++j)
+						{
+							*(colors++) = red;
+							*(colors++) = green;
+							*(colors++) = blue;
+							*(colors++) = 1.0;
+						}
+						
+						displayListIndex++;
+						
+						// If we've filled our buffers, get ready to draw more
+						if (displayListIndex == kMaxGLRects)
+						{
+							// Draw our arrays
+							glDrawArrays(GL_QUADS, 0, 4 * displayListIndex);
+							
+							// And get ready to draw more
+							vertices = glArrayVertices;
+							colors = glArrayColors;
+							displayListIndex = 0;
+						}
+
+						//std::cout << "x = " << x << ", y = " << y << ", value = " << value << ": color_index = " << color_index << ", color_index_1 = " << color_index_1 << ", color_index_2 = " << color_index_2 << ", color_1_weight = " << color_1_weight << ", color_2_weight = " << color_2_weight << ", red = " << red << std::endl;
+					}
+				}
+			}
+		}
+		
+		// Draw any leftovers
+		if (displayListIndex)
+		{
+			// Draw our arrays
+			glDrawArrays(GL_QUADS, 0, 4 * displayListIndex);
+		}
+		
+		glDisableClientState(GL_VERTEX_ARRAY);
+		glDisableClientState(GL_COLOR_ARRAY);
+	}
+	else
+	{
+		// No background map, so just clear to black
+		glColor3f(0.0, 0.0, 0.0);
+		glRecti((int)bounds.origin.x, (int)bounds.origin.y, (int)(bounds.origin.x + bounds.size.width), (int)(bounds.origin.y + bounds.size.height));
+	}
+}
+
 - (void)drawSpatialIndividualsFromSubpopulation:(Subpopulation *)subpop inArea:(NSRect)bounds dimensionality:(int)dimensionality
 {
 	SLiMWindowController *controller = [[self window] windowController];
@@ -239,7 +747,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	double *subpop_fitness = subpop->cached_parental_fitness_;
 	BOOL useCachedFitness = (subpop->cached_fitness_size_ == subpopSize);	// needs to have the right number of entries, otherwise we punt
 	
-	NSRect individualArea = NSMakeRect(bounds.origin.x + 1, bounds.origin.y + 1, bounds.size.width - 3, bounds.size.height - 3);
+	NSRect individualArea = NSMakeRect(bounds.origin.x, bounds.origin.y, bounds.size.width - 1, bounds.size.height - 1);
 	
 	static float *glArrayVertices = nil;
 	static float *glArrayColors = nil;
@@ -370,6 +878,9 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 		float right = centerX + 1.5f;
 		float bottom = centerY + 1.5f;
 		
+		// clipping deliberately not done here; because individual rects are 3x3, they will fall at most one pixel
+		// outside our drawing area, and thus the flaw will be covered by the view frame when it overdraws
+		
 		*(vertices++) = left;
 		*(vertices++) = top;
 		*(vertices++) = left;
@@ -482,15 +993,14 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 		
 		if (sim->spatial_dimensionality_ == 1)
 		{
-			glColor3f(0.0, 0.0, 0.0);
-			glRecti(0, 0, (int)bounds.size.width, (int)bounds.size.height);
+			[self drawSpatialBackgroundInBounds:bounds forSubpopulation:subpop dimensionality:sim->spatial_dimensionality_];
 			
-			// Now determine a square subframe and draw spatial information inside that
-			NSRect spatialDisplayBounds = bounds;
+			// Now determine a subframe and draw spatial information inside that
+			NSRect spatialDisplayBounds = NSInsetRect(bounds, 1, 1);
 			
 			[self drawSpatialIndividualsFromSubpopulation:subpop inArea:spatialDisplayBounds dimensionality:sim->spatial_dimensionality_];
 			
-			[self drawViewFrameInBounds:spatialDisplayBounds];
+			[self drawViewFrameInBounds:NSInsetRect(spatialDisplayBounds, -1, -1)];
 		}
 		else if (sim->spatial_dimensionality_ > 1)
 		{
@@ -503,8 +1013,8 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 			
 			// Now determine a subframe and draw spatial information inside that.  The subframe we use is the maximal subframe
 			// with integer boundaries that preserves, as closely as possible, the aspect ratio of the subpop's bounds.
-			NSRect spatialDisplayBounds = bounds;
-			double displayAspect = bounds.size.width / bounds.size.height;
+			NSRect spatialDisplayBounds = NSInsetRect(bounds, 1, 1);
+			double displayAspect = spatialDisplayBounds.size.width / spatialDisplayBounds.size.height;
 			double bounds_x0 = subpop->bounds_x0_, bounds_x1 = subpop->bounds_x1_;
 			double bounds_y0 = subpop->bounds_y0_, bounds_y1 = subpop->bounds_y1_;
 			double bounds_x_size = bounds_x1 - bounds_x0, bounds_y_size = bounds_y1 - bounds_y0;
@@ -513,8 +1023,8 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 			if (subpopAspect > displayAspect)
 			{
 				// The display bounds will need to shrink vertically to match the subpop
-				double idealSize = round(bounds.size.width / subpopAspect);
-				double roundedOffset = round((bounds.size.height - idealSize) / 2.0);
+				double idealSize = round(spatialDisplayBounds.size.width / subpopAspect);
+				double roundedOffset = round((spatialDisplayBounds.size.height - idealSize) / 2.0);
 				
 				spatialDisplayBounds.origin.y += roundedOffset;
 				spatialDisplayBounds.size.height = idealSize;
@@ -522,8 +1032,8 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 			else if (subpopAspect < displayAspect)
 			{
 				// The display bounds will need to shrink horizontally to match the subpop
-				double idealSize = round(bounds.size.height * subpopAspect);
-				double roundedOffset = round((bounds.size.width - idealSize) / 2.0);
+				double idealSize = round(spatialDisplayBounds.size.height * subpopAspect);
+				double roundedOffset = round((spatialDisplayBounds.size.width - idealSize) / 2.0);
 				
 				spatialDisplayBounds.origin.x += roundedOffset;
 				spatialDisplayBounds.size.width = idealSize;
@@ -532,12 +1042,11 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 			//spatialDisplayBounds.origin.x += floor((spatialDisplayBounds.size.width - spatialDisplayBounds.size.height) / 2.0);
 			//spatialDisplayBounds.size.width = spatialDisplayBounds.size.height;
 			
-			glColor3f(0.0, 0.0, 0.0);
-			glRecti((int)spatialDisplayBounds.origin.x, (int)spatialDisplayBounds.origin.y, (int)(spatialDisplayBounds.origin.x + spatialDisplayBounds.size.width), (int)(spatialDisplayBounds.origin.y + spatialDisplayBounds.size.height));
+			[self drawSpatialBackgroundInBounds:spatialDisplayBounds forSubpopulation:subpop dimensionality:sim->spatial_dimensionality_];
 			
 			[self drawSpatialIndividualsFromSubpopulation:subpop inArea:spatialDisplayBounds dimensionality:sim->spatial_dimensionality_];
 			
-			[self drawViewFrameInBounds:spatialDisplayBounds];
+			[self drawViewFrameInBounds:NSInsetRect(spatialDisplayBounds, -1, -1)];
 		}
 		else
 		{

@@ -1823,7 +1823,68 @@ void EidosGetColorComponents(const std::string &p_color_name, float *p_red_compo
 	EIDOS_TERMINATION << "ERROR (EidosGetColorComponents): color named \"" << p_color_name << "\" could not be found." << eidos_terminate();
 }
 
+void EidosGetColorComponents(const std::string &p_color_name, uint8_t *p_red_component, uint8_t *p_green_component, uint8_t *p_blue_component)
+{
+	// Colors can be specified either in hex as "#RRGGBB" or as a named color from the list above
+	if ((p_color_name.length() == 7) && (p_color_name[0] == '#'))
+	{
+		try
+		{
+			unsigned long r = stoul(p_color_name.substr(1, 2), nullptr, 16);
+			unsigned long g = stoul(p_color_name.substr(3, 2), nullptr, 16);
+			unsigned long b = stoul(p_color_name.substr(5, 2), nullptr, 16);
+			
+			*p_red_component = (uint8_t)r;
+			*p_green_component = (uint8_t)g;
+			*p_blue_component = (uint8_t)b;
+			return;
+		}
+		catch (...)
+		{
+			EIDOS_TERMINATION << "ERROR (EidosGetColorComponents): color specification \"" << p_color_name << "\" is malformed." << eidos_terminate();
+		}
+	}
+	else
+	{
+		for (EidosNamedColor *color_table = gEidosNamedColors; color_table->name; ++color_table)
+		{
+			if (p_color_name == color_table->name)
+			{
+				*p_red_component = color_table->red;
+				*p_green_component = color_table->green;
+				*p_blue_component = color_table->blue;
+				return;
+			}
+		}
+	}
+	
+	EIDOS_TERMINATION << "ERROR (EidosGetColorComponents): color named \"" << p_color_name << "\" could not be found." << eidos_terminate();
+}
 
+void EidosGetColorString(double p_red, double p_green, double p_blue, char *p_string_buffer)
+{
+	if (p_red < 0.0) p_red = 0.0;
+	if (p_red > 1.0) p_red = 1.0;
+	if (p_green < 0.0) p_green = 0.0;
+	if (p_green > 1.0) p_green = 1.0;
+	if (p_blue < 0.0) p_blue = 0.0;
+	if (p_blue > 1.0) p_blue = 1.0;
+	
+	int r_i = (int)round(p_red * 255.0);
+	int g_i = (int)round(p_green * 255.0);
+	int b_i = (int)round(p_blue * 255.0);
+	
+	static char hex[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+	
+	p_string_buffer[0] = '#';
+	p_string_buffer[1] = hex[r_i / 16];
+	p_string_buffer[2] = hex[r_i % 16];
+	p_string_buffer[3] = hex[g_i / 16];
+	p_string_buffer[4] = hex[g_i % 16];
+	p_string_buffer[5] = hex[b_i / 16];
+	p_string_buffer[6] = hex[b_i % 16];
+	p_string_buffer[7] = 0;
+}
 
 
 

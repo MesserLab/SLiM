@@ -368,6 +368,9 @@ typedef struct {
 extern EidosNamedColor gEidosNamedColors[];
 
 void EidosGetColorComponents(const std::string &p_color_name, float *p_red_component, float *p_green_component, float *p_blue_component);
+void EidosGetColorComponents(const std::string &p_color_name, uint8_t *p_red_component, uint8_t *p_green_component, uint8_t *p_blue_component);
+
+void EidosGetColorString(double p_red, double p_green, double p_blue, char *p_string_buffer);	// p_string_buffer must have room for 8 chars, including the null
 
 
 #endif /* defined(__Eidos__eidos_global__) */

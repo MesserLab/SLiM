@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf810
+{\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf820
 {\fonttbl\f0\fswiss\fcharset0 Optima-Regular;\f1\fnil\fcharset0 Menlo-Italic;\f2\fnil\fcharset0 Menlo-Regular;
 \f3\froman\fcharset0 TimesNewRomanPSMT;\f4\fswiss\fcharset0 Helvetica;}
 {\colortbl;\red255\green255\blue255;}
@@ -3410,6 +3410,120 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f2\fs18 fitness()
 \f0\fs20  callbacks are therefore not called as a side effect of this method.
 \f3 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96\'a0(void)defineSpatialMap(string$\'a0name, string$\'a0spatiality, integer
+\f3 \'a0
+\f2 gridSize, float\'a0values, [logical$\'a0interpolate\'a0=\'a0F], [Nf\'a0valueRange\'a0=\'a0NULL], [Ns\'a0colors\'a0=\'a0NULL])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Defines a spatial map for the subpopulation.  The map will henceforth be identified by 
+\f2\fs18 name
+\f3\fs20 .
+\f0   The map uses the spatial dimensions referenced by spatiality, which must be a subset of the dimensions defined for the simulation in 
+\f2\fs18 initializeSLiMOptions()
+\f3\fs20 .
+\f0   Spatiality 
+\f2\fs18 "x"
+\f0\fs20  is permitted for dimensionality 
+\f2\fs18 "x"
+\f0\fs20 ; spatiality 
+\f2\fs18 "x"
+\f0\fs20 , 
+\f2\fs18 "y"
+\f0\fs20 , or 
+\f2\fs18 "xy"
+\f0\fs20  for dimensionality 
+\f2\fs18 "xy"
+\f0\fs20 ; and spatiality 
+\f2\fs18 "x"
+\f0\fs20 , 
+\f2\fs18 "y"
+\f0\fs20 , 
+\f2\fs18 "z"
+\f0\fs20 , 
+\f2\fs18 "xy"
+\f0\fs20 , 
+\f2\fs18 "yz"
+\f0\fs20 , 
+\f2\fs18 "xz"
+\f0\fs20 , or 
+\f2\fs18 "xyz"
+\f0\fs20  for dimensionality 
+\f2\fs18 "xyz"
+\f3\fs20 .
+\f0   The spatial map is defined by a grid of values of a size specified by 
+\f2\fs18 gridSize
+\f0\fs20 , which must have one value per spatial dimension; for a spatiality of 
+\f2\fs18 "xz"
+\f0\fs20 , for example, 
+\f2\fs18 gridSize
+\f0\fs20  must be of length 
+\f2\fs18 2
+\f0\fs20 , specifying the size of the values grid in the 
+\i x
+\i0  and 
+\i z
+\i0  dimensions.  The parameter values then gives the values of the grid; it must be of length equal to the product of the 
+\f2\fs18 gridSize
+\f0\fs20  elements, and specifies values varying first in the 
+\i x
+\i0  dimension, then in 
+\i y
+\i0 , then in 
+\i z
+\f3\i0 .\
+
+\f0 If 
+\f2\fs18 interpolate
+\f0\fs20  is 
+\f2\fs18 F
+\f0\fs20 , values across the spatial map are not interpolated; the value at a given point is equal to the nearest value defined by the grid of values specified.  If 
+\f2\fs18 interpolate
+\f0\fs20  is 
+\f2\fs18 T
+\f0\fs20 , values across the spatial map will be interpolated (using linear, bilinear, or trilinear interpolation as appropriate) to produce spatially continuous variation in values.  In either case, the corners of the value grid are exactly aligned with the corners of the spatial boundaries of the subpopulation as specified by 
+\f2\fs18 setSpatialBoundary()
+\f0\fs20 , and the value grid is then stretched across the spatial extent of the subpopulation in such a manner as to produce equal spacing between the values along each dimension.  The setting of 
+\f2\fs18 interpolation
+\f0\fs20  only affects how values between these grid points are calculated: by nearest-neighbor, or by linear interpolation.\
+The 
+\f2\fs18 valueRange
+\f0\fs20  and 
+\f2\fs18 colors
+\f0\fs20  parameters travel together; either both are unspecified, or both are specified.  They control how map values will be transformed into colors, by SLiMgui and by the 
+\f2\fs18 spatialMapColor()
+\f0\fs20  method.  The 
+\f2\fs18 valueRange
+\f0\fs20  parameter establishes the color-mapped range of spatial map values, as a vector of length two specifying a minimum and maximum; this does not need to match the actual range of values in the map.  The 
+\f2\fs18 colors
+\f0\fs20  parameter then establishes the corresponding colors for values within the interval defined by 
+\f2\fs18 valueRange
+\f0\fs20 : values less than or equal to 
+\f2\fs18 valueRange[0]
+\f0\fs20  will map to 
+\f2\fs18 colors[0]
+\f0\fs20 , values greater than or equal to 
+\f2\fs18 valueRange[1]
+\f0\fs20  will map to the last 
+\f2\fs18 colors
+\f0\fs20  value, and intermediate values will shade continuously through the specified vector of colors, with interpolation between adjacent colors to produce a continuous spectrum.  This is much simpler than it sounds in this description; see the recipes in chapter 14 for an illustration of its use.\
+Note that at present, SLiMgui will only display spatial maps of spatiality 
+\f2\fs18 "x"
+\f0\fs20 , 
+\f2\fs18 "y"
+\f0\fs20 , or 
+\f2\fs18 "xy"
+\f0\fs20 ; the color-mapping parameters will simply be ignored by SLiMgui for other spatiality values (even if the spatiality is a superset of these values; SLiMgui will not attempt to display an 
+\f2\fs18 "xyz"
+\f0\fs20  spatial map, for example, since it has no way to choose which 2D slice through the 
+\i xyz
+\i0  space it ought to display).  The 
+\f2\fs18 spatialMapColor()
+\f0\fs20  method will return translated color strings for any spatial map, however, even if SLiMgui is unable to display the spatial map.  If there are multiple spatial maps with color-mapping parameters defined, SLiMgui will choose just one for display; it will prefer an 
+\f2\fs18 "xy"
+\f0\fs20  map if one is available, but beyond that heuristic its choice will be arbitrary.
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96
@@ -3808,6 +3922,64 @@ If the optional parameter
 \f0\fs20  and 
 \f2\fs18 SLiMSim
 \f0\fs20 , at present.
+\f3 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96
+\f3 \'a0
+\f2 (string)spatialMapColor(string$\'a0name, float\'a0value)
+\f3 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Looks up the spatial map indicated by 
+\f2\fs18 name
+\f0\fs20 , and uses its color-translation machinery (as defined by the 
+\f2\fs18 valueRange
+\f0\fs20  and 
+\f2\fs18 colors
+\f0\fs20  parameters to 
+\f2\fs18 defineSpatialMap()
+\f0\fs20 ) to translate each element of 
+\f2\fs18 value
+\f0\fs20  into a corresponding color string.  If the spatial map does not have color-translation capabilities, an error will result.  See the documentation for 
+\f2\fs18 defineSpatialMap()
+\f0\fs20  for information regarding the details of color translation.  See the Eidos manual for further information on color strings.
+\f3 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96
+\f3 \'a0
+\f2 (float$)spatialMapValue(string$\'a0name, float\'a0point)
+\f3 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Looks up the spatial map indicated by 
+\f2\fs18 name
+\f0\fs20 , and uses its mapping machinery (as defined by the 
+\f2\fs18 gridSize
+\f0\fs20 , 
+\f2\fs18 values
+\f0\fs20 , and 
+\f2\fs18 interpolate
+\f0\fs20  parameters to 
+\f2\fs18 defineSpatialMap()
+\f0\fs20 ) to translate the coordinates of 
+\f2\fs18 point
+\f0\fs20  into a corresponding map value.  The length of 
+\f2\fs18 point
+\f0\fs20  must be equal to the spatiality of the spatial map; in other words, for a spatial map with spatiality 
+\f2\fs18 "xz"
+\f0\fs20 , 
+\f2\fs18 point
+\f0\fs20  must be of length 
+\f2\fs18 2
+\f0\fs20 , specifying the 
+\i x
+\i0  and 
+\i z
+\i0  coordinates of the point to be evaluated.  Interpolation will automatically be used if it was enabled for the spatial map.  See the documentation for 
+\f2\fs18 defineSpatialMap()
+\f0\fs20  for information regarding the details of value mapping.
 \f3 \
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 

@@ -40,6 +40,7 @@
 #include "slim_eidos_dictionary.h"
 
 #include <vector>
+#include <map>
 #include "limits.h"
 
 
@@ -47,6 +48,41 @@ class Population;
 
 
 extern EidosObjectClass *gSLiM_Subpopulation_Class;
+
+
+// This is a structure for keeping a "spatial map", a 1D, 2D, or 3D grid of values for points in space that can be defined
+// and then queried by the user.  These are used only in spatial simulations.  Besides being a sort of N-dimensional data
+// structure to fill the void made by the lack of an array type in Eidos, it also manages interpolation, rescaling to fit
+// the spatial bounds of the subpopulation, color mapping, and other miscellaneous issues.
+struct _SpatialMap
+{
+	std::string spatiality_string_;		// "x", "y", "z", "xy", "xz", "yz", or "xyz": the spatial dimensions for the map
+	int spatiality_;					// 1, 2, or 3 for 1D, 2D, or 3D: the number of spatial dimensions
+	int64_t grid_size_[3];				// the number of points in the first, second, and third spatial dimensions
+	double *values_;					// OWNED POINTER: the values for the grid points
+	bool interpolate_;					// if true, the map will interpolate values; otherwise, nearest-neighbor
+	
+	double min_value_, max_value_;		// min/max values permitted; used for color mapping, not for bounds-checking values
+	
+	int n_colors_;						// the number of color values given to map across the min/max value range
+	float *red_components_;				// OWNED POINTER: red components, n_colors_ in size, from min to max value
+	float *green_components_;			// OWNED POINTER: green components, n_colors_ in size, from min to max value
+	float *blue_components_;			// OWNED POINTER: blue components, n_colors_ in size, from min to max value
+	
+	uint8_t *display_buffer_;			// OWNED POINTER: used by SLiMgui, contains RGB values for pixels in the PopulationView
+	int buffer_width_, buffer_height_;	// the size of the buffer, in pixels, each of which is 3 x sizeof(uint8_t)
+	
+	_SpatialMap(std::string p_spatiality_string, int p_spatiality, int64_t *p_grid_sizes, bool p_interpolate, double p_min_value, double p_max_value, int p_num_colors);
+	~_SpatialMap(void);
+	
+	double ValueAtPoint(double *point);
+	void ColorForValue(double p_value, double *p_rgb_ptr);
+	void ColorForValue(double p_value, float *p_rgb_ptr);
+};
+typedef struct _SpatialMap SpatialMap;
+
+typedef std::pair<std::string, SpatialMap *> SpatialMapPair;
+typedef std::map<std::string, SpatialMap *> SpatialMapMap;
 
 
 class Subpopulation : public SLiMEidosDictionary
@@ -105,10 +141,11 @@ public:
 	GenomeType modeled_chromosome_type_ = GenomeType::kAutosome;	// ...and needs to know what type of chromosomes its individuals are modeling; this should match SLiMSim
 	double x_chromosome_dominance_coeff_ = 1.0;						// the dominance coefficient for heterozygosity at the X locus (i.e. males); this is global
 	
-	// continuous-space bounds
+	// continuous-space info
 	double bounds_x0_ = 0.0, bounds_x1_ = 1.0;
 	double bounds_y0_ = 0.0, bounds_y1_ = 1.0;
 	double bounds_z0_ = 0.0, bounds_z1_ = 1.0;
+	SpatialMapMap spatial_maps_;
 	
 	slim_usertag_t tag_value_;										// a user-defined tag value
 	

@@ -6657,29 +6657,9 @@ EidosValue_SP Eidos_ExecuteFunction_rgb2color(const EidosValue_SP *const p_argum
 	double r = arg0_value->FloatAtIndex(0, nullptr);
 	double g = arg0_value->FloatAtIndex(1, nullptr);
 	double b = arg0_value->FloatAtIndex(2, nullptr);
-	
-	if (r < 0.0) r = 0.0;
-	if (r > 1.0) r = 1.0;
-	if (g < 0.0) g = 0.0;
-	if (g > 1.0) g = 1.0;
-	if (b < 0.0) b = 0.0;
-	if (b > 1.0) b = 1.0;
-	
-	int r_i = (int)round(r * 255.0);
-	int g_i = (int)round(g * 255.0);
-	int b_i = (int)round(b * 255.0);
-	
-	static char hex[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 	char hex_chars[8];
 	
-	hex_chars[0] = '#';
-	hex_chars[1] = hex[r_i / 16];
-	hex_chars[2] = hex[r_i % 16];
-	hex_chars[3] = hex[g_i / 16];
-	hex_chars[4] = hex[g_i % 16];
-	hex_chars[5] = hex[b_i / 16];
-	hex_chars[6] = hex[b_i % 16];
-	hex_chars[7] = 0;
+	EidosGetColorString(r, g, b, hex_chars);
 	
 	std::string hex_string(hex_chars);
 	

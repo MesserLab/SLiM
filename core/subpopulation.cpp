@@ -24,6 +24,7 @@
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
 #include "eidos_ast_node.h"
+#include "eidos_global.h"
 
 #include <iostream>
 #include <fstream>
@@ -35,6 +36,244 @@
 
 using std::string;
 using std::endl;
+
+
+_SpatialMap::_SpatialMap(std::string p_spatiality_string, int p_spatiality, int64_t *p_grid_sizes, bool p_interpolate, double p_min_value, double p_max_value, int p_num_colors) :
+	spatiality_string_(p_spatiality_string), spatiality_(p_spatiality), interpolate_(p_interpolate), min_value_(p_min_value), max_value_(p_max_value), n_colors_(p_num_colors)
+{
+	int64_t values_size = 0;
+	
+	switch (spatiality_)
+	{
+		case 1:
+			grid_size_[0] = p_grid_sizes[0];
+			grid_size_[1] = 0;
+			grid_size_[2] = 0;
+			values_size = grid_size_[0];
+			break;
+		case 2:
+			grid_size_[0] = p_grid_sizes[0];
+			grid_size_[1] = p_grid_sizes[1];
+			grid_size_[2] = 0;
+			values_size = grid_size_[0] * grid_size_[1];
+			break;
+		case 3:
+			grid_size_[0] = p_grid_sizes[0];
+			grid_size_[1] = p_grid_sizes[1];
+			grid_size_[2] = p_grid_sizes[2];
+			values_size = grid_size_[0] * grid_size_[1] * grid_size_[2];
+			break;
+	}
+	
+	values_ = (double *)malloc(values_size * sizeof(double));
+	
+	if (n_colors_ > 0)
+	{
+		red_components_ = (float *)malloc(n_colors_ * sizeof(float));
+		green_components_ = (float *)malloc(n_colors_ * sizeof(float));
+		blue_components_ = (float *)malloc(n_colors_ * sizeof(float));
+	}
+	else
+	{
+		red_components_ = nullptr;
+		green_components_ = nullptr;
+		blue_components_ = nullptr;
+	}
+	
+	display_buffer_ = nullptr;
+}
+
+_SpatialMap::~_SpatialMap(void)
+{
+	if (values_)
+		free(values_);
+	
+	if (red_components_)
+		free(red_components_);
+	if (green_components_)
+		free(green_components_);
+	if (blue_components_)
+		free(blue_components_);
+	if (display_buffer_)
+		free(display_buffer_);
+}
+
+double _SpatialMap::ValueAtPoint(double *point)
+{
+	// This looks up the value at point, which is in coordinates that have been normalized and clamped to [0,1]
+	switch (spatiality_)
+	{
+		case 1:
+		{
+			double x_fraction = point[0];
+			int64_t xsize = grid_size_[0];
+			
+			if (interpolate_)
+			{
+				double x_map = x_fraction * (xsize - 1);
+				int x1_map = (int)floor(x_map);
+				int x2_map = (int)ceil(x_map);
+				double fraction_x2 = x_map - x1_map;
+				double fraction_x1 = 1.0 - fraction_x2;
+				double value_x1 = values_[x1_map] * fraction_x1;
+				double value_x2 = values_[x2_map] * fraction_x2;
+				
+				return value_x1 + value_x2;
+			}
+			else
+			{
+				int x_map = (int)round(x_fraction * (xsize - 1));
+				
+				return values_[x_map];
+			}
+			break;
+		}
+		case 2:
+		{
+			double x_fraction = point[0];
+			double y_fraction = point[1];
+			int64_t xsize = grid_size_[0];
+			int64_t ysize = grid_size_[1];
+			
+			if (interpolate_)
+			{
+				double x_map = x_fraction * (xsize - 1);
+				double y_map = y_fraction * (ysize - 1);
+				int x1_map = (int)floor(x_map);
+				int y1_map = (int)floor(y_map);
+				int x2_map = (int)ceil(x_map);
+				int y2_map = (int)ceil(y_map);
+				double fraction_x2 = x_map - x1_map;
+				double fraction_x1 = 1.0 - fraction_x2;
+				double fraction_y2 = y_map - y1_map;
+				double fraction_y1 = 1.0 - fraction_y2;
+				double value_x1_y1 = values_[x1_map + y1_map * xsize] * fraction_x1 * fraction_y1;
+				double value_x2_y1 = values_[x2_map + y1_map * xsize] * fraction_x2 * fraction_y1;
+				double value_x1_y2 = values_[x1_map + y2_map * xsize] * fraction_x1 * fraction_y2;
+				double value_x2_y2 = values_[x2_map + y2_map * xsize] * fraction_x2 * fraction_y2;
+				
+				return value_x1_y1 + value_x2_y1 + value_x1_y2 + value_x2_y2;
+			}
+			else
+			{
+				int x_map = (int)round(x_fraction * (xsize - 1));
+				int y_map = (int)round(y_fraction * (ysize - 1));
+				
+				return values_[x_map + y_map * xsize];
+			}
+			break;
+		}
+		case 3:
+		{
+			double x_fraction = point[0];
+			double y_fraction = point[1];
+			double z_fraction = point[2];
+			int64_t xsize = grid_size_[0];
+			int64_t ysize = grid_size_[1];
+			int64_t zsize = grid_size_[2];
+			
+			if (interpolate_)
+			{
+				double x_map = x_fraction * (xsize - 1);
+				double y_map = y_fraction * (ysize - 1);
+				double z_map = z_fraction * (zsize - 1);
+				int x1_map = (int)floor(x_map);
+				int y1_map = (int)floor(y_map);
+				int z1_map = (int)floor(z_map);
+				int x2_map = (int)ceil(x_map);
+				int y2_map = (int)ceil(y_map);
+				int z2_map = (int)ceil(z_map);
+				double fraction_x2 = x_map - x1_map;
+				double fraction_x1 = 1.0 - fraction_x2;
+				double fraction_y2 = y_map - y1_map;
+				double fraction_y1 = 1.0 - fraction_y2;
+				double fraction_z2 = z_map - z1_map;
+				double fraction_z1 = 1.0 - fraction_z2;
+				double value_x1_y1_z1 = values_[x1_map + y1_map * xsize + z1_map * xsize * ysize] * fraction_x1 * fraction_y1 * fraction_z1;
+				double value_x2_y1_z1 = values_[x2_map + y1_map * xsize + z1_map * xsize * ysize] * fraction_x2 * fraction_y1 * fraction_z1;
+				double value_x1_y2_z1 = values_[x1_map + y2_map * xsize + z1_map * xsize * ysize] * fraction_x1 * fraction_y2 * fraction_z1;
+				double value_x2_y2_z1 = values_[x2_map + y2_map * xsize + z1_map * xsize * ysize] * fraction_x2 * fraction_y2 * fraction_z1;
+				double value_x1_y1_z2 = values_[x1_map + y1_map * xsize + z2_map * xsize * ysize] * fraction_x1 * fraction_y1 * fraction_z2;
+				double value_x2_y1_z2 = values_[x2_map + y1_map * xsize + z2_map * xsize * ysize] * fraction_x2 * fraction_y1 * fraction_z2;
+				double value_x1_y2_z2 = values_[x1_map + y2_map * xsize + z2_map * xsize * ysize] * fraction_x1 * fraction_y2 * fraction_z2;
+				double value_x2_y2_z2 = values_[x2_map + y2_map * xsize + z2_map * xsize * ysize] * fraction_x2 * fraction_y2 * fraction_z2;
+				
+				return value_x1_y1_z1 + value_x2_y1_z1 + value_x1_y2_z1 + value_x2_y2_z1 + value_x1_y1_z2 + value_x2_y1_z2 + value_x1_y2_z2 + value_x2_y2_z2;
+			}
+			else
+			{
+				int x_map = (int)round(x_fraction * (xsize - 1));
+				int y_map = (int)round(y_fraction * (ysize - 1));
+				int z_map = (int)round(z_fraction * (zsize - 1));
+				
+				return values_[x_map + y_map * xsize + z_map * xsize * ysize];
+			}
+			break;
+		}
+	}
+	
+	return 0.0;
+}
+
+void _SpatialMap::ColorForValue(double p_value, double *p_rgb_ptr)
+{
+	if (n_colors_ == 0)
+		EIDOS_TERMINATION << "ERROR (_SpatialMap::ColorForValue): no color map defined for spatial map." << eidos_terminate();
+	
+	double value_fraction = (p_value - min_value_) / (max_value_ - min_value_);
+	double color_index = value_fraction * (n_colors_ - 1);
+	int color_index_1 = (int)floor(color_index);
+	int color_index_2 = (int)ceil(color_index);
+	
+	if (color_index_1 < 0) color_index_1 = 0;
+	if (color_index_1 >= n_colors_) color_index_1 = n_colors_ - 1;
+	if (color_index_2 < 0) color_index_2 = 0;
+	if (color_index_2 >= n_colors_) color_index_2 = n_colors_ - 1;
+	
+	double color_2_weight = color_index - color_index_1;
+	double color_1_weight = 1.0f - color_2_weight;
+	
+	double red1 = red_components_[color_index_1];
+	double green1 = green_components_[color_index_1];
+	double blue1 = blue_components_[color_index_1];
+	double red2 = red_components_[color_index_2];
+	double green2 = green_components_[color_index_2];
+	double blue2 = blue_components_[color_index_2];
+	
+	p_rgb_ptr[0] = (red1 * color_1_weight + red2 * color_2_weight);
+	p_rgb_ptr[1] = (green1 * color_1_weight + green2 * color_2_weight);
+	p_rgb_ptr[2] = (blue1 * color_1_weight + blue2 * color_2_weight);
+}
+
+void _SpatialMap::ColorForValue(double p_value, float *p_rgb_ptr)
+{
+	if (n_colors_ == 0)
+		EIDOS_TERMINATION << "ERROR (_SpatialMap::ColorForValue): no color map defined for spatial map." << eidos_terminate();
+	
+	double value_fraction = (p_value - min_value_) / (max_value_ - min_value_);
+	double color_index = value_fraction * (n_colors_ - 1);
+	int color_index_1 = (int)floor(color_index);
+	int color_index_2 = (int)ceil(color_index);
+	
+	if (color_index_1 < 0) color_index_1 = 0;
+	if (color_index_1 >= n_colors_) color_index_1 = n_colors_ - 1;
+	if (color_index_2 < 0) color_index_2 = 0;
+	if (color_index_2 >= n_colors_) color_index_2 = n_colors_ - 1;
+	
+	double color_2_weight = color_index - color_index_1;
+	double color_1_weight = 1.0f - color_2_weight;
+	
+	double red1 = red_components_[color_index_1];
+	double green1 = green_components_[color_index_1];
+	double blue1 = blue_components_[color_index_1];
+	double red2 = red_components_[color_index_2];
+	double green2 = green_components_[color_index_2];
+	double blue2 = blue_components_[color_index_2];
+	
+	p_rgb_ptr[0] = (float)(red1 * color_1_weight + red2 * color_2_weight);
+	p_rgb_ptr[1] = (float)(green1 * color_1_weight + green2 * color_2_weight);
+	p_rgb_ptr[2] = (float)(blue1 * color_1_weight + blue2 * color_2_weight);
+}
 
 
 // given the subpop size and sex ratio currently set for the child generation, make new genomes to fit
@@ -329,6 +568,14 @@ Subpopulation::~Subpopulation(void)
 	
 	if (cached_male_fitness_)
 		free(cached_male_fitness_);
+	
+	for (const SpatialMapPair &map_pair : spatial_maps_)
+	{
+		SpatialMap *map_ptr = map_pair.second;
+		
+		if (map_ptr)
+			delete map_ptr;
+	}
 }
 
 void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callbacks, std::vector<SLiMEidosBlock*> &p_global_fitness_callbacks)
@@ -1991,6 +2238,7 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 	EidosValue *arg3_value = ((p_argument_count >= 4) ? p_arguments[3].get() : nullptr);
 	EidosValue *arg4_value = ((p_argument_count >= 5) ? p_arguments[4].get() : nullptr);
 	EidosValue *arg5_value = ((p_argument_count >= 6) ? p_arguments[5].get() : nullptr);
+	EidosValue *arg6_value = ((p_argument_count >= 7) ? p_arguments[6].get() : nullptr);
 	
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -2493,6 +2741,279 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 			
 			
 			//
+			//	*********************	– (void)defineSpatialMap(string$ name, string$ spatiality, int gridSize, float values, [logical$ interpolate = F], [Nf valueRange = NULL], [Ns colors = NULL])
+			//
+#pragma mark -defineSpatialMap()
+			
+		case gID_defineSpatialMap:
+		{
+			std::string map_name = arg0_value->StringAtIndex(0, nullptr);
+			std::string spatiality_string = arg1_value->StringAtIndex(0, nullptr);
+			EidosValue *grid_size = arg2_value;
+			EidosValue *values = arg3_value;
+			bool interpolate = arg4_value->LogicalAtIndex(0, nullptr);
+			EidosValue *value_range = arg5_value;
+			EidosValue *colors = arg6_value;
+			
+			if (map_name.length() == 0)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): defineSpatialMap() map name must not be zero-length." << eidos_terminate();
+			
+			SLiMSim &sim = population_.sim_;
+			int spatial_dimensionality = sim.SpatialDimensionality();
+			int required_dimensionality;
+			int map_spatiality;
+			
+			if (spatiality_string.compare(gEidosStr_x) == 0)		{	required_dimensionality = 1;	map_spatiality = 1;	}
+			else if (spatiality_string.compare(gEidosStr_y) == 0)	{	required_dimensionality = 2;	map_spatiality = 1;	}
+			else if (spatiality_string.compare(gEidosStr_z) == 0)	{	required_dimensionality = 3;	map_spatiality = 1;	}
+			else if (spatiality_string.compare("xy") == 0)			{	required_dimensionality = 2;	map_spatiality = 2;	}
+			else if (spatiality_string.compare("xz") == 0)			{	required_dimensionality = 3;	map_spatiality = 2;	}
+			else if (spatiality_string.compare("yz") == 0)			{	required_dimensionality = 3;	map_spatiality = 2;	}
+			else if (spatiality_string.compare("xyz") == 0)			{	required_dimensionality = 3;	map_spatiality = 3;	}
+			else
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): defineSpatialMap() spatiality \"" << spatiality_string << "\" must be \"x\", \"y\", \"z\", \"xy\", \"xz\", \"yz\", or \"xyz\"." << eidos_terminate();
+			
+			if (required_dimensionality > spatial_dimensionality)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): defineSpatialMap() spatiality cannot utilize spatial dimensions beyond those set in initializeSLiMOptions()." << eidos_terminate();
+			
+			if (grid_size->Count() != map_spatiality)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): defineSpatialMap() gridSize must match the spatiality defined for the map." << eidos_terminate();
+			
+			int64_t map_size = 1;
+			int64_t dimension_sizes[3];
+			
+			for (int dimension_index = 0; dimension_index < map_spatiality; ++dimension_index)
+			{
+				int64_t dimension_size = grid_size->IntAtIndex(dimension_index, nullptr);
+				
+				if (dimension_size < 2)
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): defineSpatialMap() all elements of gridSize must be of length >= 2." << eidos_terminate();
+				
+				dimension_sizes[dimension_index] = dimension_size;
+				map_size *= dimension_size;
+			}
+			
+			if (values->Count() != map_size)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): size of the values vector (" << values->Count() << ") does not match the product of the sizes in gridSize (" << map_size << ")." << eidos_terminate();
+			
+			bool range_is_null = (value_range->Type() == EidosValueType::kValueNULL);
+			bool colors_is_null = (colors->Type() == EidosValueType::kValueNULL);
+			double range_min = 0.0, range_max = 0.0;
+			int color_count = 0;
+			
+			if (!range_is_null || !colors_is_null)
+			{
+				if (range_is_null || colors_is_null)
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): valueRange and colors must either both be supplied, or neither supplied." << eidos_terminate();
+				
+				if (value_range->Count() != 2)
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): valueRange must be exactly length 2 (giving the min and max value permitted)." << eidos_terminate();
+				
+				range_min = value_range->FloatAtIndex(0, nullptr);
+				range_max = value_range->FloatAtIndex(1, nullptr);
+				
+				if (!isfinite(range_min) || !isfinite(range_max) || (range_min >= range_max))
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): valueRange must be finite, and min < max is required." << eidos_terminate();
+				
+				color_count = colors->Count();
+				
+				if (color_count < 2)
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): colors must be of length >= 2." << eidos_terminate();
+			}
+			
+			// OK, everything seems to check out, so we can make our SpatialMap struct and populate it
+			SpatialMap *spatial_map = new SpatialMap(spatiality_string, map_spatiality, dimension_sizes, interpolate, range_min, range_max, color_count);
+			double *values_ptr = spatial_map->values_;
+			const double *values_vec_ptr = values->FloatVector()->data();
+			
+			for (int64_t values_index = 0; values_index < map_size; ++values_index)
+				*(values_ptr++) = *(values_vec_ptr++);
+			
+			if (color_count > 0)
+			{
+				float *red_ptr = spatial_map->red_components_;
+				float *green_ptr = spatial_map->green_components_;
+				float *blue_ptr = spatial_map->blue_components_;
+				const std::string *colors_vec_ptr = colors->StringVector()->data();
+				
+				for (int colors_index = 0; colors_index < color_count; ++colors_index)
+					EidosGetColorComponents(colors_vec_ptr[colors_index], red_ptr++, green_ptr++, blue_ptr++);
+			}
+			
+			// Add the new SpatialMap to our map for future reference
+			auto map_iter = spatial_maps_.find(map_name);
+			
+			if (map_iter != spatial_maps_.end())
+			{
+				// there is an existing entry under this name; remove it
+				SpatialMap *old_map = map_iter->second;
+				
+				delete old_map;
+				spatial_maps_.erase(map_iter);
+			}
+			
+			spatial_maps_.insert(SpatialMapPair(map_name, spatial_map));
+			
+			return gStaticEidosValueNULLInvisible;
+		}
+			
+			
+			//
+			//	*********************	- (string)spatialMapColor(string$ name, float value)
+			//
+#pragma mark -spatialMapColor()
+			
+		case gID_spatialMapColor:
+		{
+			std::string map_name = arg0_value->StringAtIndex(0, nullptr);
+			EidosValue *values = arg1_value;
+			
+			if (map_name.length() == 0)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): spatialMapColor() map name must not be zero-length." << eidos_terminate();
+			
+			// Find the named SpatialMap
+			auto map_iter = spatial_maps_.find(map_name);
+			
+			if (map_iter != spatial_maps_.end())
+			{
+				SpatialMap *map = map_iter->second;
+				
+				if (map->n_colors_ == 0)
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): spatialMapColor() no color map defined for spatial map." << eidos_terminate();
+				
+				int value_count = values->Count();
+				EidosValue_String_vector *string_return = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(value_count);
+				EidosValue_SP result_SP = EidosValue_SP(string_return);
+				
+				for (slim_popsize_t value_index = 0; value_index < value_count; value_index++)
+				{
+					double value = values->FloatAtIndex(value_index, nullptr);
+					double rgb[3];
+					char hex_chars[8];
+					
+					map->ColorForValue(value, rgb);
+					EidosGetColorString(rgb[0], rgb[1], rgb[2], hex_chars);
+					string_return->PushString(std::string(hex_chars));
+				}
+				
+				return result_SP;
+			}
+			else
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): spatialMapColor() could not find map with name " << map_name << "." << eidos_terminate();
+			
+			return gStaticEidosValueNULLInvisible;
+		}
+			
+			
+			//
+			//	*********************	– (float$)spatialMapValue(string$ name, float point)
+			//
+#pragma mark -spatialMapValue()
+			
+		case gID_spatialMapValue:
+		{
+			std::string map_name = arg0_value->StringAtIndex(0, nullptr);
+			EidosValue *point = arg1_value;
+			
+			if (map_name.length() == 0)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): spatialMapValue() map name must not be zero-length." << eidos_terminate();
+			
+			// Find the named SpatialMap
+			auto map_iter = spatial_maps_.find(map_name);
+			
+			if (map_iter != spatial_maps_.end())
+			{
+				SpatialMap *map = map_iter->second;
+				
+				if (point->Count() != map->spatiality_)
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): spatialMapValue() length of point does not match spatiality of map " << map_name << "." << eidos_terminate();
+				
+				// We need to use the correct spatial bounds for each coordinate, which depends upon our exact spatiality
+				// There is doubtless a way to make this code smarter, but brute force is sometimes best...
+				double point_vec[3];
+				
+#define SLiMClampCoordinate(x) ((x < 0.0) ? 0.0 : ((x > 1.0) ? 1.0 : x))
+				
+				switch (map->spatiality_)
+				{
+					case 1:
+					{
+						if (map->spatiality_string_ == "x")
+						{
+							double x = (point->FloatAtIndex(0, nullptr) - bounds_x0_) / (bounds_x1_ - bounds_x0_);
+							point_vec[0] = SLiMClampCoordinate(x);
+						}
+						else if (map->spatiality_string_ == "y")
+						{
+							double y = (point->FloatAtIndex(0, nullptr) - bounds_y0_) / (bounds_y1_ - bounds_y0_);
+							point_vec[0] = SLiMClampCoordinate(y);
+						}
+						else if (map->spatiality_string_ == "z")
+						{
+							double z = (point->FloatAtIndex(0, nullptr) - bounds_z0_) / (bounds_z1_ - bounds_z0_);
+							point_vec[0] = SLiMClampCoordinate(z);
+						}
+						break;
+					}
+					case 2:
+					{
+						if (map->spatiality_string_ == "xy")
+						{
+							double x = (point->FloatAtIndex(0, nullptr) - bounds_x0_) / (bounds_x1_ - bounds_x0_);
+							point_vec[0] = SLiMClampCoordinate(x);
+							
+							double y = (point->FloatAtIndex(1, nullptr) - bounds_y0_) / (bounds_y1_ - bounds_y0_);
+							point_vec[1] = SLiMClampCoordinate(y);
+						}
+						else if (map->spatiality_string_ == "yz")
+						{
+							double y = (point->FloatAtIndex(0, nullptr) - bounds_y0_) / (bounds_y1_ - bounds_y0_);
+							point_vec[0] = SLiMClampCoordinate(y);
+							
+							double z = (point->FloatAtIndex(1, nullptr) - bounds_z0_) / (bounds_z1_ - bounds_z0_);
+							point_vec[1] = SLiMClampCoordinate(z);
+						}
+						else if (map->spatiality_string_ == "xz")
+						{
+							double x = (point->FloatAtIndex(0, nullptr) - bounds_x0_) / (bounds_x1_ - bounds_x0_);
+							point_vec[0] = SLiMClampCoordinate(x);
+							
+							double z = (point->FloatAtIndex(1, nullptr) - bounds_z0_) / (bounds_z1_ - bounds_z0_);
+							point_vec[1] = SLiMClampCoordinate(z);
+						}
+						break;
+					}
+					case 3:
+					{
+						if (map->spatiality_string_ == "xyz")
+						{
+							double x = (point->FloatAtIndex(0, nullptr) - bounds_x0_) / (bounds_x1_ - bounds_x0_);
+							point_vec[0] = SLiMClampCoordinate(x);
+							
+							double y = (point->FloatAtIndex(1, nullptr) - bounds_y0_) / (bounds_y1_ - bounds_y0_);
+							point_vec[1] = SLiMClampCoordinate(y);
+							
+							double z = (point->FloatAtIndex(2, nullptr) - bounds_z0_) / (bounds_z1_ - bounds_z0_);
+							point_vec[2] = SLiMClampCoordinate(z);
+						}
+						break;
+					}
+				}
+				
+#undef SLiMClampCoordinate
+				
+				double map_value = map->ValueAtPoint(point_vec);
+				
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(map_value));
+			}
+			else
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): spatialMapValue() could not find map with name " << map_name << "." << eidos_terminate();
+			
+			return gStaticEidosValueNULLInvisible;
+		}
+			
+			
+			//
 			//	*********************	– (void)outputMSSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"], [Ns$ filePath = NULL], [logical$ append=F])
 			//	*********************	– (void)outputSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"], [Ns$ filePath = NULL], [logical$ append=F])
 			//	*********************	– (void)outputVCFSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"], [logical$ outputMultiallelics = T], [Ns$ filePath = NULL], [logical$ append=F])
@@ -2737,6 +3258,9 @@ const std::vector<const EidosMethodSignature *> *Subpopulation_Class::Methods(vo
 		methods->emplace_back(SignatureForMethodOrRaise(gID_setSpatialBounds));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_setSubpopulationSize));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_cachedFitness));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_defineSpatialMap));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_spatialMapColor));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_spatialMapValue));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_outputMSSample));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_outputVCFSample));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_outputSample));
@@ -2760,6 +3284,9 @@ const EidosMethodSignature *Subpopulation_Class::SignatureForMethod(EidosGlobalS
 	static EidosInstanceMethodSignature *setSpatialBoundsSig = nullptr;
 	static EidosInstanceMethodSignature *setSubpopulationSizeSig = nullptr;
 	static EidosInstanceMethodSignature *cachedFitnessSig = nullptr;
+	static EidosInstanceMethodSignature *defineSpatialMapSig = nullptr;
+	static EidosInstanceMethodSignature *spatialMapColorSig = nullptr;
+	static EidosInstanceMethodSignature *spatialMapValueSig = nullptr;
 	static EidosInstanceMethodSignature *outputMSSampleSig = nullptr;
 	static EidosInstanceMethodSignature *outputVCFSampleSig = nullptr;
 	static EidosInstanceMethodSignature *outputSampleSig = nullptr;
@@ -2777,6 +3304,9 @@ const EidosMethodSignature *Subpopulation_Class::SignatureForMethod(EidosGlobalS
 		setSpatialBoundsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSpatialBounds, kEidosValueMaskNULL))->AddFloat("bounds");
 		setSubpopulationSizeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSubpopulationSize, kEidosValueMaskNULL))->AddInt_S("size");
 		cachedFitnessSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_cachedFitness, kEidosValueMaskFloat))->AddInt_N("indices");
+		defineSpatialMapSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_defineSpatialMap, kEidosValueMaskNULL))->AddString_S("name")->AddString_S("spatiality")->AddInt("gridSize")->AddFloat("values")->AddLogical_OS("interpolate", gStaticEidosValue_LogicalF)->AddFloat_ON("valueRange", gStaticEidosValueNULL)->AddString_ON("colors", gStaticEidosValueNULL);
+		spatialMapColorSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_spatialMapColor, kEidosValueMaskString))->AddString_S("name")->AddFloat("value");
+		spatialMapValueSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_spatialMapValue, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddString_S("name")->AddFloat("point");
 		outputMSSampleSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMSSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF);
 		outputVCFSampleSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputVCFSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF);
 		outputSampleSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF);
@@ -2796,6 +3326,9 @@ const EidosMethodSignature *Subpopulation_Class::SignatureForMethod(EidosGlobalS
 		case gID_setSpatialBounds:		return setSpatialBoundsSig;
 		case gID_setSubpopulationSize:	return setSubpopulationSizeSig;
 		case gID_cachedFitness:			return cachedFitnessSig;
+		case gID_defineSpatialMap:		return defineSpatialMapSig;
+		case gID_spatialMapColor:		return spatialMapColorSig;
+		case gID_spatialMapValue:		return spatialMapValueSig;
 		case gID_outputMSSample:		return outputMSSampleSig;
 		case gID_outputVCFSample:		return outputVCFSampleSig;
 		case gID_outputSample:			return outputSampleSig;

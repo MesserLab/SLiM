@@ -387,6 +387,9 @@ extern const std::string gStr_setSexRatio;
 extern const std::string gStr_setSpatialBounds;
 extern const std::string gStr_setSubpopulationSize;
 extern const std::string gStr_cachedFitness;
+extern const std::string gStr_defineSpatialMap;
+extern const std::string gStr_spatialMapColor;
+extern const std::string gStr_spatialMapValue;
 extern const std::string gStr_outputMSSample;
 extern const std::string gStr_outputVCFSample;
 extern const std::string gStr_outputSample;
@@ -605,6 +608,9 @@ enum _SLiMGlobalStringID : int {
 	gID_setSpatialBounds,
 	gID_setSubpopulationSize,
 	gID_cachedFitness,
+	gID_defineSpatialMap,
+	gID_spatialMapColor,
+	gID_spatialMapValue,
 	gID_outputMSSample,
 	gID_outputVCFSample,
 	gID_outputSample,
