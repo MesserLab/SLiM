@@ -244,6 +244,7 @@ static void _RunFunctionVectorConstructionTests(void);
 static void _RunFunctionValueInspectionManipulationTests(void);
 static void _RunFunctionValueTestingCoercionTests(void);
 static void _RunFunctionFilesystemTests(void);
+static void _RunColorManipulationTests(void);
 static void _RunFunctionMiscTests(void);
 static void _RunMethodTests(void);
 static void _RunCodeExampleTests(void);
@@ -293,6 +294,7 @@ void RunEidosTests(void)
 	_RunFunctionValueInspectionManipulationTests();
 	_RunFunctionValueTestingCoercionTests();
 	_RunFunctionFilesystemTests();
+	_RunColorManipulationTests();
 	_RunFunctionMiscTests();
 	_RunMethodTests();
 	_RunCodeExampleTests();
@@ -4394,6 +4396,91 @@ void _RunFunctionFilesystemTests(void)
 	EidosAssertScriptSuccess("deleteFile('/tmp/EidosTest.txt');", gStaticEidosValue_LogicalF);
 	
 	// createDirectory() – hard to test this, since it's hard to generate a path to create a folder at that is guaranteed not to exist, especially if this same test has run before on this system...
+}
+
+#pragma mark color manipulation
+void _RunColorManipulationTests(void)
+{
+	// hsv2rgb()
+	EidosAssertScriptSuccess("identical(hsv2rgb(c(0.0, 0.0, -0.5)), c(0.0, 0.0, 0.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(hsv2rgb(c(0.0, 0.0, 0.0)), c(0.0, 0.0, 0.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(hsv2rgb(c(0.0, 0.0, 0.5)), c(0.5, 0.5, 0.5));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(hsv2rgb(c(0.0, 0.0, 1.0)), c(1.0, 1.0, 1.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(hsv2rgb(c(0.0, 0.0, 1.5)), c(1.0, 1.0, 1.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(hsv2rgb(c(0.0, -0.5, 1.0)), c(1.0, 1.0, 1.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(hsv2rgb(c(0.0, 0.25, 1.0)), c(1.0, 0.75, 0.75));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(hsv2rgb(c(0.0, 0.5, 1.0)), c(1.0, 0.5, 0.5));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(hsv2rgb(c(0.0, 0.75, 1.0)), c(1.0, 0.25, 0.25));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(hsv2rgb(c(0.0, 1.0, 1.0)), c(1.0, 0.0, 0.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(hsv2rgb(c(0.0, 1.5, 1.0)), c(1.0, 0.0, 0.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(hsv2rgb(c(-0.5, 1.0, 1.0)), c(1.0, 0.0, 0.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(hsv2rgb(c(1/6, 1.0, 1.0)), c(1.0, 1.0, 0.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(hsv2rgb(c(2/6, 1.0, 1.0)), c(0.0, 1.0, 0.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(hsv2rgb(c(3/6, 1.0, 1.0)), c(0.0, 1.0, 1.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(hsv2rgb(c(4/6, 1.0, 1.0)), c(0.0, 0.0, 1.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(hsv2rgb(c(5/6, 1.0, 1.0)), c(1.0, 0.0, 1.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(hsv2rgb(c(6/6, 1.0, 1.0)), c(1.0, 0.0, 0.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(hsv2rgb(c(7/6, 1.0, 1.0)), c(1.0, 0.0, 0.0));", gStaticEidosValue_LogicalT);
+	
+	// rgb2hsv()
+	EidosAssertScriptSuccess("identical(rgb2hsv(c(-1.0, 0.0, 0.0)), c(0.0, 0.0, 0.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(rgb2hsv(c(0.0, -1.0, 0.0)), c(0.0, 0.0, 0.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(rgb2hsv(c(0.0, 0.0, -1.0)), c(0.0, 0.0, 0.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(rgb2hsv(c(0.0, 0.0, 0.0)), c(0.0, 0.0, 0.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(rgb2hsv(c(0.5, 0.5, 0.5)), c(0.0, 0.0, 0.5));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(rgb2hsv(c(1.0, 1.0, 1.0)), c(0.0, 0.0, 1.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(rgb2hsv(c(1.5, 1.0, 1.0)), c(0.0, 0.0, 1.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(rgb2hsv(c(1.0, 1.5, 1.0)), c(0.0, 0.0, 1.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(rgb2hsv(c(1.0, 1.0, 1.5)), c(0.0, 0.0, 1.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(rgb2hsv(c(1.0, 0.75, 0.75)), c(0.0, 0.25, 1.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(rgb2hsv(c(1.0, 0.5, 0.5)), c(0.0, 0.5, 1.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(rgb2hsv(c(1.0, 0.25, 0.25)), c(0.0, 0.75, 1.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(rgb2hsv(c(1.0, 0.0, 0.0)), c(0.0, 1.0, 1.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(rgb2hsv(c(1.0, 1.0, 0.0)), c(1/6, 1.0, 1.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(rgb2hsv(c(0.0, 1.0, 0.0)), c(2/6, 1.0, 1.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(rgb2hsv(c(0.0, 1.0, 1.0)), c(3/6, 1.0, 1.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(rgb2hsv(c(0.0, 0.0, 1.0)), c(4/6, 1.0, 1.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("sum(abs(rgb2hsv(c(1.0, 0.0, 1.0)) - c(5/6, 1.0, 1.0))) < 1e-7;", gStaticEidosValue_LogicalT);	// roundoff with 5/6
+	EidosAssertScriptSuccess("identical(rgb2hsv(c(1.5, -0.5, 0.0)), c(0.0, 1.0, 1.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(rgb2hsv(c(0.0, 1.5, -0.5)), c(2/6, 1.0, 1.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(rgb2hsv(c(-0.5, 0.0, 1.5)), c(4/6, 1.0, 1.0));", gStaticEidosValue_LogicalT);
+	
+	// rgb2color()
+	EidosAssertScriptSuccess("rgb2color(c(-0.5, -0.5, -0.5)) == '#000000';", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("rgb2color(c(0.0, 0.0, 0.0)) == '#000000';", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("rgb2color(c(1.0, 1.0, 1.0)) == '#FFFFFF';", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("rgb2color(c(1.5, 1.5, 1.5)) == '#FFFFFF';", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("rgb2color(c(1.0, 0.0, 0.0)) == '#FF0000';", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("rgb2color(c(0.0, 1.0, 0.0)) == '#00FF00';", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("rgb2color(c(0.0, 0.0, 1.0)) == '#0000FF';", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("rgb2color(c(0.25, 0.0, 0.0)) == '#400000';", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("rgb2color(c(0.0, 0.25, 0.0)) == '#004000';", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("rgb2color(c(0.0, 0.0, 0.25)) == '#000040';", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("rgb2color(c(0.5, 0.0, 0.0)) == '#800000';", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("rgb2color(c(0.0, 0.5, 0.0)) == '#008000';", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("rgb2color(c(0.0, 0.0, 0.5)) == '#000080';", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("rgb2color(c(0.75, 0.0, 0.0)) == '#BF0000';", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("rgb2color(c(0.0, 0.75, 0.0)) == '#00BF00';", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("rgb2color(c(0.0, 0.0, 0.75)) == '#0000BF';", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("rgb2color(c(1.0, 0.0, 0.0)) == '#FF0000';", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("rgb2color(c(0.0, 1.0, 0.0)) == '#00FF00';", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("rgb2color(c(0.0, 0.0, 1.0)) == '#0000FF';", gStaticEidosValue_LogicalT);
+	
+	// color2rgb()
+	EidosAssertScriptRaise("identical(color2rgb('foo'), c(0.0, 0.0, 0.0));", 10, "could not be found");
+	EidosAssertScriptRaise("identical(color2rgb('#00000'), c(0.0, 0.0, 0.0));", 10, "could not be found");
+	EidosAssertScriptRaise("identical(color2rgb('#0000000'), c(0.0, 0.0, 0.0));", 10, "could not be found");
+	EidosAssertScriptRaise("identical(color2rgb('#0000g0'), c(0.0, 0.0, 0.0));", 10, "is malformed");
+	EidosAssertScriptSuccess("identical(color2rgb('white'), c(1.0, 1.0, 1.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("sum(abs(color2rgb('chocolate1') - c(1.0, 127/255, 36/255))) < 1e-7;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("sum(abs(color2rgb('#000000') - c(0.0, 0.0, 0.0))) < 1e-7;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("sum(abs(color2rgb('#7F0000') - c(127/255, 0.0, 0.0))) < 1e-7;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("sum(abs(color2rgb('#FF0000') - c(1.0, 0.0, 0.0))) < 1e-7;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("sum(abs(color2rgb('#007F00') - c(0.0, 127/255, 0.0))) < 1e-7;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("sum(abs(color2rgb('#00FF00') - c(0.0, 1.0, 0.0))) < 1e-7;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("sum(abs(color2rgb('#00007F') - c(0.0, 0.0, 127/255))) < 1e-7;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("sum(abs(color2rgb('#0000FF') - c(0.0, 0.0, 1.0))) < 1e-7;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("sum(abs(color2rgb('#0000ff') - c(0.0, 0.0, 1.0))) < 1e-7;", gStaticEidosValue_LogicalT);
 }
 
 #pragma mark miscellaneous
