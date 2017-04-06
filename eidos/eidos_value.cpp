@@ -2596,25 +2596,40 @@ EidosValue_SP EidosObjectElement::ExecuteInstanceMethod(EidosGlobalStringID p_me
 			{
 				const std::string &property_name = property_sig->property_name_;
 				EidosGlobalStringID property_id = property_sig->property_id_;
-				EidosValue_SP property_value = GetProperty(property_id);
-				int property_count = property_value->Count();
-				EidosValueType property_type = property_value->Type();
+				EidosValue_SP property_value;
 				
-				output_stream << "\t" << property_name << " " << property_sig->PropertySymbol() << " (" << property_type;
+				try {
+					property_value = GetProperty(property_id);
+				} catch (...) {
+				}
 				
-				if (property_type == EidosValueType::kValueObject)
-					output_stream << "<" << property_value->ElementType() << ">) ";
-				else
-					output_stream << ") ";
-				
-				if (property_count <= 2)
-					output_stream << *property_value << endl;
+				if (property_value)
+				{
+					int property_count = property_value->Count();
+					EidosValueType property_type = property_value->Type();
+					
+					output_stream << "\t" << property_name << " " << property_sig->PropertySymbol() << " (" << property_type;
+					
+					if (property_type == EidosValueType::kValueObject)
+						output_stream << "<" << property_value->ElementType() << ">) ";
+					else
+						output_stream << ") ";
+					
+					if (property_count <= 2)
+						output_stream << *property_value << endl;
+					else
+					{
+						EidosValue_SP first_value = property_value->GetValueAtIndex(0, nullptr);
+						EidosValue_SP second_value = property_value->GetValueAtIndex(1, nullptr);
+						
+						output_stream << *first_value << " " << *second_value << " ... (" << property_count << " values)" << endl;
+					}
+				}
 				else
 				{
-					EidosValue_SP first_value = property_value->GetValueAtIndex(0, nullptr);
-					EidosValue_SP second_value = property_value->GetValueAtIndex(1, nullptr);
-					
-					output_stream << *first_value << " " << *second_value << " ... (" << property_count << " values)" << endl;
+					// The property threw an error when we tried to access it, which is allowed
+					// for properties that are only valid in specific circumstances
+					output_stream << "\t" << property_name << " " << property_sig->PropertySymbol() << " <inaccessible>" << endl;
 				}
 			}
 			
