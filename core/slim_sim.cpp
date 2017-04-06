@@ -247,6 +247,10 @@ slim_generation_t SLiMSim::InitializePopulationFromFile(const char *p_file, Eido
 				symbols.RemoveConstantForSymbol(symbol_ID);
 		}
 		
+		// invalidate interactions, since any cached interaction data depends on the subpopulations and individuals
+		for (auto int_type = interaction_types_.begin(); int_type != interaction_types_.end(); ++int_type)
+			int_type->second->Invalidate();
+		
 		// then we dispose of all existing subpopulations, mutations, etc.
 		population_.RemoveAllSubpopulationInfo();
 	}
