@@ -478,14 +478,26 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			;					// pX:Y – genome 1 identifier, which we do not presently need to parse [already fetched]
 			iss >> sub;			// pX:Y – genome 2 identifier, which we do not presently need to parse
 			
-			if (iss >> sub)		// spatial position x
-				individual.spatial_x_ = EidosInterpreter::FloatForString(sub, nullptr);
+			if (spatial_dimensionality_ >= 1)
+			{
+				if (iss >> sub)		// spatial position x
+					individual.spatial_x_ = EidosInterpreter::FloatForString(sub, nullptr);
+			}
 			
-			if (iss >> sub)		// spatial position y
-				individual.spatial_y_ = EidosInterpreter::FloatForString(sub, nullptr);
+			if (spatial_dimensionality_ >= 2)
+			{
+				if (iss >> sub)		// spatial position y
+					individual.spatial_y_ = EidosInterpreter::FloatForString(sub, nullptr);
+			}
 			
-			if (iss >> sub)		// spatial position z
-				individual.spatial_z_ = EidosInterpreter::FloatForString(sub, nullptr);
+			if (spatial_dimensionality_ >= 3)
+			{
+				if (iss >> sub)		// spatial position z
+					individual.spatial_z_ = EidosInterpreter::FloatForString(sub, nullptr);
+			}
+			
+			if (iss >> sub)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): output spatial dimensionality does not match that of the simulation." << eidos_terminate();
 		}
 	}
 	
@@ -760,7 +772,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		if ((spatial_output_count < 0) || (spatial_output_count > 3))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): spatial output count out of range." << eidos_terminate();
 		if ((spatial_output_count > 0) && (spatial_output_count != spatial_dimensionality_))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): spatial output dimensionality does not match that of the simulation." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): output spatial dimensionality does not match that of the simulation." << eidos_terminate();
 		if (section_end_tag != (int32_t)0xFFFF0000)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): missing section end after header." << eidos_terminate();
 	}
@@ -1829,6 +1841,8 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		
 		if (max_distance < 0.0)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() maxDistance must be >= 0.0." << eidos_terminate();
+		if ((required_dimensionality == 0) && (!isinf(max_distance) || (max_distance < 0.0)))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() maxDistance must be INF for non-spatial interactions." << eidos_terminate();
 		
 		if (sex_string == "**")			{ receiver_sex = IndividualSex::kUnspecified;	exerter_sex = IndividualSex::kUnspecified;	}
 		else if (sex_string == "*M")	{ receiver_sex = IndividualSex::kUnspecified;	exerter_sex = IndividualSex::kMale;			}
