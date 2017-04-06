@@ -239,7 +239,8 @@
 
 - (IBAction)drawerButtonToggled:(id)sender;
 
-- (IBAction)importPopulation:(id)sender;		// wired through firstResponder because these are menu items
+// This action has been disabled; see comments on the implementation.
+//- (IBAction)importPopulation:(id)sender;		// wired through firstResponder because these are menu items
 
 - (IBAction)exportScript:(id)sender;			// wired through firstResponder because these are menu items
 - (IBAction)exportOutput:(id)sender;			// wired through firstResponder because these are menu items

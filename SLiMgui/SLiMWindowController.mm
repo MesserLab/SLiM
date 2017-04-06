@@ -890,9 +890,6 @@
 	if (sel == @selector(checkScript:))
 		return !(continuousPlayOn || generationPlayOn);
 	
-	if (sel == @selector(importPopulation:))
-		return !(continuousPlayOn || generationPlayOn);
-	
 	if (sel == @selector(exportScript:))
 		return !(continuousPlayOn || generationPlayOn);
 	if (sel == @selector(exportOutput:))
@@ -1728,6 +1725,15 @@
 	[drawer toggle:sender];
 }
 
+/*
+	// BCH 6 April 2017: I am removing the importPopulation: action entirely.  It doesn't work well in the direction SLiM is evolving in.
+	// One problem is that SLiMgui allows user actions only at the end of a generation, and that is not an appropriate time point for
+	// reading in a population; it comes after fitness values have already been evaluated, and there's no good way to patch that up.
+	// It used to be that re-evaluating fitness was a side effect of reading in a population, but we can't do that any more, because
+	// evaluating fitness increasingly depends upon other state that needs to be set up – evaluating interactions, pre-caching phenotype
+	// values, etc.  Basically, if the user wants to read in a population in SLiMgui, they need to do it in their script to assure that
+	// it is done properly.
+ 
 - (IBAction)importPopulation:(id)sender
 {
 	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
@@ -1808,6 +1814,7 @@
 		}
 	}];
 }
+*/
 
 - (IBAction)exportScript:(id)sender
 {
