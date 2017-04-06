@@ -64,9 +64,6 @@ private:
 	
 	EidosValue_SP self_value_;			// cached EidosValue object for speed
 	
-	Subpopulation &subpopulation_;		// the subpop to which we refer; we get deleted when our subpop gets destructed
-	slim_popsize_t index_;				// the individual index in that subpop (0-based, and not multiplied by 2)
-	
 	std::string color_;								// color to use when displayed (in SLiMgui)
 	float color_red_, color_green_, color_blue_;	// cached color components from color_; should always be in sync
 	
@@ -90,9 +87,14 @@ private:
 	
 public:
 	
+	// BCH 6 April 2017: making these ivars public; lots of other classes want to access them, but writing
+	// accessors for them seems excessively complicated / slow, and friending the whole class is too invasive.
+	// Basically I think of the Individual class as just being a struct-like bag in some aspects.
+	
+	slim_popsize_t index_;				// the individual index in that subpop (0-based, and not multiplied by 2)
+	Subpopulation &subpopulation_;		// the subpop to which we refer; we get deleted when our subpop gets destructed
+	
 	// Continuous space ivars.  These are effectively free tag values of type float, unless they are used by interactions.
-	// BCH 6 April 2017: making these public; lots of other classes want to get and set spatial positions, but writing
-	// accessors for them seems excessively complicated / slow, and friending is too invasive...
 	double spatial_x_, spatial_y_, spatial_z_;
 	
 	
