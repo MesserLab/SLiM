@@ -153,6 +153,7 @@ public:
 	bool warned_early_mutation_add_ = false;
 	bool warned_early_mutation_remove_ = false;
 	bool warned_early_output_ = false;
+	bool warned_early_read_ = false;
 	
 	SLiMSim(const SLiMSim&) = delete;												// no copying
 	SLiMSim& operator=(const SLiMSim&) = delete;									// no copying

@@ -3062,7 +3062,7 @@ void Population::CheckMutationRegistry(void)
 }
 
 // print all mutations and all genomes to a stream
-void Population::PrintAll(std::ostream &p_out) const
+void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions) const
 {
 	// This method is written to be able to print the population whether child_generation_valid is true or false.
 	// This is a little tricky, so be careful when modifying this code!
@@ -3076,6 +3076,15 @@ void Population::PrintAll(std::ostream &p_out) const
 		EidosCheckRSSAgainstMax("Population::PrintAll", "(The memory usage was already out of bounds on entry.)");
 #endif
 	
+	// Figure out spatial position output.  If it was not requested, then we don't do it, and that's fine.  If it
+	// was requested, then we output the number of spatial dimensions we're configured for (which might be zero).
+	int spatial_output_count = (p_output_spatial_positions ? sim_.SpatialDimensionality() : 0);
+	
+	// Starting in SLiM 2.3, we output a version indicator at the top of the file so we can decode different versions, etc.
+	// We use the same version numbers used in PrintAllBinary(), for simplicity.
+	p_out << "Version: 3" << endl;
+	
+	// Output populations first
 	p_out << "Populations:" << endl;
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
 	{
@@ -3158,6 +3167,20 @@ void Population::PrintAll(std::ostream &p_out) const
 			
 			p_out << "p" << subpop_id << ":" << (i * 2);				// genome identifier 1
 			p_out << " p" << subpop_id << ":" << (i * 2 + 1);			// genome identifier 2
+			
+			// output spatial position if requested
+			if (spatial_output_count)
+			{
+				Individual &individual = (child_generation_valid_ ? subpop->child_individuals_[i] : subpop->parent_individuals_[i]);
+				
+				if (spatial_output_count >= 1)
+					p_out << " " << individual.spatial_x_;
+				if (spatial_output_count >= 2)
+					p_out << " " << individual.spatial_y_;
+				if (spatial_output_count >= 3)
+					p_out << " " << individual.spatial_z_;
+			}
+			
 			p_out << endl;
 			
 #if DO_MEMORY_CHECKS
@@ -3210,10 +3233,14 @@ void Population::PrintAll(std::ostream &p_out) const
 }
 
 // print all mutations and all genomes to a stream in binary, for maximum reading speed
-void Population::PrintAllBinary(std::ostream &p_out) const
+void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_positions) const
 {
 	// This function is written to be able to print the population whether child_generation_valid is true or false.
 	// This is a little tricky, so be careful when modifying this code!
+	
+	// Figure out spatial position output.  If it was not requested, then we don't do it, and that's fine.  If it
+	// was requested, then we output the number of spatial dimensions we're configured for (which might be zero).
+	int32_t spatial_output_count = (int32_t)(p_output_spatial_positions ? sim_.SpatialDimensionality() : 0);
 	
 	int32_t section_end_tag = 0xFFFF0000;
 	
@@ -3225,7 +3252,8 @@ void Population::PrintAllBinary(std::ostream &p_out) const
 		p_out.write(reinterpret_cast<char *>(&endianness_tag), sizeof endianness_tag);
 		
 		// Write a format version tag
-		int32_t version_tag = 2;																					// version 2 started with SLiM 2.1
+		int32_t version_tag = 3;																					// version 2 started with SLiM 2.1
+																													// version 3 started with SLiM 2.3
 		
 		p_out.write(reinterpret_cast<char *>(&version_tag), sizeof version_tag);
 		
@@ -3262,6 +3290,9 @@ void Population::PrintAllBinary(std::ostream &p_out) const
 		slim_generation_t generation = sim_.Generation();
 		
 		p_out.write(reinterpret_cast<char *>(&generation), sizeof generation);
+		
+		// Write the number of spatial coordinates we will write per individual.  Added in version 3.
+		p_out.write(reinterpret_cast<char *>(&spatial_output_count), sizeof spatial_output_count);
 	}
 	
 	// Write a tag indicating the section has ended
@@ -3383,6 +3414,20 @@ void Population::PrintAllBinary(std::ostream &p_out) const
 			p_out.write(reinterpret_cast<char *>(&genome_type), sizeof genome_type);
 			p_out.write(reinterpret_cast<char *>(&subpop_id), sizeof subpop_id);
 			p_out.write(reinterpret_cast<char *>(&i), sizeof i);
+			
+			// Output individual spatial position information before the mutation list.  Added in version 3.
+			if (spatial_output_count && ((i % 2) == 0))
+			{
+				int individual_index = i / 2;
+				Individual &individual = (child_generation_valid_ ? subpop->child_individuals_[individual_index] : subpop->parent_individuals_[individual_index]);
+				
+				if (spatial_output_count >= 1)
+					p_out.write(reinterpret_cast<char *>(&individual.spatial_x_), sizeof individual.spatial_x_);
+				if (spatial_output_count >= 2)
+					p_out.write(reinterpret_cast<char *>(&individual.spatial_y_), sizeof individual.spatial_y_);
+				if (spatial_output_count >= 3)
+					p_out.write(reinterpret_cast<char *>(&individual.spatial_z_), sizeof individual.spatial_z_);
+			}
 			
 			// Write out the mutation list
 			if (genome.IsNull())

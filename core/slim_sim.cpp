@@ -283,9 +283,27 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 	}
 	
 	// Read and ignore initial stuff until we hit the Populations section
+	int64_t file_version = 0;	// initially unknown; we will leave this as 0 for versions < 3, for now
+	
 	while (!infile.eof())
 	{
 		GetInputLine(infile, line);
+		
+		// Starting in SLiM 3, we will handle a Version line if we see one in passing
+		if (line.find("Version:") != string::npos)
+		{
+			istringstream iss(line);
+			
+			iss >> sub;		// Version:
+			iss >> sub;		// version number
+			
+			file_version = (int64_t)EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
+			
+			if ((file_version != 1) && (file_version != 2) && (file_version != 3))
+				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): unrecognized version." << eidos_terminate();
+			
+			continue;
+		}
 		
 		if (line.find("Populations") != string::npos)
 			break;
@@ -411,7 +429,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 	
 	population_.cached_genome_count_ = 0;
 	
-	// If there is an Individuals section (added in SLiM 2.0), we skip it; we don't need any of the information that it gives, it is mainly for human readability
+	// If there is an Individuals section (added in SLiM 2.0), we now need to parse it since it might contain spatial positions
 	if (line.find("Individuals") != string::npos)
 	{
 		while (!infile.eof()) 
@@ -422,6 +440,48 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 				continue;
 			if (line.find("Genomes") != string::npos)
 				break;
+			
+			istringstream iss(line);
+			
+			iss >> sub;		// pX:iY – individual identifier
+			int pos = static_cast<int>(sub.find_first_of(":"));
+			const char *subpop_id_string = sub.substr(0, pos).c_str();
+			slim_objectid_t subpop_id = SLiMEidosScript::ExtractIDFromStringWithPrefix(subpop_id_string, 'p', nullptr);
+			const char *individual_index_string = sub.substr(pos + 1, string::npos).c_str();
+			
+			if (individual_index_string[0] != 'i')
+				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): reference to individual is malformed." << eidos_terminate();
+			
+			int64_t individual_index = EidosInterpreter::NonnegativeIntegerForString(individual_index_string + 1, nullptr);
+			
+			auto subpop_pair = population_.find(subpop_id);
+			
+			if (subpop_pair == population_.end())
+				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): referenced subpopulation p" << subpop_id << " not defined." << eidos_terminate();
+			
+			Subpopulation &subpop = *subpop_pair->second;
+			
+			if (individual_index >= subpop.parent_subpop_size_)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): referenced individual i" << individual_index << " is out of range." << eidos_terminate();
+			
+			Individual &individual = subpop.parent_individuals_[individual_index];
+			
+			iss >> sub;			// individual sex identifier (F/M/H) – added in SLiM 2.1, so we need to be robust if it is missing
+			
+			if ((sub == "F") || (sub == "M") || (sub == "H"))
+				iss >> sub;
+			
+			;					// pX:Y – genome 1 identifier, which we do not presently need to parse [already fetched]
+			iss >> sub;			// pX:Y – genome 2 identifier, which we do not presently need to parse
+			
+			if (iss >> sub)		// spatial position x
+				individual.spatial_x_ = EidosInterpreter::FloatForString(sub, nullptr);
+			
+			if (iss >> sub)		// spatial position y
+				individual.spatial_y_ = EidosInterpreter::FloatForString(sub, nullptr);
+			
+			if (iss >> sub)		// spatial position z
+				individual.spatial_z_ = EidosInterpreter::FloatForString(sub, nullptr);
 		}
 	}
 	
@@ -519,28 +579,38 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 	// cycle stage anyway) or done twice (which could be particularly problematic for fitness() callbacks).  Nevertheless, this seems
 	// like the best policy, at least until shown otherwise...  BCH 11 June 2016
 	
+	// BCH 5 April 2017: Well, it has been shown otherwise.  Now that interactions have been added, fitness() callbacks often depend on
+	// them, which means the interactions need to be evaluated, which means we can't evaluate fitness values yet; we need to give the
+	// user's script a chance to evaluate the interactions.  This was always a problem, really; fitness() callbacks might have needed
+	// some external state to be set up that would on the population state.  But now it is a glaring problem, and forces us to revise
+	// our policy.  For backward compatibility, we will keep the old behavior if reading a file that is version 2 or earlier; a bit
+	// weird, but probably nobody will ever even notice...
+	
 	// As of SLiM 2.1, we change the generation as a side effect of loading; otherwise we can't correctly update our state here!
 	generation_ = file_generation;
 	
 	// Re-tally mutation references so we have accurate frequency counts for our new mutations
 	population_.MaintainRegistry();
 	
-	// Now that we have the info on everybody, update fitnesses so that we're ready to run the next generation
-	// used to be generation + 1; removing that 18 Feb 2016 BCH
-	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+	if (file_version <= 2)
 	{
-		slim_objectid_t subpop_id = subpop_pair.first;
-		Subpopulation *subpop = subpop_pair.second;
-		std::vector<SLiMEidosBlock*> fitness_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosFitnessCallback, -1, -1, subpop_id);
-		std::vector<SLiMEidosBlock*> global_fitness_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosFitnessCallback, -2, -1, subpop_id);
+		// Now that we have the info on everybody, update fitnesses so that we're ready to run the next generation
+		// used to be generation + 1; removing that 18 Feb 2016 BCH
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+		{
+			slim_objectid_t subpop_id = subpop_pair.first;
+			Subpopulation *subpop = subpop_pair.second;
+			std::vector<SLiMEidosBlock*> fitness_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosFitnessCallback, -1, -1, subpop_id);
+			std::vector<SLiMEidosBlock*> global_fitness_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosFitnessCallback, -2, -1, subpop_id);
+			
+			subpop->UpdateFitness(fitness_callbacks, global_fitness_callbacks);
+		}
 		
-		subpop->UpdateFitness(fitness_callbacks, global_fitness_callbacks);
-	}
-	
 #ifdef SLIMGUI
-	// Let SLiMgui survey the population for mean fitness and such, if it is our target
-	population_.SurveyPopulation();
+		// Let SLiMgui survey the population for mean fitness and such, if it is our target
+		population_.SurveyPopulation();
 #endif
+	}
 	
 	return file_generation;
 }
@@ -549,6 +619,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 {
 	std::size_t file_size = 0;
 	slim_generation_t file_generation;
+	int32_t spatial_output_count;
 	
 	// Read file into buf
 	ifstream infile(p_file, std::ios::in | std::ios::binary);
@@ -594,7 +665,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		
 		if (endianness_tag != 0x12345678)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): endianness mismatch." << eidos_terminate();
-		if ((version_tag != 1) && (version_tag != 2))
+		if ((version_tag != 1) && (version_tag != 2) && (version_tag != 3))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unrecognized version." << eidos_terminate();
 		
 		file_version = version_tag;
@@ -655,6 +726,17 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		file_generation = *(slim_generation_t *)p;
 		p += sizeof(file_generation);
 		
+		if (file_version >= 3)
+		{
+			spatial_output_count = *(int32_t *)p;
+			p += sizeof(spatial_output_count);
+		}
+		else
+		{
+			// Version 1 or 2 file; backfill correct value
+			spatial_output_count = 0;
+		}
+		
 		section_end_tag = *(int32_t *)p;
 		p += sizeof(section_end_tag);
 		
@@ -671,6 +753,10 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			(slim_mutationid_t_size != sizeof(slim_mutationid_t)) ||
 			(slim_polymorphismid_t_size != sizeof(slim_polymorphismid_t)))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): SLiM datatype size mismatch." << eidos_terminate();
+		if ((spatial_output_count < 0) || (spatial_output_count > 3))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): spatial output count out of range." << eidos_terminate();
+		if ((spatial_output_count > 0) && (spatial_output_count != spatial_dimensionality_))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): spatial output dimensionality does not match that of the simulation." << eidos_terminate();
 		if (section_end_tag != (int32_t)0xFFFF0000)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): missing section end after header." << eidos_terminate();
 	}
@@ -880,9 +966,6 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		genome_index = *(slim_popsize_t *)p;
 		p += sizeof(genome_index);
 		
-		total_mutations = *(int32_t *)p;
-		p += sizeof(total_mutations);
-		
 		// Look up the subpopulation
 		auto subpop_pair = population_.find(subpop_id);
 		
@@ -890,6 +973,36 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): referenced subpopulation p" << subpop_id << " not defined." << eidos_terminate();
 		
 		Subpopulation &subpop = *subpop_pair->second;
+		
+		// Read in individual spatial position information.  Added in version 3.
+		if (spatial_output_count && ((genome_index % 2) == 0))
+		{
+			// do another buffer length check
+			if (p + spatial_output_count * sizeof(double) + sizeof(total_mutations) > buf_end)
+			break;
+			
+			int individual_index = genome_index / 2;
+			Individual &individual = subpop.parent_individuals_[individual_index];
+			
+			if (spatial_output_count >= 1)
+			{
+				individual.spatial_x_ = *(double *)p;
+				p += sizeof(double);
+			}
+			if (spatial_output_count >= 2)
+			{
+				individual.spatial_y_ = *(double *)p;
+				p += sizeof(double);
+			}
+			if (spatial_output_count >= 3)
+			{
+				individual.spatial_z_ = *(double *)p;
+				p += sizeof(double);
+			}
+		}
+		
+		total_mutations = *(int32_t *)p;
+		p += sizeof(total_mutations);
 		
 		// Look up the genome
 		if ((genome_index < 0) || (genome_index > SLIM_MAX_SUBPOP_SIZE * 2))
@@ -983,28 +1096,38 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	// cycle stage anyway) or done twice (which could be particularly problematic for fitness() callbacks).  Nevertheless, this seems
 	// like the best policy, at least until shown otherwise...  BCH 11 June 2016
 	
+	// BCH 5 April 2017: Well, it has been shown otherwise.  Now that interactions have been added, fitness() callbacks often depend on
+	// them, which means the interactions need to be evaluated, which means we can't evaluate fitness values yet; we need to give the
+	// user's script a chance to evaluate the interactions.  This was always a problem, really; fitness() callbacks might have needed
+	// some external state to be set up that would on the population state.  But now it is a glaring problem, and forces us to revise
+	// our policy.  For backward compatibility, we will keep the old behavior if reading a file that is version 2 or earlier; a bit
+	// weird, but probably nobody will ever even notice...
+	
 	// As of SLiM 2.1, we change the generation as a side effect of loading; otherwise we can't correctly update our state here!
 	generation_ = file_generation;
 	
 	// Re-tally mutation references so we have accurate frequency counts for our new mutations
 	population_.MaintainRegistry();
 	
-	// Now that we have the info on everybody, update fitnesses so that we're ready to run the next generation
-	// used to be generation + 1; removing that 18 Feb 2016 BCH
-	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+	if (file_version <= 2)
 	{
-		slim_objectid_t subpop_id = subpop_pair.first;
-		Subpopulation *subpop = subpop_pair.second;
-		std::vector<SLiMEidosBlock*> fitness_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosFitnessCallback, -1, -1, subpop_id);
-		std::vector<SLiMEidosBlock*> global_fitness_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosFitnessCallback, -2, -1, subpop_id);
+		// Now that we have the info on everybody, update fitnesses so that we're ready to run the next generation
+		// used to be generation + 1; removing that 18 Feb 2016 BCH
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+		{
+			slim_objectid_t subpop_id = subpop_pair.first;
+			Subpopulation *subpop = subpop_pair.second;
+			std::vector<SLiMEidosBlock*> fitness_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosFitnessCallback, -1, -1, subpop_id);
+			std::vector<SLiMEidosBlock*> global_fitness_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosFitnessCallback, -2, -1, subpop_id);
+			
+			subpop->UpdateFitness(fitness_callbacks, global_fitness_callbacks);
+		}
 		
-		subpop->UpdateFitness(fitness_callbacks, global_fitness_callbacks);
-	}
-	
 #ifdef SLIMGUI
-	// Let SLiMgui survey the population for mean fitness and such, if it is our target
-	population_.SurveyPopulation();
+		// Let SLiMgui survey the population for mean fitness and such, if it is our target
+		population_.SurveyPopulation();
 #endif
+	}
 	
 	return file_generation;
 }
@@ -3053,7 +3176,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 			
 			//
-			//	*********************	– (void)outputFull([Ns$ filePath = NULL], [logical$ binary = F], [logical$ append=F])
+			//	*********************	– (void)outputFull([Ns$ filePath = NULL], [logical$ binary = F], [logical$ append=F], [logical$ spatialPositions = T])
 			//
 #pragma mark -outputFull()
 			
@@ -3066,6 +3189,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			}
 			
 			bool use_binary = arg1_value->LogicalAtIndex(0, nullptr);
+			bool output_spatial_positions = arg3_value->LogicalAtIndex(0, nullptr);
 			
 			if (arg0_value->Type() == EidosValueType::kValueNULL)
 			{
@@ -3075,7 +3199,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 				std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 				
 				output_stream << "#OUT: " << generation_ << " A" << endl;
-				population_.PrintAll(output_stream);
+				population_.PrintAll(output_stream, output_spatial_positions);
 			}
 			else
 			{
@@ -3095,7 +3219,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 				{
 					if (use_binary)
 					{
-						population_.PrintAllBinary(outfile);
+						population_.PrintAllBinary(outfile, output_spatial_positions);
 					}
 					else
 					{
@@ -3106,7 +3230,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 						//					outfile << input_parameters[i] << endl;
 						
 						outfile << "#OUT: " << generation_ << " A " << outfile_path << endl;
-						population_.PrintAll(outfile);
+						population_.PrintAll(outfile, output_spatial_positions);
 					}
 					
 					outfile.close(); 
@@ -3204,6 +3328,12 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 		case gID_readFromPopulationFile:
 		{
+			if ((GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!warned_early_read_))
+			{
+				p_interpreter.ExecutionOutputStream() << "#WARNING (SLiMSim::ExecuteInstanceMethod): readFromPopulationFile() should probably not be called from an early() event; fitness values will not be recalculated prior to offspring generation unless recalculateFitness() is called." << std::endl;
+				warned_early_read_ = true;
+			}
+			
 			string file_path = EidosResolvedPath(arg0_value->StringAtIndex(0, nullptr));
 			
 			// first we clear out all variables of type Subpopulation etc. from the symbol table; they will all be invalid momentarily
@@ -3644,7 +3774,7 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 		mutationCountsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationCounts, kEidosValueMaskInt))->AddObject_N("subpops", gSLiM_Subpopulation_Class)->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL);
 		mutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
 		outputFixedMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFixedMutations, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF);
-		outputFullSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFull, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("binary", gStaticEidosValue_LogicalF)->AddLogical_OS("append", gStaticEidosValue_LogicalF);
+		outputFullSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFull, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("binary", gStaticEidosValue_LogicalF)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("spatialPositions", gStaticEidosValue_LogicalT);
 		outputMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF);
 		readFromPopulationFileSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_readFromPopulationFile, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddString_S("filePath");
 		recalculateFitnessSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_recalculateFitness, kEidosValueMaskNULL))->AddInt_OSN("generation", gStaticEidosValueNULL);

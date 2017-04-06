@@ -161,8 +161,8 @@ public:
 	void CheckMutationRegistry(void);
 	
 	// print all mutations and all genomes to a stream
-	void PrintAll(std::ostream &p_out) const;
-	void PrintAllBinary(std::ostream &p_out) const;
+	void PrintAll(std::ostream &p_out, bool p_output_spatial_positions) const;
+	void PrintAllBinary(std::ostream &p_out, bool p_output_spatial_positions) const;
 	
 	// print sample of p_sample_size genomes from subpopulation p_subpop_id, using SLiM's own format
 	void PrintSample_slim(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex) const;

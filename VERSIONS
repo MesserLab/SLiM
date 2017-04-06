@@ -36,6 +36,8 @@ development head:
 	move color-related code from SLiM to Eidos, add new color-conversion functions to Eidos
 	add support for spatial maps: defineSpatialMap(), spatialMapValue(), spatialMapColor()
 	add recipes 14.10 and 14.11
+	add support for output of positional information in outputFull(), and reading of positional information in readFromPopulationFile()
+	policy change: readFromPopulationFile() no longer has the side effect of recalculating fitness values, and warns if called at a time other than a late() event
 
 
 2.2.1 (build 992; Eidos version 1.2.1):

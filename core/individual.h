@@ -73,9 +73,6 @@ private:
 	slim_usertag_t tag_value_;			// a user-defined tag value
 	double tagF_value_;					// a user-defined tag value of float type
 	
-	// Continuous space ivars.  These are effectively free tag values of type float, unless they are used by interactions.
-	double spatial_x_, spatial_y_, spatial_z_;
-	
 	// Pedigree-tracking ivars.  These are -1 if unknown, otherwise assigned sequentially from 0 counting upward.  They
 	// uniquely identify individuals within the simulation, so that relatedness of individuals can be assessed.  They can
 	// be accessed through the read-only pedigree properties.  These are only maintained if sim->pedigrees_enabled_ is on.
@@ -92,6 +89,12 @@ private:
 #endif
 	
 public:
+	
+	// Continuous space ivars.  These are effectively free tag values of type float, unless they are used by interactions.
+	// BCH 6 April 2017: making these public; lots of other classes want to get and set spatial positions, but writing
+	// accessors for them seems excessively complicated / slow, and friending is too invasive...
+	double spatial_x_, spatial_y_, spatial_z_;
+	
 	
 	//
 	//	This class should not be copied, in general, but the default copy constructor cannot be entirely
@@ -154,9 +157,6 @@ public:
 	virtual void SetProperty_Accelerated_Int(EidosGlobalStringID p_property_id, int64_t p_value);
 	virtual void SetProperty_Accelerated_Float(EidosGlobalStringID p_property_id, double p_value);
 	virtual void SetProperty_Accelerated_String(EidosGlobalStringID p_property_id, const std::string &p_value);
-	
-	// Interactions get to see our spatial position
-	friend class InteractionType;
 };
 
 
