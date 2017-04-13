@@ -4408,6 +4408,8 @@ void _RunFunctionFilesystemTests(void)
 void _RunColorManipulationTests(void)
 {
 	// hsv2rgb()
+	EidosAssertScriptRaise("hsv2rgb(c(0.0, 0.0));", 0, "must contain exactly three");
+	EidosAssertScriptRaise("hsv2rgb(c(0.0, 0.0, 0.0, 0.0));", 0, "must contain exactly three");
 	EidosAssertScriptSuccess("identical(hsv2rgb(c(0.0, 0.0, -0.5)), c(0.0, 0.0, 0.0));", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("identical(hsv2rgb(c(0.0, 0.0, 0.0)), c(0.0, 0.0, 0.0));", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("identical(hsv2rgb(c(0.0, 0.0, 0.5)), c(0.5, 0.5, 0.5));", gStaticEidosValue_LogicalT);
@@ -4429,6 +4431,8 @@ void _RunColorManipulationTests(void)
 	EidosAssertScriptSuccess("identical(hsv2rgb(c(7/6, 1.0, 1.0)), c(1.0, 0.0, 0.0));", gStaticEidosValue_LogicalT);
 	
 	// rgb2hsv()
+	EidosAssertScriptRaise("rgb2hsv(c(0.0, 0.0));", 0, "must contain exactly three");
+	EidosAssertScriptRaise("rgb2hsv(c(0.0, 0.0, 0.0, 0.0));", 0, "must contain exactly three");
 	EidosAssertScriptSuccess("identical(rgb2hsv(c(-1.0, 0.0, 0.0)), c(0.0, 0.0, 0.0));", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("identical(rgb2hsv(c(0.0, -1.0, 0.0)), c(0.0, 0.0, 0.0));", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("identical(rgb2hsv(c(0.0, 0.0, -1.0)), c(0.0, 0.0, 0.0));", gStaticEidosValue_LogicalT);
@@ -4452,6 +4456,8 @@ void _RunColorManipulationTests(void)
 	EidosAssertScriptSuccess("identical(rgb2hsv(c(-0.5, 0.0, 1.5)), c(4/6, 1.0, 1.0));", gStaticEidosValue_LogicalT);
 	
 	// rgb2color()
+	EidosAssertScriptRaise("rgb2color(c(0.0, 0.0));", 0, "must contain exactly three");
+	EidosAssertScriptRaise("rgb2color(c(0.0, 0.0, 0.0, 0.0));", 0, "must contain exactly three");
 	EidosAssertScriptSuccess("rgb2color(c(-0.5, -0.5, -0.5)) == '#000000';", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("rgb2color(c(0.0, 0.0, 0.0)) == '#000000';", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("rgb2color(c(1.0, 1.0, 1.0)) == '#FFFFFF';", gStaticEidosValue_LogicalT);
