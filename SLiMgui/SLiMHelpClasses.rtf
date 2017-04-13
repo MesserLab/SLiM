@@ -1522,11 +1522,11 @@ Importantly, distances are calculated according to the spatiality of the
 \f0\fs20 ).  The distances are therefore interaction distances: the distances that are used to calculate interaction strengths.  If the 
 \f2\fs18 InteractionType
 \f0\fs20  is non-spatial, this method may not be called.\
-\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96\'a0(float)distanceToPoint(object<Individual>\'a0individuals1, float\'a0point)
 \f3 \
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a vector containing distances between individuals in 
 \f2\fs18 individuals1
@@ -1541,23 +1541,16 @@ Importantly, distances are calculated according to the spatiality of the
 \f2\fs18 point[0]
 \f0\fs20  is assumed to be an 
 \i x
-\i0  value, 
+\i0  value, and 
 \f2\fs18 point[1]
 \f0\fs20  is assumed to be a 
 \i z
-\i0  value, and further elements are not used.  Be careful; this means that in general it is not safe to pass an individual\'92s 
+\i0  value.  Be careful; this means that in general it is not safe to pass an individual\'92s 
 \f2\fs18 spatialPosition
 \f0\fs20  property for 
 \f2\fs18 point
-\f0\fs20 , for example (although it does happen to be safe for interaction types with spatiality 
-\f2\fs18 "x"
-\f0\fs20 , 
-\f2\fs18 "xy"
-\f0\fs20 , or 
-\f2\fs18 "xyz"
-\f0\fs20 ).\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf0 Importantly, distances are calculated according to the spatiality of the 
+\f0\fs20 , for example (although it is safe if the spatiality of the interaction matches the dimensionality of the simulation).\
+Importantly, distances are calculated according to the spatiality of the 
 \f2\fs18 InteractionType
 \f0\fs20  (as declared in 
 \f2\fs18 initializeInteractionType()
@@ -1567,9 +1560,9 @@ Importantly, distances are calculated according to the spatiality of the
 \f2\fs18 InteractionType
 \f0\fs20  is non-spatial, this method may not be called.  The vector 
 \f2\fs18 point
-\f0\fs20  must be at least as long as the spatiality of the 
+\f0\fs20  must be exactly as long as the spatiality of the 
 \f2\fs18 InteractionType
-\f0\fs20 ; extra values may be present but will be ignored.\
+\f3\fs20 .\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96\'a0(object<Individual>)drawByStrength(object<Individual>$\'a0individual, [integer$\'a0count\'a0=\'a01])
@@ -3747,11 +3740,11 @@ If the optional parameter
 \f2\fs18 late()
 \f0\fs20  event, so that the output reflects the state of the simulation at the end of a generation.
 \f3 \
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96\'a0(logical$)pointInBounds(float\'a0point)
 \f3 \
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns 
 \f2\fs18 T
@@ -3763,7 +3756,7 @@ If the optional parameter
 \f2\fs18 "xy"
 \f0\fs20  dimensionality, 
 \f2\fs18 point
-\f0\fs20  must contain at least two values, and the result will be 
+\f0\fs20  must contain exactly two values, and the result will be 
 \f2\fs18 T
 \f0\fs20  if and only if 
 \f2\fs18 ((point[0]>=x0) & (point[0]<=x1) & (point[1]>=y0) & (point[1]<=y1))
@@ -3772,12 +3765,15 @@ If the optional parameter
 \f3\fs20 .
 \f0   This method is useful for implementing absorbing or reprising boundary conditions.  This may only be called in simulations for which continuous space has been enabled with 
 \f2\fs18 initializeSLiMOptions()
-\f3\fs20 .\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\f0\fs20 , and the length of 
+\f2\fs18 point
+\f0\fs20  must match the dimensionality of the simulation.
+\f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96\'a0(float)pointReflected(float\'a0point)
 \f3 \
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a revised version of 
 \f2\fs18 point
@@ -3785,15 +3781,15 @@ If the optional parameter
 \f2\fs18 point
 \f0\fs20  lies beyond a spatial boundary, that coordinate is reflected across the boundary, so that it lies inside the boundary by the same magnitude that it previously lay outside the boundary.  This is done iteratively until all coordinates lie inside the subpopulation\'92s boundaries.  This method is useful for implementing reflecting boundary conditions.  This may only be called in simulations for which continuous space has been enabled with 
 \f2\fs18 initializeSLiMOptions()
-\f0\fs20 , and only elements of 
+\f0\fs20 , and the length of 
 \f2\fs18 point
-\f0\fs20  within the dimensionality of the simulation will be used (extra values will be ignored, and supplying too few values is an error).
+\f0\fs20  must match the dimensionality of the simulation.
 \f3 \
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96\'a0(float)pointStopped(float\'a0point)
 \f3 \
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a revised version of 
 \f2\fs18 point
@@ -3801,9 +3797,9 @@ If the optional parameter
 \f2\fs18 point
 \f0\fs20  lies beyond a spatial boundary, that coordinate is set to exactly the position of the boundary, so that it lies on the edge of the spatial boundary.  This method is useful for implementing stopping boundary conditions.  This may only be called in simulations for which continuous space has been enabled with 
 \f2\fs18 initializeSLiMOptions()
-\f0\fs20 , and only elements of 
+\f0\fs20 , and the length of 
 \f2\fs18 point
-\f0\fs20  within the dimensionality of the simulation will be used (extra values will be ignored, and supplying too few values is an error).
+\f0\fs20  must match the dimensionality of the simulation.
 \f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 

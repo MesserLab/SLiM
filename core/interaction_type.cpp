@@ -2851,7 +2851,7 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 			int ind1_index = ind1->index_;
 			auto subpop_data_iter = data_.find(subpop1_id);
 			
-			if (subpop_data_iter == data_.end())
+			if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): distance() requires that the interaction has been evaluated for the subpopulation first." << eidos_terminate();
 			
 			InteractionsData &subpop_data = subpop_data_iter->second;
@@ -2950,8 +2950,8 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 			
 			if (spatiality_ == 0)
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): distanceToPoint() requires that the interaction be spatial." << eidos_terminate();
-			if (point_count < spatiality_)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): distanceToPoint() requires that point is of length at least equal to the interaction spatiality." << eidos_terminate();
+			if (point_count != spatiality_)
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): distanceToPoint() requires that point is of length equal to the interaction spatiality." << eidos_terminate();
 			
 			if (count == 0)
 				return gStaticEidosValue_Float_ZeroVec;
@@ -2968,7 +2968,7 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 			slim_objectid_t subpop1_id = subpop1->subpopulation_id_;
 			auto subpop_data_iter = data_.find(subpop1_id);
 			
-			if (subpop_data_iter == data_.end())
+			if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): distanceToPoint() requires that the interaction has been evaluated for the subpopulation first." << eidos_terminate();
 			
 			InteractionsData &subpop_data = subpop_data_iter->second;
@@ -3008,27 +3008,28 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 			int ind_index = individual->index_;
 			auto subpop_data_iter = data_.find(subpop_id);
 			
-			if (subpop_data_iter == data_.end())
+			if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): drawByStrength() requires that the interaction has been evaluated for the subpopulation first." << eidos_terminate();
 			
 			// Check the count
 			int64_t count = arg1_value->IntAtIndex(0, nullptr);
 			
-			if (count <= 0)
+			if (count < 0)
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): drawByStrength() requires count > 0." << eidos_terminate();
+			
+			if (count == 0)
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 			
 			// Find the neighbors
 			InteractionsData &subpop_data = subpop_data_iter->second;
 			std::vector<SLiMEidosBlock*> &callbacks = subpop_data.evaluation_interaction_callbacks_;
 			bool no_callbacks = (callbacks.size() == 0);
-			
-			EnsureKDTreePresent(subpop_data);
-			EnsureStrengthsPresent(subpop_data);
-			
 			std::vector<EidosObjectElement *> neighbors;
 			
 			if (spatiality_ == 0)
 			{
+				EnsureStrengthsPresent(subpop_data);
+				
 				// For non-spatial interactions, just use the subpop's vector of individuals
 				neighbors.reserve(subpop_size);
 				for (Individual &subpop_individual : subpop->parent_individuals_)
@@ -3036,6 +3037,9 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 			}
 			else
 			{
+				EnsureKDTreePresent(subpop_data);
+				EnsureStrengthsPresent(subpop_data);
+				
 				// For spatial interactions, find all neighbors, up to the subpopulation size
 				double *position_data = subpop_data.positions_;
 				double *ind_position = position_data + ind_index * SLIM_MAX_DIMENSIONALITY;
@@ -3250,14 +3254,16 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 			int ind_index = individual->index_;
 			auto subpop_data_iter = data_.find(subpop_id);
 			
-			if (subpop_data_iter == data_.end())
+			if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): nearestNeighbors() requires that the interaction has been evaluated for the subpopulation first." << eidos_terminate();
 			
 			// Check the count
 			int64_t count = arg1_value->IntAtIndex(0, nullptr);
 			
-			if (count <= 0)
+			if (count < 0)
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): nearestNeighbors() requires count > 0." << eidos_terminate();
+			if (count == 0)
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 			
 			if (count > subpop_size)
 				count = subpop_size;
@@ -3295,7 +3301,7 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 			slim_popsize_t subpop_size = subpop->parent_subpop_size_;
 			auto subpop_data_iter = data_.find(subpop_id);
 			
-			if (subpop_data_iter == data_.end())
+			if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): nearestNeighborsOfPoint() requires that the interaction has been evaluated for the subpopulation first." << eidos_terminate();
 			
 			// Check the point
@@ -3310,8 +3316,10 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 			// Check the count
 			int64_t count = arg2_value->IntAtIndex(0, nullptr);
 			
-			if (count <= 0)
+			if (count < 0)
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): nearestNeighborsOfPoint() requires count > 0." << eidos_terminate();
+			if (count == 0)
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 			
 			if (count > subpop_size)
 				count = subpop_size;
@@ -3384,7 +3392,7 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 				EidosValueType if_param_type = if_param_value->Type();
 				
 				if ((if_param_type != EidosValueType::kValueFloat) && (if_param_type != EidosValueType::kValueInt))
-					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): setInteractionFunction() requires that the parameters for this IF be of type numeric (integer or float)." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): setInteractionFunction() requires that the parameters for this interaction function be of type numeric (integer or float)." << eidos_terminate();
 				
 				if_parameters.emplace_back(if_param_value->FloatAtIndex(0, nullptr));
 				// intentionally no bounds checks for IF parameters
@@ -3427,7 +3435,7 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 			int ind1_index = ind1->index_;
 			auto subpop_data_iter = data_.find(subpop1_id);
 			
-			if (subpop_data_iter == data_.end())
+			if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): strength() requires that the interaction has been evaluated for the subpopulation first." << eidos_terminate();
 			
 			InteractionsData &subpop_data = subpop_data_iter->second;
@@ -3719,7 +3727,7 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 			slim_objectid_t subpop_id = subpop->subpopulation_id_;
 			auto subpop_data_iter = data_.find(subpop_id);
 			
-			if (subpop_data_iter == data_.end())
+			if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): totalOfNeighborStrengths() requires that the interaction has been evaluated for the subpopulation first." << eidos_terminate();
 			
 			InteractionsData &subpop_data = subpop_data_iter->second;

@@ -2308,8 +2308,8 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 			
 			if (dimensionality == 0)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): pointInBounds() cannot be called in non-spatial simulations." << eidos_terminate();
-			if (value_count < dimensionality)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): pointInBounds() requires at least as many coordinates as the spatial dimensionality of the simulation." << eidos_terminate();
+			if (value_count != dimensionality)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): pointInBounds() requires exactly as many coordinates as the spatial dimensionality of the simulation." << eidos_terminate();
 			
 			switch (dimensionality)
 			{
@@ -2354,8 +2354,8 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 			
 			if (dimensionality == 0)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): pointReflected() cannot be called in non-spatial simulations." << eidos_terminate();
-			if (value_count < dimensionality)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): pointReflected() requires at least as many coordinates as the spatial dimensionality of the simulation." << eidos_terminate();
+			if (value_count != dimensionality)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): pointReflected() requires exactly as many coordinates as the spatial dimensionality of the simulation." << eidos_terminate();
 			
 			switch (dimensionality)
 			{
@@ -2442,8 +2442,8 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 			
 			if (dimensionality == 0)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): pointStopped() cannot be called in non-spatial simulations." << eidos_terminate();
-			if (value_count < dimensionality)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): pointStopped() requires at least as many coordinates as the spatial dimensionality of the simulation." << eidos_terminate();
+			if (value_count != dimensionality)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): pointStopped() requires exactly as many coordinates as the spatial dimensionality of the simulation." << eidos_terminate();
 			
 			switch (dimensionality)
 			{
