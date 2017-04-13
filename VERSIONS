@@ -39,6 +39,7 @@ development head:
 	add support for output of positional information in outputFull(), and reading of positional information in readFromPopulationFile()
 	policy change: readFromPopulationFile() no longer has the side effect of recalculating fitness values, and warns if called at a time other than a late() event
 	remove the Import Population... command in SLiMgui, which no longer fits into the fitness-calculation model of SLiM
+	add tests for interactions and spatiality, tweak interfaces and requirements
 
 
 2.2.1 (build 992; Eidos version 1.2.1):
