@@ -2442,6 +2442,9 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptSuccess("integerDiv(8, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(2)));
 	EidosAssertScriptSuccess("integerDiv(9, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
 	EidosAssertScriptSuccess("integerDiv(6:9, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 2, 2, 3}));
+	EidosAssertScriptSuccess("integerDiv(6:9, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3, 3, 4, 4}));
+	EidosAssertScriptSuccess("integerDiv(-6:-9, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{-2, -2, -2, -3}));
+	EidosAssertScriptSuccess("integerDiv(-6:-9, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{-3, -3, -4, -4}));
 	EidosAssertScriptSuccess("integerDiv(6, 2:6);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3, 2, 1, 1, 1}));
 	EidosAssertScriptSuccess("integerDiv(8:12, 2:6);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{4, 3, 2, 2, 2}));
 	EidosAssertScriptSuccess("integerDiv(-6, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-2)));
@@ -2468,6 +2471,9 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptSuccess("integerMod(8, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(2)));
 	EidosAssertScriptSuccess("integerMod(9, 3);", gStaticEidosValue_Integer0);
 	EidosAssertScriptSuccess("integerMod(6:9, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 1, 2, 0}));
+	EidosAssertScriptSuccess("integerMod(6:9, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 1, 0, 1}));
+	EidosAssertScriptSuccess("integerMod(-6:-9, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, -1, -2, 0}));
+	EidosAssertScriptSuccess("integerMod(-6:-9, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, -1, 0, -1}));
 	EidosAssertScriptSuccess("integerMod(6, 2:6);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 0, 2, 1, 0}));
 	EidosAssertScriptSuccess("integerMod(8:12, 2:6);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 0, 2, 1, 0}));
 	EidosAssertScriptSuccess("integerMod(-6, 3);", gStaticEidosValue_Integer0);

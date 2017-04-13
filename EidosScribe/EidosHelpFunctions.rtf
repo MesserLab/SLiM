@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf810
+{\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf820
 {\fonttbl\f0\fswiss\fcharset0 Optima-Regular;\f1\fnil\fcharset0 Menlo-Regular;\f2\froman\fcharset0 TimesNewRomanPSMT;
 \f3\fnil\fcharset0 Menlo-Italic;\f4\fnil\fcharset0 AppleSymbols;\f5\fswiss\fcharset0 Helvetica;
 \f6\fnil\fcharset0 Menlo-Bold;\f7\ftech\fcharset77 Symbol;}
@@ -482,12 +482,12 @@
 \f0\fs20  type without overflow issues (including during intermediate stages of the computation), otherwise it will be 
 \f1\fs18 float
 \f2\fs20 .\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (float)round(float
 \f2 \'a0
 \f1 x)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns the 
 \b round
@@ -497,7 +497,7 @@
 \f1\fs18 x
 \f0\fs20 , rounding half-way cases away from 
 \f1\fs18 0
-\f0\fs20 .  Note that the return value is 
+\f0\fs20  (different from the rounding policy of R, which rounds halfway cases toward the nearest even number).  Note that the return value is 
 \f1\fs18 float
 \f0\fs20  even though integral values are guaranteed, because values could be outside of the range representable by 
 \f1\fs18 integer

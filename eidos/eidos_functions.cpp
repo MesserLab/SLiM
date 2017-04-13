@@ -1190,16 +1190,18 @@ EidosValue_SP Eidos_ExecuteFunction_integerDiv(const EidosValue_SP *const p_argu
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerDiv): function integerDiv() cannot perform division by 0." << eidos_terminate(nullptr);
 			
 			// Special-case division by 2, since it is common
-			if (int2 == 2)
-			{
-				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					int_result->PushInt(int1_vec[value_index] >> 1);
-			}
-			else
-			{
+			// BCH 13 April 2017: Removing this optimization; it produces inconsistent behavior for negative numerators.
+			// This optimization was originally committed on 2 March 2017; it was never in any release version of SLiM.
+//			if (int2 == 2)
+//			{
+//				for (int value_index = 0; value_index < arg0_count; ++value_index)
+//					int_result->PushInt(int1_vec[value_index] >> 1);
+//			}
+//			else
+//			{
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 					int_result->PushInt(int1_vec[value_index] / int2);
-			}
+//			}
 		}
 		else	// if ((arg0_count != arg1_count) && (arg0_count != 1) && (arg1_count != 1))
 		{
@@ -1278,16 +1280,18 @@ EidosValue_SP Eidos_ExecuteFunction_integerMod(const EidosValue_SP *const p_argu
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerMod): function integerMod() cannot perform modulo by 0." << eidos_terminate(nullptr);
 			
 			// Special-case modulo by 2, since it is common
-			if (int2 == 2)
-			{
-				for (int value_index = 0; value_index < arg0_count; ++value_index)
-					int_result->PushInt(int1_vec[value_index] & (int64_t)0x01);
-			}
-			else
-			{
+			// BCH 13 April 2017: Removing this optimization; it produces inconsistent behavior for negative numerators.
+			// This optimization was originally committed on 2 March 2017; it was never in any release version of SLiM.
+//			if (int2 == 2)
+//			{
+//				for (int value_index = 0; value_index < arg0_count; ++value_index)
+//					int_result->PushInt(int1_vec[value_index] & (int64_t)0x01);
+//			}
+//			else
+//			{
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 					int_result->PushInt(int1_vec[value_index] % int2);
-			}
+//			}
 		}
 		else	// if ((arg0_count != arg1_count) && (arg0_count != 1) && (arg1_count != 1))
 		{
