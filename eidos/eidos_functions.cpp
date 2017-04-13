@@ -6569,7 +6569,7 @@ EidosValue_SP Eidos_ExecuteFunction_hsv2rgb(const EidosValue_SP *const p_argumen
 	int arg0_count = arg0_value->Count();
 	
 	if (arg0_count != 3)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgb2color): rgb must contain exactly three elements." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_hsv2rgb): hsv must contain exactly three elements." << eidos_terminate(nullptr);
 	
 	double h = arg0_value->FloatAtIndex(0, nullptr);
 	double s = arg0_value->FloatAtIndex(1, nullptr);
