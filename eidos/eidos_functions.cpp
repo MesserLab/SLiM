@@ -5242,12 +5242,14 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const EidosValue_SP *const p_argument
 			}
 		}
 		
-		// General case
+		// General case; this is hit when (arg1_count == arg2_count == 1) && (arg0_count == 0), since the
+		// arg0_count > 1 case is handled directly above and the arg0_count == 1 case is further above.
 		result_SP = arg1_value->NewMatchingType();
 		EidosValue *result = result_SP.get();
 		
 		for (int value_index = 0; value_index < arg0_count; ++value_index)
 		{
+			// CODE COVERAGE: The interior of the loop here is actually dead code; see above.
 			if (logical_vec[value_index])
 				result->PushValueFromIndexOfEidosValue(0, *arg1_value, nullptr);
 			else
