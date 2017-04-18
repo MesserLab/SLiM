@@ -8,6 +8,9 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 
 development head:
+
+
+2.3 (build 1052; Eidos version 1.3):
 	added x, y, and z properties to Individual for tracking spatial location
 	add continuousSpace parameter to initializeSLiMOptions() to allow simulations to register as using continuous space
 	make SLiMgui display subpopulations spatially when continuous space is enabled
@@ -40,7 +43,6 @@ development head:
 	policy change: readFromPopulationFile() no longer has the side effect of recalculating fitness values, and warns if called at a time other than a late() event
 	remove the Import Population... command in SLiMgui, which no longer fits into the fitness-calculation model of SLiM
 	add tests for interactions and spatiality, tweak interfaces and requirements
-
 
 2.2.1 (build 992; Eidos version 1.2.1):
 	added recipe to demonstrate forcing a pedigree during mating (recipe 13.7)
