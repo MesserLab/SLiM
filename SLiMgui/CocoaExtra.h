@@ -59,6 +59,18 @@ void RGBForSelectionCoeff(double selectionCoeff, float *colorRed, float *colorGr
 
 @end
 
+// Classes to show a custom tooltip view; this code is derived from SLiMSelectionView / SLiMSelectionMarker
+@interface SLiMToolTipView : NSView
+@end
+
+@interface SLiMToolTipWindow : NSPanel
+@property (nonatomic, retain) NSString *label;
+@property (nonatomic) NSPoint tipPoint;
+
++ (instancetype)new;	// makes a new marker, not shown; set it up with a label and tip point and then call orderFront:
+
+@end
+
 // A category to help us position windows visibly
 @interface NSScreen (SLiMWindowFrames)
 + (BOOL)visibleCandidateWindowFrame:(NSRect)candidateFrame;

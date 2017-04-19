@@ -51,6 +51,7 @@
 	NSDate *continuousPlayStartDate;
 	uint64_t continuousPlayGenerationsCompleted;
 	int partialUpdateCount;
+	SLiMToolTipWindow *playSpeedToolTipWindow;
 	
 	// display-related variables
 	double fitnessColorScale, selectionColorScale;

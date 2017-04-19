@@ -198,6 +198,11 @@
 	
 	[[NSNotificationCenter defaultCenter] removeObserver:self];
 	
+	[NSObject cancelPreviousPerformRequestsWithTarget:playSpeedToolTipWindow selector:@selector(orderOut:) object:nil];
+	[playSpeedToolTipWindow orderOut:nil];
+	[playSpeedToolTipWindow release];
+	playSpeedToolTipWindow = nil;
+	
 	// Free resources
 	[scriptString release];
 	scriptString = nil;
@@ -1211,12 +1216,15 @@
 	{
 		NSDate *startDate = [NSDate date];
 		double speedSliderValue = [playSpeedSlider doubleValue];
-		uint64_t maxGenerationsPerSecond = UINT32_MAX;
 		double intervalSinceStarting = -[continuousPlayStartDate timeIntervalSinceNow];
 		
-		if (speedSliderValue < 1.0)
-			maxGenerationsPerSecond = (uint64_t)floor(speedSliderValue * speedSliderValue * 1000 + 1.0);
-		//NSLog(@"speedSliderValue == %f, maxGenerationsPerSecond == %llu", speedSliderValue, maxGenerationsPerSecond);
+		// Calculate frames per second; this equation must match the equation in playSpeedChanged:
+		double maxGenerationsPerSecond = INFINITY;
+		
+		if (speedSliderValue < 0.99999)
+			maxGenerationsPerSecond = (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * 839;
+		
+		//NSLog(@"speedSliderValue == %f, maxGenerationsPerSecond == %f", speedSliderValue, maxGenerationsPerSecond);
 		
 		// We keep a local version of reachedSimulationEnd, because calling setReachedSimulationEnd: every generation
 		// can actually be a large drag for simulations that run extremely quickly – it can actually exceed the time
@@ -1452,7 +1460,54 @@
 	// We want our speed to be from the point when the slider changed, not from when play started
 	[continuousPlayStartDate release];
 	continuousPlayStartDate = [[NSDate date] retain];
-	continuousPlayGenerationsCompleted = 0;
+	continuousPlayGenerationsCompleted = 1;		// this prevents a new generation from executing every time the slider moves a pixel
+	
+	// This method is called whenever playSpeedSlider changes, continuously; we want to show the chosen speed in a tooltip-ish window
+	double speedSliderValue = [playSpeedSlider doubleValue];
+	
+	// Calculate frames per second; this equation must match the equation in _continuousPlay:
+	double maxGenerationsPerSecond = INFINITY;
+	
+	if (speedSliderValue < 0.99999)
+		maxGenerationsPerSecond = (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * 839;
+	
+	// Make a tooltip label string
+	NSString *fpsString= @"∞ fps";
+	
+	if (!isinf(maxGenerationsPerSecond))
+	{
+		if (maxGenerationsPerSecond < 1.0)
+			fpsString = [NSString stringWithFormat:@"%.2f fps", maxGenerationsPerSecond];
+		else if (maxGenerationsPerSecond < 10.0)
+			fpsString = [NSString stringWithFormat:@"%.1f fps", maxGenerationsPerSecond];
+		else
+			fpsString = [NSString stringWithFormat:@"%.0f fps", maxGenerationsPerSecond];
+		
+		//NSLog(@"fps string: %@", fpsString);
+	}
+	
+	// Calculate the tooltip origin; this is adjusted for the metrics on OS X 10.12
+	NSRect sliderRect = [playSpeedSlider alignmentRectForFrame:[playSpeedSlider frame]];
+	NSPoint tipPoint = sliderRect.origin;
+	
+	tipPoint.x += 5 + round((sliderRect.size.width - 11.0) * speedSliderValue);
+	tipPoint.y += 10;
+	
+	tipPoint = [[playSpeedSlider superview] convertPoint:tipPoint toView:nil];
+	NSRect tipRect = NSMakeRect(tipPoint.x, tipPoint.y, 0, 0);
+	tipPoint = [[playSpeedSlider window] convertRectToScreen:tipRect].origin;
+	
+	// Make the tooltip window, configure it, and display it
+	if (!playSpeedToolTipWindow)
+		playSpeedToolTipWindow = [SLiMToolTipWindow new];
+	
+	[playSpeedToolTipWindow setLabel:fpsString];
+	[playSpeedToolTipWindow setTipPoint:tipPoint];
+	[playSpeedToolTipWindow orderFront:nil];
+	
+	// Schedule a hide of the tooltip; this runs only once we're out of the tracking loop, conveniently
+	[NSObject cancelPreviousPerformRequestsWithTarget:playSpeedToolTipWindow selector:@selector(orderOut:) object:nil];
+	[playSpeedToolTipWindow performSelector:@selector(orderOut:) withObject:nil afterDelay:0.01];
 }
 
 - (IBAction)fitnessColorSliderChanged:(id)sender

@@ -518,6 +518,104 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 @end
 
 
+@implementation SLiMToolTipView
+
+- (void)drawRect:(NSRect)dirtyRect
+{
+	static NSDictionary *labelAttrs = nil;
+	
+	if (!labelAttrs)
+		labelAttrs = [@{NSFontAttributeName : [NSFont fontWithName:@"Times New Roman" size:10], NSForegroundColorAttributeName : [NSColor blackColor]} retain];
+	
+	NSRect bounds = [self bounds];
+	SLiMToolTipWindow *tooltipWindow = (SLiMToolTipWindow *)[self window];
+	NSAttributedString *attrLabel = [[NSAttributedString alloc] initWithString:[tooltipWindow label] attributes:labelAttrs];
+	NSSize labelStringSize = [attrLabel size];
+	NSSize labelSize = NSMakeSize(round(labelStringSize.width + 8.0), round(labelStringSize.height + 1.0));
+	NSRect labelRect = NSMakeRect(bounds.origin.x, bounds.origin.y + bounds.size.height - labelSize.height, labelSize.width, labelSize.height);
+	
+	// Frame our whole bounds, for debugging; note that we draw in only a portion of our bounds, and the rest is transparent
+	//[[NSColor blackColor] set];
+	//NSFrameRect(bounds);
+	
+	// Debugging code: frame and fill our label rect without using NSBezierPath
+	[[NSColor colorWithCalibratedHue:0.15 saturation:0.2 brightness:1.0 alpha:1.0] set];
+	NSRectFill(labelRect);
+	
+	[[NSColor colorWithCalibratedHue:0.15 saturation:0.2 brightness:0.3 alpha:1.0] set];
+	NSFrameRect(labelRect);
+	
+	[attrLabel drawAtPoint:NSMakePoint(labelRect.origin.x + 4, labelRect.origin.y + 1)];
+	[attrLabel release];
+}
+
+- (BOOL)isOpaque
+{
+	return NO;
+}
+
+@end
+
+@implementation SLiMToolTipWindow
+
+// makes a new marker with no label and no tip point, not shown
++ (instancetype)new
+{
+	return [[[self class] alloc] initWithContentRect:NSMakeRect(0, 0, 50, 20) styleMask:NSBorderlessWindowMask backing:NSBackingStoreBuffered defer:YES];	// 50x20 should suffice, unless we change our font size...
+}
+
+- (instancetype)initWithContentRect:(NSRect)contentRect styleMask:(NSUInteger)aStyle backing:(NSBackingStoreType)bufferingType defer:(BOOL)flag
+{
+	if (self = [super initWithContentRect:contentRect styleMask:aStyle backing:bufferingType defer:flag])
+	{
+		[self setFloatingPanel:YES];
+		[self setBecomesKeyOnlyIfNeeded:YES];
+		[self setHasShadow:NO];
+		[self setOpaque:NO];
+		[self setBackgroundColor:[NSColor clearColor]];
+		
+		SLiMToolTipView *view = [[SLiMToolTipView alloc] initWithFrame:contentRect];
+		
+		[self setContentView:view];
+		[view release];
+		
+		_tipPoint = NSMakePoint(contentRect.origin.x, contentRect.origin.y);
+		_label = [@"1000000000" retain];
+	}
+	
+	return self;
+}
+
+- (void)setLabel:(NSString *)label
+{
+	if (![_label isEqualToString:label])
+	{
+		[label retain];
+		[_label release];
+		_label = label;
+		
+		[[self contentView] setNeedsDisplay:YES];
+	}
+}
+
+- (void)setTipPoint:(NSPoint)tipPoint
+{
+	if (!NSEqualPoints(_tipPoint, tipPoint))
+	{
+		NSPoint origin = [self frame].origin;
+		
+		origin.x += (tipPoint.x - _tipPoint.x);
+		origin.y += (tipPoint.y - _tipPoint.y);
+		
+		_tipPoint = tipPoint;
+		
+		[self setFrameOrigin:origin];
+	}
+}
+
+@end
+
+
 @implementation NSScreen (SLiMWindowFrames)
 
 + (BOOL)visibleCandidateWindowFrame:(NSRect)candidateFrame
