@@ -4686,6 +4686,15 @@ void _RunFunctionMiscTests(void)
 	EidosAssertScriptRaise("stop(3.5);", 0, "cannot be type");
 	EidosAssertScriptRaise("stop(_Test(7));", 0, "cannot be type");
 	
+	// system()
+	EidosAssertScriptSuccess("system('expr 5 + 5');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("10")));
+	EidosAssertScriptSuccess("system('expr', args=c('5', '+', '5'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("10")));
+	EidosAssertScriptSuccess("system('expr 5 / 0', stderr=T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("expr: division by zero")));	// is this reliable?
+	EidosAssertScriptSuccess("system('printf foo');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foo")));
+	EidosAssertScriptSuccess("system(\"printf 'foo bar baz' | wc -m | sed 's/ //g'\");", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("11")));
+	EidosAssertScriptSuccess("system(\"(wc -l | sed 's/ //g')\", input=c('foo', 'bar', 'baz'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("3")));
+	EidosAssertScriptSuccess("system(\"echo foo; echo bar; echo baz;\");", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foo", "bar", "baz"}));
+	
 	// time()
 	EidosAssertScriptSuccess("size(strsplit(time(), ':'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
 	EidosAssertScriptRaise("time(NULL);", 0, "too many arguments supplied");

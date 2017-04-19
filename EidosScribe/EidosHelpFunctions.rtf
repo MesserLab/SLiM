@@ -3330,6 +3330,79 @@ The current implementation of
 \f1\fs18 NULL
 \f0\fs20 , it will be printed to Eidos\'92s output stream prior to stopping.
 \f2 \
+\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (string)system(string$\'a0command, [string\'a0args\'a0=\'a0""], [string\'a0input\'a0=\'a0""], [logical$\'a0stderr\'a0=\'a0F])\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf0 Runs a Un*x command in a 
+\f6\fs18 /bin/sh
+\f0\fs20  shell
+\b0  with optional arguments and input, and returns the result as a vector of output lines.  The 
+\f1\fs18 args
+\f0\fs20  parameter may contain a vector of arguments to 
+\f1\fs18 command
+\f0\fs20 ; they will be passed directly to the shell without any quoting, so applying the appropriate quoting as needed by 
+\f1\fs18 /bin/sh
+\f0\fs20  is the caller\'92s responsibility.  The arguments are appended to 
+\f1\fs18 command
+\f0\fs20 , separated by spaces, and the result is passed to the shell as a single command string, so arguments may simply be given as part of 
+\f1\fs18 command
+\f0\fs20  instead, if preferred.  By default no input is supplied to 
+\f1\fs18 command
+\f0\fs20 ; if 
+\f1\fs18 input
+\f0\fs20  is non-empty, however, it will be written to a temporary file (one line per 
+\f1\fs18 string
+\f0\fs20  element) and the standard input of 
+\f1\fs18 command
+\f0\fs20  will be redirected to that temporary file (using standard 
+\f1\fs18 /bin/sh
+\f0\fs20  redirection with 
+\f1\fs18 <
+\f0\fs20 , appended to the command string passed to the shell).  By default, output sent to standard error will not be captured (and thus may end up in the output of the SLiM process, or may be lost); if 
+\f1\fs18 stderr
+\f0\fs20  is 
+\f1\fs18 T
+\f0\fs20 , however, standard error will be redirected into standard out (using standard 
+\f1\fs18 /bin/sh
+\f0\fs20  redirection with 
+\f1\fs18 2>&1
+\f0\fs20 , appended to the command string passed to the shell).\
+Arbitrary command strings involving multiple commands, pipes, redirection, etc., may be used with 
+\f1\fs18 system()
+\f0\fs20 , but may be incompatible with the way that 
+\f1\fs18 args
+\f2\fs20 ,
+\f0  
+\f1\fs18 input
+\f0\fs20 , and 
+\f1\fs18 stderr
+\f0\fs20  are handled by this function, so in this case supplying the whole command string in 
+\f1\fs18 command
+\f0\fs20  may be the simplest course.  You may redirect standard error into standard output yourself in 
+\f1\fs18 command
+\f0\fs20  with 
+\f1\fs18 2>&1
+\f2\fs20 .
+\f0   Supplying input to a complex command line can often be facilitated by the use of parentheses to create a subshell; for example,\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab543\li900\ri1440\sb180\sa180\partightenfactor0
+
+\f1\fs18 \cf0 system("(wc -l | sed 's/ //g')", input=c('foo', 'bar', 'baz'));
+\f2 \
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 will supply the input lines to 
+\f1\fs18 wc
+\f0\fs20  courtesy of the subshell started for the 
+\f1\fs18 ()
+\f0\fs20  operator.  If this strategy doesn\'92t work for the command line you want to execute, you can always write a temporary file yourself using 
+\f1\fs18 writeFile()
+\f0\fs20  and redirect that file to standard input in 
+\f1\fs18 command
+\f0\fs20  with 
+\f1\fs18 <
+\f2\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (string$)time(void)\

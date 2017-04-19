@@ -30,6 +30,7 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include <unistd.h>
+#include <string.h>
 #include <sys/types.h>
 #include <fstream>
 #include <stdexcept>
@@ -255,6 +256,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("setSeed",			Eidos_ExecuteFunction_setSeed,		kEidosValueMaskNULL))->AddInt_S("seed"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("getSeed",			Eidos_ExecuteFunction_getSeed,		kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("stop",				Eidos_ExecuteFunction_stop,			kEidosValueMaskNULL))->AddString_OSN("message", gStaticEidosValueNULL));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("system",			Eidos_ExecuteFunction_system,		kEidosValueMaskString))->AddString_S("command")->AddString_O("args", gStaticEidosValue_StringEmpty)->AddString_O("input", gStaticEidosValue_StringEmpty)->AddLogical_OS("stderr", gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("time",				Eidos_ExecuteFunction_time,			kEidosValueMaskString | kEidosValueMaskSingleton)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("version",			Eidos_ExecuteFunction_version,		kEidosValueMaskNULL)));
 		
@@ -7259,6 +7261,110 @@ EidosValue_SP Eidos_ExecuteFunction_stop(const EidosValue_SP *const p_arguments,
 		p_interpreter.ExecutionOutputStream() << p_arguments[0]->StringAtIndex(0, nullptr) << endl;
 	
 	EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_stop): stop() called." << eidos_terminate(nullptr);
+	
+	return result_SP;
+}
+
+//	(string)system(string$ command, [string args = ""], [string input = ""], [logical$ stderr = F])
+EidosValue_SP Eidos_ExecuteFunction_system(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *command_value = p_arguments[0].get();
+	EidosValue *args_value = p_arguments[1].get();
+	int arg_count = args_value->Count();
+	bool has_args = ((arg_count > 1) || ((arg_count == 1) && (args_value->StringAtIndex(0, nullptr).length() > 0)));
+	EidosValue *input_value = p_arguments[2].get();
+	int input_count = input_value->Count();
+	bool has_input = ((input_count > 1) || ((input_count == 1) && (input_value->StringAtIndex(0, nullptr).length() > 0)));
+	bool redirect_stderr = p_arguments[3]->LogicalAtIndex(0, nullptr);
+	
+	// Construct the command string
+	std::string command_string = command_value->StringAtIndex(0, nullptr);
+	
+	if (command_string.length() == 0)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_system): a non-empty command string must be supplied to system()." << eidos_terminate(nullptr);
+	
+	if (has_args)
+	{
+		for (int value_index = 0; value_index < arg_count; ++value_index)
+		{
+			command_string.append(" ");
+			command_string.append(args_value->StringAtIndex(value_index, nullptr));
+		}
+	}
+	
+	// Make the input temporary file and redirect, if requested
+	if (has_input)
+	{
+		// thanks to http://stackoverflow.com/questions/499636/how-to-create-a-stdofstream-to-a-temp-file for the temp file creation code
+		
+		char *name = strdup("/tmp/eidos_system_XXXXXX");	// the /tmp directory is standard on OS X and Linux; probably on all Un*x systems
+		int fd = mkstemp(name);
+		
+		if (fd == -1)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_system): (internal error) mkstemp() failed!" << eidos_terminate(nullptr);
+		
+		std::ofstream file_stream(name, std::ios_base::out);
+		close(fd);
+		
+		if (!file_stream.is_open())
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_system): (internal error) ofstream() failed!" << eidos_terminate(nullptr);
+		
+		if (input_count == 1)
+		{
+			file_stream << input_value->StringAtIndex(0, nullptr) << std::endl;
+		}
+		else
+		{
+			const std::vector<std::string> &string_vec = *input_value->StringVector();
+			
+			for (int value_index = 0; value_index < input_count; ++value_index)
+			{
+				file_stream << string_vec[value_index];
+				
+				// Add newlines after all lines, including the last
+				file_stream << std::endl;
+			}
+		}
+		
+		if (file_stream.bad())
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_system): (internal error) stream errors writing temporary file for input" << eidos_terminate(nullptr);
+		
+		command_string.append(" < ");
+		command_string.append(name);
+		
+		free(name);
+	}
+	
+	// Redirect standard error, if requested
+	if (redirect_stderr)
+	{
+		command_string.append(" 2>&1");
+	}
+	
+	// Execute the command string; thanks to http://stackoverflow.com/questions/478898/how-to-execute-a-command-and-get-output-of-command-within-c-using-posix
+	//std::cout << "Executing command string: " << command_string << std::endl;
+	
+	char buffer[128];
+	std::string result = "";
+	std::shared_ptr<FILE> pipe(popen(command_string.c_str(), "r"), pclose);
+	if (!pipe)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_system): (internal error) popen() failed!" << eidos_terminate(nullptr);
+	while (!feof(pipe.get())) {
+		if (fgets(buffer, 128, pipe.get()) != NULL)
+			result += buffer;
+	}
+	
+	// Parse the result into lines and make a result vector
+	std::istringstream result_stream(result);
+	EidosValue_String_vector *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector();
+	result_SP = EidosValue_SP(string_result);
+	
+	std::string line;
+	
+	while (getline(result_stream, line))
+		string_result->PushString(line);
 	
 	return result_SP;
 }

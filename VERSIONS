@@ -8,6 +8,7 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 
 development head:
+	add a system() function to call out to Unix to run commands
 
 
 2.3 (build 1052; Eidos version 1.3):
