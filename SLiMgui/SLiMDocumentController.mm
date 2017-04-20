@@ -27,9 +27,21 @@
 - (SLiMDocument *)transientDocumentToReplace
 {
 	NSArray *documents = [self documents];
-	SLiMDocument *transientDoc = nil;
 	
-	return ([documents count] == 1 && [(transientDoc = [documents objectAtIndex:0]) isTransientAndCanBeReplaced]) ? transientDoc : nil;
+	if ([documents count] == 1)
+	{
+		NSDocument *firstDoc = [documents objectAtIndex:0];
+		
+		if ([firstDoc isKindOfClass:[SLiMDocument class]])
+		{
+			SLiMDocument *slimDoc = (SLiMDocument *)firstDoc;
+			
+			if ([slimDoc isTransientAndCanBeReplaced])
+				return slimDoc;
+		}
+	}
+	
+	return nil;
 }
 
 - (void)replaceTransientDocument:(NSArray *)documents
@@ -65,20 +77,25 @@
 	if (transientDoc)
 	{
 		// Defer display so we can replace the transient document first
-		SLiMDocument *doc = [super openDocumentWithContentsOfURL:absoluteURL display:NO error:outError];
+		NSDocument *typelessDoc = [super openDocumentWithContentsOfURL:absoluteURL display:NO error:outError];
 		
-		if (doc)
+		if (typelessDoc)
 		{
-			[self replaceTransientDocument:[NSArray arrayWithObjects:transientDoc, doc, nil]];
+			if ([typelessDoc isKindOfClass:[SLiMDocument class]])
+			{
+				SLiMDocument *doc = (SLiMDocument *)typelessDoc;
+				
+				[self replaceTransientDocument:[NSArray arrayWithObjects:transientDoc, doc, nil]];
+			}
 			
 			if (displayDocument)
 			{
-				[doc makeWindowControllers];
-				[doc showWindows];
+				[typelessDoc makeWindowControllers];
+				[typelessDoc showWindows];
 			}
 		}
 		
-		return doc;
+		return typelessDoc;
 	}
 	else
 	{
@@ -100,10 +117,12 @@
 		if (scriptString)
 		{
 			SLiMDocument *transientDoc = [self transientDocumentToReplace];
-			SLiMDocument *doc = [[NSDocumentController sharedDocumentController] openUntitledDocumentAndDisplay:NO error:NULL];
+			NSDocument *typelessDoc = [[NSDocumentController sharedDocumentController] openUntitledDocumentAndDisplay:NO error:NULL];
 			
-			if (doc)
+			if (typelessDoc && [typelessDoc isKindOfClass:[SLiMDocument class]])
 			{
+				SLiMDocument *doc = (SLiMDocument *)typelessDoc;
+				
 				if (transientDoc)
 					[self replaceTransientDocument:[NSArray arrayWithObjects:transientDoc, doc, nil]];
 				
@@ -122,11 +141,20 @@
 // This happens when the user selects "New" when a transient document already exists.
 - (void)addDocument:(NSDocument *)newDoc
 {
-	SLiMDocument *firstDoc;
 	NSArray *documents = [self documents];
 	
-	if (([documents count] == 1) && (firstDoc = [documents objectAtIndex:0]) && [firstDoc isTransient])
-		[firstDoc setTransient:NO];
+	if ([documents count] == 1)
+	{
+		NSDocument *firstDoc = [documents objectAtIndex:0];
+		
+		if ([firstDoc isKindOfClass:[SLiMDocument class]])
+		{
+			SLiMDocument *slimDoc = (SLiMDocument *)firstDoc;
+			
+			if ([slimDoc isTransient])
+				[slimDoc setTransient:NO];
+		}
+	}
 	
 	[super addDocument:newDoc];
 }

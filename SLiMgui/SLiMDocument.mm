@@ -115,6 +115,7 @@
 
 - (void)windowControllerDidLoadNib:(NSWindowController *)aController
 {
+	// Note this method is not called, because we override -makeWindowControllers
     [super windowControllerDidLoadNib:aController];
 }
 

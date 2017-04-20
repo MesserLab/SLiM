@@ -143,6 +143,10 @@
 		987AD88B1B2CDBB80035D6C8 /* EidosConsoleWindowController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 987AD8891B2CDBB80035D6C8 /* EidosConsoleWindowController.mm */; };
 		98800DC41B7EDCB50046F5F9 /* slim_test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98800DC21B7EDCB50046F5F9 /* slim_test.cpp */; };
 		98800DC51B82B6C60046F5F9 /* slim_test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98800DC21B7EDCB50046F5F9 /* slim_test.cpp */; };
+		9887946B1EA8804900AE0C8D /* SLiMPDFDocument.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9887946A1EA8804900AE0C8D /* SLiMPDFDocument.mm */; };
+		9887946F1EA8808000AE0C8D /* SLiMPDFWindowController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9887946D1EA8808000AE0C8D /* SLiMPDFWindowController.mm */; };
+		988794701EA8808000AE0C8D /* SLiMPDFWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9887946E1EA8808000AE0C8D /* SLiMPDFWindow.xib */; };
+		988794731EA8C42200AE0C8D /* SLiMPDFView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 988794721EA8C42200AE0C8D /* SLiMPDFView.mm */; };
 		9892282B1BAE279700429674 /* EidosHelpOperators.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9892282A1BAE279700429674 /* EidosHelpOperators.rtf */; };
 		9892282C1BAE279700429674 /* EidosHelpOperators.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9892282A1BAE279700429674 /* EidosHelpOperators.rtf */; };
 		9892282E1BAE27AA00429674 /* EidosHelpTypes.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9892282D1BAE27AA00429674 /* EidosHelpTypes.rtf */; };
@@ -627,6 +631,13 @@
 		98833AEC1C7A9E8D0072DBAC /* COPYING */ = {isa = PBXFileReference; lastKnownFileType = text; path = COPYING; sourceTree = "<group>"; };
 		98833AED1C7A9E8D0072DBAC /* README */ = {isa = PBXFileReference; lastKnownFileType = text; path = README; sourceTree = "<group>"; };
 		98833AEE1C7A9E8D0072DBAC /* THANKS */ = {isa = PBXFileReference; lastKnownFileType = text; path = THANKS; sourceTree = "<group>"; };
+		988794691EA8804900AE0C8D /* SLiMPDFDocument.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SLiMPDFDocument.h; sourceTree = "<group>"; };
+		9887946A1EA8804900AE0C8D /* SLiMPDFDocument.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SLiMPDFDocument.mm; sourceTree = "<group>"; };
+		9887946C1EA8808000AE0C8D /* SLiMPDFWindowController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SLiMPDFWindowController.h; sourceTree = "<group>"; };
+		9887946D1EA8808000AE0C8D /* SLiMPDFWindowController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SLiMPDFWindowController.mm; sourceTree = "<group>"; };
+		9887946E1EA8808000AE0C8D /* SLiMPDFWindow.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = SLiMPDFWindow.xib; sourceTree = "<group>"; };
+		988794711EA8C42200AE0C8D /* SLiMPDFView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SLiMPDFView.h; sourceTree = "<group>"; };
+		988794721EA8C42200AE0C8D /* SLiMPDFView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SLiMPDFView.mm; sourceTree = "<group>"; };
 		9892282A1BAE279700429674 /* EidosHelpOperators.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = EidosHelpOperators.rtf; sourceTree = "<group>"; };
 		9892282D1BAE27AA00429674 /* EidosHelpTypes.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = EidosHelpTypes.rtf; sourceTree = "<group>"; };
 		989228301BAF496C00429674 /* EidosHelpStatements.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = EidosHelpStatements.rtf; sourceTree = "<group>"; };
@@ -1114,6 +1125,20 @@
 			name = Graphing;
 			sourceTree = "<group>";
 		};
+		988794681EA87FC300AE0C8D /* PDF */ = {
+			isa = PBXGroup;
+			children = (
+				988794691EA8804900AE0C8D /* SLiMPDFDocument.h */,
+				9887946A1EA8804900AE0C8D /* SLiMPDFDocument.mm */,
+				9887946C1EA8808000AE0C8D /* SLiMPDFWindowController.h */,
+				9887946D1EA8808000AE0C8D /* SLiMPDFWindowController.mm */,
+				988794711EA8C42200AE0C8D /* SLiMPDFView.h */,
+				988794721EA8C42200AE0C8D /* SLiMPDFView.mm */,
+				9887946E1EA8808000AE0C8D /* SLiMPDFWindow.xib */,
+			);
+			name = PDF;
+			sourceTree = "<group>";
+		};
 		98A2405B1B8E32F4005C9A30 /* Shared Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -1276,6 +1301,7 @@
 		98D4C1B41A6F537B00FFB083 /* SLiMgui */ = {
 			isa = PBXGroup;
 			children = (
+				988794681EA87FC300AE0C8D /* PDF */,
 				9821E1F61ABC671D0036EAEA /* ScriptMod */,
 				986926D61AA13D340000E138 /* Graphing */,
 				98D4C21A1A718EFD00FFB083 /* CocoaExtra.h */,
@@ -1606,6 +1632,7 @@
 				987AD87C1B2CBE4B0035D6C8 /* show_parse_H.pdf in Resources */,
 				987AD8771B2CBE050035D6C8 /* show_browser.pdf in Resources */,
 				98A4EC951B67C1D900CD92FD /* EidosConsoleWindow.xib in Resources */,
+				988794701EA8808000AE0C8D /* SLiMPDFWindow.xib in Resources */,
 				985301F21B7262E5001520DF /* ScriptMod_ChangeCloning.xib in Resources */,
 				985301F51B726817001520DF /* ScriptMod_AddSexConfiguration.xib in Resources */,
 				98453F451A75AABE00C058CB /* syntax_help.pdf in Resources */,
@@ -1953,6 +1980,7 @@
 				9825565B1BA32EE80054CB3F /* EidosCocoaExtra.mm in Sources */,
 				98C821581C7A983700548839 /* gamma.c in Sources */,
 				98DE4C2A1B713F52004FDF5F /* ScriptMod_OutputFixedMutations.mm in Sources */,
+				9887946B1EA8804900AE0C8D /* SLiMPDFDocument.mm in Sources */,
 				98DE4C1C1B713F21004FDF5F /* ScriptMod_AddSubpop.mm in Sources */,
 				985724A21AD34B740047C223 /* eidos_functions.cpp in Sources */,
 				98C8214C1C7A983700548839 /* gauss.c in Sources */,
@@ -1983,6 +2011,7 @@
 				98D4C20A1A7086FF00FFB083 /* ChromosomeView.mm in Sources */,
 				987AD8821B2CBF960035D6C8 /* EidosConsoleTextView.mm in Sources */,
 				98C821441C7A983700548839 /* math.c in Sources */,
+				9887946F1EA8808000AE0C8D /* SLiMPDFWindowController.mm in Sources */,
 				980DD51D1AB0B01F00D5B7B8 /* GraphView_MutationFrequencyTrajectory.mm in Sources */,
 				989524A91E40AE74007E62FA /* SLiMDocument.mm in Sources */,
 				987AD88A1B2CDBB80035D6C8 /* EidosConsoleWindowController.mm in Sources */,
@@ -1995,6 +2024,7 @@
 				98D4C1DD1A6F543600FFB083 /* chromosome.cpp in Sources */,
 				98C8215B1C7A983700548839 /* psi.c in Sources */,
 				986926DF1AA14CF10000E138 /* GraphView_MutationFrequencySpectra.mm in Sources */,
+				988794731EA8C42200AE0C8D /* SLiMPDFView.mm in Sources */,
 				98DE4C301B713F68004FDF5F /* ScriptMod_AddGenomicElement.mm in Sources */,
 				98D4C1E11A6F544500FFB083 /* genome.cpp in Sources */,
 				987AD8861B2CC0C10035D6C8 /* EidosVariableBrowserController.mm in Sources */,
