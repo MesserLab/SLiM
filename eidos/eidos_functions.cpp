@@ -7345,6 +7345,7 @@ EidosValue_SP Eidos_ExecuteFunction_system(const EidosValue_SP *const p_argument
 	
 	// Execute the command string; thanks to http://stackoverflow.com/questions/478898/how-to-execute-a-command-and-get-output-of-command-within-c-using-posix
 	//std::cout << "Executing command string: " << command_string << std::endl;
+	//std::cout << "Command string length: " << command_string.length() << " bytes" << std::endl;
 	
 	char buffer[128];
 	std::string result = "";
