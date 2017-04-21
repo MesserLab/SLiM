@@ -20,6 +20,7 @@
 
 #import "SLiMDocumentController.h"
 #import "SLiMDocument.h"
+#import "SLiMPDFDocument.h"
 
 
 @implementation SLiMDocumentController
@@ -157,6 +158,15 @@
 	}
 	
 	[super addDocument:newDoc];
+}
+
+- (void)noteNewRecentDocument:(NSDocument *)document
+{
+	// prevent PDF documents from being added to the recent documents list
+	if ([document isKindOfClass:[SLiMPDFDocument class]])
+		return;
+	
+	[super noteNewRecentDocument:document];
 }
 
 @end
