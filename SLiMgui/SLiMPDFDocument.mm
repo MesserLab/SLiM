@@ -162,12 +162,26 @@
 	return NO;
 }
 
+- (void)copy:(id)sender
+{
+	if (pdfData && [pdfData length])
+	{
+		NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
+		
+		[pasteboard declareTypes:@[NSPDFPboardType] owner:self];
+		[pasteboard setData:pdfData forType:NSPDFPboardType];
+	}
+}
+
 - (BOOL)validateUserInterfaceItem:(id<NSValidatedUserInterfaceItem>)item
 {
 	// I would have expected that returning an empty array for writeableTypes would cause Save As...
 	// to be disabled, but that is apparently not the case.  I can't find any better way than this.
 	if ([item action] == @selector(saveDocumentAs:))
 		return NO;
+
+	if ([item action] == @selector(copy:))
+		return (pdfData && [pdfData length]);
 	
 	//NSLog(@"sel = %@", NSStringFromSelector([item action]));
 	

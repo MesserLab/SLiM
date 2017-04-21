@@ -131,6 +131,17 @@
 	[self setNeedsDisplay:YES];
 }
 
+- (NSMenu *)menu
+{
+	NSMenu *menu = [[NSMenu alloc] initWithTitle:@"pdf_menu"];
+	NSMenuItem *menuItem;
+	
+	menuItem = [menu addItemWithTitle:@"Copy" action:@selector(copy:) keyEquivalent:@""];
+	[menuItem setTarget:[[[self window] windowController] document]];
+	
+	return [menu autorelease];
+}
+
 @end
 
 
