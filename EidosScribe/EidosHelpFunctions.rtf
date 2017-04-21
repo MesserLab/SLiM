@@ -2747,11 +2747,11 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f1\fs18 NULL
 \f0\fs20  will be returned.
 \f2 \
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (logical$)writeFile(string$\'a0filePath, string\'a0contents, [logical$\'a0append\'a0=\'a0F])
 \f2 \
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf0 Writes or appends to a file
 \b0  specified by 
@@ -2768,7 +2768,12 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f1\fs18 filePath
 \f0\fs20 ; if it is 
 \f1\fs18 F
-\f0\fs20  (the default), then the write will replace an existing file at that path.  Note that newline characters will be added at the ends of the lines in 
+\f0\fs20  (the default), then the write will replace an existing file at that path.  If the write is successful, 
+\f1\fs18 T
+\f0\fs20  will be returned; if not, 
+\f1\fs18 F
+\f0\fs20  will be returned.\
+Note that newline characters will be added at the ends of the lines in 
 \f1\fs18 contents
 \f0\fs20 .  If you do not wish to have newlines added, you should use 
 \f1\fs18 paste()
@@ -2776,15 +2781,61 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f1\fs18 contents
 \f0\fs20  together into a singleton 
 \f1\fs18 string
-\f2\fs20 .
-\f0   If the write is successful, 
-\f1\fs18 T
-\f0\fs20  will be returned; if not, 
-\f1\fs18 F
+\f2\fs20 .\
+\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (string$)writeTempFile(string$\'a0prefix, string$\'a0suffix, string\'a0contents)
+\f2 \
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf0 Writes to a unique temporary file
+\b0  with contents specified by 
+\f1\fs18 contents
+\f0\fs20 , a 
+\f1\fs18 string
+\f0\fs20  vector of lines.  The filename used will begin with 
+\f1\fs18 prefix
+\f0\fs20  and end with 
+\f1\fs18 suffix
+\f0\fs20 , and will contain six random characters in between; for example, if 
+\f1\fs18 prefix
+\f0\fs20  is 
+\f1\fs18 "plot1_"
+\f0\fs20  and 
+\f1\fs18 suffix
+\f0\fs20  is 
+\f1\fs18 ".pdf"
+\f0\fs20 , the generated filename might look like 
+\f1\fs18 "plot1_r5Mq0t.pdf"
+\f0\fs20 .  It is legal for 
+\f1\fs18 prefix
+\f0\fs20 , 
+\f1\fs18 suffix
+\f0\fs20 , or both to be the empty string, 
+\f1\fs18 ""
+\f0\fs20 , but supplying a file extension is usually advisable at minimum.  The file will be created inside the 
+\f1\fs18 /tmp/
+\f0\fs20  directory of the system, which is provided by Un*x systems as a standard location for temporary files; the 
+\f1\fs18 /tmp/
+\f0\fs20  directory should not be specified as part of prefix (nor should any other directory information).  The filename generated is guaranteed not to already exist in 
+\f1\fs18 /tmp/
+\f0\fs20 .  The file is created with Un*x permissions 
+\f1\fs18 0600
+\f0\fs20 , allowing reading and writing only by the user for security.  If the write is successful, the full path to the temporary file will be returned; if not, 
+\f1\fs18 ""
 \f0\fs20  will be returned.\
+Note that newline characters will be added at the ends of the lines in 
+\f1\fs18 contents
+\f0\fs20 .  If you do not wish to have newlines added, you should use 
+\f1\fs18 paste()
+\f0\fs20  to assemble the elements of 
+\f1\fs18 contents
+\f0\fs20  together into a singleton 
+\f1\fs18 string
+\f2\fs20 .\
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
-\b\fs22 \cf0 3.8.  Color manipulation functions\
+\f0\b\fs22 \cf0 3.8.  Color manipulation functions\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\b0\fs18 \cf0 (float)color2rgb(string$\'a0color)

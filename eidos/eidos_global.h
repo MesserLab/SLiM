@@ -157,6 +157,9 @@ std::string EidosGetUntrimmedRaiseMessage(void);
 // Resolve a leading ~ in a filesystem path to the user's home directory
 std::string EidosResolvedPath(const std::string p_path);
 
+// Create a temporary file based upon a template filename; note that pattern is modified!
+int Eidos_mkstemps(char *pattern, int suffix_len);
+
 
 // *******************************************************************************************************************
 //

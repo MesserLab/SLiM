@@ -271,6 +271,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("deleteFile",		Eidos_ExecuteFunction_deleteFile,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S("filePath"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("readFile",			Eidos_ExecuteFunction_readFile,		kEidosValueMaskString))->AddString_S("filePath"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("writeFile",		Eidos_ExecuteFunction_writeFile,		kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S("filePath")->AddString("contents")->AddLogical_OS("append", gStaticEidosValue_LogicalF));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("writeTempFile",		Eidos_ExecuteFunction_writeTempFile,	kEidosValueMaskString | kEidosValueMaskSingleton))->AddString_S("prefix")->AddString_S("suffix")->AddString("contents"));
 
 		
 		// ************************************************************************************
@@ -6522,6 +6523,8 @@ EidosValue_SP Eidos_ExecuteFunction_writeFile(const EidosValue_SP *const p_argum
 		if (arg1_count == 1)
 		{
 			// BCH 27 January 2017: changed to add a newline after the last line, too, so appending new content to a file produces correct line breaks
+			// Note that system() and writeTempFile() do not append this newline, to allow the user to exactly specify file contents,
+			// but with writeFile() appending seems more likely to me; we'll see if anybody squawks
 			file_stream << arg1_value->StringAtIndex(0, nullptr) << endl;
 		}
 		else
@@ -6535,7 +6538,7 @@ EidosValue_SP Eidos_ExecuteFunction_writeFile(const EidosValue_SP *const p_argum
 				// Add newlines after all lines but the last
 				// BCH 27 January 2017: changed to add a newline after the last line, too, so appending new content to a file produces correct line breaks
 				//if (value_index + 1 < arg1_count)
-					file_stream << endl;
+				file_stream << endl;
 			}
 		}
 		
@@ -6551,6 +6554,82 @@ EidosValue_SP Eidos_ExecuteFunction_writeFile(const EidosValue_SP *const p_argum
 		}
 	}
 	
+	return result_SP;
+}
+
+//	(string$)writeTempFile(string$ prefix, string$ suffix, string contents)
+EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *prefix_value = p_arguments[0].get();
+	string prefix = prefix_value->StringAtIndex(0, nullptr);
+	EidosValue *suffix_value = p_arguments[1].get();
+	string suffix = suffix_value->StringAtIndex(0, nullptr);
+	string filename = prefix + "XXXXXX" + suffix;
+	string file_path_template = "/tmp/" + filename;		// the /tmp directory is standard on OS X and Linux; probably on all Un*x systems
+	
+	if ((filename.find("~") != string::npos) || (filename.find("/") != string::npos))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_writeTempFile): prefix and suffix may not contain '~' or '/'; they may specify only a filename." << eidos_terminate(nullptr);
+	
+	// the third argument is the file contents to write
+	EidosValue *contents_value = p_arguments[2].get();
+	int contents_count = contents_value->Count();
+	
+	// write the contents out; thanks to http://stackoverflow.com/questions/499636/how-to-create-a-stdofstream-to-a-temp-file for the temp file creation code
+	char *file_path_cstr = strdup(file_path_template.c_str());
+	int fd = Eidos_mkstemps(file_path_cstr, (int)suffix.length());
+	
+	if (fd == -1)
+	{
+		free(file_path_cstr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_writeTempFile): (internal error) Eidos_mkstemps() failed!" << eidos_terminate(nullptr);
+	}
+	
+	string file_path(file_path_cstr);
+	std::ofstream file_stream(file_path.c_str(), std::ios_base::out);
+	close(fd);	// opened by Eidos_mkstemps()
+	
+	if (!file_stream.is_open())
+	{
+		// Not a fatal error, just a warning log
+		p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeTempFile): function writeTempFile() could not write to file at path " << file_path << "." << endl;
+		result_SP = gStaticEidosValue_StringEmpty;
+	}
+	else
+	{
+		if (contents_count == 1)
+		{
+			file_stream << contents_value->StringAtIndex(0, nullptr);	// no final newline in this case, so the user can precisely specify the file contents if desired
+		}
+		else
+		{
+			const std::vector<std::string> &string_vec = *contents_value->StringVector();
+			
+			for (int value_index = 0; value_index < contents_count; ++value_index)
+			{
+				file_stream << string_vec[value_index];
+				
+				// Add newlines after all lines but the last
+				// BCH 27 January 2017: changed to add a newline after the last line, too, so appending new content to a file produces correct line breaks
+				//if (value_index + 1 < contents_count)
+				file_stream << endl;
+			}
+		}
+		
+		if (file_stream.bad())
+		{
+			// Not a fatal error, just a warning log
+			p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeTempFile): function writeTempFile() encountered stream errors while writing to file at path " << file_path << "." << endl;
+			result_SP = gStaticEidosValue_StringEmpty;
+		}
+		else
+		{
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(file_path));
+		}
+	}
+	
+	free(file_path_cstr);
 	return result_SP;
 }
 
@@ -7306,14 +7385,14 @@ EidosValue_SP Eidos_ExecuteFunction_system(const EidosValue_SP *const p_argument
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_system): (internal error) mkstemp() failed!" << eidos_terminate(nullptr);
 		
 		std::ofstream file_stream(name, std::ios_base::out);
-		close(fd);
+		close(fd);	// opened by mkstemp()
 		
 		if (!file_stream.is_open())
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_system): (internal error) ofstream() failed!" << eidos_terminate(nullptr);
 		
 		if (input_count == 1)
 		{
-			file_stream << input_value->StringAtIndex(0, nullptr) << std::endl;
+			file_stream << input_value->StringAtIndex(0, nullptr);	// no final newline in this case, so the user can precisely specify the file contents if desired
 		}
 		else
 		{

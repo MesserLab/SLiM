@@ -155,6 +155,7 @@ EidosValue_SP Eidos_ExecuteFunction_deleteFile(const EidosValue_SP *const p_argu
 EidosValue_SP Eidos_ExecuteFunction_filesAtPath(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_readFile(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_writeFile(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 
 //	color manipulation functions
 EidosValue_SP Eidos_ExecuteFunction_hsv2rgb(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);

@@ -4407,6 +4407,11 @@ void _RunFunctionFilesystemTests(void)
 	EidosAssertScriptSuccess("deleteFile('/tmp/EidosTest.txt');", gStaticEidosValue_LogicalF);
 	
 	// createDirectory() – hard to test this, since it's hard to generate a path to create a folder at that is guaranteed not to exist, especially if this same test has run before on this system...
+	
+	// writeTempFile()
+	EidosAssertScriptSuccess("file = writeTempFile('eidos_test_', '.txt', ''); identical(readFile(file), string(0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("file = writeTempFile('eidos_test_', '.txt', 'foo'); identical(readFile(file), 'foo');", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("file = writeTempFile('eidos_test_', '.txt', c(paste(0:4), paste(5:9))); identical(readFile(file), c('0 1 2 3 4', '5 6 7 8 9'));", gStaticEidosValue_LogicalT);
 }
 
 #pragma mark color manipulation
