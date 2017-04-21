@@ -47,71 +47,74 @@
 	[[NSColor darkGrayColor] set];
 	NSRectFill(bounds);
 	
-	// thanks to https://ryanbritton.com/2015/09/correctly-drawing-pdfs-in-cocoa/ for this code
-	
-	CGSize drawingSize = {bounds.size.width, bounds.size.height};
-	
-	// Document Loading
-	CGPDFDocumentRef pdfDocument = [_document documentRef];
-	CGPDFPageRef page = CGPDFDocumentGetPage(pdfDocument, 1);
-	
-	// Start by getting the crop box since only its contents should be drawn
-	CGRect cropBox = CGPDFPageGetBoxRect(page, kCGPDFCropBox);
-	
-	// Account for rotation of the page to figure out the size to create the context. Like images, 
-	// rotation can be represented by one of two ways in a PDF: the contents can be pre-rotated
-	// in which case nothing needs to be done or the document can have its rotation value set and
-	// it means we need to apply the rotation as an affine transformation when drawing
-	NSInteger rotationAngle = CGPDFPageGetRotationAngle(page);
-	CGFloat angleInRadians = -rotationAngle * (M_PI / 180);
-	CGAffineTransform transform = CGAffineTransformMakeRotation(angleInRadians);
-	CGRect rotatedCropRect = CGRectApplyAffineTransform(cropBox, transform);
-	
-	// Figure out the closest size we can draw the PDF at that's no larger than drawingSize
-	CGRect bestFit = CGRectMake(0, 0, 0, 0);
-	double rotatedCropRectAspect = rotatedCropRect.size.width / rotatedCropRect.size.height;
-	double drawingSizeAspect = drawingSize.width / drawingSize.height;
-	
-	if (rotatedCropRectAspect > drawingSizeAspect)
+	if (_document)
 	{
-		bestFit.size.width = drawingSize.width;
-		bestFit.size.height = round(rotatedCropRect.size.height * (drawingSize.width / rotatedCropRect.size.width));
-		bestFit.origin.y = round((drawingSize.height - bestFit.size.height) / 2);
+		// thanks to https://ryanbritton.com/2015/09/correctly-drawing-pdfs-in-cocoa/ for this code
+		
+		CGSize drawingSize = {bounds.size.width, bounds.size.height};
+		
+		// Document Loading
+		CGPDFDocumentRef pdfDocument = [_document documentRef];
+		CGPDFPageRef page = CGPDFDocumentGetPage(pdfDocument, 1);
+		
+		// Start by getting the crop box since only its contents should be drawn
+		CGRect cropBox = CGPDFPageGetBoxRect(page, kCGPDFCropBox);
+		
+		// Account for rotation of the page to figure out the size to create the context. Like images, 
+		// rotation can be represented by one of two ways in a PDF: the contents can be pre-rotated
+		// in which case nothing needs to be done or the document can have its rotation value set and
+		// it means we need to apply the rotation as an affine transformation when drawing
+		NSInteger rotationAngle = CGPDFPageGetRotationAngle(page);
+		CGFloat angleInRadians = -rotationAngle * (M_PI / 180);
+		CGAffineTransform transform = CGAffineTransformMakeRotation(angleInRadians);
+		CGRect rotatedCropRect = CGRectApplyAffineTransform(cropBox, transform);
+		
+		// Figure out the closest size we can draw the PDF at that's no larger than drawingSize
+		CGRect bestFit = CGRectMake(0, 0, 0, 0);
+		double rotatedCropRectAspect = rotatedCropRect.size.width / rotatedCropRect.size.height;
+		double drawingSizeAspect = drawingSize.width / drawingSize.height;
+		
+		if (rotatedCropRectAspect > drawingSizeAspect)
+		{
+			bestFit.size.width = drawingSize.width;
+			bestFit.size.height = round(rotatedCropRect.size.height * (drawingSize.width / rotatedCropRect.size.width));
+			bestFit.origin.y = round((drawingSize.height - bestFit.size.height) / 2);
+		}
+		else
+		{
+			bestFit.size.width = round(rotatedCropRect.size.width * (drawingSize.height / rotatedCropRect.size.height));
+			bestFit.size.height = drawingSize.height;
+			bestFit.origin.x = round((drawingSize.width - bestFit.size.width) / 2);
+		}
+		
+		CGFloat scale = CGRectGetHeight(bestFit) / CGRectGetHeight(rotatedCropRect);
+		
+		// Get the drawing context
+		CGContextRef context = (CGContextRef)[[NSGraphicsContext currentContext] graphicsPort];
+		
+		// Create the affine transformation matrix to align the PDF's CropBox to our drawing context.
+		//transform = CGPDFPageGetDrawingTransform(page, kCGPDFCropBox, CGRectMake(0, 0, CGRectGetWidth(bestFit), CGRectGetHeight(bestFit)), 0, true);
+		transform = CGPDFPageGetDrawingTransform(page, kCGPDFCropBox, bestFit, 0, true);
+		
+		if (scale > 1)
+		{
+			// Since CGPDFPageGetDrawingTransform won't scale up, we need to do it manually
+			transform = CGAffineTransformTranslate(transform, CGRectGetMidX(cropBox), CGRectGetMidY(cropBox));
+			transform = CGAffineTransformScale(transform, scale, scale);
+			transform = CGAffineTransformTranslate(transform, -CGRectGetMidX(cropBox), -CGRectGetMidY(cropBox));
+		}
+		
+		CGContextConcatCTM(context, transform);
+		
+		// Clip the drawing to the CropBox
+		CGContextAddRect(context, cropBox);
+		CGContextClip(context);
+		
+		[[NSColor whiteColor] set];
+		NSRectFill(cropBox);
+		
+		CGContextDrawPDFPage(context, page);
 	}
-	else
-	{
-		bestFit.size.width = round(rotatedCropRect.size.width * (drawingSize.height / rotatedCropRect.size.height));
-		bestFit.size.height = drawingSize.height;
-		bestFit.origin.x = round((drawingSize.width - bestFit.size.width) / 2);
-	}
-	
-	CGFloat scale = CGRectGetHeight(bestFit) / CGRectGetHeight(rotatedCropRect);
-	
-	// Get the drawing context
-	CGContextRef context = (CGContextRef)[[NSGraphicsContext currentContext] graphicsPort];
-	
-	// Create the affine transformation matrix to align the PDF's CropBox to our drawing context.
-	//transform = CGPDFPageGetDrawingTransform(page, kCGPDFCropBox, CGRectMake(0, 0, CGRectGetWidth(bestFit), CGRectGetHeight(bestFit)), 0, true);
-	transform = CGPDFPageGetDrawingTransform(page, kCGPDFCropBox, bestFit, 0, true);
-	
-	if (scale > 1)
-	{
-		// Since CGPDFPageGetDrawingTransform won't scale up, we need to do it manually
-		transform = CGAffineTransformTranslate(transform, CGRectGetMidX(cropBox), CGRectGetMidY(cropBox));
-		transform = CGAffineTransformScale(transform, scale, scale);
-		transform = CGAffineTransformTranslate(transform, -CGRectGetMidX(cropBox), -CGRectGetMidY(cropBox));
-	}
-	
-	CGContextConcatCTM(context, transform);
-	
-	// Clip the drawing to the CropBox
-	CGContextAddRect(context, cropBox);
-	CGContextClip(context);
-	
-	[[NSColor whiteColor] set];
-	NSRectFill(cropBox);
-	
-	CGContextDrawPDFPage(context, page);
 }
 
 - (BOOL)isOpaque

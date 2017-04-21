@@ -53,6 +53,22 @@
 	return nil;
 }
 
+- (void)givePDFData:(NSData *)data toController:(SLiMPDFWindowController *)controller
+{
+	// Get our window controller to display the PDF data we have
+	if (pdfData && [pdfData length])
+	{
+		PDFDocument *doc = [[PDFDocument alloc] initWithData:pdfData];
+		
+		[controller setDisplayPDFDocument:doc];
+		[doc release];
+	}
+	else
+	{
+		[controller setDisplayPDFDocument:nil];
+	}
+}
+
 - (void)makeWindowControllers
 {
 	NSArray *myControllers = [self windowControllers];
@@ -64,15 +80,7 @@
 		SLiMPDFWindowController *controller = [[[SLiMPDFWindowController alloc] init] autorelease];
 		
 		[self addWindowController:controller];
-		
-		if (pdfData)
-		{
-			// Get our window controller to display the PDF data we have
-			PDFDocument *doc = [[PDFDocument alloc] initWithData:pdfData];
-			
-			[controller setDisplayPDFDocument:doc];
-			[doc release];
-		}
+		[self givePDFData:pdfData toController:controller];
 	}
 }
 
@@ -110,14 +118,8 @@
 		
 		SLiMPDFWindowController *controller = [self slimPDFWindowController];
 		
-		if (controller && pdfData)
-		{
-			// Get our window controller to display the PDF data we have
-			PDFDocument *doc = [[PDFDocument alloc] initWithData:pdfData];
-			
-			[controller setDisplayPDFDocument:doc];
-			[doc release];
-		}
+		if (controller)
+			[self givePDFData:pdfData toController:controller];
 		
 		return YES;
 	}
