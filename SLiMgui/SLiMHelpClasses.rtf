@@ -2431,6 +2431,17 @@ The mutation stacking policy applies only within the given mutation type; mutati
 \f2\fs18 GenomicElementType
 \f0\fs20  objects being used in the simulation.
 \f3 \
+\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 inSLiMgui => (logical$)\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 If 
+\f2\fs18 T
+\f0\fs20 , the simulation is presently running inside SLiMgui; if 
+\f2\fs18 F
+\f0\fs20 , it is running at the command line.  In general simulations should not care where they are running, but in special circumstances such as opening plot windows it may be necessary to know the runtime environment.
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 interactionTypes => (object<InteractionType>)\

@@ -645,6 +645,13 @@ void _RunSLiMSimTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1 + "1 { if (sim.interactionTypes == i1) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1 + "1 { sim.interactionTypes = i1; }", 1, 368, "read-only property", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1x + "1 { if (sim.interactionTypes == i1) stop(); }", __LINE__);
+
+#ifdef SLIMGUI
+	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.inSLiMgui == T) stop(); } ", __LINE__);
+#else
+	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.inSLiMgui == F) stop(); } ", __LINE__);
+#endif
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.inSLiMgui = T; }", 1, 230, "read-only property", __LINE__);
 	
 	// Test sim - (object<Subpopulation>)addSubpop(is$ subpopID, integer$ size, [float$ sexRatio])
 	SLiMAssertScriptStop(gen1_setup + "1 { sim.addSubpop('p1', 10); } " + gen2_stop, __LINE__);

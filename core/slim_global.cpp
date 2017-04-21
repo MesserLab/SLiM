@@ -167,6 +167,7 @@ const std::string gStr_active = "active";
 const std::string gStr_chromosome = "chromosome";
 const std::string gStr_chromosomeType = "chromosomeType";
 const std::string gStr_genomicElementTypes = "genomicElementTypes";
+const std::string gStr_inSLiMgui = "inSLiMgui";
 const std::string gStr_interactionTypes = "interactionTypes";
 const std::string gStr_scriptBlocks = "scriptBlocks";
 const std::string gStr_sexEnabled = "sexEnabled";
@@ -403,6 +404,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_chromosome, gID_chromosome);
 		Eidos_RegisterStringForGlobalID(gStr_chromosomeType, gID_chromosomeType);
 		Eidos_RegisterStringForGlobalID(gStr_genomicElementTypes, gID_genomicElementTypes);
+		Eidos_RegisterStringForGlobalID(gStr_inSLiMgui, gID_inSLiMgui);
 		Eidos_RegisterStringForGlobalID(gStr_interactionTypes, gID_interactionTypes);
 		Eidos_RegisterStringForGlobalID(gStr_scriptBlocks, gID_scriptBlocks);
 		Eidos_RegisterStringForGlobalID(gStr_sexEnabled, gID_sexEnabled);

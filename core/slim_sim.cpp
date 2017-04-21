@@ -2614,6 +2614,14 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 			
 			return result_SP;
 		}
+		case gID_inSLiMgui:
+		{
+#ifdef SLIMGUI
+			return gStaticEidosValue_LogicalT;
+#else
+			return gStaticEidosValue_LogicalF;
+#endif
+		}
 		case gID_interactionTypes:
 		{
 			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_InteractionType_Class);
@@ -3649,6 +3657,7 @@ const std::vector<const EidosPropertySignature *> *SLiMSim_Class::Properties(voi
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_chromosomeType));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_dimensionality));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_genomicElementTypes));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_inSLiMgui));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_interactionTypes));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutations));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutationTypes));
@@ -3672,6 +3681,7 @@ const EidosPropertySignature *SLiMSim_Class::SignatureForProperty(EidosGlobalStr
 	static EidosPropertySignature *chromosomeTypeSig = nullptr;
 	static EidosPropertySignature *dimensionalitySig = nullptr;
 	static EidosPropertySignature *genomicElementTypesSig = nullptr;
+	static EidosPropertySignature *inSLiMguiSig = nullptr;
 	static EidosPropertySignature *interactionTypesSig = nullptr;
 	static EidosPropertySignature *mutationsSig = nullptr;
 	static EidosPropertySignature *mutationTypesSig = nullptr;
@@ -3689,6 +3699,7 @@ const EidosPropertySignature *SLiMSim_Class::SignatureForProperty(EidosGlobalStr
 		chromosomeTypeSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosomeType,		gID_chromosomeType,			true,	kEidosValueMaskString | kEidosValueMaskSingleton));
 		dimensionalitySig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_dimensionality,		gID_dimensionality,			true,	kEidosValueMaskString | kEidosValueMaskSingleton));
 		genomicElementTypesSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElementTypes,	gID_genomicElementTypes,	true,	kEidosValueMaskObject, gSLiM_GenomicElementType_Class));
+		inSLiMguiSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_inSLiMgui,			gID_inSLiMgui,				true,	kEidosValueMaskLogical | kEidosValueMaskSingleton));
 		interactionTypesSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_interactionTypes,	gID_interactionTypes,		true,	kEidosValueMaskObject, gSLiM_InteractionType_Class));
 		mutationsSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutations,			gID_mutations,				true,	kEidosValueMaskObject, gSLiM_Mutation_Class));
 		mutationTypesSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationTypes,		gID_mutationTypes,			true,	kEidosValueMaskObject, gSLiM_MutationType_Class));
@@ -3708,6 +3719,7 @@ const EidosPropertySignature *SLiMSim_Class::SignatureForProperty(EidosGlobalStr
 		case gID_chromosomeType:		return chromosomeTypeSig;
 		case gID_dimensionality:		return dimensionalitySig;
 		case gID_genomicElementTypes:	return genomicElementTypesSig;
+		case gID_inSLiMgui:				return inSLiMguiSig;
 		case gID_interactionTypes:		return interactionTypesSig;
 		case gID_mutations:				return mutationsSig;
 		case gID_mutationTypes:			return mutationTypesSig;

@@ -12,6 +12,7 @@ development head:
 	add a tooltip showing the frames per second for the play speed slider, and tweak the play speed metrics
 	add PDF viewing capability to SLiMgui for R plotting integration
 	add a writeTempFile() Eidos function for creating randomly named unique temporary files
+	adding inSLiMgui property to SLiMSim
 
 
 2.3 (build 1052; Eidos version 1.3):
