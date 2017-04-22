@@ -184,6 +184,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("all",				Eidos_ExecuteFunction_all,			kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddLogical("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("any",				Eidos_ExecuteFunction_any,			kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddLogical("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("cat",				Eidos_ExecuteFunction_cat,			kEidosValueMaskNULL))->AddAny("x")->AddString_OS("sep", gStaticEidosValue_StringSpace));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("catn",				Eidos_ExecuteFunction_catn,			kEidosValueMaskNULL))->AddAny_O("x", gStaticEidosValue_StringEmpty)->AddString_OS("sep", gStaticEidosValue_StringSpace));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("format",			Eidos_ExecuteFunction_format,		kEidosValueMaskString))->AddString_S("format")->AddNumeric("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("identical",		Eidos_ExecuteFunction_identical,		kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddAny("x")->AddAny("y"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("ifelse",			Eidos_ExecuteFunction_ifelse,		kEidosValueMaskAny))->AddLogical("test")->AddAny("trueValues")->AddAny("falseValues"));
@@ -4690,6 +4691,7 @@ EidosValue_SP Eidos_ExecuteFunction_any(const EidosValue_SP *const p_arguments, 
 //	(void)cat(* x, [string$ sep = " "])
 EidosValue_SP Eidos_ExecuteFunction_cat(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
 {
+	// SYNCH WITH catn() BELOW!
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *arg0_value = p_arguments[0].get();
@@ -4708,6 +4710,36 @@ EidosValue_SP Eidos_ExecuteFunction_cat(const EidosValue_SP *const p_arguments, 
 		else
 			output_stream << arg0_value->StringAtIndex(value_index, nullptr);
 	}
+	
+	result_SP = gStaticEidosValueNULLInvisible;
+	
+	return result_SP;
+}
+
+//	(void)catn([* x = ""], [string$ sep = " "])
+EidosValue_SP Eidos_ExecuteFunction_catn(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+{
+	// SYNCH WITH cat() ABOVE!
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *arg0_value = p_arguments[0].get();
+	int arg0_count = arg0_value->Count();
+	EidosValueType arg0_type = arg0_value->Type();
+	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
+	string separator = p_arguments[1]->StringAtIndex(0, nullptr);
+	
+	for (int value_index = 0; value_index < arg0_count; ++value_index)
+	{
+		if (value_index > 0)
+			output_stream << separator;
+		
+		if (arg0_type == EidosValueType::kValueObject)
+			output_stream << *arg0_value->ObjectElementAtIndex(value_index, nullptr);
+		else
+			output_stream << arg0_value->StringAtIndex(value_index, nullptr);
+	}
+	
+	output_stream << std::endl;
 	
 	result_SP = gStaticEidosValueNULLInvisible;
 	

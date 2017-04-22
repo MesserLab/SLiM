@@ -14,6 +14,7 @@ development head:
 	add a writeTempFile() Eidos function for creating randomly named unique temporary files
 	adding inSLiMgui property to SLiMSim
 	add recipe 13.11, live plotting with R using system()
+	addition of catn() function, identical to cat() but with a newline appended to the output
 
 
 2.3 (build 1052; Eidos version 1.3):

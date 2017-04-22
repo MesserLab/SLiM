@@ -3715,6 +3715,7 @@ void _RunFunctionValueInspectionManipulationTests(void)
 	EidosAssertScriptSuccess("any(c(F,F,F,F,F,F,F,F,F,F));", gStaticEidosValue_LogicalF);
 	
 	// cat() – can't test the actual output, but we can make sure it executes...
+	EidosAssertScriptRaise("cat();", 0, "missing required argument x");
 	EidosAssertScriptSuccess("cat(NULL);", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("cat(T);", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("cat(5);", gStaticEidosValueNULL);
@@ -3732,6 +3733,26 @@ void _RunFunctionValueInspectionManipulationTests(void)
 	EidosAssertScriptSuccess("cat(5.5:8.9, '$$');", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("cat(c('foo', 'bar', 'baz'), '$$');", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("cat(c(_Test(7), _Test(7), _Test(7)), '$$');", gStaticEidosValueNULL);
+	
+	// catn() – can't test the actual output, but we can make sure it executes...
+	EidosAssertScriptSuccess("catn();", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("catn(NULL);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("catn(T);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("catn(5);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("catn(5.5);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("catn('foo');", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("catn(_Test(7));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("catn(NULL, '$$');", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("catn(T, '$$');", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("catn(5, '$$');", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("catn(5.5, '$$');", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("catn('foo', '$$');", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("catn(_Test(7), '$$');", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("catn(c(T,T,F,T), '$$');", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("catn(5:9, '$$');", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("catn(5.5:8.9, '$$');", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("catn(c('foo', 'bar', 'baz'), '$$');", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("catn(c(_Test(7), _Test(7), _Test(7)), '$$');", gStaticEidosValueNULL);
 	
 	// format()
 	EidosAssertScriptRaise("format('%d', NULL);", 0, "cannot be type");

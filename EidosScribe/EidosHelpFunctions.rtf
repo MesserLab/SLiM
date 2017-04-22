@@ -1565,6 +1565,36 @@
 \f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f1\fs18 \cf0 (void)catn([*
+\f2 \'a0
+\f1 x
+\f2 \'a0
+\f1 =\'a0""], [string$
+\f2 \'a0
+\f1 sep
+\f2 \'a0
+\f1 =\'a0" "])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf0 Concatenates output (with a trailing newline)
+\b0  to Eidos\'92s output stream, joined together by 
+\f1\fs18 sep
+\f0\fs20 .  The behavior of 
+\f1\fs18 catn()
+\f0\fs20  is identical to that of 
+\f1\fs18 cat()
+\f0\fs20 , except that a final newline character is appended to the output for convenience.  For 
+\f1\fs18 catn()
+\f0\fs20  a default value of 
+\f1\fs18 ""
+\f0\fs20  is supplied for 
+\f1\fs18 x
+\f0\fs20 , to allow a simple 
+\f1\fs18 catn()
+\f0\fs20  call with no parameters to emit a newline.
+\f2 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f1\fs18 \cf0 (string)format(string$
 \f2 \'a0
 \f1 format, numeric\'a0x)\
