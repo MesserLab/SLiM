@@ -4090,6 +4090,25 @@ void _RunFunctionValueInspectionManipulationTests(void)
 	EidosAssertScriptSuccess("paste(c('foo', 'bar', 'baz'), '$$');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foo$$bar$$baz")));
 	EidosAssertScriptSuccess("paste(c(_Test(7), _Test(7), _Test(7)), '$$');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("_TestElement$$_TestElement$$_TestElement")));
 	
+	// paste0()
+	EidosAssertScriptSuccess("paste0(NULL);", gStaticEidosValue_StringEmpty);
+	EidosAssertScriptSuccess("paste0(T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("T")));
+	EidosAssertScriptSuccess("paste0(5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("5")));
+	EidosAssertScriptSuccess("paste0(5.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("5.5")));
+	EidosAssertScriptSuccess("paste0('foo');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foo")));
+	EidosAssertScriptSuccess("paste0(_Test(7));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("_TestElement")));
+	EidosAssertScriptSuccess("paste0(NULL);", gStaticEidosValue_StringEmpty);
+	EidosAssertScriptSuccess("paste0(T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("T")));
+	EidosAssertScriptSuccess("paste0(5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("5")));
+	EidosAssertScriptSuccess("paste0(5.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("5.5")));
+	EidosAssertScriptSuccess("paste0('foo');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foo")));
+	EidosAssertScriptSuccess("paste0(_Test(7));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("_TestElement")));
+	EidosAssertScriptSuccess("paste0(c(T,T,F,T));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("TTFT")));
+	EidosAssertScriptSuccess("paste0(5:9);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("56789")));
+	EidosAssertScriptSuccess("paste0(5.5:8.9);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("5.56.57.58.5")));
+	EidosAssertScriptSuccess("paste0(c('foo', 'bar', 'baz'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foobarbaz")));
+	EidosAssertScriptSuccess("paste0(c(_Test(7), _Test(7), _Test(7)));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("_TestElement_TestElement_TestElement")));
+	
 	// print()
 	EidosAssertScriptSuccess("print(NULL);", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("print(T);", gStaticEidosValueNULL);

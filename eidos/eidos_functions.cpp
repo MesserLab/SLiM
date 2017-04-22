@@ -192,6 +192,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("nchar",			Eidos_ExecuteFunction_nchar,			kEidosValueMaskInt))->AddString("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("order",				Eidos_ExecuteFunction_order,			kEidosValueMaskInt))->AddAnyBase("x")->AddLogical_OS("ascending", gStaticEidosValue_LogicalT));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("paste",			Eidos_ExecuteFunction_paste,			kEidosValueMaskString | kEidosValueMaskSingleton))->AddAny("x")->AddString_OS("sep", gStaticEidosValue_StringSpace));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("paste0",			Eidos_ExecuteFunction_paste0,			kEidosValueMaskString | kEidosValueMaskSingleton))->AddAny("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("print",			Eidos_ExecuteFunction_print,			kEidosValueMaskNULL))->AddAny("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rev",				Eidos_ExecuteFunction_rev,			kEidosValueMaskAny))->AddAny("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_size,		Eidos_ExecuteFunction_size,			kEidosValueMaskInt | kEidosValueMaskSingleton))->AddAny("x"));
@@ -5646,6 +5647,7 @@ EidosValue_SP Eidos_ExecuteFunction_order(const EidosValue_SP *const p_arguments
 //	(string$)paste(* x, [string$ sep = " "])
 EidosValue_SP Eidos_ExecuteFunction_paste(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
+	// SYNCH WITH paste0() BELOW!
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *arg0_value = p_arguments[0].get();
@@ -5659,6 +5661,36 @@ EidosValue_SP Eidos_ExecuteFunction_paste(const EidosValue_SP *const p_arguments
 		if (value_index > 0)
 			result_string.append(separator);
 		
+		if (arg0_type == EidosValueType::kValueObject)
+		{
+			std::ostringstream oss;
+			
+			oss << *arg0_value->ObjectElementAtIndex(value_index, nullptr);
+			
+			result_string.append(oss.str());
+		}
+		else
+			result_string.append(arg0_value->StringAtIndex(value_index, nullptr));
+	}
+	
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(result_string));
+	
+	return result_SP;
+}
+
+//	(string$)paste0(* x)
+EidosValue_SP Eidos_ExecuteFunction_paste0(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	// SYNCH WITH paste() ABOVE!
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *arg0_value = p_arguments[0].get();
+	int arg0_count = arg0_value->Count();
+	EidosValueType arg0_type = arg0_value->Type();
+	string result_string;
+	
+	for (int value_index = 0; value_index < arg0_count; ++value_index)
+	{
 		if (arg0_type == EidosValueType::kValueObject)
 		{
 			std::ostringstream oss;
