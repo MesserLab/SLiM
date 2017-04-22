@@ -173,6 +173,8 @@
 	
 	[[NSNotificationCenter defaultCenter] removeObserver:self];
 	
+	[NSObject cancelPreviousPerformRequestsWithTarget:self];	// _generationPlay:, _continuousPlay:, etc.
+	
 	// Disconnect delegate relationships
 	[mainSplitView setDelegate:nil];
 	mainSplitView = nil;
