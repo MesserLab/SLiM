@@ -239,6 +239,7 @@ const std::string gStr_registerInteractionCallback = "registerInteractionCallbac
 const std::string gStr_registerMateChoiceCallback = "registerMateChoiceCallback";
 const std::string gStr_registerModifyChildCallback = "registerModifyChildCallback";
 const std::string gStr_registerRecombinationCallback = "registerRecombinationCallback";
+const std::string gStr_rescheduleScriptBlock = "rescheduleScriptBlock";
 const std::string gStr_simulationFinished = "simulationFinished";
 const std::string gStr_setMigrationRates = "setMigrationRates";
 const std::string gStr_pointInBounds = "pointInBounds";
@@ -473,6 +474,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_registerMateChoiceCallback, gID_registerMateChoiceCallback);
 		Eidos_RegisterStringForGlobalID(gStr_registerModifyChildCallback, gID_registerModifyChildCallback);
 		Eidos_RegisterStringForGlobalID(gStr_registerRecombinationCallback, gID_registerRecombinationCallback);
+		Eidos_RegisterStringForGlobalID(gStr_rescheduleScriptBlock, gID_rescheduleScriptBlock);
 		Eidos_RegisterStringForGlobalID(gStr_simulationFinished, gID_simulationFinished);
 		Eidos_RegisterStringForGlobalID(gStr_setMigrationRates, gID_setMigrationRates);
 		Eidos_RegisterStringForGlobalID(gStr_pointInBounds, gID_pointInBounds);

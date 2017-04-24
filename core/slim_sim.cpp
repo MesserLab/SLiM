@@ -3592,6 +3592,139 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 			
 			//
+			//	*********************	– (object<SLiMEidosBlock>)rescheduleScriptBlock(object<SLiMEidosBlock>$ block, [Ni$ start = NULL], [Ni$ end = NULL], [Ni generations = NULL])
+			//
+#pragma mark -rescheduleScriptBlock()
+			
+		case gID_rescheduleScriptBlock:
+		{
+			EidosValue_Object *block_value = (EidosValue_Object *)arg0_value;
+			SLiMEidosBlock *block = (SLiMEidosBlock *)block_value->ObjectElementAtIndex(0, nullptr);
+			EidosValue *start_value = arg1_value;
+			EidosValue *end_value = arg2_value;
+			EidosValue *generations_value = arg3_value;
+			bool start_null = (start_value->Type() == EidosValueType::kValueNULL);
+			bool end_null = (end_value->Type() == EidosValueType::kValueNULL);
+			bool generations_null = (generations_value->Type() == EidosValueType::kValueNULL);
+			
+			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
+			
+			if (!sim)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
+			
+			if ((!start_null || !end_null) && generations_null)
+			{
+				// start/end case; this is simple
+				
+				slim_generation_t start = (start_null ? 1 : SLiMCastToGenerationTypeOrRaise(start_value->IntAtIndex(0, nullptr)));
+				slim_generation_t end = (end_null ? SLIM_MAX_GENERATION : SLiMCastToGenerationTypeOrRaise(end_value->IntAtIndex(0, nullptr)));
+				
+				if (start > end)
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): reschedule() requires start <= end." << eidos_terminate();
+				
+				block->start_generation_ = start;
+				block->end_generation_ = end;
+				scripts_changed_ = true;
+				
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(block, gSLiM_SLiMEidosBlock_Class));
+			}
+			else if (!generations_null && (start_null && end_null))
+			{
+				// generations case; this is complicated
+				
+				// first, fetch the generations and make sure they are in bounds
+				std::vector<slim_generation_t> generations;
+				int gen_count = generations_value->Count();
+				
+				if (gen_count < 1)
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): reschedule() requires at least one generation; use deregisterScriptBlock() to remove a script block from the simulation." << eidos_terminate();
+				
+				generations.reserve(gen_count);
+				
+				for (int gen_index = 0; gen_index < gen_count; ++gen_index)
+					generations.push_back(SLiMCastToGenerationTypeOrRaise(generations_value->IntAtIndex(gen_index, nullptr)));
+				
+				// next, sort the generation list
+				std::sort(generations.begin(), generations.end());
+				
+				// finally, go through the generation vector and schedule blocks for sequential runs
+				EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_SLiMEidosBlock_Class));
+				EidosValue_SP result_SP = EidosValue_SP(vec);
+				bool first_block = true;
+				
+				slim_generation_t start = -10;
+				slim_generation_t end = -10;
+				int gen_index = 0;
+				
+				// I'm sure there's a prettier algorithm for finding the sequential runs, but I'm not seeing it right now.
+				// The tricky thing is that I want there to be only a single place in the code where a block is scheduled;
+				// it seems easy to write a version where blocks get scheduled in two places, a main case and a tail case.
+				while (true)
+				{
+					slim_generation_t gen = generations[gen_index];
+					bool reached_end_in_seq = false;
+					
+					if (gen == end + 1)			// sequential value seen; move on to the next sequential value
+					{
+						end++;
+						
+						if (++gen_index < gen_count)
+							continue;
+						reached_end_in_seq = true;
+					}
+					else if (gen <= end)
+					{
+						EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): reschedule() requires that the generation vector contain unique values; the same generation cannot be used twice." << eidos_terminate();
+					}
+					
+					// make new block and move on to start the next sequence
+				makeBlock:
+					if ((start != -10) && (end != -10))
+					{
+						// start and end define the range of the block to schedule; first_block
+						// determines whether we use the existing block or make a new one
+						if (first_block)
+						{
+							block->start_generation_ = start;
+							block->end_generation_ = end;
+							first_block = false;
+							scripts_changed_ = true;
+							
+							vec->PushObjectElement(block);
+						}
+						else
+						{
+							SLiMEidosBlock *new_script_block = new SLiMEidosBlock(-1, block->compound_statement_node_->token_->token_string_, block->type_, start, end);
+							
+							script_blocks_.emplace_back(new_script_block);		// takes ownership from us
+							scripts_changed_ = true;
+							
+							new_script_block->TokenizeAndParse();	// can raise
+							
+							vec->PushObjectElement(new_script_block);
+						}
+					}
+					
+					start = gen;
+					end = gen;
+					++gen_index;
+					
+					if ((gen_index == gen_count) && !reached_end_in_seq)
+						goto makeBlock;
+					else if (gen_index >= gen_count)
+						break;
+				}
+				
+				return result_SP;
+			}
+			else
+			{
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): reschedule() requires that either start/end or generations be supplied, but not both." << eidos_terminate();
+			}
+		}
+			
+			
+			//
 			//	*********************	- (void)simulationFinished(void)
 			//
 #pragma mark -simulationFinished()
@@ -3763,6 +3896,7 @@ const std::vector<const EidosMethodSignature *> *SLiMSim_Class::Methods(void) co
 		methods->emplace_back(SignatureForMethodOrRaise(gID_registerMateChoiceCallback));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_registerModifyChildCallback));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_registerRecombinationCallback));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_rescheduleScriptBlock));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_simulationFinished));
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
@@ -3792,6 +3926,7 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 	static EidosInstanceMethodSignature *registerMateChoiceCallbackSig = nullptr;
 	static EidosInstanceMethodSignature *registerModifyChildCallbackSig = nullptr;
 	static EidosInstanceMethodSignature *registerRecombinationCallbackSig = nullptr;
+	static EidosInstanceMethodSignature *rescheduleScriptBlockSig = nullptr;
 	static EidosInstanceMethodSignature *simulationFinishedSig = nullptr;
 	
 	if (!addSubpopSig)
@@ -3815,6 +3950,7 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 		registerMateChoiceCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerMateChoiceCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL);
 		registerModifyChildCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerModifyChildCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL);
 		registerRecombinationCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerRecombinationCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL);
+		rescheduleScriptBlockSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_rescheduleScriptBlock, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddObject_S("block", gSLiM_SLiMEidosBlock_Class)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL)->AddInt_ON("generations", gStaticEidosValueNULL);
 		simulationFinishedSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_simulationFinished, kEidosValueMaskNULL));
 	}
 	
@@ -3840,6 +3976,7 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 		case gID_registerMateChoiceCallback:			return registerMateChoiceCallbackSig;
 		case gID_registerModifyChildCallback:			return registerModifyChildCallbackSig;
 		case gID_registerRecombinationCallback:			return registerRecombinationCallbackSig;
+		case gID_rescheduleScriptBlock:					return rescheduleScriptBlockSig;
 		case gID_simulationFinished:					return simulationFinishedSig;
 			
 			// all others, including gID_none

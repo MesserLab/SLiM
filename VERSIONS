@@ -16,6 +16,7 @@ development head:
 	add recipe 13.11, live plotting with R using system()
 	addition of catn() function, identical to cat() but with a newline appended to the output
 	addition of paste0() function, identical to paste() but with no separator
+	add -rescheduleScriptBlock() method to SLiMSim
 
 
 2.3 (build 1052; Eidos version 1.3):

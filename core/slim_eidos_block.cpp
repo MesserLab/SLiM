@@ -1219,7 +1219,7 @@ EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_MethodCall_Internal(const 
 			{
 				_SetTypeForISArgumentOfClass(p_arguments[0], 'p', gSLiM_Subpopulation_Class);
 			}
-			else if (((function_name == "registerEarlyEvent") || (function_name == "registerFitnessCallback") || (function_name == "registerInteractionCallback") || (function_name == "registerLateEvent") || (function_name == "registerMateChoiceCallback") || (function_name == "registerModifyChildCallback") || (function_name == "registerRecombinationCallback")) && (argument_count >= 1))
+			else if (((function_name == "registerEarlyEvent") || (function_name == "registerFitnessCallback") || (function_name == "registerInteractionCallback") || (function_name == "registerLateEvent") || (function_name == "registerMateChoiceCallback") || (function_name == "registerModifyChildCallback") || (function_name == "registerRecombinationCallback") || (function_name == "rescheduleScriptBlock")) && (argument_count >= 1))
 			{
 				_SetTypeForISArgumentOfClass(p_arguments[0], 's', gSLiM_SLiMEidosBlock_Class);
 			}

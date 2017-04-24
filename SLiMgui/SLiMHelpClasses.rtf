@@ -3240,6 +3240,90 @@ As of SLiM 2.3, this method will read and restore the spatial positions of indiv
 \f2\fs18 SLiMEidosBlock
 \f0\fs20  will be defined as a global variable immediately by this method, and will also be returned by this method.
 \f3 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>)rescheduleScriptBlock(object<SLiMEidosBlock>$
+\f3 \'a0
+\f2 block, [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL], [Ni\'a0generations\'a0=\'a0NULL])
+\f3 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Reschedule the target script block given by 
+\f2\fs18 block
+\f0\fs20  to execute in a specified set of generations.\
+The first way to specify the generation set is with 
+\f2\fs18 start
+\f0\fs20  and 
+\f2\fs18 end
+\f0\fs20  parameter values; 
+\f2\fs18 block
+\f0\fs20  will then execute from 
+\f2\fs18 start
+\f0\fs20  to 
+\f2\fs18 end
+\f0\fs20 , inclusive.  In this case, 
+\f2\fs18 block
+\f0\fs20  is returned.\
+The second way to specify the generation set is using the 
+\f2\fs18 generations
+\f0\fs20  parameter; this is more flexible but more complicated.  Since script blocks execute across a contiguous span of generations defined by their 
+\f2\fs18 start
+\f0\fs20  and 
+\f2\fs18 end
+\f0\fs20  properties, this may result in the duplication of 
+\f2\fs18 block
+\f0\fs20 ; one script block will be used for each contiguous span of generations in 
+\f2\fs18 generations
+\f3\fs20 .
+\f0   The 
+\f2\fs18 block
+\f0\fs20  object itself will be rescheduled to cover the first such span, whereas duplicates of 
+\f2\fs18 block
+\f0\fs20  will be created to cover subsequent contiguous spans.  A vector containing all of the script blocks scheduled by this method, including 
+\f2\fs18 block
+\f0\fs20 , will be returned; this vector is guaranteed to be sorted by the (ascending) scheduled execution order of the blocks.  Any duplicates of 
+\f2\fs18 block
+\f0\fs20  created will be given values for the 
+\f2\fs18 active
+\f0\fs20 , 
+\f2\fs18 source
+\f0\fs20 , 
+\f2\fs18 tag
+\f0\fs20 , and 
+\f2\fs18 type
+\f0\fs20  properties equal to the current values for 
+\f2\fs18 block
+\f0\fs20 , but will be given an 
+\f2\fs18 id
+\f0\fs20  of 
+\f2\fs18 -1
+\f0\fs20  since script block identifiers must be unique; if it is necessary to find the duplicated blocks again later, their 
+\f2\fs18 tag
+\f0\fs20  property should be used.  The vector supplied for 
+\f2\fs18 generations
+\f0\fs20  does not need to be in sorted order, but it must not contain any duplicates.\
+Because this method can create a large number of duplicate script blocks, it can sometimes be better to handle script block scheduling in other ways.  If an 
+\f2\fs18 early()
+\f0\fs20  event needs to execute every tenth generation over the whole duration of a long model run, for example, it would not be advisable to use a call like 
+\f2\fs18 sim.rescheduleScriptBlock(s1, generations=seq(10, 100000, 10))
+\f0\fs20  for that purpose, since that would result in thousands of duplicate script blocks.  Instead, it would be preferable to add a test such as 
+\f2\fs18 if (sim.generation % 10 != 0) return;
+\f0\fs20  at the beginning of the event.  It is legal to reschedule a script block while the block is executing; a call like 
+\f2\fs18 sim.rescheduleScriptBlock(self, sim.generation + 10, sim.generation + 10);
+\f0\fs20  made inside a given block would therefore also cause the block to execute every tenth generation, although this sort of self-rescheduling code is probably harder to read, maintain, and debug.\
+Whichever way of specifying the generation set is used, the discussion in section 19.7 applies: 
+\f2\fs18 block
+\f0\fs20  may continue to be executed during the current life cycle stage even after it has been rescheduled, unless it is made inactive using its 
+\f2\fs18 active
+\f0\fs20  property, and similarly, the block may not execute during the current life cycle stage if it was not already scheduled to do so.  Rescheduling script blocks during the generation and life cycle stage in which they are executing, or in which they are intended to execute, should be avoided.\
+Note that new script blocks can also be created and scheduled using the 
+\f2\fs18 register...()
+\f0\fs20  methods of 
+\f2\fs18 SLiMSim
+\f0\fs20 ; by using the same source as a template script block, the template can be duplicated and scheduled for different generations.  In fact, 
+\f2\fs18 rescheduleScriptBlock()
+\f0\fs20  does essentially that internally.
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96
