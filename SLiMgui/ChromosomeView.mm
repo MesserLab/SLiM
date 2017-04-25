@@ -113,7 +113,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 {
 	if (self = [super initWithFrame:frameRect])
 	{
-		// this does not seem to be called for objects in the nib...
+		// this is not called for objects in the nib (I imagine initWithCoder: is instead); put stuff in awakeFromNib
 	}
 	
 	return self;
@@ -131,6 +131,8 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 
 - (void)awakeFromNib
 {
+	display_muttype_ = -1;
+	
 	[self bind:@"enabled" toObject:[[self window] windowController] withKeyPath:@"invalidSimulation" options:@{NSValueTransformerNameBindingOption : NSNegateBooleanTransformerName}];
 	
 	if (_proxyGLView)
@@ -981,23 +983,27 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		{
 			const Mutation *mutation = mutations[mutIndex];
 			const MutationType *mutType = mutation->mutation_type_ptr_;
-			slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
-			slim_position_t mutationPosition = mutation->position_;
-			NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
 			
-			if (!mutType->color_.empty())
+			if ((display_muttype_ == -1) || (mutType->mutation_type_id_ == display_muttype_))
 			{
-				[[NSColor colorWithCalibratedRed:mutType->color_red_ green:mutType->color_green_ blue:mutType->color_blue_ alpha:1.0] set];
+				slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
+				slim_position_t mutationPosition = mutation->position_;
+				NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
+				
+				if (!mutType->color_.empty())
+				{
+					[[NSColor colorWithCalibratedRed:mutType->color_red_ green:mutType->color_green_ blue:mutType->color_blue_ alpha:1.0] set];
+				}
+				else
+				{
+					float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0;
+					RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+					[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
+				}
+				
+				mutationTickRect.size.height = (int)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
+				NSRectFill(mutationTickRect);
 			}
-			else
-			{
-				float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0;
-				RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
-				[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
-			}
-			
-			mutationTickRect.size.height = (int)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
-			NSRectFill(mutationTickRect);
 		}
 	}
 	else
@@ -1024,60 +1030,80 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		for (auto mutationTypeIter = mut_types.begin(); mutationTypeIter != mut_types.end(); ++mutationTypeIter)
 		{
 			MutationType *mut_type = mutationTypeIter->second;
-			bool mut_type_fixed_color = !mut_type->color_.empty();
 			
-			// We optimize fixed-DFE mutation types only, and those using a fixed color set by the user
-			if ((mut_type->dfe_type_ == DFEType::kFixed) || mut_type_fixed_color)
+			if ((display_muttype_ == -1) || (mut_type->mutation_type_id_ == display_muttype_))
 			{
-				slim_selcoeff_t mut_type_selcoeff = (slim_selcoeff_t)mut_type->dfe_parameters_[0];
+				bool mut_type_fixed_color = !mut_type->color_.empty();
 				
-				bzero(heightBuffer, displayPixelWidth * sizeof(int16_t));
-				
-				// Scan through the mutation list for mutations of this type with the right selcoeff
+				// We optimize fixed-DFE mutation types only, and those using a fixed color set by the user
+				if ((mut_type->dfe_type_ == DFEType::kFixed) || mut_type_fixed_color)
+				{
+					slim_selcoeff_t mut_type_selcoeff = (slim_selcoeff_t)mut_type->dfe_parameters_[0];
+					
+					bzero(heightBuffer, displayPixelWidth * sizeof(int16_t));
+					
+					// Scan through the mutation list for mutations of this type with the right selcoeff
+					for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+					{
+						const Mutation *mutation = mutations[mutIndex];
+						
+						if ((mutation->mutation_type_ptr_ == mut_type) && (mut_type_fixed_color || (mutation->selection_coeff_ == mut_type_selcoeff)))
+						{
+							slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// includes only refs from the selected subpopulations
+							slim_position_t mutationPosition = mutation->position_;
+							//NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
+							//int xPos = (int)(mutationTickRect.origin.x - interiorRect.origin.x);
+							int xPos = LEFT_OFFSET_OF_BASE(mutationPosition, interiorRect, displayedRange);
+							int16_t height = (int16_t)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
+							
+							if ((xPos >= 0) && (xPos < displayPixelWidth))
+								if (height > heightBuffer[xPos])
+									heightBuffer[xPos] = height;
+							
+							// tally this mutation as handled
+							//mutation->gui_scratch_reference_count_ = 1;
+							mutationsPlotted[mutIndex] = true;
+							--remainingMutations;
+						}
+					}
+					
+					// Now draw all of the mutations we found, by looping through our radix bins
+					if (mut_type_fixed_color)
+					{
+						[[NSColor colorWithCalibratedRed:mut_type->color_red_ green:mut_type->color_green_ blue:mut_type->color_blue_ alpha:1.0] set];
+					}
+					else
+					{
+						RGBForSelectionCoeff(mut_type_selcoeff, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+						[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
+					}
+					
+					for (int binIndex = 0; binIndex < displayPixelWidth; ++binIndex)
+					{
+						int height = heightBuffer[binIndex];
+						
+						if (height)
+						{
+							NSRect mutationTickRect = NSMakeRect(interiorRect.origin.x + binIndex, interiorRect.origin.y, 1, height);
+							
+							NSRectFill(mutationTickRect);
+						}
+					}
+				}
+			}
+			else
+			{
+				// We're not displaying this mutation type, so we need to mark off all the mutations belonging to it as handled
 				for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
 				{
 					const Mutation *mutation = mutations[mutIndex];
 					
-					if ((mutation->mutation_type_ptr_ == mut_type) && (mut_type_fixed_color || (mutation->selection_coeff_ == mut_type_selcoeff)))
+					if (mutation->mutation_type_ptr_ == mut_type)
 					{
-						slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// includes only refs from the selected subpopulations
-						slim_position_t mutationPosition = mutation->position_;
-						//NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
-						//int xPos = (int)(mutationTickRect.origin.x - interiorRect.origin.x);
-						int xPos = LEFT_OFFSET_OF_BASE(mutationPosition, interiorRect, displayedRange);
-						int16_t height = (int16_t)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
-						
-						if ((xPos >= 0) && (xPos < displayPixelWidth))
-							if (height > heightBuffer[xPos])
-								heightBuffer[xPos] = height;
-						
 						// tally this mutation as handled
 						//mutation->gui_scratch_reference_count_ = 1;
 						mutationsPlotted[mutIndex] = true;
 						--remainingMutations;
-					}
-				}
-				
-				// Now draw all of the mutations we found, by looping through our radix bins
-				if (mut_type_fixed_color)
-				{
-					[[NSColor colorWithCalibratedRed:mut_type->color_red_ green:mut_type->color_green_ blue:mut_type->color_blue_ alpha:1.0] set];
-				}
-				else
-				{
-					RGBForSelectionCoeff(mut_type_selcoeff, &colorRed, &colorGreen, &colorBlue, scalingFactor);
-					[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
-				}
-				
-				for (int binIndex = 0; binIndex < displayPixelWidth; ++binIndex)
-				{
-					int height = heightBuffer[binIndex];
-					
-					if (height)
-					{
-						NSRect mutationTickRect = NSMakeRect(interiorRect.origin.x + binIndex, interiorRect.origin.y, 1, height);
-						
-						NSRectFill(mutationTickRect);
 					}
 				}
 			}
@@ -1186,26 +1212,30 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		{
 			const Mutation *mutation = mutations[mutIndex];
 			const MutationType *mutType = mutation->mutation_type_ptr_;
-			slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
-			slim_position_t mutationPosition = mutation->position_;
-			NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
 			
-			if (!mutType->color_.empty())
+			if ((display_muttype_ == -1) || (mutType->mutation_type_id_ == display_muttype_))
 			{
-				colorRed = mutType->color_red_;
-				colorGreen = mutType->color_green_;
-				colorBlue = mutType->color_blue_;
+				slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
+				slim_position_t mutationPosition = mutation->position_;
+				NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
+				
+				if (!mutType->color_.empty())
+				{
+					colorRed = mutType->color_red_;
+					colorGreen = mutType->color_green_;
+					colorBlue = mutType->color_blue_;
+				}
+				else
+				{
+					RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+				}
+				
+				mutationTickRect.size.height = (int)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
+				SLIM_GL_DEFCOORDS(mutationTickRect);
+				SLIM_GL_PUSHRECT();
+				SLIM_GL_PUSHRECT_COLORS();
+				SLIM_GL_CHECKBUFFERS();
 			}
-			else
-			{
-				RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
-			}
-			
-			mutationTickRect.size.height = (int)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
-			SLIM_GL_DEFCOORDS(mutationTickRect);
-			SLIM_GL_PUSHRECT();
-			SLIM_GL_PUSHRECT_COLORS();
-			SLIM_GL_CHECKBUFFERS();
 		}
 	}
 	else
@@ -1231,64 +1261,84 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		for (auto mutationTypeIter = mut_types.begin(); mutationTypeIter != mut_types.end(); ++mutationTypeIter)
 		{
 			MutationType *mut_type = mutationTypeIter->second;
-			bool mut_type_fixed_color = !mut_type->color_.empty();
 			
-			// We optimize fixed-DFE mutation types only, and those using a fixed color set by the user
-			if ((mut_type->dfe_type_ == DFEType::kFixed) || mut_type_fixed_color)
+			if ((display_muttype_ == -1) || (mut_type->mutation_type_id_ == display_muttype_))
 			{
-				slim_selcoeff_t mut_type_selcoeff = (slim_selcoeff_t)mut_type->dfe_parameters_[0];
+				bool mut_type_fixed_color = !mut_type->color_.empty();
 				
-				bzero(heightBuffer, displayPixelWidth * sizeof(int16_t));
-				
-				// Scan through the mutation list for mutations of this type with the right selcoeff
+				// We optimize fixed-DFE mutation types only, and those using a fixed color set by the user
+				if ((mut_type->dfe_type_ == DFEType::kFixed) || mut_type_fixed_color)
+				{
+					slim_selcoeff_t mut_type_selcoeff = (slim_selcoeff_t)mut_type->dfe_parameters_[0];
+					
+					bzero(heightBuffer, displayPixelWidth * sizeof(int16_t));
+					
+					// Scan through the mutation list for mutations of this type with the right selcoeff
+					for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+					{
+						const Mutation *mutation = mutations[mutIndex];
+						
+						if ((mutation->mutation_type_ptr_ == mut_type) && (mut_type_fixed_color || (mutation->selection_coeff_ == mut_type_selcoeff)))
+						{
+							slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// includes only refs from the selected subpopulations
+							slim_position_t mutationPosition = mutation->position_;
+							//NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
+							//int xPos = (int)(mutationTickRect.origin.x - interiorRect.origin.x);
+							int xPos = LEFT_OFFSET_OF_BASE(mutationPosition, interiorRect, displayedRange);
+							int16_t height = (int16_t)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
+							
+							if ((xPos >= 0) && (xPos < displayPixelWidth))
+								if (height > heightBuffer[xPos])
+									heightBuffer[xPos] = height;
+							
+							// tally this mutation as handled
+							//mutation->gui_scratch_reference_count_ = 1;
+							mutationsPlotted[mutIndex] = true;
+							--remainingMutations;
+						}
+					}
+					
+					// Now draw all of the mutations we found, by looping through our radix bins
+					if (mut_type_fixed_color)
+					{
+						colorRed = mut_type->color_red_;
+						colorGreen = mut_type->color_green_;
+						colorBlue = mut_type->color_blue_;
+					}
+					else
+					{
+						RGBForSelectionCoeff(mut_type_selcoeff, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+					}
+					
+					for (int binIndex = 0; binIndex < displayPixelWidth; ++binIndex)
+					{
+						int height = heightBuffer[binIndex];
+						
+						if (height)
+						{
+							NSRect mutationTickRect = NSMakeRect(interiorRect.origin.x + binIndex, interiorRect.origin.y, 1, height);
+							
+							SLIM_GL_DEFCOORDS(mutationTickRect);
+							SLIM_GL_PUSHRECT();
+							SLIM_GL_PUSHRECT_COLORS();
+							SLIM_GL_CHECKBUFFERS();
+						}
+					}
+				}
+			}
+			else
+			{
+				// We're not displaying this mutation type, so we need to mark off all the mutations belonging to it as handled
 				for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
 				{
 					const Mutation *mutation = mutations[mutIndex];
 					
-					if ((mutation->mutation_type_ptr_ == mut_type) && (mut_type_fixed_color || (mutation->selection_coeff_ == mut_type_selcoeff)))
+					if (mutation->mutation_type_ptr_ == mut_type)
 					{
-						slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// includes only refs from the selected subpopulations
-						slim_position_t mutationPosition = mutation->position_;
-						//NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
-						//int xPos = (int)(mutationTickRect.origin.x - interiorRect.origin.x);
-						int xPos = LEFT_OFFSET_OF_BASE(mutationPosition, interiorRect, displayedRange);
-						int16_t height = (int16_t)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
-						
-						if ((xPos >= 0) && (xPos < displayPixelWidth))
-							if (height > heightBuffer[xPos])
-								heightBuffer[xPos] = height;
-						
 						// tally this mutation as handled
 						//mutation->gui_scratch_reference_count_ = 1;
 						mutationsPlotted[mutIndex] = true;
 						--remainingMutations;
-					}
-				}
-				
-				// Now draw all of the mutations we found, by looping through our radix bins
-				if (mut_type_fixed_color)
-				{
-					colorRed = mut_type->color_red_;
-					colorGreen = mut_type->color_green_;
-					colorBlue = mut_type->color_blue_;
-				}
-				else
-				{
-					RGBForSelectionCoeff(mut_type_selcoeff, &colorRed, &colorGreen, &colorBlue, scalingFactor);
-				}
-				
-				for (int binIndex = 0; binIndex < displayPixelWidth; ++binIndex)
-				{
-					int height = heightBuffer[binIndex];
-					
-					if (height)
-					{
-						NSRect mutationTickRect = NSMakeRect(interiorRect.origin.x + binIndex, interiorRect.origin.y, 1, height);
-						
-						SLIM_GL_DEFCOORDS(mutationTickRect);
-						SLIM_GL_PUSHRECT();
-						SLIM_GL_PUSHRECT_COLORS();
-						SLIM_GL_CHECKBUFFERS();
 					}
 				}
 			}
@@ -1774,6 +1824,61 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	}
 	
 	isTracking = NO;
+}
+
+- (IBAction)filterMutations:(id)sender
+{
+	int muttype_id = (int)[sender tag];
+	
+	//NSLog(@"muttype_id %d", muttype_id);
+	display_muttype_ = muttype_id;
+	
+	[self setNeedsDisplay:YES];
+}
+
+- (NSMenu *)menuForEvent:(NSEvent *)theEvent
+{
+	SLiMWindowController *controller = (SLiMWindowController *)[[self window] windowController];
+	
+	if (![controller invalidSimulation] && ![[controller window] attachedSheet] && ![self isSelectable] && [self enabled])
+	{
+		SLiMSim *sim = controller->sim;
+		
+		if (sim)
+		{
+			std::map<slim_objectid_t,MutationType*> &muttypes = sim->mutation_types_;
+			
+			if (muttypes.size() > 0)
+			{
+				NSMenu *menu = [[NSMenu alloc] initWithTitle:@"chromosome_menu"];
+				NSMenuItem *menuItem;
+				
+				menuItem = [menu addItemWithTitle:@"Display all mutations" action:@selector(filterMutations:) keyEquivalent:@""];
+				[menuItem setTag:-1];
+				[menuItem setTarget:self];
+				
+				[menu addItem:[NSMenuItem separatorItem]];
+				
+				for (auto muttype_iter : muttypes)
+				{
+					MutationType *muttype = muttype_iter.second;
+					slim_objectid_t muttype_id = muttype->mutation_type_id_;
+					
+					menuItem = [menu addItemWithTitle:[NSString stringWithFormat:@"m%d", (int)muttype_id] action:@selector(filterMutations:) keyEquivalent:@""];
+					[menuItem setTag:muttype_id];
+					[menuItem setTarget:self];
+				}
+				
+				// Check the item corresponding to our current display preference, if any
+				menuItem = [menu itemWithTag:display_muttype_];
+				[menuItem setState:NSOnState];
+				
+				return [menu autorelease];
+			}
+		}
+	}
+	
+	return nil;
 }
 
 @end

@@ -23,6 +23,7 @@
 
 NSString *SLiMDefaultsShowTipsPanelKey = @"ShowTipsPanel";
 NSString *SLiMDefaultsTipsIndexKey = @"TipsIndex";
+NSString *SLiMDefaultsTipsCountKey = @"TipsCount";
 
 NSString *SLiMTipsDirectoryName = @"Tips";
 
@@ -34,6 +35,7 @@ NSString *SLiMTipsDirectoryName = @"Tips";
 	[[NSUserDefaults standardUserDefaults] registerDefaults:@{
 															  SLiMDefaultsShowTipsPanelKey : @YES,
 															  SLiMDefaultsTipsIndexKey : @(-1),		// tip index 0, after advancing automatically
+															  SLiMDefaultsTipsCountKey : @(15),		// DO NOT CHANGE; this was the number of tips prior to adding this default
 															  }];
 }
 
@@ -58,7 +60,20 @@ NSString *SLiMTipsDirectoryName = @"Tips";
 		tipsFilenames = [tipsFilenames sortedArrayUsingSelector:@selector(localizedStandardCompare:)];
 		[tipsFilenames retain];
 		
+		NSInteger newTipCount = [tipsFilenames count];
+		
 		lastTipShown = [[NSUserDefaults standardUserDefaults] integerForKey:SLiMDefaultsTipsIndexKey];
+		
+		// If we were showing the "end tip" but now we have new tips, then we need to go backwards from the end tip
+		NSInteger oldTipCount = [[NSUserDefaults standardUserDefaults] integerForKey:SLiMDefaultsTipsCountKey];
+		
+		if (newTipCount > oldTipCount)
+		{
+			if (lastTipShown == oldTipCount)
+				lastTipShown--;
+			
+			[[NSUserDefaults standardUserDefaults] setInteger:newTipCount forKey:SLiMDefaultsTipsCountKey];
+		}
 	}
 	
 	return self;

@@ -48,6 +48,9 @@ extern NSString *SLiMChromosomeSelectionChangedNotification;
 	// OpenGL buffers
 	float *glArrayVertices;
 	float *glArrayColors;
+	
+	// Display options
+	slim_objectid_t display_muttype_;	// if -1, display all mutation types; otherwise, display only the muttype chosen
 }
 
 @property (nonatomic, retain) ChromosomeView *referenceChromosomeView;		// asked for the range to display

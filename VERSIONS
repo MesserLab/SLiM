@@ -17,6 +17,7 @@ development head:
 	addition of catn() function, identical to cat() but with a newline appended to the output
 	addition of paste0() function, identical to paste() but with no separator
 	add -rescheduleScriptBlock() method to SLiMSim
+	add ability to display only one mutation type in the chromosome view, through a context menu (added a tip on this)
 
 
 2.3 (build 1052; Eidos version 1.3):
