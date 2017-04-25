@@ -731,6 +731,21 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 @end
 
 
+// Work around Apple's bug that they never fix that causes console logs on startup
+// Thanks to TyngJJ on https://forums.developer.apple.com/thread/49052 for this workaround
+// FIXME check whether they have fixed it yet, from time to time...
+
+@interface NSWindow (FirstResponding)  
+-(void)_setFirstResponder:(NSResponder *)responder;  
+@end  
+@interface NSDrawerWindow : NSWindow  
+@end  
+@implementation NSDrawerWindow (FirstResponding)  
+-(void)_setFirstResponder:(NSResponder *)responder {  
+	if (![responder isKindOfClass:NSView.class] || [(NSView *)responder window] == self)  
+		[super _setFirstResponder:responder];  
+}  
+@end  
 
 
 
