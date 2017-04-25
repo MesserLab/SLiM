@@ -83,8 +83,12 @@
 	IBOutlet NSTableColumn *scriptBlocksEndColumn;
 	IBOutlet NSTableColumn *scriptBlocksTypeColumn;
 	
+	IBOutlet NSSplitView *overallSplitView;
+	
+	IBOutlet NSTextField *fitnessTitleTextField;
 	IBOutlet SLiMColorStripeView *fitnessColorStripe;
 	IBOutlet NSSlider *fitnessColorSlider;
+	IBOutlet NSTextField *selectionTitleTextField;
 	IBOutlet SLiMColorStripeView *selectionColorStripe;
 	IBOutlet NSSlider *selectionColorSlider;
 	
@@ -95,7 +99,7 @@
 	IBOutlet NSTextField *generationTextField;
 	IBOutlet NSProgressIndicator *generationProgressIndicator;
 	
-	IBOutlet NSSplitView *mainSplitView;
+	IBOutlet NSSplitView *bottomSplitView;
 	IBOutlet EidosTextView *scriptTextView;
 	IBOutlet NSTextField *scriptStatusTextField;
 	IBOutlet EidosTextView *outputTextView;
@@ -128,9 +132,6 @@
 	
 	IBOutlet SLiMMenuButton *genomeCommandsButton;
 	IBOutlet NSMenu *genomeCommandsMenu;
-	
-	IBOutlet NSLayoutConstraint *scriptVisibleConstraint;
-	NSLayoutConstraint *scriptHiddenConstraint;
 	
 	// Graph window ivars
 	IBOutlet NSWindow *graphWindow;				// outlet for GraphWindow.xib; note this does not stay wired up, it is just used transiently
@@ -182,9 +183,6 @@
 
 @property (nonatomic, retain) IBOutlet EidosConsoleWindowController *consoleController;
 
-@property (nonatomic, retain) IBOutlet NSLayoutConstraint *scriptVisibleConstraint;
-@property (nonatomic, retain) IBOutlet NSLayoutConstraint *scriptHiddenConstraint;
-
 
 //
 //	Actions
@@ -227,7 +225,6 @@
 
 - (IBAction)checkScript:(id)sender;
 - (IBAction)showScriptHelp:(id)sender;
-- (IBAction)toggleScriptVisibility:(id)sender;
 - (IBAction)toggleConsoleVisibility:(id)sender;
 - (IBAction)toggleBrowserVisibility:(id)sender;
 - (IBAction)clearOutput:(id)sender;

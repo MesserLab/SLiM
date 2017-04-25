@@ -447,12 +447,6 @@
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="sQb-7H-9SD"/>
-                            <menuItem title="Show Script/Output" id="Jej-To-BXT">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="toggleScriptVisibility:" target="-1" id="kcp-yH-LOe"/>
-                                </connections>
-                            </menuItem>
                             <menuItem title="Show Variable Browser" keyEquivalent="b" id="L7T-eW-32O">
                                 <connections>
                                     <action selector="toggleBrowserVisibility:" target="-1" id="aec-EB-Oib"/>
@@ -585,6 +579,7 @@ DQ
                     </menu>
                 </menuItem>
             </items>
+            <point key="canvasLocation" x="-75" y="-159"/>
         </menu>
         <window title="SLiMgui Preferences" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" restorable="NO" hidesOnDeactivate="YES" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" animationBehavior="default" id="cET-rW-zho" customClass="NSPanel">
             <windowStyleMask key="styleMask" titled="YES" closable="YES"/>

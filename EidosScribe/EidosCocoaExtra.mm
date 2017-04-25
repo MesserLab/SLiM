@@ -333,11 +333,15 @@
 @end
 
 
+@interface NSObject (EidosSplitViewExtensions)
+- (void)respondToSizeChangeForSplitView:(NSSplitView *)splitView;
+@end
+
 @implementation NSSplitView (EidosAdditions)
 
-- (void)eidosRestoreAutosavedPositions
+- (void)eidosRestoreAutosavedPositionsWithName:(NSString *)autosaveName
 {
-	NSString *key = [NSString stringWithFormat:@"NSSplitView Subview Frames %@", self.autosaveName];
+	NSString *key = [NSString stringWithFormat:@"NSSplitView Subview Frames %@", autosaveName];
 	NSArray *subviewFrames = [[NSUserDefaults standardUserDefaults] valueForKey:key];
 	
 	// the last frame is skipped because I have one less divider than I have frames
@@ -367,8 +371,16 @@
 			}
 		}
 	}
+	
+	// Notify our delegate of the resize.  Note that this is not an NSSplitViewDelegate method; we're doing our own thing here
+	NSObject *delegate = [self delegate];
+	
+	if (delegate)
+	{
+		if ([delegate respondsToSelector:@selector(respondToSizeChangeForSplitView:)])
+			[delegate respondToSizeChangeForSplitView:self];
+	}
 }
-
 
 @end
 

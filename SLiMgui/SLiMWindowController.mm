@@ -61,7 +61,7 @@
 //	KVC / KVO / properties
 //
 
-@synthesize invalidSimulation, continuousPlayOn, reachedSimulationEnd, generationPlayOn, scriptVisibleConstraint, scriptHiddenConstraint;
+@synthesize invalidSimulation, continuousPlayOn, reachedSimulationEnd, generationPlayOn;
 
 + (NSSet *)keyPathsForValuesAffectingColorForWindowLabels
 {
@@ -176,8 +176,11 @@
 	[NSObject cancelPreviousPerformRequestsWithTarget:self];	// _generationPlay:, _continuousPlay:, etc.
 	
 	// Disconnect delegate relationships
-	[mainSplitView setDelegate:nil];
-	mainSplitView = nil;
+	[overallSplitView setDelegate:nil];
+	overallSplitView = nil;
+	
+	[bottomSplitView setDelegate:nil];
+	bottomSplitView = nil;
 	
 	[scriptTextView setDelegate:nil];
 	scriptTextView = nil;
@@ -226,9 +229,6 @@
 	
 	[genomicElementColorRegistry release];
 	genomicElementColorRegistry = nil;
-	
-	[self setScriptHiddenConstraint:nil];
-	[self setScriptVisibleConstraint:nil];
 	
 	// All graph windows attached to this controller need to be closed, since they refer back to us;
 	// closing them will come back via windowWillClose: and make them release and nil themselves
@@ -708,7 +708,12 @@
 	[[self window] setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
 	
 	// Fix our splitview's position restore, which NSSplitView sometimes screws up
-	[mainSplitView eidosRestoreAutosavedPositions];
+	[overallSplitView eidosRestoreAutosavedPositionsWithName:@"SLiMgui Overall Splitter"];
+	[bottomSplitView eidosRestoreAutosavedPositionsWithName:@"SLiMgui Splitter"];
+	
+	// THEN set the autosave names on the splitviews; this prevents NSSplitView from getting confused
+	[overallSplitView setAutosaveName:@"SLiMgui Overall Splitter"];
+	[bottomSplitView setAutosaveName:@"SLiMgui Splitter"];
 	
 	// Change column headers in the subpopulation table to images
 	[self replaceHeaderForColumn:subpopSelfingRateColumn withImageNamed:@"change_selfing_ratio" scaledToSize:14 withSexSymbol:IndividualSex::kUnspecified];
@@ -909,8 +914,6 @@
 	if (sel == @selector(dumpPopulationToOutput:))
 		return !(invalidSimulation);
 	
-	if (sel == @selector(toggleScriptVisibility:))
-		[menuItem setTitle:(![mainSplitView isHidden] ? @"Hide Script/Output" : @"Show Script/Output")];
 	if (sel == @selector(toggleConsoleVisibility:))
 		return [_consoleController validateMenuItem:menuItem];
 	if (sel == @selector(toggleBrowserVisibility:))
@@ -1620,49 +1623,6 @@
 - (IBAction)showScriptHelp:(id)sender
 {
 	[_consoleController showScriptHelp:sender];
-}
-
-- (IBAction)toggleScriptVisibility:(id)sender
-{
-	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
-	
-	if ([mainSplitView isHidden])
-	{
-		// View is hidden, so we need to show it
-		[mainSplitView setHidden:NO];
-		[scriptStatusTextField setHidden:NO];
-		
-		// We want to autosave the window size under a different name when the script/output are hidden
-		[[self window] setFrameAutosaveName:@"SLiMgui"];
-		
-		// Readjust constraints
-		[scriptHiddenConstraint setActive:NO];
-		[scriptVisibleConstraint setActive:YES];
-	}
-	else
-	{
-		// View is visible, so we need to hide it
-		[mainSplitView setHidden:YES];
-		[scriptStatusTextField setHidden:YES];
-		
-		// We want to autosave the window size under a different name when the script/output are hidden
-		[[self window] setFrameAutosaveName:@"SLiMgui Restricted"];
-		
-		// Readjust constraints
-		if (!scriptHiddenConstraint)
-		{
-			NSDictionary *viewsDictionary = @{@"chromosomeZoomed" : chromosomeZoomed};
-			NSArray<NSLayoutConstraint *> *constraints = [NSLayoutConstraint constraintsWithVisualFormat:@"V:[chromosomeZoomed]-20-|" options:0 metrics:nil views:viewsDictionary];
-			
-			if ([constraints count] != 1)
-				NSLog(@"Unexpected constraints");
-			
-			[self setScriptHiddenConstraint:[constraints objectAtIndex:0]];
-		}
-		
-		[scriptVisibleConstraint setActive:NO];
-		[scriptHiddenConstraint setActive:YES];
-	}
 }
 
 - (IBAction)toggleConsoleVisibility:(id)sender
@@ -2984,19 +2944,89 @@
 	return YES;
 }
 
+// NSSplitView doesn't like delegates to implement these methods any more; it logs if you do.  We can achieve the same
+// effect using constraints in the nib, which is the new way to do things, so that's what we do now.
+
+/*
 - (CGFloat)splitView:(NSSplitView *)splitView constrainMaxCoordinate:(CGFloat)proposedMax ofSubviewAt:(NSInteger)dividerIndex
 {
-	return proposedMax - 240;
+	if (splitView == bottomSplitView)
+		return proposedMax - 240;
+	else if (splitView == overallSplitView)
+		return proposedMax - 150;
+	
+	return proposedMax;
 }
 
 - (CGFloat)splitView:(NSSplitView *)splitView constrainMinCoordinate:(CGFloat)proposedMin ofSubviewAt:(NSInteger)dividerIndex
 {
-	return proposedMin + 240;
+	if (splitView == bottomSplitView)
+		return proposedMin + 240;
+	else if (splitView == overallSplitView)
+		return proposedMin + 262;
+	
+	return proposedMin;
+}
+*/
+
+- (CGFloat)splitView:(NSSplitView *)splitView constrainSplitPosition:(CGFloat)proposedPosition ofSubviewAt:(NSInteger)dividerIndex
+{
+	if (splitView == overallSplitView)
+	{
+		if (fabs(proposedPosition - 262) < 20)
+			proposedPosition = 262;
+		if (fabs(proposedPosition - 329) < 20)
+			proposedPosition = 329;
+		if (fabs(proposedPosition - 394) < 20)
+			proposedPosition = 394;
+	}
+	
+	//NSLog(@"pos in constrainSplitPosition: %f", proposedPosition);
+	
+	return proposedPosition;
+}
+
+- (void)respondToSizeChangeForSplitView:(NSSplitView *)splitView
+{
+	if (splitView == overallSplitView)
+	{
+		NSArray *subviews = [splitView arrangedSubviews];
+		
+		if ([subviews count] == 2)
+		{
+			NSView *firstSubview = [subviews objectAtIndex:0];
+			CGFloat height = [firstSubview frame].size.height;
+			
+			// heights here are the same as positions in constrainSplitPosition:, as it turns out
+			//NSLog(@"height in splitViewDidResizeSubviews: %f", height);
+			//NSLog(@"other height in splitViewDidResizeSubviews: %f", [[subviews objectAtIndex:1] frame].size.height);
+			
+			{
+				bool hideFitnessColorStrip = (height < 329);
+				
+				[fitnessTitleTextField setHidden:hideFitnessColorStrip];
+				[fitnessColorStripe setHidden:hideFitnessColorStrip];
+				[fitnessColorSlider setHidden:hideFitnessColorStrip];
+			}
+			
+			{
+				bool hideSelCoeffColorStrip = (height < 394);
+				
+				[selectionTitleTextField setHidden:hideSelCoeffColorStrip];
+				[selectionColorStripe setHidden:hideSelCoeffColorStrip];
+				[selectionColorSlider setHidden:hideSelCoeffColorStrip];
+			}
+		}
+	}
 }
 
 - (void)splitViewDidResizeSubviews:(NSNotification *)notification
 {
+	NSSplitView *splitView = [notification object];
+	
 	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
+	
+	[self respondToSizeChangeForSplitView:splitView];
 }
 
 

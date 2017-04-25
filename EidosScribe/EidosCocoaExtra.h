@@ -68,7 +68,10 @@ class EidosPropertySignature;
 // A bug fix to make NSSplitView correctly restore its position/layout.
 // Borrowed from http://stackoverflow.com/questions/16587058/nssplitview-auto-saving-divider-positions-doesnt-work-with-auto-layout-enable
 // Ah, NSSplitView, how I love thee?  Let me count the ways.  OK, I'm done counting.
-- (void)eidosRestoreAutosavedPositions;
+
+// BCH 25 April 2017: added the autosaveName parameter so that we can restore from our autosave before setting
+// the autosave name on the splitview, because Apple has broken NSSplitView even more severely than before...
+- (void)eidosRestoreAutosavedPositionsWithName:(NSString *)autosaveName;
 
 @end
 

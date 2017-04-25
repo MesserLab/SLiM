@@ -68,7 +68,7 @@ extern NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey;
 @property (nonatomic, retain) IBOutlet EidosVariableBrowserController *browserController;
 
 @property (nonatomic, retain) IBOutlet NSWindow *scriptWindow;
-@property (nonatomic, assign) IBOutlet NSSplitView *mainSplitView;
+@property (nonatomic, assign) IBOutlet NSSplitView *bottomSplitView;
 @property (nonatomic, assign) IBOutlet EidosTextView *scriptTextView;
 @property (nonatomic, assign) IBOutlet EidosConsoleTextView *outputTextView;
 @property (nonatomic, assign) IBOutlet NSTextField *statusTextField;

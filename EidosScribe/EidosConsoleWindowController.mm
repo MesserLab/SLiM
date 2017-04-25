@@ -63,7 +63,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 
 @implementation EidosConsoleWindowController
 
-@synthesize delegate, browserController, scriptWindow, mainSplitView, scriptTextView, outputTextView, statusTextField;
+@synthesize delegate, browserController, scriptWindow, bottomSplitView, scriptTextView, outputTextView, statusTextField;
 
 + (void)initialize
 {
@@ -97,7 +97,10 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	[scriptWindow setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
 	
 	// Fix our splitview's position restore, which NSSplitView sometimes screws up
-	[mainSplitView eidosRestoreAutosavedPositions];
+	[bottomSplitView eidosRestoreAutosavedPositionsWithName:@"Eidos Console Splitter"];
+	
+	// THEN set the autosave names on the splitviews; this prevents NSSplitView from getting confused
+	[bottomSplitView setAutosaveName:@"Eidos Console Splitter"];
 	
 	// Show a welcome message
 	[outputTextView showWelcomeMessage];
@@ -124,7 +127,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	
 	[self cleanup];
 	
-	[self setMainSplitView:nil];
+	[self setBottomSplitView:nil];
 	[self setScriptTextView:nil];
 	[self setOutputTextView:nil];
 	[self setStatusTextField:nil];
@@ -174,8 +177,8 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	delete global_symbols;
 	global_symbols = nil;
 	
-	[mainSplitView setDelegate:nil];
-	[self setMainSplitView:nil];
+	[bottomSplitView setDelegate:nil];
+	[self setBottomSplitView:nil];
 	
 	[scriptWindow setDelegate:nil];
 	[self setScriptWindow:nil];
@@ -939,6 +942,10 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	return YES;
 }
 
+// NSSplitView doesn't like delegates to implement these methods any more; it logs if you do.  We can achieve the same
+// effect using constraints in the nib, which is the new way to do things, so that's what we do now.
+
+/*
 - (CGFloat)splitView:(NSSplitView *)splitView constrainMaxCoordinate:(CGFloat)proposedMax ofSubviewAt:(NSInteger)dividerIndex
 {
 	return proposedMax - 230;
@@ -948,6 +955,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 {
 	return proposedMin + 230;
 }
+*/
 
 @end
 

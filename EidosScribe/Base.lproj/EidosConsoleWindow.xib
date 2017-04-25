@@ -1,7 +1,8 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="10116" systemVersion="15E65" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="12118" systemVersion="16E195" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="10116"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="12118"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="EidosAppDelegate">
@@ -15,7 +16,7 @@
             <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="283" y="348" width="800" height="302"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1577"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1920" height="1057"/>
             <value key="minSize" type="size" width="480" height="302"/>
             <view key="contentView" id="ejJ-lZ-DxP">
                 <rect key="frame" x="0.0" y="0.0" width="800" height="302"/>
@@ -25,7 +26,7 @@
                         <rect key="frame" x="-1" y="-1" width="802" height="304"/>
                         <clipView key="contentView" id="VOu-3p-vVw">
                             <rect key="frame" x="1" y="0.0" width="800" height="303"/>
-                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                            <autoresizingMask key="autoresizingMask"/>
                             <subviews>
                                 <outlineView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" columnReordering="NO" multipleSelection="NO" autosaveName="Variable Browser Table" headerView="Rl0-FI-YeK" indentationPerLevel="10" outlineTableColumn="o39-eJ-hfF" id="hH1-M5-dOk">
                                     <rect key="frame" x="0.0" y="0.0" width="800" height="280"/>
@@ -93,7 +94,6 @@
                                     </connections>
                                 </outlineView>
                             </subviews>
-                            <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
                         </clipView>
                         <scroller key="horizontalScroller" hidden="YES" verticalHuggingPriority="750" horizontal="YES" id="4QD-0H-9dl">
                             <rect key="frame" x="1" y="119" width="223" height="15"/>
@@ -123,10 +123,10 @@
         </window>
         <customObject id="Oju-rn-RJg" customClass="EidosConsoleWindowController">
             <connections>
+                <outlet property="bottomSplitView" destination="OgO-Qu-oJA" id="l2V-EH-mNW"/>
                 <outlet property="browserController" destination="TRR-E4-jMc" id="Gvk-P5-BrF"/>
                 <outlet property="browserToggleButton" destination="mJ2-l4-FOc" id="6Va-LI-Rha"/>
                 <outlet property="delegate" destination="-2" id="IxL-BB-3pl"/>
-                <outlet property="mainSplitView" destination="OgO-Qu-oJA" id="fyP-eW-cZT"/>
                 <outlet property="outputTextView" destination="hNz-Jr-UfL" id="MKo-wH-BBs"/>
                 <outlet property="scriptTextView" destination="g30-Kl-eb2" id="28b-x3-Gzp"/>
                 <outlet property="scriptWindow" destination="X56-a6-BnZ" id="ipo-Vc-kut"/>
@@ -147,13 +147,13 @@
         <window title="Eidos Console" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" restorable="NO" releasedWhenClosed="NO" visibleAtLaunch="NO" frameAutosaveName="Eidos Console" animationBehavior="default" id="X56-a6-BnZ">
             <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
             <rect key="contentRect" x="335" y="390" width="1024" height="768"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1577"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1920" height="1057"/>
             <value key="minSize" type="size" width="512" height="384"/>
             <view key="contentView" id="P8Z-tg-7Uc">
                 <rect key="frame" x="0.0" y="0.0" width="1024" height="768"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
-                    <splitView autosaveName="Eidos Console Splitter" dividerStyle="paneSplitter" vertical="YES" translatesAutoresizingMaskIntoConstraints="NO" id="OgO-Qu-oJA">
+                    <splitView autosaveName="" dividerStyle="paneSplitter" vertical="YES" translatesAutoresizingMaskIntoConstraints="NO" id="OgO-Qu-oJA">
                         <rect key="frame" x="0.0" y="21" width="1024" height="747"/>
                         <subviews>
                             <customView id="jpo-0u-yWF">
@@ -163,18 +163,16 @@
                                     <scrollView horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="jiy-7p-SlJ" userLabel="Bordered Scroll View - Eidos Text View">
                                         <rect key="frame" x="-1" y="-1" width="511" height="722"/>
                                         <clipView key="contentView" id="lvd-Kf-Kub">
-                                            <rect key="frame" x="1" y="1" width="223" height="133"/>
+                                            <rect key="frame" x="1" y="1" width="494" height="720"/>
                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <subviews>
-                                                <textView importsGraphics="NO" richText="NO" findStyle="bar" allowsUndo="YES" verticallyResizable="YES" id="g30-Kl-eb2" userLabel="Eidos Text View" customClass="EidosTextView">
-                                                    <rect key="frame" x="0.0" y="0.0" width="223" height="741"/>
+                                                <textView importsGraphics="NO" richText="NO" findStyle="bar" allowsUndo="YES" id="g30-Kl-eb2" userLabel="Eidos Text View" customClass="EidosTextView">
+                                                    <rect key="frame" x="0.0" y="0.0" width="494" height="720"/>
                                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                     <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                                                     <size key="minSize" width="494" height="720"/>
                                                     <size key="maxSize" width="511" height="10000000"/>
                                                     <color key="insertionPointColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                                    <size key="minSize" width="494" height="720"/>
-                                                    <size key="maxSize" width="511" height="10000000"/>
                                                     <connections>
                                                         <outlet property="delegate" destination="Oju-rn-RJg" id="dx7-li-RZ7"/>
                                                     </connections>
@@ -191,7 +189,7 @@
                                             <autoresizingMask key="autoresizingMask"/>
                                         </scroller>
                                     </scrollView>
-                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="rnZ-Mh-Tla">
+                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="NO" translatesAutoresizingMaskIntoConstraints="NO" id="rnZ-Mh-Tla">
                                         <rect key="frame" x="77" y="725" width="44" height="17"/>
                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Eidos:" id="76g-uR-h73">
                                             <font key="font" metaFont="systemBold"/>
@@ -280,6 +278,7 @@
                                     <constraint firstAttribute="trailing" secondItem="jiy-7p-SlJ" secondAttribute="trailing" constant="-1" id="7Ec-8S-0iR"/>
                                     <constraint firstAttribute="trailing" secondItem="yTp-UR-uIs" secondAttribute="trailing" constant="5" id="Akv-z6-RM5"/>
                                     <constraint firstItem="jiy-7p-SlJ" firstAttribute="top" secondItem="jpo-0u-yWF" secondAttribute="top" constant="26" id="I3K-Xy-WtF"/>
+                                    <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="240" id="JrP-yY-HG3"/>
                                     <constraint firstItem="mJ2-l4-FOc" firstAttribute="leading" secondItem="VKv-8h-11O" secondAttribute="trailing" constant="3" id="KOc-pc-r5c"/>
                                     <constraint firstItem="jiy-7p-SlJ" firstAttribute="leading" secondItem="jpo-0u-yWF" secondAttribute="leading" constant="-1" id="X77-W5-84M"/>
                                     <constraint firstItem="rnZ-Mh-Tla" firstAttribute="top" secondItem="jpo-0u-yWF" secondAttribute="top" constant="5" id="Z8f-q2-M2Z"/>
@@ -299,18 +298,16 @@
                                     <scrollView horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="bzX-Ky-sCf">
                                         <rect key="frame" x="-1" y="-1" width="507" height="722"/>
                                         <clipView key="contentView" id="JJ3-E5-rlu">
-                                            <rect key="frame" x="1" y="1" width="223" height="133"/>
+                                            <rect key="frame" x="1" y="1" width="490" height="720"/>
                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <subviews>
-                                                <textView importsGraphics="NO" richText="NO" findStyle="bar" allowsUndo="YES" verticallyResizable="YES" allowsNonContiguousLayout="YES" id="hNz-Jr-UfL" customClass="EidosConsoleTextView">
-                                                    <rect key="frame" x="0.0" y="0.0" width="223" height="741"/>
+                                                <textView importsGraphics="NO" richText="NO" findStyle="bar" allowsUndo="YES" allowsNonContiguousLayout="YES" id="hNz-Jr-UfL" customClass="EidosConsoleTextView">
+                                                    <rect key="frame" x="0.0" y="0.0" width="490" height="720"/>
                                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                     <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                                                     <size key="minSize" width="490" height="720"/>
                                                     <size key="maxSize" width="507" height="10000000"/>
                                                     <color key="insertionPointColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                                    <size key="minSize" width="490" height="720"/>
-                                                    <size key="maxSize" width="507" height="10000000"/>
                                                     <connections>
                                                         <binding destination="Oju-rn-RJg" name="editable" keyPath="interfaceEnabled" id="LC7-Wc-q8E"/>
                                                         <outlet property="delegate" destination="Oju-rn-RJg" id="kGW-mp-3ID"/>
@@ -328,7 +325,7 @@
                                             <autoresizingMask key="autoresizingMask"/>
                                         </scroller>
                                     </scrollView>
-                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="cRw-Sd-hbx">
+                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="NO" translatesAutoresizingMaskIntoConstraints="NO" id="cRw-Sd-hbx">
                                         <rect key="frame" x="31" y="725" width="61" height="17"/>
                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Console:" id="ktz-TJ-uHg">
                                             <font key="font" metaFont="systemBold"/>
@@ -404,6 +401,7 @@
                                     <constraint firstAttribute="trailing" secondItem="bzX-Ky-sCf" secondAttribute="trailing" constant="-1" id="ewS-fL-hYK"/>
                                     <constraint firstAttribute="bottom" secondItem="bzX-Ky-sCf" secondAttribute="bottom" constant="-1" id="nBp-f6-4Pu"/>
                                     <constraint firstItem="urT-CI-yd4" firstAttribute="bottom" secondItem="cEY-2Y-8z7" secondAttribute="bottom" id="o7b-dN-oGF"/>
+                                    <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="240" id="pHx-Wz-5wY"/>
                                     <constraint firstItem="P85-4x-4pc" firstAttribute="leading" secondItem="cEY-2Y-8z7" secondAttribute="trailing" constant="3" id="pdT-Jt-UT6"/>
                                     <constraint firstItem="bzX-Ky-sCf" firstAttribute="leading" secondItem="jtP-eN-5EP" secondAttribute="leading" constant="-1" id="q9Y-1h-EuG"/>
                                     <constraint firstItem="Ei6-h4-XuP" firstAttribute="top" secondItem="jtP-eN-5EP" secondAttribute="top" constant="3" id="y45-9V-Tzy"/>
@@ -421,7 +419,7 @@
                             <outlet property="delegate" destination="Oju-rn-RJg" id="Xd8-B9-hAA"/>
                         </connections>
                     </splitView>
-                    <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="150" translatesAutoresizingMaskIntoConstraints="NO" id="kY6-al-Llg">
+                    <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="150" allowsCharacterPickerTouchBarItem="NO" translatesAutoresizingMaskIntoConstraints="NO" id="kY6-al-Llg">
                         <rect key="frame" x="-1" y="-1" width="1026" height="22"/>
                         <textFieldCell key="cell" lineBreakMode="truncatingTail" refusesFirstResponder="YES" allowsUndo="NO" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="left" drawsBackground="YES" usesSingleLineMode="YES" id="zbW-4w-iUT">
                             <font key="font" size="11" name="Menlo-Regular"/>
