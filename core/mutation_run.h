@@ -84,8 +84,25 @@ public:
 	// objects, and we actually don't want that; we want the buffers in used MutationRun objects to stay allocated, for
 	// greater speed.  We are constantly creating new runs, adding mutations in to them, and then throwing them away; once
 	// the pool of freed runs settles into a steady state, that process can go on with no memory allocs or reallocs at all.
-	static MutationRun *NewMutationRun(void);
-	static void FreeMutationRun(MutationRun *p_run);
+	static inline MutationRun *NewMutationRun(void)
+	{
+		if (s_freed_mutation_runs_.size())
+		{
+			MutationRun *back = s_freed_mutation_runs_.back();
+			
+			s_freed_mutation_runs_.pop_back();
+			return back;
+		}
+		
+		return new MutationRun();
+	}
+	
+	static inline void FreeMutationRun(MutationRun *p_run)
+	{
+		p_run->mutation_count_ = 0;
+		s_freed_mutation_runs_.emplace_back(p_run);
+	}
+	
 	static std::vector<MutationRun *> s_freed_mutation_runs_;
 	
 	MutationRun(const MutationRun&) = delete;					// no copying

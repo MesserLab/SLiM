@@ -26,28 +26,6 @@
 // For doing bulk operations across all MutationRun objects; see header
 int64_t gSLiM_MutationRun_OperationID = 0;
 
-
-// Shared pool support; see header for comments
-MutationRun *MutationRun::NewMutationRun(void)
-{
-	if (s_freed_mutation_runs_.size())
-	{
-		MutationRun *back = s_freed_mutation_runs_.back();
-		
-		s_freed_mutation_runs_.pop_back();
-		return back;
-	}
-	
-	return new MutationRun();
-}
-
-void MutationRun::FreeMutationRun(MutationRun *p_run)
-{
-	p_run->mutation_count_ = 0;
-	
-	s_freed_mutation_runs_.emplace_back(p_run);
-}
-
 std::vector<MutationRun *> MutationRun::s_freed_mutation_runs_;
 
 
