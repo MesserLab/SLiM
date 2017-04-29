@@ -51,7 +51,9 @@ typedef Eidos_intrusive_ptr<MutationRun>	MutationRun_SP;
 // more than one Genome.  This allows multiple Genome objects to refer to the same underlying MutationRun securely.  Genome and other
 // clients are responsible for making a copy of a MutationRun before modification when they do not know they are the sole owner.
 // FIXME should probably be turned off when DEBUG is not set, once things have shaken out...
+#ifdef DEBUG
 #define SLIM_MUTRUN_CHECK_LOCKING
+#endif
 
 
 // MutationRun has a marking mechanism to let us loop through all genomes and perform an operation on each MutationRun once.
