@@ -79,7 +79,7 @@ private:
 	
 	int32_t mutrun_count_;										// number of runs being used; 0 for a null genome, otherwise >= 1
 	int32_t mutrun_length_;										// the length, in base pairs, of each run; the last run may not use its full length
-	MutationRun_SP *mutruns_;									// mutation runs; nullptr if a null genome; the entries should not be nullptr
+	MutationRun_SP *mutruns_;									// mutation runs; nullptr if a null genome OR an empty genome
 	
 	slim_usertag_t tag_value_;									// a user-defined tag value
 	
@@ -120,6 +120,21 @@ public:
 	inline bool IsNull(void) const									// returns true if the genome is a null (placeholder) genome, false otherwise
 	{
 		return (mutrun_count_ == 0);
+	}
+	
+	// This should be called before starting to define a mutation run from scratch, as the crossover-mutation code does.  It will
+	// discard the current MutationRun and start over from scratch with a unique, new MutationRun which is returned by the call.
+	inline MutationRun *WillCreateRun(int p_run_index)
+	{
+#ifdef DEBUG
+		if (p_run_index >= mutrun_count_)
+			EIDOS_TERMINATION << "ERROR (Genome::WillModifyRun): (internal error) attempt to modify an out-of-index run." << eidos_terminate();
+#endif
+		
+		MutationRun *new_run = MutationRun::NewMutationRun();	// take from shared pool of used objects
+		
+		mutruns_[p_run_index] = MutationRun_SP(new_run);
+		return new_run;
 	}
 	
 	// This should be called before modifying the run at a given index.  It will replicate the run to produce a single-referenced copy
@@ -210,19 +225,11 @@ public:
 		}
 	}
 	
-	inline void set_to_run(MutationRun *p_run)
+	inline void clear_to_nullptr(void)
 	{
-#ifdef DEBUG
-		if (mutrun_count_ == 0)
-			NullGenomeAccessError();
-#endif
-		// This is used by Population::ClearParentalGenomes() to clear out all references to MutationRun objects
-		// in the parental generation, so that the refcounts of MutationRuns reflect their usage count in the
-		// child generation, so those refcounts can be used for fast tallying of mutations.
-		MutationRun_SP mutrun_sp = MutationRun_SP(p_run);
-		
+		// It is legal to call this method on null genomes, for speed/simplicity; it does no harm
 		for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-			mutruns_[run_index] = mutrun_sp;
+			mutruns_[run_index].reset();
 	}
 	
 	inline bool contains_mutation(const Mutation *p_mutation)
@@ -326,8 +333,10 @@ public:
 			if (mutrun_count_ == 0)
 				NullGenomeAccessError();
 #endif
+#ifdef DEBUG
 			if ((mutrun_count_ != p_source_genome.mutrun_count_) || (mutrun_length_ != p_source_genome.mutrun_length_))
 				EIDOS_TERMINATION << "ERROR (Genome::copy_from_genome): (internal error) assignment from genome with different count/length." << eidos_terminate();
+#endif
 			
 			for (int run_index = 0; run_index < mutrun_count_; ++run_index)
 				mutruns_[run_index] = p_source_genome.mutruns_[run_index];

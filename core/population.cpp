@@ -1876,9 +1876,6 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 	//	the instructions given to us from above, namely use_only_strand_1.  We know we are doing a non-null strand.
 	//
 	
-	// start with a clean slate in the child genome
-	child_genome.clear();
-	
 	// determine how many mutations and breakpoints we have
 	int num_mutations, num_breakpoints;
 	std::vector<slim_position_t> all_breakpoints;
@@ -1972,6 +1969,9 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 			// no mutations, but we do have crossovers, so we just need to interleave the two parental genomes
 			//
 			
+			// start with a clean slate in the child genome
+			child_genome.clear_to_nullptr();
+			
 			Genome *parent_genome = parent_genome_1;
 			int mutrun_length = child_genome.mutrun_length_;
 			int mutrun_count = child_genome.mutrun_count_;
@@ -2008,10 +2008,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 					Mutation *const *parent2_iter_max	= parent_genome_2->mutruns_[this_mutrun_index]->end_pointer_const();
 					Mutation *const *parent_iter		= parent1_iter;
 					Mutation *const *parent_iter_max	= parent1_iter_max;
-					
-					child_genome.WillModifyRun(this_mutrun_index);
-					
-					MutationRun *child_mutrun = child_genome.mutruns_[this_mutrun_index].get();
+					MutationRun *child_mutrun = child_genome.WillCreateRun(this_mutrun_index);
 					
 					while (true)
 					{
@@ -2075,6 +2072,9 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 	{
 		// we have at least one new mutation, so set up for that case (which splits into two cases below)
 		
+		// start with a clean slate in the child genome
+		child_genome.clear_to_nullptr();
+		
 		int mutrun_length = child_genome.mutrun_length_;
 		int mutrun_count = child_genome.mutrun_count_;
 		
@@ -2136,10 +2136,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 				int this_mutrun_index = first_uncompleted_mutrun;
 				Mutation *const *parent_iter		= parent_genome->mutruns_[this_mutrun_index]->begin_pointer_const();
 				Mutation *const *parent_iter_max	= parent_genome->mutruns_[this_mutrun_index]->end_pointer_const();
-				
-				child_genome.WillModifyRun(this_mutrun_index);
-				
-				MutationRun *child_mutrun = child_genome.mutruns_[this_mutrun_index].get();
+				MutationRun *child_mutrun = child_genome.WillCreateRun(this_mutrun_index);
 				
 				// while there are still old mutations in the parent
 				while (parent_iter != parent_iter_max)
@@ -2283,10 +2280,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 				Mutation *const *parent2_iter_max	= parent_genome_2->mutruns_[this_mutrun_index]->end_pointer_const();
 				Mutation *const *parent_iter		= parent1_iter;
 				Mutation *const *parent_iter_max	= parent1_iter_max;
-				
-				child_genome.WillModifyRun(this_mutrun_index);
-				
-				MutationRun *child_mutrun = child_genome.mutruns_[this_mutrun_index].get();
+				MutationRun *child_mutrun = child_genome.WillCreateRun(this_mutrun_index);
 				
 				while (true)
 				{
@@ -2428,9 +2422,6 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 		return;
 	}
 	
-	// start with a clean slate in the child genome
-	child_genome.clear();
-	
 	// determine how many mutations and breakpoints we have
 	int num_mutations = p_chromosome.DrawMutationCount();
 	
@@ -2442,6 +2433,9 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 	}
 	else
 	{
+		// start with a clean slate in the child genome
+		child_genome.clear_to_nullptr();
+		
 		// create vector with the mutations to be added
 		MutationRun &mutations_to_add = *MutationRun::NewMutationRun();		// take from shared pool of used objects;
 		
@@ -2479,9 +2473,7 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 			else
 			{
 				// interleave the parental genome with the new mutations
-				child_genome.WillModifyRun(run_index);
-				
-				MutationRun *child_run = child_genome.mutruns_[run_index].get();
+				MutationRun *child_run = child_genome.WillCreateRun(run_index);
 				MutationRun *parent_run = parental_genome.mutruns_[run_index].get();
 				Mutation *const *parent_iter		= parent_run->begin_pointer_const();
 				Mutation *const *parent_iter_max	= parent_run->end_pointer_const();
@@ -2704,12 +2696,9 @@ void Population::RecalculateFitness(slim_generation_t p_generation)
 	}
 }
 
-// Set all parental genomes to use an empty marker run so they don't mess up our MutationRun refcounts
+// Clear all parental genomes to use nullptr for their mutation runs, so they don't mess up our MutationRun refcounts
 void Population::ClearParentalGenomes(void)
 {
-	// Get an unused mutation run from the pool, so that we are guaranteed not to overlap with the child generation at all
-	MutationRun *new_empty_mutation = MutationRun::NewMutationRun();
-	
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
 	{
 		Subpopulation *subpop = subpop_pair.second;
@@ -2717,12 +2706,7 @@ void Population::ClearParentalGenomes(void)
 		std::vector<Genome> &subpop_genomes = subpop->parent_genomes_;
 		
 		for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
-		{
-			Genome &genome = subpop_genomes[i];
-			
-			if (!genome.IsNull())
-				genome.set_to_run(new_empty_mutation);
-		}
+			subpop_genomes[i].clear_to_nullptr();
 	}
 	
 	// We have to clear out removed subpops, too, for as long as they stick around
@@ -2733,12 +2717,7 @@ void Population::ClearParentalGenomes(void)
 			std::vector<Genome> &subpop_genomes = subpop->parent_genomes_;
 			
 			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
-			{
-				Genome &genome = subpop_genomes[i];
-				
-				if (!genome.IsNull())
-					genome.set_to_run(new_empty_mutation);
-			}
+				subpop_genomes[i].clear_to_nullptr();
 		}
 		
 		{
@@ -2746,12 +2725,7 @@ void Population::ClearParentalGenomes(void)
 			std::vector<Genome> &subpop_genomes = subpop->child_genomes_;
 			
 			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
-			{
-				Genome &genome = subpop_genomes[i];
-				
-				if (!genome.IsNull())
-					genome.set_to_run(new_empty_mutation);
-			}
+				subpop_genomes[i].clear_to_nullptr();
 		}
 	}
 }

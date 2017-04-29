@@ -141,7 +141,7 @@ public:
 	// Recalculate all fitness values for the parental generation, including the use of fitness() callbacks
 	void RecalculateFitness(slim_generation_t p_generation);
 	
-	// Set all parental genomes to use an empty marker run so they don't mess up our MutationRun refcounts
+	// Clear all parental genomes to use nullptr for their mutation runs, so they don't mess up our MutationRun refcounts
 	void ClearParentalGenomes(void);
 	
 	// Tally mutations and remove fixed/lost mutations

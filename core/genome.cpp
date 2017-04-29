@@ -131,8 +131,10 @@ void Genome::NullGenomeAccessError(void) const
 
 void Genome::WillModifyRun(int p_run_index)
 {
+#ifdef DEBUG
 	if (p_run_index >= mutrun_count_)
 		EIDOS_TERMINATION << "ERROR (Genome::WillModifyRun): (internal error) attempt to modify an out-of-index run." << eidos_terminate();
+#endif
 	
 	MutationRun *original_run = mutruns_[p_run_index].get();
 	
