@@ -3201,6 +3201,9 @@ void Population::RemoveFixedMutations(void)
 			AddTallyForMutationTypeAndBinNumber(mutation_type_index, mutation_type_count, fixation_time / 10, &mutation_fixation_times_, &mutation_fixation_gen_slots_);
 #endif
 			
+			// set a special flag value for the reference count to allow it to be found rapidly
+			mutation->reference_count_ = -1;
+			
 			// add the fixed mutation to a vector, to be converted to a Substitution object below
 			fixed_mutation_accumulator.insert_sorted_mutation(mutation);
 			
@@ -3234,18 +3237,38 @@ void Population::RemoveFixedMutations(void)
 	// replace fixed mutations with Substitution objects
 	if (fixed_mutation_accumulator.size() > 0)
 	{
+		//std::cout << "Removing " << fixed_mutation_accumulator.size() << " fixed mutations..." << std::endl;
+		
 		// We remove fixed mutations from each MutationRun just once; this is the operation ID we use for that
 		int64_t operation_id = ++gSLiM_MutationRun_OperationID;
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)		// subpopulations
 		{
-			for (slim_popsize_t i = 0; i < 2 * subpop_pair.second->child_subpop_size_; i++)	// child genomes
+			std::vector<Genome> &subpop_genomes = subpop_pair.second->child_genomes_;
+			slim_popsize_t subpop_genome_count = 2 * subpop_pair.second->child_subpop_size_;
+			
+			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)	// child genomes
 			{
-				Genome *genome = &(subpop_pair.second->child_genomes_[i]);
+				Genome *genome = &(subpop_genomes[i]);
 				
-				// Fixed mutations are removed by looking at refcounts, so fixed_mutation_accumulator is not needed here
 				if (!genome->IsNull())
-					genome->RemoveFixedMutations(total_genome_count_, operation_id);
+				{
+					// Loop over the mutations to remove, and take advantage of our mutation runs by scanning
+					// for removal only within the runs that contain a mutation to be removed.  If there is
+					// more than one mutation to be removed within the same run, the second time around the
+					// runs will no-op the scan using operatiod_id.  The whole rest of the genomes can be skipped.
+					int mutrun_length = genome->mutrun_length_;
+					
+					for (int mut_index = 0; mut_index < fixed_mutation_accumulator.size(); mut_index++)
+					{
+						Mutation *mut_to_remove = fixed_mutation_accumulator[mut_index];
+						slim_position_t mut_position = mut_to_remove->position_;
+						int mutrun_index = mut_position / mutrun_length;
+						
+						// Note that total_genome_count_ is not needed by RemoveFixedMutations(); refcounts were set to -1 above.
+						genome->RemoveFixedMutations(operation_id, mutrun_index);
+					}
+				}
 			}
 		}
 		

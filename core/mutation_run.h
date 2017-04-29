@@ -395,7 +395,16 @@ public:
 		return mutations_ + mutation_count_;
 	}
 	
-	void RemoveFixedMutations(slim_refcount_t p_fixed_count, int64_t p_operation_id);
+	void _RemoveFixedMutations(void);
+	inline void RemoveFixedMutations(int64_t p_operation_id)
+	{
+		if (operation_id_ != p_operation_id)
+		{
+			operation_id_ = p_operation_id;
+			
+			_RemoveFixedMutations();
+		}
+	}
 	
 	// Eidos_intrusive_ptr support
 	inline __attribute__((always_inline)) uint32_t use_count() const { return intrusive_ref_count; }

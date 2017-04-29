@@ -233,15 +233,15 @@ void Genome::BulkOperationEnd(int64_t p_operation_id, int p_mutrun_index)
 
 // Remove all mutations in p_genome that have a refcount of p_fixed_count, indicating that they have fixed
 // This must be called with mutation counts set up correctly as all-population counts, or it will malfunction!
-void Genome::RemoveFixedMutations(slim_refcount_t p_fixed_count, int64_t p_operation_id)
+void Genome::RemoveFixedMutations(int64_t p_operation_id, int p_mutrun_index)
 {
 #ifdef DEBUG
 	if (mutrun_count_ == 0)
 		NullGenomeAccessError();
 #endif
-	
-	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-		mutruns_[run_index]->RemoveFixedMutations(p_fixed_count, p_operation_id);
+	// This used to call RemoveFixedMutations() on each mutation run; now it removes only within a given
+	// mutation run index, allowing all the parts of the genome that don't contain fixed mutations to be skipped
+	mutruns_[p_mutrun_index]->RemoveFixedMutations(p_operation_id);
 }
 
 void Genome::TallyGenomeReferences(slim_refcount_t *p_mutrun_ref_tally, slim_refcount_t *p_mutrun_tally, int64_t p_operation_id)

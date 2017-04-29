@@ -159,7 +159,7 @@ public:
 		return genome_type_;
 	}
 	
-	void RemoveFixedMutations(slim_refcount_t p_fixed_count, int64_t p_operation_id);		// Remove all mutations with a refcount of p_fixed_count, indicating that they have fixed
+	void RemoveFixedMutations(int64_t p_operation_id, int p_mutrun_index);		// Remove all mutations with a refcount of -1, indicating that they have fixed
 	
 	// This counts up the total MutationRun references, using their usage counts, as a checkback
 	void TallyGenomeReferences(slim_refcount_t *p_mutrun_ref_tally, slim_refcount_t *p_mutrun_tally, int64_t p_operation_id);

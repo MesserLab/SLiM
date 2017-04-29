@@ -47,42 +47,52 @@ void MutationRun::LockingViolation(void) const
 }
 #endif
 
-void MutationRun::RemoveFixedMutations(slim_refcount_t p_fixed_count, int64_t p_operation_id)
+void MutationRun::_RemoveFixedMutations(void)
 {
-	if (operation_id_ != p_operation_id)
+	// Mutations that have fixed, and are thus targeted for removal, have already had their refcount set to -1.
+	// That is done only when convertToSubstitution == T, so we don't need to check that flag here.
+	
+	// We don't use begin_pointer() / end_pointer() here, because we actually want to modify the MutationRun even
+	// though it is shared by multiple Genomes; this is an exceptional case, so we go around our safeguards.
+	Mutation **genome_iter = mutations_;
+	Mutation **genome_backfill_iter = nullptr;
+	Mutation **genome_max = mutations_ + mutation_count_;
+	
+	// genome_iter advances through the mutation list; for each entry it hits, the entry is either fixed (skip it) or not fixed
+	// (copy it backward to the backfill pointer).  We do this with two successive loops; the first knows that no mutation has
+	// yet been skipped, whereas the second knows that at least one mutation has been.
+	while (genome_iter != genome_max)
 	{
-		operation_id_ = p_operation_id;
+		if ((*genome_iter++)->reference_count_ != -1)
+			continue;
 		
-		// We don't use begin_pointer() / end_pointer() here, because we actually want to modify the MutationRun even
-		// though it is shared by multiple Genomes; this is an exceptional case, so we go around our safeguards.
-		Mutation **genome_iter = mutations_;
-		Mutation **genome_backfill_iter = mutations_;
-		Mutation **genome_max = mutations_ + mutation_count_;
-		
-		// genome_iter advances through the mutation list; for each entry it hits, the entry is either fixed (skip it) or not fixed (copy it backward to the backfill pointer)
-		while (genome_iter != genome_max)
-		{
-			Mutation *mutation_ptr = *genome_iter;
-			
-			if ((mutation_ptr->reference_count_ == p_fixed_count) && (mutation_ptr->mutation_type_ptr_->convert_to_substitution_))
-			{
-				// Fixed mutation; we want to omit it, so we just advance our pointer
-				++genome_iter;
-			}
-			else
-			{
-				// Unfixed mutation; we want to keep it, so we copy it backward and advance our backfill pointer as well as genome_iter
-				if (genome_backfill_iter != genome_iter)
-					*genome_backfill_iter = mutation_ptr;
-				
-				++genome_backfill_iter;
-				++genome_iter;
-			}
-		}
-		
-		// excess mutations at the end have been copied back already; we just adjust mutation_count_ and forget about them
-		mutation_count_ -= (genome_iter - genome_backfill_iter);
+		// Fixed mutation; we want to omit it, so we skip it in genome_backfill_iter and transition to the second loop
+		genome_backfill_iter = genome_iter - 1;
+		break;
 	}
+	
+	while (genome_iter != genome_max)
+	{
+		Mutation *mutation_ptr = *genome_iter;
+		
+		if (mutation_ptr->reference_count_ != -1)
+		{
+			// Unfixed mutation; we want to keep it, so we copy it backward and advance our backfill pointer as well as genome_iter
+			*genome_backfill_iter = mutation_ptr;
+			
+			++genome_backfill_iter;
+			++genome_iter;
+		}
+		else
+		{
+			// Fixed mutation; we want to omit it, so we just advance our pointer
+			++genome_iter;
+		}
+	}
+	
+	// excess mutations at the end have been copied back already; we just adjust mutation_count_ and forget about them
+	if (genome_backfill_iter != nullptr)
+		mutation_count_ -= (genome_iter - genome_backfill_iter);
 }
 
 bool MutationRun::_enforce_stack_policy_for_addition(slim_position_t p_position, MutationType *p_mut_type_ptr, MutationStackPolicy p_policy)
