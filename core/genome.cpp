@@ -299,6 +299,15 @@ void Genome::TallyMutationReferences(int64_t p_operation_id)
 				((*genome_iter++)->reference_count_) += use_count;
 			}
 			
+			// Do 4 reps
+			while (genome_iter + 4 <= genome_end_iter)
+			{
+				((*genome_iter++)->reference_count_) += use_count;
+				((*genome_iter++)->reference_count_) += use_count;
+				((*genome_iter++)->reference_count_) += use_count;
+				((*genome_iter++)->reference_count_) += use_count;
+			}
+			
 			// Finish off
 			while (genome_iter != genome_end_iter)
 				((*genome_iter++)->reference_count_) += use_count;
