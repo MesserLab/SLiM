@@ -115,6 +115,36 @@ void Chromosome::InitializeDraws(void)
 	}
 }
 
+void Chromosome::ChooseMutationRunLayout(int p_preferred_length)
+{
+	// We now have a final last position, which should not change henceforth.  We can therefore calculate how many mutation runs
+	// we will use, and how long they will be.  Note that this decision may depend also upon the overall mutation rate and the
+	// overall recombination rate in future, which is OK; the initial values for those are known here, and if they change later,
+	// we will not redo our mutation run layout.
+	
+	if (p_preferred_length)
+	{
+		// The user specified a preferred mutation run length; take them at their word
+		mutrun_length_ = p_preferred_length;
+	}
+	else
+	{
+		// FIXME this could doubtless be improved; choose a length for which the expected number of events per generation is perhaps 0.1?
+		mutrun_length_ = 10000;
+	}
+	
+	// Calculate the number of mutation runs needed given the mutation run length and chromosome length:
+	// if mutrun_length_ == 10, last_position_ == 9 gives 1 run, last_position_ == 10 gives 2 runs
+	mutrun_count_ = (last_position_ / mutrun_length_) + 1;
+	
+	// Make sure we always have at least one mutation run; that should always be true anyway.
+	if ((mutrun_count_ < 1) || (mutrun_count_ * mutrun_length_ <= last_position_))
+		EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): (internal error) math error in mutation run calculations." << eidos_terminate();
+
+	// Debugging output
+	//std::cout << "# Mutation run layout: " << mutrun_count_ << " runs of " << mutrun_length_ << " bases each (" << mutrun_count_ * mutrun_length_ << " base capacity)" << std::endl;
+}
+
 // initialize one recombination map, used internally by InitializeDraws() to avoid code duplication
 void Chromosome::_InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, vector<slim_position_t> &p_end_positions, vector<double> &p_rates, double &p_overall_rate, double &p_exp_neg_overall_rate, double &p_both_0, double &p_both_0_OR_mut_0_break_non0_, double &p_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_)
 {

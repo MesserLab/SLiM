@@ -324,15 +324,21 @@
 				
 				if (!genome.IsNull())
 				{
-					Mutation *const *genome_iter = genome.begin_pointer_const();
-					Mutation *const *genome_end_iter = genome.end_pointer_const();
+					int mutrun_count = genome.mutrun_count_;
 					
-					for (; genome_iter != genome_end_iter; ++genome_iter)
+					for (int run_index = 0; run_index < mutrun_count; ++run_index)
 					{
-						const Mutation *mutation = *genome_iter;
+						MutationRun *mutrun = genome.mutruns_[run_index].get();
+						Mutation *const *genome_iter = mutrun->begin_pointer_const();
+						Mutation *const *genome_end_iter = mutrun->end_pointer_const();
 						
-						if (mutation->mutation_type_ptr_->mutation_type_index_ == _selectedMutationTypeIndex)
-							(mutation->gui_scratch_reference_count_)++;
+						for (; genome_iter != genome_end_iter; ++genome_iter)
+						{
+							const Mutation *mutation = *genome_iter;
+							
+							if (mutation->mutation_type_ptr_->mutation_type_index_ == _selectedMutationTypeIndex)
+								(mutation->gui_scratch_reference_count_)++;
+						}
 					}
 					
 					subpop_total_genome_count++;

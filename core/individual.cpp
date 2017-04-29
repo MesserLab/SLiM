@@ -339,103 +339,117 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 				Genome &g1 = *genome1, &g2 = *genome2;
 				
 				// We reserve a vector large enough to hold all the mutations from both genomes; probably usually overkill, but it does little harm
-				int g1_size = (g1.IsNull() ? 0 : g1.size()), g2_size = (g2.IsNull() ? 0 : g2.size());
-				EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->Reserve(g1_size + g2_size);
+				int genome1_size = (g1.IsNull() ? 0 : g1.mutation_count()), genome2_size = (g2.IsNull() ? 0 : g2.mutation_count());
+				EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class));
 				EidosValue_SP result_SP = EidosValue_SP(vec);
 				
-				// We want to interleave mutations from the two genomes, keeping only the uniqued mutations.  For a given position, we take mutations
-				// from g1 first, and then look at the mutations in g2 at the same position and add them if they are not in g1.
-				int g1_index = 0, g2_index = 0;
+				if ((genome1_size == 0) && (genome2_size == 0))
+					return result_SP;
+
+				vec->Reserve(genome1_size + genome2_size);
+
+				int mutrun_count = (genome1_size ? g1.mutrun_count_ : g2.mutrun_count_);
 				
-				if (g1_size && g2_size)
+				for (int run_index = 0; run_index < mutrun_count; ++run_index)
 				{
-					// Get the position of the mutations at g1_index and g2_index
-					Mutation *g1_mut = g1[g1_index], *g2_mut = g2[g2_index];
-					slim_position_t pos1 = g1_mut->position_, pos2 = g2_mut->position_;
+					// We want to interleave mutations from the two genomes, keeping only the uniqued mutations.  For a given position, we take mutations
+					// from g1 first, and then look at the mutations in g2 at the same position and add them if they are not in g1.
+					MutationRun *mutrun1 = (genome1_size ? genome1->mutruns_[run_index].get() : nullptr);
+					MutationRun *mutrun2 = (genome2_size ? genome2->mutruns_[run_index].get() : nullptr);
+					int g1_size = (mutrun1 ? mutrun1->size() : 0);
+					int g2_size = (mutrun2 ? mutrun2->size() : 0);
+					int g1_index = 0, g2_index = 0;
 					
-					// Process mutations as long as both genomes still have mutations left in them
-					do
+					if (g1_size && g2_size)
 					{
-						if (pos1 < pos2)
+						// Get the position of the mutations at g1_index and g2_index
+						Mutation *g1_mut = (*mutrun1)[g1_index], *g2_mut = (*mutrun2)[g2_index];
+						slim_position_t pos1 = g1_mut->position_, pos2 = g2_mut->position_;
+						
+						// Process mutations as long as both genomes still have mutations left in them
+						do
 						{
-							vec->PushObjectElement(g1_mut);
-							
-							// Move to the next mutation in g1
-							if (++g1_index >= g1_size)
-								break;
-							g1_mut = g1[g1_index];
-							pos1 = g1_mut->position_;
-						}
-						else if (pos1 > pos2)
-						{
-							vec->PushObjectElement(g2_mut);
-							
-							// Move to the next mutation in g2
-							if (++g2_index >= g2_size)
-								break;
-							g2_mut = g2[g2_index];
-							pos2 = g2_mut->position_;
-						}
-						else
-						{
-							// pos1 == pos2; copy mutations from g1 until we are done with this position, then handle g2
-							slim_position_t focal_pos = pos1;
-							int first_index = g1_index;
-							bool done = false;
-							
-							while (pos1 == focal_pos)
+							if (pos1 < pos2)
 							{
 								vec->PushObjectElement(g1_mut);
 								
 								// Move to the next mutation in g1
 								if (++g1_index >= g1_size)
-								{
-									done = true;
 									break;
-								}
-								g1_mut = g1[g1_index];
+								g1_mut = (*mutrun1)[g1_index];
 								pos1 = g1_mut->position_;
 							}
-							
-							// Note that we may be done with g1 here, so be careful
-							int last_index_plus_one = g1_index;
-							
-							while (pos2 == focal_pos)
+							else if (pos1 > pos2)
 							{
-								int check_index;
-								
-								for (check_index = first_index; check_index < last_index_plus_one; ++check_index)
-									if (g1[check_index] == g2_mut)
-										break;
-								
-								// If the check indicates that g2_mut is not in g1, we copy it over
-								if (check_index == last_index_plus_one)
-									vec->PushObjectElement(g2_mut);
+								vec->PushObjectElement(g2_mut);
 								
 								// Move to the next mutation in g2
 								if (++g2_index >= g2_size)
-								{
-									done = true;
 									break;
-								}
-								g2_mut = g2[g2_index];
+								g2_mut = (*mutrun2)[g2_index];
 								pos2 = g2_mut->position_;
 							}
-							
-							// Note that we may be done with both g1 and/or g2 here; if so, done will be set and we will break out
-							if (done)
-								break;
+							else
+							{
+								// pos1 == pos2; copy mutations from g1 until we are done with this position, then handle g2
+								slim_position_t focal_pos = pos1;
+								int first_index = g1_index;
+								bool done = false;
+								
+								while (pos1 == focal_pos)
+								{
+									vec->PushObjectElement(g1_mut);
+									
+									// Move to the next mutation in g1
+									if (++g1_index >= g1_size)
+									{
+										done = true;
+										break;
+									}
+									g1_mut = (*mutrun1)[g1_index];
+									pos1 = g1_mut->position_;
+								}
+								
+								// Note that we may be done with g1 here, so be careful
+								int last_index_plus_one = g1_index;
+								
+								while (pos2 == focal_pos)
+								{
+									int check_index;
+									
+									for (check_index = first_index; check_index < last_index_plus_one; ++check_index)
+										if ((*mutrun1)[check_index] == g2_mut)
+											break;
+									
+									// If the check indicates that g2_mut is not in g1, we copy it over
+									if (check_index == last_index_plus_one)
+										vec->PushObjectElement(g2_mut);
+									
+									// Move to the next mutation in g2
+									if (++g2_index >= g2_size)
+									{
+										done = true;
+										break;
+									}
+									g2_mut = (*mutrun2)[g2_index];
+									pos2 = g2_mut->position_;
+								}
+								
+								// Note that we may be done with both g1 and/or g2 here; if so, done will be set and we will break out
+								if (done)
+									break;
+							}
 						}
+						while (true);
 					}
-					while (true);
+					
+					// Finish off any tail ends, which must be unique and sorted already
+					while (g1_index < g1_size)
+						vec->PushObjectElement((*mutrun1)[g1_index++]);
+					while (g2_index < g2_size)
+						vec->PushObjectElement((*mutrun2)[g2_index++]);
 				}
-				
-				// Finish off any tail ends, which must be unique and sorted already
-				while (g1_index < g1_size)
-					vec->PushObjectElement(g1[g1_index++]);
-				while (g2_index < g2_size)
-					vec->PushObjectElement(g2[g2_index++]);
-				
+			
 				return result_SP;
 			}
 			else
@@ -723,21 +737,33 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 				
 				if (!genome1->IsNull())
 				{
-					int genome1_count = genome1->size();
-					Mutation *const *genome1_ptr = genome1->begin_pointer_const();
+					int mutrun_count = genome1->mutrun_count_;
 					
-					for (int mut_index = 0; mut_index < genome1_count; ++mut_index)
-						if (genome1_ptr[mut_index]->mutation_type_ptr_ == mutation_type_ptr)
-							++match_count;
+					for (int run_index = 0; run_index < mutrun_count; ++run_index)
+					{
+						MutationRun *mutrun = genome1->mutruns_[run_index].get();
+						int genome1_count = mutrun->size();
+						Mutation *const *genome1_ptr = mutrun->begin_pointer_const();
+						
+						for (int mut_index = 0; mut_index < genome1_count; ++mut_index)
+							if (genome1_ptr[mut_index]->mutation_type_ptr_ == mutation_type_ptr)
+								++match_count;
+					}
 				}
 				if (!genome2->IsNull())
 				{
-					int genome2_count = genome2->size();
-					Mutation *const *genome2_ptr = genome2->begin_pointer_const();
+					int mutrun_count = genome2->mutrun_count_;
 					
-					for (int mut_index = 0; mut_index < genome2_count; ++mut_index)
-						if (genome2_ptr[mut_index]->mutation_type_ptr_ == mutation_type_ptr)
-							++match_count;
+					for (int run_index = 0; run_index < mutrun_count; ++run_index)
+					{
+						MutationRun *mutrun = genome2->mutruns_[run_index].get();
+						int genome2_count = mutrun->size();
+						Mutation *const *genome2_ptr = mutrun->begin_pointer_const();
+						
+						for (int mut_index = 0; mut_index < genome2_count; ++mut_index)
+							if (genome2_ptr[mut_index]->mutation_type_ptr_ == mutation_type_ptr)
+								++match_count;
+					}
 				}
 				
 				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(match_count));
@@ -862,152 +888,164 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 				Genome &g1 = *genome1, &g2 = *genome2;
 				
 				// We try to reserve a vector large enough to hold all the mutations; probably usually overkill, but it does little harm
-				int g1_size = (g1.IsNull() ? 0 : g1.size()), g2_size = (g2.IsNull() ? 0 : g2.size());
+				int genome1_size = (g1.IsNull() ? 0 : g1.mutation_count()), genome2_size = (g2.IsNull() ? 0 : g2.mutation_count());
 				EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class));
 				EidosValue_SP result_SP = EidosValue_SP(vec);
 				
-				if (g1_size + g2_size < 100)	// an arbitrary limit, but we don't want to make something *too* unnecessarily big...
-					vec->Reserve(g1_size + g2_size);
+				if ((genome1_size == 0) && (genome2_size == 0))
+					return result_SP;
 				
-				// We want to interleave mutations from the two genomes, keeping only the uniqued mutations.  For a given position, we take mutations
-				// from g1 first, and then look at the mutations in g2 at the same position and add them if they are not in g1.
-				int g1_index = 0, g2_index = 0;
+				if (genome1_size + genome2_size < 100)	// an arbitrary limit, but we don't want to make something *too* unnecessarily big...
+					vec->Reserve(genome1_size + genome2_size);
 				
-				if (g1_size && g2_size)
+				int mutrun_count = (genome1_size ? g1.mutrun_count_ : g2.mutrun_count_);
+				
+				for (int run_index = 0; run_index < mutrun_count; ++run_index)
 				{
-					Mutation *g1_mut = g1[g1_index], *g2_mut = g2[g2_index];
+					// We want to interleave mutations from the two genomes, keeping only the uniqued mutations.  For a given position, we take mutations
+					// from g1 first, and then look at the mutations in g2 at the same position and add them if they are not in g1.
+					MutationRun *mutrun1 = (genome1_size ? genome1->mutruns_[run_index].get() : nullptr);
+					MutationRun *mutrun2 = (genome2_size ? genome2->mutruns_[run_index].get() : nullptr);
+					int g1_size = (mutrun1 ? mutrun1->size() : 0);
+					int g2_size = (mutrun2 ? mutrun2->size() : 0);
+					int g1_index = 0, g2_index = 0;
 					
-					// At this point, we need to loop forward in g1 and g2 until we have found mutations of the right type in both
-					while (g1_mut->mutation_type_ptr_ != mutation_type_ptr)
+					if (g1_size && g2_size)
 					{
-						if (++g1_index >= g1_size)
-							break;
-						g1_mut = g1[g1_index];
-					}
-					
-					while (g2_mut->mutation_type_ptr_ != mutation_type_ptr)
-					{
-						if (++g2_index >= g2_size)
-							break;
-						g2_mut = g2[g2_index];
-					}
-					
-					if ((g1_index < g1_size) && (g2_index < g2_size))
-					{
-						slim_position_t pos1 = g1_mut->position_;
-						slim_position_t pos2 = g2_mut->position_;
+						Mutation *g1_mut = (*mutrun1)[g1_index], *g2_mut = (*mutrun2)[g2_index];
 						
-						// Process mutations as long as both genomes still have mutations left in them
-						do
+						// At this point, we need to loop forward in g1 and g2 until we have found mutations of the right type in both
+						while (g1_mut->mutation_type_ptr_ != mutation_type_ptr)
 						{
-							// Now we have mutations of the right type, so we can start working with them by position
-							if (pos1 < pos2)
+							if (++g1_index >= g1_size)
+								break;
+							g1_mut = (*mutrun1)[g1_index];
+						}
+						
+						while (g2_mut->mutation_type_ptr_ != mutation_type_ptr)
+						{
+							if (++g2_index >= g2_size)
+								break;
+							g2_mut = (*mutrun2)[g2_index];
+						}
+						
+						if ((g1_index < g1_size) && (g2_index < g2_size))
+						{
+							slim_position_t pos1 = g1_mut->position_;
+							slim_position_t pos2 = g2_mut->position_;
+							
+							// Process mutations as long as both genomes still have mutations left in them
+							do
 							{
-								vec->PushObjectElement(g1_mut);
-								
-								// Move to the next mutation in g1
-							loopback1:
-								if (++g1_index >= g1_size)
-									break;
-								
-								g1_mut = g1[g1_index];
-								if (g1_mut->mutation_type_ptr_ != mutation_type_ptr)
-									goto loopback1;
-								
-								pos1 = g1_mut->position_;
-							}
-							else if (pos1 > pos2)
-							{
-								vec->PushObjectElement(g2_mut);
-								
-								// Move to the next mutation in g2
-							loopback2:
-								if (++g2_index >= g2_size)
-									break;
-								
-								g2_mut = g2[g2_index];
-								if (g2_mut->mutation_type_ptr_ != mutation_type_ptr)
-									goto loopback2;
-								
-								pos2 = g2_mut->position_;
-							}
-							else
-							{
-								// pos1 == pos2; copy mutations from g1 until we are done with this position, then handle g2
-								slim_position_t focal_pos = pos1;
-								int first_index = g1_index;
-								bool done = false;
-								
-								while (pos1 == focal_pos)
+								// Now we have mutations of the right type, so we can start working with them by position
+								if (pos1 < pos2)
 								{
 									vec->PushObjectElement(g1_mut);
 									
 									// Move to the next mutation in g1
-								loopback3:
+								loopback1:
 									if (++g1_index >= g1_size)
-									{
-										done = true;
 										break;
-									}
-									g1_mut = g1[g1_index];
+									
+									g1_mut = (*mutrun1)[g1_index];
 									if (g1_mut->mutation_type_ptr_ != mutation_type_ptr)
-										goto loopback3;
+										goto loopback1;
 									
 									pos1 = g1_mut->position_;
 								}
-								
-								// Note that we may be done with g1 here, so be careful
-								int last_index_plus_one = g1_index;
-								
-								while (pos2 == focal_pos)
+								else if (pos1 > pos2)
 								{
-									int check_index;
-									
-									for (check_index = first_index; check_index < last_index_plus_one; ++check_index)
-										if (g1[check_index] == g2_mut)
-											break;
-									
-									// If the check indicates that g2_mut is not in g1, we copy it over
-									if (check_index == last_index_plus_one)
-										vec->PushObjectElement(g2_mut);
+									vec->PushObjectElement(g2_mut);
 									
 									// Move to the next mutation in g2
-								loopback4:
+								loopback2:
 									if (++g2_index >= g2_size)
-									{
-										done = true;
 										break;
-									}
-									g2_mut = g2[g2_index];
+									
+									g2_mut = (*mutrun2)[g2_index];
 									if (g2_mut->mutation_type_ptr_ != mutation_type_ptr)
-										goto loopback4;
+										goto loopback2;
 									
 									pos2 = g2_mut->position_;
 								}
-								
-								// Note that we may be done with both g1 and/or g2 here; if so, done will be set and we will break out
-								if (done)
-									break;
+								else
+								{
+									// pos1 == pos2; copy mutations from g1 until we are done with this position, then handle g2
+									slim_position_t focal_pos = pos1;
+									int first_index = g1_index;
+									bool done = false;
+									
+									while (pos1 == focal_pos)
+									{
+										vec->PushObjectElement(g1_mut);
+										
+										// Move to the next mutation in g1
+									loopback3:
+										if (++g1_index >= g1_size)
+										{
+											done = true;
+											break;
+										}
+										g1_mut = (*mutrun1)[g1_index];
+										if (g1_mut->mutation_type_ptr_ != mutation_type_ptr)
+											goto loopback3;
+										
+										pos1 = g1_mut->position_;
+									}
+									
+									// Note that we may be done with g1 here, so be careful
+									int last_index_plus_one = g1_index;
+									
+									while (pos2 == focal_pos)
+									{
+										int check_index;
+										
+										for (check_index = first_index; check_index < last_index_plus_one; ++check_index)
+											if ((*mutrun1)[check_index] == g2_mut)
+												break;
+										
+										// If the check indicates that g2_mut is not in g1, we copy it over
+										if (check_index == last_index_plus_one)
+											vec->PushObjectElement(g2_mut);
+										
+										// Move to the next mutation in g2
+									loopback4:
+										if (++g2_index >= g2_size)
+										{
+											done = true;
+											break;
+										}
+										g2_mut = (*mutrun2)[g2_index];
+										if (g2_mut->mutation_type_ptr_ != mutation_type_ptr)
+											goto loopback4;
+										
+										pos2 = g2_mut->position_;
+									}
+									
+									// Note that we may be done with both g1 and/or g2 here; if so, done will be set and we will break out
+									if (done)
+										break;
+								}
 							}
+							while (true);
 						}
-						while (true);
 					}
-				}
-				
-				// Finish off any tail ends, which must be unique and sorted already
-				while (g1_index < g1_size)
-				{
-					Mutation *mut = g1[g1_index++];
 					
-					if (mut->mutation_type_ptr_ == mutation_type_ptr)
-						vec->PushObjectElement(mut);
-				}
-				while (g2_index < g2_size)
-				{
-					Mutation *mut = g2[g2_index++];
-					
-					if (mut->mutation_type_ptr_ == mutation_type_ptr)
-						vec->PushObjectElement(mut);
+					// Finish off any tail ends, which must be unique and sorted already
+					while (g1_index < g1_size)
+					{
+						Mutation *mut = (*mutrun1)[g1_index++];
+						
+						if (mut->mutation_type_ptr_ == mutation_type_ptr)
+							vec->PushObjectElement(mut);
+					}
+					while (g2_index < g2_size)
+					{
+						Mutation *mut = (*mutrun2)[g2_index++];
+						
+						if (mut->mutation_type_ptr_ == mutation_type_ptr)
+							vec->PushObjectElement(mut);
+					}
 				}
 				
 				return result_SP;

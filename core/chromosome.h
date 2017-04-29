@@ -115,6 +115,9 @@ public:
 	double gene_conversion_fraction_;						// gene conversion fraction
 	double gene_conversion_avg_length_;						// average gene conversion stretch length
 	
+	int32_t mutrun_count_;									// number of mutation runs being used for all genomes
+	int32_t mutrun_length_;									// the length, in base pairs, of each mutation run; the last run may not use its full length
+	
 	std::string color_sub_;										// color to use for substitutions by default (in SLiMgui)
 	float color_sub_red_, color_sub_green_, color_sub_blue_;	// cached color components from color_sub_; should always be in sync
 	
@@ -128,6 +131,7 @@ public:
 	// initialize the random lookup tables used by Chromosome to draw mutation and recombination events
 	void InitializeDraws(void);
 	void _InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, vector<slim_position_t> &p_end_positions, vector<double> &p_rates, double &p_overall_rate, double &p_exp_neg_overall_rate, double &p_both_0, double &p_both_0_OR_mut_0_break_non0_, double &p_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_);
+	void ChooseMutationRunLayout(int p_preferred_length);
 	
 	// draw the number of mutations that occur, based on the overall mutation rate
 	int DrawMutationCount(void) const;

@@ -50,6 +50,7 @@ typedef Eidos_intrusive_ptr<MutationRun>	MutationRun_SP;
 // If defined, runtime checks are conducted to ensure that MutationRun objects are not modified once they have been referenced by
 // more than one Genome.  This allows multiple Genome objects to refer to the same underlying MutationRun securely.  Genome and other
 // clients are responsible for making a copy of a MutationRun before modification when they do not know they are the sole owner.
+// FIXME should probably be turned off when DEBUG is not set, once things have shaken out...
 #define SLIM_MUTRUN_CHECK_LOCKING
 
 
@@ -310,6 +311,24 @@ public:
 		
 		// finally, put the mutation where it belongs
 		*sort_position = p_mutation;
+	}
+	
+	bool _enforce_stack_policy_for_addition(slim_position_t p_position, MutationType *p_mut_type_ptr, MutationStackPolicy p_policy);
+	
+	inline bool enforce_stack_policy_for_addition(slim_position_t p_position, MutationType *p_mut_type_ptr)
+	{
+		MutationStackPolicy policy = p_mut_type_ptr->stack_policy_;
+		
+		if (policy == MutationStackPolicy::kStack)
+		{
+			// If mutations are allowed to stack (the default), then we have no work to do and the new mutation is always added
+			return true;
+		}
+		else
+		{
+			// Otherwise, a relatively complicated check is needed, so we call out to a non-inline function
+			return _enforce_stack_policy_for_addition(p_position, p_mut_type_ptr, policy);
+		}
 	}
 	
 	inline void copy_from_run(const MutationRun &p_source_run)

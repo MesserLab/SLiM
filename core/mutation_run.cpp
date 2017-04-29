@@ -107,6 +107,77 @@ void MutationRun::RemoveFixedMutations(slim_refcount_t p_fixed_count, int64_t p_
 	}
 }
 
+bool MutationRun::_enforce_stack_policy_for_addition(slim_position_t p_position, MutationType *p_mut_type_ptr, MutationStackPolicy p_policy)
+{
+	Mutation **begin_ptr = begin_pointer();
+	Mutation **end_ptr = end_pointer();
+	
+	if (p_policy == MutationStackPolicy::kKeepFirst)
+	{
+		// If the first mutation occurring at a site is kept, then we need to check for an existing mutation of this type
+		// We scan in reverse order, because usually we're adding mutations on the end with emplace_back()
+		for (Mutation **mut_ptr = end_ptr - 1; mut_ptr >= begin_ptr; --mut_ptr)
+		{
+			Mutation *mut = *mut_ptr;
+			slim_position_t mut_position = mut->position_;
+			
+			if ((mut_position == p_position) && (mut->mutation_type_ptr_ == p_mut_type_ptr))
+				return false;
+			else if (mut_position < p_position)
+				return true;
+		}
+		
+		return true;
+	}
+	else if (p_policy == MutationStackPolicy::kKeepLast)
+	{
+		// If the last mutation occurring at a site is kept, then we need to check for existing mutations of this type
+		// We scan in reverse order, because usually we're adding mutations on the end with emplace_back()
+		Mutation **first_match_ptr = nullptr;
+		
+		for (Mutation **mut_ptr = end_ptr - 1; mut_ptr >= begin_ptr; --mut_ptr)
+		{
+			Mutation *mut = *mut_ptr;
+			slim_position_t mut_position = mut->position_;
+			
+			if ((mut_position == p_position) && (mut->mutation_type_ptr_ == p_mut_type_ptr))
+				first_match_ptr = mut_ptr;	// set repeatedly as we scan backwards, until we exit
+			else if (mut_position < p_position)
+				break;
+		}
+		
+		// If we found any, we now scan forward and remove them, in anticipation of the new mutation being added
+		if (first_match_ptr)
+		{
+			Mutation **replace_ptr = first_match_ptr;	// replace at the first match position
+			Mutation **mut_ptr = first_match_ptr + 1;	// we know the initial position needs removal, so start at the next
+			
+			for ( ; mut_ptr < end_ptr; ++mut_ptr)
+			{
+				Mutation *mut = *mut_ptr;
+				slim_position_t mut_position = mut->position_;
+				
+				if ((mut_position == p_position) && (mut->mutation_type_ptr_ == p_mut_type_ptr))
+				{
+					// The current scan position is a mutation that needs to be removed, so scan forward to skip copying it backward
+					continue;
+				}
+				else
+				{
+					// The current scan position is a valid mutation, so we copy it backwards
+					*(replace_ptr++) = mut;
+				}
+			}
+			
+			// excess mutations at the end have been copied back already; we just adjust mutation_count_ and forget about them
+			set_size(size() - (int)(mut_ptr - replace_ptr));
+		}
+		
+		return true;
+	}
+	else
+		EIDOS_TERMINATION << "ERROR (Genome::_enforce_stack_policy_for_addition): (internal error) invalid policy." << eidos_terminate();
+}
 
 
 

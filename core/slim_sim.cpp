@@ -567,7 +567,9 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 					continue;
 			}
 			
-			genome.WillModifyRun(0);
+			int32_t mutrun_length_ = genome.mutrun_length_;
+			int current_mutrun_index = -1;
+			MutationRun *current_mutrun = nullptr;
 			
 			do
 			{
@@ -580,8 +582,17 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 					EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): polymorphism " << polymorphism_id << " has not been defined." << eidos_terminate();
 				
 				Mutation *mutation = found_mut_pair->second;
+				int mutrun_index = mutation->position_ / mutrun_length_;
 				
-				genome.emplace_back(mutation);
+				if (mutrun_index != current_mutrun_index)
+				{
+					current_mutrun_index = mutrun_index;
+					genome.WillModifyRun(current_mutrun_index);
+					
+					current_mutrun = genome.mutruns_[mutrun_index].get();
+				}
+				
+				current_mutrun->emplace_back(mutation);
 			}
 			while (iss >> sub);
 		}
@@ -1085,10 +1096,24 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 				}
 			}
 			
-			if (mutcount > 0)
+			int32_t mutrun_length_ = genome.mutrun_length_;
+			int current_mutrun_index = -1;
+			MutationRun *current_mutrun = nullptr;
+			
+			for (int mut_index = 0; mut_index < mutcount; ++mut_index)
 			{
-				genome.WillModifyRun(0);
-				genome.emplace_back_bulk(genomebuf, mutcount);
+				Mutation *mutation = genomebuf[mut_index];
+				int mutrun_index = mutation->position_ / mutrun_length_;
+				
+				if (mutrun_index != current_mutrun_index)
+				{
+					current_mutrun_index = mutrun_index;
+					genome.WillModifyRun(current_mutrun_index);
+					
+					current_mutrun = genome.mutruns_[mutrun_index].get();
+				}
+				
+				current_mutrun->emplace_back(mutation);
 			}
 		}
 	}
@@ -1326,6 +1351,7 @@ void SLiMSim::RunInitializeCallbacks(void)
 	
 	// initialize chromosome
 	chromosome_.InitializeDraws();
+	chromosome_.ChooseMutationRunLayout(preferred_mutrun_length_);
 }
 
 slim_generation_t SLiMSim::EstimatedLastGeneration(void)
@@ -2246,7 +2272,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 	
 	
 	//
-	//	*********************	(void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""])
+	//	*********************	(void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""], [integer$ mutationRunLength = 0])
 	//
 	#pragma mark initializeSLiMOptions()
 	
@@ -2282,6 +2308,20 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 			}
 		}
 		
+		{
+			// [integer$ mutationRunLength = 0]
+			int64_t run_length = arg2_value->IntAtIndex(0, nullptr);
+			
+			if (run_length < 0)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): in initializeSLiMOptions(), parameter run_length must be >= 0." << eidos_terminate();
+			if ((run_length > 0) && (run_length < 100))
+				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): in initializeSLiMOptions(), parameter run_length currently must be >= 100 (or == 0), since it is expected that smaller values are likely to be a scripting error." << eidos_terminate();
+			if (run_length > 1000000000)
+				run_length = 1000000000;
+			
+			preferred_mutrun_length_ = (int)run_length;
+		}
+		
 		if (DEBUG_INPUT)
 		{
 			output_stream << "initializeSLiMOptions(";
@@ -2304,6 +2344,13 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 				else if (spatial_dimensionality_ == 2) output_stream << "'xy'";
 				else if (spatial_dimensionality_ == 3) output_stream << "'xyz'";
 				
+				previous_params = true;
+			}
+			
+			if (preferred_mutrun_length_)
+			{
+				if (previous_params) output_stream << ", ";
+				output_stream << "mutationRunLength = " << preferred_mutrun_length_;
 				previous_params = true;
 			}
 			
@@ -2343,7 +2390,7 @@ void SLiMSim::_AddZeroGenerationFunctionsToSignatureVector(std::vector<const Eid
 		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSex, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))
 									   ->AddString_S("chromosomeType")->AddNumeric_OS("xDominanceCoeff", gStaticEidosValue_Float1));
 		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMOptions, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))
-									   ->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("dimensionality", gStaticEidosValue_StringEmpty));
+									   ->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("dimensionality", gStaticEidosValue_StringEmpty)->AddInt_OS("mutationRunLength", gStaticEidosValue_Integer0));
 	}
 }
 
@@ -3316,17 +3363,28 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			{
 				for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
 				{
+					Subpopulation *subpop = subpop_pair.second;
 					PolymorphismMap polymorphisms;
 					
-					for (slim_popsize_t i = 0; i < 2 * subpop_pair.second->parent_subpop_size_; i++)				// go through all parents
+					for (slim_popsize_t i = 0; i < 2 * subpop->parent_subpop_size_; i++)	// go through all parents
 					{
-						for (int k = 0; k < subpop_pair.second->parent_genomes_[i].size(); k++)			// go through all mutations
+						Genome &genome = subpop->parent_genomes_[i];
+						int mutrun_count = genome.mutrun_count_;
+						
+						for (int run_index = 0; run_index < mutrun_count; ++run_index)
 						{
-							Mutation *scan_mutation = subpop_pair.second->parent_genomes_[i][k];
+							MutationRun *mutrun = genome.mutruns_[run_index].get();
+							int mut_count = mutrun->size();
+							Mutation *const *mut_ptr = mutrun->begin_pointer_const();
 							
-							// do a linear search for each mutation, ouch; but this is output code, so it doesn't need to be fast, probably.
-							if (std::find(mutations.begin(), mutations.end(), scan_mutation) != mutations.end())
-								AddMutationToPolymorphismMap(&polymorphisms, scan_mutation);
+							for (int mut_index = 0; mut_index < mut_count; ++mut_index)
+							{
+								Mutation *scan_mutation = mut_ptr[mut_index];
+								
+								// do a linear search for each mutation, ouch; but this is output code, so it doesn't need to be fast, probably.
+								if (std::find(mutations.begin(), mutations.end(), scan_mutation) != mutations.end())
+									AddMutationToPolymorphismMap(&polymorphisms, scan_mutation);
+							}
 						}
 					}
 					
