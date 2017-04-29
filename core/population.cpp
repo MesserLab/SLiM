@@ -2206,12 +2206,12 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 				all_breakpoints.emplace_back(p_chromosome.last_position_ + 1);
 			
 			int break_index_max = static_cast<int>(all_breakpoints.size());	// can be != num_breakpoints+1 due to gene conversion and dup removal!
+			int break_index = 0;
+			slim_position_t breakpoint = all_breakpoints[break_index];
+			int break_mutrun_index = breakpoint / mutrun_length;
 			
-			for (int break_index = 0; break_index < break_index_max; ++break_index)	// the other parts are below, but this is conceptually a for loop, so I've kept it that way...
+			while (true)	// loop over breakpoints until we have handled the last one, which comes at the end
 			{
-				slim_position_t breakpoint = all_breakpoints[break_index];
-				int break_mutrun_index = breakpoint / mutrun_length;
-				
 				if (mutation_mutrun_index < break_mutrun_index)
 				{
 					// Copy over mutation runs until we arrive at the run in which the mutation occurs
@@ -2247,6 +2247,14 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 						parent_genome_1 = parent_genome_2;
 						parent_genome_2 = parent_genome;
 						parent_genome = parent_genome_1;
+						
+						// go to next breakpoint; this advances the for loop
+						if (++break_index == break_index_max)
+							break;
+						
+						breakpoint = all_breakpoints[break_index];
+						break_mutrun_index = breakpoint / mutrun_length;
+						
 						continue;
 					}
 				}
@@ -2346,10 +2354,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 							// we have finished the parental mutation run; if the breakpoint we are now working toward lies beyond the end of the
 							// current mutation run, then we have completed this run and can exit to the outer loop which will handle the rest
 							if (break_mutrun_index > this_mutrun_index)
-							{
-								break_index--;	// the outer loop will want to handle this breakpoint again at the mutation-run level
-								break;
-							}
+								break;		// the outer loop will want to handle this breakpoint again at the mutation-run level
 							
 							// we have reached the breakpoint, so swap parents; we want the "current strand" variables to change, so no std::swap()
 							parent1_iter = parent2_iter;	parent1_iter_max = parent2_iter_max;	parent_genome_1 = parent_genome_2;
@@ -2364,14 +2369,14 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 							if (++break_index == break_index_max)
 								break;
 							
-							// if we just handled the last breakpoint, which is guaranteed to be at or beyond lastPosition+1, then we are done
-							if (break_index == break_index_max)
-								break;
-							
 							// otherwise, figure out the new breakpoint, and continue looping on the current mutation run, which needs to be finished
 							breakpoint = all_breakpoints[break_index];
 							break_mutrun_index = breakpoint / mutrun_length;
 						}
+						
+						// if we just handled the last breakpoint, which is guaranteed to be at or beyond lastPosition+1, then we are done
+						if (break_index == break_index_max)
+							break;
 						
 						// We have completed this run
 						++first_uncompleted_mutrun;
@@ -2421,10 +2426,13 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 								while (parent_iter != parent_iter_max)
 									child_mutrun->emplace_back(*(parent_iter++));
 								
-								break_index--;	// the outer loop will want to handle this breakpoint again at the mutation-run level
-								break;
+								break;	// the outer loop will want to handle this breakpoint again at the mutation-run level
 							}
 						}
+						
+						// if we just handled the last breakpoint, which is guaranteed to be at or beyond lastPosition+1, then we are done
+						if (break_index == break_index_max)
+							break;
 						
 						// We have completed this run
 						++first_uncompleted_mutrun;
@@ -2485,11 +2493,6 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 					
 					// We have completed this run
 					++first_uncompleted_mutrun;
-					
-					// we have finished the parental mutation run; if the breakpoint we are now working toward lies beyond the end of the
-					// current mutation run, then we have completed this run and can exit to the outer loop which will handle the rest
-					if (break_mutrun_index > this_mutrun_index)
-						break_index--;	// the outer loop will want to handle this breakpoint again at the mutation-run level
 				}
 				else
 				{
