@@ -82,6 +82,7 @@ typedef float slim_selcoeff_t;			// storage of selection coefficients in memory-
 
 #define SLIM_MAX_GENERATION		(1000000000L)	// generation ranges from 0 (init time) to this
 #define SLIM_MAX_BASE_POSITION	(1000000000L)	// base positions in the chromosome can range from 0 to this
+#define SLIM_INF_BASE_POSITION	(1100000000L)	// used to represent a base position infinitely beyond the end of the chromosome
 #define SLIM_MAX_ID_VALUE		(1000000000L)	// IDs for subpops, genomic elements, etc. can range from 0 to this
 #define SLIM_MAX_SUBPOP_SIZE	(1000000000L)	// subpopulations can range in size from 0 to this; genome indexes, up to 2x this
 

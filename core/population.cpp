@@ -2103,7 +2103,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 			mutation_iter_pos = mutation_iter_mutation->position_;
 		} else {
 			mutation_iter_mutation = nullptr;
-			mutation_iter_pos = SLIM_MAX_BASE_POSITION + 100;		// past the maximum legal end position
+			mutation_iter_pos = SLIM_INF_BASE_POSITION;
 		}
 		
 		int mutation_mutrun_index = mutation_iter_pos / mutrun_length;
@@ -2168,7 +2168,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 							mutation_iter_pos = mutation_iter_mutation->position_;
 						} else {
 							mutation_iter_mutation = nullptr;
-							mutation_iter_pos = SLIM_MAX_BASE_POSITION + 100;		// past the maximum legal end position
+							mutation_iter_pos = SLIM_INF_BASE_POSITION;
 						}
 						
 						mutation_mutrun_index = mutation_iter_pos / mutrun_length;
@@ -2202,7 +2202,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 						mutation_iter_pos = mutation_iter_mutation->position_;
 					} else {
 						mutation_iter_mutation = nullptr;
-						mutation_iter_pos = SLIM_MAX_BASE_POSITION + 100;		// past the maximum legal end position
+						mutation_iter_pos = SLIM_INF_BASE_POSITION;
 					}
 					
 					mutation_mutrun_index = mutation_iter_pos / mutrun_length;
@@ -2315,7 +2315,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 								mutation_iter_pos = mutation_iter_mutation->position_;
 							} else {
 								mutation_iter_mutation = nullptr;
-								mutation_iter_pos = SLIM_MAX_BASE_POSITION + 100;		// past the maximum legal end position
+								mutation_iter_pos = SLIM_INF_BASE_POSITION;
 							}
 							
 							mutation_mutrun_index = mutation_iter_pos / mutrun_length;
@@ -2349,7 +2349,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 							mutation_iter_pos = mutation_iter_mutation->position_;
 						} else {
 							mutation_iter_mutation = nullptr;
-							mutation_iter_pos = SLIM_MAX_BASE_POSITION + 100;		// past the maximum legal end position
+							mutation_iter_pos = SLIM_INF_BASE_POSITION;
 						}
 						
 						mutation_mutrun_index = mutation_iter_pos / mutrun_length;
@@ -2451,21 +2451,20 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 		}
 		
 		// loop over mutation runs and either (1) copy the mutrun pointer from the parent, or (2) make a new mutrun by modifying that of the parent
-		Mutation *const *mutation_iter		= mutations_to_add.begin_pointer_const();
-		Mutation *const *mutation_iter_max	= mutations_to_add.end_pointer_const();
-		slim_position_t mutation_iter_pos = (mutation_iter == mutation_iter_max) ? (SLIM_MAX_BASE_POSITION + 100) : (*mutation_iter)->position_;
-		
 		Genome &parental_genome = p_source_subpop->parent_genomes_[p_parent_genome_index];
 		
 		int mutrun_count = child_genome.mutrun_count_;
 		int mutrun_length = child_genome.mutrun_length_;
 		
+		Mutation *const *mutation_iter		= mutations_to_add.begin_pointer_const();
+		Mutation *const *mutation_iter_max	= mutations_to_add.end_pointer_const();
+		Mutation *mutation_iter_mutation = *mutation_iter;
+		slim_position_t mutation_iter_pos = (*mutation_iter)->position_;
+		int mutation_iter_mutrun_index = mutation_iter_pos / mutrun_length;
+		
 		for (int run_index = 0; run_index < mutrun_count; ++run_index)
 		{
-			slim_position_t run_start = run_index * mutrun_length;
-			slim_position_t run_end = run_start + mutrun_length - 1;
-			
-			if (mutation_iter_pos > run_end)
+			if (mutation_iter_mutrun_index > run_index)
 			{
 				// no mutations in this run, so just copy the run pointer
 				child_genome.mutruns_[run_index] = parental_genome.mutruns_[run_index];
@@ -2478,8 +2477,8 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 				Mutation *const *parent_iter		= parent_run->begin_pointer_const();
 				Mutation *const *parent_iter_max	= parent_run->end_pointer_const();
 				
-				// while there are still old mutations in the parent, or new mutations to be added, before the end...
-				while ((parent_iter != parent_iter_max) || (mutation_iter != mutation_iter_max))
+				// there is at least one new mutation left to place in this run; so while there are still old mutations in the parent...
+				while (parent_iter != parent_iter_max)
 				{
 					// while an old mutation in the parent is before or at the next new mutation...
 					while ((parent_iter != parent_iter_max) && ((*parent_iter)->position_ <= mutation_iter_pos))
@@ -2490,16 +2489,14 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 						parent_iter++;
 					}
 					
-					// while a new mutation is before or at the next old mutation in the parent...
-					slim_position_t parent_iter_pos = (parent_iter == parent_iter_max) ? (SLIM_MAX_BASE_POSITION + 100) : (*parent_iter)->position_;
+					// while a new mutation is before the next old mutation in the parent...
+					slim_position_t parent_iter_pos = (parent_iter == parent_iter_max) ? (SLIM_INF_BASE_POSITION) : (*parent_iter)->position_;
 					
-					while ((mutation_iter != mutation_iter_max) && ((*mutation_iter)->position_ <= parent_iter_pos))
+					while ((mutation_iter_mutrun_index == run_index) && (mutation_iter_pos < parent_iter_pos))
 					{
-						Mutation *mutation_iter_mutation = *mutation_iter;
-						
 						// we know the mutation is not already present, since mutations on the parent strand are already uniqued,
 						// and new mutations are, by definition, new and thus cannot match the existing mutations
-						if (child_run->enforce_stack_policy_for_addition(mutation_iter_mutation->position_, mutation_iter_mutation->mutation_type_ptr_))
+						if (child_run->enforce_stack_policy_for_addition(mutation_iter_pos, mutation_iter_mutation->mutation_type_ptr_))
 						{
 							// The mutation was passed by the stacking policy, so we can add it to the child genome and the registry
 							child_run->emplace_back(mutation_iter_mutation);
@@ -2513,10 +2510,33 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 							gSLiM_Mutation_Pool->DisposeChunk(mutation_iter_mutation);
 						}
 						
+						// move to the next mutation
 						mutation_iter++;
+						
+						if (mutation_iter == mutation_iter_max)
+						{
+							mutation_iter_mutation = nullptr;
+							mutation_iter_pos = SLIM_INF_BASE_POSITION;
+						}
+						else
+						{
+							mutation_iter_mutation = *mutation_iter;
+							mutation_iter_pos = (mutation_iter == mutation_iter_max) ? (SLIM_INF_BASE_POSITION) : (*mutation_iter)->position_;
+						}
+						
+						mutation_iter_mutrun_index = mutation_iter_pos / mutrun_length;
 					}
 					
-					mutation_iter_pos = (mutation_iter == mutation_iter_max) ? (SLIM_MAX_BASE_POSITION + 100) : (*mutation_iter)->position_;
+					// if we're out of new mutations for this run, break and transfer down to the simpler loop below
+					if (mutation_iter_mutrun_index != run_index)
+						break;
+				}
+				
+				// complete the mutation run after all new mutations within this run have been placed
+				while (parent_iter != parent_iter_max)
+				{
+					child_run->emplace_back(*parent_iter);
+					parent_iter++;
 				}
 			}
 		}
