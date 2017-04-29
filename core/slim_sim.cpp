@@ -1340,9 +1340,6 @@ void SLiMSim::RunInitializeCallbacks(void)
 	if (time_start_ == SLIM_MAX_GENERATION)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): No Eidos event found to start the simulation." << eidos_terminate();
 	
-	// emit our start log
-	SLIM_OUTSTREAM << "\n// Starting run at generation <start>:\n" << time_start_ << " " << "\n" << std::endl;
-	
 	// start at the beginning
 	generation_ = time_start_;
 	
@@ -1352,6 +1349,9 @@ void SLiMSim::RunInitializeCallbacks(void)
 	// initialize chromosome
 	chromosome_.InitializeDraws();
 	chromosome_.ChooseMutationRunLayout(preferred_mutrun_length_);
+	
+	// emit our start log
+	SLIM_OUTSTREAM << "\n// Starting run at generation <start>:\n" << time_start_ << " " << "\n" << std::endl;
 }
 
 slim_generation_t SLiMSim::EstimatedLastGeneration(void)

@@ -122,15 +122,18 @@ void Chromosome::ChooseMutationRunLayout(int p_preferred_length)
 	// overall recombination rate in future, which is OK; the initial values for those are known here, and if they change later,
 	// we will not redo our mutation run layout.
 	
+	// FIXME this could doubtless be improved; choose a length for which the expected number of events per generation is perhaps 0.1?
+	mutrun_length_ = 10000;
+	
+	// Debugging output
+	SLIM_OUTSTREAM << std::endl << "// Default mutation run length: " << mutrun_length_ << std::endl;
+	
 	if (p_preferred_length)
 	{
 		// The user specified a preferred mutation run length; take them at their word
 		mutrun_length_ = p_preferred_length;
-	}
-	else
-	{
-		// FIXME this could doubtless be improved; choose a length for which the expected number of events per generation is perhaps 0.1?
-		mutrun_length_ = 10000;
+		
+		SLIM_OUTSTREAM << "// Override mutation run length: " << mutrun_length_ << std::endl;
 	}
 	
 	// Calculate the number of mutation runs needed given the mutation run length and chromosome length:
@@ -140,7 +143,7 @@ void Chromosome::ChooseMutationRunLayout(int p_preferred_length)
 	// Make sure we always have at least one mutation run; that should always be true anyway.
 	if ((mutrun_count_ < 1) || (mutrun_count_ * mutrun_length_ <= last_position_))
 		EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): (internal error) math error in mutation run calculations." << eidos_terminate();
-
+	
 	// Debugging output
 	//std::cout << "# Mutation run layout: " << mutrun_count_ << " runs of " << mutrun_length_ << " bases each (" << mutrun_count_ * mutrun_length_ << " base capacity)" << std::endl;
 }
