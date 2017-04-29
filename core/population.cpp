@@ -1878,7 +1878,9 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 	
 	// determine how many mutations and breakpoints we have
 	int num_mutations, num_breakpoints;
-	std::vector<slim_position_t> all_breakpoints;
+	static std::vector<slim_position_t> all_breakpoints;	// avoid buffer reallocs, etc.
+	
+	all_breakpoints.clear();
 	
 	if (use_only_strand_1)
 	{
@@ -1921,7 +1923,6 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 			
 			if (num_breakpoints)
 			{
-				all_breakpoints.reserve(num_breakpoints + 1);
 				all_breakpoints.insert(all_breakpoints.end(), crossovers.begin(), crossovers.end());
 				all_breakpoints.insert(all_breakpoints.end(), gc_starts.begin(), gc_starts.end());
 				all_breakpoints.insert(all_breakpoints.end(), gc_ends.begin(), gc_ends.end());
@@ -1939,7 +1940,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 		else if (num_breakpoints)
 		{
 			// just draw, sort, and unique breakpoints in the standard way
-			all_breakpoints = p_chromosome.DrawBreakpoints(p_parent_sex, num_breakpoints);
+			p_chromosome.DrawBreakpoints(p_parent_sex, num_breakpoints, all_breakpoints);
 			
 			all_breakpoints.emplace_back(p_chromosome.last_position_ + 1);
 			std::sort(all_breakpoints.begin(), all_breakpoints.end());

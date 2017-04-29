@@ -243,9 +243,8 @@ Mutation *Chromosome::DrawNewMutation(slim_objectid_t p_subpop_index, slim_gener
 
 // choose a set of recombination breakpoints, based on recombination intervals, overall recombination rate, and gene conversion probability
 // BEWARE!  Chromosome::DrawBreakpoints_Detailed() below must be altered in parallel with this method!
-std::vector<slim_position_t> Chromosome::DrawBreakpoints(IndividualSex p_sex, const int p_num_breakpoints) const
+void Chromosome::DrawBreakpoints(IndividualSex p_sex, const int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers) const
 {
-	vector<slim_position_t> breakpoints;
 	gsl_ran_discrete_t *lookup;
 	const vector<slim_position_t> *end_positions;
 	
@@ -316,7 +315,7 @@ std::vector<slim_position_t> Chromosome::DrawBreakpoints(IndividualSex p_sex, co
 		else
 			breakpoint = (*end_positions)[recombination_interval - 1] + 1 + static_cast<slim_position_t>(gsl_rng_uniform_int(gEidos_rng, (*end_positions)[recombination_interval] - (*end_positions)[recombination_interval - 1]));
 		
-		breakpoints.emplace_back(breakpoint);
+		p_crossovers.emplace_back(breakpoint);
 		
 		// recombination can result in gene conversion, with probability gene_conversion_fraction_
 		if (gene_conversion_fraction_ > 0.0)
@@ -329,12 +328,10 @@ std::vector<slim_position_t> Chromosome::DrawBreakpoints(IndividualSex p_sex, co
 				slim_position_t breakpoint2 = SLiMClampToPositionType(breakpoint + gsl_ran_geometric(gEidos_rng, 1.0 / gene_conversion_avg_length_));
 				
 				if (breakpoint2 <= last_position_)	// used to always add; added this 17 August 2015 BCH, but shouldn't really matter
-					breakpoints.emplace_back(breakpoint2);
+					p_crossovers.emplace_back(breakpoint2);
 			}
 		}
 	}
-	
-	return breakpoints;
 }
 
 // The same logic as Chromosome::DrawBreakpoints() above, but breaks results down into crossovers versus
