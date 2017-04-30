@@ -37,7 +37,7 @@ using std::istream;
 using std::ostream;
 
 
-// The global object pool for EidosValue, initialized in EidosWarmup()
+// The global object pool for EidosValue, initialized in Eidos_WarmUp()
 EidosObjectPool *gEidosValuePool = nullptr;
 
 

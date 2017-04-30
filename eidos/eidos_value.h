@@ -104,7 +104,7 @@ typedef Eidos_intrusive_ptr<EidosValue_Object_vector>		EidosValue_Object_vector_
 extern EidosObjectPool *gEidosValuePool;
 
 
-// Global EidosValues that are defined at EidosWarmup() time and are never deallocated.
+// Global EidosValues that are defined at Eidos_WarmUp() time and are never deallocated.
 extern EidosValue_NULL_SP gStaticEidosValueNULL;
 extern EidosValue_NULL_SP gStaticEidosValueNULLInvisible;
 

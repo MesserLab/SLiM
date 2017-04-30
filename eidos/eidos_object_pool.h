@@ -132,7 +132,7 @@ public:
 		}
 	}
 	
-	// usage: new (gEidosValuePool->AllocateChunk()) ObjectType(... parameters ...);
+	// usage: new (gXPool->AllocateChunk()) ObjectType(... parameters ...);
 	void *AllocateChunk()
 	{
 		if (_firstDeleted)
@@ -151,6 +151,10 @@ public:
 		return (void *)address;
 	}
 	
+	// usage:
+	//
+	//	object->~ObjectType();
+	//	gXPool->DisposeChunk(const_cast<ObjectType*>(object));
 	void DisposeChunk(void *content)
 	{
 		*((void **)content) = _firstDeleted;

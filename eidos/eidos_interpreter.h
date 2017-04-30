@@ -156,7 +156,7 @@ public:
 	// Function dispatch/execution; these are implemented in eidos_functions.cpp
 	static std::vector<const EidosFunctionSignature *> &BuiltInFunctions(void);
 	static inline __attribute__((always_inline)) EidosFunctionMap *BuiltInFunctionMap(void) { return built_in_function_map_; }
-	static void CacheBuiltInFunctionMap(void);	// must be called by EidosWarmup() before BuiltInFunctionMap() is called
+	static void CacheBuiltInFunctionMap(void);	// must be called by Eidos_WarmUp() before BuiltInFunctionMap() is called
 	
 	// Utility static methods for numeric conversions
 	static int64_t NonnegativeIntegerForString(const std::string &p_number_string, const EidosToken *p_blame_token);

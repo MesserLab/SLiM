@@ -28,7 +28,7 @@
 using std::string;
 
 
-// The global object pool for EidosASTNode, initialized in EidosWarmup()
+// The global object pool for EidosASTNode, initialized in Eidos_WarmUp()
 EidosObjectPool *gEidosASTNodePool = nullptr;
 
 
