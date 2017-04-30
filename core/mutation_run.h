@@ -71,8 +71,8 @@ protected:
 
 protected:
 	
-	int mutation_count_ = 0;									// the number of entries presently in mutations_
-	int mutation_capacity_ = SLIM_MUTRUN_BUFFER_SIZE;			// the capacity of mutations_; we start by using our internal buffer
+	int32_t mutation_count_ = 0;								// the number of entries presently in mutations_
+	int32_t mutation_capacity_ = SLIM_MUTRUN_BUFFER_SIZE;		// the capacity of mutations_; we start by using our internal buffer
 	Mutation *(mutations_buffer_[SLIM_MUTRUN_BUFFER_SIZE]);		// a built-in buffer to prevent the need for malloc with few mutations
 	Mutation **mutations_ = mutations_buffer_;					// OWNED POINTER: a pointer to an array of pointers to const Mutation objects
 	
