@@ -2883,6 +2883,70 @@ void Population::MaintainRegistry(void)
 #if DEBUG_MUTATION_ZOMBIES
 	CheckMutationRegistry();
 #endif
+	
+	// assess mutation run usage patterns
+	//AssessMutationRuns();
+}
+
+// assess usage ppaterns of mutation runs across the simulation
+void Population::AssessMutationRuns(void)
+{
+	slim_generation_t gen = sim_.Generation();
+	
+	if (gen % 1000 == 0)
+	{
+		slim_refcount_t total_genome_count = 0, total_mutrun_count = 0, total_shared_mutrun_count = 0;
+		int mutrun_count = 0, mutrun_length = 0, use_count_total = 0;
+		int64_t mutation_total = 0;
+		
+		int64_t operation_id = ++gSLiM_MutationRun_OperationID;
+		
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
+		{
+			Subpopulation *subpop = subpop_pair.second;
+			slim_popsize_t subpop_genome_count = 2 * subpop->child_subpop_size_;
+			std::vector<Genome> &subpop_genomes = subpop->child_genomes_;
+			
+			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+			{
+				Genome &genome = subpop_genomes[i];
+				
+				if (!genome.IsNull())
+				{
+					mutrun_count = genome.mutrun_count_;
+					mutrun_length = genome.mutrun_length_;
+					
+					for (int run_index = 0; run_index < mutrun_count; ++run_index)
+					{
+						MutationRun *mutrun = genome.mutruns_[run_index].get();
+						int mutrun_size = mutrun->size();
+						
+						total_mutrun_count++;
+						mutation_total += mutrun_size;
+						
+						if (mutrun->operation_id_ != operation_id)
+						{
+							slim_refcount_t use_count = (slim_refcount_t)mutrun->use_count();
+							
+							total_shared_mutrun_count++;
+							use_count_total += use_count;
+							
+							mutrun->operation_id_ = operation_id;
+						}
+					}
+					
+					total_genome_count++;
+				}
+			}
+		}
+		
+		std::cout << "***** Generation " << gen << ":" << std::endl;
+		std::cout << "   Mutation count: " << mutation_registry_.size() << std::endl;
+		std::cout << "   Genome count: " << total_genome_count << " (divided into " << mutrun_count << " mutation runs of length " << mutrun_length << ")" << std::endl;
+		std::cout << "   Mutation run unshared: " << total_mutrun_count << " (containing " << (mutation_total / (double)total_mutrun_count) << " mutations on average)" << std::endl;
+		std::cout << "   Mutation run actual: " << total_shared_mutrun_count << " (mean use count " << (use_count_total / (double)total_shared_mutrun_count) << ")" << std::endl;
+		std::cout << "*****" << std::endl;
+	}
 }
 
 // step forward a generation: make the children become the parents

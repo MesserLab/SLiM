@@ -160,6 +160,9 @@ public:
 	// check the registry for any bad entries (i.e. zombies)
 	void CheckMutationRegistry(void);
 	
+	// assess usage ppaterns of mutation runs across the simulation
+	void AssessMutationRuns(void);
+	
 	// print all mutations and all genomes to a stream
 	void PrintAll(std::ostream &p_out, bool p_output_spatial_positions) const;
 	void PrintAllBinary(std::ostream &p_out, bool p_output_spatial_positions) const;
