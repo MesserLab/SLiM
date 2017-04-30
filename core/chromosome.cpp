@@ -121,9 +121,30 @@ void Chromosome::ChooseMutationRunLayout(int p_preferred_count)
 	// we will use, and how long they will be.  Note that this decision may depend also upon the overall mutation rate and the
 	// overall recombination rate in future.
 	
-	// For now, choose to use a single mutation run so as to stay with the behavior of version 2.3 and earlier.
-	// FIXME this could doubtless be improved; choose a length for which the expected number of events per generation is perhaps 0.1?
-	mutrun_count_ = 1;
+	// Choose a mutation-run length for which the expected number of events per generation is perhaps 0.5?
+	// So use 0.15 = run_length * rate.  FIXME this could doubtless be improved...
+	double chromosome_length = last_position_ + 1;
+	double mu = overall_mutation_rate_;
+	double r = (single_recombination_map_ ? overall_recombination_rate_H_ : (overall_recombination_rate_M_ + overall_recombination_rate_F_) / 2) / last_position_;
+	double target_length = 0.15 / (mu + r);
+	double target_count = chromosome_length / target_length;
+	
+	mutrun_count_ = std::max((int)round(target_count), 1);
+	
+	if (mutrun_count_ > 100)				// too many runs is rarely beneficial, and can be quite harmful
+		mutrun_count_ = 100;
+	
+#if 0
+	// Write out some information about how the mutrun count was arrived at
+	SLIM_OUTSTREAM << std::endl;
+	SLIM_OUTSTREAM << "# Mutation run count: " << std::endl;
+	SLIM_OUTSTREAM << "#    chromosome_length = " << chromosome_length << std::endl;
+	SLIM_OUTSTREAM << "#    mu = " << mu << std::endl;
+	SLIM_OUTSTREAM << "#    r = " << r << std::endl;
+	SLIM_OUTSTREAM << "#    target_length = " << target_length << std::endl;
+	SLIM_OUTSTREAM << "#    target_count = " << target_count << std::endl;
+	SLIM_OUTSTREAM << "#    mutrun_count_ = " << mutrun_count_ << std::endl;
+#endif
 	
 	// If the user specified a preferred mutation run length, use that
 	if (p_preferred_count != 0)
