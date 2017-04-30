@@ -1348,7 +1348,7 @@ void SLiMSim::RunInitializeCallbacks(void)
 	
 	// initialize chromosome
 	chromosome_.InitializeDraws();
-	chromosome_.ChooseMutationRunLayout(preferred_mutrun_length_);
+	chromosome_.ChooseMutationRunLayout(preferred_mutrun_count_);
 	
 	// emit our start log
 	SLIM_OUTSTREAM << "\n// Starting run at generation <start>:\n" << time_start_ << " " << "\n" << std::endl;
@@ -2272,7 +2272,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 	
 	
 	//
-	//	*********************	(void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""], [integer$ mutationRunLength = 0])
+	//	*********************	(void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""], [integer$ mutationRuns = 0])
 	//
 	#pragma mark initializeSLiMOptions()
 	
@@ -2309,17 +2309,16 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		}
 		
 		{
-			// [integer$ mutationRunLength = 0]
-			int64_t run_length = arg2_value->IntAtIndex(0, nullptr);
+			// [integer$ mutationRuns = 0]
+			int64_t mutrun_count = arg2_value->IntAtIndex(0, nullptr);
 			
-			if (run_length < 0)
-				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): in initializeSLiMOptions(), parameter run_length must be >= 0." << eidos_terminate();
-			if ((run_length > 0) && (run_length < 100))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): in initializeSLiMOptions(), parameter run_length currently must be >= 100 (or == 0), since it is expected that smaller values are likely to be a scripting error." << eidos_terminate();
-			if (run_length > 1000000000)
-				run_length = 1000000000;
-			
-			preferred_mutrun_length_ = (int)run_length;
+			if (mutrun_count != 0)
+			{
+				if ((mutrun_count < 1) || (mutrun_count > 10000))
+					EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): in initializeSLiMOptions(), parameter mutationRuns currently must be between 1 and 10000, inclusive." << eidos_terminate();
+				
+				preferred_mutrun_count_ = (int)mutrun_count;
+			}
 		}
 		
 		if (DEBUG_INPUT)
@@ -2347,10 +2346,10 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 				previous_params = true;
 			}
 			
-			if (preferred_mutrun_length_)
+			if (preferred_mutrun_count_)
 			{
 				if (previous_params) output_stream << ", ";
-				output_stream << "mutationRunLength = " << preferred_mutrun_length_;
+				output_stream << "mutationRunCount = " << preferred_mutrun_count_;
 				previous_params = true;
 			}
 			
@@ -2390,7 +2389,7 @@ void SLiMSim::_AddZeroGenerationFunctionsToSignatureVector(std::vector<const Eid
 		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSex, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))
 									   ->AddString_S("chromosomeType")->AddNumeric_OS("xDominanceCoeff", gStaticEidosValue_Float1));
 		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMOptions, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))
-									   ->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("dimensionality", gStaticEidosValue_StringEmpty)->AddInt_OS("mutationRunLength", gStaticEidosValue_Integer0));
+									   ->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("dimensionality", gStaticEidosValue_StringEmpty)->AddInt_OS("mutationRuns", gStaticEidosValue_Integer0));
 	}
 }
 

@@ -131,7 +131,7 @@ public:
 	// initialize the random lookup tables used by Chromosome to draw mutation and recombination events
 	void InitializeDraws(void);
 	void _InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, vector<slim_position_t> &p_end_positions, vector<double> &p_rates, double &p_overall_rate, double &p_exp_neg_overall_rate, double &p_both_0, double &p_both_0_OR_mut_0_break_non0_, double &p_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_);
-	void ChooseMutationRunLayout(int p_preferred_length);
+	void ChooseMutationRunLayout(int p_preferred_count);
 	
 	// draw the number of mutations that occur, based on the overall mutation rate
 	int DrawMutationCount(void) const;

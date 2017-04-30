@@ -115,33 +115,34 @@ void Chromosome::InitializeDraws(void)
 	}
 }
 
-void Chromosome::ChooseMutationRunLayout(int p_preferred_length)
+void Chromosome::ChooseMutationRunLayout(int p_preferred_count)
 {
 	// We now have a final last position, which should not change henceforth.  We can therefore calculate how many mutation runs
 	// we will use, and how long they will be.  Note that this decision may depend also upon the overall mutation rate and the
-	// overall recombination rate in future, which is OK; the initial values for those are known here, and if they change later,
-	// we will not redo our mutation run layout.
+	// overall recombination rate in future.
 	
+	// For now, choose to use a single mutation run so as to stay with the behavior of version 2.3 and earlier.
 	// FIXME this could doubtless be improved; choose a length for which the expected number of events per generation is perhaps 0.1?
-	mutrun_length_ = 10000;
+	mutrun_count_ = 1;
 	
-	// Debugging output
-	SLIM_OUTSTREAM << std::endl << "// Default mutation run length: " << mutrun_length_ << std::endl;
-	
-	if (p_preferred_length)
+	// If the user specified a preferred mutation run length, use that
+	if (p_preferred_count != 0)
 	{
-		// The user specified a preferred mutation run length; take them at their word
-		mutrun_length_ = p_preferred_length;
+		if (p_preferred_count < 1)
+			EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): there must be at least one mutation run per genome." << eidos_terminate();
 		
-		SLIM_OUTSTREAM << "// Override mutation run length: " << mutrun_length_ << std::endl;
+		SLIM_OUTSTREAM << std::endl << "// Default mutation run count: " << mutrun_count_ << std::endl;
+		
+		mutrun_count_ = p_preferred_count;
+		
+		SLIM_OUTSTREAM << "// Override mutation run count: " << mutrun_count_ << std::endl;
 	}
 	
-	// Calculate the number of mutation runs needed given the mutation run length and chromosome length:
-	// if mutrun_length_ == 10, last_position_ == 9 gives 1 run, last_position_ == 10 gives 2 runs
-	mutrun_count_ = (last_position_ / mutrun_length_) + 1;
+	// Calculate the length of mutation runs needed given the mutation run count and chromosome length
+	mutrun_length_ = (int)ceil((last_position_ + 1) / (double)mutrun_count_);
 	
-	// Make sure we always have at least one mutation run; that should always be true anyway.
-	if ((mutrun_count_ < 1) || (mutrun_count_ * mutrun_length_ <= last_position_))
+	// Consistency check
+	if ((mutrun_length_ < 1) || (mutrun_count_ * mutrun_length_ <= last_position_))
 		EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): (internal error) math error in mutation run calculations." << eidos_terminate();
 	
 	// Debugging output

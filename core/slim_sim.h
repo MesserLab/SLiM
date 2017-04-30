@@ -138,7 +138,7 @@ private:
 	int spatial_dimensionality_ = 0;
 	
 	// preferred mutation run length
-	int preferred_mutrun_length_ = 0;
+	int preferred_mutrun_count_ = 0;												// 0 represents no preference
 	
 	EidosSymbolTableEntry self_symbol_;												// for fast setup of the symbol table
 	

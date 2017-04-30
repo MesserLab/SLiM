@@ -419,7 +419,7 @@ For example, if the following call is made:\
 \f2\fs20  chosen for simulation.  There is no way to disable sex once it has been enabled; if you don\'92t want to have sex, don\'92t call this function.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f0\fs18 \cf0 (void)initializeSLiMOptions([logical$\'a0keepPedigrees\'a0=\'a0F], [string$\'a0dimensionality\'a0=\'a0""], [integer$\'a0mutationRunLength\'a0=\'a00])
+\f0\fs18 \cf0 (void)initializeSLiMOptions([logical$\'a0keepPedigrees\'a0=\'a0F], [string$\'a0dimensionality\'a0=\'a0""], [integer$\'a0mutationRuns\'a0=\'a00])
 \f1 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -475,13 +475,16 @@ If
 \f0\fs18 interaction()
 \f2\fs20  callbacks.  And third, it enables the use of any other properties and methods related to continuous space, such as setting the spatial boundaries of subpopulations, which would otherwise raise an error.\
 If 
-\f0\fs18 mutationRunLength
+\f0\fs18 mutationRuns
 \f2\fs20  is not 
 \f0\fs18 0
-\f2\fs20 , SLiM will use the value given as the length of mutation runs inside 
+\f2\fs20 , SLiM will use the value given as the number of mutation runs inside 
 \f0\fs18 Genome
 \f2\fs20  objects; if it is 
 \f0\fs18 0
-\f2\fs20  (the default), SLiM will calculate a mutation run length that it estimates will work well based upon the overall mutation rate, overall recombination rate, and chromosome length.  Internally, SLiM divides genomes into a sequence of consecutive mutation runs, allowing more efficient offspring generation and mutation reference tallying.  The optimal mutation run length is short enough that each mutation run is relatively unlikely to be modified by mutation/recombination events, but long enough that each mutation run is likely to contain a relatively large number of mutations; these priorities are in tension, so an intermediate balance between them is generally desirable.  The actual optimal value will depend upon the machine and even the compiler used with SLiM, so SLiM\'92s default value may not be optimal; for maximal performance it can thus be beneficial to experiment with different values and find the optimal value for the simulation.  However, SLiM\'92s chosen values are expected to be close enough to the optimum that such tweaking will usually produce fairly marginal performance gains.  Specifying a mutation run length is therefore uncommon, but in certain cases it can improve performance significantly; in particular, if a simulation involves a very long chromosome but only a small portion of that chromosome is actually used by the simulation, it is probably beneficial to specify a very large mutation run length, greater than the length of the chromosome, to ensure that a single mutation run is used in each genome.\
-This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
+\f2\fs20  (the default), SLiM will calculate a number of mutation runs that it estimates will work well.  Internally, SLiM divides genomes into a sequence of consecutive mutation runs, allowing more efficient internal computations.  The optimal mutation run length is short enough that each mutation run is relatively unlikely to be modified by mutation/recombination events when inherited, but long enough that each mutation run is likely to contain a relatively large number of mutations; these priorities are in tension, so an intermediate balance between them is generally desirable.  The optimal number of mutation runs will depend upon the machine and even the compiler used to build SLiM, so SLiM\'92s default value may not be optimal; for maximal performance it can thus be beneficial to experiment with different values and find the optimal value for the simulation.  Specifying the number of mutation runs is an advanced technique, but in certain cases it can improve performance significantly; in particular, if a simulation involves a very long chromosome but only a small portion of that chromosome is actually used by the simulation, it may be beneficial to specify that a single mutation run be used with 
+\f0\fs18 mutationRuns=1
+\f1\fs20 .\
+
+\f2 This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
 }

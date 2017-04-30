@@ -20,7 +20,8 @@ development head:
 	add ability to display only one mutation type in the chromosome view, through a context menu (added a tip on this)
 	add a top/bottom splitter in the SLiMgui main window
 	implement mutation runs inside Genome for better performance
-	add a new option in initializeSLiMOptions() to control the mutation run length if desired (usually unnecessary)
+	add a new option in initializeSLiMOptions() to control the number of mutation runs, if desired (usually unnecessary)
+	add some other optimizations
 
 
 2.3 (build 1052; Eidos version 1.3):
