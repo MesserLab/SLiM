@@ -1821,8 +1821,15 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 			{
 				output_stream << "initializeGenomicElementType(" << map_identifier;
 				
+				output_stream << ((mut_type_id_count > 1) ? ", c(" : ", ");
 				for (int mut_type_index = 0; mut_type_index < mut_type_id_count; ++mut_type_index)
-					output_stream << ", " << mutation_types[mut_type_index]->mutation_type_id_ << ", " << arg2_value->FloatAtIndex(mut_type_index, nullptr);
+					output_stream << (mut_type_index > 0 ? ", m" : "m") << mutation_types[mut_type_index]->mutation_type_id_;
+				output_stream << ((mut_type_id_count > 1) ? ")" : "");
+				
+				output_stream << ((mut_type_id_count > 1) ? ", c(" : ", ");
+				for (int mut_type_index = 0; mut_type_index < mut_type_id_count; ++mut_type_index)
+					output_stream << (mut_type_index > 0 ? ", " : "") << arg2_value->FloatAtIndex(mut_type_index, nullptr);
+				output_stream << ((mut_type_id_count > 1) ? ")" : "");
 				
 				output_stream << ");" << endl;
 			}
