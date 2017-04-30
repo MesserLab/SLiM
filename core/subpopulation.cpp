@@ -1225,7 +1225,9 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_
 			}
 			
 			// one or the other genome has now reached its end, so now we just need to handle the remaining mutations in the unfinished genome
+#ifdef DEBUG
 			assert(!(genome1_iter != genome1_max && genome2_iter != genome2_max));
+#endif
 			
 			// if genome1 is unfinished, finish it
 			while (genome1_iter != genome1_max)
