@@ -21,7 +21,8 @@ development head:
 	add a top/bottom splitter in the SLiMgui main window
 	implement mutation runs inside Genome for better performance
 	add a new option in initializeSLiMOptions() to control the number of mutation runs, if desired (usually unnecessary)
-	add some other optimizations
+	optimize crossover mutation code with improved code flow and expanded case treatments
+	optimize fitness calculations by caching fitness effects of mutations
 
 
 2.3 (build 1052; Eidos version 1.3):

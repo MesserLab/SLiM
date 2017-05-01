@@ -1037,8 +1037,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_
 				// we don't cache this fitness effect because x_chromosome_dominance_coeff_ is not readily available to Mutation
 				while (genome_iter != genome_max)
 				{
-					const Mutation *genome_mutation = *genome_iter;
-					slim_selcoeff_t selection_coeff = genome_mutation->selection_coeff_;
+					slim_selcoeff_t selection_coeff = (*genome_iter)->selection_coeff_;
 					
 					if (selection_coeff != 0.0f)
 					{
@@ -1239,9 +1238,8 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 				{
 					Mutation *genome_mutation = *genome_iter;
 					slim_selcoeff_t selection_coeff = genome_mutation->selection_coeff_;
-					double rel_fitness = (1.0 + x_chromosome_dominance_coeff_ * selection_coeff);
 					
-					w *= ApplyFitnessCallbacks(genome_mutation, -1, rel_fitness, p_fitness_callbacks, individual, genome1, genome2);
+					w *= ApplyFitnessCallbacks(genome_mutation, -1, 1.0 + x_chromosome_dominance_coeff_ * selection_coeff, p_fitness_callbacks, individual, genome1, genome2);
 					
 					if (w <= 0.0)
 						return 0.0;
@@ -1255,9 +1253,8 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 				while (genome_iter != genome_max)
 				{
 					Mutation *genome_mutation = *genome_iter;
-					double rel_fitness = genome_mutation->cached_one_plus_sel;
 					
-					w *= ApplyFitnessCallbacks(genome_mutation, -1, rel_fitness, p_fitness_callbacks, individual, genome1, genome2);
+					w *= ApplyFitnessCallbacks(genome_mutation, -1, genome_mutation->cached_one_plus_sel, p_fitness_callbacks, individual, genome1, genome2);
 					
 					if (w <= 0.0)
 						return 0.0;
@@ -1296,9 +1293,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 					if (genome1_iter_position < genome2_iter_position)
 					{
 						// Process a mutation in genome1 since it is leading
-						double rel_fitness = genome1_mutation->cached_one_plus_dom_sel;
-						
-						w *= ApplyFitnessCallbacks(genome1_mutation, false, rel_fitness, p_fitness_callbacks, individual, genome1, genome2);
+						w *= ApplyFitnessCallbacks(genome1_mutation, false, genome1_mutation->cached_one_plus_dom_sel, p_fitness_callbacks, individual, genome1, genome2);
 						
 						if (w <= 0.0)
 							return 0.0;
@@ -1313,9 +1308,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 					else if (genome1_iter_position > genome2_iter_position)
 					{
 						// Process a mutation in genome2 since it is leading
-						double rel_fitness = genome2_mutation->cached_one_plus_dom_sel;
-						
-						w *= ApplyFitnessCallbacks(genome2_mutation, false, rel_fitness, p_fitness_callbacks, individual, genome1, genome2);
+						w *= ApplyFitnessCallbacks(genome2_mutation, false, genome2_mutation->cached_one_plus_dom_sel, p_fitness_callbacks, individual, genome1, genome2);
 						
 						if (w <= 0.0)
 							return 0.0;
@@ -1415,9 +1408,8 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 			while (genome1_iter != genome1_max)
 			{
 				Mutation *genome1_mutation = *genome1_iter;
-				double rel_fitness = genome1_mutation->cached_one_plus_dom_sel;
 				
-				w *= ApplyFitnessCallbacks(genome1_mutation, false, rel_fitness, p_fitness_callbacks, individual, genome1, genome2);
+				w *= ApplyFitnessCallbacks(genome1_mutation, false, genome1_mutation->cached_one_plus_dom_sel, p_fitness_callbacks, individual, genome1, genome2);
 				
 				if (w <= 0.0)
 					return 0.0;
@@ -1429,9 +1421,8 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 			while (genome2_iter != genome2_max)
 			{
 				Mutation *genome2_mutation = *genome2_iter;
-				double rel_fitness = genome2_mutation->cached_one_plus_dom_sel;
 				
-				w *= ApplyFitnessCallbacks(genome2_mutation, false, rel_fitness, p_fitness_callbacks, individual, genome1, genome2);
+				w *= ApplyFitnessCallbacks(genome2_mutation, false, genome2_mutation->cached_one_plus_dom_sel, p_fitness_callbacks, individual, genome1, genome2);
 				
 				if (w <= 0.0)
 					return 0.0;
@@ -1485,9 +1476,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 					
 					if (genome_mutation->mutation_type_ptr_ == p_single_callback_mut_type)
 					{
-						double rel_fitness = (1.0 + x_chromosome_dominance_coeff_ * selection_coeff);
-						
-						w *= ApplyFitnessCallbacks(genome_mutation, -1, rel_fitness, p_fitness_callbacks, individual, genome1, genome2);
+						w *= ApplyFitnessCallbacks(genome_mutation, -1, 1.0 + x_chromosome_dominance_coeff_ * selection_coeff, p_fitness_callbacks, individual, genome1, genome2);
 						
 						if (w <= 0.0)
 							return 0.0;
@@ -1512,18 +1501,17 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 				while (genome_iter != genome_max)
 				{
 					Mutation *genome_mutation = *genome_iter;
-					double rel_fitness = genome_mutation->cached_one_plus_sel;
 					
 					if (genome_mutation->mutation_type_ptr_ == p_single_callback_mut_type)
 					{
-						w *= ApplyFitnessCallbacks(genome_mutation, -1, rel_fitness, p_fitness_callbacks, individual, genome1, genome2);
+						w *= ApplyFitnessCallbacks(genome_mutation, -1, genome_mutation->cached_one_plus_sel, p_fitness_callbacks, individual, genome1, genome2);
 						
 						if (w <= 0.0)
 							return 0.0;
 					}
 					else
 					{
-						w *= rel_fitness;
+						w *= genome_mutation->cached_one_plus_sel;
 					}
 					
 					genome_iter++;
@@ -1560,19 +1548,18 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 					if (genome1_iter_position < genome2_iter_position)
 					{
 						// Process a mutation in genome1 since it is leading
-						double rel_fitness = genome1_mutation->cached_one_plus_dom_sel;
 						MutationType *genome1_muttype = genome1_mutation->mutation_type_ptr_;
 						
 						if (genome1_muttype == p_single_callback_mut_type)
 						{
-							w *= ApplyFitnessCallbacks(genome1_mutation, false, rel_fitness, p_fitness_callbacks, individual, genome1, genome2);
+							w *= ApplyFitnessCallbacks(genome1_mutation, false, genome1_mutation->cached_one_plus_dom_sel, p_fitness_callbacks, individual, genome1, genome2);
 							
 							if (w <= 0.0)
 								return 0.0;
 						}
 						else
 						{
-							w *= rel_fitness;
+							w *= genome1_mutation->cached_one_plus_dom_sel;
 						}
 						
 						if (++genome1_iter == genome1_max)
@@ -1585,19 +1572,18 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 					else if (genome1_iter_position > genome2_iter_position)
 					{
 						// Process a mutation in genome2 since it is leading
-						double rel_fitness = genome2_mutation->cached_one_plus_dom_sel;
 						MutationType *genome2_muttype = genome2_mutation->mutation_type_ptr_;
 						
 						if (genome2_muttype == p_single_callback_mut_type)
 						{
-							w *= ApplyFitnessCallbacks(genome2_mutation, false, rel_fitness, p_fitness_callbacks, individual, genome1, genome2);
+							w *= ApplyFitnessCallbacks(genome2_mutation, false, genome2_mutation->cached_one_plus_dom_sel, p_fitness_callbacks, individual, genome1, genome2);
 							
 							if (w <= 0.0)
 								return 0.0;
 						}
 						else
 						{
-							w *= rel_fitness;
+							w *= genome2_mutation->cached_one_plus_dom_sel;
 						}
 						
 						if (++genome2_iter == genome2_max)
@@ -1628,9 +1614,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 									if (genome1_mutation == *genome2_matchscan)		// note pointer equality test
 									{
 										// a match was found, so we multiply our fitness by the full selection coefficient
-										double rel_fitness = genome1_mutation->cached_one_plus_sel;
-										
-										w *= ApplyFitnessCallbacks(genome1_mutation, true, rel_fitness, p_fitness_callbacks, individual, genome1, genome2);
+										w *= ApplyFitnessCallbacks(genome1_mutation, true, genome1_mutation->cached_one_plus_sel, p_fitness_callbacks, individual, genome1, genome2);
 										
 										goto homozygousExit5;
 									}
@@ -1753,19 +1737,18 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 			while (genome1_iter != genome1_max)
 			{
 				Mutation *genome1_mutation = *genome1_iter;
-				double rel_fitness = genome1_mutation->cached_one_plus_dom_sel;
 				MutationType *genome1_muttype = genome1_mutation->mutation_type_ptr_;
 				
 				if (genome1_muttype == p_single_callback_mut_type)
 				{
-					w *= ApplyFitnessCallbacks(genome1_mutation, false, rel_fitness, p_fitness_callbacks, individual, genome1, genome2);
+					w *= ApplyFitnessCallbacks(genome1_mutation, false, genome1_mutation->cached_one_plus_dom_sel, p_fitness_callbacks, individual, genome1, genome2);
 					
 					if (w <= 0.0)
 						return 0.0;
 				}
 				else
 				{
-					w *= rel_fitness;
+					w *= genome1_mutation->cached_one_plus_dom_sel;
 				}
 				
 				genome1_iter++;
@@ -1775,19 +1758,18 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 			while (genome2_iter != genome2_max)
 			{
 				Mutation *genome2_mutation = *genome2_iter;
-				double rel_fitness = genome2_mutation->cached_one_plus_dom_sel;
 				MutationType *genome2_muttype = genome2_mutation->mutation_type_ptr_;
 				
 				if (genome2_muttype == p_single_callback_mut_type)
 				{
-					w *= ApplyFitnessCallbacks(genome2_mutation, false, rel_fitness, p_fitness_callbacks, individual, genome1, genome2);
+					w *= ApplyFitnessCallbacks(genome2_mutation, false, genome2_mutation->cached_one_plus_dom_sel, p_fitness_callbacks, individual, genome1, genome2);
 					
 					if (w <= 0.0)
 						return 0.0;
 				}
 				else
 				{
-					w *= rel_fitness;
+					w *= genome2_mutation->cached_one_plus_dom_sel;
 				}
 				
 				genome2_iter++;
