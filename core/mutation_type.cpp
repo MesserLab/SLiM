@@ -57,7 +57,7 @@ MutationType::MutationType(slim_objectid_t p_mutation_type_id, double p_dominanc
 #else
 MutationType::MutationType(slim_objectid_t p_mutation_type_id, double p_dominance_coeff, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, std::vector<std::string> p_dfe_strings) :
 #endif
-	mutation_type_id_(p_mutation_type_id), dominance_coeff_(static_cast<slim_selcoeff_t>(p_dominance_coeff)), dfe_type_(p_dfe_type), dfe_parameters_(p_dfe_parameters), dfe_strings_(p_dfe_strings), convert_to_substitution_(true), stack_policy_(MutationStackPolicy::kStack), cached_dfe_script_(nullptr), 
+	mutation_type_id_(p_mutation_type_id), dominance_coeff_(static_cast<slim_selcoeff_t>(p_dominance_coeff)), dominance_coeff_changed_(false), dfe_type_(p_dfe_type), dfe_parameters_(p_dfe_parameters), dfe_strings_(p_dfe_strings), convert_to_substitution_(true), stack_policy_(MutationStackPolicy::kStack), cached_dfe_script_(nullptr), 
 	self_symbol_(EidosGlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('m', p_mutation_type_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_MutationType_Class)))
 {
 	if ((dfe_parameters_.size() == 0) && (dfe_strings_.size() == 0))
@@ -391,6 +391,11 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 			double value = p_value.FloatAtIndex(0, nullptr);
 			
 			dominance_coeff_ = static_cast<slim_selcoeff_t>(value);		// intentionally no bounds check
+			
+			// Changing the dominance coefficient means that the cached fitness effects of all mutations using this type
+			// become invalid.  We set a flag here to indicate that values that depend on us need to be recached.
+			dominance_coeff_changed_ = true;
+			
 			return;
 		}
 			

@@ -60,6 +60,14 @@ public:
 	mutable slim_refcount_t gui_scratch_reference_count_;	// an additional refcount used for temporary tallies by SLiMgui, valid only when explicitly updated
 #endif
 	
+	// We cache values used in the fitness calculation code, for speed.  These are the final fitness effects of this mutation
+	// when it is homozygous or heterozygous, respectively.  These values are clamped to a minimum of 0.0, so that multiplying
+	// by them cannot cause the fitness of the individual to go below 0.0, avoiding slow tests in the core fitness loop.  These
+	// values use slim_selcoeff_t for speed; roundoff should not be a concern, since such differences would be inconsequential.
+	
+	slim_selcoeff_t cached_one_plus_sel;				// a cached value for (1 + selection_coeff_), clamped to 0.0 minimum
+	slim_selcoeff_t cached_one_plus_dom_sel;			// a cached value for (1 + dominance_coeff * selection_coeff_), clamped to 0.0 minimum
+	
 	Mutation(const Mutation&) = delete;					// no copying
 	Mutation& operator=(const Mutation&) = delete;		// no copying
 	Mutation(void) = delete;							// no null construction; Mutation is an immutable class

@@ -2775,6 +2775,22 @@ void Population::AddTallyForMutationTypeAndBinNumber(int p_mutation_type_index, 
 }
 #endif
 
+void Population::ValidateMutationFitnessCaches(void)
+{
+	Mutation *const *registry_iter = mutation_registry_.begin_pointer_const();
+	Mutation *const *registry_iter_end = mutation_registry_.end_pointer_const();
+	
+	while (registry_iter != registry_iter_end)
+	{
+		Mutation *mut = (*registry_iter++);
+		slim_selcoeff_t sel_coeff = mut->selection_coeff_;
+		slim_selcoeff_t dom_coeff = mut->mutation_type_ptr_->dominance_coeff_;
+		
+		mut->cached_one_plus_sel = (slim_selcoeff_t)std::max(0.0, 1.0 + sel_coeff);
+		mut->cached_one_plus_dom_sel = (slim_selcoeff_t)std::max(0.0, 1.0 + dom_coeff * sel_coeff);
+	}
+}
+
 void Population::RecalculateFitness(slim_generation_t p_generation)
 {
 	// calculate the fitnesses of the parents and make lookup tables; the main thing we do here is manage the fitness() callbacks

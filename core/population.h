@@ -138,6 +138,9 @@ public:
 	// generate a child genome from a single parental genome, without recombination or gene conversion, but with mutation
 	void DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_source_subpop, slim_popsize_t p_child_genome_index, slim_objectid_t p_source_subpop_id, slim_popsize_t p_parent_genome_index, const Chromosome &p_chromosome, slim_generation_t p_generation, IndividualSex p_child_sex);
 	
+	// An internal method that validates cached fitness values kept by Mutation objects
+	void ValidateMutationFitnessCaches(void);
+	
 	// Recalculate all fitness values for the parental generation, including the use of fitness() callbacks
 	void RecalculateFitness(slim_generation_t p_generation);
 	
