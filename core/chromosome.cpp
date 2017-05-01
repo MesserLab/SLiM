@@ -127,6 +127,10 @@ void Chromosome::ChooseMutationRunLayout(int p_preferred_count)
 	double mu = overall_mutation_rate_;
 	double r = (single_recombination_map_ ? overall_recombination_rate_H_ : (overall_recombination_rate_M_ + overall_recombination_rate_F_) / 2) / last_position_;
 	double target_length = 0.15 / (mu + r);
+	
+	if (target_length < 50000)				// runs that are too short cause a lot of overhead
+		target_length = 50000;
+	
 	double target_count = chromosome_length / target_length;
 	
 	mutrun_count_ = std::max((int)round(target_count), 1);
