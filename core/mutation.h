@@ -65,8 +65,17 @@ public:
 	// by them cannot cause the fitness of the individual to go below 0.0, avoiding slow tests in the core fitness loop.  These
 	// values use slim_selcoeff_t for speed; roundoff should not be a concern, since such differences would be inconsequential.
 	
+	// Temporarily, we need to be able to mimic 2.3's mechanics precisely so we can check for correctness
+	// FIXME this should be removed once we're done testing for backward compatibility!
+#undef SLIM_MUT_BACK_COMPATIBLE
+	
+#ifdef SLIM_MUT_BACK_COMPATIBLE
+	double cached_one_plus_sel;				// a cached value for (1 + selection_coeff_), clamped to 0.0 minimum
+	double cached_one_plus_dom_sel;			// a cached value for (1 + dominance_coeff * selection_coeff_), clamped to 0.0 minimum
+#else
 	slim_selcoeff_t cached_one_plus_sel;				// a cached value for (1 + selection_coeff_), clamped to 0.0 minimum
 	slim_selcoeff_t cached_one_plus_dom_sel;			// a cached value for (1 + dominance_coeff * selection_coeff_), clamped to 0.0 minimum
+#endif
 	
 	Mutation(const Mutation&) = delete;					// no copying
 	Mutation& operator=(const Mutation&) = delete;		// no copying
