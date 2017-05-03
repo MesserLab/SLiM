@@ -407,6 +407,36 @@ public:
 		}
 	}
 	
+	// Hash and comparison functions used by UniqueMutationRuns() to unique mutation runs
+	inline int64_t Hash(void)
+	{
+		uint64_t hash = mutation_count_;
+		
+		// Hash mutation pointers together with the mutation count; we use every 4th mutation pointer for 4x speed,
+		// and it doesn't seem to produce too many hash collisions, at least for the models I've tried.  Actually,
+		// early on when chromosomes are nearly empty collisions are common (where using mut_index++ gives us zero
+		// collisions in pretty much all cases), but at that stage Identical() is fast so it's OK.  At equilibrium
+		// when chromosomes are more full collisions are much less common, so we avoid Identical() when it is slow.
+		for (int mut_index = 0; mut_index < mutation_count_; mut_index += 4)
+		{
+			// this hash function is a stab in the dark based upon the sdbm algorithm here: http://www.cse.yorku.ca/~oz/hash.html
+			hash = (uint64_t)mutations_[mut_index] + (hash << 6) + (hash << 16) - hash;
+		}
+		
+		return hash;
+	}
+	
+	inline bool Identical(MutationRun &p_run)
+	{
+		if (mutation_count_ != p_run.mutation_count_)
+			return false;
+		
+		if (memcmp(mutations_, p_run.mutations_, mutation_count_ * sizeof(Mutation *)) != 0)
+			return false;
+		
+		return true;
+	}
+	
 	// Eidos_intrusive_ptr support
 	inline __attribute__((always_inline)) uint32_t use_count() const { return intrusive_ref_count; }
 	inline __attribute__((always_inline)) bool unique() const { return intrusive_ref_count == 1; }

@@ -617,6 +617,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 	generation_ = file_generation;
 	
 	// Re-tally mutation references so we have accurate frequency counts for our new mutations
+	population_.UniqueMutationRuns();
 	population_.MaintainRegistry();
 	
 	if (file_version <= 2)
@@ -1148,6 +1149,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	generation_ = file_generation;
 	
 	// Re-tally mutation references so we have accurate frequency counts for our new mutations
+	population_.UniqueMutationRuns();
 	population_.MaintainRegistry();
 	
 	if (file_version <= 2)
@@ -1526,6 +1528,16 @@ bool SLiMSim::_RunOneGeneration(void)
 		population_.ClearParentalGenomes();		// added 30 November 2016 so MutationRun refcounts reflect their usage count in the simulation
 		
 		population_.MaintainRegistry();
+		
+		// Every hundredth generation we unique mutation runs to optimize memory usage and efficiency.  The number 100 was
+		// picked out of a hat – often enough to perhaps be useful in keeping SLiM slim, but infrequent enough that if it
+		// is a time sink it won't impact the simulation too much.  This call is really quite fast, though – on the order
+		// of 0.015 seconds for a pop of 10000 with a 1e5 chromosome and lots of mutations.  So although doing this every
+		// generation would seem like overkill – very few duplicates would be found per call – every 100 should be fine.
+		// Anyway, if we start seeing this call in performance analysis, we should probably revisit this; the benefit is
+		// likely to be pretty small for most simulations, so if the cost is significant then it may be a lose.
+		if (generation_ % 100 == 0)
+			population_.UniqueMutationRuns();
 		
 		// Invalidate interactions, now that the generation they were valid for is disappearing
 		for (auto int_type = interaction_types_.begin(); int_type != interaction_types_.end(); ++int_type)

@@ -2891,6 +2891,113 @@ void Population::ClearParentalGenomes(void)
 	}
 }
 
+// Scan through all mutation runs in the simulation and unique them
+void Population::UniqueMutationRuns(void)
+{
+#if SLIM_DEBUG_MUTATION_RUNS
+	clock_t begin = clock();
+#endif
+	std::multimap<int64_t, MutationRun *> runmap;
+	int64_t total_mutruns = 0, total_hash_collisions = 0, total_identical = 0, total_uniqued_away = 0, total_preexisting = 0, total_final = 0;
+	
+	int64_t operation_id = ++gSLiM_MutationRun_OperationID;
+	
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
+	{
+		Subpopulation *subpop = subpop_pair.second;
+		slim_popsize_t subpop_genome_count = (child_generation_valid_ ? 2 * subpop->child_subpop_size_ : 2 * subpop->parent_subpop_size_);
+		std::vector<Genome> &subpop_genomes = (child_generation_valid_ ? subpop->child_genomes_ : subpop->parent_genomes_);
+		
+		for (slim_popsize_t genome_index = 0; genome_index < subpop_genome_count; genome_index++)
+		{
+			Genome &genome = subpop_genomes[genome_index];
+			int32_t mutrun_count = genome.mutrun_count_;
+			
+			for (int mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
+			{
+				MutationRun *mut_run = genome.mutruns_[mutrun_index].get();
+				
+				if (mut_run)
+				{
+					bool first_sight_of_this_mutrun = false;
+					
+					total_mutruns++;
+					
+					if (mut_run->operation_id_ != operation_id)
+					{
+						// Mark each new run we encounter with the operation ID, to count the preexisting number of runs
+						total_preexisting++;
+						mut_run->operation_id_ = operation_id;
+						first_sight_of_this_mutrun = true;
+					}
+					
+					// Calculate a hash for this mutrun.  Note that we could store computed hashes into the runs above, so that
+					// we only hash each pre-existing run once; but that would require an int64_t more storage per mutrun, and
+					// the memory overhead doesn't presently seem worth the very slight performance gain it would usually provide
+					int64_t hash = mut_run->Hash();
+					
+					// See if we have any mutruns already defined with this hash
+					auto range = runmap.equal_range(hash);		// pair<Iter, Iter>
+					
+					if (range.first == range.second)
+					{
+						// No previous mutrun found with this hash, so add this mutrun to the multimap
+						runmap.insert(std::pair<int64_t, MutationRun *>(hash, mut_run));
+						total_final++;
+					}
+					else
+					{
+						// There is at least one hit; first cycle through the hits and see if any of them are pointer-identical
+						for (auto hash_iter = range.first; hash_iter != range.second; ++hash_iter)
+						{
+							if (mut_run == hash_iter->second)
+							{
+								total_identical++;
+								goto is_identical;
+							}
+						}
+						
+						// OK, we have no pointer-identical matches; check for a duplicate using Identical()
+						for (auto hash_iter = range.first; hash_iter != range.second; ++hash_iter)
+						{
+							MutationRun *hash_run = hash_iter->second;
+							
+							if (mut_run->Identical(*hash_run))
+							{
+								genome.mutruns_[mutrun_index].reset(hash_run);
+								total_identical++;
+								
+								// We will unique away all references to this mutrun, but we only want to count it once
+								if (first_sight_of_this_mutrun)
+									total_uniqued_away++;
+								goto is_identical;
+							}
+						}
+						
+						// If there was no identical match, then we have a hash collision; put it in the multimap
+						runmap.insert(std::pair<int64_t, MutationRun *>(hash, mut_run));
+						total_hash_collisions++;
+						total_final++;
+						
+					is_identical:
+						;
+					}
+				}
+			}
+		}
+	}
+	
+#if SLIM_DEBUG_MUTATION_RUNS
+	clock_t end = clock();
+	double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
+	
+	std::cout << "UniqueMutationRuns(): \n   " << total_mutruns << " run pointers analyzed\n   " << total_preexisting << " runs pre-existing\n   " << total_uniqued_away << " duplicate runs discovered and uniqued away\n   " << (total_mutruns - total_identical) << " final uniqued mutation runs\n   " << total_hash_collisions << " hash collisions\n   " << time_spent << " seconds elapsed" << std::endl;
+#endif
+	
+	if (total_final != total_mutruns - total_identical)
+		EIDOS_TERMINATION << "ERROR (Population::UniqueMutationRuns): (internal error) bookkeeping error in mutation run uniquing." << eidos_terminate();
+}
+
 // Tally mutations and remove fixed/lost mutations
 void Population::MaintainRegistry(void)
 {
@@ -2906,7 +3013,9 @@ void Population::MaintainRegistry(void)
 #endif
 	
 	// debug output: assess mutation run usage patterns
-	//AssessMutationRuns();
+#if SLIM_DEBUG_MUTATION_RUNS
+	AssessMutationRuns();
+#endif
 }
 
 // assess usage ppaterns of mutation runs across the simulation
@@ -2916,6 +3025,7 @@ void Population::AssessMutationRuns(void)
 	
 	if (gen % 1000 == 0)
 	{
+		// First, unique our runs; this is just for debugging the uniquing, and should be removed.  FIXME
 		slim_refcount_t total_genome_count = 0, total_mutrun_count = 0, total_shared_mutrun_count = 0;
 		int mutrun_count = 0, mutrun_length = 0, use_count_total = 0;
 		int64_t mutation_total = 0;

@@ -147,6 +147,9 @@ public:
 	// Clear all parental genomes to use nullptr for their mutation runs, so they don't mess up our MutationRun refcounts
 	void ClearParentalGenomes(void);
 	
+	// Scan through all mutation runs in the simulation and unique them
+	void UniqueMutationRuns(void);
+	
 	// Tally mutations and remove fixed/lost mutations
 	void MaintainRegistry(void);
 	

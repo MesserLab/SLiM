@@ -191,9 +191,11 @@ inline __attribute__((always_inline)) slim_usertag_t SLiMClampToUsertagType(int6
 //
 
 // Debugging #defines that can be turned on
-#define DEBUG_MUTATIONS			0		// turn on logging of mutation construction and destruction
-#define DEBUG_MUTATION_ZOMBIES	0		// avoid destroying Mutation objects; keep them as zombies
-#define DEBUG_INPUT				1		// additional output for debugging of input file parsing; 1 in standard SLiM builds
+#define DEBUG_MUTATIONS				0		// turn on logging of mutation construction and destruction
+#define DEBUG_MUTATION_ZOMBIES		0		// avoid destroying Mutation objects; keep them as zombies
+#define SLIM_DEBUG_MUTATION_RUNS	0		// turn on to get logging about mutation run uniquing and usage
+#define DEBUG_INPUT					1		// additional output for debugging of input file parsing; 1 in standard SLiM builds
+
 
 // In SLiMgui we want to emit only a reasonably limited number of lines of input debugging; for big models, this output
 // can get rather excessive.  Outside of SLiMgui, though, we emit it all, because the user might need it for some reason.
