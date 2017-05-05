@@ -43,6 +43,7 @@ class SLiMEidosDictionary : public EidosObjectElement
 {
 private:
 	std::unordered_map<std::string, EidosValue_SP> hash_symbols_;
+	bool hash_used_ = false;	// to avoid overhead when unused
 	
 public:
 	SLiMEidosDictionary(const SLiMEidosDictionary &p_original);
@@ -50,7 +51,16 @@ public:
 	SLiMEidosDictionary(void);
 	~SLiMEidosDictionary(void);
 	
-	void RemoveAllKeys(void);
+	inline void RemoveAllKeys(void)
+	{
+		// We keep a flag to avoid overhead when we don't actually use hash_symbols_;
+		// this is surprisingly slow even when the hash is empty!
+		if (hash_used_)
+		{
+			hash_symbols_.clear();
+			hash_used_ = false;
+		}
+	}
 	
 	//
 	// Eidos support

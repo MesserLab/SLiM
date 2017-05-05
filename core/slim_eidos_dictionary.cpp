@@ -40,11 +40,6 @@ SLiMEidosDictionary::~SLiMEidosDictionary(void)
 {
 }
 
-void SLiMEidosDictionary::RemoveAllKeys(void)
-{
-	hash_symbols_.clear();
-}
-
 
 //
 // Eidos support
@@ -107,6 +102,8 @@ EidosValue_SP SLiMEidosDictionary::ExecuteInstanceMethod(EidosGlobalStringID p_m
 			{
 				hash_symbols_[key] = std::move(value);
 			}
+			
+			hash_used_ = true;
 			
 			return gStaticEidosValueNULLInvisible;
 		}
