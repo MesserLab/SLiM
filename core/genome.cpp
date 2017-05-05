@@ -50,10 +50,13 @@ Genome::Genome(int p_mutrun_count, int p_mutrun_length)
 	mutrun_count_ = p_mutrun_count;
 	mutrun_length_ = p_mutrun_length;
 	
-	mutruns_ = new MutationRun_SP[mutrun_count_];
+	if (mutrun_count_ <= SLIM_GENOME_MUTRUN_BUFSIZE)
+		mutruns_ = run_buffer_;
+	else
+		mutruns_ = new MutationRun_SP[mutrun_count_];
 	
 	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-		mutruns_[run_index] = MutationRun_SP(MutationRun::NewMutationRun());
+		mutruns_[run_index].reset(MutationRun::NewMutationRun());
 }
 
 // this constructor allows the caller to supply a custom mutation run, which is good for setting up shared runs across genomes
@@ -62,10 +65,13 @@ Genome::Genome(int p_mutrun_count, int p_mutrun_length, MutationRun *p_run)
 	mutrun_count_ = p_mutrun_count;
 	mutrun_length_ = p_mutrun_length;
 	
-	mutruns_ = new MutationRun_SP[mutrun_count_];
+	if (mutrun_count_ <= SLIM_GENOME_MUTRUN_BUFSIZE)
+		mutruns_ = run_buffer_;
+	else
+		mutruns_ = new MutationRun_SP[mutrun_count_];
 	
 	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-		mutruns_[run_index] = MutationRun_SP(p_run);
+		mutruns_[run_index].reset(p_run);
 }
 
 // a constructor for parent/child genomes, particularly in the SEX ONLY case: species type and null/non-null
@@ -83,10 +89,13 @@ Genome::Genome(int p_mutrun_count, int p_mutrun_length, enum GenomeType p_genome
 		mutrun_count_ = p_mutrun_count;
 		mutrun_length_ = p_mutrun_length;
 		
-		mutruns_ = new MutationRun_SP[mutrun_count_];
+		if (mutrun_count_ <= SLIM_GENOME_MUTRUN_BUFSIZE)
+			mutruns_ = run_buffer_;
+		else
+			mutruns_ = new MutationRun_SP[mutrun_count_];
 		
 		for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-			mutruns_[run_index] = MutationRun_SP(MutationRun::NewMutationRun());
+			mutruns_[run_index].reset(MutationRun::NewMutationRun());
 	}
 }
 
@@ -105,10 +114,13 @@ Genome::Genome(int p_mutrun_count, int p_mutrun_length, enum GenomeType p_genome
 		mutrun_count_ = p_mutrun_count;
 		mutrun_length_ = p_mutrun_length;
 		
-		mutruns_ = new MutationRun_SP[mutrun_count_];
+		if (mutrun_count_ <= SLIM_GENOME_MUTRUN_BUFSIZE)
+			mutruns_ = run_buffer_;
+		else
+			mutruns_ = new MutationRun_SP[mutrun_count_];
 		
 		for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-			mutruns_[run_index] = MutationRun_SP(p_run);
+			mutruns_[run_index].reset(p_run);
 	}
 }
 
@@ -117,7 +129,8 @@ Genome::~Genome(void)
 	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
 		mutruns_[run_index].reset();
 	
-	delete[] mutruns_;
+	if (mutruns_ != run_buffer_)
+		delete[] mutruns_;
 	mutruns_ = nullptr;
 	
 	mutrun_count_ = 0;
@@ -342,7 +355,10 @@ Genome::Genome(const Genome &p_original)
 	else
 	{
 		// copy all mutation runs; these are shared-pointer copies
-		mutruns_ = new MutationRun_SP[mutrun_count_];
+		if (mutrun_count_ <= SLIM_GENOME_MUTRUN_BUFSIZE)
+			mutruns_ = run_buffer_;
+		else
+			mutruns_ = new MutationRun_SP[mutrun_count_];
 		
 		for (int run_index = 0; run_index < mutrun_count_; ++run_index)
 			mutruns_[run_index] = p_original.mutruns_[run_index];
@@ -368,17 +384,7 @@ Genome& Genome::operator= (const Genome& p_original)
 		if (p_original.mutrun_count_ == 0)
 		{
 			// p_original is a null genome, so make ourselves null too
-			if (mutrun_count_)
-			{
-				for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-					mutruns_[run_index].reset();
-				
-				delete[] mutruns_;
-				mutruns_ = nullptr;
-				
-				mutrun_count_ = 0;
-				mutrun_length_ = p_original.mutrun_length_;
-			}
+			MakeNull();
 		}
 		else
 		{
@@ -395,6 +401,22 @@ Genome& Genome::operator= (const Genome& p_original)
 	}
 	
 	return *this;
+}
+
+void Genome::MakeNull(void)
+{
+	if (mutrun_count_)
+	{
+		for (int run_index = 0; run_index < mutrun_count_; ++run_index)
+			mutruns_[run_index].reset();
+		
+		if (mutruns_ != run_buffer_)
+			delete[] mutruns_;
+		mutruns_ = nullptr;
+		
+		mutrun_count_ = 0;
+		mutrun_length_ = 0;
+	}
 }
 
 #ifdef DEBUG

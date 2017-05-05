@@ -62,6 +62,11 @@ extern EidosObjectClass *gSLiM_Genome_Class;
 // hard-coding of a maximum number of runs, wasting memory on unused pointers, etc.  For null genomes the runs pointer is nullptr,
 // so if we screw up our null genome checks we will get a hard crash, which is not a bad thing.
 
+// BCH 5 May 2017: Well, it turns out that allocating the array of runs is in fact substantial overhead in some cases, so let's try
+// to avoid it.  We can keep an internal buffer of mutation run pointers, which we can use as long as we are within the buffer size.
+// Using a size of 1 for now, since larger sizes increase memory usage substantially for some models, and also slow us down somehow.
+#define SLIM_GENOME_MUTRUN_BUFSIZE 1
+
 
 class Genome : public EidosObjectElement
 {
@@ -79,6 +84,7 @@ private:
 	
 	int32_t mutrun_count_;										// number of runs being used; 0 for a null genome, otherwise >= 1
 	int32_t mutrun_length_;										// the length, in base pairs, of each run; the last run may not use its full length
+	MutationRun_SP run_buffer_[SLIM_GENOME_MUTRUN_BUFSIZE];		// an internal buffer used to avoid allocation and memory nonlocality for simple models
 	MutationRun_SP *mutruns_;									// mutation runs; nullptr if a null genome OR an empty genome
 	
 	slim_usertag_t tag_value_;									// a user-defined tag value
@@ -122,6 +128,8 @@ public:
 		return (mutrun_count_ == 0);
 	}
 	
+	void MakeNull(void);	// transform into a null genome
+	
 	// This should be called before starting to define a mutation run from scratch, as the crossover-mutation code does.  It will
 	// discard the current MutationRun and start over from scratch with a unique, new MutationRun which is returned by the call.
 	inline MutationRun *WillCreateRun(int p_run_index)
@@ -133,7 +141,7 @@ public:
 		
 		MutationRun *new_run = MutationRun::NewMutationRun();	// take from shared pool of used objects
 		
-		mutruns_[p_run_index] = MutationRun_SP(new_run);
+		mutruns_[p_run_index].reset(new_run);
 		return new_run;
 	}
 	
@@ -195,12 +203,19 @@ public:
 		if (mutrun_count_ == 0)
 			NullGenomeAccessError();
 #endif
-		int mut_count = 0;
-		
-		for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-			mut_count += mutruns_[run_index]->size();
-		
-		return mut_count;
+		if (mutrun_count_ == 1)
+		{
+			return run_buffer_[0]->size();
+		}
+		else
+		{
+			int mut_count = 0;
+			
+			for (int run_index = 0; run_index < mutrun_count_; ++run_index)
+				mut_count += mutruns_[run_index]->size();
+			
+			return mut_count;
+		}
 	}
 	
 	inline void clear(void)
@@ -315,17 +330,7 @@ public:
 		if (p_source_genome.IsNull())
 		{
 			// p_original is a null genome, so make ourselves null too, if we aren't already
-			if (mutrun_count_)
-			{
-				for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-					mutruns_[run_index].reset();
-				
-				delete[] mutruns_;
-				mutruns_ = nullptr;
-				
-				mutrun_count_ = 0;
-				mutrun_length_ = p_source_genome.mutrun_length_;
-			}
+			MakeNull();
 		}
 		else
 		{
@@ -338,8 +343,17 @@ public:
 				EIDOS_TERMINATION << "ERROR (Genome::copy_from_genome): (internal error) assignment from genome with different count/length." << eidos_terminate();
 #endif
 			
-			for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-				mutruns_[run_index] = p_source_genome.mutruns_[run_index];
+			if (mutrun_count_ == 1)
+			{
+				// This does seem to make a significant difference, interestingly.  Not sure if it is
+				// avoid the for loop, or avoiding the extra indirection through mutruns_, or what...
+				run_buffer_[0] = p_source_genome.mutruns_[0];
+			}
+			else
+			{
+				for (int run_index = 0; run_index < mutrun_count_; ++run_index)
+					mutruns_[run_index] = p_source_genome.mutruns_[run_index];
+			}
 		}
 		
 		// and copy other state
