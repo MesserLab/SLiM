@@ -23,7 +23,7 @@ development head:
 	add a new option in initializeSLiMOptions() to control the number of mutation runs, if desired (usually unnecessary)
 	optimize crossover mutation code with improved code flow and expanded case treatments
 	optimize fitness calculations by caching fitness effects of mutations
-
+	NOTE: this version changed model output in many cases because of a float/double change in fitness calculations, and a decrease in gsl_ran_discrete() calls
 
 2.3 (build 1052; Eidos version 1.3):
 	added x, y, and z properties to Individual for tracking spatial location
@@ -94,6 +94,7 @@ development head:
 	add setValue()/getValue() dictionary capabilities to SLiMSim, Subpopulation, and Individual
 	revise recipe 11.1 to use setValue()/getValue()
 	add -d[efine] command-line argument for slim, to allow Eidos constants to be defined on the command line
+	NOTE: this version changed model output in many cases because the order of drawing mutations and breakpoints changed
 
 2.1.1 (build 924; Eidos version 1.1.1):
 	fix segfault with very large recombination maps (thanks Martin Petr)
@@ -135,6 +136,7 @@ development head:
 	Add automatic pedigree tracking to the Individual class
 	Add new initializeSLiMOptions() initialization function
 	Add uniqueMutations property and uniqueMutationsOfType() method to Individual
+	NOTE: this version changed model output in many cases, for reasons I haven't bothered to retrace
 
 2.0.4 (build 833; Eidos version 1.0.4)
 	Fix issue with interleaving of output from SLiM versus Eidos
