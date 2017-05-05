@@ -175,28 +175,6 @@ public:
 	// This tallies up individual Mutation references, using MutationRun usage counts for speed
 	void TallyMutationReferences(int64_t p_operation_id);
 	
-	/*
-	 Commenting out for the transition; this will end up being quite inefficient, and perhaps should be deleted entirely.  Use the iterator API.
-	 
-	inline Mutation *const & operator[] (int p_index) const			// [] returns a reference to a pointer to Mutation; this is the const-pointer variant
-	{
-#ifdef DEBUG
-		if (mutrun_count_ == 0)
-			NullGenomeAccessError();
-#endif
-		return (*runs_[0].get())[p_index];
-	}
-	
-	inline Mutation *& operator[] (int p_index)						// [] returns a reference to a pointer to Mutation; this is the non-const-pointer variant
-	{
-#ifdef DEBUG
-		if (mutrun_count_ == 0)
-			NullGenomeAccessError();
-#endif
-		return (*runs_[0].get())[p_index];
-	}
-	*/
-	
 	inline int mutation_count(void) const	// used to be called size(); renamed to avoid confusion with MutationRun::size() and break code using the wrong method
 	{
 #ifdef DEBUG
@@ -255,37 +233,6 @@ public:
 #endif
 		return mutruns_[p_mutation->position_ / mutrun_length_]->contains_mutation(p_mutation);
 	}
-	
-	/*
-	 Commenting out for the transition; this will end up being quite inefficient, and perhaps should be deleted entirely.  Use the iterator API.
-	 
-	inline void pop_back(void)
-	{
-#ifdef DEBUG
-		if (mutrun_count_ == 0)
-			NullGenomeAccessError();
-#endif
-		runs_[0]->pop_back();
-	}
-	
-	inline void emplace_back(Mutation *p_mutation)
-	{
-#ifdef DEBUG
-		if (mutrun_count_ == 0)
-			NullGenomeAccessError();
-#endif
-		runs_[0]->emplace_back(p_mutation);
-	}
-	
-	inline void emplace_back_bulk(Mutation **p_mutation_ptr, long p_copy_count)
-	{
-#ifdef DEBUG
-		if (mutrun_count_ == 0)
-			NullGenomeAccessError();
-#endif
-		runs_[0]->emplace_back_bulk(p_mutation_ptr, p_copy_count);
-	}
-	*/
 	
 	inline void insert_sorted_mutation(Mutation *p_mutation)
 	{
@@ -359,46 +306,6 @@ public:
 		// and copy other state
 		genome_type_ = p_source_genome.genome_type_;
 	}
-	
-	/*
-	 Commenting out for the transition; this will end up being quite inefficient, and perhaps should be deleted entirely.  Use the iterator API.
-	 
-	inline Mutation *const *begin_pointer_const(void) const
-	{
-#ifdef DEBUG
-		if (mutrun_count_ == 0)
-			NullGenomeAccessError();
-#endif
-		return runs_[0]->begin_pointer_const();
-	}
-	
-	inline Mutation *const *end_pointer_const(void) const
-	{
-#ifdef DEBUG
-		if (mutrun_count_ == 0)
-			NullGenomeAccessError();
-#endif
-		return runs_[0]->end_pointer_const();
-	}
-	
-	inline Mutation **begin_pointer(void)
-	{
-#ifdef DEBUG
-		if (mutrun_count_ == 0)
-			NullGenomeAccessError();
-#endif
-		return runs_[0]->begin_pointer();
-	}
-	
-	inline Mutation **end_pointer(void)
-	{
-#ifdef DEBUG
-		if (mutrun_count_ == 0)
-			NullGenomeAccessError();
-#endif
-		return runs_[0]->end_pointer();
-	}
-	*/
 	
 	// print the sample represented by genomes, using SLiM's own format
 	static void PrintGenomes_slim(std::ostream &p_out, std::vector<Genome *> &genomes, slim_objectid_t p_source_subpop_id);
