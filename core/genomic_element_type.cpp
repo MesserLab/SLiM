@@ -41,7 +41,10 @@ GenomicElementType::~GenomicElementType(void)
 	//EIDOS_ERRSTREAM << "GenomicElementType::~GenomicElementType" << std::endl;
 	
 	if (lookup_mutation_type_)
+	{
 		gsl_ran_discrete_free(lookup_mutation_type_);
+		lookup_mutation_type_ = nullptr;
+	}
 }
 
 void GenomicElementType::InitializeDraws(void)
@@ -54,12 +57,17 @@ void GenomicElementType::InitializeDraws(void)
 	if (lookup_mutation_type_)
 	{
 		gsl_ran_discrete_free(lookup_mutation_type_);
-		lookup_mutation_type_ = NULL;
+		lookup_mutation_type_ = nullptr;
 	}
 	
-	// We allow an empty mutation type vector initially, because people might want to add mutation types in script.
-	// However, if DrawMutationType() is called and our vector is still empty, that will be an error.
-	if (mutation_type_count)
+	// We no longer allow an empty mutation type vector initially; I cant see any reason why that is desirable,
+	// and it makes using nullptr for lookup_mutation_type_ in the one-type case more complicated.
+	if (mutation_type_count == 0)
+		EIDOS_TERMINATION << "ERROR (GenomicElementType::InitializeDraws): empty mutation type vector for genomic element type." << eidos_terminate();
+	
+	// BCH 5 May 2017: We now keep lookup_mutation_type_==nullptr if we have just a single mutation type,
+	// avoiding the overhead of the gsl_ran_discrete() call in that common base case.
+	if (mutation_type_count > 1)
 	{
 		// Prepare to randomly draw mutation types
 		std::vector<double> A(mutation_type_count);
@@ -80,14 +88,6 @@ void GenomicElementType::InitializeDraws(void)
 		if (nonzero_seen)
 			lookup_mutation_type_ = gsl_ran_discrete_preproc(mutation_type_count, A.data());
 	}
-}
-
-MutationType *GenomicElementType::DrawMutationType(void) const
-{
-	if (!lookup_mutation_type_)
-		EIDOS_TERMINATION << "ERROR (GenomicElementType::DrawMutationType): empty mutation type vector for genomic element type." << eidos_terminate();
-	
-	return mutation_type_ptrs_[gsl_ran_discrete(gEidos_rng, lookup_mutation_type_)];
 }
 
 std::ostream &operator<<(std::ostream &p_outstream, const GenomicElementType &p_genomic_element_type)
