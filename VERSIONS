@@ -23,8 +23,7 @@ development head:
 	add a new option in initializeSLiMOptions() to control the number of mutation runs, if desired (usually unnecessary)
 	optimize crossover mutation code with improved code flow and expanded case treatments
 	optimize fitness calculations by caching fitness effects of mutations
-	optimize usage of gsl_ran_discrete() in cases where only one option exists
-	NOTE: this version changed model output in many cases because of a float/double change in fitness calculations, and a decrease in gsl_ran_discrete() calls
+	NOTE: this version changed model output in some cases because of a float/double change in fitness calculations
 
 2.3 (build 1052; Eidos version 1.3):
 	added x, y, and z properties to Individual for tracking spatial location

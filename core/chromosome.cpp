@@ -103,7 +103,7 @@ void Chromosome::InitializeDraws(void)
 		l += l_i;
 	}
 	
-	if (size() > 1)
+	//if (size() > 1)		// this did not produce a performance win, surprisingly
 		lookup_mutation_ = gsl_ran_discrete_preproc(size(), A.data());
 	
 	element_mutation_rate_ = overall_mutation_rate_ * static_cast<double>(l);
@@ -224,7 +224,7 @@ void Chromosome::_InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, v
 		p_lookup = nullptr;
 	}
 	
-	if (p_rates.size() > 1)
+	//if (p_rates.size() > 1)		// this did not produce a performance win, surprisingly
 		p_lookup = gsl_ran_discrete_preproc(p_rates.size(), B.data());
 	
 	// precalculate probabilities for Poisson draws of mutation count and breakpoint count
@@ -263,7 +263,7 @@ void Chromosome::RecombinationMapConfigError(void) const
 // draw a new mutation, based on the genomic element types present and their mutational proclivities
 Mutation *Chromosome::DrawNewMutation(slim_objectid_t p_subpop_index, slim_generation_t p_generation) const
 {
-	int genomic_element_index = (lookup_mutation_ ? static_cast<int>(gsl_ran_discrete(gEidos_rng, lookup_mutation_)) : 0);
+	int genomic_element_index = static_cast<int>(gsl_ran_discrete(gEidos_rng, lookup_mutation_));
 	const GenomicElement &source_element = (*this)[genomic_element_index];
 	const GenomicElementType &genomic_element_type = *source_element.genomic_element_type_ptr_;
 	MutationType *mutation_type_ptr = genomic_element_type.DrawMutationType();
@@ -312,7 +312,7 @@ void Chromosome::DrawBreakpoints(IndividualSex p_sex, const int p_num_breakpoint
 	for (int i = 0; i < p_num_breakpoints; i++)
 	{
 		slim_position_t breakpoint = 0;
-		int recombination_interval = (lookup ? static_cast<int>(gsl_ran_discrete(gEidos_rng, lookup)) : 0);
+		int recombination_interval = static_cast<int>(gsl_ran_discrete(gEidos_rng, lookup));
 		
 		// choose a breakpoint anywhere in the chosen recombination interval with equal probability
 		
@@ -405,7 +405,7 @@ void Chromosome::DrawBreakpoints_Detailed(IndividualSex p_sex, const int p_num_b
 	for (int i = 0; i < p_num_breakpoints; i++)
 	{
 		slim_position_t breakpoint = 0;
-		int recombination_interval = (lookup ? static_cast<int>(gsl_ran_discrete(gEidos_rng, lookup)) : 0);
+		int recombination_interval = static_cast<int>(gsl_ran_discrete(gEidos_rng, lookup));
 		
 		// choose a breakpoint anywhere in the chosen recombination interval with equal probability
 		if (recombination_interval == 0)
