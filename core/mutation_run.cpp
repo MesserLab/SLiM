@@ -54,16 +54,17 @@ void MutationRun::_RemoveFixedMutations(void)
 	
 	// We don't use begin_pointer() / end_pointer() here, because we actually want to modify the MutationRun even
 	// though it is shared by multiple Genomes; this is an exceptional case, so we go around our safeguards.
-	Mutation **genome_iter = mutations_;
-	Mutation **genome_backfill_iter = nullptr;
-	Mutation **genome_max = mutations_ + mutation_count_;
+	MutationIndex *genome_iter = mutations_;
+	MutationIndex *genome_backfill_iter = nullptr;
+	MutationIndex *genome_max = mutations_ + mutation_count_;
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	
 	// genome_iter advances through the mutation list; for each entry it hits, the entry is either fixed (skip it) or not fixed
 	// (copy it backward to the backfill pointer).  We do this with two successive loops; the first knows that no mutation has
 	// yet been skipped, whereas the second knows that at least one mutation has been.
 	while (genome_iter != genome_max)
 	{
-		if ((*genome_iter++)->reference_count_ != -1)
+		if ((mut_block_ptr + (*genome_iter++))->reference_count_ != -1)
 			continue;
 		
 		// Fixed mutation; we want to omit it, so we skip it in genome_backfill_iter and transition to the second loop
@@ -73,12 +74,13 @@ void MutationRun::_RemoveFixedMutations(void)
 	
 	while (genome_iter != genome_max)
 	{
-		Mutation *mutation_ptr = *genome_iter;
+		MutationIndex mutation_index = *genome_iter;
+		Mutation *mutation_ptr = mut_block_ptr + mutation_index;
 		
 		if (mutation_ptr->reference_count_ != -1)
 		{
 			// Unfixed mutation; we want to keep it, so we copy it backward and advance our backfill pointer as well as genome_iter
-			*genome_backfill_iter = mutation_ptr;
+			*genome_backfill_iter = mutation_index;
 			
 			++genome_backfill_iter;
 			++genome_iter;
@@ -97,16 +99,17 @@ void MutationRun::_RemoveFixedMutations(void)
 
 bool MutationRun::_enforce_stack_policy_for_addition(slim_position_t p_position, MutationType *p_mut_type_ptr, MutationStackPolicy p_policy)
 {
-	Mutation **begin_ptr = begin_pointer();
-	Mutation **end_ptr = end_pointer();
+	MutationIndex *begin_ptr = begin_pointer();
+	MutationIndex *end_ptr = end_pointer();
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	
 	if (p_policy == MutationStackPolicy::kKeepFirst)
 	{
 		// If the first mutation occurring at a site is kept, then we need to check for an existing mutation of this type
 		// We scan in reverse order, because usually we're adding mutations on the end with emplace_back()
-		for (Mutation **mut_ptr = end_ptr - 1; mut_ptr >= begin_ptr; --mut_ptr)
+		for (MutationIndex *mut_ptr = end_ptr - 1; mut_ptr >= begin_ptr; --mut_ptr)
 		{
-			Mutation *mut = *mut_ptr;
+			Mutation *mut = mut_block_ptr + *mut_ptr;
 			slim_position_t mut_position = mut->position_;
 			
 			if ((mut_position == p_position) && (mut->mutation_type_ptr_ == p_mut_type_ptr))
@@ -121,11 +124,11 @@ bool MutationRun::_enforce_stack_policy_for_addition(slim_position_t p_position,
 	{
 		// If the last mutation occurring at a site is kept, then we need to check for existing mutations of this type
 		// We scan in reverse order, because usually we're adding mutations on the end with emplace_back()
-		Mutation **first_match_ptr = nullptr;
+		MutationIndex *first_match_ptr = nullptr;
 		
-		for (Mutation **mut_ptr = end_ptr - 1; mut_ptr >= begin_ptr; --mut_ptr)
+		for (MutationIndex *mut_ptr = end_ptr - 1; mut_ptr >= begin_ptr; --mut_ptr)
 		{
-			Mutation *mut = *mut_ptr;
+			Mutation *mut = mut_block_ptr + *mut_ptr;
 			slim_position_t mut_position = mut->position_;
 			
 			if ((mut_position == p_position) && (mut->mutation_type_ptr_ == p_mut_type_ptr))
@@ -137,12 +140,13 @@ bool MutationRun::_enforce_stack_policy_for_addition(slim_position_t p_position,
 		// If we found any, we now scan forward and remove them, in anticipation of the new mutation being added
 		if (first_match_ptr)
 		{
-			Mutation **replace_ptr = first_match_ptr;	// replace at the first match position
-			Mutation **mut_ptr = first_match_ptr + 1;	// we know the initial position needs removal, so start at the next
+			MutationIndex *replace_ptr = first_match_ptr;	// replace at the first match position
+			MutationIndex *mut_ptr = first_match_ptr + 1;	// we know the initial position needs removal, so start at the next
 			
 			for ( ; mut_ptr < end_ptr; ++mut_ptr)
 			{
-				Mutation *mut = *mut_ptr;
+				MutationIndex mut_index = *mut_ptr;
+				Mutation *mut = mut_block_ptr + mut_index;
 				slim_position_t mut_position = mut->position_;
 				
 				if ((mut_position == p_position) && (mut->mutation_type_ptr_ == p_mut_type_ptr))
@@ -153,7 +157,7 @@ bool MutationRun::_enforce_stack_policy_for_addition(slim_position_t p_position,
 				else
 				{
 					// The current scan position is a valid mutation, so we copy it backwards
-					*(replace_ptr++) = mut;
+					*(replace_ptr++) = mut_index;
 				}
 			}
 			

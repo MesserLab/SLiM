@@ -446,7 +446,7 @@ extern const std::string gStr_Chromosome;
 extern const std::string gStr_Genome;
 extern const std::string gStr_GenomicElement;
 extern const std::string gStr_GenomicElementType;
-extern const std::string gStr_Mutation;
+//extern const std::string gStr_Mutation;		// in Eidos; see EidosValue_Object::EidosValue_Object()
 extern const std::string gStr_MutationType;
 extern const std::string gStr_SLiMEidosBlock;
 extern const std::string gStr_SLiMSim;
@@ -668,7 +668,7 @@ enum _SLiMGlobalStringID : int {
 	gID_Genome,
 	gID_GenomicElement,
 	gID_GenomicElementType,
-	gID_Mutation,
+	//gID_Mutation,		// in Eidos; see EidosValue_Object::EidosValue_Object()
 	gID_MutationType,
 	gID_SLiMEidosBlock,
 	gID_SLiMSim,

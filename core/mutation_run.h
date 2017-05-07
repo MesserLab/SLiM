@@ -73,8 +73,8 @@ protected:
 	
 	int32_t mutation_count_ = 0;								// the number of entries presently in mutations_
 	int32_t mutation_capacity_ = SLIM_MUTRUN_BUFFER_SIZE;		// the capacity of mutations_; we start by using our internal buffer
-	Mutation *(mutations_buffer_[SLIM_MUTRUN_BUFFER_SIZE]);		// a built-in buffer to prevent the need for malloc with few mutations
-	Mutation **mutations_ = mutations_buffer_;					// OWNED POINTER: a pointer to an array of pointers to const Mutation objects
+	MutationIndex mutations_buffer_[SLIM_MUTRUN_BUFFER_SIZE];	// a built-in buffer to prevent the need for malloc with few mutations
+	MutationIndex *mutations_ = mutations_buffer_;				// OWNED POINTER: a pointer to an array of MutationIndex
 	
 public:
 	
@@ -118,11 +118,11 @@ public:
 #define SLIM_MUTRUN_LOCK_CHECK()	;
 #endif
 	
-	inline Mutation *const & operator[] (int p_index) const {	// [] returns a reference to a pointer to Mutation; this is the const-pointer variant
+	inline MutationIndex const & operator[] (int p_index) const {	// [] returns a reference to a pointer to Mutation; this is the const-pointer variant
 		return mutations_[p_index];
 	}
 	
-	inline Mutation *& operator[] (int p_index) {				// [] returns a reference to a pointer to Mutation; this is the non-const-pointer variant
+	inline MutationIndex& operator[] (int p_index) {				// [] returns a reference to a pointer to Mutation; this is the non-const-pointer variant
 		return mutations_[p_index];
 	}
 	
@@ -143,13 +143,13 @@ public:
 		mutation_count_ = 0;
 	}
 	
-	inline bool contains_mutation(const Mutation *p_mutation) {
+	inline bool contains_mutation(MutationIndex p_mutation_index) {
 		// This function does not assume that mutations are in sorted order, because we want to be able to use it with the mutation registry
-		Mutation *const *position = begin_pointer_const();
-		Mutation *const *end_position = end_pointer_const();
+		const MutationIndex *position = begin_pointer_const();
+		const MutationIndex *end_position = end_pointer_const();
 		
 		for (; position != end_position; ++position)
-			if (*position == p_mutation)
+			if (*position == p_mutation_index)
 				return true;
 		
 		return false;
@@ -163,7 +163,7 @@ public:
 			--mutation_count_;
 	}
 	
-	inline void emplace_back(Mutation *p_mutation)
+	inline void emplace_back(MutationIndex p_mutation_index)
 	{
 		SLIM_MUTRUN_LOCK_CHECK();
 		
@@ -178,9 +178,9 @@ public:
 				// avoiding it is not a major concern.  In fact, using *8 here instead of *2 actually slows down a test simulation,
 				// perhaps because it causes a true realloc rather than just a size increment of the existing malloc block.  Who knows.
 				mutation_capacity_ = SLIM_MUTRUN_BUFFER_SIZE * 2;
-				mutations_ = (Mutation **)malloc(mutation_capacity_ * sizeof(Mutation*));
+				mutations_ = (MutationIndex *)malloc(mutation_capacity_ * sizeof(MutationIndex));
 				
-				memcpy(mutations_, mutations_buffer_, mutation_count_ * sizeof(Mutation*));
+				memcpy(mutations_, mutations_buffer_, mutation_count_ * sizeof(MutationIndex));
 			}
 			else
 			{
@@ -205,17 +205,17 @@ public:
 				else
 					mutation_capacity_ += 16;
 				
-				mutations_ = (Mutation **)realloc(mutations_, mutation_capacity_ * sizeof(Mutation*));
+				mutations_ = (MutationIndex *)realloc(mutations_, mutation_capacity_ * sizeof(MutationIndex));
 			}
 		}
 		
 		// Now we are guaranteed to have enough memory, so copy the pointer in
 		// (unless malloc/realloc failed, which we're not going to worry about!)
-		*(mutations_ + mutation_count_) = p_mutation;
+		*(mutations_ + mutation_count_) = p_mutation_index;
 		++mutation_count_;
 	}
 	
-	inline void emplace_back_bulk(Mutation **p_mutation_ptr, long p_copy_count)
+	inline void emplace_back_bulk(MutationIndex *p_mutation_indices, long p_copy_count)
 	{
 		SLIM_MUTRUN_LOCK_CHECK();
 		
@@ -240,9 +240,9 @@ public:
 						mutation_capacity_ += 16;
 				}
 				
-				mutations_ = (Mutation **)malloc(mutation_capacity_ * sizeof(Mutation*));
+				mutations_ = (MutationIndex *)malloc(mutation_capacity_ * sizeof(MutationIndex));
 				
-				memcpy(mutations_, mutations_buffer_, mutation_count_ * sizeof(Mutation*));
+				memcpy(mutations_, mutations_buffer_, mutation_count_ * sizeof(MutationIndex));
 			}
 			else
 			{
@@ -255,31 +255,32 @@ public:
 				}
 				while (mutation_count_ + p_copy_count > mutation_capacity_);
 				
-				mutations_ = (Mutation **)realloc(mutations_, mutation_capacity_ * sizeof(Mutation*));
+				mutations_ = (MutationIndex *)realloc(mutations_, mutation_capacity_ * sizeof(MutationIndex));
 			}
 		}
 		
 		// Now we are guaranteed to have enough memory, so copy the pointers in
 		// (unless malloc/realloc failed, which we're not going to worry about!)
-		memcpy(mutations_ + mutation_count_, p_mutation_ptr, p_copy_count * sizeof(Mutation*));
+		memcpy(mutations_ + mutation_count_, p_mutation_indices, p_copy_count * sizeof(MutationIndex));
 		mutation_count_ += p_copy_count;
 	}
 	
-	inline void insert_sorted_mutation(Mutation *p_mutation)
+	inline void insert_sorted_mutation(MutationIndex p_mutation_index)
 	{
 		// first push it back on the end, which deals with capacity/locking issues
-		emplace_back(p_mutation);
+		emplace_back(p_mutation_index);
 		
 		// if it was our first element, then we're done; this would work anyway, but since it is extremely common let's short-circuit it
 		if (mutation_count_ == 1)
 			return;
 		
 		// then find the proper position for it
-		Mutation **sort_position = begin_pointer();
-		Mutation *const *end_position = end_pointer_const() - 1;		// the position of the newly added element
+		Mutation *mut_ptr_to_insert = gSLiM_Mutation_Block + p_mutation_index;
+		MutationIndex *sort_position = begin_pointer();
+		const MutationIndex *end_position = end_pointer_const() - 1;		// the position of the newly added element
 		
 		for ( ; sort_position != end_position; ++sort_position)
-			if (CompareMutations(p_mutation, *sort_position))	// if (p_mutation->position_ < (*sort_position)->position_)
+			if (CompareMutations(mut_ptr_to_insert, gSLiM_Mutation_Block + *sort_position))	// if (p_mutation->position_ < (*sort_position)->position_)
 				break;
 		
 		// if we got all the way to the end, then the mutation belongs at the end, so we're done
@@ -290,29 +291,30 @@ public:
 		memmove(sort_position + 1, sort_position, (char *)end_position - (char *)sort_position);
 		
 		// finally, put the mutation where it belongs
-		*sort_position = p_mutation;
+		*sort_position = p_mutation_index;
 	}
 	
-	inline void insert_sorted_mutation_if_unique(Mutation *p_mutation)
+	inline void insert_sorted_mutation_if_unique(MutationIndex p_mutation_index)
 	{
 		// first push it back on the end, which deals with capacity/locking issues
-		emplace_back(p_mutation);
+		emplace_back(p_mutation_index);
 		
 		// if it was our first element, then we're done; this would work anyway, but since it is extremely common let's short-circuit it
 		if (mutation_count_ == 1)
 			return;
 		
 		// then find the proper position for it
-		Mutation **sort_position = begin_pointer();
-		Mutation *const *end_position = end_pointer_const() - 1;		// the position of the newly added element
+		Mutation *mut_ptr_to_insert = gSLiM_Mutation_Block + p_mutation_index;
+		MutationIndex *sort_position = begin_pointer();
+		const MutationIndex *end_position = end_pointer_const() - 1;		// the position of the newly added element
 		
 		for ( ; sort_position != end_position; ++sort_position)
 		{
-			if (CompareMutations(p_mutation, *sort_position))	// if (p_mutation->position_ < (*sort_position)->position_)
+			if (CompareMutations(mut_ptr_to_insert, gSLiM_Mutation_Block + *sort_position))	// if (p_mutation->position_ < (*sort_position)->position_)
 			{
 				break;
 			}
-			else if (p_mutation == *sort_position)
+			else if (p_mutation_index == *sort_position)
 			{
 				// We are only supposed to insert the mutation if it is unique, and apparently it is not; discard it off the end
 				--mutation_count_;
@@ -328,7 +330,7 @@ public:
 		memmove(sort_position + 1, sort_position, (char *)end_position - (char *)sort_position);
 		
 		// finally, put the mutation where it belongs
-		*sort_position = p_mutation;
+		*sort_position = p_mutation_index;
 	}
 	
 	bool _enforce_stack_policy_for_addition(slim_position_t p_position, MutationType *p_mut_type_ptr, MutationStackPolicy p_policy);
@@ -364,32 +366,32 @@ public:
 			if (mutations_ == mutations_buffer_)
 				mutations_ = nullptr;
 			
-			mutations_ = (Mutation **)realloc(mutations_, mutation_capacity_ * sizeof(Mutation*));
+			mutations_ = (MutationIndex *)realloc(mutations_, mutation_capacity_ * sizeof(MutationIndex));
 		}
 		
 		// then copy all pointers from the source to ourselves
-		memcpy(mutations_, p_source_run.mutations_, source_mutation_count * sizeof(Mutation*));
+		memcpy(mutations_, p_source_run.mutations_, source_mutation_count * sizeof(MutationIndex));
 		mutation_count_ = source_mutation_count;
 	}
 	
-	inline Mutation *const *begin_pointer_const(void) const
+	inline const MutationIndex *begin_pointer_const(void) const
 	{
 		return mutations_;
 	}
 	
-	inline Mutation *const *end_pointer_const(void) const
+	inline const MutationIndex *end_pointer_const(void) const
 	{
 		return mutations_ + mutation_count_;
 	}
 	
-	inline Mutation **begin_pointer(void)
+	inline MutationIndex *begin_pointer(void)
 	{
 		SLIM_MUTRUN_LOCK_CHECK();
 		
 		return mutations_;
 	}
 	
-	inline Mutation **end_pointer(void)
+	inline MutationIndex *end_pointer(void)
 	{
 		SLIM_MUTRUN_LOCK_CHECK();
 		
@@ -431,7 +433,7 @@ public:
 		if (mutation_count_ != p_run.mutation_count_)
 			return false;
 		
-		if (memcmp(mutations_, p_run.mutations_, mutation_count_ * sizeof(Mutation *)) != 0)
+		if (memcmp(mutations_, p_run.mutations_, mutation_count_ * sizeof(MutationIndex)) != 0)
 			return false;
 		
 		return true;

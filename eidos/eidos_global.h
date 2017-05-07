@@ -319,6 +319,8 @@ extern const std::string gEidosStr_y;
 extern const std::string gEidosStr_z;
 extern const std::string gEidosStr_color;
 
+extern const std::string gEidosStr_Mutation;	// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
+
 
 // Not all global strings have a EidosGlobalStringID; basically just ones that we want to scan and pre-cache in the tree,
 // such as property and method names, as well as initialize...() function names (since signatures can't be cached for them).
@@ -352,6 +354,8 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_y,
 	gEidosID_z,
 	gEidosID_color,
+	
+	gEidosID_Mutation,		// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
 	
 	gEidosID_LastEntry,					// IDs added by the Context should start here
 	gEidosID_LastContextEntry = 10000	// IDs added by the Context must end before this value; Eidos reserves the remaining values

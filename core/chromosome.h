@@ -137,7 +137,7 @@ public:
 	int DrawMutationCount(void) const;
 	
 	// draw a new mutation, based on the genomic element types present and their mutational proclivities
-	Mutation *DrawNewMutation(slim_objectid_t p_subpop_index, slim_generation_t p_generation) const;
+	MutationIndex DrawNewMutation(slim_objectid_t p_subpop_index, slim_generation_t p_generation) const;
 	
 	// draw the number of breakpoints that occur, based on the overall recombination rate
 	int DrawBreakpointCount(IndividualSex p_sex) const;

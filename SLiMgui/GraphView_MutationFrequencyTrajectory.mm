@@ -303,11 +303,12 @@
 	//
 	int subpop_total_genome_count = 0;
 	
-	Mutation *const *registry_iter = mutationRegistry.begin_pointer_const();
-	Mutation *const *registry_iter_end = mutationRegistry.end_pointer_const();
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	const MutationIndex *registry_iter = mutationRegistry.begin_pointer_const();
+	const MutationIndex *registry_iter_end = mutationRegistry.end_pointer_const();
 	
 	for (; registry_iter != registry_iter_end; ++registry_iter)
-		(*registry_iter)->gui_scratch_reference_count_ = 0;
+		(mut_block_ptr + *registry_iter)->gui_scratch_reference_count_ = 0;
 	
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population)
 	{
@@ -329,12 +330,12 @@
 					for (int run_index = 0; run_index < mutrun_count; ++run_index)
 					{
 						MutationRun *mutrun = genome.mutruns_[run_index].get();
-						Mutation *const *genome_iter = mutrun->begin_pointer_const();
-						Mutation *const *genome_end_iter = mutrun->end_pointer_const();
+						const MutationIndex *genome_iter = mutrun->begin_pointer_const();
+						const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
 						
 						for (; genome_iter != genome_end_iter; ++genome_iter)
 						{
-							const Mutation *mutation = *genome_iter;
+							const Mutation *mutation = mut_block_ptr + *genome_iter;
 							
 							if (mutation->mutation_type_ptr_->mutation_type_index_ == _selectedMutationTypeIndex)
 								(mutation->gui_scratch_reference_count_)++;
@@ -350,7 +351,7 @@
 	// Now we can run through the mutations and use the tallies in gui_scratch_reference_count to update our histories
 	for (registry_iter = mutationRegistry.begin_pointer_const(); registry_iter != registry_iter_end; ++registry_iter)
 	{
-		const Mutation *mutation = *registry_iter;
+		const Mutation *mutation = mut_block_ptr + *registry_iter;
 		slim_refcount_t refcount = mutation->gui_scratch_reference_count_;
 		
 		if (refcount)
@@ -389,13 +390,13 @@
 		if (!history->updated)
 		{
 			slim_mutationid_t historyID = history->mutationID;
-			Mutation *const *mutation_iter = mutationRegistry.begin_pointer_const();
-			Mutation *const *mutation_iter_end = mutationRegistry.end_pointer_const();
+			const MutationIndex *mutation_iter = mutationRegistry.begin_pointer_const();
+			const MutationIndex *mutation_iter_end = mutationRegistry.end_pointer_const();
 			BOOL mutationStillExists = NO;
 			
 			for ( ; mutation_iter != mutation_iter_end; ++mutation_iter)
 			{
-				const Mutation *mutation = *mutation_iter;
+				const Mutation *mutation = mut_block_ptr + *mutation_iter;
 				slim_mutationid_t mutationID = mutation->mutation_id_;
 				
 				if (historyID == mutationID)

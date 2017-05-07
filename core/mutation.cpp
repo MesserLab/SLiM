@@ -26,10 +26,92 @@
 #include <algorithm>
 #include <string>
 #include <vector>
+#include <cstdint>
 
 
-// All Mutation objects get allocated out of a single shared pool, for speed; see SLiM_WarmUp()
-EidosObjectPool *gSLiM_Mutation_Pool = nullptr;
+// All Mutation objects get allocated out of a single shared block, for speed; see SLiM_WarmUp()
+Mutation *gSLiM_Mutation_Block = nullptr;
+MutationIndex gSLiM_Mutation_Block_Capacity = 0;
+MutationIndex gSLiM_Mutation_FreeIndex = -1;
+
+#define SLIM_MUTATION_BLOCK_INITIAL_SIZE	16384		// makes for about a 1 MB block; not unreasonable
+
+extern std::vector<EidosValue_Object *> gEidosValue_Object_Mutation_Registry;	// this is in Eidos; see SLiM_IncreaseMutationBlockCapacity()
+
+void SLiM_CreateMutationBlock(void)
+{
+	// first allocate the block; no need to zero the memory
+	gSLiM_Mutation_Block_Capacity = SLIM_MUTATION_BLOCK_INITIAL_SIZE;
+	gSLiM_Mutation_Block = (Mutation *)malloc(gSLiM_Mutation_Block_Capacity * sizeof(Mutation));
+	
+	//std::cout << "Allocating initial mutation block, " << SLIM_MUTATION_BLOCK_INITIAL_SIZE * sizeof(Mutation) << " bytes (sizeof(Mutation) == " << sizeof(Mutation) << ")" << std::endl;
+	
+	// now we need to set up our free list inside the block; initially all blocks are free
+	for (MutationIndex i = 0; i < gSLiM_Mutation_Block_Capacity - 1; ++i)
+		*(MutationIndex *)(gSLiM_Mutation_Block + i) = i + 1;
+	
+	*(MutationIndex *)(gSLiM_Mutation_Block + gSLiM_Mutation_Block_Capacity - 1) = -1;
+	
+	// now that the block is set up, we can start the free list
+	gSLiM_Mutation_FreeIndex = 0;
+}
+
+void SLiM_IncreaseMutationBlockCapacity(void)
+{
+	if (!gSLiM_Mutation_Block)
+		EIDOS_TERMINATION << "ERROR (SLiM_NewMutationFromBlock_realloc): (internal error) called before SLiM_CreateMutationBlock()." << eidos_terminate();
+	
+	// We need to expand the size of our Mutation block.  This has the consequence of invalidating
+	// every Mutation * in the program.  In general that is fine; we are careful to only keep
+	// pointers to Mutation temporarily, and for long-term reference we use MutationIndex.  The
+	// exception to this is EidosValue_Object; the user can put references to mutations into
+	// variables that need to remain valid across reallocs like this.  We therefore have to hunt
+	// down every EidosValue_Object that contains Mutations, and fix the pointer inside each of
+	// them.  Because in SLiMgui all of the running simulations share a single Mutation block at
+	// the moment, in SLiMgui this patching has to occur across all of the simulations, not just
+	// the one that made this call.  Yes, this is very gross.  This is why pointers are evil.  :->
+	
+	// First let's do our realloc.  We just need to note the change in value for the pointer.
+	// For now we will just double in size; we don't want to waste too much memory, but we
+	// don't want to have to realloc too often, either.
+	std::uintptr_t old_mutation_block = reinterpret_cast<std::uintptr_t>(gSLiM_Mutation_Block);
+	MutationIndex old_block_capacity = gSLiM_Mutation_Block_Capacity;
+	
+	gSLiM_Mutation_Block_Capacity *= 2;
+	gSLiM_Mutation_Block = (Mutation *)realloc(gSLiM_Mutation_Block, gSLiM_Mutation_Block_Capacity * sizeof(Mutation));
+	
+	std::uintptr_t new_mutation_block = reinterpret_cast<std::uintptr_t>(gSLiM_Mutation_Block);
+	
+	// Set up the free list to extend into the new portion of the buffer.  If we are called when
+	// gSLiM_Mutation_FreeIndex != -1, the free list will start with the new region.
+	for (MutationIndex i = old_block_capacity; i < gSLiM_Mutation_Block_Capacity - 1; ++i)
+		*(MutationIndex *)(gSLiM_Mutation_Block + i) = i + 1;
+	
+	*(MutationIndex *)(gSLiM_Mutation_Block + gSLiM_Mutation_Block_Capacity - 1) = gSLiM_Mutation_FreeIndex;
+	
+	gSLiM_Mutation_FreeIndex = old_block_capacity;
+	
+	// Now we go out and fix Mutation * references in EidosValue_Object in all symbol tables
+	if (new_mutation_block != old_mutation_block)
+	{
+		// This may be excessively cautious, but I want to avoid subtracting these uintptr_t values
+		// to produce a negative number; that seems unwise and possibly platform-dependent.
+		if (old_mutation_block > new_mutation_block)
+		{
+			std::uintptr_t ptr_diff = old_mutation_block - new_mutation_block;
+			
+			for (EidosValue_Object *mutation_value : gEidosValue_Object_Mutation_Registry)
+				mutation_value->PatchPointersBySubtracting(ptr_diff);
+		}
+		else
+		{
+			std::uintptr_t ptr_diff = new_mutation_block - old_mutation_block;
+			
+			for (EidosValue_Object *mutation_value : gEidosValue_Object_Mutation_Registry)
+				mutation_value->PatchPointersByAdding(ptr_diff);
+		}
+	}
+}
 
 
 // A global counter used to assign all Mutation objects a unique ID
@@ -48,7 +130,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 #endif
 	
 #if DEBUG_MUTATIONS
-	EIDOS_OUTSTREAM << "Mutation constructed: " << this << std::endl;
+	SLIM_OUTSTREAM << "Mutation constructed: " << this << std::endl;
 #endif
 }
 
@@ -65,7 +147,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 #endif
 
 #if DEBUG_MUTATIONS
-	EIDOS_OUTSTREAM << "Mutation constructed: " << this << std::endl;
+	SLIM_OUTSTREAM << "Mutation constructed: " << this << std::endl;
 #endif
 	
 	// Since a mutation id was supplied by the caller, we need to ensure that subsequent mutation ids generated do not collide
@@ -76,7 +158,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 #if DEBUG_MUTATIONS
 Mutation::~Mutation(void)
 {
-	EIDOS_OUTSTREAM << "Mutation destructed: " << this << std::endl;
+	SLIM_OUTSTREAM << "Mutation destructed: " << this << std::endl;
 }
 #endif
 
@@ -330,7 +412,7 @@ Mutation_Class::Mutation_Class(void)
 
 const std::string &Mutation_Class::ElementType(void) const
 {
-	return gStr_Mutation;
+	return gEidosStr_Mutation;		// in Eidos; see EidosValue_Object::EidosValue_Object()
 }
 
 const std::vector<const EidosPropertySignature *> *Mutation_Class::Properties(void) const

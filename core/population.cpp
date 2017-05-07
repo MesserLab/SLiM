@@ -84,17 +84,18 @@ void Population::RemoveAllSubpopulationInfo(void)
 	
 	// The malloced storage of mutation_registry_ will be freed when it is destroyed, but it
 	// does not know that the Mutation pointers inside it are owned, so we need to free them.
-	Mutation *const *registry_iter = mutation_registry_.begin_pointer_const();
-	Mutation *const *registry_iter_end = mutation_registry_.end_pointer_const();
+	const MutationIndex *registry_iter = mutation_registry_.begin_pointer_const();
+	const MutationIndex *registry_iter_end = mutation_registry_.end_pointer_const();
 	
 	for (; registry_iter != registry_iter_end; ++registry_iter)
 	{
-		Mutation *mutation = *registry_iter;
+		MutationIndex mutation = *registry_iter;
 		
 		// We no longer delete mutation objects; instead, we remove them from our shared pool
-		//delete mutation;
-		mutation->~Mutation();
-		gSLiM_Mutation_Pool->DisposeChunk(const_cast<Mutation *>(mutation));
+#if DEBUG_MUTATIONS
+		(gSLiM_Mutation_Block + mutation)->~Mutation();	// in general the destructor does not need to be called, since it is a no-op anyway
+#endif
+		SLiM_DisposeMutationToBlock(mutation);
 	}
 	
 	mutation_registry_.clear();
@@ -1973,6 +1974,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 			// start with a clean slate in the child genome
 			child_genome.clear_to_nullptr();
 			
+			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 			Genome *parent_genome = parent_genome_1;
 			int mutrun_length = child_genome.mutrun_length_;
 			int mutrun_count = child_genome.mutrun_count_;
@@ -2003,12 +2005,12 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 				{
 					// The breakpoint occurs *inside* the run, so process the run by copying mutations and switching strands
 					int this_mutrun_index = first_uncompleted_mutrun;
-					Mutation *const *parent1_iter		= parent_genome_1->mutruns_[this_mutrun_index]->begin_pointer_const();
-					Mutation *const *parent2_iter		= parent_genome_2->mutruns_[this_mutrun_index]->begin_pointer_const();
-					Mutation *const *parent1_iter_max	= parent_genome_1->mutruns_[this_mutrun_index]->end_pointer_const();
-					Mutation *const *parent2_iter_max	= parent_genome_2->mutruns_[this_mutrun_index]->end_pointer_const();
-					Mutation *const *parent_iter		= parent1_iter;
-					Mutation *const *parent_iter_max	= parent1_iter_max;
+					const MutationIndex *parent1_iter		= parent_genome_1->mutruns_[this_mutrun_index]->begin_pointer_const();
+					const MutationIndex *parent2_iter		= parent_genome_2->mutruns_[this_mutrun_index]->begin_pointer_const();
+					const MutationIndex *parent1_iter_max	= parent_genome_1->mutruns_[this_mutrun_index]->end_pointer_const();
+					const MutationIndex *parent2_iter_max	= parent_genome_2->mutruns_[this_mutrun_index]->end_pointer_const();
+					const MutationIndex *parent_iter		= parent1_iter;
+					const MutationIndex *parent_iter_max	= parent1_iter_max;
 					MutationRun *child_mutrun = child_genome.WillCreateRun(this_mutrun_index);
 					
 					while (true)
@@ -2016,9 +2018,9 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 						// while there are still old mutations in the parent before the current breakpoint...
 						while (parent_iter != parent_iter_max)
 						{
-							Mutation *current_mutation = *parent_iter;
+							MutationIndex current_mutation = *parent_iter;
 							
-							if (current_mutation->position_ >= breakpoint)
+							if ((mut_block_ptr + current_mutation)->position_ >= breakpoint)
 								break;
 							
 							// add the old mutation; no need to check for a duplicate here since the parental genome is already duplicate-free
@@ -2033,7 +2035,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 						parent_iter = parent1_iter;		parent_iter_max = parent1_iter_max;		parent_genome = parent_genome_1;
 						
 						// skip over anything in the new parent that occurs prior to the breakpoint; it was not the active strand
-						while (parent_iter != parent_iter_max && (*parent_iter)->position_ < breakpoint)
+						while (parent_iter != parent_iter_max && (mut_block_ptr + *parent_iter)->position_ < breakpoint)
 							parent_iter++;
 						
 						// we have now handled the current breakpoint, so move on to the next breakpoint; advance the enclosing for loop here
@@ -2086,7 +2088,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 		
 		for (int k = 0; k < num_mutations; k++)
 		{
-			Mutation *new_mutation = p_chromosome.DrawNewMutation(p_source_subpop_id, p_generation);
+			MutationIndex new_mutation = p_chromosome.DrawNewMutation(p_source_subpop_id, p_generation);
 			
 			mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
 			
@@ -2095,17 +2097,18 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 			// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
 		}
 		
-		Mutation *const *mutation_iter		= mutations_to_add.begin_pointer_const();
-		Mutation *const *mutation_iter_max	= mutations_to_add.end_pointer_const();
+		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+		const MutationIndex *mutation_iter		= mutations_to_add.begin_pointer_const();
+		const MutationIndex *mutation_iter_max	= mutations_to_add.end_pointer_const();
 		
-		Mutation *mutation_iter_mutation;
+		MutationIndex mutation_iter_mutation_index;
 		slim_position_t mutation_iter_pos;
 		
 		if (mutation_iter != mutation_iter_max) {
-			mutation_iter_mutation = *mutation_iter;
-			mutation_iter_pos = mutation_iter_mutation->position_;
+			mutation_iter_mutation_index = *mutation_iter;
+			mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
 		} else {
-			mutation_iter_mutation = nullptr;
+			mutation_iter_mutation_index = -1;
 			mutation_iter_pos = SLIM_INF_BASE_POSITION;
 		}
 		
@@ -2137,8 +2140,8 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 				
 				// The mutation occurs *inside* the run, so process the run by copying mutations
 				int this_mutrun_index = first_uncompleted_mutrun;
-				Mutation *const *parent_iter		= parent_genome->mutruns_[this_mutrun_index]->begin_pointer_const();
-				Mutation *const *parent_iter_max	= parent_genome->mutruns_[this_mutrun_index]->end_pointer_const();
+				const MutationIndex *parent_iter		= parent_genome->mutruns_[this_mutrun_index]->begin_pointer_const();
+				const MutationIndex *parent_iter_max	= parent_genome->mutruns_[this_mutrun_index]->end_pointer_const();
 				MutationRun *child_mutrun = child_genome.WillCreateRun(this_mutrun_index);
 				
 				// add any additional new mutations that occur before the end of the mutation run; there is at least one
@@ -2147,8 +2150,8 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 					// add any parental mutations that occur before or at the next new mutation's position
 					while (parent_iter != parent_iter_max)
 					{
-						Mutation *current_mutation = *parent_iter;
-						slim_position_t current_mutation_pos = current_mutation->position_;
+						MutationIndex current_mutation = *parent_iter;
+						slim_position_t current_mutation_pos = (mut_block_ptr + current_mutation)->position_;
 						
 						if (current_mutation_pos > mutation_iter_pos)
 							break;
@@ -2158,25 +2161,27 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 					}
 					
 					// add the new mutation, which might overlap with the last added old mutation
-					if (child_mutrun->enforce_stack_policy_for_addition(mutation_iter_mutation->position_, mutation_iter_mutation->mutation_type_ptr_))
+					if (child_mutrun->enforce_stack_policy_for_addition((mut_block_ptr + mutation_iter_mutation_index)->position_, (mut_block_ptr + mutation_iter_mutation_index)->mutation_type_ptr_))
 					{
 						// The mutation was passed by the stacking policy, so we can add it to the child genome and the registry
-						child_mutrun->emplace_back(mutation_iter_mutation);
-						mutation_registry_.emplace_back(mutation_iter_mutation);
+						child_mutrun->emplace_back(mutation_iter_mutation_index);
+						mutation_registry_.emplace_back(mutation_iter_mutation_index);
 					}
 					else
 					{
 						// The mutation was rejected by the stacking policy, so we have to dispose of it
 						// We no longer delete mutation objects; instead, we remove them from our shared pool
-						mutation_iter_mutation->~Mutation();
-						gSLiM_Mutation_Pool->DisposeChunk(mutation_iter_mutation);
+#if DEBUG_MUTATIONS
+						(gSLiM_Mutation_Block + mutation_iter_mutation_index)->~Mutation();	// in general the destructor does not need to be called, since it is a no-op anyway
+#endif
+						SLiM_DisposeMutationToBlock(mutation_iter_mutation_index);
 					}
 					
 					if (++mutation_iter != mutation_iter_max) {
-						mutation_iter_mutation = *mutation_iter;
-						mutation_iter_pos = mutation_iter_mutation->position_;
+						mutation_iter_mutation_index = *mutation_iter;
+						mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
 					} else {
-						mutation_iter_mutation = nullptr;
+						mutation_iter_mutation_index = -1;
 						mutation_iter_pos = SLIM_INF_BASE_POSITION;
 					}
 					
@@ -2263,15 +2268,15 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 				// The event occurs *inside* the run, so process the run by copying mutations and switching strands
 				int this_mutrun_index = first_uncompleted_mutrun;
 				MutationRun *child_mutrun = child_genome.WillCreateRun(this_mutrun_index);
-				Mutation *const *parent1_iter		= parent_genome_1->mutruns_[this_mutrun_index]->begin_pointer_const();
-				Mutation *const *parent1_iter_max	= parent_genome_1->mutruns_[this_mutrun_index]->end_pointer_const();
-				Mutation *const *parent_iter		= parent1_iter;
-				Mutation *const *parent_iter_max	= parent1_iter_max;
+				const MutationIndex *parent1_iter		= parent_genome_1->mutruns_[this_mutrun_index]->begin_pointer_const();
+				const MutationIndex *parent1_iter_max	= parent_genome_1->mutruns_[this_mutrun_index]->end_pointer_const();
+				const MutationIndex *parent_iter		= parent1_iter;
+				const MutationIndex *parent_iter_max	= parent1_iter_max;
 				
 				if (break_mutrun_index == this_mutrun_index)
 				{
-					Mutation *const *parent2_iter		= parent_genome_2->mutruns_[this_mutrun_index]->begin_pointer_const();
-					Mutation *const *parent2_iter_max	= parent_genome_2->mutruns_[this_mutrun_index]->end_pointer_const();
+					const MutationIndex *parent2_iter		= parent_genome_2->mutruns_[this_mutrun_index]->begin_pointer_const();
+					const MutationIndex *parent2_iter_max	= parent_genome_2->mutruns_[this_mutrun_index]->end_pointer_const();
 					
 					if (mutation_mutrun_index == this_mutrun_index)
 					{
@@ -2284,8 +2289,8 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 							// while there are still old mutations in the parent before the current breakpoint...
 							while (parent_iter != parent_iter_max)
 							{
-								Mutation *current_mutation = *parent_iter;
-								slim_position_t current_mutation_pos = current_mutation->position_;
+								MutationIndex current_mutation = *parent_iter;
+								slim_position_t current_mutation_pos = (mut_block_ptr + current_mutation)->position_;
 								
 								if (current_mutation_pos >= breakpoint)
 									break;
@@ -2293,25 +2298,27 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 								// add any new mutations that occur before the parental mutation; we know the parental mutation is in this run, so these are too
 								while (mutation_iter_pos < current_mutation_pos)
 								{
-									if (child_mutrun->enforce_stack_policy_for_addition(mutation_iter_mutation->position_, mutation_iter_mutation->mutation_type_ptr_))
+									if (child_mutrun->enforce_stack_policy_for_addition((mut_block_ptr + mutation_iter_mutation_index)->position_, (mut_block_ptr + mutation_iter_mutation_index)->mutation_type_ptr_))
 									{
 										// The mutation was passed by the stacking policy, so we can add it to the child genome and the registry
-										child_mutrun->emplace_back(mutation_iter_mutation);
-										mutation_registry_.emplace_back(mutation_iter_mutation);
+										child_mutrun->emplace_back(mutation_iter_mutation_index);
+										mutation_registry_.emplace_back(mutation_iter_mutation_index);
 									}
 									else
 									{
 										// The mutation was rejected by the stacking policy, so we have to dispose of it
 										// We no longer delete mutation objects; instead, we remove them from our shared pool
-										mutation_iter_mutation->~Mutation();
-										gSLiM_Mutation_Pool->DisposeChunk(mutation_iter_mutation);
+#if DEBUG_MUTATIONS
+										(gSLiM_Mutation_Block + mutation_iter_mutation_index)->~Mutation();	// in general the destructor does not need to be called, since it is a no-op anyway
+#endif
+										SLiM_DisposeMutationToBlock(mutation_iter_mutation_index);
 									}
 									
 									if (++mutation_iter != mutation_iter_max) {
-										mutation_iter_mutation = *mutation_iter;
-										mutation_iter_pos = mutation_iter_mutation->position_;
+										mutation_iter_mutation_index = *mutation_iter;
+										mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
 									} else {
-										mutation_iter_mutation = nullptr;
+										mutation_iter_mutation_index = -1;
 										mutation_iter_pos = SLIM_INF_BASE_POSITION;
 									}
 									
@@ -2327,25 +2334,27 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 							// add any new mutations that occur before the breakpoint; for these we have to check that they fall within this mutation run
 							while ((mutation_iter_pos < breakpoint) && (mutation_mutrun_index == this_mutrun_index))
 							{
-								if (child_mutrun->enforce_stack_policy_for_addition(mutation_iter_mutation->position_, mutation_iter_mutation->mutation_type_ptr_))
+								if (child_mutrun->enforce_stack_policy_for_addition((mut_block_ptr + mutation_iter_mutation_index)->position_, (mut_block_ptr + mutation_iter_mutation_index)->mutation_type_ptr_))
 								{
 									// The mutation was passed by the stacking policy, so we can add it to the child genome and the registry
-									child_mutrun->emplace_back(mutation_iter_mutation);
-									mutation_registry_.emplace_back(mutation_iter_mutation);
+									child_mutrun->emplace_back(mutation_iter_mutation_index);
+									mutation_registry_.emplace_back(mutation_iter_mutation_index);
 								}
 								else
 								{
 									// The mutation was rejected by the stacking policy, so we have to dispose of it
 									// We no longer delete mutation objects; instead, we remove them from our shared pool
-									mutation_iter_mutation->~Mutation();
-									gSLiM_Mutation_Pool->DisposeChunk(mutation_iter_mutation);
+#if DEBUG_MUTATIONS
+									(gSLiM_Mutation_Block + mutation_iter_mutation_index)->~Mutation();	// in general the destructor does not need to be called, since it is a no-op anyway
+#endif
+									SLiM_DisposeMutationToBlock(mutation_iter_mutation_index);
 								}
 								
 								if (++mutation_iter != mutation_iter_max) {
-									mutation_iter_mutation = *mutation_iter;
-									mutation_iter_pos = mutation_iter_mutation->position_;
+									mutation_iter_mutation_index = *mutation_iter;
+									mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
 								} else {
-									mutation_iter_mutation = nullptr;
+									mutation_iter_mutation_index = -1;
 									mutation_iter_pos = SLIM_INF_BASE_POSITION;
 								}
 								
@@ -2363,7 +2372,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 							parent_iter = parent1_iter;		parent_iter_max = parent1_iter_max;		parent_genome = parent_genome_1;
 							
 							// skip over anything in the new parent that occurs prior to the breakpoint; it was not the active strand
-							while (parent_iter != parent_iter_max && (*parent_iter)->position_ < breakpoint)
+							while (parent_iter != parent_iter_max && (mut_block_ptr + *parent_iter)->position_ < breakpoint)
 								parent_iter++;
 							
 							// we have now handled the current breakpoint, so move on; if we just handled the last breakpoint, then we are done
@@ -2393,9 +2402,9 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 							// while there are still old mutations in the parent before the current breakpoint...
 							while (parent_iter != parent_iter_max)
 							{
-								Mutation *current_mutation = *parent_iter;
+								MutationIndex current_mutation = *parent_iter;
 								
-								if (current_mutation->position_ >= breakpoint)
+								if ((mut_block_ptr + current_mutation)->position_ >= breakpoint)
 									break;
 								
 								// add the old mutation; no need to check for a duplicate here since the parental genome is already duplicate-free
@@ -2410,7 +2419,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 							parent_iter = parent1_iter;		parent_iter_max = parent1_iter_max;		parent_genome = parent_genome_1;
 							
 							// skip over anything in the new parent that occurs prior to the breakpoint; it was not the active strand
-							while (parent_iter != parent_iter_max && (*parent_iter)->position_ < breakpoint)
+							while (parent_iter != parent_iter_max && (mut_block_ptr + *parent_iter)->position_ < breakpoint)
 								parent_iter++;
 							
 							// we have now handled the current breakpoint, so move on; if we just handled the last breakpoint, then we are done
@@ -2451,8 +2460,8 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 						// add any parental mutations that occur before or at the next new mutation's position
 						while (parent_iter != parent_iter_max)
 						{
-							Mutation *current_mutation = *parent_iter;
-							slim_position_t current_mutation_pos = current_mutation->position_;
+							MutationIndex current_mutation = *parent_iter;
+							slim_position_t current_mutation_pos = (mut_block_ptr + current_mutation)->position_;
 							
 							if (current_mutation_pos > mutation_iter_pos)
 								break;
@@ -2462,25 +2471,27 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 						}
 						
 						// add the new mutation, which might overlap with the last added old mutation
-						if (child_mutrun->enforce_stack_policy_for_addition(mutation_iter_mutation->position_, mutation_iter_mutation->mutation_type_ptr_))
+						if (child_mutrun->enforce_stack_policy_for_addition((mut_block_ptr + mutation_iter_mutation_index)->position_, (mut_block_ptr + mutation_iter_mutation_index)->mutation_type_ptr_))
 						{
 							// The mutation was passed by the stacking policy, so we can add it to the child genome and the registry
-							child_mutrun->emplace_back(mutation_iter_mutation);
-							mutation_registry_.emplace_back(mutation_iter_mutation);
+							child_mutrun->emplace_back(mutation_iter_mutation_index);
+							mutation_registry_.emplace_back(mutation_iter_mutation_index);
 						}
 						else
 						{
 							// The mutation was rejected by the stacking policy, so we have to dispose of it
 							// We no longer delete mutation objects; instead, we remove them from our shared pool
-							mutation_iter_mutation->~Mutation();
-							gSLiM_Mutation_Pool->DisposeChunk(mutation_iter_mutation);
+#if DEBUG_MUTATIONS
+							(gSLiM_Mutation_Block + mutation_iter_mutation_index)->~Mutation();	// in general the destructor does not need to be called, since it is a no-op anyway
+#endif
+							SLiM_DisposeMutationToBlock(mutation_iter_mutation_index);
 						}
 						
 						if (++mutation_iter != mutation_iter_max) {
-							mutation_iter_mutation = *mutation_iter;
-							mutation_iter_pos = mutation_iter_mutation->position_;
+							mutation_iter_mutation_index = *mutation_iter;
+							mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
 						} else {
-							mutation_iter_mutation = nullptr;
+							mutation_iter_mutation_index = -1;
 							mutation_iter_pos = SLIM_INF_BASE_POSITION;
 						}
 						
@@ -2561,7 +2572,7 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 		
 		for (int k = 0; k < num_mutations; k++)
 		{
-			Mutation *new_mutation = p_chromosome.DrawNewMutation(p_source_subpop_id, p_generation);
+			MutationIndex new_mutation = p_chromosome.DrawNewMutation(p_source_subpop_id, p_generation);
 			
 			mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
 			
@@ -2571,15 +2582,16 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 		}
 		
 		// loop over mutation runs and either (1) copy the mutrun pointer from the parent, or (2) make a new mutrun by modifying that of the parent
+		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 		Genome &parental_genome = p_source_subpop->parent_genomes_[p_parent_genome_index];
 		
 		int mutrun_count = child_genome.mutrun_count_;
 		int mutrun_length = child_genome.mutrun_length_;
 		
-		Mutation *const *mutation_iter		= mutations_to_add.begin_pointer_const();
-		Mutation *const *mutation_iter_max	= mutations_to_add.end_pointer_const();
-		Mutation *mutation_iter_mutation = *mutation_iter;
-		slim_position_t mutation_iter_pos = (*mutation_iter)->position_;
+		const MutationIndex *mutation_iter		= mutations_to_add.begin_pointer_const();
+		const MutationIndex *mutation_iter_max	= mutations_to_add.end_pointer_const();
+		MutationIndex mutation_iter_mutation_index = *mutation_iter;
+		slim_position_t mutation_iter_pos = (mut_block_ptr + *mutation_iter)->position_;
 		int mutation_iter_mutrun_index = mutation_iter_pos / mutrun_length;
 		
 		for (int run_index = 0; run_index < mutrun_count; ++run_index)
@@ -2594,14 +2606,14 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 				// interleave the parental genome with the new mutations
 				MutationRun *child_run = child_genome.WillCreateRun(run_index);
 				MutationRun *parent_run = parental_genome.mutruns_[run_index].get();
-				Mutation *const *parent_iter		= parent_run->begin_pointer_const();
-				Mutation *const *parent_iter_max	= parent_run->end_pointer_const();
+				const MutationIndex *parent_iter		= parent_run->begin_pointer_const();
+				const MutationIndex *parent_iter_max	= parent_run->end_pointer_const();
 				
 				// there is at least one new mutation left to place in this run; so while there are still old mutations in the parent...
 				while (parent_iter != parent_iter_max)
 				{
 					// while an old mutation in the parent is before or at the next new mutation...
-					while ((parent_iter != parent_iter_max) && ((*parent_iter)->position_ <= mutation_iter_pos))
+					while ((parent_iter != parent_iter_max) && ((mut_block_ptr + *parent_iter)->position_ <= mutation_iter_pos))
 					{
 						// we know the mutation is not already present, since mutations on the parent strand are already uniqued,
 						// and new mutations are, by definition, new and thus cannot match the existing mutations
@@ -2610,24 +2622,26 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 					}
 					
 					// while a new mutation is before the next old mutation in the parent...
-					slim_position_t parent_iter_pos = (parent_iter == parent_iter_max) ? (SLIM_INF_BASE_POSITION) : (*parent_iter)->position_;
+					slim_position_t parent_iter_pos = (parent_iter == parent_iter_max) ? (SLIM_INF_BASE_POSITION) : (mut_block_ptr + *parent_iter)->position_;
 					
 					while ((mutation_iter_mutrun_index == run_index) && (mutation_iter_pos < parent_iter_pos))
 					{
 						// we know the mutation is not already present, since mutations on the parent strand are already uniqued,
 						// and new mutations are, by definition, new and thus cannot match the existing mutations
-						if (child_run->enforce_stack_policy_for_addition(mutation_iter_pos, mutation_iter_mutation->mutation_type_ptr_))
+						if (child_run->enforce_stack_policy_for_addition(mutation_iter_pos, (mut_block_ptr + mutation_iter_mutation_index)->mutation_type_ptr_))
 						{
 							// The mutation was passed by the stacking policy, so we can add it to the child genome and the registry
-							child_run->emplace_back(mutation_iter_mutation);
-							mutation_registry_.emplace_back(mutation_iter_mutation);
+							child_run->emplace_back(mutation_iter_mutation_index);
+							mutation_registry_.emplace_back(mutation_iter_mutation_index);
 						}
 						else
 						{
 							// The mutation was rejected by the stacking policy, so we have to dispose of it
 							// We no longer delete mutation objects; instead, we remove them from our shared pool
-							mutation_iter_mutation->~Mutation();
-							gSLiM_Mutation_Pool->DisposeChunk(mutation_iter_mutation);
+#if DEBUG_MUTATIONS
+							(gSLiM_Mutation_Block + mutation_iter_mutation_index)->~Mutation();	// in general the destructor does not need to be called, since it is a no-op anyway
+#endif
+							SLiM_DisposeMutationToBlock(mutation_iter_mutation_index);
 						}
 						
 						// move to the next mutation
@@ -2635,13 +2649,13 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 						
 						if (mutation_iter == mutation_iter_max)
 						{
-							mutation_iter_mutation = nullptr;
+							mutation_iter_mutation_index = -1;
 							mutation_iter_pos = SLIM_INF_BASE_POSITION;
 						}
 						else
 						{
-							mutation_iter_mutation = *mutation_iter;
-							mutation_iter_pos = (mutation_iter == mutation_iter_max) ? (SLIM_INF_BASE_POSITION) : (*mutation_iter)->position_;
+							mutation_iter_mutation_index = *mutation_iter;
+							mutation_iter_pos = (mutation_iter == mutation_iter_max) ? (SLIM_INF_BASE_POSITION) : (mut_block_ptr + *mutation_iter)->position_;
 						}
 						
 						mutation_iter_mutrun_index = mutation_iter_pos / mutrun_length;
@@ -2777,12 +2791,14 @@ void Population::AddTallyForMutationTypeAndBinNumber(int p_mutation_type_index, 
 
 void Population::ValidateMutationFitnessCaches(void)
 {
-	Mutation *const *registry_iter = mutation_registry_.begin_pointer_const();
-	Mutation *const *registry_iter_end = mutation_registry_.end_pointer_const();
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	const MutationIndex *registry_iter = mutation_registry_.begin_pointer_const();
+	const MutationIndex *registry_iter_end = mutation_registry_.end_pointer_const();
 	
 	while (registry_iter != registry_iter_end)
 	{
-		Mutation *mut = (*registry_iter++);
+		MutationIndex mut_index = (*registry_iter++);
+		Mutation *mut = mut_block_ptr + mut_index;
 		slim_selcoeff_t sel_coeff = mut->selection_coeff_;
 		slim_selcoeff_t dom_coeff = mut->mutation_type_ptr_->dominance_coeff_;
 		
@@ -3135,11 +3151,12 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 		slim_refcount_t total_genome_count = 0;
 		
 		// first zero out the refcounts in all registered Mutation objects
-		Mutation *const *registry_iter = mutation_registry_.begin_pointer_const();
-		Mutation *const *registry_iter_end = mutation_registry_.end_pointer_const();
+		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+		const MutationIndex *registry_iter = mutation_registry_.begin_pointer_const();
+		const MutationIndex *registry_iter_end = mutation_registry_.end_pointer_const();
 		
 		for (; registry_iter != registry_iter_end; ++registry_iter)
-			(*registry_iter)->reference_count_ = 0;
+			(mut_block_ptr + *registry_iter)->reference_count_ = 0;
 		
 		// then increment the refcounts through all pointers to Mutation in all genomes
 		for (Subpopulation *subpop : *p_subpops_to_tally)
@@ -3160,11 +3177,11 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 					for (int run_index = 0; run_index < mutrun_count; ++run_index)
 					{
 						MutationRun *mutrun = genome.mutruns_[run_index].get();
-						Mutation *const *genome_iter = mutrun->begin_pointer_const();
-						Mutation *const *genome_end_iter = mutrun->end_pointer_const();
+						const MutationIndex *genome_iter = mutrun->begin_pointer_const();
+						const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
 						
 						for (; genome_iter != genome_end_iter; ++genome_iter)
-							++((*genome_iter)->reference_count_);
+							++((mut_block_ptr + *genome_iter)->reference_count_);
 					}
 					
 					total_genome_count++;	// count only non-null genomes to determine fixation
@@ -3251,12 +3268,13 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 			
 #ifdef SLIMGUI
 			// SLiMgui can use this case if all subpops are selected; in that case, copy refcounts over to SLiMgui's info
-			Mutation *const *registry_iter = mutation_registry_.begin_pointer_const();
-			Mutation *const *registry_iter_end = mutation_registry_.end_pointer_const();
+			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+			const MutationIndex *registry_iter = mutation_registry_.begin_pointer_const();
+			const MutationIndex *registry_iter_end = mutation_registry_.end_pointer_const();
 			
 			while (registry_iter != registry_iter_end)
 			{
-				const Mutation *mutation = *(registry_iter++);
+				const Mutation *mutation = mut_block_ptr + *(registry_iter++);
 				
 				mutation->gui_reference_count_ = mutation->reference_count_;
 			}
@@ -3278,13 +3296,15 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 #endif
 			
 			// first zero out the refcounts in all registered Mutation objects
-			Mutation *const *registry_iter = mutation_registry_.begin_pointer_const();
-			Mutation *const *registry_iter_end = mutation_registry_.end_pointer_const();
+			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+			const MutationIndex *registry_iter = mutation_registry_.begin_pointer_const();
+			const MutationIndex *registry_iter_end = mutation_registry_.end_pointer_const();
 			
 #ifdef SLIMGUI
 			while (registry_iter != registry_iter_end)
 			{
-				const Mutation *mutation = *(registry_iter++);
+				MutationIndex mutation_index = *(registry_iter++);
+				Mutation *mutation = mut_block_ptr + mutation_index;
 				
 				mutation->reference_count_ = 0;
 				mutation->gui_reference_count_ = 0;
@@ -3293,27 +3313,27 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 			// Do 16 reps
 			while (registry_iter + 16 <= registry_iter_end)
 			{
-				(*registry_iter++)->reference_count_ = 0;
-				(*registry_iter++)->reference_count_ = 0;
-				(*registry_iter++)->reference_count_ = 0;
-				(*registry_iter++)->reference_count_ = 0;
-				(*registry_iter++)->reference_count_ = 0;
-				(*registry_iter++)->reference_count_ = 0;
-				(*registry_iter++)->reference_count_ = 0;
-				(*registry_iter++)->reference_count_ = 0;
-				(*registry_iter++)->reference_count_ = 0;
-				(*registry_iter++)->reference_count_ = 0;
-				(*registry_iter++)->reference_count_ = 0;
-				(*registry_iter++)->reference_count_ = 0;
-				(*registry_iter++)->reference_count_ = 0;
-				(*registry_iter++)->reference_count_ = 0;
-				(*registry_iter++)->reference_count_ = 0;
-				(*registry_iter++)->reference_count_ = 0;
+				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
+				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
+				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
+				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
+				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
+				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
+				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
+				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
+				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
+				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
+				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
+				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
+				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
+				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
+				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
+				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
 			}
 			
 			// Finish off
 			while (registry_iter != registry_iter_end)
-				(*registry_iter++)->reference_count_ = 0;
+				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
 #endif
 			
 			// then increment the refcounts through all pointers to Mutation in all genomes
@@ -3342,12 +3362,12 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 							for (int run_index = 0; run_index < mutrun_count; ++run_index)
 							{
 								MutationRun *mutrun = genome.mutruns_[run_index].get();
-								Mutation *const *genome_iter = mutrun->begin_pointer_const();
-								Mutation *const *genome_end_iter = mutrun->end_pointer_const();
+								const MutationIndex *genome_iter = mutrun->begin_pointer_const();
+								const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
 								
 								while (genome_iter != genome_end_iter)
 								{
-									const Mutation *mutation = *(genome_iter++);
+									const Mutation *mutation = mut_block_ptr + *(genome_iter++);
 									
 									(mutation->reference_count_)++;
 									(mutation->gui_reference_count_)++;
@@ -3373,33 +3393,33 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 							for (int run_index = 0; run_index < mutrun_count; ++run_index)
 							{
 								MutationRun *mutrun = genome.mutruns_[run_index].get();
-								Mutation *const *genome_iter = mutrun->begin_pointer_const();
-								Mutation *const *genome_end_iter = mutrun->end_pointer_const();
+								const MutationIndex *genome_iter = mutrun->begin_pointer_const();
+								const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
 								
 								// Do 16 reps
 								while (genome_iter + 16 <= genome_end_iter)
 								{
-									((*genome_iter++)->reference_count_)++;
-									((*genome_iter++)->reference_count_)++;
-									((*genome_iter++)->reference_count_)++;
-									((*genome_iter++)->reference_count_)++;
-									((*genome_iter++)->reference_count_)++;
-									((*genome_iter++)->reference_count_)++;
-									((*genome_iter++)->reference_count_)++;
-									((*genome_iter++)->reference_count_)++;
-									((*genome_iter++)->reference_count_)++;
-									((*genome_iter++)->reference_count_)++;
-									((*genome_iter++)->reference_count_)++;
-									((*genome_iter++)->reference_count_)++;
-									((*genome_iter++)->reference_count_)++;
-									((*genome_iter++)->reference_count_)++;
-									((*genome_iter++)->reference_count_)++;
-									((*genome_iter++)->reference_count_)++;
+									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
+									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
+									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
+									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
+									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
+									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
+									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
+									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
+									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
+									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
+									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
+									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
+									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
+									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
+									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
+									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
 								}
 								
 								// Finish off
 								while (genome_iter != genome_end_iter)
-									((*genome_iter++)->reference_count_)++;
+									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
 							}
 							
 							total_genome_count++;	// count only non-null genomes to determine fixation
@@ -3428,33 +3448,34 @@ slim_refcount_t Population::TallyMutationReferences_FAST(void)
 	slim_refcount_t total_genome_count = 0;
 	
 	// first zero out the refcounts in all registered Mutation objects
-	Mutation *const *registry_iter = mutation_registry_.begin_pointer_const();
-	Mutation *const *registry_iter_end = mutation_registry_.end_pointer_const();
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	const MutationIndex *registry_iter = mutation_registry_.begin_pointer_const();
+	const MutationIndex *registry_iter_end = mutation_registry_.end_pointer_const();
 	
 	// Do 16 reps
 	while (registry_iter + 16 <= registry_iter_end)
 	{
-		(*registry_iter++)->reference_count_ = 0;
-		(*registry_iter++)->reference_count_ = 0;
-		(*registry_iter++)->reference_count_ = 0;
-		(*registry_iter++)->reference_count_ = 0;
-		(*registry_iter++)->reference_count_ = 0;
-		(*registry_iter++)->reference_count_ = 0;
-		(*registry_iter++)->reference_count_ = 0;
-		(*registry_iter++)->reference_count_ = 0;
-		(*registry_iter++)->reference_count_ = 0;
-		(*registry_iter++)->reference_count_ = 0;
-		(*registry_iter++)->reference_count_ = 0;
-		(*registry_iter++)->reference_count_ = 0;
-		(*registry_iter++)->reference_count_ = 0;
-		(*registry_iter++)->reference_count_ = 0;
-		(*registry_iter++)->reference_count_ = 0;
-		(*registry_iter++)->reference_count_ = 0;
+		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
+		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
+		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
+		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
+		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
+		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
+		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
+		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
+		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
+		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
+		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
+		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
+		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
+		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
+		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
+		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
 	}
 	
 	// Finish off
 	while (registry_iter != registry_iter_end)
-		(*registry_iter++)->reference_count_ = 0;
+		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
 	
 	// then increment the refcounts through all pointers to Mutation in all genomes
 	int64_t operation_id = ++gSLiM_MutationRun_OperationID;
@@ -3498,11 +3519,13 @@ void Population::RemoveFixedMutations(void)
 #endif
 	
 	// remove Mutation objects that are no longer referenced, freeing them; avoid using an iterator since it would be invalidated
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	int registry_length = mutation_registry_.size();
 	
 	for (int i = 0; i < registry_length; ++i)
 	{
-		Mutation *mutation = mutation_registry_[i];
+		MutationIndex mutation_index = mutation_registry_[i];
+		Mutation *mutation = mut_block_ptr + mutation_index;
 		slim_refcount_t reference_count = mutation->reference_count_;
 		bool remove_mutation = false;
 		
@@ -3540,7 +3563,7 @@ void Population::RemoveFixedMutations(void)
 			mutation->reference_count_ = -1;
 			
 			// add the fixed mutation to a vector, to be converted to a Substitution object below
-			fixed_mutation_accumulator.insert_sorted_mutation(mutation);
+			fixed_mutation_accumulator.insert_sorted_mutation(mutation_index);
 			
 			remove_mutation = true;
 		}
@@ -3556,7 +3579,7 @@ void Population::RemoveFixedMutations(void)
 			}
 			else
 			{
-				Mutation *last_mutation = mutation_registry_[registry_length - 1];
+				MutationIndex last_mutation = mutation_registry_[registry_length - 1];
 				mutation_registry_[i] = last_mutation;
 				mutation_registry_.pop_back();
 				
@@ -3565,7 +3588,7 @@ void Population::RemoveFixedMutations(void)
 			}
 			
 			// We can't delete the mutation yet, because we might need to make a Substitution object from it, so add it to a vector for deletion below
-			removed_mutation_accumulator.emplace_back(mutation);
+			removed_mutation_accumulator.emplace_back(mutation_index);
 		}
 	}
 	
@@ -3596,8 +3619,8 @@ void Population::RemoveFixedMutations(void)
 					
 					for (int mut_index = 0; mut_index < fixed_mutation_accumulator.size(); mut_index++)
 					{
-						Mutation *mut_to_remove = fixed_mutation_accumulator[mut_index];
-						slim_position_t mut_position = mut_to_remove->position_;
+						MutationIndex mut_to_remove = fixed_mutation_accumulator[mut_index];
+						slim_position_t mut_position = (mut_block_ptr + mut_to_remove)->position_;
 						int mutrun_index = mut_position / mutrun_length;
 						
 						// Note that total_genome_count_ is not needed by RemoveFixedMutations(); refcounts were set to -1 above.
@@ -3610,7 +3633,7 @@ void Population::RemoveFixedMutations(void)
 		slim_generation_t generation = sim_.Generation();
 		
 		for (int i = 0; i < fixed_mutation_accumulator.size(); i++)
-			substitutions_.emplace_back(new Substitution(*(fixed_mutation_accumulator[i]), generation));
+			substitutions_.emplace_back(new Substitution(*(mut_block_ptr + fixed_mutation_accumulator[i]), generation));
 	}
 	
 	// now we can delete (or zombify) removed mutation objects
@@ -3618,16 +3641,18 @@ void Population::RemoveFixedMutations(void)
 	{
 		for (int i = 0; i < removed_mutation_accumulator.size(); i++)
 		{
-			const Mutation *mutation = removed_mutation_accumulator[i];
+			MutationIndex mutation = removed_mutation_accumulator[i];
 			
 #if DEBUG_MUTATION_ZOMBIES
-			const_cast<Mutation *>(mutation)->mutation_type_ptr_ = nullptr;		// render lethal
-			mutation->reference_count_ = -1;									// zombie
+			(gSLiM_Mutation_Block + mutation)->mutation_type_ptr_ = nullptr;	// render lethal
+			(gSLiM_Mutation_Block + mutation)->reference_count_ = -1;			// zombie
 #else
 			// We no longer delete mutation objects; instead, we remove them from our shared pool
 			//delete mutation;
-			mutation->~Mutation();
-			gSLiM_Mutation_Pool->DisposeChunk(const_cast<Mutation *>(mutation));
+#if DEBUG_MUTATIONS
+			(gSLiM_Mutation_Block + mutation)->~Mutation();	// in general the destructor does not need to be called, since it is a no-op anyway
+#endif
+			SLiM_DisposeMutationToBlock(mutation);
 #endif
 		}
 	}
@@ -3635,12 +3660,13 @@ void Population::RemoveFixedMutations(void)
 
 void Population::CheckMutationRegistry(void)
 {
-	Mutation *const *registry_iter = mutation_registry_.begin_pointer_const();
-	Mutation *const *registry_iter_end = mutation_registry_.end_pointer_const();
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	const MutationIndex *registry_iter = mutation_registry_.begin_pointer_const();
+	const MutationIndex *registry_iter_end = mutation_registry_.end_pointer_const();
 	
 	// first check that we don't have any zombies in our registry
 	for (; registry_iter != registry_iter_end; ++registry_iter)
-		if ((*registry_iter)->reference_count_ == -1)
+		if ((mut_block_ptr + *registry_iter)->reference_count_ == -1)
 			SLIM_ERRSTREAM << "Zombie found in registry with address " << (*registry_iter) << endl;
 	
 	// then check that we don't have any zombies in any genomes
@@ -3658,11 +3684,11 @@ void Population::CheckMutationRegistry(void)
 			for (int run_index = 0; run_index < mutrun_count; ++run_index)
 			{
 				MutationRun *mutrun = genome.mutruns_[run_index].get();
-				Mutation *const *genome_iter = mutrun->begin_pointer_const();
-				Mutation *const *genome_end_iter = mutrun->end_pointer_const();
+				const MutationIndex *genome_iter = mutrun->begin_pointer_const();
+				const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
 				
 				for (; genome_iter != genome_end_iter; ++genome_iter)
-					if ((*genome_iter)->reference_count_ == -1)
+					if ((mut_block_ptr + *genome_iter)->reference_count_ == -1)
 						SLIM_ERRSTREAM << "Zombie found in genome with address " << (*genome_iter) << endl;
 			}
 		}
@@ -3717,6 +3743,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions) 
 	}
 	
 	PolymorphismMap polymorphisms;
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	
 	// add all polymorphisms
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)			// go through all subpopulations
@@ -3733,10 +3760,10 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions) 
 			{
 				MutationRun *mutrun = genome.mutruns_[run_index].get();
 				int mut_count = mutrun->size();
-				Mutation *const *mut_ptr = mutrun->begin_pointer_const();
+				const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 				
 				for (int mut_index = 0; mut_index < mut_count; ++mut_index)
-					AddMutationToPolymorphismMap(&polymorphisms, mut_ptr[mut_index]);
+					AddMutationToPolymorphismMap(&polymorphisms, mut_block_ptr + mut_ptr[mut_index]);
 			}
 			
 #if DO_MEMORY_CHECKS
@@ -3830,11 +3857,11 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions) 
 				{
 					MutationRun *mutrun = genome.mutruns_[run_index].get();
 					int mut_count = mutrun->size();
-					Mutation *const *mut_ptr = mutrun->begin_pointer_const();
+					const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 					
 					for (int mut_index = 0; mut_index < mut_count; ++mut_index)
 					{
-						slim_polymorphismid_t polymorphism_id = FindMutationInPolymorphismMap(polymorphisms, mut_ptr[mut_index]);
+						slim_polymorphismid_t polymorphism_id = FindMutationInPolymorphismMap(polymorphisms, mut_block_ptr + mut_ptr[mut_index]);
 						
 						if (polymorphism_id == -1)
 							EIDOS_TERMINATION << "ERROR (Population::PrintAll): (internal error) polymorphism not found." << eidos_terminate();
@@ -3955,6 +3982,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 	
 	// Find all polymorphisms
 	PolymorphismMap polymorphisms;
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)			// go through all subpopulations
 	{
@@ -3970,10 +3998,10 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			{
 				MutationRun *mutrun = genome.mutruns_[run_index].get();
 				int mut_count = mutrun->size();
-				Mutation *const *mut_ptr = mutrun->begin_pointer_const();
+				const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 				
 				for (int mut_index = 0; mut_index < mut_count; ++mut_index)
-					AddMutationToPolymorphismMap(&polymorphisms, mut_ptr[mut_index]);
+					AddMutationToPolymorphismMap(&polymorphisms, mut_block_ptr + mut_ptr[mut_index]);
 			}
 		}
 	}
@@ -4082,11 +4110,11 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 					{
 						MutationRun *mutrun = genome.mutruns_[run_index].get();
 						int mut_count = mutrun->size();
-						Mutation *const *mut_ptr = mutrun->begin_pointer_const();
+						const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 						
 						for (int mut_index = 0; mut_index < mut_count; ++mut_index)
 						{
-							slim_polymorphismid_t polymorphism_id = FindMutationInPolymorphismMap(polymorphisms, mut_ptr[mut_index]);
+							slim_polymorphismid_t polymorphism_id = FindMutationInPolymorphismMap(polymorphisms, mut_block_ptr + mut_ptr[mut_index]);
 							
 							if (polymorphism_id == -1)
 								EIDOS_TERMINATION << "ERROR (Population::PrintAll): (internal error) polymorphism not found." << eidos_terminate();
@@ -4113,11 +4141,11 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 					{
 						MutationRun *mutrun = genome.mutruns_[run_index].get();
 						int mut_count = mutrun->size();
-						Mutation *const *mut_ptr = mutrun->begin_pointer_const();
+						const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 						
 						for (int mut_index = 0; mut_index < mut_count; ++mut_index)
 						{
-							slim_polymorphismid_t polymorphism_id = FindMutationInPolymorphismMap(polymorphisms, mut_ptr[mut_index]);
+							slim_polymorphismid_t polymorphism_id = FindMutationInPolymorphismMap(polymorphisms, mut_block_ptr + mut_ptr[mut_index]);
 							
 							if (polymorphism_id == -1)
 								EIDOS_TERMINATION << "ERROR (Population::PrintAll): (internal error) polymorphism not found." << eidos_terminate();

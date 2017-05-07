@@ -261,7 +261,7 @@ void Chromosome::RecombinationMapConfigError(void) const
 
 
 // draw a new mutation, based on the genomic element types present and their mutational proclivities
-Mutation *Chromosome::DrawNewMutation(slim_objectid_t p_subpop_index, slim_generation_t p_generation) const
+MutationIndex Chromosome::DrawNewMutation(slim_objectid_t p_subpop_index, slim_generation_t p_generation) const
 {
 	int genomic_element_index = static_cast<int>(gsl_ran_discrete(gEidos_rng, lookup_mutation_));
 	const GenomicElement &source_element = (*this)[genomic_element_index];
@@ -273,7 +273,11 @@ Mutation *Chromosome::DrawNewMutation(slim_objectid_t p_subpop_index, slim_gener
 	double selection_coeff = mutation_type_ptr->DrawSelectionCoefficient();
 	
 	// NOTE THAT THE STACKING POLICY IS NOT ENFORCED HERE, SINCE WE DO NOT KNOW WHAT GENOME WE WILL BE INSERTED INTO!  THIS IS THE CALLER'S RESPONSIBILITY!
-	return new (gSLiM_Mutation_Pool->AllocateChunk()) Mutation(mutation_type_ptr, position, selection_coeff, p_subpop_index, p_generation);
+	MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
+	
+	new (gSLiM_Mutation_Block + new_mut_index) Mutation(new_mut_index,mutation_type_ptr, position, selection_coeff, p_subpop_index, p_generation);
+	
+	return new_mut_index;
 }
 
 // choose a set of recombination breakpoints, based on recombination intervals, overall recombination rate, and gene conversion probability

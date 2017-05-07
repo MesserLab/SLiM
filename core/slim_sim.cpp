@@ -266,7 +266,7 @@ slim_generation_t SLiMSim::InitializePopulationFromFile(const char *p_file, Eido
 slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file, EidosInterpreter *p_interpreter)
 {
 	slim_generation_t file_generation;
-	std::map<slim_polymorphismid_t,Mutation*> mutations;
+	std::map<slim_polymorphismid_t,MutationIndex> mutations;
 	string line, sub; 
 	ifstream infile(p_file);
 	
@@ -420,11 +420,13 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << eidos_terminate();
 		
 		// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
-		Mutation *new_mutation = new (gSLiM_Mutation_Pool->AllocateChunk()) Mutation(mutation_id, mutation_type_ptr, position, selection_coeff, subpop_index, generation);
+		MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
+		
+		new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, position, selection_coeff, subpop_index, generation);
 		
 		// add it to our local map, so we can find it when making genomes, and to the population's mutation registry
-		mutations.insert(std::pair<slim_polymorphismid_t,Mutation*>(polymorphism_id, new_mutation));
-		population_.mutation_registry_.emplace_back(new_mutation);
+		mutations.insert(std::pair<slim_polymorphismid_t,MutationIndex>(polymorphism_id, new_mut_index));
+		population_.mutation_registry_.emplace_back(new_mut_index);
 		
 		// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_
 		if (selection_coeff != 0.0)
@@ -502,6 +504,8 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 	}
 	
 	// Now we are in the Genomes section, which should take us to the end of the file
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	
 	while (!infile.eof())
 	{
 		GetInputLine(infile, line);
@@ -581,8 +585,8 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 				if (found_mut_pair == mutations.end()) 
 					EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): polymorphism " << polymorphism_id << " has not been defined." << eidos_terminate();
 				
-				Mutation *mutation = found_mut_pair->second;
-				int mutrun_index = mutation->position_ / mutrun_length_;
+				MutationIndex mutation = found_mut_pair->second;
+				int mutrun_index = (mut_block_ptr + mutation)->position_ / mutrun_length_;
 				
 				if (mutrun_index != current_mutrun_index)
 				{
@@ -857,8 +861,8 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	}
 	
 	// Mutations section
-	std::unique_ptr<Mutation*> raii_mutations(new Mutation* [mutation_map_size]);
-	Mutation **mutations = raii_mutations.get();
+	std::unique_ptr<MutationIndex> raii_mutations(new MutationIndex[mutation_map_size]);
+	MutationIndex *mutations = raii_mutations.get();
 	
 	if (!mutations)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): could not allocate mutations buffer." << eidos_terminate();
@@ -939,11 +943,13 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << eidos_terminate();
 		
 		// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
-		Mutation *new_mutation = new (gSLiM_Mutation_Pool->AllocateChunk()) Mutation(mutation_id, mutation_type_ptr, position, selection_coeff, subpop_index, generation);
+		MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
+		
+		new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, position, selection_coeff, subpop_index, generation);
 		
 		// add it to our local map, so we can find it when making genomes, and to the population's mutation registry
-		mutations[polymorphism_id] = new_mutation;
-		population_.mutation_registry_.emplace_back(new_mutation);
+		mutations[polymorphism_id] = new_mut_index;
+		population_.mutation_registry_.emplace_back(new_mut_index);
 		
 		// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_
 		if (selection_coeff != 0.0)
@@ -964,9 +970,10 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	}
 	
 	// Genomes section
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	bool use_16_bit = (mutation_map_size <= UINT16_MAX - 1);	// 0xFFFF is reserved as the start of our various tags
-	std::unique_ptr<Mutation*> raii_genomebuf(new Mutation* [mutation_map_size]);	// allowing us to use emplace_back_bulk() for speed
-	Mutation **genomebuf = raii_genomebuf.get();
+	std::unique_ptr<MutationIndex> raii_genomebuf(new MutationIndex[mutation_map_size]);	// allowing us to use emplace_back_bulk() for speed
+	MutationIndex *genomebuf = raii_genomebuf.get();
 	
 	while (true)
 	{
@@ -1103,8 +1110,8 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			
 			for (int mut_index = 0; mut_index < mutcount; ++mut_index)
 			{
-				Mutation *mutation = genomebuf[mut_index];
-				int mutrun_index = mutation->position_ / mutrun_length_;
+				MutationIndex mutation = genomebuf[mut_index];
+				int mutrun_index = (mut_block_ptr + mutation)->position_ / mutrun_length_;
 				
 				if (mutrun_index != current_mutrun_index)
 				{
@@ -2699,13 +2706,14 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_mutations:
 		{
+			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 			MutationRun &mutation_registry = population_.mutation_registry_;
 			int mutation_count = mutation_registry.size();
 			EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->Reserve(mutation_count);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (int mut_index = 0; mut_index < mutation_count; ++mut_index)
-				vec->PushObjectElement(mutation_registry[mut_index]);
+				vec->PushObjectElement(mut_block_ptr + mutation_registry[mut_index]);
 			
 			return result_SP;
 		}
@@ -3070,17 +3078,18 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			else
 			{
 				// no mutation vector was given, so return all frequencies from the registry
-				Mutation **registry_iter_end = population_.mutation_registry_.end_pointer();
+				MutationIndex *registry_iter_end = population_.mutation_registry_.end_pointer();
+				Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 				
 				if (p_method_id == gID_mutationFrequencies)
 				{
-					for (Mutation *const *registry_iter = population_.mutation_registry_.begin_pointer_const(); registry_iter != registry_iter_end; ++registry_iter)
-						float_result->PushFloat((*registry_iter)->reference_count_ * denominator);
+					for (const MutationIndex *registry_iter = population_.mutation_registry_.begin_pointer_const(); registry_iter != registry_iter_end; ++registry_iter)
+						float_result->PushFloat((mut_block_ptr + (*registry_iter))->reference_count_ * denominator);
 				}
 				else // p_method_id == gID_mutationCounts
 				{
-					for (Mutation *const *registry_iter = population_.mutation_registry_.begin_pointer_const(); registry_iter != registry_iter_end; ++registry_iter)
-						int_result->PushInt((*registry_iter)->reference_count_);
+					for (const MutationIndex *registry_iter = population_.mutation_registry_.begin_pointer_const(); registry_iter != registry_iter_end; ++registry_iter)
+						int_result->PushInt((mut_block_ptr + (*registry_iter))->reference_count_);
 				}
 			}
 			
@@ -3114,16 +3123,17 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 			// Count the number of mutations of the given type, so we can reserve the right vector size
 			// To avoid having to scan the registry twice for the simplest case of a single mutation, we cache the first mutation found
+			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 			MutationRun &mutation_registry = population_.mutation_registry_;
 			int mutation_count = mutation_registry.size();
 			int match_count = 0, mut_index;
-			Mutation *first_match = nullptr;
+			MutationIndex first_match = -1;
 			
 			for (mut_index = 0; mut_index < mutation_count; ++mut_index)
 			{
-				Mutation *mut = mutation_registry[mut_index];
+				MutationIndex mut = mutation_registry[mut_index];
 				
-				if (mut->mutation_type_ptr_ == mutation_type_ptr)
+				if ((mut_block_ptr + mut)->mutation_type_ptr_ == mutation_type_ptr)
 				{
 					if (++match_count == 1)
 						first_match = mut;
@@ -3133,7 +3143,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			// Now allocate the result vector and assemble it
 			if (match_count == 1)
 			{
-				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(first_match, gSLiM_Mutation_Class));
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(mut_block_ptr + first_match, gSLiM_Mutation_Class));
 			}
 			else
 			{
@@ -3144,10 +3154,10 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 				{
 					for (mut_index = 0; mut_index < mutation_count; ++mut_index)
 					{
-						Mutation *mut = mutation_registry[mut_index];
+						MutationIndex mut = mutation_registry[mut_index];
 						
-						if (mut->mutation_type_ptr_ == mutation_type_ptr)
-							vec->PushObjectElement(mut);
+						if ((mut_block_ptr + mut)->mutation_type_ptr_ == mutation_type_ptr)
+							vec->PushObjectElement(mut_block_ptr + mut);
 					}
 				}
 				
@@ -3181,12 +3191,13 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			}
 			
 			// Count the number of mutations of the given type
+			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 			MutationRun &mutation_registry = population_.mutation_registry_;
 			int mutation_count = mutation_registry.size();
 			int match_count = 0, mut_index;
 			
 			for (mut_index = 0; mut_index < mutation_count; ++mut_index)
-				if (mutation_registry[mut_index]->mutation_type_ptr_ == mutation_type_ptr)
+				if ((mut_block_ptr + mutation_registry[mut_index])->mutation_type_ptr_ == mutation_type_ptr)
 					++match_count;
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(match_count));
@@ -3371,12 +3382,14 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			// Extract all of the Mutation objects in mutations; would be nice if there was a simpler way to do this
 			EidosValue_Object *mutations_object = (EidosValue_Object *)arg0_value;
 			int mutations_count = mutations_object->Count();
-			std::vector<Mutation*> mutations;
+			std::vector<Mutation *> mutations;
 			
 			for (int mutation_index = 0; mutation_index < mutations_count; mutation_index++)
 				mutations.emplace_back((Mutation *)(mutations_object->ObjectElementAtIndex(mutation_index, nullptr)));
 			
 			// find all polymorphisms of the mutations that are to be tracked
+			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+			
 			if (mutations_count > 0)
 			{
 				for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
@@ -3393,11 +3406,11 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 						{
 							MutationRun *mutrun = genome.mutruns_[run_index].get();
 							int mut_count = mutrun->size();
-							Mutation *const *mut_ptr = mutrun->begin_pointer_const();
+							const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 							
 							for (int mut_index = 0; mut_index < mut_count; ++mut_index)
 							{
-								Mutation *scan_mutation = mut_ptr[mut_index];
+								Mutation *scan_mutation = mut_block_ptr + mut_ptr[mut_index];
 								
 								// do a linear search for each mutation, ouch; but this is output code, so it doesn't need to be fast, probably.
 								if (std::find(mutations.begin(), mutations.end(), scan_mutation) != mutations.end())

@@ -1541,8 +1541,82 @@ void EidosValue_Float_singleton::Sort(bool p_ascending)
 #pragma mark -
 #pragma mark EidosValue_Object
 
+// See comment on EidosValue_Object::EidosValue_Object() below
+std::vector<EidosValue_Object *> gEidosValue_Object_Mutation_Registry;
+
+EidosValue_Object::EidosValue_Object(bool p_singleton, const EidosObjectClass *p_class) : EidosValue(EidosValueType::kValueObject, p_singleton), class_(p_class)
+{
+	// BCH 7 May 2017: OK, so, this is a hack of breathtaking disgustingness.  Here is the problem.  In SLiM we
+	// need to reallocate the block in which all Mutation objects live, which invalidates all their pointers.
+	// SLiM can mostly handle that for itself, but there is a big problem when it comes to EidosValue_Object
+	// instances, which can contain Mutation * elements that must be updated.  So we need to find every single
+	// EidosValue_Object in existence which has a class of Mutation.  To that end, we here register this object
+	// in a global list if it is of class Mutation; in ~EidosValue_Object we will deregister it.  Maybe there
+	// is some way to do this without pushing the hack down into Eidos, but at the moment I'm not seeing it.
+	// On the bright side, this scheme actually seems pretty robust; the only way it fails is if somebody avoids
+	// using the constructor or the destructor for EidosValue_Object, I think, which seems unlikely.
+	if (&(class_->ElementType()) == &gEidosStr_Mutation)
+		gEidosValue_Object_Mutation_Registry.push_back(this);
+}
+
 EidosValue_Object::~EidosValue_Object(void)
 {
+	// See comment on EidosValue_Object::EidosValue_Object() above
+	if (&(class_->ElementType()) == &gEidosStr_Mutation)
+	{
+		auto erase_iter = std::find(gEidosValue_Object_Mutation_Registry.begin(), gEidosValue_Object_Mutation_Registry.end(), this);
+		
+		if (erase_iter != gEidosValue_Object_Mutation_Registry.end())
+			gEidosValue_Object_Mutation_Registry.erase(erase_iter);
+		else
+			EIDOS_TERMINATION << "ERROR (EidosValue_Object::~EidosValue_Object): (internal error) unregistered EidosValue_Object of class Mutation." << eidos_terminate(nullptr);
+	}
+}
+
+// Provided to SLiM for the Mutation-pointer hack; see EidosValue_Object::EidosValue_Object() for comments
+void EidosValue_Object_vector::PatchPointersByAdding(std::uintptr_t p_pointer_difference)
+{
+	size_t value_count = values_.size();
+	
+	for (size_t i = 0; i < value_count; ++i)
+	{
+		std::uintptr_t old_element_ptr = reinterpret_cast<std::uintptr_t>(values_[i]);
+		std::uintptr_t new_element_ptr = old_element_ptr + p_pointer_difference;
+		
+		values_[i] = reinterpret_cast<EidosObjectElement *>(new_element_ptr);
+	}
+}
+
+// Provided to SLiM for the Mutation-pointer hack; see EidosValue_Object::EidosValue_Object() for comments
+void EidosValue_Object_vector::PatchPointersBySubtracting(std::uintptr_t p_pointer_difference)
+{
+	size_t value_count = values_.size();
+	
+	for (size_t i = 0; i < value_count; ++i)
+	{
+		std::uintptr_t old_element_ptr = reinterpret_cast<std::uintptr_t>(values_[i]);
+		std::uintptr_t new_element_ptr = old_element_ptr - p_pointer_difference;
+		
+		values_[i] = reinterpret_cast<EidosObjectElement *>(new_element_ptr);
+	}
+}
+
+// Provided to SLiM for the Mutation-pointer hack; see EidosValue_Object::EidosValue_Object() for comments
+void EidosValue_Object_singleton::PatchPointersByAdding(std::uintptr_t p_pointer_difference)
+{
+	std::uintptr_t old_element_ptr = reinterpret_cast<std::uintptr_t>(value_);
+	std::uintptr_t new_element_ptr = old_element_ptr + p_pointer_difference;
+	
+	value_ = reinterpret_cast<EidosObjectElement *>(new_element_ptr);
+}
+
+// Provided to SLiM for the Mutation-pointer hack; see EidosValue_Object::EidosValue_Object() for comments
+void EidosValue_Object_singleton::PatchPointersBySubtracting(std::uintptr_t p_pointer_difference)
+{
+	std::uintptr_t old_element_ptr = reinterpret_cast<std::uintptr_t>(value_);
+	std::uintptr_t new_element_ptr = old_element_ptr - p_pointer_difference;
+	
+	value_ = reinterpret_cast<EidosObjectElement *>(new_element_ptr);
 }
 
 const std::string &EidosValue_Object::ElementType(void) const

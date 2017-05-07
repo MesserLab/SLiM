@@ -1119,6 +1119,8 @@ const std::string gEidosStr_y = "y";
 const std::string gEidosStr_z = "z";
 const std::string gEidosStr_color = "color";
 
+const std::string gEidosStr_Mutation = "Mutation";	// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
+
 
 static std::unordered_map<std::string, EidosGlobalStringID> gStringToID;
 static std::unordered_map<EidosGlobalStringID, const std::string *> gIDToString;
@@ -1188,6 +1190,8 @@ void Eidos_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gEidosStr_y, gEidosID_y);
 		Eidos_RegisterStringForGlobalID(gEidosStr_z, gEidosID_z);
 		Eidos_RegisterStringForGlobalID(gEidosStr_color, gEidosID_color);
+		
+		Eidos_RegisterStringForGlobalID(gEidosStr_Mutation, gEidosID_Mutation);		// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
 	}
 }
 

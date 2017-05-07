@@ -34,7 +34,7 @@ void SLiM_WarmUp(void)
 		been_here = true;
 		
 		// Set up our shared pool for Mutation objects
-		gSLiM_Mutation_Pool = new EidosObjectPool(sizeof(Mutation));
+		SLiM_CreateMutationBlock();
 		
 		// Register global strings and IDs for SLiM; this is in addition to the globals set up by Eidos
 		SLiM_RegisterGlobalStringsAndIDs();
@@ -308,7 +308,7 @@ const std::string gStr_Chromosome = "Chromosome";
 const std::string gStr_Genome = "Genome";
 const std::string gStr_GenomicElement = "GenomicElement";
 const std::string gStr_GenomicElementType = "GenomicElementType";
-const std::string gStr_Mutation = "Mutation";
+//const std::string gStr_Mutation = "Mutation";		// in Eidos; see EidosValue_Object::EidosValue_Object()
 const std::string gStr_MutationType = "MutationType";
 const std::string gStr_SLiMEidosBlock = "SLiMEidosBlock";
 const std::string gStr_SLiMSim = "SLiMSim";
@@ -539,7 +539,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_Genome, gID_Genome);
 		Eidos_RegisterStringForGlobalID(gStr_GenomicElement, gID_GenomicElement);
 		Eidos_RegisterStringForGlobalID(gStr_GenomicElementType, gID_GenomicElementType);
-		Eidos_RegisterStringForGlobalID(gStr_Mutation, gID_Mutation);
+		//Eidos_RegisterStringForGlobalID(gStr_Mutation, gID_Mutation);				// in Eidos; see EidosValue_Object::EidosValue_Object()
 		Eidos_RegisterStringForGlobalID(gStr_MutationType, gID_MutationType);
 		Eidos_RegisterStringForGlobalID(gStr_SLiMEidosBlock, gID_SLiMEidosBlock);
 		Eidos_RegisterStringForGlobalID(gStr_SLiMSim, gID_SLiMSim);

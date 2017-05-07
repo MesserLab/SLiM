@@ -23,6 +23,7 @@ development head:
 	add a new option in initializeSLiMOptions() to control the number of mutation runs, if desired (usually unnecessary)
 	optimize crossover mutation code with improved code flow and expanded case treatments
 	optimize fitness calculations by caching fitness effects of mutations
+	optimization: switch to MutationIndex instead of Mutation *
 	NOTE: this version changed model output in some cases because of a float/double change in fitness calculations
 
 2.3 (build 1052; Eidos version 1.3):

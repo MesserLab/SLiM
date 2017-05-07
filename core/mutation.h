@@ -37,8 +37,13 @@
 
 extern EidosObjectClass *gSLiM_Mutation_Class;
 
-// All Mutation objects get allocated out of a single shared pool, for speed; see SLiM_WarmUp()
-extern EidosObjectPool *gSLiM_Mutation_Pool;
+typedef int32_t MutationIndex;		// an index into gSLiM_Mutation_Block (see below); used as, in effect, a Mutation *, but 32-bit
+									// type int32_t is used instead of uint32_t so that -1 can be used as a "null pointer"
+
+// forward declaration of Mutation block allocation; see bottom of header
+class Mutation;
+extern Mutation *gSLiM_Mutation_Block;
+
 
 class Mutation : public EidosObjectElement
 {
@@ -87,6 +92,8 @@ public:
 	~Mutation(void);									// destructor, if we are debugging
 #endif
 	
+	inline MutationIndex BlockIndex(void) const			{ return (MutationIndex)(this - gSLiM_Mutation_Block); }
+	
 	//
 	// Eidos support
 	//
@@ -113,6 +120,7 @@ inline bool operator<(const Mutation &p_mutation1, const Mutation &p_mutation2)
 }
 
 // like operator< but with pointers; used for sort() among other things
+// this is kept in terms of Mutation * so callers can cache gSLiM_Mutation_Block locally
 inline bool CompareMutations(const Mutation *p_mutation1, const Mutation *p_mutation2)
 {
 	return (p_mutation1->position_ < p_mutation2->position_);
@@ -120,6 +128,44 @@ inline bool CompareMutations(const Mutation *p_mutation1, const Mutation *p_muta
 
 // support stream output of Mutation, for debugging
 std::ostream &operator<<(std::ostream &p_outstream, const Mutation &p_mutation);
+
+
+//
+//		Mutation block allocation
+//
+
+// All Mutation objects get allocated out of a single shared pool, for speed.  We do not use EidosObjectPool for this
+// any more, because we need the allocation to be out of a single contiguous block of memory that we realloc as needed,
+// allowing Mutation objects to be referred to using 32-bit indexes into this contiguous block.  So we have a custom
+// pool, declared here and implemented in mutation.cpp.  Note that this is a global, to make it easy for users of
+// MutationIndex to look up mutations without needing to track down a pointer to the mutation block from the sim.  This
+// means that in SLiMgui a single block will be used for all mutations in all simulations; that should be harmless.
+extern Mutation *gSLiM_Mutation_Block;
+extern MutationIndex gSLiM_Mutation_FreeIndex;
+
+void SLiM_CreateMutationBlock(void);
+void SLiM_IncreaseMutationBlockCapacity(void);
+
+inline MutationIndex SLiM_NewMutationFromBlock(void)
+{
+	if (gSLiM_Mutation_FreeIndex == -1)
+		SLiM_IncreaseMutationBlockCapacity();
+	
+	MutationIndex result = gSLiM_Mutation_FreeIndex;
+	void *mut_ptr = gSLiM_Mutation_Block + result;
+	
+	gSLiM_Mutation_FreeIndex = *(MutationIndex *)mut_ptr;
+	
+	return result;	// no need to zero out the memory, we are just an allocater, not a constructor
+}
+
+inline void SLiM_DisposeMutationToBlock(MutationIndex p_mutation_index)
+{
+	void *mut_ptr = gSLiM_Mutation_Block + p_mutation_index;
+	
+	*(MutationIndex *)mut_ptr = gSLiM_Mutation_FreeIndex;
+	gSLiM_Mutation_FreeIndex = p_mutation_index;
+}
 
 
 #endif /* defined(__SLiM__mutation__) */

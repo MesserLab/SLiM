@@ -225,29 +225,29 @@ public:
 			mutruns_[run_index].reset();
 	}
 	
-	inline bool contains_mutation(const Mutation *p_mutation)
+	inline bool contains_mutation(MutationIndex p_mutation_index)
 	{
 #ifdef DEBUG
 		if (mutrun_count_ == 0)
 			NullGenomeAccessError();
 #endif
-		return mutruns_[p_mutation->position_ / mutrun_length_]->contains_mutation(p_mutation);
+		return mutruns_[(gSLiM_Mutation_Block + p_mutation_index)->position_ / mutrun_length_]->contains_mutation(p_mutation_index);
 	}
 	
-	inline void insert_sorted_mutation(Mutation *p_mutation)
+	inline void insert_sorted_mutation(MutationIndex p_mutation_index)
 	{
-		slim_position_t position = p_mutation->position_;
+		slim_position_t position = (gSLiM_Mutation_Block + p_mutation_index)->position_;
 		int32_t run_index = position / mutrun_length_;
 		
-		mutruns_[run_index]->insert_sorted_mutation(p_mutation);
+		mutruns_[run_index]->insert_sorted_mutation(p_mutation_index);
 	}
 	
-	inline void insert_sorted_mutation_if_unique(Mutation *p_mutation)
+	inline void insert_sorted_mutation_if_unique(MutationIndex p_mutation_index)
 	{
-		slim_position_t position = p_mutation->position_;
+		slim_position_t position = (gSLiM_Mutation_Block + p_mutation_index)->position_;
 		int32_t run_index = position / mutrun_length_;
 		
-		mutruns_[run_index]->insert_sorted_mutation_if_unique(p_mutation);
+		mutruns_[run_index]->insert_sorted_mutation_if_unique(p_mutation_index);
 	}
 	
 	inline bool enforce_stack_policy_for_addition(slim_position_t p_position, MutationType *p_mut_type_ptr)

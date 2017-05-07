@@ -84,14 +84,15 @@
 	
 	pop.TallyMutationReferences(nullptr, false);	// update tallies; usually this will just use the cache set up by Population::MaintainRegistry()
 	
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	double totalGenomeCount = pop.total_genome_count_;
 	MutationRun &mutationRegistry = pop.mutation_registry_;
-	Mutation *const *mutations = mutationRegistry.begin_pointer_const();
+	const MutationIndex *mutations = mutationRegistry.begin_pointer_const();
 	int mutationCount = (int)(mutationRegistry.end_pointer_const() - mutations);
 	
 	for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
 	{
-		const Mutation *mutation = mutations[mutIndex];
+		const Mutation *mutation = mut_block_ptr + mutations[mutIndex];
 		
 		// if the user has selected a subrange of the chromosome, we will work from that
 		if (hasSelection)

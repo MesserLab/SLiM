@@ -973,15 +973,16 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	Population &pop = sim->population_;
 	double totalGenomeCount = pop.gui_total_genome_count_;				// this includes only genomes in the selected subpopulations
 	MutationRun &mutationRegistry = pop.mutation_registry_;
-	Mutation *const *mutations = mutationRegistry.begin_pointer_const();
+	const MutationIndex *mutations = mutationRegistry.begin_pointer_const();
 	int mutationCount = (int)(mutationRegistry.end_pointer_const() - mutations);
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	
 	if ((mutationCount < 1000) || (displayedRange.length < interiorRect.size.width))
 	{
 		// This is the simple version of the display code, avoiding the memory allocations and such
 		for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
 		{
-			const Mutation *mutation = mutations[mutIndex];
+			const Mutation *mutation = mut_block_ptr + mutations[mutIndex];
 			const MutationType *mutType = mutation->mutation_type_ptr_;
 			
 			if ((display_muttype_ == -1) || (mutType->mutation_type_id_ == display_muttype_))
@@ -1045,7 +1046,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 					// Scan through the mutation list for mutations of this type with the right selcoeff
 					for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
 					{
-						const Mutation *mutation = mutations[mutIndex];
+						const Mutation *mutation = mut_block_ptr + mutations[mutIndex];
 						
 						if ((mutation->mutation_type_ptr_ == mut_type) && (mut_type_fixed_color || (mutation->selection_coeff_ == mut_type_selcoeff)))
 						{
@@ -1096,7 +1097,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 				// We're not displaying this mutation type, so we need to mark off all the mutations belonging to it as handled
 				for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
 				{
-					const Mutation *mutation = mutations[mutIndex];
+					const Mutation *mutation = mut_block_ptr + mutations[mutIndex];
 					
 					if (mutation->mutation_type_ptr_ == mut_type)
 					{
@@ -1120,7 +1121,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 					//if (mutation->gui_scratch_reference_count_ == 0)
 					if (!mutationsPlotted[mutIndex])
 					{
-						const Mutation *mutation = mutations[mutIndex];
+						const Mutation *mutation = mut_block_ptr + mutations[mutIndex];
 						slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
 						slim_position_t mutationPosition = mutation->position_;
 						NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
@@ -1135,10 +1136,9 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 			else
 			{
 				// OK, we have a lot of mutations left to draw.  Here we will again use the radix sort trick, to keep track of only the tallest bar in each column
-				const Mutation **mutationBuffer = (const Mutation **)malloc(displayPixelWidth * sizeof(Mutation *));
+				MutationIndex *mutationBuffer = (MutationIndex *)calloc(displayPixelWidth, sizeof(MutationIndex));
 				
 				bzero(heightBuffer, displayPixelWidth * sizeof(int16_t));
-				bzero(mutationBuffer, displayPixelWidth * sizeof(Mutation *));
 				
 				// Find the tallest bar in each column
 				for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
@@ -1146,7 +1146,8 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 					//if (mutation->gui_scratch_reference_count_ == 0)
 					if (!mutationsPlotted[mutIndex])
 					{
-						const Mutation *mutation = mutations[mutIndex];
+						MutationIndex mutationBlockIndex = mutations[mutIndex];
+						const Mutation *mutation = mut_block_ptr + mutationBlockIndex;
 						slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
 						slim_position_t mutationPosition = mutation->position_;
 						//NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
@@ -1159,7 +1160,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 							if (height > heightBuffer[xPos])
 							{
 								heightBuffer[xPos] = height;
-								mutationBuffer[xPos] = mutation;
+								mutationBuffer[xPos] = mutationBlockIndex;
 							}
 						}
 					}
@@ -1173,7 +1174,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 					if (height)
 					{
 						NSRect mutationTickRect = NSMakeRect(interiorRect.origin.x + binIndex, interiorRect.origin.y, 1, height);
-						const Mutation *mutation = mutationBuffer[binIndex];
+						const Mutation *mutation = mut_block_ptr + mutationBuffer[binIndex];
 						
 						RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 						[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
@@ -1197,8 +1198,9 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	Population &pop = sim->population_;
 	double totalGenomeCount = pop.gui_total_genome_count_;				// this includes only genomes in the selected subpopulations
 	MutationRun &mutationRegistry = pop.mutation_registry_;
-	Mutation *const *mutations = mutationRegistry.begin_pointer_const();
+	const MutationIndex *mutations = mutationRegistry.begin_pointer_const();
 	int mutationCount = (int)(mutationRegistry.end_pointer_const() - mutations);
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	
 	// Set up to draw rects
 	float colorRed = 0.0f, colorGreen = 0.0f, colorBlue = 0.0f, colorAlpha = 1.0;
@@ -1210,7 +1212,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		// This is the simple version of the display code, avoiding the memory allocations and such
 		for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
 		{
-			const Mutation *mutation = mutations[mutIndex];
+			const Mutation *mutation = mut_block_ptr + mutations[mutIndex];
 			const MutationType *mutType = mutation->mutation_type_ptr_;
 			
 			if ((display_muttype_ == -1) || (mutType->mutation_type_id_ == display_muttype_))
@@ -1276,7 +1278,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 					// Scan through the mutation list for mutations of this type with the right selcoeff
 					for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
 					{
-						const Mutation *mutation = mutations[mutIndex];
+						const Mutation *mutation = mut_block_ptr + mutations[mutIndex];
 						
 						if ((mutation->mutation_type_ptr_ == mut_type) && (mut_type_fixed_color || (mutation->selection_coeff_ == mut_type_selcoeff)))
 						{
@@ -1331,7 +1333,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 				// We're not displaying this mutation type, so we need to mark off all the mutations belonging to it as handled
 				for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
 				{
-					const Mutation *mutation = mutations[mutIndex];
+					const Mutation *mutation = mut_block_ptr + mutations[mutIndex];
 					
 					if (mutation->mutation_type_ptr_ == mut_type)
 					{
@@ -1355,7 +1357,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 					//if (mutation->gui_scratch_reference_count_ == 0)
 					if (!mutationsPlotted[mutIndex])
 					{
-						const Mutation *mutation = mutations[mutIndex];
+						const Mutation *mutation = mut_block_ptr + mutations[mutIndex];
 						slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
 						slim_position_t mutationPosition = mutation->position_;
 						NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
@@ -1373,10 +1375,9 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 			else
 			{
 				// OK, we have a lot of mutations left to draw.  Here we will again use the radix sort trick, to keep track of only the tallest bar in each column
-				const Mutation **mutationBuffer = (const Mutation **)malloc(displayPixelWidth * sizeof(Mutation *));
+				MutationIndex *mutationBuffer = (MutationIndex *)calloc(displayPixelWidth,  sizeof(MutationIndex));
 				
 				bzero(heightBuffer, displayPixelWidth * sizeof(int16_t));
-				bzero(mutationBuffer, displayPixelWidth * sizeof(Mutation *));
 				
 				// Find the tallest bar in each column
 				for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
@@ -1384,7 +1385,8 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 					//if (mutation->gui_scratch_reference_count_ == 0)
 					if (!mutationsPlotted[mutIndex])
 					{
-						const Mutation *mutation = mutations[mutIndex];
+						MutationIndex mutationBlockIndex = mutations[mutIndex];
+						const Mutation *mutation = mut_block_ptr + mutationBlockIndex;
 						slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
 						slim_position_t mutationPosition = mutation->position_;
 						//NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
@@ -1397,7 +1399,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 							if (height > heightBuffer[xPos])
 							{
 								heightBuffer[xPos] = height;
-								mutationBuffer[xPos] = mutation;
+								mutationBuffer[xPos] = mutationBlockIndex;
 							}
 						}
 					}
@@ -1411,7 +1413,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 					if (height)
 					{
 						NSRect mutationTickRect = NSMakeRect(interiorRect.origin.x + binIndex, interiorRect.origin.y, 1, height);
-						const Mutation *mutation = mutationBuffer[binIndex];
+						const Mutation *mutation = mut_block_ptr + mutationBuffer[binIndex];
 						
 						RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 						
