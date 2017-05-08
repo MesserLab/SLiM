@@ -24,6 +24,7 @@ development head:
 	optimize crossover mutation code with improved code flow and expanded case treatments
 	optimize fitness calculations by caching fitness effects of mutations
 	optimization: switch to MutationIndex instead of Mutation *
+	optimization: keep mutation refcounts in a separate buffer
 	NOTE: this version changed model output in some cases because of a float/double change in fitness calculations
 
 2.3 (build 1052; Eidos version 1.3):

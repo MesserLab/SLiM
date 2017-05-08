@@ -146,7 +146,7 @@ extern MutationIndex gSLiM_Mutation_FreeIndex;
 extern MutationIndex gSLiM_Mutation_Block_LastUsedIndex;
 
 extern slim_refcount_t *gSLiM_Mutation_Refcounts;	// an auxiliary buffer, parallel to gSLiM_Mutation_Block, to increase memory cache efficiency
-
+													// note that I tried keeping the fitness cache values and positions in separate buffers too, not a win
 void SLiM_CreateMutationBlock(void);
 void SLiM_IncreaseMutationBlockCapacity(void);
 void SLiM_ZeroRefcountBlock(MutationRun &p_mutation_registry);
