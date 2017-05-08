@@ -3040,6 +3040,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			}
 			
 			// OK, now construct our result vector from the tallies for just the requested mutations
+			slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
 			EidosValue_Float_vector *float_result = nullptr;
 			EidosValue_Int_vector *int_result = nullptr;
 			EidosValue_SP result_SP;
@@ -3066,12 +3067,22 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 					if (p_method_id == gID_mutationFrequencies)
 					{
 						for (int value_index = 0; value_index < arg1_count; ++value_index)
-							float_result->PushFloat(((Mutation *)(arg1_value->ObjectElementAtIndex(value_index, nullptr)))->reference_count_ * denominator);
+						{
+							Mutation *mut = (Mutation *)(arg1_value->ObjectElementAtIndex(value_index, nullptr));
+							MutationIndex mut_index = mut->BlockIndex();
+							
+							float_result->PushFloat(*(refcount_block_ptr + mut_index) * denominator);
+						}
 					}
 					else // p_method_id == gID_mutationCounts
 					{
 						for (int value_index = 0; value_index < arg1_count; ++value_index)
-							int_result->PushInt(((Mutation *)(arg1_value->ObjectElementAtIndex(value_index, nullptr)))->reference_count_);
+						{
+							Mutation *mut = (Mutation *)(arg1_value->ObjectElementAtIndex(value_index, nullptr));
+							MutationIndex mut_index = mut->BlockIndex();
+							
+							int_result->PushInt(*(refcount_block_ptr + mut_index));
+						}
 					}
 				}
 			}
@@ -3079,17 +3090,16 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			{
 				// no mutation vector was given, so return all frequencies from the registry
 				MutationIndex *registry_iter_end = population_.mutation_registry_.end_pointer();
-				Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 				
 				if (p_method_id == gID_mutationFrequencies)
 				{
 					for (const MutationIndex *registry_iter = population_.mutation_registry_.begin_pointer_const(); registry_iter != registry_iter_end; ++registry_iter)
-						float_result->PushFloat((mut_block_ptr + (*registry_iter))->reference_count_ * denominator);
+						float_result->PushFloat(*(refcount_block_ptr + *registry_iter) * denominator);
 				}
 				else // p_method_id == gID_mutationCounts
 				{
 					for (const MutationIndex *registry_iter = population_.mutation_registry_.begin_pointer_const(); registry_iter != registry_iter_end; ++registry_iter)
-						int_result->PushInt((mut_block_ptr + (*registry_iter))->reference_count_);
+						int_result->PushInt(*(refcount_block_ptr + *registry_iter));
 				}
 			}
 			

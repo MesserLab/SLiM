@@ -278,7 +278,7 @@ void Genome::TallyMutationReferences(int64_t p_operation_id)
 	if (mutrun_count_ == 0)
 		NullGenomeAccessError();
 #endif
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
 	
 	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
 	{
@@ -294,36 +294,36 @@ void Genome::TallyMutationReferences(int64_t p_operation_id)
 			// Do 16 reps
 			while (genome_iter + 16 <= genome_end_iter)
 			{
-				((mut_block_ptr + (*genome_iter++))->reference_count_) += use_count;
-				((mut_block_ptr + (*genome_iter++))->reference_count_) += use_count;
-				((mut_block_ptr + (*genome_iter++))->reference_count_) += use_count;
-				((mut_block_ptr + (*genome_iter++))->reference_count_) += use_count;
-				((mut_block_ptr + (*genome_iter++))->reference_count_) += use_count;
-				((mut_block_ptr + (*genome_iter++))->reference_count_) += use_count;
-				((mut_block_ptr + (*genome_iter++))->reference_count_) += use_count;
-				((mut_block_ptr + (*genome_iter++))->reference_count_) += use_count;
-				((mut_block_ptr + (*genome_iter++))->reference_count_) += use_count;
-				((mut_block_ptr + (*genome_iter++))->reference_count_) += use_count;
-				((mut_block_ptr + (*genome_iter++))->reference_count_) += use_count;
-				((mut_block_ptr + (*genome_iter++))->reference_count_) += use_count;
-				((mut_block_ptr + (*genome_iter++))->reference_count_) += use_count;
-				((mut_block_ptr + (*genome_iter++))->reference_count_) += use_count;
-				((mut_block_ptr + (*genome_iter++))->reference_count_) += use_count;
-				((mut_block_ptr + (*genome_iter++))->reference_count_) += use_count;
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
 			}
 			
 			// Do 4 reps
 			while (genome_iter + 4 <= genome_end_iter)
 			{
-				((mut_block_ptr + (*genome_iter++))->reference_count_) += use_count;
-				((mut_block_ptr + (*genome_iter++))->reference_count_) += use_count;
-				((mut_block_ptr + (*genome_iter++))->reference_count_) += use_count;
-				((mut_block_ptr + (*genome_iter++))->reference_count_) += use_count;
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
 			}
 			
 			// Finish off
 			while (genome_iter != genome_end_iter)
-				((mut_block_ptr + (*genome_iter++))->reference_count_) += use_count;
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
 			
 			mutrun->operation_id_ = p_operation_id;
 		}

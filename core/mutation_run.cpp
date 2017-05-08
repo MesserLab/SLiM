@@ -57,14 +57,14 @@ void MutationRun::_RemoveFixedMutations(void)
 	MutationIndex *genome_iter = mutations_;
 	MutationIndex *genome_backfill_iter = nullptr;
 	MutationIndex *genome_max = mutations_ + mutation_count_;
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
 	
 	// genome_iter advances through the mutation list; for each entry it hits, the entry is either fixed (skip it) or not fixed
 	// (copy it backward to the backfill pointer).  We do this with two successive loops; the first knows that no mutation has
 	// yet been skipped, whereas the second knows that at least one mutation has been.
 	while (genome_iter != genome_max)
 	{
-		if ((mut_block_ptr + (*genome_iter++))->reference_count_ != -1)
+		if (*(refcount_block_ptr + (*genome_iter++)) != -1)
 			continue;
 		
 		// Fixed mutation; we want to omit it, so we skip it in genome_backfill_iter and transition to the second loop
@@ -75,9 +75,8 @@ void MutationRun::_RemoveFixedMutations(void)
 	while (genome_iter != genome_max)
 	{
 		MutationIndex mutation_index = *genome_iter;
-		Mutation *mutation_ptr = mut_block_ptr + mutation_index;
 		
-		if (mutation_ptr->reference_count_ != -1)
+		if (*(refcount_block_ptr + mutation_index) != -1)
 		{
 			// Unfixed mutation; we want to keep it, so we copy it backward and advance our backfill pointer as well as genome_iter
 			*genome_backfill_iter = mutation_index;

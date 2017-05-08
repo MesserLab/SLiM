@@ -33,6 +33,9 @@
 Mutation *gSLiM_Mutation_Block = nullptr;
 MutationIndex gSLiM_Mutation_Block_Capacity = 0;
 MutationIndex gSLiM_Mutation_FreeIndex = -1;
+MutationIndex gSLiM_Mutation_Block_LastUsedIndex = -1;
+
+slim_refcount_t *gSLiM_Mutation_Refcounts = nullptr;
 
 #define SLIM_MUTATION_BLOCK_INITIAL_SIZE	16384		// makes for about a 1 MB block; not unreasonable
 
@@ -43,6 +46,7 @@ void SLiM_CreateMutationBlock(void)
 	// first allocate the block; no need to zero the memory
 	gSLiM_Mutation_Block_Capacity = SLIM_MUTATION_BLOCK_INITIAL_SIZE;
 	gSLiM_Mutation_Block = (Mutation *)malloc(gSLiM_Mutation_Block_Capacity * sizeof(Mutation));
+	gSLiM_Mutation_Refcounts = (slim_refcount_t *)malloc(gSLiM_Mutation_Block_Capacity * sizeof(slim_refcount_t));
 	
 	//std::cout << "Allocating initial mutation block, " << SLIM_MUTATION_BLOCK_INITIAL_SIZE * sizeof(Mutation) << " bytes (sizeof(Mutation) == " << sizeof(Mutation) << ")" << std::endl;
 	
@@ -79,6 +83,7 @@ void SLiM_IncreaseMutationBlockCapacity(void)
 	
 	gSLiM_Mutation_Block_Capacity *= 2;
 	gSLiM_Mutation_Block = (Mutation *)realloc(gSLiM_Mutation_Block, gSLiM_Mutation_Block_Capacity * sizeof(Mutation));
+	gSLiM_Mutation_Refcounts = (slim_refcount_t *)realloc(gSLiM_Mutation_Refcounts, gSLiM_Mutation_Block_Capacity * sizeof(slim_refcount_t));
 	
 	std::uintptr_t new_mutation_block = reinterpret_cast<std::uintptr_t>(gSLiM_Mutation_Block);
 	
@@ -113,6 +118,46 @@ void SLiM_IncreaseMutationBlockCapacity(void)
 	}
 }
 
+void SLiM_ZeroRefcountBlock(__attribute__((unused)) MutationRun &p_mutation_registry)
+{
+#if 0
+	// This version zeros out refcounts just for the mutations currently in use in the registry.
+	// It is thus minimal, but probably quite a bit slower than just zeroing out the whole thing.
+	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
+	const MutationIndex *registry_iter = p_mutation_registry.begin_pointer_const();
+	const MutationIndex *registry_iter_end = p_mutation_registry.end_pointer_const();
+	
+	// Do 16 reps
+	while (registry_iter + 16 <= registry_iter_end)
+	{
+		*(refcount_block_ptr + (*registry_iter++)) = 0;
+		*(refcount_block_ptr + (*registry_iter++)) = 0;
+		*(refcount_block_ptr + (*registry_iter++)) = 0;
+		*(refcount_block_ptr + (*registry_iter++)) = 0;
+		*(refcount_block_ptr + (*registry_iter++)) = 0;
+		*(refcount_block_ptr + (*registry_iter++)) = 0;
+		*(refcount_block_ptr + (*registry_iter++)) = 0;
+		*(refcount_block_ptr + (*registry_iter++)) = 0;
+		*(refcount_block_ptr + (*registry_iter++)) = 0;
+		*(refcount_block_ptr + (*registry_iter++)) = 0;
+		*(refcount_block_ptr + (*registry_iter++)) = 0;
+		*(refcount_block_ptr + (*registry_iter++)) = 0;
+		*(refcount_block_ptr + (*registry_iter++)) = 0;
+		*(refcount_block_ptr + (*registry_iter++)) = 0;
+		*(refcount_block_ptr + (*registry_iter++)) = 0;
+		*(refcount_block_ptr + (*registry_iter++)) = 0;
+	}
+	
+	// Finish off
+	while (registry_iter != registry_iter_end)
+		*(refcount_block_ptr + (*registry_iter++)) = 0;
+#else
+	// Zero out the whole thing with bzero(), without worrying about which bits are in use.
+	// This hits more memory, but avoids having to read the registry, and should write whole cache lines.
+	bzero(gSLiM_Mutation_Refcounts, (gSLiM_Mutation_Block_LastUsedIndex + 1) * sizeof(slim_refcount_t));
+#endif
+}
+
 
 // A global counter used to assign all Mutation objects a unique ID
 slim_mutationid_t gSLiM_next_mutation_id = 0;
@@ -128,6 +173,9 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 	cached_one_plus_sel = (slim_selcoeff_t)std::max(0.0, 1.0 + selection_coeff_);
 	cached_one_plus_dom_sel = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->dominance_coeff_ * selection_coeff_);
 #endif
+	
+	// zero out our refcount, which is now kept in a separate buffer
+	gSLiM_Mutation_Refcounts[BlockIndex()] = 0;
 	
 #if DEBUG_MUTATIONS
 	SLIM_OUTSTREAM << "Mutation constructed: " << this << std::endl;
@@ -146,6 +194,9 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 	cached_one_plus_dom_sel = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->dominance_coeff_ * selection_coeff_);
 #endif
 
+	// zero out our refcount, which is now kept in a separate buffer
+	gSLiM_Mutation_Refcounts[BlockIndex()] = 0;
+	
 #if DEBUG_MUTATIONS
 	SLIM_OUTSTREAM << "Mutation constructed: " << this << std::endl;
 #endif

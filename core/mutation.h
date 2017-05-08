@@ -56,7 +56,6 @@ public:
 	slim_selcoeff_t selection_coeff_;					// selection coefficient – not const because it may be changed in script
 	slim_objectid_t subpop_index_;						// subpopulation in which mutation arose (or a user-defined tag value!)
 	const slim_generation_t generation_;				// generation in which mutation arose
-	mutable slim_refcount_t reference_count_;			// a count of the uses of this mutation; managed by Population, see TallyMutationReferences()
 	const slim_mutationid_t mutation_id_;				// a unique id for each mutation, used to track mutations
 	slim_usertag_t tag_value_;							// a user-defined tag value
 	
@@ -140,11 +139,17 @@ std::ostream &operator<<(std::ostream &p_outstream, const Mutation &p_mutation);
 // pool, declared here and implemented in mutation.cpp.  Note that this is a global, to make it easy for users of
 // MutationIndex to look up mutations without needing to track down a pointer to the mutation block from the sim.  This
 // means that in SLiMgui a single block will be used for all mutations in all simulations; that should be harmless.
+class MutationRun;
+
 extern Mutation *gSLiM_Mutation_Block;
 extern MutationIndex gSLiM_Mutation_FreeIndex;
+extern MutationIndex gSLiM_Mutation_Block_LastUsedIndex;
+
+extern slim_refcount_t *gSLiM_Mutation_Refcounts;	// an auxiliary buffer, parallel to gSLiM_Mutation_Block, to increase memory cache efficiency
 
 void SLiM_CreateMutationBlock(void);
 void SLiM_IncreaseMutationBlockCapacity(void);
+void SLiM_ZeroRefcountBlock(MutationRun &p_mutation_registry);
 
 inline MutationIndex SLiM_NewMutationFromBlock(void)
 {
@@ -152,9 +157,11 @@ inline MutationIndex SLiM_NewMutationFromBlock(void)
 		SLiM_IncreaseMutationBlockCapacity();
 	
 	MutationIndex result = gSLiM_Mutation_FreeIndex;
-	void *mut_ptr = gSLiM_Mutation_Block + result;
 	
-	gSLiM_Mutation_FreeIndex = *(MutationIndex *)mut_ptr;
+	gSLiM_Mutation_FreeIndex = *(MutationIndex *)(gSLiM_Mutation_Block + result);
+	
+	if (gSLiM_Mutation_Block_LastUsedIndex < result)
+		gSLiM_Mutation_Block_LastUsedIndex = result;
 	
 	return result;	// no need to zero out the memory, we are just an allocater, not a constructor
 }

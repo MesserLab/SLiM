@@ -85,6 +85,7 @@
 	pop.TallyMutationReferences(nullptr, false);	// update tallies; usually this will just use the cache set up by Population::MaintainRegistry()
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
 	double totalGenomeCount = pop.total_genome_count_;
 	MutationRun &mutationRegistry = pop.mutation_registry_;
 	const MutationIndex *mutations = mutationRegistry.begin_pointer_const();
@@ -103,7 +104,7 @@
 				continue;
 		}
 		
-		slim_refcount_t mutationRefCount = mutation->reference_count_;
+		slim_refcount_t mutationRefCount = *(refcount_block_ptr + mutation->BlockIndex());
 		double mutationFrequency = mutationRefCount / totalGenomeCount;
 		int mutationBin = (int)floor(mutationFrequency * binCount);
 		int mutationTypeIndex = mutation->mutation_type_ptr_->mutation_type_index_;

@@ -3148,17 +3148,14 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 	if (p_subpops_to_tally)
 	{
 		// When tallying just a subset of the subpops, we don't update the SLiMgui counts, nor do we update total_genome_count_
-		slim_refcount_t total_genome_count = 0;
 		
 		// first zero out the refcounts in all registered Mutation objects
-		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-		const MutationIndex *registry_iter = mutation_registry_.begin_pointer_const();
-		const MutationIndex *registry_iter_end = mutation_registry_.end_pointer_const();
-		
-		for (; registry_iter != registry_iter_end; ++registry_iter)
-			(mut_block_ptr + *registry_iter)->reference_count_ = 0;
+		SLiM_ZeroRefcountBlock(mutation_registry_);
 		
 		// then increment the refcounts through all pointers to Mutation in all genomes
+		slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
+		slim_refcount_t total_genome_count = 0;
+		
 		for (Subpopulation *subpop : *p_subpops_to_tally)
 		{
 			// Particularly for SLiMgui, we need to be able to tally mutation references after the generations have been swapped, i.e.
@@ -3181,7 +3178,7 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 						const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
 						
 						for (; genome_iter != genome_end_iter; ++genome_iter)
-							++((mut_block_ptr + *genome_iter)->reference_count_);
+							++(*(refcount_block_ptr + *genome_iter));
 					}
 					
 					total_genome_count++;	// count only non-null genomes to determine fixation
@@ -3269,14 +3266,18 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 #ifdef SLIMGUI
 			// SLiMgui can use this case if all subpops are selected; in that case, copy refcounts over to SLiMgui's info
 			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+			slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
 			const MutationIndex *registry_iter = mutation_registry_.begin_pointer_const();
 			const MutationIndex *registry_iter_end = mutation_registry_.end_pointer_const();
 			
 			while (registry_iter != registry_iter_end)
 			{
-				const Mutation *mutation = mut_block_ptr + *(registry_iter++);
+				MutationIndex mut_index = *registry_iter;
+				slim_refcount_t *refcount_ptr = refcount_block_ptr + mut_index;
+				const Mutation *mutation = mut_block_ptr + mut_index;
 				
-				mutation->gui_reference_count_ = mutation->reference_count_;
+				mutation->gui_reference_count_ = *refcount_ptr;
+				registry_iter++;
 			}
 			
 			gui_total_genome_count_ = total_genome_count;
@@ -3293,48 +3294,25 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 			slim_refcount_t total_genome_count = 0;
 #ifdef SLIMGUI
 			slim_refcount_t gui_total_genome_count = 0;
+			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 #endif
 			
 			// first zero out the refcounts in all registered Mutation objects
-			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+			slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
+#ifdef SLIMGUI
 			const MutationIndex *registry_iter = mutation_registry_.begin_pointer_const();
 			const MutationIndex *registry_iter_end = mutation_registry_.end_pointer_const();
 			
-#ifdef SLIMGUI
 			while (registry_iter != registry_iter_end)
 			{
-				MutationIndex mutation_index = *(registry_iter++);
+				MutationIndex mutation_index = *registry_iter;
 				Mutation *mutation = mut_block_ptr + mutation_index;
 				
-				mutation->reference_count_ = 0;
 				mutation->gui_reference_count_ = 0;
+				registry_iter++;
 			}
-#else
-			// Do 16 reps
-			while (registry_iter + 16 <= registry_iter_end)
-			{
-				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-			}
-			
-			// Finish off
-			while (registry_iter != registry_iter_end)
-				(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
 #endif
+			SLiM_ZeroRefcountBlock(mutation_registry_);
 			
 			// then increment the refcounts through all pointers to Mutation in all genomes
 			for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
@@ -3367,10 +3345,13 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 								
 								while (genome_iter != genome_end_iter)
 								{
-									const Mutation *mutation = mut_block_ptr + *(genome_iter++);
+									MutationIndex mut_index = *genome_iter;
+									const Mutation *mutation = mut_block_ptr + mut_index;
+									slim_refcount_t *refcount_ptr = refcount_block_ptr + mut_index;
 									
-									(mutation->reference_count_)++;
+									(*refcount_ptr)++;
 									(mutation->gui_reference_count_)++;
+									genome_iter++;
 								}
 							}
 							
@@ -3399,27 +3380,27 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 								// Do 16 reps
 								while (genome_iter + 16 <= genome_end_iter)
 								{
-									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
-									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
-									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
-									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
-									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
-									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
-									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
-									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
-									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
-									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
-									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
-									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
-									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
-									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
-									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
-									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
+									(*(refcount_block_ptr + (*genome_iter++)))++;
+									(*(refcount_block_ptr + (*genome_iter++)))++;
+									(*(refcount_block_ptr + (*genome_iter++)))++;
+									(*(refcount_block_ptr + (*genome_iter++)))++;
+									(*(refcount_block_ptr + (*genome_iter++)))++;
+									(*(refcount_block_ptr + (*genome_iter++)))++;
+									(*(refcount_block_ptr + (*genome_iter++)))++;
+									(*(refcount_block_ptr + (*genome_iter++)))++;
+									(*(refcount_block_ptr + (*genome_iter++)))++;
+									(*(refcount_block_ptr + (*genome_iter++)))++;
+									(*(refcount_block_ptr + (*genome_iter++)))++;
+									(*(refcount_block_ptr + (*genome_iter++)))++;
+									(*(refcount_block_ptr + (*genome_iter++)))++;
+									(*(refcount_block_ptr + (*genome_iter++)))++;
+									(*(refcount_block_ptr + (*genome_iter++)))++;
+									(*(refcount_block_ptr + (*genome_iter++)))++;
 								}
 								
 								// Finish off
 								while (genome_iter != genome_end_iter)
-									((mut_block_ptr + (*genome_iter++))->reference_count_)++;
+									(*(refcount_block_ptr + (*genome_iter++)))++;
 							}
 							
 							total_genome_count++;	// count only non-null genomes to determine fixation
@@ -3445,39 +3426,11 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 
 slim_refcount_t Population::TallyMutationReferences_FAST(void)
 {
-	slim_refcount_t total_genome_count = 0;
-	
 	// first zero out the refcounts in all registered Mutation objects
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	const MutationIndex *registry_iter = mutation_registry_.begin_pointer_const();
-	const MutationIndex *registry_iter_end = mutation_registry_.end_pointer_const();
-	
-	// Do 16 reps
-	while (registry_iter + 16 <= registry_iter_end)
-	{
-		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
-	}
-	
-	// Finish off
-	while (registry_iter != registry_iter_end)
-		(mut_block_ptr + (*registry_iter++))->reference_count_ = 0;
+	SLiM_ZeroRefcountBlock(mutation_registry_);
 	
 	// then increment the refcounts through all pointers to Mutation in all genomes
+	slim_refcount_t total_genome_count = 0;
 	int64_t operation_id = ++gSLiM_MutationRun_OperationID;
 	
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
@@ -3519,6 +3472,7 @@ void Population::RemoveFixedMutations(void)
 #endif
 	
 	// remove Mutation objects that are no longer referenced, freeing them; avoid using an iterator since it would be invalidated
+	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	int registry_length = mutation_registry_.size();
 	
@@ -3526,7 +3480,7 @@ void Population::RemoveFixedMutations(void)
 	{
 		MutationIndex mutation_index = mutation_registry_[i];
 		Mutation *mutation = mut_block_ptr + mutation_index;
-		slim_refcount_t reference_count = mutation->reference_count_;
+		slim_refcount_t reference_count = *(refcount_block_ptr + mutation_index);
 		bool remove_mutation = false;
 		
 		if (reference_count == 0)
@@ -3560,7 +3514,7 @@ void Population::RemoveFixedMutations(void)
 #endif
 			
 			// set a special flag value for the reference count to allow it to be found rapidly
-			mutation->reference_count_ = -1;
+			*(refcount_block_ptr + mutation_index) = -1;
 			
 			// add the fixed mutation to a vector, to be converted to a Substitution object below
 			fixed_mutation_accumulator.insert_sorted_mutation(mutation_index);
@@ -3660,13 +3614,13 @@ void Population::RemoveFixedMutations(void)
 
 void Population::CheckMutationRegistry(void)
 {
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
 	const MutationIndex *registry_iter = mutation_registry_.begin_pointer_const();
 	const MutationIndex *registry_iter_end = mutation_registry_.end_pointer_const();
 	
 	// first check that we don't have any zombies in our registry
 	for (; registry_iter != registry_iter_end; ++registry_iter)
-		if ((mut_block_ptr + *registry_iter)->reference_count_ == -1)
+		if (*(refcount_block_ptr + *registry_iter) == -1)
 			SLIM_ERRSTREAM << "Zombie found in registry with address " << (*registry_iter) << endl;
 	
 	// then check that we don't have any zombies in any genomes
@@ -3688,7 +3642,7 @@ void Population::CheckMutationRegistry(void)
 				const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
 				
 				for (; genome_iter != genome_end_iter; ++genome_iter)
-					if ((mut_block_ptr + *genome_iter)->reference_count_ == -1)
+					if (*(refcount_block_ptr + *genome_iter) == -1)
 						SLIM_ERRSTREAM << "Zombie found in genome with address " << (*genome_iter) << endl;
 			}
 		}
