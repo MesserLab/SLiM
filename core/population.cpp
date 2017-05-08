@@ -2802,13 +2802,8 @@ void Population::ValidateMutationFitnessCaches(void)
 		slim_selcoeff_t sel_coeff = mut->selection_coeff_;
 		slim_selcoeff_t dom_coeff = mut->mutation_type_ptr_->dominance_coeff_;
 		
-#ifdef SLIM_MUT_BACK_COMPATIBLE
-		mut->cached_one_plus_sel = (double)std::max(0.0, 1.0 + sel_coeff);
-		mut->cached_one_plus_dom_sel = (double)std::max(0.0, 1.0 + dom_coeff * sel_coeff);
-#else
 		mut->cached_one_plus_sel = (slim_selcoeff_t)std::max(0.0, 1.0 + sel_coeff);
 		mut->cached_one_plus_dom_sel = (slim_selcoeff_t)std::max(0.0, 1.0 + dom_coeff * sel_coeff);
-#endif
 	}
 }
 
