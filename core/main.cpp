@@ -77,8 +77,9 @@ void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 		SLIM_OUTSTREAM << "---------------------------------------------------------------------------------" << std::endl << std::endl;
 	}
 	
-	SLIM_OUTSTREAM << "usage: slim -version | -usage | -testEidos | -testSLiM |" << std::endl;
-	SLIM_OUTSTREAM << "   [-seed <seed>] [-time] [-mem] [-Memhist] [-x] [-define <def>] <script file>" << std::endl;
+	SLIM_OUTSTREAM << "usage: slim -v[ersion] | -u[sage] | -testEidos | -testSLiM |" << std::endl;
+	SLIM_OUTSTREAM << "   [-l[ong]] [-s[eed] <seed>] [-t[ime]] [-m[em]] [-M[emhist]] [-x]" << std::endl;
+	SLIM_OUTSTREAM << "   [-d[efine] <def>] <script file>" << std::endl;
 	
 	if (p_print_full_usage)
 	{
@@ -88,6 +89,7 @@ void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 		SLIM_OUTSTREAM << "   -testEidos | -te : run built-in self-diagnostic tests of Eidos" << std::endl;
 		SLIM_OUTSTREAM << "   -testSLiM | -ts  : run built-in self-diagnostic tests of SLiM" << std::endl;
 		SLIM_OUTSTREAM << std::endl;
+		SLIM_OUTSTREAM << "   -l[ong]          : long (i.e.) verbose output (format may change)" << std::endl;
 		SLIM_OUTSTREAM << "   -s[eed] <seed>   : supply an initial random number seed for SLiM" << std::endl;
 		SLIM_OUTSTREAM << "   -t[ime]          : print SLiM's total execution time (in user clock time)" << std::endl;
 		SLIM_OUTSTREAM << "   -m[em]           : print SLiM's peak memory usage" << std::endl;
@@ -108,7 +110,7 @@ int main(int argc, char *argv[])
 	unsigned long int override_seed = 0;					// this is the type defined for seeds by gsl_rng_set()
 	unsigned long int *override_seed_ptr = nullptr;			// by default, a seed is generated or supplied in the input file
 	const char *input_file = nullptr;
-	bool keep_time = false, keep_mem = false, keep_mem_hist = false, skip_checks = false;
+	bool verbose_output = false, keep_time = false, keep_mem = false, keep_mem_hist = false, skip_checks = false;
 	std::vector<std::string> defined_constants;
 	
 	// command-line SLiM generally terminates rather than throwing
@@ -120,6 +122,15 @@ int main(int argc, char *argv[])
 	for (int arg_index = 1; arg_index < argc; ++arg_index)
 	{
 		const char *arg = argv[arg_index];
+		
+		// -long or -l: switches to long (i.e. verbose) output
+		if (strcmp(arg, "-long") == 0 || strcmp(arg, "-l") == 0)
+		{
+			verbose_output = true;
+			SLiM_verbose_output = true;
+			
+			continue;
+		}
 		
 		// -seed <x> or -s <x>: override the default seed with the supplied seed value
 		if (strcmp(arg, "-seed") == 0 || strcmp(arg, "-s") == 0)
@@ -223,6 +234,8 @@ int main(int argc, char *argv[])
 #ifdef DEBUG
 	SLIM_ERRSTREAM << "// ********** DEBUG defined – you are not using a release build of SLiM" << std::endl << std::endl;
 #endif
+	if (verbose_output)
+		SLIM_ERRSTREAM << "// ********** The -l[ong] command-line option has enabled verbose output" << std::endl << std::endl;
 	if (skip_checks)
 		SLIM_ERRSTREAM << "// ********** The -x command-line option has disabled some runtime checks" << std::endl << std::endl;
 	

@@ -39,6 +39,8 @@ void SLiM_WarmUp(void);
 //
 //	Output handling for SLiM
 //
+#pragma mark -
+#pragma mark Output handling
 
 // Output from SLiM can work in one of two ways.  If gEidosTerminateThrows == 0, ordinary output goes to cout,
 // and error output goes to cerr.  The other mode has gEidosTerminateThrows == 1.  In that mode, we use a global
@@ -55,6 +57,8 @@ extern std::ostringstream gSLiMOut;
 //
 //	Types and maximum values used by SLiM
 //
+#pragma mark -
+#pragma mark Types and max values
 
 // This is the standard setup for SLiM: 32 bit ints for most values.  This is recommended.  This gives a maximum of
 // 1 billion for quantities such as object IDs, generations, population sizes, and chromosome positions.  This is
@@ -189,6 +193,8 @@ inline __attribute__((always_inline)) slim_usertag_t SLiMClampToUsertagType(int6
 //
 //	Debugging support
 //
+#pragma mark -
+#pragma mark Debugging support
 
 // Debugging #defines that can be turned on
 #define DEBUG_MUTATIONS				0		// turn on logging of mutation construction and destruction
@@ -210,11 +216,16 @@ inline __attribute__((always_inline)) slim_usertag_t SLiMClampToUsertagType(int6
 // Note that even when this is 1, the user can disable some of these checks with -x.
 #define DO_MEMORY_CHECKS	1
 
+// Verbosity, from the command-line option -l[ong]
+extern bool SLiM_verbose_output;
+
 
 // *******************************************************************************************************************
 //
 //	Shared SLiM types and enumerations
 //
+#pragma mark -
+#pragma mark Shared SLiM types and enumerations
 
 // This enumeration represents the type of chromosome represented by a genome: autosome, X, or Y.  Note that this is somewhat
 // separate from the sex of the individual; one can model sexual individuals but model only an autosome, in which case the sex
@@ -245,6 +256,8 @@ std::ostream& operator<<(std::ostream& p_out, IndividualSex p_sex);
 //
 //	Global strings and IDs
 //
+#pragma mark -
+#pragma mark Global strings and IDs
 
 //
 //	Additional global std::string objects.  See script_globals.h for details.

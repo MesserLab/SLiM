@@ -143,17 +143,18 @@ void Chromosome::ChooseMutationRunLayout(int p_preferred_count)
 	if (mutrun_count_ > 100)				// too many runs is rarely beneficial, and can be quite harmful
 		mutrun_count_ = 100;
 	
-#if 0
-	// Write out some information about how the mutrun count was arrived at
-	SLIM_OUTSTREAM << std::endl;
-	SLIM_OUTSTREAM << "# Mutation run count: " << std::endl;
-	SLIM_OUTSTREAM << "#    chromosome_length = " << chromosome_length << std::endl;
-	SLIM_OUTSTREAM << "#    mu = " << mu << std::endl;
-	SLIM_OUTSTREAM << "#    r = " << r << std::endl;
-	SLIM_OUTSTREAM << "#    target_length = " << target_length << std::endl;
-	SLIM_OUTSTREAM << "#    target_count = " << target_count << std::endl;
-	SLIM_OUTSTREAM << "#    mutrun_count_ = " << mutrun_count_ << std::endl;
-#endif
+	if (SLiM_verbose_output)
+	{
+		// Write out some information about how the mutrun count was arrived at
+		SLIM_OUTSTREAM << std::endl;
+		SLIM_OUTSTREAM << "// Default mutation run count: " << std::endl;
+		SLIM_OUTSTREAM << "//    chromosome_length = " << chromosome_length << std::endl;
+		SLIM_OUTSTREAM << "//    mu = " << mu << std::endl;
+		SLIM_OUTSTREAM << "//    r = " << r << std::endl;
+		SLIM_OUTSTREAM << "//    target_length = " << target_length << std::endl;
+		SLIM_OUTSTREAM << "//    target_count = " << target_count << std::endl;
+		SLIM_OUTSTREAM << "//    mutrun_count_ = " << mutrun_count_ << std::endl;
+	}
 	
 	// If the user specified a preferred mutation run length, use that
 	if (p_preferred_count != 0)
@@ -161,11 +162,10 @@ void Chromosome::ChooseMutationRunLayout(int p_preferred_count)
 		if (p_preferred_count < 1)
 			EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): there must be at least one mutation run per genome." << eidos_terminate();
 		
-		SLIM_OUTSTREAM << std::endl << "// Default mutation run count: " << mutrun_count_ << std::endl;
-		
 		mutrun_count_ = p_preferred_count;
 		
-		SLIM_OUTSTREAM << "// Override mutation run count: " << mutrun_count_ << std::endl;
+		if (SLiM_verbose_output)
+			SLIM_OUTSTREAM << std::endl << "// Override mutation run count: " << mutrun_count_ << std::endl;
 	}
 	
 	// Calculate the length of mutation runs needed given the mutation run count and chromosome length
@@ -174,9 +174,6 @@ void Chromosome::ChooseMutationRunLayout(int p_preferred_count)
 	// Consistency check
 	if ((mutrun_length_ < 1) || (mutrun_count_ * mutrun_length_ <= last_position_))
 		EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): (internal error) math error in mutation run calculations." << eidos_terminate();
-	
-	// Debugging output
-	//std::cout << "# Mutation run layout: " << mutrun_count_ << " runs of " << mutrun_length_ << " bases each (" << mutrun_count_ * mutrun_length_ << " base capacity)" << std::endl;
 }
 
 // initialize one recombination map, used internally by InitializeDraws() to avoid code duplication

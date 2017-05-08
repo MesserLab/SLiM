@@ -83,6 +83,10 @@ void SLiMRaisePolymorphismidRangeError(int64_t p_long_value)
 }
 
 
+// Verbosity, from the command-line option -l[ong]
+bool SLiM_verbose_output = false;
+
+
 // stream output for enumerations
 std::ostream& operator<<(std::ostream& p_out, GenomeType p_genome_type)
 {
