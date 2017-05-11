@@ -27,7 +27,7 @@
 
 @implementation NSAttributedString (EidosAdditions)
 
-+ (NSAttributedString *)eidosAttributedStringForCallSignature:(const EidosCallSignature *)signature
++ (NSAttributedString *)eidosAttributedStringForCallSignature:(const EidosCallSignature *)signature size:(double)fontSize
 {
 	if (signature)
 	{
@@ -43,10 +43,10 @@
 		NSString *returnTypeString = [NSString stringWithUTF8String:StringForEidosValueMask(signature->return_mask_, signature->return_class_, "", nullptr).c_str()];
 		NSString *functionNameString = [NSString stringWithUTF8String:signature->call_name_.c_str()];
 		
-		NSDictionary *plainAttrs = [NSDictionary eidosOutputAttrs];
-		NSDictionary *typeAttrs = [NSDictionary eidosInputAttrs];
-		NSDictionary *functionAttrs = [NSDictionary eidosParseAttrs];
-		NSDictionary *paramAttrs = [NSDictionary eidosPromptAttrs];
+		NSDictionary *plainAttrs = [NSDictionary eidosOutputAttrsWithSize:fontSize];
+		NSDictionary *typeAttrs = [NSDictionary eidosInputAttrsWithSize:fontSize];
+		NSDictionary *functionAttrs = [NSDictionary eidosParseAttrsWithSize:fontSize];
+		NSDictionary *paramAttrs = [NSDictionary eidosPromptAttrsWithSize:fontSize];
 		
 		[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:prefixString attributes:plainAttrs] autorelease]];
 		[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"(" attributes:plainAttrs] autorelease]];
@@ -182,7 +182,7 @@
 	return [[[NSAttributedString alloc] init] autorelease];
 }
 
-+ (NSAttributedString *)eidosAttributedStringForPropertySignature:(const EidosPropertySignature *)signature
++ (NSAttributedString *)eidosAttributedStringForPropertySignature:(const EidosPropertySignature *)signature size:(double)fontSize
 {
 	if (signature)
 	{
@@ -198,9 +198,9 @@
 		NSString *valueTypeString = [NSString stringWithUTF8String:StringForEidosValueMask(signature->value_mask_, signature->value_class_, "", nullptr).c_str()];
 		NSString *propertyNameString = [NSString stringWithUTF8String:signature->property_name_.c_str()];
 		
-		NSDictionary *plainAttrs = [NSDictionary eidosOutputAttrs];
-		NSDictionary *typeAttrs = [NSDictionary eidosInputAttrs];
-		NSDictionary *functionAttrs = [NSDictionary eidosParseAttrs];
+		NSDictionary *plainAttrs = [NSDictionary eidosOutputAttrsWithSize:fontSize];
+		NSDictionary *typeAttrs = [NSDictionary eidosInputAttrsWithSize:fontSize];
+		NSDictionary *functionAttrs = [NSDictionary eidosParseAttrsWithSize:fontSize];
 		
 		[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:propertyNameString attributes:functionAttrs] autorelease]];
 		[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@" " attributes:plainAttrs] autorelease]];
@@ -222,19 +222,28 @@
 
 @implementation NSDictionary (EidosAdditions)
 
-+ (NSDictionary *)eidosTextAttributesWithColor:(NSColor *)textColor
++ (NSDictionary *)eidosTextAttributesWithColor:(NSColor *)textColor size:(double)fontSize
 {
-	static NSFont *menlo11Font = nil;
+	static double menloFontSize = 0.0;
+	static NSFont *menloFont = nil;
 	static NSMutableParagraphStyle *paragraphStyle = nil;
 	
-	if (!menlo11Font)
-		menlo11Font = [[NSFont fontWithName:@"Menlo" size:11.0] retain];
+	if (!menloFont || (menloFontSize != fontSize))
+	{
+		if (menloFont)
+			[menloFont release];
+		
+		menloFont = [[NSFont fontWithName:@"Menlo" size:fontSize] retain];
+	}
 	
 	if (!paragraphStyle)
 	{
+		if (paragraphStyle)
+			[paragraphStyle release];
+		
 		paragraphStyle = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
 		
-		CGFloat tabInterval = [menlo11Font maximumAdvancement].width * 3;
+		CGFloat tabInterval = [menloFont maximumAdvancement].width * 3;
 		NSMutableArray *tabs = [NSMutableArray array];
 		
 		[paragraphStyle setDefaultTabInterval:tabInterval];
@@ -245,78 +254,122 @@
 		[paragraphStyle setTabStops:tabs];
 	}
 	
+	menloFontSize = fontSize;
+	
 	if (textColor)
-		return @{NSForegroundColorAttributeName : textColor, NSFontAttributeName : menlo11Font, NSParagraphStyleAttributeName : paragraphStyle};
+		return @{NSForegroundColorAttributeName : textColor, NSFontAttributeName : menloFont, NSParagraphStyleAttributeName : paragraphStyle};
 	else
-		return @{NSFontAttributeName : menlo11Font, NSParagraphStyleAttributeName : paragraphStyle};
+		return @{NSFontAttributeName : menloFont, NSParagraphStyleAttributeName : paragraphStyle};
 }
 
-+ (NSDictionary *)eidosPromptAttrs
++ (NSDictionary *)eidosPromptAttrsWithSize:(double)fontSize
 {
+	static double cachedFontSize = 0.0;
 	static NSDictionary *promptAttrs = nil;
 	
-	if (!promptAttrs)
-		promptAttrs = [[NSDictionary eidosTextAttributesWithColor:[NSColor colorWithCalibratedRed:170/255.0 green:13/255.0 blue:145/255.0 alpha:1.0]] retain];
+	if (!promptAttrs || (fontSize != cachedFontSize))
+	{
+		if (promptAttrs)
+			[promptAttrs release];
+		
+		promptAttrs = [[NSDictionary eidosTextAttributesWithColor:[NSColor colorWithCalibratedRed:170/255.0 green:13/255.0 blue:145/255.0 alpha:1.0] size:fontSize] retain];
+	}
 	
 	return promptAttrs;
 }
 
-+ (NSDictionary *)eidosInputAttrs
++ (NSDictionary *)eidosInputAttrsWithSize:(double)fontSize
 {
+	static double cachedFontSize = 0.0;
 	static NSDictionary *inputAttrs = nil;
 	
-	if (!inputAttrs)
-		inputAttrs = [[NSDictionary eidosTextAttributesWithColor:[NSColor colorWithCalibratedRed:28/255.0 green:0/255.0 blue:207/255.0 alpha:1.0]] retain];
+	if (!inputAttrs || (fontSize != cachedFontSize))
+	{
+		if (inputAttrs)
+			[inputAttrs release];
+		
+		inputAttrs = [[NSDictionary eidosTextAttributesWithColor:[NSColor colorWithCalibratedRed:28/255.0 green:0/255.0 blue:207/255.0 alpha:1.0] size:fontSize] retain];
+	}
 	
 	return inputAttrs;
 }
 
-+ (NSDictionary *)eidosOutputAttrs
++ (NSDictionary *)eidosOutputAttrsWithSize:(double)fontSize
 {
+	static double cachedFontSize = 0.0;
 	static NSDictionary *outputAttrs = nil;
 	
-	if (!outputAttrs)
-		outputAttrs = [[NSDictionary eidosTextAttributesWithColor:[NSColor colorWithCalibratedRed:0/255.0 green:0/255.0 blue:0/255.0 alpha:1.0]] retain];
+	if (!outputAttrs || (fontSize != cachedFontSize))
+	{
+		if (outputAttrs)
+			[outputAttrs release];
+		
+		outputAttrs = [[NSDictionary eidosTextAttributesWithColor:[NSColor colorWithCalibratedRed:0/255.0 green:0/255.0 blue:0/255.0 alpha:1.0] size:fontSize] retain];
+	}
 	
 	return outputAttrs;
 }
 
-+ (NSDictionary *)eidosErrorAttrs
++ (NSDictionary *)eidosErrorAttrsWithSize:(double)fontSize
 {
+	static double cachedFontSize = 0.0;
 	static NSDictionary *errorAttrs = nil;
 	
-	if (!errorAttrs)
-		errorAttrs = [[NSDictionary eidosTextAttributesWithColor:[NSColor colorWithCalibratedRed:196/255.0 green:26/255.0 blue:22/255.0 alpha:1.0]] retain];
+	if (!errorAttrs || (fontSize != cachedFontSize))
+	{
+		if (errorAttrs)
+			[errorAttrs release];
+		
+		errorAttrs = [[NSDictionary eidosTextAttributesWithColor:[NSColor colorWithCalibratedRed:196/255.0 green:26/255.0 blue:22/255.0 alpha:1.0] size:fontSize] retain];
+	}
 	
 	return errorAttrs;
 }
 
-+ (NSDictionary *)eidosTokensAttrs
++ (NSDictionary *)eidosTokensAttrsWithSize:(double)fontSize
 {
+	static double cachedFontSize = 0.0;
 	static NSDictionary *tokensAttrs = nil;
 	
-	if (!tokensAttrs)
-		tokensAttrs = [[NSDictionary eidosTextAttributesWithColor:[NSColor colorWithCalibratedRed:100/255.0 green:56/255.0 blue:32/255.0 alpha:1.0]] retain];
+	if (!tokensAttrs || (fontSize != cachedFontSize))
+	{
+		if (tokensAttrs)
+			[tokensAttrs release];
+		
+		tokensAttrs = [[NSDictionary eidosTextAttributesWithColor:[NSColor colorWithCalibratedRed:100/255.0 green:56/255.0 blue:32/255.0 alpha:1.0] size:fontSize] retain];
+	}
 	
 	return tokensAttrs;
 }
 
-+ (NSDictionary *)eidosParseAttrs
++ (NSDictionary *)eidosParseAttrsWithSize:(double)fontSize
 {
+	static double cachedFontSize = 0.0;
 	static NSDictionary *parseAttrs = nil;
 	
-	if (!parseAttrs)
-		parseAttrs = [[NSDictionary eidosTextAttributesWithColor:[NSColor colorWithCalibratedRed:0/255.0 green:116/255.0 blue:0/255.0 alpha:1.0]] retain];
+	if (!parseAttrs || (fontSize != cachedFontSize))
+	{
+		if (parseAttrs)
+			[parseAttrs release];
+		
+		parseAttrs = [[NSDictionary eidosTextAttributesWithColor:[NSColor colorWithCalibratedRed:0/255.0 green:116/255.0 blue:0/255.0 alpha:1.0] size:fontSize] retain];
+	}
 	
 	return parseAttrs;
 }
 
-+ (NSDictionary *)eidosExecutionAttrs
++ (NSDictionary *)eidosExecutionAttrsWithSize:(double)fontSize
 {
+	static double cachedFontSize = 0.0;
 	static NSDictionary *executionAttrs = nil;
 	
-	if (!executionAttrs)
-		executionAttrs = [[NSDictionary eidosTextAttributesWithColor:[NSColor colorWithCalibratedRed:63/255.0 green:110/255.0 blue:116/255.0 alpha:1.0]] retain];
+	if (!executionAttrs || (fontSize != cachedFontSize))
+	{
+		if (executionAttrs)
+			[executionAttrs release];
+		
+		executionAttrs = [[NSDictionary eidosTextAttributesWithColor:[NSColor colorWithCalibratedRed:63/255.0 green:110/255.0 blue:116/255.0 alpha:1.0] size:fontSize] retain];
+	}
 	
 	return executionAttrs;
 }

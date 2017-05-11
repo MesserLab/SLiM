@@ -37,8 +37,8 @@ class EidosPropertySignature;
 @interface NSAttributedString (EidosAdditions)
 
 // This provides a nicely syntax-colored call signature string for use in the console window status bar and such places.
-+ (NSAttributedString *)eidosAttributedStringForCallSignature:(const EidosCallSignature *)signature;
-+ (NSAttributedString *)eidosAttributedStringForPropertySignature:(const EidosPropertySignature *)signature;
++ (NSAttributedString *)eidosAttributedStringForCallSignature:(const EidosCallSignature *)signature size:(double)fontSize;
++ (NSAttributedString *)eidosAttributedStringForPropertySignature:(const EidosPropertySignature *)signature size:(double)fontSize;
 
 @end
 
@@ -46,16 +46,16 @@ class EidosPropertySignature;
 @interface NSDictionary (EidosAdditions)
 
 // The standard font (Menlo 11 with 3-space tabs) with a given color, used to assemble attributed strings
-+ (NSDictionary *)eidosTextAttributesWithColor:(NSColor *)textColor;
++ (NSDictionary *)eidosTextAttributesWithColor:(NSColor *)textColor size:(double)fontSize;
 
 // Some standard attribute dictionaries for Eidos syntax coloring
-+ (NSDictionary *)eidosPromptAttrs;
-+ (NSDictionary *)eidosInputAttrs;
-+ (NSDictionary *)eidosOutputAttrs;
-+ (NSDictionary *)eidosErrorAttrs;
-+ (NSDictionary *)eidosTokensAttrs;
-+ (NSDictionary *)eidosParseAttrs;
-+ (NSDictionary *)eidosExecutionAttrs;
++ (NSDictionary *)eidosPromptAttrsWithSize:(double)fontSize;
++ (NSDictionary *)eidosInputAttrsWithSize:(double)fontSize;
++ (NSDictionary *)eidosOutputAttrsWithSize:(double)fontSize;
++ (NSDictionary *)eidosErrorAttrsWithSize:(double)fontSize;
++ (NSDictionary *)eidosTokensAttrsWithSize:(double)fontSize;
++ (NSDictionary *)eidosParseAttrsWithSize:(double)fontSize;
++ (NSDictionary *)eidosExecutionAttrsWithSize:(double)fontSize;
 
 // Add a hyperlink to an existing attribute dictionary
 + (NSDictionary *)eidosBaseAttributes:(NSDictionary *)baseAttrs withHyperlink:(NSString *)link;

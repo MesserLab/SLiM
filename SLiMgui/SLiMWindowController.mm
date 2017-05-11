@@ -151,6 +151,8 @@
 		// observe preferences that we care about
 		[[NSUserDefaults standardUserDefaults] addObserver:self forKeyPath:defaultsSyntaxHighlightScriptKey options:0 context:NULL];
 		[[NSUserDefaults standardUserDefaults] addObserver:self forKeyPath:defaultsSyntaxHighlightOutputKey options:0 context:NULL];
+		[[NSUserDefaults standardUserDefaults] addObserver:self forKeyPath:defaultsDisplayFontSizeKey options:0 context:NULL];
+		
 		observingKeyPaths = YES;
 		
 		// Observe notifications to keep our variable browser toggle button up to date
@@ -197,6 +199,7 @@
 	
 		[defaults removeObserver:self forKeyPath:defaultsSyntaxHighlightScriptKey context:NULL];
 		[defaults removeObserver:self forKeyPath:defaultsSyntaxHighlightOutputKey context:NULL];
+		[defaults removeObserver:self forKeyPath:defaultsDisplayFontSizeKey context:NULL];
 		
 		observingKeyPaths = NO;
 	}
@@ -330,7 +333,7 @@
 	
 	// Show the error in the status bar also
 	NSString *trimmedError = [terminationMessage stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-	NSDictionary *errorAttrs = [NSDictionary eidosTextAttributesWithColor:[NSColor redColor]];
+	NSDictionary *errorAttrs = [NSDictionary eidosTextAttributesWithColor:[NSColor redColor] size:11.0];
 	NSMutableAttributedString *errorAttrString = [[[NSMutableAttributedString alloc] initWithString:trimmedError attributes:errorAttrs] autorelease];
 	
 	[errorAttrString addAttribute:NSBaselineOffsetAttributeName value:[NSNumber numberWithFloat:2.0] range:NSMakeRange(0, [errorAttrString length])];
@@ -447,6 +450,17 @@
 			else
 				[outputTextView setSyntaxColoring:kEidosSyntaxColoringNone];
 		}
+		
+		if ([keyPath isEqualToString:defaultsDisplayFontSizeKey])
+		{
+			int fontSize = (int)[defaults integerForKey:defaultsDisplayFontSizeKey];
+			
+			[scriptTextView setDisplayFontSize:fontSize];
+			[outputTextView setDisplayFontSize:fontSize];
+			
+			[[_consoleController scriptTextView] setDisplayFontSize:fontSize];
+			[[_consoleController outputTextView] setDisplayFontSize:fontSize];
+		}
 	}
 }
 
@@ -496,7 +510,7 @@
 		BOOL scrolledToBottom = YES; //(![enclosingScrollView hasVerticalScroller] || [[enclosingScrollView verticalScroller] doubleValue] == 1.0);
 		
 		[outputTextView replaceCharactersInRange:NSMakeRange([[outputTextView string] length], 0) withString:str];
-		[outputTextView setFont:[NSFont fontWithName:@"Menlo" size:11.0]];
+		[outputTextView setFont:[NSFont fontWithName:@"Menlo" size:[outputTextView displayFontSize]]];
 		if ([[NSUserDefaults standardUserDefaults] boolForKey:defaultsSyntaxHighlightOutputKey])
 			[outputTextView recolorAfterChanges];
 		
@@ -1588,7 +1602,7 @@
 		
 		// Show the error in the status bar also
 		NSString *trimmedError = [errorDiagnostic stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-		NSDictionary *errorAttrs = [NSDictionary eidosTextAttributesWithColor:[NSColor redColor]];
+		NSDictionary *errorAttrs = [NSDictionary eidosTextAttributesWithColor:[NSColor redColor] size:11.0];
 		NSMutableAttributedString *errorAttrString = [[[NSMutableAttributedString alloc] initWithString:trimmedError attributes:errorAttrs] autorelease];
 		
 		[errorAttrString addAttribute:NSBaselineOffsetAttributeName value:[NSNumber numberWithFloat:2.0] range:NSMakeRange(0, [errorAttrString length])];
@@ -1933,7 +1947,7 @@
 {
 	EidosConsoleTextView *textView = [_consoleController textView];
 	NSTextStorage *ts = [textView textStorage];
-	NSDictionary *outputAttrs = [NSDictionary eidosOutputAttrs];
+	NSDictionary *outputAttrs = [NSDictionary eidosOutputAttrsWithSize:[textView displayFontSize]];
 	NSString *bundleVersionString = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
 	NSString *bundleVersion = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleVersion"];
 	NSString *versionString = [NSString stringWithFormat:@"%@ (build %@)", bundleVersionString, bundleVersion];
@@ -2495,7 +2509,7 @@
 			if (!callbackSig)
 				callbackSig = (new EidosFunctionSignature("initialize", nullptr, kEidosValueMaskNULL));
 			
-			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig];
+			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig size:11.0];
 		}
 		else if ([signatureString hasPrefix:@"early()"])
 		{
@@ -2504,7 +2518,7 @@
 			if (!callbackSig)
 				callbackSig = (new EidosFunctionSignature("early", nullptr, kEidosValueMaskNULL));
 			
-			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig];
+			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig size:11.0];
 		}
 		else if ([signatureString hasPrefix:@"late()"])
 		{
@@ -2513,7 +2527,7 @@
 			if (!callbackSig)
 				callbackSig = (new EidosFunctionSignature("late", nullptr, kEidosValueMaskNULL));
 			
-			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig];
+			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig size:11.0];
 		}
 		else if ([signatureString hasPrefix:@"fitness()"])
 		{
@@ -2522,7 +2536,7 @@
 			if (!callbackSig)
 				callbackSig = (new EidosFunctionSignature("fitness", nullptr, kEidosValueMaskNULL))->AddObject_SN("mutationType", gSLiM_MutationType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
 			
-			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig];
+			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig size:11.0];
 		}
 		else if ([signatureString hasPrefix:@"interaction()"])
 		{
@@ -2531,7 +2545,7 @@
 			if (!callbackSig)
 				callbackSig = (new EidosFunctionSignature("interaction", nullptr, kEidosValueMaskNULL))->AddObject_S("interactionType", gSLiM_InteractionType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
 			
-			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig];
+			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig size:11.0];
 		}
 		else if ([signatureString hasPrefix:@"mateChoice()"])
 		{
@@ -2540,7 +2554,7 @@
 			if (!callbackSig)
 				callbackSig = (new EidosFunctionSignature("mateChoice", nullptr, kEidosValueMaskNULL))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
 			
-			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig];
+			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig size:11.0];
 		}
 		else if ([signatureString hasPrefix:@"modifyChild()"])
 		{
@@ -2549,7 +2563,7 @@
 			if (!callbackSig)
 				callbackSig = (new EidosFunctionSignature("modifyChild", nullptr, kEidosValueMaskNULL))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
 			
-			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig];
+			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig size:11.0];
 		}
 		else if ([signatureString hasPrefix:@"recombination()"])
 		{
@@ -2558,7 +2572,7 @@
 			if (!callbackSig)
 				callbackSig = (new EidosFunctionSignature("recombination", nullptr, kEidosValueMaskNULL))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
 			
-			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig];
+			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig size:11.0];
 		}
 	}
 	

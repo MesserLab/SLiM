@@ -67,7 +67,7 @@
 {
 	NSTextStorage *ts = [self textStorage];
 	NSUInteger promptEnd = [self promptRangeEnd];
-	NSDictionary *inputAttrs = [NSDictionary eidosInputAttrs];
+	NSDictionary *inputAttrs = [NSDictionary eidosInputAttrsWithSize:[self displayFontSize]];
 	NSAttributedString *newAttrCommand = [[NSAttributedString alloc] initWithString:newCommand attributes:inputAttrs];
 	
 	[ts beginEditing];
@@ -193,7 +193,7 @@
 - (void)showWelcomeMessage
 {
 	NSTextStorage *ts = [self textStorage];
-	NSDictionary *outputAttrs = [NSDictionary eidosOutputAttrs];
+	NSDictionary *outputAttrs = [NSDictionary eidosOutputAttrsWithSize:[self displayFontSize]];
 	
 	NSAttributedString *welcomeString1 = [[NSAttributedString alloc] initWithString:@"Eidos version 1.3\n\nBy Benjamin C. Haller (" attributes:outputAttrs];		// EIDOS VERSION
 	NSAttributedString *welcomeString2 = [[NSAttributedString alloc] initWithString:@"http://benhaller.com/" attributes:[NSDictionary eidosBaseAttributes:outputAttrs withHyperlink:@"http://benhaller.com/"]];
@@ -219,8 +219,8 @@
 - (void)showPrompt:(unichar)promptChar
 {
 	NSTextStorage *ts = [self textStorage];
-	NSDictionary *promptAttrs = [NSDictionary eidosPromptAttrs];
-	NSDictionary *inputAttrs = [NSDictionary eidosInputAttrs];
+	NSDictionary *promptAttrs = [NSDictionary eidosPromptAttrsWithSize:[self displayFontSize]];
+	NSDictionary *inputAttrs = [NSDictionary eidosInputAttrsWithSize:[self displayFontSize]];
 	
 	// The prompt uses the inputAttrs for the second (space) character, to make sure typing attributes are always correct
 	NSString *prompt = [NSString stringWithCharacters:&promptChar length:1];

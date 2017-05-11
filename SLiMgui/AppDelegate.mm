@@ -31,6 +31,7 @@
 
 // User defaults keys
 NSString *defaultsLaunchActionKey = @"LaunchAction";
+NSString *defaultsDisplayFontSizeKey = @"DisplayFontSize";
 NSString *defaultsSyntaxHighlightScriptKey = @"SyntaxHighlightScript";
 NSString *defaultsSyntaxHighlightOutputKey = @"SyntaxHighlightOutput";
 NSString *defaultsPlaySoundParseSuccessKey = @"PlaySoundParseSuccess";
@@ -68,6 +69,7 @@ typedef enum SLiMLaunchAction
 {
 	[[NSUserDefaults standardUserDefaults] registerDefaults:@{
 															  defaultsLaunchActionKey : @(kLaunchNewScriptWindow),
+															  defaultsDisplayFontSizeKey : @11,
 															  defaultsSyntaxHighlightScriptKey : @YES,
 															  defaultsSyntaxHighlightOutputKey : @YES,
 															  defaultsPlaySoundParseSuccessKey : @YES,

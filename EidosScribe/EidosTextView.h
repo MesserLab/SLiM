@@ -62,6 +62,9 @@ typedef enum EidosSyntaxColoringOption
 // The syntax coloring option being used
 @property (nonatomic) EidosSyntaxColoringOption syntaxColoring;
 
+// The font size (of Menlo) being used
+@property (nonatomic) int displayFontSize;
+
 // A flag to temporarily disable syntax coloring, used to coalesce multiple changes into a single recolor
 @property (nonatomic) BOOL shouldRecolorAfterChanges;
 

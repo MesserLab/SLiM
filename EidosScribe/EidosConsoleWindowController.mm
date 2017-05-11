@@ -380,6 +380,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 - (void)executeScriptString:(NSString *)scriptString withOptionalSemicolon:(BOOL)semicolonOptional
 {
 	NSTextStorage *ts = [outputTextView textStorage];
+	double fontSize = [outputTextView displayFontSize];
 	NSString *tokenString = nil, *parseString = nil, *executionString = nil, *errorString = nil;
 	NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
 	BOOL showTokens = [defaults boolForKey:EidosDefaultsShowTokensKey];
@@ -398,7 +399,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	if (errorString && ([errorString rangeOfString:@"unexpected token 'EOF'"].location != NSNotFound))	// BCH 4/7/2016: containsString: added in 10.10
 	{
 		// The user has entered an incomplete script line, so we need to append a newline...
-		NSAttributedString *outputString1 = [[NSAttributedString alloc] initWithString:@"\n" attributes:[NSDictionary eidosInputAttrs]];
+		NSAttributedString *outputString1 = [[NSAttributedString alloc] initWithString:@"\n" attributes:[NSDictionary eidosInputAttrsWithSize:fontSize]];
 		
 		[ts beginEditing];
 		[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:outputString1];
@@ -414,12 +415,12 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	else
 	{
 		// make the attributed strings we will append
-		NSAttributedString *outputString1 = [[NSAttributedString alloc] initWithString:@"\n" attributes:[NSDictionary eidosInputAttrs]];
-		NSAttributedString *outputString2 = (result ? [[NSAttributedString alloc] initWithString:result attributes:[NSDictionary eidosOutputAttrs]] : nil);
-		NSAttributedString *errorAttrString = (errorString ? [[NSAttributedString alloc] initWithString:errorString attributes:[NSDictionary eidosErrorAttrs]] : nil);
-		NSAttributedString *tokenAttrString = (tokenString ? [[NSAttributedString alloc] initWithString:tokenString attributes:[NSDictionary eidosTokensAttrs]] : nil);
-		NSAttributedString *parseAttrString = (parseString ? [[NSAttributedString alloc] initWithString:parseString attributes:[NSDictionary eidosParseAttrs]] : nil);
-		NSAttributedString *executionAttrString = (executionString ? [[NSAttributedString alloc] initWithString:executionString attributes:[NSDictionary eidosExecutionAttrs]] : nil);;
+		NSAttributedString *outputString1 = [[NSAttributedString alloc] initWithString:@"\n" attributes:[NSDictionary eidosInputAttrsWithSize:fontSize]];
+		NSAttributedString *outputString2 = (result ? [[NSAttributedString alloc] initWithString:result attributes:[NSDictionary eidosOutputAttrsWithSize:fontSize]] : nil);
+		NSAttributedString *errorAttrString = (errorString ? [[NSAttributedString alloc] initWithString:errorString attributes:[NSDictionary eidosErrorAttrsWithSize:fontSize]] : nil);
+		NSAttributedString *tokenAttrString = (tokenString ? [[NSAttributedString alloc] initWithString:tokenString attributes:[NSDictionary eidosTokensAttrsWithSize:fontSize]] : nil);
+		NSAttributedString *parseAttrString = (parseString ? [[NSAttributedString alloc] initWithString:parseString attributes:[NSDictionary eidosParseAttrsWithSize:fontSize]] : nil);
+		NSAttributedString *executionAttrString = (executionString ? [[NSAttributedString alloc] initWithString:executionString attributes:[NSDictionary eidosExecutionAttrsWithSize:fontSize]] : nil);;
 		
 		// do the editing
 		[ts beginEditing];
@@ -551,7 +552,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		
 		// Show the error in the status bar also
 		NSString *trimmedError = [errorDiagnostic stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-		NSDictionary *errorAttrs = [NSDictionary eidosTextAttributesWithColor:[NSColor redColor]];
+		NSDictionary *errorAttrs = [NSDictionary eidosTextAttributesWithColor:[NSColor redColor] size:11.0];
 		NSMutableAttributedString *errorAttrString = [[[NSMutableAttributedString alloc] initWithString:trimmedError attributes:errorAttrs] autorelease];
 		
 		[errorAttrString addAttribute:NSBaselineOffsetAttributeName value:[NSNumber numberWithFloat:2.0] range:NSMakeRange(0, [errorAttrString length])];
@@ -631,7 +632,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	if (isContinuationPrompt)
 	{
 		NSTextStorage *ts = [outputTextView textStorage];
-		NSDictionary *inputAttrs = [NSDictionary eidosInputAttrs];
+		NSDictionary *inputAttrs = [NSDictionary eidosInputAttrsWithSize:[outputTextView displayFontSize]];
 		NSAttributedString *promptString1 = [[NSAttributedString alloc] initWithString:@" " attributes:inputAttrs];
 		NSUInteger promptEnd = [outputTextView promptRangeEnd];
 		
@@ -657,7 +658,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 - (IBAction)executeAll:(id)sender
 {
 	NSTextStorage *ts = [outputTextView textStorage];
-	NSDictionary *inputAttrs = [NSDictionary eidosInputAttrs];
+	NSDictionary *inputAttrs = [NSDictionary eidosInputAttrsWithSize:[outputTextView displayFontSize]];
 	NSString *fullScriptString = [scriptTextView string];
 	NSAttributedString *scriptAttrString = [[[NSAttributedString alloc] initWithString:fullScriptString attributes:inputAttrs] autorelease];
 	NSUInteger promptEnd = [outputTextView promptRangeEnd];
@@ -725,7 +726,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	if (executionRange.length > 0)
 	{
 		NSString *scriptString = [fullScriptString substringWithRange:executionRange];
-		NSDictionary *inputAttrs = [NSDictionary eidosInputAttrs];
+		NSDictionary *inputAttrs = [NSDictionary eidosInputAttrsWithSize:[outputTextView displayFontSize]];
 		NSAttributedString *scriptAttrString = [[[NSAttributedString alloc] initWithString:scriptString attributes:inputAttrs] autorelease];
 		NSUInteger promptEnd = [outputTextView promptRangeEnd];
 		
@@ -808,7 +809,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 			[outputTextView registerNewHistoryItem:executionString];
 			
 			NSTextStorage *ts = [outputTextView textStorage];
-			NSAttributedString *outputString1 = [[NSAttributedString alloc] initWithString:@"\n" attributes:[NSDictionary eidosInputAttrs]];
+			NSAttributedString *outputString1 = [[NSAttributedString alloc] initWithString:@"\n" attributes:[NSDictionary eidosInputAttrsWithSize:[outputTextView displayFontSize]]];
 			
 			[ts beginEditing];
 			[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:outputString1];

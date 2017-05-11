@@ -583,10 +583,10 @@ DQ
         </menu>
         <window title="SLiMgui Preferences" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" restorable="NO" hidesOnDeactivate="YES" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" animationBehavior="default" id="cET-rW-zho" customClass="NSPanel">
             <windowStyleMask key="styleMask" titled="YES" closable="YES"/>
-            <rect key="contentRect" x="272" y="199" width="268" height="364"/>
+            <rect key="contentRect" x="272" y="199" width="268" height="431"/>
             <rect key="screenRect" x="0.0" y="0.0" width="1920" height="1057"/>
             <view key="contentView" id="ae8-oN-lQF">
-                <rect key="frame" x="0.0" y="0.0" width="268" height="364"/>
+                <rect key="frame" x="0.0" y="0.0" width="268" height="431"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
                     <button translatesAutoresizingMaskIntoConstraints="NO" id="pFc-cT-SJr">
@@ -612,6 +612,14 @@ DQ
                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="PHC-Yj-PFy">
                         <rect key="frame" x="18" y="224" width="180" height="17"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Enable syntax highlighting:" id="oD3-D6-zvA">
+                            <font key="font" metaFont="systemBold"/>
+                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="VCf-DB-Pyy">
+                        <rect key="frame" x="18" y="291" width="115" height="17"/>
+                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Display font size:" id="A2o-Lb-mVo">
                             <font key="font" metaFont="systemBold"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
@@ -668,7 +676,7 @@ DQ
                         </connections>
                     </button>
                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="1Yf-hO-IoP">
-                        <rect key="frame" x="18" y="327" width="143" height="17"/>
+                        <rect key="frame" x="18" y="394" width="143" height="17"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="When SLiMgui starts:" id="dL6-Sg-GED">
                             <font key="font" metaFont="systemBold"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -676,7 +684,7 @@ DQ
                         </textFieldCell>
                     </textField>
                     <matrix verticalHuggingPriority="750" allowsEmptySelection="NO" autorecalculatesCellSize="YES" translatesAutoresizingMaskIntoConstraints="NO" id="gPW-po-YSE">
-                        <rect key="frame" x="33" y="261" width="209" height="58"/>
+                        <rect key="frame" x="33" y="328" width="209" height="58"/>
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                         <size key="cellSize" width="209" height="18"/>
                         <size key="intercellSpacing" width="4" height="2"/>
@@ -704,25 +712,62 @@ DQ
                             <binding destination="sPi-91-YoN" name="selectedTag" keyPath="values.LaunchAction" id="lOC-BL-9zx"/>
                         </connections>
                     </matrix>
+                    <stepper horizontalHuggingPriority="750" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="fUY-QK-PRE">
+                        <rect key="frame" x="64" y="258" width="19" height="27"/>
+                        <stepperCell key="cell" continuous="YES" alignment="left" minValue="9" maxValue="30" doubleValue="11" id="CFF-pU-pUU"/>
+                        <connections>
+                            <binding destination="sPi-91-YoN" name="value" keyPath="values.DisplayFontSize" id="lde-VA-Uvc"/>
+                        </connections>
+                    </stepper>
+                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="KpB-tT-jSj">
+                        <rect key="frame" x="85" y="263" width="42" height="17"/>
+                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="points" id="E9s-Wo-eYy">
+                            <font key="font" metaFont="system"/>
+                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <textField verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="NO" textCompletion="NO" translatesAutoresizingMaskIntoConstraints="NO" id="1i1-DN-XAq">
+                        <rect key="frame" x="34" y="260" width="30" height="22"/>
+                        <constraints>
+                            <constraint firstAttribute="width" constant="30" id="vBs-sL-kPy"/>
+                        </constraints>
+                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" allowsUndo="NO" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" drawsBackground="YES" id="wIq-Lp-aN0">
+                            <numberFormatter key="formatter" formatterBehavior="default10_4" numberStyle="decimal" minimumIntegerDigits="1" maximumIntegerDigits="2000000000" maximumFractionDigits="3" id="tJt-EI-o9d"/>
+                            <font key="font" metaFont="system"/>
+                            <color key="textColor" name="textColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                        <connections>
+                            <binding destination="sPi-91-YoN" name="value" keyPath="values.DisplayFontSize" id="QoX-3F-08Q"/>
+                        </connections>
+                    </textField>
                 </subviews>
                 <constraints>
-                    <constraint firstItem="PHC-Yj-PFy" firstAttribute="top" secondItem="gPW-po-YSE" secondAttribute="bottom" constant="20" id="31j-zY-VMm"/>
                     <constraint firstItem="eMc-AI-9kI" firstAttribute="top" secondItem="2D7-na-mil" secondAttribute="bottom" constant="8" id="3LG-8M-ZXe"/>
                     <constraint firstItem="PHC-Yj-PFy" firstAttribute="leading" secondItem="ae8-oN-lQF" secondAttribute="leading" constant="20" id="7cj-vA-vdn"/>
                     <constraint firstItem="pFc-cT-SJr" firstAttribute="leading" secondItem="PHC-Yj-PFy" secondAttribute="leading" constant="14" id="95H-c3-iHx"/>
+                    <constraint firstItem="fUY-QK-PRE" firstAttribute="bottom" secondItem="1i1-DN-XAq" secondAttribute="bottom" id="9ZI-XU-yi6"/>
                     <constraint firstItem="1Yf-hO-IoP" firstAttribute="leading" secondItem="ae8-oN-lQF" secondAttribute="leading" constant="20" id="Ck3-6q-awX"/>
                     <constraint firstItem="2D7-na-mil" firstAttribute="top" secondItem="A87-L1-NNH" secondAttribute="bottom" constant="20" id="DQj-gB-iJO"/>
                     <constraint firstItem="eMc-AI-9kI" firstAttribute="leading" secondItem="ae8-oN-lQF" secondAttribute="leading" constant="42" id="EbN-xR-7ba"/>
+                    <constraint firstItem="gPW-po-YSE" firstAttribute="leading" secondItem="ae8-oN-lQF" secondAttribute="leading" constant="33" id="Eep-LB-BE6"/>
+                    <constraint firstItem="1i1-DN-XAq" firstAttribute="leading" secondItem="VCf-DB-Pyy" secondAttribute="leading" constant="14" id="ISe-jE-8Al"/>
+                    <constraint firstItem="fUY-QK-PRE" firstAttribute="leading" secondItem="1i1-DN-XAq" secondAttribute="trailing" constant="3" id="JCD-Ov-r5D"/>
                     <constraint firstItem="LNo-up-hn1" firstAttribute="top" secondItem="pFc-cT-SJr" secondAttribute="bottom" constant="6" id="MRq-3j-fVb"/>
+                    <constraint firstItem="KpB-tT-jSj" firstAttribute="baseline" secondItem="1i1-DN-XAq" secondAttribute="baseline" id="Skw-iC-nXY"/>
                     <constraint firstItem="1Yf-hO-IoP" firstAttribute="top" secondItem="ae8-oN-lQF" secondAttribute="top" constant="20" id="WSw-eo-ddk"/>
                     <constraint firstItem="pFc-cT-SJr" firstAttribute="leading" secondItem="LNo-up-hn1" secondAttribute="leading" id="WhB-aX-WW0"/>
                     <constraint firstItem="6sR-dN-vyi" firstAttribute="top" secondItem="LNo-up-hn1" secondAttribute="bottom" constant="20" id="XCj-lM-31Q"/>
-                    <constraint firstItem="gPW-po-YSE" firstAttribute="leading" secondItem="1Yf-hO-IoP" secondAttribute="trailing" constant="-126" id="Zqf-ZU-Mzi"/>
+                    <constraint firstItem="VCf-DB-Pyy" firstAttribute="top" secondItem="gPW-po-YSE" secondAttribute="bottom" constant="20" id="cM4-UJ-IjF"/>
                     <constraint firstItem="eGw-cr-yvD" firstAttribute="top" secondItem="6sR-dN-vyi" secondAttribute="bottom" constant="8" id="dc2-AF-tIw"/>
+                    <constraint firstItem="1i1-DN-XAq" firstAttribute="top" secondItem="VCf-DB-Pyy" secondAttribute="bottom" constant="9" id="dmR-HJ-Jbu"/>
                     <constraint firstAttribute="trailing" secondItem="2D7-na-mil" secondAttribute="trailing" constant="20" id="eHu-2w-eC4"/>
                     <constraint firstItem="2D7-na-mil" firstAttribute="leading" secondItem="ae8-oN-lQF" secondAttribute="leading" constant="20" id="f0O-dg-uSc"/>
                     <constraint firstItem="A87-L1-NNH" firstAttribute="top" secondItem="eGw-cr-yvD" secondAttribute="bottom" constant="6" id="gmv-w9-7UO"/>
                     <constraint firstItem="pFc-cT-SJr" firstAttribute="top" secondItem="PHC-Yj-PFy" secondAttribute="bottom" constant="8" id="j1L-jL-oIZ"/>
+                    <constraint firstItem="VCf-DB-Pyy" firstAttribute="leading" secondItem="1Yf-hO-IoP" secondAttribute="leading" id="jb9-qH-XSS"/>
+                    <constraint firstItem="KpB-tT-jSj" firstAttribute="leading" secondItem="fUY-QK-PRE" secondAttribute="trailing" constant="7" id="lVS-zL-gOV"/>
                     <constraint firstItem="eGw-cr-yvD" firstAttribute="leading" secondItem="A87-L1-NNH" secondAttribute="leading" id="lco-jM-7rK"/>
                     <constraint firstItem="gPW-po-YSE" firstAttribute="top" secondItem="1Yf-hO-IoP" secondAttribute="bottom" constant="8" id="mIa-h9-UNi"/>
                     <constraint firstAttribute="bottom" secondItem="eMc-AI-9kI" secondAttribute="bottom" constant="20" id="qA1-y5-R1v"/>
@@ -730,7 +775,7 @@ DQ
                     <constraint firstItem="eGw-cr-yvD" firstAttribute="leading" secondItem="6sR-dN-vyi" secondAttribute="leading" constant="14" id="v6l-li-kBs"/>
                 </constraints>
             </view>
-            <point key="canvasLocation" x="2220" y="1425"/>
+            <point key="canvasLocation" x="2220" y="1276.5"/>
         </window>
         <userDefaultsController representsSharedInstance="YES" id="sPi-91-YoN"/>
     </objects>

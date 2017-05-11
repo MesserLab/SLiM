@@ -383,7 +383,7 @@
 				
 				if (function_signature)
 				{
-					NSAttributedString *attrSig = [NSAttributedString eidosAttributedStringForCallSignature:function_signature];
+					NSAttributedString *attrSig = [NSAttributedString eidosAttributedStringForCallSignature:function_signature size:11.0];
 					NSString *oldSignatureString = [lineAttrString string];
 					NSString *newSignatureString = [attrSig string];
 					
@@ -434,7 +434,7 @@
 				
 				if (method_signature)
 				{
-					NSAttributedString *attrSig = [NSAttributedString eidosAttributedStringForCallSignature:method_signature];
+					NSAttributedString *attrSig = [NSAttributedString eidosAttributedStringForCallSignature:method_signature size:11.0];
 					NSString *oldSignatureString = [lineAttrString string];
 					NSString *newSignatureString = [attrSig string];
 					
@@ -485,7 +485,7 @@
 				
 				if (property_signature)
 				{
-					NSAttributedString *attrSig = [NSAttributedString eidosAttributedStringForPropertySignature:property_signature];
+					NSAttributedString *attrSig = [NSAttributedString eidosAttributedStringForPropertySignature:property_signature size:11.0];
 					NSString *oldSignatureString = [lineAttrString string];
 					NSString *newSignatureString = [attrSig string];
 					

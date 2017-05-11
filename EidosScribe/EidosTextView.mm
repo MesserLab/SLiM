@@ -59,6 +59,7 @@ using std::string;
 {
 	if (self = [super initWithFrame:frameRect textContainer:aTextContainer])
 	{
+		_displayFontSize = 11;
 		_shouldRecolorAfterChanges = YES;
 	}
 	
@@ -69,6 +70,7 @@ using std::string;
 {
 	if (self = [super initWithCoder:coder])
 	{
+		_displayFontSize = 11;
 		_shouldRecolorAfterChanges = YES;
 	}
 	
@@ -98,8 +100,8 @@ using std::string;
 	[self turnOffLigatures:nil];
 	
 	// Fix the font and typing attributes
-	[self setFont:[NSFont fontWithName:@"Menlo" size:11.0]];
-	[self setTypingAttributes:[NSDictionary eidosTextAttributesWithColor:nil]];
+	[self setFont:[NSFont fontWithName:@"Menlo" size:_displayFontSize]];
+	[self setTypingAttributes:[NSDictionary eidosTextAttributesWithColor:nil size:_displayFontSize]];
 	
 	// Fix text container insets to look a bit nicer; {0,0} by default
 	[self setTextContainerInset:NSMakeSize(0.0, 5.0)];
@@ -1218,6 +1220,43 @@ using std::string;
 	}
 }
 
+- (void)setDisplayFontSize:(int)fontSize
+{
+	// This is used by SLiMgui; there is no UI exposing it in EidosScribe
+	if (_displayFontSize != fontSize)
+	{
+		_displayFontSize = fontSize;
+		
+		NSFont *newFont = [NSFont fontWithName:@"Menlo" size:fontSize];
+		NSTextStorage *ts = [self textStorage];
+		
+		// go through all attribute runs for NSFontAttribute and change them
+		[ts beginEditing];
+		
+		[ts enumerateAttribute:NSFontAttributeName inRange:NSMakeRange(0, ts.length) options:0 usingBlock:^(id value, NSRange range, BOOL *stop) {
+			if (value) {
+				NSFont *oldFont = (NSFont *)value;
+				CGFloat pointSize = [oldFont pointSize];
+				
+				if ((pointSize >= 6.0) && (pointSize <= 100.0))		// avoid resizing the padding lines in the console...
+				{
+					[ts removeAttribute:NSFontAttributeName range:range];
+					[ts addAttribute:NSFontAttributeName value:newFont range:range];
+				}
+			}
+		}];
+		
+		[ts endEditing];
+		
+		// set the typing attributes; this code just makes an assumption about the correct typing attributes
+		// based on the class, probably I ought to add a new method on EidosTextView to get a typing attr dict...
+		if ([self isKindOfClass:[EidosConsoleTextView class]])
+			[self setTypingAttributes:[NSDictionary eidosInputAttrsWithSize:[self displayFontSize]]];
+		else
+			[self setTypingAttributes:[NSDictionary eidosTextAttributesWithColor:nil size:_displayFontSize]];
+	}
+}
+
 - (void)recolorAfterChanges
 {
 	// We fold in syntax coloring as part of every change set.  If _syntaxColoring==NoSyntaxColoring, we don't do
@@ -1341,7 +1380,7 @@ using std::string;
 			const std::string &sig_call_name = sig->call_name_;
 			
 			if (sig_call_name.compare(call_name) == 0)
-				return [NSAttributedString eidosAttributedStringForCallSignature:sig];
+				return [NSAttributedString eidosAttributedStringForCallSignature:sig size:[self displayFontSize]];
 		}
 	}
 	
@@ -1361,14 +1400,14 @@ using std::string;
 			const std::string &sig_call_name = sig->call_name_;
 			
 			if (sig_call_name.compare(call_name) == 0)
-				return [NSAttributedString eidosAttributedStringForCallSignature:sig];
+				return [NSAttributedString eidosAttributedStringForCallSignature:sig size:[self displayFontSize]];
 		}
 	}
 	
 	// Assemble an attributed string for our failed lookup message
 	NSMutableAttributedString *attrStr = [[[NSMutableAttributedString alloc] init] autorelease];
-	NSDictionary *plainAttrs = [NSDictionary eidosOutputAttrs];
-	NSDictionary *functionAttrs = [NSDictionary eidosParseAttrs];
+	NSDictionary *plainAttrs = [NSDictionary eidosOutputAttrsWithSize:_displayFontSize];
+	NSDictionary *functionAttrs = [NSDictionary eidosParseAttrsWithSize:_displayFontSize];
 	
 	[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:callName attributes:functionAttrs] autorelease]];
 	[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"() – unrecognized call" attributes:plainAttrs] autorelease]];

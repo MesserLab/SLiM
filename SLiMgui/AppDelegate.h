@@ -29,6 +29,7 @@
 
 // User defaults keys
 extern NSString *defaultsLaunchActionKey;
+extern NSString *defaultsDisplayFontSizeKey;
 extern NSString *defaultsSyntaxHighlightScriptKey;
 extern NSString *defaultsSyntaxHighlightOutputKey;
 extern NSString *defaultsPlaySoundParseSuccessKey;
