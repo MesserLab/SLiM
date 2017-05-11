@@ -47,6 +47,14 @@ all: slim eidos FORCE
 slim: FORCE
 	mkdir -p ./bin
 	$(CC) $(ALL_CFLAGS) ./core/*.cpp ./eidos/*.cpp ./gsl/*/*.c -o ./bin/slim
+	@echo
+	@echo "Build completed."
+	@echo
+	@echo "If you use SLiM 2 in a publication, please cite:"
+	@echo
+	@echo "    BC Haller, PW Messer. (2017).  SLiM 2: Flexible, interactive forward"
+	@echo "        genetic simulations.  Molecular Biology and Evolution 34 (1), 230-240."
+	@echo
 
 eidos: FORCE
 	mkdir -p ./bin
