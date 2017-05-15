@@ -119,6 +119,8 @@ public:
 	
 	inline void ClearColor(void) { color_.clear(); }
 	
+	inline double TagFloat(void) { return tagF_value_; }
+	
 	// This sets the receiver up as a new individual, with a newly assigned pedigree id, and gets
 	// parental and grandparental information from the supplied parents.
 	inline void TrackPedigreeWithParents(Individual &parent1, Individual &parent2)
