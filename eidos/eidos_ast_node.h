@@ -79,7 +79,9 @@ public:
 	void _OptimizeFor(void) const;										// determine whether/how for-loop index variables need to be set up
 	void _OptimizeForScan(const std::string &p_for_index_identifier, uint8_t *p_references, uint8_t *p_assigns) const;	// internal method
 	void _OptimizeAssignments(void) const;								// detect and mark simple increment/decrement assignments on a variable
-	void _OptimizeCalls(void) const;									// fix default arguments and resolve named arguments in calls
+	
+	bool HasCachedNumericValue(void) const;
+	double CachedNumericValue(void) const;
 	
 	void PrintToken(std::ostream &p_outstream) const;
 	void PrintTreeWithIndent(std::ostream &p_outstream, int p_indent) const;

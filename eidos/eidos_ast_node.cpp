@@ -332,6 +332,38 @@ void EidosASTNode::_OptimizeAssignments(void) const
 	}
 }
 
+bool EidosASTNode::HasCachedNumericValue(void) const
+{
+	if ((token_->token_type_ == EidosTokenType::kTokenNumber) && cached_value_ && (cached_value_->Count() == 1))
+		return true;
+	
+	if ((token_->token_type_ == EidosTokenType::kTokenMinus) && (children_.size() == 1))
+	{
+		const EidosASTNode *minus_child = children_[0];
+		
+		if ((minus_child->token_->token_type_ == EidosTokenType::kTokenNumber) && minus_child->cached_value_ && (minus_child->cached_value_->Count() == 1))
+			return true;
+	}
+	
+	return false;
+}
+
+double EidosASTNode::CachedNumericValue(void) const
+{
+	if ((token_->token_type_ == EidosTokenType::kTokenNumber) && cached_value_ && (cached_value_->Count() == 1))
+		return cached_value_->FloatAtIndex(0, nullptr);
+	
+	if ((token_->token_type_ == EidosTokenType::kTokenMinus) && (children_.size() == 1))
+	{
+		const EidosASTNode *minus_child = children_[0];
+		
+		if ((minus_child->token_->token_type_ == EidosTokenType::kTokenNumber) && minus_child->cached_value_ && (minus_child->cached_value_->Count() == 1))
+			return -minus_child->cached_value_->FloatAtIndex(0, nullptr);
+	}
+	
+	EIDOS_TERMINATION << "ERROR (EidosASTNode::CachedNumericValue): (internal error) no cached numeric value" << eidos_terminate(nullptr);
+}
+
 void EidosASTNode::PrintToken(std::ostream &p_outstream) const
 {
 	// We want to print some tokens differently when they are in the context of an AST, for readability
