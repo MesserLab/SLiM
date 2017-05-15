@@ -556,9 +556,15 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 				EidosToken *mutation_type_id_token = callback_children[0]->token_;
 				
 				if (mutation_type_id_token->token_string_ == gEidosStr_NULL)
+				{
 					mutation_type_id_ = -2;	// special placeholder that indicates a NULL mutation type identifier
+					type_ = SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback;
+				}
 				else
+				{
 					mutation_type_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(mutation_type_id_token->token_string_, 'm', mutation_type_id_token);
+					type_ = SLiMEidosBlockType::SLiMEidosFitnessCallback;
+				}
 				
 				if (n_callback_children == 2)
 				{
@@ -566,8 +572,6 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 					
 					subpopulation_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(subpop_id_token->token_string_, 'p', subpop_id_token);
 				}
-				
-				type_ = SLiMEidosBlockType::SLiMEidosFitnessCallback;
 			}
 			else if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_interaction) == 0))
 			{
@@ -807,6 +811,7 @@ void SLiMEidosBlock::Print(std::ostream &p_ostream) const
 		case SLiMEidosBlockType::SLiMEidosEventLate:				p_ostream << gStr_late; break;
 		case SLiMEidosBlockType::SLiMEidosInitializeCallback:		p_ostream << gStr_initialize; break;
 		case SLiMEidosBlockType::SLiMEidosFitnessCallback:			p_ostream << gStr_fitness; break;
+		case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:	p_ostream << gStr_fitness; break;
 		case SLiMEidosBlockType::SLiMEidosInteractionCallback:		p_ostream << gStr_interaction; break;
 		case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		p_ostream << gStr_mateChoice; break;
 		case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		p_ostream << gStr_modifyChild; break;
@@ -840,6 +845,7 @@ EidosValue_SP SLiMEidosBlock::GetProperty(EidosGlobalStringID p_property_id)
 				case SLiMEidosBlockType::SLiMEidosEventLate:				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_late));
 				case SLiMEidosBlockType::SLiMEidosInitializeCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_initialize));
 				case SLiMEidosBlockType::SLiMEidosFitnessCallback:			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_fitness));
+				case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_fitness));
 				case SLiMEidosBlockType::SLiMEidosInteractionCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_interaction));
 				case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_mateChoice));
 				case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_modifyChild));

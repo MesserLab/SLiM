@@ -64,6 +64,10 @@ MutationType::MutationType(slim_objectid_t p_mutation_type_id, double p_dominanc
 		EIDOS_TERMINATION << "ERROR (MutationType::MutationType): invalid mutation type parameters." << eidos_terminate();
 	// intentionally no bounds checks for DFE parameters; the count of DFE parameters is checked prior to construction
 	// intentionally no bounds check for dominance_coeff_
+	
+	// determine whether this mutation type is initially pure neutral; note that this flag
+	// will be cleared if any mutation of this type has its selection coefficient changed
+	all_pure_neutral_DFE_ = ((dfe_type_ == DFEType::kFixed) && (dfe_parameters_[0] == 0.0));
 }
 
 MutationType::~MutationType(void)
@@ -513,13 +517,15 @@ EidosValue_SP MutationType::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 		dfe_parameters_ = dfe_parameters;
 		dfe_strings_ = dfe_strings;
 		
-		// check whether we are now using a DFE type that is non-neutral; check and set pure_neutral_
+		// check whether we are now using a DFE type that is non-neutral; check and set pure_neutral_ and all_pure_neutral_DFE_
 		if ((dfe_type_ != DFEType::kFixed) || (dfe_parameters_[0] != 0.0))
 		{
 			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
 			
 			if (sim)
 				sim->pure_neutral_ = false;
+			
+			all_pure_neutral_DFE_ = false;
 		}
 		
 		return gStaticEidosValueNULLInvisible;

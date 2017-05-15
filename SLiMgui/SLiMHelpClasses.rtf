@@ -709,9 +709,25 @@ The optional parameter
 \f0\fs20  in the context of calls like 
 \f2\fs18 sim.subpopulations.genomes.removeMutations(muts, T)
 \f0\fs20 , such that the substituted mutations are guaranteed to be entirely removed from circulation.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96
+\f3 \'a0
+\f2 (float$)sumOfMutationsOfType(io<MutationType>$\'a0mutType)
+\f3 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns the sum of the selection coefficients of all mutations that are of the type specified by 
+\f2\fs18 mutType
+\f0\fs20 , out of all of the mutations in the genome.  This is often useful in models that use a particular mutation type to represent QTLs with additive effects; in that context, 
+\f2\fs18 sumOfMutationsOfType()
+\f0\fs20  will provide the sum of the additive effects of the QTLs for the given mutation type.  This method is provided for speed; it is much faster than the corresponding Eidos code.  Note that this method also exists on 
+\f2\fs18 Individual
+\f0\fs20 , for cases in which the sum across both genomes of an individual is desired.
+\f3 \
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\b\fs22 \cf0 5.4  Class GenomicElement\
+\f0\b\fs22 \cf0 5.4  Class GenomicElement\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \i\b0 \cf0 5.4.1  
@@ -1356,6 +1372,22 @@ Note that this relatedness is simply pedigree-based relatedness.  This does not 
 \f0\fs20  and 
 \f2\fs18 Subpopulation
 \f0\fs20 , at present.
+\f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96
+\f3 \'a0
+\f2 (float$)sumOfMutationsOfType(io<MutationType>$\'a0mutType)
+\f3 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns the sum of the selection coefficients of all mutations that are of the type specified by 
+\f2\fs18 mutType
+\f0\fs20 , out of all of the mutations in the genomes of the individual.  This is often useful in models that use a particular mutation type to represent QTLs with additive effects; in that context, 
+\f2\fs18 sumOfMutationsOfType()
+\f0\fs20  will provide the sum of the additive effects of the QTLs for the given mutation type.  This method is provided for speed; it is much faster than the corresponding Eidos code.  Note that this method also exists on 
+\f2\fs18 Genome
+\f0\fs20 , for cases in which the sum for just one genome is desired.
 \f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 

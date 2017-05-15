@@ -330,7 +330,7 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 					child_genomes_.reserve(2 * child_subpop_size_);
 					
 					MutationRun *shared_empty_run = MutationRun::NewMutationRun();
-					Genome aut_model = Genome(mutrun_count, mutrun_length, GenomeType::kAutosome, false, shared_empty_run);
+					Genome aut_model = Genome(this, mutrun_count, mutrun_length, GenomeType::kAutosome, false, shared_empty_run);
 					
 					for (slim_popsize_t i = 0; i < child_subpop_size_; ++i)
 					{
@@ -344,7 +344,7 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 					parent_genomes_.reserve(2 * parent_subpop_size_);
 					
 					MutationRun *shared_empty_run_parental = MutationRun::NewMutationRun();
-					Genome aut_model_parental = Genome(mutrun_count, mutrun_length, GenomeType::kAutosome, false, shared_empty_run_parental);
+					Genome aut_model_parental = Genome(this, mutrun_count, mutrun_length, GenomeType::kAutosome, false, shared_empty_run_parental);
 					
 					for (slim_popsize_t i = 0; i < parent_subpop_size_; ++i)
 					{
@@ -362,8 +362,8 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 					child_genomes_.reserve(2 * child_subpop_size_);
 					
 					MutationRun *shared_empty_run = MutationRun::NewMutationRun();
-					Genome x_model = Genome(mutrun_count, mutrun_length, GenomeType::kXChromosome, modeled_chromosome_type_ != GenomeType::kXChromosome, shared_empty_run);
-					Genome y_model = Genome(mutrun_count, mutrun_length, GenomeType::kYChromosome, modeled_chromosome_type_ != GenomeType::kYChromosome, shared_empty_run);
+					Genome x_model = Genome(this, mutrun_count, mutrun_length, GenomeType::kXChromosome, modeled_chromosome_type_ != GenomeType::kXChromosome, shared_empty_run);
+					Genome y_model = Genome(this, mutrun_count, mutrun_length, GenomeType::kYChromosome, modeled_chromosome_type_ != GenomeType::kYChromosome, shared_empty_run);
 					
 					// females get two Xs
 					for (slim_popsize_t i = 0; i < child_first_male_index_; ++i)
@@ -385,8 +385,8 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 					parent_genomes_.reserve(2 * parent_subpop_size_);
 					
 					MutationRun *shared_empty_run_parental = MutationRun::NewMutationRun();
-					Genome x_model_parental = Genome(mutrun_count, mutrun_length, GenomeType::kXChromosome, modeled_chromosome_type_ != GenomeType::kXChromosome, shared_empty_run_parental);
-					Genome y_model_parental = Genome(mutrun_count, mutrun_length, GenomeType::kYChromosome, modeled_chromosome_type_ != GenomeType::kYChromosome, shared_empty_run_parental);
+					Genome x_model_parental = Genome(this, mutrun_count, mutrun_length, GenomeType::kXChromosome, modeled_chromosome_type_ != GenomeType::kXChromosome, shared_empty_run_parental);
+					Genome y_model_parental = Genome(this, mutrun_count, mutrun_length, GenomeType::kYChromosome, modeled_chromosome_type_ != GenomeType::kYChromosome, shared_empty_run_parental);
 					
 					// females get two Xs
 					for (slim_popsize_t i = 0; i < parent_first_male_index_; ++i)
@@ -413,7 +413,7 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 			child_genomes_.reserve(2 * child_subpop_size_);
 			
 			MutationRun *shared_empty_run = MutationRun::NewMutationRun();
-			Genome aut_model = Genome(mutrun_count, mutrun_length, GenomeType::kAutosome, false, shared_empty_run);
+			Genome aut_model = Genome(this, mutrun_count, mutrun_length, GenomeType::kAutosome, false, shared_empty_run);
 			
 			for (slim_popsize_t i = 0; i < child_subpop_size_; ++i)
 			{
@@ -427,7 +427,7 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 			parent_genomes_.reserve(2 * parent_subpop_size_);
 			
 			MutationRun *shared_empty_run_parental = MutationRun::NewMutationRun();
-			Genome aut_model_parental = Genome(mutrun_count, mutrun_length, GenomeType::kAutosome, false, shared_empty_run_parental);
+			Genome aut_model_parental = Genome(this, mutrun_count, mutrun_length, GenomeType::kAutosome, false, shared_empty_run_parental);
 			
 			for (slim_popsize_t i = 0; i < parent_subpop_size_; ++i)
 			{
@@ -638,6 +638,76 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		}
 	}
 	
+	// Can we skip chromosome-based fitness calculations altogether, and just call global fitness() callbacks if any?
+	// We can do this if (a) all mutation types either use a neutral DFE, or have been made neutral with a "return 1.0;"
+	// fitness callback that is active, (b) for the mutation types that use a neutral DFE, no mutation has had its
+	// selection coefficient changed, and (c) no fitness() callbacks are active apart from "return 1.0;" type callbacks.
+	// This is often the case for QTL-based models (such as Misha's coral model), and should produce a big speed gain,
+	// so we do a pre-check here for this case.  Note that we can ignore global fitness callbacks in this situation,
+	// because they are explicitly documented as potentially being executed after all non-global fitness callbacks, so
+	// they are not allowed, as a matter of policy, to alter the operation of non-global fitness callbacks.
+	bool skip_chromosomal_fitness = true;
+	
+	// first set a flag on all mut types indicating whether they are pure neutral according to their DFE
+	for (auto &mut_type_iter : mut_types)
+		mut_type_iter.second->is_pure_neutral_now_ = mut_type_iter.second->all_pure_neutral_DFE_;
+	
+	// then go through the fitness callback list and set the pure neutral flag for mut types neutralized by an active callback
+	for (SLiMEidosBlock *fitness_callback : p_fitness_callbacks)
+	{
+		if (fitness_callback->active_)
+		{
+			const EidosASTNode *compound_statement_node = fitness_callback->compound_statement_node_;
+			
+			if (compound_statement_node->cached_value_)
+			{
+				// The script is a constant expression such as "{ return 1.1; }"
+				EidosValue *result = compound_statement_node->cached_value_.get();
+				
+				if ((result->Type() == EidosValueType::kValueFloat) || (result->Count() == 1))
+				{
+					if (result->FloatAtIndex(0, nullptr) == 1.0)
+					{
+						// the callback returns 1.0, so it makes the mutation types to which it applies become neutral
+						slim_objectid_t mutation_type_id = fitness_callback->mutation_type_id_;
+						
+						if (mutation_type_id == -1)
+						{
+							for (auto &mut_type_iter : mut_types)
+								mut_type_iter.second->is_pure_neutral_now_ = true;
+						}
+						else
+						{
+							auto found_muttype_pair = mut_types.find(mutation_type_id);
+							
+							if (found_muttype_pair != mut_types.end())
+								found_muttype_pair->second->is_pure_neutral_now_ = true;
+						}
+						
+						continue;
+					}
+				}
+			}
+			
+			// if we reach this point, we have an active callback that is not neutral-making, so we fail and we're done
+			skip_chromosomal_fitness = false;
+			break;
+		}
+	}
+	
+	// finally, tabulate the pure-neutral flags of all the mut types into an overall flag for whether we can skip
+	if (skip_chromosomal_fitness)
+	{
+		for (auto &mut_type_iter : mut_types)
+		{
+			if (!mut_type_iter.second->is_pure_neutral_now_)
+			{
+				skip_chromosomal_fitness = false;
+				break;
+			}
+		}
+	}
+	
 	// Figure out global callbacks; these are callbacks with NULL supplied for the mut-type id, which means that they are called
 	// exactly once per individual, for every individual regardless of genetics, to provide an entry point for alternate fitness definitions
 	int global_fitness_callback_count = (int)p_global_fitness_callbacks.size();
@@ -670,14 +740,38 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		lookup_male_parent_ = nullptr;
 		
 		// Set up to draw random females
-		for (slim_popsize_t i = 0; i < parent_first_male_index_; i++)
+		if (pure_neutral)
 		{
-			double fitness;
-			
-			if (pure_neutral)
-				fitness = 1.0;
-			else
+			for (slim_popsize_t i = 0; i < parent_first_male_index_; i++)
 			{
+				cached_parental_fitness_[i] = 1.0;
+				cached_male_fitness_[i] = 0;
+				
+				totalFemaleFitness += 1.0;
+			}
+		}
+		else if (skip_chromosomal_fitness)
+		{
+			for (slim_popsize_t i = 0; i < parent_first_male_index_; i++)
+			{
+				double fitness = 1.0;
+				
+				if (global_fitness_callbacks_exist)
+					fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, i);
+				
+				cached_parental_fitness_[i] = fitness;
+				cached_male_fitness_[i] = 0;
+				
+				totalFemaleFitness += fitness;
+			}
+		}
+		else
+		{
+			// general case for females
+			for (slim_popsize_t i = 0; i < parent_first_male_index_; i++)
+			{
+				double fitness;
+				
 				if (!fitness_callbacks_exist)
 					fitness = FitnessOfParentWithGenomeIndices_NoCallbacks(i);
 				else if (single_fitness_callback)
@@ -688,12 +782,12 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 				// multiply in the effects of any global fitness callbacks (muttype==NULL)
 				if (global_fitness_callbacks_exist && (fitness > 0.0))
 					fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, i);
+				
+				cached_parental_fitness_[i] = fitness;
+				cached_male_fitness_[i] = 0;				// this vector has 0 for all females, for mateChoice() callbacks
+				
+				totalFemaleFitness += fitness;
 			}
-			
-			cached_parental_fitness_[i] = fitness;
-			cached_male_fitness_[i] = 0;				// this vector has 0 for all females, for mateChoice() callbacks
-			
-			totalFemaleFitness += fitness;
 		}
 		
 		totalFitness += totalFemaleFitness;
@@ -705,15 +799,42 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		// Set up to draw random males
 		slim_popsize_t num_males = parent_subpop_size_ - parent_first_male_index_;
 		
-		for (slim_popsize_t i = 0; i < num_males; i++)
+		if (pure_neutral)
 		{
-			slim_popsize_t individual_index = (i + parent_first_male_index_);
-			double fitness;
-			
-			if (pure_neutral)
-				fitness = 1.0;
-			else
+			for (slim_popsize_t i = 0; i < num_males; i++)
 			{
+				slim_popsize_t individual_index = (i + parent_first_male_index_);
+				
+				cached_parental_fitness_[individual_index] = 1.0;
+				cached_male_fitness_[individual_index] = 1.0;
+				
+				totalMaleFitness += 1.0;
+			}
+		}
+		else if (skip_chromosomal_fitness)
+		{
+			for (slim_popsize_t i = 0; i < num_males; i++)
+			{
+				slim_popsize_t individual_index = (i + parent_first_male_index_);
+				double fitness = 1.0;
+				
+				if (global_fitness_callbacks_exist && (fitness > 0.0))
+					fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, individual_index);
+				
+				cached_parental_fitness_[individual_index] = fitness;
+				cached_male_fitness_[individual_index] = fitness;
+				
+				totalMaleFitness += fitness;
+			}
+		}
+		else
+		{
+			// general case for males
+			for (slim_popsize_t i = 0; i < num_males; i++)
+			{
+				slim_popsize_t individual_index = (i + parent_first_male_index_);
+				double fitness;
+				
 				if (!fitness_callbacks_exist)
 					fitness = FitnessOfParentWithGenomeIndices_NoCallbacks(individual_index);
 				else if (single_fitness_callback)
@@ -724,12 +845,12 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 				// multiply in the effects of any global fitness callbacks (muttype==NULL)
 				if (global_fitness_callbacks_exist && (fitness > 0.0))
 					fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, individual_index);
+				
+				cached_parental_fitness_[individual_index] = fitness;
+				cached_male_fitness_[individual_index] = fitness;
+				
+				totalMaleFitness += fitness;
 			}
-			
-			cached_parental_fitness_[individual_index] = fitness;
-			cached_male_fitness_[individual_index] = fitness;
-			
-			totalMaleFitness += fitness;
 		}
 		
 		totalFitness += totalMaleFitness;
@@ -745,29 +866,57 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		gsl_ran_discrete_free(lookup_parent_);
 		lookup_parent_ = nullptr;
 		
-		for (slim_popsize_t i = 0; i < parent_subpop_size_; i++)
+		if (pure_neutral)
 		{
-			double fitness;
-			
-			if (pure_neutral)
-				fitness = 1.0;
-			else
+			for (slim_popsize_t i = 0; i < parent_subpop_size_; i++)
 			{
-				if (!fitness_callbacks_exist)
-					fitness = FitnessOfParentWithGenomeIndices_NoCallbacks(i);
-				else if (single_fitness_callback)
-					fitness = FitnessOfParentWithGenomeIndices_SingleCallback(i, p_fitness_callbacks, single_callback_mut_type);
-				else
-					fitness = FitnessOfParentWithGenomeIndices_Callbacks(i, p_fitness_callbacks);
+				*(fitness_buffer_ptr++) = 1.0;
+				
+				totalFitness += 1.0;
+			}
+		}
+		else if (skip_chromosomal_fitness)
+		{
+			for (slim_popsize_t i = 0; i < parent_subpop_size_; i++)
+			{
+				double fitness = 1.0;
 				
 				// multiply in the effects of any global fitness callbacks (muttype==NULL)
 				if (global_fitness_callbacks_exist && (fitness > 0.0))
 					fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, i);
+				
+				*(fitness_buffer_ptr++) = fitness;
+				
+				totalFitness += fitness;
 			}
-			
-			*(fitness_buffer_ptr++) = fitness;
-			
-			totalFitness += fitness;
+		}
+		else
+		{
+			// general case for hermaphrodites
+			for (slim_popsize_t i = 0; i < parent_subpop_size_; i++)
+			{
+				double fitness;
+				
+				if (pure_neutral)
+					fitness = 1.0;
+				else
+				{
+					if (!fitness_callbacks_exist)
+						fitness = FitnessOfParentWithGenomeIndices_NoCallbacks(i);
+					else if (single_fitness_callback)
+						fitness = FitnessOfParentWithGenomeIndices_SingleCallback(i, p_fitness_callbacks, single_callback_mut_type);
+					else
+						fitness = FitnessOfParentWithGenomeIndices_Callbacks(i, p_fitness_callbacks);
+					
+					// multiply in the effects of any global fitness callbacks (muttype==NULL)
+					if (global_fitness_callbacks_exist && (fitness > 0.0))
+						fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, i);
+				}
+				
+				*(fitness_buffer_ptr++) = fitness;
+				
+				totalFitness += fitness;
+			}
 		}
 		
 		if (totalFitness <= 0.0)
@@ -924,6 +1073,26 @@ double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &
 				
 				// the cached value is owned by the tree, so we do not dispose of it
 				// there is also no script output to handle
+			}
+			else if (fitness_callback->has_cached_optimization_)
+			{
+				// We can special-case particular simple callbacks for speed.  This is similar to the cached_value_
+				// mechanism above, but it is done in SLiM, not in Eidos, and is specific to callbacks, not general.
+				// The has_cached_optimization_ flag is the umbrella flag for all such optimizations; we then figure
+				// out below which cached optimization is in effect for this callback.  See SLiMSim::AddScriptBlock()
+				// for comments on the specific cases optimized here.
+				if (fitness_callback->has_cached_opt_dnorm1_)
+				{
+					double A = fitness_callback->cached_opt_A_;
+					double B = fitness_callback->cached_opt_B_;
+					double C = fitness_callback->cached_opt_C_;
+					
+					computed_fitness *= (gsl_ran_gaussian_pdf(individual->TagFloat() - A, B) / C);
+				}
+				else
+				{
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyGlobalFitnessCallbacks): (internal error) cached optimization flag mismatch" << eidos_terminate(fitness_callback->identifier_token_);
+				}
 			}
 			else
 			{
@@ -1818,29 +1987,6 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 	// The parental genomes, which have now been swapped into the child genome vactor, no longer fit the bill.  We need to throw them out and generate new genome vectors.
 	if (will_need_new_children)
 		GenerateChildrenToFit(false);	// false means generate only new children, not new parents
-}
-
-bool Subpopulation::ContainsGenome(Genome *p_genome)
-{
-	if (parent_genomes_.size())
-	{
-		Genome *parent_genomes_front = &parent_genomes_.front();
-		Genome *parent_genomes_back = &parent_genomes_.back();
-		
-		if ((p_genome >= parent_genomes_front) && (p_genome <= parent_genomes_back))
-			return true;
-	}
-	
-	if (child_genomes_.size())
-	{
-		Genome *child_genomes_front = &child_genomes_.front();
-		Genome *child_genomes_back = &child_genomes_.back();
-		
-		if ((p_genome >= child_genomes_front) && (p_genome <= child_genomes_back))
-			return true;
-	}
-	
-	return false;
 }
 
 

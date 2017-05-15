@@ -217,6 +217,7 @@ const std::string gStr_containsMarkerMutation = "containsMarkerMutation";
 const std::string gStr_relatedness = "relatedness";
 const std::string gStr_mutationsOfType = "mutationsOfType";
 const std::string gStr_setSpatialPosition = "setSpatialPosition";
+const std::string gStr_sumOfMutationsOfType = "sumOfMutationsOfType";
 const std::string gStr_uniqueMutationsOfType = "uniqueMutationsOfType";
 const std::string gStr_removeMutations = "removeMutations";
 const std::string gStr_setGenomicElementType = "setGenomicElementType";
@@ -454,6 +455,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_containsMutations, gID_containsMutations);
 		Eidos_RegisterStringForGlobalID(gStr_mutationsOfType, gID_mutationsOfType);
 		Eidos_RegisterStringForGlobalID(gStr_setSpatialPosition, gID_setSpatialPosition);
+		Eidos_RegisterStringForGlobalID(gStr_sumOfMutationsOfType, gID_sumOfMutationsOfType);
 		Eidos_RegisterStringForGlobalID(gStr_uniqueMutationsOfType, gID_uniqueMutationsOfType);
 		Eidos_RegisterStringForGlobalID(gStr_removeMutations, gID_removeMutations);
 		Eidos_RegisterStringForGlobalID(gStr_setGenomicElementType, gID_setGenomicElementType);

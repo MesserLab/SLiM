@@ -99,6 +99,9 @@ public:
 
 	mutable EidosScript *cached_dfe_script_;	// used by DFE type 's' to hold a cached script for the DFE
 	
+	mutable bool all_pure_neutral_DFE_;			// a flag set to true if the DFE is "f" 0.0, cleared if any mutation of this type has its selcoeff changed
+	mutable bool is_pure_neutral_now_;			// a flag valid only within UpdateFitness(), used to determine whether a mut type can be ignored
+	
 #ifdef SLIMGUI
 	int mutation_type_index_;					// a zero-based index for this mutation type, used by SLiMgui to bin data by mutation type
 #endif

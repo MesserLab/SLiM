@@ -41,6 +41,7 @@ enum class SLiMEidosBlockType {
 	SLiMEidosEventLate,
 	SLiMEidosInitializeCallback,
 	SLiMEidosFitnessCallback,
+	SLiMEidosFitnessGlobalCallback,
 	SLiMEidosInteractionCallback,
 	SLiMEidosMateChoiceCallback,
 	SLiMEidosModifyChildCallback,
@@ -146,6 +147,15 @@ public:
 	bool contains_strength_ = false;			// "strength" (interaction callback parameter)
 	bool contains_receiver_ = false;			// "receiver" (interaction callback parameter)
 	bool contains_exerter_ = false;				// "exerter" (interaction callback parameter)
+	
+	// Special-case optimizations for particular common callback types.  If a callback can be substituted by C++ code,
+	// has_cached_optimization_ will be true and the flags and values below will indicate exactly how to do so.
+	bool has_cached_optimization_ = false;
+	bool has_cached_opt_dnorm1_ = false;
+	double cached_opt_A_ = 0.0;
+	double cached_opt_B_ = 0.0;
+	double cached_opt_C_ = 0.0;
+	
 	
 	SLiMEidosBlock(const SLiMEidosBlock&) = delete;					// no copying
 	SLiMEidosBlock& operator=(const SLiMEidosBlock&) = delete;		// no copying

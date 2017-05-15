@@ -67,6 +67,31 @@ class SLiMSim : public SLiMEidosDictionary
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	
+private:
+	// the way we handle script blocks is complicated and is private even against SLiMgui
+	
+	SLiMEidosScript *script_;														// OWNED POINTER: the whole input file script
+	std::vector<SLiMEidosBlock*> script_blocks_;									// OWNED POINTERS: script blocks, both from the input file script and programmatic
+	std::vector<SLiMEidosBlock*> scheduled_deregistrations_;						// NOT OWNED: blocks in script_blocks_ that are scheduled for deregistration
+	std::vector<SLiMEidosBlock*> scheduled_interaction_deregs_;						// NOT OWNED: interaction() callbacks in script_blocks_ that are scheduled for deregistration
+	
+	// a cache of the last generation for the simulation, for speed
+	bool last_script_block_gen_cached = false;
+	slim_generation_t last_script_block_gen_;										// the last generation in which a bounded script block is scheduled to run
+	
+	// scripts blocks prearranged for fast lookup; these are all stored in script_blocks_ as well
+	bool script_block_types_cached_ = false;
+	std::vector<SLiMEidosBlock*> cached_early_events_;
+	std::vector<SLiMEidosBlock*> cached_late_events_;
+	std::vector<SLiMEidosBlock*> cached_initialize_callbacks_;
+	std::vector<SLiMEidosBlock*> cached_fitness_callbacks_;
+	std::unordered_multimap<slim_generation_t, SLiMEidosBlock*> cached_fitnessglobal_callbacks_onegen_;	// see ValidateScriptBlockCaches() for details
+	std::vector<SLiMEidosBlock*> cached_fitnessglobal_callbacks_multigen_;
+	std::vector<SLiMEidosBlock*> cached_interaction_callbacks_;
+	std::vector<SLiMEidosBlock*> cached_matechoice_callbacks_;
+	std::vector<SLiMEidosBlock*> cached_modifychild_callbacks_;
+	std::vector<SLiMEidosBlock*> cached_recombination_callbacks_;
+	
 #ifdef SLIMGUI
 public:
 	
@@ -95,11 +120,6 @@ private:
 	bool sex_enabled_ = false;														// true if sex is tracked for individuals; if false, all individuals are hermaphroditic
 	GenomeType modeled_chromosome_type_ = GenomeType::kAutosome;					// the chromosome type; other types might still be instantiated (Y, if X is modeled, e.g.)
 	double x_chromosome_dominance_coeff_ = 1.0;										// the dominance coefficient for heterozygosity at the X locus (i.e. males); this is global
-	
-	SLiMEidosScript *script_;														// OWNED POINTER: the whole input file script
-	std::vector<SLiMEidosBlock*> script_blocks_;									// OWNED POINTERS: script blocks, both from the input file script and programmatic
-	std::vector<SLiMEidosBlock*> scheduled_deregistrations_;						// NOT OWNED: blocks in script_blocks_ that are scheduled for deregistration
-	std::vector<SLiMEidosBlock*> scheduled_interaction_deregs_;						// NOT OWNED: interaction() callbacks in script_blocks_ that are scheduled for deregistration
 	
 	std::vector<const EidosFunctionSignature*> sim_0_signatures_;					// OWNED POINTERS: Eidos function signatures
 	EidosFunctionMap *sim_0_function_map_ = nullptr;								// OWNED POINTER: the function map with sim_0_signatures_ added, used only in gen 0
@@ -167,13 +187,19 @@ public:
 	void InitializeRNGFromSeed(unsigned long int *p_override_seed_ptr);				// should be called right after construction, generally
 	
 	// Managing script blocks; these two methods should be used as a matched pair, bracketing each generation stage that calls out to script
+	void ValidateScriptBlockCaches(void);
 	std::vector<SLiMEidosBlock*> ScriptBlocksMatching(slim_generation_t p_generation, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id);
+	std::vector<SLiMEidosBlock*> &AllScriptBlocks();
+	void OptimizeScriptBlock(SLiMEidosBlock *p_script_block);
+	void AddScriptBlock(SLiMEidosBlock *p_script_block, EidosInterpreter *p_interpreter, const EidosToken *p_error_token);
 	void DeregisterScheduledScriptBlocks(void);
 	void DeregisterScheduledInteractionBlocks(void);
 	
+	// Running generations
 	void RunInitializeCallbacks(void);												// run initialize() callbacks and check for complete initialization
 	bool RunOneGeneration(void);													// run one generation and advance the generation count; returns false if finished
 	bool _RunOneGeneration(void);													// does the work of RunOneGeneration(), with no try/catch
+	slim_generation_t FirstGeneration(void);										// derived from the first gen in which an Eidos block is registered
 	slim_generation_t EstimatedLastGeneration(void);								// derived from the last generation in which an Eidos block is registered
 	
 	// accessors

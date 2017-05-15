@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf810
+{\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf820
 {\fonttbl\f0\fswiss\fcharset0 Optima-Regular;\f1\fnil\fcharset0 Menlo-Italic;\f2\fnil\fcharset0 Menlo-Regular;
 \f3\froman\fcharset0 TimesNewRomanPSMT;}
 {\colortbl;\red255\green255\blue255;\red28\green0\blue207;\red63\green110\blue116;\red196\green26\blue22;
@@ -350,7 +350,8 @@ More than one
 \f0\fs22  is not necessarily the default value, in fact, but is the result of all previous 
 \f2\fs18 fitness()
 \f0\fs22  callbacks for that individual in that generation.  In this way, the effects of multiple callbacks can \'93stack\'94.\
-In SLiM version 2.3 and later, it is possible to define 
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
+\cf0 In SLiM version 2.3 and later, it is possible to define 
 \i global
 \i0  
 \f2\fs18 fitness()
@@ -364,7 +365,7 @@ In SLiM version 2.3 and later, it is possible to define
 \f2\fs18 fitness()
 \f0\fs22  callback is defined by giving 
 \f2\fs18 NULL
-\f0\fs22  as the mutation type identifier in the callback\'92s declaration.  These callbacks will be called once per individual in each generation.  When a global 
+\f0\fs22  as the mutation type identifier in the callback\'92s declaration.  These callbacks will generally be called once per individual in each generation, in an order that is formally undefined.  When a global 
 \f2\fs18 fitness()
 \f0\fs22  callback is running, the 
 \f2\fs18 mut
@@ -376,10 +377,11 @@ In SLiM version 2.3 and later, it is possible to define
 \f2\fs18 relFitness
 \f0\fs22  is defined to be 
 \f2\fs18 1.0
-\f3\fs22 .
-\f0   The fitness effect for the callback is simply returned as a singleton 
+\f0\fs22 .  The fitness effect for the callback is simply returned as a singleton 
 \f2\fs18 float
-\f0\fs22  value, as usual.\
+\f0\fs22  value, as usual.  Examples of global 
+\f2\fs18 fitness()
+\f0\fs22  callbacks can be found in the recipes of sections 13.1, 13.3, 13.10, 14.2, 14.4, and 14.5 (and perhaps others).\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 \cf0 One caveat to be aware of is that 
 \f2\fs18 fitness()
@@ -445,8 +447,7 @@ When a
 \f0\fs22  callback).  In a sexual (rather than hermaphroditic) simulation, this will be the female parent; SLiM does not currently support males as the choosy sex.  The second parent \'96 the male parent, in a sexual simulation \'96 will then be chosen based upon the results of the 
 \f2\fs18 mateChoice()
 \f0\fs22  callback.\
-\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
-\cf0 More specifically, the callback must return a vector of weights, one for each individual in the subpopulation; SLiM will then choose a parent with probability proportional to weight.  The 
+More specifically, the callback must return a vector of weights, one for each individual in the subpopulation; SLiM will then choose a parent with probability proportional to weight.  The 
 \f2\fs18 mateChoice()
 \f0\fs22  callback could therefore modify or replace the standard fitness-based weights depending upon some other criterion such as assortativeness.  A singleton vector of type 
 \f2\fs18 Individual
@@ -485,8 +486,7 @@ If the sum of the returned weights vector is zero, SLiM treats it as meaning the
 \f0\fs22  in order to return 
 \f2\fs18 float(0)
 \f0\fs22  if the weights all happen to be zero is complicated and slow \'96 which is why this policy was changed.\
-\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
-\cf0 In addition to the standard SLiM globals, a 
+In addition to the standard SLiM globals, a 
 \f2\fs18 mateChoice()
 \f0\fs22  callback is supplied with some additional information passed through global variables:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40\partightenfactor0

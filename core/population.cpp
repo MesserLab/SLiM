@@ -2092,7 +2092,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 			
 			mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
 			
-			// no need to worry about pure_neutral_ here; the mutation is drawn from a registered genomic element type
+			// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
 			// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
 			// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
 		}
@@ -2576,7 +2576,7 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 			
 			mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
 			
-			// no need to worry about pure_neutral_ here; the mutation is drawn from a registered genomic element type
+			// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
 			// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
 			// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
 		}
@@ -2813,7 +2813,7 @@ void Population::RecalculateFitness(slim_generation_t p_generation)
 	// as per the SLiM design spec, we get the list of callbacks once, and use that list throughout this stage, but we construct
 	// subsets of it for each subpopulation, so that UpdateFitness() can just use the callback list as given to it
 	std::vector<SLiMEidosBlock*> fitness_callbacks = sim_.ScriptBlocksMatching(p_generation, SLiMEidosBlockType::SLiMEidosFitnessCallback, -1, -1, -1);
-	std::vector<SLiMEidosBlock*> global_fitness_callbacks = sim_.ScriptBlocksMatching(p_generation, SLiMEidosBlockType::SLiMEidosFitnessCallback, -2, -1, -1);
+	std::vector<SLiMEidosBlock*> global_fitness_callbacks = sim_.ScriptBlocksMatching(p_generation, SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback, -2, -1, -1);
 	bool no_active_callbacks = true;
 	
 	for (SLiMEidosBlock *callback : fitness_callbacks)

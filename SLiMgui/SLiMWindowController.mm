@@ -954,7 +954,7 @@
 			return;
 		}
 		
-		sim->script_blocks_.emplace_back(scriptBlock);		// takes ownership from us
+		sim->AddScriptBlock(scriptBlock, nullptr, nullptr);		// takes ownership from us
 		
 		[scriptBlocksTableView reloadData];
 		[scriptBlocksTableView setNeedsDisplay];
@@ -2225,7 +2225,7 @@
 							if (child_string.compare(gStr_early) == 0)				block_type = SLiMEidosBlockType::SLiMEidosEventEarly;
 							else if (child_string.compare(gStr_late) == 0)			block_type = SLiMEidosBlockType::SLiMEidosEventLate;
 							else if (child_string.compare(gStr_initialize) == 0)	block_type = SLiMEidosBlockType::SLiMEidosInitializeCallback;
-							else if (child_string.compare(gStr_fitness) == 0)		block_type = SLiMEidosBlockType::SLiMEidosFitnessCallback;
+							else if (child_string.compare(gStr_fitness) == 0)		block_type = SLiMEidosBlockType::SLiMEidosFitnessCallback;	// can't distinguish global fitness callbacks, but no need to
 							else if (child_string.compare(gStr_interaction) == 0)	block_type = SLiMEidosBlockType::SLiMEidosInteractionCallback;
 							else if (child_string.compare(gStr_mateChoice) == 0)	block_type = SLiMEidosBlockType::SLiMEidosMateChoiceCallback;
 							else if (child_string.compare(gStr_modifyChild) == 0)	block_type = SLiMEidosBlockType::SLiMEidosModifyChildCallback;
@@ -2310,6 +2310,7 @@
 									(*typeTable)->RemoveSymbolsOfClass(gSLiM_Subpopulation_Class);	// subpops defined upstream from us still do not exist for us
 									break;
 								case SLiMEidosBlockType::SLiMEidosFitnessCallback:
+								case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:
 									(*typeTable)->SetTypeForSymbol(gID_mut,				EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class});
 									(*typeTable)->SetTypeForSymbol(gID_homozygous,		EidosTypeSpecifier{kEidosValueMaskLogical, nullptr});
 									(*typeTable)->SetTypeForSymbol(gID_relFitness,		EidosTypeSpecifier{kEidosValueMaskFloat, nullptr});
@@ -2664,7 +2665,7 @@
 		}
 		else if (aTableView == scriptBlocksTableView)
 		{
-			return sim->script_blocks_.size();
+			return sim->AllScriptBlocks().size();
 		}
 	}
 	
@@ -2841,7 +2842,7 @@
 		}
 		else if (aTableView == scriptBlocksTableView)
 		{
-			std::vector<SLiMEidosBlock*> &scriptBlocks = sim->script_blocks_;
+			std::vector<SLiMEidosBlock*> &scriptBlocks = sim->AllScriptBlocks();
 			int scriptBlockCount = (int)scriptBlocks.size();
 			
 			if (rowIndex < scriptBlockCount)
@@ -2879,6 +2880,7 @@
 						case SLiMEidosBlockType::SLiMEidosEventLate:				return @"late()";
 						case SLiMEidosBlockType::SLiMEidosInitializeCallback:		return @"initialize()";
 						case SLiMEidosBlockType::SLiMEidosFitnessCallback:			return @"fitness()";
+						case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:	return @"fitness()";
 						case SLiMEidosBlockType::SLiMEidosInteractionCallback:		return @"interaction()";
 						case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		return @"mateChoice()";
 						case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		return @"modifyChild()";
@@ -2898,7 +2900,7 @@
 	{
 		if (aTableView == scriptBlocksTableView)
 		{
-			std::vector<SLiMEidosBlock*> &scriptBlocks = sim->script_blocks_;
+			std::vector<SLiMEidosBlock*> &scriptBlocks = sim->AllScriptBlocks();
 			int scriptBlockCount = (int)scriptBlocks.size();
 			
 			if (rowIndex < scriptBlockCount)

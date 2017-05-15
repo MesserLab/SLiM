@@ -183,7 +183,6 @@ public:
 	double ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &p_fitness_callbacks, slim_popsize_t p_individual_index);
 	
 	void SwapChildAndParentGenomes(void);															// switch to the next generation by swapping; the children become the parents
-	bool ContainsGenome(Genome *p_genome);
 	
 	//
 	// Eidos support

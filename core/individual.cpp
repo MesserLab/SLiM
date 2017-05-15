@@ -852,6 +852,91 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 			
 			
 			//
+			//	*********************	- (integer$)sumOfMutationsOfType(io<MutationType>$ mutType)
+			//
+#pragma mark -sumOfMutationsOfType()
+			
+		case gID_sumOfMutationsOfType:
+		{
+			Genome *genome1, *genome2;
+			
+			GetGenomes(&genome1, &genome2);
+			
+			if (genome1 && genome2)
+			{
+				MutationType *mutation_type_ptr = nullptr;
+				
+				if (arg0_value->Type() == EidosValueType::kValueInt)
+				{
+					SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
+					
+					if (!sim)
+						EIDOS_TERMINATION << "ERROR (Individual::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
+					
+					slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
+					auto found_muttype_pair = sim->MutationTypes().find(mutation_type_id);
+					
+					if (found_muttype_pair == sim->MutationTypes().end())
+						EIDOS_TERMINATION << "ERROR (Individual::ExecuteInstanceMethod): sumOfMutationsOfType() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+					
+					mutation_type_ptr = found_muttype_pair->second;
+				}
+				else
+				{
+					mutation_type_ptr = (MutationType *)(arg0_value->ObjectElementAtIndex(0, nullptr));
+				}
+				
+				// Count the number of mutations of the given type
+				Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+				double selcoeff_sum = 0.0;
+				
+				if (!genome1->IsNull())
+				{
+					int mutrun_count = genome1->mutrun_count_;
+					
+					for (int run_index = 0; run_index < mutrun_count; ++run_index)
+					{
+						MutationRun *mutrun = genome1->mutruns_[run_index].get();
+						int genome1_count = mutrun->size();
+						const MutationIndex *genome1_ptr = mutrun->begin_pointer_const();
+						
+						for (int mut_index = 0; mut_index < genome1_count; ++mut_index)
+						{
+							Mutation *mut_ptr = mut_block_ptr + genome1_ptr[mut_index];
+							
+							if (mut_ptr->mutation_type_ptr_ == mutation_type_ptr)
+								selcoeff_sum += mut_ptr->selection_coeff_;
+						}
+					}
+				}
+				if (!genome2->IsNull())
+				{
+					int mutrun_count = genome2->mutrun_count_;
+					
+					for (int run_index = 0; run_index < mutrun_count; ++run_index)
+					{
+						MutationRun *mutrun = genome2->mutruns_[run_index].get();
+						int genome2_count = mutrun->size();
+						const MutationIndex *genome2_ptr = mutrun->begin_pointer_const();
+						
+						for (int mut_index = 0; mut_index < genome2_count; ++mut_index)
+						{
+							Mutation *mut_ptr = mut_block_ptr + genome2_ptr[mut_index];
+							
+							if (mut_ptr->mutation_type_ptr_ == mutation_type_ptr)
+								selcoeff_sum += mut_ptr->selection_coeff_;
+						}
+					}
+				}
+				
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(selcoeff_sum));
+			}
+			
+			return gStaticEidosValueNULL;
+		}
+			
+			
+			//
 			//	*********************	- (object<Mutation>)uniqueMutationsOfType(io<MutationType>$ mutType)
 			//
 #pragma mark -uniqueMutationsOfType()
@@ -1236,6 +1321,7 @@ const std::vector<const EidosMethodSignature *> *Individual_Class::Methods(void)
 		methods->emplace_back(SignatureForMethodOrRaise(gID_countOfMutationsOfType));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_relatedness));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_setSpatialPosition));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_sumOfMutationsOfType));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_uniqueMutationsOfType));
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
@@ -1249,6 +1335,7 @@ const EidosMethodSignature *Individual_Class::SignatureForMethod(EidosGlobalStri
 	static EidosInstanceMethodSignature *countOfMutationsOfTypeSig = nullptr;
 	static EidosInstanceMethodSignature *relatednessSig = nullptr;
 	static EidosInstanceMethodSignature *setSpatialPositionSig = nullptr;
+	static EidosInstanceMethodSignature *sumOfMutationsOfTypeSig = nullptr;
 	static EidosInstanceMethodSignature *uniqueMutationsOfTypeSig = nullptr;
 	
 	if (!containsMutationsSig)
@@ -1257,6 +1344,7 @@ const EidosMethodSignature *Individual_Class::SignatureForMethod(EidosGlobalStri
 		countOfMutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
 		relatednessSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_relatedness, kEidosValueMaskFloat))->AddObject("individuals", gSLiM_Individual_Class);
 		setSpatialPositionSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSpatialPosition, kEidosValueMaskNULL))->AddFloat("position");
+		sumOfMutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sumOfMutationsOfType, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
 		uniqueMutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_uniqueMutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
 	}
 	
@@ -1267,6 +1355,7 @@ const EidosMethodSignature *Individual_Class::SignatureForMethod(EidosGlobalStri
 		case gID_countOfMutationsOfType:	return countOfMutationsOfTypeSig;
 		case gID_relatedness:				return relatednessSig;
 		case gID_setSpatialPosition:		return setSpatialPositionSig;
+		case gID_sumOfMutationsOfType:		return sumOfMutationsOfTypeSig;
 		case gID_uniqueMutationsOfType:		return uniqueMutationsOfTypeSig;
 			
 			// all others, including gID_none

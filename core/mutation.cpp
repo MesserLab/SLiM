@@ -346,7 +346,7 @@ EidosValue_SP Mutation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, c
 		// intentionally no lower or upper bound; -1.0 is lethal, but DFEs may generate smaller values, and we don't want to prevent or bowdlerize that
 		// also, the dominance coefficient modifies the selection coefficient, so values < -1 are in fact meaningfully different
 		
-		// since this selection coefficient came from the user, check and set pure_neutral_
+		// since this selection coefficient came from the user, check and set pure_neutral_ and all_pure_neutral_DFE_
 		if (selection_coeff_ != 0.0)
 		{
 			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
@@ -355,6 +355,7 @@ EidosValue_SP Mutation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, c
 				EIDOS_TERMINATION << "ERROR (Mutation::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
 			
 			sim->pure_neutral_ = false;
+			mutation_type_ptr_->all_pure_neutral_DFE_ = false;
 		}
 		
 		// cache values used by the fitness calculation code for speed; see header

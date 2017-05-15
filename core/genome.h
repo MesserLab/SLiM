@@ -81,6 +81,7 @@ private:
 #endif
 	
 	GenomeType genome_type_ = GenomeType::kAutosome;			// SEX ONLY: the type of chromosome represented by this genome
+	Subpopulation *subpop_;										// NOT OWNED: the Subpopulation this genome belongs to
 	
 	int32_t mutrun_count_;										// number of runs being used; 0 for a null genome, otherwise >= 1
 	int32_t mutrun_length_;										// the length, in base pairs, of each run; the last run may not use its full length
@@ -115,10 +116,10 @@ public:
 	static bool LogGenomeCopyAndAssign(bool p_log);		// returns the old value; save and restore that value!
 #endif
 	
-	Genome(int p_mutrun_count, int p_mutrun_length);						// default constructor; gives a non-null genome of type GenomeType::kAutosome
-	Genome(int p_mutrun_count, int p_mutrun_length, MutationRun *p_run);	// supply a custom mutation run
-	Genome(int p_mutrun_count, int p_mutrun_length, GenomeType p_genome_type_, bool p_is_null);		// a constructor for parent/child genomes, particularly in the SEX ONLY case
-	Genome(int p_mutrun_count, int p_mutrun_length, enum GenomeType p_genome_type_, bool p_is_null, MutationRun *p_run);		// SEX ONLY case with a supplied mutation run
+	Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length);						// default constructor; gives a non-null genome of type GenomeType::kAutosome
+	Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length, MutationRun *p_run);	// supply a custom mutation run
+	Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length, GenomeType p_genome_type_, bool p_is_null);		// a constructor for parent/child genomes, particularly in the SEX ONLY case
+	Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length, enum GenomeType p_genome_type_, bool p_is_null, MutationRun *p_run);		// SEX ONLY case with a supplied mutation run
 	~Genome(void);
 	
 	void NullGenomeAccessError(void) const __attribute__((__noreturn__)) __attribute__((cold));		// prints an error message, a stacktrace, and exits; called only for DEBUG
@@ -305,6 +306,7 @@ public:
 		
 		// and copy other state
 		genome_type_ = p_source_genome.genome_type_;
+		subpop_ = p_source_genome.subpop_;
 	}
 	
 	// print the sample represented by genomes, using SLiM's own format

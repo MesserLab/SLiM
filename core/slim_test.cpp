@@ -1435,6 +1435,11 @@ void _RunGenomeTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0].countOfMutationsOfType(1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0:1].countOfMutationsOfType(1); stop(); }", __LINE__);
 	
+	// Test Genome - (float$)sumOfMutationsOfType(io<MutationType>$ mutType)
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0].sumOfMutationsOfType(m1); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0].sumOfMutationsOfType(1); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0:1].sumOfMutationsOfType(1); stop(); }", __LINE__);
+	
 	// Test Genome - (object<Mutation>)mutationsOfType(io<MutationType>$ mutType)
 	SLiMAssertScriptSuccess(gen1_setup_p1 + "10 { p1.genomes[0].mutationsOfType(m1); } ", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup_p1 + "10 { p1.genomes[0].mutationsOfType(1); } ", __LINE__);
@@ -2209,6 +2214,11 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { i = p1.individuals; i.countOfMutationsOfType(m1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { i = p1.individuals; i.countOfMutationsOfType(1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { i = p1.individuals; i[0:1].countOfMutationsOfType(1); stop(); }", __LINE__);
+	
+	// Test Individual - (float$)sumOfMutationsOfType(io<MutationType>$ mutType)
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 { i = p1.individuals; i.sumOfMutationsOfType(m1); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 { i = p1.individuals; i.sumOfMutationsOfType(1); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 { i = p1.individuals; i[0:1].sumOfMutationsOfType(1); stop(); }", __LINE__);
 	
 	// Test Individual - (object<Mutation>)uniqueMutationsOfType(io<MutationType>$ mutType)
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { i = p1.individuals; i.uniqueMutationsOfType(m1); stop(); }", __LINE__);

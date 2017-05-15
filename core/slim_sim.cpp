@@ -139,19 +139,7 @@ void SLiMSim::InitializeFromFile(std::istream &p_infile)
 	{
 		SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_block_node);
 		
-		script_blocks_.emplace_back(new_script_block);
-		
-		// Define the symbol for the script block, if any
-		if (new_script_block->block_id_ != -1)
-		{
-			EidosSymbolTableEntry &symbol_entry = new_script_block->ScriptBlockSymbolTableEntry();
-			
-			if (simulation_constants_->ContainsSymbol(symbol_entry.first))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializeFromFile): script block symbol " << StringForEidosGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << eidos_terminate(new_script_block->root_node_->children_[0]->token_);
-			
-			simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
-		}
-
+		AddScriptBlock(new_script_block, nullptr, new_script_block->root_node_->children_[0]->token_);
 	}
 	
 	// Reset error position indicators used by SLiMgui
@@ -428,9 +416,12 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		mutations.insert(std::pair<slim_polymorphismid_t,MutationIndex>(polymorphism_id, new_mut_index));
 		population_.mutation_registry_.emplace_back(new_mut_index);
 		
-		// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_
+		// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_ and all_pure_neutral_DFE_
 		if (selection_coeff != 0.0)
+		{
 			pure_neutral_ = false;
+			mutation_type_ptr->all_pure_neutral_DFE_ = false;
+		}
 	}
 	
 	population_.cached_genome_count_ = 0;
@@ -633,7 +624,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			slim_objectid_t subpop_id = subpop_pair.first;
 			Subpopulation *subpop = subpop_pair.second;
 			std::vector<SLiMEidosBlock*> fitness_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosFitnessCallback, -1, -1, subpop_id);
-			std::vector<SLiMEidosBlock*> global_fitness_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosFitnessCallback, -2, -1, subpop_id);
+			std::vector<SLiMEidosBlock*> global_fitness_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback, -2, -1, subpop_id);
 			
 			subpop->UpdateFitness(fitness_callbacks, global_fitness_callbacks);
 		}
@@ -951,9 +942,12 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		mutations[polymorphism_id] = new_mut_index;
 		population_.mutation_registry_.emplace_back(new_mut_index);
 		
-		// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_
+		// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_ and all_pure_neutral_DFE_
 		if (selection_coeff != 0.0)
+		{
 			pure_neutral_ = false;
+			mutation_type_ptr->all_pure_neutral_DFE_ = false;
+		}
 	}
 	
 	population_.cached_genome_count_ = 0;
@@ -1168,7 +1162,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			slim_objectid_t subpop_id = subpop_pair.first;
 			Subpopulation *subpop = subpop_pair.second;
 			std::vector<SLiMEidosBlock*> fitness_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosFitnessCallback, -1, -1, subpop_id);
-			std::vector<SLiMEidosBlock*> global_fitness_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosFitnessCallback, -2, -1, subpop_id);
+			std::vector<SLiMEidosBlock*> global_fitness_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback, -2, -1, subpop_id);
 			
 			subpop->UpdateFitness(fitness_callbacks, global_fitness_callbacks);
 		}
@@ -1182,19 +1176,93 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	return file_generation;
 }
 
+void SLiMSim::ValidateScriptBlockCaches(void)
+{
+	if (!script_block_types_cached_)
+	{
+		cached_early_events_.clear();
+		cached_late_events_.clear();
+		cached_initialize_callbacks_.clear();
+		cached_fitness_callbacks_.clear();
+		cached_fitnessglobal_callbacks_onegen_.clear();
+		cached_fitnessglobal_callbacks_multigen_.clear();
+		cached_interaction_callbacks_.clear();
+		cached_matechoice_callbacks_.clear();
+		cached_modifychild_callbacks_.clear();
+		cached_recombination_callbacks_.clear();
+		
+		std::vector<SLiMEidosBlock*> &script_blocks = AllScriptBlocks();
+		
+		for (auto script_block : script_blocks)
+		{
+			switch (script_block->type_)
+			{
+				case SLiMEidosBlockType::SLiMEidosEventEarly:				cached_early_events_.push_back(script_block);				break;
+				case SLiMEidosBlockType::SLiMEidosEventLate:				cached_late_events_.push_back(script_block);				break;
+				case SLiMEidosBlockType::SLiMEidosInitializeCallback:		cached_initialize_callbacks_.push_back(script_block);		break;
+				case SLiMEidosBlockType::SLiMEidosFitnessCallback:			cached_fitness_callbacks_.push_back(script_block);			break;
+				case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:
+				{
+					// Global fitness callbacks are not order-dependent, so we don't have to preserve their order
+					// of declaration the way we do with other types of callbacks.  This allows us to be very efficient
+					// in how we look them up, which is good since sometimes we have a very large number of them.
+					// We put those that are registered for just a single generation in a separate vector, which
+					// we sort by generation, allowing us to look
+					slim_generation_t start = script_block->start_generation_;
+					slim_generation_t end = script_block->end_generation_;
+					
+					if (start == end)
+					{
+						cached_fitnessglobal_callbacks_onegen_.insert(std::pair<slim_generation_t, SLiMEidosBlock*>(start, script_block));
+					}
+					else
+					{
+						cached_fitnessglobal_callbacks_multigen_.push_back(script_block);
+					}
+					break;
+				}
+				case SLiMEidosBlockType::SLiMEidosInteractionCallback:		cached_interaction_callbacks_.push_back(script_block);		break;
+				case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		cached_matechoice_callbacks_.push_back(script_block);		break;
+				case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		cached_modifychild_callbacks_.push_back(script_block);		break;
+				case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	cached_recombination_callbacks_.push_back(script_block);	break;
+			}
+		}
+		
+		script_block_types_cached_ = true;
+	}
+}
+
 std::vector<SLiMEidosBlock*> SLiMSim::ScriptBlocksMatching(slim_generation_t p_generation, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id)
 {
+	if (!script_block_types_cached_)
+		ValidateScriptBlockCaches();
+	
+	std::vector<SLiMEidosBlock*> *block_list = nullptr;
+	
+	switch (p_event_type)
+	{
+		case SLiMEidosBlockType::SLiMEidosEventEarly:				block_list = &cached_early_events_;						break;
+		case SLiMEidosBlockType::SLiMEidosEventLate:				block_list = &cached_late_events_;						break;
+		case SLiMEidosBlockType::SLiMEidosInitializeCallback:		block_list = &cached_initialize_callbacks_;				break;
+		case SLiMEidosBlockType::SLiMEidosFitnessCallback:			block_list = &cached_fitness_callbacks_;				break;
+		case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:	block_list = &cached_fitnessglobal_callbacks_multigen_;	break;
+		case SLiMEidosBlockType::SLiMEidosInteractionCallback:		block_list = &cached_interaction_callbacks_;			break;
+		case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		block_list = &cached_matechoice_callbacks_;				break;
+		case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		block_list = &cached_modifychild_callbacks_;			break;
+		case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	block_list = &cached_recombination_callbacks_;			break;
+	}
+	
 	std::vector<SLiMEidosBlock*> matches;
 	
-	for (SLiMEidosBlock *script_block : script_blocks_)
+	for (SLiMEidosBlock *script_block : *block_list)
 	{
 		// check that the generation is in range
 		if ((script_block->start_generation_ > p_generation) || (script_block->end_generation_ < p_generation))
 			continue;
 		
-		// check that the script type matches (event, callback, etc.)
-		if (script_block->type_ != p_event_type)
-			continue;
+		// check that the script type matches (event, callback, etc.) - now guaranteed by the caching mechanism
+		//if (script_block->type_ != p_event_type)
+		//	continue;
 		
 		// check that the mutation type id matches, if requested
 		// this is now a bit tricky, with the NULL mut-type option, indicated by -2.  The rules now are:
@@ -1238,7 +1306,210 @@ std::vector<SLiMEidosBlock*> SLiMSim::ScriptBlocksMatching(slim_generation_t p_g
 		matches.emplace_back(script_block);
 	}
 	
+	// add in any single-generation global fitness callbacks
+	if (p_event_type == SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback)
+	{
+		auto find_range = cached_fitnessglobal_callbacks_onegen_.equal_range(p_generation);
+		auto find_start = find_range.first;
+		auto find_end = find_range.second;
+		
+		for (auto block_iter = find_start; block_iter != find_end; ++block_iter)
+		{
+			SLiMEidosBlock *script_block = block_iter->second;
+			
+			// check that the subpopulation id matches, if requested
+			if (p_subpopulation_id != -1)
+			{
+				slim_objectid_t subpopulation_id = script_block->subpopulation_id_;
+				
+				if ((subpopulation_id != -1) && (p_subpopulation_id != subpopulation_id))
+					continue;
+			}
+			
+			// OK, everything matches, so we want to return this script block
+			matches.emplace_back(script_block);
+		}
+	}
+	
 	return matches;
+}
+
+std::vector<SLiMEidosBlock*> &SLiMSim::AllScriptBlocks()
+{
+	return script_blocks_;
+}
+
+void SLiMSim::OptimizeScriptBlock(SLiMEidosBlock *p_script_block)
+{
+	// The goal here is to look for specific structures in callbacks that we are able to optimize by short-circuiting
+	// the callback interpretation entirely and replacing it with equivalent C++ code.  This is extremely messy, so
+	// we're not going to do this for very many cases, but sometimes it is worth it.
+	if (!p_script_block->has_cached_optimization_)
+	{
+		if (p_script_block->type_ == SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback)
+		{
+			const EidosASTNode *base_node = p_script_block->compound_statement_node_;
+			
+			if ((base_node->token_->token_type_ == EidosTokenType::kTokenLBrace) && (base_node->children_.size() == 1))
+			{
+				const EidosASTNode *expr_node = base_node->children_[0];
+				
+				// if we have an intervening "return", jump down through it
+				if ((expr_node->token_->token_type_ == EidosTokenType::kTokenReturn) && (expr_node->children_.size() == 1))
+					expr_node = expr_node->children_[0];
+				
+				bool opt_dnorm1_candidate = false;
+				double denominator = NAN;
+				
+				if ((expr_node->token_->token_type_ == EidosTokenType::kTokenDiv) && (expr_node->children_.size() == 2))
+				{
+					const EidosASTNode *numerator_node = expr_node->children_[0];
+					const EidosASTNode *denominator_node = expr_node->children_[1];
+					
+					if (denominator_node->HasCachedNumericValue())
+					{
+						denominator = denominator_node->CachedNumericValue();
+						expr_node = numerator_node;
+						opt_dnorm1_candidate = true;
+					}
+				}
+				else
+				{
+					denominator = 1.0;
+					opt_dnorm1_candidate = true;
+				}
+				
+				if (opt_dnorm1_candidate && (expr_node->token_->token_type_ == EidosTokenType::kTokenLParen) && (expr_node->children_.size() >= 2))
+				{
+					const EidosASTNode *call_node = expr_node->children_[0];
+					
+					if ((call_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (call_node->token_->token_string_ == "dnorm"))
+					{
+						int child_count = (int)expr_node->children_.size();
+						const EidosASTNode *x_node = expr_node->children_[1];
+						const EidosASTNode *mean_node = (child_count >= 3) ? expr_node->children_[2] : nullptr;
+						const EidosASTNode *sd_node = (child_count >= 4) ? expr_node->children_[3] : nullptr;
+						double mean_value = 0.0, sd_value = 1.0;
+						
+						// the mean and sd parameters of dnorm can be omitted in the below calls, but if they are given, get their values
+						if (mean_node)
+						{
+							if (mean_node->HasCachedNumericValue())
+								mean_value = mean_node->CachedNumericValue();
+							else
+								opt_dnorm1_candidate = false;
+						}
+						
+						if (sd_node)
+						{
+							if (sd_node->HasCachedNumericValue())
+								sd_value = sd_node->CachedNumericValue();
+							else
+								opt_dnorm1_candidate = false;
+						}
+						
+						if (opt_dnorm1_candidate)
+						{
+							if ((x_node ->token_->token_type_ == EidosTokenType::kTokenMinus) && (x_node->children_.size() == 2) && (mean_value == 0.0))
+							{
+								const EidosASTNode *lhs_node = x_node->children_[0];
+								const EidosASTNode *rhs_node = x_node->children_[1];
+								const EidosASTNode *dot_node = nullptr, *constant_node = nullptr;
+								
+								if (lhs_node->token_->token_type_ == EidosTokenType::kTokenDot)
+								{
+									dot_node = lhs_node;
+									constant_node = rhs_node;
+								}
+								else if (rhs_node->token_->token_type_ == EidosTokenType::kTokenDot)
+								{
+									dot_node = rhs_node;
+									constant_node = lhs_node;
+								}
+								
+								if (dot_node && constant_node && (dot_node->children_.size() == 2) && constant_node->HasCachedNumericValue())
+								{
+									const EidosASTNode *var_node = dot_node->children_[0];
+									const EidosASTNode *prop_node = dot_node->children_[1];
+									
+									mean_value = constant_node->CachedNumericValue();
+									
+									if ((var_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (var_node->token_->token_string_ == "individual")
+										&& (prop_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (prop_node->token_->token_string_ == "tagF"))
+									{
+										// callback of the form { return dnorm(individual.tagF - A, 0.0, B) / C; }
+										// callback of the form { return dnorm(individual.tagF - A, 0.0, B); }
+										// callback of the form { dnorm(individual.tagF - A, 0.0, B) / C; }
+										// callback of the form { dnorm(individual.tagF - A, 0.0, B); }
+										// callback of the form { return dnorm(A - individual.tagF, 0.0, B) / C; }
+										// callback of the form { return dnorm(A - individual.tagF, 0.0, B); }
+										// callback of the form { dnorm(A - individual.tagF, 0.0, B) / C; }
+										// callback of the form { dnorm(A - individual.tagF, 0.0, B); }
+										p_script_block->has_cached_optimization_ = true;
+										p_script_block->has_cached_opt_dnorm1_ = true;
+										p_script_block->cached_opt_A_ = mean_value;
+										p_script_block->cached_opt_B_ = sd_value;
+										p_script_block->cached_opt_C_ = denominator;
+									}
+								}
+							}
+							else if ((x_node->token_->token_type_ == EidosTokenType::kTokenDot) && (x_node->children_.size() == 2))
+							{
+								const EidosASTNode *var_node = x_node->children_[0];
+								const EidosASTNode *prop_node = x_node->children_[1];
+								
+								if ((var_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (var_node->token_->token_string_ == "individual")
+									&& (prop_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (prop_node->token_->token_string_ == "tagF"))
+								{
+									// callback of the form { return dnorm(individual.tagF, A, B) / C; }
+									// callback of the form { return dnorm(individual.tagF, A, B); }
+									// callback of the form { dnorm(individual.tagF, A, B) / C; }
+									// callback of the form { dnorm(individual.tagF, A, B); }
+									p_script_block->has_cached_optimization_ = true;
+									p_script_block->has_cached_opt_dnorm1_ = true;
+									p_script_block->cached_opt_A_ = mean_value;
+									p_script_block->cached_opt_B_ = sd_value;
+									p_script_block->cached_opt_C_ = denominator;
+								}
+							}
+						}
+					}
+				}
+			}
+			
+//			if (p_script_block->has_cached_optimization_ && p_script_block->has_cached_opt_dnorm1_)
+//				std::cout << "optimized:" << std::endl << "   " << p_script_block->script_->String() << std::endl;
+//			else
+//				std::cout << "NOT OPTIMIZED:" << std::endl << "   " << p_script_block->script_->String() << std::endl;
+		}
+	}
+}
+
+void SLiMSim::AddScriptBlock(SLiMEidosBlock *p_script_block, EidosInterpreter *p_interpreter, const EidosToken *p_error_token)
+{
+	script_blocks_.emplace_back(p_script_block);
+	
+	p_script_block->TokenizeAndParse();	// can raise
+	
+	// The script block passed tokenization and parsing, so it is reasonably well-formed.  Now we check for cases we optimize.
+	OptimizeScriptBlock(p_script_block);
+	
+	// Define the symbol for the script block, if any
+	if (p_script_block->block_id_ != -1)
+	{
+		EidosSymbolTableEntry &symbol_entry = p_script_block->ScriptBlockSymbolTableEntry();
+		EidosGlobalStringID symbol_id = symbol_entry.first;
+		
+		if ((simulation_constants_->ContainsSymbol(symbol_id)) || (p_interpreter && p_interpreter->SymbolTable().ContainsSymbol(symbol_id)))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::AddScriptBlock): script block symbol " << StringForEidosGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << eidos_terminate(p_error_token);
+		
+		simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
+	}
+	
+	// Notify the various interested parties that the script blocks have changed
+	last_script_block_gen_cached = false;
+	script_block_types_cached_ = false;
+	scripts_changed_ = true;
 }
 
 void SLiMSim::DeregisterScheduledScriptBlocks(void)
@@ -1260,6 +1531,8 @@ void SLiMSim::DeregisterScheduledScriptBlocks(void)
 			
 			// Then remove it from our script block list and deallocate it
 			script_blocks_.erase(script_block_position);
+			last_script_block_gen_cached = false;
+			script_block_types_cached_ = false;
 			scripts_changed_ = true;
 			delete block_to_dereg;
 		}
@@ -1281,6 +1554,8 @@ void SLiMSim::DeregisterScheduledInteractionBlocks(void)
 			
 			// Then remove it from our script block list and deallocate it
 			script_blocks_.erase(script_block_position);
+			last_script_block_gen_cached = false;
+			script_block_types_cached_ = false;
 			scripts_changed_ = true;
 			delete block_to_dereg;
 		}
@@ -1337,14 +1612,7 @@ void SLiMSim::RunInitializeCallbacks(void)
 		((chromosome_.recombination_rates_M_.size() != 0) && (chromosome_.recombination_rates_F_.size() == 0)))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): Both sex-specific recombination rates must be defined, not just one (but one may be defined as zero)." << eidos_terminate();
 	
-	// figure out our first generation; it is the earliest generation in which an Eidos event is set up to run,
-	// since an Eidos event that adds a subpopulation is necessary to get things started
-	time_start_ = SLIM_MAX_GENERATION;
-	
-	for (auto script_block : script_blocks_)
-		if (((script_block->type_ == SLiMEidosBlockType::SLiMEidosEventEarly) || (script_block->type_ == SLiMEidosBlockType::SLiMEidosEventLate))
-			&& (script_block->start_generation_ < time_start_) && (script_block->start_generation_ > 0))
-			time_start_ = script_block->start_generation_;
+	time_start_ = FirstGeneration();	// SLIM_MAX_GENERATION if it can't find a first block
 	
 	if (time_start_ == SLIM_MAX_GENERATION)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): No Eidos event found to start the simulation." << eidos_terminate();
@@ -1363,18 +1631,42 @@ void SLiMSim::RunInitializeCallbacks(void)
 	SLIM_OUTSTREAM << "\n// Starting run at generation <start>:\n" << time_start_ << " " << "\n" << std::endl;
 }
 
+slim_generation_t SLiMSim::FirstGeneration(void)
+{
+	slim_generation_t first_gen = SLIM_MAX_GENERATION;
+	std::vector<SLiMEidosBlock*> &script_blocks = AllScriptBlocks();
+	
+	// Figure out our first generation; it is the earliest generation in which an Eidos event is set up to run,
+	// since an Eidos event that adds a subpopulation is necessary to get things started
+	for (auto script_block : script_blocks)
+		if (((script_block->type_ == SLiMEidosBlockType::SLiMEidosEventEarly) || (script_block->type_ == SLiMEidosBlockType::SLiMEidosEventLate))
+			&& (script_block->start_generation_ < first_gen) && (script_block->start_generation_ > 0))
+			first_gen = script_block->start_generation_;
+	
+	return first_gen;
+}
+
 slim_generation_t SLiMSim::EstimatedLastGeneration(void)
 {
+	// return our cached value if we have one
+	if (last_script_block_gen_cached)
+		return last_script_block_gen_;
+	
+	// otherwise, fill the cache
+	std::vector<SLiMEidosBlock*> &script_blocks = AllScriptBlocks();
 	slim_generation_t last_gen = 1;
 	
 	// The estimate is derived from the last generation in which an Eidos block is registered.
 	// Any block type works, since the simulation could plausibly be stopped within a callback.
 	// However, blocks that do not specify an end generation don't count.
-	for (auto script_block : script_blocks_)
+	for (auto script_block : script_blocks)
 		if ((script_block->end_generation_ > last_gen) && (script_block->end_generation_ != SLIM_MAX_GENERATION))
 			last_gen = script_block->end_generation_;
 	
-	return last_gen;
+	last_script_block_gen_ = last_gen;
+	last_script_block_gen_cached = true;
+	
+	return last_script_block_gen_;
 }
 
 // This function is called only by the SLiM self-testing machinery.  It has no exception handling; raises will
@@ -1392,7 +1684,9 @@ bool SLiMSim::_RunOneGeneration(void)
 	gEidosExecutingRuntimeScript = false;
 	
 	// Activate all registered script blocks at the beginning of the generation
-	for (SLiMEidosBlock *script_block : script_blocks_)
+	std::vector<SLiMEidosBlock*> &script_blocks = AllScriptBlocks();
+	
+	for (SLiMEidosBlock *script_block : script_blocks)
 		script_block->active_ = -1;
 	
 	if (generation_ == 0)
@@ -2731,8 +3025,9 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_SLiMEidosBlock_Class);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
+			std::vector<SLiMEidosBlock*> &script_blocks = AllScriptBlocks();
 			
-			for (auto script_block = script_blocks_.begin(); script_block != script_blocks_.end(); ++script_block)
+			for (auto script_block = script_blocks.begin(); script_block != script_blocks.end(); ++script_block)
 				vec->PushObjectElement(*script_block);
 			
 			return result_SP;
@@ -2966,8 +3261,9 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 				if (arg0_value->Type() == EidosValueType::kValueInt)
 				{
 					slim_objectid_t block_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(block_index, nullptr));
+					std::vector<SLiMEidosBlock*> &script_blocks = AllScriptBlocks();
 					
-					for (SLiMEidosBlock *found_block : script_blocks_)
+					for (SLiMEidosBlock *found_block : script_blocks)
 						if (found_block->block_id_ == block_id)
 						{
 							block = found_block;
@@ -3513,21 +3809,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 			SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, (p_method_id == gID_registerEarlyEvent) ? SLiMEidosBlockType::SLiMEidosEventEarly : SLiMEidosBlockType::SLiMEidosEventLate, start_generation, end_generation);
 			
-			script_blocks_.emplace_back(new_script_block);		// takes ownership from us
-			scripts_changed_ = true;
-			
-			new_script_block->TokenizeAndParse();	// can raise
-			
-			if (script_id != -1)
-			{
-				// define a new Eidos variable to refer to the new script
-				EidosSymbolTableEntry &symbol_entry = new_script_block->ScriptBlockSymbolTableEntry();
-				
-				if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): register" << ((p_method_id == gID_registerEarlyEvent) ? "Early" : "Late") << "Event() symbol " << StringForEidosGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << eidos_terminate();
-				
-				simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
-			}
+			AddScriptBlock(new_script_block, &p_interpreter, nullptr);		// takes ownership from us
 			
 			return new_script_block->SelfSymbolTableEntry().second;
 		}
@@ -3559,26 +3841,14 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			if (start_generation > end_generation)
 				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerFitnessCallback() requires start <= end." << eidos_terminate();
 			
-			SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, SLiMEidosBlockType::SLiMEidosFitnessCallback, start_generation, end_generation);
+			SLiMEidosBlockType block_type = ((mut_type_id == -2) ? SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback : SLiMEidosBlockType::SLiMEidosFitnessCallback);
+			
+			SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, block_type, start_generation, end_generation);
 			
 			new_script_block->mutation_type_id_ = mut_type_id;
 			new_script_block->subpopulation_id_ = subpop_id;
 			
-			script_blocks_.emplace_back(new_script_block);		// takes ownership from us
-			scripts_changed_ = true;
-			
-			new_script_block->TokenizeAndParse();	// can raise
-			
-			if (script_id != -1)
-			{
-				// define a new Eidos variable to refer to the new script
-				EidosSymbolTableEntry &symbol_entry = new_script_block->ScriptBlockSymbolTableEntry();
-				
-				if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerFitnessCallback() symbol " << StringForEidosGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << eidos_terminate();
-				
-				simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
-			}
+			AddScriptBlock(new_script_block, &p_interpreter, nullptr);		// takes ownership from us
 			
 			return new_script_block->SelfSymbolTableEntry().second;
 		}
@@ -3612,21 +3882,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			new_script_block->interaction_type_id_ = int_type_id;
 			new_script_block->subpopulation_id_ = subpop_id;
 			
-			script_blocks_.emplace_back(new_script_block);		// takes ownership from us
-			scripts_changed_ = true;
-			
-			new_script_block->TokenizeAndParse();	// can raise
-			
-			if (script_id != -1)
-			{
-				// define a new Eidos variable to refer to the new script
-				EidosSymbolTableEntry &symbol_entry = new_script_block->ScriptBlockSymbolTableEntry();
-				
-				if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): registerInteractionCallback() symbol " << StringForEidosGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << eidos_terminate();
-				
-				simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
-			}
+			AddScriptBlock(new_script_block, &p_interpreter, nullptr);		// takes ownership from us
 			
 			return new_script_block->SelfSymbolTableEntry().second;
 		}
@@ -3670,21 +3926,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 			new_script_block->subpopulation_id_ = subpop_id;
 			
-			script_blocks_.emplace_back(new_script_block);		// takes ownership from us
-			scripts_changed_ = true;
-			
-			new_script_block->TokenizeAndParse();	// can raise
-			
-			if (script_id != -1)
-			{
-				// define a new Eidos variable to refer to the new script
-				EidosSymbolTableEntry &symbol_entry = new_script_block->ScriptBlockSymbolTableEntry();
-				
-				if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteInstanceMethod): " << StringForEidosGlobalStringID(p_method_id) << " symbol " << StringForEidosGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << eidos_terminate();
-				
-				simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
-			}
+			AddScriptBlock(new_script_block, &p_interpreter, nullptr);		// takes ownership from us
 			
 			return new_script_block->SelfSymbolTableEntry().second;
 		}
@@ -3723,6 +3965,8 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 				
 				block->start_generation_ = start;
 				block->end_generation_ = end;
+				last_script_block_gen_cached = false;
+				script_block_types_cached_ = false;
 				scripts_changed_ = true;
 				
 				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(block, gSLiM_SLiMEidosBlock_Class));
@@ -3787,6 +4031,8 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 							block->start_generation_ = start;
 							block->end_generation_ = end;
 							first_block = false;
+							last_script_block_gen_cached = false;
+							script_block_types_cached_ = false;
 							scripts_changed_ = true;
 							
 							vec->PushObjectElement(block);
@@ -3795,10 +4041,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 						{
 							SLiMEidosBlock *new_script_block = new SLiMEidosBlock(-1, block->compound_statement_node_->token_->token_string_, block->type_, start, end);
 							
-							script_blocks_.emplace_back(new_script_block);		// takes ownership from us
-							scripts_changed_ = true;
-							
-							new_script_block->TokenizeAndParse();	// can raise
+							AddScriptBlock(new_script_block, &p_interpreter, nullptr);		// takes ownership from us
 							
 							vec->PushObjectElement(new_script_block);
 						}
