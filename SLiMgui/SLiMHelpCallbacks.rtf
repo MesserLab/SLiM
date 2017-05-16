@@ -218,7 +218,11 @@ When Eidos events are executed, several global variables are defined by SLiM for
 
 \f0 \cf0 where 
 \f2\fs18 fitness()
-\f0\fs22  is the value returned by your callback.  Like Eidos events, 
+\f0\fs22  is the value returned by your callback.  This value is a relative fitness value, so 
+\f2\fs18 1.0
+\f0\fs22  is neutral, unlike the selection coefficient scale, where 
+\f2\fs18 0.0
+\f0\fs22  is neutral; be careful with this distinction!  Like Eidos events, 
 \f2\fs18 fitness()
 \f0\fs22  callbacks are defined as script blocks in the input file, but they use a variation of the syntax for defining a Eidos event:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb180\sa180\partightenfactor0
@@ -319,7 +323,13 @@ When Eidos events are executed, several global variables are defined by SLiM for
 \f3\fs4 \cf0 \
 \pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 
-\f0\fs22 \cf0 However, the 
+\f0\fs22 \cf0 As mentioned above, a relative fitness of 
+\f2\fs18 1.0
+\f0\fs22  is neutral (whereas a selection coefficient of 
+\f2\fs18 0.0
+\f0\fs22  is neutral); the 
+\f2\fs18 1.0 +
+\f0\fs22  in these calculations converts between the selection coefficient scale and the relative fitness scale, and is therefore essential.  However, the 
 \f2\fs18 relFitness
 \f0\fs22  global variable mentioned above would already contain this value, precomputed by SLiM, so you could simply return 
 \f2\fs18 relFitness
@@ -350,8 +360,7 @@ More than one
 \f0\fs22  is not necessarily the default value, in fact, but is the result of all previous 
 \f2\fs18 fitness()
 \f0\fs22  callbacks for that individual in that generation.  In this way, the effects of multiple callbacks can \'93stack\'94.\
-\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
-\cf0 In SLiM version 2.3 and later, it is possible to define 
+In SLiM version 2.3 and later, it is possible to define 
 \i global
 \i0  
 \f2\fs18 fitness()
