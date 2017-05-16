@@ -1,2 +1,41 @@
-initialize() {	initializeMutationRate(1e-7);	initializeMutationType("m1", 0.5, "f", 0.0);	initializeMutationType("m2", 1.0, "f", 0.5);  // introduced mutation	initializeGenomicElementType("g1", m1, 1.0);	initializeGenomicElement(g1, 0, 99999);	initializeRecombinationRate(1e-8);}1 {	sim.setValue("FST", 0.0);	sim.addSubpop("p1", 500);	sim.addSubpop("p2", 500);	p1.setMigrationRates(p2, 0.1);	p2.setMigrationRates(p1, 0.1);}1000 late() {	target = sample(p1.genomes, 1);	target.addNewDrawnMutation(m2, 10000);}fitness(m2, p2) { return -0.2; }2000: mateChoice() {	parent1HasMut = (individual.countOfMutationsOfType(m2) > 0);	parent2HasMut = (sourceSubpop.individuals.countOfMutationsOfType(m2) > 0);	if (parent1HasMut)		return weights * ifelse(parent2HasMut, 2.0, 1.0);	else		return weights * ifelse(parent2HasMut, 0.5, 1.0);}3000: late() {	p1_p = sim.mutationFrequencies(p1);	p2_p = sim.mutationFrequencies(p2);	mean_p = (p1_p + p2_p) / 2.0;	pq = p1_p * (1 - p1_p);	mean_pq = mean_p * (1 - mean_p);	fst = abs((mean_pq - pq) / mean_pq);
-	sim.setValue("FST", sim.getValue("FST") + mean(fst));}3499 late() {	cat("Mean FST at equilibrium: " + (sim.getValue("FST") / 500));	sim.simulationFinished();}
+initialize() {
+    initializeMutationRate(1e-7);
+    initializeMutationType("m1", 0.5, "f", 0.0);
+    initializeMutationType("m2", 1.0, "f", 0.5);  // introduced mutation
+    initializeGenomicElementType("g1", m1, 1.0);
+    initializeGenomicElement(g1, 0, 99999);
+    initializeRecombinationRate(1e-8);
+}
+1 {
+    sim.setValue("FST", 0.0);
+    sim.addSubpop("p1", 500);
+    sim.addSubpop("p2", 500);
+    p1.setMigrationRates(p2, 0.1);
+    p2.setMigrationRates(p1, 0.1);
+}
+1000 late() {
+    target = sample(p1.genomes, 1);
+    target.addNewDrawnMutation(m2, 10000);
+}
+fitness(m2, p2) { return -0.2; }
+2000: mateChoice() {
+    parent1HasMut = (individual.countOfMutationsOfType(m2) > 0);
+    parent2HasMut = (sourceSubpop.individuals.countOfMutationsOfType(m2) > 0);
+    if (parent1HasMut)
+        return weights * ifelse(parent2HasMut, 2.0, 1.0);
+    else
+        return weights * ifelse(parent2HasMut, 0.5, 1.0);
+}
+3000: late() {
+    p1_p = sim.mutationFrequencies(p1);
+    p2_p = sim.mutationFrequencies(p2);
+    mean_p = (p1_p + p2_p) / 2.0;
+    pq = p1_p * (1 - p1_p);
+    mean_pq = mean_p * (1 - mean_p);
+    fst = abs((mean_pq - pq) / mean_pq);
+    sim.setValue("FST", sim.getValue("FST") + mean(fst));
+}
+3499 late() {
+    cat("Mean FST at equilibrium: " + (sim.getValue("FST") / 500));
+    sim.simulationFinished();
+}

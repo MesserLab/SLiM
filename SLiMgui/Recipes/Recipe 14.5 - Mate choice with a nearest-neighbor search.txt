@@ -1,45 +1,45 @@
 initialize() {
-	initializeSLiMOptions(dimensionality="xy");
-	initializeMutationRate(1e-7);
-	initializeMutationType("m1", 0.5, "f", 0.0);
-	initializeGenomicElementType("g1", m1, 1.0);
-	initializeGenomicElement(g1, 0, 99999);
-	initializeRecombinationRate(1e-8);
-	
-	// spatial competition
-	initializeInteractionType(1, "xy", reciprocal=T, maxDistance=0.3);
-	i1.setInteractionFunction("n", 3.0, 0.1);
+    initializeSLiMOptions(dimensionality="xy");
+    initializeMutationRate(1e-7);
+    initializeMutationType("m1", 0.5, "f", 0.0);
+    initializeGenomicElementType("g1", m1, 1.0);
+    initializeGenomicElement(g1, 0, 99999);
+    initializeRecombinationRate(1e-8);
+    
+    // spatial competition
+    initializeInteractionType(1, "xy", reciprocal=T, maxDistance=0.3);
+    i1.setInteractionFunction("n", 3.0, 0.1);
 
-	// spatial mate choice
-	initializeInteractionType(2, "xy", reciprocal=T, maxDistance=0.1);
+    // spatial mate choice
+    initializeInteractionType(2, "xy", reciprocal=T, maxDistance=0.1);
 }
 1 late() {
-	sim.addSubpop("p1", 500);
-	
-	for (ind in p1.individuals)
-		ind.setSpatialPosition(p1.pointUniform());
+    sim.addSubpop("p1", 500);
+    
+    for (ind in p1.individuals)
+        ind.setSpatialPosition(p1.pointUniform());
 }
 1: late() {
-	i1.evaluate();
-	i2.evaluate();
+    i1.evaluate();
+    i2.evaluate();
 }
 fitness(NULL) {
-	totalStrength = i1.totalOfNeighborStrengths(individual);
-	return 1.1 - totalStrength / p1.individualCount;
+    totalStrength = i1.totalOfNeighborStrengths(individual);
+    return 1.1 - totalStrength / p1.individualCount;
 }
 1: mateChoice() {
-	// nearest-neighbor mate choice
-	neighbors = i2.nearestNeighbors(individual, 3);
-	mates = rep(0.0, p1.individualCount);
-	mates[neighbors.index] = 1.0;
-	
-	return mates;
+    // nearest-neighbor mate choice
+    neighbors = i2.nearestNeighbors(individual, 3);
+    mates = rep(0.0, p1.individualCount);
+    mates[neighbors.index] = 1.0;
+    
+    return mates;
 }
 modifyChild() {
-	do pos = parent1.spatialPosition + rnorm(2, 0, 0.02);
-	while (!p1.pointInBounds(pos));
-	child.setSpatialPosition(pos);
-	
-	return T;
+    do pos = parent1.spatialPosition + rnorm(2, 0, 0.02);
+    while (!p1.pointInBounds(pos));
+    child.setSpatialPosition(pos);
+    
+    return T;
 }
 2000 late() { sim.outputFixedMutations(); }

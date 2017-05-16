@@ -23,6 +23,11 @@ cpplint.py for checking includes (https://github.com/google/styleguide/tree/gh-p
 	cd /Users/bhaller/DocumentsSynced/Research/Messer\ lab/SLiM\ project/SLiM
 	python2.7 /Users/bhaller/bin/cpplint.py --filter=-,+build/include_what_you_use ./core/*.cpp ./eidos/*.cpp ./eidostool/*.cpp
 
+CR/LF issues:
+	file <file> tells you what a file is
+	tab2space -lf <file> converts a file to Unix-style LF only
+	convert all text files in the current directory to use LF: find . -name \*.txt -exec tab2space -lf {} {} \; -print
+
 finding out the generation number of a running simulation in lldb:
 	lldb /usr/local/bin/slim
 	process attach --pid X (from ps -ax | grep slim)
