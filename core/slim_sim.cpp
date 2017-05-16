@@ -1352,13 +1352,35 @@ void SLiMSim::OptimizeScriptBlock(SLiMEidosBlock *p_script_block)
 			
 			if ((base_node->token_->token_type_ == EidosTokenType::kTokenLBrace) && (base_node->children_.size() == 1))
 			{
+				bool opt_dnorm1_candidate = true;
 				const EidosASTNode *expr_node = base_node->children_[0];
 				
 				// if we have an intervening "return", jump down through it
 				if ((expr_node->token_->token_type_ == EidosTokenType::kTokenReturn) && (expr_node->children_.size() == 1))
 					expr_node = expr_node->children_[0];
 				
-				bool opt_dnorm1_candidate = false;
+				// parse an optional constant at the beginning, like 1.0 + ...
+				double added_constant = NAN;
+				
+				if ((expr_node->token_->token_type_ == EidosTokenType::kTokenPlus) && (expr_node->children_.size() == 2))
+				{
+					const EidosASTNode *constant_node = expr_node->children_[0];
+					const EidosASTNode *rhs_node = expr_node->children_[1];
+					
+					if (constant_node->HasCachedNumericValue())
+					{
+						added_constant = constant_node->CachedNumericValue();
+						expr_node = rhs_node;
+					}
+					else
+						opt_dnorm1_candidate = false;
+				}
+				else
+				{
+					added_constant = 0.0;
+				}
+				
+				// parse an optional divisor at the end, ... / div
 				double denominator = NAN;
 				
 				if ((expr_node->token_->token_type_ == EidosTokenType::kTokenDiv) && (expr_node->children_.size() == 2))
@@ -1370,15 +1392,16 @@ void SLiMSim::OptimizeScriptBlock(SLiMEidosBlock *p_script_block)
 					{
 						denominator = denominator_node->CachedNumericValue();
 						expr_node = numerator_node;
-						opt_dnorm1_candidate = true;
 					}
+					else
+						opt_dnorm1_candidate = false;
 				}
 				else
 				{
 					denominator = 1.0;
-					opt_dnorm1_candidate = true;
 				}
 				
+				// parse the dnorm() function call
 				if (opt_dnorm1_candidate && (expr_node->token_->token_type_ == EidosTokenType::kTokenLParen) && (expr_node->children_.size() >= 2))
 				{
 					const EidosASTNode *call_node = expr_node->children_[0];
@@ -1390,6 +1413,38 @@ void SLiMSim::OptimizeScriptBlock(SLiMEidosBlock *p_script_block)
 						const EidosASTNode *mean_node = (child_count >= 3) ? expr_node->children_[2] : nullptr;
 						const EidosASTNode *sd_node = (child_count >= 4) ? expr_node->children_[3] : nullptr;
 						double mean_value = 0.0, sd_value = 1.0;
+						
+						// resolve named arguments
+						if (x_node && (x_node->token_->token_type_ == EidosTokenType::kTokenAssign) && (x_node->children_.size() == 2))
+						{
+							const EidosASTNode *name_node = x_node->children_[0];
+							const EidosASTNode *value_node = x_node->children_[1];
+							
+							if ((name_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (name_node->token_->token_string_ == "x"))
+								x_node = value_node;
+							else
+								opt_dnorm1_candidate = false;
+						}
+						if (mean_node && (mean_node->token_->token_type_ == EidosTokenType::kTokenAssign) && (mean_node->children_.size() == 2))
+						{
+							const EidosASTNode *name_node = mean_node->children_[0];
+							const EidosASTNode *value_node = mean_node->children_[1];
+							
+							if ((name_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (name_node->token_->token_string_ == "mean"))
+								mean_node = value_node;
+							else
+								opt_dnorm1_candidate = false;
+						}
+						if (sd_node && (sd_node->token_->token_type_ == EidosTokenType::kTokenAssign) && (sd_node->children_.size() == 2))
+						{
+							const EidosASTNode *name_node = sd_node->children_[0];
+							const EidosASTNode *value_node = sd_node->children_[1];
+							
+							if ((name_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (name_node->token_->token_string_ == "sd"))
+								sd_node = value_node;
+							else
+								opt_dnorm1_candidate = false;
+						}
 						
 						// the mean and sd parameters of dnorm can be omitted in the below calls, but if they are given, get their values
 						if (mean_node)
@@ -1408,9 +1463,10 @@ void SLiMSim::OptimizeScriptBlock(SLiMEidosBlock *p_script_block)
 								opt_dnorm1_candidate = false;
 						}
 						
+						// parse the x argument to dnorm, which can take several different forms
 						if (opt_dnorm1_candidate)
 						{
-							if ((x_node ->token_->token_type_ == EidosTokenType::kTokenMinus) && (x_node->children_.size() == 2) && (mean_value == 0.0))
+							if ((x_node->token_->token_type_ == EidosTokenType::kTokenMinus) && (x_node->children_.size() == 2) && (mean_value == 0.0))
 							{
 								const EidosASTNode *lhs_node = x_node->children_[0];
 								const EidosASTNode *rhs_node = x_node->children_[1];
@@ -1437,19 +1493,20 @@ void SLiMSim::OptimizeScriptBlock(SLiMEidosBlock *p_script_block)
 									if ((var_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (var_node->token_->token_string_ == "individual")
 										&& (prop_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (prop_node->token_->token_string_ == "tagF"))
 									{
-										// callback of the form { return dnorm(individual.tagF - A, 0.0, B) / C; }
-										// callback of the form { return dnorm(individual.tagF - A, 0.0, B); }
-										// callback of the form { dnorm(individual.tagF - A, 0.0, B) / C; }
-										// callback of the form { dnorm(individual.tagF - A, 0.0, B); }
-										// callback of the form { return dnorm(A - individual.tagF, 0.0, B) / C; }
-										// callback of the form { return dnorm(A - individual.tagF, 0.0, B); }
-										// callback of the form { dnorm(A - individual.tagF, 0.0, B) / C; }
-										// callback of the form { dnorm(A - individual.tagF, 0.0, B); }
+										// callback of the form { return D + dnorm(individual.tagF - A, 0.0, B) / C; }
+										// callback of the form { return D + dnorm(individual.tagF - A, 0.0, B); }
+										// callback of the form { D + dnorm(individual.tagF - A, 0.0, B) / C; }
+										// callback of the form { D + dnorm(individual.tagF - A, 0.0, B); }
+										// callback of the form { return D + dnorm(A - individual.tagF, 0.0, B) / C; }
+										// callback of the form { return D + dnorm(A - individual.tagF, 0.0, B); }
+										// callback of the form { D + dnorm(A - individual.tagF, 0.0, B) / C; }
+										// callback of the form { D + dnorm(A - individual.tagF, 0.0, B); }
 										p_script_block->has_cached_optimization_ = true;
 										p_script_block->has_cached_opt_dnorm1_ = true;
 										p_script_block->cached_opt_A_ = mean_value;
 										p_script_block->cached_opt_B_ = sd_value;
 										p_script_block->cached_opt_C_ = denominator;
+										p_script_block->cached_opt_D_ = added_constant;
 									}
 								}
 							}
@@ -1461,15 +1518,16 @@ void SLiMSim::OptimizeScriptBlock(SLiMEidosBlock *p_script_block)
 								if ((var_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (var_node->token_->token_string_ == "individual")
 									&& (prop_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (prop_node->token_->token_string_ == "tagF"))
 								{
-									// callback of the form { return dnorm(individual.tagF, A, B) / C; }
-									// callback of the form { return dnorm(individual.tagF, A, B); }
-									// callback of the form { dnorm(individual.tagF, A, B) / C; }
-									// callback of the form { dnorm(individual.tagF, A, B); }
+									// callback of the form { D + return dnorm(individual.tagF, A, B) / C; }
+									// callback of the form { D + return dnorm(individual.tagF, A, B); }
+									// callback of the form { D + dnorm(individual.tagF, A, B) / C; }
+									// callback of the form { D + dnorm(individual.tagF, A, B); }
 									p_script_block->has_cached_optimization_ = true;
 									p_script_block->has_cached_opt_dnorm1_ = true;
 									p_script_block->cached_opt_A_ = mean_value;
 									p_script_block->cached_opt_B_ = sd_value;
 									p_script_block->cached_opt_C_ = denominator;
+									p_script_block->cached_opt_D_ = added_constant;
 								}
 							}
 						}

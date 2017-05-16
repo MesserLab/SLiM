@@ -1086,8 +1086,9 @@ double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &
 					double A = fitness_callback->cached_opt_A_;
 					double B = fitness_callback->cached_opt_B_;
 					double C = fitness_callback->cached_opt_C_;
+					double D = fitness_callback->cached_opt_D_;
 					
-					computed_fitness *= (gsl_ran_gaussian_pdf(individual->TagFloat() - A, B) / C);
+					computed_fitness *= (D + (gsl_ran_gaussian_pdf(individual->TagFloat() - A, B) / C));
 				}
 				else
 				{

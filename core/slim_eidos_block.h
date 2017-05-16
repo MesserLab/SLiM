@@ -155,6 +155,7 @@ public:
 	double cached_opt_A_ = 0.0;
 	double cached_opt_B_ = 0.0;
 	double cached_opt_C_ = 0.0;
+	double cached_opt_D_ = 0.0;
 	
 	
 	SLiMEidosBlock(const SLiMEidosBlock&) = delete;					// no copying
