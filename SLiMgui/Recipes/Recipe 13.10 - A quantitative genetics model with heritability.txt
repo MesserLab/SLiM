@@ -17,7 +17,7 @@ initialize() {
 1: late() {
     // construct phenotypes from the additive effects of QTLs
     inds = sim.subpopulations.individuals;
-    tags = apply(inds, "sum(applyValue.genomes.mutationsOfType(m2).selectionCoeff);");
+    tags = inds.sumOfMutationsOfType(m2);
     
     // add in environmental variance, according to the target heritability
     V_A = sd(tags)^2;

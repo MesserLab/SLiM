@@ -63,23 +63,20 @@ initialize() {
 }
 1: late() {
     // construct phenotypes for the additive effects of QTLs
-    for (individual in sim.subpopulations.individuals)
-    {
-        m2muts = individual.genomes.mutationsOfType(m2);
-        individual.tag = asInteger(sum(m2muts.selectionCoeff));
-    }
+    inds = sim.subpopulations.individuals;
+    inds.tag = asInteger(inds.sumOfMutationsOfType(m2));
 }
 fitness(m2) {
     // the QTLs themselves are neutral; their effect is handled below
     return 1.0;
 }
 fitness(NULL, p1) {
-    phenotype = asFloat(individual.tag);
-    return 1.0 + dnorm(10.0 - phenotype, 0.0, 5.0);    // optimum of +10
+    // optimum of +10
+    return 1.0 + dnorm(10.0 - individual.tag, 0.0, 5.0);
 }
 fitness(NULL, p2) {
-    phenotype = asFloat(individual.tag);
-    return 1.0 + dnorm(-10.0 - phenotype, 0.0, 5.0);   // optimum of -10
+    // optimum of -10
+    return 1.0 + dnorm(-10.0 - individual.tag, 0.0, 5.0);
 }
 mateChoice() {
     phenotype = asFloat(individual.tag);

@@ -28,8 +28,7 @@ initialize() {
 1: late() {
     // construct phenotypes from the additive effects of QTLs
     inds = sim.subpopulations.individuals;
-    inds.x = apply(inds,
-        "sum(applyValue.genomes.mutationsOfType(m2).selectionCoeff);");
+    inds.x = inds.sumOfMutationsOfType(m2);
     
     // evaluate interactions
     i1.evaluate();

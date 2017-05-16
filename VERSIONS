@@ -30,6 +30,7 @@ development head:
 	optimization of simulations in which all mutations have no direct fitness effects, particularly QTL-based models
 	add sumOfMutationsOfType() method to Individual and Genome for fast totalling of additive QTLs in QTL-based models
 	optimize script block handling for sims with many script blocks, to decrease callback overhead
+	rewrite QTL-based recipes to use sumOfMutationsOfType()
 	NOTE: this version changed model output in some cases because of a float/double change in fitness calculations
 
 

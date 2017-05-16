@@ -42,8 +42,7 @@ modifyChild() {
 1: late() {
     // construct phenotypes from the additive effects of QTLs
     inds = sim.subpopulations.individuals;
-    phenotype = apply(inds,
-        "sum(applyValue.genomes.mutationsOfType(m2).selectionCoeff);");
+    phenotype = inds.sumOfMutationsOfType(m2);
     inds.z = phenotype;
     
     // color individuals according to phenotype
