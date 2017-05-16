@@ -33,7 +33,7 @@ initialize() {
     }
     else
     {
-        cat(simID + ": LOST – RESTARTING\n");
+        cat(simID + ": LOST - RESTARTING\n");
         
         // go back to generation 1000
         sim.readFromPopulationFile("/tmp/slim_" + simID + ".txt");

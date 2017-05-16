@@ -27,14 +27,14 @@ initialize() {
     {
         if (sim.mutationFrequencies(NULL, mut) > 0.1)
         {
-            cat(simID + ": ESTABLISHED – CONVERTING TO BENEFICIAL\n");
+            cat(simID + ": ESTABLISHED - CONVERTING TO BENEFICIAL\n");
             mut.setSelectionCoeff(0.5);
             sim.deregisterScriptBlock(self);
         }
     }
     else
     {
-        cat(simID + ": LOST BEFORE ESTABLISHMENT – RESTARTING\n");
+        cat(simID + ": LOST BEFORE ESTABLISHMENT - RESTARTING\n");
         
         // go back to generation 1000
         sim.readFromPopulationFile("/tmp/slim_" + simID + ".txt");
