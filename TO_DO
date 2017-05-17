@@ -28,6 +28,10 @@ CR/LF issues:
 	tab2space -lf <file> converts a file to Unix-style LF only
 	convert all text files in the current directory to use LF: find . -name \*.txt -exec tab2space -lf {} {} \; -print
 
+tab issues:
+	convert leading spaces to tabs in recipes:
+		find . -name \*.txt -exec bash -c 'gunexpand -t 4 --first-only "$0" > /tmp/totabbuff && mv /tmp/totabbuff "$0"' {} \; -print
+
 finding out the generation number of a running simulation in lldb:
 	lldb /usr/local/bin/slim
 	process attach --pid X (from ps -ax | grep slim)

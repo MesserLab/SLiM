@@ -1,21 +1,21 @@
 initialize() {
-    initializeMutationRate(1e-7);
-    initializeMutationType("m1", 0.5, "f", 0.0);    // neutral
-    initializeMutationType("m2", 0.5, "f", -0.04);  // polygenic
-    m2.convertToSubstitution = F;
-    initializeGenomicElementType("g1", m1, 1);
-    initializeGenomicElementType("g2", m2, 1);
-    initializeGenomicElement(g1, 0, 20000);
-    initializeGenomicElement(g2, 20001, 30000);
-    initializeGenomicElement(g1, 30001, 99999);
-    initializeRecombinationRate(1e-8);
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);    // neutral
+	initializeMutationType("m2", 0.5, "f", -0.04);  // polygenic
+	m2.convertToSubstitution = F;
+	initializeGenomicElementType("g1", m1, 1);
+	initializeGenomicElementType("g2", m2, 1);
+	initializeGenomicElement(g1, 0, 20000);
+	initializeGenomicElement(g2, 20001, 30000);
+	initializeGenomicElement(g1, 30001, 99999);
+	initializeRecombinationRate(1e-8);
 }
 1 { sim.addSubpop("p1", 500); }
 10000 { sim.simulationFinished(); }
 fitness(m2) {
-    count = sum(c(genome1,genome2).countOfMutationsOfType(m2));
-    if ((count > 2) & homozygous)
-        return 1.0 + count * 0.1;
-    else
-        return relFitness;
+	count = sum(c(genome1,genome2).countOfMutationsOfType(m2));
+	if ((count > 2) & homozygous)
+		return 1.0 + count * 0.1;
+	else
+		return relFitness;
 }

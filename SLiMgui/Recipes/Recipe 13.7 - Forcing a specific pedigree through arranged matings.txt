@@ -1,47 +1,47 @@
 initialize() {
-    initializeMutationRate(1e-7);
-    initializeMutationType("m1", 0.5, "f", 0.0);
-    initializeGenomicElementType("g1", m1, 1.0);
-    initializeGenomicElement(g1, 0, 99999);
-    initializeRecombinationRate(1e-8);
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
 }
 1 { sim.addSubpop("p1", 500); }
 1000 late() {
-    p1.setSubpopulationSize(2);
-    p1.individuals.tag = 0;
-    parents = sample(p1.individuals, 4);
-    parents[0].tag = 1;
-    parents[1].tag = 2;
-    parents[2].tag = 3;
-    parents[3].tag = 4;
+	p1.setSubpopulationSize(2);
+	p1.individuals.tag = 0;
+	parents = sample(p1.individuals, 4);
+	parents[0].tag = 1;
+	parents[1].tag = 2;
+	parents[2].tag = 3;
+	parents[3].tag = 4;
 }
 1000 fitness(m1)
 {
-    if (individual.tag == 0)
-        return 0.0;
-    else
-        return relFitness;
+	if (individual.tag == 0)
+		return 0.0;
+	else
+		return relFitness;
 }
 1001 modifyChild()
 {
-    t1 = parent1.tag;
-    t2 = parent2.tag;
-    
-    if (((t1 == 1) & (t2 == 2)) | ((t1 == 2) & (t2 == 1)) |
-        ((t1 == 3) & (t2 == 4)) | ((t1 == 4) & (t2 == 3)))
-    {
-        cat("Accepting tags " + t1 + " & " + t2 + "\n");
-        parent1.tag = 0;
-        parent2.tag = 0;
-        return T;
-    }
-    
-    cat("Rejecting tags " + t1 + " & " + t2 + "\n");
-    return F;
+	t1 = parent1.tag;
+	t2 = parent2.tag;
+	
+	if (((t1 == 1) & (t2 == 2)) | ((t1 == 2) & (t2 == 1)) |
+		((t1 == 3) & (t2 == 4)) | ((t1 == 4) & (t2 == 3)))
+	{
+		cat("Accepting tags " + t1 + " & " + t2 + "\n");
+		parent1.tag = 0;
+		parent2.tag = 0;
+		return T;
+	}
+	
+	cat("Rejecting tags " + t1 + " & " + t2 + "\n");
+	return F;
 }
 1002: early()
 {
-    newSize = (sim.generation - 1001) * 10;
-    p1.setSubpopulationSize(newSize);
+	newSize = (sim.generation - 1001) * 10;
+	p1.setSubpopulationSize(newSize);
 }
 1010 late() { p1.outputSample(10); }

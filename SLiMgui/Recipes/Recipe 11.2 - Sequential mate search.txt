@@ -1,27 +1,27 @@
 initialize() {
-    initializeMutationRate(1e-7);
-    initializeMutationType("m1", 0.5, "f", 0.0);    // neutral
-    initializeMutationType("m2", 0.5, "f", -0.01);  // ornamental
-    initializeGenomicElementType("g1", c(m1, m2), c(1.0, 0.01));
-    initializeGenomicElement(g1, 0, 99999);
-    initializeRecombinationRate(1e-8);
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);    // neutral
+	initializeMutationType("m2", 0.5, "f", -0.01);  // ornamental
+	initializeGenomicElementType("g1", c(m1, m2), c(1.0, 0.01));
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
 }
 1 { sim.addSubpop("p1", 500); }
 mateChoice() {
-    fixedMuts = sum(sim.substitutions.mutationType == m2);
-    for (attempt in 1:5)
-    {
-        mate = sample(0:499, 1, T, weights);
-        osize = 1.0 + (fixedMuts * 0.01) - p1.cachedFitness(mate);
-        
-        if (runif(1) < osize * 10 + 0.1)
-            return p1.individuals[mate];
-    }
-    return float(0);
+	fixedMuts = sum(sim.substitutions.mutationType == m2);
+	for (attempt in 1:5)
+	{
+		mate = sample(0:499, 1, T, weights);
+		osize = 1.0 + (fixedMuts * 0.01) - p1.cachedFitness(mate);
+		
+		if (runif(1) < osize * 10 + 0.1)
+			return p1.individuals[mate];
+	}
+	return float(0);
 }
 2000 late() {
-    fixedMuts = sum(sim.substitutions.mutationType == m2);
-    osize = 1.0 + (fixedMuts * 0.01) - mean(p1.cachedFitness(NULL));
-    cat("Mean ornament size: " + osize);
-    sim.simulationFinished();
+	fixedMuts = sum(sim.substitutions.mutationType == m2);
+	osize = 1.0 + (fixedMuts * 0.01) - mean(p1.cachedFitness(NULL));
+	cat("Mean ornament size: " + osize);
+	sim.simulationFinished();
 }
