@@ -160,6 +160,9 @@ private:
 	// preferred mutation run length
 	int preferred_mutrun_count_ = 0;												// 0 represents no preference
 	
+	// preventing incidental selfing in hermaphroditic models
+	bool prevent_incidental_selfing = false;
+	
 	EidosSymbolTableEntry self_symbol_;												// for fast setup of the symbol table
 	
 	slim_usertag_t tag_value_;														// a user-defined tag value
@@ -214,6 +217,7 @@ public:
 	
 	inline bool SexEnabled(void) const												{ return sex_enabled_; }
 	inline bool PedigreesEnabled(void) const										{ return pedigrees_enabled_; }
+	inline bool PreventIncidentalSelfing(void) const								{ return prevent_incidental_selfing; }
 	inline GenomeType ModeledChromosomeType(void) const								{ return modeled_chromosome_type_; }
 	inline double XDominanceCoefficient(void) const									{ return x_chromosome_dominance_coeff_; }
 	inline int SpatialDimensionality(void) const									{ return spatial_dimensionality_; }

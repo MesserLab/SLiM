@@ -2650,7 +2650,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 	
 	
 	//
-	//	*********************	(void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""], [integer$ mutationRuns = 0])
+	//	*********************	(void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""], [integer$ mutationRuns = 0], [logical$ preventIncidentalSelfing = F])
 	//
 	#pragma mark initializeSLiMOptions()
 	
@@ -2699,6 +2699,13 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 			}
 		}
 		
+		{
+			// [logical$ preventIncidentalSelfing = F]
+			bool prevent_selfing = arg3_value->LogicalAtIndex(0, nullptr);
+			
+			prevent_incidental_selfing = prevent_selfing;
+		}
+		
 		if (DEBUG_INPUT)
 		{
 			output_stream << "initializeSLiMOptions(";
@@ -2728,6 +2735,13 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 			{
 				if (previous_params) output_stream << ", ";
 				output_stream << "mutationRunCount = " << preferred_mutrun_count_;
+				previous_params = true;
+			}
+			
+			if (prevent_incidental_selfing)
+			{
+				if (previous_params) output_stream << ", ";
+				output_stream << "preventIncidentalSelfing = " << (prevent_incidental_selfing ? "T" : "F");
 				previous_params = true;
 			}
 			
@@ -2767,7 +2781,7 @@ void SLiMSim::_AddZeroGenerationFunctionsToSignatureVector(std::vector<const Eid
 		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSex, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))
 									   ->AddString_S("chromosomeType")->AddNumeric_OS("xDominanceCoeff", gStaticEidosValue_Float1));
 		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMOptions, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))
-									   ->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("dimensionality", gStaticEidosValue_StringEmpty)->AddInt_OS("mutationRuns", gStaticEidosValue_Integer0));
+									   ->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("dimensionality", gStaticEidosValue_StringEmpty)->AddInt_OS("mutationRuns", gStaticEidosValue_Integer0)->AddLogical_OS("preventIncidentalSelfing", gStaticEidosValue_LogicalF));
 	}
 }
 

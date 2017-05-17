@@ -1,3 +1,12 @@
+// NOTE: This model is now obsolete!  Is it now recommended
+// that you use this call in your initialize() callback
+// instead of following this recipe:
+//
+//    initializeSLiMOptions(preventIncidentalSelfing=T);
+//
+// This recipe still works, but is much slower than using
+// that configuration flag.
+
 initialize() {
     initializeMutationRate(1e-7);
     initializeMutationType("m1", 0.5, "f", 0.0);

@@ -417,9 +417,9 @@ For example, if the following call is made:\
 \f2\fs20  parameter can supply the dominance coefficient used when a mutation is present in an XY male, and is thus \'93heterozygous\'94 (but in a different sense than the heterozygosity of an XX female with one copy of the mutation).  Calling this function has the side effect of enabling sex in the simulation; individuals will be male and female (rather than hermaphroditic) regardless of the 
 \f0\fs18 chromosomeType
 \f2\fs20  chosen for simulation.  There is no way to disable sex once it has been enabled; if you don\'92t want to have sex, don\'92t call this function.\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f0\fs18 \cf0 (void)initializeSLiMOptions([logical$\'a0keepPedigrees\'a0=\'a0F], [string$\'a0dimensionality\'a0=\'a0""], [integer$\'a0mutationRuns\'a0=\'a00])
+\f0\fs18 \cf0 (void)initializeSLiMOptions([logical$\'a0keepPedigrees\'a0=\'a0F], [string$\'a0dimensionality\'a0=\'a0""], [integer$\'a0mutationRuns\'a0=\'a00], [logical$\'a0preventIncidentalSelfing\'a0=\'a0F])
 \f1 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -485,6 +485,33 @@ If
 \f2\fs20  (the default), SLiM will calculate a number of mutation runs that it estimates will work well.  Internally, SLiM divides genomes into a sequence of consecutive mutation runs, allowing more efficient internal computations.  The optimal mutation run length is short enough that each mutation run is relatively unlikely to be modified by mutation/recombination events when inherited, but long enough that each mutation run is likely to contain a relatively large number of mutations; these priorities are in tension, so an intermediate balance between them is generally desirable.  The optimal number of mutation runs will depend upon the machine and even the compiler used to build SLiM, so SLiM\'92s default value may not be optimal; for maximal performance it can thus be beneficial to experiment with different values and find the optimal value for the simulation.  Specifying the number of mutation runs is an advanced technique, but in certain cases it can improve performance significantly; in particular, if a simulation involves a very long chromosome but only a small portion of that chromosome is actually used by the simulation, it may be beneficial to specify that a single mutation run be used with 
 \f0\fs18 mutationRuns=1
 \f1\fs20 .\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2 This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
+\f2 \cf0 If 
+\f0\fs18 preventIncidentalSelfing
+\f2\fs20  is 
+\f0\fs18 T
+\f2\fs20 , incidental selfing in hermaphroditic models will be prevented by SLiM.  By default (i.e., if 
+\f0\fs18 preventIncidentalSelfing
+\f2\fs20  is 
+\f0\fs18 F
+\f2\fs20 ), SLiM chooses the first and second parents in a biparental mating event independently.  It is therefore possible for the same individual to be chosen as both the first and second parent, resulting in selfing events even when the selfing rate is zero.  In many models this is unimportant, since it happens fairly infrequently and does not have large consequences.  This behavior is SLiM\'92s default because it is the simplest option, and produces results that most closely align with simple analytical population genetics models.  However, in some models this selfing can be undesirable and problematic.  In particular, models that involve very high variance in fitness or very small effective population sizes may see elevated rates of selfing that substantially influence model results.  If 
+\f0\fs18 preventIncidentalSelfing
+\f2\fs20  is set to 
+\f0\fs18 T
+\f2\fs20 , all such incidental selfing will be prevented (by choosing a new second parent if the first parent was chosen again).  Non-incidental selfing, as requested by the selfing rate, will still be permitted.  Note that if incidental selfing is prevented, SLiM will hang if it is unable to find a different second parent; there must always be at least two individuals in the population with non-zero fitness, and 
+\f0\fs18 mateChoice()
+\f2\fs20  and 
+\f0\fs18 modifyChild()
+\f2\fs20  callbacks must not absolutely prevent those two individuals from producing viable offspring.  Enforcement of the prohibition on incidental selfing will occur after 
+\f0\fs18 mateChoice()
+\f2\fs20  callbacks have been called (and thus the default mating weights provided to 
+\f0\fs18 mateChoice()
+\f2\fs20  callbacks will 
+\i not
+\i0  exclude the first parent!), but will occur before 
+\f0\fs18 modifyChild()
+\f2\fs20  callbacks are called (so those callbacks may assume that the first and second parents are distinct).\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf0 This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
 }

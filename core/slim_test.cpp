@@ -518,7 +518,7 @@ void _RunInitTests(void)
 	SLiMAssertScriptStop("initialize() { initializeSex('X', 10000); stop(); }", __LINE__);															// legal: no maximum value for dominance coeff
 	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeSex('A'); stop(); }", 1, 35, "may be called only once", __LINE__);
 	
-	// Test (void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""])
+	// Test (void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""], [integer$ mutationRuns = 0], [logical$ preventIncidentalSelfing = F])
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(F); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(T); stop(); }", __LINE__);
@@ -531,8 +531,15 @@ void _RunInitTests(void)
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='x'); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='xy'); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='xyz'); stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(mutationRuns=0); stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(mutationRuns=1); stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(mutationRuns=100); stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(preventIncidentalSelfing=F); stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(preventIncidentalSelfing=T); stop(); }", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(keepPedigrees=NULL); stop(); }", 1, 15, "cannot be type NULL", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(dimensionality=NULL); stop(); }", 1, 15, "cannot be type NULL", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(mutationRuns=NULL); stop(); }", 1, 15, "cannot be type NULL", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(preventIncidentalSelfing=NULL); stop(); }", 1, 15, "cannot be type NULL", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(dimensionality='foo'); stop(); }", 1, 15, "legal non-empty values", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(dimensionality='y'); stop(); }", 1, 15, "legal non-empty values", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(dimensionality='z'); stop(); }", 1, 15, "legal non-empty values", __LINE__);

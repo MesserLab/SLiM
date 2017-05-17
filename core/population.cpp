@@ -696,6 +696,7 @@ bool Population::ApplyModifyChildCallbacks(slim_popsize_t p_child_index, Individ
 void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &p_chromosome, slim_generation_t p_generation, bool p_mate_choice_callbacks_present, bool p_modify_child_callbacks_present, bool p_recombination_callbacks_present)
 {
 	bool pedigrees_enabled = sim_.PedigreesEnabled();
+	bool prevent_incidental_selfing = sim_.PreventIncidentalSelfing();
 	bool sex_enabled = p_subpop.sex_enabled_;
 	slim_popsize_t total_children = p_subpop.child_subpop_size_;
 	
@@ -987,13 +988,18 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 							}
 							else
 							{
-								parent2 = source_subpop.DrawParentUsingFitness();	// selfing possible!
+								do
+									parent2 = source_subpop.DrawParentUsingFitness();	// selfing possible!
+								while (prevent_incidental_selfing && (parent2 == parent1));
+								
 								parent2_sex = IndividualSex::kHermaphrodite;
 							}
 						}
 						else
 						{
-							parent2 = ApplyMateChoiceCallbacks(parent1, &p_subpop, &source_subpop, *mate_choice_callbacks);
+							do
+								parent2 = ApplyMateChoiceCallbacks(parent1, &p_subpop, &source_subpop, *mate_choice_callbacks);
+							while (prevent_incidental_selfing && (parent2 == parent1));
 							
 							if (parent2 == -1)
 							{
@@ -1036,12 +1042,19 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 					
 					parent1 = source_subpop.DrawParentUsingFitness();
 					
-					if (!mate_choice_callbacks)	parent2 = source_subpop.DrawParentUsingFitness();	// selfing possible!
+					if (!mate_choice_callbacks)
+					{
+						do
+							parent2 = source_subpop.DrawParentUsingFitness();	// selfing possible!
+						while (prevent_incidental_selfing && (parent2 == parent1));
+					}
 					else
 					{
 						while (true)	// loop while parent2 == -1, indicating a request for a new first parent
 						{
-							parent2 = ApplyMateChoiceCallbacks(parent1, &p_subpop, &source_subpop, *mate_choice_callbacks);
+							do
+								parent2 = ApplyMateChoiceCallbacks(parent1, &p_subpop, &source_subpop, *mate_choice_callbacks);
+							while (prevent_incidental_selfing && (parent2 == parent1));
 							
 							if (parent2 != -1)
 								break;
@@ -1322,13 +1335,18 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 						}
 						else
 						{
-							parent2 = source_subpop->DrawParentUsingFitness();	// selfing possible!
+							do
+								parent2 = source_subpop->DrawParentUsingFitness();	// selfing possible!
+							while (prevent_incidental_selfing && (parent2 == parent1));
+							
 							parent2_sex = IndividualSex::kHermaphrodite;
 						}
 					}
 					else
 					{
-						parent2 = ApplyMateChoiceCallbacks(parent1, &p_subpop, source_subpop, *mate_choice_callbacks);
+						do
+							parent2 = ApplyMateChoiceCallbacks(parent1, &p_subpop, source_subpop, *mate_choice_callbacks);
+						while (prevent_incidental_selfing && (parent2 == parent1));
 						
 						if (parent2 == -1)
 						{
@@ -1455,7 +1473,11 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 							while (migrant_count < migrants_to_generate)
 							{
 								slim_popsize_t parent1 = source_subpop.DrawParentUsingFitness();
-								slim_popsize_t parent2 = source_subpop.DrawParentUsingFitness();	// note this does not prohibit selfing!
+								slim_popsize_t parent2;
+								
+								do
+									parent2 = source_subpop.DrawParentUsingFitness();	// note this does not prohibit selfing!
+								while (prevent_incidental_selfing && (parent2 == parent1));
 								
 								// recombination, gene-conversion, mutation
 								DoCrossoverMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, parent1, p_chromosome, p_generation, child_sex, IndividualSex::kHermaphrodite, nullptr);
@@ -1522,7 +1544,10 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 									}
 									else
 									{
-										parent2 = source_subpop.DrawParentUsingFitness();	// selfing possible!
+										do
+											parent2 = source_subpop.DrawParentUsingFitness();	// selfing possible!
+										while (prevent_incidental_selfing && (parent2 == parent1));
+										
 										parent2_sex = IndividualSex::kHermaphrodite;
 									}
 								}

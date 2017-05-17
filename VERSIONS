@@ -31,6 +31,7 @@ development head:
 	add sumOfMutationsOfType() method to Individual and Genome for fast totalling of additive QTLs in QTL-based models
 	optimize script block handling for sims with many script blocks, to decrease callback overhead
 	rewrite QTL-based recipes to use sumOfMutationsOfType()
+	added a preventIncidentalSelfing option to initializeSLiMOptions(), to prevent incidental selfing in hermaphroditic models
 	NOTE: this version changed model output in some cases because of a float/double change in fitness calculations
 
 
