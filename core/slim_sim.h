@@ -96,6 +96,13 @@ private:
 public:
 	
 	bool simulationValid = true;													// set to false if a terminating condition is encountered while running in SLiMgui
+
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+	// PROFILING
+	clock_t profile_stage_totals_[7];												// profiling clocks; index 0 is initialize(), the rest follow SLiMGenerationStage
+	clock_t profile_callback_totals_[9];											// profiling clocks; these follow SLiMEidosBlockType
+#endif
+	
 #else
 private:
 #endif

@@ -292,6 +292,11 @@ void Population::ExecuteScript(SLiMEidosBlock *p_script_block, slim_generation_t
 // apply mateChoice() callbacks to a mating event with a chosen first parent; the return is the second parent index, or -1 to force a redraw
 slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_index, Subpopulation *p_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_mate_choice_callbacks)
 {
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+	// PROFILING
+	clock_t clock_callback0 = (gEidosProfilingCount ? clock() : 0);
+#endif
+	
 	// We start out using standard weights taken from the source subpopulation.  If, when we are done handling callbacks, we are still
 	// using those standard weights, then we can do a draw using our fast lookup tables.  Otherwise, we will do a draw the hard way.
 	bool sex_enabled = p_subpop->sex_enabled_;
@@ -459,6 +464,12 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 				if (weights_modified)
 					free(current_weights);
 				
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+				// PROFILING
+				if (gEidosProfilingCount)
+					sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)] += (clock() - clock_callback0);
+#endif
+				
 				return -1;
 			}
 		}
@@ -477,6 +488,12 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 			if (drawn_parent < p_source_subpop->parent_first_male_index_)
 				EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): second parent chosen by mateChoice() callback is female." << eidos_terminate(last_interventionist_mate_choice_callback->identifier_token_);
 		}
+		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		if (gEidosProfilingCount)
+			sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)] += (clock() - clock_callback0);
+#endif
 		
 		return drawn_parent;
 	}
@@ -514,6 +531,12 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 			//EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): weights returned by mateChoice() callback sum to 0.0 or less." << eidos_terminate(last_interventionist_mate_choice_callback->identifier_token_);
 			if (weights_modified)
 				free(current_weights);
+			
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+			// PROFILING
+			if (gEidosProfilingCount)
+				sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)] += (clock() - clock_callback0);
+#endif
 			
 			return -1;
 		}
@@ -560,8 +583,20 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 				EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): second parent chosen by mateChoice() callback is female." << eidos_terminate(last_interventionist_mate_choice_callback->identifier_token_);
 		}
 		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		if (gEidosProfilingCount)
+			sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)] += (clock() - clock_callback0);
+#endif
+		
 		return drawn_parent;
 	}
+	
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+	// PROFILING
+	if (gEidosProfilingCount)
+		sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)] += (clock() - clock_callback0);
+#endif
 	
 	// The standard behavior, with no active callbacks, is to draw a male parent using the standard fitness values
 	return (sex_enabled ? p_source_subpop->DrawMaleParentUsingFitness() : p_source_subpop->DrawParentUsingFitness());
@@ -570,6 +605,11 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 // apply modifyChild() callbacks to a generated child; a return of false means "do not use this child, generate a new one"
 bool Population::ApplyModifyChildCallbacks(slim_popsize_t p_child_index, IndividualSex p_child_sex, slim_popsize_t p_parent1_index, slim_popsize_t p_parent2_index, bool p_is_selfing, bool p_is_cloning, Subpopulation *p_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_modify_child_callbacks)
 {
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+	// PROFILING
+	clock_t clock_callback0 = (gEidosProfilingCount ? clock() : 0);
+#endif
+	
 	for (SLiMEidosBlock *modify_child_callback : p_modify_child_callbacks)
 	{
 		if (modify_child_callback->active_)
@@ -677,7 +717,15 @@ bool Population::ApplyModifyChildCallbacks(slim_popsize_t p_child_index, Individ
 				
 				// If this callback told us not to generate the child, we do not call the rest of the callback chain; we're done
 				if (!generate_child)
+				{
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+					// PROFILING
+					if (gEidosProfilingCount)
+						sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosModifyChildCallback)] += (clock() - clock_callback0);
+#endif
+					
 					return false;
+				}
 			}
 			catch (...)
 			{
@@ -688,6 +736,12 @@ bool Population::ApplyModifyChildCallbacks(slim_popsize_t p_child_index, Individ
 			}
 		}
 	}
+	
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+	// PROFILING
+	if (gEidosProfilingCount)
+		sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosModifyChildCallback)] += (clock() - clock_callback0);
+#endif
 	
 	return true;
 }
@@ -1574,6 +1628,11 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 // apply recombination() callbacks to a generated child; a return of true means breakpoints were changed
 bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Genome *p_genome1, Genome *p_genome2, Subpopulation *p_source_subpop, std::vector<slim_position_t> &p_crossovers, std::vector<slim_position_t> &p_gc_starts, std::vector<slim_position_t> &p_gc_ends, std::vector<SLiMEidosBlock*> &p_recombination_callbacks)
 {
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+	// PROFILING
+	clock_t clock_callback0 = (gEidosProfilingCount ? clock() : 0);
+#endif
+	
 	bool crossovers_changed = false, gcstarts_changed = false, gcends_changed = false;
 	EidosValue_SP local_crossovers_ptr, local_gcstarts_ptr, local_gcends_ptr;
 	
@@ -1749,6 +1808,12 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 		
 		breakpoints_changed = true;
 	}
+	
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+	// PROFILING
+	if (gEidosProfilingCount)
+		sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosRecombinationCallback)] += (clock() - clock_callback0);
+#endif
 	
 	return breakpoints_changed;
 }

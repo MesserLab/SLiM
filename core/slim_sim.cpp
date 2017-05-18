@@ -1642,7 +1642,20 @@ void SLiMSim::RunInitializeCallbacks(void)
 	for (auto script_block : init_blocks)
 	{
 		if (script_block->active_)
+		{
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+			// PROFILING
+			clock_t clock_callback0 = (gEidosProfilingCount ? clock() : 0);
+#endif
+			
 			population_.ExecuteScript(script_block, generation_, chromosome_);
+			
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+			// PROFILING
+			if (gEidosProfilingCount)
+				profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosInitializeCallback)] += (clock() - clock_callback0);
+#endif
+		}
 	}
 	
 	DeregisterScheduledScriptBlocks();
@@ -1749,7 +1762,18 @@ bool SLiMSim::_RunOneGeneration(void)
 	
 	if (generation_ == 0)
 	{
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		clock_t clock0 = (gEidosProfilingCount ? clock() : 0);
+#endif
+		
 		RunInitializeCallbacks();
+		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		if (gEidosProfilingCount)
+			profile_stage_totals_[0] += (clock() - clock0);
+#endif
 		
 		// Zero out error-reporting info so raises elsewhere don't get attributed to this script
 		gEidosCurrentScript = nullptr;
@@ -1758,6 +1782,11 @@ bool SLiMSim::_RunOneGeneration(void)
 	}
 	else
 	{
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		clock_t clock0 = (gEidosProfilingCount ? clock() : 0);
+#endif
+		
 		// ******************************************************************
 		//
 		// Stage 1: Execute early() script events for the current generation
@@ -1767,12 +1796,32 @@ bool SLiMSim::_RunOneGeneration(void)
 		std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1, -1);
 		
 		for (auto script_block : early_blocks)
+		{
 			if (script_block->active_)
+			{
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+				// PROFILING
+				clock_t clock_callback0 = (gEidosProfilingCount ? clock() : 0);
+#endif
+				
 				population_.ExecuteScript(script_block, generation_, chromosome_);
+				
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+				// PROFILING
+				if (gEidosProfilingCount)
+					profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosEventEarly)] += (clock() - clock_callback0);
+#endif
+			}
+		}
 		
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
 		
+		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		clock_t clock1 = (gEidosProfilingCount ? clock() : 0);
+#endif
 		
 		// ******************************************************************
 		//
@@ -1878,6 +1927,11 @@ bool SLiMSim::_RunOneGeneration(void)
 		DeregisterScheduledScriptBlocks();
 		
 		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		clock_t clock2 = (gEidosProfilingCount ? clock() : 0);
+#endif
+		
 		// ******************************************************************
 		//
 		// Stage 3: Remove fixed mutations and associated tasks
@@ -1906,6 +1960,11 @@ bool SLiMSim::_RunOneGeneration(void)
 		DeregisterScheduledInteractionBlocks();
 		
 		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		clock_t clock3 = (gEidosProfilingCount ? clock() : 0);
+#endif
+		
 		// ******************************************************************
 		//
 		// Stage 4: Swap generations
@@ -1914,6 +1973,11 @@ bool SLiMSim::_RunOneGeneration(void)
 		
 		population_.SwapGenerations();
 		
+		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		clock_t clock4 = (gEidosProfilingCount ? clock() : 0);
+#endif
 		
 		// ******************************************************************
 		//
@@ -1924,12 +1988,32 @@ bool SLiMSim::_RunOneGeneration(void)
 		std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1, -1);
 		
 		for (auto script_block : late_blocks)
+		{
 			if (script_block->active_)
+			{
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+				// PROFILING
+				clock_t clock_callback0 = (gEidosProfilingCount ? clock() : 0);
+#endif
+				
 				population_.ExecuteScript(script_block, generation_, chromosome_);
+				
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+				// PROFILING
+				if (gEidosProfilingCount)
+					profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosEventLate)] += (clock() - clock_callback0);
+#endif
+			}
+		}
 		
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
 		
+		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		clock_t clock5 = (gEidosProfilingCount ? clock() : 0);
+#endif
 		
 		// ******************************************************************
 		//
@@ -1948,6 +2032,11 @@ bool SLiMSim::_RunOneGeneration(void)
 #endif
 		
 		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		clock_t clock6 = (gEidosProfilingCount ? clock() : 0);
+#endif
+		
 		// ******************************************************************
 		//
 		// Stage 7: Advance the generation counter and do end-generation tasks
@@ -1960,6 +2049,20 @@ bool SLiMSim::_RunOneGeneration(void)
 		// Zero out error-reporting info so raises elsewhere don't get attributed to this script
 		gEidosCurrentScript = nullptr;
 		gEidosExecutingRuntimeScript = false;
+		
+		// Tabulate profile times for SLiMgui
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		if (gEidosProfilingCount)
+		{
+			profile_stage_totals_[1] += (clock1 - clock0);
+			profile_stage_totals_[2] += (clock2 - clock1);
+			profile_stage_totals_[3] += (clock3 - clock2);
+			profile_stage_totals_[4] += (clock4 - clock3);
+			profile_stage_totals_[5] += (clock5 - clock4);
+			profile_stage_totals_[6] += (clock6 - clock5);
+		}
+#endif
 		
 		// Decide whether the simulation is over.  We need to call EstimatedLastGeneration() every time; we can't
 		// cache it, because it can change based upon changes in script registration / deregistration.

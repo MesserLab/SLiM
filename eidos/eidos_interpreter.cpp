@@ -272,7 +272,18 @@ EidosValue_SP EidosInterpreter::EvaluateInterpreterBlock(bool p_print_output)
 	
 	for (EidosASTNode *child_node : root_node_->children_)
 	{
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		clock_t clock_callback0 = (gEidosProfilingCount ? clock() : 0);
+#endif
+		
 		result_SP = FastEvaluateNode(child_node);
+		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		if (gEidosProfilingCount)
+			child_node->profile_total_ += (clock() - clock_callback0);
+#endif
 		
 		// if a next or break statement was hit and was not handled by a loop, throw an error
 		if (next_statement_hit_ || break_statement_hit_)
@@ -664,7 +675,18 @@ EidosValue_SP EidosInterpreter::Evaluate_CompoundStatement(const EidosASTNode *p
 	
 	for (EidosASTNode *child_node : p_node->children_)
 	{
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		clock_t clock_callback0 = (gEidosProfilingCount ? clock() : 0);
+#endif
+		
 		result_SP = FastEvaluateNode(child_node);
+		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		if (gEidosProfilingCount)
+			child_node->profile_total_ += (clock() - clock_callback0);
+#endif
 		
 		// a next, break, or return makes us exit immediately, out to the (presumably enclosing) loop evaluator
 		if (next_statement_hit_ || break_statement_hit_ || return_statement_hit_)
@@ -4237,7 +4259,19 @@ EidosValue_SP EidosInterpreter::Evaluate_If(const EidosASTNode *p_node)
 	{
 		// Handle a static singleton logical true super fast; no need for type check, count, etc
 		EidosASTNode *true_node = p_node->children_[1];
+		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
+		clock_t clock_callback0 = (gEidosProfilingCount && (true_node->token_->token_type_ != EidosTokenType::kTokenLBrace)) ? clock() : 0;
+#endif
+		
 		result_SP = FastEvaluateNode(true_node);
+		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		if (gEidosProfilingCount && (true_node->token_->token_type_ != EidosTokenType::kTokenLBrace))
+			true_node->profile_total_ += (clock() - clock_callback0);
+#endif
 	}
 	else if (condition_result == gStaticEidosValue_LogicalF)
 	{
@@ -4245,7 +4279,19 @@ EidosValue_SP EidosInterpreter::Evaluate_If(const EidosASTNode *p_node)
 		if (children_size == 3)		// has an 'else' node
 		{
 			EidosASTNode *false_node = p_node->children_[2];
+			
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+			// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
+			clock_t clock_callback0 = (gEidosProfilingCount && (false_node->token_->token_type_ != EidosTokenType::kTokenLBrace)) ? clock() : 0;
+#endif
+			
 			result_SP = FastEvaluateNode(false_node);
+			
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+			// PROFILING
+			if (gEidosProfilingCount && (false_node->token_->token_type_ != EidosTokenType::kTokenLBrace))
+				false_node->profile_total_ += (clock() - clock_callback0);
+#endif
 		}
 		else										// no 'else' node, so the result is NULL
 		{
@@ -4259,12 +4305,36 @@ EidosValue_SP EidosInterpreter::Evaluate_If(const EidosASTNode *p_node)
 		if (condition_logical)
 		{
 			EidosASTNode *true_node = p_node->children_[1];
+			
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+			// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
+			clock_t clock_callback0 = (gEidosProfilingCount && (true_node->token_->token_type_ != EidosTokenType::kTokenLBrace)) ? clock() : 0;
+#endif
+			
 			result_SP = FastEvaluateNode(true_node);
+			
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+			// PROFILING
+			if (gEidosProfilingCount && (true_node->token_->token_type_ != EidosTokenType::kTokenLBrace))
+				true_node->profile_total_ += (clock() - clock_callback0);
+#endif
 		}
 		else if (children_size == 3)		// has an 'else' node
 		{
 			EidosASTNode *false_node = p_node->children_[2];
+			
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+			// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
+			clock_t clock_callback0 = (gEidosProfilingCount && (false_node->token_->token_type_ != EidosTokenType::kTokenLBrace)) ? clock() : 0;
+#endif
+			
 			result_SP = FastEvaluateNode(false_node);
+			
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+			// PROFILING
+			if (gEidosProfilingCount && (false_node->token_->token_type_ != EidosTokenType::kTokenLBrace))
+				false_node->profile_total_ += (clock() - clock_callback0);
+#endif
 		}
 		else										// no 'else' node, so the result is NULL
 		{
@@ -4291,7 +4361,20 @@ EidosValue_SP EidosInterpreter::Evaluate_Do(const EidosASTNode *p_node)
 	do
 	{
 		// execute the do...while loop's statement by evaluating its node; evaluation values get thrown away
-		EidosValue_SP statement_value = FastEvaluateNode(p_node->children_[0]);
+		EidosASTNode *statement_node = p_node->children_[0];
+		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
+		clock_t clock_callback0 = (gEidosProfilingCount && (statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace)) ? clock() : 0;
+#endif
+		
+		EidosValue_SP statement_value = FastEvaluateNode(statement_node);
+		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		if (gEidosProfilingCount && (statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace))
+			statement_node->profile_total_ += (clock() - clock_callback0);
+#endif
 		
 		// if a return statement has occurred, we pass the return value outward
 		if (return_statement_hit_)
@@ -4380,7 +4463,20 @@ EidosValue_SP EidosInterpreter::Evaluate_While(const EidosASTNode *p_node)
 		}
 		
 		// execute the while loop's statement by evaluating its node; evaluation values get thrown away
-		EidosValue_SP statement_value = FastEvaluateNode(p_node->children_[1]);
+		EidosASTNode *statement_node = p_node->children_[1];
+		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
+		clock_t clock_callback0 = (gEidosProfilingCount && (statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace)) ? clock() : 0;
+#endif
+		
+		EidosValue_SP statement_value = FastEvaluateNode(statement_node);
+		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		if (gEidosProfilingCount && (statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace))
+			statement_node->profile_total_ += (clock() - clock_callback0);
+#endif
 		
 		// if a return statement has occurred, we pass the return value outward
 		if (return_statement_hit_)
@@ -4510,7 +4606,20 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 			
 			for (range_index = 0; range_index < range_count; ++range_index)
 			{
-				EidosValue_SP statement_value = FastEvaluateNode(p_node->children_[2]);
+				EidosASTNode *statement_node = p_node->children_[2];
+				
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+				// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
+				clock_t clock_callback0 = (gEidosProfilingCount && (statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace)) ? clock() : 0;
+#endif
+				
+				EidosValue_SP statement_value = FastEvaluateNode(statement_node);
+				
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+				// PROFILING
+				if (gEidosProfilingCount && (statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace))
+					statement_node->profile_total_ += (clock() - clock_callback0);
+#endif
 				
 				if (return_statement_hit_)				{ result_SP = std::move(statement_value); break; }
 				if (next_statement_hit_)				next_statement_hit_ = false;
@@ -4536,7 +4645,20 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 			{
 				index_value->SetValue(counting_up ? start_int + range_index : start_int - range_index);
 				
-				EidosValue_SP statement_value = FastEvaluateNode(p_node->children_[2]);
+				EidosASTNode *statement_node = p_node->children_[2];
+				
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+				// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
+				clock_t clock_callback0 = (gEidosProfilingCount && (statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace)) ? clock() : 0;
+#endif
+				
+				EidosValue_SP statement_value = FastEvaluateNode(statement_node);
+				
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+				// PROFILING
+				if (gEidosProfilingCount && (statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace))
+					statement_node->profile_total_ += (clock() - clock_callback0);
+#endif
 				
 				if (return_statement_hit_)				{ result_SP = std::move(statement_value); break; }
 				if (next_statement_hit_)				next_statement_hit_ = false;
@@ -4568,7 +4690,20 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				
 				for (range_index = 0; range_index < range_count; ++range_index)
 				{
-					EidosValue_SP statement_value = FastEvaluateNode(p_node->children_[2]);
+					EidosASTNode *statement_node = p_node->children_[2];
+					
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+					// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
+					clock_t clock_callback0 = (gEidosProfilingCount && (statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace)) ? clock() : 0;
+#endif
+					
+					EidosValue_SP statement_value = FastEvaluateNode(statement_node);
+					
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+					// PROFILING
+					if (gEidosProfilingCount && (statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace))
+						statement_node->profile_total_ += (clock() - clock_callback0);
+#endif
 					
 					if (return_statement_hit_)				{ result_SP = std::move(statement_value); break; }
 					if (next_statement_hit_)				next_statement_hit_ = false;
@@ -4599,7 +4734,20 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 					{
 						index_value->SetValue(range_vec[range_index]);
 						
-						EidosValue_SP statement_value = FastEvaluateNode(p_node->children_[2]);
+						EidosASTNode *statement_node = p_node->children_[2];
+						
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+						// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
+						clock_t clock_callback0 = (gEidosProfilingCount && (statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace)) ? clock() : 0;
+#endif
+						
+						EidosValue_SP statement_value = FastEvaluateNode(statement_node);
+						
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+						// PROFILING
+						if (gEidosProfilingCount && (statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace))
+							statement_node->profile_total_ += (clock() - clock_callback0);
+#endif
 						
 						if (return_statement_hit_)				{ result_SP = std::move(statement_value); break; }
 						if (next_statement_hit_)				next_statement_hit_ = false;
@@ -4620,7 +4768,20 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 					{
 						index_value->SetValue(range_vec[range_index]);
 						
-						EidosValue_SP statement_value = FastEvaluateNode(p_node->children_[2]);
+						EidosASTNode *statement_node = p_node->children_[2];
+						
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+						// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
+						clock_t clock_callback0 = (gEidosProfilingCount && (statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace)) ? clock() : 0;
+#endif
+						
+						EidosValue_SP statement_value = FastEvaluateNode(statement_node);
+						
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+						// PROFILING
+						if (gEidosProfilingCount && (statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace))
+							statement_node->profile_total_ += (clock() - clock_callback0);
+#endif
 						
 						if (return_statement_hit_)				{ result_SP = std::move(statement_value); break; }
 						if (next_statement_hit_)				next_statement_hit_ = false;
@@ -4641,7 +4802,20 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 					{
 						index_value->SetValue(range_vec[range_index]);
 						
-						EidosValue_SP statement_value = FastEvaluateNode(p_node->children_[2]);
+						EidosASTNode *statement_node = p_node->children_[2];
+						
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+						// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
+						clock_t clock_callback0 = (gEidosProfilingCount && (statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace)) ? clock() : 0;
+#endif
+						
+						EidosValue_SP statement_value = FastEvaluateNode(statement_node);
+						
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+						// PROFILING
+						if (gEidosProfilingCount && (statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace))
+							statement_node->profile_total_ += (clock() - clock_callback0);
+#endif
 						
 						if (return_statement_hit_)				{ result_SP = std::move(statement_value); break; }
 						if (next_statement_hit_)				next_statement_hit_ = false;
@@ -4662,7 +4836,20 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 					{
 						index_value->SetValue(range_vec[range_index]);
 						
-						EidosValue_SP statement_value = FastEvaluateNode(p_node->children_[2]);
+						EidosASTNode *statement_node = p_node->children_[2];
+						
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+						// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
+						clock_t clock_callback0 = (gEidosProfilingCount && (statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace)) ? clock() : 0;
+#endif
+						
+						EidosValue_SP statement_value = FastEvaluateNode(statement_node);
+						
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+						// PROFILING
+						if (gEidosProfilingCount && (statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace))
+							statement_node->profile_total_ += (clock() - clock_callback0);
+#endif
 						
 						if (return_statement_hit_)				{ result_SP = std::move(statement_value); break; }
 						if (next_statement_hit_)				next_statement_hit_ = false;
@@ -4686,7 +4873,20 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 					{
 						index_vec[0] = range_vec[range_index];
 						
-						EidosValue_SP statement_value = FastEvaluateNode(p_node->children_[2]);
+						EidosASTNode *statement_node = p_node->children_[2];
+						
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+						// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
+						clock_t clock_callback0 = (gEidosProfilingCount && (statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace)) ? clock() : 0;
+#endif
+						
+						EidosValue_SP statement_value = FastEvaluateNode(statement_node);
+						
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+						// PROFILING
+						if (gEidosProfilingCount && (statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace))
+							statement_node->profile_total_ += (clock() - clock_callback0);
+#endif
 						
 						if (return_statement_hit_)				{ result_SP = std::move(statement_value); break; }
 						if (next_statement_hit_)				next_statement_hit_ = false;
@@ -4706,7 +4906,20 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 					global_symbols_.SetValueForSymbolNoCopy(identifier_name, range_value->GetValueAtIndex(range_index, operator_token));
 					
 					// execute the for loop's statement by evaluating its node; evaluation values get thrown away
-					EidosValue_SP statement_value = FastEvaluateNode(p_node->children_[2]);
+					EidosASTNode *statement_node = p_node->children_[2];
+					
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+					// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
+					clock_t clock_callback0 = (gEidosProfilingCount && (statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace)) ? clock() : 0;
+#endif
+					
+					EidosValue_SP statement_value = FastEvaluateNode(statement_node);
+					
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+					// PROFILING
+					if (gEidosProfilingCount && (statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace))
+						statement_node->profile_total_ += (clock() - clock_callback0);
+#endif
 					
 					// if a return statement has occurred, we pass the return value outward
 					if (return_statement_hit_)

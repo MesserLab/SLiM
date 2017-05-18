@@ -281,6 +281,12 @@
                                     <action selector="play:" target="-1" id="AGn-8l-Bub"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Profile" id="m8l-Qj-poH">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="profile:" target="-1" id="aA4-H4-VS2"/>
+                                </connections>
+                            </menuItem>
                             <menuItem title="Recycle" keyEquivalent="" id="MtH-g3-zh4">
                                 <connections>
                                     <action selector="recycle:" target="-1" id="Jo1-Sx-pAg"/>
@@ -579,7 +585,7 @@ DQ
                     </menu>
                 </menuItem>
             </items>
-            <point key="canvasLocation" x="-75" y="-159"/>
+            <point key="canvasLocation" x="-258" y="-504"/>
         </menu>
         <window title="SLiMgui Preferences" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" restorable="NO" hidesOnDeactivate="YES" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" animationBehavior="default" id="cET-rW-zho" customClass="NSPanel">
             <windowStyleMask key="styleMask" titled="YES" closable="YES"/>

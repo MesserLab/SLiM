@@ -61,6 +61,12 @@ public:
 	mutable uint8_t cached_for_assigns_index_ = true;					// pre-cached as true if the index variable is assigned to in the loop
 	mutable uint8_t cached_compound_assignment_ = false;				// pre-cached on assignment nodes if they are of the form "x=x+1" or "x=x-1" only
 	
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+	// PROFILING
+	mutable clock_t profile_total_ = 0;									// profiling clock for this node and its children; only set for some nodes
+	EidosToken *full_range_end_token_ = nullptr;						// the ")" or "]" that ends the full range of tokens like "(", "[", for, if, and while
+#endif
+	
 	EidosASTNode(const EidosASTNode&) = delete;							// no copying
 	EidosASTNode& operator=(const EidosASTNode&) = delete;				// no copying
 	EidosASTNode(void) = delete;										// no null construction
@@ -85,6 +91,15 @@ public:
 	
 	void PrintToken(std::ostream &p_outstream) const;
 	void PrintTreeWithIndent(std::ostream &p_outstream, int p_indent) const;
+	
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+	// PROFILING
+	void ZeroProfileTotals(void) const;
+	clock_t ConvertProfileTotalsToSelfCounts(void) const;
+	clock_t TotalOfSelfCounts(void) const;
+	
+	void FullUTF16Range(int32_t *p_start, int32_t *p_end) const;
+#endif
 };
 
 

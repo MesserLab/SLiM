@@ -219,6 +219,19 @@
 
 @end
 
+@implementation NSMutableAttributedString (EidosAdditions)
+
+// A shorthand to avoid having to construct autoreleased temporary attributed strings
+- (void)eidosAppendString:(NSString *)str attributes:(NSDictionary<NSString *,id> *)attrs
+{
+	NSAttributedString *tempString = [[NSAttributedString alloc] initWithString:str attributes:attrs];
+	
+	[self appendAttributedString:tempString];
+	[tempString release];
+}
+
+@end
+
 
 @implementation NSDictionary (EidosAdditions)
 

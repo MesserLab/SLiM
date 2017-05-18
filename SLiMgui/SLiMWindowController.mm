@@ -175,7 +175,7 @@
 	
 	[[NSNotificationCenter defaultCenter] removeObserver:self];
 	
-	[NSObject cancelPreviousPerformRequestsWithTarget:self];	// _generationPlay:, _continuousPlay:, etc.
+	[NSObject cancelPreviousPerformRequestsWithTarget:self];	// _generationPlay:, _continuousPlay:, _continuousProfile:, etc.
 	
 	// Disconnect delegate relationships
 	[overallSplitView setDelegate:nil];
@@ -229,6 +229,9 @@
 	
 	[continuousPlayStartDate release];
 	continuousPlayStartDate = nil;
+	
+	[profileEndDate release];
+	profileEndDate = nil;
 	
 	[genomicElementColorRegistry release];
 	genomicElementColorRegistry = nil;
@@ -860,7 +863,27 @@
 		return !(invalidSimulation || continuousPlayOn || generationPlayOn || reachedSimulationEnd);
 	if (sel == @selector(play:))
 	{
+		// Play and Profile share the continuousPlayOn flag, so we need to special-case this
+		if (continuousPlayOn && profileOn)
+		{
+			[menuItem setTitle:@"Play"];
+			return false;
+		}
+		
 		[menuItem setTitle:(continuousPlayOn ? @"Stop" : @"Play")];
+		
+		return !(invalidSimulation || generationPlayOn || reachedSimulationEnd);
+	}
+	if (sel == @selector(profile:))
+	{
+		// Play and Profile share the continuousPlayOn flag, so we need to special-case this
+		if (continuousPlayOn && !profileOn)
+		{
+			[menuItem setTitle:@"Profile"];
+			return false;
+		}
+		
+		[menuItem setTitle:(continuousPlayOn ? @"Stop" : @"Profile")];
 		
 		return !(invalidSimulation || generationPlayOn || reachedSimulationEnd);
 	}
@@ -1198,6 +1221,381 @@
 	[graphWindowPopulationVisualization orderFront:nil];
 }
 
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+
+- (void)displayProfileResults
+{
+	[[NSBundle mainBundle] loadNibNamed:@"ProfileReport" owner:self topLevelObjects:NULL];
+	
+	// Set up the report window attributes
+	[profileWindow setTitle:[NSString stringWithFormat:@"Profile Report for %@", [[self window] title]]];
+	[profileTextView setTextContainerInset:NSMakeSize(5.0, 10.0)];
+	
+	// Build the report attributed string
+	NSMutableAttributedString *content = [[[NSMutableAttributedString alloc] init] autorelease];
+	NSFont *optima18b = [NSFont fontWithName:@"Optima-Bold" size:18.0];
+	NSFont *optima14b = [NSFont fontWithName:@"Optima-Bold" size:14.0];
+	NSFont *optima13 = [NSFont fontWithName:@"Optima" size:13.0];
+	NSFont *optima13i = [NSFont fontWithName:@"Optima-Italic" size:13.0];
+	NSFont *optima8 = [NSFont fontWithName:@"Optima" size:8.0];
+	NSFont *optima3 = [NSFont fontWithName:@"Optima" size:3.0];
+	NSFont *menlo11 = [NSFont fontWithName:@"Menlo" size:11.0];
+	
+	NSDictionary *optima14b_d = @{NSFontAttributeName : optima14b};
+	NSDictionary *optima13_d = @{NSFontAttributeName : optima13};
+	NSDictionary *optima13i_d = @{NSFontAttributeName : optima13i};
+	NSDictionary *optima8_d = @{NSFontAttributeName : optima8};
+	NSDictionary *optima3_d = @{NSFontAttributeName : optima3};
+	NSDictionary *menlo11_d = @{NSFontAttributeName : menlo11};
+	
+	NSString *startDateString = [NSDateFormatter localizedStringFromDate:continuousPlayStartDate dateStyle:NSDateFormatterShortStyle timeStyle:NSDateFormatterMediumStyle];
+	NSString *endDateString = [NSDateFormatter localizedStringFromDate:profileEndDate dateStyle:NSDateFormatterShortStyle timeStyle:NSDateFormatterMediumStyle];
+	NSTimeInterval elapsedWallClockTime = [profileEndDate timeIntervalSinceDate:continuousPlayStartDate];
+	double elapsedCPUTime = profileElapsedClock / (double)CLOCKS_PER_SEC;
+	
+	[content eidosAppendString:@"Profile Report\n" attributes:@{NSFontAttributeName : optima18b}];
+	[content eidosAppendString:@"\n" attributes:optima3_d];
+	
+	[content eidosAppendString:[NSString stringWithFormat:@"Model: %@\n", [[self window] title]] attributes:optima13_d];
+	[content eidosAppendString:@"\n" attributes:optima8_d];
+	
+	[content eidosAppendString:[NSString stringWithFormat:@"Run start: %@\n", startDateString] attributes:optima13_d];
+	[content eidosAppendString:[NSString stringWithFormat:@"Run end: %@\n", endDateString] attributes:optima13_d];
+	[content eidosAppendString:@"\n" attributes:optima8_d];
+	
+	[content eidosAppendString:[NSString stringWithFormat:@"Elapsed wall clock time: %0.2f s\n", (double)elapsedWallClockTime] attributes:optima13_d];
+	[content eidosAppendString:[NSString stringWithFormat:@"Elapsed CPU time inside SLiM core: %0.2f s\n", (double)elapsedCPUTime] attributes:optima13_d];
+	[content eidosAppendString:[NSString stringWithFormat:@"Elapsed generations: %d%@\n", (int)continuousPlayGenerationsCompleted, (profileStartGeneration == 0) ? @" (including initialize)" : @""] attributes:optima13_d];
+	
+	
+	//
+	//	Generation stage breakdown
+	//
+	{
+		double elapsedStage0Time = sim->profile_stage_totals_[0] / (double)CLOCKS_PER_SEC;
+		double elapsedStage1Time = sim->profile_stage_totals_[1] / (double)CLOCKS_PER_SEC;
+		double elapsedStage2Time = sim->profile_stage_totals_[2] / (double)CLOCKS_PER_SEC;
+		double elapsedStage3Time = sim->profile_stage_totals_[3] / (double)CLOCKS_PER_SEC;
+		double elapsedStage4Time = sim->profile_stage_totals_[4] / (double)CLOCKS_PER_SEC;
+		double elapsedStage5Time = sim->profile_stage_totals_[5] / (double)CLOCKS_PER_SEC;
+		double elapsedStage6Time = sim->profile_stage_totals_[6] / (double)CLOCKS_PER_SEC;
+		double percentStage0 = (elapsedStage0Time / elapsedCPUTime) * 100.0;
+		double percentStage1 = (elapsedStage1Time / elapsedCPUTime) * 100.0;
+		double percentStage2 = (elapsedStage2Time / elapsedCPUTime) * 100.0;
+		double percentStage3 = (elapsedStage3Time / elapsedCPUTime) * 100.0;
+		double percentStage4 = (elapsedStage4Time / elapsedCPUTime) * 100.0;
+		double percentStage5 = (elapsedStage5Time / elapsedCPUTime) * 100.0;
+		double percentStage6 = (elapsedStage6Time / elapsedCPUTime) * 100.0;
+		int fw = 4;
+		
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedStage0Time))));
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedStage1Time))));
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedStage2Time))));
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedStage3Time))));
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedStage4Time))));
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedStage5Time))));
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedStage6Time))));
+		
+		[content eidosAppendString:@"\n" attributes:optima13_d];
+		[content eidosAppendString:@"Generation stage breakdown\n" attributes:optima14b_d];
+		[content eidosAppendString:@"\n" attributes:optima3_d];
+		
+		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage0Time, percentStage0] attributes:menlo11_d];
+		[content eidosAppendString:@" : initialize() callback execution\n" attributes:optima13_d];
+		
+		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage1Time, percentStage1] attributes:menlo11_d];
+		[content eidosAppendString:@" : stage 1 – early() event execution\n" attributes:optima13_d];
+		
+		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage2Time, percentStage2] attributes:menlo11_d];
+		[content eidosAppendString:@" : stage 2 – offspring generation\n" attributes:optima13_d];
+		
+		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage3Time, percentStage3] attributes:menlo11_d];
+		[content eidosAppendString:@" : stage 3 – bookkeeping (fixed mutation removal, etc.)\n" attributes:optima13_d];
+		
+		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage4Time, percentStage4] attributes:menlo11_d];
+		[content eidosAppendString:@" : stage 4 – generation swap\n" attributes:optima13_d];
+		
+		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage5Time, percentStage5] attributes:menlo11_d];
+		[content eidosAppendString:@" : stage 5 – late() event execution\n" attributes:optima13_d];
+		
+		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage6Time, percentStage6] attributes:menlo11_d];
+		[content eidosAppendString:@" : stage 6 – fitness calculation\n" attributes:optima13_d];
+	}
+	
+	//
+	//	Callback type breakdown
+	//
+	{
+		double elapsedType0Time = sim->profile_callback_totals_[0] / (double)CLOCKS_PER_SEC;
+		double elapsedType1Time = sim->profile_callback_totals_[1] / (double)CLOCKS_PER_SEC;
+		double elapsedType2Time = sim->profile_callback_totals_[2] / (double)CLOCKS_PER_SEC;
+		double elapsedType3Time = sim->profile_callback_totals_[3] / (double)CLOCKS_PER_SEC;
+		double elapsedType4Time = sim->profile_callback_totals_[4] / (double)CLOCKS_PER_SEC;
+		double elapsedType5Time = sim->profile_callback_totals_[5] / (double)CLOCKS_PER_SEC;
+		double elapsedType6Time = sim->profile_callback_totals_[6] / (double)CLOCKS_PER_SEC;
+		double elapsedType7Time = sim->profile_callback_totals_[7] / (double)CLOCKS_PER_SEC;
+		double elapsedType8Time = sim->profile_callback_totals_[8] / (double)CLOCKS_PER_SEC;
+		double percentType0 = (elapsedType0Time / elapsedCPUTime) * 100.0;
+		double percentType1 = (elapsedType1Time / elapsedCPUTime) * 100.0;
+		double percentType2 = (elapsedType2Time / elapsedCPUTime) * 100.0;
+		double percentType3 = (elapsedType3Time / elapsedCPUTime) * 100.0;
+		double percentType4 = (elapsedType4Time / elapsedCPUTime) * 100.0;
+		double percentType5 = (elapsedType5Time / elapsedCPUTime) * 100.0;
+		double percentType6 = (elapsedType6Time / elapsedCPUTime) * 100.0;
+		double percentType7 = (elapsedType7Time / elapsedCPUTime) * 100.0;
+		double percentType8 = (elapsedType8Time / elapsedCPUTime) * 100.0;
+		int fw = 4, fw2 = 4;
+		
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedType0Time))));
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedType1Time))));
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedType2Time))));
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedType3Time))));
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedType4Time))));
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedType5Time))));
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedType6Time))));
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedType7Time))));
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedType8Time))));
+		
+		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percentType0))));
+		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percentType1))));
+		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percentType2))));
+		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percentType3))));
+		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percentType4))));
+		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percentType5))));
+		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percentType6))));
+		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percentType7))));
+		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percentType8))));
+		
+		[content eidosAppendString:@"\n" attributes:optima13_d];
+		[content eidosAppendString:@"Callback type breakdown\n" attributes:optima14b_d];
+		[content eidosAppendString:@"\n" attributes:optima3_d];
+		
+		// Note these are out of numeric order, but in generation-cycle order
+		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType2Time, fw2, percentType2] attributes:menlo11_d];
+		[content eidosAppendString:@" : initialize() callbacks\n" attributes:optima13_d];
+		
+		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType0Time, fw2, percentType0] attributes:menlo11_d];
+		[content eidosAppendString:@" : early() events\n" attributes:optima13_d];
+		
+		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType6Time, fw2, percentType6] attributes:menlo11_d];
+		[content eidosAppendString:@" : mateChoice() callbacks\n" attributes:optima13_d];
+		
+		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType8Time, fw2, percentType8] attributes:menlo11_d];
+		[content eidosAppendString:@" : recombination() callbacks\n" attributes:optima13_d];
+		
+		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType7Time, fw2, percentType7] attributes:menlo11_d];
+		[content eidosAppendString:@" : modifyChild() callbacks\n" attributes:optima13_d];
+		
+		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType1Time, fw2, percentType1] attributes:menlo11_d];
+		[content eidosAppendString:@" : late() events\n" attributes:optima13_d];
+		
+		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType3Time, fw2, percentType3] attributes:menlo11_d];
+		[content eidosAppendString:@" : fitness() callbacks\n" attributes:optima13_d];
+		
+		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType4Time, fw2, percentType4] attributes:menlo11_d];
+		[content eidosAppendString:@" : fitness() callbacks (global)\n" attributes:optima13_d];
+		
+		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType5Time, fw2, percentType5] attributes:menlo11_d];
+		[content eidosAppendString:@" : interaction() callbacks\n" attributes:optima13_d];
+	}
+	
+	// Script block profiles
+	if (elapsedCPUTime > 0.0)
+	{
+		{
+			std::vector<SLiMEidosBlock*> &script_blocks = sim->AllScriptBlocks();
+			
+			// Convert the profile counts in all script blocks into self counts (excluding the counts of nodes below them)
+			for (SLiMEidosBlock *script_block : script_blocks)
+				script_block->root_node_->ConvertProfileTotalsToSelfCounts();
+		}
+		{
+			[content eidosAppendString:@"\n" attributes:optima13_d];
+			[content eidosAppendString:@"Script block profiles (as a fraction of total CPU time)\n" attributes:optima14b_d];
+			[content eidosAppendString:@"\n" attributes:optima3_d];
+			
+			std::vector<SLiMEidosBlock*> &script_blocks = sim->AllScriptBlocks();
+			bool firstBlock = true, hiddenInconsequentialBlocks = false;
+			
+			for (SLiMEidosBlock *script_block : script_blocks)
+			{
+				const EidosASTNode *profile_root = script_block->root_node_;
+				double total_block_time = profile_root->TotalOfSelfCounts() / (double)CLOCKS_PER_SEC;	// relies on ConvertProfileTotalsToSelfCounts() being called above!
+				double percent_block_time = (total_block_time / elapsedCPUTime) * 100.0;
+				
+				if ((total_block_time >= 0.01) || (percent_block_time >= 0.01))
+				{
+					if (!firstBlock)
+						[content eidosAppendString:@"\n\n" attributes:menlo11_d];
+					firstBlock = false;
+					
+					const std::string &script_std_string = profile_root->token_->token_string_;
+					NSString *script_string = [NSString stringWithUTF8String:script_std_string.c_str()];
+					NSMutableAttributedString *scriptAttrString = [[NSMutableAttributedString alloc] initWithString:script_string attributes:menlo11_d];
+					
+					[self colorScript:scriptAttrString withProfileCountsFromNode:profile_root elapsedCPU:elapsedCPUTime baseIndex:profile_root->token_->token_UTF16_start_];
+					
+					[content eidosAppendString:[NSString stringWithFormat:@"%0.2f s (%0.2f%%):\n", total_block_time, percent_block_time] attributes:menlo11_d];
+					[content eidosAppendString:@"\n" attributes:optima3_d];
+					
+					[content appendAttributedString:scriptAttrString];
+				}
+				else
+					hiddenInconsequentialBlocks = YES;
+			}
+			
+			if (hiddenInconsequentialBlocks)
+			{
+				[content eidosAppendString:@"\n" attributes:menlo11_d];
+				[content eidosAppendString:@"\n" attributes:optima3_d];
+				[content eidosAppendString:@"(blocks using < 0.01 s and < 0.01%% of total CPU time are not shown)" attributes:optima13i_d];
+			}
+		}
+		{
+			[content eidosAppendString:@"\n" attributes:menlo11_d];
+			[content eidosAppendString:@"\n" attributes:optima13_d];
+			[content eidosAppendString:@"Script block profiles (as a fraction of CPU time within each block)\n" attributes:optima14b_d];
+			[content eidosAppendString:@"\n" attributes:optima3_d];
+			
+			std::vector<SLiMEidosBlock*> &script_blocks = sim->AllScriptBlocks();
+			bool firstBlock = true, hiddenInconsequentialBlocks = false;
+			
+			for (SLiMEidosBlock *script_block : script_blocks)
+			{
+				const EidosASTNode *profile_root = script_block->root_node_;
+				double total_block_time = profile_root->TotalOfSelfCounts() / (double)CLOCKS_PER_SEC;	// relies on ConvertProfileTotalsToSelfCounts() being called above!
+				double percent_block_time = (total_block_time / elapsedCPUTime) * 100.0;
+				
+				if ((total_block_time >= 0.01) || (percent_block_time >= 0.01))
+				{
+					if (!firstBlock)
+						[content eidosAppendString:@"\n\n" attributes:menlo11_d];
+					firstBlock = false;
+					
+					const std::string &script_std_string = profile_root->token_->token_string_;
+					NSString *script_string = [NSString stringWithUTF8String:script_std_string.c_str()];
+					NSMutableAttributedString *scriptAttrString = [[NSMutableAttributedString alloc] initWithString:script_string attributes:menlo11_d];
+					
+					if (total_block_time > 0.0)
+						[self colorScript:scriptAttrString withProfileCountsFromNode:profile_root elapsedCPU:total_block_time baseIndex:profile_root->token_->token_UTF16_start_];
+					
+					[content eidosAppendString:[NSString stringWithFormat:@"%0.2f s (%0.2f%%):\n", total_block_time, percent_block_time] attributes:menlo11_d];
+					[content eidosAppendString:@"\n" attributes:optima3_d];
+					
+					[content appendAttributedString:scriptAttrString];
+				}
+				else
+					hiddenInconsequentialBlocks = YES;
+			}
+			
+			if (hiddenInconsequentialBlocks)
+			{
+				[content eidosAppendString:@"\n" attributes:menlo11_d];
+				[content eidosAppendString:@"\n" attributes:optima3_d];
+				[content eidosAppendString:@"(blocks using < 0.01 s and < 0.01%% of total CPU time are not shown)" attributes:optima13i_d];
+			}
+		}
+	}
+	
+	// Set the attributed string into the profile report text view
+	NSTextStorage *ts = [profileTextView textStorage];
+	
+	[ts beginEditing];
+	[ts setAttributedString:content];
+	[ts endEditing];
+	
+	// Show the window and give it ownership over itself
+	[profileWindow makeKeyAndOrderFront:nil];
+	[profileWindow retain];				// it is set to release itself when closed
+	
+	// We use one nib for all profile reports, so clear our outlet; the profile now lives as its own independent window
+	profileWindow = nil;
+	profileTextView = nil;
+}
+
+- (void)colorScript:(NSMutableAttributedString *)script withProfileCountsFromNode:(const EidosASTNode *)node elapsedCPU:(double)elapsedCPUTime baseIndex:(int32_t)baseIndex
+{
+	// First color the range for this node
+	clock_t count = node->profile_total_;
+	
+	if (count > 0)
+	{
+		int32_t start = 0, end = 0;
+		
+		node->FullUTF16Range(&start, &end);
+		
+		start -= baseIndex;
+		end -= baseIndex;
+		
+		NSRange range = NSMakeRange(start, end - start + 1);
+		
+		NSColor *backgroundColor = [self colorForTimeFraction:(count / (double)CLOCKS_PER_SEC) / elapsedCPUTime];
+		
+		[script addAttribute:NSBackgroundColorAttributeName value:backgroundColor range:range];
+	}
+	
+	// Then let child nodes color
+	for (const EidosASTNode *child : node->children_)
+		[self colorScript:script withProfileCountsFromNode:child elapsedCPU:elapsedCPUTime baseIndex:baseIndex];
+}
+
+#define SLIM_YELLOW_FRACTION 0.10
+#define SLIM_SATURATION 0.75
+
+- (NSColor *)colorForTimeFraction:(double)timeFraction
+{
+	if (timeFraction < SLIM_YELLOW_FRACTION)
+	{
+		// small fractions fall on a ramp from white (0.0) to yellow (SLIM_YELLOW_FRACTION)
+		return [NSColor colorWithCalibratedHue:(1.0 / 6.0) saturation:(timeFraction / SLIM_YELLOW_FRACTION) * SLIM_SATURATION brightness:1.0 alpha:1.0];
+	}
+	else
+	{
+		// larger fractions ramp from yellow (SLIM_YELLOW_FRACTION) to red (1.0)
+		return [NSColor colorWithCalibratedHue:(1.0 / 6.0) * (1.0 - (timeFraction - SLIM_YELLOW_FRACTION) / (1.0 - SLIM_YELLOW_FRACTION)) saturation:SLIM_SATURATION brightness:1.0 alpha:1.0];
+	}
+}
+
+- (void)startProfiling
+{
+	profileElapsedClock = 0;
+	profileStartGeneration = sim->Generation();
+	
+	// zero out profile counts for generation stages
+	sim->profile_stage_totals_[(int)(SLiMGenerationStage::kStage0PreGeneration)] = 0;
+	sim->profile_stage_totals_[(int)(SLiMGenerationStage::kStage1ExecuteEarlyScripts)] = 0;
+	sim->profile_stage_totals_[(int)(SLiMGenerationStage::kStage2GenerateOffspring)] = 0;
+	sim->profile_stage_totals_[(int)(SLiMGenerationStage::kStage3RemoveFixedMutations)] = 0;
+	sim->profile_stage_totals_[(int)(SLiMGenerationStage::kStage4SwapGenerations)] = 0;
+	sim->profile_stage_totals_[(int)(SLiMGenerationStage::kStage5ExecuteLateScripts)] = 0;
+	sim->profile_stage_totals_[(int)(SLiMGenerationStage::kStage6CalculateFitness)] = 0;
+	
+	// zero out profile counts for callback types
+	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosEventEarly)] = 0;
+	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosEventLate)] = 0;
+	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosInitializeCallback)] = 0;
+	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosFitnessCallback)] = 0;
+	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback)] = 0;
+	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosInteractionCallback)] = 0;
+	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)] = 0;
+	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosModifyChildCallback)] = 0;
+	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosRecombinationCallback)] = 0;
+	
+	// zero out profile counts for script blocks; dynamic scripts will be zeroed on construction
+	std::vector<SLiMEidosBlock*> &script_blocks = sim->AllScriptBlocks();
+	
+	for (SLiMEidosBlock *script_block : script_blocks)
+		script_block->root_node_->ZeroProfileTotals();
+}
+
+- (void)endProfiling
+{
+	[profileEndDate release];
+	profileEndDate = [[NSDate date] retain];
+}
+
+#endif	// defined(SLIMGUI) && (SLIMPROFILING == 1)
+
 - (BOOL)runSimOneGeneration
 {
 	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
@@ -1208,7 +1606,22 @@
 	BOOL stillRunning = YES;
 	
 	[self eidosConsoleWindowControllerWillExecuteScript:_consoleController];
-	stillRunning = sim->RunOneGeneration();
+	
+	if (profileOn)
+	{
+		clock_t startClock = clock();
+		
+		stillRunning = sim->RunOneGeneration();
+		
+		clock_t endClock = clock();
+		
+		profileElapsedClock += (endClock - startClock);
+	}
+	else
+	{
+		stillRunning = sim->RunOneGeneration();
+	}
+	
 	[self eidosConsoleWindowControllerDidExecuteScript:_consoleController];
 	
 	// We also want to let graphViews know when each generation has finished, in case they need to pull data from the sim.  Note this
@@ -1231,6 +1644,7 @@
 
 - (void)_continuousPlay:(id)sender
 {
+	// NOTE this code is parallel to the code in _continuousProfile:
 	if (!invalidSimulation)
 	{
 		NSDate *startDate = [NSDate date];
@@ -1283,6 +1697,48 @@
 	}
 }
 
+- (void)_continuousProfile:(id)sender
+{
+	// NOTE this code is parallel to the code in _continuousPlay:
+	if (!invalidSimulation)
+	{
+		NSDate *startDate = [NSDate date];
+		
+		// We keep a local version of reachedSimulationEnd, because calling setReachedSimulationEnd: every generation
+		// can actually be a large drag for simulations that run extremely quickly – it can actually exceed the time
+		// spent running the simulation itself!  Moral of the story, KVO is wicked slow.
+		BOOL reachedEnd = reachedSimulationEnd;
+		
+		do
+		{
+			@autoreleasepool {
+				reachedEnd = ![self runSimOneGeneration];
+			}
+			
+			continuousPlayGenerationsCompleted++;
+		}
+		while (!reachedEnd && (-[startDate timeIntervalSinceNow] < 0.02));
+		
+		[self setReachedSimulationEnd:reachedEnd];
+		
+		if (!reachedSimulationEnd)
+		{
+			[self updateAfterTickFull:(-[startDate timeIntervalSinceNow] > 0.04)];	// if too much time has elapsed, do a full update
+			[self performSelector:@selector(_continuousProfile:) withObject:nil afterDelay:0 inModes:[NSArray arrayWithObject:NSRunLoopCommonModes]];
+		}
+		else
+		{
+			// stop profiling
+			[self updateAfterTickFull:YES];
+			[profileButton setState:NSOffState];
+			[self profile:nil];
+			
+			// bounce our icon; if we are not the active app, to signal that the run is done
+			[NSApp requestUserAttention:NSInformationalRequest];
+		}
+	}
+}
+
 - (void)forceImmediateMenuUpdate
 {
 	// So, the situation is that the simulation has stopped playing because the end of the simulation was reached.  If that happens while the user
@@ -1306,32 +1762,118 @@
 	[genomeCommandsMenu update];
 }
 
-- (IBAction)play:(id)sender
+- (void)playOrProfile:(BOOL)isPlayAction
 {
+	BOOL isProfileAction = !isPlayAction;	// to avoid having to think in negatives
+	
+#ifdef DEBUG
+	if (isProfileAction)
+	{
+		NSAlert *alert = [[NSAlert alloc] init];
+		
+		[alert setAlertStyle:NSWarningAlertStyle];
+		[alert setMessageText:@"Release build required"];
+		[alert setInformativeText:@"In order to obtain accurate timing information that is relevant to the actual runtime of a model, profiling requires that you are running a Release build of SLiMgui.  If you are running SLiMgui from within Xcode, please choose the Release build configuration from the Edit Scheme panel."];
+		[alert addButtonWithTitle:@"OK"];
+		[alert setShowsSuppressionButton:NO];
+		
+		[alert beginSheetModalForWindow:[self window] completionHandler:^(NSModalResponse returnCode) {
+			[alert autorelease];
+		}];
+		
+		return;
+	}
+#endif
+	
+#if (SLIMPROFILING == 0)
+	if (isProfileAction)
+	{
+		NSAlert *alert = [[NSAlert alloc] init];
+		
+		[alert setAlertStyle:NSWarningAlertStyle];
+		[alert setMessageText:@"Profiling disabled"];
+		[alert setInformativeText:@"Profiling has been disabled in this build of SLiMgui.  If you are running SLiMgui from within Xcode, please change the definition of SLIMPROFILING to 1 in the SLiMgui target."];
+		[alert addButtonWithTitle:@"OK"];
+		[alert setShowsSuppressionButton:NO];
+		
+		[alert beginSheetModalForWindow:[self window] completionHandler:^(NSModalResponse returnCode) {
+			[alert autorelease];
+		}];
+		
+		return;
+	}
+#endif
+	
 	if (!continuousPlayOn)
 	{
 		// keep the button on; this works for the button itself automatically, but when the menu item is chosen this is needed
-		[playButton setState:NSOnState];
+		if (isProfileAction)
+		{
+			[profileButton setState:NSOnState];
+			[profileButton slimSetTintColor:[NSColor colorWithCalibratedHue:0.0 saturation:0.5 brightness:1.0 alpha:1.0]];
+		}
+		else
+		{
+			[playButton setState:NSOnState];
+		}
 		
 		// log information needed to track our play speed
 		[continuousPlayStartDate release];
 		continuousPlayStartDate = [[NSDate date] retain];
 		continuousPlayGenerationsCompleted = 0;
+		
 		[self setContinuousPlayOn:YES];
 		
 		// invalidate the console symbols, and don't validate them until we are done
 		[_consoleController invalidateSymbolTable];
 		
-		// start playing
-		[self performSelector:@selector(_continuousPlay:) withObject:nil afterDelay:0 inModes:[NSArray arrayWithObject:NSRunLoopCommonModes]];
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// prepare profiling information if necessary
+		if (isProfileAction)
+		{
+			profileOn = YES;
+			gEidosProfilingCount++;
+			
+			[self startProfiling];
+		}
+#endif
+		
+		// start playing/profiling
+		if (isPlayAction)
+			[self performSelector:@selector(_continuousPlay:) withObject:nil afterDelay:0 inModes:[NSArray arrayWithObject:NSRunLoopCommonModes]];
+		else
+			[self performSelector:@selector(_continuousProfile:) withObject:nil afterDelay:0 inModes:[NSArray arrayWithObject:NSRunLoopCommonModes]];
 	}
 	else
 	{
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// close out profiling information if necessary
+		if (isProfileAction && sim && !invalidSimulation)
+		{
+			[self endProfiling];
+			
+			profileOn = NO;
+			gEidosProfilingCount--;
+		}
+#endif
+		
 		// keep the button off; this works for the button itself automatically, but when the menu item is chosen this is needed
-		[playButton setState:NSOffState];
+		if (isProfileAction)
+		{
+			[profileButton setState:NSOffState];
+			[profileButton slimSetTintColor:nil];
+		}
+		else
+		{
+			[playButton setState:NSOffState];
+		}
 		
 		// stop our recurring perform request
-		[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(_continuousPlay:) object:nil];
+		if (isPlayAction)
+			[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(_continuousPlay:) object:nil];
+		else
+			[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(_continuousProfile:) object:nil];
+		
 		[self setContinuousPlayOn:NO];
 		
 		[_consoleController validateSymbolTable];
@@ -1340,7 +1882,30 @@
 		// Work around a bug that when the simulation ends during menu tracking, menus do not update until menu tracking finishes
 		if ([self reachedSimulationEnd])
 			[self forceImmediateMenuUpdate];
+		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// If we just finished profiling, display a report
+		if (isProfileAction && sim && !invalidSimulation)
+			[self displayProfileResults];
+#endif
 	}
+}
+
+- (IBAction)play:(id)sender
+{
+	// this action can come from the play button while we are profiling, in which we need to act to stop the profiling
+	if (continuousPlayOn && profileOn)
+	{
+		[self playOrProfile:NO];
+		return;
+	}
+	
+	[self playOrProfile:YES];
+}
+
+- (IBAction)profile:(id)sender
+{
+	[self playOrProfile:NO];
 }
 
 - (void)_generationPlay:(id)sender

@@ -934,6 +934,11 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 
 double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_fitness_callbacks, Individual *p_individual, Genome *p_genome1, Genome *p_genome2)
 {
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+	// PROFILING
+	clock_t clock_callback0 = (gEidosProfilingCount ? clock() : 0);
+#endif
+	
 	slim_objectid_t mutation_type_id = (gSLiM_Mutation_Block + p_mutation)->mutation_type_ptr_->mutation_type_id_;
 	SLiMSim &sim = population_.sim_;
 	
@@ -1040,12 +1045,23 @@ double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homo
 		}
 	}
 	
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+	// PROFILING
+	if (gEidosProfilingCount)
+		population_.sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosFitnessCallback)] += (clock() - clock_callback0);
+#endif
+	
 	return p_computed_fitness;
 }
 
 // This calculates the effects of global fitness callbacks, i.e. those with muttype==NULL and which therefore do not reference any mutation
 double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &p_fitness_callbacks, slim_popsize_t p_individual_index)
 {
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+	// PROFILING
+	clock_t clock_callback0 = (gEidosProfilingCount ? clock() : 0);
+#endif
+	
 	double computed_fitness = 1.0;
 	Individual *individual = &(parent_individuals_[p_individual_index]);
 	Genome *genome1 = &(parent_genomes_[p_individual_index * 2]);
@@ -1153,9 +1169,18 @@ double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &
 			
 			// If any callback puts us at or below zero, we can short-circuit the rest
 			if (computed_fitness <= 0.0)
-				return 0.0;
+			{
+				computed_fitness = 0.0;
+				break;
+			}
 		}
 	}
+	
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+	// PROFILING
+	if (gEidosProfilingCount)
+		population_.sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback)] += (clock() - clock_callback0);
+#endif
 	
 	return computed_fitness;
 }

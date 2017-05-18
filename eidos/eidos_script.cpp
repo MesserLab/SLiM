@@ -814,6 +814,11 @@ EidosASTNode *EidosScript::Parse_SelectionStatement(void)
 		test_expr = Parse_Expr();
 		node->AddChild(test_expr);
 		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		node->full_range_end_token_ = current_token_;
+#endif
+		
 		Match(EidosTokenType::kTokenRParen, "if statement");
 		
 		true_statement = Parse_Statement();
@@ -848,6 +853,11 @@ EidosASTNode *EidosScript::Parse_DoWhileStatement(void)
 	try
 	{
 		node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
+		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		node->full_range_end_token_ = current_token_;
+#endif
 		
 		Match(EidosTokenType::kTokenDo, "do/while statement");
 		
@@ -894,6 +904,11 @@ EidosASTNode *EidosScript::Parse_WhileStatement(void)
 		test_expr = Parse_Expr();
 		node->AddChild(test_expr);
 		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		node->full_range_end_token_ = current_token_;
+#endif
+		
 		Match(EidosTokenType::kTokenRParen, "while statement");
 		
 		statement = Parse_Statement();
@@ -932,6 +947,11 @@ EidosASTNode *EidosScript::Parse_ForStatement(void)
 		
 		range_expr = Parse_Expr();
 		node->AddChild(range_expr);
+		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		node->full_range_end_token_ = current_token_;
+#endif
 		
 		Match(EidosTokenType::kTokenRParen, "for statement");
 		
@@ -1419,6 +1439,11 @@ EidosASTNode *EidosScript::Parse_PostfixExpr(void)
 				
 				node->AddChild(Parse_Expr());
 				
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+				// PROFILING
+				node->full_range_end_token_ = current_token_;
+#endif
+				
 				Match(EidosTokenType::kTokenRBracket, "postfix subset expression");
 				
 				left_expr = node;
@@ -1433,11 +1458,21 @@ EidosASTNode *EidosScript::Parse_PostfixExpr(void)
 				
 				if (current_token_type_ == EidosTokenType::kTokenRParen)
 				{
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+					// PROFILING
+					node->full_range_end_token_ = current_token_;
+#endif
+					
 					Consume();
 				}
 				else
 				{
 					Parse_ArgumentExprList(node);	// Parse_ArgumentExprList() adds the arguments directly to the function call node
+					
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+					// PROFILING
+					node->full_range_end_token_ = current_token_;
+#endif
 					
 					Match(EidosTokenType::kTokenRParen, "postfix function call expression");
 				}

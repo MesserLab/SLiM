@@ -46,12 +46,17 @@
 	unsigned long int sim_rng_last_seed;			// unsigned long int is the type used by gsl_rng_set()
 
 	// play-related variables
-	BOOL invalidSimulation, continuousPlayOn, generationPlayOn, reachedSimulationEnd, hasImported;
+	BOOL invalidSimulation, continuousPlayOn, profileOn, generationPlayOn, reachedSimulationEnd, hasImported;
 	slim_generation_t targetGeneration;
 	NSDate *continuousPlayStartDate;
 	uint64_t continuousPlayGenerationsCompleted;
 	int partialUpdateCount;
 	SLiMToolTipWindow *playSpeedToolTipWindow;
+	
+	// profiling-related variables
+	NSDate *profileEndDate;
+	clock_t profileElapsedClock;
+	slim_generation_t profileStartGeneration;
 	
 	// display-related variables
 	double fitnessColorScale, selectionColorScale;
@@ -94,6 +99,7 @@
 	
 	IBOutlet NSButton *playOneStepButton;
 	IBOutlet NSButton *playButton;
+	IBOutlet NSButton *profileButton;
 	IBOutlet NSButton *recycleButton;
 	IBOutlet NSSlider *playSpeedSlider;
 	IBOutlet NSTextField *generationTextField;
@@ -145,6 +151,10 @@
 		// don't forget to add new graph windows in -dealloc, -updateAfterTick, and -windowWillClose:
 	
 	int openedGraphCount;						// used for new graph window positioning
+	
+	// Profile Report window ivars
+	IBOutlet NSWindow *profileWindow;		// outlet for ProfileReport.xib; note this does not stay wired up, it is just used transiently
+	IBOutlet NSTextView *profileTextView;	// ditto
 	
 	// Misc
 	bool observingKeyPaths;
@@ -216,6 +226,7 @@
 
 - (IBAction)playOneStep:(id)sender;
 - (IBAction)play:(id)sender;
+- (IBAction)profile:(id)sender;
 - (IBAction)recycle:(id)sender;
 - (IBAction)playSpeedChanged:(id)sender;
 - (IBAction)generationChanged:(id)sender;

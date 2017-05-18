@@ -103,6 +103,19 @@ void EidosCheckRSSAgainstMax(std::string p_message1, std::string p_message2);
 
 // *******************************************************************************************************************
 //
+//	Profiling suuport
+//
+
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+// PROFILING
+
+extern int gEidosProfilingCount;	// if non-zero, profiling is happening in some context
+
+#endif
+
+
+// *******************************************************************************************************************
+//
 //	Termination handling
 //
 

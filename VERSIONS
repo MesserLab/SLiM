@@ -32,6 +32,7 @@ development head:
 	optimize script block handling for sims with many script blocks, to decrease callback overhead
 	rewrite QTL-based recipes to use sumOfMutationsOfType()
 	added a preventIncidentalSelfing option to initializeSLiMOptions(), to prevent incidental selfing in hermaphroditic models
+	add profiling (performance monitoring) in SLiMgui
 	NOTE: this version changed model output in some cases because of a float/double change in fitness calculations
 
 

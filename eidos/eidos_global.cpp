@@ -54,6 +54,14 @@ bool eidos_do_memory_checks = true;
 EidosSymbolTable *gEidosConstantsSymbolTable = nullptr;
 
 
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+// PROFILING
+
+int gEidosProfilingCount = 0;
+
+#endif
+
+
 bool Eidos_GoodSymbolForDefine(std::string &p_symbol_name);
 EidosValue_SP Eidos_ValueForCommandLineExpression(std::string &p_value_expression);
 

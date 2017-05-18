@@ -447,6 +447,92 @@ void EidosASTNode::PrintTreeWithIndent(std::ostream &p_outstream, int p_indent) 
 	}
 }
 
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+// PROFILING
+
+void EidosASTNode::ZeroProfileTotals(void) const
+{
+	// recurse down the tree; zero our children, then ourselves
+	for (const EidosASTNode *child : children_)
+		child->ZeroProfileTotals();
+	
+	profile_total_ = 0;
+}
+
+clock_t EidosASTNode::ConvertProfileTotalsToSelfCounts(void) const
+{
+	// convert profile counts in the tree to self counts, excluding time spent in children
+	if (profile_total_)
+	{
+		// Nodes with a non-zero count return their count as their total, and exclude their children
+		clock_t result = profile_total_;
+		
+		for (const EidosASTNode *child : children_)
+			profile_total_ -= child->ConvertProfileTotalsToSelfCounts();
+		
+		return result;
+	}
+	else
+	{
+		// Nodes with a zero count have a zero self count, and report the total of their children
+		clock_t result = 0;
+		
+		for (const EidosASTNode *child : children_)
+			result += child->ConvertProfileTotalsToSelfCounts();
+		
+		return result;
+	}
+}
+
+clock_t EidosASTNode::TotalOfSelfCounts(void) const
+{
+	clock_t total = profile_total_;
+	
+	for (const EidosASTNode *child : children_)
+		total += child->TotalOfSelfCounts();
+	
+	return total;
+}
+
+void EidosASTNode::FullUTF16Range(int32_t *p_start, int32_t *p_end) const
+{
+	int32_t start = token_->token_UTF16_start_;
+	int32_t end = token_->token_UTF16_end_;
+	
+	if (full_range_end_token_)
+	{
+		// If we have an end token, that defines our range end
+		end = std::max(end, full_range_end_token_->token_UTF16_end_);
+		
+		// We still need to scan our children for our range start, however
+		for (const EidosASTNode *child : children_)
+		{
+			int32_t child_start = 0, child_end = 0;
+			
+			child->FullUTF16Range(&child_start, &child_end);
+			
+			start = std::min(start, child_start);
+		}
+	}
+	else
+	{
+		// Otherwise, incorporate the ranges of our children
+		for (const EidosASTNode *child : children_)
+		{
+			int32_t child_start = 0, child_end = 0;
+			
+			child->FullUTF16Range(&child_start, &child_end);
+			
+			start = std::min(start, child_start);
+			end = std::max(end, child_end);
+		}
+	}
+	
+	*p_start = start;
+	*p_end = end;
+}
+
+#endif	// defined(SLIMGUI) && (SLIMPROFILING == 1)
 
 
 

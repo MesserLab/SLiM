@@ -42,6 +42,13 @@ class EidosPropertySignature;
 
 @end
 
+@interface NSMutableAttributedString (EidosAdditions)
+
+// A shorthand to avoid having to construct autoreleased temporary attributed strings
+- (void)eidosAppendString:(NSString *)str attributes:(NSDictionary<NSString *,id> *)attrs;
+
+@end
+
 
 @interface NSDictionary (EidosAdditions)
 

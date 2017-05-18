@@ -41,6 +41,7 @@
                 <outlet property="playSpeedSlider" destination="kRU-NC-9qC" id="OCZ-BC-3AA"/>
                 <outlet property="populationErrorView" destination="1i8-ZT-cwT" id="YPZ-YZ-MwD"/>
                 <outlet property="populationView" destination="sjX-UH-cdK" id="lGd-gX-Uvf"/>
+                <outlet property="profileButton" destination="mKg-N7-deE" id="9D0-yJ-h60"/>
                 <outlet property="recycleButton" destination="eXF-cI-cZK" id="70v-TA-ZZ2"/>
                 <outlet property="scriptBlocksEndColumn" destination="pZn-5h-Ysy" id="9h4-Qd-PNS"/>
                 <outlet property="scriptBlocksIDColumn" destination="dCL-Kg-IzO" id="tXZ-Cg-eXB"/>
@@ -890,6 +891,34 @@
                                     <customView hidden="YES" translatesAutoresizingMaskIntoConstraints="NO" id="1i8-ZT-cwT" customClass="PopulationErrorView">
                                         <rect key="frame" x="292" y="140" width="657" height="238"/>
                                     </customView>
+                                    <button toolTip="profile simulation" translatesAutoresizingMaskIntoConstraints="NO" id="mKg-N7-deE">
+                                        <rect key="frame" x="1077" y="353" width="30" height="32"/>
+                                        <constraints>
+                                            <constraint firstAttribute="width" constant="30" id="1df-ha-jBo"/>
+                                            <constraint firstAttribute="height" constant="32" id="a7f-2b-5gS"/>
+                                        </constraints>
+                                        <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="profile" imagePosition="overlaps" alignment="center" alternateImage="profile_H" imageScaling="proportionallyDown" inset="2" id="40U-MC-Ckj">
+                                            <behavior key="behavior" pushIn="YES" changeContents="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <connections>
+                                            <action selector="profile:" target="-2" id="j7F-r8-HWX"/>
+                                            <binding destination="-2" name="enabled2" keyPath="generationPlayOn" previousBinding="WOD-xX-ttM" id="Yfl-Dm-Zz2">
+                                                <dictionary key="options">
+                                                    <integer key="NSMultipleValuesPlaceholder" value="-1"/>
+                                                    <integer key="NSNoSelectionPlaceholder" value="-1"/>
+                                                    <integer key="NSNotApplicablePlaceholder" value="-1"/>
+                                                    <integer key="NSNullPlaceholder" value="-1"/>
+                                                    <string key="NSValueTransformerName">NSNegateBoolean</string>
+                                                </dictionary>
+                                            </binding>
+                                            <binding destination="-2" name="enabled" keyPath="reachedSimulationEnd" id="WOD-xX-ttM">
+                                                <dictionary key="options">
+                                                    <string key="NSValueTransformerName">NSNegateBoolean</string>
+                                                </dictionary>
+                                            </binding>
+                                        </connections>
+                                    </button>
                                 </subviews>
                                 <constraints>
                                     <constraint firstItem="9ZN-zu-vjn" firstAttribute="top" secondItem="FRq-bX-zXr" secondAttribute="top" id="1KA-Am-Zzi"/>
@@ -957,12 +986,14 @@
                                     <constraint firstItem="2Li-Tb-lf1" firstAttribute="top" secondItem="4kM-3W-gya" secondAttribute="top" id="n8U-SB-lAB"/>
                                     <constraint firstItem="Uzr-Ya-LL9" firstAttribute="top" secondItem="KMS-2V-Mrb" secondAttribute="top" constant="-1" id="nkZ-fL-hCk"/>
                                     <constraint firstItem="nQF-Rr-G8N" firstAttribute="leading" secondItem="cof-JC-B5l" secondAttribute="leading" constant="13" id="oN3-Hv-kae"/>
+                                    <constraint firstItem="mKg-N7-deE" firstAttribute="leading" secondItem="epB-1i-iSd" secondAttribute="trailing" constant="-20" id="oyW-Hv-2Sg"/>
                                     <constraint firstItem="MPC-lP-uVU" firstAttribute="top" secondItem="LwJ-mt-MjQ" secondAttribute="bottom" constant="2" id="pEh-t6-ny4"/>
                                     <constraint firstItem="sjX-UH-cdK" firstAttribute="leading" secondItem="gYT-79-LuL" secondAttribute="trailing" constant="20" id="qfk-hr-Hvs"/>
                                     <constraint firstItem="mYQ-CE-Kge" firstAttribute="leading" secondItem="SGz-ny-AvE" secondAttribute="trailing" constant="-2" id="rb4-8a-fca"/>
                                     <constraint firstItem="sjX-UH-cdK" firstAttribute="top" secondItem="cof-JC-B5l" secondAttribute="top" constant="15" id="s1y-c6-aBY"/>
                                     <constraint firstItem="LwJ-mt-MjQ" firstAttribute="top" secondItem="nQF-Rr-G8N" secondAttribute="top" constant="-1" id="uKW-Hk-EdJ"/>
                                     <constraint firstItem="Fgg-0J-9gU" firstAttribute="top" secondItem="ush-3d-63d" secondAttribute="top" id="vIv-UQ-EeL"/>
+                                    <constraint firstItem="epB-1i-iSd" firstAttribute="top" secondItem="mKg-N7-deE" secondAttribute="bottom" constant="-26" id="vXM-MD-TM3"/>
                                     <constraint firstItem="1i8-ZT-cwT" firstAttribute="trailing" secondItem="sjX-UH-cdK" secondAttribute="trailing" id="vmb-gQ-haF"/>
                                     <constraint firstItem="Uzr-Ya-LL9" firstAttribute="leading" secondItem="KMS-2V-Mrb" secondAttribute="trailing" constant="9" id="wMT-qh-H1n"/>
                                     <constraint firstItem="epB-1i-iSd" firstAttribute="leading" secondItem="kRU-NC-9qC" secondAttribute="leading" constant="2" id="wqZ-CU-VZs"/>
@@ -1768,6 +1799,8 @@
         <image name="play_H" width="133" height="133"/>
         <image name="play_step" width="133" height="133"/>
         <image name="play_step_H" width="133" height="133"/>
+        <image name="profile" width="133" height="133"/>
+        <image name="profile_H" width="133" height="133"/>
         <image name="recycle" width="133" height="133"/>
         <image name="recycle_H" width="133" height="133"/>
         <image name="remove_subpop" width="72" height="72"/>

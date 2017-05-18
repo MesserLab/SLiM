@@ -349,6 +349,7 @@ typedef enum SLiMLaunchAction
 
 // Dummy actions; see validateMenuItem:
 - (IBAction)play:(id)sender {}
+- (IBAction)profile:(id)sender {}
 - (IBAction)toggleConsoleVisibility:(id)sender {}
 - (IBAction)toggleBrowserVisibility:(id)sender {}
 
@@ -362,6 +363,11 @@ typedef enum SLiMLaunchAction
 	if (sel == @selector(play:))
 	{
 		[menuItem setTitle:@"Play"];
+		return NO;
+	}
+	if (sel == @selector(profile:))
+	{
+		[menuItem setTitle:@"Profile"];
 		return NO;
 	}
 	if (sel == @selector(toggleConsoleVisibility:))
