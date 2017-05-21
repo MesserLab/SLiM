@@ -2348,7 +2348,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		
 		if (max_distance < 0.0)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() maxDistance must be >= 0.0." << eidos_terminate();
-		if ((required_dimensionality == 0) && (!isinf(max_distance) || (max_distance < 0.0)))
+		if ((required_dimensionality == 0) && (!std::isinf(max_distance) || (max_distance < 0.0)))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() maxDistance must be INF for non-spatial interactions." << eidos_terminate();
 		
 		if (sex_string == "**")			{ receiver_sex = IndividualSex::kUnspecified;	exerter_sex = IndividualSex::kUnspecified;	}
@@ -2386,7 +2386,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 			if (reciprocal == true)
 				output_stream << "\", reciprocal=T";
 			
-			if (!isinf(max_distance))
+			if (!std::isinf(max_distance))
 				output_stream << "\", maxDistance=" << max_distance;
 			
 			if (sex_string != "**")

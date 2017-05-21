@@ -23,6 +23,7 @@
 
 #include "errno.h"
 #include <string>
+#include <algorithm>
 
 
 using std::string;

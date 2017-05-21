@@ -48,6 +48,13 @@
 // that platform that actually (incorrectly) undefines the global functions defined by math.h.  On other
 // platforms, we get the global math.h functions defined as well, so we can't use using to select the
 // <cmath> functions, we have to specify them explicitly.
+// BCH 21 May 2017: since this continues to come up as an issue, it's worth adding a bit more commentary.
+// New code introduced on OS X may not correctly use the std:: namespace qualifier for math functions,
+// because it is not required in Xcode, and then the build breaks on Linux.  This problem is made worse
+// by the fact that gsl_math.h includes math.h, so that brings in the C functions in the global namespace.
+// We can't change that, because the GSL is C code and needs to use the C math library; it has not been
+// validated against the C++ math library as far as I know, so changing it to use cmath would be
+// dangerous.  So I think we need to just tolerate this build issue and fix it when it arises.
 #include <cmath>
 
 

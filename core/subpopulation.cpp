@@ -2839,7 +2839,7 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 				range_min = value_range->FloatAtIndex(0, nullptr);
 				range_max = value_range->FloatAtIndex(1, nullptr);
 				
-				if (!isfinite(range_min) || !isfinite(range_max) || (range_min >= range_max))
+				if (!std::isfinite(range_min) || !std::isfinite(range_max) || (range_min >= range_max))
 					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): valueRange must be finite, and min < max is required." << eidos_terminate();
 				
 				color_count = colors->Count();
