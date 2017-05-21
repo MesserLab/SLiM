@@ -45,8 +45,9 @@
 	uint32_t sim_random_bool_bit_buffer;
 	unsigned long int sim_rng_last_seed;			// unsigned long int is the type used by gsl_rng_set()
 
-	// play-related variables
-	BOOL invalidSimulation, continuousPlayOn, profileOn, generationPlayOn, reachedSimulationEnd, hasImported;
+	// play-related variables; note that continuousPlayOn covers both profiling and non-profiling runs, whereas profilePlayOn
+	// and nonProfilePlayOn cover those cases individually; this is for simplicity in enable bindings in the nib
+	BOOL invalidSimulation, continuousPlayOn, profilePlayOn, nonProfilePlayOn, generationPlayOn, reachedSimulationEnd, hasImported;
 	slim_generation_t targetGeneration;
 	NSDate *continuousPlayStartDate;
 	uint64_t continuousPlayGenerationsCompleted;
@@ -187,6 +188,8 @@
 
 @property (nonatomic) BOOL invalidSimulation;
 @property (nonatomic) BOOL continuousPlayOn;
+@property (nonatomic) BOOL profilePlayOn;
+@property (nonatomic) BOOL nonProfilePlayOn;
 @property (nonatomic) BOOL generationPlayOn;
 @property (nonatomic) BOOL reachedSimulationEnd;
 @property (nonatomic, readonly) NSColor *colorForWindowLabels;

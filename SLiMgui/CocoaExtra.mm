@@ -714,6 +714,14 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 			NSLog(@"could not create [CIFilter filterWithName:@\"CIColorMatrix\"]");
 		}
 	}
+	else
+	{
+		// BCH added 21 May 2017: revert to non-layer-backed when tinting is removed.  This restores the previous behavior
+		// of the view, which is important for making the play and profile buttons draw correctly where they overlap.  The
+		// doc does not explicitly say that setWantsLayer:NO removes the layer, but in practice it does seem to.
+		if (self.layer)
+			[self setWantsLayer:NO];
+	}
 	
 	[self setNeedsDisplay];
 	[self.layer setNeedsDisplay];

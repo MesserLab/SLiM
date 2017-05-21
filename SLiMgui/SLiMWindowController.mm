@@ -61,7 +61,7 @@
 //	KVC / KVO / properties
 //
 
-@synthesize invalidSimulation, continuousPlayOn, reachedSimulationEnd, generationPlayOn;
+@synthesize invalidSimulation, continuousPlayOn, profilePlayOn, nonProfilePlayOn, reachedSimulationEnd, generationPlayOn;
 
 + (NSSet *)keyPathsForValuesAffectingColorForWindowLabels
 {
@@ -863,29 +863,15 @@
 		return !(invalidSimulation || continuousPlayOn || generationPlayOn || reachedSimulationEnd);
 	if (sel == @selector(play:))
 	{
-		// Play and Profile share the continuousPlayOn flag, so we need to special-case this
-		if (continuousPlayOn && profileOn)
-		{
-			[menuItem setTitle:@"Play"];
-			return false;
-		}
+		[menuItem setTitle:(nonProfilePlayOn ? @"Stop" : @"Play")];
 		
-		[menuItem setTitle:(continuousPlayOn ? @"Stop" : @"Play")];
-		
-		return !(invalidSimulation || generationPlayOn || reachedSimulationEnd);
+		return !(invalidSimulation || generationPlayOn || reachedSimulationEnd || profilePlayOn);
 	}
 	if (sel == @selector(profile:))
 	{
-		// Play and Profile share the continuousPlayOn flag, so we need to special-case this
-		if (continuousPlayOn && !profileOn)
-		{
-			[menuItem setTitle:@"Profile"];
-			return false;
-		}
+		[menuItem setTitle:(profilePlayOn ? @"Stop" : @"Profile")];
 		
-		[menuItem setTitle:(continuousPlayOn ? @"Stop" : @"Profile")];
-		
-		return !(invalidSimulation || generationPlayOn || reachedSimulationEnd);
+		return !(invalidSimulation || generationPlayOn || reachedSimulationEnd || nonProfilePlayOn);
 	}
 	if (sel == @selector(recycle:))
 		return !(continuousPlayOn || generationPlayOn);
@@ -1607,7 +1593,7 @@
 	
 	[self eidosConsoleWindowControllerWillExecuteScript:_consoleController];
 	
-	if (profileOn)
+	if (profilePlayOn)
 	{
 		clock_t startClock = clock();
 		
@@ -1762,6 +1748,27 @@
 	[genomeCommandsMenu update];
 }
 
+- (void)placeSubview:(NSView *)topView aboveSubview:(NSView *)bottomView
+{
+	NSView *topSuperview = [topView superview];
+	NSView *bottomSuperview = [bottomView superview];
+	
+	if (topSuperview == bottomSuperview)
+	{
+		NSMutableArray *subviews = [NSMutableArray arrayWithArray:[topSuperview subviews]];
+		
+		[topView retain];
+		[subviews removeObject:topView];
+		
+		NSUInteger bottomIndex = [subviews indexOfObjectIdenticalTo:bottomView];
+		
+		[subviews insertObject:topView atIndex:bottomIndex + 1];
+		[topView release];
+		
+		[topSuperview setSubviews:subviews];
+	}
+}
+
 - (void)playOrProfile:(BOOL)isPlayAction
 {
 	BOOL isProfileAction = !isPlayAction;	// to avoid having to think in negatives
@@ -1815,6 +1822,7 @@
 		else
 		{
 			[playButton setState:NSOnState];
+			[self placeSubview:playButton aboveSubview:profileButton];
 		}
 		
 		// log information needed to track our play speed
@@ -1823,6 +1831,7 @@
 		continuousPlayGenerationsCompleted = 0;
 		
 		[self setContinuousPlayOn:YES];
+		isProfileAction ? [self setProfilePlayOn:YES] : [self setNonProfilePlayOn:YES];
 		
 		// invalidate the console symbols, and don't validate them until we are done
 		[_consoleController invalidateSymbolTable];
@@ -1831,9 +1840,7 @@
 		// prepare profiling information if necessary
 		if (isProfileAction)
 		{
-			profileOn = YES;
 			gEidosProfilingCount++;
-			
 			[self startProfiling];
 		}
 #endif
@@ -1851,8 +1858,6 @@
 		if (isProfileAction && sim && !invalidSimulation)
 		{
 			[self endProfiling];
-			
-			profileOn = NO;
 			gEidosProfilingCount--;
 		}
 #endif
@@ -1866,6 +1871,7 @@
 		else
 		{
 			[playButton setState:NSOffState];
+			[self placeSubview:profileButton aboveSubview:playButton];
 		}
 		
 		// stop our recurring perform request
@@ -1875,6 +1881,7 @@
 			[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(_continuousProfile:) object:nil];
 		
 		[self setContinuousPlayOn:NO];
+		isProfileAction ? [self setProfilePlayOn:NO] : [self setNonProfilePlayOn:NO];
 		
 		[_consoleController validateSymbolTable];
 		[self updateAfterTickFull:YES];
@@ -1893,13 +1900,6 @@
 
 - (IBAction)play:(id)sender
 {
-	// this action can come from the play button while we are profiling, in which we need to act to stop the profiling
-	if (continuousPlayOn && profileOn)
-	{
-		[self playOrProfile:NO];
-		return;
-	}
-	
 	[self playOrProfile:YES];
 }
 

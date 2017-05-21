@@ -546,6 +546,15 @@
                                         </buttonCell>
                                         <connections>
                                             <action selector="play:" target="-2" id="VCD-6t-QM8"/>
+                                            <binding destination="-2" name="enabled3" keyPath="profilePlayOn" previousBinding="fVn-76-z4g" id="1KR-xL-xft">
+                                                <dictionary key="options">
+                                                    <integer key="NSMultipleValuesPlaceholder" value="-1"/>
+                                                    <integer key="NSNoSelectionPlaceholder" value="-1"/>
+                                                    <integer key="NSNotApplicablePlaceholder" value="-1"/>
+                                                    <integer key="NSNullPlaceholder" value="-1"/>
+                                                    <string key="NSValueTransformerName">NSNegateBoolean</string>
+                                                </dictionary>
+                                            </binding>
                                             <binding destination="-2" name="enabled2" keyPath="generationPlayOn" previousBinding="LTa-Hh-WOu" id="fVn-76-z4g">
                                                 <dictionary key="options">
                                                     <integer key="NSMultipleValuesPlaceholder" value="-1"/>
@@ -556,6 +565,43 @@
                                                 </dictionary>
                                             </binding>
                                             <binding destination="-2" name="enabled" keyPath="reachedSimulationEnd" id="LTa-Hh-WOu">
+                                                <dictionary key="options">
+                                                    <string key="NSValueTransformerName">NSNegateBoolean</string>
+                                                </dictionary>
+                                            </binding>
+                                        </connections>
+                                    </button>
+                                    <button toolTip="profile simulation" translatesAutoresizingMaskIntoConstraints="NO" id="mKg-N7-deE">
+                                        <rect key="frame" x="1077" y="353" width="30" height="32"/>
+                                        <constraints>
+                                            <constraint firstAttribute="width" constant="30" id="1df-ha-jBo"/>
+                                            <constraint firstAttribute="height" constant="32" id="a7f-2b-5gS"/>
+                                        </constraints>
+                                        <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="profile" imagePosition="overlaps" alignment="center" alternateImage="profile_H" imageScaling="proportionallyDown" inset="2" id="40U-MC-Ckj">
+                                            <behavior key="behavior" pushIn="YES" changeContents="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <connections>
+                                            <action selector="profile:" target="-2" id="j7F-r8-HWX"/>
+                                            <binding destination="-2" name="enabled3" keyPath="nonProfilePlayOn" previousBinding="Yfl-Dm-Zz2" id="Xh1-oi-Ce6">
+                                                <dictionary key="options">
+                                                    <integer key="NSMultipleValuesPlaceholder" value="-1"/>
+                                                    <integer key="NSNoSelectionPlaceholder" value="-1"/>
+                                                    <integer key="NSNotApplicablePlaceholder" value="-1"/>
+                                                    <integer key="NSNullPlaceholder" value="-1"/>
+                                                    <string key="NSValueTransformerName">NSNegateBoolean</string>
+                                                </dictionary>
+                                            </binding>
+                                            <binding destination="-2" name="enabled2" keyPath="generationPlayOn" previousBinding="WOD-xX-ttM" id="Yfl-Dm-Zz2">
+                                                <dictionary key="options">
+                                                    <integer key="NSMultipleValuesPlaceholder" value="-1"/>
+                                                    <integer key="NSNoSelectionPlaceholder" value="-1"/>
+                                                    <integer key="NSNotApplicablePlaceholder" value="-1"/>
+                                                    <integer key="NSNullPlaceholder" value="-1"/>
+                                                    <string key="NSValueTransformerName">NSNegateBoolean</string>
+                                                </dictionary>
+                                            </binding>
+                                            <binding destination="-2" name="enabled" keyPath="reachedSimulationEnd" id="WOD-xX-ttM">
                                                 <dictionary key="options">
                                                     <string key="NSValueTransformerName">NSNegateBoolean</string>
                                                 </dictionary>
@@ -891,34 +937,6 @@
                                     <customView hidden="YES" translatesAutoresizingMaskIntoConstraints="NO" id="1i8-ZT-cwT" customClass="PopulationErrorView">
                                         <rect key="frame" x="292" y="140" width="657" height="238"/>
                                     </customView>
-                                    <button toolTip="profile simulation" translatesAutoresizingMaskIntoConstraints="NO" id="mKg-N7-deE">
-                                        <rect key="frame" x="1077" y="353" width="30" height="32"/>
-                                        <constraints>
-                                            <constraint firstAttribute="width" constant="30" id="1df-ha-jBo"/>
-                                            <constraint firstAttribute="height" constant="32" id="a7f-2b-5gS"/>
-                                        </constraints>
-                                        <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="profile" imagePosition="overlaps" alignment="center" alternateImage="profile_H" imageScaling="proportionallyDown" inset="2" id="40U-MC-Ckj">
-                                            <behavior key="behavior" pushIn="YES" changeContents="YES" lightByContents="YES"/>
-                                            <font key="font" metaFont="system"/>
-                                        </buttonCell>
-                                        <connections>
-                                            <action selector="profile:" target="-2" id="j7F-r8-HWX"/>
-                                            <binding destination="-2" name="enabled2" keyPath="generationPlayOn" previousBinding="WOD-xX-ttM" id="Yfl-Dm-Zz2">
-                                                <dictionary key="options">
-                                                    <integer key="NSMultipleValuesPlaceholder" value="-1"/>
-                                                    <integer key="NSNoSelectionPlaceholder" value="-1"/>
-                                                    <integer key="NSNotApplicablePlaceholder" value="-1"/>
-                                                    <integer key="NSNullPlaceholder" value="-1"/>
-                                                    <string key="NSValueTransformerName">NSNegateBoolean</string>
-                                                </dictionary>
-                                            </binding>
-                                            <binding destination="-2" name="enabled" keyPath="reachedSimulationEnd" id="WOD-xX-ttM">
-                                                <dictionary key="options">
-                                                    <string key="NSValueTransformerName">NSNegateBoolean</string>
-                                                </dictionary>
-                                            </binding>
-                                        </connections>
-                                    </button>
                                 </subviews>
                                 <constraints>
                                     <constraint firstItem="9ZN-zu-vjn" firstAttribute="top" secondItem="FRq-bX-zXr" secondAttribute="top" id="1KA-Am-Zzi"/>
