@@ -20,10 +20,32 @@
 
 #import <Cocoa/Cocoa.h>
 
+#include "subpopulation.h"
+
+
 @interface PopulationView : NSOpenGLView
 {
+	int displayMode;	// 0 == individuals, 1 == fitness distribution line plots, 2 == fitness distribution barplot
+	
+	// used in displayMode 1 and 2, set by PopulationViewOptionsSheet.xib
+	int binCount;
+	double fitnessMin;
+	double fitnessMax;
 }
+
+// Outlets connected to objects in PopulationViewOptionsSheet.xib
+@property (nonatomic, retain) IBOutlet NSWindow *displayOptionsSheet;
+@property (nonatomic, assign) IBOutlet NSTextField *binCountTextField;
+@property (nonatomic, assign) IBOutlet NSTextField *fitnessMinTextField;
+@property (nonatomic, assign) IBOutlet NSTextField *fitnessMaxTextField;
+@property (nonatomic, assign) IBOutlet NSButton *okButton;
+
+- (IBAction)validateSheetControls:(id)sender;						// can be wired to controls that need to trigger validation
+
+- (BOOL)canDisplaySubpopulations:(std::vector<Subpopulation*> &)selectedSubpopulations;
+
 @end
+
 
 // This subclass is for displaying an error message in the population view, which is hard to do in an NSOpenGLView
 @interface PopulationErrorView : NSView

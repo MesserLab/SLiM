@@ -21,6 +21,7 @@
 #import "PopulationView.h"
 #import "SLiMWindowController.h"
 #import "CocoaExtra.h"
+#import "ScriptMod.h"		// we use ScriptMod's validation tools
 
 #import <OpenGL/OpenGL.h>
 #include <OpenGL/glu.h>
@@ -32,6 +33,36 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 
 
 @implementation PopulationView
+
+- (void)initializeDisplayOptions
+{
+	displayMode = 0;
+	
+	// Default values that will appear the first time the options sheet runs
+	binCount = 20;
+	fitnessMin = 0.0;
+	fitnessMax = 2.0;
+}
+
+- (instancetype)initWithCoder:(NSCoder *)coder
+{
+	if (self = [super initWithCoder:coder])
+	{
+		[self initializeDisplayOptions];
+	}
+	
+	return self;
+}
+
+- (instancetype)initWithFrame:(NSRect)frameRect
+{
+	if (self = [super initWithFrame:frameRect])
+	{
+		[self initializeDisplayOptions];
+	}
+	
+	return self;
+}
 
 - (void)dealloc
 {
@@ -63,6 +94,10 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 
 - (void)drawIndividualsFromSubpopulation:(Subpopulation *)subpop inArea:(NSRect)bounds
 {
+	//
+	//	NOTE this code is parallel to the code in canDisplayIndividualsFromSubpopulation:inArea: and should be maintained in parallel
+	//
+	
 	SLiMWindowController *controller = [[self window] windowController];
 	double scalingFactor = controller->fitnessColorScale;
 	slim_popsize_t subpopSize = subpop->parent_subpop_size_;
@@ -123,10 +158,10 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 		
 		// Set up the vertex and color arrays
 		if (!glArrayVertices)
-			glArrayVertices = (float *)malloc(kMaxVertices * 2 * sizeof(float));		// 2 floats per vertex, AK_POPULATION_VIEW_GL_ARRAY_SIZE vertices
+			glArrayVertices = (float *)malloc(kMaxVertices * 2 * sizeof(float));		// 2 floats per vertex, kMaxVertices vertices
 		
 		if (!glArrayColors)
-			glArrayColors = (float *)malloc(kMaxVertices * 4 * sizeof(float));		// 4 floats per color, AK_POPULATION_VIEW_GL_ARRAY_SIZE colors
+			glArrayColors = (float *)malloc(kMaxVertices * 4 * sizeof(float));		// 4 floats per color, kMaxVertices colors
 		
 		// Set up to draw rects
 		displayListIndex = 0;
@@ -226,6 +261,221 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 		
 		glRecti(ox + 1, oy + 1, ox + (int)bounds.size.width - 1, oy + (int)bounds.size.height - 1);
 	}
+}
+
+#define SLIM_MAX_HISTOGRAM_BINS		100
+
+- (void)drawFitnessLinePlotForSubpopulation:(Subpopulation *)subpop inArea:(NSRect)bounds
+{
+	SLiMWindowController *controller = [[self window] windowController];
+	double scalingFactor = controller->fitnessColorScale;
+	slim_popsize_t subpopSize = subpop->parent_subpop_size_;
+	double *subpop_fitness = subpop->cached_parental_fitness_;
+	
+	if (!subpop_fitness || (subpop->cached_fitness_size_ != subpopSize))
+		return;
+	
+	static float *glArrayVertices = nil;
+	static float *glArrayColors = nil;
+	int displayListIndex = 0;
+	float *vertices = NULL, *colors = NULL;
+	
+	// Set up the vertex and color arrays
+	if (!glArrayVertices)
+		glArrayVertices = (float *)malloc(SLIM_MAX_HISTOGRAM_BINS * 2 * sizeof(float));		// 2 floats per vertex, SLIM_MAX_HISTOGRAM_BINS vertices
+	
+	if (!glArrayColors)
+		glArrayColors = (float *)malloc(SLIM_MAX_HISTOGRAM_BINS * 4 * sizeof(float));		// 4 floats per color, SLIM_MAX_HISTOGRAM_BINS colors
+	
+	// Set up to draw lines
+	vertices = glArrayVertices;
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glVertexPointer(2, GL_FLOAT, 0, glArrayVertices);
+	
+	colors = glArrayColors;
+	glEnableClientState(GL_COLOR_ARRAY);
+	glColorPointer(4, GL_FLOAT, 0, glArrayColors);
+	
+	// first tabulate fitness values
+	int numberOfBins = binCount;
+	slim_popsize_t* binCounts = (slim_popsize_t *)calloc(numberOfBins, sizeof(slim_popsize_t));
+	
+	for (int individualIndex = 0; individualIndex < subpopSize; ++individualIndex)
+	{
+		double fitness = subpop_fitness[individualIndex];
+		int binIndex = (int)floor(((fitness - fitnessMin) / (fitnessMax - fitnessMin)) * numberOfBins);
+		
+		if (binIndex < 0) binIndex = 0;
+		if (binIndex >= numberOfBins) binIndex = numberOfBins - 1;
+		
+		binCounts[binIndex]++;
+	}
+	
+	NSRect histogramArea = NSMakeRect(bounds.origin.x + 5, bounds.origin.y + 5, bounds.size.width - 10, bounds.size.height - 10);
+	
+	// then plot the tabulated values as a line
+	for (int binIndex = 0; binIndex < numberOfBins; ++binIndex)
+	{
+		*(vertices++) = (float)(histogramArea.origin.x + (binIndex / (double)(numberOfBins - 1)) * histogramArea.size.width);
+		*(vertices++) = (float)(histogramArea.origin.y + histogramArea.size.height - (binCounts[binIndex] / (double)subpopSize) * histogramArea.size.height);
+		
+		float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0, colorAlpha = 1.0;
+		double fitness = ((binIndex + 0.5) / numberOfBins) * (fitnessMax - fitnessMin) + fitnessMin;
+		
+		RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+		
+		*(colors++) = colorRed;
+		*(colors++) = colorGreen;
+		*(colors++) = colorBlue;
+		*(colors++) = colorAlpha;
+		
+		displayListIndex++;
+	}
+	
+	// Draw our line
+	if (displayListIndex)
+	{
+		glLineWidth(2.0);
+		glEnable(GL_LINE_SMOOTH);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		
+		glDrawArrays(GL_LINE_STRIP, 0, 1 * displayListIndex);
+		
+		glLineWidth(1.0);
+		glDisable(GL_LINE_SMOOTH);
+		glDisable(GL_BLEND);
+	}
+	
+	glDisableClientState(GL_VERTEX_ARRAY);
+	glDisableClientState(GL_COLOR_ARRAY);
+	
+	free(binCounts);
+}
+
+- (void)drawFitnessBarPlotForSubpopulations:(std::vector<Subpopulation*> &)selectedSubpopulations inArea:(NSRect)bounds
+{
+	SLiMWindowController *controller = [[self window] windowController];
+	double scalingFactor = controller->fitnessColorScale;
+	int selectedSubpopCount = (int)(selectedSubpopulations.size());
+	
+	// first tabulate fitness values
+	int numberOfBins = binCount;
+	slim_popsize_t* binCounts = (slim_popsize_t *)calloc(numberOfBins, sizeof(slim_popsize_t));
+	slim_popsize_t binTotal = 0;
+	
+	for (int subpopIndex = 0; subpopIndex < selectedSubpopCount; subpopIndex++)
+	{
+		Subpopulation *subpop = selectedSubpopulations[subpopIndex];
+		slim_popsize_t subpopSize = subpop->parent_subpop_size_;
+		double *subpop_fitness = subpop->cached_parental_fitness_;
+		
+		if (!subpop_fitness || (subpop->cached_fitness_size_ != subpopSize))
+			continue;
+		
+		for (int individualIndex = 0; individualIndex < subpopSize; ++individualIndex)
+		{
+			double fitness = subpop_fitness[individualIndex];
+			int binIndex = (int)floor(((fitness - fitnessMin) / (fitnessMax - fitnessMin)) * numberOfBins);
+			
+			if (binIndex < 0) binIndex = 0;
+			if (binIndex >= numberOfBins) binIndex = numberOfBins - 1;
+			
+			binCounts[binIndex]++;
+		}
+		
+		binTotal += subpopSize;
+	}
+	
+	// then draw the barplot
+	static float *glArrayVertices = nil;
+	static float *glArrayColors = nil;
+	int displayListIndex;
+	float *vertices = NULL, *colors = NULL;
+	const int numVertices = SLIM_MAX_HISTOGRAM_BINS * 4 * 2;	// four corners for each rect, 2 rects per bar for frame and fill
+	
+	// Set up the vertex and color arrays
+	if (!glArrayVertices)
+		glArrayVertices = (float *)malloc(numVertices * 2 * sizeof(float));		// 2 floats per vertex, numVertices vertices
+	
+	if (!glArrayColors)
+		glArrayColors = (float *)malloc(numVertices * 4 * sizeof(float));		// 4 floats per color, numVertices colors
+	
+	// Set up to draw rects
+	displayListIndex = 0;
+	
+	vertices = glArrayVertices;
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glVertexPointer(2, GL_FLOAT, 0, glArrayVertices);
+	
+	colors = glArrayColors;
+	glEnableClientState(GL_COLOR_ARRAY);
+	glColorPointer(4, GL_FLOAT, 0, glArrayColors);
+	
+	NSRect histogramArea = NSMakeRect(bounds.origin.x + 4, bounds.origin.y + 6, bounds.size.width - 8, bounds.size.height - 12);
+	
+	for (int binIndex = 0; binIndex < numberOfBins; ++binIndex)
+	{
+		// Figure out the rect for the bar within histogramArea
+		float left = (float)(histogramArea.origin.x + (binIndex / (double)numberOfBins) * histogramArea.size.width);
+		float top = (float)(histogramArea.origin.y + histogramArea.size.height - (binCounts[binIndex] / (double)binTotal) * histogramArea.size.height);
+		float right = (float)(histogramArea.origin.x + ((binIndex + 1) / (double)numberOfBins) * histogramArea.size.width);
+		float bottom = (float)(histogramArea.origin.y + histogramArea.size.height);
+		
+		// First draw a rect for the frame of the bar
+		*(vertices++) = left + 1;
+		*(vertices++) = top - 1;
+		*(vertices++) = left + 1;
+		*(vertices++) = bottom + 1;
+		*(vertices++) = right - 1;
+		*(vertices++) = bottom + 1;
+		*(vertices++) = right - 1;
+		*(vertices++) = top - 1;
+		
+		for (int j = 0; j < 4; ++j)
+		{
+			*(colors++) = 1.0;
+			*(colors++) = 1.0;
+			*(colors++) = 1.0;
+			*(colors++) = 1.0;
+		}
+		
+		displayListIndex++;
+		
+		// Then draw a rect for the interior of the bar
+		*(vertices++) = left + 2;
+		*(vertices++) = top;
+		*(vertices++) = left + 2;
+		*(vertices++) = bottom;
+		*(vertices++) = right - 2;
+		*(vertices++) = bottom;
+		*(vertices++) = right - 2;
+		*(vertices++) = top;
+		
+		float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0, colorAlpha = 1.0;
+		double fitness = ((binIndex + 0.5) / numberOfBins) * (fitnessMax - fitnessMin) + fitnessMin;
+		
+		RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+		
+		for (int j = 0; j < 4; ++j)
+		{
+			*(colors++) = colorRed;
+			*(colors++) = colorGreen;
+			*(colors++) = colorBlue;
+			*(colors++) = colorAlpha;
+		}
+		
+		displayListIndex++;
+	}
+	
+	// Draw all the bars
+	if (displayListIndex)
+		glDrawArrays(GL_QUADS, 0, 4 * displayListIndex);
+	
+	glDisableClientState(GL_VERTEX_ARRAY);
+	glDisableClientState(GL_COLOR_ARRAY);
+	
+	free(binCounts);
 }
 
 - (void)cacheDisplayBufferForMap:(SpatialMap *)background_map subpopulation:(Subpopulation *)subpop
@@ -371,10 +621,10 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 		
 		// Set up the vertex and color arrays
 		if (!glArrayVertices)
-			glArrayVertices = (float *)malloc(kMaxVertices * 2 * sizeof(float));		// 2 floats per vertex, AK_POPULATION_VIEW_GL_ARRAY_SIZE vertices
+			glArrayVertices = (float *)malloc(kMaxVertices * 2 * sizeof(float));		// 2 floats per vertex, kMaxVertices vertices
 		
 		if (!glArrayColors)
-			glArrayColors = (float *)malloc(kMaxVertices * 4 * sizeof(float));		// 4 floats per color, AK_POPULATION_VIEW_GL_ARRAY_SIZE colors
+			glArrayColors = (float *)malloc(kMaxVertices * 4 * sizeof(float));		// 4 floats per color, kMaxVertices colors
 		
 		// Set up to draw rects
 		displayListIndex = 0;
@@ -756,10 +1006,10 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	
 	// Set up the vertex and color arrays
 	if (!glArrayVertices)
-		glArrayVertices = (float *)malloc(kMaxVertices * 2 * sizeof(float));		// 2 floats per vertex, AK_POPULATION_VIEW_GL_ARRAY_SIZE vertices
+		glArrayVertices = (float *)malloc(kMaxVertices * 2 * sizeof(float));		// 2 floats per vertex, kMaxVertices vertices
 	
 	if (!glArrayColors)
-		glArrayColors = (float *)malloc(kMaxVertices * 4 * sizeof(float));		// 4 floats per color, AK_POPULATION_VIEW_GL_ARRAY_SIZE colors
+		glArrayColors = (float *)malloc(kMaxVertices * 4 * sizeof(float));		// 4 floats per color, kMaxVertices colors
 	
 	// Set up to draw rects
 	displayListIndex = 0;
@@ -958,6 +1208,10 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	std::vector<Subpopulation*> selectedSubpopulations = [controller selectedSubpopulations];
 	int selectedSubpopCount = (int)(selectedSubpopulations.size());
 	
+	//
+	//	NOTE this code is parallel to code in canDisplaySubpopulations: and both should be maintained!
+	//
+	
 	// Update the viewport
 	glViewport(0, 0, (int)bounds.size.width, (int)bounds.size.height);
 	
@@ -972,6 +1226,34 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 		// clear to a shade of gray
 		glColor3f(0.9f, 0.9f, 0.9f);
 		glRecti(0, 0, (int)bounds.size.width, (int)bounds.size.height);
+		
+		// Frame our view
+		[self drawViewFrameInBounds:bounds];
+	}
+	else if (displayMode == 1)
+	{
+		// Display fitness line plots for each subpopulation
+		glColor3f(0.2f, 0.2f, 0.2f);
+		glRecti(0, 0, (int)bounds.size.width, (int)bounds.size.height);
+		
+		for (int subpopIndex = 0; subpopIndex < selectedSubpopCount; subpopIndex++)
+		{
+			Subpopulation *subpop = selectedSubpopulations[subpopIndex];
+			
+			// Draw all the individuals
+			[self drawFitnessLinePlotForSubpopulation:subpop inArea:bounds];
+		}
+		
+		// Frame our view
+		[self drawViewFrameInBounds:bounds];
+	}
+	else if (displayMode == 2)
+	{
+		// Display an aggregated fitness bar plot across all selected subpopulations
+		glColor3f(0.0f, 0.0f, 0.0f);
+		glRecti(0, 0, (int)bounds.size.width, (int)bounds.size.height);
+		
+		[self drawFitnessBarPlotForSubpopulations:selectedSubpopulations inArea:bounds];
 		
 		// Frame our view
 		[self drawViewFrameInBounds:bounds];
@@ -1093,6 +1375,228 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	[[self openGLContext] flushBuffer];
 }
 
+- (BOOL)canDisplaySubpopulations:(std::vector<Subpopulation*> &)selectedSubpopulations
+{
+	NSRect bounds = [self bounds];
+	int selectedSubpopCount = (int)selectedSubpopulations.size();
+	SLiMWindowController *controller = [[self window] windowController];
+	SLiMSim *sim = controller->sim;
+	
+	// The individual-based display can't display more than a limited number of individuals;
+	// we have to go through all the work to know where the limit is, though.  This code is
+	// parallel to the code in drawRect: and should be maintained in parallel.
+	if (selectedSubpopCount == 0)
+	{
+		return YES;
+	}
+	else if (displayMode == 1)
+	{
+		return YES;
+	}
+	else if (displayMode == 2)
+	{
+		return YES;
+	}
+	else if (selectedSubpopCount > 10)
+	{
+		return NO;
+	}
+	else if (selectedSubpopCount == 1)
+	{
+		if (sim->spatial_dimensionality_ == 1)
+		{
+			return YES;
+		}
+		else if (sim->spatial_dimensionality_ > 1)
+		{
+			return YES;
+		}
+		else
+		{
+			return [self canDisplayIndividualsFromSubpopulation:selectedSubpopulations[0] inArea:bounds];
+		}
+	}
+	else
+	{
+		int interBoxSpace = 5;
+		int totalInterbox = interBoxSpace * (selectedSubpopCount - 1);
+		double boxHeight = (bounds.size.height - totalInterbox) / (double)selectedSubpopCount;
+		
+		for (int subpopIndex = 0; subpopIndex < selectedSubpopCount; subpopIndex++)
+		{
+			double boxTop = round(bounds.origin.y + subpopIndex * (interBoxSpace + boxHeight));
+			double boxBottom = round(bounds.origin.y + subpopIndex * (interBoxSpace + boxHeight) + boxHeight);
+			NSRect boxBounds = NSMakeRect(bounds.origin.x, boxTop, bounds.size.width, boxBottom - boxTop);
+			Subpopulation *subpop = selectedSubpopulations[subpopIndex];
+			
+			if (![self canDisplayIndividualsFromSubpopulation:subpop inArea:boxBounds])
+				return NO;
+		}
+		
+		return YES;
+	}
+}
+
+- (BOOL)canDisplayIndividualsFromSubpopulation:(Subpopulation *)subpop inArea:(NSRect)bounds
+{
+	//
+	//	NOTE this code is parallel to the code in drawIndividualsFromSubpopulation:inArea: and should be maintained in parallel
+	//
+	
+	slim_popsize_t subpopSize = subpop->parent_subpop_size_;
+	int squareSize, viewColumns = 0, viewRows = 0;
+	
+	// first figure out the biggest square size that will allow us to display the whole subpopulation
+	for (squareSize = 20; squareSize > 1; --squareSize)
+	{
+		viewColumns = (int)floor((bounds.size.width - 3) / squareSize);
+		viewRows = (int)floor((bounds.size.height - 3) / squareSize);
+		
+		if (viewColumns * viewRows > subpopSize)
+		{
+			// If we have an empty row at the bottom, then break for sure; this allows us to look nice and symmetrical
+			if ((subpopSize - 1) / viewColumns < viewRows - 1)
+				break;
+			
+			// Otherwise, break only if we are getting uncomfortably small; otherwise, let's drop down one square size to allow symmetry
+			if (squareSize <= 5)
+				break;
+		}
+	}
+	
+	return (squareSize > 1);
+}
+
+- (IBAction)setDisplayStyle:(id)sender
+{
+	int newDisplayMode = (int)[sender tag];
+	
+	if ((newDisplayMode == 1) || (newDisplayMode == 2))
+	{
+		// Run a sheet for display options, which will set the new mode if the user confirms
+		[self runDisplayOptionsSheetForMode:newDisplayMode];
+	}
+	else
+	{
+		// This option does not require a sheet, so we just do it
+		displayMode = newDisplayMode;
+		[self setNeedsDisplay:YES];
+		[[[self window] windowController] updatePopulationViewHiding];
+	}
+}
+
+
+//
+//	Options sheet handling
+//
+#pragma mark Options sheet handling
+
+- (void)runDisplayOptionsSheetForMode:(int)newDisplayMode
+{
+	// Nil out our outlets for a bit of safety, and then load our sheet nib
+	_displayOptionsSheet = nil;
+	_binCountTextField = nil;
+	_fitnessMinTextField = nil;
+	_fitnessMaxTextField = nil;
+	_okButton = nil;
+	
+	[[NSBundle mainBundle] loadNibNamed:@"PopulationViewOptionsSheet" owner:self topLevelObjects:NULL];
+	
+	// Run the sheet in our window
+	if (_displayOptionsSheet)
+	{
+		[_binCountTextField setStringValue:[NSString stringWithFormat:@"%d", binCount]];
+		[_fitnessMinTextField setStringValue:[NSString stringWithFormat:@"%0.1f", fitnessMin]];
+		[_fitnessMaxTextField setStringValue:[NSString stringWithFormat:@"%0.1f", fitnessMax]];
+		
+		[self validateSheetControls:nil];
+		
+		NSWindow *window = [self window];
+		
+		[window beginSheet:_displayOptionsSheet completionHandler:^(NSModalResponse returnCode) {
+			if (returnCode == NSAlertFirstButtonReturn)
+			{
+				// pull values from controls, set the new mode, and redisplay
+				binCount = [[_binCountTextField stringValue] intValue];
+				fitnessMin = [[_fitnessMinTextField stringValue] doubleValue];
+				fitnessMax = [[_fitnessMaxTextField stringValue] doubleValue];
+				
+				displayMode = newDisplayMode;
+				[self setNeedsDisplay:YES];
+				[[[self window] windowController] updatePopulationViewHiding];
+			}
+			
+			[_displayOptionsSheet autorelease];
+			_displayOptionsSheet = nil;
+		}];
+	}
+}
+
+- (IBAction)validateSheetControls:(id)sender
+{
+	// Determine whether we have valid inputs in all of our fields
+	BOOL validInput = YES;
+	
+	BOOL binCountValid = [ScriptMod validIntValueInTextField:_binCountTextField withMin:2 max:SLIM_MAX_HISTOGRAM_BINS];
+	validInput = validInput && binCountValid;
+	[_binCountTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:binCountValid]];
+	
+	BOOL fitnessMinValid = [ScriptMod validFloatValueInTextField:_fitnessMinTextField withMin:0.0 max:10.0];
+	validInput = validInput && fitnessMinValid;
+	[_fitnessMinTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:fitnessMinValid]];
+	
+	BOOL fitnessMaxValid = [ScriptMod validFloatValueInTextField:_fitnessMaxTextField withMin:0.0 max:10.0];
+	validInput = validInput && fitnessMaxValid;
+	[_fitnessMaxTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:fitnessMaxValid]];
+	
+	// if the input is invalid, we need to disable our OK button
+	[_okButton setEnabled:validInput];
+}
+
+- (IBAction)displaySheetOK:(id)sender
+{
+	NSWindow *window = [self window];
+	
+	[window endSheet:_displayOptionsSheet returnCode:NSAlertFirstButtonReturn];
+}
+
+- (IBAction)displaySheetCancel:(id)sender
+{
+	NSWindow *window = [self window];
+	
+	[window endSheet:_displayOptionsSheet returnCode:NSAlertSecondButtonReturn];
+}
+
+- (void)controlTextDidChange:(NSNotification *)notification
+{
+	// NSTextField delegate method
+	[self validateSheetControls:nil];
+}
+
+- (NSMenu *)menuForEvent:(NSEvent *)theEvent
+{
+	NSMenu *menu = [[NSMenu alloc] initWithTitle:@"population_menu"];
+	NSMenuItem *menuItem;
+	
+	menuItem = [menu addItemWithTitle:@"Display Individuals" action:@selector(setDisplayStyle:) keyEquivalent:@""];
+	[menuItem setTag:0];
+	[menuItem setTarget:self];
+	
+	menuItem = [menu addItemWithTitle:@"Display Fitness Line Plot (per subpopulation)..." action:@selector(setDisplayStyle:) keyEquivalent:@""];
+	[menuItem setTag:1];
+	[menuItem setTarget:self];
+	
+	menuItem = [menu addItemWithTitle:@"Display Fitness Bar Plot (aggregated)..." action:@selector(setDisplayStyle:) keyEquivalent:@""];
+	[menuItem setTag:2];
+	[menuItem setTarget:self];
+	
+	// Check the item corresponding to our current display preference, if any
+	menuItem = [menu itemWithTag:displayMode];
+	[menuItem setState:NSOnState];
+	
+	return [menu autorelease];
+}
+
 @end
 
 
@@ -1103,7 +1607,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	static NSDictionary *attrs = nil;
 	
 	if (!attrs)
-		attrs = [@{NSFontAttributeName : [NSFont fontWithName:@"Times New Roman" size:16], NSForegroundColorAttributeName : [NSColor colorWithCalibratedWhite:0.4 alpha:1.0]} retain];
+		attrs = [@{NSFontAttributeName : [NSFont fontWithName:@"Times New Roman" size:14], NSForegroundColorAttributeName : [NSColor colorWithCalibratedWhite:0.4 alpha:1.0]} retain];
 	
 	NSAttributedString *attrMessage = [[NSAttributedString alloc] initWithString:messageString attributes:attrs];
 	NSPoint centerPoint = NSMakePoint(rect.origin.x + rect.size.width / 2, rect.origin.y + rect.size.height / 2);
@@ -1127,12 +1631,20 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	NSFrameRect(bounds);
 	
 	// Draw the message
-	[self drawMessage:@"     too many\nsubpopulations\n      selected" inRect:NSInsetRect(bounds, 1, 1)];
+	[self drawMessage:@"too many subpops\n   or individuals\n     to display –\n  control-click to\n select a different\n    display mode" inRect:NSInsetRect(bounds, 1, 1)];
 }
 
 - (BOOL)isOpaque
 {
 	return YES;
+}
+
+- (NSMenu *)menuForEvent:(NSEvent *)theEvent
+{
+	SLiMWindowController *controller = [[self window] windowController];
+	PopulationView *popView = controller->populationView;
+	
+	return [popView menuForEvent:theEvent];
 }
 
 @end

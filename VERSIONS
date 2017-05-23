@@ -33,6 +33,7 @@ development head:
 	rewrite QTL-based recipes to use sumOfMutationsOfType()
 	added a preventIncidentalSelfing option to initializeSLiMOptions(), to prevent incidental selfing in hermaphroditic models
 	add profiling (performance monitoring) in SLiMgui
+	add alternative displays for the population view, selectable with right-click / control-click
 	NOTE: this version changed model output in some cases because of a float/double change in fitness calculations
 
 

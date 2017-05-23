@@ -544,23 +544,23 @@
 - (void)updatePopulationViewHiding
 {
 	std::vector<Subpopulation*> selectedSubpopulations = [self selectedSubpopulations];
-	int selectedSubpopCount = (int)(selectedSubpopulations.size());
+	BOOL canDisplayPopulationView = [populationView canDisplaySubpopulations:selectedSubpopulations];
 	
 	// Swap between populationView and populationErrorView as needed to show text messages in the pop view area
-	if (selectedSubpopCount > 10)
-	{
-		if (![populationView isHidden])
-		{
-			[populationView setHidden:YES];
-			[populationErrorView setHidden:NO];
-		}
-	}
-	else
+	if (canDisplayPopulationView)
 	{
 		if ([populationView isHidden])
 		{
 			[populationView setHidden:NO];
 			[populationErrorView setHidden:YES];
+		}
+	}
+	else
+	{
+		if (![populationView isHidden])
+		{
+			[populationView setHidden:YES];
+			[populationErrorView setHidden:NO];
 		}
 	}
 }
@@ -3046,6 +3046,9 @@
 
 	if ([contentView isKindOfClass:[GraphView class]])
 		[(GraphView *)contentView graphWindowResized];
+	
+	if (resizingWindow == [self window])
+		[self updatePopulationViewHiding];
 }
 
 - (void)windowDidMove:(NSNotification *)notification
@@ -3598,6 +3601,8 @@
 				[selectionColorSlider setHidden:hideSelCoeffColorStrip];
 			}
 		}
+		
+		[self updatePopulationViewHiding];
 	}
 }
 

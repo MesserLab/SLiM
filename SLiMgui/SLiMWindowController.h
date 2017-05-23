@@ -174,6 +174,7 @@
 - (void)setScriptStringAndInitializeSimulation:(NSString *)string;
 
 - (std::vector<Subpopulation*>)selectedSubpopulations;
+- (void)updatePopulationViewHiding;
 
 - (NSColor *)colorForGenomicElementType:(GenomicElementType *)elementType withID:(slim_objectid_t)elementTypeID;
 

@@ -141,10 +141,10 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		
 		// Set up the vertex and color arrays
 		if (!glArrayVertices)
-			glArrayVertices = (float *)malloc(kMaxVertices * 2 * sizeof(float));		// 2 floats per vertex, AK_POPULATION_VIEW_GL_ARRAY_SIZE vertices
+			glArrayVertices = (float *)malloc(kMaxVertices * 2 * sizeof(float));		// 2 floats per vertex, kMaxVertices vertices
 		
 		if (!glArrayColors)
-			glArrayColors = (float *)malloc(kMaxVertices * 4 * sizeof(float));		// 4 floats per color, AK_POPULATION_VIEW_GL_ARRAY_SIZE colors
+			glArrayColors = (float *)malloc(kMaxVertices * 4 * sizeof(float));		// 4 floats per color, kMaxVertices colors
 	}
 }
 
@@ -1855,7 +1855,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 				NSMenu *menu = [[NSMenu alloc] initWithTitle:@"chromosome_menu"];
 				NSMenuItem *menuItem;
 				
-				menuItem = [menu addItemWithTitle:@"Display all mutations" action:@selector(filterMutations:) keyEquivalent:@""];
+				menuItem = [menu addItemWithTitle:@"Display All Mutations" action:@selector(filterMutations:) keyEquivalent:@""];
 				[menuItem setTag:-1];
 				[menuItem setTarget:self];
 				
