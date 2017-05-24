@@ -7584,11 +7584,8 @@ EidosValue_SP Eidos_ExecuteFunction_ttest(const EidosValue_SP *const p_arguments
 	EidosValue *arg1_value = p_arguments[1].get();
 	int arg1_count = arg1_value->Count();
 	
-	if ((arg0_count <= 0) || (arg1_count <= 0) || (arg0_count + arg1_count < 3))
-	{
-		//EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ttest): function ttest() requires enough elements among x and y to compute variance." << eidos_terminate(nullptr);
-		return gStaticEidosValue_FloatNAN;
-	}
+	if ((arg0_count <= 1) || (arg1_count <= 1))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ttest): function ttest() requires enough elements in x and y to compute variance." << eidos_terminate(nullptr);
 	
 	const double *vec1 = nullptr, *vec2 = nullptr;
 	double singleton1, singleton2;
@@ -7613,7 +7610,9 @@ EidosValue_SP Eidos_ExecuteFunction_ttest(const EidosValue_SP *const p_arguments
 		vec2 = arg1_value->FloatVector()->data();
 	}
 	
-	double pvalue = Eidos_WelchTTest(vec1, arg0_count, vec2, arg1_count, nullptr, nullptr);
+	// Right now this function only provides a two-sample t-test; we could add an optional mu argument and make y optional in order to allow a one-sample test as well
+	// If we got into that, we'd probably want to provide one-sided t-tests as well, yada yada...
+	double pvalue = Eidos_WelchTTest_TwoSample(vec1, arg0_count, vec2, arg1_count, nullptr, nullptr);
 	
 	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(pvalue));
 	

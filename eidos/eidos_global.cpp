@@ -934,6 +934,9 @@ int Eidos_mkstemps(char *pattern, int suffix_len)
 // t-test between two samples.  The null hypothesis is that the means of the two samples
 // are not different.  If p < alpha, this null hypothesis is rejected, supporting the
 // alternative hypothesis that the two samples are drawn from different distributions.
+// As I understand it, that this code uses biased estimators of the variance and std.
+// deviation, presumably for simplicity and speed, so the results will be somewhat
+// inexact for small sample sizes.
 
 // This code is modified from WiggleTools ( https://github.com/Ensembl/WiggleTools ),
 // from https://github.com/Ensembl/WiggleTools/blob/master/src/setComparisons.c .
@@ -958,11 +961,11 @@ int Eidos_mkstemps(char *pattern, int suffix_len)
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-double Eidos_WelchTTest(const double *set1, int count1, const double *set2, int count2, double *set_mean1, double *set_mean2)
+double Eidos_WelchTTest_TwoSample(const double *set1, int count1, const double *set2, int count2, double *set_mean1, double *set_mean2)
 {
-	if ((count1 == 0) || (count2 == 0) || (count1 + count2 < 3))
+	if ((count1 <= 1) || (count2 <= 1))
 	{
-		std::cout << "Eidos_WelchTTest requires enough elements to compute variance" << std::endl;
+		std::cout << "Eidos_WelchTTest_TwoSample requires enough elements to compute variance" << std::endl;
 		return NAN;
 	}
 	
@@ -1000,16 +1003,61 @@ double Eidos_WelchTTest(const double *set1, int count1, const double *set2, int 
 	if (var1 + var2 == 0)
 		return NAN;
 	
-	// T-statistic
+	// two-sample test
 	double t = (mean1 - mean2) / sqrt(var1 / count1 + var2 / count2);
 	
 	if (t < 0)
 		t = -t;
 	
-	// Degrees of freedom
 	double nu = (var1 / count1 + var2 / count2) * (var1 / count1 + var2 / count2) / ((var1 * var1) / (count1 * count1 * (count1 - 1)) + (var2 * var2) / (count2 * count2 * (count2 - 1)));
 	
-	// P-value
+	// return the P-value
+	return 2 * gsl_cdf_tdist_Q(t, nu);
+}
+
+// This function returns a one-sample t-test, testing the null hypothesis that
+// the mean of the sample is equal to mu.  This code is obviously derived from
+// the code above, but was written by me in consultation with Wikipedia.
+
+double Eidos_WelchTTest_OneSample(const double *set1, int count1, double mu, double *set_mean1)
+{
+	if (count1 <= 1)
+	{
+		std::cout << "Eidos_WelchTTest_OneSample requires enough elements to compute variance" << std::endl;
+		return NAN;
+	}
+	
+	// Compute measurements
+	double sum1 = 0, sumSq1 = 0;
+	int index;
+	
+	for (index = 0; index < count1; index++) {
+		double value = set1[index];
+		
+		sum1 += value;
+		sumSq1 += value * value;
+	}
+	
+	double mean1 = sum1 / count1;
+	double meanSq1 = sumSq1 / count1;
+	double var1 = meanSq1 - mean1 * mean1;
+	
+	if (set_mean1)
+		*set_mean1 = mean1;
+	
+	// To avoid divisions by 0:
+	if (var1 == 0)
+		return NAN;
+	
+	// one-sample test
+	double t = (mean1 - mu) / (sqrt(var1) / sqrt(count1));
+	
+	if (t < 0)
+		t = -t;
+	
+	double nu = count1 - 1;
+	
+	// return the P-value
 	return 2 * gsl_cdf_tdist_Q(t, nu);
 }
 
