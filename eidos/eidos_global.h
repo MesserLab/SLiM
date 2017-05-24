@@ -173,6 +173,9 @@ std::string EidosResolvedPath(const std::string p_path);
 // Create a temporary file based upon a template filename; note that pattern is modified!
 int Eidos_mkstemps(char *pattern, int suffix_len);
 
+// Welch's t-test function; means are returned in mean1 and mean2, which may be nullptr
+double Eidos_WelchTTest(const double *set1, int count1, const double *set2, int count2, double *mean1, double *mean2);
+
 
 // *******************************************************************************************************************
 //

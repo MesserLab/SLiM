@@ -186,6 +186,9 @@ EidosValue_SP Eidos_ExecuteFunction_system(const EidosValue_SP *const p_argument
 EidosValue_SP Eidos_ExecuteFunction_time(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_version(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 
+//	undocumented functions; users might discover them but they are mostly for our own use
+EidosValue_SP Eidos_ExecuteFunction_ttest(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+
 //	object instantiation
 EidosValue_SP Eidos_ExecuteFunction__Test(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 

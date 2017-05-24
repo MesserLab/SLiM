@@ -285,6 +285,14 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		
 		// ************************************************************************************
 		//
+		//	undocumented functions
+		//
+		
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("ttest",	Eidos_ExecuteFunction_ttest,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddFloat("x")->AddFloat("y"));
+		
+		
+		// ************************************************************************************
+		//
 		//	object instantiation
 		//
 		
@@ -7554,6 +7562,64 @@ EidosValue_SP Eidos_ExecuteFunction_version(__attribute__((unused)) const EidosV
 	
 	return result_SP;
 }
+
+
+
+// ************************************************************************************
+//
+//	undocumented functions
+//
+#pragma mark -
+#pragma mark Undocumented functions
+#pragma mark -
+
+
+//	(float$)ttest(float x, float y)
+EidosValue_SP Eidos_ExecuteFunction_ttest(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *arg0_value = p_arguments[0].get();
+	int arg0_count = arg0_value->Count();
+	EidosValue *arg1_value = p_arguments[1].get();
+	int arg1_count = arg1_value->Count();
+	
+	if ((arg0_count <= 0) || (arg1_count <= 0) || (arg0_count + arg1_count < 3))
+	{
+		//EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ttest): function ttest() requires enough elements among x and y to compute variance." << eidos_terminate(nullptr);
+		return gStaticEidosValue_FloatNAN;
+	}
+	
+	const double *vec1 = nullptr, *vec2 = nullptr;
+	double singleton1, singleton2;
+	
+	if (arg0_count == 1)
+	{
+		singleton1 = arg0_value->FloatAtIndex(0, nullptr);
+		vec1 = &singleton1;
+	}
+	else
+	{
+		vec1 = arg0_value->FloatVector()->data();
+	}
+	
+	if (arg1_count == 1)
+	{
+		singleton2 = arg1_value->FloatAtIndex(0, nullptr);
+		vec2 = &singleton2;
+	}
+	else
+	{
+		vec2 = arg1_value->FloatVector()->data();
+	}
+	
+	double pvalue = Eidos_WelchTTest(vec1, arg0_count, vec2, arg1_count, nullptr, nullptr);
+	
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(pvalue));
+	
+	return result_SP;
+}
+
 
 
 // ************************************************************************************

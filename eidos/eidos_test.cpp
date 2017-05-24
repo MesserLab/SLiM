@@ -571,9 +571,9 @@ void _RunLiteralsIdentifiersAndTokenizationTests(void)
 	EidosAssertScriptSuccess("T;", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("F;", gStaticEidosValue_LogicalF);
 	EidosAssertScriptSuccess("NULL;", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("INF;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(std::numeric_limits<double>::infinity())));
+	EidosAssertScriptSuccess("INF;", gStaticEidosValue_FloatINF);
 	EidosAssertScriptSuccess("-INF;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-std::numeric_limits<double>::infinity())));
-	EidosAssertScriptSuccess("NAN;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(std::numeric_limits<double>::quiet_NaN())));
+	EidosAssertScriptSuccess("NAN;", gStaticEidosValue_FloatNAN);
 	EidosAssertScriptSuccess("E - exp(1) < 0.0000001;", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("PI - asin(1)*2 < 0.0000001;", gStaticEidosValue_LogicalT);
 	EidosAssertScriptRaise("foo$foo;", 3, "unrecognized token");
@@ -1031,7 +1031,7 @@ void _RunOperatorDivTests(void)
 	EidosAssertScriptRaise("/'foo';", 0, "unexpected token");
 	EidosAssertScriptRaise("/T;", 0, "unexpected token");
     EidosAssertScriptSuccess("3/4/5;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(0.15)));
-	EidosAssertScriptSuccess("6/0;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(std::numeric_limits<double>::infinity())));
+	EidosAssertScriptSuccess("6/0;", gStaticEidosValue_FloatINF);
 }
 
 #pragma mark operator %
@@ -3239,9 +3239,9 @@ void _RunFunctionSummaryStatsTests(void)
 	EidosAssertScriptSuccess("pmax(1., 5.);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(5)));
 	EidosAssertScriptSuccess("pmax(-INF, 6.);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(6)));
 	EidosAssertScriptSuccess("pmax(7., 1.);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(7)));
-	EidosAssertScriptSuccess("pmax(INF, -8.);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(std::numeric_limits<double>::infinity())));
-	EidosAssertScriptSuccess("pmax(NAN, -8.);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(std::numeric_limits<double>::quiet_NaN())));
-	EidosAssertScriptSuccess("pmax(NAN, INF);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(std::numeric_limits<double>::quiet_NaN())));
+	EidosAssertScriptSuccess("pmax(INF, -8.);", gStaticEidosValue_FloatINF);
+	EidosAssertScriptSuccess("pmax(NAN, -8.);", gStaticEidosValue_FloatNAN);
+	EidosAssertScriptSuccess("pmax(NAN, INF);", gStaticEidosValue_FloatNAN);
 	EidosAssertScriptSuccess("pmax(c(1.,-INF,7.,INF, NAN, NAN), c(5.,6.,1.,-8.,-8.,INF));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{5, 6, 7, std::numeric_limits<double>::infinity(), std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()}));
 	EidosAssertScriptSuccess("pmax('foo', 'bar');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foo")));
 	EidosAssertScriptSuccess("pmax('bar', 'baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("baz")));
@@ -3269,8 +3269,8 @@ void _RunFunctionSummaryStatsTests(void)
 	EidosAssertScriptSuccess("pmin(-INF, 6.);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-std::numeric_limits<double>::infinity())));
 	EidosAssertScriptSuccess("pmin(7., 1.);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(1)));
 	EidosAssertScriptSuccess("pmin(INF, -8.);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-8)));
-	EidosAssertScriptSuccess("pmin(NAN, -8.);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(std::numeric_limits<double>::quiet_NaN())));
-	EidosAssertScriptSuccess("pmin(NAN, INF);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(std::numeric_limits<double>::quiet_NaN())));
+	EidosAssertScriptSuccess("pmin(NAN, -8.);", gStaticEidosValue_FloatNAN);
+	EidosAssertScriptSuccess("pmin(NAN, INF);", gStaticEidosValue_FloatNAN);
 	EidosAssertScriptSuccess("pmin(c(1.,-INF,7.,INF, NAN, NAN), c(5.,6.,1.,-8.,-8.,INF));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{1, -std::numeric_limits<double>::infinity(), 1, -8, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()}));
 	EidosAssertScriptSuccess("pmin('foo', 'bar');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("bar")));
 	EidosAssertScriptSuccess("pmin('bar', 'baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("bar")));

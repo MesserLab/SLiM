@@ -49,6 +49,9 @@
 #include <errno.h>
 #include <stdio.h>
 
+// for Eidos_WelchTTest()
+#include "gsl_cdf.h"
+
 
 bool eidos_do_memory_checks = true;
 
@@ -118,6 +121,7 @@ void Eidos_WarmUp(void)
 		gStaticEidosValue_Float0Point5 = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(0.5));
 		gStaticEidosValue_Float1 = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(1.0));
 		gStaticEidosValue_FloatINF = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(std::numeric_limits<double>::infinity()));
+		gStaticEidosValue_FloatNAN = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(std::numeric_limits<double>::quiet_NaN()));
 		
 		gStaticEidosValue_StringEmpty = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(""));
 		gStaticEidosValue_StringSpace = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(" "));
@@ -924,6 +928,89 @@ int Eidos_mkstemps(char *pattern, int suffix_len)
 	// We return the null string if we can't find a unique file name
 	pattern[0] = '\0';
 	return -1;
+}
+
+// Welch's t-test.  This function returns the p-value for a two-sided unpaired Welch's
+// t-test between two samples.  The null hypothesis is that the means of the two samples
+// are not different.  If p < alpha, this null hypothesis is rejected, supporting the
+// alternative hypothesis that the two samples are drawn from different distributions.
+
+// This code is modified from WiggleTools ( https://github.com/Ensembl/WiggleTools ),
+// from https://github.com/Ensembl/WiggleTools/blob/master/src/setComparisons.c .
+// Thanks to EMBL-European Bioinformatics Institute for making this code available.
+
+// WiggleTools is licensed under the Apache 2.0 license
+// That license is compatible with the GPL 3.0 that we are licensed under, according
+// to https://www.apache.org/licenses/GPL-compatibility.html )
+// The original notice from WiggleTools follows:
+
+// Copyright [1999-2017] EMBL-European Bioinformatics Institute
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+double Eidos_WelchTTest(const double *set1, int count1, const double *set2, int count2, double *set_mean1, double *set_mean2)
+{
+	if ((count1 == 0) || (count2 == 0) || (count1 + count2 < 3))
+	{
+		std::cout << "Eidos_WelchTTest requires enough elements to compute variance" << std::endl;
+		return NAN;
+	}
+	
+	// Compute measurements
+	double sum1 = 0, sum2 = 0, sumSq1 = 0, sumSq2 = 0;
+	int index;
+	
+	for (index = 0; index < count1; index++) {
+		double value = set1[index];
+		
+		sum1 += value;
+		sumSq1 += value * value;
+	}
+	
+	for (index = 0; index < count2; index++) {
+		double value = set2[index];
+		
+		sum2 += value;
+		sumSq2 += value * value;
+	}
+	
+	double mean1 = sum1 / count1;
+	double mean2 = sum2 / count2;
+	double meanSq1 = sumSq1 / count1;
+	double meanSq2 = sumSq2 / count2;
+	double var1 = meanSq1 - mean1 * mean1;
+	double var2 = meanSq2 - mean2 * mean2;
+	
+	if (set_mean1)
+		*set_mean1 = mean1;
+	if (set_mean2)
+		*set_mean2 = mean2;
+	
+	// To avoid divisions by 0:
+	if (var1 + var2 == 0)
+		return NAN;
+	
+	// T-statistic
+	double t = (mean1 - mean2) / sqrt(var1 / count1 + var2 / count2);
+	
+	if (t < 0)
+		t = -t;
+	
+	// Degrees of freedom
+	double nu = (var1 / count1 + var2 / count2) * (var1 / count1 + var2 / count2) / ((var1 * var1) / (count1 * count1 * (count1 - 1)) + (var2 * var2) / (count2 * count2 * (count2 - 1)));
+	
+	// P-value
+	return 2 * gsl_cdf_tdist_Q(t, nu);
 }
 
 // run a Un*x command; thanks to http://stackoverflow.com/questions/478898/how-to-execute-a-command-and-get-output-of-command-within-c-using-posix
