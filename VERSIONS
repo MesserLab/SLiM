@@ -34,6 +34,7 @@ development head:
 	added a preventIncidentalSelfing option to initializeSLiMOptions(), to prevent incidental selfing in hermaphroditic models
 	add profiling (performance monitoring) in SLiMgui
 	add alternative displays for the population view, selectable with right-click / control-click
+	upgraded to GSL version 2.3 and pulled in gsl_cdf_tdist_Q() and dependencies (no user-visible impact whatsoever)
 	NOTE: this version changed model output in some cases because of a float/double change in fitness calculations
 
 

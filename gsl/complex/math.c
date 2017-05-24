@@ -477,29 +477,25 @@ gsl_complex_cos (gsl_complex a)
 gsl_complex
 gsl_complex_tan (gsl_complex a)
 {                               /* z = tan(a) */
-  double R = GSL_REAL (a), I = GSL_IMAG (a);
-
-  gsl_complex z;
-
-  if (fabs (I) < 1)
-    {
-      double D = pow (cos (R), 2.0) + pow (sinh (I), 2.0);
-
-      GSL_SET_COMPLEX (&z, 0.5 * sin (2 * R) / D, 0.5 * sinh (2 * I) / D);
-    }
-  else
-    {
-      double u = exp (-I);
-      double C = 2 * u / (1 - pow (u, 2.0));
-      double D = 1 + pow (cos (R), 2.0) * pow (C, 2.0);
-
-      double S = pow (C, 2.0);
-      double T = 1.0 / tanh (I);
-
-      GSL_SET_COMPLEX (&z, 0.5 * sin (2 * R) * S / D, T / D);
-    }
-
-  return z;
+	double R = GSL_REAL (a), I = GSL_IMAG (a);
+	
+	gsl_complex z;
+	
+	if (fabs (I) < 1)
+	{
+		double D = pow (cos (R), 2.0) + pow (sinh (I), 2.0);
+		
+		GSL_SET_COMPLEX (&z, 0.5 * sin (2 * R) / D, 0.5 * sinh (2 * I) / D);
+	}
+	else
+	{
+		double D = pow (cos (R), 2.0) + pow (sinh (I), 2.0);
+		double F = 1 + pow(cos (R)/sinh (I), 2.0);
+		
+		GSL_SET_COMPLEX (&z, 0.5 * sin (2 * R) / D, 1 / (tanh (I) * F));
+	}
+	
+	return z;
 }
 
 gsl_complex

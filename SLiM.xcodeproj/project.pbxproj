@@ -120,6 +120,30 @@
 		986D73E81B07E89E007FBB70 /* eidos_call_signature.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 986D73E61B07E89E007FBB70 /* eidos_call_signature.cpp */; };
 		986D73E91B07E89E007FBB70 /* eidos_call_signature.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 986D73E61B07E89E007FBB70 /* eidos_call_signature.cpp */; };
 		986D73EA1B07E89E007FBB70 /* eidos_call_signature.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 986D73E61B07E89E007FBB70 /* eidos_call_signature.cpp */; };
+		9876E5F51ED5572C00FF9762 /* tdist.c in Sources */ = {isa = PBXBuildFile; fileRef = 9876E5F41ED5572C00FF9762 /* tdist.c */; };
+		9876E5F61ED5573700FF9762 /* tdist.c in Sources */ = {isa = PBXBuildFile; fileRef = 9876E5F41ED5572C00FF9762 /* tdist.c */; };
+		9876E5F71ED5573700FF9762 /* tdist.c in Sources */ = {isa = PBXBuildFile; fileRef = 9876E5F41ED5572C00FF9762 /* tdist.c */; };
+		9876E5F81ED5573800FF9762 /* tdist.c in Sources */ = {isa = PBXBuildFile; fileRef = 9876E5F41ED5572C00FF9762 /* tdist.c */; };
+		9876E5FC1ED5599F00FF9762 /* gauss.c in Sources */ = {isa = PBXBuildFile; fileRef = 9876E5FB1ED5599F00FF9762 /* gauss.c */; };
+		9876E5FD1ED559A600FF9762 /* gauss.c in Sources */ = {isa = PBXBuildFile; fileRef = 9876E5FB1ED5599F00FF9762 /* gauss.c */; };
+		9876E5FE1ED559A600FF9762 /* gauss.c in Sources */ = {isa = PBXBuildFile; fileRef = 9876E5FB1ED5599F00FF9762 /* gauss.c */; };
+		9876E5FF1ED559A700FF9762 /* gauss.c in Sources */ = {isa = PBXBuildFile; fileRef = 9876E5FB1ED5599F00FF9762 /* gauss.c */; };
+		9876E6011ED55A2500FF9762 /* gamma_inc.c in Sources */ = {isa = PBXBuildFile; fileRef = 9876E6001ED55A2500FF9762 /* gamma_inc.c */; };
+		9876E6031ED55A7800FF9762 /* gamma_inc.c in Sources */ = {isa = PBXBuildFile; fileRef = 9876E6001ED55A2500FF9762 /* gamma_inc.c */; };
+		9876E6041ED55A7800FF9762 /* gamma_inc.c in Sources */ = {isa = PBXBuildFile; fileRef = 9876E6001ED55A2500FF9762 /* gamma_inc.c */; };
+		9876E6051ED55A7900FF9762 /* gamma_inc.c in Sources */ = {isa = PBXBuildFile; fileRef = 9876E6001ED55A2500FF9762 /* gamma_inc.c */; };
+		9876E6081ED55B4700FF9762 /* erfc.c in Sources */ = {isa = PBXBuildFile; fileRef = 9876E6071ED55B4700FF9762 /* erfc.c */; };
+		9876E6091ED55B4F00FF9762 /* erfc.c in Sources */ = {isa = PBXBuildFile; fileRef = 9876E6071ED55B4700FF9762 /* erfc.c */; };
+		9876E60A1ED55B4F00FF9762 /* erfc.c in Sources */ = {isa = PBXBuildFile; fileRef = 9876E6071ED55B4700FF9762 /* erfc.c */; };
+		9876E60B1ED55B5000FF9762 /* erfc.c in Sources */ = {isa = PBXBuildFile; fileRef = 9876E6071ED55B4700FF9762 /* erfc.c */; };
+		9876E60D1ED55C0400FF9762 /* expint.c in Sources */ = {isa = PBXBuildFile; fileRef = 9876E60C1ED55C0400FF9762 /* expint.c */; };
+		9876E60E1ED55C0B00FF9762 /* expint.c in Sources */ = {isa = PBXBuildFile; fileRef = 9876E60C1ED55C0400FF9762 /* expint.c */; };
+		9876E60F1ED55C0C00FF9762 /* expint.c in Sources */ = {isa = PBXBuildFile; fileRef = 9876E60C1ED55C0400FF9762 /* expint.c */; };
+		9876E6101ED55C0C00FF9762 /* expint.c in Sources */ = {isa = PBXBuildFile; fileRef = 9876E60C1ED55C0400FF9762 /* expint.c */; };
+		9876E6121ED55C6B00FF9762 /* beta.c in Sources */ = {isa = PBXBuildFile; fileRef = 9876E6111ED55C6B00FF9762 /* beta.c */; };
+		9876E6131ED55C7300FF9762 /* beta.c in Sources */ = {isa = PBXBuildFile; fileRef = 9876E6111ED55C6B00FF9762 /* beta.c */; };
+		9876E6141ED55C7400FF9762 /* beta.c in Sources */ = {isa = PBXBuildFile; fileRef = 9876E6111ED55C6B00FF9762 /* beta.c */; };
+		9876E6151ED55C7400FF9762 /* beta.c in Sources */ = {isa = PBXBuildFile; fileRef = 9876E6111ED55C6B00FF9762 /* beta.c */; };
 		9878A93F1A4E57E70007B9D6 /* slim_sim.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9878A93D1A4E57E70007B9D6 /* slim_sim.cpp */; };
 		987AD8741B2CBDA70035D6C8 /* show_console_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 987AD8721B2CBDA70035D6C8 /* show_console_H.pdf */; };
 		987AD8751B2CBDA70035D6C8 /* show_console.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 987AD8731B2CBDA70035D6C8 /* show_console.pdf */; };
@@ -620,6 +644,16 @@
 		986926EA1AA6B7480000E138 /* GraphView_PopulationVisualization.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GraphView_PopulationVisualization.mm; sourceTree = "<group>"; };
 		986D73E61B07E89E007FBB70 /* eidos_call_signature.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_call_signature.cpp; sourceTree = "<group>"; };
 		986D73E71B07E89E007FBB70 /* eidos_call_signature.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_call_signature.h; sourceTree = "<group>"; };
+		9876E5F31ED5572C00FF9762 /* gsl_cdf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gsl_cdf.h; path = cdf/gsl_cdf.h; sourceTree = "<group>"; };
+		9876E5F41ED5572C00FF9762 /* tdist.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tdist.c; path = cdf/tdist.c; sourceTree = "<group>"; };
+		9876E5F91ED557B000FF9762 /* beta_inc.inc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.pascal; name = beta_inc.inc; path = cdf/beta_inc.inc; sourceTree = "<group>"; };
+		9876E5FB1ED5599F00FF9762 /* gauss.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = gauss.c; path = cdf/gauss.c; sourceTree = "<group>"; };
+		9876E6001ED55A2500FF9762 /* gamma_inc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = gamma_inc.c; sourceTree = "<group>"; };
+		9876E6021ED55A6E00FF9762 /* gsl_sf_erf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = gsl_sf_erf.h; sourceTree = "<group>"; };
+		9876E6061ED55AD600FF9762 /* gsl_sf_expint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = gsl_sf_expint.h; sourceTree = "<group>"; };
+		9876E6071ED55B4700FF9762 /* erfc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = erfc.c; sourceTree = "<group>"; };
+		9876E60C1ED55C0400FF9762 /* expint.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = expint.c; sourceTree = "<group>"; };
+		9876E6111ED55C6B00FF9762 /* beta.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = beta.c; sourceTree = "<group>"; };
 		9878A93D1A4E57E70007B9D6 /* slim_sim.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = slim_sim.cpp; sourceTree = "<group>"; };
 		9878A93E1A4E57E70007B9D6 /* slim_sim.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = slim_sim.h; sourceTree = "<group>"; };
 		987AD8721B2CBDA70035D6C8 /* show_console_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = show_console_H.pdf; sourceTree = "<group>"; };
@@ -678,7 +712,7 @@
 		98C820E31C7A980000548839 /* gsl_complex.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = gsl_complex.h; sourceTree = "<group>"; };
 		98C820E41C7A980000548839 /* gsl_complex_math.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = gsl_complex_math.h; sourceTree = "<group>"; };
 		98C820E51C7A980000548839 /* inline.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = inline.c; sourceTree = "<group>"; };
-		98C820E61C7A980000548839 /* math.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = math.c; sourceTree = "<group>"; };
+		98C820E61C7A980000548839 /* math.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; path = math.c; sourceTree = "<group>"; };
 		98C820E71C7A980000548839 /* config.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
 		98C820E91C7A980000548839 /* error.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = error.c; sourceTree = "<group>"; };
 		98C820EA1C7A980000548839 /* gsl_message.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = gsl_message.h; sourceTree = "<group>"; };
@@ -1133,6 +1167,17 @@
 			name = Graphing;
 			sourceTree = "<group>";
 		};
+		9876E5F21ED5571C00FF9762 /* cdf */ = {
+			isa = PBXGroup;
+			children = (
+				9876E5F31ED5572C00FF9762 /* gsl_cdf.h */,
+				9876E5F91ED557B000FF9762 /* beta_inc.inc */,
+				9876E5FB1ED5599F00FF9762 /* gauss.c */,
+				9876E5F41ED5572C00FF9762 /* tdist.c */,
+			);
+			name = cdf;
+			sourceTree = "<group>";
+		};
 		988794681EA87FC300AE0C8D /* PDF */ = {
 			isa = PBXGroup;
 			children = (
@@ -1199,6 +1244,7 @@
 				98C820F31C7A980000548839 /* gsl_pow_int.h */,
 				98C820F41C7A980000548839 /* gsl_precision.h */,
 				98C820F51C7A980000548839 /* gsl_types.h */,
+				9876E5F21ED5571C00FF9762 /* cdf */,
 				98C820E21C7A980000548839 /* complex */,
 				98C820E81C7A980000548839 /* err */,
 				98C820F61C7A980000548839 /* randist */,
@@ -1272,7 +1318,9 @@
 				98C8210D1C7A980000548839 /* error.h */,
 				98C8210E1C7A980000548839 /* eval.h */,
 				98C821111C7A980000548839 /* gsl_sf_elementary.h */,
+				9876E6021ED55A6E00FF9762 /* gsl_sf_erf.h */,
 				98C821121C7A980000548839 /* gsl_sf_exp.h */,
+				9876E6061ED55AD600FF9762 /* gsl_sf_expint.h */,
 				98C821131C7A980000548839 /* gsl_sf_gamma.h */,
 				98C821141C7A980000548839 /* gsl_sf_log.h */,
 				98C821151C7A980000548839 /* gsl_sf_pow_int.h */,
@@ -1281,9 +1329,13 @@
 				98C821181C7A980000548839 /* gsl_sf_trig.h */,
 				98C821191C7A980000548839 /* gsl_sf_zeta.h */,
 				98C821091C7A980000548839 /* cheb_eval.inc */,
+				9876E6111ED55C6B00FF9762 /* beta.c */,
 				98C8210C1C7A980000548839 /* elementary.c */,
+				9876E6071ED55B4700FF9762 /* erfc.c */,
 				98C8210F1C7A980000548839 /* exp.c */,
+				9876E60C1ED55C0400FF9762 /* expint.c */,
 				98C821101C7A980000548839 /* gamma.c */,
+				9876E6001ED55A2500FF9762 /* gamma_inc.c */,
 				98C8211A1C7A980000548839 /* log.c */,
 				98C8211B1C7A980000548839 /* pow_int.c */,
 				98C8211C1C7A980000548839 /* psi.c */,
@@ -1735,6 +1787,8 @@
 				98C821881C7A983800548839 /* gauss.c in Sources */,
 				98C821B51C7A9B9F00548839 /* shuffle.c in Sources */,
 				98C821861C7A983800548839 /* exponential.c in Sources */,
+				9876E60B1ED55B5000FF9762 /* erfc.c in Sources */,
+				9876E6101ED55C0C00FF9762 /* expint.c in Sources */,
 				98C821981C7A983800548839 /* trig.c in Sources */,
 				982556BC1BA8EF990054CB3F /* eidos_test.cpp in Sources */,
 				98C821811C7A983800548839 /* error.c in Sources */,
@@ -1743,6 +1797,7 @@
 				98C821B01C7A9B1600548839 /* geometric.c in Sources */,
 				982556B31BA8EF7C0054CB3F /* eidos_ast_node.cpp in Sources */,
 				9893C7DE1CDA2D650029AC94 /* eidos_beep.cpp in Sources */,
+				9876E5FF1ED559A700FF9762 /* gauss.c in Sources */,
 				98C821991C7A983800548839 /* zeta.c in Sources */,
 				98C8218B1C7A983800548839 /* multinomial.c in Sources */,
 				98C821851C7A983800548839 /* binomial_tpe.c in Sources */,
@@ -1763,6 +1818,7 @@
 				98C821A11C7A99B200548839 /* minmax.c in Sources */,
 				98C821A61C7A99F000548839 /* pow_int.c in Sources */,
 				98C821951C7A983800548839 /* log.c in Sources */,
+				9876E6051ED55A7900FF9762 /* gamma_inc.c in Sources */,
 				98C821911C7A983800548839 /* taus.c in Sources */,
 				982556B71BA8EF8A0054CB3F /* eidos_call_signature.cpp in Sources */,
 				98C8218A1C7A983800548839 /* lognormal.c in Sources */,
@@ -1773,11 +1829,13 @@
 				98C821971C7A983800548839 /* psi.c in Sources */,
 				982556AC1BA8E77C0054CB3F /* main.cpp in Sources */,
 				982556BB1BA8EF960054CB3F /* eidos_test_element.cpp in Sources */,
+				9876E6151ED55C7400FF9762 /* beta.c in Sources */,
 				98C821961C7A983800548839 /* pow_int.c in Sources */,
 				98C821921C7A983800548839 /* elementary.c in Sources */,
 				9893C7EC1CDFE9870029AC94 /* eidos_type_interpreter.cpp in Sources */,
 				98C821831C7A983800548839 /* stream.c in Sources */,
 				98C821901C7A983800548839 /* rng.c in Sources */,
+				9876E5F81ED5573800FF9762 /* tdist.c in Sources */,
 				98C821871C7A983800548839 /* gamma.c in Sources */,
 				982556B11BA8EF760054CB3F /* eidos_global.cpp in Sources */,
 			);
@@ -1795,12 +1853,15 @@
 				98C8212D1C7A980000548839 /* gauss.c in Sources */,
 				98C8213B1C7A980000548839 /* log.c in Sources */,
 				98800DC41B7EDCB50046F5F9 /* slim_test.cpp in Sources */,
+				9876E60D1ED55C0400FF9762 /* expint.c in Sources */,
 				98C821381C7A980000548839 /* elementary.c in Sources */,
 				98C821B21C7A9B9F00548839 /* shuffle.c in Sources */,
 				98E9A6901A3CD4CF000AD4FC /* mutation_type.cpp in Sources */,
 				98E9A68A1A3CCFD0000AD4FC /* mutation.cpp in Sources */,
 				98C821401C7A980000548839 /* coerce.c in Sources */,
+				9876E6011ED55A2500FF9762 /* gamma_inc.c in Sources */,
 				981BAC6A1ACC6E8B0005BE94 /* eidos_script.cpp in Sources */,
+				9876E6081ED55B4700FF9762 /* erfc.c in Sources */,
 				98C8212E1C7A980000548839 /* gausszig.c in Sources */,
 				9878A93F1A4E57E70007B9D6 /* slim_sim.cpp in Sources */,
 				9893C7DD1CDA2D650029AC94 /* eidos_beep.cpp in Sources */,
@@ -1815,6 +1876,7 @@
 				98C8213A1C7A980000548839 /* gamma.c in Sources */,
 				98C821311C7A980000548839 /* poisson.c in Sources */,
 				98E9A6AE1A3CD5D3000AD4FC /* population.cpp in Sources */,
+				9876E6121ED55C6B00FF9762 /* beta.c in Sources */,
 				98C821361C7A980000548839 /* taus.c in Sources */,
 				98E9A6B81A3CE35E000AD4FC /* eidos_rng.cpp in Sources */,
 				98C821AD1C7A9B1600548839 /* geometric.c in Sources */,
@@ -1834,9 +1896,11 @@
 				98C8213C1C7A980000548839 /* pow_int.c in Sources */,
 				98C821321C7A980000548839 /* weibull.c in Sources */,
 				98C821411C7A980000548839 /* fdiv.c in Sources */,
+				9876E5F51ED5572C00FF9762 /* tdist.c in Sources */,
 				98E9A69C1A3CD542000AD4FC /* polymorphism.cpp in Sources */,
 				989790DA1AF3D0E100C6B14C /* eidos_test_element.cpp in Sources */,
 				982663541A3BABD300A0CBBF /* main.cpp in Sources */,
+				9876E5FC1ED5599F00FF9762 /* gauss.c in Sources */,
 				98E9A69F1A3CD551000AD4FC /* substitution.cpp in Sources */,
 				98C821391C7A980000548839 /* exp.c in Sources */,
 				98C8213E1C7A980000548839 /* trig.c in Sources */,
@@ -1877,17 +1941,21 @@
 				98C821A01C7A99B200548839 /* minmax.c in Sources */,
 				985724D21AD479010047C223 /* eidos_functions.cpp in Sources */,
 				98C821621C7A983800548839 /* math.c in Sources */,
+				9876E60F1ED55C0C00FF9762 /* expint.c in Sources */,
 				98C8217C1C7A983800548839 /* coerce.c in Sources */,
 				98C821651C7A983800548839 /* stream.c in Sources */,
 				98321F961B406B67007337A3 /* eidos_global.cpp in Sources */,
 				985724CF1AD479010047C223 /* eidos_script.cpp in Sources */,
 				98C821741C7A983800548839 /* elementary.c in Sources */,
 				98C8216E1C7A983800548839 /* poisson.c in Sources */,
+				9876E6041ED55A7800FF9762 /* gamma_inc.c in Sources */,
 				98C8216D1C7A983800548839 /* multinomial.c in Sources */,
 				98C8216F1C7A983800548839 /* weibull.c in Sources */,
 				986D73EA1B07E89E007FBB70 /* eidos_call_signature.cpp in Sources */,
 				98A513511B66B69E005A753D /* eidos_token.cpp in Sources */,
+				9876E5FE1ED559A600FF9762 /* gauss.c in Sources */,
 				98C821611C7A983800548839 /* inline.c in Sources */,
+				9876E6141ED55C7400FF9762 /* beta.c in Sources */,
 				9825565C1BA32EE80054CB3F /* EidosCocoaExtra.mm in Sources */,
 				98321F911B406417007337A3 /* eidos_rng.cpp in Sources */,
 				98C821671C7A983800548839 /* binomial_tpe.c in Sources */,
@@ -1921,11 +1989,13 @@
 				98C8217E1C7A983800548839 /* infnan.c in Sources */,
 				98DE4C151B6F9657004FDF5F /* eidos_property_signature.cpp in Sources */,
 				985724B51AD478630047C223 /* EidosAppDelegate.mm in Sources */,
+				9876E5F71ED5573700FF9762 /* tdist.c in Sources */,
 				9893C7E01CDA2FC20029AC94 /* eidos_beep.cpp in Sources */,
 				98C821711C7A983800548839 /* mt.c in Sources */,
 				98C821761C7A983800548839 /* gamma.c in Sources */,
 				985724E71AD622880047C223 /* EidosConsoleTextView.mm in Sources */,
 				989790DC1AF3D0E100C6B14C /* eidos_test_element.cpp in Sources */,
+				9876E60A1ED55B4F00FF9762 /* erfc.c in Sources */,
 				985724D11AD479010047C223 /* eidos_interpreter.cpp in Sources */,
 				98C8216A1C7A983800548839 /* gauss.c in Sources */,
 				98C821681C7A983800548839 /* exponential.c in Sources */,
@@ -1965,6 +2035,7 @@
 				985724AA1AD4551C0047C223 /* eidos_test.cpp in Sources */,
 				98C821491C7A983700548839 /* binomial_tpe.c in Sources */,
 				98606AEF1DED0DCD00821CFF /* mutation_run.cpp in Sources */,
+				9876E5F61ED5573700FF9762 /* tdist.c in Sources */,
 				98C821461C7A983700548839 /* message.c in Sources */,
 				98C8214F1C7A983700548839 /* multinomial.c in Sources */,
 				98C821541C7A983700548839 /* rng.c in Sources */,
@@ -1973,9 +2044,11 @@
 				98D4C1DB1A6F542F00FFB083 /* genomic_element.cpp in Sources */,
 				98C821A41C7A99F000548839 /* pow_int.c in Sources */,
 				98D4C1DF1A6F543C00FFB083 /* substitution.cpp in Sources */,
+				9876E6131ED55C7300FF9762 /* beta.c in Sources */,
 				98C8214A1C7A983700548839 /* exponential.c in Sources */,
 				98C821501C7A983700548839 /* poisson.c in Sources */,
 				98DE4C261B713F45004FDF5F /* ScriptMod_OutputFullPopulation.mm in Sources */,
+				9876E5FD1ED559A600FF9762 /* gauss.c in Sources */,
 				982556651BA450980054CB3F /* EidosHelpController.mm in Sources */,
 				985724A61AD435310047C223 /* eidos_value.cpp in Sources */,
 				98C8215F1C7A983700548839 /* fdiv.c in Sources */,
@@ -1991,6 +2064,7 @@
 				985301EF1B7262CC001520DF /* ScriptMod_ChangeCloning.mm in Sources */,
 				9893C7E41CDFCF0D0029AC94 /* eidos_type_table.cpp in Sources */,
 				98C8214E1C7A983700548839 /* lognormal.c in Sources */,
+				9876E6031ED55A7800FF9762 /* gamma_inc.c in Sources */,
 				98D4C21C1A718EFD00FFB083 /* CocoaExtra.mm in Sources */,
 				98DE4C181B713F0C004FDF5F /* ScriptMod_ChangeSubpopSize.mm in Sources */,
 				9825565B1BA32EE80054CB3F /* EidosCocoaExtra.mm in Sources */,
@@ -2015,7 +2089,9 @@
 				98C8214B1C7A983700548839 /* gamma.c in Sources */,
 				98800DC51B82B6C60046F5F9 /* slim_test.cpp in Sources */,
 				98F65D541DF145230058BD29 /* TipsWindowController.m in Sources */,
+				9876E60E1ED55C0B00FF9762 /* expint.c in Sources */,
 				98D4C1D91A6F542900FFB083 /* mutation_type.cpp in Sources */,
+				9876E6091ED55B4F00FF9762 /* erfc.c in Sources */,
 				98D4C1DE1A6F543900FFB083 /* polymorphism.cpp in Sources */,
 				98D4C1D41A6F541700FFB083 /* slim_sim.cpp in Sources */,
 				984AD1961DF54E3C002D4AC8 /* ChromosomeGLView.mm in Sources */,
