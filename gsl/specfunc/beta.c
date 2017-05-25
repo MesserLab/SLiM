@@ -135,13 +135,18 @@ gsl_sf_beta_e(const double x, const double y, gsl_sf_result * result)
     result->err += fabs((gx.val*gy.val)/(gxy.val*gxy.val)) * gxy.err;
     result->err += 2.0 * GSL_DBL_EPSILON * fabs(result->val);
     return GSL_SUCCESS;
-  }
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wconversion"
-  else if (isnegint(x) || isnegint(y)) {
+  } else if (isnegint(x) || isnegint(y)) {
+#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
     DOMAIN_ERROR(result);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wconversion"
   } else if (isnegint(x+y)) {  /* infinity in the denominator */
 #pragma clang diagnostic pop
 #pragma GCC diagnostic pop
