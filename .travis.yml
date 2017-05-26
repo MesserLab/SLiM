@@ -1,0 +1,29 @@
+language: cpp
+
+# skip the install step, we have no dependencies
+install: true
+
+# build using make
+script: make all
+
+# use gcc; this probably doesn't matter since we call make anyway
+# it would be nice to try different gcc versions, but that is presently quite complex
+# see https://stackoverflow.com/questions/29312015/building-with-more-than-one-version-of-a-compiler
+# see https://genbattle.bitbucket.io/blog/2016/01/17/c++-travis-ci/
+compiler:
+  - gcc
+
+# linux and os x builds
+os:
+  - linux
+  - osx
+
+# test only the master branch for now
+branches:
+  only:
+    -master
+
+# notify me by email
+notifications:
+  email: true
+
