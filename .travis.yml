@@ -26,9 +26,11 @@ branches:
   only:
     - master
 
-# notify me by email
+# notify me by email after all builds
 notifications:
-  email: true
+  email:
+    on_success: always
+    on_failure: always
 
 # run Eidos and SLiM tests after a build succeeds
 after_success:
