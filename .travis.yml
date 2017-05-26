@@ -1,3 +1,6 @@
+# Use new trusty images, should yield newer compilers and packages
+dist: trusty
+sudo: false
 language: cpp
 
 # skip the install step, we have no dependencies
@@ -27,3 +30,7 @@ branches:
 notifications:
   email: true
 
+# run Eidos and SLiM tests after a build succeeds
+after_success:
+  - ./bin/slim -testEidos
+  - ./bin/slim -testSLiM
