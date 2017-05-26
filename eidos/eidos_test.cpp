@@ -42,6 +42,11 @@ using std::istream;
 using std::ostream;
 
 
+#if (!EIDOS_HAS_OVERFLOW_BUILTINS)
+std::cout << "WARNING: This build of Eidos does not detect integer arithmetic overflows.  Compiling Eidos with GCC version 5.0 or later, or Clang version 3.9 or later, is required for this feature.  This means that integer addition, subtraction, or multiplication that overflows the 64-bit range of Eidos (" << INT64_MIN << " to " << INT64_MAX << ") will not be detected." << std::endl;
+#endif
+
+
 // Helper functions for testing
 void EidosAssertScriptSuccess(const string &p_script_string, EidosValue_SP p_correct_result);
 void EidosAssertScriptRaise(const string &p_script_string, const int p_bad_position, const std::string &p_reason_snip);
@@ -879,8 +884,6 @@ void _RunOperatorPlusTests(void)
 	EidosAssertScriptRaise("5e18 + c(0, 0, 5e18, 0);", 5, "overflow with the binary");
 	EidosAssertScriptRaise("c(0, 0, 5e18, 0) + 5e18;", 17, "overflow with the binary");
 	EidosAssertScriptRaise("c(0, 0, 5e18, 0) + c(0, 0, 5e18, 0);", 17, "overflow with the binary");
-#else
-	std::cout << "WARNING: This build of Eidos does not detect integer arithmetic overflows.  Compiling Eidos with GCC version 5.0 or later, or Clang version 3.9 or later, is required for this feature.  This means that integer addition, subtraction, or multiplication that overflows the 64-bit range of Eidos (" << INT64_MIN << " to " << INT64_MAX << ") will not be detected." << std::endl;
 #endif
 }
 
@@ -1304,12 +1307,14 @@ void _RunOperatorAssignTests(void)
 	EidosAssertScriptRaise("x = 5.0:7.0; x = x ^ (3.0:4.0); x;", 19, "operator requires that either");
 	EidosAssertScriptRaise("x = 5.0:6.0; x = x ^ (3.0:5.0); x;", 19, "operator requires that either");
 	
+#if EIDOS_HAS_OVERFLOW_BUILTINS
 	EidosAssertScriptRaise("x = 5e18; x = x + 5e18;", 16, "overflow with the binary");
 	EidosAssertScriptRaise("x = c(5e18, 0); x = x + 5e18;", 22, "overflow with the binary");
 	EidosAssertScriptRaise("x = -5e18; x = x - 5e18;", 17, "overflow with the binary");
 	EidosAssertScriptRaise("x = c(-5e18, 0); x = x - 5e18;", 23, "overflow with the binary");
 	EidosAssertScriptRaise("x = 5e18; x = x * 2;", 16, "multiplication overflow");
 	EidosAssertScriptRaise("x = c(5e18, 0); x = x * 2;", 22, "multiplication overflow");
+#endif
 }
 
 #pragma mark operator >
