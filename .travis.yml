@@ -21,7 +21,7 @@ os:
 # test only the master branch for now
 branches:
   only:
-    -master
+    - master
 
 # notify me by email
 notifications:
