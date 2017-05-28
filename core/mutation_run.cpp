@@ -170,6 +170,25 @@ bool MutationRun::_enforce_stack_policy_for_addition(slim_position_t p_position,
 		EIDOS_TERMINATION << "ERROR (Genome::_enforce_stack_policy_for_addition): (internal error) invalid policy." << eidos_terminate();
 }
 
+void MutationRun::split_run(MutationRun **p_first_half, MutationRun **p_second_half, int32_t p_split_first_position)
+{
+	MutationRun *first_half = NewMutationRun();
+	MutationRun *second_half = NewMutationRun();
+	int32_t second_half_start;
+	
+	for (second_half_start = 0; second_half_start < mutation_count_; ++second_half_start)
+		if ((gSLiM_Mutation_Block + mutations_[second_half_start])->position_ >= p_split_first_position)
+			break;
+	
+	if (second_half_start > 0)
+		first_half->emplace_back_bulk(mutations_, second_half_start);
+	
+	if (second_half_start < mutation_count_)
+		second_half->emplace_back_bulk(mutations_ + second_half_start, mutation_count_ - second_half_start);
+	
+	*p_first_half = first_half;
+	*p_second_half = second_half;
+}
 
 
 

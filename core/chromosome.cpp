@@ -23,6 +23,7 @@
 #include "slim_global.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
+#include "slim_sim.h"					// for SLIM_MUTRUN_MAXIMUM_COUNT
 
 #include <iostream>
 #include <algorithm>
@@ -34,7 +35,8 @@ Chromosome::Chromosome(void) : lookup_mutation_(nullptr), single_recombination_m
 	exp_neg_overall_recombination_rate_H_(0.0), probability_both_0_H_(0.0), probability_both_0_OR_mut_0_break_non0_H_(0.0), probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_H_(0.0), overall_recombination_rate_H_(0.0),
 	exp_neg_overall_recombination_rate_M_(0.0), probability_both_0_M_(0.0), probability_both_0_OR_mut_0_break_non0_M_(0.0), probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_M_(0.0), overall_recombination_rate_M_(0.0),
 	exp_neg_overall_recombination_rate_F_(0.0), probability_both_0_F_(0.0), probability_both_0_OR_mut_0_break_non0_F_(0.0), probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_F_(0.0), overall_recombination_rate_F_(0.0),
-	last_position_(0), overall_mutation_rate_(0.0), element_mutation_rate_(0.0), gene_conversion_fraction_(0.0), gene_conversion_avg_length_(0.0)
+	last_position_(0), overall_mutation_rate_(0.0), element_mutation_rate_(0.0), gene_conversion_fraction_(0.0), gene_conversion_avg_length_(0.0),
+	last_position_mutrun_(0)
 {
 	// Set up the default color for fixed mutations in SLiMgui
 	color_sub_ = "#3333FF";
@@ -122,57 +124,42 @@ void Chromosome::InitializeDraws(void)
 
 void Chromosome::ChooseMutationRunLayout(int p_preferred_count)
 {
-	// We now have a final last position, which should not change henceforth.  We can therefore calculate how many mutation runs
-	// we will use, and how long they will be.  Note that this decision may depend also upon the overall mutation rate and the
-	// overall recombination rate in future.
+	// We now have a final last position, so we can calculate our mutation run layout
 	
-	// Choose a mutation-run length for which the expected number of events per generation is perhaps 0.5?
-	// So use 0.15 = run_length * rate.  FIXME this could doubtless be improved...
-	double chromosome_length = last_position_ + 1;
-	double mu = overall_mutation_rate_;
-	double r = (single_recombination_map_ ? overall_recombination_rate_H_ : (overall_recombination_rate_M_ + overall_recombination_rate_F_) / 2) / last_position_;
-	double target_length = 0.15 / (mu + r);
-	
-	if (target_length < 50000)				// runs that are too short cause a lot of overhead
-		target_length = 50000;
-	
-	double target_count = chromosome_length / target_length;
-	
-	mutrun_count_ = std::max((int)round(target_count), 1);
-	
-	if (mutrun_count_ > 100)				// too many runs is rarely beneficial, and can be quite harmful
-		mutrun_count_ = 100;
-	
-	if (SLiM_verbose_output)
-	{
-		// Write out some information about how the mutrun count was arrived at
-		SLIM_OUTSTREAM << std::endl;
-		SLIM_OUTSTREAM << "// Default mutation run count: " << std::endl;
-		SLIM_OUTSTREAM << "//    chromosome_length = " << chromosome_length << std::endl;
-		SLIM_OUTSTREAM << "//    mu = " << mu << std::endl;
-		SLIM_OUTSTREAM << "//    r = " << r << std::endl;
-		SLIM_OUTSTREAM << "//    target_length = " << target_length << std::endl;
-		SLIM_OUTSTREAM << "//    target_count = " << target_count << std::endl;
-		SLIM_OUTSTREAM << "//    mutrun_count_ = " << mutrun_count_ << std::endl;
-	}
-	
-	// If the user specified a preferred mutation run length, use that
 	if (p_preferred_count != 0)
 	{
+		// The user has given us a mutation run count, so use that count and divide the chromosome evenly
 		if (p_preferred_count < 1)
 			EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): there must be at least one mutation run per genome." << eidos_terminate();
 		
 		mutrun_count_ = p_preferred_count;
+		mutrun_length_ = (int)ceil((last_position_ + 1) / (double)mutrun_count_);
 		
 		if (SLiM_verbose_output)
-			SLIM_OUTSTREAM << std::endl << "// Override mutation run count: " << mutrun_count_ << std::endl;
+			SLIM_OUTSTREAM << std::endl << "// Override mutation run count = " << mutrun_count_ << ", run length = " << mutrun_length_ << std::endl;
+	}
+	else
+	{
+		// The user has not supplied a count, so we will conduct experiments to find the best count;
+		// for simplicity we will just always start with a single run, since that is often best anyway
+		mutrun_count_ = 1;
+		mutrun_length_ = (int)ceil((last_position_ + 1) / (double)mutrun_count_);
+		
+		// When we are running experiments, the mutation run length needs to be a power of two so that it can be divided evenly,
+		// potentially a fairly large number of times.  We impose a maximum mutrun count of SLIM_MUTRUN_MAXIMUM_COUNT, so
+		// actually it needs to just be an even multiple of SLIM_MUTRUN_MAXIMUM_COUNT, not an exact power of two.
+		mutrun_length_ = (int)round(ceil(mutrun_length_ / (double)SLIM_MUTRUN_MAXIMUM_COUNT) * SLIM_MUTRUN_MAXIMUM_COUNT);
+		
+		if (SLiM_verbose_output)
+			SLIM_OUTSTREAM << std::endl << "// Initial mutation run count = " << mutrun_count_ << ", run length = " << mutrun_length_ << std::endl;
 	}
 	
-	// Calculate the length of mutation runs needed given the mutation run count and chromosome length
-	mutrun_length_ = (int)ceil((last_position_ + 1) / (double)mutrun_count_);
+	last_position_mutrun_ = mutrun_count_ * mutrun_length_ - 1;
 	
 	// Consistency check
 	if ((mutrun_length_ < 1) || (mutrun_count_ * mutrun_length_ <= last_position_))
+		EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): (internal error) math error in mutation run calculations." << eidos_terminate();
+	if (last_position_mutrun_ < last_position_)
 		EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): (internal error) math error in mutation run calculations." << eidos_terminate();
 }
 

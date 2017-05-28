@@ -77,7 +77,7 @@ Genome::Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length,
 // a constructor for parent/child genomes, particularly in the SEX ONLY case: species type and null/non-null
 Genome::Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length, enum GenomeType p_genome_type_, bool p_is_null) : genome_type_(p_genome_type_), subpop_(p_subpop)
 {
-	// null genomes are now signalled with a null mutations pointer, rather than a separate flag
+	// null genomes are now signalled with a mutrun_count_ of 0, rather than a separate flag
 	if (p_is_null)
 	{
 		mutrun_count_ = 0;
@@ -102,7 +102,7 @@ Genome::Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length,
 // a constructor for the SEX ONLY case with a supplied mutation run
 Genome::Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length, enum GenomeType p_genome_type_, bool p_is_null, MutationRun *p_run) : genome_type_(p_genome_type_), subpop_(p_subpop)
 {
-	// null genomes are now signalled with a null mutations pointer, rather than a separate flag
+	// null genomes are now signalled with a mutrun_count_ of 0, rather than a separate flag
 	if (p_is_null)
 	{
 		mutrun_count_ = 0;
@@ -433,6 +433,56 @@ bool Genome::LogGenomeCopyAndAssign(bool p_log)
 	return old_value;
 }
 #endif
+
+/*
+void Genome::assert_identical_to_runs(MutationRun_SP *p_mutruns, int32_t p_mutrun_count)
+{
+	// This checks that the mutations carried by a genome are identical after a mutation run transformation.
+	// It is run only in DEBUG mode, and does not need to be fast.
+	std::vector <MutationIndex> genome_muts;
+	std::vector <MutationIndex> param_muts;
+	
+	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
+	{
+		MutationRun *mutrun = mutruns_[run_index].get();
+		int mutrun_size = mutrun->size();
+		
+		for (int mut_index = 0; mut_index < mutrun_size; ++mut_index)
+			genome_muts.push_back((*mutrun)[mut_index]);
+	}
+	
+	for (int run_index = 0; run_index < p_mutrun_count; ++run_index)
+	{
+		MutationRun *mutrun = p_mutruns[run_index].get();
+		int mutrun_size = mutrun->size();
+		
+		for (int mut_index = 0; mut_index < mutrun_size; ++mut_index)
+			param_muts.push_back((*mutrun)[mut_index]);
+	}
+	
+	if (genome_muts.size() != param_muts.size())
+		EIDOS_TERMINATION << "ERROR (Genome::assert_identical_to_runs): (internal error) genome unequal in size after transformation." << eidos_terminate();
+	if (genome_muts != param_muts)
+		EIDOS_TERMINATION << "ERROR (Genome::assert_identical_to_runs): (internal error) genome unequal in contents after transformation." << eidos_terminate();
+	
+	// Check that mutations are also placed into the correct mutation run based on their position
+	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
+	{
+		MutationRun *mutrun = mutruns_[run_index].get();
+		int mutrun_size = mutrun->size();
+		
+		for (int mut_index = 0; mut_index < mutrun_size; ++mut_index)
+		{
+			MutationIndex mutation_index = (*mutrun)[mut_index];
+			Mutation *mutation = gSLiM_Mutation_Block + mutation_index;
+			slim_position_t position = mutation->position_;
+			
+			if (position / mutrun_length_ != run_index)
+				EIDOS_TERMINATION << "ERROR (Genome::assert_identical_to_runs): (internal error) genome has mutation at bad position." << eidos_terminate();
+		}
+	}
+}
+*/
 
 
 //

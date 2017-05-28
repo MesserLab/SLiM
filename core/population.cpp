@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <cmath>
 #include <utility>
+#include <unordered_map>
 
 #include "slim_sim.h"
 #include "slim_global.h"
@@ -1980,7 +1981,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 		
 		// no call to recombination() callbacks here, since recombination is not possible
 		
-		// Note that we do not add the (p_chromosome.last_position_ + 1) breakpoint here, for speed in the
+		// Note that we do not add the (p_chromosome.last_position_mutrun_ + 1) breakpoint here, for speed in the
 		// cases where it is not needed; this needs to be patched up below in the cases where it *is* needed
 	}
 	else
@@ -2017,14 +2018,14 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 				all_breakpoints.insert(all_breakpoints.end(), crossovers.begin(), crossovers.end());
 				all_breakpoints.insert(all_breakpoints.end(), gc_starts.begin(), gc_starts.end());
 				all_breakpoints.insert(all_breakpoints.end(), gc_ends.begin(), gc_ends.end());
-				all_breakpoints.emplace_back(p_chromosome.last_position_ + 1);
+				all_breakpoints.emplace_back(p_chromosome.last_position_mutrun_ + 1);
 				
 				std::sort(all_breakpoints.begin(), all_breakpoints.end());
 				all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
 			}
 			else
 			{
-				// Note that we do not add the (p_chromosome.last_position_ + 1) breakpoint here, for speed in the
+				// Note that we do not add the (p_chromosome.last_position_mutrun_ + 1) breakpoint here, for speed in the
 				// cases where it is not needed; this needs to be patched up below in the cases where it *is* needed
 			}
 		}
@@ -2033,13 +2034,13 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 			// just draw, sort, and unique breakpoints in the standard way
 			p_chromosome.DrawBreakpoints(p_parent_sex, num_breakpoints, all_breakpoints);
 			
-			all_breakpoints.emplace_back(p_chromosome.last_position_ + 1);
+			all_breakpoints.emplace_back(p_chromosome.last_position_mutrun_ + 1);
 			std::sort(all_breakpoints.begin(), all_breakpoints.end());
 			all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
 		}
 		else
 		{
-			// Note that we do not add the (p_chromosome.last_position_ + 1) breakpoint here, for speed in the
+			// Note that we do not add the (p_chromosome.last_position_mutrun_ + 1) breakpoint here, for speed in the
 			// cases where it is not needed; this needs to be patched up below in the cases where it *is* needed
 		}
 	}
@@ -2299,7 +2300,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 			// fix up the breakpoints vector; above we allow it to be completely empty, for maximal speed in the
 			// 0-mutation/0-breakpoint case, but here we need a defined end breakpoint, so we add it now if necessary
 			if (all_breakpoints.size() == 0)
-				all_breakpoints.emplace_back(p_chromosome.last_position_ + 1);
+				all_breakpoints.emplace_back(p_chromosome.last_position_mutrun_ + 1);
 			
 			int break_index_max = static_cast<int>(all_breakpoints.size());	// can be != num_breakpoints+1 due to gene conversion and dup removal!
 			int break_index = 0;
@@ -3099,6 +3100,309 @@ void Population::UniqueMutationRuns(void)
 		EIDOS_TERMINATION << "ERROR (Population::UniqueMutationRuns): (internal error) bookkeeping error in mutation run uniquing." << eidos_terminate();
 }
 
+void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
+{
+	// clear out all of the child genomes since they also need to be resized; might as well do it up front
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
+	{
+		Subpopulation *subpop = subpop_pair.second;
+		slim_popsize_t subpop_genome_count = 2 * subpop->child_subpop_size_;
+		std::vector<Genome> &subpop_genomes = subpop->child_genomes_;
+		
+		// for every genome
+		for (slim_popsize_t genome_index = 0; genome_index < subpop_genome_count; genome_index++)
+		{
+			Genome &genome = subpop_genomes[genome_index];
+			
+			if (!genome.IsNull())
+			{
+				int32_t old_mutrun_count = genome.mutrun_count_;
+				int32_t old_mutrun_length = genome.mutrun_length_;
+				int32_t new_mutrun_count = old_mutrun_count * 2;
+				int32_t new_mutrun_length = old_mutrun_length / 2;
+				
+				genome.clear_to_nullptr();
+				if (genome.mutruns_ != genome.run_buffer_)
+					delete[] genome.mutruns_;
+				genome.mutruns_ = nullptr;
+				
+				genome.mutrun_count_ = new_mutrun_count;
+				genome.mutrun_length_ = new_mutrun_length;
+				
+				if (new_mutrun_count <= SLIM_GENOME_MUTRUN_BUFSIZE)
+					genome.mutruns_ = genome.run_buffer_;
+				else
+					genome.mutruns_ = new MutationRun_SP[new_mutrun_count];
+				
+				// Install empty MutationRun objects; I think this is not necessary, since this is the
+				// child generation, which will not be accessed by anybody until crossover-mutation
+				//for (int run_index = 0; run_index < new_mutrun_count; ++run_index)
+				//	genome.mutruns_[run_index] = MutationRun_SP(MutationRun::NewMutationRun());
+			}
+		}
+	}
+	
+	// make a map to keep track of which mutation runs split into which new runs
+	std::unordered_map<MutationRun *, std::pair<MutationRun *, MutationRun *>> split_map;
+	std::vector<MutationRun_SP> mutrun_retain;
+	MutationRun **mutruns_buf = (MutationRun **)malloc(p_new_mutrun_count * sizeof(MutationRun *));
+	int mutruns_buf_index;
+	
+	// for every subpop
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
+	{
+		Subpopulation *subpop = subpop_pair.second;
+		slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
+		std::vector<Genome> &subpop_genomes = subpop->parent_genomes_;
+		
+		// for every genome
+		for (slim_popsize_t genome_index = 0; genome_index < subpop_genome_count; genome_index++)
+		{
+			Genome &genome = subpop_genomes[genome_index];
+			
+			if (!genome.IsNull())
+			{
+				int32_t old_mutrun_count = genome.mutrun_count_;
+				int32_t old_mutrun_length = genome.mutrun_length_;
+				int32_t new_mutrun_count = old_mutrun_count * 2;
+				int32_t new_mutrun_length = old_mutrun_length / 2;
+				
+				// for every mutation run, fill up mutrun_buf with entries
+				mutruns_buf_index = 0;
+				
+				for (int run_index = 0; run_index < old_mutrun_count; ++run_index)
+				{
+					MutationRun_SP &mutrun_sp_ref = genome.mutruns_[run_index];
+					MutationRun *mutrun = mutrun_sp_ref.get();
+					
+					if (mutrun->unique())
+					{
+						// this mutrun is only referenced once, so we can just replace it without using the map
+						MutationRun *first_half, *second_half;
+						
+						mutrun->split_run(&first_half, &second_half, new_mutrun_length * (mutruns_buf_index + 1));
+						
+						mutruns_buf[mutruns_buf_index++] = first_half;
+						mutruns_buf[mutruns_buf_index++] = second_half;
+					}
+					else
+					{
+						// this mutrun is referenced more than once, so we want to use our map
+						auto found_entry = split_map.find(mutrun);
+						
+						if (found_entry != split_map.end())
+						{
+							// it was in the map already, so just use the values from the map
+							std::pair<MutationRun *, MutationRun *> &map_value = found_entry->second;
+							MutationRun *first_half = map_value.first;
+							MutationRun *second_half = map_value.second;
+							
+							mutruns_buf[mutruns_buf_index++] = first_half;
+							mutruns_buf[mutruns_buf_index++] = second_half;
+						}
+						else
+						{
+							// it was not in the map, so make the new runs, and insert them into the map
+							MutationRun *first_half, *second_half;
+							
+							mutrun->split_run(&first_half, &second_half, new_mutrun_length * (mutruns_buf_index + 1));
+							
+							mutruns_buf[mutruns_buf_index++] = first_half;
+							mutruns_buf[mutruns_buf_index++] = second_half;
+							
+							split_map.insert(std::pair<MutationRun *, std::pair<MutationRun *, MutationRun *>>(mutrun, std::pair<MutationRun *, MutationRun *>(first_half, second_half)));
+							
+							// this vector slaps a retain on all the mapped runs so they don't get released, deallocated, and
+							// reused out from under us, which would happen otherwise when their last occurrence was replaced
+							mutrun_retain.push_back(mutrun_sp_ref);
+						}
+					}
+				}
+				
+				// now replace the runs in the genome with those in mutrun_buf
+				genome.clear_to_nullptr();
+				if (genome.mutruns_ != genome.run_buffer_)
+					delete[] genome.mutruns_;
+				genome.mutruns_ = nullptr;
+				
+				genome.mutrun_count_ = new_mutrun_count;
+				genome.mutrun_length_ = new_mutrun_length;
+				
+				if (new_mutrun_count <= SLIM_GENOME_MUTRUN_BUFSIZE)
+					genome.mutruns_ = genome.run_buffer_;
+				else
+					genome.mutruns_ = new MutationRun_SP[new_mutrun_count];
+				
+				for (int run_index = 0; run_index < new_mutrun_count; ++run_index)
+					genome.mutruns_[run_index].reset(mutruns_buf[run_index]);
+			}
+		}
+	}
+	
+	if (mutruns_buf)
+		free(mutruns_buf);
+}
+
+// define a hash function for std::pair<MutationRun *, MutationRun *> so we can use it in std::unordered_map below
+// see https://stackoverflow.com/questions/32685540/c-unordered-map-with-pair-as-key-not-compiling
+struct slim_pair_hash {
+	template <class T1, class T2>
+	std::size_t operator () (const std::pair<T1,T2> &p) const {
+		auto h1 = std::hash<T1>{}(p.first);
+		auto h2 = std::hash<T2>{}(p.second);
+		
+		// This is not a great hash function, but for our purposes it should actually be fine.
+		// We don't expect identical pairs <A, A>, and if we have a pair <A, B> we don't
+		// expect to get the reversed pair <B, A>, so this should not produce too many collisions.
+		// If we do get collisions we could switch to MutationRun::Hash() instead, but it is
+		// much slower, so this is probably better.
+		return h1 ^ h2;  
+	}
+};
+
+void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
+{
+	// clear out all of the child genomes since they also need to be resized; might as well do it up front
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
+	{
+		Subpopulation *subpop = subpop_pair.second;
+		slim_popsize_t subpop_genome_count = 2 * subpop->child_subpop_size_;
+		std::vector<Genome> &subpop_genomes = subpop->child_genomes_;
+		
+		// for every genome
+		for (slim_popsize_t genome_index = 0; genome_index < subpop_genome_count; genome_index++)
+		{
+			Genome &genome = subpop_genomes[genome_index];
+			
+			if (!genome.IsNull())
+			{
+				int32_t old_mutrun_count = genome.mutrun_count_;
+				int32_t old_mutrun_length = genome.mutrun_length_;
+				int32_t new_mutrun_count = old_mutrun_count / 2;
+				int32_t new_mutrun_length = old_mutrun_length * 2;
+				
+				genome.clear_to_nullptr();
+				if (genome.mutruns_ != genome.run_buffer_)
+					delete[] genome.mutruns_;
+				genome.mutruns_ = nullptr;
+				
+				genome.mutrun_count_ = new_mutrun_count;
+				genome.mutrun_length_ = new_mutrun_length;
+				
+				if (new_mutrun_count <= SLIM_GENOME_MUTRUN_BUFSIZE)
+					genome.mutruns_ = genome.run_buffer_;
+				else
+					genome.mutruns_ = new MutationRun_SP[new_mutrun_count];
+				
+				// Install empty MutationRun objects; I think this is not necessary, since this is the
+				// child generation, which will not be accessed by anybody until crossover-mutation
+				//for (int run_index = 0; run_index < new_mutrun_count; ++run_index)
+				//	genome.mutruns_[run_index] = MutationRun_SP(MutationRun::NewMutationRun());
+			}
+		}
+	}
+	
+	// make a map to keep track of which mutation runs join into which new runs
+	std::unordered_map<std::pair<MutationRun *, MutationRun *>, MutationRun *, slim_pair_hash> join_map;
+	std::vector<MutationRun_SP> mutrun_retain;
+	MutationRun **mutruns_buf = (MutationRun **)malloc(p_new_mutrun_count * sizeof(MutationRun *));
+	int mutruns_buf_index;
+	
+	// for every subpop
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
+	{
+		Subpopulation *subpop = subpop_pair.second;
+		slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
+		std::vector<Genome> &subpop_genomes = subpop->parent_genomes_;
+		
+		// for every genome
+		for (slim_popsize_t genome_index = 0; genome_index < subpop_genome_count; genome_index++)
+		{
+			Genome &genome = subpop_genomes[genome_index];
+			
+			if (!genome.IsNull())
+			{
+				int32_t old_mutrun_count = genome.mutrun_count_;
+				int32_t old_mutrun_length = genome.mutrun_length_;
+				int32_t new_mutrun_count = old_mutrun_count / 2;
+				int32_t new_mutrun_length = old_mutrun_length * 2;
+				
+				// for every mutation run, fill up mutrun_buf with entries
+				mutruns_buf_index = 0;
+				
+				for (int run_index = 0; run_index < old_mutrun_count; run_index += 2)
+				{
+					MutationRun_SP &mutrun1_sp_ref = genome.mutruns_[run_index];
+					MutationRun_SP &mutrun2_sp_ref = genome.mutruns_[run_index + 1];
+					MutationRun *mutrun1 = mutrun1_sp_ref.get();
+					MutationRun *mutrun2 = mutrun2_sp_ref.get();
+					
+					if (mutrun1->unique() || mutrun2->unique())
+					{
+						// one of these mutruns is only referenced once, so we can just replace them without using the map
+						MutationRun *joined_run = MutationRun::NewMutationRun();	// take from shared pool of used objects
+						
+						joined_run->copy_from_run(*mutrun1);
+						joined_run->emplace_back_bulk(mutrun2->begin_pointer_const(), mutrun2->size());
+						
+						mutruns_buf[mutruns_buf_index++] = joined_run;
+					}
+					else
+					{
+						// this mutrun is referenced more than once, so we want to use our map
+						auto found_entry = join_map.find(std::pair<MutationRun *, MutationRun *>(mutrun1, mutrun2));
+						
+						if (found_entry != join_map.end())
+						{
+							// it was in the map already, so just use the values from the map
+							MutationRun *map_value = found_entry->second;
+							
+							mutruns_buf[mutruns_buf_index++] = map_value;
+						}
+						else
+						{
+							// it was not in the map, so make the new runs, and insert them into the map
+							MutationRun *joined_run = MutationRun::NewMutationRun();	// take from shared pool of used objects
+							
+							joined_run->copy_from_run(*mutrun1);
+							joined_run->emplace_back_bulk(mutrun2->begin_pointer_const(), mutrun2->size());
+							
+							mutruns_buf[mutruns_buf_index++] = joined_run;
+							
+							join_map.insert(std::pair<std::pair<MutationRun *, MutationRun *>, MutationRun *>(std::pair<MutationRun *, MutationRun *>(mutrun1, mutrun2), joined_run));
+							
+							// this vector slaps a retain on all the mapped runs so they don't get released, deallocated, and
+							// reused out from under us, which would happen otherwise when their last occurrence was replaced
+							mutrun_retain.push_back(mutrun1_sp_ref);
+							mutrun_retain.push_back(mutrun2_sp_ref);
+						}
+					}
+				}
+				
+				// now replace the runs in the genome with those in mutrun_buf
+				genome.clear_to_nullptr();
+				if (genome.mutruns_ != genome.run_buffer_)
+					delete[] genome.mutruns_;
+				genome.mutruns_ = nullptr;
+				
+				genome.mutrun_count_ = new_mutrun_count;
+				genome.mutrun_length_ = new_mutrun_length;
+				
+				if (new_mutrun_count <= SLIM_GENOME_MUTRUN_BUFSIZE)
+					genome.mutruns_ = genome.run_buffer_;
+				else
+					genome.mutruns_ = new MutationRun_SP[new_mutrun_count];
+				
+				for (int run_index = 0; run_index < new_mutrun_count; ++run_index)
+					genome.mutruns_[run_index].reset(mutruns_buf[run_index]);
+			}
+		}
+	}
+	
+	if (mutruns_buf)
+		free(mutruns_buf);
+}
+
 // Tally mutations and remove fixed/lost mutations
 void Population::MaintainRegistry(void)
 {
@@ -3119,7 +3423,7 @@ void Population::MaintainRegistry(void)
 #endif
 }
 
-// assess usage ppaterns of mutation runs across the simulation
+// assess usage patterns of mutation runs across the simulation
 void Population::AssessMutationRuns(void)
 {
 	slim_generation_t gen = sim_.Generation();

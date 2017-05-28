@@ -117,6 +117,7 @@ public:
 	
 	int32_t mutrun_count_;									// number of mutation runs being used for all genomes
 	int32_t mutrun_length_;									// the length, in base pairs, of each mutation run; the last run may not use its full length
+	slim_position_t last_position_mutrun_;					// (mutrun_count_ * mutrun_length_ - 1), for complete coverage in crossover-mutation
 	
 	std::string color_sub_;										// color to use for substitutions by default (in SLiMgui)
 	float color_sub_red_, color_sub_green_, color_sub_blue_;	// cached color components from color_sub_; should always be in sync

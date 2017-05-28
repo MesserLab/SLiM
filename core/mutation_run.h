@@ -215,7 +215,7 @@ public:
 		++mutation_count_;
 	}
 	
-	inline void emplace_back_bulk(MutationIndex *p_mutation_indices, long p_copy_count)
+	inline void emplace_back_bulk(const MutationIndex *p_mutation_indices, long p_copy_count)
 	{
 		SLIM_MUTRUN_LOCK_CHECK();
 		
@@ -438,6 +438,9 @@ public:
 		
 		return true;
 	}
+	
+	// splitting mutation runs
+	void split_run(MutationRun **p_first_half, MutationRun **p_second_half, int32_t p_split_first_position);
 	
 	// Eidos_intrusive_ptr support
 	inline __attribute__((always_inline)) uint32_t use_count() const { return intrusive_ref_count; }

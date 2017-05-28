@@ -150,6 +150,10 @@ public:
 	// Scan through all mutation runs in the simulation and unique them
 	void UniqueMutationRuns(void);
 	
+	// Scan through all genomes and either split or join their mutation runs, to double or halve the number of runs per genome
+	void SplitMutationRuns(int32_t p_new_mutrun_count);
+	void JoinMutationRuns(int32_t p_new_mutrun_count);
+	
 	// Tally mutations and remove fixed/lost mutations
 	void MaintainRegistry(void);
 	

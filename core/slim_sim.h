@@ -33,6 +33,7 @@
 #include <vector>
 #include <iostream>
 
+#include "slim_global.h"
 #include "mutation.h"
 #include "mutation_type.h"
 #include "population.h"
@@ -174,6 +175,33 @@ private:
 	
 	slim_usertag_t tag_value_;														// a user-defined tag value
 	
+	// Mutation run optimization.  The ivars here are used only internally by SLiMSim; the canonical reference regarding the
+	// number and length of mutation runs is kept by Chromosome (for the simulation) and by Genome (for each genome object).
+	// If SLiMSim decides to change the number of mutation runs, it will update those canonical repositories accordingly.
+	// A prefix of x_ is used on all mutation run experiment ivars, to avoid confusion.
+#define SLIM_MUTRUN_EXPERIMENT_LENGTH	50		// kind of based on how large a sample size is needed to detect important differences fairly reliably by t-test
+#define SLIM_MUTRUN_MAXIMUM_COUNT		1024	// the most mutation runs we will ever use; hard to imagine that any model will want more than this
+	
+	bool x_experiments_enabled_;		// if false, no experiments are run and no generation runtimes are recorded
+	
+	int32_t x_current_mutcount_;		// the number of mutation runs we're currently using
+	double *x_current_runtimes_;		// generation runtimes recorded at this mutcount (SLIM_MUTRUN_EXPERIMENT_MAXLENGTH length)
+	int x_current_buflen_;				// the number of runtimes in the current_mutcount_runtimes_ buffer
+	
+	int32_t x_previous_mutcount_;		// the number of mutation runs we previously used
+	double *x_previous_runtimes_;		// generation runtimes recorded at that mutcount (SLIM_MUTRUN_EXPERIMENT_MAXLENGTH length)
+	int x_previous_buflen_;				// the number of runtimes in the previous_mutcount_runtimes_ buffer
+	
+	bool x_continuing_trend;			// if true, the current experiment continues a trend, such that the opposite trend can be excluded
+	
+	int64_t x_stasis_limit_;			// how many stasis experiments we're running between change experiments; gets longer over time
+	double x_stasis_alpha_;				// the alpha threshold at which we decide that stasis has been broken; gets smaller over time
+	int64_t x_stasis_counter_;			// how many stasis experiments we have run so far
+	int32_t x_prev1_stasis_mutcount_;	// the number of mutation runs we settled on when we reached stasis last time
+	int32_t x_prev2_stasis_mutcount_;	// the number of mutation runs we settled on when we reached stasis the time before last
+	
+	std::vector<int32_t> x_mutcount_history_;	// a record of the mutation run count used in each generation
+	
 public:
 	
 	// optimization of the pure neutral case; this is set to false if (a) a non-neutral mutation is added by the user, (b) a genomic element type is configured to use a
@@ -211,6 +239,14 @@ public:
 	bool _RunOneGeneration(void);													// does the work of RunOneGeneration(), with no try/catch
 	slim_generation_t FirstGeneration(void);										// derived from the first gen in which an Eidos block is registered
 	slim_generation_t EstimatedLastGeneration(void);								// derived from the last generation in which an Eidos block is registered
+	void SimulationFinished(void);
+	
+	// Mutation run experiments
+	void InitiateMutationRunExperiments(void);
+	void TransitionToNewExperimentAgainstCurrentExperiment(int32_t p_new_mutrun_count);
+	void TransitionToNewExperimentAgainstPreviousExperiment(int32_t p_new_mutrun_count);
+	void EnterStasisForMutationRunExperiments(void);
+	void MaintainMutationRunExperiments(double p_last_gen_runtime);
 	
 	// accessors
 	inline EidosSymbolTable &SymbolTable(void) const								{ return *simulation_constants_; }

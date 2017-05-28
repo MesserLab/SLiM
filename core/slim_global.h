@@ -216,6 +216,10 @@ inline __attribute__((always_inline)) slim_usertag_t SLiMClampToUsertagType(int6
 // Note that even when this is 1, the user can disable some of these checks with -x.
 #define DO_MEMORY_CHECKS	1
 
+// If 1, and SLiM_verbose_output == true, additional output will be generated regarding the mutation run count
+// experiments performed by SLiMSim.
+#define MUTRUN_EXPERIMENT_OUTPUT	0
+
 // Verbosity, from the command-line option -l[ong]
 extern bool SLiM_verbose_output;
 
