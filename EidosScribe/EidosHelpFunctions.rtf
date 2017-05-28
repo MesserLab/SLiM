@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf820
+{\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf830
 {\fonttbl\f0\fswiss\fcharset0 Optima-Regular;\f1\fnil\fcharset0 Menlo-Regular;\f2\froman\fcharset0 TimesNewRomanPSMT;
 \f3\fnil\fcharset0 Menlo-Italic;\f4\fnil\fcharset0 AppleSymbols;\f5\fswiss\fcharset0 Helvetica;
 \f6\fnil\fcharset0 Menlo-Bold;\f7\ftech\fcharset77 Symbol;}
@@ -3501,6 +3501,57 @@ Arbitrary command strings involving multiple commands, pipes, redirection, etc.,
 \f0\fs20  with 
 \f1\fs18 <
 \f2\fs20 .\
+\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (float$)ttest(float
+\f2 \'a0
+\f1 x, [Nf\'a0y\'a0=\'a0NULL], [Nf$\'a0mu\'a0=\'a0NULL])\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns the 
+\i p
+\i0 -value resulting from running a 
+\i t
+\i0 -test with the supplied data.  Two types of 
+\i t
+\f2\i0 -
+\f0 tests can be performed.  If 
+\f1\fs18 x
+\f0\fs20  and 
+\f1\fs18 y
+\f0\fs20  are supplied (i.e., 
+\f1\fs18 y
+\f0\fs20  is non-
+\f1\fs18 NULL
+\f0\fs20 ), a two-sample unpaired two-sided Welch\'92s 
+\i t
+\i0 -test is conducted using the samples in 
+\f1\fs18 x
+\f0\fs20  and 
+\f1\fs18 y
+\f0\fs20 , each of which must contain at least two elements.  The null hypothesis for this test is that the two samples are drawn from populations with the same mean.  Other options, such as pooled-variance 
+\i t
+\i0 -tests, paired 
+\i t
+\i0 -tests, and one-sided 
+\i t
+\i0 -tests, are not presently available.  If 
+\f1\fs18 x
+\f0\fs20  and 
+\f1\fs18 mu
+\f0\fs20  are supplied (i.e., 
+\f1\fs18 mu
+\f0\fs20  is non-
+\f1\fs18 NULL
+\f0\fs20 ), a one-sample 
+\i t
+\i0 -test is conducted in which the null hypothesis is that the sample is drawn from a population with mean 
+\f1\fs18 mu
+\f2\fs20 .\
+
+\f0 Note that the results from this function are substantially different from those produced by R.  The Eidos 
+\f1\fs18 ttest() 
+\f0\fs20 function uses uncorrected sample statistics, which means they will be biased for small sample sizes, whereas R probably uses corrected, unbiased sample statistics.  This is an Eidos bug, and might be fixed if anyone complains.  If large sample sizes are used, however, the bias is likely to be small, and uncorrected statistics are simpler and faster to compute.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (string$)time(void)\

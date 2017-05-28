@@ -267,6 +267,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("stop",				Eidos_ExecuteFunction_stop,			kEidosValueMaskNULL))->AddString_OSN("message", gStaticEidosValueNULL));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("system",			Eidos_ExecuteFunction_system,		kEidosValueMaskString))->AddString_S("command")->AddString_O("args", gStaticEidosValue_StringEmpty)->AddString_O("input", gStaticEidosValue_StringEmpty)->AddLogical_OS("stderr", gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("time",				Eidos_ExecuteFunction_time,			kEidosValueMaskString | kEidosValueMaskSingleton)));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("ttest",	Eidos_ExecuteFunction_ttest,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddFloat("x")->AddFloat_ON("y", gStaticEidosValueNULL)->AddFloat_OSN("mu", gStaticEidosValueNULL));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("version",			Eidos_ExecuteFunction_version,		kEidosValueMaskNULL)));
 		
 		
@@ -288,7 +289,6 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		//	undocumented functions
 		//
 		
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("ttest",	Eidos_ExecuteFunction_ttest,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddFloat("x")->AddFloat("y"));
 		
 		
 		// ************************************************************************************
@@ -7546,6 +7546,77 @@ EidosValue_SP Eidos_ExecuteFunction_time(__attribute__((unused)) const EidosValu
 	return result_SP;
 }
 
+//	(float$)ttest(float x, [Nf y = NULL], [Nf$ mu = NULL])
+EidosValue_SP Eidos_ExecuteFunction_ttest(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *arg0_value = p_arguments[0].get();
+	int arg0_count = arg0_value->Count();
+	EidosValue *arg1_value = p_arguments[1].get();
+	EidosValueType arg1_type = arg1_value->Type();
+	int arg1_count = arg1_value->Count();
+	EidosValue *arg2_value = p_arguments[2].get();
+	EidosValueType arg2_type = arg2_value->Type();
+	
+	if ((arg1_type == EidosValueType::kValueNULL) && (arg2_type == EidosValueType::kValueNULL))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ttest): function ttest() requires either y or mu to be non-NULL." << eidos_terminate(nullptr);
+	if ((arg1_type != EidosValueType::kValueNULL) && (arg2_type != EidosValueType::kValueNULL))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ttest): function ttest() requires either y or mu to be NULL." << eidos_terminate(nullptr);
+	
+	double pvalue = 0.0;
+	const double *vec1 = nullptr;
+	double singleton1;
+	
+	if (arg0_count == 1)
+	{
+		singleton1 = arg0_value->FloatAtIndex(0, nullptr);
+		vec1 = &singleton1;
+	}
+	else
+	{
+		vec1 = arg0_value->FloatVector()->data();
+	}
+	
+	if (arg0_count <= 1)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ttest): function ttest() requires enough elements in x to compute variance." << eidos_terminate(nullptr);
+	
+	if (arg1_type != EidosValueType::kValueNULL)
+	{
+		// This is the x & y case, which is a two-sample Welch's t-test
+		if (arg1_count <= 1)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ttest): function ttest() requires enough elements in y to compute variance." << eidos_terminate(nullptr);
+		
+		const double *vec2 = nullptr;
+		double singleton2;
+		
+		if (arg1_count == 1)
+		{
+			singleton2 = arg1_value->FloatAtIndex(0, nullptr);
+			vec2 = &singleton2;
+		}
+		else
+		{
+			vec2 = arg1_value->FloatVector()->data();
+		}
+		
+		// Right now this function only provides a two-sample t-test; we could add an optional mu argument and make y optional in order to allow a one-sample test as well
+		// If we got into that, we'd probably want to provide one-sided t-tests as well, yada yada...
+		pvalue = Eidos_TTest_TwoSampleWelch(vec1, arg0_count, vec2, arg1_count, nullptr, nullptr);
+	}
+	else if (arg2_type != EidosValueType::kValueNULL)
+	{
+		// This is the x & mu case, which is a one-sample t-test
+		double mu = arg2_value->FloatAtIndex(0, nullptr);
+		
+		pvalue = Eidos_TTest_OneSample(vec1, arg0_count, mu, nullptr);
+	}
+	
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(pvalue));
+	
+	return result_SP;
+}
+
 //	(void)version(void)
 EidosValue_SP Eidos_ExecuteFunction_version(__attribute__((unused)) const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
 {
@@ -7574,50 +7645,6 @@ EidosValue_SP Eidos_ExecuteFunction_version(__attribute__((unused)) const EidosV
 #pragma mark -
 
 
-//	(float$)ttest(float x, float y)
-EidosValue_SP Eidos_ExecuteFunction_ttest(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
-{
-	EidosValue_SP result_SP(nullptr);
-	
-	EidosValue *arg0_value = p_arguments[0].get();
-	int arg0_count = arg0_value->Count();
-	EidosValue *arg1_value = p_arguments[1].get();
-	int arg1_count = arg1_value->Count();
-	
-	if ((arg0_count <= 1) || (arg1_count <= 1))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ttest): function ttest() requires enough elements in x and y to compute variance." << eidos_terminate(nullptr);
-	
-	const double *vec1 = nullptr, *vec2 = nullptr;
-	double singleton1, singleton2;
-	
-	if (arg0_count == 1)
-	{
-		singleton1 = arg0_value->FloatAtIndex(0, nullptr);
-		vec1 = &singleton1;
-	}
-	else
-	{
-		vec1 = arg0_value->FloatVector()->data();
-	}
-	
-	if (arg1_count == 1)
-	{
-		singleton2 = arg1_value->FloatAtIndex(0, nullptr);
-		vec2 = &singleton2;
-	}
-	else
-	{
-		vec2 = arg1_value->FloatVector()->data();
-	}
-	
-	// Right now this function only provides a two-sample t-test; we could add an optional mu argument and make y optional in order to allow a one-sample test as well
-	// If we got into that, we'd probably want to provide one-sided t-tests as well, yada yada...
-	double pvalue = Eidos_WelchTTest_TwoSample(vec1, arg0_count, vec2, arg1_count, nullptr, nullptr);
-	
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(pvalue));
-	
-	return result_SP;
-}
 
 
 

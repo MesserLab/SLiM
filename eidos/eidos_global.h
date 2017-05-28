@@ -174,8 +174,8 @@ std::string EidosResolvedPath(const std::string p_path);
 int Eidos_mkstemps(char *pattern, int suffix_len);
 
 // Welch's t-test functions; sample means are returned in mean1 and mean2, which may be nullptr
-double Eidos_WelchTTest_TwoSample(const double *set1, int count1, const double *set2, int count2, double *mean1, double *mean2);
-double Eidos_WelchTTest_OneSample(const double *set1, int count1, double mu, double *mean1);
+double Eidos_TTest_TwoSampleWelch(const double *set1, int count1, const double *set2, int count2, double *mean1, double *mean2);
+double Eidos_TTest_OneSample(const double *set1, int count1, double mu, double *mean1);
 
 
 // *******************************************************************************************************************

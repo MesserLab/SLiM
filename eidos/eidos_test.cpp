@@ -4753,6 +4753,18 @@ void _RunFunctionMiscTests(void)
 	EidosAssertScriptRaise("time('foo');", 0, "too many arguments supplied");
 	EidosAssertScriptRaise("time(_Test(7));", 0, "too many arguments supplied");
 	
+	// ttest()
+	EidosAssertScriptRaise("ttest(1:5.0);", 0, "either y or mu to be non-NULL");
+	EidosAssertScriptRaise("ttest(1:5.0, 1:5.0, 5.0);", 0, "either y or mu to be NULL");
+	EidosAssertScriptRaise("ttest(5.0, 1:5.0);", 0, "enough elements in x");
+	EidosAssertScriptRaise("ttest(1:5.0, 5.0);", 0, "enough elements in y");
+	EidosAssertScriptRaise("ttest(5.0, mu=6.0);", 0, "enough elements in x");
+	EidosAssertScriptSuccess("abs(ttest(1:50.0, 1:50.0) - 1.0) < 0.001;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("abs(ttest(1:50.0, 1:60.0) - 0.101496) < 0.001;", gStaticEidosValue_LogicalT);			// R gives 0.1046, not sure why but I suspect corrected vs. uncorrected standard deviations
+	EidosAssertScriptSuccess("abs(ttest(1:50.0, 10.0:60.0) - 0.00145575) < 0.001;", gStaticEidosValue_LogicalT);	// R gives 0.001615
+	EidosAssertScriptSuccess("abs(ttest(1:50.0, mu=25.0) - 0.807481) < 0.001;", gStaticEidosValue_LogicalT);		// R gives 0.8094
+	EidosAssertScriptSuccess("abs(ttest(1:50.0, mu=30.0) - 0.0321796) < 0.001;", gStaticEidosValue_LogicalT);		// R gives 0.03387
+	
 	// version()
 	EidosAssertScriptSuccess("version();", gStaticEidosValueNULL);
 	EidosAssertScriptRaise("version(NULL);", 0, "too many arguments supplied");

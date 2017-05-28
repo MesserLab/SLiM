@@ -961,11 +961,11 @@ int Eidos_mkstemps(char *pattern, int suffix_len)
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-double Eidos_WelchTTest_TwoSample(const double *set1, int count1, const double *set2, int count2, double *set_mean1, double *set_mean2)
+double Eidos_TTest_TwoSampleWelch(const double *set1, int count1, const double *set2, int count2, double *set_mean1, double *set_mean2)
 {
 	if ((count1 <= 1) || (count2 <= 1))
 	{
-		std::cout << "Eidos_WelchTTest_TwoSample requires enough elements to compute variance" << std::endl;
+		std::cout << "Eidos_TTest_TwoSampleWelch requires enough elements to compute variance" << std::endl;
 		return NAN;
 	}
 	
@@ -1019,11 +1019,11 @@ double Eidos_WelchTTest_TwoSample(const double *set1, int count1, const double *
 // the mean of the sample is equal to mu.  This code is obviously derived from
 // the code above, but was written by me in consultation with Wikipedia.
 
-double Eidos_WelchTTest_OneSample(const double *set1, int count1, double mu, double *set_mean1)
+double Eidos_TTest_OneSample(const double *set1, int count1, double mu, double *set_mean1)
 {
 	if (count1 <= 1)
 	{
-		std::cout << "Eidos_WelchTTest_OneSample requires enough elements to compute variance" << std::endl;
+		std::cout << "Eidos_TTest_OneSample requires enough elements to compute variance" << std::endl;
 		return NAN;
 	}
 	

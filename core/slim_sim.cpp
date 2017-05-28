@@ -1854,7 +1854,7 @@ void SLiMSim::MaintainMutationRunExperiments(double p_last_gen_runtime)
 		// we've run for 10 generations, and the experiment mean is already different from the baseline at alpha 0.01,
 		// and the experiment mean is worse than the baseline mean (if it is better, we want to continue collecting),
 		// let's short-circuit the rest of the experiment and bail – like early termination of a medical trial.
-		p = Eidos_WelchTTest_TwoSample(x_current_runtimes_, x_current_buflen_, x_previous_runtimes_, x_previous_buflen_, &current_mean, &previous_mean);
+		p = Eidos_TTest_TwoSampleWelch(x_current_runtimes_, x_current_buflen_, x_previous_runtimes_, x_previous_buflen_, &current_mean, &previous_mean);
 		
 		if ((p < 0.01) && (current_mean > previous_mean))
 		{
@@ -1924,7 +1924,7 @@ void SLiMSim::MaintainMutationRunExperiments(double p_last_gen_runtime)
 		}
 		
 		// Otherwise, get a result from a t-test and decide what to do
-		p = Eidos_WelchTTest_TwoSample(x_current_runtimes_, x_current_buflen_, x_previous_runtimes_, x_previous_buflen_, &current_mean, &previous_mean);
+		p = Eidos_TTest_TwoSampleWelch(x_current_runtimes_, x_current_buflen_, x_previous_runtimes_, x_previous_buflen_, &current_mean, &previous_mean);
 		
 	early_ttest_passed:
 		
