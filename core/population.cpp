@@ -3038,7 +3038,9 @@ void Population::UniqueMutationRuns(void)
 					// the memory overhead doesn't presently seem worth the very slight performance gain it would usually provide
 					int64_t hash = mut_run->Hash();
 					
-					// See if we have any mutruns already defined with this hash
+					// See if we have any mutruns already defined with this hash.  Note that we actually want to do this search
+					// even when first_sight_of_this_mutrun = true, because we want to find hash collisions, which may be other
+					// runs that are identical to us despite being separate objects.  That is, in fact, kind of the point.
 					auto range = runmap.equal_range(hash);		// pair<Iter, Iter>
 					
 					if (range.first == range.second)
