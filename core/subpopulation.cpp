@@ -707,6 +707,15 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 			}
 		}
 	}
+	else
+	{
+		// At this point, there is an active callback that is not neutral-making, so we really can't reliably depend
+		// upon is_pure_neutral_now_; that rogue callback could make other callbacks active/inactive, etc.  So we go
+		// through and clear the is_pure_neutral_now_ flags to avoid any confusion.  This is actually redundant as
+		// the code presently stands, but it avoids leaving the flag in a bad state and causing future bugs.
+		for (auto &mut_type_iter : mut_types)
+			mut_type_iter.second->is_pure_neutral_now_ = false;
+	}
 	
 	// Figure out global callbacks; these are callbacks with NULL supplied for the mut-type id, which means that they are called
 	// exactly once per individual, for every individual regardless of genetics, to provide an entry point for alternate fitness definitions
@@ -897,21 +906,16 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 			{
 				double fitness;
 				
-				if (pure_neutral)
-					fitness = 1.0;
+				if (!fitness_callbacks_exist)
+					fitness = FitnessOfParentWithGenomeIndices_NoCallbacks(i);
+				else if (single_fitness_callback)
+					fitness = FitnessOfParentWithGenomeIndices_SingleCallback(i, p_fitness_callbacks, single_callback_mut_type);
 				else
-				{
-					if (!fitness_callbacks_exist)
-						fitness = FitnessOfParentWithGenomeIndices_NoCallbacks(i);
-					else if (single_fitness_callback)
-						fitness = FitnessOfParentWithGenomeIndices_SingleCallback(i, p_fitness_callbacks, single_callback_mut_type);
-					else
-						fitness = FitnessOfParentWithGenomeIndices_Callbacks(i, p_fitness_callbacks);
-					
-					// multiply in the effects of any global fitness callbacks (muttype==NULL)
-					if (global_fitness_callbacks_exist && (fitness > 0.0))
-						fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, i);
-				}
+					fitness = FitnessOfParentWithGenomeIndices_Callbacks(i, p_fitness_callbacks);
+				
+				// multiply in the effects of any global fitness callbacks (muttype==NULL)
+				if (global_fitness_callbacks_exist && (fitness > 0.0))
+					fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, i);
 				
 				*(fitness_buffer_ptr++) = fitness;
 				
@@ -1204,6 +1208,12 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_
 	// calculate the fitness of the individual constituted by genome1 and genome2 in the parent population
 	double w = 1.0;
 	
+#if SLIM_USE_NONNEUTRAL_CACHES
+	SLiMSim &sim = population_.sim_;
+	int32_t nonneutral_change_counter = sim.nonneutral_change_counter_;
+	int32_t nonneutral_regime = sim.last_nonneutral_regime_;
+#endif
+	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	Genome *genome1 = &(parent_genomes_[p_individual_index * 2]);
 	Genome *genome2 = &(parent_genomes_[p_individual_index * 2 + 1]);
@@ -1224,8 +1234,17 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_
 		for (int run_index = 0; run_index < mutrun_count; ++run_index)
 		{
 			MutationRun *mutrun = genome->mutruns_[run_index].get();
+			
+#if SLIM_USE_NONNEUTRAL_CACHES
+			// Cache non-neutral mutations and read from the non-neutral buffers
+			const MutationIndex *genome_iter, *genome_max;
+			
+			mutrun->beginend_nonneutral_pointers(&genome_iter, &genome_max, nonneutral_change_counter, nonneutral_regime);
+#else
+			// Read directly from the MutationRun buffers
 			const MutationIndex *genome_iter = mutrun->begin_pointer_const();
 			const MutationIndex *genome_max = mutrun->end_pointer_const();
+#endif
 			
 			if (genome->Type() == GenomeType::kXChromosome)
 			{
@@ -1266,11 +1285,20 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_
 			MutationRun *mutrun1 = genome1->mutruns_[run_index].get();
 			MutationRun *mutrun2 = genome2->mutruns_[run_index].get();
 			
+#if SLIM_USE_NONNEUTRAL_CACHES
+			// Cache non-neutral mutations and read from the non-neutral buffers
+			const MutationIndex *genome1_iter, *genome2_iter, *genome1_max, *genome2_max;
+			
+			mutrun1->beginend_nonneutral_pointers(&genome1_iter, &genome1_max, nonneutral_change_counter, nonneutral_regime);
+			mutrun2->beginend_nonneutral_pointers(&genome2_iter, &genome2_max, nonneutral_change_counter, nonneutral_regime);
+#else
+			// Read directly from the MutationRun buffers
 			const MutationIndex *genome1_iter = mutrun1->begin_pointer_const();
 			const MutationIndex *genome2_iter = mutrun2->begin_pointer_const();
 			
 			const MutationIndex *genome1_max = mutrun1->end_pointer_const();
 			const MutationIndex *genome2_max = mutrun2->end_pointer_const();
+#endif
 			
 			// first, handle the situation before either genome iterator has reached the end of its genome, for simplicity/speed
 			if (genome1_iter != genome1_max && genome2_iter != genome2_max)
@@ -1403,6 +1431,12 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 	// calculate the fitness of the individual constituted by genome1 and genome2 in the parent population
 	double w = 1.0;
 	
+#if SLIM_USE_NONNEUTRAL_CACHES
+	SLiMSim &sim = population_.sim_;
+	int32_t nonneutral_change_counter = sim.nonneutral_change_counter_;
+	int32_t nonneutral_regime = sim.last_nonneutral_regime_;
+#endif
+	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	Individual *individual = &(parent_individuals_[p_individual_index]);
 	Genome *genome1 = &(parent_genomes_[p_individual_index * 2]);
@@ -1424,8 +1458,17 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 		for (int run_index = 0; run_index < mutrun_count; ++run_index)
 		{
 			MutationRun *mutrun = genome->mutruns_[run_index].get();
+			
+#if SLIM_USE_NONNEUTRAL_CACHES
+			// Cache non-neutral mutations and read from the non-neutral buffers
+			const MutationIndex *genome_iter, *genome_max;
+			
+			mutrun->beginend_nonneutral_pointers(&genome_iter, &genome_max, nonneutral_change_counter, nonneutral_regime);
+#else
+			// Read directly from the MutationRun buffers
 			const MutationIndex *genome_iter = mutrun->begin_pointer_const();
 			const MutationIndex *genome_max = mutrun->end_pointer_const();
+#endif
 			
 			if (genome->Type() == GenomeType::kXChromosome)
 			{
@@ -1473,11 +1516,20 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 			MutationRun *mutrun1 = genome1->mutruns_[run_index].get();
 			MutationRun *mutrun2 = genome2->mutruns_[run_index].get();
 			
+#if SLIM_USE_NONNEUTRAL_CACHES
+			// Cache non-neutral mutations and read from the non-neutral buffers
+			const MutationIndex *genome1_iter, *genome2_iter, *genome1_max, *genome2_max;
+			
+			mutrun1->beginend_nonneutral_pointers(&genome1_iter, &genome1_max, nonneutral_change_counter, nonneutral_regime);
+			mutrun2->beginend_nonneutral_pointers(&genome2_iter, &genome2_max, nonneutral_change_counter, nonneutral_regime);
+#else
+			// Read directly from the MutationRun buffers
 			const MutationIndex *genome1_iter = mutrun1->begin_pointer_const();
 			const MutationIndex *genome2_iter = mutrun2->begin_pointer_const();
 			
 			const MutationIndex *genome1_max = mutrun1->end_pointer_const();
 			const MutationIndex *genome2_max = mutrun2->end_pointer_const();
+#endif
 			
 			// first, handle the situation before either genome iterator has reached the end of its genome, for simplicity/speed
 			if (genome1_iter != genome1_max && genome2_iter != genome2_max)
@@ -1639,6 +1691,12 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 	// calculate the fitness of the individual constituted by genome1 and genome2 in the parent population
 	double w = 1.0;
 	
+#if SLIM_USE_NONNEUTRAL_CACHES
+	SLiMSim &sim = population_.sim_;
+	int32_t nonneutral_change_counter = sim.nonneutral_change_counter_;
+	int32_t nonneutral_regime = sim.last_nonneutral_regime_;
+#endif
+	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	Individual *individual = &(parent_individuals_[p_individual_index]);
 	Genome *genome1 = &(parent_genomes_[p_individual_index * 2]);
@@ -1660,8 +1718,17 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 		for (int run_index = 0; run_index < mutrun_count; ++run_index)
 		{
 			MutationRun *mutrun = genome->mutruns_[run_index].get();
+			
+#if SLIM_USE_NONNEUTRAL_CACHES
+			// Cache non-neutral mutations and read from the non-neutral buffers
+			const MutationIndex *genome_iter, *genome_max;
+			
+			mutrun->beginend_nonneutral_pointers(&genome_iter, &genome_max, nonneutral_change_counter, nonneutral_regime);
+#else
+			// Read directly from the MutationRun buffers
 			const MutationIndex *genome_iter = mutrun->begin_pointer_const();
 			const MutationIndex *genome_max = mutrun->end_pointer_const();
+#endif
 			
 			if (genome->Type() == GenomeType::kXChromosome)
 			{
@@ -1729,11 +1796,20 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 			MutationRun *mutrun1 = genome1->mutruns_[run_index].get();
 			MutationRun *mutrun2 = genome2->mutruns_[run_index].get();
 			
+#if SLIM_USE_NONNEUTRAL_CACHES
+			// Cache non-neutral mutations and read from the non-neutral buffers
+			const MutationIndex *genome1_iter, *genome2_iter, *genome1_max, *genome2_max;
+			
+			mutrun1->beginend_nonneutral_pointers(&genome1_iter, &genome1_max, nonneutral_change_counter, nonneutral_regime);
+			mutrun2->beginend_nonneutral_pointers(&genome2_iter, &genome2_max, nonneutral_change_counter, nonneutral_regime);
+#else
+			// Read directly from the MutationRun buffers
 			const MutationIndex *genome1_iter = mutrun1->begin_pointer_const();
 			const MutationIndex *genome2_iter = mutrun2->begin_pointer_const();
 			
 			const MutationIndex *genome1_max = mutrun1->end_pointer_const();
 			const MutationIndex *genome2_max = mutrun2->end_pointer_const();
+#endif
 			
 			// first, handle the situation before either genome iterator has reached the end of its genome, for simplicity/speed
 			if (genome1_iter != genome1_max && genome2_iter != genome2_max)

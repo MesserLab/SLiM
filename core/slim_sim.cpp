@@ -629,6 +629,13 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 	{
 		// Now that we have the info on everybody, update fitnesses so that we're ready to run the next generation
 		// used to be generation + 1; removing that 18 Feb 2016 BCH
+		
+		nonneutral_change_counter_++;			// trigger unconditional nonneutral mutation caching inside UpdateFitness()
+		last_nonneutral_regime_ = 3;			// this means "unpredictable callbacks", will trigger a recache next generation
+		
+		for (auto muttype_iter : mutation_types_)
+			(muttype_iter.second)->subject_to_fitness_callback_ = true;			// we're not doing RecalculateFitness()'s work, so play it safe
+		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
 		{
 			slim_objectid_t subpop_id = subpop_pair.first;
@@ -1167,6 +1174,13 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	{
 		// Now that we have the info on everybody, update fitnesses so that we're ready to run the next generation
 		// used to be generation + 1; removing that 18 Feb 2016 BCH
+		
+		nonneutral_change_counter_++;			// trigger unconditional nonneutral mutation caching inside UpdateFitness()
+		last_nonneutral_regime_ = 3;			// this means "unpredictable callbacks", will trigger a recache next generation
+		
+		for (auto muttype_iter : mutation_types_)
+			(muttype_iter.second)->subject_to_fitness_callback_ = true;	// we're not doing RecalculateFitness()'s work, so play it safe
+		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
 		{
 			slim_objectid_t subpop_id = subpop_pair.first;

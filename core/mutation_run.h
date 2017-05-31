@@ -55,6 +55,11 @@ typedef Eidos_intrusive_ptr<MutationRun>	MutationRun_SP;
 #endif
 
 
+// If defined as 1, MutationRun will keep a side cache of the non-neutral mutations occuring inside it.  This can greatly accelerate
+// fitness calculations, but does consume additional memory, and is not always advantageous.  Define to 0 to disable this feature.
+#define SLIM_USE_NONNEUTRAL_CACHES	1
+
+
 // MutationRun has a marking mechanism to let us loop through all genomes and perform an operation on each MutationRun once.
 // This counter is used to do that; a client wishing to perform such an operation should increment the counter and then use it
 // in conjuction with operation_id_ below.
@@ -76,6 +81,67 @@ protected:
 	MutationIndex mutations_buffer_[SLIM_MUTRUN_BUFFER_SIZE];	// a built-in buffer to prevent the need for malloc with few mutations
 	MutationIndex *mutations_ = mutations_buffer_;				// OWNED POINTER: a pointer to an array of MutationIndex
 	
+#if SLIM_USE_NONNEUTRAL_CACHES
+	
+	// Non-neutral mutation caching.  This is a somewhat complex scheme designed to speed up fitness calculations.
+	// The idea is that the mutation run can cache, once, a list of all of the non-neutral mutations it contains,
+	// and then the fitness code can refer to that cached list from then on, saving a huge amount of looping over
+	// neutral mutations in many simulations.  This simple idea is complicated by a few factors.  First of all, if
+	// the mutation run changes, the cache needs to be invalidated.  Second, if the external information that the
+	// cache relies upon changes, the cache needs to be invalidated.  That external information consists of (a) the
+	// selection coefficients of mutations, and (b) the existence and state of fitness() callbacks.  There are
+	// three separate regimes in which these caches are used:
+	//
+	//	1. No fitness callbacks defined.  Here caches depend solely upon mutation selection coefficients, and can
+	//		be carried forward through generations with impunity.  If any mutation's selcoeff is changed between
+	//		zero and non-zero, a global flag in SLiMSim (nonneutral_change_counter_) marks all caches as invalid.
+	//
+	//	2. Only constant-effect neutral callbacks are defined: "return 0.0;".  RecalculateFitness() runs through
+	//		mutation types and callbacks, and figures this state out and sets a flag in each mutation type as to
+	//		whether it is effectively neutral, after considering these constant-effect callbacks, or not.  This
+	//		state changes in every generation, so caches cannot be carried forward from generation to generation
+	//		in this regime unless the state of the callbacks, with respect to making mutation types neutral, is
+	//		unchanged.  If RecalculateFitness() detects a callback change, it sets the global all-invalid flag.
+	//
+	//	3. At least one non-constant callback is defined.  RecalculateFitness() figures this out, and if this is
+	//		the case, the non-neutral cache must include all mutations for which their muttype has a callback
+	//		defined at all, whether constant or not, neutral or not, active or not, because the callback regime
+	//		itself could change unpredictably.  These caches cannot be carried forward unless the state of the
+	//		callbacks, with respect to which mutation types are influenced by them, is unchanged.  If a callback
+	//		change is detected by RecalculateFitness(), it sets the global all-invalid flag.
+	//
+	//	(FIXME) One could imagine inserting a regime between 2 and 3 that would allow a mix of constant and
+	//		non-constant callbacks, as long as the non-constant callbacks were "well-behaved" – no use of the
+	//		active property, no executeLambda, etc. – so that SLiM could know that the constant callbacks would
+	//		apply if they were active.  This could be pretty useful for models that have a mix of QTLs (using
+	//		a constant neutral callbacks) and other loci that are governed by fitness callbacks.  This strikes
+	//		me as a pretty edge case, though; mostly models are either QTL models or non-QTL models, I think.
+	//
+	// When models switch between one regime and another, they generally need to recache, since the criteria
+	// for inclusion in the cache differs from regime to regime.  This is handled by RecalculateFitness().
+	// The last regime used (for the previous generation) is remembered in sim.last_nonneutral_regime_.
+	//
+	// Mutation runs are considered to be immutable in SLiM if they are referred to by more than one genome.
+	// If they are referred to only once, however, they can be changed.  What that occurs, their nonneutral
+	// cache must be invalidated.  This means that any code that calls use_count() on a mutrun, and modifies it
+	// if the count is 1, must also invalidate the nonneutral cache.  This is done automatically by the existing
+	// methods – in particular, MutationRun::will_modify_run(), which should be a funnel for all such code.
+	// Newly created mutation runs are also routinely modified on the (valid) assumption that they are referred
+	// to by only one genome (or no genomes at all, more likely); this is fine since they don't have a nonneutral
+	// cache yet anyway.
+	//
+	// These caches are only used for mutation runs that are accessed by the FitnessOfParentWithGenomeIndices...()
+	// suite of methods; pure neutral models and non-chromosome-dependent models will never touch these caches
+	// and the buffer will never be allocated.
+	
+	int32_t nonneutral_mutation_capacity_ = 0;					// the capacity of nonneutral_mutations_
+	int32_t nonneutral_mutations_count_ = -1;					// the number of entries currently used; -1 indicates an invalid cache
+	MutationIndex *nonneutral_mutations_ = nullptr;				// OWNED POINTER: a pointer to MutationIndex for non-neutral mutations
+	
+	int32_t nonneutral_change_validation_ = 0;					// compared to sim.nonneutral_change_counter_ to detect changes
+
+#endif	// SLIM_USE_NONNEUTRAL_CACHES
+	
 public:
 	
 	int64_t operation_id_ = 0;		// used to mark the MutationRun objects that have been handled by a global operation
@@ -89,6 +155,8 @@ public:
 	{
 		if (s_freed_mutation_runs_.size())
 		{
+			// We assume that the object in the free list is in a reuseable state; see FreeMutationRun() below.
+			
 			MutationRun *back = s_freed_mutation_runs_.back();
 			
 			s_freed_mutation_runs_.pop_back();
@@ -100,7 +168,15 @@ public:
 	
 	static inline void FreeMutationRun(MutationRun *p_run)
 	{
-		p_run->mutation_count_ = 0;
+		// We return mutation runs to the free list in a valid, reuseable state.  We do not free its buffers, avoiding that
+		// free/alloc thrash is one of the big wins of recycling mutation run objects, in fact.
+		
+		p_run->mutation_count_ = 0;						// empty the mutation buffer
+		
+#if SLIM_USE_NONNEUTRAL_CACHES
+		p_run->nonneutral_mutations_count_ = -1;		// mark the non-neutral mutation cache as invalid
+#endif
+		
 		s_freed_mutation_runs_.emplace_back(p_run);
 	}
 	
@@ -111,12 +187,32 @@ public:
 	MutationRun(void);											// constructed empty
 	~MutationRun(void);
 	
+	
 #ifdef SLIM_MUTRUN_CHECK_LOCKING
+	
 	void LockingViolation(void) const __attribute__((__noreturn__)) __attribute__((cold));
-#define SLIM_MUTRUN_LOCK_CHECK()	if (intrusive_ref_count > 1) LockingViolation();
+	
+#if SLIM_USE_NONNEUTRAL_CACHES
+	// Added (nonneutral_mutations_count_ != -1) with the addition of the nonneutral caches; modifying a unique run should not occur after it has cached
+#define SLIM_MUTRUN_LOCK_CHECK()	if ((intrusive_ref_count > 1) || (nonneutral_mutations_count_ != -1)) LockingViolation();
 #else
-#define SLIM_MUTRUN_LOCK_CHECK()	;
+#define SLIM_MUTRUN_LOCK_CHECK()	if (intrusive_ref_count > 1) LockingViolation();
 #endif
+
+#else
+	
+#define SLIM_MUTRUN_LOCK_CHECK()	;
+	
+#endif
+	
+	
+	inline void will_modify_run(void) {
+		SLIM_MUTRUN_LOCK_CHECK();
+		
+#if SLIM_USE_NONNEUTRAL_CACHES
+		nonneutral_mutations_count_ = -1;		// invalidate the nonneutral cache since the run is changing
+#endif
+	}
 	
 	inline MutationIndex const & operator[] (int p_index) const {	// [] returns a reference to a pointer to Mutation; this is the const-pointer variant
 		return mutations_[p_index];
@@ -442,9 +538,83 @@ public:
 	// splitting mutation runs
 	void split_run(MutationRun **p_first_half, MutationRun **p_second_half, int32_t p_split_first_position);
 	
+#if SLIM_USE_NONNEUTRAL_CACHES
+	// caching non-neutral mutations; see above for comments about the "regime" etc.
+	
+	inline void zero_out_nonneutral_buffer(void)
+	{
+		if (!nonneutral_mutations_)
+		{
+			// If we don't have a buffer allocated yet, follow the same rules as for the main mutation buffer,
+			// but without the built-in internal buffer at the beginning
+			nonneutral_mutation_capacity_ = SLIM_MUTRUN_BUFFER_SIZE * 2;
+			nonneutral_mutations_ = (MutationIndex *)malloc(nonneutral_mutation_capacity_ * sizeof(MutationIndex));
+		}
+		
+		// empty out the current buffer contents
+		nonneutral_mutations_count_ = 0;
+	}
+	
+	inline void add_to_nonneutral_buffer(MutationIndex p_mutation_index)
+	{
+		// This is basically the emplace_back() code, but for the nonneutral buffer
+		if (nonneutral_mutations_count_ == nonneutral_mutation_capacity_)
+		{
+			if (nonneutral_mutation_capacity_ < 32)
+				nonneutral_mutation_capacity_ <<= 1;		// double the number of pointers we can hold
+			else
+				nonneutral_mutation_capacity_ += 16;
+			
+			nonneutral_mutations_ = (MutationIndex *)realloc(nonneutral_mutations_, nonneutral_mutation_capacity_ * sizeof(MutationIndex));
+		}
+		
+		*(nonneutral_mutations_ + nonneutral_mutations_count_) = p_mutation_index;
+		++nonneutral_mutations_count_;
+	}
+	
+	void cache_nonneutral_mutations_REGIME_1();
+	void cache_nonneutral_mutations_REGIME_2();
+	void cache_nonneutral_mutations_REGIME_3();
+	
+	void check_nonneutral_mutation_cache();
+	
+	inline void beginend_nonneutral_pointers(const MutationIndex **mutptr_iter, const MutationIndex **mutptr_max, int32_t p_nonneutral_change_counter, int32_t p_nonneutral_regime)
+	{
+		if ((nonneutral_change_validation_ != p_nonneutral_change_counter) || (nonneutral_mutations_count_ == -1))
+		{
+			// If the nonneutral change counter has changed since we last validated, or our cache is invalid for other
+			// reasons (most notably being a new mutation run that has not yet cached), validate it immediately
+			nonneutral_change_validation_ = p_nonneutral_change_counter;
+			
+			switch (p_nonneutral_regime)
+			{
+				case 1: cache_nonneutral_mutations_REGIME_1(); break;
+				case 2: cache_nonneutral_mutations_REGIME_2(); break;
+				case 3: cache_nonneutral_mutations_REGIME_3(); break;
+			}
+		}
+		
+#if DEBUG
+		check_nonneutral_mutation_cache();
+#endif
+		
+		// Return the requested pointers to allow the caller to iterate over the nonneutral mutation buffer
+		*mutptr_iter = nonneutral_mutations_;
+		*mutptr_max = nonneutral_mutations_ + nonneutral_mutations_count_;
+	}
+	
+	inline void tally_mutations_for_cache_evaluation(int64_t *mutation_count, int64_t *nonneutral_count)
+	{
+		*mutation_count += mutation_count_;
+		
+		if (nonneutral_mutations_count_ != -1)
+			*nonneutral_count += nonneutral_mutations_count_;
+	}
+	
+#endif	// SLIM_USE_NONNEUTRAL_CACHES
+	
 	// Eidos_intrusive_ptr support
 	inline __attribute__((always_inline)) uint32_t use_count() const { return intrusive_ref_count; }
-	inline __attribute__((always_inline)) bool unique() const { return intrusive_ref_count == 1; }
 	
 	friend void Eidos_intrusive_ptr_add_ref(const MutationRun *p_value);
 	friend void Eidos_intrusive_ptr_release(const MutationRun *p_value);

@@ -2772,7 +2772,7 @@ EidosValue_SP EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 					logical_result = child_result->LogicalAtIndex(0, operator_token);
 					result_count = 1;
 				}
-				else if ((child_type == EidosValueType::kValueLogical) && child_result->unique())
+				else if ((child_type == EidosValueType::kValueLogical) && (child_result->use_count() == 1))
 				{
 					// child_result is a logical EidosValue owned only by us, so we can just take it over as our initial result
 					result_SP = static_pointer_cast<EidosValue_Logical>(std::move(child_result));
@@ -2942,7 +2942,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 					logical_result = child_result->LogicalAtIndex(0, operator_token);
 					result_count = 1;
 				}
-				else if ((child_type == EidosValueType::kValueLogical) && child_result->unique())
+				else if ((child_type == EidosValueType::kValueLogical) && (child_result->use_count() == 1))
 				{
 					// child_result is a logical EidosValue owned only by us, so we can just take it over as our initial result
 					result_SP = static_pointer_cast<EidosValue_Logical>(std::move(child_result));

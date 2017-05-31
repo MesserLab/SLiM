@@ -37,6 +37,7 @@ development head:
 	upgraded to GSL version 2.3 and pulled in gsl_cdf_tdist_Q() and dependencies (no user-visible impact whatsoever)
 	added mutation run experiments
 	adding ttest() function for performing t-tests
+	optimize fitness calculations using non-neutral mutation caches
 	NOTE: this version changed model output in some cases because of a float/double change in fitness calculations
 
 

@@ -267,7 +267,6 @@ public:
 	
 	// Eidos_intrusive_ptr support; we use Eidos_intrusive_ptr as a fast smart pointer to EidosValue.
 	inline __attribute__((always_inline)) uint32_t use_count() const { return intrusive_ref_count; }
-	inline __attribute__((always_inline)) bool unique() const { return intrusive_ref_count == 1; }
 	inline __attribute__((always_inline)) void stack_allocated() { intrusive_ref_count++; }			// used with stack-allocated EidosValues that have to be put under Eidos_intrusive_ptr
 	
 	friend void Eidos_intrusive_ptr_add_ref(const EidosValue *p_value);

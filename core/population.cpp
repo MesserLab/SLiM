@@ -2921,6 +2921,163 @@ void Population::RecalculateFitness(slim_generation_t p_generation)
 				break;
 			}
 	
+	// Figure out how we are going to handle MutationRun nonneutral mutation caches; see mutation_run.h.  We need to assess
+	// the state of callbacks and decide which of the three "regimes" we are in, and then depending upon that and what
+	// regime we were in in the previous generation, invalidate nonneutral caches or allow them to persist.
+	const std::map<slim_objectid_t,MutationType*> &mut_types = sim_.MutationTypes();
+	int32_t last_regime = sim_.last_nonneutral_regime_;
+	int32_t current_regime;
+	
+	if (no_active_callbacks)
+	{
+		current_regime = 1;
+	}
+	else
+	{
+		// First, we want to save off the old values of our flags that govern nonneutral caching
+		for (auto muttype_iter : mut_types)
+		{
+			MutationType *muttype = muttype_iter.second;
+			
+			muttype->previous_set_neutral_by_global_active_callback_ = muttype->set_neutral_by_global_active_callback_;
+			muttype->previous_subject_to_fitness_callback_ = muttype->subject_to_fitness_callback_;
+		}
+		
+		// Then we assess which muttypes are being made globally neutral by a constant-value fitness callback
+		bool all_active_callbacks_are_global_neutral_effects = true;
+		
+		for (auto muttype_iter : mut_types)
+			(muttype_iter.second)->set_neutral_by_global_active_callback_ = false;
+		
+		for (SLiMEidosBlock *fitness_callback : fitness_callbacks)
+		{
+			if (fitness_callback->active_)
+			{
+				if (fitness_callback->subpopulation_id_ == -1)
+				{
+					const EidosASTNode *compound_statement_node = fitness_callback->compound_statement_node_;
+					
+					if (compound_statement_node->cached_value_)
+					{
+						// The script is a constant expression such as "{ return 1.1; }"
+						EidosValue *result = compound_statement_node->cached_value_.get();
+						
+						if ((result->Type() == EidosValueType::kValueFloat) || (result->Count() == 1))
+						{
+							if (result->FloatAtIndex(0, nullptr) == 1.0)
+							{
+								// the callback returns 1.0, so it makes the mutation types to which it applies become neutral
+								slim_objectid_t mutation_type_id = fitness_callback->mutation_type_id_;
+								
+								if (mutation_type_id != -1)
+								{
+									auto found_muttype_pair = mut_types.find(mutation_type_id);
+									
+									if (found_muttype_pair != mut_types.end())
+										found_muttype_pair->second->set_neutral_by_global_active_callback_ = true;
+								}
+								
+								// This is a constant neutral effect, so avoid dropping through to the flag set below
+								continue;
+							}
+						}
+					}
+				}
+				
+				// if we reach this point, we have an active callback that is not a
+				// global constant neutral effect, so set our flag and break out
+				all_active_callbacks_are_global_neutral_effects = false;
+				break;
+			}
+		}
+		
+		if (all_active_callbacks_are_global_neutral_effects)
+		{
+			// The only active callbacks are global (i.e. not subpop-specific) constant-effect neutral callbacks,
+			// so we will use the set_neutral_by_global_active_callback flag in the muttypes that we set up above.
+			// When that flag is true, the mut is neutral; when it is false, consult the selection coefficient.
+			current_regime = 2;
+		}
+		else
+		{
+			// We have at least one active callback that is not a global constant-effect callback, so all
+			// bets are off; any mutation of a muttype influenced by a callback must be considered non-neutral,
+			// as governed by the flag set up below
+			current_regime = 3;
+			
+			for (auto muttype_iter : mut_types)
+				(muttype_iter.second)->subject_to_fitness_callback_ = false;
+			
+			for (SLiMEidosBlock *fitness_callback : fitness_callbacks)
+			{
+				slim_objectid_t mutation_type_id = fitness_callback->mutation_type_id_;
+				
+				if (mutation_type_id != -1)
+				{
+					auto found_muttype_pair = mut_types.find(mutation_type_id);
+					
+					if (found_muttype_pair != mut_types.end())
+						found_muttype_pair->second->subject_to_fitness_callback_ = true;
+				}
+			}
+		}
+	}
+	
+	// trigger a recache of nonneutral mutation lists for some regime transitions; see mutation_run.h
+	if (last_regime == 0)
+		sim_.nonneutral_change_counter_++;
+	else if ((current_regime == 1) && ((last_regime == 2) || (last_regime == 3)))
+		sim_.nonneutral_change_counter_++;
+	else if (current_regime == 2)
+	{
+		if (last_regime != 2)
+			sim_.nonneutral_change_counter_++;
+		else
+		{
+			// If we are in regime 2 this generation and were last generation as well, then if the way that
+			// fitness callbacks are influencing mutation types is the same this generation as it was last
+			// generation, we can actually carry over our nonneutral buffers.
+			bool callback_state_identical = true;
+			
+			for (auto muttype_iter : mut_types)
+			{
+				MutationType *muttype = muttype_iter.second;
+				
+				if (muttype->set_neutral_by_global_active_callback_ != muttype->previous_set_neutral_by_global_active_callback_)
+					callback_state_identical = false;
+			}
+			
+			if (!callback_state_identical)
+				sim_.nonneutral_change_counter_++;
+		}
+	}
+	else if (current_regime == 3)
+	{
+		if (last_regime != 3)
+			sim_.nonneutral_change_counter_++;
+		else
+		{
+			// If we are in regime 3 this generation and were last generation as well, then if the way that
+			// fitness callbacks are influencing mutation types is the same this generation as it was last
+			// generation, we can actually carry over our nonneutral buffers.
+			bool callback_state_identical = true;
+			
+			for (auto muttype_iter : mut_types)
+			{
+				MutationType *muttype = muttype_iter.second;
+				
+				if (muttype->subject_to_fitness_callback_ != muttype->previous_subject_to_fitness_callback_)
+					callback_state_identical = false;
+			}
+			
+			if (!callback_state_identical)
+				sim_.nonneutral_change_counter_++;
+		}
+	}
+	
+	// move forward to the regime we just chose; UpdateFitness() can consult this to get the current regime
+	sim_.last_nonneutral_regime_ = current_regime;
+	
 	if (no_active_callbacks)
 	{
 		std::vector<SLiMEidosBlock*> no_fitness_callbacks;
@@ -3177,7 +3334,7 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 					MutationRun_SP &mutrun_sp_ref = genome.mutruns_[run_index];
 					MutationRun *mutrun = mutrun_sp_ref.get();
 					
-					if (mutrun->unique())
+					if (mutrun->use_count() == 1)
 					{
 						// this mutrun is only referenced once, so we can just replace it without using the map
 						MutationRun *first_half, *second_half;
@@ -3339,7 +3496,7 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 					MutationRun *mutrun1 = mutrun1_sp_ref.get();
 					MutationRun *mutrun2 = mutrun2_sp_ref.get();
 					
-					if (mutrun1->unique() || mutrun2->unique())
+					if ((mutrun1->use_count() == 1) || (mutrun2->use_count() == 1))
 					{
 						// one of these mutruns is only referenced once, so we can just replace them without using the map
 						MutationRun *joined_run = MutationRun::NewMutationRun();	// take from shared pool of used objects

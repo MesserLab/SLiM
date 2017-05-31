@@ -158,6 +158,10 @@ void Genome::WillModifyRun(int p_run_index)
 		new_run->copy_from_run(*original_run);
 		mutruns_[p_run_index] = MutationRun_SP(new_run);
 	}
+	else
+	{
+		original_run->will_modify_run();	// in-place modification of runs requires notification, for cache invalidation
+	}
 }
 
 void Genome::BulkOperationStart(int64_t p_operation_id, int p_mutrun_index)

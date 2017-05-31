@@ -210,6 +210,12 @@ public:
 	// able to run a neutral burn-in at full speed, only slowing down when the non-neutral mutation type is actually used.
 	bool pure_neutral_ = true;														// optimization flag
 	
+	// this counter is incremented when a selection coefficient is changed on any mutation object in the simulation.  This is used as a signal to mutation runs that their
+	// cache of non-neutral mutations is invalid (because their counter is not equal to this counter).  The caches will be re-validated the next time they are used.  Other
+	// code can also increment this counter in order to trigger a re-validation of all non-neutral mutation caches; it is a general-purpose mechanism.
+	int32_t nonneutral_change_counter_ = 0;
+	int32_t last_nonneutral_regime_ = 0;		// see mutation_run.h; 1 = no fitness callbacks, 2 = only constant-effect neutral callbacks, 3 = arbitrary callbacks
+	
 	// warning flags; used to issue warnings only once per run of the simulation
 	bool warned_early_mutation_add_ = false;
 	bool warned_early_mutation_remove_ = false;

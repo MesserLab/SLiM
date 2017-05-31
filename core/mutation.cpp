@@ -341,6 +341,7 @@ EidosValue_SP Mutation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, c
 	if (p_method_id == gID_setSelectionCoeff)
 	{
 		double value = arg0_value->FloatAtIndex(0, nullptr);
+		slim_selcoeff_t old_coeff = selection_coeff_;
 		
 		selection_coeff_ = static_cast<slim_selcoeff_t>(value);
 		// intentionally no lower or upper bound; -1.0 is lethal, but DFEs may generate smaller values, and we don't want to prevent or bowdlerize that
@@ -354,8 +355,24 @@ EidosValue_SP Mutation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, c
 			if (!sim)
 				EIDOS_TERMINATION << "ERROR (Mutation::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
 			
-			sim->pure_neutral_ = false;
-			mutation_type_ptr_->all_pure_neutral_DFE_ = false;
+			sim->pure_neutral_ = false;							// let the sim know that it is no longer a pure-neutral simulation
+			mutation_type_ptr_->all_pure_neutral_DFE_ = false;	// let the mutation type for this mutation know that it is no longer pure neutral
+			
+			// If a selection coefficient has changed from zero to non-zero, or vice versa, MutationRun's nonneutral mutation caches need revalidation
+			if (old_coeff == 0.0)
+			{
+				sim->nonneutral_change_counter_++;
+			}
+		}
+		else if (old_coeff != 0.0)	// && (selection_coeff_ == 0.0) implied by the "else"
+		{
+			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
+			
+			if (!sim)
+				EIDOS_TERMINATION << "ERROR (Mutation::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
+			
+			// If a selection coefficient has changed from zero to non-zero, or vice versa, MutationRun's nonneutral mutation caches need revalidation
+			sim->nonneutral_change_counter_++;
 		}
 		
 		// cache values used by the fitness calculation code for speed; see header

@@ -99,8 +99,39 @@ public:
 
 	mutable EidosScript *cached_dfe_script_;	// used by DFE type 's' to hold a cached script for the DFE
 	
-	mutable bool all_pure_neutral_DFE_;			// a flag set to true if the DFE is "f" 0.0, cleared if any mutation of this type has its selcoeff changed
-	mutable bool is_pure_neutral_now_;			// a flag valid only within UpdateFitness(), used to determine whether a mut type can be ignored
+	// For optimizing the fitness calculation code, the exact situation for each mutation type is of great interest: does it have
+	// a neutral DFE, and if so has any mutation of that type had its selection coefficient changed to be non-zero, are mutations
+	// of this type made neutral by a constant callback like "return 1.0;", and so forth.  Different parts of the code need to
+	// know slightly different things, so we have several different flags of this sort.
+	
+	// all_pure_neutral_DFE_ is true if the DFE is "f" 0.0.  It is cleared if any mutation of this type has its selection coefficient
+	// changed, so it can be used as a reliable indicator that mutations of a given mutation type are actually neutral – except for
+	// the effects of fitness callbacks, which might make them non-neutral in a given generation / subpopulation.
+	mutable bool all_pure_neutral_DFE_;
+	
+	// is_pure_neutral_now_ is set up by Subpopulation::UpdateFitness(), and is valid only inside a given UpdateFitness() call.
+	// If set, it indicates that the mutation type is currently pure neutral – either because all_pure_neutral_DFE_ is set and the
+	// mutation type cannot be influenced by any callbacks in the current subpopulation / generation, or because an active callback
+	// actually sets the mutation type to be a constant value of 1.0 in this subpopulation / generation.  Mutations for which this
+	// flag is set can be safely elided from fitness calculations altogether; the flag will not be set if other active callbacks
+	// could mess things up for the mutation type by, e.g., deactivating the neutral-making callback.  If this flag is set for all
+	// muttypes, chromosome-based fitness calculations will be skipped altogether for this generation.
+	mutable bool is_pure_neutral_now_;
+	
+	// set_neutral_by_global_active_callback_ is set by RecalculateFitness() if the muttype is made neutral by a constant callback
+	// (i.e., return 1.0) that is global (i.e., applies to all subpops) and active.  This flag should be consulted only when the
+	// "nonneutral regime" (i.e., sim.last_nonneutral_regime_) is 2 (constant neutral fitness callbacks only); it is not valid in
+	// other scenarios, so it should be used with extreme caution.
+	mutable bool set_neutral_by_global_active_callback_;
+	mutable bool previous_set_neutral_by_global_active_callback_;	// the previous value; scratch space for RecalculateFitness()
+	
+	// subject_to_fitness_callback_ is set by RecalculateFitness() if the muttype is currently influenced by a callback in any subpop.
+	// Mutations with this flag set are considered to be non-neutral, since their fitness value is unpredictable; mutations without
+	// this flag set, on the other hand, are not influenced by any callback (active or inactive), so their selcoeff may be consulted.
+	// This flag is valid only when the "nonneutral regime" (i.e., sim.last_nonneutral_regime_) is 3 (non-constant or non-neutral
+	// callbacks present); it is not valid in other scenarios, so it should be used with extreme caution.
+	mutable bool subject_to_fitness_callback_;
+	mutable bool previous_subject_to_fitness_callback_;				// the previous value; scratch space for RecalculateFitness()
 	
 #ifdef SLIMGUI
 	int mutation_type_index_;					// a zero-based index for this mutation type, used by SLiMgui to bin data by mutation type
