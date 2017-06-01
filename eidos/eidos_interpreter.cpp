@@ -4586,6 +4586,10 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 						
 						start_int = 0;
 						end_int = argument_value->Count() - 1;
+						
+						// A seqAlong() on a zero-length operand would give us a loop from 0 to -1; short-circuit that
+						if (end_int == -1)
+							goto for_exit;
 					}
 				}
 			}
@@ -4597,6 +4601,10 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 		// OK, we have a simple integer:integer range, so this should be very straightforward
 		bool counting_up = (start_int < end_int);
 		int64_t range_count = (counting_up ? (end_int - start_int + 1) : (start_int - end_int + 1));
+		
+		// An empty simple integer range can be skipped altogether, without modifying the index variable
+		if (range_count <= 0)
+			goto for_exit;
 		
 		if (!assigns_index && !references_index)
 		{
@@ -4946,6 +4954,8 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): the 'for' keyword does not allow NULL for its right operand (the range to be iterated over)." << eidos_terminate(p_node->token_);
 		}
 	}
+	
+for_exit:
 	
 	if (!result_SP)
 		result_SP = gStaticEidosValueNULLInvisible;

@@ -2196,6 +2196,14 @@ void _RunKeywordForInTests(void)
 	EidosAssertScriptRaise("x=0; q=11:20; for (y in seqAlong()) x=x+y; x;", 24, "missing required");
 	EidosAssertScriptSuccess("x=0; for (y in seq(1,10)) x=x+y; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(55)));
 	EidosAssertScriptSuccess("x=0; for (y in seq(1,10)) x=x+1; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(10)));
+	
+	// additional tests for zero-length ranges; seqAlong() is treated separately in the for() code, so it is tested separately here
+	EidosAssertScriptSuccess("i=10; for (i in integer(0)) ; i;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(10)));
+	EidosAssertScriptSuccess("i=10; for (i in seqAlong(integer(0))) ; i;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(10)));
+	EidosAssertScriptSuccess("i=10; b=13; for (i in integer(0)) b=i; i;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(10)));
+	EidosAssertScriptSuccess("i=10; b=13; for (i in seqAlong(integer(0))) b=i; i;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(10)));
+	EidosAssertScriptSuccess("i=10; b=13; for (i in integer(0)) b=i; b;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(13)));
+	EidosAssertScriptSuccess("i=10; b=13; for (i in seqAlong(integer(0))) b=i; b;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(13)));
 }
 
 #pragma mark next
