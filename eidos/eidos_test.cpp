@@ -321,6 +321,21 @@ void RunEidosTests(void)
 	
 	// Do some tests of our custom math functions
 #if 0
+	EidosInitializeRNGFromSeed(EidosGenerateSeedFromPIDAndTime());
+	
+	int64_t totals[17];		// note 17 is prime
+	
+	for (int i = 0; i < 17; ++i)
+		totals[i] = 0;
+	
+	for (int i = 0; i < 100000000; ++i)
+		totals[eidos_random_int(gEidos_rng, 17)]++;
+	
+	for (int i = 0; i < 17; ++i)
+		std::cout << "totals[" << i << "] == " << totals[i] << std::endl;
+#endif
+	
+#if 0
 	//#ifndef USE_GSL_POISSON
 	EidosInitializeRNGFromSeed(EidosGenerateSeedFromPIDAndTime());
 	

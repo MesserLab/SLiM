@@ -742,11 +742,17 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		// SEX ONLY
 		double totalMaleFitness = 0.0, totalFemaleFitness = 0.0;
 		
-		gsl_ran_discrete_free(lookup_female_parent_);
-		lookup_female_parent_ = nullptr;
+		if (lookup_female_parent_)
+		{
+			gsl_ran_discrete_free(lookup_female_parent_);
+			lookup_female_parent_ = nullptr;
+		}
 		
-		gsl_ran_discrete_free(lookup_male_parent_);
-		lookup_male_parent_ = nullptr;
+		if (lookup_male_parent_)
+		{
+			gsl_ran_discrete_free(lookup_male_parent_);
+			lookup_male_parent_ = nullptr;
+		}
 		
 		// Set up to draw random females
 		if (pure_neutral)
@@ -803,7 +809,9 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		if (totalFemaleFitness <= 0.0)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of females is <= 0.0." << eidos_terminate(nullptr);
 		
-		lookup_female_parent_ = gsl_ran_discrete_preproc(parent_first_male_index_, cached_parental_fitness_);
+		// in pure neutral models we don't set up the discrete preproc
+		if (!pure_neutral)
+			lookup_female_parent_ = gsl_ran_discrete_preproc(parent_first_male_index_, cached_parental_fitness_);
 		
 		// Set up to draw random males
 		slim_popsize_t num_males = parent_subpop_size_ - parent_first_male_index_;
@@ -866,14 +874,19 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		if (totalMaleFitness <= 0.0)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of males is <= 0.0." << eidos_terminate(nullptr);
 		
-		lookup_male_parent_ = gsl_ran_discrete_preproc(num_males, cached_parental_fitness_ + parent_first_male_index_);
+		// in pure neutral models we don't set up the discrete preproc
+		if (!pure_neutral)
+			lookup_male_parent_ = gsl_ran_discrete_preproc(num_males, cached_parental_fitness_ + parent_first_male_index_);
 	}
 	else
 	{
 		double *fitness_buffer_ptr = cached_parental_fitness_;
 		
-		gsl_ran_discrete_free(lookup_parent_);
-		lookup_parent_ = nullptr;
+		if (lookup_parent_)
+		{
+			gsl_ran_discrete_free(lookup_parent_);
+			lookup_parent_ = nullptr;
+		}
 		
 		if (pure_neutral)
 		{
@@ -926,7 +939,9 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		if (totalFitness <= 0.0)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of all individuals is <= 0.0." << eidos_terminate(nullptr);
 		
-		lookup_parent_ = gsl_ran_discrete_preproc(parent_subpop_size_, cached_parental_fitness_);
+		// in pure neutral models we don't set up the discrete preproc
+		if (!pure_neutral)
+			lookup_parent_ = gsl_ran_discrete_preproc(parent_subpop_size_, cached_parental_fitness_);
 	}
 	
 	cached_fitness_size_ = parent_subpop_size_;
