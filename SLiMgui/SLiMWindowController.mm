@@ -1385,7 +1385,9 @@
 		[content eidosAppendString:@" : interaction() callbacks\n" attributes:optima13_d];
 	}
 	
-	// Script block profiles
+	//
+	//	Script block profiles
+	//
 	if (elapsedCPUTime > 0.0)
 	{
 		{
@@ -1483,6 +1485,88 @@
 		}
 	}
 	
+#if SLIM_USE_NONNEUTRAL_CACHES
+	//
+	//	MutationRun metrics
+	//
+	{
+		int64_t power_tallies[20];	// we only go up to 1024 mutruns right now, but this gives us some headroom
+		int64_t power_tallies_total = (int)sim->profile_mutcount_history_.size();
+		
+		for (int power = 0; power < 20; ++power)
+			power_tallies[power] = 0;
+		
+		for (int32_t count : sim->profile_mutcount_history_)
+		{
+			int power = (int)round(log2(count));
+			
+			power_tallies[power]++;
+		}
+		
+		[content eidosAppendString:@"\n" attributes:menlo11_d];
+		[content eidosAppendString:@"\n" attributes:optima13_d];
+		[content eidosAppendString:@"MutationRun usage\n" attributes:optima14b_d];
+		[content eidosAppendString:@"\n" attributes:optima3_d];
+		
+		for (int power = 0; power < 20; ++power)
+		{
+			if (power_tallies[power] > 0)
+			{
+				[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", (power_tallies[power] / (double)power_tallies_total) * 100.0] attributes:menlo11_d];
+				[content eidosAppendString:[NSString stringWithFormat:@" of generations : %d mutation runs per genome\n", (int)(round(pow(2.0, power)))] attributes:optima13_d];
+			}
+		}
+		
+		
+		int64_t regime_tallies[3];
+		int64_t regime_tallies_total = (int)sim->profile_nonneutral_regime_history_.size();
+		
+		for (int regime = 0; regime < 3; ++regime)
+			regime_tallies[regime] = 0;
+		
+		for (int32_t regime : sim->profile_nonneutral_regime_history_)
+			if ((regime >= 1) && (regime <= 3))
+				regime_tallies[regime - 1]++;
+			else
+				regime_tallies_total--;
+		
+		[content eidosAppendString:@"\n" attributes:optima13_d];
+		
+		for (int regime = 0; regime < 3; ++regime)
+		{
+			[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", (regime_tallies[regime] / (double)regime_tallies_total) * 100.0] attributes:menlo11_d];
+			[content eidosAppendString:[NSString stringWithFormat:@" of generations : regime %d (%@)\n", regime + 1, (regime == 0 ? @"no fitness callbacks" : (regime == 1 ? @"constant neutral fitness callbacks only" : @"unpredictable fitness callbacks present"))] attributes:optima13_d];
+		}
+		
+		
+		[content eidosAppendString:@"\n" attributes:optima13_d];
+		
+		[content eidosAppendString:[NSString stringWithFormat:@"%lld", sim->profile_mutation_total_usage_] attributes:menlo11_d];
+		[content eidosAppendString:@" mutations referenced, summed across all generations\n" attributes:optima13_d];
+		
+		[content eidosAppendString:[NSString stringWithFormat:@"%lld", sim->profile_nonneutral_mutation_total_] attributes:menlo11_d];
+		[content eidosAppendString:@" mutations considered potentially nonneutral\n" attributes:optima13_d];
+		
+		[content eidosAppendString:[NSString stringWithFormat:@"%0.2f%%", ((sim->profile_mutation_total_usage_ - sim->profile_nonneutral_mutation_total_) / (double)sim->profile_mutation_total_usage_) * 100.0] attributes:menlo11_d];
+		[content eidosAppendString:@" of mutations excluded from fitness calculations\n" attributes:optima13_d];
+		
+		
+		[content eidosAppendString:@"\n" attributes:optima13_d];
+		
+		[content eidosAppendString:[NSString stringWithFormat:@"%lld", sim->profile_mutrun_total_usage_] attributes:menlo11_d];
+		[content eidosAppendString:@" mutation runs referenced, summed across all generations\n" attributes:optima13_d];
+		
+		[content eidosAppendString:[NSString stringWithFormat:@"%lld", sim->profile_unique_mutrun_total_] attributes:menlo11_d];
+		[content eidosAppendString:@" unique mutation runs maintained among those\n" attributes:optima13_d];
+		
+		[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", (sim->profile_mutrun_nonneutral_recache_total_ / (double)sim->profile_unique_mutrun_total_) * 100.0] attributes:menlo11_d];
+		[content eidosAppendString:@" of mutation run nonneutral caches rebuilt per generation\n" attributes:optima13_d];
+		
+		[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", ((sim->profile_mutrun_total_usage_ - sim->profile_unique_mutrun_total_) / (double)sim->profile_mutrun_total_usage_) * 100.0] attributes:menlo11_d];
+		[content eidosAppendString:@" of mutation runs shared among genomes" attributes:optima13_d];
+	}
+#endif
+	
 	// Set the attributed string into the profile report text view
 	NSTextStorage *ts = [profileTextView textStorage];
 	
@@ -1572,6 +1656,17 @@
 	
 	for (SLiMEidosBlock *script_block : script_blocks)
 		script_block->root_node_->ZeroProfileTotals();
+	
+#if SLIM_USE_NONNEUTRAL_CACHES
+	// zero out mutation run metrics
+	sim->profile_mutcount_history_.clear();
+	sim->profile_nonneutral_regime_history_.clear();
+	sim->profile_mutation_total_usage_ = 0;
+	sim->profile_nonneutral_mutation_total_ = 0;
+	sim->profile_mutrun_total_usage_ = 0;
+	sim->profile_unique_mutrun_total_ = 0;
+	sim->profile_mutrun_nonneutral_recache_total_ = 0;
+#endif
 }
 
 - (void)endProfiling

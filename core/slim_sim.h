@@ -102,6 +102,15 @@ public:
 	// PROFILING
 	clock_t profile_stage_totals_[7];												// profiling clocks; index 0 is initialize(), the rest follow SLiMGenerationStage
 	clock_t profile_callback_totals_[9];											// profiling clocks; these follow SLiMEidosBlockType
+#if SLIM_USE_NONNEUTRAL_CACHES
+	std::vector<int32_t> profile_mutcount_history_;									// a record of the mutation run count used in each generation
+	std::vector<int32_t> profile_nonneutral_regime_history_;						// a record of the nonneutral regime used in each generation
+	int64_t profile_mutation_total_usage_;											// how many (non-unique) mutations were used by mutation runs, summed across generations
+	int64_t profile_nonneutral_mutation_total_;										// of profile_mutation_total_usage_, how many were deemed to be nonneutral
+	int64_t profile_mutrun_total_usage_;											// how many (non-unique) mutruns were used by genomes, summed across generations
+	int64_t profile_unique_mutrun_total_;											// of profile_mutrun_total_usage_, how many unique mutruns existed, summed across generations
+	int64_t profile_mutrun_nonneutral_recache_total_;								// of profile_unique_mutrun_total_, how many mutruns regenerated their nonneutral cache
+#endif
 #endif
 	
 #else
@@ -253,6 +262,13 @@ public:
 	void TransitionToNewExperimentAgainstPreviousExperiment(int32_t p_new_mutrun_count);
 	void EnterStasisForMutationRunExperiments(void);
 	void MaintainMutationRunExperiments(double p_last_gen_runtime);
+	
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+	// PROFILING
+#if SLIM_USE_NONNEUTRAL_CACHES
+	void CollectSLiMguiMutationProfileInfo(void);
+#endif
+#endif
 	
 	// accessors
 	inline EidosSymbolTable &SymbolTable(void) const								{ return *simulation_constants_; }

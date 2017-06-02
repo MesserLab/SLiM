@@ -57,6 +57,8 @@ typedef Eidos_intrusive_ptr<MutationRun>	MutationRun_SP;
 
 // If defined as 1, MutationRun will keep a side cache of the non-neutral mutations occuring inside it.  This can greatly accelerate
 // fitness calculations, but does consume additional memory, and is not always advantageous.  Define to 0 to disable this feature.
+// I'm not sure how long I will maintain the ability to disable these caches; the overhead is quite small, so I think it would be OK
+// to just make this always be on.  At present this flag is mostly useful for testing purposes.
 #define SLIM_USE_NONNEUTRAL_CACHES	1
 
 
@@ -140,6 +142,13 @@ protected:
 	
 	int32_t nonneutral_change_validation_ = 0;					// compared to sim.nonneutral_change_counter_ to detect changes
 
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+// PROFILING
+	
+	bool recached_run_ = false;
+	
+#endif	// defined(SLIMGUI) && (SLIMPROFILING == 1)
+	
 #endif	// SLIM_USE_NONNEUTRAL_CACHES
 	
 public:
@@ -592,6 +601,11 @@ public:
 				case 2: cache_nonneutral_mutations_REGIME_2(); break;
 				case 3: cache_nonneutral_mutations_REGIME_3(); break;
 			}
+			
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+			// PROFILING
+			recached_run_ = true;
+#endif
 		}
 		
 #if DEBUG
@@ -603,13 +617,22 @@ public:
 		*mutptr_max = nonneutral_mutations_ + nonneutral_mutations_count_;
 	}
 	
-	inline void tally_mutations_for_cache_evaluation(int64_t *mutation_count, int64_t *nonneutral_count)
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+	// PROFILING
+	inline void tally_nonneutral_mutations(int64_t *mutation_count, int64_t *nonneutral_count, int64_t *recached_count)
 	{
 		*mutation_count += mutation_count_;
 		
 		if (nonneutral_mutations_count_ != -1)
 			*nonneutral_count += nonneutral_mutations_count_;
+		
+		if (recached_run_)
+		{
+			(*recached_count)++;
+			recached_run_ = false;
+		}
 	}
+#endif	// defined(SLIMGUI) && (SLIMPROFILING == 1)
 	
 #endif	// SLIM_USE_NONNEUTRAL_CACHES
 	

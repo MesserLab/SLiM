@@ -41,6 +41,7 @@ development head:
 	speed up pure neutral models by shifting from gsl_ran_discrete() to eidos_random_int() to choose mates
 	fix an Eidos bug when doing a for loop on a seqAlong() vector of a zero length parameter, like "for (i in seqAlong(q)) ..." where q is zero-length (probably nobody cares)
 	add recipe 9.5, Changing selection coefficients with setSelectionCoeff()
+	add performance metrics related to mutations and mutation runs to SLiMgui's profile reports
 	NOTE: this version changed model output in some cases because of a float/double change in fitness calculations
 	NOTE: this version changed model output for pure neutral models because of a change in the random numbers used to choose mates
 

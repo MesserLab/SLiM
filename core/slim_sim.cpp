@@ -2199,6 +2199,50 @@ void SLiMSim::MaintainMutationRunExperiments(double p_last_gen_runtime)
 	}
 }
 
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+// PROFILING
+#if SLIM_USE_NONNEUTRAL_CACHES
+void SLiMSim::CollectSLiMguiMutationProfileInfo(void)
+{
+	profile_mutcount_history_.push_back(chromosome_.mutrun_count_);
+	profile_nonneutral_regime_history_.push_back(last_nonneutral_regime_);
+	
+	int64_t operation_id = ++gSLiM_MutationRun_OperationID;
+	
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+	{
+		Subpopulation *subpop = subpop_pair.second;
+		std::vector<Genome> &subpop_genomes = subpop->parent_genomes_;
+		
+		for (Genome &genome : subpop_genomes)
+		{
+			MutationRun_SP *mutruns = genome.mutruns_;
+			int32_t mutrun_count = genome.mutrun_count_;
+			
+			profile_mutrun_total_usage_ += mutrun_count;
+			
+			for (int32_t mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
+			{
+				MutationRun *mutrun = mutruns[mutrun_index].get();
+				
+				if (mutrun)
+				{
+					if (mutrun->operation_id_ != operation_id)
+					{
+						mutrun->operation_id_ = operation_id;
+						profile_unique_mutrun_total_++;
+					}
+					
+					// tally the total and nonneutral mutations
+					mutrun->tally_nonneutral_mutations(&profile_mutation_total_usage_, &profile_nonneutral_mutation_total_, &profile_mutrun_nonneutral_recache_total_);
+				}
+			}
+		}
+	}
+}
+#endif
+#endif
+
 slim_generation_t SLiMSim::FirstGeneration(void)
 {
 	slim_generation_t first_gen = SLIM_MAX_GENERATION;
@@ -2279,6 +2323,13 @@ bool SLiMSim::_RunOneGeneration(void)
 	}
 	else
 	{
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+#if SLIM_USE_NONNEUTRAL_CACHES
+		CollectSLiMguiMutationProfileInfo();
+#endif
+#endif
+		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
 		clock_t clock0 = (gEidosProfilingCount ? clock() : 0);
