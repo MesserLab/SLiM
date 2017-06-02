@@ -1631,6 +1631,9 @@
 	profileElapsedClock = 0;
 	profileStartGeneration = sim->Generation();
 	
+	// call this first, which has the side effect of emptying out any pending profile counts
+	sim->CollectSLiMguiMutationProfileInfo();
+	
 	// zero out profile counts for generation stages
 	sim->profile_stage_totals_[(int)(SLiMGenerationStage::kStage0PreGeneration)] = 0;
 	sim->profile_stage_totals_[(int)(SLiMGenerationStage::kStage1ExecuteEarlyScripts)] = 0;

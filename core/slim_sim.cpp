@@ -2326,7 +2326,8 @@ bool SLiMSim::_RunOneGeneration(void)
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
 #if SLIM_USE_NONNEUTRAL_CACHES
-		CollectSLiMguiMutationProfileInfo();
+		if (gEidosProfilingCount)
+			CollectSLiMguiMutationProfileInfo();
 #endif
 #endif
 		
