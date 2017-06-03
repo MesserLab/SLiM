@@ -110,6 +110,7 @@ public:
 	int64_t profile_mutrun_total_usage_;											// how many (non-unique) mutruns were used by genomes, summed across generations
 	int64_t profile_unique_mutrun_total_;											// of profile_mutrun_total_usage_, how many unique mutruns existed, summed across generations
 	int64_t profile_mutrun_nonneutral_recache_total_;								// of profile_unique_mutrun_total_, how many mutruns regenerated their nonneutral cache
+	int64_t profile_max_mutation_index_;											// the largest mutation index seen over the course of the profile
 #endif
 #endif
 	

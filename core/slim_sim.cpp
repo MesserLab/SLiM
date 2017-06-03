@@ -2204,9 +2204,14 @@ void SLiMSim::MaintainMutationRunExperiments(double p_last_gen_runtime)
 #if SLIM_USE_NONNEUTRAL_CACHES
 void SLiMSim::CollectSLiMguiMutationProfileInfo(void)
 {
+	// maintain our history of the number of mutruns per genome and the nonneutral regime
 	profile_mutcount_history_.push_back(chromosome_.mutrun_count_);
 	profile_nonneutral_regime_history_.push_back(last_nonneutral_regime_);
 	
+	// track the maximum number of mutations in existence at one time
+	profile_max_mutation_index_ = std::max(profile_max_mutation_index_, (int64_t)(population_.mutation_registry_.size()));
+	
+	// tally up the number of mutation runs, mutation usage metrics, etc.
 	int64_t operation_id = ++gSLiM_MutationRun_OperationID;
 	
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)

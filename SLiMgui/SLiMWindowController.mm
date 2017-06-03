@@ -1550,6 +1550,9 @@
 		[content eidosAppendString:[NSString stringWithFormat:@"%0.2f%%", ((sim->profile_mutation_total_usage_ - sim->profile_nonneutral_mutation_total_) / (double)sim->profile_mutation_total_usage_) * 100.0] attributes:menlo11_d];
 		[content eidosAppendString:@" of mutations excluded from fitness calculations\n" attributes:optima13_d];
 		
+		[content eidosAppendString:[NSString stringWithFormat:@"%lld", sim->profile_max_mutation_index_] attributes:menlo11_d];
+		[content eidosAppendString:@" maximum simultaneous mutations\n" attributes:optima13_d];
+		
 		
 		[content eidosAppendString:@"\n" attributes:optima13_d];
 		
@@ -1669,6 +1672,7 @@
 	sim->profile_mutrun_total_usage_ = 0;
 	sim->profile_unique_mutrun_total_ = 0;
 	sim->profile_mutrun_nonneutral_recache_total_ = 0;
+	sim->profile_max_mutation_index_ = 0;
 #endif
 }
 

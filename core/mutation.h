@@ -37,8 +37,15 @@
 
 extern EidosObjectClass *gSLiM_Mutation_Class;
 
-typedef int32_t MutationIndex;		// an index into gSLiM_Mutation_Block (see below); used as, in effect, a Mutation *, but 32-bit
-									// type int32_t is used instead of uint32_t so that -1 can be used as a "null pointer"
+// A MutationIndex is an index into gSLiM_Mutation_Block (see below); it is used as, in effect, a Mutation *, but is 32-bit.
+// Note that type int32_t is used instead of uint32_t so that -1 can be used as a "null pointer"; perhaps UINT32_MAX would be
+// better, but on the other hand using int32_t has the virtue that if we run out of room we will probably crash hard rather
+// than perhaps just silently overrunning gSLiM_Mutation_Block with mysterious memory corruption bugs that are hard to catch.
+// For small simulations, defining this as int16_t instead can produce a substantial speedup (as much as 25%), but there are no
+// safeguards in the code to check for running out of indices, so doing that is quite dangerous at present.  A way to make
+// simulations switch from 16-bit to 32-bit at runtime, to get that speedup when possible, would be nice but in practice is very
+// difficult to code since MutationRun's internal buffer of MutationIndex is accessible and used directly by many clients.
+typedef int32_t MutationIndex;
 
 // forward declaration of Mutation block allocation; see bottom of header
 class Mutation;
