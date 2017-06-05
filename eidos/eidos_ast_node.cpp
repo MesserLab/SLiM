@@ -460,13 +460,13 @@ void EidosASTNode::ZeroProfileTotals(void) const
 	profile_total_ = 0;
 }
 
-clock_t EidosASTNode::ConvertProfileTotalsToSelfCounts(void) const
+eidos_profile_t EidosASTNode::ConvertProfileTotalsToSelfCounts(void) const
 {
 	// convert profile counts in the tree to self counts, excluding time spent in children
 	if (profile_total_)
 	{
 		// Nodes with a non-zero count return their count as their total, and exclude their children
-		clock_t result = profile_total_;
+		eidos_profile_t result = profile_total_;
 		
 		for (const EidosASTNode *child : children_)
 			profile_total_ -= child->ConvertProfileTotalsToSelfCounts();
@@ -476,7 +476,7 @@ clock_t EidosASTNode::ConvertProfileTotalsToSelfCounts(void) const
 	else
 	{
 		// Nodes with a zero count have a zero self count, and report the total of their children
-		clock_t result = 0;
+		eidos_profile_t result = 0;
 		
 		for (const EidosASTNode *child : children_)
 			result += child->ConvertProfileTotalsToSelfCounts();
@@ -485,9 +485,9 @@ clock_t EidosASTNode::ConvertProfileTotalsToSelfCounts(void) const
 	}
 }
 
-clock_t EidosASTNode::TotalOfSelfCounts(void) const
+eidos_profile_t EidosASTNode::TotalOfSelfCounts(void) const
 {
-	clock_t total = profile_total_;
+	eidos_profile_t total = profile_total_;
 	
 	for (const EidosASTNode *child : children_)
 		total += child->TotalOfSelfCounts();

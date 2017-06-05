@@ -1237,7 +1237,8 @@
 	NSString *startDateString = [NSDateFormatter localizedStringFromDate:continuousPlayStartDate dateStyle:NSDateFormatterShortStyle timeStyle:NSDateFormatterMediumStyle];
 	NSString *endDateString = [NSDateFormatter localizedStringFromDate:profileEndDate dateStyle:NSDateFormatterShortStyle timeStyle:NSDateFormatterMediumStyle];
 	NSTimeInterval elapsedWallClockTime = [profileEndDate timeIntervalSinceDate:continuousPlayStartDate];
-	double elapsedCPUTime = profileElapsedClock / (double)CLOCKS_PER_SEC;
+	double elapsedCPUTimeInSLiM = profileElapsedCPUClock / (double)CLOCKS_PER_SEC;
+	double elapsedWallClockTimeInSLiM = Eidos_ElapsedProfileTime(profileElapsedWallClock);
 	
 	[content eidosAppendString:@"Profile Report\n" attributes:@{NSFontAttributeName : optima18b}];
 	[content eidosAppendString:@"\n" attributes:optima3_d];
@@ -1250,28 +1251,34 @@
 	[content eidosAppendString:@"\n" attributes:optima8_d];
 	
 	[content eidosAppendString:[NSString stringWithFormat:@"Elapsed wall clock time: %0.2f s\n", (double)elapsedWallClockTime] attributes:optima13_d];
-	[content eidosAppendString:[NSString stringWithFormat:@"Elapsed CPU time inside SLiM core: %0.2f s\n", (double)elapsedCPUTime] attributes:optima13_d];
+	[content eidosAppendString:[NSString stringWithFormat:@"Elapsed wall clock time inside SLiM core (corrected): %0.2f s\n", (double)elapsedWallClockTimeInSLiM] attributes:optima13_d];
+	[content eidosAppendString:[NSString stringWithFormat:@"Elapsed CPU time inside SLiM core (uncorrected): %0.2f s\n", (double)elapsedCPUTimeInSLiM] attributes:optima13_d];
 	[content eidosAppendString:[NSString stringWithFormat:@"Elapsed generations: %d%@\n", (int)continuousPlayGenerationsCompleted, (profileStartGeneration == 0) ? @" (including initialize)" : @""] attributes:optima13_d];
+	[content eidosAppendString:@"\n" attributes:optima8_d];
+	
+	[content eidosAppendString:[NSString stringWithFormat:@"Profile block external overhead: %0.2f ticks (%0.4g s)\n", gEidos_ProfileOverheadTicks, gEidos_ProfileOverheadSeconds] attributes:optima13_d];
+	[content eidosAppendString:[NSString stringWithFormat:@"Profile block internal lag: %0.2f ticks (%0.4g s)\n", gEidos_ProfileLagTicks, gEidos_ProfileLagSeconds] attributes:optima13_d];
 	
 	
 	//
 	//	Generation stage breakdown
 	//
+	if (elapsedWallClockTimeInSLiM > 0.0)
 	{
-		double elapsedStage0Time = sim->profile_stage_totals_[0] / (double)CLOCKS_PER_SEC;
-		double elapsedStage1Time = sim->profile_stage_totals_[1] / (double)CLOCKS_PER_SEC;
-		double elapsedStage2Time = sim->profile_stage_totals_[2] / (double)CLOCKS_PER_SEC;
-		double elapsedStage3Time = sim->profile_stage_totals_[3] / (double)CLOCKS_PER_SEC;
-		double elapsedStage4Time = sim->profile_stage_totals_[4] / (double)CLOCKS_PER_SEC;
-		double elapsedStage5Time = sim->profile_stage_totals_[5] / (double)CLOCKS_PER_SEC;
-		double elapsedStage6Time = sim->profile_stage_totals_[6] / (double)CLOCKS_PER_SEC;
-		double percentStage0 = (elapsedStage0Time / elapsedCPUTime) * 100.0;
-		double percentStage1 = (elapsedStage1Time / elapsedCPUTime) * 100.0;
-		double percentStage2 = (elapsedStage2Time / elapsedCPUTime) * 100.0;
-		double percentStage3 = (elapsedStage3Time / elapsedCPUTime) * 100.0;
-		double percentStage4 = (elapsedStage4Time / elapsedCPUTime) * 100.0;
-		double percentStage5 = (elapsedStage5Time / elapsedCPUTime) * 100.0;
-		double percentStage6 = (elapsedStage6Time / elapsedCPUTime) * 100.0;
+		double elapsedStage0Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[0]);
+		double elapsedStage1Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[1]);
+		double elapsedStage2Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[2]);
+		double elapsedStage3Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[3]);
+		double elapsedStage4Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[4]);
+		double elapsedStage5Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[5]);
+		double elapsedStage6Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[6]);
+		double percentStage0 = (elapsedStage0Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentStage1 = (elapsedStage1Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentStage2 = (elapsedStage2Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentStage3 = (elapsedStage3Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentStage4 = (elapsedStage4Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentStage5 = (elapsedStage5Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentStage6 = (elapsedStage6Time / elapsedWallClockTimeInSLiM) * 100.0;
 		int fw = 4;
 		
 		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedStage0Time))));
@@ -1311,25 +1318,26 @@
 	//
 	//	Callback type breakdown
 	//
+	if (elapsedWallClockTimeInSLiM > 0.0)
 	{
-		double elapsedType0Time = sim->profile_callback_totals_[0] / (double)CLOCKS_PER_SEC;
-		double elapsedType1Time = sim->profile_callback_totals_[1] / (double)CLOCKS_PER_SEC;
-		double elapsedType2Time = sim->profile_callback_totals_[2] / (double)CLOCKS_PER_SEC;
-		double elapsedType3Time = sim->profile_callback_totals_[3] / (double)CLOCKS_PER_SEC;
-		double elapsedType4Time = sim->profile_callback_totals_[4] / (double)CLOCKS_PER_SEC;
-		double elapsedType5Time = sim->profile_callback_totals_[5] / (double)CLOCKS_PER_SEC;
-		double elapsedType6Time = sim->profile_callback_totals_[6] / (double)CLOCKS_PER_SEC;
-		double elapsedType7Time = sim->profile_callback_totals_[7] / (double)CLOCKS_PER_SEC;
-		double elapsedType8Time = sim->profile_callback_totals_[8] / (double)CLOCKS_PER_SEC;
-		double percentType0 = (elapsedType0Time / elapsedCPUTime) * 100.0;
-		double percentType1 = (elapsedType1Time / elapsedCPUTime) * 100.0;
-		double percentType2 = (elapsedType2Time / elapsedCPUTime) * 100.0;
-		double percentType3 = (elapsedType3Time / elapsedCPUTime) * 100.0;
-		double percentType4 = (elapsedType4Time / elapsedCPUTime) * 100.0;
-		double percentType5 = (elapsedType5Time / elapsedCPUTime) * 100.0;
-		double percentType6 = (elapsedType6Time / elapsedCPUTime) * 100.0;
-		double percentType7 = (elapsedType7Time / elapsedCPUTime) * 100.0;
-		double percentType8 = (elapsedType8Time / elapsedCPUTime) * 100.0;
+		double elapsedType0Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[0]);
+		double elapsedType1Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[1]);
+		double elapsedType2Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[2]);
+		double elapsedType3Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[3]);
+		double elapsedType4Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[4]);
+		double elapsedType5Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[5]);
+		double elapsedType6Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[6]);
+		double elapsedType7Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[7]);
+		double elapsedType8Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[8]);
+		double percentType0 = (elapsedType0Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentType1 = (elapsedType1Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentType2 = (elapsedType2Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentType3 = (elapsedType3Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentType4 = (elapsedType4Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentType5 = (elapsedType5Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentType6 = (elapsedType6Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentType7 = (elapsedType7Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentType8 = (elapsedType8Time / elapsedWallClockTimeInSLiM) * 100.0;
 		int fw = 4, fw2 = 4;
 		
 		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedType0Time))));
@@ -1388,7 +1396,7 @@
 	//
 	//	Script block profiles
 	//
-	if (elapsedCPUTime > 0.0)
+	if (elapsedWallClockTimeInSLiM > 0.0)
 	{
 		{
 			std::vector<SLiMEidosBlock*> &script_blocks = sim->AllScriptBlocks();
@@ -1399,7 +1407,7 @@
 		}
 		{
 			[content eidosAppendString:@"\n" attributes:optima13_d];
-			[content eidosAppendString:@"Script block profiles (as a fraction of total CPU time)\n" attributes:optima14b_d];
+			[content eidosAppendString:@"Script block profiles (as a fraction of corrected wall clock time)\n" attributes:optima14b_d];
 			[content eidosAppendString:@"\n" attributes:optima3_d];
 			
 			std::vector<SLiMEidosBlock*> &script_blocks = sim->AllScriptBlocks();
@@ -1408,8 +1416,8 @@
 			for (SLiMEidosBlock *script_block : script_blocks)
 			{
 				const EidosASTNode *profile_root = script_block->root_node_;
-				double total_block_time = profile_root->TotalOfSelfCounts() / (double)CLOCKS_PER_SEC;	// relies on ConvertProfileTotalsToSelfCounts() being called above!
-				double percent_block_time = (total_block_time / elapsedCPUTime) * 100.0;
+				double total_block_time = Eidos_ElapsedProfileTime(profile_root->TotalOfSelfCounts());	// relies on ConvertProfileTotalsToSelfCounts() being called above!
+				double percent_block_time = (total_block_time / elapsedWallClockTimeInSLiM) * 100.0;
 				
 				if ((total_block_time >= 0.01) || (percent_block_time >= 0.01))
 				{
@@ -1421,7 +1429,7 @@
 					NSString *script_string = [NSString stringWithUTF8String:script_std_string.c_str()];
 					NSMutableAttributedString *scriptAttrString = [[NSMutableAttributedString alloc] initWithString:script_string attributes:menlo11_d];
 					
-					[self colorScript:scriptAttrString withProfileCountsFromNode:profile_root elapsedCPU:elapsedCPUTime baseIndex:profile_root->token_->token_UTF16_start_];
+					[self colorScript:scriptAttrString withProfileCountsFromNode:profile_root elapsedTime:elapsedWallClockTimeInSLiM baseIndex:profile_root->token_->token_UTF16_start_];
 					
 					[content eidosAppendString:[NSString stringWithFormat:@"%0.2f s (%0.2f%%):\n", total_block_time, percent_block_time] attributes:menlo11_d];
 					[content eidosAppendString:@"\n" attributes:optima3_d];
@@ -1436,13 +1444,13 @@
 			{
 				[content eidosAppendString:@"\n" attributes:menlo11_d];
 				[content eidosAppendString:@"\n" attributes:optima3_d];
-				[content eidosAppendString:@"(blocks using < 0.01 s and < 0.01%% of total CPU time are not shown)" attributes:optima13i_d];
+				[content eidosAppendString:@"(blocks using < 0.01 s and < 0.01% of total wall clock time are not shown)" attributes:optima13i_d];
 			}
 		}
 		{
 			[content eidosAppendString:@"\n" attributes:menlo11_d];
 			[content eidosAppendString:@"\n" attributes:optima13_d];
-			[content eidosAppendString:@"Script block profiles (as a fraction of CPU time within each block)\n" attributes:optima14b_d];
+			[content eidosAppendString:@"Script block profiles (as a fraction of within-block wall clock time)\n" attributes:optima14b_d];
 			[content eidosAppendString:@"\n" attributes:optima3_d];
 			
 			std::vector<SLiMEidosBlock*> &script_blocks = sim->AllScriptBlocks();
@@ -1451,8 +1459,8 @@
 			for (SLiMEidosBlock *script_block : script_blocks)
 			{
 				const EidosASTNode *profile_root = script_block->root_node_;
-				double total_block_time = profile_root->TotalOfSelfCounts() / (double)CLOCKS_PER_SEC;	// relies on ConvertProfileTotalsToSelfCounts() being called above!
-				double percent_block_time = (total_block_time / elapsedCPUTime) * 100.0;
+				double total_block_time = Eidos_ElapsedProfileTime(profile_root->TotalOfSelfCounts());	// relies on ConvertProfileTotalsToSelfCounts() being called above!
+				double percent_block_time = (total_block_time / elapsedWallClockTimeInSLiM) * 100.0;
 				
 				if ((total_block_time >= 0.01) || (percent_block_time >= 0.01))
 				{
@@ -1465,7 +1473,7 @@
 					NSMutableAttributedString *scriptAttrString = [[NSMutableAttributedString alloc] initWithString:script_string attributes:menlo11_d];
 					
 					if (total_block_time > 0.0)
-						[self colorScript:scriptAttrString withProfileCountsFromNode:profile_root elapsedCPU:total_block_time baseIndex:profile_root->token_->token_UTF16_start_];
+						[self colorScript:scriptAttrString withProfileCountsFromNode:profile_root elapsedTime:total_block_time baseIndex:profile_root->token_->token_UTF16_start_];
 					
 					[content eidosAppendString:[NSString stringWithFormat:@"%0.2f s (%0.2f%%):\n", total_block_time, percent_block_time] attributes:menlo11_d];
 					[content eidosAppendString:@"\n" attributes:optima3_d];
@@ -1480,7 +1488,7 @@
 			{
 				[content eidosAppendString:@"\n" attributes:menlo11_d];
 				[content eidosAppendString:@"\n" attributes:optima3_d];
-				[content eidosAppendString:@"(blocks using < 0.01 s and < 0.01%% of total CPU time are not shown)" attributes:optima13i_d];
+				[content eidosAppendString:@"(blocks using < 0.01 s and < 0.01% of total wall clock time are not shown)" attributes:optima13i_d];
 			}
 		}
 	}
@@ -1586,10 +1594,10 @@
 	profileTextView = nil;
 }
 
-- (void)colorScript:(NSMutableAttributedString *)script withProfileCountsFromNode:(const EidosASTNode *)node elapsedCPU:(double)elapsedCPUTime baseIndex:(int32_t)baseIndex
+- (void)colorScript:(NSMutableAttributedString *)script withProfileCountsFromNode:(const EidosASTNode *)node elapsedTime:(double)elapsedTime baseIndex:(int32_t)baseIndex
 {
 	// First color the range for this node
-	clock_t count = node->profile_total_;
+	eidos_profile_t count = node->profile_total_;
 	
 	if (count > 0)
 	{
@@ -1602,14 +1610,14 @@
 		
 		NSRange range = NSMakeRange(start, end - start + 1);
 		
-		NSColor *backgroundColor = [self colorForTimeFraction:(count / (double)CLOCKS_PER_SEC) / elapsedCPUTime];
+		NSColor *backgroundColor = [self colorForTimeFraction:Eidos_ElapsedProfileTime(count) / elapsedTime];
 		
 		[script addAttribute:NSBackgroundColorAttributeName value:backgroundColor range:range];
 	}
 	
 	// Then let child nodes color
 	for (const EidosASTNode *child : node->children_)
-		[self colorScript:script withProfileCountsFromNode:child elapsedCPU:elapsedCPUTime baseIndex:baseIndex];
+		[self colorScript:script withProfileCountsFromNode:child elapsedTime:elapsedTime baseIndex:baseIndex];
 }
 
 #define SLIM_YELLOW_FRACTION 0.10
@@ -1631,7 +1639,12 @@
 
 - (void)startProfiling
 {
-	profileElapsedClock = 0;
+	// prepare for profiling by measuring profile block overhead and lag
+	Eidos_PrepareForProfiling();
+	
+	// initialize counters
+	profileElapsedCPUClock = 0;
+	profileElapsedWallClock = 0;
 	profileStartGeneration = sim->Generation();
 	
 	// call this first, which has the side effect of emptying out any pending profile counts
@@ -1697,13 +1710,17 @@
 	
 	if (profilePlayOn)
 	{
-		clock_t startClock = clock();
+		// We put the wall clock measurements on the inside since we want those to be maximally accurate,
+		// as profile report percentages are fractions of the total elapsed wall clock time.
+		clock_t startCPUClock = clock();
+		SLIM_PROFILE_BLOCK_START();
 		
 		stillRunning = sim->RunOneGeneration();
 		
-		clock_t endClock = clock();
+		SLIM_PROFILE_BLOCK_END(profileElapsedWallClock);
+		clock_t endCPUClock = clock();
 		
-		profileElapsedClock += (endClock - startClock);
+		profileElapsedCPUClock += (endCPUClock - startCPUClock);
 	}
 	else
 	{
@@ -1942,7 +1959,7 @@
 		// prepare profiling information if necessary
 		if (isProfileAction)
 		{
-			gEidosProfilingCount++;
+			gEidosProfilingClientCount++;
 			[self startProfiling];
 		}
 #endif
@@ -1960,7 +1977,7 @@
 		if (isProfileAction && sim && !invalidSimulation)
 		{
 			[self endProfiling];
-			gEidosProfilingCount--;
+			gEidosProfilingClientCount--;
 		}
 #endif
 		

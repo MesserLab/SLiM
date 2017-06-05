@@ -100,8 +100,8 @@ public:
 
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
-	clock_t profile_stage_totals_[7];												// profiling clocks; index 0 is initialize(), the rest follow SLiMGenerationStage
-	clock_t profile_callback_totals_[9];											// profiling clocks; these follow SLiMEidosBlockType
+	eidos_profile_t profile_stage_totals_[7];										// profiling clocks; index 0 is initialize(), the rest follow SLiMGenerationStage
+	eidos_profile_t profile_callback_totals_[9];									// profiling clocks; these follow SLiMEidosBlockType
 #if SLIM_USE_NONNEUTRAL_CACHES
 	std::vector<int32_t> profile_mutcount_history_;									// a record of the mutation run count used in each generation
 	std::vector<int32_t> profile_nonneutral_regime_history_;						// a record of the nonneutral regime used in each generation

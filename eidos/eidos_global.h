@@ -27,6 +27,10 @@
 #include <vector>
 #include <string>
 
+#if ((defined(SLIMGUI) && (SLIMPROFILING == 1)) || defined(EIDOS_GUI))
+#include <mach/mach_time.h>		// for mach_absolute_time(), for profiling; needed only in SLiMgui and the Eidos GUI (the latter for the timing test code)
+#endif
+
 class EidosScript;
 class EidosToken;
 
@@ -106,10 +110,89 @@ void EidosCheckRSSAgainstMax(std::string p_message1, std::string p_message2);
 //	Profiling suuport
 //
 
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if ((defined(SLIMGUI) && (SLIMPROFILING == 1)) || defined(EIDOS_GUI))
 // PROFILING
 
-extern int gEidosProfilingCount;	// if non-zero, profiling is happening in some context
+extern int gEidosProfilingClientCount;	// if non-zero, profiling is happening in some context
+
+// Profiling clocks; note that these can overflow, we don't care, only (t2-t1) ever matters and that is overflow-robust
+
+// This is the fastest clock, is available across OS X versions, and gives us nanoseconds.  The only disadvantage to
+// it is that it is platform-specific, so we can only use this clock in SLiMgui and Eidos_GUI.  That is OK.  This
+// returns uint64_t in CPU-specific time units; see https://developer.apple.com/library/content/qa/qa1398/_index.html
+typedef uint64_t eidos_profile_t;
+
+extern uint64_t gEidos_ProfileCounter;			// incremented by Eidos_ProfileTime() every time it is called
+extern double gEidos_ProfileOverheadTicks;		// the overhead in ticks for one profile call, in ticks
+extern double gEidos_ProfileOverheadSeconds;	// the overhead in ticks for one profile call, in seconds
+extern double gEidos_ProfileLagTicks;			// the clocked length of an empty profile block, in ticks
+extern double gEidos_ProfileLagSeconds;			// the clocked length of an empty profile block, in seconds
+
+// Get a profile clock measurement, to be used as a start or end time
+inline eidos_profile_t Eidos_ProfileTime(void) { gEidos_ProfileCounter++; return mach_absolute_time(); }
+
+// Convert an elapsed profiling time (the difference between two Eidos_ProfileTime() results) to seconds
+double Eidos_ElapsedProfileTime(uint64_t p_elapsed_profile_time);
+
+// This should be called immediately before profiling to measure the overhead and lag for profile blocks
+void Eidos_PrepareForProfiling(void);
+
+// Macros for profile blocks
+#define	SLIM_PROFILE_BLOCK_START()																																			\
+	bool slim__condition_a = (gEidosProfilingClientCount ? true : false);																									\
+	eidos_profile_t slim__start_clock = (slim__condition_a ? Eidos_ProfileTime() : 0);																						\
+	uint64_t slim__start_profile_counter = (slim__condition_a ? gEidos_ProfileCounter : 0);
+
+#define	SLIM_PROFILE_BLOCK_START_NESTED()																																	\
+	eidos_profile_t slim__start_clock2 = (slim__condition_a ? Eidos_ProfileTime() : 0);																						\
+	uint64_t slim__start_profile_counter2 = (slim__condition_a ? gEidos_ProfileCounter : 0);
+
+#define	SLIM_PROFILE_BLOCK_START_CONDITION(slim__condition_param)																											\
+	bool slim__condition_b = gEidosProfilingClientCount && (slim__condition_param);																							\
+	eidos_profile_t slim__start_clock = (slim__condition_b ? Eidos_ProfileTime() : 0);																						\
+	uint64_t slim__start_profile_counter = (slim__condition_b ? gEidos_ProfileCounter : 0);
+
+#define SLIM_PROFILE_BLOCK_END(slim__accumulator)																															\
+	if (slim__condition_a)																																					\
+	{																																										\
+		uint64_t slim__end_profile_counter = gEidos_ProfileCounter;																											\
+		uint64_t slim__contained_profile_calls = slim__end_profile_counter - slim__start_profile_counter;																	\
+		eidos_profile_t slim__end_clock = Eidos_ProfileTime();																												\
+																																											\
+		uint64_t slim__uncorrected_ticks = (slim__end_clock - slim__start_clock);																							\
+		uint64_t slim__correction = (eidos_profile_t)round(gEidos_ProfileLagTicks + gEidos_ProfileOverheadTicks * slim__contained_profile_calls);							\
+		uint64_t slim__corrected_ticks = ((slim__correction < slim__uncorrected_ticks) ? (slim__uncorrected_ticks - slim__correction) : 0);									\
+																																											\
+		(slim__accumulator) += slim__corrected_ticks;																														\
+	}
+
+#define SLIM_PROFILE_BLOCK_END_NESTED(slim__accumulator)																													\
+	if (slim__condition_a)																																					\
+	{																																										\
+		uint64_t slim__end_profile_counter2 = gEidos_ProfileCounter;																										\
+		uint64_t slim__contained_profile_calls2 = slim__end_profile_counter2 - slim__start_profile_counter2;																\
+		eidos_profile_t slim__end_clock2 = Eidos_ProfileTime();																												\
+																																											\
+		uint64_t slim__uncorrected_ticks2 = (slim__end_clock2 - slim__start_clock2);																						\
+		uint64_t slim__correction2 = (eidos_profile_t)round(gEidos_ProfileLagTicks + gEidos_ProfileOverheadTicks * slim__contained_profile_calls2);							\
+		uint64_t slim__corrected_ticks2 = ((slim__correction2 < slim__uncorrected_ticks2) ? (slim__uncorrected_ticks2 - slim__correction2) : 0);							\
+																																											\
+		(slim__accumulator) += slim__corrected_ticks2;																														\
+	}
+
+#define SLIM_PROFILE_BLOCK_END_CONDITION(slim__accumulator)																													\
+	if (slim__condition_b)																																					\
+	{																																										\
+		uint64_t slim__end_profile_counter = gEidos_ProfileCounter;																											\
+		uint64_t slim__contained_profile_calls = slim__end_profile_counter - slim__start_profile_counter;																	\
+		eidos_profile_t slim__end_clock = Eidos_ProfileTime();																												\
+																																											\
+		uint64_t slim__uncorrected_ticks = (slim__end_clock - slim__start_clock);																							\
+		uint64_t slim__correction = (eidos_profile_t)round(gEidos_ProfileLagTicks + gEidos_ProfileOverheadTicks * slim__contained_profile_calls);							\
+		uint64_t slim__corrected_ticks = ((slim__correction < slim__uncorrected_ticks) ? (slim__uncorrected_ticks - slim__correction) : 0);									\
+																																											\
+		(slim__accumulator) += slim__corrected_ticks;																														\
+	}
 
 #endif
 

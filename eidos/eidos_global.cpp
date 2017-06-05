@@ -58,10 +58,87 @@ bool eidos_do_memory_checks = true;
 EidosSymbolTable *gEidosConstantsSymbolTable = nullptr;
 
 
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if ((defined(SLIMGUI) && (SLIMPROFILING == 1)) || defined(EIDOS_GUI))
 // PROFILING
 
-int gEidosProfilingCount = 0;
+int gEidosProfilingClientCount = 0;
+
+uint64_t gEidos_ProfileCounter;
+double gEidos_ProfileOverheadTicks;
+double gEidos_ProfileOverheadSeconds;
+double gEidos_ProfileLagTicks;
+double gEidos_ProfileLagSeconds;
+
+#include <mach/mach.h>
+#include <mach/mach_time.h>
+
+double Eidos_ElapsedProfileTime(uint64_t p_elapsed_profile_time)
+{
+	// Eidos_ProfileTime() calls out to mach_absolute_time() at present.  It returns uint64_t, and the client would
+	// then collect a start and end clock, subtract (end - start), and pass the result to this function to convert to
+	// seconds as a double.  Interestingly, mach_absolute_time() uses CPU-specific units; we are close to the metal
+	// here, which is why it is about twice as fast as other clock functions.  To convert a duration from CPU units,
+	// we have to jump through a few hoops; see https://developer.apple.com/library/content/qa/qa1398/_index.html
+	
+	// If this is the first time we've run, get the timebase.  We can use denom == 0 to indicate that sTimebaseInfo
+	// is uninitialised because it makes no sense to have a zero denominator in a fraction.
+	static mach_timebase_info_data_t    sTimebaseInfo;
+	static double timebaseRatio;
+	
+	if (sTimebaseInfo.denom == 0)
+	{
+		(void)mach_timebase_info(&sTimebaseInfo);
+		
+		// this ratio will convert from CPU time units to nanoseconds, AND from nanoseconds to seconds
+		timebaseRatio = (sTimebaseInfo.numer / (double)sTimebaseInfo.denom) / 1000000000.0;
+	}
+	
+	return p_elapsed_profile_time * timebaseRatio;
+}
+
+static eidos_profile_t gEidos_ProfilePrep_Ticks;
+
+void Eidos_PrepareForProfiling(void)
+{
+	// Prepare for profiling by measuring the overhead due to a profiling block itself
+	// We will subtract out this overhead each time we use a profiling block, to compensate
+	gEidos_ProfilePrep_Ticks = 0;
+	gEidosProfilingClientCount++;
+	
+	gEidos_ProfileOverheadTicks = 0;
+	gEidos_ProfileOverheadSeconds = 0;
+	
+	gEidos_ProfileLagTicks = 0;
+	gEidos_ProfileLagSeconds = 0;
+	
+	eidos_profile_t clock1 = Eidos_ProfileTime();
+	
+	for (int i = 0; i < 1000000; ++i)
+	{
+		// Each iteration of this loop is meant to represent the overhead for one profiling block
+		// Profiling blocks should all follow this structure for accuracy, even when it is overkill
+		SLIM_PROFILE_BLOCK_START();
+		
+		;		// a null statement, so the measured execution time of this block should be zero
+		
+		SLIM_PROFILE_BLOCK_END(gEidos_ProfilePrep_Ticks);		// we use a global because real profile blocks will use a global
+	}
+	
+	eidos_profile_t clock2 = Eidos_ProfileTime();
+	
+	gEidosProfilingClientCount--;
+	
+	eidos_profile_t profile_overhead_ticks = clock2 - clock1;
+	
+	gEidos_ProfileOverheadTicks = profile_overhead_ticks / 2000000.0;	// two increments of the profile counter per block
+	gEidos_ProfileOverheadSeconds = Eidos_ElapsedProfileTime(profile_overhead_ticks) / 2000000.0;
+	
+	gEidos_ProfileLagTicks = gEidos_ProfilePrep_Ticks / 1000000.0;
+	gEidos_ProfileLagSeconds = Eidos_ElapsedProfileTime(gEidos_ProfilePrep_Ticks) / 1000000.0;
+	
+	//std::cout << "Profile overhead external to block: " << gEidos_ProfileOverhead_double << " ticks, " << gEidos_ProfileOverheadSeconds << " seconds" << std::endl;
+	//std::cout << "Profile lag internal to block: " << gEidos_ProfileLag_double << " ticks, " << gEidos_ProfileLagSeconds << " seconds" << std::endl;
+}
 
 #endif
 

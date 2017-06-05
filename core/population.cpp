@@ -295,7 +295,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 {
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
-	clock_t clock_callback0 = (gEidosProfilingCount ? clock() : 0);
+	SLIM_PROFILE_BLOCK_START();
 #endif
 	
 	// We start out using standard weights taken from the source subpopulation.  If, when we are done handling callbacks, we are still
@@ -467,8 +467,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 				
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 				// PROFILING
-				if (gEidosProfilingCount)
-					sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)] += (clock() - clock_callback0);
+				SLIM_PROFILE_BLOCK_END(sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)]);
 #endif
 				
 				return -1;
@@ -492,8 +491,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
-		if (gEidosProfilingCount)
-			sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)] += (clock() - clock_callback0);
+		SLIM_PROFILE_BLOCK_END(sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)]);
 #endif
 		
 		return drawn_parent;
@@ -535,8 +533,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 			
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 			// PROFILING
-			if (gEidosProfilingCount)
-				sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)] += (clock() - clock_callback0);
+			SLIM_PROFILE_BLOCK_END(sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)]);
 #endif
 			
 			return -1;
@@ -586,8 +583,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
-		if (gEidosProfilingCount)
-			sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)] += (clock() - clock_callback0);
+		SLIM_PROFILE_BLOCK_END(sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)]);
 #endif
 		
 		return drawn_parent;
@@ -595,8 +591,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
-	if (gEidosProfilingCount)
-		sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)] += (clock() - clock_callback0);
+	SLIM_PROFILE_BLOCK_END(sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)]);
 #endif
 	
 	// The standard behavior, with no active callbacks, is to draw a male parent using the standard fitness values
@@ -608,7 +603,7 @@ bool Population::ApplyModifyChildCallbacks(slim_popsize_t p_child_index, Individ
 {
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
-	clock_t clock_callback0 = (gEidosProfilingCount ? clock() : 0);
+	SLIM_PROFILE_BLOCK_START();
 #endif
 	
 	for (SLiMEidosBlock *modify_child_callback : p_modify_child_callbacks)
@@ -721,8 +716,7 @@ bool Population::ApplyModifyChildCallbacks(slim_popsize_t p_child_index, Individ
 				{
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 					// PROFILING
-					if (gEidosProfilingCount)
-						sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosModifyChildCallback)] += (clock() - clock_callback0);
+					SLIM_PROFILE_BLOCK_END(sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosModifyChildCallback)]);
 #endif
 					
 					return false;
@@ -740,8 +734,7 @@ bool Population::ApplyModifyChildCallbacks(slim_popsize_t p_child_index, Individ
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
-	if (gEidosProfilingCount)
-		sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosModifyChildCallback)] += (clock() - clock_callback0);
+	SLIM_PROFILE_BLOCK_END(sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosModifyChildCallback)]);
 #endif
 	
 	return true;
@@ -1631,7 +1624,7 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 {
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
-	clock_t clock_callback0 = (gEidosProfilingCount ? clock() : 0);
+	SLIM_PROFILE_BLOCK_START();
 #endif
 	
 	bool crossovers_changed = false, gcstarts_changed = false, gcends_changed = false;
@@ -1812,8 +1805,7 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
-	if (gEidosProfilingCount)
-		sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosRecombinationCallback)] += (clock() - clock_callback0);
+	SLIM_PROFILE_BLOCK_END(sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosRecombinationCallback)]);
 #endif
 	
 	return breakpoints_changed;

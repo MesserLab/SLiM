@@ -32,6 +32,13 @@
 #include <stdexcept>
 #include <limits>
 
+#if ((defined(SLIMGUI) && (SLIMPROFILING == 1)) || defined(EIDOS_GUI))
+// includes for the timing code in RunEidosTests(), which is normally #if 0
+#include "sys/time.h"	// for gettimeofday()
+#include <chrono>
+#include <mach/mach_time.h>
+#endif
+
 
 using std::string;
 using std::vector;
@@ -561,6 +568,332 @@ void RunEidosTests(void)
 			std::cout << "mu " << mu << " T " << type << ": total = " << total << ", time == " << (end_time - start_time) << std::endl;
 		}
 	}
+#endif
+	
+#if 0
+	// Speed tests of different timing methods; we need a very fast method for profiling
+	// Note that the total_time variables are meaningless; they are just thunks to force the code to include the overhead of understanding the results of the calls
+	
+	// clock()
+	{
+		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		int64_t total_time = 0;
+		
+		for (int i = 0; i < 10000000; ++i)
+			total_time += clock();
+		
+		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		
+		std::cout << "10000000 calls to clock(): time == " << (end_time - start_time) << ", total_time == " << (total_time / CLOCKS_PER_SEC) << std::endl;
+	}
+	
+	// gettimeofday()
+	{
+		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		struct timeval timer;
+		int64_t total_time = 0;
+		
+		for (int i = 0; i < 10000000; ++i)
+		{
+			gettimeofday(&timer, NULL);
+			
+			total_time += ((int64_t)timer.tv_sec) * 1000000 + timer.tv_usec;
+		}
+		
+		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		
+		std::cout << "10000000 calls to gettimeofday(): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000.0) << std::endl;
+	}
+	
+	// clock_gettime(CLOCK_REALTIME, ...)
+	{
+		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		struct timespec timer;
+		int64_t total_time = 0;
+		
+		for (int i = 0; i < 10000000; ++i)
+		{
+			clock_gettime(CLOCK_REALTIME, &timer);
+			
+			total_time += ((int64_t)timer.tv_sec) * 1000000000 + timer.tv_nsec;
+		}
+		
+		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		
+		std::cout << "10000000 calls to clock_gettime(CLOCK_REALTIME, ...): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
+	}
+	
+	// clock_gettime(CLOCK_MONOTONIC_RAW, ...)
+	{
+		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		struct timespec timer;
+		int64_t total_time = 0;
+		
+		for (int i = 0; i < 10000000; ++i)
+		{
+			clock_gettime(CLOCK_MONOTONIC_RAW, &timer);
+			
+			total_time += ((int64_t)timer.tv_sec) * 1000000000 + timer.tv_nsec;
+		}
+		
+		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		
+		std::cout << "10000000 calls to clock_gettime(CLOCK_MONOTONIC_RAW, ...): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
+	}
+	
+	// clock_gettime(CLOCK_UPTIME_RAW, ...)
+	{
+		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		struct timespec timer;
+		int64_t total_time = 0;
+		
+		for (int i = 0; i < 10000000; ++i)
+		{
+			clock_gettime(CLOCK_UPTIME_RAW, &timer);
+			
+			total_time += ((int64_t)timer.tv_sec) * 1000000000 + timer.tv_nsec;
+		}
+		
+		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		
+		std::cout << "10000000 calls to clock_gettime(CLOCK_UPTIME_RAW, ...): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
+	}
+	
+	// clock_gettime(CLOCK_PROCESS_CPUTIME_ID, ...)
+	{
+		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		struct timespec timer;
+		int64_t total_time = 0;
+		
+		for (int i = 0; i < 10000000; ++i)
+		{
+			clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &timer);
+			
+			total_time += ((int64_t)timer.tv_sec) * 1000000000 + timer.tv_nsec;
+		}
+		
+		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		
+		std::cout << "10000000 calls to clock_gettime(CLOCK_PROCESS_CPUTIME_ID, ...): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
+	}
+	
+	// clock_gettime(CLOCK_THREAD_CPUTIME_ID, ...)
+	{
+		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		struct timespec timer;
+		int64_t total_time = 0;
+		
+		for (int i = 0; i < 10000000; ++i)
+		{
+			clock_gettime(CLOCK_THREAD_CPUTIME_ID, &timer);
+			
+			total_time += ((int64_t)timer.tv_sec) * 1000000000 + timer.tv_nsec;
+		}
+		
+		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		
+		std::cout << "10000000 calls to clock_gettime(CLOCK_THREAD_CPUTIME_ID, ...): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
+	}
+	
+	// std::chrono::high_resolution_clock::now()
+	{
+		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		int64_t total_time = 0;
+		
+		for (int i = 0; i < 10000000; ++i)
+		{
+			__attribute__((unused)) auto timer = std::chrono::high_resolution_clock::now();
+		}
+		
+		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		
+		std::cout << "10000000 calls to std::chrono::high_resolution_clock::now(): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
+	}
+	
+	// clock_gettime_nsec_np(CLOCK_REALTIME)
+	{
+		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		uint64_t total_time = 0;
+		
+		for (int i = 0; i < 10000000; ++i)
+		{
+			total_time += clock_gettime_nsec_np(CLOCK_REALTIME);
+		}
+		
+		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		
+		std::cout << "10000000 calls to clock_gettime_nsec_np(CLOCK_REALTIME): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
+	}
+	
+	// clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)
+	{
+		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		uint64_t total_time = 0;
+		
+		for (int i = 0; i < 10000000; ++i)
+		{
+			total_time += clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW);
+		}
+		
+		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		
+		std::cout << "10000000 calls to clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
+	}
+	
+	// clock_gettime_nsec_np(CLOCK_UPTIME_RAW)
+	{
+		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		uint64_t total_time = 0;
+		
+		for (int i = 0; i < 10000000; ++i)
+		{
+			total_time += clock_gettime_nsec_np(CLOCK_UPTIME_RAW);
+		}
+		
+		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		
+		std::cout << "10000000 calls to clock_gettime_nsec_np(CLOCK_UPTIME_RAW): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
+	}
+	
+	// clock_gettime_nsec_np(CLOCK_PROCESS_CPUTIME_ID)
+	{
+		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		uint64_t total_time = 0;
+		
+		for (int i = 0; i < 10000000; ++i)
+		{
+			total_time += clock_gettime_nsec_np(CLOCK_PROCESS_CPUTIME_ID);
+		}
+		
+		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		
+		std::cout << "10000000 calls to clock_gettime_nsec_np(CLOCK_PROCESS_CPUTIME_ID): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
+	}
+	
+	// clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)
+	{
+		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		uint64_t total_time = 0;
+		
+		for (int i = 0; i < 10000000; ++i)
+		{
+			total_time += clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID);
+		}
+		
+		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		
+		std::cout << "10000000 calls to clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
+	}
+	
+#if ((defined(SLIMGUI) && (SLIMPROFILING == 1)) || defined(EIDOS_GUI))
+	
+	// mach_absolute_time()
+	{
+		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		uint64_t total_time = 0;
+		
+		for (int i = 0; i < 10000000; ++i)
+		{
+			total_time += mach_absolute_time();
+		}
+		
+		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		
+		std::cout << "10000000 calls to mach_absolute_time(): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
+	}
+	
+	// mach_continuous_time()
+	{
+		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		uint64_t total_time = 0;
+		
+		for (int i = 0; i < 10000000; ++i)
+		{
+			total_time += mach_continuous_time();
+		}
+		
+		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		
+		std::cout << "10000000 calls to mach_continuous_time(): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
+	}
+	
+	// Eidos_ProfileTime()
+	{
+		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		uint64_t total_time = 0;
+		
+		for (int i = 0; i < 10000000; ++i)
+		{
+			total_time += Eidos_ProfileTime();
+		}
+		
+		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		
+		std::cout << "10000000 calls to Eidos_ProfileTime(): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
+	}
+	
+#endif
+	
+	/*
+	 
+	 Results:
+	 
+	 10000000 calls to clock(): time == 3.69977, total_time == 22539996
+	 10000000 calls to gettimeofday(): time == 0.427816, total_time == 5.16001e+12
+	 10000000 calls to clock_gettime(CLOCK_REALTIME, ...): time == 0.434227, total_time == -5.07085e+09
+	 10000000 calls to clock_gettime(CLOCK_MONOTONIC_RAW, ...): time == 0.46535, total_time == -8.45659e+09
+	 10000000 calls to clock_gettime(CLOCK_UPTIME_RAW, ...): time == 0.41903, total_time == -8.45214e+09
+	 10000000 calls to clock_gettime(CLOCK_PROCESS_CPUTIME_ID, ...): time == 3.53099, total_time == 7.62471e+07
+	 10000000 calls to clock_gettime(CLOCK_THREAD_CPUTIME_ID, ...): time == 1.66773, total_time == 1.01822e+08
+	 10000000 calls to std::chrono::high_resolution_clock::now(): time == 0.423068, total_time == 0
+	 10000000 calls to clock_gettime_nsec_np(CLOCK_REALTIME): time == 0.424018, total_time == 1.34453e+10
+	 10000000 calls to clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW): time == 0.415543, total_time == 1.00593e+10
+	 10000000 calls to clock_gettime_nsec_np(CLOCK_UPTIME_RAW): time == 0.357498, total_time == 1.00631e+10
+	 10000000 calls to clock_gettime_nsec_np(CLOCK_PROCESS_CPUTIME_ID): time == 3.51726, total_time == 1.44264e+08
+	 10000000 calls to clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID): time == 1.62355, total_time == 1.69689e+08
+	 10000000 calls to mach_absolute_time(): time == 0.203174, total_time == 1.01174e+10
+	 10000000 calls to mach_continuous_time(): time == 0.2646, total_time == 1.01197e+10
+	 10000000 calls to Eidos_ProfileTime(): time == 0.20364, total_time == 1.0122e+10
+
+	 10000000 calls to clock(): time == 3.6669, total_time == 21594595
+	 10000000 calls to gettimeofday(): time == 0.420807, total_time == 5.16038e+12
+	 10000000 calls to clock_gettime(CLOCK_REALTIME, ...): time == 0.4383, total_time == -4.70372e+09
+	 10000000 calls to clock_gettime(CLOCK_MONOTONIC_RAW, ...): time == 0.46461, total_time == -8.08945e+09
+	 10000000 calls to clock_gettime(CLOCK_UPTIME_RAW, ...): time == 0.413183, total_time == -8.08511e+09
+	 10000000 calls to clock_gettime(CLOCK_PROCESS_CPUTIME_ID, ...): time == 3.49895, total_time == 7.45271e+07
+	 10000000 calls to clock_gettime(CLOCK_THREAD_CPUTIME_ID, ...): time == 1.66718, total_time == 1.00431e+08
+	 10000000 calls to std::chrono::high_resolution_clock::now(): time == 0.419601, total_time == 0
+	 10000000 calls to clock_gettime_nsec_np(CLOCK_REALTIME): time == 0.437738, total_time == 1.3812e+10
+	 10000000 calls to clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW): time == 0.416851, total_time == 1.04261e+10
+	 10000000 calls to clock_gettime_nsec_np(CLOCK_UPTIME_RAW): time == 0.355363, total_time == 1.043e+10
+	 10000000 calls to clock_gettime_nsec_np(CLOCK_PROCESS_CPUTIME_ID): time == 3.53823, total_time == 1.42916e+08
+	 10000000 calls to clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID): time == 1.64254, total_time == 1.68505e+08
+	 10000000 calls to mach_absolute_time(): time == 0.203185, total_time == 1.04846e+10
+	 10000000 calls to mach_continuous_time(): time == 0.248343, total_time == 1.04869e+10
+	 10000000 calls to Eidos_ProfileTime(): time == 0.208794, total_time == 1.04892e+10
+	 
+	 10000000 calls to clock(): time == 3.7723, total_time == 22027941
+	 10000000 calls to gettimeofday(): time == 0.402914, total_time == 5.16072e+12
+	 10000000 calls to clock_gettime(CLOCK_REALTIME, ...): time == 0.439594, total_time == -4.36005e+09
+	 10000000 calls to clock_gettime(CLOCK_MONOTONIC_RAW, ...): time == 0.468783, total_time == -7.74572e+09
+	 10000000 calls to clock_gettime(CLOCK_UPTIME_RAW, ...): time == 0.423101, total_time == -7.74128e+09
+	 10000000 calls to clock_gettime(CLOCK_PROCESS_CPUTIME_ID, ...): time == 3.59922, total_time == 7.61285e+07
+	 10000000 calls to clock_gettime(CLOCK_THREAD_CPUTIME_ID, ...): time == 1.68519, total_time == 1.02508e+08
+	 10000000 calls to std::chrono::high_resolution_clock::now(): time == 0.408809, total_time == 0
+	 10000000 calls to clock_gettime_nsec_np(CLOCK_REALTIME): time == 0.431629, total_time == 1.41569e+10
+	 10000000 calls to clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW): time == 0.419269, total_time == 1.0771e+10
+	 10000000 calls to clock_gettime_nsec_np(CLOCK_UPTIME_RAW): time == 0.357072, total_time == 1.07748e+10
+	 10000000 calls to clock_gettime_nsec_np(CLOCK_PROCESS_CPUTIME_ID): time == 3.50717, total_time == 1.44766e+08
+	 10000000 calls to clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID): time == 1.61161, total_time == 1.70191e+08
+	 10000000 calls to mach_absolute_time(): time == 0.203799, total_time == 1.08289e+10
+	 10000000 calls to mach_continuous_time(): time == 0.262729, total_time == 1.08312e+10
+	 10000000 calls to Eidos_ProfileTime(): time == 0.201686, total_time == 1.08335e+10
+
+	 So mach_absolute_time() is the fastest, and also gives us the information in a convenient form.  It is only
+	 available on OS X, of course, but that is fine since we only offer profiling in SLiMgui.  I have therefore
+	 defined Eidos_ProfileTime() as using mach_absolute_time() in eidos_global.h.
+	 
+	 */
 #endif
 	
 	// If we ran tests, the random number seed has been set; let's set it back to a good seed value

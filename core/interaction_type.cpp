@@ -773,7 +773,7 @@ double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Indivi
 {
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
-	clock_t clock_callback0 = (gEidosProfilingCount ? clock() : 0);
+	SLIM_PROFILE_BLOCK_START();
 #endif
 	
 	SLiMSim &sim = p_subpop->population_.sim_;
@@ -867,8 +867,7 @@ double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Indivi
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
-	if (gEidosProfilingCount)
-		sim.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosInteractionCallback)] += (clock() - clock_callback0);
+	SLIM_PROFILE_BLOCK_END(sim.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosInteractionCallback)]);
 #endif
 	
 	return p_strength;

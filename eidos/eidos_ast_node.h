@@ -63,7 +63,7 @@ public:
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
-	mutable clock_t profile_total_ = 0;									// profiling clock for this node and its children; only set for some nodes
+	mutable eidos_profile_t profile_total_ = 0;							// profiling clock for this node and its children; only set for some nodes
 	EidosToken *full_range_end_token_ = nullptr;						// the ")" or "]" that ends the full range of tokens like "(", "[", for, if, and while
 #endif
 	
@@ -95,8 +95,8 @@ public:
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
 	void ZeroProfileTotals(void) const;
-	clock_t ConvertProfileTotalsToSelfCounts(void) const;
-	clock_t TotalOfSelfCounts(void) const;
+	eidos_profile_t ConvertProfileTotalsToSelfCounts(void) const;
+	eidos_profile_t TotalOfSelfCounts(void) const;
 	
 	void FullUTF16Range(int32_t *p_start, int32_t *p_end) const;
 #endif

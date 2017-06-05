@@ -955,7 +955,7 @@ double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homo
 {
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
-	clock_t clock_callback0 = (gEidosProfilingCount ? clock() : 0);
+	SLIM_PROFILE_BLOCK_START();
 #endif
 	
 	slim_objectid_t mutation_type_id = (gSLiM_Mutation_Block + p_mutation)->mutation_type_ptr_->mutation_type_id_;
@@ -1066,8 +1066,7 @@ double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homo
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
-	if (gEidosProfilingCount)
-		population_.sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosFitnessCallback)] += (clock() - clock_callback0);
+	SLIM_PROFILE_BLOCK_END(population_.sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosFitnessCallback)]);
 #endif
 	
 	return p_computed_fitness;
@@ -1078,7 +1077,7 @@ double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &
 {
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
-	clock_t clock_callback0 = (gEidosProfilingCount ? clock() : 0);
+	SLIM_PROFILE_BLOCK_START();
 #endif
 	
 	double computed_fitness = 1.0;
@@ -1197,8 +1196,7 @@ double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
-	if (gEidosProfilingCount)
-		population_.sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback)] += (clock() - clock_callback0);
+	SLIM_PROFILE_BLOCK_END(population_.sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback)]);
 #endif
 	
 	return computed_fitness;

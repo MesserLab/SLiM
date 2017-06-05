@@ -56,7 +56,8 @@
 	
 	// profiling-related variables
 	NSDate *profileEndDate;
-	clock_t profileElapsedClock;
+	clock_t profileElapsedCPUClock;
+	eidos_profile_t profileElapsedWallClock;
 	slim_generation_t profileStartGeneration;
 	
 	// display-related variables
