@@ -1,0 +1,32 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf830
+{\fonttbl\f0\fswiss\fcharset0 Optima-Regular;\f1\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww9340\viewh13000\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\b\fs32 \cf0 Profiling simulations
+\b0\fs26 \
+\
+For complex simulations that take a long time to run, it can often be useful to find out where SLiM is spending most of its time.  Such an analysis, called a 
+\i profile
+\i0 , can direct optimization efforts in your modeling, and can even help to find bugs.  Beginning in version 2.4, SLiMgui now supports collecting such profile information for your models.  Just click the small profile button (with the stopwatch icon) that now overlaps the play button:\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\qc\partightenfactor0
+
+\f1\fs24 \cf0 {{\NeXTGraphic profile_button.jpg \width2860 \height1400
+}¬}\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\qc\partightenfactor0
+
+\f0\fs26 \cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+The simulation will play forward as if you had clicked play, but it will profile the simulation as it runs.  When the run completes (or when you click the profile button again to stop profiling), SLiMgui will open a profile report window:\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\qc\partightenfactor0
+
+\f1\fs24 \cf0 {{\NeXTGraphic report.jpg \width6080 \height2360
+}¬}
+\f0\fs26 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+This report contains all sorts of information about the runtime performance of your model; see the SLiM manual for more details.}
