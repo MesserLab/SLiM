@@ -269,7 +269,7 @@ public:
 			// Otherwise, a relatively complicated check is needed, so we call out to a non-inline function
 			MutationRun *mutrun = mutruns_[p_position / mutrun_length_].get();
 			
-			return mutrun->_enforce_stack_policy_for_addition(p_position, p_mut_type_ptr, policy);
+			return mutrun->_enforce_stack_policy_for_addition(p_position, policy, p_mut_type_ptr->stack_group_);
 		}
 	}
 	

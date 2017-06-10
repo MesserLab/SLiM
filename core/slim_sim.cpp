@@ -1706,6 +1706,8 @@ void SLiMSim::RunInitializeCallbacks(void)
 		((chromosome_.recombination_rates_M_.size() != 0) && (chromosome_.recombination_rates_F_.size() == 0)))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): Both sex-specific recombination rates must be defined, not just one (but one may be defined as zero)." << eidos_terminate();
 	
+	CheckMutationStackPolicy();
+	
 	time_start_ = FirstGeneration();	// SLIM_MAX_GENERATION if it can't find a first block
 	
 	if (time_start_ == SLIM_MAX_GENERATION)
@@ -2390,6 +2392,8 @@ bool SLiMSim::_RunOneGeneration(void)
 			SLIM_PROFILE_BLOCK_START();
 #endif
 			
+			CheckMutationStackPolicy();
+			
 			generation_stage_ = SLiMGenerationStage::kStage2GenerateOffspring;
 			
 			std::vector<SLiMEidosBlock*> mate_choice_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosMateChoiceCallback, -1, -1, -1);
@@ -2769,6 +2773,37 @@ void SLiMSim::SimulationFinished(void)
 		SLIM_OUTSTREAM << "// if your model changes.  See the SLiM manual for more details." << std::endl;
 		SLIM_OUTSTREAM << std::endl;
 	}
+}
+
+void SLiMSim::_CheckMutationStackPolicy(void)
+{
+	// Check mutation stacking policy for consistency.  This is called periodically during the simulation.
+	std::vector<int64_t> checked_groups;
+	
+	for (auto muttype_iter : mutation_types_)
+	{
+		MutationType *muttype = muttype_iter.second;
+		int64_t stack_group = muttype->stack_group_;
+		
+		if (std::find(checked_groups.begin(), checked_groups.end(), stack_group) == checked_groups.end())
+		{
+			// This stacking group has not been checked yet
+			MutationStackPolicy stack_policy = muttype->stack_policy_;
+			
+			for (auto muttype_iter2 : mutation_types_)
+			{
+				MutationType *muttype2 = muttype_iter2.second;
+				
+				if ((muttype2->stack_group_ == stack_group) && (muttype2->stack_policy_ != stack_policy))
+					EIDOS_TERMINATION << "ERROR (SLiMSim::_CheckMutationStackPolicy): inconsistent mutationStackPolicy values within one mutationStackGroup." << eidos_terminate();
+			}
+			
+			checked_groups.push_back(stack_group);
+		}
+	}
+	
+	// we're good until the next change
+	mutation_stack_policy_changed = false;
 }
 
 

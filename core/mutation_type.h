@@ -93,7 +93,8 @@ public:
 	std::vector<std::string> dfe_strings_;		// DFE parameters, of type std::string (originally string type)
 	
 	bool convert_to_substitution_;				// if true (the default), mutations of this type are converted to substitutions
-	MutationStackPolicy stack_policy_;			// the mutation stacking policy; see above (kStack be default)
+	MutationStackPolicy stack_policy_;			// the mutation stacking policy; see above (kStack is the default)
+	int64_t stack_group_;						// the mutation stacking group this mutation type is in (== mutation_type_id_ is default)
 	
 	std::string color_;											// color to use when displayed (in SLiMgui), when segregating
 	float color_red_, color_green_, color_blue_;				// cached color components from color_; should always be in sync

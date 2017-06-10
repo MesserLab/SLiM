@@ -1519,6 +1519,8 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 			int mutrun_length = genome_0->mutrun_length_;
 			SLiMSim &sim = genome_0->subpop_->population_.sim_;
 			
+			sim.CheckMutationStackPolicy();
+			
 			if ((sim.GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim.warned_early_mutation_add_))
 			{
 				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteClassMethod): addMutations() should probably not be called from an early() event; the added mutation(s) will not influence fitness values during offspring generation." << std::endl;
@@ -1610,6 +1612,8 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 			Genome *genome_0 = (Genome *)p_target->ObjectElementAtIndex(0, nullptr);
 			int mutrun_length = genome_0->mutrun_length_;
 			SLiMSim &sim = genome_0->subpop_->population_.sim_;
+			
+			sim.CheckMutationStackPolicy();
 			
 			if ((sim.GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim.warned_early_mutation_add_))
 			{
@@ -1738,6 +1742,8 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 			Genome *genome_0 = (Genome *)p_target->ObjectElementAtIndex(0, nullptr);
 			int mutrun_length = genome_0->mutrun_length_;
 			SLiMSim &sim = genome_0->subpop_->population_.sim_;
+			
+			sim.CheckMutationStackPolicy();
 			
 			if ((sim.GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim.warned_early_mutation_add_))
 			{

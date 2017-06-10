@@ -2291,17 +2291,33 @@ Note that this property has a quirk: it is stored internally in SLiM using a sin
 \f3\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 mutationStackPolicy <\'96> (string$)
-\f3 \
+\f2\fs18 \cf0 mutationStackGroup <\'96> (integer$)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 This property governs whether mutations of this mutation type can \'93stack\'94 \'96 can occupy the same position in a single individual.  This property is 
+\f0\fs20 \cf0 The group into which this mutation type belongs for purposes of mutation stacking policy.  This is equal to the mutation type\'92s 
+\f2\fs18 id
+\f0\fs20  by default.  See 
+\f2\fs18 mutationStackPolicy
+\f0\fs20 , below, for discussion.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 mutationStackPolicy <\'96> (string$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 This property and the 
+\f2\fs18 mutationStackGroup
+\f0\fs20  property together govern whether mutations of this mutation type\'92s stacking group can \'93stack\'94 \'96 can occupy the same position in a single individual.  A set of mutation types with the same value for 
+\f2\fs18 mutationStackGroup
+\f0\fs20  is called a \'93stacking group\'94, and all mutation types in a given stacking group must have the same 
+\f2\fs18 mutationStackPolicy
+\f0\fs20  value, which defines the stacking behavior of all mutations of the mutation types in the stacking group.  In other words, one stacking group might allow its mutations to stack, while another stacking group might not, but the policy within each stacking group must be unambiguous.\
+This property is 
 \f2\fs18 "s"
-\f0\fs20  by default, indicating that mutations of this type should be allowed to stack without restriction.  If the policy is set to 
+\f0\fs20  by default, indicating that mutations in this stacking group should be allowed to stack without restriction.  If the policy is set to 
 \f2\fs18 "f"
 \f0\fs20 , the 
 \i first
-\i0  mutation of this type at a given site is retained; further mutations of this type at the same site are discarded with no effect.  This can be useful for modeling one-way changes to single nucleotides, for example; once a 
+\i0  mutation of stacking group at a given site is retained; further mutations of this stacking group at the same site are discarded with no effect.  This can be useful for modeling one-way changes to single nucleotides, for example; once a 
 \f2\fs18 T
 \f0\fs20  changes to an 
 \f2\fs18 A
@@ -2311,8 +2327,10 @@ Note that this property has a quirk: it is stored internally in SLiM using a sin
 \f2\fs18 A
 \f0\fs20  are not changes at all.  If the policy is set to 
 \f2\fs18 "l"
-\f0\fs20 , the last mutation of this type at a given site is retained; earlier mutation of this type at the same site are discarded.  This can be useful for modeling an \'93infinite-alleles\'94 scenario in which every new mutation at a site generates a completely new allele, rather than retaining the previous mutations at the site.\
-The mutation stacking policy applies only within the given mutation type; mutations of different mutation types are always allowed to stack in SLiM.  The policy applies to all mutations added to the model after the policy is set, whether those mutations are introduced by calls such as 
+\f0\fs20 , the 
+\i last
+\i0  mutation of this stacking group at a given site is retained; earlier mutation of this stacking group at the same site are discarded.  This can be useful for modeling an \'93infinite-alleles\'94 scenario in which every new mutation at a site generates a completely new allele, rather than retaining the previous mutations at the site.\
+The mutation stacking policy applies only within the given mutation type\'92s stacking group; mutations of different stacking groups are always allowed to stack in SLiM.  The policy applies to all mutations added to the model after the policy is set, whether those mutations are introduced by calls such as 
 \f2\fs18 addMutation()
 \f0\fs20 , 
 \f2\fs18 addNewMutation()

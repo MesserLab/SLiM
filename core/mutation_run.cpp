@@ -108,7 +108,7 @@ void MutationRun::_RemoveFixedMutations(void)
 	}
 }
 
-bool MutationRun::_enforce_stack_policy_for_addition(slim_position_t p_position, MutationType *p_mut_type_ptr, MutationStackPolicy p_policy)
+bool MutationRun::_enforce_stack_policy_for_addition(slim_position_t p_position, MutationStackPolicy p_policy, int64_t p_stack_group)
 {
 	MutationIndex *begin_ptr = begin_pointer();
 	MutationIndex *end_ptr = end_pointer();
@@ -116,14 +116,14 @@ bool MutationRun::_enforce_stack_policy_for_addition(slim_position_t p_position,
 	
 	if (p_policy == MutationStackPolicy::kKeepFirst)
 	{
-		// If the first mutation occurring at a site is kept, then we need to check for an existing mutation of this type
+		// If the first mutation occurring at a site is kept, then we need to check for an existing mutation of this stacking group
 		// We scan in reverse order, because usually we're adding mutations on the end with emplace_back()
 		for (MutationIndex *mut_ptr = end_ptr - 1; mut_ptr >= begin_ptr; --mut_ptr)
 		{
 			Mutation *mut = mut_block_ptr + *mut_ptr;
 			slim_position_t mut_position = mut->position_;
 			
-			if ((mut_position == p_position) && (mut->mutation_type_ptr_ == p_mut_type_ptr))
+			if ((mut_position == p_position) && (mut->mutation_type_ptr_->stack_group_ == p_stack_group))
 				return false;
 			else if (mut_position < p_position)
 				return true;
@@ -142,7 +142,7 @@ bool MutationRun::_enforce_stack_policy_for_addition(slim_position_t p_position,
 			Mutation *mut = mut_block_ptr + *mut_ptr;
 			slim_position_t mut_position = mut->position_;
 			
-			if ((mut_position == p_position) && (mut->mutation_type_ptr_ == p_mut_type_ptr))
+			if ((mut_position == p_position) && (mut->mutation_type_ptr_->stack_group_ == p_stack_group))
 				first_match_ptr = mut_ptr;	// set repeatedly as we scan backwards, until we exit
 			else if (mut_position < p_position)
 				break;
@@ -160,7 +160,7 @@ bool MutationRun::_enforce_stack_policy_for_addition(slim_position_t p_position,
 				Mutation *mut = mut_block_ptr + mut_index;
 				slim_position_t mut_position = mut->position_;
 				
-				if ((mut_position == p_position) && (mut->mutation_type_ptr_ == p_mut_type_ptr))
+				if ((mut_position == p_position) && (mut->mutation_type_ptr_->stack_group_ == p_stack_group))
 				{
 					// The current scan position is a mutation that needs to be removed, so scan forward to skip copying it backward
 					continue;

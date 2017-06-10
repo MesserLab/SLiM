@@ -162,6 +162,7 @@ const std::string gStr_convertToSubstitution = "convertToSubstitution";
 const std::string gStr_distributionType = "distributionType";
 const std::string gStr_distributionParams = "distributionParams";
 const std::string gStr_dominanceCoeff = "dominanceCoeff";
+const std::string gStr_mutationStackGroup = "mutationStackGroup";
 const std::string gStr_mutationStackPolicy = "mutationStackPolicy";
 const std::string gStr_start = "start";
 const std::string gStr_end = "end";
@@ -401,6 +402,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_distributionType, gID_distributionType);
 		Eidos_RegisterStringForGlobalID(gStr_distributionParams, gID_distributionParams);
 		Eidos_RegisterStringForGlobalID(gStr_dominanceCoeff, gID_dominanceCoeff);
+		Eidos_RegisterStringForGlobalID(gStr_mutationStackGroup, gID_mutationStackGroup);
 		Eidos_RegisterStringForGlobalID(gStr_mutationStackPolicy, gID_mutationStackPolicy);
 		Eidos_RegisterStringForGlobalID(gStr_start, gID_start);
 		Eidos_RegisterStringForGlobalID(gStr_end, gID_end);

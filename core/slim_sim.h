@@ -134,6 +134,8 @@ private:
 	std::map<slim_objectid_t,GenomicElementType*> genomic_element_types_;			// OWNED POINTERS: this map is the owner of all allocated GenomicElementType objects
 	std::map<slim_objectid_t,InteractionType*> interaction_types_;					// OWNED POINTERS: this map is the owner of all allocated InteractionType objects
 	
+	bool mutation_stack_policy_changed;												// when set, the stacking policy settings need to be checked for consistency
+	
 	// SEX ONLY: sex-related instance variables
 	bool sex_enabled_ = false;														// true if sex is tracked for individuals; if false, all individuals are hermaphroditic
 	GenomeType modeled_chromosome_type_ = GenomeType::kAutosome;					// the chromosome type; other types might still be instantiated (Y, if X is modeled, e.g.)
@@ -270,6 +272,11 @@ public:
 	void CollectSLiMguiMutationProfileInfo(void);
 #endif
 #endif
+	
+	// Mutation stack policy checking
+	inline void MutationStackPolicyChanged(void)									{ mutation_stack_policy_changed = true; }
+	inline void CheckMutationStackPolicy(void)										{ if (mutation_stack_policy_changed) _CheckMutationStackPolicy(); }
+	void _CheckMutationStackPolicy(void);
 	
 	// accessors
 	inline EidosSymbolTable &SymbolTable(void) const								{ return *simulation_constants_; }

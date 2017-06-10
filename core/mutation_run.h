@@ -438,7 +438,7 @@ public:
 		*sort_position = p_mutation_index;
 	}
 	
-	bool _enforce_stack_policy_for_addition(slim_position_t p_position, MutationType *p_mut_type_ptr, MutationStackPolicy p_policy);
+	bool _enforce_stack_policy_for_addition(slim_position_t p_position, MutationStackPolicy p_policy, int64_t p_stack_group);
 	
 	inline bool enforce_stack_policy_for_addition(slim_position_t p_position, MutationType *p_mut_type_ptr)
 	{
@@ -452,7 +452,7 @@ public:
 		else
 		{
 			// Otherwise, a relatively complicated check is needed, so we call out to a non-inline function
-			return _enforce_stack_policy_for_addition(p_position, p_mut_type_ptr, policy);
+			return _enforce_stack_policy_for_addition(p_position, policy, p_mut_type_ptr->stack_group_);
 		}
 	}
 	

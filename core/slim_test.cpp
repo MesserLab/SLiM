@@ -898,6 +898,7 @@ void _RunMutationTypeTests(void)
 	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.color == '') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.colorSubstitution == '') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.convertToSubstitution == T) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.mutationStackGroup == 1) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.mutationStackPolicy == 's') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.distributionParams == 0.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { if (m1.distributionType == 'f') stop(); }", __LINE__);
@@ -911,6 +912,7 @@ void _RunMutationTypeTests(void)
 	SLiMAssertScriptStop(gen1_setup + "1 { m1.colorSubstitution = '#FF0000'; } 2 { if (m1.colorSubstitution == '#FF0000') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { m1.tag = 17; } 2 { if (m1.tag == 17) stop(); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 { m1.convertToSubstitution = F; }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 { m1.mutationStackGroup = -17; }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 { m1.mutationStackPolicy = 's'; }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 { m1.mutationStackPolicy = 'f'; }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 { m1.mutationStackPolicy = 'l'; }", __LINE__);
@@ -919,6 +921,12 @@ void _RunMutationTypeTests(void)
 	SLiMAssertScriptRaise(gen1_setup + "1 { m1.distributionType = 'g'; }", 1, 236, "read-only property", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 { m1.dominanceCoeff = 0.3; }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 { m1.id = 2; }", 1, 222, "read-only property", __LINE__);
+
+	SLiMAssertScriptStop(gen1_setup + "initialize() { initializeMutationType('m2', 0.7, 'e', 0.5); c(m1,m2).mutationStackGroup = 3; c(m1,m2).mutationStackPolicy = 'f'; } 1 { stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "initialize() { initializeMutationType('m2', 0.7, 'e', 0.5); c(m1,m2).mutationStackGroup = 3; m1.mutationStackPolicy = 'f'; m2.mutationStackPolicy = 'l'; } 1 { stop(); }", -1, -1, "inconsistent mutationStackPolicy", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "initialize() { initializeMutationType('m2', 0.7, 'e', 0.5); c(m1,m2).mutationStackGroup = 3; c(m1,m2).mutationStackPolicy = 'f'; } 1 { m2.mutationStackPolicy = 'l'; }", -1, -1, "inconsistent mutationStackPolicy", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "initialize() { initializeMutationType('m2', 0.7, 'e', 0.5); m1.mutationStackPolicy = 'f'; m2.mutationStackPolicy = 'l'; } 1 { stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "initialize() { initializeMutationType('m2', 0.7, 'e', 0.5); m1.mutationStackPolicy = 'f'; m2.mutationStackPolicy = 'l'; } 1 { c(m1,m2).mutationStackGroup = 3; }", -1, -1, "inconsistent mutationStackPolicy", __LINE__);
 	
 	// Test MutationType - (void)setDistribution(string$ distributionType, ...)
 	SLiMAssertScriptStop(gen1_setup + "1 { m1.setDistribution('f', 2.2); if (m1.distributionType == 'f' & m1.distributionParams == 2.2) stop(); }", __LINE__);
