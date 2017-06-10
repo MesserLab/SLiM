@@ -2228,7 +2228,7 @@ SLiM consults this flag at the end of each generation when deciding whether to s
 \f2\fs18 "return rbinom(1);"
 \f0\fs22  could be used to generate selection coefficients drawn from a binomial distribution, using the Eidos function 
 \f2\fs18 rbinom()
-\f0\fs22 , even though that mutational distribution is not supported by SLiM directly.  The script must return a singleton float or integer.  Only the intrinsic Eidos constants and functions are available within a DFE script, for simplicity of implementation; SLiM-defined constants, variables, functions, and classes are not available.\
+\f0\fs22 , even though that mutational distribution is not supported by SLiM directly.  The script must return a singleton float or integer.\
 Note that these distributions can in principle produce selection coefficients smaller than 
 \f2\fs18 -1.0. 
 \f0\fs22 In that case

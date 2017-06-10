@@ -36,6 +36,8 @@
 #include "slim_global.h"
 #include "slim_eidos_dictionary.h"
 
+class SLiMSim;
+
 
 extern EidosObjectClass *gSLiM_MutationType_Class;
 
@@ -77,6 +79,8 @@ public:
 	//              g: gamma distribution (mean s,shape)
 	//
 	// examples: synonymous, nonsynonymous, adaptive, etc.
+	
+	SLiMSim &sim_;								// We have a reference back to our simulation, for running type "s" DFE scripts
 	
 	slim_objectid_t mutation_type_id_;			// the id by which this mutation type is indexed in the chromosome
 	EidosValue_SP cached_value_muttype_id_;		// a cached value for mutation_type_id_; reset() if that changes
@@ -142,9 +146,9 @@ public:
 	MutationType& operator=(const MutationType&) = delete;		// no copying
 	MutationType(void) = delete;								// no null construction
 #ifdef SLIMGUI
-	MutationType(slim_objectid_t p_mutation_type_id, double p_dominance_coeff, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, std::vector<std::string> p_dfe_strings, int p_mutation_type_index);
+	MutationType(SLiMSim &p_sim, slim_objectid_t p_mutation_type_id, double p_dominance_coeff, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, std::vector<std::string> p_dfe_strings, int p_mutation_type_index);
 #else
-	MutationType(slim_objectid_t p_mutation_type_id, double p_dominance_coeff, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, std::vector<std::string> p_dfe_strings);
+	MutationType(SLiMSim &p_sim, slim_objectid_t p_mutation_type_id, double p_dominance_coeff, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, std::vector<std::string> p_dfe_strings);
 #endif
 	~MutationType(void);
 	

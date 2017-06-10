@@ -53,11 +53,11 @@ std::ostream& operator<<(std::ostream& p_out, DFEType p_dfe_type)
 
 
 #ifdef SLIMGUI
-MutationType::MutationType(slim_objectid_t p_mutation_type_id, double p_dominance_coeff, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, std::vector<std::string> p_dfe_strings, int p_mutation_type_index) : mutation_type_index_(p_mutation_type_index),
+MutationType::MutationType(SLiMSim &p_sim, slim_objectid_t p_mutation_type_id, double p_dominance_coeff, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, std::vector<std::string> p_dfe_strings, int p_mutation_type_index) : mutation_type_index_(p_mutation_type_index),
 #else
-MutationType::MutationType(slim_objectid_t p_mutation_type_id, double p_dominance_coeff, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, std::vector<std::string> p_dfe_strings) :
+MutationType::MutationType(SLiMSim &p_sim, slim_objectid_t p_mutation_type_id, double p_dominance_coeff, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, std::vector<std::string> p_dfe_strings) :
 #endif
-	mutation_type_id_(p_mutation_type_id), dominance_coeff_(static_cast<slim_selcoeff_t>(p_dominance_coeff)), dominance_coeff_changed_(false), dfe_type_(p_dfe_type), dfe_parameters_(p_dfe_parameters), dfe_strings_(p_dfe_strings), convert_to_substitution_(true), stack_policy_(MutationStackPolicy::kStack), cached_dfe_script_(nullptr), 
+	sim_(p_sim), mutation_type_id_(p_mutation_type_id), dominance_coeff_(static_cast<slim_selcoeff_t>(p_dominance_coeff)), dominance_coeff_changed_(false), dfe_type_(p_dfe_type), dfe_parameters_(p_dfe_parameters), dfe_strings_(p_dfe_strings), convert_to_substitution_(true), stack_policy_(MutationStackPolicy::kStack), cached_dfe_script_(nullptr), 
 	self_symbol_(EidosGlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('m', p_mutation_type_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_MutationType_Class)))
 {
 	if ((dfe_parameters_.size() == 0) && (dfe_strings_.size() == 0))
@@ -152,7 +152,7 @@ double MutationType::DrawSelectionCoefficient(void) const
 			{
 				// The context for these blocks is pure Eidos; no SLiM variables, constants, or functions.
 				// This is because we have no graceful way to get our Context here; but it seems fine.
-				EidosSymbolTable client_symbols(EidosSymbolTableType::kVariablesTable, gEidosConstantsSymbolTable);
+				EidosSymbolTable client_symbols(EidosSymbolTableType::kVariablesTable, &sim_.SymbolTable());
 				EidosFunctionMap *function_map = EidosInterpreter::BuiltInFunctionMap();
 				EidosInterpreter interpreter(*cached_dfe_script_, client_symbols, *function_map, nullptr);
 				

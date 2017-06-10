@@ -3143,9 +3143,9 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		
 #ifdef SLIMGUI
 		// each new mutation type gets a unique zero-based index, used by SLiMgui to categorize mutations
-		MutationType *new_mutation_type = new MutationType(map_identifier, dominance_coeff, dfe_type, dfe_parameters, dfe_strings, num_mutation_types_);
+		MutationType *new_mutation_type = new MutationType(*this, map_identifier, dominance_coeff, dfe_type, dfe_parameters, dfe_strings, num_mutation_types_);
 #else
-		MutationType *new_mutation_type = new MutationType(map_identifier, dominance_coeff, dfe_type, dfe_parameters, dfe_strings);
+		MutationType *new_mutation_type = new MutationType(*this, map_identifier, dominance_coeff, dfe_type, dfe_parameters, dfe_strings);
 #endif
 		
 		mutation_types_.insert(std::pair<const slim_objectid_t,MutationType*>(map_identifier, new_mutation_type));
