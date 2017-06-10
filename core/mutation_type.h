@@ -34,6 +34,7 @@
 #include "eidos_value.h"
 #include "eidos_symbol_table.h"
 #include "slim_global.h"
+#include "slim_eidos_dictionary.h"
 
 
 extern EidosObjectClass *gSLiM_MutationType_Class;
@@ -61,7 +62,7 @@ enum class MutationStackPolicy : char {
 };
 
 
-class MutationType : public EidosObjectElement
+class MutationType : public SLiMEidosDictionary
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	

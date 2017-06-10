@@ -38,6 +38,8 @@
 #include "eidos_symbol_table.h"
 #include "slim_global.h"
 #include "slim_eidos_block.h"
+#include "slim_eidos_dictionary.h"
+
 
 class Subpopulation;
 class Individual;
@@ -109,7 +111,7 @@ struct _InteractionsData
 typedef struct _InteractionsData InteractionsData;
 
 
-class InteractionType : public EidosObjectElement
+class InteractionType : public SLiMEidosDictionary
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	

@@ -37,12 +37,13 @@
 #include "eidos_rng.h"
 #include "mutation_type.h"
 #include "eidos_value.h"
+#include "slim_eidos_dictionary.h"
 
 
 extern EidosObjectClass *gSLiM_GenomicElementType_Class;
 
 
-class GenomicElementType : public EidosObjectElement
+class GenomicElementType : public SLiMEidosDictionary
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 

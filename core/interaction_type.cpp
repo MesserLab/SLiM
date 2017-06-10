@@ -3783,7 +3783,7 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+			return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 	}
 }
 
@@ -3794,7 +3794,7 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 #pragma mark -
 #pragma mark InteractionType_Class
 
-class InteractionType_Class : public EidosObjectClass
+class InteractionType_Class : public SLiMEidosDictionary_Class
 {
 public:
 	InteractionType_Class(const InteractionType_Class &p_original) = delete;	// no copy-construct
@@ -3885,7 +3885,7 @@ const std::vector<const EidosMethodSignature *> *InteractionType_Class::Methods(
 	
 	if (!methods)
 	{
-		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
+		methods = new std::vector<const EidosMethodSignature *>(*SLiMEidosDictionary_Class::Methods());
 		methods->emplace_back(SignatureForMethodOrRaise(gID_distance));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_distanceToPoint));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_drawByStrength));
@@ -3944,7 +3944,7 @@ const EidosMethodSignature *InteractionType_Class::SignatureForMethod(EidosGloba
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectClass::SignatureForMethod(p_method_id);
+			return SLiMEidosDictionary_Class::SignatureForMethod(p_method_id);
 	}
 }
 

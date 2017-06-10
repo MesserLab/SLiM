@@ -312,7 +312,7 @@ EidosValue_SP GenomicElementType::ExecuteInstanceMethod(EidosGlobalStringID p_me
 	
 	// all others, including gID_none
 	else
-		return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 }
 
 
@@ -322,7 +322,7 @@ EidosValue_SP GenomicElementType::ExecuteInstanceMethod(EidosGlobalStringID p_me
 #pragma mark -
 #pragma mark GenomicElementType_Class
 
-class GenomicElementType_Class : public EidosObjectClass
+class GenomicElementType_Class : public SLiMEidosDictionary_Class
 {
 public:
 	GenomicElementType_Class(const GenomicElementType_Class &p_original) = delete;	// no copy-construct
@@ -409,7 +409,7 @@ const std::vector<const EidosMethodSignature *> *GenomicElementType_Class::Metho
 	
 	if (!methods)
 	{
-		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
+		methods = new std::vector<const EidosMethodSignature *>(*SLiMEidosDictionary_Class::Methods());
 		methods->emplace_back(SignatureForMethodOrRaise(gID_setMutationFractions));
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
@@ -429,7 +429,7 @@ const EidosMethodSignature *GenomicElementType_Class::SignatureForMethod(EidosGl
 	if (p_method_id == gID_setMutationFractions)
 		return setMutationFractionsSig;
 	else
-		return EidosObjectClass::SignatureForMethod(p_method_id);
+		return SLiMEidosDictionary_Class::SignatureForMethod(p_method_id);
 }
 
 EidosValue_SP GenomicElementType_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const

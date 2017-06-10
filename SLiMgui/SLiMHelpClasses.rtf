@@ -845,9 +845,13 @@ The optional parameter
 \f2\fs18 integer
 \f0\fs20  value.  The value of 
 \f2\fs18 tag
-\f0\fs20  is initially undefined; if you wish it to have a defined value, you must arrange that yourself.  The value of 
+\f0\fs20  is initially undefined (i.e., has an effectively random value); if you wish it to have a defined value, you must arrange that yourself.  The value of 
 \f2\fs18 tag
-\f0\fs20  is not used by SLiM; it is free for you to use.
+\f0\fs20  is not used by SLiM; it is free for you to use.  See also the 
+\f2\fs18 getValue()
+\f0\fs20  and 
+\f2\fs18 setValue()
+\f0\fs20  methods, for another way of attaching state to genomic element types.
 \f3 \
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
@@ -856,7 +860,27 @@ The optional parameter
 \f0\fs22  methods\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\i0\fs18 \cf0 \'96\'a0(void)setMutationFractions(io<MutationType>\'a0mutationTypes, numeric\'a0proportions)
+\f2\i0\fs18 \cf0 \'96
+\f3 \'a0
+\f2 (+)getValue(string$\'a0key)
+\f3 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns the value previously set for the dictionary entry identifier 
+\f2\fs18 key
+\f0\fs20  using 
+\f2\fs18 setValue()
+\f0\fs20 , or 
+\f2\fs18 NULL
+\f0\fs20  if no value has been set.  This dictionary-style functionality is actually provided by the superclass of 
+\f2\fs18 GenomicElementType
+\f0\fs20 , 
+\f2\fs18 SLiMEidosDictionary
+\f0\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.
+\f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96\'a0(void)setMutationFractions(io<MutationType>\'a0mutationTypes, numeric\'a0proportions)
 \f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -869,6 +893,26 @@ The optional parameter
 \f0\fs20  identifiers), and the 
 \f2\fs18 proportions
 \f0\fs20  vector should be of equal length, specifying the relative proportion of mutations that will be draw from each corresponding type.  This is normally a constant in simulations, so be sure you know what you are doing.
+\f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96
+\f3 \'a0
+\f2 (void)setValue(string$\'a0key, +\'a0value)
+\f3 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Sets a value for the dictionary entry identifier 
+\f2\fs18 key
+\f0\fs20 .  The value, which may be of any type other than 
+\f2\fs18 object
+\f0\fs20 , can be fetched later using 
+\f2\fs18 getValue()
+\f0\fs20 .  This dictionary-style functionality is actually provided by the superclass of 
+\f2\fs18 GenomicElementType
+\f0\fs20 , 
+\f2\fs18 SLiMEidosDictionary
+\f0\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.
 \f3 \
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
@@ -1247,13 +1291,7 @@ See the description of the
 \f2\fs18 Individual
 \f0\fs20 , 
 \f2\fs18 SLiMEidosDictionary
-\f0\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.  This functionality is shared by the other subclasses of 
-\f2\fs18 SLiMEidosDictionary
-\f0\fs20 : 
-\f2\fs18 SLiMSim
-\f0\fs20  and 
-\f2\fs18 Subpopulation
-\f0\fs20 , at present.
+\f0\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.
 \f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -1366,13 +1404,7 @@ Note that this relatedness is simply pedigree-based relatedness.  This does not 
 \f2\fs18 Individual
 \f0\fs20 , 
 \f2\fs18 SLiMEidosDictionary
-\f0\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.  This functionality is shared by the other subclasses of 
-\f2\fs18 SLiMEidosDictionary
-\f0\fs20 : 
-\f2\fs18 SLiMSim
-\f0\fs20  and 
-\f2\fs18 Subpopulation
-\f0\fs20 , at present.
+\f0\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.
 \f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -1512,9 +1544,13 @@ Note that this relatedness is simply pedigree-based relatedness.  This does not 
 \f2\fs18 integer
 \f0\fs20  value.  The value of 
 \f2\fs18 tag
-\f0\fs20  is initially undefined; if you wish it to have a defined value, you must arrange that yourself.  The value of 
+\f0\fs20  is initially undefined (i.e., has an effectively random value); if you wish it to have a defined value, you must arrange that yourself.  The value of 
 \f2\fs18 tag
-\f0\fs20  is not used by SLiM; it is free for you to use.
+\f0\fs20  is not used by SLiM; it is free for you to use.  See also the 
+\f2\fs18 getValue()
+\f0\fs20  and 
+\f2\fs18 setValue()
+\f0\fs20  methods, for another way of attaching state to interaction types.
 \f3 \
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
@@ -1643,6 +1679,26 @@ If
 \f0\fs20  callbacks as necessary.  However, depending upon what queries are later executed, this may represent considerable wasted computation, since it is an O(N\super 2\nosupersub ) operation.  Immediate evaluation usually generates only a slight performance improvement even if the interactions between all pairs of individuals are eventually accessed; the main reason to choose immediate evaluation, then, is that deferred calculation of interactions would lead to incorrect results due to changes in model state.\
 If an interaction is never evaluated for a given subpopulation, it is guaranteed that there will be essentially no memory or computational overhead associated with the interaction for that subpopulation.  Furthermore, attempting to query an interaction for an individual in a subpopulation that has not been evaluated is guaranteed to raise an error.
 \f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96
+\f3 \'a0
+\f2 (+)getValue(string$\'a0key)
+\f3 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns the value previously set for the dictionary entry identifier 
+\f2\fs18 key
+\f0\fs20  using 
+\f2\fs18 setValue()
+\f0\fs20 , or 
+\f2\fs18 NULL
+\f0\fs20  if no value has been set.  This dictionary-style functionality is actually provided by the superclass of 
+\f2\fs18 InteractionType
+\f0\fs20 , 
+\f2\fs18 SLiMEidosDictionary
+\f0\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.
+\f3 \
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96\'a0(object<Individual>)nearestNeighbors(object<Individual>$\'a0individual, [integer$\'a0count\'a0=\'a01])
@@ -1727,6 +1783,26 @@ If an interaction is never evaluated for a given subpopulation, it is guaranteed
 \f2\fs18 "f"
 \f0\fs20 , since no distance values are available in that case.\
 The interaction function for an interaction type is normally a constant in simulations; in any case, it cannot be changed when an interaction has already been evaluated for a given generation of individuals.
+\f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96
+\f3 \'a0
+\f2 (void)setValue(string$\'a0key, +\'a0value)
+\f3 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Sets a value for the dictionary entry identifier 
+\f2\fs18 key
+\f0\fs20 .  The value, which may be of any type other than 
+\f2\fs18 object
+\f0\fs20 , can be fetched later using 
+\f2\fs18 getValue()
+\f0\fs20 .  This dictionary-style functionality is actually provided by the superclass of 
+\f2\fs18 InteractionType
+\f0\fs20 , 
+\f2\fs18 SLiMEidosDictionary
+\f0\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.
 \f3 \
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -2226,18 +2302,42 @@ The mutation stacking policy applies only within the given mutation type; mutati
 \f2\fs18 integer
 \f0\fs20  value.  The value of 
 \f2\fs18 tag
-\f0\fs20  is initially undefined; if you wish it to have a defined value, you must arrange that yourself.  The value of 
+\f0\fs20  is initially undefined (i.e., has an effectively random value); if you wish it to have a defined value, you must arrange that yourself.  The value of 
 \f2\fs18 tag
-\f0\fs20  is not used by SLiM; it is free for you to use.
+\f0\fs20  is not used by SLiM; it is free for you to use.  See also the 
+\f2\fs18 getValue()
+\f0\fs20  and 
+\f2\fs18 setValue()
+\f0\fs20  methods, for another way of attaching state to mutation types.
 \f3 \
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \f0\i\fs22 \cf0 5.9.2  
 \f1\fs18 MutationType
 \f0\fs22  methods\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\i0\fs18 \cf0 \'96
+\f3 \'a0
+\f2 (+)getValue(string$\'a0key)
+\f3 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns the value previously set for the dictionary entry identifier 
+\f2\fs18 key
+\f0\fs20  using 
+\f2\fs18 setValue()
+\f0\fs20 , or 
+\f2\fs18 NULL
+\f0\fs20  if no value has been set.  This dictionary-style functionality is actually provided by the superclass of 
+\f2\fs18 MutationType
+\f0\fs20 , 
+\f2\fs18 SLiMEidosDictionary
+\f0\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.
+\f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\i0\fs18 \cf0 \'96\'a0(void)setDistribution(string$\'a0distributionType, ...)
+\f2\fs18 \cf0 \'96\'a0(void)setDistribution(string$\'a0distributionType, ...)
 \f3 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -2280,6 +2380,26 @@ The mutation stacking policy applies only within the given mutation type; mutati
 \f2\fs18 string$
 \f0\fs22  Eidos script parameter.
 \fs20   The DFE for a mutation type is normally a constant in simulations, so be sure you know what you are doing.
+\f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96
+\f3 \'a0
+\f2 (void)setValue(string$\'a0key, +\'a0value)
+\f3 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Sets a value for the dictionary entry identifier 
+\f2\fs18 key
+\f0\fs20 .  The value, which may be of any type other than 
+\f2\fs18 object
+\f0\fs20 , can be fetched later using 
+\f2\fs18 getValue()
+\f0\fs20 .  This dictionary-style functionality is actually provided by the superclass of 
+\f2\fs18 MutationType
+\f0\fs20 , 
+\f2\fs18 SLiMEidosDictionary
+\f0\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.
 \f3 \
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
@@ -2671,13 +2791,7 @@ The mutation stacking policy applies only within the given mutation type; mutati
 \f2\fs18 SLiMSim
 \f0\fs20 , 
 \f2\fs18 SLiMEidosDictionary
-\f0\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.  This functionality is shared by the other subclasses of 
-\f2\fs18 SLiMEidosDictionary
-\f0\fs20 : 
-\f2\fs18 Individual
-\f0\fs20  and 
-\f2\fs18 Subpopulation
-\f0\fs20 , at present.
+\f0\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.
 \f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -3376,13 +3490,7 @@ Note that new script blocks can also be created and scheduled using the
 \f2\fs18 SLiMSim
 \f0\fs20 , 
 \f2\fs18 SLiMEidosDictionary
-\f0\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.  This functionality is shared by the other subclasses of 
-\f2\fs18 SLiMEidosDictionary
-\f0\fs20 : 
-\f2\fs18 Individual
-\f0\fs20  and 
-\f2\fs18 Subpopulation
-\f0\fs20 , at present.
+\f0\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.
 \f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -3691,13 +3799,7 @@ Note that at present, SLiMgui will only display spatial maps of spatiality
 \f2\fs18 Subpopulation
 \f0\fs20 , 
 \f2\fs18 SLiMEidosDictionary
-\f0\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.  This functionality is shared by the other subclasses of 
-\f2\fs18 SLiMEidosDictionary
-\f0\fs20 : 
-\f2\fs18 Individual
-\f0\fs20  and 
-\f2\fs18 SLiMSim
-\f0\fs20 , at present.
+\f0\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.
 \f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -4067,13 +4169,7 @@ If the optional parameter
 \f2\fs18 Subpopulation
 \f0\fs20 , 
 \f2\fs18 SLiMEidosDictionary
-\f0\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.  This functionality is shared by the other subclasses of 
-\f2\fs18 SLiMEidosDictionary
-\f0\fs20 : 
-\f2\fs18 Individual
-\f0\fs20  and 
-\f2\fs18 SLiMSim
-\f0\fs20 , at present.
+\f0\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.
 \f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
