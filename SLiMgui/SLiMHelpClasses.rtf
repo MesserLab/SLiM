@@ -1919,6 +1919,21 @@ Note that all interactions are automatically reset to an unevaluated state at th
 \f0\fs20 \cf0 The selection coefficient of the mutation, drawn from the distribution of fitness effects of its 
 \f2\fs18 MutationType
 \f3\fs20 .\
+
+\f0 Note that this property has a quirk: it is stored internally in SLiM using a single-precision float, not the double-precision float type normally used by Eidos.  This means that if you set a mutation 
+\f2\fs18 mut
+\f0\fs20 \'92s selection coefficient to some number 
+\f2\fs18 x
+\f0\fs20 , 
+\f2\fs18 mut.selectionCoeff==x
+\f0\fs20  may be 
+\f2\fs18 F
+\f0\fs20  due to floating-point rounding error.  Comparisons of floating-point numbers for exact equality is often a bad idea, but this is one case where it may fail unexpectedly.  Instead, it is recommended to use the 
+\f2\fs18 id
+\f0\fs20  or 
+\f2\fs18 tag
+\f0\fs20  properties to identify particular mutations.
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 subpopID <\'96> (integer$)\
@@ -2246,7 +2261,23 @@ Note that these distributions can in principle produce selection coefficients sm
 \f2\fs18 SLiMSim
 \f0\fs20 \'92s method 
 \f2\fs18 recalculateFitness()
-\f0\fs20  \'96 but see the documentation of that method for caveats.
+\f0\fs20  \'96 but see the documentation of that method for caveats.\
+Note that the dominance coefficient is not bounded.  A dominance coefficient greater than 
+\f2\fs18 1.0
+\f0\fs20  may be used to achieve an overdominance effect.  By making the selection coefficient very small and the dominance coefficient very large, an overdominance scenario in which both homozygotes have the same fitness may be approximated, to a nearly arbitrary degree of precision.\
+Note that this property has a quirk: it is stored internally in SLiM using a single-precision float, not the double-precision float type normally used by Eidos.  This means that if you set a mutation type 
+\f2\fs18 muttype
+\f0\fs20 \'92s dominance coefficient to some number 
+\f2\fs18 x
+\f0\fs20 , 
+\f2\fs18 muttype.dominanceCoeff==x
+\f0\fs20  may be 
+\f2\fs18 F
+\f0\fs20  due to floating-point rounding error.  Comparisons of floating-point numbers for exact equality is often a bad idea, but this is one case where it may fail unexpectedly.  Instead, it is recommended to use the 
+\f2\fs18 id
+\f0\fs20  or 
+\f2\fs18 tag
+\f0\fs20  properties to identify particular mutation types.
 \f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
