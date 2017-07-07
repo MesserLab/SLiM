@@ -59,7 +59,21 @@ EidosValue_SP Eidos_TestElement::GetProperty(EidosGlobalStringID p_property_id)
 	if (p_property_id == gEidosID__yolk)				// ACCELERATED
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(yolk_));
 	else if (p_property_id == gEidosID__increment)
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(new Eidos_TestElement(yolk_ + 1), gEidos_TestElementClass));
+	{
+		// The way we handle the increment property is extremely questionable; we create a new
+		// Eidos_TestElement object that is not owned by anyone, so it ends up as a leak in
+		// Instruments.  This doesn't matter, since Eidos_TestElement is only used in test code,
+		// but it clutters up leak reports confusingly.  To get rid of those leak reports, we
+		// keep a static vector here of pointers to the leaked elements, so they are no longer
+		// considered leaks.  This is an ugly hack, but is completely harmless.
+		static std::vector<Eidos_TestElement *> inc_element_thunk;
+		
+		Eidos_TestElement *inc_element = new Eidos_TestElement(yolk_ + 1);
+		
+		inc_element_thunk.push_back(inc_element);
+		
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(inc_element, gEidos_TestElementClass));
+	}
 	
 	// all others, including gID_none
 	else
@@ -100,7 +114,19 @@ EidosValue_SP Eidos_TestElement::ExecuteInstanceMethod(EidosGlobalStringID p_met
 		}
 		case gEidosID__squareTest:
 		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(new Eidos_TestElement(yolk_ * yolk_), gEidos_TestElementClass));
+			// The way we handle the squareTest property is extremely questionable; we create a new
+			// Eidos_TestElement object that is not owned by anyone, so it ends up as a leak in
+			// Instruments.  This doesn't matter, since Eidos_TestElement is only used in test code,
+			// but it clutters up leak reports confusingly.  To get rid of those leak reports, we
+			// keep a static vector here of pointers to the leaked elements, so they are no longer
+			// considered leaks.  This is an ugly hack, but is completely harmless.
+			static std::vector<Eidos_TestElement *> sq_element_thunk;
+			
+			Eidos_TestElement *sq_element = new Eidos_TestElement(yolk_ * yolk_);
+			
+			sq_element_thunk.push_back(sq_element);
+			
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(sq_element, gEidos_TestElementClass));
 		}
 			
 			// all others, including gID_none
