@@ -1345,6 +1345,7 @@ const std::string gEidosStr_Mutation = "Mutation";	// in Eidos for hack reasons;
 
 static std::unordered_map<std::string, EidosGlobalStringID> gStringToID;
 static std::unordered_map<EidosGlobalStringID, const std::string *> gIDToString;
+static std::vector<const std::string *> gIDToString_Thunk;
 static EidosGlobalStringID gNextUnusedID = gEidosID_LastContextEntry;
 
 
@@ -1429,8 +1430,22 @@ EidosGlobalStringID EidosGlobalStringIDForString(const std::string &p_string)
 		const std::string *copied_string = new const std::string(p_string);
 		uint32_t string_id = gNextUnusedID++;
 		
+#if DEBUG
+		// Check that this string ID has not already been used; this should never happen
+		auto found_ID_iter = gIDToString.find(string_id);
+		
+		if (found_ID_iter != gIDToString.end())
+			EIDOS_TERMINATION << "ERROR (EidosGlobalStringIDForString): id " << string_id << " was already in use; collision during in-passing registration of global string '" << p_string << "'." << eidos_terminate(nullptr);
+#endif
+		
 		gStringToID[*copied_string] = string_id;
 		gIDToString[string_id] = copied_string;
+		
+#if DEBUG
+		// We add copied strings to a thunk vector so we can free them at the end to un-confuse Valgrind;
+		// see EidosFreeGlobalStrings().  We do this only in DEBUG since we run Valgrind on a DEBUG build.
+		gIDToString_Thunk.push_back(copied_string);
+#endif
 		
 		return string_id;
 	}
@@ -1447,6 +1462,20 @@ const std::string &StringForEidosGlobalStringID(EidosGlobalStringID p_string_id)
 		return gEidosStr_undefined;
 	else
 		return *(found_iter->second);
+}
+
+void EidosFreeGlobalStrings(void)
+{
+	// The gIDToString map will not be safe to use, since we will have freed strings out from under it
+	gIDToString.clear();
+	
+	// Now we free all of the strings that we copied above in EidosGlobalStringIDForString().
+	// The point of this thunk vector is to prevent Valgrind from being confused and thinking we
+	// have leaked the global strings that we copied; apparently unordered_map keeps them in
+	// a way (unaligned?) that Valgrind does not recognize as a reference to the copies, so it
+	// reports them as leaked even though they're not.
+	for (auto gstr_iter = gIDToString_Thunk.begin(); gstr_iter != gIDToString_Thunk.end(); gstr_iter++)
+		delete (*gstr_iter);
 }
 
 

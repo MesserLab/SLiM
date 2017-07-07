@@ -37,6 +37,7 @@
 
 
 void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage);
+void test_exit(void);
 
 void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 {
@@ -100,6 +101,15 @@ void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 	
 	if (p_print_header || p_print_full_usage)
 		SLIM_OUTSTREAM << std::endl;
+	
+	exit(0);
+}
+
+void test_exit(void)
+{
+	// This does a little cleanup that helps Valgrind to understand that some things have not been leaked.
+	// I think perhaps unordered_map keeps values in an unaligned manner that Valgrind doesn't see as pointers.
+	EidosFreeGlobalStrings();
 	
 	exit(0);
 }
@@ -191,7 +201,7 @@ int main(int argc, char *argv[])
 			gEidosTerminateThrows = true;
 			Eidos_WarmUp();
 			RunEidosTests();
-			exit(0);
+			test_exit();
 		}
 		
 		// -testSLiM or -ts: run SLiM tests and quit
@@ -201,7 +211,7 @@ int main(int argc, char *argv[])
 			Eidos_WarmUp();
 			SLiM_WarmUp();
 			RunSLiMTests();
-			exit(0);
+			test_exit();
 		}
 		
 		// -usage or -u: print usage information

@@ -358,6 +358,9 @@ void Eidos_RegisterStringForGlobalID(const std::string &p_string, EidosGlobalStr
 // This registers all of the standard Eidos strings, listed below, without copying; the string global is the uniqued string.
 void Eidos_RegisterGlobalStringsAndIDs(void);
 
+// Frees all copied strings in the global string registry; used to help Valgrind understand what we're doing
+void EidosFreeGlobalStrings(void);
+
 
 extern const std::string gEidosStr_empty_string;
 extern const std::string gEidosStr_space_string;
