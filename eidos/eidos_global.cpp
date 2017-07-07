@@ -1476,6 +1476,8 @@ void EidosFreeGlobalStrings(void)
 	// reports them as leaked even though they're not.
 	for (auto gstr_iter = gIDToString_Thunk.begin(); gstr_iter != gIDToString_Thunk.end(); gstr_iter++)
 		delete (*gstr_iter);
+	
+	gIDToString_Thunk.clear();
 }
 
 

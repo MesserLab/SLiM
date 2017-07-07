@@ -40,6 +40,27 @@ using std::vector;
 using std::endl;
 
 
+// See Eidos_TestElement::GetProperty(), Eidos_TestElement::ExecuteInstanceMethod, and 
+static std::vector<Eidos_TestElement *> inc_element_thunk;
+static std::vector<Eidos_TestElement *> sq_element_thunk;
+
+void Eidos_TestElement::FreeThunks(void)
+{
+	// Valgrind doesn't seem happy with our spuriously allocated test elements just being referenced
+	// by a vector; maybe std::vector does not guarantee alignment or something.  Anyway, if we free
+	// the elements then Valgrind knows for sure they're not leaked.
+	for (auto thunk_iter = inc_element_thunk.begin(); thunk_iter != inc_element_thunk.end(); thunk_iter++)
+		delete (*thunk_iter);
+	
+	inc_element_thunk.clear();
+	
+	for (auto thunk_iter = sq_element_thunk.begin(); thunk_iter != sq_element_thunk.end(); thunk_iter++)
+		delete (*thunk_iter);
+	
+	sq_element_thunk.clear();
+}
+
+
 //
 //	Eidos_TestElement
 //
@@ -64,10 +85,8 @@ EidosValue_SP Eidos_TestElement::GetProperty(EidosGlobalStringID p_property_id)
 		// Eidos_TestElement object that is not owned by anyone, so it ends up as a leak in
 		// Instruments.  This doesn't matter, since Eidos_TestElement is only used in test code,
 		// but it clutters up leak reports confusingly.  To get rid of those leak reports, we
-		// keep a static vector here of pointers to the leaked elements, so they are no longer
+		// keep a static vector of pointers to the leaked elements, so they are no longer
 		// considered leaks.  This is an ugly hack, but is completely harmless.
-		static std::vector<Eidos_TestElement *> inc_element_thunk;
-		
 		Eidos_TestElement *inc_element = new Eidos_TestElement(yolk_ + 1);
 		
 		inc_element_thunk.push_back(inc_element);
@@ -118,10 +137,8 @@ EidosValue_SP Eidos_TestElement::ExecuteInstanceMethod(EidosGlobalStringID p_met
 			// Eidos_TestElement object that is not owned by anyone, so it ends up as a leak in
 			// Instruments.  This doesn't matter, since Eidos_TestElement is only used in test code,
 			// but it clutters up leak reports confusingly.  To get rid of those leak reports, we
-			// keep a static vector here of pointers to the leaked elements, so they are no longer
+			// keep a static vector of pointers to the leaked elements, so they are no longer
 			// considered leaks.  This is an ugly hack, but is completely harmless.
-			static std::vector<Eidos_TestElement *> sq_element_thunk;
-			
 			Eidos_TestElement *sq_element = new Eidos_TestElement(yolk_ * yolk_);
 			
 			sq_element_thunk.push_back(sq_element);

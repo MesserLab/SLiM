@@ -44,6 +44,11 @@ public:
 	
 	explicit Eidos_TestElement(int64_t p_value);
 	
+	static void FreeThunks(void);										// a hack to de-confuse Valgrind
+	
+	//
+	// Eidos support
+	//
 	virtual const EidosObjectClass *Class(void) const;
 	
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id);

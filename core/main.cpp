@@ -34,6 +34,7 @@
 #include "slim_global.h"
 #include "eidos_test.h"
 #include "slim_test.h"
+#include "eidos_test_element.h"
 
 
 void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage);
@@ -110,6 +111,7 @@ void test_exit(void)
 	// This does a little cleanup that helps Valgrind to understand that some things have not been leaked.
 	// I think perhaps unordered_map keeps values in an unaligned manner that Valgrind doesn't see as pointers.
 	EidosFreeGlobalStrings();
+	Eidos_TestElement::FreeThunks();
 	
 	exit(0);
 }
