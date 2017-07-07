@@ -45,6 +45,7 @@ development head:
 	add setValue() / getValue() capability to MutationType, GenomicElementType, and InteractionType
 	scripted (type "s") DFEs in MutationType now have access to all SLiM constants
 	add mutationStackGroup property to MutationType and expand the mutation stacking algorithm accordingly
+	fix for a potentially serious bug in the Eidos function setDifference() (no impact if you do not use that function)
 	NOTE: this version changed model output in some cases because of a float/double change in fitness calculations
 	NOTE: this version changed model output for pure neutral models because of a change in the random numbers used to choose mates
 

@@ -2340,12 +2340,14 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const EidosValue_SP *const p_a
 		// The result is arg0 uniqued, minus the element in arg1 if it matches
 		result_SP = UniqueEidosValue(arg0_value, true);
 		
+		int result_count = result_SP->Count();
+		
 		if (arg_type == EidosValueType::kValueInt)
 		{
 			int64_t int1 = arg1_value->IntAtIndex(0, nullptr);
 			std::vector<int64_t> &int_vec = *result_SP->IntVector_Mutable();
 			
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
+			for (int value_index = 0; value_index < result_count; ++value_index)
 				if (int1 == int_vec[value_index])
 				{
 					int_vec.erase(int_vec.begin() + value_index);
@@ -2357,7 +2359,7 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const EidosValue_SP *const p_a
 			double float1 = arg1_value->FloatAtIndex(0, nullptr);
 			std::vector<double> &float_vec = *result_SP->FloatVector_Mutable();
 			
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
+			for (int value_index = 0; value_index < result_count; ++value_index)
 				if (float1 == float_vec[value_index])
 				{
 					float_vec.erase(float_vec.begin() + value_index);
@@ -2369,7 +2371,7 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const EidosValue_SP *const p_a
 			std::string string1 = arg1_value->StringAtIndex(0, nullptr);
 			std::vector<std::string> &string_vec = *result_SP->StringVector_Mutable();
 			
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
+			for (int value_index = 0; value_index < result_count; ++value_index)
 				if (string1 == string_vec[value_index])
 				{
 					string_vec.erase(string_vec.begin() + value_index);
@@ -2381,7 +2383,7 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const EidosValue_SP *const p_a
 			EidosObjectElement *obj1 = arg1_value->ObjectElementAtIndex(0, nullptr);
 			std::vector<EidosObjectElement *> &object_vec = *result_SP->ObjectElementVector_Mutable();
 			
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
+			for (int value_index = 0; value_index < result_count; ++value_index)
 				if (obj1 == object_vec[value_index])
 				{
 					obj1->Release();
