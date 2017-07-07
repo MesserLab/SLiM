@@ -97,12 +97,31 @@ EidosSymbolTable::EidosSymbolTable(EidosSymbolTableType p_table_type, EidosSymbo
 			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::EidosSymbolTable): (internal error) the Eidos intrinsic constants table cannot have a parent." << eidos_terminate(nullptr);
 		if (parent_symbol_table_->table_type_ == EidosSymbolTableType::kVariablesTable)
 			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::EidosSymbolTable): (internal error) parent symbol tables must be constant in the current design." << eidos_terminate(nullptr);
+		if (parent_symbol_table_->table_type_ == EidosSymbolTableType::kINVALID_TABLE_TYPE)
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::EidosSymbolTable): (internal error) zombie symbol table re-used as parent table." << eidos_terminate(nullptr);
 #endif
 	}
 }
 
 EidosSymbolTable::~EidosSymbolTable(void)
 {
+	// We do a little bit of zombie-fication here to try to catch problematic table usage patterns
+	if (table_type_ == EidosSymbolTableType::kINVALID_TABLE_TYPE)
+		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::~EidosSymbolTable): (internal error) zombie symbol table being destructed." << eidos_terminate(nullptr);
+	
+	table_type_ = EidosSymbolTableType::kINVALID_TABLE_TYPE;
+	
+	// In general, every symbol table has its own lifetime, and a single table might be the parent table for many other
+	// symbol tables (in the way that the intrinsic constants table is used as the root parent for all symbol table
+	// chains in Eidos).  The exception to this is defined constants tables, which are added and inserted into the
+	// symbol table chain dynamically by DefineConstantForSymbol().  They need to be freed, so the policy we have is
+	// that they are owned by their child table, which has a pointer up to them.  That means that unlike other types
+	// of tables, DEFINED CONSTANTS TABLES MUST NEVER BE DIRECTLY REFERENCED BY MORE THAN ONE CHILD TABLE.
+	if (parent_symbol_table_ && (parent_symbol_table_->table_type_ == EidosSymbolTableType::kEidosDefinedConstantsTable))
+	{
+		delete parent_symbol_table_;
+		parent_symbol_table_ = nullptr;
+	}
 }
 
 std::vector<std::string> EidosSymbolTable::_SymbolNames(bool p_include_constants, bool p_include_variables) const
@@ -396,7 +415,8 @@ void EidosSymbolTable::DefineConstantForSymbol(EidosGlobalStringID p_symbol_name
 		
 		EidosSymbolTable *intrinsicConstantsTable = childTable->parent_symbol_table_;
 		
-		// Make a defined constants table and insert it in between
+		// Make a defined constants table and insert it in between; this table will be
+		// owned by childTable, which will free it whenever childTable is destructed
 		definedConstantsTable = new EidosSymbolTable(EidosSymbolTableType::kEidosDefinedConstantsTable, intrinsicConstantsTable);
 		childTable->parent_symbol_table_ = definedConstantsTable;
 	}

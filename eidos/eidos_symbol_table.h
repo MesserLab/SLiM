@@ -99,7 +99,8 @@ enum class EidosSymbolTableType
 	kEidosIntrinsicConstantsTable = 0,	// just one of these
 	kEidosDefinedConstantsTable,		// and just one of these
 	kContextConstantsTable,				// can be any number of these
-	kVariablesTable						// and finally, just one of these
+	kVariablesTable,					// and finally, just one of these
+	kINVALID_TABLE_TYPE					// used as a sort of zombie marker in an attempt to increase code safety
 };
 
 
