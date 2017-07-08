@@ -340,6 +340,10 @@ EidosValue_SP Mutation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, c
 	
 	if (p_method_id == gID_setSelectionCoeff)
 	{
+#ifdef __clang_analyzer__
+		assert(p_argument_count == 1);
+#endif
+		
 		double value = arg0_value->FloatAtIndex(0, nullptr);
 		slim_selcoeff_t old_coeff = selection_coeff_;
 		

@@ -459,6 +459,10 @@ EidosValue_SP MutationType::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 	
 	if (p_method_id == gID_setDistribution)
 	{
+#ifdef __clang_analyzer__
+		assert(p_argument_count >= 1);
+#endif
+		
 		string dfe_type_string = arg0_value->StringAtIndex(0, nullptr);
 		DFEType dfe_type;
 		int expected_dfe_param_count = 0;

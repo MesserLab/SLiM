@@ -255,7 +255,7 @@ void EidosTypeInterpreter::_ProcessArgumentListTypes(const EidosASTNode *p_node,
 	auto node_children_end = node_children.end();
 	auto sig_arg_index = 0;
 	auto sig_arg_count = (int)p_call_signature->arg_name_IDs_.size();
-	bool had_named_argument = false;
+	//bool had_named_argument = false;
 	
 	for (auto child_iter = node_children.begin() + 1; child_iter != node_children_end; ++child_iter)
 	{
@@ -310,7 +310,7 @@ void EidosTypeInterpreter::_ProcessArgumentListTypes(const EidosASTNode *p_node,
 					}
 					while (true);
 					
-					had_named_argument = true;
+					//had_named_argument = true;
 				}
 			}
 		}
@@ -404,6 +404,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Call(const EidosASTNode *p
 				{
 					// OK, we have <object type>.<identifier>(...); that's a well-formed method call
 					call_identifier_token = second_child_node->token_;
+					(void)call_identifier_token;		// tell the static analyzer that we know we just did a dead store
 					
 					EidosGlobalStringID method_id = second_child_node->cached_stringID_;
 					const EidosMethodSignature *method_signature = method_class->SignatureForMethod(method_id);

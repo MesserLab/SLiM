@@ -72,6 +72,11 @@ no_error_handler (const char *reason, const char *file, int line, int gsl_errno)
   file = 0;
   line = 0;
   gsl_errno = 0;
+#ifdef __clang_analyzer__
+	// acknowledge dead stores; I have no idea why the GSL does this...
+	line;
+	gsl_errno;
+#endif
   return;
 }
 

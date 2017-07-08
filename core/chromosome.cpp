@@ -579,6 +579,10 @@ EidosValue_SP Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 	
 	if (p_method_id == gID_setRecombinationRate)
 	{
+#ifdef __clang_analyzer__
+		assert(p_argument_count == 3);
+#endif
+		
 		int rate_count = arg0_value->Count();
 		
 		// Figure out what sex we are being given a map for

@@ -705,6 +705,10 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 			
 		case gID_countOfMutationsOfType:
 		{
+#ifdef __clang_analyzer__
+			assert(p_argument_count == 1);
+#endif
+			
 			Genome *genome1, *genome2;
 			
 			GetGenomes(&genome1, &genome2);
@@ -782,6 +786,10 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 			
 		case gID_relatedness:
 		{
+#ifdef __clang_analyzer__
+			assert(p_argument_count == 1);
+#endif
+			
 			int arg0_count = arg0_value->Count();
 			
 			if (arg0_count == 1)
@@ -817,6 +825,10 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 			
 		case gID_setSpatialPosition:
 		{
+#ifdef __clang_analyzer__
+			assert(p_argument_count == 1);
+#endif
+			
 			SLiMSim *sim = &(subpopulation_.population_.sim_);
 			
 			if (!sim)
@@ -858,6 +870,10 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 			
 		case gID_sumOfMutationsOfType:
 		{
+#ifdef __clang_analyzer__
+			assert(p_argument_count == 1);
+#endif
+			
 			Genome *genome1, *genome2;
 			
 			GetGenomes(&genome1, &genome2);
@@ -943,6 +959,10 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 			
 		case gID_uniqueMutationsOfType:
 		{
+#ifdef __clang_analyzer__
+			assert(p_argument_count == 1);
+#endif
+			
 			MutationType *mutation_type_ptr = nullptr;
 			
 			if (arg0_value->Type() == EidosValueType::kValueInt)

@@ -67,6 +67,10 @@ EidosValue_SP SLiMEidosDictionary::ExecuteInstanceMethod(EidosGlobalStringID p_m
 			
 		case gID_getValue:
 		{
+#ifdef __clang_analyzer__
+			assert(p_argument_count == 1);
+#endif
+			
 			std::string key = arg0_value->StringAtIndex(0, nullptr);
 			
 			auto found_iter = hash_symbols_.find(key);

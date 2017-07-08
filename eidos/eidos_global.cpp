@@ -1427,7 +1427,6 @@ EidosGlobalStringID EidosGlobalStringIDForString(const std::string &p_string)
 		// If the hash table does not already contain this key, then we add it to the table as a side effect.
 		// We have to copy the string, because we have no idea what the caller might do with the string they passed us.
 		// Since the hash table makes its own copy of the key, this copy is used only for the value in the hash tables.
-		const std::string *copied_string = new const std::string(p_string);
 		uint32_t string_id = gNextUnusedID++;
 		
 #if DEBUG
@@ -1437,6 +1436,8 @@ EidosGlobalStringID EidosGlobalStringIDForString(const std::string &p_string)
 		if (found_ID_iter != gIDToString.end())
 			EIDOS_TERMINATION << "ERROR (EidosGlobalStringIDForString): id " << string_id << " was already in use; collision during in-passing registration of global string '" << p_string << "'." << eidos_terminate(nullptr);
 #endif
+		
+		const std::string *copied_string = new const std::string(p_string);
 		
 		gStringToID[*copied_string] = string_id;
 		gIDToString[string_id] = copied_string;

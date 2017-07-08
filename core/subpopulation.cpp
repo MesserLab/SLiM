@@ -634,6 +634,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		{
 			// The only callback refers to a mutation type that doesn't exist, so we effectively have no callbacks; we probably never hit this
 			fitness_callback_count = 0;
+			(void)fitness_callback_count;		// tell the static analyzer that we know we just did a dead store
 			fitness_callbacks_exist = false;
 		}
 	}
@@ -871,6 +872,8 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		}
 		
 		totalFitness += totalMaleFitness;
+		(void)totalFitness;		// tell the static analyzer that we know we just did a dead store
+		
 		if (totalMaleFitness <= 0.0)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of males is <= 0.0." << eidos_terminate(nullptr);
 		
@@ -2706,6 +2709,10 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 			
 		case gID_setSexRatio:
 		{
+#ifdef __clang_analyzer__
+			assert(p_argument_count == 1);
+#endif
+			
 			// SetSexRatio() can only be called when the child generation has not yet been generated.  It sets the sex ratio on the child generation,
 			// and then that sex ratio takes effect when the children are generated from the parents in EvolveSubpopulation().
 			if (child_generation_valid_)
@@ -2735,6 +2742,10 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 			
 		case gID_setSpatialBounds:
 		{
+#ifdef __clang_analyzer__
+			assert(p_argument_count == 1);
+#endif
+			
 			SLiMSim &sim = population_.sim_;
 			
 			int dimensionality = sim.SpatialDimensionality();
@@ -2790,6 +2801,10 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 			
 		case gID_setSubpopulationSize:
 		{
+#ifdef __clang_analyzer__
+			assert(p_argument_count == 1);
+#endif
+			
 			slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
 			
 			population_.SetSize(*this, subpop_size);
@@ -2805,6 +2820,10 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 			
 		case gID_cachedFitness:
 		{
+#ifdef __clang_analyzer__
+			assert(p_argument_count == 1);
+#endif
+			
 			if (child_generation_valid_)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteInstanceMethod): cachedFitness() may only be called when the parental generation is active (before or during offspring generation)." << eidos_terminate();
 			if (cached_fitness_size_ == 0)
@@ -2863,6 +2882,10 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 			
 		case gID_defineSpatialMap:
 		{
+#ifdef __clang_analyzer__
+			assert(p_argument_count == 7);
+#endif
+			
 			std::string map_name = arg0_value->StringAtIndex(0, nullptr);
 			std::string spatiality_string = arg1_value->StringAtIndex(0, nullptr);
 			EidosValue *grid_size = arg2_value;
@@ -2981,6 +3004,10 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 			
 		case gID_spatialMapColor:
 		{
+#ifdef __clang_analyzer__
+			assert(p_argument_count == 2);
+#endif
+			
 			std::string map_name = arg0_value->StringAtIndex(0, nullptr);
 			EidosValue *values = arg1_value;
 			
@@ -3028,6 +3055,10 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 			
 		case gID_spatialMapValue:
 		{
+#ifdef __clang_analyzer__
+			assert(p_argument_count == 2);
+#endif
+			
 			std::string map_name = arg0_value->StringAtIndex(0, nullptr);
 			EidosValue *point = arg1_value;
 			
@@ -3142,6 +3173,10 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 		case gID_outputVCFSample:
 		case gID_outputSample:
 		{
+#ifdef __clang_analyzer__
+			assert(p_argument_count >= 5);
+#endif
+			
 			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 			SLiMSim &sim = population_.sim_;
 			

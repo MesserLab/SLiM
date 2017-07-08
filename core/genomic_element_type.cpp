@@ -245,6 +245,10 @@ EidosValue_SP GenomicElementType::ExecuteInstanceMethod(EidosGlobalStringID p_me
 	
 	if (p_method_id == gID_setMutationFractions)
 	{
+#ifdef __clang_analyzer__
+		assert(p_argument_count == 2);
+#endif
+		
 		int mut_type_id_count = arg0_value->Count();
 		int proportion_count = arg1_value->Count();
 		

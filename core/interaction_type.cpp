@@ -3302,6 +3302,10 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 			
 		case gID_nearestNeighborsOfPoint:
 		{
+#ifdef __clang_analyzer__
+			assert(p_argument_count == 3);
+#endif
+			
 			if (spatiality_ == 0)
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): nearestNeighborsOfPoint() requires that the interaction be spatial." << eidos_terminate();
 			
@@ -3355,6 +3359,10 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 			
 		case gID_setInteractionFunction:
 		{
+#ifdef __clang_analyzer__
+			assert(p_argument_count >= 1);
+#endif
+			
 			std::string if_type_string = arg0_value->StringAtIndex(0, nullptr);
 			IFType if_type;
 			int expected_if_param_count = 0;
@@ -3424,6 +3432,10 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 			
 		case gID_strength:
 		{
+#ifdef __clang_analyzer__
+			assert(p_argument_count == 2);
+#endif
+			
 			EidosValue *individuals1 = arg0_value, *individuals2 = arg1_value;
 			int count1 = individuals1->Count(), count2 = individuals2->Count();
 			
@@ -3722,6 +3734,10 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 			
 		case gID_totalOfNeighborStrengths:
 		{
+#ifdef __clang_analyzer__
+			assert(p_argument_count == 1);
+#endif
+			
 			if (spatiality_ == 0)
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): totalOfNeighborStrengths() requires that the interaction be spatial." << eidos_terminate();
 			

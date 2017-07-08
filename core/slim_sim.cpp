@@ -3456,6 +3456,10 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 	
 	else if (p_function_name.compare(gStr_initializeSLiMOptions) == 0)
 	{
+#ifdef __clang_analyzer__
+		assert(p_argument_count == 4);
+#endif
+		
 		if (num_options_declarations_ > 0)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeSLiMOptions() may be called only once." << eidos_terminate();
 		

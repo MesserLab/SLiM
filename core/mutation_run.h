@@ -579,6 +579,10 @@ public:
 		// This is basically the emplace_back() code, but for the nonneutral buffer
 		if (nonneutral_mutations_count_ == nonneutral_mutation_capacity_)
 		{
+#ifdef __clang_analyzer__
+			assert(nonneutral_mutation_capacity_ > 0);
+#endif
+			
 			if (nonneutral_mutation_capacity_ < 32)
 				nonneutral_mutation_capacity_ <<= 1;		// double the number of pointers we can hold
 			else

@@ -75,7 +75,7 @@ enum {
 } ;
 
 void gsl_error (const char * reason, const char * file, int line,
-                int gsl_errno);
+                int gsl_errno) __attribute__((analyzer_noreturn));
 
 void gsl_stream_printf (const char *label, const char *file,
                         int line, const char *reason);

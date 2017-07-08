@@ -175,6 +175,10 @@ EidosValue_SP GenomicElement::ExecuteInstanceMethod(EidosGlobalStringID p_method
 	
 	if (p_method_id == gID_setGenomicElementType)
 	{
+#ifdef __clang_analyzer__
+		assert(p_argument_count == 1);
+#endif
+		
 		GenomicElementType *getype_ptr = nullptr;
 		
 		if (arg0_value->Type() == EidosValueType::kValueInt)

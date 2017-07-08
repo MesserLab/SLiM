@@ -865,6 +865,10 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			
 		case gID_mutationsOfType:
 		{
+#ifdef __clang_analyzer__
+			assert(p_argument_count == 1);
+#endif
+			
 			if (IsNull())
 				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): mutationsOfType() cannot be called on a null genome." << eidos_terminate();
 			
@@ -950,6 +954,10 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			
 		case gID_sumOfMutationsOfType:
 		{
+#ifdef __clang_analyzer__
+			assert(p_argument_count == 1);
+#endif
+			
 			if (IsNull())
 				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): sumOfMutationsOfType() cannot be called on a null genome." << eidos_terminate();
 			
@@ -1958,6 +1966,10 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 			
 		case gID_removeMutations:
 		{
+#ifdef __clang_analyzer__
+			assert(p_argument_count == 2);
+#endif
+			
 			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 			int target_size = p_target->Count();
 			

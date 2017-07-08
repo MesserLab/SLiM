@@ -83,6 +83,12 @@ exprel_n_CF(const double N, const double x, gsl_sf_result * result)
       Bnm1 /= RECUR_BIG;
       Anm2 /= RECUR_BIG;
       Bnm2 /= RECUR_BIG;
+		
+#ifdef __clang_analyzer__
+		// acknowledge dead stores; I have no idea why the GSL does this...
+		Anm2;
+		Bnm2;
+#endif
     }
 
     old_fn = fn;

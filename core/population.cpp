@@ -1554,6 +1554,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 									parent1 = source_subpop.DrawParentUsingFitness();
 								
 								parent2 = parent1;
+								(void)parent2;		// tell the static analyzer that we know we just did a dead store
+								
 								--number_to_clone;
 								
 								DoClonalMutation(&p_subpop, &source_subpop, 2 * child_count, subpop_id, 2 * parent1, p_chromosome, p_generation, child_sex);
