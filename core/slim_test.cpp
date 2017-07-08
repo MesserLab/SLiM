@@ -61,6 +61,7 @@ void SLiMAssertScriptSuccess(const string &p_script_string, int lineNumber)
 	catch (...)
 	{
 		delete sim;
+		MutationRun::DeleteMutationRunFreeList();
 		
 		if (lineNumber != -1)
 			std::cerr << "[" << lineNumber << "] ";
@@ -73,6 +74,7 @@ void SLiMAssertScriptSuccess(const string &p_script_string, int lineNumber)
 	}
 	
 	delete sim;
+	MutationRun::DeleteMutationRunFreeList();
 	
 	gSLiMTestFailureCount--;	// correct for our assumption of failure above
 	gSLiMTestSuccessCount++;
@@ -180,6 +182,7 @@ void SLiMAssertScriptRaise(const string &p_script_string, const int p_bad_line, 
 	}
 	
 	delete sim;
+	MutationRun::DeleteMutationRunFreeList();
 	
 	gEidosCurrentScript = nullptr;
 	gEidosExecutingRuntimeScript = false;
@@ -236,6 +239,7 @@ void SLiMAssertScriptStop(const string &p_script_string, int lineNumber)
 	}
 	
 	delete sim;
+	MutationRun::DeleteMutationRunFreeList();
 	
 	gEidosCurrentScript = nullptr;
 	gEidosExecutingRuntimeScript = false;

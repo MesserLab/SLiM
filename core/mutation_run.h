@@ -189,6 +189,16 @@ public:
 		s_freed_mutation_runs_.emplace_back(p_run);
 	}
 	
+	static inline void DeleteMutationRunFreeList(void)
+	{
+		// This is not normally used by SLiM, but it is used in the SLiM test code in order to prevent mutation runs
+		// that are allocated in one test from carrying over to later tests (which makes leak debugging a pain).
+		for (auto mutrun_iter = s_freed_mutation_runs_.begin(); mutrun_iter != s_freed_mutation_runs_.end(); ++mutrun_iter)
+			delete (*mutrun_iter);
+		
+		s_freed_mutation_runs_.clear();
+	}
+	
 	static std::vector<MutationRun *> s_freed_mutation_runs_;
 	
 	MutationRun(const MutationRun&) = delete;					// no copying
