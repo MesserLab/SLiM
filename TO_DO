@@ -8,8 +8,8 @@ look for exported symbols that are not tagged with "eidos" or "Eidos" somewhere 
 	nm -g -U -j ./EidosScribe | grep -E -v "^_+([^_\r\n]+_)*[^_]*[Ee]idos"
 
 some valgrind commands:
-	valgrind --leak-check=yes --track-origins=yes ./slim -testEidos		(with Debug version)
-	valgrind --leak-check=yes --track-origins=yes ./slim -testSLiM		(with Debug version)
+	valgrind --leak-check=yes --track-origins=yes --expensive-definedness-checks=yes --num-callers=20 ./slim -testEidos		(with Debug version)
+	valgrind --leak-check=yes --track-origins=yes --expensive-definedness-checks=yes --num-callers=20 ./slim -testSLiM		(with Debug version)
 	valgrind --tool=cachegrind ./slim -seed 1 /Users/bhaller/Desktop/MK_SLiMGUIsim4.txt		(with Release version)
 		cg_annotate --sort=DLmr:1,DLmw:1 cachegrind.out.71431
 	valgrind --tool=callgrind ./slim -seed 1 /Users/bhaller/Desktop/MK_SLiMGUIsim4.txt		(with Release version)
