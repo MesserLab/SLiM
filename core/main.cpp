@@ -44,7 +44,7 @@ void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 {
 	if (p_print_header)
 	{
-		SLIM_OUTSTREAM << "SLiM version 2.3, built " << __DATE__ << " " __TIME__ << "." << std::endl << std::endl;	// SLIM VERSION
+		SLIM_OUTSTREAM << "SLiM version 2.4, built " << __DATE__ << " " __TIME__ << "." << std::endl << std::endl;	// SLIM VERSION
 		
 		SLIM_OUTSTREAM << "SLiM is a product of the Messer Lab, http://messerlab.org/" << std::endl;
 		SLIM_OUTSTREAM << "Copyright 2016-2017 Philipp Messer.  All rights reserved." << std::endl << std::endl;
@@ -193,7 +193,7 @@ int main(int argc, char *argv[])
 		// -version or -v: print version information
 		if (strcmp(arg, "-version") == 0 || strcmp(arg, "-v") == 0)
 		{
-			SLIM_OUTSTREAM << "SLiM version 2.3, built " << __DATE__ << " " __TIME__ << std::endl;	// SLIM VERSION
+			SLIM_OUTSTREAM << "SLiM version 2.4, built " << __DATE__ << " " __TIME__ << std::endl;	// SLIM VERSION
 			exit(0);
 		}
 		

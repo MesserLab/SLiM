@@ -8,6 +8,9 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 
 development head:
+
+
+2.4 (build 1163; Eidos version 1.4):
 	add a system() function to call out to Unix to run commands
 	add a tooltip showing the frames per second for the play speed slider, and tweak the play speed metrics
 	add PDF viewing capability to SLiMgui for R plotting integration
@@ -48,7 +51,6 @@ development head:
 	fix for a potentially serious bug in the Eidos function setDifference() (no impact if you do not use that function)
 	NOTE: this version changed model output in some cases because of a float/double change in fitness calculations
 	NOTE: this version changed model output for pure neutral models because of a change in the random numbers used to choose mates
-
 
 2.3 (build 1052; Eidos version 1.3):
 	added x, y, and z properties to Individual for tracking spatial location
