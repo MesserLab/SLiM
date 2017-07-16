@@ -74,8 +74,13 @@ enum {
   GSL_EOF      = 32   /* end of file */
 } ;
 
+#ifdef __clang_analyzer__
 void gsl_error (const char * reason, const char * file, int line,
                 int gsl_errno) __attribute__((analyzer_noreturn));
+#else
+void gsl_error (const char * reason, const char * file, int line,
+				int gsl_errno);
+#endif
 
 void gsl_stream_printf (const char *label, const char *file,
                         int line, const char *reason);
