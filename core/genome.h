@@ -308,7 +308,10 @@ public:
 		
 		// and copy other state
 		genome_type_ = p_source_genome.genome_type_;
-		subpop_ = p_source_genome.subpop_;
+		
+		// DO NOT copy the subpop pointer!  That is not part of the genetic state of the genome,
+		// it's a back-pointer to the Subpopulation that owns this genome, and never changes!
+		// subpop_ = p_source_genome.subpop_;
 	}
 	
 	//void assert_identical_to_runs(MutationRun_SP *p_mutruns, int32_t p_mutrun_count);

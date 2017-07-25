@@ -372,6 +372,10 @@ Genome::Genome(const Genome &p_original)
 	
 	// and copy other state
 	genome_type_ = p_original.genome_type_;
+	
+	// We copy this because we only use this constructor within a single subpopulation, never to
+	// construct a genome destined for a new subpopulation that is identical to an existing
+	// subpopulation.  This constructor is only for internal copying!
 	subpop_ = p_original.subpop_;
 }
 
@@ -405,7 +409,10 @@ Genome& Genome::operator= (const Genome& p_original)
 		
 		// and copy other state
 		genome_type_ = p_original.genome_type_;
-		subpop_ = p_original.subpop_;
+		
+		// DO NOT copy the subpop pointer!  That is not part of the genetic state of the genome,
+		// it's a back-pointer to the Subpopulation that owns this genome, and never changes!
+		// subpop_ = p_original.subpop_;
 	}
 	
 	return *this;
