@@ -1890,7 +1890,14 @@ Note that all interactions are automatically reset to an unevaluated state at th
 \f0\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\i0\fs18 \cf0 mutationType => (object<MutationType>$)\
+\f2\i0\fs18 \cf0 id => (integer$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The identifier for this mutation.  Each mutation created during a run receives an immutable identifier that will be unique across the duration of the run.  These identifiers are not re-used during a run, except that if a population file is loaded from disk, the loaded mutations will receive their original identifier values as saved in the population file.
+\f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 mutationType => (object<MutationType>$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 The 
@@ -1951,6 +1958,18 @@ If you don\'92t care which subpopulation a mutation originated in, the
 \f0\fs20  objects and report it in output.  (It must still be 
 \f2\fs18 >= 0
 \f0\fs20 , however, since SLiM object identifiers are limited to nonnegative integers).\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 tag <\'96> (integer$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 A user-defined 
+\f2\fs18 integer
+\f0\fs20  value.  The value of 
+\f2\fs18 tag
+\f0\fs20  is initially undefined (i.e., has an effectively random value that could be different every time you run your model); if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
+\f2\fs18 tag
+\f0\fs20  is not used by SLiM; it is free for you to use.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \i\fs22 \cf0 5.8.2  
@@ -3156,6 +3175,45 @@ As of SLiM 2.1, this method changes the generation counter to the generation rea
 As of SLiM 2.3, this method will read and restore the spatial positions of individuals if that information is present in the output file and the simulation has enabled continuous space (see 
 \f2\fs18 outputFull()
 \f0\fs20  for details).  If spatial positions are present in the output file but the simulation has not enabled continuous space (or the number of spatial dimensions does not match), an error will result.  If the simulation has enabled continuous space but spatial positions are not present in the output file, the spatial positions of the individuals read will be undefined, but an error is not raised.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96\'a0(void)recalculateFitness([Ni$\'a0generation\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Force an immediate recalculation of fitness values for all individuals in all subpopulations.  Normally fitness values are calculated at the end of each generation, and those values are cached and used throughout the following generation.  If simulation parameters are changed in script in a way that affects fitness calculations, and if you wish those changes to take effect immediately rather than taking effect at the end of the current generation, you may call 
+\f2\fs18 recalculateFitness()
+\f0\fs20  to force an immediate recalculation and recache.\
+The optional parameter 
+\f2\fs18 generation
+\f0\fs20  provides the generation for which 
+\f2\fs18 fitness()
+\f0\fs20  callbacks should be selected; if it is 
+\f2\fs18 NULL
+\f0\fs20  (the default), the simulation\'92s current generation value, 
+\f2\fs18 sim.generation
+\f0\fs20 , is used.  If you call 
+\f2\fs18 recalculateFitness()
+\f0\fs20  in an 
+\f2\fs18 early()
+\f0\fs20  event, you may wish this to be 
+\f2\fs18 sim.generation - 1
+\f0\fs20  in order to utilize the 
+\f2\fs18 fitness()
+\f0\fs20  callbacks for the previous generation, as if the changes that you have made to fitness-influencing parameters were already in effect at the end of the previous generation when the new generation was first created and evaluated (usually it is simpler to just make such changes in a 
+\f2\fs18 late()
+\f0\fs20  event instead, however, in which case calling 
+\f2\fs18 recalculateFitness()
+\f0\fs20  is probably not necessary at all since fitness values will be recalculated immediately afterwards).  Regardless of the value supplied for 
+\f2\fs18 generation
+\f0\fs20  here, 
+\f2\fs18 sim.generation
+\f0\fs20  inside 
+\f2\fs18 fitness()
+\f0\fs20  callbacks will report the true generation number, so if your callbacks consult that parameter in order to create generation-specific fitness effects you will need to handle the discrepancy somehow.\
+After this call, the fitness values used for all purposes in SLiM will be the newly calculated values.  Calling this method will trigger the calling of any enabled and applicable 
+\f2\fs18 fitness()
+\f0\fs20  callbacks, so this is quite a heavyweight operation; you should think carefully about what side effects might result (which is why fitness recalculation does not just occur automatically after changes that might affect fitness values).
+\f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>$)registerEarlyEvent(Nis$\'a0id, string$\'a0source, [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
@@ -4289,7 +4347,16 @@ If the optional parameter
 \f0\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\i0\fs18 \cf0 fixationGeneration => (integer$)\
+\f2\i0\fs18 \cf0 id => (integer$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The identifier for this mutation.  Each mutation created during a run receives an immutable identifier that will be unique across the duration of the run, and that identifier is carried over to the 
+\f2\fs18 Substitution
+\f0\fs20  object when the mutation fixes.
+\f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 fixationGeneration => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 The generation in which this mutation fixed.
@@ -4341,6 +4408,20 @@ If the optional parameter
 \f0\fs20  in 
 \f2\fs18 Substitution
 \f0\fs20  is a read-write property to allow it to be used as a \'93tag\'94 in the same way, if the origin subpopulation identifier is not needed.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 tag <\'96> (integer$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 A user-defined 
+\f2\fs18 integer
+\f0\fs20  value.  The value of 
+\f2\fs18 tag
+\f0\fs20  is carried over automatically from the original 
+\f2\fs18 Mutation
+\f0\fs20  object.  Apart from that, the value of 
+\f2\fs18 tag
+\f0\fs20  is not used by SLiM; it is free for you to use.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \i\fs22 \cf0 5.13.2  

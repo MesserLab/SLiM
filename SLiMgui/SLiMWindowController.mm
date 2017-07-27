@@ -2663,9 +2663,27 @@
 		SLiMSim signature_sim(infile);
 		// note no sim->InitializeRNGFromSeed() here; we don't need the RNG and don't want it to log or have side effects
 		
-		[[EidosHelpController sharedController] addTopicsFromRTFFile:@"SLiMHelpFunctions" underHeading:@"6. SLiM Functions" functions:signature_sim.ZeroGenerationFunctionSignatures() methods:nullptr properties:nullptr];
-		[[EidosHelpController sharedController] addTopicsFromRTFFile:@"SLiMHelpClasses" underHeading:@"7. SLiM Classes" functions:nullptr methods:signature_sim.AllMethodSignatures() properties:signature_sim.AllPropertySignatures()];
-		[[EidosHelpController sharedController] addTopicsFromRTFFile:@"SLiMHelpCallbacks" underHeading:@"8. SLiM Events and Callbacks" functions:nullptr methods:nullptr properties:nullptr];
+		EidosHelpController *sharedHelp = [EidosHelpController sharedController];
+		
+		[sharedHelp addTopicsFromRTFFile:@"SLiMHelpFunctions" underHeading:@"6. SLiM Functions" functions:signature_sim.ZeroGenerationFunctionSignatures() methods:nullptr properties:nullptr];
+		[sharedHelp addTopicsFromRTFFile:@"SLiMHelpClasses" underHeading:@"7. SLiM Classes" functions:nullptr methods:signature_sim.AllMethodSignatures() properties:signature_sim.AllPropertySignatures()];
+		[sharedHelp addTopicsFromRTFFile:@"SLiMHelpCallbacks" underHeading:@"8. SLiM Events and Callbacks" functions:nullptr methods:nullptr properties:nullptr];
+		
+		// Check for completeness of the help documentation, since it's easy to forget to add new functions/properties/methods to the doc
+		[sharedHelp checkDocumentationOfFunctions:signature_sim.ZeroGenerationFunctionSignatures()];
+		
+		[sharedHelp checkDocumentationOfClass:gSLiM_Chromosome_Class];
+		[sharedHelp checkDocumentationOfClass:gSLiM_Genome_Class];
+		[sharedHelp checkDocumentationOfClass:gSLiM_GenomicElement_Class];
+		[sharedHelp checkDocumentationOfClass:gSLiM_GenomicElementType_Class];
+		[sharedHelp checkDocumentationOfClass:gSLiM_Individual_Class];
+		[sharedHelp checkDocumentationOfClass:gSLiM_InteractionType_Class];
+		[sharedHelp checkDocumentationOfClass:gSLiM_Mutation_Class];
+		[sharedHelp checkDocumentationOfClass:gSLiM_MutationType_Class];
+		[sharedHelp checkDocumentationOfClass:gSLiM_SLiMEidosBlock_Class];
+		[sharedHelp checkDocumentationOfClass:gSLiM_SLiMSim_Class];
+		[sharedHelp checkDocumentationOfClass:gSLiM_Subpopulation_Class];
+		[sharedHelp checkDocumentationOfClass:gSLiM_Substitution_Class];
 		
 		// Run startup tests, iff the option key is down; NOTE THAT THIS CAUSES MASSIVE LEAKING DUE TO RAISES INSIDE EIDOS!
 		if ([NSEvent modifierFlags] & NSAlternateKeyMask)

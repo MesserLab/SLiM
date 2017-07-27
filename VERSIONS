@@ -8,6 +8,7 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 
 development head:
+	add a check for completeness of the help information compared to class definitions, and add doc for a few missing items
 
 
 2.4.1 (build 1166; Eidos version 1.4.1):

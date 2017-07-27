@@ -103,6 +103,11 @@
 		[self addTopicsFromRTFFile:@"EidosHelpTypes" underHeading:@"5. Eidos Types" functions:nullptr methods:nullptr properties:nullptr];
 		
 		//NSLog(@"topicRoot == %@", topicRoot);
+		
+		// Check for completeness of the help documentation, since it's easy to forget to add new functions/properties/methods to the doc
+		[self checkDocumentationOfFunctions:&EidosInterpreter::BuiltInFunctions()];
+		
+		[self checkDocumentationOfClass:gEidos_UndefinedClassObject];
 	}
 	
 	return self;
@@ -470,7 +475,7 @@
 			
 			//NSLog(@"topic property name: %@, line: %@", callName, line);
 			
-			// check for a built-in method signature that matches and substitute it in
+			// check for a built-in property signature that matches and substitute it in
 			if (propertyList)
 			{
 				std::string property_name([callName UTF8String]);
@@ -510,6 +515,118 @@
 			topicItemKey = [NSString stringWithFormat:@"%@ %@", callName, readOnlyName];
 			topicItemAttrString = [[[NSMutableAttributedString alloc] initWithAttributedString:lineAttrString] autorelease];
 		}
+	}
+}
+
+- (void)checkDocumentationOfFunctions:(const std::vector<const EidosFunctionSignature*> *)functions
+{
+	for (const EidosFunctionSignature *functionSignature : *functions)
+	{
+		NSString *functionNameString = [NSString stringWithUTF8String:functionSignature->call_name_.c_str()];
+		
+		if (![functionNameString hasPrefix:@"_"])
+		{
+			NSString *functionString = [NSString stringWithFormat:@"%@()", functionNameString];
+			id functionDocumentation = [self findObjectForKeyEqualTo:functionString withinDictionary:[self effectiveTopicRoot]];
+			
+			if (!functionDocumentation)
+			{
+				NSLog(@"*** no documentation found for function %@", functionString);
+			}
+		}
+	}
+}
+
+- (void)checkDocumentationOfClass:(EidosObjectClass *)classObject
+{
+	bool classIsUndefinedClass = (classObject == gEidos_UndefinedClassObject);
+	const std::string &className = classObject->ElementType();
+	NSString *classString = [NSString stringWithUTF8String:className.c_str()];
+	NSString *classKey = (classIsUndefinedClass ? @"Eidos Methods" : [NSString stringWithFormat:@"Class %@", classString]);
+	id classDocumentation = [self findObjectWithKeySuffix:classKey withinDictionary:[self effectiveTopicRoot]];
+	
+	if ([classDocumentation isKindOfClass:[NSDictionary class]])
+	{
+		NSDictionary *classDocDict = (NSDictionary *)classDocumentation;
+		NSArray *keys = [classDocDict allKeys];
+		NSString *propertiesKey = [NSString stringWithFormat:@"1. %@ properties", classString];
+		NSString *methodsKey = [NSString stringWithFormat:@"2. %@ methods", classString];
+		
+		if (classIsUndefinedClass || (([classDocDict count] == 2) && [keys containsObject:propertiesKey] && [keys containsObject:methodsKey]))
+		{
+			// Check for complete documentation of all properties defined by the class
+			if (!classIsUndefinedClass)
+			{
+				NSDictionary *propertyDict = [classDocDict objectForKey:propertiesKey];
+				NSMutableArray *docProperties = [[propertyDict allKeys] mutableCopy];
+				const std::vector<const EidosPropertySignature *> *classProperties = classObject->Properties();
+				
+				for (const EidosPropertySignature *propertySignature : *classProperties)
+				{
+					NSString *connectorString = [NSString stringWithUTF8String:propertySignature->PropertySymbol().c_str()];	// "<–>" or "=>"
+					NSString *propertyNameString = [NSString stringWithUTF8String:propertySignature->property_name_.c_str()];
+					NSString *propertyString = [NSString stringWithFormat:@"%@ %@", propertyNameString, connectorString];
+					NSUInteger docIndex = [docProperties indexOfObject:propertyString];
+					
+					if (docIndex != NSNotFound)
+					{
+						[docProperties removeObjectAtIndex:docIndex];
+					}
+					else
+					{
+						NSLog(@"*** no documentation found for class %@ property %@", classString, propertyString);
+					}
+				}
+				
+				if ([docProperties count])
+					NSLog(@"*** excess documentation found for class %@ properties %@", classString, docProperties);
+				
+				[docProperties release];
+			}
+			
+			// Check for complete documentation of all methods defined by the class
+			{
+				NSDictionary *methodDict = (classIsUndefinedClass ? classDocDict : [classDocDict objectForKey:methodsKey]);
+				NSMutableArray *docMethods = [[methodDict allKeys] mutableCopy];
+				const std::vector<const EidosMethodSignature *> *classMethods = classObject->Methods();
+				const std::vector<const EidosMethodSignature *> *baseMethods = gEidos_UndefinedClassObject->Methods();
+				
+				for (const EidosMethodSignature *methodSignature : *classMethods)
+				{
+					bool isBaseMethod = (std::find(baseMethods->begin(), baseMethods->end(), methodSignature) != baseMethods->end());
+					
+					if (!isBaseMethod || classIsUndefinedClass)
+					{
+						NSString *prefixString = [NSString stringWithUTF8String:methodSignature->CallPrefix().c_str()];	// "", "– ", or "+ "
+						NSString *methodNameString = [NSString stringWithUTF8String:methodSignature->call_name_.c_str()];
+						NSString *methodString = [NSString stringWithFormat:@"%@%@()", prefixString, methodNameString];
+						NSUInteger docIndex = [docMethods indexOfObject:methodString];
+						
+						if (docIndex != NSNotFound)
+						{
+							[docMethods removeObjectAtIndex:docIndex];
+						}
+						else
+						{
+							NSLog(@"*** no documentation found for class %@ method %@", classString, methodString);
+						}
+					}
+				}
+				
+				if ([docMethods count])
+					NSLog(@"*** excess documentation found for class %@ methods %@", classString, docMethods);
+				
+				[docMethods release];
+			}
+		}
+		else
+		{
+			NSLog(@"*** documentation for class %@ in unexpected format", classString);
+		}
+	}
+	else
+	{
+		NSLog(@"*** no documentation found for class %@", classString);
 	}
 }
 
@@ -681,6 +798,48 @@
 	}
 	
 	return YES;	// no super
+}
+
+- (id)findObjectWithKeySuffix:(NSString *)searchKeySuffix withinDictionary:(NSDictionary *)searchDict
+{
+	__block id value = nullptr;
+	
+	if (value)
+		return value;
+	
+	[searchDict enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
+		// Search by substring matching; we have to be careful to use this method to search only for unique keys
+		if ([key hasSuffix:searchKeySuffix])
+			value = obj;
+		else if ([obj isKindOfClass:[NSDictionary class]])
+			value = [self findObjectWithKeySuffix:searchKeySuffix withinDictionary:obj];
+		
+		if (value)
+			*stop = YES;
+	}];
+	
+	return value;
+}
+
+- (id)findObjectForKeyEqualTo:(NSString *)searchKey withinDictionary:(NSDictionary *)searchDict
+{
+	__block id value = nullptr;
+	
+	if (value)
+		return value;
+	
+	[searchDict enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
+		// Search using isEqualToString:; we have to be careful to use this method to search only for unique keys
+		if ([key isEqualToString:searchKey])
+			value = obj;
+		else if ([obj isKindOfClass:[NSDictionary class]])
+			value = [self findObjectForKeyEqualTo:searchKey withinDictionary:obj];
+		
+		if (value)
+			*stop = YES;
+	}];
+	
+	return value;
 }
 
 - (id)findObjectForKey:(NSString *)searchKey withinDictionary:(NSDictionary *)searchDict
