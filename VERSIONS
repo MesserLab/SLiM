@@ -8,8 +8,10 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 
 development head:
-	fix a crash involving stale subpopulation pointers in genomes in models that call setSubpopulationSize(0)
 
+
+2.4.1 (build 1166; Eidos version 1.4.1):
+	fix a crash (or possible bad simulation data) involving stale subpopulation pointers in genomes in multi-subpop models
 
 2.4 (build 1163; Eidos version 1.4):
 	add a system() function to call out to Unix to run commands
