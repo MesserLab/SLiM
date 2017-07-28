@@ -52,7 +52,7 @@ class Mutation;
 extern Mutation *gSLiM_Mutation_Block;
 
 
-class Mutation : public EidosObjectElement
+class Mutation : public SLiMEidosDictionary
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 

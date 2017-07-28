@@ -1977,7 +1977,27 @@ If you don\'92t care which subpopulation a mutation originated in, the
 \f0\fs22  methods\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\i0\fs18 \cf0 \'96\'a0(void)setMutationType(io<MutationType>$\'a0mutType)
+\f2\i0\fs18 \cf0 \'96
+\f3 \'a0
+\f2 (+)getValue(string$\'a0key)
+\f3 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns the value previously set for the dictionary entry identifier 
+\f2\fs18 key
+\f0\fs20  using 
+\f2\fs18 setValue()
+\f0\fs20 , or 
+\f2\fs18 NULL
+\f0\fs20  if no value has been set.  This dictionary-style functionality is actually provided by the superclass of 
+\f2\fs18 Mutation
+\f0\fs20 , 
+\f2\fs18 SLiMEidosDictionary
+\f0\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.
+\f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96\'a0(void)setMutationType(io<MutationType>$\'a0mutType)
 \f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -2013,9 +2033,29 @@ This is normally a constant in simulations, so be sure you know what you are doi
 \f0\fs20 \'92s method 
 \f2\fs18 recalculateFitness()
 \f0\fs20  \'96 but see the documentation of that method for caveats.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96
+\f3 \'a0
+\f2 (void)setValue(string$\'a0key, +\'a0value)
+\f3 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Sets a value for the dictionary entry identifier 
+\f2\fs18 key
+\f0\fs20 .  The value, which may be of any type other than 
+\f2\fs18 object
+\f0\fs20 , can be fetched later using 
+\f2\fs18 getValue()
+\f0\fs20 .  This dictionary-style functionality is actually provided by the superclass of 
+\f2\fs18 Mutation
+\f0\fs20 , 
+\f2\fs18 SLiMEidosDictionary
+\f0\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.
+\f3 \
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\b\fs22 \cf0 5.9  Class MutationType\
+\f0\b\fs22 \cf0 5.9  Class MutationType\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \i\b0 \cf0 5.9.1  

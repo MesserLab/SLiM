@@ -43,6 +43,8 @@ void SLiM_WarmUp(void)
 		// Check for a memory limit and prepare for memory-limit testing
 		EidosCheckRSSAgainstMax("SLiM_WarmUp()", "This internal check should never fail!");
 #endif
+		
+		//std::cout << "sizeof(Mutation) == " << sizeof(Mutation) << std::endl;
 	}
 }
 

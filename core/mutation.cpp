@@ -428,7 +428,7 @@ EidosValue_SP Mutation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, c
 	
 	// all others, including gID_none
 	else
-		return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 }
 
 
@@ -438,7 +438,7 @@ EidosValue_SP Mutation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, c
 #pragma mark -
 #pragma mark Mutation_Class
 
-class Mutation_Class : public EidosObjectClass
+class Mutation_Class : public SLiMEidosDictionary_Class
 {
 public:
 	Mutation_Class(const Mutation_Class &p_original) = delete;	// no copy-construct
@@ -533,7 +533,7 @@ const std::vector<const EidosMethodSignature *> *Mutation_Class::Methods(void) c
 	
 	if (!methods)
 	{
-		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
+		methods = new std::vector<const EidosMethodSignature *>(*SLiMEidosDictionary_Class::Methods());
 		methods->emplace_back(SignatureForMethodOrRaise(gID_setSelectionCoeff));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_setMutationType));
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
@@ -558,7 +558,7 @@ const EidosMethodSignature *Mutation_Class::SignatureForMethod(EidosGlobalString
 	else if (p_method_id == gID_setMutationType)
 		return setMutationTypeSig;
 	else
-		return EidosObjectClass::SignatureForMethod(p_method_id);
+		return SLiMEidosDictionary_Class::SignatureForMethod(p_method_id);
 }
 
 EidosValue_SP Mutation_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
