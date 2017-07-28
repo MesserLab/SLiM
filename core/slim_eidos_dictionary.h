@@ -42,8 +42,11 @@ extern EidosObjectClass *gSLiM_SLiMEidosDictionary_Class;
 class SLiMEidosDictionary : public EidosObjectElement
 {
 private:
-	std::unordered_map<std::string, EidosValue_SP> hash_symbols_;
-	bool hash_used_ = false;	// to avoid overhead when unused
+	// We keep a pointer to our hash table for values we are tracking.  The reason to use a pointer is
+	// that most clients of SLiM will not use getValue()/setValue() for most objects most of the time,
+	// so we want to keep that case as minimal as possible in terms of speed and memory footprint.
+	// Those who do use getValue()/setValue() will pay a little additional cost; that's OK.
+	std::unordered_map<std::string, EidosValue_SP> *hash_symbols_ = nullptr;
 	
 public:
 	SLiMEidosDictionary(const SLiMEidosDictionary &p_original);
@@ -53,13 +56,8 @@ public:
 	
 	inline void RemoveAllKeys(void)
 	{
-		// We keep a flag to avoid overhead when we don't actually use hash_symbols_;
-		// this is surprisingly slow even when the hash is empty!
-		if (hash_used_)
-		{
-			hash_symbols_.clear();
-			hash_used_ = false;
-		}
+		if (hash_symbols_)
+			hash_symbols_->clear();
 	}
 	
 	//

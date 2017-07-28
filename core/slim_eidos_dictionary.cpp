@@ -28,8 +28,10 @@
 #include <vector>
 
 
-SLiMEidosDictionary::SLiMEidosDictionary(const SLiMEidosDictionary &p_original) : hash_symbols_(p_original.hash_symbols_)
+SLiMEidosDictionary::SLiMEidosDictionary(const SLiMEidosDictionary &p_original)
 {
+	// Note we do NOT copy hash_symbols_ from p_original; I don't think we need to.  I think, in fact,
+	// that this constructor is never called, although the STL insists that it has to exist.
 }
 
 SLiMEidosDictionary::SLiMEidosDictionary(void)
@@ -38,6 +40,11 @@ SLiMEidosDictionary::SLiMEidosDictionary(void)
 
 SLiMEidosDictionary::~SLiMEidosDictionary(void)
 {
+	if (hash_symbols_)
+	{
+		delete hash_symbols_;
+		hash_symbols_ = nullptr;
+	}
 }
 
 
@@ -73,9 +80,12 @@ EidosValue_SP SLiMEidosDictionary::ExecuteInstanceMethod(EidosGlobalStringID p_m
 			
 			std::string key = arg0_value->StringAtIndex(0, nullptr);
 			
-			auto found_iter = hash_symbols_.find(key);
+			if (!hash_symbols_)
+				return gStaticEidosValueNULL;
 			
-			if (found_iter == hash_symbols_.end())
+			auto found_iter = hash_symbols_->find(key);
+			
+			if (found_iter == hash_symbols_->end())
 			{
 				return gStaticEidosValueNULL;
 			}
@@ -100,14 +110,16 @@ EidosValue_SP SLiMEidosDictionary::ExecuteInstanceMethod(EidosGlobalStringID p_m
 			if (value_type == EidosValueType::kValueNULL)
 			{
 				// Setting a key to NULL removes it from the map
-				hash_symbols_.erase(key);
+				if (hash_symbols_)
+					hash_symbols_->erase(key);
 			}
 			else
 			{
-				hash_symbols_[key] = std::move(value);
+				if (!hash_symbols_)
+					hash_symbols_ = new std::unordered_map<std::string, EidosValue_SP>;
+				
+				(*hash_symbols_)[key] = std::move(value);
 			}
-			
-			hash_used_ = true;
 			
 			return gStaticEidosValueNULLInvisible;
 		}
