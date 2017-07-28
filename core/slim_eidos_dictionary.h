@@ -52,7 +52,12 @@ public:
 	SLiMEidosDictionary(const SLiMEidosDictionary &p_original);
 	SLiMEidosDictionary& operator= (const SLiMEidosDictionary &p_original) = delete;	// no assignment
 	SLiMEidosDictionary(void);
-	~SLiMEidosDictionary(void);
+	
+	inline ~SLiMEidosDictionary(void)
+	{
+		if (hash_symbols_)
+			delete hash_symbols_;
+	}
 	
 	inline void RemoveAllKeys(void)
 	{

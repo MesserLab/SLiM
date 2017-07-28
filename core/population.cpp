@@ -93,9 +93,7 @@ void Population::RemoveAllSubpopulationInfo(void)
 		MutationIndex mutation = *registry_iter;
 		
 		// We no longer delete mutation objects; instead, we remove them from our shared pool
-#if DEBUG_MUTATIONS
-		(gSLiM_Mutation_Block + mutation)->~Mutation();	// in general the destructor does not need to be called, since it is a no-op anyway
-#endif
+		(gSLiM_Mutation_Block + mutation)->~Mutation();
 		SLiM_DisposeMutationToBlock(mutation);
 	}
 	
@@ -2256,9 +2254,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 					{
 						// The mutation was rejected by the stacking policy, so we have to dispose of it
 						// We no longer delete mutation objects; instead, we remove them from our shared pool
-#if DEBUG_MUTATIONS
-						(gSLiM_Mutation_Block + mutation_iter_mutation_index)->~Mutation();	// in general the destructor does not need to be called, since it is a no-op anyway
-#endif
+						(gSLiM_Mutation_Block + mutation_iter_mutation_index)->~Mutation();
 						SLiM_DisposeMutationToBlock(mutation_iter_mutation_index);
 					}
 					
@@ -2393,9 +2389,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 									{
 										// The mutation was rejected by the stacking policy, so we have to dispose of it
 										// We no longer delete mutation objects; instead, we remove them from our shared pool
-#if DEBUG_MUTATIONS
-										(gSLiM_Mutation_Block + mutation_iter_mutation_index)->~Mutation();	// in general the destructor does not need to be called, since it is a no-op anyway
-#endif
+										(gSLiM_Mutation_Block + mutation_iter_mutation_index)->~Mutation();
 										SLiM_DisposeMutationToBlock(mutation_iter_mutation_index);
 									}
 									
@@ -2429,9 +2423,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 								{
 									// The mutation was rejected by the stacking policy, so we have to dispose of it
 									// We no longer delete mutation objects; instead, we remove them from our shared pool
-#if DEBUG_MUTATIONS
-									(gSLiM_Mutation_Block + mutation_iter_mutation_index)->~Mutation();	// in general the destructor does not need to be called, since it is a no-op anyway
-#endif
+									(gSLiM_Mutation_Block + mutation_iter_mutation_index)->~Mutation();
 									SLiM_DisposeMutationToBlock(mutation_iter_mutation_index);
 								}
 								
@@ -2566,9 +2558,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 						{
 							// The mutation was rejected by the stacking policy, so we have to dispose of it
 							// We no longer delete mutation objects; instead, we remove them from our shared pool
-#if DEBUG_MUTATIONS
-							(gSLiM_Mutation_Block + mutation_iter_mutation_index)->~Mutation();	// in general the destructor does not need to be called, since it is a no-op anyway
-#endif
+							(gSLiM_Mutation_Block + mutation_iter_mutation_index)->~Mutation();
 							SLiM_DisposeMutationToBlock(mutation_iter_mutation_index);
 						}
 						
@@ -2723,9 +2713,7 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 						{
 							// The mutation was rejected by the stacking policy, so we have to dispose of it
 							// We no longer delete mutation objects; instead, we remove them from our shared pool
-#if DEBUG_MUTATIONS
-							(gSLiM_Mutation_Block + mutation_iter_mutation_index)->~Mutation();	// in general the destructor does not need to be called, since it is a no-op anyway
-#endif
+							(gSLiM_Mutation_Block + mutation_iter_mutation_index)->~Mutation();
 							SLiM_DisposeMutationToBlock(mutation_iter_mutation_index);
 						}
 						
@@ -4144,10 +4132,7 @@ void Population::RemoveFixedMutations(void)
 			(gSLiM_Mutation_Block + mutation)->reference_count_ = -1;			// zombie
 #else
 			// We no longer delete mutation objects; instead, we remove them from our shared pool
-			//delete mutation;
-#if DEBUG_MUTATIONS
-			(gSLiM_Mutation_Block + mutation)->~Mutation();	// in general the destructor does not need to be called, since it is a no-op anyway
-#endif
+			(gSLiM_Mutation_Block + mutation)->~Mutation();
 			SLiM_DisposeMutationToBlock(mutation);
 #endif
 		}

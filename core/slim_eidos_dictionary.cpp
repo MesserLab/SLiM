@@ -38,15 +38,6 @@ SLiMEidosDictionary::SLiMEidosDictionary(void)
 {
 }
 
-SLiMEidosDictionary::~SLiMEidosDictionary(void)
-{
-	if (hash_symbols_)
-	{
-		delete hash_symbols_;
-		hash_symbols_ = nullptr;
-	}
-}
-
 
 //
 // Eidos support

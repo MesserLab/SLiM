@@ -84,9 +84,16 @@ public:
 	Mutation(MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation);
 	Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation);
 	
+	// a destructor is needed now that we inherit from SLiMEidosDictionary; we want it to be as minimal as possible, though, and inline
 #if DEBUG_MUTATIONS
-	~Mutation(void);									// destructor, if we are debugging
+	inline ~Mutation(void)
+	{
+		SLIM_OUTSTREAM << "Mutation destructed: " << this << std::endl;
+	}
+#else
+	inline ~Mutation(void) { }
 #endif
+	
 	
 	inline MutationIndex BlockIndex(void) const			{ return (MutationIndex)(this - gSLiM_Mutation_Block); }
 	
