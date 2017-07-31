@@ -28,7 +28,7 @@
 #include <vector>
 
 
-SLiMEidosDictionary::SLiMEidosDictionary(const SLiMEidosDictionary &p_original)
+SLiMEidosDictionary::SLiMEidosDictionary(__attribute__((unused)) const SLiMEidosDictionary &p_original)
 {
 	// Note we do NOT copy hash_symbols_ from p_original; I don't think we need to.  I think, in fact,
 	// that this constructor is never called, although the STL insists that it has to exist.
