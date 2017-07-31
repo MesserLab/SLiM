@@ -73,7 +73,7 @@
             <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES" unifiedTitleAndToolbar="YES"/>
             <windowPositionMask key="initialPositionMask" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="740" y="50" width="1180" height="978"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="1920" height="1057"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1680" height="1027"/>
             <view key="contentView" id="esE-Q8-bJT">
                 <rect key="frame" x="0.0" y="0.0" width="1180" height="978"/>
                 <autoresizingMask key="autoresizingMask"/>
@@ -92,7 +92,7 @@
                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <subviews>
                                                 <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" alternatingRowBackgroundColors="YES" columnReordering="NO" columnResizing="NO" autosaveColumns="NO" typeSelect="NO" headerView="Pg2-UV-Ozl" id="l73-oi-ONH" userLabel="SLiM Table View" customClass="SLiMTableView">
-                                                    <rect key="frame" x="0.0" y="0.0" width="256" height="181"/>
+                                                    <rect key="frame" x="0.0" y="0.0" width="255" height="181"/>
                                                     <autoresizingMask key="autoresizingMask"/>
                                                     <size key="intercellSpacing" width="3" height="2"/>
                                                     <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -111,7 +111,7 @@
                                                             </textFieldCell>
                                                             <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
                                                         </tableColumn>
-                                                        <tableColumn editable="NO" width="58" minWidth="30" maxWidth="150" headerToolTip="the subpopulation size" id="GUM-4Z-3XN">
+                                                        <tableColumn editable="NO" width="57" minWidth="30" maxWidth="150" headerToolTip="the subpopulation size" id="GUM-4Z-3XN">
                                                             <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="center" title="N">
                                                                 <font key="font" metaFont="smallSystem"/>
                                                                 <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
@@ -201,7 +201,7 @@
                                             <autoresizingMask key="autoresizingMask"/>
                                         </scroller>
                                         <tableHeaderView key="headerView" id="Pg2-UV-Ozl">
-                                            <rect key="frame" x="0.0" y="0.0" width="256" height="23"/>
+                                            <rect key="frame" x="0.0" y="0.0" width="255" height="23"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                         </tableHeaderView>
                                     </scrollView>
@@ -1081,7 +1081,7 @@
                                                             <autoresizingMask key="autoresizingMask"/>
                                                         </scroller>
                                                     </scrollView>
-                                                    <button toolTip="check script syntax" translatesAutoresizingMaskIntoConstraints="NO" id="SAG-aF-oTT">
+                                                    <button toolTip="check script syntax" translatesAutoresizingMaskIntoConstraints="NO" id="SAG-aF-oTT" userLabel="Check Script Button">
                                                         <rect key="frame" x="9" y="511" width="20" height="22"/>
                                                         <constraints>
                                                             <constraint firstAttribute="width" constant="20" id="RIq-r4-vDp"/>
@@ -1110,15 +1110,15 @@
                                                         </connections>
                                                     </button>
                                                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="0fj-1F-Ipl">
-                                                        <rect key="frame" x="104" y="513" width="119" height="17"/>
+                                                        <rect key="frame" x="127" y="513" width="119" height="17"/>
                                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Input Commands:" id="5TY-HF-5xK">
                                                             <font key="font" metaFont="systemBold"/>
                                                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                                                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                                         </textFieldCell>
                                                     </textField>
-                                                    <button toolTip="scripting help" translatesAutoresizingMaskIntoConstraints="NO" id="lnH-Vh-Iwz">
-                                                        <rect key="frame" x="32" y="511" width="20" height="22"/>
+                                                    <button toolTip="scripting help" translatesAutoresizingMaskIntoConstraints="NO" id="lnH-Vh-Iwz" userLabel="Script Help Button">
+                                                        <rect key="frame" x="55" y="511" width="20" height="22"/>
                                                         <constraints>
                                                             <constraint firstAttribute="height" constant="22" id="YC1-of-YFY"/>
                                                             <constraint firstAttribute="width" constant="20" id="dHN-qx-bVJ"/>
@@ -1132,7 +1132,7 @@
                                                         </connections>
                                                     </button>
                                                     <button toolTip="show/hide Eidos console" translatesAutoresizingMaskIntoConstraints="NO" id="aPl-XV-6R5">
-                                                        <rect key="frame" x="55" y="511" width="20" height="22"/>
+                                                        <rect key="frame" x="78" y="511" width="20" height="22"/>
                                                         <constraints>
                                                             <constraint firstAttribute="width" constant="20" id="Fln-18-1SY"/>
                                                             <constraint firstAttribute="height" constant="22" id="oJv-9T-R4T"/>
@@ -1146,7 +1146,7 @@
                                                         </connections>
                                                     </button>
                                                     <button toolTip="show/hide Eidos variable browser" translatesAutoresizingMaskIntoConstraints="NO" id="02L-Zx-QDl" userLabel="Variable Browser Button">
-                                                        <rect key="frame" x="78" y="511" width="20" height="22"/>
+                                                        <rect key="frame" x="101" y="511" width="20" height="22"/>
                                                         <constraints>
                                                             <constraint firstAttribute="height" constant="22" id="9am-gN-1cK"/>
                                                             <constraint firstAttribute="width" constant="20" id="lng-51-msY"/>
@@ -1159,23 +1159,39 @@
                                                             <action selector="toggleBrowserVisibility:" target="-2" id="5tc-7r-IRA"/>
                                                         </connections>
                                                     </button>
+                                                    <button toolTip="prettyprint script" translatesAutoresizingMaskIntoConstraints="NO" id="ge3-vP-zZp" userLabel="Prettyprint Button">
+                                                        <rect key="frame" x="32" y="511" width="20" height="22"/>
+                                                        <constraints>
+                                                            <constraint firstAttribute="width" constant="20" id="QUX-Ha-Gk7"/>
+                                                            <constraint firstAttribute="height" constant="22" id="rxe-WV-cBh"/>
+                                                        </constraints>
+                                                        <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="prettyprint" imagePosition="overlaps" alignment="center" alternateImage="prettyprint_H" state="on" imageScaling="proportionallyDown" inset="2" id="ghZ-di-p9F">
+                                                            <behavior key="behavior" lightByContents="YES"/>
+                                                            <font key="font" metaFont="system"/>
+                                                        </buttonCell>
+                                                        <connections>
+                                                            <action selector="prettyprintScript:" target="-2" id="uUv-Zd-UNT"/>
+                                                        </connections>
+                                                    </button>
                                                 </subviews>
                                                 <constraints>
                                                     <constraint firstItem="0fj-1F-Ipl" firstAttribute="leading" secondItem="02L-Zx-QDl" secondAttribute="trailing" constant="8" id="4du-7e-ujj"/>
                                                     <constraint firstItem="lnH-Vh-Iwz" firstAttribute="bottom" secondItem="aPl-XV-6R5" secondAttribute="bottom" id="5Bh-f4-LqY"/>
                                                     <constraint firstItem="SAG-aF-oTT" firstAttribute="leading" secondItem="cas-KD-TD2" secondAttribute="leading" constant="9" id="67B-Nf-WaO"/>
                                                     <constraint firstAttribute="trailing" secondItem="yeL-B5-ZLS" secondAttribute="trailing" id="BFU-9F-N49"/>
-                                                    <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="240" id="Ong-rz-g6T"/>
-                                                    <constraint firstItem="SAG-aF-oTT" firstAttribute="bottom" secondItem="lnH-Vh-Iwz" secondAttribute="bottom" id="UMX-le-Zae"/>
+                                                    <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="263" id="Ong-rz-g6T"/>
                                                     <constraint firstItem="yeL-B5-ZLS" firstAttribute="leading" secondItem="cas-KD-TD2" secondAttribute="leading" constant="9" id="Wez-lZ-RKs"/>
+                                                    <constraint firstItem="ge3-vP-zZp" firstAttribute="bottom" secondItem="SAG-aF-oTT" secondAttribute="bottom" id="Wui-6l-Rm4"/>
                                                     <constraint firstItem="yeL-B5-ZLS" firstAttribute="top" secondItem="cas-KD-TD2" secondAttribute="top" constant="26" id="aS3-CL-9Qc"/>
                                                     <constraint firstItem="0fj-1F-Ipl" firstAttribute="top" secondItem="cas-KD-TD2" secondAttribute="top" constant="4" id="cqQ-pm-0tq"/>
+                                                    <constraint firstItem="ge3-vP-zZp" firstAttribute="bottom" secondItem="lnH-Vh-Iwz" secondAttribute="bottom" id="fCi-nd-sRr"/>
                                                     <constraint firstItem="0fj-1F-Ipl" firstAttribute="bottom" secondItem="SAG-aF-oTT" secondAttribute="bottom" constant="-2" id="hCG-Sg-XIW"/>
                                                     <constraint firstItem="02L-Zx-QDl" firstAttribute="leading" secondItem="aPl-XV-6R5" secondAttribute="trailing" constant="3" id="jwA-5a-wkm"/>
+                                                    <constraint firstItem="lnH-Vh-Iwz" firstAttribute="leading" secondItem="ge3-vP-zZp" secondAttribute="trailing" constant="3" id="qXu-vv-QUk"/>
                                                     <constraint firstItem="aPl-XV-6R5" firstAttribute="leading" secondItem="lnH-Vh-Iwz" secondAttribute="trailing" constant="3" id="r5l-Nb-fFj"/>
                                                     <constraint firstItem="aPl-XV-6R5" firstAttribute="bottom" secondItem="02L-Zx-QDl" secondAttribute="bottom" id="rBc-fK-WiC"/>
-                                                    <constraint firstItem="lnH-Vh-Iwz" firstAttribute="leading" secondItem="SAG-aF-oTT" secondAttribute="trailing" constant="3" id="s9u-d1-Byw"/>
                                                     <constraint firstAttribute="bottom" secondItem="yeL-B5-ZLS" secondAttribute="bottom" id="vKN-YU-Eiw"/>
+                                                    <constraint firstItem="ge3-vP-zZp" firstAttribute="leading" secondItem="SAG-aF-oTT" secondAttribute="trailing" constant="3" id="w8M-GG-2Sx"/>
                                                 </constraints>
                                             </customView>
                                             <customView id="xzw-Z6-mJs">
@@ -1306,7 +1322,7 @@
                                                     <constraint firstItem="25p-qC-Ntg" firstAttribute="bottom" secondItem="CMF-cK-m13" secondAttribute="bottom" constant="-2" id="Mfl-Lc-tvJ"/>
                                                     <constraint firstAttribute="bottom" secondItem="Fql-QB-8ET" secondAttribute="bottom" id="eG1-oE-QGw"/>
                                                     <constraint firstItem="kDh-Fw-f06" firstAttribute="bottom" secondItem="sTd-Ob-2rT" secondAttribute="bottom" id="ecm-kO-LbN"/>
-                                                    <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="240" id="kXv-BX-gKL"/>
+                                                    <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="263" id="kXv-BX-gKL"/>
                                                     <constraint firstItem="sTd-Ob-2rT" firstAttribute="leading" secondItem="25p-qC-Ntg" secondAttribute="trailing" constant="20" id="oZk-Pk-Ch9"/>
                                                     <constraint firstItem="jBY-mF-gPl" firstAttribute="bottom" secondItem="sTd-Ob-2rT" secondAttribute="bottom" id="tPS-7E-bbp"/>
                                                     <constraint firstItem="jBY-mF-gPl" firstAttribute="leading" secondItem="sTd-Ob-2rT" secondAttribute="trailing" constant="3" id="wXu-4G-Wu8"/>
@@ -1450,7 +1466,7 @@
                     <rect key="frame" x="32" y="386" width="228" height="139"/>
                     <clipView key="contentView" id="kOe-M0-icb">
                         <rect key="frame" x="1" y="0.0" width="226" height="138"/>
-                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <autoresizingMask key="autoresizingMask"/>
                         <subviews>
                             <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" alternatingRowBackgroundColors="YES" columnReordering="NO" columnResizing="NO" multipleSelection="NO" autosaveColumns="NO" typeSelect="NO" headerView="bNE-qm-DmG" id="cuy-J5-PqR" userLabel="SLiM Table View" customClass="SLiMTableView">
                                 <rect key="frame" x="0.0" y="0.0" width="226" height="115"/>
@@ -1541,7 +1557,7 @@
                     <rect key="frame" x="32" y="203" width="228" height="139"/>
                     <clipView key="contentView" id="y9i-Z5-n1Q">
                         <rect key="frame" x="1" y="0.0" width="226" height="138"/>
-                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <autoresizingMask key="autoresizingMask"/>
                         <subviews>
                             <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" alternatingRowBackgroundColors="YES" columnReordering="NO" columnResizing="NO" multipleSelection="NO" autosaveColumns="NO" typeSelect="NO" headerView="8xi-NL-17O" id="YFd-nW-pee" userLabel="SLiM Table View" customClass="SLiMTableView">
                                 <rect key="frame" x="0.0" y="0.0" width="226" height="115"/>
@@ -1630,7 +1646,7 @@
                     <rect key="frame" x="32" y="20" width="228" height="139"/>
                     <clipView key="contentView" id="RTN-L2-LBh">
                         <rect key="frame" x="1" y="0.0" width="226" height="138"/>
-                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <autoresizingMask key="autoresizingMask"/>
                         <subviews>
                             <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" alternatingRowBackgroundColors="YES" columnReordering="NO" columnResizing="NO" multipleSelection="NO" autosaveColumns="NO" typeSelect="NO" headerView="NXa-cS-jsO" id="7Xo-DL-2qY" userLabel="SLiM Table View" customClass="SLiMTableView">
                                 <rect key="frame" x="0.0" y="0.0" width="226" height="115"/>
@@ -1817,6 +1833,8 @@
         <image name="play_H" width="133" height="133"/>
         <image name="play_step" width="133" height="133"/>
         <image name="play_step_H" width="133" height="133"/>
+        <image name="prettyprint" width="137" height="137"/>
+        <image name="prettyprint_H" width="137" height="137"/>
         <image name="profile" width="133" height="133"/>
         <image name="profile_H" width="133" height="133"/>
         <image name="recycle" width="133" height="133"/>

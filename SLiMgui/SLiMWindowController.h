@@ -240,6 +240,7 @@
 - (IBAction)selectionColorSliderChanged:(id)sender;
 
 - (IBAction)checkScript:(id)sender;
+- (IBAction)prettyprintScript:(id)sender;
 - (IBAction)showScriptHelp:(id)sender;
 - (IBAction)toggleConsoleVisibility:(id)sender;
 - (IBAction)toggleBrowserVisibility:(id)sender;

@@ -11,6 +11,7 @@ development head:
 	add a check for completeness of the help information compared to class definitions, and add doc for a few missing items
 	change the getValue()/setValue() implementation to be more memory-efficient when not used (but a little slower and less memory-efficient when used)
 	Mutation now supports getValue()/setValue() for greater extensibility
+	add script prettyprinting facility to SLiMgui
 
 
 2.4.1 (build 1166; Eidos version 1.4.1):

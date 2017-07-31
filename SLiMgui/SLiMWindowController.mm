@@ -44,6 +44,7 @@
 #import "ScriptMod_AddRecombinationRate.h"
 #import "ScriptMod_AddSexConfiguration.h"
 #import "EidosHelpController.h"
+#import "EidosPrettyprinter.h"
 #import "EidosCocoaExtra.h"
 #import "eidos_call_signature.h"
 #import "eidos_type_interpreter.h"
@@ -923,6 +924,8 @@
 		return !(invalidSimulation);
 	
 	if (sel == @selector(checkScript:))
+		return !(continuousPlayOn || generationPlayOn);
+	if (sel == @selector(prettyprintScript:))
 		return !(continuousPlayOn || generationPlayOn);
 	
 	if (sel == @selector(exportScript:))
@@ -2239,7 +2242,7 @@
 	[chromosomeZoomed setNeedsDisplayInInterior];
 }
 
-- (IBAction)checkScript:(id)sender
+- (BOOL)checkScriptSuppressSuccessResponse:(BOOL)suppressSuccessResponse
 {
 	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
 	
@@ -2267,55 +2270,106 @@
 		}
 	}
 	
-	// use our ConsoleWindowController delegate method to play the appropriate sound
-	[self eidosConsoleWindowController:_consoleController checkScriptDidSucceed:!errorDiagnostic];
+	BOOL checkDidSucceed = !errorDiagnostic;
 	
-	if (errorDiagnostic)
+	if (!checkDidSucceed || !suppressSuccessResponse)
 	{
-		// On failure, we show an alert describing the error, and highlight the relevant script line
-		NSAlert *alert = [[NSAlert alloc] init];
+		// use our ConsoleWindowController delegate method to play the appropriate sound
+		[self eidosConsoleWindowController:_consoleController checkScriptDidSucceed:checkDidSucceed];
 		
-		[alert setAlertStyle:NSWarningAlertStyle];
-		[alert setMessageText:@"Script error"];
-		[alert setInformativeText:errorDiagnostic];
-		[alert addButtonWithTitle:@"OK"];
-		
-		[alert beginSheetModalForWindow:[self window] completionHandler:^(NSModalResponse returnCode) { [alert autorelease]; }];
-		
-		[scriptTextView selectErrorRange];
-		
-		// Show the error in the status bar also
-		NSString *trimmedError = [errorDiagnostic stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-		NSDictionary *errorAttrs = [NSDictionary eidosTextAttributesWithColor:[NSColor redColor] size:11.0];
-		NSMutableAttributedString *errorAttrString = [[[NSMutableAttributedString alloc] initWithString:trimmedError attributes:errorAttrs] autorelease];
-		
-		[errorAttrString addAttribute:NSBaselineOffsetAttributeName value:[NSNumber numberWithFloat:2.0] range:NSMakeRange(0, [errorAttrString length])];
-		[scriptStatusTextField setAttributedStringValue:errorAttrString];
-	}
-	else
-	{
-		NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-		
-		// On success, we optionally show a success alert sheet
-		if (![defaults boolForKey:EidosDefaultsSuppressScriptCheckSuccessPanelKey])
+		if (!checkDidSucceed)
 		{
+			// On failure, we show an alert describing the error, and highlight the relevant script line
 			NSAlert *alert = [[NSAlert alloc] init];
 			
-			[alert setAlertStyle:NSInformationalAlertStyle];
-			[alert setMessageText:@"No script errors"];
-			[alert setInformativeText:@"No errors found."];
+			[alert setAlertStyle:NSWarningAlertStyle];
+			[alert setMessageText:@"Script error"];
+			[alert setInformativeText:errorDiagnostic];
 			[alert addButtonWithTitle:@"OK"];
-			[alert setShowsSuppressionButton:YES];
 			
-			[alert beginSheetModalForWindow:[self window] completionHandler:^(NSModalResponse returnCode) {
-				if ([[alert suppressionButton] state] == NSOnState)
-					[defaults setBool:YES forKey:EidosDefaultsSuppressScriptCheckSuccessPanelKey];
-				[alert autorelease];
-			}];
+			[alert beginSheetModalForWindow:[self window] completionHandler:^(NSModalResponse returnCode) { [alert autorelease]; }];
+			
+			[scriptTextView selectErrorRange];
+			
+			// Show the error in the status bar also
+			NSString *trimmedError = [errorDiagnostic stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+			NSDictionary *errorAttrs = [NSDictionary eidosTextAttributesWithColor:[NSColor redColor] size:11.0];
+			NSMutableAttributedString *errorAttrString = [[[NSMutableAttributedString alloc] initWithString:trimmedError attributes:errorAttrs] autorelease];
+			
+			[errorAttrString addAttribute:NSBaselineOffsetAttributeName value:[NSNumber numberWithFloat:2.0] range:NSMakeRange(0, [errorAttrString length])];
+			[scriptStatusTextField setAttributedStringValue:errorAttrString];
+		}
+		else
+		{
+			NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+			
+			// On success, we optionally show a success alert sheet
+			if (![defaults boolForKey:EidosDefaultsSuppressScriptCheckSuccessPanelKey])
+			{
+				NSAlert *alert = [[NSAlert alloc] init];
+				
+				[alert setAlertStyle:NSInformationalAlertStyle];
+				[alert setMessageText:@"No script errors"];
+				[alert setInformativeText:@"No errors found."];
+				[alert addButtonWithTitle:@"OK"];
+				[alert setShowsSuppressionButton:YES];
+				
+				[alert beginSheetModalForWindow:[self window] completionHandler:^(NSModalResponse returnCode) {
+					if ([[alert suppressionButton] state] == NSOnState)
+						[defaults setBool:YES forKey:EidosDefaultsSuppressScriptCheckSuccessPanelKey];
+					[alert autorelease];
+				}];
+			}
 		}
 	}
 	
 	[errorDiagnostic release];
+	
+	return checkDidSucceed;
+}
+
+- (IBAction)checkScript:(id)sender
+{
+	[self checkScriptSuppressSuccessResponse:NO];
+}
+
+- (IBAction)prettyprintScript:(id)sender
+{
+	if ([scriptTextView isEditable])
+	{
+		if ([self checkScriptSuppressSuccessResponse:YES])
+		{
+			// We know the script is syntactically correct, so we can tokenize and parse it without worries
+			NSString *currentScriptString = [scriptTextView string];
+			const char *cstr = [currentScriptString UTF8String];
+			SLiMEidosScript script(cstr);	// SLiMEidosScript does not override Tokenize(), but it could...
+			
+			script.Tokenize(false, true);	// get whitespace and comment tokens
+			
+			// Then generate a new script string that is prettyprinted
+			const std::vector<EidosToken> &tokens = script.Tokens();
+			NSMutableString *pretty = [NSMutableString string];
+			
+			if ([EidosPrettyprinter prettyprintTokens:tokens fromScript:script intoString:pretty])
+			{
+				if ([scriptTextView shouldChangeTextInRange:NSMakeRange(0, [[scriptTextView string] length]) replacementString:pretty])
+				{
+					[scriptTextView setString:pretty];
+					[scriptTextView didChangeText];
+				}
+				else
+				{
+					NSBeep();
+				}
+			}
+			else
+				NSBeep();
+		}
+	}
+	else
+	{
+		NSBeep();
+	}
 }
 
 - (IBAction)showScriptHelp:(id)sender

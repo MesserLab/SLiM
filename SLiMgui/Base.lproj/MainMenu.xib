@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="12118" systemVersion="16E195" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="12118" systemVersion="16F73" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="12118"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
@@ -446,6 +446,12 @@
                                     <action selector="checkScript:" target="-1" id="3hw-Wc-h8c"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Prettyprint Script" keyEquivalent="=" id="JuO-il-2gw">
+                                <modifierMask key="keyEquivalentModifierMask" option="YES" command="YES"/>
+                                <connections>
+                                    <action selector="prettyprintScript:" target="-1" id="Gp8-NU-SBY"/>
+                                </connections>
+                            </menuItem>
                             <menuItem title="Show Script Help" id="u9S-Gc-HU7">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
@@ -590,7 +596,7 @@ DQ
         <window title="SLiMgui Preferences" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" restorable="NO" hidesOnDeactivate="YES" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" animationBehavior="default" id="cET-rW-zho" customClass="NSPanel">
             <windowStyleMask key="styleMask" titled="YES" closable="YES"/>
             <rect key="contentRect" x="272" y="199" width="268" height="431"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="1920" height="1057"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1680" height="1027"/>
             <view key="contentView" id="ae8-oN-lQF">
                 <rect key="frame" x="0.0" y="0.0" width="268" height="431"/>
                 <autoresizingMask key="autoresizingMask"/>

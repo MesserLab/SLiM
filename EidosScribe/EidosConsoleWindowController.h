@@ -105,6 +105,9 @@ extern NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey;
 // if implemented by the delegate
 - (IBAction)checkScript:(id)sender;
 
+// Prettyprint the current script (after checking its syntax)
+- (IBAction)prettyprintScript:(id)sender;
+
 // Shows the shared script help window
 - (IBAction)showScriptHelp:(id)sender;
 

@@ -400,6 +400,12 @@
 		98D4C2281A71F8AD00FFB083 /* check.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98D4C2241A71F8AD00FFB083 /* check.pdf */; };
 		98D4C2291A71F8AD00FFB083 /* delete_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98D4C2251A71F8AD00FFB083 /* delete_H.pdf */; };
 		98D4C22A1A71F8AD00FFB083 /* delete.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98D4C2261A71F8AD00FFB083 /* delete.pdf */; };
+		98D524631F2E6AFB005AD9A6 /* prettyprint_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98D524611F2E6AFB005AD9A6 /* prettyprint_H.pdf */; };
+		98D524641F2E6AFB005AD9A6 /* prettyprint.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98D524621F2E6AFB005AD9A6 /* prettyprint.pdf */; };
+		98D524651F2E6B08005AD9A6 /* prettyprint_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98D524611F2E6AFB005AD9A6 /* prettyprint_H.pdf */; };
+		98D524661F2E6B0B005AD9A6 /* prettyprint.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98D524621F2E6AFB005AD9A6 /* prettyprint.pdf */; };
+		98D524691F2EB4DD005AD9A6 /* EidosPrettyprinter.mm in Sources */ = {isa = PBXBuildFile; fileRef = 98D524681F2EB4DD005AD9A6 /* EidosPrettyprinter.mm */; };
+		98D5246A1F2EB4DD005AD9A6 /* EidosPrettyprinter.mm in Sources */ = {isa = PBXBuildFile; fileRef = 98D524681F2EB4DD005AD9A6 /* EidosPrettyprinter.mm */; };
 		98DB3D6F1E6122AE00E2C200 /* interaction_type.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DB3D6D1E6122AE00E2C200 /* interaction_type.cpp */; };
 		98DB3D701E6122AE00E2C200 /* interaction_type.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DB3D6D1E6122AE00E2C200 /* interaction_type.cpp */; };
 		98DB3D711E6122AE00E2C200 /* interaction_type.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DB3D6D1E6122AE00E2C200 /* interaction_type.cpp */; };
@@ -818,6 +824,10 @@
 		98D4C2241A71F8AD00FFB083 /* check.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = check.pdf; sourceTree = "<group>"; };
 		98D4C2251A71F8AD00FFB083 /* delete_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = delete_H.pdf; sourceTree = "<group>"; };
 		98D4C2261A71F8AD00FFB083 /* delete.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = delete.pdf; sourceTree = "<group>"; };
+		98D524611F2E6AFB005AD9A6 /* prettyprint_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = prettyprint_H.pdf; sourceTree = "<group>"; };
+		98D524621F2E6AFB005AD9A6 /* prettyprint.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = prettyprint.pdf; sourceTree = "<group>"; };
+		98D524671F2EB4DD005AD9A6 /* EidosPrettyprinter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EidosPrettyprinter.h; sourceTree = "<group>"; };
+		98D524681F2EB4DD005AD9A6 /* EidosPrettyprinter.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = EidosPrettyprinter.mm; sourceTree = "<group>"; };
 		98DB3D6D1E6122AE00E2C200 /* interaction_type.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = interaction_type.cpp; sourceTree = "<group>"; };
 		98DB3D6E1E6122AE00E2C200 /* interaction_type.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = interaction_type.h; sourceTree = "<group>"; };
 		98DC7BBA1DF13CD50037A1DD /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/TipsWindow.xib; sourceTree = "<group>"; };
@@ -1119,6 +1129,8 @@
 				98090FA51B1B978900791DBF /* EidosValueWrapper.mm */,
 				982556631BA450980054CB3F /* EidosHelpController.h */,
 				982556641BA450980054CB3F /* EidosHelpController.mm */,
+				98D524671F2EB4DD005AD9A6 /* EidosPrettyprinter.h */,
+				98D524681F2EB4DD005AD9A6 /* EidosPrettyprinter.mm */,
 				985724B81AD478630047C223 /* Images.xcassets */,
 				985724BA1AD478630047C223 /* MainMenu.xib */,
 				98EFE6321ADD92BC00CBEC78 /* EidosAboutWindow.xib */,
@@ -1207,6 +1219,8 @@
 				98090FA11B1B8B5800791DBF /* show_browser.pdf */,
 				98D4C2231A71F8AD00FFB083 /* check_H.pdf */,
 				98D4C2241A71F8AD00FFB083 /* check.pdf */,
+				98D524611F2E6AFB005AD9A6 /* prettyprint_H.pdf */,
+				98D524621F2E6AFB005AD9A6 /* prettyprint.pdf */,
 				98D4C2251A71F8AD00FFB083 /* delete_H.pdf */,
 				98D4C2261A71F8AD00FFB083 /* delete.pdf */,
 				985724DE1AD4C3310047C223 /* execute_script_H.pdf */,
@@ -1620,6 +1634,7 @@
 				989228321BAF496C00429674 /* EidosHelpStatements.rtf in Resources */,
 				9825566D1BA477D60054CB3F /* EidosHelpFunctions.rtf in Resources */,
 				9892282F1BAE27AA00429674 /* EidosHelpTypes.rtf in Resources */,
+				98D524631F2E6AFB005AD9A6 /* prettyprint_H.pdf in Resources */,
 				982556A11BA5DFEB0054CB3F /* EidosHelpMethods.rtf in Resources */,
 				98090FA21B1B8B5800791DBF /* show_browser_H.pdf in Resources */,
 				9825566A1BA451D00054CB3F /* EidosHelpWindow.xib in Resources */,
@@ -1634,6 +1649,7 @@
 				985724F31AD6D4060047C223 /* show_tokens.pdf in Resources */,
 				98A4EC941B67C1CD00CD92FD /* EidosConsoleWindow.xib in Resources */,
 				985724D71AD489AA0047C223 /* check.pdf in Resources */,
+				98D524641F2E6AFB005AD9A6 /* prettyprint.pdf in Resources */,
 				985724EB1AD6B9FE0047C223 /* execute_selection.pdf in Resources */,
 				985724F21AD6D4060047C223 /* show_tokens_H.pdf in Resources */,
 				985724EA1AD6B9FE0047C223 /* execute_selection_H.pdf in Resources */,
@@ -1667,6 +1683,7 @@
 				98453F5A1A76004300C058CB /* show_genomicelements_H.pdf in Resources */,
 				9825566F1BA4FAD00054CB3F /* SLiMHelpFunctions.rtf in Resources */,
 				98453F631A76041200C058CB /* edit_submenu.pdf in Resources */,
+				98D524651F2E6B08005AD9A6 /* prettyprint_H.pdf in Resources */,
 				989228311BAF496C00429674 /* EidosHelpStatements.rtf in Resources */,
 				98DE4C171B713EEA004FDF5F /* ScriptModSheet.xib in Resources */,
 				98DE4C271B713F49004FDF5F /* ScriptMod_OutputFullPopulation.xib in Resources */,
@@ -1701,6 +1718,7 @@
 				98A4EC951B67C1D900CD92FD /* EidosConsoleWindow.xib in Resources */,
 				988794701EA8808000AE0C8D /* SLiMPDFWindow.xib in Resources */,
 				985301F21B7262E5001520DF /* ScriptMod_ChangeCloning.xib in Resources */,
+				98D524661F2E6B0B005AD9A6 /* prettyprint.pdf in Resources */,
 				985301F51B726817001520DF /* ScriptMod_AddSexConfiguration.xib in Resources */,
 				98ADD5B61ED2E4380027C27B /* PopulationViewOptionsSheet.xib in Resources */,
 				98453F451A75AABE00C058CB /* syntax_help.pdf in Resources */,
@@ -2003,6 +2021,7 @@
 				98C821A51C7A99F000548839 /* pow_int.c in Sources */,
 				987AD88B1B2CDBB80035D6C8 /* EidosConsoleWindowController.mm in Sources */,
 				98C821641C7A983800548839 /* message.c in Sources */,
+				98D5246A1F2EB4DD005AD9A6 /* EidosPrettyprinter.mm in Sources */,
 				98C821691C7A983800548839 /* gamma.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -2082,6 +2101,7 @@
 				98D4C2071A704EA700FFB083 /* PopulationView.mm in Sources */,
 				986926EB1AA6B7480000E138 /* GraphView_PopulationVisualization.mm in Sources */,
 				98DE4C221B713F37004FDF5F /* ScriptMod_ChangeSelfing.mm in Sources */,
+				98D524691F2EB4DD005AD9A6 /* EidosPrettyprinter.mm in Sources */,
 				98C8215E1C7A983700548839 /* coerce.c in Sources */,
 				98D4C1DC1A6F543200FFB083 /* genomic_element_type.cpp in Sources */,
 				98D4C1B91A6F537B00FFB083 /* AppDelegate.mm in Sources */,

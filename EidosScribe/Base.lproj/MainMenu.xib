@@ -1,7 +1,8 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="9531" systemVersion="15D21" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="12118" systemVersion="16F73" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="9531"/>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="12118"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="NSApplication">
@@ -260,6 +261,12 @@
                             <menuItem title="Check Script" keyEquivalent="=" id="oBK-h1-E5p">
                                 <connections>
                                     <action selector="checkScript:" target="-1" id="fIe-hN-GV1"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Prettyprint Script" keyEquivalent="=" id="M4t-xf-YMI">
+                                <modifierMask key="keyEquivalentModifierMask" option="YES" command="YES"/>
+                                <connections>
+                                    <action selector="prettyprintScript:" target="-1" id="Cl2-28-Aba"/>
                                 </connections>
                             </menuItem>
                             <menuItem title="Show Script Help" id="L5L-eY-gNf">
