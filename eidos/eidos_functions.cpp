@@ -3443,14 +3443,14 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const EidosValue_SP *const p_arguments,
 	
 	if (arg0_type != arg1_type)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_pmax): function pmax() requires arguments x and y to be the same type." << eidos_terminate(nullptr);
-	if (arg0_count != arg1_count)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_pmax): function pmax() requires arguments x and y to be of equal length." << eidos_terminate(nullptr);
+	if ((arg0_count != arg1_count) && (arg0_count != 1) && (arg1_count != 1))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_pmax): function pmax() requires arguments x and y to be of equal length, or either x or y must be a singleton." << eidos_terminate(nullptr);
 	
 	if (arg0_type == EidosValueType::kValueNULL)
 	{
 		result_SP = gStaticEidosValueNULL;
 	}
-	else if (arg0_count == 1)
+	else if ((arg0_count == 1) && (arg1_count == 1))
 	{
 		// Handle the singleton case separately so we can handle the vector case quickly
 		if (CompareEidosValues(*arg0_value, 0, *arg1_value, 0, nullptr) == -1)
@@ -3458,9 +3458,63 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const EidosValue_SP *const p_arguments,
 		else
 			result_SP = arg0_value->CopyValues();
 	}
+	else if ((arg0_count == 1) || (arg1_count == 1))
+	{
+		// One argument, but not both, is singleton; get the singleton value and use fast access on the vector
+		
+		// First, swap as needed to make arg1 be the singleton
+		if (arg0_count == 1)
+		{
+			std::swap(arg0_value, arg1_value);
+			std::swap(arg0_count, arg1_count);
+		}
+		
+		// Then split up by type
+		if (arg0_type == EidosValueType::kValueLogical)
+		{
+			const std::vector<eidos_logical_t> &logical0_vec = *arg0_value->LogicalVector();
+			eidos_logical_t arg1_singleton_value = arg1_value->LogicalAtIndex(0, nullptr);
+			EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve(arg0_count);
+			std::vector<eidos_logical_t> &logical_result_vec = *logical_result->LogicalVector_Mutable();
+			result_SP = EidosValue_SP(logical_result);
+			
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				logical_result_vec.emplace_back(logical0_vec[value_index] || arg1_singleton_value); // || is logical max
+		}
+		else if (arg0_type == EidosValueType::kValueInt)
+		{
+			const std::vector<int64_t> &int0_vec = *arg0_value->IntVector();
+			int64_t arg1_singleton_value = arg1_value->IntAtIndex(0, nullptr);
+			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->Reserve(arg0_count);
+			result_SP = EidosValue_SP(int_result);
+			
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				int_result->PushInt(std::max(int0_vec[value_index], arg1_singleton_value));
+		}
+		else if (arg0_type == EidosValueType::kValueFloat)
+		{
+			const std::vector<double> &float0_vec = *arg0_value->FloatVector();
+			double arg1_singleton_value = arg1_value->FloatAtIndex(0, nullptr);
+			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(arg0_count);
+			result_SP = EidosValue_SP(float_result);
+			
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				float_result->PushFloat(std::max(float0_vec[value_index], arg1_singleton_value));
+		}
+		else if (arg0_type == EidosValueType::kValueString)
+		{
+			const std::vector<std::string> &string0_vec = *arg0_value->StringVector();
+			const std::string &arg1_singleton_value = arg1_value->StringAtIndex(0, nullptr);
+			EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(arg0_count);
+			result_SP = EidosValue_SP(string_result);
+			
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				string_result->PushString(std::max(string0_vec[value_index], arg1_singleton_value));
+		}
+	}
 	else
 	{
-		// We know the type is not NULL or object, and that arg0_count != 1; we split up by type and handle fast
+		// We know the type is not NULL or object, that arg0_count == arg1_count, and that they are not singletons; we split up by type and handle fast
 		if (arg0_type == EidosValueType::kValueLogical)
 		{
 			const std::vector<eidos_logical_t> &logical0_vec = *arg0_value->LogicalVector();
@@ -3521,14 +3575,14 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const EidosValue_SP *const p_arguments,
 	
 	if (arg0_type != arg1_type)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_pmin): function pmin() requires arguments x and y to be the same type." << eidos_terminate(nullptr);
-	if (arg0_count != arg1_count)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_pmin): function pmin() requires arguments x and y to be of equal length." << eidos_terminate(nullptr);
+	if ((arg0_count != arg1_count) && (arg0_count != 1) && (arg1_count != 1))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_pmin): function pmin() requires arguments x and y to be of equal length, or either x or y must be a singleton." << eidos_terminate(nullptr);
 	
 	if (arg0_type == EidosValueType::kValueNULL)
 	{
 		result_SP = gStaticEidosValueNULL;
 	}
-	else if (arg0_count == 1)
+	else if ((arg0_count == 1) && (arg1_count == 1))
 	{
 		// Handle the singleton case separately so we can handle the vector case quickly
 		if (CompareEidosValues(*arg0_value, 0, *arg1_value, 0, nullptr) == 1)
@@ -3536,9 +3590,63 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const EidosValue_SP *const p_arguments,
 		else
 			result_SP = arg0_value->CopyValues();
 	}
+	else if ((arg0_count == 1) || (arg1_count == 1))
+	{
+		// One argument, but not both, is singleton; get the singleton value and use fast access on the vector
+		
+		// First, swap as needed to make arg1 be the singleton
+		if (arg0_count == 1)
+		{
+			std::swap(arg0_value, arg1_value);
+			std::swap(arg0_count, arg1_count);
+		}
+		
+		// Then split up by type
+		if (arg0_type == EidosValueType::kValueLogical)
+		{
+			const std::vector<eidos_logical_t> &logical0_vec = *arg0_value->LogicalVector();
+			eidos_logical_t arg1_singleton_value = arg1_value->LogicalAtIndex(0, nullptr);
+			EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve(arg0_count);
+			std::vector<eidos_logical_t> &logical_result_vec = *logical_result->LogicalVector_Mutable();
+			result_SP = EidosValue_SP(logical_result);
+			
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				logical_result_vec.emplace_back(logical0_vec[value_index] && arg1_singleton_value); // && is logical min
+		}
+		else if (arg0_type == EidosValueType::kValueInt)
+		{
+			const std::vector<int64_t> &int0_vec = *arg0_value->IntVector();
+			int64_t arg1_singleton_value = arg1_value->IntAtIndex(0, nullptr);
+			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->Reserve(arg0_count);
+			result_SP = EidosValue_SP(int_result);
+			
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				int_result->PushInt(std::min(int0_vec[value_index], arg1_singleton_value));
+		}
+		else if (arg0_type == EidosValueType::kValueFloat)
+		{
+			const std::vector<double> &float0_vec = *arg0_value->FloatVector();
+			double arg1_singleton_value = arg1_value->FloatAtIndex(0, nullptr);
+			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(arg0_count);
+			result_SP = EidosValue_SP(float_result);
+			
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				float_result->PushFloat(std::min(float0_vec[value_index], arg1_singleton_value));
+		}
+		else if (arg0_type == EidosValueType::kValueString)
+		{
+			const std::vector<std::string> &string0_vec = *arg0_value->StringVector();
+			const std::string &arg1_singleton_value = arg1_value->StringAtIndex(0, nullptr);
+			EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(arg0_count);
+			result_SP = EidosValue_SP(string_result);
+			
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
+				string_result->PushString(std::min(string0_vec[value_index], arg1_singleton_value));
+		}
+	}
 	else
 	{
-		// We know the type is not NULL or object, and that arg0_count != 1; we split up by type and handle fast
+		// We know the type is not NULL or object, that arg0_count == arg1_count, and that they are not singletons; we split up by type and handle fast
 		if (arg0_type == EidosValueType::kValueLogical)
 		{
 			const std::vector<eidos_logical_t> &logical0_vec = *arg0_value->LogicalVector();

@@ -12,6 +12,7 @@ development head:
 	change the getValue()/setValue() implementation to be more memory-efficient when not used (but a little slower and less memory-efficient when used)
 	Mutation now supports getValue()/setValue() for greater extensibility
 	add script prettyprinting facility to SLiMgui
+	enhance pmax() and pmin() to allow a singleton vector to be paired with a longer vector
 
 
 2.4.1 (build 1166; Eidos version 1.4.1):

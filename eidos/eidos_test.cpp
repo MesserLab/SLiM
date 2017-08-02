@@ -3581,8 +3581,10 @@ void _RunFunctionSummaryStatsTests(void)
 	EidosAssertScriptSuccess("min(string(0));", gStaticEidosValueNULL);
 	
 	// pmax()
-	EidosAssertScriptRaise("pmax(T, logical(0));", 0, "of equal length");
-	EidosAssertScriptRaise("pmax(logical(0), F);", 0, "of equal length");
+	EidosAssertScriptRaise("pmax(c(T,T), logical(0));", 0, "of equal length");
+	EidosAssertScriptRaise("pmax(logical(0), c(F,F));", 0, "of equal length");
+	EidosAssertScriptSuccess("pmax(T, logical(0));", gStaticEidosValue_Logical_ZeroVec);
+	EidosAssertScriptSuccess("pmax(logical(0), F);", gStaticEidosValue_Logical_ZeroVec);
 	EidosAssertScriptRaise("pmax(T, 1);", 0, "to be the same type");
 	EidosAssertScriptRaise("pmax(0, F);", 0, "to be the same type");
 	EidosAssertScriptSuccess("pmax(NULL, NULL);", gStaticEidosValueNULL);
@@ -3609,9 +3611,20 @@ void _RunFunctionSummaryStatsTests(void)
 	EidosAssertScriptSuccess("pmax('', 'bar');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("bar")));
 	EidosAssertScriptSuccess("pmax(c('foo','bar','xyzzy',''), c('bar','baz','xyzzy','bar'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foo", "baz", "xyzzy", "bar"}));
 	
+	EidosAssertScriptSuccess("pmax(F, c(T,T,F,F));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, false, false}));
+	EidosAssertScriptSuccess("pmax(c(T,F,T,F), T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, true, true}));
+	EidosAssertScriptSuccess("pmax(4, c(5,6,1,-8));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{5, 6, 4, 4}));
+	EidosAssertScriptSuccess("pmax(c(1,-8,7,8), -2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, -2, 7, 8}));
+	EidosAssertScriptSuccess("pmax(4., c(5.,6.,1.,-8.,-8.,INF));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{5, 6, 4, 4, 4, std::numeric_limits<double>::infinity()}));
+	EidosAssertScriptSuccess("pmax(c(1.,-INF,7.,INF, NAN, NAN), 5.);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{5, 5, 7, std::numeric_limits<double>::infinity(), std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()}));
+	EidosAssertScriptSuccess("pmax('baz', c('bar','baz','xyzzy','bar'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"baz", "baz", "xyzzy", "baz"}));
+	EidosAssertScriptSuccess("pmax(c('foo','bar','xyzzy',''), 'baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foo", "baz", "xyzzy", "baz"}));
+	
 	// pmin()
-	EidosAssertScriptRaise("pmin(T, logical(0));", 0, "of equal length");
-	EidosAssertScriptRaise("pmin(logical(0), F);", 0, "of equal length");
+	EidosAssertScriptRaise("pmin(c(T,T), logical(0));", 0, "of equal length");
+	EidosAssertScriptRaise("pmin(logical(0), c(F,F));", 0, "of equal length");
+	EidosAssertScriptSuccess("pmin(T, logical(0));", gStaticEidosValue_Logical_ZeroVec);
+	EidosAssertScriptSuccess("pmin(logical(0), F);", gStaticEidosValue_Logical_ZeroVec);
 	EidosAssertScriptRaise("pmin(T, 1);", 0, "to be the same type");
 	EidosAssertScriptRaise("pmin(0, F);", 0, "to be the same type");
 	EidosAssertScriptSuccess("pmin(NULL, NULL);", gStaticEidosValueNULL);
@@ -3637,6 +3650,15 @@ void _RunFunctionSummaryStatsTests(void)
 	EidosAssertScriptSuccess("pmin('xyzzy', 'xyzzy');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xyzzy")));
 	EidosAssertScriptSuccess("pmin('', 'bar');", gStaticEidosValue_StringEmpty);
 	EidosAssertScriptSuccess("pmin(c('foo','bar','xyzzy',''), c('bar','baz','xyzzy','bar'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"bar", "bar", "xyzzy", ""}));
+	
+	EidosAssertScriptSuccess("pmin(F, c(T,T,F,F));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false, false, false}));
+	EidosAssertScriptSuccess("pmin(c(T,F,T,F), T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, true, false}));
+	EidosAssertScriptSuccess("pmin(4, c(5,6,1,-8));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{4, 4, 1, -8}));
+	EidosAssertScriptSuccess("pmin(c(1,-8,7,8), -2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{-2, -8, -2, -2}));
+	EidosAssertScriptSuccess("pmin(4., c(5.,6.,1.,-8.,-8.,INF));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{4, 4, 1, -8, -8, 4}));
+	EidosAssertScriptSuccess("pmin(c(1.,-INF,7.,INF, NAN, NAN), 5.);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{1, -std::numeric_limits<double>::infinity(), 5, 5, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()}));
+	EidosAssertScriptSuccess("pmin('baz', c('bar','baz','xyzzy','bar'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"bar", "baz", "baz", "bar"}));
+	EidosAssertScriptSuccess("pmin(c('foo','bar','xyzzy',''), 'baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"baz", "bar", "baz", ""}));
 	
 	// range()
 	EidosAssertScriptRaise("range(T);", 0, "cannot be type");
