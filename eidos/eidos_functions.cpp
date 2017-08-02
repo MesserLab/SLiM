@@ -188,8 +188,8 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		//	value inspection/manipulation functions
 		//
 		
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("all",				Eidos_ExecuteFunction_all,			kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddLogical("x"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("any",				Eidos_ExecuteFunction_any,			kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddLogical("x"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("all",				Eidos_ExecuteFunction_all,			kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddLogical("x")->AddEllipsis());
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("any",				Eidos_ExecuteFunction_any,			kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddLogical("x")->AddEllipsis());
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("cat",				Eidos_ExecuteFunction_cat,			kEidosValueMaskNULL))->AddAny("x")->AddString_OS("sep", gStaticEidosValue_StringSpace));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("catn",				Eidos_ExecuteFunction_catn,			kEidosValueMaskNULL))->AddAny_O("x", gStaticEidosValue_StringEmpty)->AddString_OS("sep", gStaticEidosValue_StringSpace));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("format",			Eidos_ExecuteFunction_format,		kEidosValueMaskString))->AddString_S("format")->AddNumeric("x"));
@@ -5024,44 +5024,58 @@ EidosValue_SP Eidos_ExecuteFunction_string(const EidosValue_SP *const p_argument
 #pragma mark -
 
 
-//	(logical$)all(logical x)
+//	(logical$)all(logical x, ...)
 EidosValue_SP Eidos_ExecuteFunction_all(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
-	EidosValue *arg0_value = p_arguments[0].get();
-	int arg0_count = arg0_value->Count();
-	const std::vector<eidos_logical_t> &logical_vec = *arg0_value->LogicalVector();
-	
 	result_SP = gStaticEidosValue_LogicalT;
 	
-	for (int value_index = 0; value_index < arg0_count; ++value_index)
-		if (!logical_vec[value_index])
-		{
-			result_SP = gStaticEidosValue_LogicalF;
-			break;
-		}
+	for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+	{
+		EidosValue *arg_value = p_arguments[arg_index].get();
+		
+		if (arg_value->Type() != EidosValueType::kValueLogical)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_all): function all() requires that all arguments be of type logical." << eidos_terminate(nullptr);
+		
+		int arg_count = arg_value->Count();
+		const std::vector<eidos_logical_t> &logical_vec = *arg_value->LogicalVector();
+		
+		for (int value_index = 0; value_index < arg_count; ++value_index)
+			if (!logical_vec[value_index])
+			{
+				result_SP = gStaticEidosValue_LogicalF;
+				break;
+			}
+	}
 	
 	return result_SP;
 }
 
-//	(logical$)any(logical x)
+//	(logical$)any(logical x, ...)
 EidosValue_SP Eidos_ExecuteFunction_any(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
-	EidosValue *arg0_value = p_arguments[0].get();
-	int arg0_count = arg0_value->Count();
-	const std::vector<eidos_logical_t> &logical_vec = *arg0_value->LogicalVector();
-	
 	result_SP = gStaticEidosValue_LogicalF;
 	
-	for (int value_index = 0; value_index < arg0_count; ++value_index)
-		if (logical_vec[value_index])
-		{
-			result_SP = gStaticEidosValue_LogicalT;
-			break;
-		}
+	for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+	{
+		EidosValue *arg_value = p_arguments[arg_index].get();
+		
+		if (arg_value->Type() != EidosValueType::kValueLogical)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_any): function any() requires that all arguments be of type logical." << eidos_terminate(nullptr);
+		
+		int arg_count = arg_value->Count();
+		const std::vector<eidos_logical_t> &logical_vec = *arg_value->LogicalVector();
+		
+		for (int value_index = 0; value_index < arg_count; ++value_index)
+			if (logical_vec[value_index])
+			{
+				result_SP = gStaticEidosValue_LogicalT;
+				break;
+			}
+	}
 	
 	return result_SP;
 }

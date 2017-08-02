@@ -4086,7 +4086,6 @@ void _RunFunctionVectorConstructionTests(void)
 	EidosAssertScriptSuccess("seq(10., 2, length=5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{10, 8, 6, 4, 2}));
 	EidosAssertScriptSuccess("seq(4., 2, length=5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{4.0, 3.5, 3.0, 2.5, 2.0}));
 	
-	
 	// seqAlong()
 	EidosAssertScriptSuccess("seqAlong(NULL);", gStaticEidosValue_Integer_ZeroVec);
 	EidosAssertScriptSuccess("seqAlong(logical(0));", gStaticEidosValue_Integer_ZeroVec);
@@ -4125,6 +4124,21 @@ void _RunFunctionValueInspectionManipulationTests(void)
 	EidosAssertScriptSuccess("all(c(T,T,T,T,T,T,T,F,T,T));", gStaticEidosValue_LogicalF);
 	EidosAssertScriptSuccess("all(c(F,F,F,F,F,F,F,F,F,F));", gStaticEidosValue_LogicalF);
 	
+	EidosAssertScriptRaise("all(T, NULL);", 0, "all arguments be of type logical");
+	EidosAssertScriptRaise("all(T, 0);", 0, "all arguments be of type logical");
+	EidosAssertScriptRaise("all(T, 0.5);", 0, "all arguments be of type logical");
+	EidosAssertScriptRaise("all(T, 'foo');", 0, "all arguments be of type logical");
+	EidosAssertScriptRaise("all(T, _Test(7));", 0, "all arguments be of type logical");
+	EidosAssertScriptSuccess("all(T, logical(0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("all(T, T);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("all(T, F);", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("all(T,T,T,T,T,T,T,T,T,T);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("all(T,T,T,T,T,T,T,F,T,T);", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("all(F,F,F,F,F,F,F,F,F,F);", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("all(T,T,c(T,T,T,T),c(T,T,T,T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("all(T,T,c(T,T,T,T),c(T,F,T,T));", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("all(F,F,c(F,F,F,F),c(F,F,F,F));", gStaticEidosValue_LogicalF);
+	
 	// any()
 	EidosAssertScriptRaise("any(NULL);", 0, "cannot be type");
 	EidosAssertScriptRaise("any(0);", 0, "cannot be type");
@@ -4137,6 +4151,21 @@ void _RunFunctionValueInspectionManipulationTests(void)
 	EidosAssertScriptSuccess("any(c(T,T,T,T,T,T,T,T,T,T));", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("any(c(T,T,T,T,T,T,T,F,T,T));", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("any(c(F,F,F,F,F,F,F,F,F,F));", gStaticEidosValue_LogicalF);
+	
+	EidosAssertScriptRaise("any(F, NULL);", 0, "all arguments be of type logical");
+	EidosAssertScriptRaise("any(F, 0);", 0, "all arguments be of type logical");
+	EidosAssertScriptRaise("any(F, 0.5);", 0, "all arguments be of type logical");
+	EidosAssertScriptRaise("any(F, 'foo');", 0, "all arguments be of type logical");
+	EidosAssertScriptRaise("any(F, _Test(7));", 0, "all arguments be of type logical");
+	EidosAssertScriptSuccess("any(F, logical(0));", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("any(F, T);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("any(F, F);", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("any(T,T,T,T,T,T,T,T,T,T);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("any(T,T,T,T,T,T,T,F,T,T);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("any(F,F,F,F,F,F,F,F,F,F);", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("any(T,T,c(T,T,T,T),c(T,F,T,T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("any(F,F,c(F,F,F,F),c(F,T,F,F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("any(F,F,c(F,F,F,F),c(F,F,F,F));", gStaticEidosValue_LogicalF);
 	
 	// cat() – can't test the actual output, but we can make sure it executes...
 	EidosAssertScriptRaise("cat();", 0, "missing required argument x");

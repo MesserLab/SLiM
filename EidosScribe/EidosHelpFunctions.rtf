@@ -1523,12 +1523,12 @@
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf0 3.5.  Value inspection & manipulation functions\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\b0\fs18 \cf0 (logical$)all(logical
 \f2 \'a0
-\f1 x)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\f1 x, ...)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns 
 \f1\fs18 T
@@ -1537,23 +1537,23 @@
 \f6\fs18 T
 \f0\b0\fs20  in 
 \f1\fs18 x
-\f0\fs20 ; if any value is 
+\f0\fs20  and in any other arguments supplied; if any value is 
 \f1\fs18 F
 \f0\fs20 , returns 
 \f1\fs18 F
 \f2\fs20 .
-\f0   If 
-\f1\fs18 x
-\f0\fs20  is zero-length, 
+\f0   All arguments must be of 
+\f1\fs18 logical
+\f0\fs20  type.  If all arguments are zero-length, 
 \f1\fs18 T
 \f0\fs20  is returned.
 \f2 \
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (logical$)any(logical
 \f2 \'a0
-\f1 x)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\f1 x, ...)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns 
 \f1\fs18 T
@@ -1562,14 +1562,14 @@
 \f6\fs18 T
 \f0\b0\fs20  in 
 \f1\fs18 x
-\f0\fs20 ; if all values are 
+\f0\fs20  or in any other arguments supplied; if all values are 
 \f1\fs18 F
 \f0\fs20 , returns 
 \f1\fs18 F
 \f2\fs20 .
-\f0   If 
-\f1\fs18 x
-\f0\fs20  is zero-length, 
+\f0   All arguments must be of 
+\f1\fs18 logical
+\f0\fs20  type.  If all arguments are zero-length, 
 \f1\fs18 F
 \f0\fs20  is returned.
 \f2 \
