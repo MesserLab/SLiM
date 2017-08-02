@@ -3548,6 +3548,12 @@ void _RunFunctionSummaryStatsTests(void)
 	EidosAssertScriptSuccess("max(float(0));", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("max(string(0));", gStaticEidosValueNULL);
 	
+	EidosAssertScriptSuccess("max(F, c(F,F), logical(0), c(F,F,F,F,F));", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("max(F, c(F,F), logical(0), c(T,F,F,F,F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("max(integer(0), c(3,7,-8,0), 0, c(-10,10));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(10)));
+	EidosAssertScriptSuccess("max(c(3.,7.,-8.,0.), 0., c(-10.,0.), float(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(7)));
+	EidosAssertScriptSuccess("max('foo', string(0), c('baz','bar'), 'xyzzy', c('foobar', 'barbaz'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xyzzy")));
+	
 	// mean()
 	EidosAssertScriptRaise("mean(T);", 0, "cannot be type");
 	EidosAssertScriptSuccess("mean(3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(3)));
@@ -3579,6 +3585,12 @@ void _RunFunctionSummaryStatsTests(void)
 	EidosAssertScriptSuccess("min(integer(0));", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("min(float(0));", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("min(string(0));", gStaticEidosValueNULL);
+	
+	EidosAssertScriptSuccess("min(T, c(T,T), logical(0), c(T,T,T,T,T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("min(F, c(T,T), logical(0), c(T,T,T,T,T));", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("min(integer(0), c(3,7,-8,0), 0, c(-10,10));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-10)));
+	EidosAssertScriptSuccess("min(c(3.,7.,-8.,0.), 0., c(0.,10.), float(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-8)));
+	EidosAssertScriptSuccess("min('foo', string(0), c('baz','bar'), 'xyzzy', c('foobar', 'barbaz'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("bar")));
 	
 	// pmax()
 	EidosAssertScriptRaise("pmax(c(T,T), logical(0));", 0, "of equal length");
@@ -3675,6 +3687,9 @@ void _RunFunctionSummaryStatsTests(void)
 	EidosAssertScriptSuccess("range(integer(0));", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("range(float(0));", gStaticEidosValueNULL);
 	EidosAssertScriptRaise("range(string(0));", 0, "cannot be type");
+	
+	EidosAssertScriptSuccess("range(integer(0), c(3,7,-8,0), 0, c(-10,10));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{-10,10}));
+	EidosAssertScriptSuccess("range(c(3.,7.,-8.,0.), 0., c(0.,10.), float(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{-8,10}));
 	
 	// sd()
 	EidosAssertScriptRaise("sd(T);", 0, "cannot be type");

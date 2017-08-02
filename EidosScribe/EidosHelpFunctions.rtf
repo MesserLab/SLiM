@@ -784,31 +784,40 @@
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf0 3.2.  Summary statistics functions\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\b0\fs18 \cf0 (+$)max(+\'a0x)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\f1\b0\fs18 \cf0 (+$)max(+\'a0x, ...)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns the 
 \b maximum
 \b0  of 
 \f1\fs18 x
-\f0\fs20 : the greatest value it contains.  The return type will match that of 
+\f0\fs20  and the other arguments supplied: the single greatest value contained by all of them.  All of the arguments must be the same type as 
+\f1\fs18 x
+\f0\fs20 , and the return type will match that of 
 \f1\fs18 x
 \f2\fs20 .
-\f0   If 
-\f1\fs18 x
-\f0\fs20  has a size of 
+\f0   If all of the arguments have a size of 
 \f1\fs18 0
 \f0\fs20 , the return value will be 
 \f1\fs18 NULL
-\f2\fs20 .\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\f0\fs20 ; note that this means that 
+\f1\fs18 max(x,\'a0max(y))
+\f0\fs20  may produce an error, if 
+\f1\fs18 max(y)
+\f0\fs20  is 
+\f1\fs18 NULL
+\f0\fs20 , in cases where 
+\f1\fs18 max(x,\'a0y)
+\f0\fs20  does not.
+\f2 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (float$)mean(numeric
 \f2 \'a0
 \f1 x)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns the 
 \b arithmetic mean
@@ -826,25 +835,34 @@
 \f0\fs20 , the return value will be 
 \f1\fs18 NULL
 \f2\fs20 .\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (+$)min(+\'a0x)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\f1\fs18 \cf0 (+$)min(+\'a0x, ...)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns the 
 \b minimum
 \b0  of 
 \f1\fs18 x
-\f0\fs20 : the least value it contains.  The return type will match that of 
+\f0\fs20  and the other arguments supplied: the single smallest value contained by all of them.  All of the arguments must be the same type as 
+\f1\fs18 x
+\f0\fs20 , and the return type will match that of 
 \f1\fs18 x
 \f2\fs20 .
-\f0   If 
-\f1\fs18 x
-\f0\fs20  has a size of 
+\f0   If all of the arguments have a size of 
 \f1\fs18 0
 \f0\fs20 , the return value will be 
 \f1\fs18 NULL
-\f2\fs20 .\
+\f0\fs20 ; note that this means that 
+\f1\fs18 min(x,\'a0min(y))
+\f0\fs20  may produce an error, if 
+\f1\fs18 min(y)
+\f0\fs20  is 
+\f1\fs18 NULL
+\f0\fs20 , in cases where 
+\f1\fs18 min(x,\'a0y)
+\f0\fs20  does not.
+\f2 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (+)pmax(+\'a0x, +\'a0y)\
@@ -903,35 +921,42 @@
 \f1\fs18 y
 \f0\fs20  is a singleton, in which case the returned value will match the size of the non-singleton argument, and pairs of elements for comparison will be formed between the singleton\'92s element and each of the elements in the non-singleton.
 \f2 \
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (numeric)range(numeric
 \f2 \'a0
-\f1 x)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\f1 x, ...)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns the 
 \b range
 \b0  of 
 \f1\fs18 x
-\f0\fs20 , a vector of length 
+\f0\fs20  and the other arguments supplied: a vector of length 
 \f1\fs18 2
-\f0\fs20  composed of the minimum and maximum values of 
-\f1\fs18 x
-\f0\fs20  at indices 
+\f0\fs20  composed of the minimum and maximum values contained by all of them, at indices 
 \f1\fs18 0
 \f0\fs20  and 
 \f1\fs18 1
-\f0\fs20 , respectively.  The return type will match that of 
+\f0\fs20  respectively.  All of the arguments must be the same type as 
+\f1\fs18 x
+\f0\fs20 , and the return type will match that of 
 \f1\fs18 x
 \f2\fs20 .
-\f0   If 
-\f1\fs18 x
-\f0\fs20  has a size of 
+\f0   If all of the arguments have a size of 
 \f1\fs18 0
 \f0\fs20 , the return value will be 
 \f1\fs18 NULL
-\f2\fs20 .\
+\f0\fs20 ; note that this means that 
+\f1\fs18 range(x,\'a0range(y))
+\f0\fs20  may produce an error, if 
+\f1\fs18 range(y)
+\f0\fs20  is 
+\f1\fs18 NULL
+\f0\fs20 , in cases where 
+\f1\fs18 range(x,\'a0y)
+\f0\fs20  does not.
+\f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (float$)sd(numeric

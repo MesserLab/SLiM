@@ -140,12 +140,12 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		//	summary statistics functions
 		//
 		
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("max",				Eidos_ExecuteFunction_max,			kEidosValueMaskAnyBase | kEidosValueMaskSingleton))->AddAnyBase("x"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("max",				Eidos_ExecuteFunction_max,			kEidosValueMaskAnyBase | kEidosValueMaskSingleton))->AddAnyBase("x")->AddEllipsis());
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("mean",				Eidos_ExecuteFunction_mean,			kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddNumeric("x"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("min",				Eidos_ExecuteFunction_min,			kEidosValueMaskAnyBase | kEidosValueMaskSingleton))->AddAnyBase("x"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("min",				Eidos_ExecuteFunction_min,			kEidosValueMaskAnyBase | kEidosValueMaskSingleton))->AddAnyBase("x")->AddEllipsis());
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("pmax",				Eidos_ExecuteFunction_pmax,			kEidosValueMaskAnyBase))->AddAnyBase("x")->AddAnyBase("y"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("pmin",				Eidos_ExecuteFunction_pmin,			kEidosValueMaskAnyBase))->AddAnyBase("x")->AddAnyBase("y"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("range",			Eidos_ExecuteFunction_range,			kEidosValueMaskNumeric))->AddNumeric("x"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("range",			Eidos_ExecuteFunction_range,			kEidosValueMaskNumeric))->AddNumeric("x")->AddEllipsis());
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("sd",				Eidos_ExecuteFunction_sd,			kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddNumeric("x"));
 		
 		
@@ -3193,52 +3193,91 @@ EidosValue_SP Eidos_ExecuteFunction_trunc(const EidosValue_SP *const p_arguments
 #pragma mark -
 
 
-//	(+$)max(+ x)
-EidosValue_SP Eidos_ExecuteFunction_max(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+//	(+$)max(+ x, ...)
+EidosValue_SP Eidos_ExecuteFunction_max(const EidosValue_SP *const p_arguments, int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValueType arg0_type = arg0_value->Type();
-	int arg0_count = arg0_value->Count();
+	EidosValueType arg0_type = p_arguments[0].get()->Type();
 	
-	if (arg0_count == 0)
+	// check the types of ellipsis arguments and find the first nonempty argument
+	int first_nonempty_argument = -1;
+	
+	for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
 	{
+		EidosValue *arg_value = p_arguments[arg_index].get();
+		EidosValueType arg_type = arg_value->Type();
+		
+		if (arg_type != arg0_type)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_max): function max() requires all arguments to be the same type." << eidos_terminate(nullptr);
+		
+		if (first_nonempty_argument == -1)
+		{
+			int arg_count = arg_value->Count();
+			
+			if (arg_count > 0)
+				first_nonempty_argument = arg_index;
+		}
+	}
+	
+	if (first_nonempty_argument == -1)
+	{
+		// R uses -Inf or +Inf for max/min of a numeric vector, but we want to be consistent between integer and float, and we
+		// want to return an integer value for integer arguments, and there is no integer -Inf/+Inf, so we return NULL.  Note
+		// this means that, unlike R, min() and max() in Eidos are not transitive; min(a, min(b)) != min(a, b) in general.  We
+		// could fix that by returning NULL whenever any of the arguments are zero-length, but that does not seem desirable.
 		result_SP = gStaticEidosValueNULL;
 	}
 	else if (arg0_type == EidosValueType::kValueLogical)
 	{
-		eidos_logical_t max = arg0_value->LogicalAtIndex(0, nullptr);
-		
-		if (arg0_count > 1)
+		// For logical, we can just scan for a T, in which the result is T, otherwise it is F
+		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
 		{
-			// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Int_vector; we can use the fast API
-			const std::vector<eidos_logical_t> &logical_vec = *arg0_value->LogicalVector();
+			EidosValue *arg_value = p_arguments[arg_index].get();
+			int arg_count = arg_value->Count();
 			
-			for (int value_index = 1; value_index < arg0_count; ++value_index)
+			if (arg_count == 1)
 			{
-				eidos_logical_t temp = logical_vec[value_index];
-				if (max < temp)
-					max = temp;
+				if (arg_value->LogicalAtIndex(0, nullptr) == true)
+					return gStaticEidosValue_LogicalT;
+			}
+			else
+			{
+				const std::vector<eidos_logical_t> &logical_vec = *arg_value->LogicalVector();
+				
+				for (int value_index = 0; value_index < arg_count; ++value_index)
+					if (logical_vec[value_index] == true)
+						return gStaticEidosValue_LogicalT;
 			}
 		}
 		
-		result_SP = (max ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+		result_SP = gStaticEidosValue_LogicalF;
 	}
 	else if (arg0_type == EidosValueType::kValueInt)
 	{
-		int64_t max = arg0_value->IntAtIndex(0, nullptr);
+		int64_t max = p_arguments[first_nonempty_argument]->IntAtIndex(0, nullptr);
 		
-		if (arg0_count > 1)
+		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
 		{
-			// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Int_vector; we can use the fast API
-			const std::vector<int64_t> &int_vec = *arg0_value->IntVector();
+			EidosValue *arg_value = p_arguments[arg_index].get();
+			int arg_count = arg_value->Count();
 			
-			for (int value_index = 1; value_index < arg0_count; ++value_index)
+			if (arg_count == 1)
 			{
-				int64_t temp = int_vec[value_index];
+				int64_t temp = arg_value->LogicalAtIndex(0, nullptr);
 				if (max < temp)
 					max = temp;
+			}
+			else
+			{
+				const std::vector<int64_t> &int_vec = *arg_value->IntVector();
+				
+				for (int value_index = 0; value_index < arg_count; ++value_index)
+				{
+					int64_t temp = int_vec[value_index];
+					if (max < temp)
+						max = temp;
+				}
 			}
 		}
 		
@@ -3246,18 +3285,29 @@ EidosValue_SP Eidos_ExecuteFunction_max(const EidosValue_SP *const p_arguments, 
 	}
 	else if (arg0_type == EidosValueType::kValueFloat)
 	{
-		double max = arg0_value->FloatAtIndex(0, nullptr);
+		double max = p_arguments[first_nonempty_argument]->FloatAtIndex(0, nullptr);
 		
-		if (arg0_count > 1)
+		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
 		{
-			// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Float_vector; we can use the fast API
-			const std::vector<double> &float_vec = *arg0_value->FloatVector();
+			EidosValue *arg_value = p_arguments[arg_index].get();
+			int arg_count = arg_value->Count();
 			
-			for (int value_index = 1; value_index < arg0_count; ++value_index)
+			if (arg_count == 1)
 			{
-				double temp = float_vec[value_index];
+				double temp = arg_value->FloatAtIndex(0, nullptr);
 				if (max < temp)
 					max = temp;
+			}
+			else
+			{
+				const std::vector<double> &float_vec = *arg_value->FloatVector();
+				
+				for (int value_index = 0; value_index < arg_count; ++value_index)
+				{
+					double temp = float_vec[value_index];
+					if (max < temp)
+						max = temp;
+				}
 			}
 		}
 		
@@ -3265,18 +3315,29 @@ EidosValue_SP Eidos_ExecuteFunction_max(const EidosValue_SP *const p_arguments, 
 	}
 	else if (arg0_type == EidosValueType::kValueString)
 	{
-		string max = arg0_value->StringAtIndex(0, nullptr);
+		string max = p_arguments[first_nonempty_argument]->StringAtIndex(0, nullptr);
 		
-		if (arg0_count > 1)
+		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
 		{
-			// We have arg0_count != 1, so the type of arg0_value must be EidosValue_String_vector; we can use the fast API
-			const std::vector<std::string> &string_vec = *arg0_value->StringVector();
+			EidosValue *arg_value = p_arguments[arg_index].get();
+			int arg_count = arg_value->Count();
 			
-			for (int value_index = 1; value_index < arg0_count; ++value_index)
+			if (arg_count == 1)
 			{
-				const string &temp = string_vec[value_index];
+				const string &temp = arg_value->StringAtIndex(0, nullptr);
 				if (max < temp)
 					max = temp;
+			}
+			else
+			{
+				const std::vector<std::string> &string_vec = *arg_value->StringVector();
+				
+				for (int value_index = 0; value_index < arg_count; ++value_index)
+				{
+					const string &temp = string_vec[value_index];
+					if (max < temp)
+						max = temp;
+				}
 			}
 		}
 		
@@ -3336,52 +3397,91 @@ EidosValue_SP Eidos_ExecuteFunction_mean(const EidosValue_SP *const p_arguments,
 	return result_SP;
 }
 
-//	(+$)min(+ x)
-EidosValue_SP Eidos_ExecuteFunction_min(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+//	(+$)min(+ x, ...)
+EidosValue_SP Eidos_ExecuteFunction_min(const EidosValue_SP *const p_arguments, int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValueType arg0_type = arg0_value->Type();
-	int arg0_count = arg0_value->Count();
+	EidosValueType arg0_type = p_arguments[0].get()->Type();
 	
-	if (arg0_count == 0)
+	// check the types of ellipsis arguments and find the first nonempty argument
+	int first_nonempty_argument = -1;
+	
+	for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
 	{
+		EidosValue *arg_value = p_arguments[arg_index].get();
+		EidosValueType arg_type = arg_value->Type();
+		
+		if (arg_type != arg0_type)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_min): function min() requires all arguments to be the same type." << eidos_terminate(nullptr);
+		
+		if (first_nonempty_argument == -1)
+		{
+			int arg_count = arg_value->Count();
+			
+			if (arg_count > 0)
+				first_nonempty_argument = arg_index;
+		}
+	}
+	
+	if (first_nonempty_argument == -1)
+	{
+		// R uses -Inf or +Inf for max/min of a numeric vector, but we want to be consistent between integer and float, and we
+		// want to return an integer value for integer arguments, and there is no integer -Inf/+Inf, so we return NULL.  Note
+		// this means that, unlike R, min() and max() in Eidos are not transitive; min(a, min(b)) != min(a, b) in general.  We
+		// could fix that by returning NULL whenever any of the arguments are zero-length, but that does not seem desirable.
 		result_SP = gStaticEidosValueNULL;
 	}
 	else if (arg0_type == EidosValueType::kValueLogical)
 	{
-		eidos_logical_t min = arg0_value->LogicalAtIndex(0, nullptr);
-		
-		if (arg0_count > 1)
+		// For logical, we can just scan for a F, in which the result is F, otherwise it is T
+		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
 		{
-			// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Int_vector; we can use the fast API
-			const std::vector<eidos_logical_t> &logical_vec = *arg0_value->LogicalVector();
+			EidosValue *arg_value = p_arguments[arg_index].get();
+			int arg_count = arg_value->Count();
 			
-			for (int value_index = 1; value_index < arg0_count; ++value_index)
+			if (arg_count == 1)
 			{
-				eidos_logical_t temp = logical_vec[value_index];
-				if (min > temp)
-					min = temp;
+				if (arg_value->LogicalAtIndex(0, nullptr) == false)
+					return gStaticEidosValue_LogicalF;
+			}
+			else
+			{
+				const std::vector<eidos_logical_t> &logical_vec = *arg_value->LogicalVector();
+				
+				for (int value_index = 0; value_index < arg_count; ++value_index)
+					if (logical_vec[value_index] == false)
+						return gStaticEidosValue_LogicalF;
 			}
 		}
 		
-		result_SP = (min ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+		result_SP = gStaticEidosValue_LogicalT;
 	}
 	else if (arg0_type == EidosValueType::kValueInt)
 	{
-		int64_t min = arg0_value->IntAtIndex(0, nullptr);
+		int64_t min = p_arguments[first_nonempty_argument]->IntAtIndex(0, nullptr);
 		
-		if (arg0_count > 1)
+		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
 		{
-			// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Int_vector; we can use the fast API
-			const std::vector<int64_t> &int_vec = *arg0_value->IntVector();
+			EidosValue *arg_value = p_arguments[arg_index].get();
+			int arg_count = arg_value->Count();
 			
-			for (int value_index = 1; value_index < arg0_count; ++value_index)
+			if (arg_count == 1)
 			{
-				int64_t temp = int_vec[value_index];
+				int64_t temp = arg_value->IntAtIndex(0, nullptr);
 				if (min > temp)
 					min = temp;
+			}
+			else
+			{
+				const std::vector<int64_t> &int_vec = *arg_value->IntVector();
+				
+				for (int value_index = 0; value_index < arg_count; ++value_index)
+				{
+					int64_t temp = int_vec[value_index];
+					if (min > temp)
+						min = temp;
+				}
 			}
 		}
 		
@@ -3389,18 +3489,29 @@ EidosValue_SP Eidos_ExecuteFunction_min(const EidosValue_SP *const p_arguments, 
 	}
 	else if (arg0_type == EidosValueType::kValueFloat)
 	{
-		double min = arg0_value->FloatAtIndex(0, nullptr);
+		double min = p_arguments[first_nonempty_argument]->FloatAtIndex(0, nullptr);
 		
-		if (arg0_count > 1)
+		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
 		{
-			// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Float_vector; we can use the fast API
-			const std::vector<double> &float_vec = *arg0_value->FloatVector();
+			EidosValue *arg_value = p_arguments[arg_index].get();
+			int arg_count = arg_value->Count();
 			
-			for (int value_index = 1; value_index < arg0_count; ++value_index)
+			if (arg_count == 1)
 			{
-				double temp = float_vec[value_index];
+				double temp = arg_value->FloatAtIndex(0, nullptr);
 				if (min > temp)
 					min = temp;
+			}
+			else
+			{
+				const std::vector<double> &float_vec = *arg_value->FloatVector();
+				
+				for (int value_index = 0; value_index < arg_count; ++value_index)
+				{
+					double temp = float_vec[value_index];
+					if (min > temp)
+						min = temp;
+				}
 			}
 		}
 		
@@ -3408,18 +3519,29 @@ EidosValue_SP Eidos_ExecuteFunction_min(const EidosValue_SP *const p_arguments, 
 	}
 	else if (arg0_type == EidosValueType::kValueString)
 	{
-		string min = arg0_value->StringAtIndex(0, nullptr);
+		string min = p_arguments[first_nonempty_argument]->StringAtIndex(0, nullptr);
 		
-		if (arg0_count > 1)
+		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
 		{
-			// We have arg0_count != 1, so the type of arg0_value must be EidosValue_String_vector; we can use the fast API
-			const std::vector<std::string> &string_vec = *arg0_value->StringVector();
+			EidosValue *arg_value = p_arguments[arg_index].get();
+			int arg_count = arg_value->Count();
 			
-			for (int value_index = 1; value_index < arg0_count; ++value_index)
+			if (arg_count == 1)
 			{
-				const string &temp = string_vec[value_index];
+				const string &temp = arg_value->StringAtIndex(0, nullptr);
 				if (min > temp)
 					min = temp;
+			}
+			else
+			{
+				const std::vector<std::string> &string_vec = *arg_value->StringVector();
+				
+				for (int value_index = 0; value_index < arg_count; ++value_index)
+				{
+					const string &temp = string_vec[value_index];
+					if (min > temp)
+						min = temp;
+				}
 			}
 		}
 		
@@ -3693,17 +3815,39 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const EidosValue_SP *const p_arguments,
 	return result_SP;
 }
 
-//	(numeric)range(numeric x)
-EidosValue_SP Eidos_ExecuteFunction_range(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+//	(numeric)range(numeric x, ...)
+EidosValue_SP Eidos_ExecuteFunction_range(const EidosValue_SP *const p_arguments, int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValueType arg0_type = arg0_value->Type();
-	int arg0_count = arg0_value->Count();
+	EidosValueType arg0_type = p_arguments[0].get()->Type();
 	
-	if (arg0_count == 0)
+	// check the types of ellipsis arguments and find the first nonempty argument
+	int first_nonempty_argument = -1;
+	
+	for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
 	{
+		EidosValue *arg_value = p_arguments[arg_index].get();
+		EidosValueType arg_type = arg_value->Type();
+		
+		if (arg_type != arg0_type)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_min): function min() requires all arguments to be the same type." << eidos_terminate(nullptr);
+		
+		if (first_nonempty_argument == -1)
+		{
+			int arg_count = arg_value->Count();
+			
+			if (arg_count > 0)
+				first_nonempty_argument = arg_index;
+		}
+	}
+	
+	if (first_nonempty_argument == -1)
+	{
+		// R uses -Inf or +Inf for max/min of a numeric vector, but we want to be consistent between integer and float, and we
+		// want to return an integer value for integer arguments, and there is no integer -Inf/+Inf, so we return NULL.  Note
+		// this means that, unlike R, min() and max() in Eidos are not transitive; min(a, min(b)) != min(a, b) in general.  We
+		// could fix that by returning NULL whenever any of the arguments are zero-length, but that does not seem desirable.
 		result_SP = gStaticEidosValueNULL;
 	}
 	else if (arg0_type == EidosValueType::kValueInt)
@@ -3711,21 +3855,34 @@ EidosValue_SP Eidos_ExecuteFunction_range(const EidosValue_SP *const p_arguments
 		EidosValue_Int_vector *int_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector();
 		result_SP = EidosValue_SP(int_result);
 		
-		int64_t max = arg0_value->IntAtIndex(0, nullptr);
+		int64_t max = p_arguments[first_nonempty_argument]->IntAtIndex(0, nullptr);
 		int64_t min = max;
 		
-		if (arg0_count > 1)
+		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
 		{
-			// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Int_vector; we can use the fast API
-			const std::vector<int64_t> &int_vec = *arg0_value->IntVector();
+			EidosValue *arg_value = p_arguments[arg_index].get();
+			int arg_count = arg_value->Count();
 			
-			for (int value_index = 1; value_index < arg0_count; ++value_index)
+			if (arg_count == 1)
 			{
-				int64_t temp = int_vec[value_index];
+				int64_t temp = arg_value->IntAtIndex(0, nullptr);
 				if (max < temp)
 					max = temp;
 				else if (min > temp)
 					min = temp;
+			}
+			else
+			{
+				const std::vector<int64_t> &int_vec = *arg_value->IntVector();
+				
+				for (int value_index = 0; value_index < arg_count; ++value_index)
+				{
+					int64_t temp = int_vec[value_index];
+					if (max < temp)
+						max = temp;
+					else if (min > temp)
+						min = temp;
+				}
 			}
 		}
 		
@@ -3737,21 +3894,34 @@ EidosValue_SP Eidos_ExecuteFunction_range(const EidosValue_SP *const p_arguments
 		EidosValue_Float_vector *float_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector();
 		result_SP = EidosValue_SP(float_result);
 		
-		double max = arg0_value->FloatAtIndex(0, nullptr);
+		double max = p_arguments[first_nonempty_argument]->FloatAtIndex(0, nullptr);
 		double min = max;
 		
-		if (arg0_count > 1)
+		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
 		{
-			// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Float_vector; we can use the fast API
-			const std::vector<double> &float_vec = *arg0_value->FloatVector();
+			EidosValue *arg_value = p_arguments[arg_index].get();
+			int arg_count = arg_value->Count();
 			
-			for (int value_index = 1; value_index < arg0_count; ++value_index)
+			if (arg_count == 1)
 			{
-				double temp = float_vec[value_index];
+				double temp = arg_value->FloatAtIndex(0, nullptr);
 				if (max < temp)
 					max = temp;
 				else if (min > temp)
 					min = temp;
+			}
+			else
+			{
+				const std::vector<double> &float_vec = *arg_value->FloatVector();
+				
+				for (int value_index = 0; value_index < arg_count; ++value_index)
+				{
+					double temp = float_vec[value_index];
+					if (max < temp)
+						max = temp;
+					else if (min > temp)
+						min = temp;
+				}
 			}
 		}
 		
