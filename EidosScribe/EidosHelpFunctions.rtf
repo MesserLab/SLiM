@@ -1565,7 +1565,7 @@
 \f1\fs18 F
 \f0\fs20  is returned.
 \f2 \
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (void)cat(*
 \f2 \'a0
@@ -1574,7 +1574,7 @@
 \f1 sep
 \f2 \'a0
 \f1 =\'a0" "])\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf0 Concatenates output
 \b0  to Eidos\'92s output stream, joined together by 
@@ -1585,8 +1585,9 @@
 \f1\fs18 print()
 \f0\fs20 ; if a trailing newline is desired, you can use 
 \f1\fs18 "\\n"
-\f2\fs20 .
-\f0   Also unlike 
+\f0\fs20  (or use the 
+\f1\fs18 catn()
+\f0\fs20  function).  Also unlike 
 \f1\fs18 print()
 \f0\fs20 , 
 \f1\fs18 cat()
@@ -2252,9 +2253,8 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f0   To sort a non-
 \f1\fs18 object
 \f0\fs20  vector, use 
-\f1\fs18 sortBy()
-\f2\fs20 .
-\f0   To obtain indices for sorting, use 
+\f1\fs18 sort()
+\f0\fs20 .  To obtain indices for sorting, use 
 \f1\fs18 order()
 \f2\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
