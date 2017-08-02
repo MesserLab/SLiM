@@ -1038,7 +1038,7 @@ void _RunFunctionDispatchTests(void)
 	EidosAssertScriptSuccess("seq(1, 3, by=1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3}));
 	EidosAssertScriptSuccess("seq(1, 3, by=NULL);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3}));
 	EidosAssertScriptRaise("seq(1, 3, x=1);", 0, "ran out of optional arguments");
-	EidosAssertScriptRaise("seq(1, 3, by=1, by=1);", 0, "too many arguments supplied");
+	EidosAssertScriptRaise("seq(1, 3, by=1, length=1, by=1);", 0, "too many arguments supplied");
 	EidosAssertScriptSuccess("seq(1, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3}));
 	EidosAssertScriptRaise("seq(by=1, 1, 3);", 0, "named argument by skipped over required argument");
 	EidosAssertScriptRaise("seq(by=NULL, 1, 3);", 0, "named argument by skipped over required argument");
@@ -4059,6 +4059,33 @@ void _RunFunctionVectorConstructionTests(void)
 	EidosAssertScriptRaise("seq(NULL, 2, 1);", 0, "cannot be type");
 	EidosAssertScriptRaise("seq(1, NULL, 2);", 0, "cannot be type");
 	EidosAssertScriptSuccess("seq(2, 1, NULL);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 1})); // NULL uses the default by
+	
+	EidosAssertScriptRaise("seq(2, 3, 1, 2);", 0, "may be supplied with either");
+	EidosAssertScriptRaise("seq(2, 3, by=1, length=2);", 0, "may be supplied with either");
+	EidosAssertScriptRaise("seq(2, 3, length=-2);", 0, "must be > 0");
+	EidosAssertScriptRaise("seq(2, 3, length=0);", 0, "must be > 0");
+	EidosAssertScriptSuccess("seq(2, 3, length=1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(2)));
+	EidosAssertScriptSuccess("seq(2, 3, length=2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 3}));
+	EidosAssertScriptSuccess("seq(2, 2, length=5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 2, 2, 2, 2}));
+	EidosAssertScriptSuccess("seq(2, 10, length=5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 4, 6, 8, 10}));
+	EidosAssertScriptSuccess("seq(2, 4, length=5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{2.0, 2.5, 3.0, 3.5, 4.0}));
+	EidosAssertScriptSuccess("seq(3, 2, length=2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3, 2}));
+	EidosAssertScriptSuccess("seq(10, 2, length=5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{10, 8, 6, 4, 2}));
+	EidosAssertScriptSuccess("seq(4, 2, length=5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{4.0, 3.5, 3.0, 2.5, 2.0}));
+	
+	EidosAssertScriptRaise("seq(2., 3, 1, 2);", 0, "may be supplied with either");
+	EidosAssertScriptRaise("seq(2., 3, by=1, length=2);", 0, "may be supplied with either");
+	EidosAssertScriptRaise("seq(2., 3, length=-2);", 0, "must be > 0");
+	EidosAssertScriptRaise("seq(2., 3, length=0);", 0, "must be > 0");
+	EidosAssertScriptSuccess("seq(2., 3, length=1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(2)));
+	EidosAssertScriptSuccess("seq(2., 3, length=2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{2, 3}));
+	EidosAssertScriptSuccess("seq(2., 2, length=5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{2, 2, 2, 2, 2}));
+	EidosAssertScriptSuccess("seq(2., 10, length=5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{2, 4, 6, 8, 10}));
+	EidosAssertScriptSuccess("seq(2., 4, length=5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{2.0, 2.5, 3.0, 3.5, 4.0}));
+	EidosAssertScriptSuccess("seq(3., 2, length=2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3, 2}));
+	EidosAssertScriptSuccess("seq(10., 2, length=5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{10, 8, 6, 4, 2}));
+	EidosAssertScriptSuccess("seq(4., 2, length=5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{4.0, 3.5, 3.0, 2.5, 2.0}));
+	
 	
 	// seqAlong()
 	EidosAssertScriptSuccess("seqAlong(NULL);", gStaticEidosValue_Integer_ZeroVec);

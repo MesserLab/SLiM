@@ -1432,7 +1432,7 @@
 \f1\fs18 size
 \f0\fs20  will be even more stringent.  The draws are obtained from the standard Eidos random number generator, which might be shared with the Context.
 \f2 \
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (numeric)seq(numeric$
 \f2 \'a0
@@ -1442,8 +1442,10 @@
 \f2 \'a0
 \f1 by
 \f2 \'a0
-\f1 =\'a0NULL])\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\f1 =\'a0NULL], [Ni$
+\f2 \'a0
+\f1 length\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a 
 \b sequence
@@ -1453,9 +1455,11 @@
 \f1\fs18 to
 \f0\fs20  until the next value in the sequence would fall beyond 
 \f1\fs18 to
-\f0\fs20 .  If the optional parameter 
+\f0\fs20 .  If the optional parameters 
 \f1\fs18 by
-\f0\fs20  is 
+\f0\fs20  and 
+\f1\fs18 length
+\f0\fs20  are both 
 \f1\fs18 NULL
 \f0\fs20  (the default), the sequence steps by values of 
 \f1\fs18 1
@@ -1463,19 +1467,23 @@
 \f1\fs18 -1
 \f0\fs20  (as needed to proceed in the direction of 
 \f1\fs18 to
-\f0\fs20 ); a different step value may be used instead, but must similarly have the appropriate sign.  If 
-\f1\fs18 from
-\f0\fs20 , 
-\f1\fs18 to
-\f0\fs20 , and 
+\f0\fs20 ).  A different step value may be supplied with 
 \f1\fs18 by
-\f0\fs20  are all 
+\f0\fs20 , but must have the necessary sign.  Alternatively, a sequence length may be supplied in 
+\f1\fs18 length
+\f0\fs20 , in which case the step magnitude will be chosen to produce a sequence of the requested length (with the necessary sign, as before).  If 
+\f1\fs18 from
+\f0\fs20  and 
+\f1\fs18 to
+\f0\fs20  are both 
 \f1\fs18 integer
-\f0\fs20  (or 
-\f1\fs18 NULL
-\f0\fs20 ) then the return type will be 
+\f0\fs20  then the return type will be 
 \f1\fs18 integer
-\f0\fs20 , otherwise it will be 
+\f0\fs20  when possible (but this may not be possible, depending upon values supplied for 
+\f1\fs18 by
+\f0\fs20  or 
+\f1\fs18 length
+\f0\fs20 ), otherwise it will be 
 \f1\fs18 float
 \f2\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0

@@ -14,6 +14,7 @@ development head:
 	add script prettyprinting facility to SLiMgui
 	enhance pmax() and pmin() to allow a singleton vector to be paired with a longer vector
 	enhance max(), min(), and range() to allow any number of arguments of any length
+	enhance seq() to support an optional length parameter
 
 
 2.4.1 (build 1166; Eidos version 1.4.1):

@@ -178,7 +178,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rep",				Eidos_ExecuteFunction_rep,			kEidosValueMaskAny))->AddAny("x")->AddInt_S("count"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("repEach",			Eidos_ExecuteFunction_repEach,		kEidosValueMaskAny))->AddAny("x")->AddInt("count"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("sample",			Eidos_ExecuteFunction_sample,		kEidosValueMaskAny))->AddAny("x")->AddInt_S("size")->AddLogical_OS("replace", gStaticEidosValue_LogicalF)->AddNumeric_ON(gEidosStr_weights, gStaticEidosValueNULL));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("seq",				Eidos_ExecuteFunction_seq,			kEidosValueMaskNumeric))->AddNumeric_S("from")->AddNumeric_S("to")->AddNumeric_OSN("by", gStaticEidosValueNULL));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("seq",				Eidos_ExecuteFunction_seq,			kEidosValueMaskNumeric))->AddNumeric_S("from")->AddNumeric_S("to")->AddNumeric_OSN("by", gStaticEidosValueNULL)->AddInt_OSN("length", gStaticEidosValueNULL));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("seqAlong",			Eidos_ExecuteFunction_seqAlong,		kEidosValueMaskInt))->AddAny("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_string,	Eidos_ExecuteFunction_string,		kEidosValueMaskString))->AddInt_S("length"));
 		
@@ -4834,7 +4834,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const EidosValue_SP *const p_argument
 	return result_SP;
 }
 
-//	(numeric)seq(numeric$ from, numeric$ to, [Nif$ by = NULL])
+//	(numeric)seq(numeric$ from, numeric$ to, [Nif$ by = NULL], [Ni$ length = NULL])
 EidosValue_SP Eidos_ExecuteFunction_seq(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
@@ -4845,52 +4845,134 @@ EidosValue_SP Eidos_ExecuteFunction_seq(const EidosValue_SP *const p_arguments, 
 	EidosValueType arg1_type = arg1_value->Type();
 	EidosValue *arg2_value = p_arguments[2].get();
 	EidosValueType arg2_type = arg2_value->Type();
+	EidosValue *arg3_value = p_arguments[3].get();
+	EidosValueType arg3_type = arg3_value->Type();
 	
-	if ((arg0_type == EidosValueType::kValueFloat) || (arg1_type == EidosValueType::kValueFloat) || (arg2_type == EidosValueType::kValueFloat))
+	if ((arg0_type == EidosValueType::kValueFloat) && !std::isfinite(arg0_value->FloatAtIndex(0, nullptr)))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() requires a finite value for the 'from' parameter." << eidos_terminate(nullptr);
+	if ((arg1_type == EidosValueType::kValueFloat) && !std::isfinite(arg1_value->FloatAtIndex(0, nullptr)))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() requires a finite value for the 'to' parameter." << eidos_terminate(nullptr);
+	if ((arg2_type != EidosValueType::kValueNULL) && (arg3_type != EidosValueType::kValueNULL))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() may be supplied with either 'by' or 'length', but not both." << eidos_terminate(nullptr);
+	
+	if (arg3_type != EidosValueType::kValueNULL)
 	{
-		// float return case
-		double first_value = arg0_value->FloatAtIndex(0, nullptr);
-		double second_value = arg1_value->FloatAtIndex(0, nullptr);
-		double default_by = ((first_value < second_value) ? 1 : -1);
-		double by_value = ((arg2_type != EidosValueType::kValueNULL) ? arg2_value->FloatAtIndex(0, nullptr) : default_by);
+		// A length value has been supplied, so we guarantee a vector of that length even if from==to
+		int64_t length = arg3_value->IntAtIndex(0, nullptr);
 		
-		if (by_value == 0.0)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() requires by != 0." << eidos_terminate(nullptr);
-		if (((first_value < second_value) && (by_value < 0)) || ((first_value > second_value) && (by_value > 0)))
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() by has incorrect sign." << eidos_terminate(nullptr);
+		if (length <= 0)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() requires that length, if supplied, must be > 0." << eidos_terminate(nullptr);
+		if (length > 10000000)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() cannot construct a sequence with more than 10000000 entries." << eidos_terminate(nullptr);
 		
-		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(int(1 + ceil((second_value - first_value) / by_value)));	// take a stab at a reserve size; might not be quite right, but no harm
-		result_SP = EidosValue_SP(float_result);
-		
-		if (by_value > 0)
-			for (double seq_value = first_value; seq_value <= second_value; seq_value += by_value)
-				float_result->PushFloat(seq_value);
+		if ((arg0_type == EidosValueType::kValueFloat) || (arg1_type == EidosValueType::kValueFloat))
+		{
+			// a float value was given, so we will generate a float sequence in all cases
+			double first_value = arg0_value->FloatAtIndex(0, nullptr);
+			double second_value = arg1_value->FloatAtIndex(0, nullptr);
+			
+			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve((int)length);
+			result_SP = EidosValue_SP(float_result);
+			
+			for (int64_t seq_index = 0; seq_index < length; ++seq_index)
+			{
+				if (seq_index == 0)
+					float_result->PushFloat(first_value);
+				else if (seq_index == length - 1)
+					float_result->PushFloat(second_value);
+				else
+					float_result->PushFloat(first_value + (second_value - first_value) * (seq_index / (double)(length - 1)));
+			}
+		}
 		else
-			for (double seq_value = first_value; seq_value >= second_value; seq_value += by_value)
-				float_result->PushFloat(seq_value);
+		{
+			// int values were given, so whether we generate a float sequence or an int sequence depends on whether length divides evenly
+			int64_t first_value = arg0_value->IntAtIndex(0, nullptr);
+			int64_t second_value = arg1_value->IntAtIndex(0, nullptr);
+			
+			if (length == 1)
+			{
+				// If a sequence of length 1 is requested, generate a single integer at the start
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(first_value));
+			}
+			else if ((second_value - first_value) % (length - 1) == 0)
+			{
+				// length divides evenly, so generate an integer sequence
+				int64_t by_value = (second_value - first_value) / (length - 1);
+				EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->Reserve((int)length);
+				result_SP = EidosValue_SP(int_result);
+				
+				for (int64_t seq_index = 0; seq_index < length; ++seq_index)
+					int_result->PushInt(first_value + by_value * seq_index);
+			}
+			else
+			{
+				// length does not divide evenly, so generate a float sequence
+				double by_value = (second_value - first_value) / (double)(length - 1);
+				EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve((int)length);
+				result_SP = EidosValue_SP(float_result);
+				
+				for (int64_t seq_index = 0; seq_index < length; ++seq_index)
+				{
+					if (seq_index == 0)
+						float_result->PushFloat(first_value);
+					else if (seq_index == length - 1)
+						float_result->PushFloat(second_value);
+					else
+						float_result->PushFloat(first_value + by_value * seq_index);
+				}
+			}
+		}
 	}
 	else
 	{
-		// int return case
-		int64_t first_value = arg0_value->IntAtIndex(0, nullptr);
-		int64_t second_value = arg1_value->IntAtIndex(0, nullptr);
-		int64_t default_by = ((first_value < second_value) ? 1 : -1);
-		int64_t by_value = ((arg2_type != EidosValueType::kValueNULL) ? arg2_value->IntAtIndex(0, nullptr) : default_by);
-		
-		if (by_value == 0)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() requires by != 0." << eidos_terminate(nullptr);
-		if (((first_value < second_value) && (by_value < 0)) || ((first_value > second_value) && (by_value > 0)))
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() by has incorrect sign." << eidos_terminate(nullptr);
-		
-		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->Reserve((int)(1 + (second_value - first_value) / by_value));		// take a stab at a reserve size; might not be quite right, but no harm
-		result_SP = EidosValue_SP(int_result);
-		
-		if (by_value > 0)
-			for (int64_t seq_value = first_value; seq_value <= second_value; seq_value += by_value)
-				int_result->PushInt(seq_value);
+		// Either a by value has been supplied, or we're using our default step
+		if ((arg0_type == EidosValueType::kValueFloat) || (arg1_type == EidosValueType::kValueFloat) || (arg2_type == EidosValueType::kValueFloat))
+		{
+			// float return case
+			double first_value = arg0_value->FloatAtIndex(0, nullptr);
+			double second_value = arg1_value->FloatAtIndex(0, nullptr);
+			double default_by = ((first_value < second_value) ? 1 : -1);
+			double by_value = ((arg2_type != EidosValueType::kValueNULL) ? arg2_value->FloatAtIndex(0, nullptr) : default_by);
+			
+			if (by_value == 0.0)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() requires by != 0." << eidos_terminate(nullptr);
+			if (((first_value < second_value) && (by_value < 0)) || ((first_value > second_value) && (by_value > 0)))
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() by has incorrect sign." << eidos_terminate(nullptr);
+			
+			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(int(1 + ceil((second_value - first_value) / by_value)));	// take a stab at a reserve size; might not be quite right, but no harm
+			result_SP = EidosValue_SP(float_result);
+			
+			if (by_value > 0)
+				for (double seq_value = first_value; seq_value <= second_value; seq_value += by_value)
+					float_result->PushFloat(seq_value);
+			else
+				for (double seq_value = first_value; seq_value >= second_value; seq_value += by_value)
+					float_result->PushFloat(seq_value);
+		}
 		else
-			for (int64_t seq_value = first_value; seq_value >= second_value; seq_value += by_value)
-				int_result->PushInt(seq_value);
+		{
+			// int return case
+			int64_t first_value = arg0_value->IntAtIndex(0, nullptr);
+			int64_t second_value = arg1_value->IntAtIndex(0, nullptr);
+			int64_t default_by = ((first_value < second_value) ? 1 : -1);
+			int64_t by_value = ((arg2_type != EidosValueType::kValueNULL) ? arg2_value->IntAtIndex(0, nullptr) : default_by);
+			
+			if (by_value == 0)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() requires by != 0." << eidos_terminate(nullptr);
+			if (((first_value < second_value) && (by_value < 0)) || ((first_value > second_value) && (by_value > 0)))
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() by has incorrect sign." << eidos_terminate(nullptr);
+			
+			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->Reserve((int)(1 + (second_value - first_value) / by_value));		// take a stab at a reserve size; might not be quite right, but no harm
+			result_SP = EidosValue_SP(int_result);
+			
+			if (by_value > 0)
+				for (int64_t seq_value = first_value; seq_value <= second_value; seq_value += by_value)
+					int_result->PushInt(seq_value);
+			else
+				for (int64_t seq_value = first_value; seq_value >= second_value; seq_value += by_value)
+					int_result->PushInt(seq_value);
+		}
 	}
 	
 	return result_SP;
