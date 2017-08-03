@@ -238,6 +238,7 @@ static void _RunOperatorExpTests(void);
 static void _RunOperatorLogicalAndTests(void);
 static void _RunOperatorLogicalOrTests(void);
 static void _RunOperatorLogicalNotTests(void);
+static void _RunOperatorTernaryConditionalTests(void);
 static void _RunKeywordIfTests(void);
 static void _RunKeywordDoTests(void);
 static void _RunKeywordWhileTests(void);
@@ -292,6 +293,7 @@ void RunEidosTests(void)
 	_RunOperatorLogicalAndTests();
 	_RunOperatorLogicalOrTests();
 	_RunOperatorLogicalNotTests();
+	_RunOperatorTernaryConditionalTests();
 	_RunKeywordIfTests();
 	_RunKeywordDoTests();
 	_RunKeywordWhileTests();
@@ -2428,6 +2430,31 @@ void _RunOperatorLogicalNotTests(void)
 	EidosAssertScriptSuccess("!c(0,INF,0,1.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, true, false}));
 	EidosAssertScriptSuccess("!c('','foo','','bar');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, true, false}));
 	EidosAssertScriptRaise("!_Test(5);", 0, "is not supported by");
+}
+
+#pragma mark operator ?
+void _RunOperatorTernaryConditionalTests(void)
+{
+	// operator ?-else
+	EidosAssertScriptSuccess("T ? 23 else 42;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(23)));
+	EidosAssertScriptSuccess("F ? 23 else 42;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(42)));
+	EidosAssertScriptSuccess("9 ? 23 else 42;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(23)));
+	EidosAssertScriptSuccess("0 ? 23 else 42;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(42)));
+	EidosAssertScriptSuccess("6 > 5 ? 23 else 42;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(23)));
+	EidosAssertScriptSuccess("6 < 5 ? 23 else 42;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(42)));
+	EidosAssertScriptRaise("6 == 6:9 ? 23 else 42;", 9, "condition for ternary conditional has size()");
+	EidosAssertScriptSuccess("(6 == (6:9))[0] ? 23 else 42;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(23)));
+	EidosAssertScriptSuccess("(6 == (6:9))[1] ? 23 else 42;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(42)));
+	EidosAssertScriptRaise("_Test(6) ? 23 else 42;", 9, "cannot be converted");
+	EidosAssertScriptRaise("NULL ? 23 else 42;", 5, "condition for ternary conditional has size()");
+	EidosAssertScriptRaise("T ? 23; else 42;", 6, "expected 'else'");
+	EidosAssertScriptRaise("T ? 23; x = 10;", 6, "expected 'else'");
+	EidosAssertScriptRaise("(T ? x else y) = 10;", 15, "lvalue required");
+	EidosAssertScriptSuccess("x = T ? 23 else 42; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(23)));
+	EidosAssertScriptSuccess("x = F ? 23 else 42; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(42)));
+	
+	// test right-associativity; this produces 2 if ? else is left-associative since the left half would then evaluate to 1, which is T
+	EidosAssertScriptSuccess("a = 0; a == 0 ? 1 else a == 1 ? 2 else 4;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(1)));
 }
 	
 	// ************************************************************************************

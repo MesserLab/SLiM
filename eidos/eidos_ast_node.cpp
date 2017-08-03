@@ -173,6 +173,7 @@ void EidosASTNode::_OptimizeEvaluators(void) const
 		case EidosTokenType::kTokenAnd:			cached_evaluator_ = &EidosInterpreter::Evaluate_And;				break;
 		case EidosTokenType::kTokenOr:			cached_evaluator_ = &EidosInterpreter::Evaluate_Or;					break;
 		case EidosTokenType::kTokenDiv:			cached_evaluator_ = &EidosInterpreter::Evaluate_Div;				break;
+		case EidosTokenType::kTokenConditional:	cached_evaluator_ = &EidosInterpreter::Evaluate_Conditional;		break;
 		case EidosTokenType::kTokenAssign:		cached_evaluator_ = &EidosInterpreter::Evaluate_Assign;				break;
 		case EidosTokenType::kTokenEq:			cached_evaluator_ = &EidosInterpreter::Evaluate_Eq;					break;
 		case EidosTokenType::kTokenLt:			cached_evaluator_ = &EidosInterpreter::Evaluate_Lt;					break;

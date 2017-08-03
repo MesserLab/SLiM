@@ -1,7 +1,8 @@
-{\rtf1\ansi\ansicpg1252\cocoartf1404\cocoasubrtf460
+{\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf830
 {\fonttbl\f0\fswiss\fcharset0 Optima-Regular;\f1\fnil\fcharset0 Menlo-Italic;\f2\froman\fcharset0 TimesNewRomanPSMT;
 \f3\fnil\fcharset0 Menlo-Regular;}
 {\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
 \margl1440\margr1440\vieww9000\viewh8400\viewkind0
 \deftab720
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
@@ -456,7 +457,127 @@ Variable names are fairly unrestricted.  They may begin with a letter (uppercase
 \f0\fs22  would not be a legal variable name, since it begins with a digit.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\i \cf0 2.3.5  ITEM: 8. Grouping: operator 
+\i \cf0 2.3.5  ITEM: 8. The ternary conditional: operator 
+\f1\fs18 ? else
+\f2\fs22 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
+
+\f0\i0 \cf0 Eidos, like many languages, has an 
+\f3\fs18 if
+\f0\fs22  statement that can be used to specify conditional execution of statements, and an 
+\f3\fs18 if-else
+\f0\fs22  construct can be used to provide an alternative code path.  Sometimes, however, one wishes to have conditional execution of an expression, rather than an entire statement.  The 
+\f3\fs18 if-else
+\f0\fs22  construct is particularly inconvenient with assignments involving complex lvalues, such as:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb180\sa180\partightenfactor0
+
+\f3\fs18 \cf0 if (condition)\
+	x[index].property = a;\
+else\
+	x[index].property = b;\
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
+
+\f0\fs22 \cf0 It is desirable to provide a way for the user to specify that the choice of rvalue, 
+\f3\fs18 a
+\f0\fs22  or 
+\f3\fs18 b
+\f0\fs22 , should depend upon 
+\f3\fs18 condition
+\f0\fs22  without having to duplicate the lvalue and the assignment.  The R language provides this functionality by making 
+\f3\fs18 if-else
+\f0\fs22  statements result in an rvalue, like an expression.  The C language, on the other hand, provides a 
+\i ternary conditional
+\i0  operator, 
+\f3\fs18 ?:
+\f2\fs22 ,
+\f0  that can be used in expressions to much the same effect.  Eidos straddles the gap with a ternary conditional operator, 
+\f3\fs18 ? else
+\f0\fs22 , that uses the 
+\f3\fs18 ?
+\f0\fs22  initiator of C, but the 
+\f3\fs18 else
+\f0\fs22  token as a continuation as in R.  In the syntax of Eidos, the above conditional assignment can be rewritten as:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb180\sa180\partightenfactor0
+
+\f3\fs18 \cf0 x[index].property = condition ? a else b;\
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
+
+\f0\fs22 \cf0 This will evaluate 
+\f3\fs18 condition
+\f0\fs22  and result in 
+\f3\fs18 a
+\f0\fs22  if 
+\f3\fs18 condition
+\f0\fs22  is 
+\f3\fs18 T
+\f0\fs22 , or 
+\f3\fs18 b
+\f0\fs22  if 
+\f3\fs18 condition
+\f0\fs22  is 
+\f3\fs18 F
+\f0\fs22 .  That result is then assigned into the lvalue.  Note that, as in C, the precedence of the ternary conditional operator is very low, but higher than operator 
+\f3\fs18 =
+\f0\fs22 , so that parentheses are often not needed to group statements of this type.  The 
+\f3\fs18 else
+\f0\fs22  clause of the ternary conditional is required; there is no equivalent of an 
+\f3\fs18 if
+\f0\fs22  statement without an 
+\f3\fs18 else
+\f0\fs22 , since an rvalue must be produced.\
+Just as with 
+\f3\fs18 if-else
+\f0\fs22  statements, only the selected subexpression, as determined by the condition, is evaluated; the other subexpression will not be evaluated, so any side effects it might have will not occur.  For example, with the statement:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb180\sa180\partightenfactor0
+
+\f3\fs18 \cf0 x = condition ? f1() else f2();\
+\pard\pardeftab720\ri720\sb40\sa40\partightenfactor0
+
+\f0\fs22 \cf0 here 
+\f3\fs18 f1()
+\f0\fs22  will be called if 
+\f3\fs18 condition
+\f0\fs22  is 
+\f3\fs18 T
+\f0\fs22 , 
+\f3\fs18 f2()
+\f0\fs22  if 
+\f3\fs18 condition
+\f0\fs22  is 
+\f3\fs18 F
+\f0\fs22 ; only the subexpression selected by the condition is evaluated, and so it is never the case that both 
+\f3\fs18 f1()
+\f0\fs22  and 
+\f3\fs18 f2()
+\f0\fs22  are called.\
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
+\cf0 Ternary conditionals may be nested.  Because the operator is right-associative, an expression such as:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb180\sa180\partightenfactor0
+
+\f3\fs18 \cf0 z = (a == b ? a else b ? c else d);
+\f2 \
+\pard\pardeftab720\ri720\sb40\sa40\partightenfactor0
+
+\f0\fs22 \cf0 is grouped as:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb180\sa180\partightenfactor0
+
+\f3\fs18 \cf0 z = (a == b ? a else (b ? c else d));
+\f2 \
+\pard\pardeftab720\ri720\sb40\sa40\partightenfactor0
+
+\f0\fs22 \cf0 rather than\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb180\sa180\partightenfactor0
+
+\f3\fs18 \cf0 z = ((a == b ? a else b) ? c else d);
+\f2 \
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
+
+\f0\fs22 \cf0 This is generally desirable, since it provides a flow similar to chaining of 
+\f3\fs18 if-else if-else
+\f0\fs22  statements.  In any case, parentheses may be used to change the order to evaluation as usual.\
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
+
+\i \cf0 2.3.6  ITEM: 9. Grouping: operator 
 \f1\fs18 ()
 \f2\fs22 \
 \pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
@@ -582,7 +703,7 @@ Note that this use of parentheses is distinct from the
 \f0\fs22  operator as used in making function calls.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\i \cf0 2.7.1  ITEM: 9. Function calls: operator 
+\i \cf0 2.7.1  ITEM: 10. Function calls: operator 
 \f1\fs18 ()
 \f2\fs22 \
 \pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
@@ -613,7 +734,7 @@ Many functions provide a return value.  In other words, a function call like
 \f0\fs22  evaluates to a particular value.  The result from a function call can be used in an expression or assigned to a variable, as you might expect.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\i \cf0 2.8.3  ITEM: 10. Properties: operator 
+\i \cf0 2.8.3  ITEM: 11. Properties: operator 
 \f1\fs18 .
 \f2\fs22 \
 \pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
@@ -640,7 +761,7 @@ You can also use the member-access operator to write new values to properties th
 \f0\fs22  operator.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\i \cf0 2.8.6  ITEM: 11. Method calls: operator 
+\i \cf0 2.8.6  ITEM: 12. Method calls: operator 
 \f1\fs18 ()
 \f0\fs22  and operator 
 \f1\fs18 .

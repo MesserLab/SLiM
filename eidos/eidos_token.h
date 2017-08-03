@@ -51,11 +51,11 @@ enum class EidosTokenType {
 	kTokenMod,			// %		modulo operator
 	kTokenMult,			// *		multiplication operator
 	kTokenExp,			// ^		exponentiation operator
-	
 	kTokenAnd,			// &		boolean AND
 	kTokenOr,			// |		boolean OR
-	
 	kTokenDiv,			// /		division operator
+	kTokenConditional,	// ?		ternary conditional, with 'else'
+	
 	kTokenComment,		// //		comment
 	kTokenAssign,		// =		assignment
 	kTokenEq,			// ==		equality test
@@ -84,7 +84,7 @@ enum class EidosTokenType {
 	
 	kFirstIdentifierLikeToken,
 	kTokenIf,			// if		conditional
-	kTokenElse,			// else		conditional
+	kTokenElse,			// else		conditional (and ternary conditional)
 	kTokenDo,			// do		loop while condition true
 	kTokenWhile,		// while	loop while condition true
 	kTokenFor,			// for		loop over set

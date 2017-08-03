@@ -89,6 +89,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluateNode(const EidosASTNode *p_
 			case EidosTokenType::kTokenAnd:			return TypeEvaluate_And(p_node);
 			case EidosTokenType::kTokenOr:			return TypeEvaluate_Or(p_node);
 			case EidosTokenType::kTokenDiv:			return TypeEvaluate_Div(p_node);
+			case EidosTokenType::kTokenConditional:	return TypeEvaluate_Conditional(p_node);
 			case EidosTokenType::kTokenAssign:		return TypeEvaluate_Assign(p_node);
 			case EidosTokenType::kTokenEq:			return TypeEvaluate_Eq(p_node);
 			case EidosTokenType::kTokenLt:			return TypeEvaluate_Lt(p_node);
@@ -625,6 +626,54 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Div(const EidosASTNode *p_
 		
 		if ((integer1 || float1) && (integer2 || float2))
 			result_type.type_mask = kEidosValueMaskFloat;
+	}
+	
+	return result_type;
+}
+
+EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Conditional(const EidosASTNode *p_node)
+{
+	auto children_size = p_node->children_.size();
+	
+	// In general, the type of a ternary conditional can't be predicted, because the true and
+	// false clauses do not have to result in the same type in Eidos, so this is the default
+	EidosTypeSpecifier result_type = EidosTypeSpecifier{kEidosValueMaskNone, nullptr};
+	
+	if (children_size == 3)
+	{
+		EidosASTNode *true_node = p_node->children_[1];
+		EidosASTNode *false_node = p_node->children_[2];
+		EidosTypeSpecifier true_type = TypeEvaluateNode(true_node);
+		EidosTypeSpecifier false_type = TypeEvaluateNode(false_node);
+		
+		// Try to merge the types of the true and false clauses if possible
+		if ((true_type.type_mask == false_type.type_mask) && (true_type.object_class == false_type.object_class))
+		{
+			// Their types are identical, so that's easy
+			return true_type;
+		}
+		else if (((true_type.type_mask & kEidosValueMaskObject) == kEidosValueMaskObject) && ((false_type.type_mask & kEidosValueMaskObject) == kEidosValueMaskObject))
+		{
+			// Both types include object, so we can merge them if their object classes match
+			result_type.type_mask = (true_type.type_mask | false_type.type_mask);
+			
+			if (true_type.object_class == false_type.object_class)
+				result_type.object_class = true_type.object_class;
+			else
+				result_type.object_class = nullptr;		// object is included in our type, but we don't know the class
+		}
+		else if (((true_type.type_mask & kEidosValueMaskObject) == kEidosValueMaskNone) && ((false_type.type_mask & kEidosValueMaskObject) == kEidosValueMaskNone))
+		{
+			// Neither type includes object, so we can just merge them
+			result_type.type_mask = (true_type.type_mask | false_type.type_mask);
+		}
+		else
+		{
+			// We have a mix of object and non-object, so we exclude the object type as part of our result;
+			// we don't want to guarantee that object is included if it is only present sometimes
+			result_type.type_mask = (true_type.type_mask | false_type.type_mask);
+			result_type.type_mask &= (~kEidosValueMaskObject);
+		}
 	}
 	
 	return result_type;

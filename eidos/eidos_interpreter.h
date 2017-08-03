@@ -131,6 +131,7 @@ public:
 	EidosValue_SP Evaluate_Mod(const EidosASTNode *p_node);
 	EidosValue_SP Evaluate_Mult(const EidosASTNode *p_node);
 	EidosValue_SP Evaluate_Div(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_Conditional(const EidosASTNode *p_node);
 	EidosValue_SP Evaluate_Exp(const EidosASTNode *p_node);
 	EidosValue_SP Evaluate_And(const EidosASTNode *p_node);
 	EidosValue_SP Evaluate_Or(const EidosASTNode *p_node);

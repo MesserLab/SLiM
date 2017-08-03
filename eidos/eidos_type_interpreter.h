@@ -84,6 +84,7 @@ public:
 	EidosTypeSpecifier TypeEvaluate_Mod(const EidosASTNode *p_node);
 	EidosTypeSpecifier TypeEvaluate_Mult(const EidosASTNode *p_node);
 	EidosTypeSpecifier TypeEvaluate_Div(const EidosASTNode *p_node);
+	EidosTypeSpecifier TypeEvaluate_Conditional(const EidosASTNode *p_node);
 	EidosTypeSpecifier TypeEvaluate_Exp(const EidosASTNode *p_node);
 	EidosTypeSpecifier TypeEvaluate_And(const EidosASTNode *p_node);
 	EidosTypeSpecifier TypeEvaluate_Or(const EidosASTNode *p_node);

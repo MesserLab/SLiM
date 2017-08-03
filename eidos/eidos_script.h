@@ -144,6 +144,7 @@ public:
 	EidosASTNode *Parse_JumpStatement(void);
 	EidosASTNode *Parse_Expr(void);
 	EidosASTNode *Parse_AssignmentExpr(void);
+	EidosASTNode *Parse_ConditionalExpr(void);
 	EidosASTNode *Parse_LogicalOrExpr(void);
 	EidosASTNode *Parse_LogicalAndExpr(void);
 	EidosASTNode *Parse_EqualityExpr(void);

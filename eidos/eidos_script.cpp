@@ -151,6 +151,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 			case '%': token_type = EidosTokenType::kTokenMod; break;
 			case '&': token_type = EidosTokenType::kTokenAnd; break;
 			case '|': token_type = EidosTokenType::kTokenOr; break;
+			case '?': token_type = EidosTokenType::kTokenConditional; break;
 			
 			// cases that require lookahead due to ambiguity: =, <, >, !, /
 			case '=':
@@ -1025,7 +1026,7 @@ EidosASTNode *EidosScript::Parse_JumpStatement(void)
 
 EidosASTNode *EidosScript::Parse_Expr(void)
 {
-	return Parse_LogicalOrExpr();
+	return Parse_ConditionalExpr();
 }
 
 EidosASTNode *EidosScript::Parse_AssignmentExpr(void)
@@ -1034,7 +1035,7 @@ EidosASTNode *EidosScript::Parse_AssignmentExpr(void)
 	
 	try
 	{
-		left_expr = Parse_LogicalOrExpr();
+		left_expr = Parse_ConditionalExpr();
 		
 		if (current_token_type_ == EidosTokenType::kTokenAssign)
 		{
@@ -1042,7 +1043,48 @@ EidosASTNode *EidosScript::Parse_AssignmentExpr(void)
 			left_expr = nullptr;
 			Consume();
 			
-			node->AddChild(Parse_LogicalOrExpr());
+			node->AddChild(Parse_ConditionalExpr());
+		}
+	}
+	catch (...)
+	{
+		if (left_expr)
+		{
+			left_expr->~EidosASTNode();
+			gEidosASTNodePool->DisposeChunk(const_cast<EidosASTNode*>(left_expr));
+		}
+		
+		if (node)
+		{
+			node->~EidosASTNode();
+			gEidosASTNodePool->DisposeChunk(const_cast<EidosASTNode*>(node));
+		}
+		
+		throw;
+	}
+	
+	return (node ? node : left_expr);
+}
+
+EidosASTNode *EidosScript::Parse_ConditionalExpr(void)
+{
+	EidosASTNode *left_expr = nullptr, *node = nullptr;
+	
+	try
+	{
+		left_expr = Parse_LogicalOrExpr();
+		
+		if (current_token_type_ == EidosTokenType::kTokenConditional)
+		{
+			node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_, left_expr);
+			left_expr = nullptr;
+			Consume();
+			
+			node->AddChild(Parse_ConditionalExpr());
+			
+			Match(EidosTokenType::kTokenElse, "ternary conditional expression");
+			
+			node->AddChild(Parse_ConditionalExpr());
 		}
 	}
 	catch (...)
@@ -1599,12 +1641,12 @@ EidosASTNode *EidosScript::Parse_ArgumentExpr(void)
 				identifier = nullptr;
 				Consume();
 				
-				node->AddChild(Parse_LogicalOrExpr());
+				node->AddChild(Parse_ConditionalExpr());
 			}
 		}
 		else
 		{
-			return Parse_LogicalOrExpr();
+			return Parse_ConditionalExpr();
 		}
 	}
 	catch (...)

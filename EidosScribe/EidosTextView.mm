@@ -1866,6 +1866,7 @@ using std::string;
 		case EidosTokenType::kTokenAnd:
 		case EidosTokenType::kTokenOr:
 		case EidosTokenType::kTokenDiv:
+		case EidosTokenType::kTokenConditional:
 		case EidosTokenType::kTokenAssign:
 		case EidosTokenType::kTokenEq:
 		case EidosTokenType::kTokenLt:

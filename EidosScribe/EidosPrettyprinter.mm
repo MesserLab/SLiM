@@ -37,6 +37,10 @@
 	{
 		EidosTokenType stackTokenType = indentStack[stackIndex]->token_type_;
 		
+		// skip over ternary conditionals; they do not generate indent, but are on the stack so we can match elses
+		if (stackTokenType == EidosTokenType::kTokenConditional)
+			continue;
+		
 		if (previousIndentStackItemWasControlFlow && (stackTokenType == EidosTokenType::kTokenLBrace))
 			;
 		else
@@ -45,7 +49,7 @@
 		previousIndentStackItemWasControlFlow = !(stackTokenType == EidosTokenType::kTokenLBrace);
 	}
 	
-	BOOL lastIndentIsControlFlow = (indentStack.size() && (indentStack.back()->token_type_ != EidosTokenType::kTokenLBrace));
+	BOOL lastIndentIsControlFlow = previousIndentStackItemWasControlFlow;
 	
 	// Indent when continuing a statement, but not after a control-flow token.  The idea here is that
 	// if you have a structure like:
@@ -99,8 +103,25 @@
 	for (int tokenIndex = 0; tokenIndex < tokenCount; ++tokenIndex)
 	{
 		const EidosToken &token = tokens[tokenIndex];
-		EidosTokenType nextTokenPeek = (tokenIndex + 1 < tokenCount ? tokens[tokenIndex+1].token_type_ : EidosTokenType::kTokenEOF);
 		NSString *tokenString = [NSString stringWithUTF8String:token.token_string_.c_str()];
+		EidosTokenType nextTokenPeek = (tokenIndex + 1 < tokenCount ? tokens[tokenIndex+1].token_type_ : EidosTokenType::kTokenEOF);
+		
+		// Find the next non-whitespace, non-comment token for lookahead
+		int nextSignificantTokenPeekIndex = tokenIndex + 1;
+		EidosTokenType nextSignificantTokenPeek = EidosTokenType::kTokenEOF;
+		
+		while (nextSignificantTokenPeekIndex < tokenCount)
+		{
+			EidosTokenType peek = tokens[nextSignificantTokenPeekIndex].token_type_;
+			
+			if ((peek != EidosTokenType::kTokenWhitespace) && (peek != EidosTokenType::kTokenComment))
+			{
+				nextSignificantTokenPeek = peek;
+				break;
+			}
+			
+			nextSignificantTokenPeekIndex++;
+		}
 		
 		switch (token.token_type_)
 		{
@@ -158,12 +179,18 @@
 			case EidosTokenType::kTokenSemicolon:
 			{
 				// Pop indent-generating tokens that have expired with the end of this statement; a semicolon terminates
-				// a whole nested series of if else do while for, but does not terminate an enclosing { block.
+				// a whole nested series of if else do while for, but does not terminate an enclosing { block.  Also,
+				// if there are nested if statements, a semicolon terminates only the first one if the next token is an else.
 				while (indentStack.size() > 0) {
 					const EidosToken *topIndentToken = indentStack.back();
 					
 					if (topIndentToken->token_type_ == EidosTokenType::kTokenLBrace)
 						break;
+					if ((topIndentToken->token_type_ == EidosTokenType::kTokenIf) && (nextSignificantTokenPeek == EidosTokenType::kTokenElse))
+					{
+						indentStack.pop_back();
+						break;
+					}
 					
 					indentStack.pop_back();
 				}
@@ -176,7 +203,6 @@
 			case EidosTokenType::kTokenLBrace:
 			{
 				indentStack.push_back(&token);
-				
 				[pretty appendString:tokenString];
 				break;
 			}
@@ -208,13 +234,35 @@
 				// Control-flow keywords influence our indent level; this might look like the normal statement inner indent,
 				// but it is not, as can be seen when these control-flow keywords are nested like 'if (x) if (y) <statement>'.
 			case EidosTokenType::kTokenIf:
-			case EidosTokenType::kTokenElse:
 			case EidosTokenType::kTokenDo:
 			case EidosTokenType::kTokenWhile:
 			case EidosTokenType::kTokenFor:
+			case EidosTokenType::kTokenConditional:		// note this does not generate indent, but is put on the stack
 			{
 				indentStack.push_back(&token);
+				[pretty appendString:tokenString];
+				break;
+			}
 				
+				// else can be paired with if or ?.  In the former case, the if will be off the stack by the time the else
+				// is encountered, and we put the else on to give us an equivalent indent.  In the latter case, we consider
+				// the expressions within the ternary conditional to be statement-level; we don't indent, and we don't push
+				// an else on the stack here, but we remove the conditional that we are completing.
+			case EidosTokenType::kTokenElse:
+			{
+				if (indentStack.size())
+				{
+					EidosTokenType top_token_type = indentStack.back()->token_type_;
+					
+					if (top_token_type == EidosTokenType::kTokenConditional)
+					{
+						indentStack.pop_back();
+						[pretty appendString:tokenString];
+						break;
+					}
+				}
+				
+				indentStack.push_back(&token);
 				[pretty appendString:tokenString];
 				break;
 			}

@@ -631,6 +631,7 @@ EidosValue_SP EidosInterpreter::EvaluateNode(const EidosASTNode *p_node)
 		case EidosTokenType::kTokenAnd:			return Evaluate_And(p_node);
 		case EidosTokenType::kTokenOr:			return Evaluate_Or(p_node);
 		case EidosTokenType::kTokenDiv:			return Evaluate_Div(p_node);
+		case EidosTokenType::kTokenConditional:	return Evaluate_Conditional(p_node);
 		case EidosTokenType::kTokenAssign:		return Evaluate_Assign(p_node);
 		case EidosTokenType::kTokenEq:			return Evaluate_Eq(p_node);
 		case EidosTokenType::kTokenLt:			return Evaluate_Lt(p_node);
@@ -2566,6 +2567,46 @@ EidosValue_SP EidosInterpreter::Evaluate_Div(const EidosASTNode *p_node)
 	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Div()");
+	return result_SP;
+}
+
+EidosValue_SP EidosInterpreter::Evaluate_Conditional(const EidosASTNode *p_node)
+{
+	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Conditional()");
+	EIDOS_ASSERT_CHILD_RANGE("EidosInterpreter::Evaluate_Conditional", 3, 3);
+	
+	EidosToken *operator_token = p_node->token_;
+	
+	EidosValue_SP result_SP;
+	
+	EidosASTNode *condition_node = p_node->children_[0];
+	EidosValue_SP condition_result = FastEvaluateNode(condition_node);
+	
+	if (condition_result == gStaticEidosValue_LogicalT)
+	{
+		// Handle a static singleton logical true super fast; no need for type check, count, etc
+		result_SP = FastEvaluateNode(p_node->children_[1]);
+	}
+	else if (condition_result == gStaticEidosValue_LogicalF)
+	{
+		// Handle a static singleton logical false super fast; no need for type check, count, etc
+		result_SP = FastEvaluateNode(p_node->children_[2]);
+	}
+	else if (condition_result->Count() == 1)
+	{
+		eidos_logical_t condition_logical = condition_result->LogicalAtIndex(0, operator_token);
+		
+		if (condition_logical)
+			result_SP = FastEvaluateNode(p_node->children_[1]);
+		else
+			result_SP = FastEvaluateNode(p_node->children_[2]);
+	}
+	else
+	{
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Conditional): condition for ternary conditional has size() != 1." << eidos_terminate(p_node->token_);
+	}
+	
+	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Conditional()");
 	return result_SP;
 }
 
