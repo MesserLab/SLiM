@@ -690,10 +690,10 @@
 \f1\fs18 x^0.5
 \f0\fs20  for large vectors.
 \f2 \
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (numeric$)sum(lif\'a0x)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns the 
 \b sum
@@ -748,7 +748,45 @@
 \f1\fs18 integer
 \f0\fs20  type without overflow issues (including during intermediate stages of the computation), otherwise it will be 
 \f1\fs18 float
-\f2\fs20 .\
+\f2\fs20 .
+\f0   Note that floating-point roundoff issues can cause this function to return inexact results when 
+\f1\fs18 x
+\f0\fs20  is 
+\f1\fs18 float
+\f0\fs20  type; this is rarely an issue, but see the 
+\f1\fs18 sumExact()
+\f0\fs20  function for an alternative.
+\f2 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (float$)sumExact(f\'a0x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns the 
+\b exact sum
+\b0  of 
+\f1\fs18 x
+\f0\fs20 : the exact result of adding all of the elements of 
+\f1\fs18 x
+\f0\fs20  together.  Unlike the 
+\f1\fs18 sum()
+\f0\fs20  function, 
+\f1\fs18 sumExact()
+\f0\fs20  accepts only type 
+\f1\fs18 float
+\f0\fs20 , since the 
+\f1\fs18 sum()
+\f0\fs20  function is already exact for other types.  When summing floating-point values \'96 particularly values that vary across many orders of magnitude \'96 the precision limits of floating-point numbers can lead to roundoff errors that cause the 
+\f1\fs18 sum()
+\f0\fs20  function to return an inexact result.  This function does additional work to ensure that the final result is exact within the possible limits of the 
+\f1\fs18 float
+\f0\fs20  type; some roundoff may still inevitably occur, in other words, but a more exact result could not be represented with a value of type 
+\f1\fs18 float
+\f2\fs20 .
+\f0   The disadvantage of using this function instead of 
+\f1\fs18 sum()
+\f0\fs20  is that it is much slower \'96 about 35 times slower, according to one test on Mac OS X 10.2.5, but that will vary across operating systems and hardware.  This function is rarely truly needed, but apart from the performance consequences there is no disadvantage to using it.
+\f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (float)tan(numeric

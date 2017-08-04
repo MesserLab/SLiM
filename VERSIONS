@@ -17,6 +17,7 @@ development head:
 	enhance seq() to support an optional length parameter
 	enhance any() and all() to allow any number of arguments of any length
 	add a ternary conditional operator, ? else, to the Eidos language
+	add a sumExact() function for exact summation of floating point numbers
 
 
 2.4.1 (build 1166; Eidos version 1.4.1):

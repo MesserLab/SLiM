@@ -1138,6 +1138,245 @@ double Eidos_TTest_OneSample(const double *set1, int count1, double mu, double *
 	return 2 * gsl_cdf_tdist_Q(t, nu);
 }
 
+// This function uses an algorithm by Shewchuk (http://www.cs.berkeley.edu/~jrs/papers/robustr.pdf) to provide
+// an exact sum (within the precision limits of the double type) for a vector of double values.  This code is
+// adapted from source code in Python for its fsum() function, as implemented in the file mathmodule.c in the
+// math_fsum() C function, from Python versino 3.6.2, downloaded from https://www.python.org/getit/source/.
+// The authors of that code appear to be Raymond Hettinger and Mark Dickinson; a big thank-you to them.
+// The PSF open-source license for Python 3.6.2, which the PSF states is GSL-compatible, may be found on their
+// website at https://docs.python.org/3.6/license.html.  Their license follows:
+
+/*
+
+1. This LICENSE AGREEMENT is between the Python Software Foundation ("PSF"), and
+the Individual or Organization ("Licensee") accessing and otherwise using Python
+3.6.2 software in source or binary form and its associated documentation.
+
+2. Subject to the terms and conditions of this License Agreement, PSF hereby
+grants Licensee a nonexclusive, royalty-free, world-wide license to reproduce,
+analyze, test, perform and/or display publicly, prepare derivative works,
+distribute, and otherwise use Python 3.6.2 alone or in any derivative
+version, provided, however, that PSF's License Agreement and PSF's notice of
+copyright, i.e., "Copyright © 2001-2017 Python Software Foundation; All Rights
+Reserved" are retained in Python 3.6.2 alone or in any derivative version
+prepared by Licensee.
+
+3. In the event Licensee prepares a derivative work that is based on or
+incorporates Python 3.6.2 or any part thereof, and wants to make the
+derivative work available to others as provided herein, then Licensee hereby
+agrees to include in any such work a brief summary of the changes made to Python
+3.6.2.
+
+4. PSF is making Python 3.6.2 available to Licensee on an "AS IS" basis.
+PSF MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED.  BY WAY OF
+EXAMPLE, BUT NOT LIMITATION, PSF MAKES NO AND DISCLAIMS ANY REPRESENTATION OR
+WARRANTY OF MERCHANTABILITY OR FITNESS FOR ANY PARTICULAR PURPOSE OR THAT THE
+USE OF PYTHON 3.6.2 WILL NOT INFRINGE ANY THIRD PARTY RIGHTS.
+
+5. PSF SHALL NOT BE LIABLE TO LICENSEE OR ANY OTHER USERS OF PYTHON 3.6.2
+FOR ANY INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES OR LOSS AS A RESULT OF
+MODIFYING, DISTRIBUTING, OR OTHERWISE USING PYTHON 3.6.2, OR ANY DERIVATIVE
+THEREOF, EVEN IF ADVISED OF THE POSSIBILITY THEREOF.
+
+6. This License Agreement will automatically terminate upon a material breach of
+its terms and conditions.
+
+7. Nothing in this License Agreement shall be deemed to create any relationship
+of agency, partnership, or joint venture between PSF and Licensee.  This License
+Agreement does not grant permission to use PSF trademarks or trade name in a
+trademark sense to endorse or promote products or services of Licensee, or any
+third party.
+
+8. By copying, installing or otherwise using Python 3.6.2, Licensee agrees
+to be bound by the terms and conditions of this License Agreement.
+
+*/
+
+// As to the "brief summary of the changes made" requested by their license, I have de-Pythoned their
+// code to make it work directly with a vector of doubles and return a double value; and I have changed
+// the way that the partials array is kept, now using a permanently allocated buffer grown with realloc();
+// and I have renamed the function; and I have removed some asserts and error checks; otherwise I have
+// tried to preserve their algorithm. The comments below are from the Python source.  BCH 3 August 2017.
+
+/* Precision summation function as msum() by Raymond Hettinger in
+ <http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/393090>,
+ enhanced with the exact partials sum and roundoff from Mark
+ Dickinson's post at <http://bugs.python.org/file10357/msum4.py>.
+ See those links for more details, proofs and other references.
+ 
+ Note 1: IEEE 754R floating point semantics are assumed,
+ but the current implementation does not re-establish special
+ value semantics across iterations (i.e. handling -Inf + Inf).
+ 
+ Note 2:  No provision is made for intermediate overflow handling;
+ therefore, sum([1e+308, 1e-308, 1e+308]) returns 1e+308 while
+ sum([1e+308, 1e+308, 1e-308]) raises an OverflowError due to the
+ overflow of the first partial sum.
+ 
+ Note 3: The intermediate values lo, yr, and hi are declared volatile so
+ aggressive compilers won't algebraically reduce lo to always be exactly 0.0.
+ Also, the volatile declaration forces the values to be stored in memory as
+ regular doubles instead of extended long precision (80-bit) values.  This
+ prevents double rounding because any addition or subtraction of two doubles
+ can be resolved exactly into double-sized hi and lo values.  As long as the
+ hi value gets forced into a double before yr and lo are computed, the extra
+ bits in downstream extended precision operations (x87 for example) will be
+ exactly zero and therefore can be losslessly stored back into a double,
+ thereby preventing double rounding.
+ 
+ Note 4: A similar implementation is in Modules/cmathmodule.c.
+ Be sure to update both when making changes.
+ 
+ Note 5: The signature of math.fsum() differs from builtins.sum()
+ because the start argument doesn't make sense in the context of
+ accurate summation.  Since the partials table is collapsed before
+ returning a result, sum(seq2, start=sum(seq1)) may not equal the
+ accurate result returned by sum(itertools.chain(seq1, seq2)).
+ */
+
+/* Full precision summation of a sequence of floats.
+ 
+	def msum(iterable):
+		partials = []  # sorted, non-overlapping partial sums
+		for x in iterable:
+			i = 0
+			for y in partials:
+				if abs(x) < abs(y):
+					x, y = y, x
+				hi = x + y
+				lo = y - (hi - x)
+				if lo:
+					partials[i] = lo
+					i += 1
+				x = hi
+			partials[i:] = [x]
+		return sum_exact(partials)
+ 
+ Rounded x+y stored in hi with the roundoff stored in lo.  Together hi+lo
+ are exactly equal to x+y.  The inner loop applies hi/lo summation to each
+ partial so that the list of partial sums remains exact.
+ 
+ Sum_exact() adds the partial sums exactly and correctly rounds the final
+ result (using the round-half-to-even rule).  The items in partials remain
+ non-zero, non-special, non-overlapping and strictly increasing in
+ magnitude, but possibly not all having the same sign.
+ 
+ Depends on IEEE 754 arithmetic guarantees and half-even rounding.
+ */
+
+double Eidos_ExactSum(const double *double_vec, int64_t vec_length)
+{
+	// We allocate the partials using malloc() rather than initially using the stack,
+	// and keep the allocated block around forever; simpler if a bit less efficient.
+	static double *p = nullptr;		// partials array
+	static int m = 0;				// size of partials array
+	
+	if (m == 0)
+	{
+		m = 32;			// this is NUM_PARTIALS in the Python code
+		p = (double *)malloc(m * sizeof(double));
+	}
+	
+	int i, j, n = 0;
+	double x, y;
+	double xsave, special_sum = 0.0, inf_sum = 0.0;
+	volatile double hi, yr, lo = 0.0;		// see comment above re: volatile; added initializer to get rid of a false warning
+	
+	for (int64_t vec_index = 0; vec_index < vec_length; ++vec_index)
+	{
+		//assert(0 <= n && n <= m);
+		
+		x = double_vec[vec_index];
+		
+		xsave = x;
+		for (i = j = 0; j < n; j++) {       /* for y in partials */
+			y = p[j];
+			if (fabs(x) < fabs(y))
+				std::swap(x, y);
+			hi = x + y;
+			yr = hi - x;
+			lo = y - yr;
+			if (lo != 0.0)
+				p[i++] = lo;
+			x = hi;
+		}
+		
+		n = i;                              /* ps[i:] = [x] */
+		if (x != 0.0) {
+			if (!std::isfinite(x)) {
+				/* a nonfinite x could arise either as
+				 a result of intermediate overflow, or
+				 as a result of a nan or inf in the
+				 summands */
+				if (std::isfinite(xsave))
+				{
+					// Python returns some sort of error object in this case; we throw
+					EIDOS_TERMINATION << "ERROR (Eidos_ExactSum): intermediate overflow in Eidos_ExactSum()." << eidos_terminate(nullptr);
+				}
+				
+				if (std::isinf(xsave))
+					inf_sum += xsave;
+				special_sum += xsave;
+				/* reset partials */
+				n = 0;
+			}
+			else
+			{
+				if (n >= m)
+				{
+					m = m * 2;
+					p = (double *)realloc(p, m * sizeof(double));
+				}
+				
+				p[n++] = x;
+			}
+		}
+	}
+	
+	if (special_sum != 0.0) {
+		if (std::isnan(inf_sum))
+		{
+			// Python returns some sort of error object in this case; we throw
+			EIDOS_TERMINATION << "ERROR (Eidos_ExactSum): -inf + inf in Eidos_ExactSum()." << eidos_terminate(nullptr);
+		}
+		else
+		{
+			return special_sum;
+		}
+	}
+	
+	hi = 0.0;
+	if (n > 0) {
+		hi = p[--n];
+		/* sum_exact(ps, hi) from the top, stop when the sum becomes
+		 inexact. */
+		while (n > 0) {
+			x = hi;
+			y = p[--n];
+			//assert(fabs(y) < fabs(x));
+			hi = x + y;
+			yr = hi - x;
+			lo = y - yr;
+			if (lo != 0.0)
+				break;
+		}
+		/* Make half-even rounding work across multiple partials.
+		 Needed so that sum([1e-16, 1, 1e16]) will round-up the last
+		 digit to two instead of down to zero (the 1e-16 makes the 1
+		 slightly closer to two).  With a potential 1 ULP rounding
+		 error fixed-up, math.fsum() can guarantee commutativity. */
+		if (n > 0 && ((lo < 0.0 && p[n-1] < 0.0) ||
+					  (lo > 0.0 && p[n-1] > 0.0))) {
+			y = lo * 2.0;
+			x = hi + y;
+			yr = x - hi;
+			if (y == yr)
+				hi = x;
+		}
+	}
+	return hi;
+}
+
 // run a Un*x command; thanks to http://stackoverflow.com/questions/478898/how-to-execute-a-command-and-get-output-of-command-within-c-using-posix
 std::string EidosExec(const char* cmd)
 {

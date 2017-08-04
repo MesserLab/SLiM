@@ -898,6 +898,36 @@ void RunEidosTests(void)
 	 */
 #endif
 	
+#if 0
+	{
+		// Test Eidos_ExactSum() for correctness.  Seems to work; what do I know.  There is more rigorous test
+		// code at http://code.activestate.com/recipes/393090/ but it assumes the existence of a correct
+		// function to compare against, which we don't have.
+		double *values = (double *)malloc(10000 * sizeof(double) * 4);
+		double *vptr = values;
+		
+		for (int64_t rep = 0; rep < 10000; rep++)
+		{
+			*(vptr++) = 1.0;
+			*(vptr++) = 1.0e100;
+			*(vptr++) = 1.0;
+			*(vptr++) = -1.0e100;
+		}
+		
+		double exact_sum = Eidos_ExactSum(values, 10000 * 4);
+		double inexact_sum = 0.0;
+		
+		vptr = values;
+		for (int64_t index = 0; index < 10000 * 4; ++index)
+			inexact_sum += *(vptr++);
+		
+		std::cout << "Inexact sum: " << inexact_sum << std::endl;
+		std::cout << "Exact sum: " << exact_sum << std::endl;
+		
+		free(values);
+	}
+#endif
+	
 	// If we ran tests, the random number seed has been set; let's set it back to a good seed value
 	EidosInitializeRNGFromSeed(EidosGenerateSeedFromPIDAndTime());
 }
@@ -3525,6 +3555,20 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptSuccess("sum(integer(0));", gStaticEidosValue_Integer0);
 	EidosAssertScriptSuccess("sum(float(0));", gStaticEidosValue_Float0);
 	EidosAssertScriptRaise("sum(string(0));", 0, "cannot be type");
+	
+	// sumExact()
+	EidosAssertScriptSuccess("sumExact(5.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(5.5)));
+	EidosAssertScriptSuccess("sumExact(-5.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-5.5)));
+	EidosAssertScriptSuccess("sumExact(c(-2.5, 7.5, -18.5, 12.5));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-1)));
+	EidosAssertScriptRaise("sumExact(T);", 0, "cannot be type");
+	EidosAssertScriptRaise("sumExact(1);", 0, "cannot be type");
+	EidosAssertScriptRaise("sumExact('foo');", 0, "cannot be type");
+	EidosAssertScriptRaise("sumExact(_Test(7));", 0, "cannot be type");
+	EidosAssertScriptRaise("sumExact(NULL);", 0, "cannot be type");
+	EidosAssertScriptSuccess("sumExact(float(0));", gStaticEidosValue_Float0);
+	EidosAssertScriptSuccess("v = c(1, 1.0e100, 1, -1.0e100); v = rep(v, 10000); sumExact(v);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(20000)));
+	EidosAssertScriptSuccess("v = c(-1, 1.0e100, -1, -1.0e100); v = rep(v, 10000); sumExact(v);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-20000)));
+	EidosAssertScriptSuccess("v = c(-1, 1.0e100, 1, -1.0e100); v = rep(v, 10000); sumExact(v);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(0)));
 	
 	// tan()
 	EidosAssertScriptSuccess("abs(tan(0) - 0) < 0.000001;", gStaticEidosValue_LogicalT);

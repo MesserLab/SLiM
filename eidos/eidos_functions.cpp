@@ -131,6 +131,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("sin",				Eidos_ExecuteFunction_sin,			kEidosValueMaskFloat))->AddNumeric("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("sqrt",				Eidos_ExecuteFunction_sqrt,			kEidosValueMaskFloat))->AddNumeric("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("sum",				Eidos_ExecuteFunction_sum,			kEidosValueMaskNumeric | kEidosValueMaskSingleton))->AddLogicalEquiv("x"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("sumExact",			Eidos_ExecuteFunction_sumExact,		kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddFloat("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("tan",				Eidos_ExecuteFunction_tan,			kEidosValueMaskFloat))->AddNumeric("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("trunc",			Eidos_ExecuteFunction_trunc,			kEidosValueMaskFloat))->AddFloat("x"));
 		
@@ -3054,6 +3055,31 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const EidosValue_SP *const p_arguments, 
 			sum += logical_vec[value_index];
 		
 		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(sum));
+	}
+	
+	return result_SP;
+}
+
+//	(float$)sumExact(f x)
+EidosValue_SP Eidos_ExecuteFunction_sumExact(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *arg0_value = p_arguments[0].get();
+	int arg0_count = arg0_value->Count();
+	
+	if (arg0_count == 1)
+	{
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(arg0_value->FloatAtIndex(0, nullptr)));
+	}
+	else
+	{
+		// We have arg0_count != 1, so the type of arg0_value must be EidosValue_Float_vector; we can use the fast API
+		const std::vector<double> &float_vec = *arg0_value->FloatVector();
+		const double *float_ptr = float_vec.data();
+		double sum = Eidos_ExactSum(float_ptr, arg0_count);
+		
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(sum));
 	}
 	
 	return result_SP;

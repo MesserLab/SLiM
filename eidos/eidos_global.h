@@ -46,6 +46,8 @@ void Eidos_DefineConstantsFromCommandLine(std::vector<std::string> p_constants);
 //
 //	Context customization
 //
+#pragma mark -
+#pragma mark Context customization
 
 // Information on the Context within which Eidos is running (if any).  This is basically a way to let the Context
 // customize the version and license and citation information printed by Eidos.
@@ -59,6 +61,8 @@ extern std::string gEidosContextCitation;
 //
 //	Error tracking
 //
+#pragma mark -
+#pragma mark Error tracking
 
 // The part of the input file that caused an error; used to highlight the token or text that caused the error.
 // Eidos now also supports reporting of errors with quoted script lines, using the EidosScript* here.  The
@@ -78,6 +82,8 @@ extern int gEidosErrorLine, gEidosErrorLineCharacter;	// set up by eidos_termina
 //
 //	Debugging support
 //
+#pragma mark -
+#pragma mark Debugging support
 
 // Debugging #defines that can be turned on
 #define EIDOS_DEBUG_COMPLETION	0	// turn on to log information about symbol types whenever doing code completion
@@ -90,6 +96,8 @@ extern bool eidos_do_memory_checks;
 //
 //	Memory usage monitoring
 //
+#pragma mark -
+#pragma mark Memory usage monitoring
 
 // Memory-monitoring calls.  See the .cpp for comments.  These return a size in bytes.
 size_t EidosGetPeakRSS(void);
@@ -109,6 +117,8 @@ void EidosCheckRSSAgainstMax(std::string p_message1, std::string p_message2);
 //
 //	Profiling suuport
 //
+#pragma mark -
+#pragma mark Profiling support
 
 #if ((defined(SLIMGUI) && (SLIMPROFILING == 1)) || defined(EIDOS_GUI))
 // PROFILING
@@ -201,6 +211,8 @@ void Eidos_PrepareForProfiling(void);
 //
 //	Termination handling
 //
+#pragma mark -
+#pragma mark Termination handling
 
 // Print a demangled stack backtrace of the caller function to FILE* out; see eidos_global.cpp for credits and comments.
 void eidos_print_stacktrace(FILE *p_out = stderr, unsigned int p_max_frames = 63);
@@ -249,6 +261,8 @@ std::string EidosGetUntrimmedRaiseMessage(void);
 //
 //	Utility functions
 //
+#pragma mark -
+#pragma mark Utility functions
 
 // Resolve a leading ~ in a filesystem path to the user's home directory
 std::string EidosResolvedPath(const std::string p_path);
@@ -260,11 +274,16 @@ int Eidos_mkstemps(char *pattern, int suffix_len);
 double Eidos_TTest_TwoSampleWelch(const double *set1, int count1, const double *set2, int count2, double *mean1, double *mean2);
 double Eidos_TTest_OneSample(const double *set1, int count1, double mu, double *mean1);
 
+// Exact summation of a floating-point vector using the Shewchuk algorithm; surprisingly, not in the GSL
+double Eidos_ExactSum(const double *double_vec, int64_t vec_length);
+
 
 // *******************************************************************************************************************
 //
 //	Overflow-detecting integer operations
 //
+#pragma mark -
+#pragma mark Overflow-detecting integer operations
 
 // Clang and GCC 5.0 support a suite a builtin functions that perform integer operations with detection of overflow.
 //
@@ -328,6 +347,8 @@ double Eidos_TTest_OneSample(const double *set1, int count1, double mu, double *
 //
 //	Global strings & IDs
 //
+#pragma mark -
+#pragma mark Global strings & IDs
 
 //
 //	Global std::string objects.  This is kind of gross, but there are several rationales for it.  First of all, it makes
@@ -469,6 +490,8 @@ enum _EidosGlobalStringID : uint32_t
 //
 //	Support for named / specified colors in SLiM
 //
+#pragma mark -
+#pragma mark Named/specified color support
 
 typedef struct {
 	const char *name;
