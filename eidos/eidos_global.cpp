@@ -42,6 +42,7 @@
 #include <memory>
 #include <limits>
 #include <cmath>
+#include <utility>
 
 // added for Eidos_mkstemps()
 #include <sys/stat.h>
