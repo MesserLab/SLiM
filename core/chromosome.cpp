@@ -180,18 +180,14 @@ void Chromosome::_InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, v
 	// calculate the overall recombination rate and the lookup table for breakpoints
 	std::vector<double> B(p_rates.size());
 	
-	p_overall_rate = 0.0;
-	
 	B[0] = p_rates[0] * static_cast<double>(p_end_positions[0]);	// No +1 here, because the position to the left of the first base is not a valid recombination position.
 	// So a 1-base model (position 0 to 0) has a recombination end of 0, and thus an overall rate of 0.
 	// This means that gsl_ran_discrete_preproc() is given an interval with rate 0, but it does not
 	// seem to mind that.  BCH 4 April 2016
-	p_overall_rate += B[0];
 	
 	for (unsigned int i = 1; i < p_rates.size(); i++) 
 	{ 
 		B[i] = p_rates[i] * static_cast<double>(p_end_positions[i] - p_end_positions[i - 1]);
-		p_overall_rate += B[i];
 		
 		if (p_end_positions[i] > last_position_)
 			last_position_ = p_end_positions[i];
@@ -199,6 +195,8 @@ void Chromosome::_InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, v
 	
 	if (p_end_positions[p_rates.size() - 1] < last_position_)
 		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): recombination endpoints do not cover all genomic elements." << eidos_terminate();
+	
+	p_overall_rate = Eidos_ExactSum(B.data(), p_rates.size());
 	
 	// EIDOS_ERRSTREAM << "overall recombination rate: " << p_overall_rate << std::endl;
 	
