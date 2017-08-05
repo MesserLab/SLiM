@@ -285,6 +285,15 @@ extern const std::string gStr_setValue;
 
 extern const std::string gStr_genomicElements;
 extern const std::string gStr_lastPosition;
+extern const std::string gStr_mutationEndPositions;
+extern const std::string gStr_mutationEndPositionsM;
+extern const std::string gStr_mutationEndPositionsF;
+extern const std::string gStr_mutationRates;
+extern const std::string gStr_mutationRatesM;
+extern const std::string gStr_mutationRatesF;
+extern const std::string gStr_overallMutationRate;
+extern const std::string gStr_overallMutationRateM;
+extern const std::string gStr_overallMutationRateF;
 extern const std::string gStr_overallRecombinationRate;
 extern const std::string gStr_overallRecombinationRateM;
 extern const std::string gStr_overallRecombinationRateF;
@@ -296,7 +305,6 @@ extern const std::string gStr_recombinationRatesM;
 extern const std::string gStr_recombinationRatesF;
 extern const std::string gStr_geneConversionFraction;
 extern const std::string gStr_geneConversionMeanLength;
-extern const std::string gStr_mutationRate;
 extern const std::string gStr_genomeType;
 extern const std::string gStr_isNullGenome;
 extern const std::string gStr_mutations;
@@ -361,6 +369,7 @@ extern const std::string gStr_spatiality;
 extern const std::string gStr_spatialPosition;
 extern const std::string gStr_maxDistance;
 
+extern const std::string gStr_setMutationRate;
 extern const std::string gStr_setRecombinationRate;
 extern const std::string gStr_addMutations;
 extern const std::string gStr_addNewDrawnMutation;
@@ -510,6 +519,15 @@ enum _SLiMGlobalStringID : int {
 	
 	gID_genomicElements,
 	gID_lastPosition,
+	gID_mutationEndPositions,
+	gID_mutationEndPositionsM,
+	gID_mutationEndPositionsF,
+	gID_mutationRates,
+	gID_mutationRatesM,
+	gID_mutationRatesF,
+	gID_overallMutationRate,
+	gID_overallMutationRateM,
+	gID_overallMutationRateF,
 	gID_overallRecombinationRate,
 	gID_overallRecombinationRateM,
 	gID_overallRecombinationRateF,
@@ -521,7 +539,6 @@ enum _SLiMGlobalStringID : int {
 	gID_recombinationRatesF,
 	gID_geneConversionFraction,
 	gID_geneConversionMeanLength,
-	gID_mutationRate,
 	gID_genomeType,
 	gID_isNullGenome,
 	gID_mutations,
@@ -586,6 +603,7 @@ enum _SLiMGlobalStringID : int {
 	gID_spatialPosition,
 	gID_maxDistance,
 	
+	gID_setMutationRate,
 	gID_setRecombinationRate,
 	gID_addMutations,
 	gID_addNewDrawnMutation,

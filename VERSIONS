@@ -19,6 +19,8 @@ development head:
 	add a ternary conditional operator, ? else, to the Eidos language
 	add a sumExact() function for exact summation of floating point numbers
 	improved numerical accuracy for complex recombination maps
+	add ability to supply a mutation rate map instead of just an overall rate; removed the mutationRate property of Chromosome
+	add display of the mutation rate map in SLiMgui with the R button
 
 
 2.4.1 (build 1166; Eidos version 1.4.1):

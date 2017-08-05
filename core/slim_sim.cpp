@@ -1685,7 +1685,7 @@ void SLiMSim::RunInitializeCallbacks(void)
 	
 	// check for complete initialization
 	if (num_mutation_rates_ == 0)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): A mutation rate must be supplied in an initialize() callback with initializeMutationRate()." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): At least one mutation rate interval must be defined in an initialize() callback with initializeMutationRate()." << eidos_terminate();
 	
 	if (num_mutation_types_ == 0)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): At least one mutation type must be defined in an initialize() callback with initializeMutationType()." << eidos_terminate();
@@ -3382,24 +3382,128 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 	
 	
 	//
-	//	*********************	(void)initializeMutationRate(numeric$ rate)
+	//	*********************	(void)initializeMutationRate(numeric rates, [Ni ends = NULL], [string$ sex = "*"])
 	//
 	#pragma mark initializeMutationRate()
 	
 	else if (p_function_name.compare(gStr_initializeMutationRate) == 0)
 	{
-		if (num_mutation_rates_ > 0)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationRate() may be called only once." << eidos_terminate();
+		int rate_count = arg0_value->Count();
 		
-		double rate = arg0_value->FloatAtIndex(0, nullptr);
+		// Figure out what sex we are being given a map for
+		IndividualSex requested_sex;
+		std::string sex_string = arg2_value->StringAtIndex(0, nullptr);
 		
-		if (rate < 0.0)		// intentionally no upper bound
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationRate() requires rate >= 0 (" << rate << " supplied)." << eidos_terminate();
+		if (sex_string.compare("M") == 0)
+			requested_sex = IndividualSex::kMale;
+		else if (sex_string.compare("F") == 0)
+			requested_sex = IndividualSex::kFemale;
+		else if (sex_string.compare("*") == 0)
+			requested_sex = IndividualSex::kUnspecified;
+		else
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationRate() requested sex \"" << sex_string << "\" unsupported." << eidos_terminate();
 		
-		chromosome_.overall_mutation_rate_ = rate;
+		if ((requested_sex != IndividualSex::kUnspecified) && !sex_enabled_)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationRate() sex-specific mutation map supplied in non-sexual simulation." << eidos_terminate();
+		
+		// Make sure specifying a map for that sex is legal, given our current state.  Since single_mutation_map_ has not been set
+		// yet, we just look to see whether the chromosome's policy has already been determined or not.
+		if (((requested_sex == IndividualSex::kUnspecified) && ((chromosome_.mutation_rates_M_.size() != 0) || (chromosome_.mutation_rates_F_.size() != 0))) ||
+			((requested_sex != IndividualSex::kUnspecified) && (chromosome_.mutation_rates_H_.size() != 0)))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationRate() cannot change the chromosome between using a single map versus separate maps for the sexes; the original configuration must be preserved." << eidos_terminate();
+		
+		if (((requested_sex == IndividualSex::kUnspecified) && (num_mutation_rates_ > 0)) || ((requested_sex != IndividualSex::kUnspecified) && (num_mutation_rates_ > 1)))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationRate() may be called only once (or once per sex, with sex-specific mutation maps).  The multiple mutation regions of a mutation map must be set up in a single call to initializeMutationRate()." << eidos_terminate();
+		
+		// Set up to replace the requested map
+		vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_.mutation_end_positions_H_ : 
+											  ((requested_sex == IndividualSex::kMale) ? chromosome_.mutation_end_positions_M_ : chromosome_.mutation_end_positions_F_));
+		vector<double> &rates = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_.mutation_rates_H_ : 
+								 ((requested_sex == IndividualSex::kMale) ? chromosome_.mutation_rates_M_ : chromosome_.mutation_rates_F_));
+		
+		if (arg1_value->Type() == EidosValueType::kValueNULL)
+		{
+			if (rate_count != 1)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationRate() requires rates to be a singleton if ends is not supplied." << eidos_terminate();
+			
+			double mutation_rate = arg0_value->FloatAtIndex(0, nullptr);
+			
+			// check values
+			if (mutation_rate < 0.0)		// intentionally no upper bound
+				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationRate() requires rates to be >= 0 (" << mutation_rate << " supplied)." << eidos_terminate();
+			
+			// then adopt them
+			rates.clear();
+			positions.clear();
+			
+			rates.emplace_back(mutation_rate);
+			//positions.emplace_back(?);	// deferred; patched in Chromosome::InitializeDraws().
+		}
+		else
+		{
+			int end_count = arg1_value->Count();
+			
+			if ((end_count != rate_count) || (end_count == 0))
+				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationRate() requires ends and rates to be of equal and nonzero size." << eidos_terminate();
+			
+			// check values
+			for (int value_index = 0; value_index < end_count; ++value_index)
+			{
+				double mutation_rate = arg0_value->FloatAtIndex(value_index, nullptr);
+				slim_position_t mutation_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(value_index, nullptr));
+				
+				if (value_index > 0)
+					if (mutation_end_position <= arg1_value->IntAtIndex(value_index - 1, nullptr))
+						EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationRate() requires ends to be in strictly ascending order." << eidos_terminate();
+				
+				if (mutation_rate < 0.0)		// intentionally no upper bound
+					EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationRate() requires rates to be >= 0 (" << mutation_rate << " supplied)." << eidos_terminate();
+			}
+			
+			// then adopt them
+			rates.clear();
+			positions.clear();
+			
+			for (int interval_index = 0; interval_index < end_count; ++interval_index)
+			{
+				double mutation_rate = arg0_value->FloatAtIndex(interval_index, nullptr);
+				slim_position_t mutation_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(interval_index, nullptr));
+				
+				rates.emplace_back(mutation_rate);
+				positions.emplace_back(mutation_end_position);
+			}
+		}
+		
+		chromosome_changed_ = true;
 		
 		if (DEBUG_INPUT)
-			output_stream << "initializeMutationRate(" << chromosome_.overall_mutation_rate_ << ");" << endl;
+		{
+			int ratesSize = (int)rates.size();
+			int endsSize = (int)positions.size();
+			
+			output_stream << "initializeMutationRate(";
+			
+			if (ratesSize > 1)
+				output_stream << "c(";
+			for (int interval_index = 0; interval_index < ratesSize; ++interval_index)
+				output_stream << (interval_index == 0 ? "" : ", ") << rates[interval_index];
+			if (ratesSize > 1)
+				output_stream << ")";
+			
+			if (endsSize > 0)
+			{
+				output_stream << ", ";
+				
+				if (endsSize > 1)
+					output_stream << "c(";
+				for (int interval_index = 0; interval_index < endsSize; ++interval_index)
+					output_stream << (interval_index == 0 ? "" : ", ") << positions[interval_index];
+				if (endsSize > 1)
+					output_stream << ")";
+			}
+			
+			output_stream << ");" << endl;
+		}
 		
 		num_mutation_rates_++;
 	}
@@ -3581,7 +3685,7 @@ void SLiMSim::_AddZeroGenerationFunctionsToSignatureVector(std::vector<const Eid
 		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGeneConversion, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))
 									   ->AddNumeric_S("conversionFraction")->AddNumeric_S("meanLength"));
 		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationRate, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))
-									   ->AddNumeric_S("rate"));
+									   ->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
 		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSex, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))
 									   ->AddString_S("chromosomeType")->AddNumeric_OS("xDominanceCoeff", gStaticEidosValue_Float1));
 		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMOptions, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))

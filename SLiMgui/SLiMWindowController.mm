@@ -161,7 +161,7 @@
 		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(browserWillHide:) name:EidosVariableBrowserWillHideNotification object:nil];
 		
 		// set default viewing state; this might come from user defaults on a per-script basis eventually...
-		zoomedChromosomeShowsRecombinationIntervals = NO;
+		zoomedChromosomeShowsRateMaps = NO;
 		zoomedChromosomeShowsGenomicElements = NO;
 		zoomedChromosomeShowsMutations = YES;
 		zoomedChromosomeShowsFixedSubstitutions = NO;
@@ -768,16 +768,16 @@
 	[chromosomeOverview setShouldDrawGenomicElements:YES];
 	[chromosomeOverview setShouldDrawMutations:NO];
 	[chromosomeOverview setShouldDrawFixedSubstitutions:NO];
-	[chromosomeOverview setShouldDrawRecombinationIntervals:NO];
+	[chromosomeOverview setShouldDrawRateMaps:NO];
 	
 	[chromosomeZoomed setReferenceChromosomeView:chromosomeOverview];
 	[chromosomeZoomed setSelectable:NO];
 	[chromosomeZoomed setShouldDrawGenomicElements:zoomedChromosomeShowsGenomicElements];
 	[chromosomeZoomed setShouldDrawMutations:zoomedChromosomeShowsMutations];
 	[chromosomeZoomed setShouldDrawFixedSubstitutions:zoomedChromosomeShowsFixedSubstitutions];
-	[chromosomeZoomed setShouldDrawRecombinationIntervals:zoomedChromosomeShowsRecombinationIntervals];
+	[chromosomeZoomed setShouldDrawRateMaps:zoomedChromosomeShowsRateMaps];
 	
-	[showRecombinationIntervalsButton setState:(zoomedChromosomeShowsRecombinationIntervals ? NSOnState : NSOffState)];
+	[showRecombinationIntervalsButton setState:(zoomedChromosomeShowsRateMaps ? NSOnState : NSOffState)];
 	[showGenomicElementsButton setState:(zoomedChromosomeShowsGenomicElements ? NSOnState : NSOffState)];
 	[showMutationsButton setState:(zoomedChromosomeShowsMutations ? NSOnState : NSOffState)];
 	[showFixedSubstitutionsButton setState:(zoomedChromosomeShowsFixedSubstitutions ? NSOnState : NSOffState)];
@@ -2437,10 +2437,10 @@
 	
 	BOOL newValue = ([showRecombinationIntervalsButton state] == NSOnState);
 	
-	if (newValue != zoomedChromosomeShowsRecombinationIntervals)
+	if (newValue != zoomedChromosomeShowsRateMaps)
 	{
-		zoomedChromosomeShowsRecombinationIntervals = newValue;
-		[chromosomeZoomed setShouldDrawRecombinationIntervals:zoomedChromosomeShowsRecombinationIntervals];
+		zoomedChromosomeShowsRateMaps = newValue;
+		[chromosomeZoomed setShouldDrawRateMaps:zoomedChromosomeShowsRateMaps];
 		[chromosomeZoomed setNeedsDisplayInInterior];
 	}
 }

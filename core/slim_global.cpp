@@ -133,6 +133,15 @@ const std::string gStr_setValue = "setValue";
 // mostly property names
 const std::string gStr_genomicElements = "genomicElements";
 const std::string gStr_lastPosition = "lastPosition";
+const std::string gStr_mutationEndPositions = "mutationEndPositions";
+const std::string gStr_mutationEndPositionsM = "mutationEndPositionsM";
+const std::string gStr_mutationEndPositionsF = "mutationEndPositionsF";
+const std::string gStr_mutationRates = "mutationRates";
+const std::string gStr_mutationRatesM = "mutationRatesM";
+const std::string gStr_mutationRatesF = "mutationRatesF";
+const std::string gStr_overallMutationRate = "overallMutationRate";
+const std::string gStr_overallMutationRateM = "overallMutationRateM";
+const std::string gStr_overallMutationRateF = "overallMutationRateF";
 const std::string gStr_overallRecombinationRate = "overallRecombinationRate";
 const std::string gStr_overallRecombinationRateM = "overallRecombinationRateM";
 const std::string gStr_overallRecombinationRateF = "overallRecombinationRateF";
@@ -144,7 +153,6 @@ const std::string gStr_recombinationRatesM = "recombinationRatesM";
 const std::string gStr_recombinationRatesF = "recombinationRatesF";
 const std::string gStr_geneConversionFraction = "geneConversionFraction";
 const std::string gStr_geneConversionMeanLength = "geneConversionMeanLength";
-const std::string gStr_mutationRate = "mutationRate";
 const std::string gStr_genomeType = "genomeType";
 const std::string gStr_isNullGenome = "isNullGenome";
 const std::string gStr_mutations = "mutations";
@@ -210,6 +218,7 @@ const std::string gStr_spatialPosition = "spatialPosition";
 const std::string gStr_maxDistance = "maxDistance";
 
 // mostly method names
+const std::string gStr_setMutationRate = "setMutationRate";
 const std::string gStr_setRecombinationRate = "setRecombinationRate";
 const std::string gStr_addMutations = "addMutations";
 const std::string gStr_addNewDrawnMutation = "addNewDrawnMutation";
@@ -373,6 +382,15 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		
 		Eidos_RegisterStringForGlobalID(gStr_genomicElements, gID_genomicElements);
 		Eidos_RegisterStringForGlobalID(gStr_lastPosition, gID_lastPosition);
+		Eidos_RegisterStringForGlobalID(gStr_mutationEndPositions, gID_mutationEndPositions);
+		Eidos_RegisterStringForGlobalID(gStr_mutationEndPositionsM, gID_mutationEndPositionsM);
+		Eidos_RegisterStringForGlobalID(gStr_mutationEndPositionsF, gID_mutationEndPositionsF);
+		Eidos_RegisterStringForGlobalID(gStr_mutationRates, gID_mutationRates);
+		Eidos_RegisterStringForGlobalID(gStr_mutationRatesM, gID_mutationRatesM);
+		Eidos_RegisterStringForGlobalID(gStr_mutationRatesF, gID_mutationRatesF);
+		Eidos_RegisterStringForGlobalID(gStr_overallMutationRate, gID_overallMutationRate);
+		Eidos_RegisterStringForGlobalID(gStr_overallMutationRateM, gID_overallMutationRateM);
+		Eidos_RegisterStringForGlobalID(gStr_overallMutationRateF, gID_overallMutationRateF);
 		Eidos_RegisterStringForGlobalID(gStr_overallRecombinationRate, gID_overallRecombinationRate);
 		Eidos_RegisterStringForGlobalID(gStr_overallRecombinationRateM, gID_overallRecombinationRateM);
 		Eidos_RegisterStringForGlobalID(gStr_overallRecombinationRateF, gID_overallRecombinationRateF);
@@ -384,7 +402,6 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_recombinationRatesF, gID_recombinationRatesF);
 		Eidos_RegisterStringForGlobalID(gStr_geneConversionFraction, gID_geneConversionFraction);
 		Eidos_RegisterStringForGlobalID(gStr_geneConversionMeanLength, gID_geneConversionMeanLength);
-		Eidos_RegisterStringForGlobalID(gStr_mutationRate, gID_mutationRate);
 		Eidos_RegisterStringForGlobalID(gStr_genomeType, gID_genomeType);
 		Eidos_RegisterStringForGlobalID(gStr_isNullGenome, gID_isNullGenome);
 		Eidos_RegisterStringForGlobalID(gStr_mutations, gID_mutations);
@@ -449,6 +466,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_spatialPosition, gID_spatialPosition);
 		Eidos_RegisterStringForGlobalID(gStr_maxDistance, gID_maxDistance);
 		
+		Eidos_RegisterStringForGlobalID(gStr_setMutationRate, gID_setMutationRate);
 		Eidos_RegisterStringForGlobalID(gStr_setRecombinationRate, gID_setRecombinationRate);
 		Eidos_RegisterStringForGlobalID(gStr_addMutations, gID_addMutations);
 		Eidos_RegisterStringForGlobalID(gStr_addNewDrawnMutation, gID_addNewDrawnMutation);

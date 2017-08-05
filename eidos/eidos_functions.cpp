@@ -3060,7 +3060,7 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const EidosValue_SP *const p_arguments, 
 	return result_SP;
 }
 
-//	(float$)sumExact(f x)
+//	(float$)sumExact(float x)
 EidosValue_SP Eidos_ExecuteFunction_sumExact(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);

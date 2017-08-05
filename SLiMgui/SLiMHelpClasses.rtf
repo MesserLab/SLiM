@@ -63,12 +63,109 @@
 \f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 mutationRate <\'96> (float$)\
+\f2\fs18 \cf0 mutationEndPositions => (integer)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 The mutation rate per base position per generation, as specified by 
-\f2\fs18 initializeMutationRate()
+\f0\fs20 \cf0 The end positions for mutation rate regions along the chromosome.  Each mutation rate region is assumed to start at the position following the end of the previous mutation rate region; in other words, the regions are assumed to be contiguous.  When using sex-specific mutation rate maps, this property will be 
+\f2\fs18 NULL
+\f0\fs20 ; see 
+\f2\fs18 mutationEndPositionsF
+\f0\fs20  and 
+\f2\fs18 mutationEndPositionsM
 \f3\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 mutationEndPositionsF => (integer)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The end positions for mutation rate regions for females, when using sex-specific mutation rate maps; 
+\f2\fs18 NULL
+\f0\fs20  otherwise.  See 
+\f2\fs18 mutationEndPositions
+\f0\fs20  for further explanation.
+\f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 mutationEndPositionsM => (integer)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The end positions for mutation rate regions for males, when using sex-specific mutation rate maps; 
+\f2\fs18 NULL
+\f0\fs20  otherwise.  See 
+\f2\fs18 mutationEndPositions
+\f0\fs20  for further explanation.
+\f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 mutationRates => (float)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The mutation rate for each of the mutation rate regions specified by 
+\f2\fs18 mutationEndPositions
+\f3\fs20 .
+\f0   When using sex-specific mutation rate maps, this property will be 
+\f2\fs18 NULL
+\f0\fs20 ; see 
+\f2\fs18 mutationRatesF
+\f0\fs20  and 
+\f2\fs18 mutationRatesM
+\f3\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 mutationRatesF => (float)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The mutation rate for each of the mutation rate regions specified by 
+\f2\fs18 mutationEndPositionsF
+\f0\fs20 , when using sex-specific mutation rate maps; 
+\f2\fs18 NULL
+\f0\fs20  otherwise.
+\f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 mutationRatesM => (float)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The mutation rate for each of the mutation rate regions specified by 
+\f2\fs18 mutationEndPositionsM
+\f0\fs20 , when using sex-specific mutation rate maps; 
+\f2\fs18 NULL
+\f0\fs20  otherwise.
+\f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 overallMutationRate => (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The overall mutation rate across the whole chromosome determining the overall number of mutation events that will occur anywhere in the chromosome, as calculated from the individual mutation ranges and rates as well as the coverage of the chromosome by genomic elements (since mutations are only generated within genomic elements, regardless of the mutation rate map).  When using sex-specific mutation rate maps, this property will be 
+\f2\fs18 NULL
+\f0\fs20 ; see 
+\f2\fs18 overallMutationRateF
+\f0\fs20  and 
+\f2\fs18 overallMutationRateM
+\f3\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 overallMutationRateF => (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The overall mutation rate for females, when using sex-specific mutation rate maps; 
+\f2\fs18 NULL
+\f0\fs20  otherwise.  See 
+\f2\fs18 overallMutationRate
+\f0\fs20  for further explanation.
+\f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 overallMutationRateM => (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 The overall mutation rate for males, when using sex-specific mutation rate maps; 
+\f2\fs18 NULL
+\f0\fs20  otherwise.  See 
+\f2\fs18 overallMutationRate
+\f0\fs20  for further explanation.
+\f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 overallRecombinationRate => (float$)\
@@ -194,7 +291,56 @@
 \f0\fs22  methods\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\i0\fs18 \cf0 \'96\'a0(void)setRecombinationRate(numeric\'a0rates, [Ni\'a0ends\'a0=\'a0NULL], [string$\'a0sex\'a0=\'a0"*"])
+\f2\i0\fs18 \cf0 \'96\'a0(void)setMutationRate(numeric\'a0rates, [Ni\'a0ends\'a0=\'a0NULL], [string$\'a0sex\'a0=\'a0"*"])
+\f3 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Set the mutation rate per base position per generation along the chromosome.  There are two ways to call this method.  If the optional 
+\f2\fs18 ends
+\f0\fs20  parameter is 
+\f2\fs18 NULL
+\f0\fs20  (the default), then 
+\f2\fs18 rates
+\f0\fs20  must be a singleton value that specifies a single mutation rate to be used along the entire chromosome.  If, on the other hand, 
+\f2\fs18 ends
+\f0\fs20  is supplied, then 
+\f2\fs18 rates
+\f0\fs20  and 
+\f2\fs18 ends
+\f0\fs20  must be the same length, and the values in 
+\f2\fs18 ends
+\f0\fs20  must be specified in ascending order.  In that case, 
+\f2\fs18 rates
+\f0\fs20  and 
+\f2\fs18 ends
+\f0\fs20  taken together specify the mutation rates to be used along successive contiguous stretches of the chromosome, from beginning to end; the last position specified in 
+\f2\fs18 ends
+\f0\fs20  should extend to the end of the chromosome (as previously determined, during simulation initialization).  See the 
+\f2\fs18 initializeMutationRate()
+\f0\fs20  function for further discussion of precisely how these rates and positions are interpreted.\
+If the optional 
+\f2\fs18 sex
+\f0\fs20  parameter is 
+\f2\fs18 "*"
+\f0\fs20  (the default), then the supplied mutation rate map will be used for both sexes (which is the only option for hermaphroditic simulations).  In sexual simulations 
+\f2\fs18 sex
+\f0\fs20  may be 
+\f2\fs18 "M"
+\f0\fs20  or 
+\f2\fs18 "F"
+\f0\fs20  instead, in which case the supplied mutation rate map is used only for that sex.  Note that whether sex-specific mutation rate maps will be used is set by the way that the simulation is initially configured with 
+\f2\fs18 initializeMutationRate()
+\f0\fs20 , and cannot be changed with this method; so if the simulation was set up to use sex-specific mutation rate maps then sex must be 
+\f2\fs18 "M"
+\f0\fs20  or 
+\f2\fs18 "F"
+\f0\fs20  here, whereas if it was set up not to, then sex must be 
+\f2\fs18 "*"
+\f0\fs20  or unsupplied here.  If a simulation needs sex-specific mutation rate maps only some of the time, the male and female maps can simply be set to be identical the rest of the time.\
+The mutation rate intervals are normally a constant in simulations, so be sure you know what you are doing.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96\'a0(void)setRecombinationRate(numeric\'a0rates, [Ni\'a0ends\'a0=\'a0NULL], [string$\'a0sex\'a0=\'a0"*"])
 \f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -218,11 +364,10 @@
 \f2\fs18 ends
 \f0\fs20  taken together specify the recombination rates to be used along successive contiguous stretches of the chromosome, from beginning to end; the last position specified in 
 \f2\fs18 ends
-\f0\fs20  should extend to the end of the chromosome (i.e. to exactly the same length as the previously specified recombination intervals extended to).  See the 
+\f0\fs20  should extend to the end of the chromosome (as previously determined, during simulation initialization).  See the 
 \f2\fs18 initializeRecombinationRate()
 \f0\fs20  function for further discussion of precisely how these rates and positions are interpreted.\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf0 If the optional 
+If the optional 
 \f2\fs18 sex
 \f0\fs20  parameter is 
 \f2\fs18 "*"
@@ -234,7 +379,7 @@
 \f2\fs18 "F"
 \f0\fs20  instead, in which case the supplied recombination map is used only for that sex.  Note that whether sex-specific recombination maps will be used is set by the way that the simulation is initially configured with 
 \f2\fs18 initializeRecombinationRate()
-\f0\fs20 , and cannot be changed with this method; so if the simulation was set up to use sex-specific maps then sex must be 
+\f0\fs20 , and cannot be changed with this method; so if the simulation was set up to use sex-specific recombination maps then sex must be 
 \f2\fs18 "M"
 \f0\fs20  or 
 \f2\fs18 "F"

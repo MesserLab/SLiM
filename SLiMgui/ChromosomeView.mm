@@ -99,7 +99,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 
 @implementation ChromosomeView
 
-@synthesize referenceChromosomeView, shouldDrawGenomicElements, shouldDrawFixedSubstitutions, shouldDrawMutations, shouldDrawRecombinationIntervals;
+@synthesize referenceChromosomeView, shouldDrawGenomicElements, shouldDrawFixedSubstitutions, shouldDrawMutations, shouldDrawRateMaps;
 
 + (void)initialize
 {
@@ -503,9 +503,9 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	SLIM_GL_FINISH();
 }
 
-#pragma mark Drawing recombination intervals
+#pragma mark Drawing rate map intervals
 
-- (void)_drawRecombinationIntervalsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange ends:(std::vector<slim_position_t> &)ends rates:(std::vector<double> &)rates
+- (void)_drawRateMapIntervalsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange ends:(std::vector<slim_position_t> &)ends rates:(std::vector<double> &)rates
 {
 	int recombinationIntervalCount = (int)ends.size();
 	slim_position_t intervalStartPosition = 0;
@@ -575,7 +575,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	}
 }
 
-- (void)_glDrawRecombinationIntervalsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange ends:(std::vector<slim_position_t> &)ends rates:(std::vector<double> &)rates
+- (void)_glDrawRateMapIntervalsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange ends:(std::vector<slim_position_t> &)ends rates:(std::vector<double> &)rates
 {
 	int recombinationIntervalCount = (int)ends.size();
 	slim_position_t intervalStartPosition = 0;
@@ -657,13 +657,15 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	SLIM_GL_FINISH();
 }
 
+#pragma mark Drawing recombination intervals
+
 - (void)drawRecombinationIntervalsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
 	Chromosome &chromosome = controller->sim->chromosome_;
 	
 	if (chromosome.single_recombination_map_)
 	{
-		[self _drawRecombinationIntervalsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange ends:chromosome.recombination_end_positions_H_ rates:chromosome.recombination_rates_H_];
+		[self _drawRateMapIntervalsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange ends:chromosome.recombination_end_positions_H_ rates:chromosome.recombination_rates_H_];
 	}
 	else
 	{
@@ -675,8 +677,8 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		topInteriorRect.origin.y += remainingHeight;
 		bottomInteriorRect.size.height = remainingHeight;
 		
-		[self _drawRecombinationIntervalsInInteriorRect:topInteriorRect withController:controller displayedRange:displayedRange ends:chromosome.recombination_end_positions_M_ rates:chromosome.recombination_rates_M_];
-		[self _drawRecombinationIntervalsInInteriorRect:bottomInteriorRect withController:controller displayedRange:displayedRange ends:chromosome.recombination_end_positions_F_ rates:chromosome.recombination_rates_F_];
+		[self _drawRateMapIntervalsInInteriorRect:topInteriorRect withController:controller displayedRange:displayedRange ends:chromosome.recombination_end_positions_M_ rates:chromosome.recombination_rates_M_];
+		[self _drawRateMapIntervalsInInteriorRect:bottomInteriorRect withController:controller displayedRange:displayedRange ends:chromosome.recombination_end_positions_F_ rates:chromosome.recombination_rates_F_];
 	}
 }
 
@@ -686,7 +688,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	
 	if (chromosome.single_recombination_map_)
 	{
-		[self _glDrawRecombinationIntervalsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange ends:chromosome.recombination_end_positions_H_ rates:chromosome.recombination_rates_H_];
+		[self _glDrawRateMapIntervalsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange ends:chromosome.recombination_end_positions_H_ rates:chromosome.recombination_rates_H_];
 	}
 	else
 	{
@@ -698,10 +700,141 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		topInteriorRect.origin.y += remainingHeight;
 		bottomInteriorRect.size.height = remainingHeight;
 		
-		[self _glDrawRecombinationIntervalsInInteriorRect:topInteriorRect withController:controller displayedRange:displayedRange ends:chromosome.recombination_end_positions_M_ rates:chromosome.recombination_rates_M_];
-		[self _glDrawRecombinationIntervalsInInteriorRect:bottomInteriorRect withController:controller displayedRange:displayedRange ends:chromosome.recombination_end_positions_F_ rates:chromosome.recombination_rates_F_];
+		[self _glDrawRateMapIntervalsInInteriorRect:topInteriorRect withController:controller displayedRange:displayedRange ends:chromosome.recombination_end_positions_M_ rates:chromosome.recombination_rates_M_];
+		[self _glDrawRateMapIntervalsInInteriorRect:bottomInteriorRect withController:controller displayedRange:displayedRange ends:chromosome.recombination_end_positions_F_ rates:chromosome.recombination_rates_F_];
 	}
 }
+
+#pragma mark Drawing mutation rate intervals
+
+- (void)drawMutationIntervalsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
+{
+	Chromosome &chromosome = controller->sim->chromosome_;
+	
+	if (chromosome.single_mutation_map_)
+	{
+		[self _drawRateMapIntervalsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange ends:chromosome.mutation_end_positions_H_ rates:chromosome.mutation_rates_H_];
+	}
+	else
+	{
+		NSRect topInteriorRect = interiorRect, bottomInteriorRect = interiorRect;
+		CGFloat halfHeight = ceil(interiorRect.size.height / 2.0);
+		CGFloat remainingHeight = interiorRect.size.height - halfHeight;
+		
+		topInteriorRect.size.height = halfHeight;
+		topInteriorRect.origin.y += remainingHeight;
+		bottomInteriorRect.size.height = remainingHeight;
+		
+		[self _drawRateMapIntervalsInInteriorRect:topInteriorRect withController:controller displayedRange:displayedRange ends:chromosome.mutation_end_positions_M_ rates:chromosome.mutation_rates_M_];
+		[self _drawRateMapIntervalsInInteriorRect:bottomInteriorRect withController:controller displayedRange:displayedRange ends:chromosome.mutation_end_positions_F_ rates:chromosome.mutation_rates_F_];
+	}
+}
+
+- (void)glDrawMutationIntervalsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
+{
+	Chromosome &chromosome = controller->sim->chromosome_;
+	
+	if (chromosome.single_mutation_map_)
+	{
+		[self _glDrawRateMapIntervalsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange ends:chromosome.mutation_end_positions_H_ rates:chromosome.mutation_rates_H_];
+	}
+	else
+	{
+		NSRect topInteriorRect = interiorRect, bottomInteriorRect = interiorRect;
+		CGFloat halfHeight = ceil(interiorRect.size.height / 2.0);
+		CGFloat remainingHeight = interiorRect.size.height - halfHeight;
+		
+		topInteriorRect.size.height = halfHeight;
+		topInteriorRect.origin.y += remainingHeight;
+		bottomInteriorRect.size.height = remainingHeight;
+		
+		[self _glDrawRateMapIntervalsInInteriorRect:topInteriorRect withController:controller displayedRange:displayedRange ends:chromosome.mutation_end_positions_M_ rates:chromosome.mutation_rates_M_];
+		[self _glDrawRateMapIntervalsInInteriorRect:bottomInteriorRect withController:controller displayedRange:displayedRange ends:chromosome.mutation_end_positions_F_ rates:chromosome.mutation_rates_F_];
+	}
+}
+
+#pragma mark Drawing rate maps
+
+- (void)drawRateMapsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
+{
+	Chromosome &chromosome = controller->sim->chromosome_;
+	BOOL recombinationWorthShowing = NO;
+	BOOL mutationWorthShowing = NO;
+	
+	if (chromosome.single_mutation_map_)
+		mutationWorthShowing = (chromosome.mutation_end_positions_H_.size() > 1);
+	else
+		mutationWorthShowing = ((chromosome.mutation_end_positions_M_.size() > 1) || (chromosome.mutation_end_positions_F_.size() > 1));
+	
+	if (chromosome.single_recombination_map_)
+		recombinationWorthShowing = (chromosome.recombination_end_positions_H_.size() > 1);
+	else
+		recombinationWorthShowing = ((chromosome.recombination_end_positions_M_.size() > 1) || (chromosome.recombination_end_positions_F_.size() > 1));
+	
+	// If neither map is worth showing, we show just the recombination map, to mirror the behavior of 2.4 and earlier
+	if ((!mutationWorthShowing && !recombinationWorthShowing) || (!mutationWorthShowing && recombinationWorthShowing))
+	{
+		[self drawRecombinationIntervalsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange];
+	}
+	else if (mutationWorthShowing && !recombinationWorthShowing)
+	{
+		[self drawMutationIntervalsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange];
+	}
+	else	// mutationWorthShowing && recombinationWorthShowing
+	{
+		NSRect topInteriorRect = interiorRect, bottomInteriorRect = interiorRect;
+		CGFloat halfHeight = ceil(interiorRect.size.height / 2.0);
+		CGFloat remainingHeight = interiorRect.size.height - halfHeight;
+		
+		topInteriorRect.size.height = halfHeight;
+		topInteriorRect.origin.y += remainingHeight;
+		bottomInteriorRect.size.height = remainingHeight;
+		
+		[self drawRecombinationIntervalsInInteriorRect:topInteriorRect withController:controller displayedRange:displayedRange];
+		[self drawMutationIntervalsInInteriorRect:bottomInteriorRect withController:controller displayedRange:displayedRange];
+	}
+}
+
+- (void)glDrawRateMapsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
+{
+	Chromosome &chromosome = controller->sim->chromosome_;
+	BOOL recombinationWorthShowing = NO;
+	BOOL mutationWorthShowing = NO;
+	
+	if (chromosome.single_mutation_map_)
+		mutationWorthShowing = (chromosome.mutation_end_positions_H_.size() > 1);
+	else
+		mutationWorthShowing = ((chromosome.mutation_end_positions_M_.size() > 1) || (chromosome.mutation_end_positions_F_.size() > 1));
+	
+	if (chromosome.single_recombination_map_)
+		recombinationWorthShowing = (chromosome.recombination_end_positions_H_.size() > 1);
+	else
+		recombinationWorthShowing = ((chromosome.recombination_end_positions_M_.size() > 1) || (chromosome.recombination_end_positions_F_.size() > 1));
+	
+	// If neither map is worth showing, we show just the recombination map, to mirror the behavior of 2.4 and earlier
+	if ((!mutationWorthShowing && !recombinationWorthShowing) || (!mutationWorthShowing && recombinationWorthShowing))
+	{
+		[self glDrawRecombinationIntervalsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange];
+	}
+	else if (mutationWorthShowing && !recombinationWorthShowing)
+	{
+		[self glDrawMutationIntervalsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange];
+	}
+	else	// mutationWorthShowing && recombinationWorthShowing
+	{
+		NSRect topInteriorRect = interiorRect, bottomInteriorRect = interiorRect;
+		CGFloat halfHeight = ceil(interiorRect.size.height / 2.0);
+		CGFloat remainingHeight = interiorRect.size.height - halfHeight;
+		
+		topInteriorRect.size.height = halfHeight;
+		topInteriorRect.origin.y += remainingHeight;
+		bottomInteriorRect.size.height = remainingHeight;
+		
+		[self glDrawRecombinationIntervalsInInteriorRect:topInteriorRect withController:controller displayedRange:displayedRange];
+		[self glDrawMutationIntervalsInInteriorRect:bottomInteriorRect withController:controller displayedRange:displayedRange];
+	}
+}
+
 
 #pragma mark Drawing substitutions
 
@@ -1505,7 +1638,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		
 		NSRange displayedRange = [self displayedRange];
 		
-		BOOL splitHeight = (shouldDrawRecombinationIntervals && shouldDrawGenomicElements);
+		BOOL splitHeight = (shouldDrawRateMaps && shouldDrawGenomicElements);
 		NSRect topInteriorRect = interiorRect, bottomInteriorRect = interiorRect;
 		CGFloat halfHeight = ceil(interiorRect.size.height / 2.0);
 		CGFloat remainingHeight = interiorRect.size.height - halfHeight;
@@ -1524,8 +1657,8 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 			// for us to draw on its behalf.  That method, below, does all of the tasks here, but with OpenGL calls instead.
 			
 			// draw recombination intervals in interior
-			if (shouldDrawRecombinationIntervals)
-				[self drawRecombinationIntervalsInInteriorRect:(splitHeight ? topInteriorRect : interiorRect) withController:controller displayedRange:displayedRange];
+			if (shouldDrawRateMaps)
+				[self drawRateMapsInInteriorRect:(splitHeight ? topInteriorRect : interiorRect) withController:controller displayedRange:displayedRange];
 			
 			// draw genomic elements in interior
 			if (shouldDrawGenomicElements)
@@ -1581,7 +1714,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		
 		NSRange displayedRange = [self displayedRange];
 		
-		BOOL splitHeight = (shouldDrawRecombinationIntervals && shouldDrawGenomicElements);
+		BOOL splitHeight = (shouldDrawRateMaps && shouldDrawGenomicElements);
 		NSRect topInteriorRect = interiorRect, bottomInteriorRect = interiorRect;
 		CGFloat halfHeight = ceil(interiorRect.size.height / 2.0);
 		CGFloat remainingHeight = interiorRect.size.height - halfHeight;
@@ -1591,8 +1724,8 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		bottomInteriorRect.size.height = remainingHeight;
 		
 		// draw recombination intervals in interior
-		if (shouldDrawRecombinationIntervals)
-			[self glDrawRecombinationIntervalsInInteriorRect:(splitHeight ? topInteriorRect : interiorRect) withController:controller displayedRange:displayedRange];
+		if (shouldDrawRateMaps)
+			[self glDrawRateMapsInInteriorRect:(splitHeight ? topInteriorRect : interiorRect) withController:controller displayedRange:displayedRange];
 		
 		// draw genomic elements in interior
 		if (shouldDrawGenomicElements)

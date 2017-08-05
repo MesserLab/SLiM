@@ -803,7 +803,7 @@
                                             <action selector="drawerButtonToggled:" target="-2" id="DLd-gY-khQ"/>
                                         </connections>
                                     </button>
-                                    <button toolTip="toggle recombination interval visibility" translatesAutoresizingMaskIntoConstraints="NO" id="LwJ-mt-MjQ">
+                                    <button toolTip="toggle rate map visibility" translatesAutoresizingMaskIntoConstraints="NO" id="LwJ-mt-MjQ">
                                         <rect key="frame" x="1101" y="44" width="30" height="32"/>
                                         <constraints>
                                             <constraint firstAttribute="height" constant="32" id="4J9-f9-mpe"/>

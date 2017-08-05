@@ -63,7 +63,7 @@
 	// display-related variables
 	double fitnessColorScale, selectionColorScale;
 	NSMutableDictionary *genomicElementColorRegistry;
-	BOOL zoomedChromosomeShowsRecombinationIntervals;
+	BOOL zoomedChromosomeShowsRateMaps;
 	BOOL zoomedChromosomeShowsGenomicElements;
 	BOOL zoomedChromosomeShowsMutations;
 	BOOL zoomedChromosomeShowsFixedSubstitutions;

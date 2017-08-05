@@ -58,7 +58,7 @@ extern NSString *SLiMChromosomeSelectionChangedNotification;
 @property (nonatomic) BOOL enabled;
 
 @property (nonatomic) BOOL shouldDrawGenomicElements;
-@property (nonatomic) BOOL shouldDrawRecombinationIntervals;
+@property (nonatomic) BOOL shouldDrawRateMaps;
 @property (nonatomic) BOOL shouldDrawMutations;
 @property (nonatomic) BOOL shouldDrawFixedSubstitutions;
 

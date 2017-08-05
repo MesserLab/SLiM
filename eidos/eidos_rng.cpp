@@ -74,6 +74,7 @@ void EidosInitializeRNGFromSeed(unsigned long int p_seed)
 	gEidos_random_bool_bit_buffer = 0;
 }
 
+#ifndef USE_GSL_POISSON
 double eidos_fast_ran_poisson_PRECALCULATE(double p_mu)
 {
 	// OK, so where does 720 come from?  Primarily, values much greater than that cause an underflow in the algorithm
@@ -91,7 +92,7 @@ double eidos_fast_ran_poisson_PRECALCULATE(double p_mu)
 	
 	return exp(-p_mu);
 }
-
+#endif
 
 
 

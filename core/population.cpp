@@ -1969,7 +1969,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 	if (use_only_strand_1)
 	{
 		num_breakpoints = 0;
-		num_mutations = p_chromosome.DrawMutationCount();
+		num_mutations = p_chromosome.DrawMutationCount(p_parent_sex);
 		
 		// no call to recombination() callbacks here, since recombination is not possible
 		
@@ -1981,8 +1981,8 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 #ifdef USE_GSL_POISSON
 		// When using the GSL's poisson draw, we have to draw the mutation count and breakpoint count separately;
 		// the DrawMutationAndBreakpointCounts() method does not support USE_GSL_POISSON
-		num_mutations = p_chromosome.DrawMutationCount();
-		num_breakpoints = p_chromosome.DrawBreakpointCount();
+		num_mutations = p_chromosome.DrawMutationCount(p_parent_sex);
+		num_breakpoints = p_chromosome.DrawBreakpointCount(p_parent_sex);
 #else
 		// get both the number of mutations and the number of breakpoints here; this allows us to draw both jointly, super fast!
 		p_chromosome.DrawMutationAndBreakpointCounts(p_parent_sex, &num_mutations, &num_breakpoints);
@@ -2171,7 +2171,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 		
 		for (int k = 0; k < num_mutations; k++)
 		{
-			MutationIndex new_mutation = p_chromosome.DrawNewMutation(p_source_subpop_id, p_generation);
+			MutationIndex new_mutation = p_chromosome.DrawNewMutation(p_parent_sex, p_source_subpop_id, p_generation);
 			
 			mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
 			
@@ -2629,7 +2629,7 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 	}
 	
 	// determine how many mutations and breakpoints we have
-	int num_mutations = p_chromosome.DrawMutationCount();
+	int num_mutations = p_chromosome.DrawMutationCount(p_child_sex);	// the parent sex is the same as the child sex
 	
 	// mutations are usually rare, so let's streamline the case where none occur
 	if (num_mutations == 0)
@@ -2647,7 +2647,7 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 		
 		for (int k = 0; k < num_mutations; k++)
 		{
-			MutationIndex new_mutation = p_chromosome.DrawNewMutation(p_source_subpop_id, p_generation);
+			MutationIndex new_mutation = p_chromosome.DrawNewMutation(p_child_sex, p_source_subpop_id, p_generation);	// the parent sex is the same as the child sex
 			
 			mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
 			
