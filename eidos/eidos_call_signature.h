@@ -177,9 +177,7 @@ public:
 	// internal function implementations
 	EidosInternalFunctionPtr internal_function_ = nullptr;
 	
-	// delegated function implementations
-	EidosDelegateFunctionPtr delegate_function_ = nullptr;
-	void *delegate_object_ = nullptr;
+	// delegated function implementations; these are dispatched through the Context object in the interpreter
 	std::string delegate_name_;
 	
 	EidosFunctionSignature(const EidosFunctionSignature&) = delete;								// no copying
@@ -189,8 +187,8 @@ public:
 	
 	EidosFunctionSignature(const std::string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask);
 	EidosFunctionSignature(const std::string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask, const EidosObjectClass *p_return_class);
-	EidosFunctionSignature(const std::string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask, EidosDelegateFunctionPtr p_delegate_function, void *p_delegate_object, const std::string &p_delegate_name);
-	EidosFunctionSignature(const std::string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask, const EidosObjectClass *p_return_class, EidosDelegateFunctionPtr p_delegate_function, void *p_delegate_object, const std::string &p_delegate_name);
+	EidosFunctionSignature(const std::string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask, const std::string &p_delegate_name);
+	EidosFunctionSignature(const std::string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask, const EidosObjectClass *p_return_class, const std::string &p_delegate_name);
 	
 	virtual std::string CallType(void) const;
 	virtual std::string CallPrefix(void) const;

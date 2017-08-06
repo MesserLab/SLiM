@@ -265,7 +265,8 @@ void Population::ExecuteScript(SLiMEidosBlock *p_script_block, slim_generation_t
 #pragma unused(p_generation, p_chromosome)
 	EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim_.SymbolTable());
 	EidosSymbolTable client_symbols(EidosSymbolTableType::kVariablesTable, &callback_symbols);
-	EidosFunctionMap *function_map = sim_.FunctionMapFromBaseMap(EidosInterpreter::BuiltInFunctionMap());	// we get called in gen 0 so we need to add the sim's functions
+	EidosFunctionMap *function_map = SLiMSim::FunctionMapFromBaseMap(EidosInterpreter::BuiltInFunctionMap());
+	
 	EidosInterpreter interpreter(p_script_block->compound_statement_node_, client_symbols, *function_map, &sim_);
 	
 	if (p_script_block->contains_self_)

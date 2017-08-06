@@ -1026,8 +1026,13 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 			
 			if (function_signature->internal_function_)
 				result_SP = function_signature->internal_function_(arguments_array, processed_arg_count, *this);
-			else if (function_signature->delegate_function_)
-				result_SP = function_signature->delegate_function_(function_signature->delegate_object_, *function_name, arguments_array, processed_arg_count, *this);
+			else if (!function_signature->delegate_name_.empty())
+			{
+				if (eidos_context_)
+					result_SP = eidos_context_->ContextDefinedFunctionDispatch(*function_name, arguments_array, processed_arg_count, *this);
+				else
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): function " << function_name << " is defined by the Context, but the Context is not defined." << eidos_terminate(nullptr);
+			}
 			else
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): unbound function " << *function_name << "." << eidos_terminate(call_identifier_token);
 		}
@@ -1042,8 +1047,13 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 			
 			if (function_signature->internal_function_)
 				result_SP = function_signature->internal_function_(arguments_ptr, processed_arg_count, *this);
-			else if (function_signature->delegate_function_)
-				result_SP = function_signature->delegate_function_(function_signature->delegate_object_, *function_name, arguments_ptr, processed_arg_count, *this);
+			else if (!function_signature->delegate_name_.empty())
+			{
+				if (eidos_context_)
+					result_SP = eidos_context_->ContextDefinedFunctionDispatch(*function_name, arguments_ptr, processed_arg_count, *this);
+				else
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): function " << function_name << " is defined by the Context, but the Context is not defined." << eidos_terminate(nullptr);
+			}
 			else
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): unbound function " << *function_name << "." << eidos_terminate(call_identifier_token);
 		}

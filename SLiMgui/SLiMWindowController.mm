@@ -2757,9 +2757,7 @@
 
 - (EidosFunctionMap *)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController functionMapFromBaseMap:(EidosFunctionMap *)baseFunctionMap
 {
-	if (sim && !invalidSimulation)
-		return sim->FunctionMapFromBaseMap(baseFunctionMap);
-	return baseFunctionMap;
+	return SLiMSim::FunctionMapFromBaseMap(baseFunctionMap);
 }
 
 - (const std::vector<const EidosMethodSignature*> *)eidosConsoleWindowControllerAllMethodSignatures:(EidosConsoleWindowController *)eidosConsoleController
@@ -2875,14 +2873,6 @@
 
 - (EidosFunctionMap *)eidosTextView:(EidosTextView *)eidosTextView functionMapFromBaseMap:(EidosFunctionMap *)baseFunctionMap
 {
-	// When called for our script text view, we do not forward to eidosConsoleWindowController:functionMapFromBaseMap:,
-	// because it adds functions only when in the zero generation.  Instead, we want to add the functions always.
-	if (eidosTextView == scriptTextView)
-	{
-		if (sim && !invalidSimulation)
-			return sim->FunctionMapFromBaseMap(baseFunctionMap, true);	// true forces the add
-	}
-	
 	return [self eidosConsoleWindowController:nullptr functionMapFromBaseMap:baseFunctionMap];
 }
 
@@ -3028,27 +3018,9 @@
 						// not in other blocks; we add and remove them dynamically so they are defined as appropriate.  We ought
 						// to do this for other block-specific stuff as well (like the stuff below), but it is unlikely to matter.
 						if (block_type == SLiMEidosBlockType::SLiMEidosInitializeCallback)
-						{
-							// Equivalent to sim->AddZeroGenerationFunctionsToMap(), but works even when sim is nullptr
-							const std::vector<const EidosFunctionSignature*> *initialize_signatures = SLiMSim::ZeroGenerationFunctionSignatures_NO_DELEGATE();
-							
-							if (initialize_signatures)
-							{
-								for (const EidosFunctionSignature *signature : *initialize_signatures)
-									(*functionMap)->insert(EidosFunctionMapPair(signature->call_name_, signature));
-							}
-						}
+							SLiMSim::AddZeroGenerationFunctionsToMap(*functionMap);
 						else
-						{
-							// Equivalent to sim->RemoveZeroGenerationFunctionsFromMap(), but works even when sim is nullptr
-							const std::vector<const EidosFunctionSignature*> *initialize_signatures = SLiMSim::ZeroGenerationFunctionSignatures_NO_DELEGATE();
-							
-							if (initialize_signatures)
-							{
-								for (const EidosFunctionSignature *signature : *initialize_signatures)
-									(*functionMap)->erase(signature->call_name_);
-							}
-						}
+							SLiMSim::RemoveZeroGenerationFunctionsFromMap(*functionMap);
 						
 						if (script_block_node == completion_block)
 						{

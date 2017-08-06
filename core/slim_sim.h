@@ -141,9 +141,6 @@ private:
 	GenomeType modeled_chromosome_type_ = GenomeType::kAutosome;					// the chromosome type; other types might still be instantiated (Y, if X is modeled, e.g.)
 	double x_chromosome_dominance_coeff_ = 1.0;										// the dominance coefficient for heterozygosity at the X locus (i.e. males); this is global
 	
-	std::vector<const EidosFunctionSignature*> sim_0_signatures_;					// OWNED POINTERS: Eidos function signatures
-	EidosFunctionMap *sim_0_function_map_ = nullptr;								// OWNED POINTER: the function map with sim_0_signatures_ added, used only in gen 0
-	
 	// private initialization methods
 	int FormatOfPopulationFile(const char *p_file);			// -1 is file does not exist, 0 is format unrecognized, 1 is text, 2 is binary
 	slim_generation_t InitializePopulationFromFile(const char *p_file, EidosInterpreter *p_interpreter);		// initialize the population from the file
@@ -300,18 +297,15 @@ public:
 	//
 	EidosSymbolTableEntry &SymbolTableEntry(void) { return self_symbol_; };
 	
-	static EidosValue_SP StaticFunctionDelegationFunnel(void *p_delegate, const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
-	EidosValue_SP FunctionDelegationFunnel(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	virtual EidosValue_SP ContextDefinedFunctionDispatch(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	
 	EidosSymbolTable *SymbolsFromBaseSymbols(EidosSymbolTable *p_base_symbols);				// derive a symbol table, adding our own symbols if needed
-	EidosFunctionMap *FunctionMapFromBaseMap(EidosFunctionMap *p_base_map, bool p_force_addition = false);	// derive a function map, adding zero-gen functions if needed
+	static EidosFunctionMap *FunctionMapFromBaseMap(EidosFunctionMap *p_base_map);	// derive a new self-owned function map by adding zero-gen functions
 	
-	static void _AddZeroGenerationFunctionsToSignatureVector(std::vector<const EidosFunctionSignature*> &p_signature_vector, SLiMSim *p_delegate);	// low-level funnel
-	static const std::vector<const EidosFunctionSignature*> *ZeroGenerationFunctionSignatures_NO_DELEGATE(void);									// for code-completion only!
+	static const std::vector<const EidosFunctionSignature*> *ZeroGenerationFunctionSignatures(void);		// all zero-gen functions
+	static void AddZeroGenerationFunctionsToMap(EidosFunctionMap *p_map);
+	static void RemoveZeroGenerationFunctionsFromMap(EidosFunctionMap *p_map);
 	
-	const std::vector<const EidosFunctionSignature*> *ZeroGenerationFunctionSignatures(void);		// all zero-gen functions
-	void AddZeroGenerationFunctionsToMap(EidosFunctionMap *p_map);
-	void RemoveZeroGenerationFunctionsFromMap(EidosFunctionMap *p_map);
 	static const std::vector<const EidosMethodSignature*> *AllMethodSignatures(void);		// does not depend on sim state, so can be a class method
 	static const std::vector<const EidosPropertySignature*> *AllPropertySignatures(void);	// does not depend on sim state, so can be a class method
 	

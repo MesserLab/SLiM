@@ -94,12 +94,6 @@ SLiMSim::~SLiMSim(void)
 	// All the script blocks that refer to the script are now gone
 	delete script_;
 	
-	// We should not have any interpreter instances that still refer to our function map and signatures
-	delete sim_0_function_map_;
-	
-	for (const EidosFunctionSignature *signature : sim_0_signatures_)
-		delete signature;
-	
 	// Dispose of mutation run experiment data
 	if (x_experiments_enabled_)
 	{
@@ -2813,16 +2807,7 @@ void SLiMSim::_CheckMutationStackPolicy(void)
 #pragma mark -
 #pragma mark Eidos support
 
-// a static member function is used as a funnel, so that we can get a pointer to function for it
-EidosValue_SP SLiMSim::StaticFunctionDelegationFunnel(void *p_delegate, const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
-{
-	SLiMSim *sim = static_cast<SLiMSim *>(p_delegate);
-	
-	return sim->FunctionDelegationFunnel(p_function_name, p_arguments, p_argument_count, p_interpreter);
-}
-
-// the static member function calls this member function; now we're completely in context and can execute the function
-EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused(p_interpreter)
 	
@@ -2835,7 +2820,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 	
 	// we only define initialize...() functions; so we must be in an initialize() callback
 	if (generation_ != 0)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): FunctionDelegationFunnel() called outside of initialize time." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): the function " << p_function_name << "() may only be called in an initialize() callback." << eidos_terminate();
 	
 	
 	//
@@ -2855,7 +2840,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 			auto found_getype_pair = genomic_element_types_.find(genomic_element_type);
 			
 			if (found_getype_pair == genomic_element_types_.end())
-				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElement() genomic element type g" << genomic_element_type << " not defined." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeGenomicElement() genomic element type g" << genomic_element_type << " not defined." << eidos_terminate();
 			
 			genomic_element_type_ptr = found_getype_pair->second;
 		}
@@ -2865,7 +2850,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		}
 		
 		if (end_position < start_position)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElement() end position " << end_position << " is less than start position " << start_position << "." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeGenomicElement() end position " << end_position << " is less than start position " << start_position << "." << eidos_terminate();
 		
 		// Check that the new element will not overlap any existing element; if end_position > last_genomic_element_position we are safe.
 		// Otherwise, we have to check all previously defined elements.  The use of last_genomic_element_position is an optimization to
@@ -2875,7 +2860,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 			for (auto &element : chromosome_)
 			{
 				if ((element.start_position_ <= end_position) && (element.end_position_ >= start_position))
-					EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElement() genomic element from start position " << start_position << " to end position " << end_position << " overlaps existing genomic element." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeGenomicElement() genomic element from start position " << start_position << " to end position " << end_position << " overlaps existing genomic element." << eidos_terminate();
 			}
 		}
 		
@@ -2918,13 +2903,13 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		slim_objectid_t map_identifier = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 'g', nullptr);
 		
 		if (genomic_element_types_.count(map_identifier) > 0) 
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElementType() genomic element type g" << map_identifier << " already defined." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeGenomicElementType() genomic element type g" << map_identifier << " already defined." << eidos_terminate();
 		
 		int mut_type_id_count = arg1_value->Count();
 		int proportion_count = arg2_value->Count();
 		
 		if (mut_type_id_count != proportion_count)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElementType() requires the sizes of mutationTypes and proportions to be equal." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeGenomicElementType() requires the sizes of mutationTypes and proportions to be equal." << eidos_terminate();
 		
 		std::vector<MutationType*> mutation_types;
 		std::vector<double> mutation_fractions;
@@ -2935,7 +2920,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 			double proportion = arg2_value->FloatAtIndex(mut_type_index, nullptr);
 			
 			if (proportion < 0)		// == 0 is allowed but must be fixed before the simulation executes; see InitializeDraws()
-				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElementType() proportions must be greater than or equal to zero (" << proportion << " supplied)." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeGenomicElementType() proportions must be greater than or equal to zero (" << proportion << " supplied)." << eidos_terminate();
 			
 			if (arg1_value->Type() == EidosValueType::kValueInt)
 			{
@@ -2946,7 +2931,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 					mutation_type_ptr = found_muttype_pair->second;
 				
 				if (!mutation_type_ptr)
-					EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElementType() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeGenomicElementType() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
 			}
 			else
 			{
@@ -2954,7 +2939,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 			}
 			
 			if (std::find(mutation_types.begin(), mutation_types.end(), mutation_type_ptr) != mutation_types.end())
-				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElementType() mutation type m" << mutation_type_ptr->mutation_type_id_ << " used more than once." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeGenomicElementType() mutation type m" << mutation_type_ptr->mutation_type_id_ << " used more than once." << eidos_terminate();
 			
 			mutation_types.emplace_back(mutation_type_ptr);
 			mutation_fractions.emplace_back(proportion);
@@ -2977,7 +2962,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		EidosSymbolTableEntry &symbol_entry = new_genomic_element_type->SymbolTableEntry();
 		
 		if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGenomicElementType() symbol " << StringForEidosGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeGenomicElementType() symbol " << StringForEidosGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << eidos_terminate();
 		
 		simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 		
@@ -3027,7 +3012,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		IndividualSex receiver_sex = IndividualSex::kUnspecified, exerter_sex = IndividualSex::kUnspecified;
 		
 		if (interaction_types_.count(map_identifier) > 0) 
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() mutation type m" << map_identifier << " already defined." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeInteractionType() mutation type m" << map_identifier << " already defined." << eidos_terminate();
 		
 		if (spatiality_string.length() == 0)					required_dimensionality = 0;
 		else if (spatiality_string.compare(gEidosStr_x) == 0)	required_dimensionality = 1;
@@ -3038,15 +3023,15 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		else if (spatiality_string.compare("yz") == 0)			required_dimensionality = 3;
 		else if (spatiality_string.compare("xyz") == 0)			required_dimensionality = 3;
 		else
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() spatiality \"" << spatiality_string << "\" must be \"\", \"x\", \"y\", \"z\", \"xy\", \"xz\", \"yz\", or \"xyz\"." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeInteractionType() spatiality \"" << spatiality_string << "\" must be \"\", \"x\", \"y\", \"z\", \"xy\", \"xz\", \"yz\", or \"xyz\"." << eidos_terminate();
 		
 		if (required_dimensionality > spatial_dimensionality_)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() spatiality cannot utilize spatial dimensions beyond those set in initializeSLiMOptions()." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeInteractionType() spatiality cannot utilize spatial dimensions beyond those set in initializeSLiMOptions()." << eidos_terminate();
 		
 		if (max_distance < 0.0)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() maxDistance must be >= 0.0." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeInteractionType() maxDistance must be >= 0.0." << eidos_terminate();
 		if ((required_dimensionality == 0) && (!std::isinf(max_distance) || (max_distance < 0.0)))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() maxDistance must be INF for non-spatial interactions." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeInteractionType() maxDistance must be INF for non-spatial interactions." << eidos_terminate();
 		
 		if (sex_string == "**")			{ receiver_sex = IndividualSex::kUnspecified;	exerter_sex = IndividualSex::kUnspecified;	}
 		else if (sex_string == "*M")	{ receiver_sex = IndividualSex::kUnspecified;	exerter_sex = IndividualSex::kMale;			}
@@ -3058,10 +3043,10 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		else if (sex_string == "FM")	{ receiver_sex = IndividualSex::kFemale;		exerter_sex = IndividualSex::kMale;			}
 		else if (sex_string == "FF")	{ receiver_sex = IndividualSex::kFemale;		exerter_sex = IndividualSex::kFemale;		}
 		else
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() unsupported sexSegregation value (must be '**', '*M', '*F', 'M*', 'MM', 'MF', 'F*', 'FM', or 'FF')." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeInteractionType() unsupported sexSegregation value (must be '**', '*M', '*F', 'M*', 'MM', 'MF', 'F*', 'FM', or 'FF')." << eidos_terminate();
 		
 		if (((receiver_sex != IndividualSex::kUnspecified) || (exerter_sex != IndividualSex::kUnspecified)) && !sex_enabled_)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() sexSegregation value other than '**' unsupported in non-sexual simulation." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeInteractionType() sexSegregation value other than '**' unsupported in non-sexual simulation." << eidos_terminate();
 		
 		InteractionType *new_interaction_type = new InteractionType(map_identifier, spatiality_string, reciprocal, max_distance, receiver_sex, exerter_sex);
 		
@@ -3072,7 +3057,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		EidosSymbolTableEntry &symbol_entry = new_interaction_type->SymbolTableEntry();
 		
 		if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeInteractionType() symbol " << StringForEidosGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeInteractionType() symbol " << StringForEidosGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << eidos_terminate();
 		
 		simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 		
@@ -3114,7 +3099,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		bool numericParams = true;		// if true, params must be int/float; if false, params must be string
 		
 		if (mutation_types_.count(map_identifier) > 0) 
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() mutation type m" << map_identifier << " already defined." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeMutationType() mutation type m" << map_identifier << " already defined." << eidos_terminate();
 		
 		if (dfe_type_string.compare(gStr_f) == 0)
 		{
@@ -3148,10 +3133,10 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 			numericParams = false;
 		}
 		else
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() distributionType \"" << dfe_type_string << "\" must be \"f\", \"g\", \"e\", \"n\", \"w\", or \"s\"." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeMutationType() distributionType \"" << dfe_type_string << "\" must be \"f\", \"g\", \"e\", \"n\", \"w\", or \"s\"." << eidos_terminate();
 		
 		if (p_argument_count != 3 + expected_dfe_param_count)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() distributionType \"" << dfe_type << "\" requires exactly " << expected_dfe_param_count << " DFE parameter" << (expected_dfe_param_count == 1 ? "" : "s") << "." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeMutationType() distributionType \"" << dfe_type << "\" requires exactly " << expected_dfe_param_count << " DFE parameter" << (expected_dfe_param_count == 1 ? "" : "s") << "." << eidos_terminate();
 		
 		for (int dfe_param_index = 0; dfe_param_index < expected_dfe_param_count; ++dfe_param_index)
 		{
@@ -3161,7 +3146,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 			if (numericParams)
 			{
 				if ((dfe_param_type != EidosValueType::kValueFloat) && (dfe_param_type != EidosValueType::kValueInt))
-					EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() requires that DFE parameters be numeric (integer or float)." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeMutationType() requires that DFE parameters be numeric (integer or float)." << eidos_terminate();
 				
 				dfe_parameters.emplace_back(dfe_param_value->FloatAtIndex(0, nullptr));
 				// intentionally no bounds checks for DFE parameters
@@ -3190,7 +3175,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		EidosSymbolTableEntry &symbol_entry = new_mutation_type->SymbolTableEntry();
 		
 		if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationType() symbol " << StringForEidosGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeMutationType() symbol " << StringForEidosGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << eidos_terminate();
 		
 		simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 		
@@ -3245,19 +3230,19 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		else if (sex_string.compare("*") == 0)
 			requested_sex = IndividualSex::kUnspecified;
 		else
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeRecombinationRate() requested sex \"" << sex_string << "\" unsupported." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeRecombinationRate() requested sex \"" << sex_string << "\" unsupported." << eidos_terminate();
 		
 		if ((requested_sex != IndividualSex::kUnspecified) && !sex_enabled_)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeRecombinationRate() sex-specific recombination map supplied in non-sexual simulation." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeRecombinationRate() sex-specific recombination map supplied in non-sexual simulation." << eidos_terminate();
 		
 		// Make sure specifying a map for that sex is legal, given our current state.  Since single_recombination_map_ has not been set
 		// yet, we just look to see whether the chromosome's policy has already been determined or not.
 		if (((requested_sex == IndividualSex::kUnspecified) && ((chromosome_.recombination_rates_M_.size() != 0) || (chromosome_.recombination_rates_F_.size() != 0))) ||
 			((requested_sex != IndividualSex::kUnspecified) && (chromosome_.recombination_rates_H_.size() != 0)))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeRecombinationRate() cannot change the chromosome between using a single map versus separate maps for the sexes; the original configuration must be preserved." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeRecombinationRate() cannot change the chromosome between using a single map versus separate maps for the sexes; the original configuration must be preserved." << eidos_terminate();
 		
 		if (((requested_sex == IndividualSex::kUnspecified) && (num_recombination_rates_ > 0)) || ((requested_sex != IndividualSex::kUnspecified) && (num_recombination_rates_ > 1)))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeRecombinationRate() may be called only once (or once per sex, with sex-specific recombination maps).  The multiple recombination regions of a recombination map must be set up in a single call to initializeRecombinationRate()." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeRecombinationRate() may be called only once (or once per sex, with sex-specific recombination maps).  The multiple recombination regions of a recombination map must be set up in a single call to initializeRecombinationRate()." << eidos_terminate();
 		
 		// Set up to replace the requested map
 		vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_.recombination_end_positions_H_ : 
@@ -3268,13 +3253,13 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		if (arg1_value->Type() == EidosValueType::kValueNULL)
 		{
 			if (rate_count != 1)
-				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeRecombinationRate() requires rates to be a singleton if ends is not supplied." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeRecombinationRate() requires rates to be a singleton if ends is not supplied." << eidos_terminate();
 			
 			double recombination_rate = arg0_value->FloatAtIndex(0, nullptr);
 			
 			// check values
 			if (recombination_rate < 0.0)		// intentionally no upper bound
-				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeRecombinationRate() requires rates to be >= 0 (" << recombination_rate << " supplied)." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeRecombinationRate() requires rates to be >= 0 (" << recombination_rate << " supplied)." << eidos_terminate();
 			
 			// then adopt them
 			rates.clear();
@@ -3288,7 +3273,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 			int end_count = arg1_value->Count();
 			
 			if ((end_count != rate_count) || (end_count == 0))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeRecombinationRate() requires ends and rates to be of equal and nonzero size." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeRecombinationRate() requires ends and rates to be of equal and nonzero size." << eidos_terminate();
 			
 			// check values
 			for (int value_index = 0; value_index < end_count; ++value_index)
@@ -3298,10 +3283,10 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 				
 				if (value_index > 0)
 					if (recombination_end_position <= arg1_value->IntAtIndex(value_index - 1, nullptr))
-						EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeRecombinationRate() requires ends to be in strictly ascending order." << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeRecombinationRate() requires ends to be in strictly ascending order." << eidos_terminate();
 				
 				if (recombination_rate < 0.0)		// intentionally no upper bound
-					EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeRecombinationRate() requires rates to be >= 0 (" << recombination_rate << " supplied)." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeRecombinationRate() requires rates to be >= 0 (" << recombination_rate << " supplied)." << eidos_terminate();
 			}
 			
 			// then adopt them
@@ -3361,15 +3346,15 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 	else if (p_function_name.compare(gStr_initializeGeneConversion) == 0)
 	{
 		if (num_gene_conversions_ > 0)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGeneConversion() may be called only once." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeGeneConversion() may be called only once." << eidos_terminate();
 		
 		double gene_conversion_fraction = arg0_value->FloatAtIndex(0, nullptr);
 		double gene_conversion_avg_length = arg1_value->FloatAtIndex(0, nullptr);
 		
 		if ((gene_conversion_fraction < 0.0) || (gene_conversion_fraction > 1.0))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGeneConversion() conversionFraction must be between 0.0 and 1.0 inclusive (" << gene_conversion_fraction << " supplied)." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeGeneConversion() conversionFraction must be between 0.0 and 1.0 inclusive (" << gene_conversion_fraction << " supplied)." << eidos_terminate();
 		if (gene_conversion_avg_length <= 0.0)		// intentionally no upper bound
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeGeneConversion() meanLength must be greater than 0.0 (" << gene_conversion_avg_length << " supplied)." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeGeneConversion() meanLength must be greater than 0.0 (" << gene_conversion_avg_length << " supplied)." << eidos_terminate();
 		
 		chromosome_.gene_conversion_fraction_ = gene_conversion_fraction;
 		chromosome_.gene_conversion_avg_length_ = gene_conversion_avg_length;
@@ -3401,19 +3386,19 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		else if (sex_string.compare("*") == 0)
 			requested_sex = IndividualSex::kUnspecified;
 		else
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationRate() requested sex \"" << sex_string << "\" unsupported." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeMutationRate() requested sex \"" << sex_string << "\" unsupported." << eidos_terminate();
 		
 		if ((requested_sex != IndividualSex::kUnspecified) && !sex_enabled_)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationRate() sex-specific mutation map supplied in non-sexual simulation." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeMutationRate() sex-specific mutation map supplied in non-sexual simulation." << eidos_terminate();
 		
 		// Make sure specifying a map for that sex is legal, given our current state.  Since single_mutation_map_ has not been set
 		// yet, we just look to see whether the chromosome's policy has already been determined or not.
 		if (((requested_sex == IndividualSex::kUnspecified) && ((chromosome_.mutation_rates_M_.size() != 0) || (chromosome_.mutation_rates_F_.size() != 0))) ||
 			((requested_sex != IndividualSex::kUnspecified) && (chromosome_.mutation_rates_H_.size() != 0)))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationRate() cannot change the chromosome between using a single map versus separate maps for the sexes; the original configuration must be preserved." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeMutationRate() cannot change the chromosome between using a single map versus separate maps for the sexes; the original configuration must be preserved." << eidos_terminate();
 		
 		if (((requested_sex == IndividualSex::kUnspecified) && (num_mutation_rates_ > 0)) || ((requested_sex != IndividualSex::kUnspecified) && (num_mutation_rates_ > 1)))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationRate() may be called only once (or once per sex, with sex-specific mutation maps).  The multiple mutation regions of a mutation map must be set up in a single call to initializeMutationRate()." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeMutationRate() may be called only once (or once per sex, with sex-specific mutation maps).  The multiple mutation regions of a mutation map must be set up in a single call to initializeMutationRate()." << eidos_terminate();
 		
 		// Set up to replace the requested map
 		vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_.mutation_end_positions_H_ : 
@@ -3424,13 +3409,13 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		if (arg1_value->Type() == EidosValueType::kValueNULL)
 		{
 			if (rate_count != 1)
-				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationRate() requires rates to be a singleton if ends is not supplied." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeMutationRate() requires rates to be a singleton if ends is not supplied." << eidos_terminate();
 			
 			double mutation_rate = arg0_value->FloatAtIndex(0, nullptr);
 			
 			// check values
 			if (mutation_rate < 0.0)		// intentionally no upper bound
-				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationRate() requires rates to be >= 0 (" << mutation_rate << " supplied)." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeMutationRate() requires rates to be >= 0 (" << mutation_rate << " supplied)." << eidos_terminate();
 			
 			// then adopt them
 			rates.clear();
@@ -3444,7 +3429,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 			int end_count = arg1_value->Count();
 			
 			if ((end_count != rate_count) || (end_count == 0))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationRate() requires ends and rates to be of equal and nonzero size." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeMutationRate() requires ends and rates to be of equal and nonzero size." << eidos_terminate();
 			
 			// check values
 			for (int value_index = 0; value_index < end_count; ++value_index)
@@ -3454,10 +3439,10 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 				
 				if (value_index > 0)
 					if (mutation_end_position <= arg1_value->IntAtIndex(value_index - 1, nullptr))
-						EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationRate() requires ends to be in strictly ascending order." << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeMutationRate() requires ends to be in strictly ascending order." << eidos_terminate();
 				
 				if (mutation_rate < 0.0)		// intentionally no upper bound
-					EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeMutationRate() requires rates to be >= 0 (" << mutation_rate << " supplied)." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeMutationRate() requires rates to be >= 0 (" << mutation_rate << " supplied)." << eidos_terminate();
 			}
 			
 			// then adopt them
@@ -3517,7 +3502,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 	else if (p_function_name.compare(gStr_initializeSex) == 0)
 	{
 		if (num_sex_declarations_ > 0)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeSex() may be called only once." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeSex() may be called only once." << eidos_terminate();
 		
 		string chromosome_type = arg0_value->StringAtIndex(0, nullptr);
 		
@@ -3528,14 +3513,14 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 		else if (chromosome_type.compare(gStr_Y) == 0)
 			modeled_chromosome_type_ = GenomeType::kYChromosome;
 		else
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeSex() requires a chromosomeType of \"A\", \"X\", or \"Y\" (\"" << chromosome_type << "\" supplied)." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeSex() requires a chromosomeType of \"A\", \"X\", or \"Y\" (\"" << chromosome_type << "\" supplied)." << eidos_terminate();
 		
 		if (arg1_value->FloatAtIndex(0, nullptr) != 1.0)
 		{
 			if (modeled_chromosome_type_ == GenomeType::kXChromosome)
 				x_chromosome_dominance_coeff_ = arg1_value->FloatAtIndex(0, nullptr);		// intentionally no bounds check
 			else
-				EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeSex() xDominanceCoeff may be supplied only for chromosomeType \"X\"." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeSex() xDominanceCoeff may be supplied only for chromosomeType \"X\"." << eidos_terminate();
 		}
 		
 		if (DEBUG_INPUT)
@@ -3565,10 +3550,10 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 #endif
 		
 		if (num_options_declarations_ > 0)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeSLiMOptions() may be called only once." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeSLiMOptions() may be called only once." << eidos_terminate();
 		
 		if ((num_interaction_types_ > 0) || (num_mutation_types_ > 0) || (num_mutation_rates_ > 0) || (num_genomic_element_types_ > 0) || (num_genomic_elements_ > 0) || (num_recombination_rates_ > 0) || (num_gene_conversions_ > 0) || (num_sex_declarations_ > 0))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): initializeSLiMOptions() must be called before all other initialization functions." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeSLiMOptions() must be called before all other initialization functions." << eidos_terminate();
 		
 		{
 			// [logical$ keepPedigrees = F]
@@ -3590,7 +3575,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 				else if (space == "xyz")
 					spatial_dimensionality_ = 3;
 				else
-					EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): in initializeSLiMOptions(), legal non-empty values for parameter dimensionality are only 'x', 'xy', and 'xyz'." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): in initializeSLiMOptions(), legal non-empty values for parameter dimensionality are only 'x', 'xy', and 'xyz'." << eidos_terminate();
 			}
 		}
 		
@@ -3601,7 +3586,7 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 			if (mutrun_count != 0)
 			{
 				if ((mutrun_count < 1) || (mutrun_count > 10000))
-					EIDOS_TERMINATION << "ERROR (SLiMSim::FunctionDelegationFunnel): in initializeSLiMOptions(), parameter mutationRuns currently must be between 1 and 10000, inclusive." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): in initializeSLiMOptions(), parameter mutationRuns currently must be between 1 and 10000, inclusive." << eidos_terminate();
 				
 				preferred_mutrun_count_ = (int)mutrun_count;
 			}
@@ -3663,52 +3648,32 @@ EidosValue_SP SLiMSim::FunctionDelegationFunnel(const std::string &p_function_na
 	return gStaticEidosValueNULLInvisible;
 }
 
-void SLiMSim::_AddZeroGenerationFunctionsToSignatureVector(std::vector<const EidosFunctionSignature*> &p_signature_vector, SLiMSim *p_delegate)
-{
-	// This is the lowest-level funnel for adding zero-generation (i.e. initialize() callback) functions.  It takes
-	// a pointer to a SLiMSim object to be used as a delegate, which allows the code completion facility to work
-	// even when the simulation is invalid, by passing nullptr for the delegate.
-	if (!p_signature_vector.size())
-	{
-		void *delegate = static_cast<void *>(p_delegate);
-		
-		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElement, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))
-									   ->AddIntObject_S("genomicElementType", gSLiM_GenomicElementType_Class)->AddInt_S("start")->AddInt_S("end"));
-		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElementType, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_GenomicElementType_Class, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))
-									   ->AddIntString_S("id")->AddIntObject("mutationTypes", gSLiM_MutationType_Class)->AddNumeric("proportions"));
-		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeInteractionType, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_InteractionType_Class, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))
-									   ->AddIntString_S("id")->AddString_S(gStr_spatiality)->AddLogical_OS(gStr_reciprocal, gStaticEidosValue_LogicalF)->AddNumeric_OS(gStr_maxDistance, gStaticEidosValue_FloatINF)->AddString_OS(gStr_sexSegregation, gStaticEidosValue_StringDoubleAsterisk));
-		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationType, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))
-									   ->AddIntString_S("id")->AddNumeric_S("dominanceCoeff")->AddString_S("distributionType")->AddEllipsis());
-		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeRecombinationRate, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))
-									   ->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
-		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGeneConversion, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))
-									   ->AddNumeric_S("conversionFraction")->AddNumeric_S("meanLength"));
-		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationRate, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))
-									   ->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
-		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSex, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))
-									   ->AddString_S("chromosomeType")->AddNumeric_OS("xDominanceCoeff", gStaticEidosValue_Float1));
-		p_signature_vector.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMOptions, nullptr, kEidosValueMaskNULL, SLiMSim::StaticFunctionDelegationFunnel, delegate, "SLiM"))
-									   ->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("dimensionality", gStaticEidosValue_StringEmpty)->AddInt_OS("mutationRuns", gStaticEidosValue_Integer0)->AddLogical_OS("preventIncidentalSelfing", gStaticEidosValue_LogicalF));
-	}
-}
-
-const std::vector<const EidosFunctionSignature*> *SLiMSim::ZeroGenerationFunctionSignatures_NO_DELEGATE(void)
-{
-	// Allocate our own EidosFunctionSignature objects; for this method, the signatures have a nullptr delegate and must not be called
-	static std::vector<const EidosFunctionSignature*> gSLiMZeroGenSignatures_NO_DELEGATE;
-	
-	if (!gSLiMZeroGenSignatures_NO_DELEGATE.size())
-		_AddZeroGenerationFunctionsToSignatureVector(gSLiMZeroGenSignatures_NO_DELEGATE, nullptr);
-	
-	return &gSLiMZeroGenSignatures_NO_DELEGATE;
-}
-
 const std::vector<const EidosFunctionSignature*> *SLiMSim::ZeroGenerationFunctionSignatures(void)
 {
-	// Allocate our own EidosFunctionSignature objects; they cannot be statically allocated since they point to us
+	// Allocate our own EidosFunctionSignature objects
+	static std::vector<const EidosFunctionSignature*> sim_0_signatures_;
+	
 	if (!sim_0_signatures_.size())
-		_AddZeroGenerationFunctionsToSignatureVector(sim_0_signatures_, this);
+	{
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElement, nullptr, kEidosValueMaskNULL, "SLiM"))
+										->AddIntObject_S("genomicElementType", gSLiM_GenomicElementType_Class)->AddInt_S("start")->AddInt_S("end"));
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElementType, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_GenomicElementType_Class, "SLiM"))
+										->AddIntString_S("id")->AddIntObject("mutationTypes", gSLiM_MutationType_Class)->AddNumeric("proportions"));
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeInteractionType, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_InteractionType_Class, "SLiM"))
+										->AddIntString_S("id")->AddString_S(gStr_spatiality)->AddLogical_OS(gStr_reciprocal, gStaticEidosValue_LogicalF)->AddNumeric_OS(gStr_maxDistance, gStaticEidosValue_FloatINF)->AddString_OS(gStr_sexSegregation, gStaticEidosValue_StringDoubleAsterisk));
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationType, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class, "SLiM"))
+										->AddIntString_S("id")->AddNumeric_S("dominanceCoeff")->AddString_S("distributionType")->AddEllipsis());
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeRecombinationRate, nullptr, kEidosValueMaskNULL, "SLiM"))
+										->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGeneConversion, nullptr, kEidosValueMaskNULL, "SLiM"))
+										->AddNumeric_S("conversionFraction")->AddNumeric_S("meanLength"));
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationRate, nullptr, kEidosValueMaskNULL, "SLiM"))
+										->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSex, nullptr, kEidosValueMaskNULL, "SLiM"))
+										->AddString_S("chromosomeType")->AddNumeric_OS("xDominanceCoeff", gStaticEidosValue_Float1));
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMOptions, nullptr, kEidosValueMaskNULL, "SLiM"))
+										->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("dimensionality", gStaticEidosValue_StringEmpty)->AddInt_OS("mutationRuns", gStaticEidosValue_Integer0)->AddLogical_OS("preventIncidentalSelfing", gStaticEidosValue_LogicalF));
+	}
 	
 	return &sim_0_signatures_;
 }
@@ -3887,24 +3852,20 @@ EidosSymbolTable *SLiMSim::SymbolsFromBaseSymbols(EidosSymbolTable *p_base_symbo
 	return simulation_constants_;
 }
 
-EidosFunctionMap *SLiMSim::FunctionMapFromBaseMap(EidosFunctionMap *p_base_map, bool p_force_addition)
+EidosFunctionMap *SLiMSim::FunctionMapFromBaseMap(EidosFunctionMap *p_base_map)
 {
-	// Add signatures for functions we define – initialize...() functions only, right now
-	if (p_force_addition || (generation_ == 0))
+	static EidosFunctionMap *sim_0_function_map = nullptr;
+	
+	if (!sim_0_function_map)
 	{
-		if (!sim_0_function_map_)
-		{
-			// construct a new map based on the base map, add our functions, and return it, which gives the pointer to the interpreter
-			// this is slow, but it doesn't matter; if we start adding functions outside of initialize time, this will need to be revisited
-			sim_0_function_map_ = new EidosFunctionMap(*p_base_map);
-			
-			AddZeroGenerationFunctionsToMap(sim_0_function_map_);
-		}
+		// construct a new map based on the base map, add our functions, and return it, which gives the pointer to the interpreter
+		// this is slow, but it doesn't matter; if we start adding functions outside of initialize time, this will need to be revisited
+		sim_0_function_map = new EidosFunctionMap(*p_base_map);
 		
-		return sim_0_function_map_;
+		AddZeroGenerationFunctionsToMap(sim_0_function_map);
 	}
 	
-	return p_base_map;
+	return sim_0_function_map;
 }
 
 const EidosObjectClass *SLiMSim::Class(void) const

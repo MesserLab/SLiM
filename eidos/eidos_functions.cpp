@@ -7512,8 +7512,15 @@ EidosValue_SP Eidos_ExecuteFunction_doCall(const EidosValue_SP *const p_argument
 	// functions for further details.
 	if (function_signature->internal_function_)
 		result_SP = function_signature->internal_function_(arguments, argument_count, p_interpreter);
-	else if (function_signature->delegate_function_)
-		result_SP = function_signature->delegate_function_(function_signature->delegate_object_, function_name, arguments, argument_count, p_interpreter);
+	else if (!function_signature->delegate_name_.empty())
+	{
+		EidosContext *context = p_interpreter.Context();
+		
+		if (context)
+			result_SP = context->ContextDefinedFunctionDispatch(function_name, arguments, argument_count, p_interpreter);
+		else
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_doCall): function " << function_name << " is defined by the Context, but the Context is not defined." << eidos_terminate(nullptr);
+	}
 	else
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_doCall): unbound function " << function_name << "." << eidos_terminate(nullptr);
 	

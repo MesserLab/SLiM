@@ -41,11 +41,6 @@ EidosValue_SP UniqueEidosValue(const EidosValue *p_value, bool p_force_new_vecto
 typedef EidosValue_SP (*EidosInternalFunctionPtr)(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 
 
-// Prototype for a function handler that is in an external agent; this is how the Context can get its functions into Eidos.
-// This registration is done with a delegate object and a delegate function pointer (NOT a pointer to method).
-typedef EidosValue_SP (*EidosDelegateFunctionPtr)(void *p_delegate, const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
-
-
 //	math functions
 EidosValue_SP Eidos_ExecuteFunction_abs(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_acos(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);

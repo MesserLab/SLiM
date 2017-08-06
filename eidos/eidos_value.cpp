@@ -2728,6 +2728,12 @@ EidosValue_SP EidosObjectElement::ExecuteInstanceMethod(EidosGlobalStringID p_me
 	}
 }
 
+EidosValue_SP EidosObjectElement::ContextDefinedFunctionDispatch(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused(p_function_name, p_arguments, p_argument_count, p_interpreter)
+	EIDOS_TERMINATION << "ERROR (EidosObjectElement::ContextDefinedFunctionDispatch for " << Class()->ElementType() << "): (internal error) unimplemented Context function dispatch." << eidos_terminate(nullptr);
+}
+
 std::ostream &operator<<(std::ostream &p_outstream, const EidosObjectElement &p_element)
 {
 	p_element.Print(p_outstream);	// get dynamic dispatch

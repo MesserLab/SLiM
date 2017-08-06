@@ -22,6 +22,7 @@ development head:
 	add ability to supply a mutation rate map instead of just an overall rate; removed the mutationRate property of Chromosome
 	add display of the mutation rate map in SLiMgui with the R button
 	add support for /* */ block comments to Eidos
+	fix Context-defined functions so SLiMgui works with them better (showing the function prototype even after an error)
 
 
 2.4.1 (build 1166; Eidos version 1.4.1):

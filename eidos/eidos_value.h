@@ -925,6 +925,12 @@ public:
 	virtual void SetProperty_Accelerated_Float(EidosGlobalStringID p_property_id, double p_value);
 	virtual void SetProperty_Accelerated_String(EidosGlobalStringID p_property_id, const std::string &p_value);
 	virtual void SetProperty_Accelerated_ObjectElement(EidosGlobalStringID p_property_id, const EidosObjectElement *p_value);
+	
+	// EidosContext is a typedef for EidosObjectElement at present, so this class is the superclass of the Context
+	// object.  If that gets complicated we'll probably want to make a new EidosContext class to formalize things,
+	// but for now the only addition we need for that is this virtual function stub, used for Context-defined
+	// function dispatch.
+	virtual EidosValue_SP ContextDefinedFunctionDispatch(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const EidosObjectElement &p_element);
