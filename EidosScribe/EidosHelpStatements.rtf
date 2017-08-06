@@ -1,18 +1,20 @@
-{\rtf1\ansi\ansicpg1252\cocoartf1348\cocoasubrtf170
+{\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf830
 {\fonttbl\f0\fswiss\fcharset0 Optima-Regular;\f1\fnil\fcharset0 Menlo-Italic;\f2\fnil\fcharset0 Menlo-Regular;
 \f3\froman\fcharset0 TimesNewRomanPSMT;}
 {\colortbl;\red255\green255\blue255;\red170\green13\blue145;\red28\green10\blue207;\red255\green0\blue0;
-}
+\red28\green0\blue207;\red0\green116\blue0;}
+{\*\expandedcolortbl;;\csgenericrgb\c66667\c5098\c56863;\csgenericrgb\c10980\c3922\c81176;\csgenericrgb\c100000\c0\c0;
+\csgenericrgb\c10980\c0\c81176;\csgenericrgb\c0\c45490\c0;}
 \margl1440\margr1440\vieww9000\viewh8400\viewkind0
 \deftab720
-\pard\pardeftab720\ri720\sb120\sa60
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \f0\i\fs22 \cf0 2.5.1  ITEM: 1. 
 \f1\fs18 if
 \f0\fs22  and 
 \f1\fs18 if\'96else
 \f0\fs22  statements\
-\pard\pardeftab720\fi274\ri720\sb40\sa40
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 
 \i0 \cf0 As in many languages, conditional execution is provided by the 
 \f2\fs18 if
@@ -27,7 +29,7 @@
 \f0\fs22 , the rest of the 
 \f2\fs18 if
 \f0\fs22  statement is ignored.  An example:\
-\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40\partightenfactor0
 
 \f3\fs4 \cf0 \
 
@@ -39,7 +41,7 @@
 \f2\fs18 "exponentiation is da bomb!"\
 
 \f3\fs4 \
-\pard\pardeftab720\fi274\ri720\sb40\sa40
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f0\fs22 \cf0 The only twist here, really, is that the condition must evaluate to a single value, i.e. a vector of 
 \f2\fs18 size() == 1
@@ -67,7 +69,7 @@ It is worth exploring this twist with an example.  Suppose you have a variable
 \f0\fs22  and 
 \f2\fs18 8
 \f0\fs22 .  You might expect to be able to write:\
-\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40\partightenfactor0
 
 \f3\fs4 \cf0 \
 
@@ -75,14 +77,14 @@ It is worth exploring this twist with an example.  Suppose you have a variable
 \f3 \cf0 \
 
 \fs4 \
-\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40\partightenfactor0
 
 \f2\fs18 \cf4 ERROR (EidosInterpreter::Evaluate_If): condition has size() != 1
 \f3 .\
-\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40\partightenfactor0
 
 \fs4 \cf0 \
-\pard\pardeftab720\fi274\ri720\sb40\sa40
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f0\fs22 \cf0 The error informs you that the size of condition is not equal to 
 \f2\fs18 1
@@ -116,7 +118,7 @@ Often you want to perform an alternative action when the condition of an
 \f0\fs22 ; the 
 \f2\fs18 if\'96else
 \f0\fs22  statement allows this.  It is simplest to just show this with an example:\
-\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40\partightenfactor0
 
 \f3\fs4 \cf0 \
 
@@ -128,33 +130,33 @@ Often you want to perform an alternative action when the condition of an
 \f2\fs18 "not so much."\
 
 \f3\fs4 \
-\pard\pardeftab720\fi274\ri720\sb40\sa40
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f0\fs22 \cf0 Super simple, right?
 \f3 \
-\pard\pardeftab720\ri720\sb120\sa60
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \f0\i \cf0 2.5.3  ITEM: 3. semicolons and "null statements", 
 \f1\fs18 ;
 \f3\fs22 \
-\pard\pardeftab720\fi274\ri720\sb40\sa40
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f0\i0 \cf0 Every statement in Eidos must end with a semicolon (except compound statements, which end with a closing brace).  However, when you\'92re working interactively in EidosScribe, EidosScribe will add a trailing semicolon to your statements if necessary, just to make your life simpler.  So when you type:\
-\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb180\sa180
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb180\sa180\partightenfactor0
 
 \f2\fs18 \cf2 >\cf0  \cf3 1+1==2
 \f3 \cf0 \
-\pard\pardeftab720\ri720\sb40\sa40
+\pard\pardeftab720\ri720\sb40\sa40\partightenfactor0
 
 \f0\fs22 \cf0 what is really being evaluated behind the scenes is:\
-\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb180\sa180
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb180\sa180\partightenfactor0
 
 \f2\fs18 \cf2 >\cf0  \cf3 1+1==2;
 \f3 \cf0 \
-\pard\pardeftab720\fi274\ri720\sb40\sa40
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f0\fs22 \cf0 When you\'92re not working interactively, semicolons are required, and if you forget, you will get an error, like this:\
-\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40\partightenfactor0
 
 \f3\fs4 \cf0 \
 
@@ -162,28 +164,28 @@ Often you want to perform an alternative action when the condition of an
 \f3 \cf0 \
 
 \fs4 \
-\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40\partightenfactor0
 
 \f2\fs18 \cf4 ERROR (Parse): unexpected token 'EOF' in statement; expected ';'\
-\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40\partightenfactor0
 
 \f3\fs4 \cf0 \
-\pard\pardeftab720\fi274\ri720\sb40\sa40
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f0\fs22 \cf0 EOF stands for End Of File; it\'92s a standard way of referring to the end of an input buffer, in this case the line of input provided by the user for execution.\
 The simplest and shortest possible statement in Eidos is the "null statement", which consists of nothing but a semicolon:\
-\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb180\sa180
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb180\sa180\partightenfactor0
 
 \f2\fs18 \cf0 ;\
-\pard\pardeftab720\fi274\ri720\sb40\sa40
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f0\fs22 \cf0 This is not terribly useful, since it does nothing.\
-\pard\pardeftab720\ri720\sb120\sa60
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \i \cf0 2.5.4  ITEM: 4. compound statements with 
 \f1\fs18 \{ \}
 \f3\fs22 \
-\pard\pardeftab720\fi274\ri720\sb40\sa40
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f0\i0 \cf0 The other thing you might wonder about, regarding 
 \f2\fs18 if
@@ -192,7 +194,7 @@ The simplest and shortest possible statement in Eidos is the "null statement", w
 \f0\fs22  or 
 \f2\fs18 F
 \f0\fs22 ?  This, then, is an opportune moment to introduce the concept of compound statements.  A compound statement is a series of statements (zero or more) enclosed by braces.  An example is worth a thousand words:\
-\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40\partightenfactor0
 
 \f3\fs4 \cf0 \
 
@@ -213,7 +215,7 @@ else\
 \f2\fs18 2\
 
 \f3\fs4 \
-\pard\pardeftab720\fi274\ri720\sb40\sa40
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f0\fs22 \cf0 Note that the input here is spread across multiple lines for clarity; all of this could be typed on a single line instead.  If entered as multiple lines, it cannot presently be entered in EidosScribe\'92s interactive mode because the 
 \f2\fs18 if
@@ -234,17 +236,17 @@ The way that
 \i the value of a compound statement is the value of the last statement executed within the compound statement
 \i0 ; the values of the previous statements are discarded.\
 You can use a compound statement in any context in which a single statement would be allowed.  For example, compound statements are very commonly used with looping constructs.\
-\pard\pardeftab720\ri720\sb120\sa60
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \i \cf0 2.6.1  ITEM: 5. 
 \f1\fs18 while
 \f0\fs22  statements\
-\pard\pardeftab720\fi274\ri720\sb40\sa40
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 
 \i0 \cf0 A 
 \f2\fs18 while
 \f0\fs22  loop repeats a statement as long as a given condition is true.  The condition is tested before the first time that the statement is executed, so the statement will be executed zero or more times.  Here is a code snippet to compute the first twenty numbers of the Fibonacci sequence:\
-\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40\partightenfactor0
 
 \f3\fs4 \cf0 \
 
@@ -262,7 +264,7 @@ fib;
 \f2\fs18 1 1 2 3 5 8 13 21 34 55 89 144 233 377 610 987 1597 2584 4181 6765\
 
 \f3\fs4 \
-\pard\pardeftab720\fi274\ri720\sb40\sa40
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f0\fs22 \cf0 Its use of a 
 \f2\fs18 while
@@ -279,19 +281,19 @@ fib;
 \f0\fs22  vector on demand within a larger block of code that used the 
 \f2\fs18 fib
 \f0\fs22  vector repeatedly.\
-\pard\pardeftab720\ri720\sb120\sa60
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \i \cf0 2.6.2  ITEM: 6. 
 \f1\fs18 do\'96while
 \f0\fs22  statements\
-\pard\pardeftab720\fi274\ri720\sb40\sa40
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 
 \i0 \cf0 A 
 \f2\fs18 do\'96while
 \f0\fs22  loop repeats a statement as long as a given condition is true.  Unlike 
 \f2\fs18 while
 \f0\fs22  loops, in this case the condition is tested at the end of the loop, and thus the loop statement is always executed at least once.  Here is a code snippet to compute a factorial:\
-\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40\partightenfactor0
 
 \f3\fs4 \cf0 \
 
@@ -311,7 +313,7 @@ while (counter > 0);\
 \f2\fs18 "The factorial of 5 is 120"\
 
 \f3\fs4 \
-\pard\pardeftab720\fi274\ri720\sb40\sa40
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f0\fs22 \cf0 Note that this example could be rewritten using a 
 \f2\fs18 while
@@ -320,14 +322,14 @@ while (counter > 0);\
 \f0\fs22  and the 
 \f2\fs18 product()
 \f0\fs22  function, but the code here is useful for the purpose of illustration.\
-\pard\pardeftab720\ri720\sb120\sa60
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \i \cf0 2.6.3  ITEM: 7. 
 \f1\fs18 for
 \f0\fs22  statements (with 
 \f1\fs18 in
 \f0\fs22 )\
-\pard\pardeftab720\fi274\ri720\sb40\sa40
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 
 \i0 \cf0 The 
 \f2\fs18 for
@@ -338,7 +340,7 @@ while (counter > 0);\
 \f0\fs22 , one by one, and then executing the 
 \f2\fs18 print()
 \f0\fs22  function for each value:\
-\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40\partightenfactor0
 
 \f3\fs4 \cf0 \
 
@@ -355,7 +357,7 @@ for (element in my_sequence)\
 "The square of 4 is 16"\
 
 \f3\fs4 \
-\pard\tx2340\pardeftab720\fi274\ri720\sb40\sa40
+\pard\tx2340\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f0\fs22 \cf0 This looping construct is called by various names in other languages, such as the \'93for each\'94 statement (PHP), the \'93range-based for\'94 (C++), \'93fast enumeration\'94 (Objective-C), and so forth.  It is different from the traditional 
 \f2\fs18 for
@@ -364,12 +366,12 @@ for (element in my_sequence)\
 \f0\fs22  loop does not exist in Eidos (following R); the iterator 
 \f2\fs18 for
 \f0\fs22  of R and Eidos is a more natural and efficient choice for vector-based languages.\
-\pard\pardeftab720\ri720\sb120\sa60
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \i \cf0 2.6.4  ITEM: 8. 
 \f1\fs18 next
 \f0\fs22  statements\
-\pard\pardeftab720\fi274\ri720\sb40\sa40
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 
 \i0 \cf0 Sometimes you might wish to cut short the execution of a given iteration of a loop, skipping the rest of the work that would normally be done and proceeding directly to the next iteration.  This is the function of the 
 \f2\fs18 next
@@ -382,12 +384,12 @@ for (element in my_sequence)\
 \f0\fs22 , and 
 \f2\fs18 do\'96while
 \f0\fs22  loops.\
-\pard\pardeftab720\ri720\sb120\sa60
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \i \cf0 2.6.5  ITEM: 9. 
 \f1\fs18 break
 \f0\fs22  statements\
-\pard\pardeftab720\fi274\ri720\sb40\sa40
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 
 \i0 \cf0 Often it is necessary to stop the execution of a loop altogether, not just to cut short the current iteration of the loop as 
 \f2\fs18 next
@@ -402,12 +404,12 @@ for (element in my_sequence)\
 \f0\fs22 , and 
 \f2\fs18 do\'96while
 \f0\fs22  loops.\
-\pard\pardeftab720\ri720\sb120\sa60
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \i \cf0 2.6.6  ITEM: 10. 
 \f1\fs18 return
 \f0\fs22  statements\
-\pard\pardeftab720\fi274\ri720\sb40\sa40
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 
 \i0 \cf0 The 
 \f2\fs18 return
@@ -450,20 +452,64 @@ If the expression for the
 and 
 \f2\fs18 do\'96while
 \f0\fs22  loops.\
-\pard\pardeftab720\ri720\sb120\sa60
+\pard\pardeftab397\ri720\sb120\sa60\partightenfactor0
 
-\i \cf0 2.6.7  ITEM: 11. comments with 
+\i \cf0 2.9.1  ITEM: 11. single-line comments with 
 \f1\fs18 //
-\f0\fs22 \
-\pard\pardeftab720\fi274\ri720\sb40\sa40
+\f3\fs22 \
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
-\i0 \cf0 Comments are not a statement type, really.  Technically, they are actually a type of whitespace; comments in Eidos code are completely ignored and have no effect whatsoever on the results of the execution of code, just like other kinds of whitespace in most respects.  Comments begin with 
+\f0\i0 \cf0 Technically, comments are actually a type of whitespace; comments in Eidos code are completely ignored and have no effect whatsoever on the results of the execution of code, just like other kinds of whitespace in most respects.  Single-line comments begin with 
 \f2\fs18 //
 \f0\fs22  and then may consist of any text whatsoever, up to the end of the current line of code.  A comment may occur by itself on a line, or it may follow other Eidos code.  So for example, you could write:\
-\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab397\li547\ri1440\sb180\sa180\partightenfactor0
 
-\f2\fs18 \cf0 1 + 1 == 2;    // this is true\
-\pard\pardeftab720\fi274\ri720\sb40\sa40
+\f2\fs18 \cf5 1\cf0  + \cf5 1\cf0  == \cf5 2\cf0 ;    \cf6 // this is true\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
-\f0\fs22 \cf0 Comments are never required in Eidos, but using them to annotate your code is nevertheless a very good idea, both so that you remember what your intentions were when you come back to the code weeks or months later, and so that others who might need to understand or maintain your code have a helping hand.\
+\f0\fs22 \cf0 Comments are never required in Eidos, but using them to annotate your code is nevertheless a very good idea, both so that you remember what your intentions were when you come back to the code weeks or months later, and so that others who might need to understand or maintain your code have a helping hand.
+\f3 \
+\pard\pardeftab397\ri720\sb120\sa60\partightenfactor0
+
+\f0\i \cf0 2.9.2  ITEM: 12. block comments with 
+\f1\fs18 /* */
+\f3\fs22 \
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+
+\f0\i0 \cf0 It is possible to comment out whole blocks of script, instead of just single lines.  This can be useful for writing longer comments that describe a section of code in more detail.  In Eidos (as in C and C++), such block comments can be written with a beginning 
+\f2\fs18 /*
+\f0\fs22  and a terminating 
+\f2\fs18 */
+\f0\fs22 .  Here\'92s an example of this style of comment:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40\partightenfactor0
+
+\f2\fs18 \cf6 /*\
+   This computes the factorial x!, which is\
+   the product of all values from 1 to x, for\
+   any positive integer x.\
+*/
+\f3 \cf0 \
+
+\f2 x_factorial = product(\cf5 1\cf0 :x);\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+
+\f0\fs22 \cf0 A nice feature of Eidos is that block comments nest properly, making it possible to use them to comment out stretches of code that already contain block comments.  For example, if the code above was no longer needed, but you didn\'92t want to delete it entirely because you might need it again later, you could use a block comment to disable it:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40\partightenfactor0
+
+\f2\fs18 \cf6 /*	******* NOT NEEDED ************\
+/*\
+   This computes the factorial x!, which is\
+   the product of all values from 1 to x, for\
+   any positive integer x.\
+*/\
+x_factorial = product(1:x);\
+*/
+\f3 \cf0 \
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+
+\f0\fs22 \cf0 The outer block comment is not terminated by the first 
+\f2\fs18 */
+\f0\fs22  because Eidos recognizes that that belongs to the inner block comment; the outer block comment continues until the second 
+\f2\fs18 */
+\f0\fs22  is encountered.\
 }

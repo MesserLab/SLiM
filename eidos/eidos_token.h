@@ -57,6 +57,7 @@ enum class EidosTokenType {
 	kTokenConditional,	// ?		ternary conditional, with 'else'
 	
 	kTokenComment,		// //		comment
+	kTokenCommentLong,	// /*		comment
 	kTokenAssign,		// =		assignment
 	kTokenEq,			// ==		equality test
 	kTokenLt,			// <		less than test

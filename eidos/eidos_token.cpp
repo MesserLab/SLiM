@@ -53,6 +53,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosTokenType p_token
 		case EidosTokenType::kTokenDiv:					p_outstream << "/";				break;
 		case EidosTokenType::kTokenConditional:			p_outstream << "?";				break;
 		case EidosTokenType::kTokenComment:				p_outstream << "COMMENT";		break;
+		case EidosTokenType::kTokenCommentLong:			p_outstream << "COMMENT_LONG";	break;
 		case EidosTokenType::kTokenAssign:				p_outstream << "=";				break;
 		case EidosTokenType::kTokenEq:					p_outstream << "==";			break;
 		case EidosTokenType::kTokenLt:					p_outstream << "<";				break;

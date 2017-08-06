@@ -185,6 +185,8 @@ using std::string;
 				
 				if (click_token_type == EidosTokenType::kTokenComment)
 					isCandidate = (scan_token_type == EidosTokenType::kTokenComment);
+				else if (click_token_type == EidosTokenType::kTokenCommentLong)
+					isCandidate = (scan_token_type == EidosTokenType::kTokenCommentLong);
 				else if (click_token_type == EidosTokenType::kTokenString)
 					isCandidate = (scan_token_type == EidosTokenType::kTokenString);
 				else
@@ -909,6 +911,8 @@ using std::string;
 							
 							if (click_token_type == EidosTokenType::kTokenComment)
 								isCandidate = (scan_token_type == EidosTokenType::kTokenComment);
+							else if (click_token_type == EidosTokenType::kTokenCommentLong)
+								isCandidate = (scan_token_type == EidosTokenType::kTokenCommentLong);
 							else if (click_token_type == EidosTokenType::kTokenString)
 								isCandidate = (scan_token_type == EidosTokenType::kTokenString);
 							else
@@ -1031,7 +1035,7 @@ using std::string;
 			[lm addTemporaryAttribute:NSForegroundColorAttributeName value:numberLiteralColor forCharacterRange:tokenRange];
 		if (token.token_type_ == EidosTokenType::kTokenString)
 			[lm addTemporaryAttribute:NSForegroundColorAttributeName value:stringLiteralColor forCharacterRange:tokenRange];
-		if (token.token_type_ == EidosTokenType::kTokenComment)
+		if ((token.token_type_ == EidosTokenType::kTokenComment) || (token.token_type_ == EidosTokenType::kTokenCommentLong))
 			[lm addTemporaryAttribute:NSForegroundColorAttributeName value:commentColor forCharacterRange:tokenRange];
 		if (token.token_type_ > EidosTokenType::kFirstIdentifierLikeToken)
 			[lm addTemporaryAttribute:NSForegroundColorAttributeName value:keywordColor forCharacterRange:tokenRange];
@@ -1549,7 +1553,7 @@ using std::string;
 		token_type = token->token_type_;
 		
 		// skip backward over whitespace and comments; they make no difference to us
-		if ((token_type == EidosTokenType::kTokenWhitespace) || (token_type == EidosTokenType::kTokenComment))
+		if ((token_type == EidosTokenType::kTokenWhitespace) || (token_type == EidosTokenType::kTokenComment) || (token_type == EidosTokenType::kTokenCommentLong))
 			continue;
 		
 		if (bracketCount)
@@ -1765,6 +1769,7 @@ using std::string;
 		case EidosTokenType::kTokenEOF:
 		case EidosTokenType::kTokenWhitespace:
 		case EidosTokenType::kTokenComment:
+		case EidosTokenType::kTokenCommentLong:
 		case EidosTokenType::kTokenInterpreterBlock:
 		case EidosTokenType::kTokenContextFile:
 		case EidosTokenType::kTokenContextEidosBlock:
@@ -1795,7 +1800,7 @@ using std::string;
 					EidosTokenType previous_token_type = previous_token.token_type_;
 					
 					// if the token we're on is skippable, continue backwards
-					if ((previous_token_type == EidosTokenType::kTokenWhitespace) || (previous_token_type == EidosTokenType::kTokenComment))
+					if ((previous_token_type == EidosTokenType::kTokenWhitespace) || (previous_token_type == EidosTokenType::kTokenComment) || (previous_token_type == EidosTokenType::kTokenCommentLong))
 						continue;
 					
 					// if the token we're on is a dot, we are indeed at the end of a key path, and can fetch the completions for it
@@ -1994,6 +1999,7 @@ using std::string;
 		}
 		
 		// if we are at the end of a comment, without whitespace following it, then we are actually in the comment, and cannot complete
+		// BCH 5 August 2017: Note that EidosTokenType::kTokenCommentLong is deliberately omitted here; this rule does not apply to it
 		if ((lastTokenIndex >= 0) && (tokens[lastTokenIndex].token_type_ == EidosTokenType::kTokenComment))
 		{
 			if (baseRange) *baseRange = NSMakeRange(NSNotFound, 0);
@@ -2005,7 +2011,7 @@ using std::string;
 		while (lastTokenIndex >= 0) {
 			const EidosToken &token = tokens[lastTokenIndex];
 			
-			if ((token.token_type_ != EidosTokenType::kTokenWhitespace) && (token.token_type_ != EidosTokenType::kTokenComment))
+			if ((token.token_type_ != EidosTokenType::kTokenWhitespace) && (token.token_type_ != EidosTokenType::kTokenComment) && (token.token_type_ != EidosTokenType::kTokenCommentLong))
 				break;
 			
 			--lastTokenIndex;
@@ -2068,7 +2074,7 @@ using std::string;
 					const EidosToken &walkback_token = tokens[walkbackIndex];
 					EidosTokenType walkback_token_type = walkback_token.token_type_;
 					
-					if ((walkback_token_type != EidosTokenType::kTokenWhitespace) && (walkback_token_type != EidosTokenType::kTokenComment))
+					if ((walkback_token_type != EidosTokenType::kTokenWhitespace) && (walkback_token_type != EidosTokenType::kTokenComment) && (walkback_token_type != EidosTokenType::kTokenCommentLong))
 					{
 						if ((walkback_token_type == EidosTokenType::kTokenFor) || (walkback_token_type == EidosTokenType::kTokenWhile) || (walkback_token_type == EidosTokenType::kTokenIf))
 						{

@@ -251,7 +251,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 				if (ch2 == '=') { token_type = EidosTokenType::kTokenNotEq; token_end++; token_UTF16_end++; }
 				else { token_type = EidosTokenType::kTokenNot; }
 				break;
-			case '/':	// // or /
+			case '/':	// // or /* or /
 				if (ch2 == '/') {
 					token_type = EidosTokenType::kTokenComment;
 					skip = true;
@@ -264,6 +264,67 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 						// stop short of eating the newline
 						if ((chn == '\n') || (chn == '\r'))
 							break;
+						
+						token_end++;
+						token_UTF16_end += BYTE_WIDTHS[chn];
+					}
+				}
+				else if (ch2 == '*') {
+					token_type = EidosTokenType::kTokenCommentLong;
+					skip = true;
+					
+					// eat the asterisk
+					token_end++;
+					token_UTF16_end += BYTE_WIDTHS[ch2];
+					
+					int nest_count = 1;		// /* */ comments in Eidos nest properly, so we keep a count
+					
+					// stop at the end of the input string, unless we see a terminator first
+					while (token_end + 1 < len)
+					{
+						unsigned char chn = (unsigned char)script_string_[token_end + 1];
+						
+						if (chn == '*')
+						{
+							if (token_end + 2 < len)
+							{
+								unsigned char chnn = (unsigned char)script_string_[token_end + 2];
+								
+								if (chnn == '/')
+								{
+									// We see a */, so eat it
+									token_end++;
+									token_UTF16_end += BYTE_WIDTHS[chn];
+									
+									token_end++;
+									token_UTF16_end += BYTE_WIDTHS[chnn];
+									
+									if (--nest_count == 0)
+										break;
+									continue;
+								}
+							}
+						}
+						else if (chn == '/')
+						{
+							if (token_end + 2 < len)
+							{
+								unsigned char chnn = (unsigned char)script_string_[token_end + 2];
+								
+								if (chnn == '*')
+								{
+									// We see a /*, so eat it
+									token_end++;
+									token_UTF16_end += BYTE_WIDTHS[chn];
+									
+									token_end++;
+									token_UTF16_end += BYTE_WIDTHS[chnn];
+									
+									++nest_count;
+									continue;
+								}
+							}
+						}
 						
 						token_end++;
 						token_UTF16_end += BYTE_WIDTHS[chn];

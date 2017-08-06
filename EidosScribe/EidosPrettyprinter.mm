@@ -114,7 +114,7 @@
 		{
 			EidosTokenType peek = tokens[nextSignificantTokenPeekIndex].token_type_;
 			
-			if ((peek != EidosTokenType::kTokenWhitespace) && (peek != EidosTokenType::kTokenComment))
+			if ((peek != EidosTokenType::kTokenWhitespace) && (peek != EidosTokenType::kTokenComment) && (peek != EidosTokenType::kTokenCommentLong))
 			{
 				nextSignificantTokenPeek = peek;
 				break;
@@ -269,6 +269,7 @@
 				
 				// Comments are preserved verbatim
 			case EidosTokenType::kTokenComment:
+			case EidosTokenType::kTokenCommentLong:
 				[pretty appendString:tokenString];
 				break;
 				
@@ -330,7 +331,7 @@
 		// Now that we're done processing that token, update startingNewStatement to reflect whether we are within
 		// a statement, of which we have seen at least one token, or starting a new statement.  Nonsignificant
 		// tokens (whitespace and comments) do not alter the state of startingNewStatement.
-		if ((token.token_type_ != EidosTokenType::kTokenWhitespace) && (token.token_type_ != EidosTokenType::kTokenComment))
+		if ((token.token_type_ != EidosTokenType::kTokenWhitespace) && (token.token_type_ != EidosTokenType::kTokenComment) && (token.token_type_ != EidosTokenType::kTokenCommentLong))
 			startingNewStatement = ((token.token_type_ == EidosTokenType::kTokenSemicolon) ||
 									(token.token_type_ == EidosTokenType::kTokenLBrace) ||
 									(token.token_type_ == EidosTokenType::kTokenRBrace));
