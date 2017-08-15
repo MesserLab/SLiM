@@ -158,7 +158,13 @@
 				}];
 				
 				if (newlineCount <= 0)
-					[pretty appendString:tokenString];
+				{
+					// Normally, whitespace tokens that do not contain a newline occur inside a line, and should be preserved.
+					// A whitespace token that indents the start of a line normally started on the previous line and contains
+					// a newline.  However, this is not the case at the very beginning of a script; the first token is special.
+					if (tokenIndex > 0)
+						[pretty appendString:tokenString];
+				}
 				else
 				{
 					int indent = [EidosPrettyprinter indentForStack:indentStack startingNewStatement:startingNewStatement nextTokenType:nextTokenPeek];
