@@ -1036,6 +1036,13 @@ void InteractionType::InitializeStrengths(InteractionsData &p_subpop_data)
 // and rather than passing phase as a parameter, the code has been factored into phase-specific functions
 // that are mutually recursive, for speed.  It's not a huge win, but it does help a little.
 
+// BCH 14 August 2017: NOTE that I have found that the RosettaCode.org C example code was incorrect, which
+// is disappointing.  It tried to check for duplicates of the median and terminate early, but its logic for
+// doing so was flawed and resulted in a bad tree that produced incorrect results.  This code now follows
+// the logic of the pseudocode at Wikipedia (https://en.wikipedia.org/wiki/Quickselect), which seems correct.
+// Ironically, the incorrect logic of the RosettaCode version only produced incorrect results when there
+// were duplicated values in the coordinate vector.
+
 inline void swap(SLiM_kdNode *x, SLiM_kdNode *y)
 {
 	std::swap(x->x, y->x);
@@ -1045,31 +1052,30 @@ inline void swap(SLiM_kdNode *x, SLiM_kdNode *y)
 // find median for phase 0 (x)
 SLiM_kdNode *InteractionType::FindMedian_p0(SLiM_kdNode *start, SLiM_kdNode *end)
 {
-	SLiM_kdNode *p, *store, *md = start + (end - start) / 2;
+	SLiM_kdNode *p, *store, *md = start + (end - start) / 2;	// md is the location where the median will eventually be placed
 	double pivot;
 	
 	while (1)
 	{
-		pivot = md->x[0];
+		if (end == start + 1) return start;						// if end==start+1 we have reached the base case of the recursion, so return
 		
-		swap(md, end - 1);
-		for (store = p = start; p < end; p++)
+		pivot = md->x[0];										// get a pivot value from md, which is effectively a random guess
+		
+		swap(md, end - 1);										// place the pivot value at the very end of our range
+		for (store = p = start; p < end; p++)					// loop p over our range and partition into values < vs. >= pivot
 		{
-			if (p->x[0] < pivot)
+			if (p->x[0] < pivot)								// p is less than the pivot, so store it on the left side
 			{
 				if (p != store)
 					swap(p, store);
 				store++;
 			}
 		}
-		swap(store, end - 1);
+		swap(store, end - 1);									// move the pivot value, at end-1, to the end of the store
 		
-		// median has duplicate values
-		if (store->x[0] == md->x[0])
-			return md;
-		
-		if (store > md)	end = store;
-		else			start = store;
+		if (store == md)		return md;						// pivot position == median; we happened to choose the median as pivot, so we're done!
+		else if (store > md)	end = store;					// pivot position > median, so look for the median to the left of pivot
+		else					start = store + 1;				// pivot position < median, so look for the median to the right of pivot
 	}
 }
 
@@ -1081,6 +1087,8 @@ SLiM_kdNode *InteractionType::FindMedian_p1(SLiM_kdNode *start, SLiM_kdNode *end
 	
 	while (1)
 	{
+		if (end == start + 1) return start;
+		
 		pivot = md->x[1];
 		
 		swap(md, end - 1);
@@ -1095,12 +1103,9 @@ SLiM_kdNode *InteractionType::FindMedian_p1(SLiM_kdNode *start, SLiM_kdNode *end
 		}
 		swap(store, end - 1);
 		
-		// median has duplicate values
-		if (store->x[1] == md->x[1])
-			return md;
-		
-		if (store > md)	end = store;
-		else			start = store;
+		if (store == md)		return md;
+		else if (store > md)	end = store;
+		else					start = store + 1;
 	}
 }
 
@@ -1112,6 +1117,8 @@ SLiM_kdNode *InteractionType::FindMedian_p2(SLiM_kdNode *start, SLiM_kdNode *end
 	
 	while (1)
 	{
+		if (end == start + 1) return start;
+		
 		pivot = md->x[2];
 		
 		swap(md, end - 1);
@@ -1126,12 +1133,9 @@ SLiM_kdNode *InteractionType::FindMedian_p2(SLiM_kdNode *start, SLiM_kdNode *end
 		}
 		swap(store, end - 1);
 		
-		// median has duplicate values
-		if (store->x[2] == md->x[2])
-			return md;
-		
-		if (store > md)	end = store;
-		else			start = store;
+		if (store == md)		return md;
+		else if (store > md)	end = store;
+		else					start = store + 1;
 	}
 }
 
@@ -1234,7 +1238,7 @@ SLiM_kdNode *InteractionType::MakeKDTree3_p2(SLiM_kdNode *t, int len)
 void InteractionType::EnsureKDTreePresent(InteractionsData &p_subpop_data)
 {
 	if (!p_subpop_data.evaluated_)
-		EIDOS_TERMINATION << "ERROR (InteractionType::EnsureDistancesPresent): (internal error) the interaction has not been evaluated." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::EnsureKDTreePresent): (internal error) the interaction has not been evaluated." << eidos_terminate();
 	
 	if (spatiality_ == 0)
 	{
@@ -1298,9 +1302,193 @@ void InteractionType::EnsureKDTreePresent(InteractionsData &p_subpop_data)
 				case 2: p_subpop_data.kd_root_ = MakeKDTree2_p0(p_subpop_data.kd_nodes_, p_subpop_data.individual_count_);	break;
 				case 3: p_subpop_data.kd_root_ = MakeKDTree3_p0(p_subpop_data.kd_nodes_, p_subpop_data.individual_count_);	break;
 			}
+			
+			// Check the tree for correctness; for now I will leave this enabled in the DEBUG case,
+			// because a bug was found in the k-d tree code in 2.4.1 that would have been caught by this.
+			// Eventually, when it is clear that this code is robust, this check can be disabled.
+#ifdef DEBUG
+			int total_tree_count = 0;
+			
+			switch (spatiality_)
+			{
+				case 1: total_tree_count = CheckKDTree1_p0(p_subpop_data.kd_root_);	break;
+				case 2: total_tree_count = CheckKDTree2_p0(p_subpop_data.kd_root_);	break;
+				case 3: total_tree_count = CheckKDTree3_p0(p_subpop_data.kd_root_);	break;
+			}
+			
+			if (total_tree_count != p_subpop_data.individual_count_)
+				EIDOS_TERMINATION << "ERROR (InteractionType::EnsureKDTreePresent): (internal error) the k-d tree count " << total_tree_count << " does not match the total individual count" << p_subpop_data.individual_count_ << "." << eidos_terminate();
+#endif
 		}
 	}
 }
+
+
+#pragma mark -
+#pragma mark k-d tree consistency checking
+
+// The general strategy is: the _pX() functions check that they are indeed a median node for all of the
+// nodes underneath the given node, for the coordinate of the given polarity.  They do this by calling
+// the pX_r() method on their left and right subtree, with their own coordinate; it recurses over the
+// subtrees.  The pX() method then makes a call on each subtree to have it check itself.  Each pX()
+// method call returns the total number of nodes found in itself and its subtrees.
+
+int InteractionType::CheckKDTree1_p0(SLiM_kdNode *t)
+{
+	double split = t->x[0];
+	
+	if (t->left) CheckKDTree1_p0_r(t->left, split, true);
+	if (t->right) CheckKDTree1_p0_r(t->right, split, false);
+	
+	int left_count = t->left ? CheckKDTree1_p0(t->left) : 0;
+	int right_count = t->right ? CheckKDTree1_p0(t->right) : 0;
+	
+	return left_count + right_count + 1;
+}
+
+void InteractionType::CheckKDTree1_p0_r(SLiM_kdNode *t, double split, bool isLeftSubtree)
+{
+	double x = t->x[0];
+	
+	if (isLeftSubtree) {
+		if (x > split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree1_p0_r): (internal error) the k-d tree is not correctly sorted." << eidos_terminate();
+	} else {
+		if (x < split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree1_p0_r): (internal error) the k-d tree is not correctly sorted." << eidos_terminate();
+	}
+	if (t->left) CheckKDTree1_p0_r(t->left, split, isLeftSubtree);
+	if (t->right) CheckKDTree1_p0_r(t->right, split, isLeftSubtree);
+}
+
+int InteractionType::CheckKDTree2_p0(SLiM_kdNode *t)
+{
+	double split = t->x[0];
+	
+	if (t->left) CheckKDTree2_p0_r(t->left, split, true);
+	if (t->right) CheckKDTree2_p0_r(t->right, split, false);
+	
+	int left_count = t->left ? CheckKDTree2_p1(t->left) : 0;
+	int right_count = t->right ? CheckKDTree2_p1(t->right) : 0;
+	
+	return left_count + right_count + 1;
+}
+
+void InteractionType::CheckKDTree2_p0_r(SLiM_kdNode *t, double split, bool isLeftSubtree)
+{
+	double x = t->x[0];
+	
+	if (isLeftSubtree) {
+		if (x > split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree2_p0_r): (internal error) the k-d tree is not correctly sorted." << eidos_terminate();
+	} else {
+		if (x < split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree2_p0_r): (internal error) the k-d tree is not correctly sorted." << eidos_terminate();
+	}
+	if (t->left) CheckKDTree2_p0_r(t->left, split, isLeftSubtree);
+	if (t->right) CheckKDTree2_p0_r(t->right, split, isLeftSubtree);
+}
+
+int InteractionType::CheckKDTree2_p1(SLiM_kdNode *t)
+{
+	double split = t->x[1];
+	
+	if (t->left) CheckKDTree2_p1_r(t->left, split, true);
+	if (t->right) CheckKDTree2_p1_r(t->right, split, false);
+	
+	int left_count = t->left ? CheckKDTree2_p0(t->left) : 0;
+	int right_count = t->right ? CheckKDTree2_p0(t->right) : 0;
+	
+	return left_count + right_count + 1;
+}
+
+void InteractionType::CheckKDTree2_p1_r(SLiM_kdNode *t, double split, bool isLeftSubtree)
+{
+	double x = t->x[1];
+	
+	if (isLeftSubtree) {
+		if (x > split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree2_p1_r): (internal error) the k-d tree is not correctly sorted." << eidos_terminate();
+	} else {
+		if (x < split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree2_p1_r): (internal error) the k-d tree is not correctly sorted." << eidos_terminate();
+	}
+	if (t->left) CheckKDTree2_p1_r(t->left, split, isLeftSubtree);
+	if (t->right) CheckKDTree2_p1_r(t->right, split, isLeftSubtree);
+}
+
+int InteractionType::CheckKDTree3_p0(SLiM_kdNode *t)
+{
+	double split = t->x[0];
+	
+	if (t->left) CheckKDTree3_p0_r(t->left, split, true);
+	if (t->right) CheckKDTree3_p0_r(t->right, split, false);
+	
+	int left_count = t->left ? CheckKDTree3_p1(t->left) : 0;
+	int right_count = t->right ? CheckKDTree3_p1(t->right) : 0;
+	
+	return left_count + right_count + 1;
+}
+
+void InteractionType::CheckKDTree3_p0_r(SLiM_kdNode *t, double split, bool isLeftSubtree)
+{
+	double x = t->x[0];
+	
+	if (isLeftSubtree) {
+		if (x > split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree3_p0_r): (internal error) the k-d tree is not correctly sorted." << eidos_terminate();
+	} else {
+		if (x < split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree3_p0_r): (internal error) the k-d tree is not correctly sorted." << eidos_terminate();
+	}
+	if (t->left) CheckKDTree3_p0_r(t->left, split, isLeftSubtree);
+	if (t->right) CheckKDTree3_p0_r(t->right, split, isLeftSubtree);
+}
+
+int InteractionType::CheckKDTree3_p1(SLiM_kdNode *t)
+{
+	double split = t->x[1];
+	
+	if (t->left) CheckKDTree3_p1_r(t->left, split, true);
+	if (t->right) CheckKDTree3_p1_r(t->right, split, false);
+	
+	int left_count = t->left ? CheckKDTree3_p2(t->left) : 0;
+	int right_count = t->right ? CheckKDTree3_p2(t->right) : 0;
+	
+	return left_count + right_count + 1;
+}
+
+void InteractionType::CheckKDTree3_p1_r(SLiM_kdNode *t, double split, bool isLeftSubtree)
+{
+	double x = t->x[1];
+	
+	if (isLeftSubtree) {
+		if (x > split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree3_p1_r): (internal error) the k-d tree is not correctly sorted." << eidos_terminate();
+	} else {
+		if (x < split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree3_p1_r): (internal error) the k-d tree is not correctly sorted." << eidos_terminate();
+	}
+	if (t->left) CheckKDTree3_p1_r(t->left, split, isLeftSubtree);
+	if (t->right) CheckKDTree3_p1_r(t->right, split, isLeftSubtree);
+}
+
+int InteractionType::CheckKDTree3_p2(SLiM_kdNode *t)
+{
+	double split = t->x[2];
+	
+	if (t->left) CheckKDTree3_p2_r(t->left, split, true);
+	if (t->right) CheckKDTree3_p2_r(t->right, split, false);
+	
+	int left_count = t->left ? CheckKDTree3_p0(t->left) : 0;
+	int right_count = t->right ? CheckKDTree3_p0(t->right) : 0;
+	
+	return left_count + right_count + 1;
+}
+
+void InteractionType::CheckKDTree3_p2_r(SLiM_kdNode *t, double split, bool isLeftSubtree)
+{
+	double x = t->x[2];
+	
+	if (isLeftSubtree) {
+		if (x > split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree3_p2_r): (internal error) the k-d tree is not correctly sorted." << eidos_terminate();
+	} else {
+		if (x < split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree3_p2_r): (internal error) the k-d tree is not correctly sorted." << eidos_terminate();
+	}
+	if (t->left) CheckKDTree3_p2_r(t->left, split, isLeftSubtree);
+	if (t->right) CheckKDTree3_p2_r(t->right, split, isLeftSubtree);
+}
+
 
 #pragma mark -
 #pragma mark k-d tree neighbor searches

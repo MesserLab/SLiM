@@ -23,6 +23,7 @@ development head:
 	add display of the mutation rate map in SLiMgui with the R button
 	add support for /* */ block comments to Eidos
 	fix Context-defined functions so SLiMgui works with them better (showing the function prototype even after an error)
+	fix a bug in InteractionType that would produce incorrect results for interactions if individuals had exactly identical coordinates
 
 
 2.4.1 (build 1166; Eidos version 1.4.1):

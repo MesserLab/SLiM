@@ -152,6 +152,19 @@ class InteractionType : public SLiMEidosDictionary
 	SLiM_kdNode *MakeKDTree3_p2(SLiM_kdNode *t, int len);
 	void EnsureKDTreePresent(InteractionsData &p_subpop_data);
 	
+	int CheckKDTree1_p0(SLiM_kdNode *t);
+	void CheckKDTree1_p0_r(SLiM_kdNode *t, double split, bool isLeftSubtree);
+	int CheckKDTree2_p0(SLiM_kdNode *t);
+	void CheckKDTree2_p0_r(SLiM_kdNode *t, double split, bool isLeftSubtree);
+	int CheckKDTree2_p1(SLiM_kdNode *t);
+	void CheckKDTree2_p1_r(SLiM_kdNode *t, double split, bool isLeftSubtree);
+	int CheckKDTree3_p0(SLiM_kdNode *t);
+	void CheckKDTree3_p0_r(SLiM_kdNode *t, double split, bool isLeftSubtree);
+	int CheckKDTree3_p1(SLiM_kdNode *t);
+	void CheckKDTree3_p1_r(SLiM_kdNode *t, double split, bool isLeftSubtree);
+	int CheckKDTree3_p2(SLiM_kdNode *t);
+	void CheckKDTree3_p2_r(SLiM_kdNode *t, double split, bool isLeftSubtree);
+	
 	void FindNeighbors1_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SLiM_kdNode **best, double *best_dist);
 	void FindNeighbors1_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SLiM_kdNode **best, double *best_dist, int p_phase);
 	void FindNeighbors1_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SLiM_kdNode **best, double *best_dist, int p_phase);
