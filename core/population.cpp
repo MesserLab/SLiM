@@ -510,13 +510,16 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 			
 			if (!std::isfinite(x))
 				EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): weight returned by mateChoice() callback is not finite." << eidos_terminate(last_interventionist_mate_choice_callback->identifier_token_);
-			if (x < 0.0)
-				EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): weight returned by mateChoice() callback is less than 0.0." << eidos_terminate(last_interventionist_mate_choice_callback->identifier_token_);
 			
 			if (x > 0.0)
+			{
 				positive_count++;
+				weights_sum += x;
+				continue;
+			}
 			
-			weights_sum += x;
+			if (x < 0.0)
+				EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): weight returned by mateChoice() callback is less than 0.0." << eidos_terminate(last_interventionist_mate_choice_callback->identifier_token_);
 		}
 		
 		if (weights_sum <= 0.0)
@@ -550,9 +553,31 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 					break;
 				}
 		}
+		else if (positive_count <= weights_length / 4)	// the threshold here is a guess
+		{
+			// there are just a few positive values, so try to be faster about scanning for them by checking for zero first
+			double the_rose_in_the_teeth = gsl_rng_uniform_pos(gEidos_rng) * weights_sum;
+			double bachelor_sum = 0.0;
+			
+			for (slim_popsize_t weight_index = 0; weight_index < weights_length; ++weight_index)
+			{
+				double weight = current_weights[weight_index];
+				
+				if (weight > 0.0)
+				{
+					bachelor_sum += weight;
+					
+					if (the_rose_in_the_teeth <= bachelor_sum)
+					{
+						drawn_parent = weight_index;
+						break;
+					}
+				}
+			}
+		}
 		else
 		{
-			// there are multiple positive values, so we need to do a uniform draw and see who gets the rose
+			// there are many positive values, so we need to do a uniform draw and see who gets the rose
 			double the_rose_in_the_teeth = gsl_rng_uniform_pos(gEidos_rng) * weights_sum;
 			double bachelor_sum = 0.0;
 			
@@ -566,11 +591,11 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 					break;
 				}
 			}
-			
-			// roundoff error goes to the last candidate (but this should not happen)
-			if (drawn_parent == -1)
-				drawn_parent = weights_length - 1;
 		}
+		
+		// we should always have a chosen parent at this point
+		if (drawn_parent == -1)
+			EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): failed to choose a mate." << eidos_terminate(last_interventionist_mate_choice_callback->identifier_token_);
 		
 		free(current_weights);
 		

@@ -24,6 +24,7 @@ development head:
 	add support for /* */ block comments to Eidos
 	fix Context-defined functions so SLiMgui works with them better (showing the function prototype even after an error)
 	fix a bug in InteractionType that would produce incorrect results for interactions if individuals had exactly identical coordinates
+	speed up mateChoice() callbacks that select just a subset of all possible mates
 
 
 2.4.1 (build 1166; Eidos version 1.4.1):
