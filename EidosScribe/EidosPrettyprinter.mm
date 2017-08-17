@@ -239,7 +239,22 @@
 				
 				// Control-flow keywords influence our indent level; this might look like the normal statement inner indent,
 				// but it is not, as can be seen when these control-flow keywords are nested like 'if (x) if (y) <statement>'.
+				// When an if follows an else, the else is removed by the if, since we don't want two indents; else-if is one indent.
 			case EidosTokenType::kTokenIf:
+			{
+				if (indentStack.size())
+				{
+					EidosTokenType top_token_type = indentStack.back()->token_type_;
+					
+					if (top_token_type == EidosTokenType::kTokenElse)
+						indentStack.pop_back();
+				}
+				
+				indentStack.push_back(&token);
+				[pretty appendString:tokenString];
+				break;
+			}
+				
 			case EidosTokenType::kTokenDo:
 			case EidosTokenType::kTokenWhile:
 			case EidosTokenType::kTokenFor:
