@@ -25,6 +25,7 @@ development head:
 	fix Context-defined functions so SLiMgui works with them better (showing the function prototype even after an error)
 	fix a bug in InteractionType that would produce incorrect results for interactions if individuals had exactly identical coordinates
 	speed up mateChoice() callbacks that select just a subset of all possible mates
+	add a preserveOrder flag to the unique() function in Eidos to allow O(n log n) performance to be requested when order does not matter
 
 
 2.4.1 (build 1166; Eidos version 1.4.1):

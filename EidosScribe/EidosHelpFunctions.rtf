@@ -2409,10 +2409,10 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f1\fs18 x
 \f0\fs20 , specifying a value for each substring.
 \f2 \
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (*)unique(*\'a0x)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\f1\fs18 \cf0 (*)unique(*\'a0x, [logical$\'a0preserveOrder\'a0=\'a0T])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns the 
 \b unique values
@@ -2424,9 +2424,25 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f1\fs18 x
 \f0\fs20  that occurs at least once, the vector returned will contain 
 \f1\fs18 k
-\f0\fs20  exactly once.  The order of values in 
+\f0\fs20  exactly once.  If 
+\f1\fs18 preserveOrder
+\f0\fs20  is 
+\f1\fs18 T
+\f0\fs20  (the default), the order of values in 
 \f1\fs18 x
-\f0\fs20  is preserved, taking the first instance of each value.
+\f0\fs20  is preserved, taking the first instance of each value; this is relatively slow, with O(
+\i n
+\i0 ^2) performance.  If 
+\f1\fs18 preserveOrder
+\f0\fs20  if 
+\f1\fs18 F
+\f0\fs20  instead, the order of values in 
+\f1\fs18 x
+\f0\fs20  is not preserved, and no particular ordering should be relied upon; this is relatively fast, with O(
+\i n
+\i0  log 
+\i n
+\i0 ) performance.  This performance difference will only matter for large vectors, however; for most applications the default behavior can be retained whether the order of the result matters or not.
 \f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 

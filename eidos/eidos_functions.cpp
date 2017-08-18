@@ -209,7 +209,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_str,		Eidos_ExecuteFunction_str,			kEidosValueMaskNULL))->AddAny("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("strsplit",			Eidos_ExecuteFunction_strsplit,		kEidosValueMaskString))->AddString_S("x")->AddString_OS("sep", gStaticEidosValue_StringSpace));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("substr",			Eidos_ExecuteFunction_substr,		kEidosValueMaskString))->AddString("x")->AddInt("first")->AddInt_ON("last", gStaticEidosValueNULL));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("unique",			Eidos_ExecuteFunction_unique,		kEidosValueMaskAny))->AddAny("x"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("unique",			Eidos_ExecuteFunction_unique,		kEidosValueMaskAny))->AddAny("x")->AddLogical_OS("preserveOrder", gStaticEidosValue_LogicalT));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("which",			Eidos_ExecuteFunction_which,			kEidosValueMaskInt))->AddLogical("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("whichMax",			Eidos_ExecuteFunction_whichMax,		kEidosValueMaskInt))->AddAnyBase("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("whichMin",			Eidos_ExecuteFunction_whichMin,		kEidosValueMaskInt))->AddAnyBase("x"));
@@ -573,7 +573,7 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 	return EidosValue_SP(nullptr);
 }
 
-EidosValue_SP UniqueEidosValue(const EidosValue *p_arg0_value, bool p_force_new_vector)
+EidosValue_SP UniqueEidosValue(const EidosValue *p_arg0_value, bool p_force_new_vector, bool preserve_order)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -653,19 +653,33 @@ EidosValue_SP UniqueEidosValue(const EidosValue *p_arg0_value, bool p_force_new_
 		EidosValue_Int_vector *int_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector();
 		result_SP = EidosValue_SP(int_result);
 		
-		for (int value_index = 0; value_index < arg0_count; ++value_index)
+		if (preserve_order)
 		{
-			int64_t value = int_vec[value_index];
-			int scan_index;
-			
-			for (scan_index = 0; scan_index < value_index; ++scan_index)
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
 			{
-				if (value == int_vec[scan_index])
-					break;
+				int64_t value = int_vec[value_index];
+				int scan_index;
+				
+				for (scan_index = 0; scan_index < value_index; ++scan_index)
+				{
+					if (value == int_vec[scan_index])
+						break;
+				}
+				
+				if (scan_index == value_index)
+					int_result->PushInt(value);
 			}
+		}
+		else
+		{
+			std::vector<int64_t> dup_vec = int_vec;
 			
-			if (scan_index == value_index)
-				int_result->PushInt(value);
+			std::sort(dup_vec.begin(), dup_vec.end());
+			
+			auto unique_iter = std::unique(dup_vec.begin(), dup_vec.end());
+			
+			for (auto iter = dup_vec.begin(); iter != unique_iter; ++iter)
+				int_result->PushInt(*iter);
 		}
 	}
 	else if (arg0_type == EidosValueType::kValueFloat)
@@ -675,19 +689,33 @@ EidosValue_SP UniqueEidosValue(const EidosValue *p_arg0_value, bool p_force_new_
 		EidosValue_Float_vector *float_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector();
 		result_SP = EidosValue_SP(float_result);
 		
-		for (int value_index = 0; value_index < arg0_count; ++value_index)
+		if (preserve_order)
 		{
-			double value = float_vec[value_index];
-			int scan_index;
-			
-			for (scan_index = 0; scan_index < value_index; ++scan_index)
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
 			{
-				if (value == float_vec[scan_index])
-					break;
+				double value = float_vec[value_index];
+				int scan_index;
+				
+				for (scan_index = 0; scan_index < value_index; ++scan_index)
+				{
+					if (value == float_vec[scan_index])
+						break;
+				}
+				
+				if (scan_index == value_index)
+					float_result->PushFloat(value);
 			}
+		}
+		else
+		{
+			std::vector<double> dup_vec = float_vec;
 			
-			if (scan_index == value_index)
-				float_result->PushFloat(value);
+			std::sort(dup_vec.begin(), dup_vec.end());
+			
+			auto unique_iter = std::unique(dup_vec.begin(), dup_vec.end());
+			
+			for (auto iter = dup_vec.begin(); iter != unique_iter; ++iter)
+				float_result->PushFloat(*iter);
 		}
 	}
 	else if (arg0_type == EidosValueType::kValueString)
@@ -697,19 +725,33 @@ EidosValue_SP UniqueEidosValue(const EidosValue *p_arg0_value, bool p_force_new_
 		EidosValue_String_vector *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector();
 		result_SP = EidosValue_SP(string_result);
 		
-		for (int value_index = 0; value_index < arg0_count; ++value_index)
+		if (preserve_order)
 		{
-			string value = string_vec[value_index];
-			int scan_index;
-			
-			for (scan_index = 0; scan_index < value_index; ++scan_index)
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
 			{
-				if (value == string_vec[scan_index])
-					break;
+				string value = string_vec[value_index];
+				int scan_index;
+				
+				for (scan_index = 0; scan_index < value_index; ++scan_index)
+				{
+					if (value == string_vec[scan_index])
+						break;
+				}
+				
+				if (scan_index == value_index)
+					string_result->PushString(value);
 			}
+		}
+		else
+		{
+			std::vector<std::string> dup_vec = string_vec;
 			
-			if (scan_index == value_index)
-				string_result->PushString(value);
+			std::sort(dup_vec.begin(), dup_vec.end());
+			
+			auto unique_iter = std::unique(dup_vec.begin(), dup_vec.end());
+			
+			for (auto iter = dup_vec.begin(); iter != unique_iter; ++iter)
+				string_result->PushString(*iter);
 		}
 	}
 	else if (arg0_type == EidosValueType::kValueObject)
@@ -719,19 +761,33 @@ EidosValue_SP UniqueEidosValue(const EidosValue *p_arg0_value, bool p_force_new_
 		EidosValue_Object_vector *object_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(((EidosValue_Object *)arg0_value)->Class());
 		result_SP = EidosValue_SP(object_result);
 		
-		for (int value_index = 0; value_index < arg0_count; ++value_index)
+		if (preserve_order)
 		{
-			EidosObjectElement *value = object_vec[value_index];
-			int scan_index;
-			
-			for (scan_index = 0; scan_index < value_index; ++scan_index)
+			for (int value_index = 0; value_index < arg0_count; ++value_index)
 			{
-				if (value == object_vec[scan_index])
-					break;
+				EidosObjectElement *value = object_vec[value_index];
+				int scan_index;
+				
+				for (scan_index = 0; scan_index < value_index; ++scan_index)
+				{
+					if (value == object_vec[scan_index])
+						break;
+				}
+				
+				if (scan_index == value_index)
+					object_result->PushObjectElement(value);
 			}
+		}
+		else
+		{
+			std::vector<EidosObjectElement*> dup_vec = object_vec;
 			
-			if (scan_index == value_index)
-				object_result->PushObjectElement(value);
+			std::sort(dup_vec.begin(), dup_vec.end());
+			
+			auto unique_iter = std::unique(dup_vec.begin(), dup_vec.end());
+			
+			for (auto iter = dup_vec.begin(); iter != unique_iter; ++iter)
+				object_result->PushObjectElement(*iter);
 		}
 	}
 	
@@ -1659,12 +1715,12 @@ EidosValue_SP Eidos_ExecuteFunction_setUnion(const EidosValue_SP *const p_argume
 	else if (arg0_count == 0)
 	{
 		// arg0 is zero-length, arg1 is >1, so we just need to unique arg1
-		result_SP = UniqueEidosValue(arg1_value, false);
+		result_SP = UniqueEidosValue(arg1_value, false, true);
 	}
 	else if (arg1_count == 0)
 	{
 		// arg1 is zero-length, arg0 is >1, so we just need to unique arg0
-		result_SP = UniqueEidosValue(arg0_value, false);
+		result_SP = UniqueEidosValue(arg0_value, false, true);
 	}
 	else if ((arg0_count == 1) && (arg1_count == 1))
 	{
@@ -1717,7 +1773,7 @@ EidosValue_SP Eidos_ExecuteFunction_setUnion(const EidosValue_SP *const p_argume
 		}
 		
 		// now arg0_count > 1, arg1_count == 1
-		result_SP = UniqueEidosValue(arg0_value, true);
+		result_SP = UniqueEidosValue(arg0_value, true, true);
 		
 		int result_count = result_SP->Count();
 		
@@ -1790,7 +1846,7 @@ EidosValue_SP Eidos_ExecuteFunction_setUnion(const EidosValue_SP *const p_argume
 		// This code might look slow, but really the uniquing is O(N^2) and everything else is O(N), so since
 		// we are in the vector/vector case here, it really isn't worth worrying about optimizing the O(N) part.
 		result_SP = ConcatenateEidosValues(p_arguments, 2, false);
-		result_SP = UniqueEidosValue(result_SP.get(), false);
+		result_SP = UniqueEidosValue(result_SP.get(), false, true);
 	}
 	
 	return result_SP;
@@ -2174,7 +2230,7 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const EidosValue_SP *const p_a
 	else if (arg1_count == 0)
 	{
 		// If arg1 is empty, the difference is arg0, uniqued
-		result_SP = UniqueEidosValue(arg0_value, false);
+		result_SP = UniqueEidosValue(arg0_value, false, true);
 	}
 	else if (arg_type == EidosValueType::kValueLogical)
 	{
@@ -2339,7 +2395,7 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const EidosValue_SP *const p_a
 	else if (arg1_count == 1)
 	{
 		// The result is arg0 uniqued, minus the element in arg1 if it matches
-		result_SP = UniqueEidosValue(arg0_value, true);
+		result_SP = UniqueEidosValue(arg0_value, true, true);
 		
 		int result_count = result_SP->Count();
 		
@@ -2570,11 +2626,11 @@ EidosValue_SP Eidos_ExecuteFunction_setSymmetricDifference(const EidosValue_SP *
 	}
 	else if (arg0_count == 0)
 	{
-		result_SP = UniqueEidosValue(arg1_value, false);
+		result_SP = UniqueEidosValue(arg1_value, false, true);
 	}
 	else if (arg1_count == 0)
 	{
-		result_SP = UniqueEidosValue(arg0_value, false);
+		result_SP = UniqueEidosValue(arg0_value, false, true);
 	}
 	else if (arg_type == EidosValueType::kValueLogical)
 	{
@@ -2696,7 +2752,7 @@ EidosValue_SP Eidos_ExecuteFunction_setSymmetricDifference(const EidosValue_SP *
 		}
 		
 		// now arg0_count > 1, arg1_count == 1
-		result_SP = UniqueEidosValue(arg0_value, true);
+		result_SP = UniqueEidosValue(arg0_value, true, true);
 		
 		int result_count = result_SP->Count();
 		
@@ -6397,7 +6453,7 @@ EidosValue_SP Eidos_ExecuteFunction_substr(const EidosValue_SP *const p_argument
 //	(*)unique(* x)
 EidosValue_SP Eidos_ExecuteFunction_unique(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
-	return UniqueEidosValue(p_arguments[0].get(), false);
+	return UniqueEidosValue(p_arguments[0].get(), false, p_arguments[1]->LogicalAtIndex(0, nullptr));
 }
 
 //	(integer)which(logical x)

@@ -4774,6 +4774,26 @@ void _RunFunctionValueInspectionManipulationTests(void)
 	EidosAssertScriptSuccess("unique(c('foo', 'bar', 'foo', 'baz', 'baz', 'bar', 'foo'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foo", "bar", "baz"}));
 	EidosAssertScriptSuccess("unique(c(_Test(7), _Test(7), _Test(2), _Test(7), _Test(2)))._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 7, 2, 7, 2}));
 	
+	EidosAssertScriptSuccess("unique(NULL, F);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("unique(logical(0), F);", gStaticEidosValue_Logical_ZeroVec);
+	EidosAssertScriptSuccess("unique(integer(0), F);", gStaticEidosValue_Integer_ZeroVec);
+	EidosAssertScriptSuccess("unique(float(0), F);", gStaticEidosValue_Float_ZeroVec);
+	EidosAssertScriptSuccess("unique(string(0), F);", gStaticEidosValue_String_ZeroVec);
+	EidosAssertScriptSuccess("unique(object(), F);", gStaticEidosValue_Object_ZeroVec);
+	EidosAssertScriptSuccess("unique(T, F);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("unique(5, F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
+	EidosAssertScriptSuccess("unique(3.5, F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(3.5)));
+	EidosAssertScriptSuccess("unique('foo', F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foo")));
+	EidosAssertScriptSuccess("unique(_Test(7), F)._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(7)));
+	EidosAssertScriptSuccess("unique(c(T,T,T,T,F,T,T), F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
+	EidosAssertScriptSuccess("sort(unique(c(3,5,3,9,2,3,3,7,5), F));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 3, 5, 7, 9}));
+	EidosAssertScriptSuccess("sort(unique(c(3.5,1.2,9.3,-1.0,1.2,-1.0,1.2,7.6,3.5), F));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{-1, 1.2, 3.5, 7.6, 9.3}));
+	EidosAssertScriptSuccess("sort(unique(c('foo', 'bar', 'foo', 'baz', 'baz', 'bar', 'foo'), F));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"bar", "baz", "foo"}));
+	EidosAssertScriptSuccess("sort(unique(c(_Test(7), _Test(7), _Test(2), _Test(7), _Test(2)), F)._yolk);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 2, 7, 7, 7}));
+	
+	EidosAssertScriptSuccess("x = asInteger(runif(10000, 0, 10000)); size(unique(x)) == size(unique(x, F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = runif(10000, 0, 1); size(unique(x)) == size(unique(x, F));", gStaticEidosValue_LogicalT);
+	
 	// which()
 	EidosAssertScriptRaise("which(NULL);", 0, "cannot be type");
 	EidosAssertScriptRaise("which(5);", 0, "cannot be type");
