@@ -259,7 +259,7 @@ MutationIndex Chromosome::DrawNewMutation(slim_objectid_t p_subpop_index, slim_g
 	// NOTE THAT THE STACKING POLICY IS NOT ENFORCED HERE, SINCE WE DO NOT KNOW WHAT GENOME WE WILL BE INSERTED INTO!  THIS IS THE CALLER'S RESPONSIBILITY!
 	MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 	
-	new (gSLiM_Mutation_Block + new_mut_index) Mutation(new_mut_index,mutation_type_ptr, position, selection_coeff, p_subpop_index, p_generation);
+	new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, position, selection_coeff, p_subpop_index, p_generation);
 	
 	return new_mut_index;
 }

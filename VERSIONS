@@ -10,6 +10,9 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 development head:
 
 
+2.4.2 (build 1167; Eidos version 1.4.2):
+	fix for incorrect output due to non-unique mutation IDs
+
 2.4.1 (build 1166; Eidos version 1.4.1):
 	fix a crash (or possible bad simulation data) involving stale subpopulation pointers in genomes in multi-subpop models
 

@@ -1708,7 +1708,7 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 							double selection_coeff = mutation_type_ptr->DrawSelectionCoefficient();
 							MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 							
-							new (gSLiM_Mutation_Block + new_mut_index) Mutation(new_mut_index, mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_generation);
+							new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_generation);
 							mutation_index = new_mut_index;
 							
 							// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
@@ -1839,7 +1839,7 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 						{
 							MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 							
-							new (gSLiM_Mutation_Block + new_mut_index) Mutation(new_mut_index, mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_generation);
+							new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_generation);
 							mutation_index = new_mut_index;
 							
 							// Since the selection coefficient was chosen by the user, we need to check and set pure_neutral_ and all_pure_neutral_DFE_
