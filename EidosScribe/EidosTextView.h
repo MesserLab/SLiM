@@ -83,10 +83,9 @@ typedef enum EidosSyntaxColoringOption
 // Called after disabling syntax coloring with shouldRecolorAfterChanges, to provide the coalesced recoloring
 - (void)recolorAfterChanges;
 
-// These methods are used to construct the function/method prototypes shown in the status bar; client code
-// probably will not call them, but possibly they could be used for context-sensitive help or something
+// This method is used to construct the function/method prototypes shown in the status bar; client code
+// probably will not call it, but possibly it could be used for context-sensitive help or something
 - (NSAttributedString *)attributedSignatureForScriptString:(NSString *)scriptString selection:(NSRange)selection;
-- (NSAttributedString *)attributedSignatureForCallName:(NSString *)callName isMethodCall:(BOOL)isMethodCall;
 
 @end
 

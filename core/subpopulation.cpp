@@ -998,10 +998,10 @@ double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homo
 					
 					// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
 					{
-						EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &population_.sim_.SymbolTable());
+						EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim.SymbolTable());
 						EidosSymbolTable client_symbols(EidosSymbolTableType::kVariablesTable, &callback_symbols);
-						EidosFunctionMap *function_map = EidosInterpreter::BuiltInFunctionMap();
-						EidosInterpreter interpreter(fitness_callback->compound_statement_node_, client_symbols, *function_map, &sim);
+						EidosFunctionMap &function_map = sim.FunctionMap();
+						EidosInterpreter interpreter(fitness_callback->compound_statement_node_, client_symbols, function_map, &sim);
 						
 						if (fitness_callback->contains_self_)
 							callback_symbols.InitializeConstantSymbolEntry(fitness_callback->SelfSymbolTableEntry());		// define "self"
@@ -1136,10 +1136,10 @@ double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &
 			{
 				// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
 				{
-					EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &population_.sim_.SymbolTable());
+					EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim.SymbolTable());
 					EidosSymbolTable client_symbols(EidosSymbolTableType::kVariablesTable, &callback_symbols);
-					EidosFunctionMap *function_map = EidosInterpreter::BuiltInFunctionMap();
-					EidosInterpreter interpreter(fitness_callback->compound_statement_node_, client_symbols, *function_map, &sim);
+					EidosFunctionMap &function_map = sim.FunctionMap();
+					EidosInterpreter interpreter(fitness_callback->compound_statement_node_, client_symbols, function_map, &sim);
 					
 					if (fitness_callback->contains_self_)
 						callback_symbols.InitializeConstantSymbolEntry(fitness_callback->SelfSymbolTableEntry());		// define "self"

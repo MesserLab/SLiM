@@ -769,6 +769,7 @@ using std::string;
 			else if ([trimmedWord isEqualToString:@"else"])	trimmedWord = @"if and if–else statements";
 			else if ([trimmedWord isEqualToString:@"for"])	trimmedWord = @"for statements";
 			else if ([trimmedWord isEqualToString:@"in"])	trimmedWord = @"for statements";
+			else if ([trimmedWord isEqualToString:@"function"])	trimmedWord = @"user-defined functions";
 			else
 			{
 				// Give the delegate a chance to supply additional help-text substitutions
@@ -1288,6 +1289,63 @@ using std::string;
 #pragma mark -
 #pragma mark Signature display
 
+- (EidosFunctionMap *)functionMapForScriptString:(NSString *)scriptString includingOptionalFunctions:(BOOL)includingOptionalFunctions
+{
+	// This returns a function map (owned by the caller) that reflects the best guess we can make, incorporating
+	// any functions known to our delegate, as well as all functions we can scrape from the script string.
+	std::string script_string([scriptString UTF8String]);
+	EidosScript script(script_string);
+	
+	// Tokenize
+	script.Tokenize(true, false);	// make bad tokens as needed, don't keep nonsignificant tokens
+	
+	return [self functionMapForTokenizedScript:script includingOptionalFunctions:includingOptionalFunctions];
+}
+
+- (EidosFunctionMap *)functionMapForTokenizedScript:(EidosScript &)script includingOptionalFunctions:(BOOL)includingOptionalFunctions
+{
+	// This lower-level function takes a tokenized script object and works from there, allowing reuse of work
+	// in the case of attributedSignatureForScriptString:...
+	id delegate = [self delegate];
+	EidosFunctionMap *functionMapPtr = nullptr;
+	
+	if ([delegate respondsToSelector:@selector(functionMapForEidosTextView:)])
+		functionMapPtr = [delegate functionMapForEidosTextView:self];
+	
+	if (functionMapPtr)
+		functionMapPtr = new EidosFunctionMap(*functionMapPtr);
+	else
+		functionMapPtr = new EidosFunctionMap(*EidosInterpreter::BuiltInFunctionMap());
+	
+	// functionMapForEidosTextView: returns the function map for the current interpreter state, and the type-interpreter
+	// stuff we do below gives the delegate no chance to intervene (note that SLiMTypeInterpreter does not get in here,
+	// unlike in the code completion machinery!).  But sometimes we want SLiM's zero-gen functions to be added to the map
+	// in all cases; it would be even better to be smart the way code completion is, but that's more work than it's worth.
+	if (includingOptionalFunctions)
+		if ([delegate respondsToSelector:@selector(eidosTextView:addOptionalFunctionsToMap:)])
+			[delegate eidosTextView:self addOptionalFunctionsToMap:functionMapPtr];
+	
+	// OK, now we have a starting point.  We now want to use the type-interpreter to add any functions that are declared
+	// in the full script, so that such declarations are known to us even before they have actually been executed.
+	EidosTypeTable typeTable;
+	EidosCallTypeTable callTypeTable;
+	EidosSymbolTable *symbols = gEidosConstantsSymbolTable;
+	
+	if ([delegate respondsToSelector:@selector(eidosTextView:symbolsFromBaseSymbols:)])
+		symbols = [delegate eidosTextView:self symbolsFromBaseSymbols:symbols];
+	
+	if (symbols)
+		symbols->AddSymbolsToTypeTable(&typeTable);
+	
+	script.ParseInterpreterBlockToAST(true, true);	// make bad nodes as needed (i.e. never raise, and produce a correct tree)
+	
+	EidosTypeInterpreter typeInterpreter(script, typeTable, *functionMapPtr, callTypeTable);
+	
+	typeInterpreter.TypeEvaluateInterpreterBlock();	// result not used
+	
+	return functionMapPtr;
+}
+
 - (NSAttributedString *)attributedSignatureForScriptString:(NSString *)scriptString selection:(NSRange)selection
 {
 	if ([scriptString length])
@@ -1296,7 +1354,7 @@ using std::string;
 		EidosScript script(script_string);
 		
 		// Tokenize
-		script.Tokenize(true, true);	// make bad tokens as needed, keep nonsignificant tokens
+		script.Tokenize(true, false);	// make bad tokens as needed, don't keep nonsignificant tokens
 		
 		const vector<EidosToken> &tokens = script.Tokens();
 		int tokenCount = (int)tokens.size();
@@ -1341,12 +1399,42 @@ using std::string;
 						// OK, we found the pattern "identifier("; extract the name of the function/method
 						// We also figure out here whether it is a method call (tokens like ".identifier(") or not
 						NSString *callName = [NSString stringWithUTF8String:previousToken.token_string_.c_str()];
-						BOOL isMethodCall = NO;
+						NSAttributedString *callAttrString = nil;
 						
 						if ((backscanIndex > 1) && (tokens[backscanIndex - 2].token_type_ == EidosTokenType::kTokenDot))
-							isMethodCall = YES;
+						{
+							// This is a method call, so look up its signature that way
+							callAttrString = [self attributedSignatureForMethodName:callName];
+						}
+						else
+						{
+							// If this is a function declaration like ")identifier(" then show no signature; it's not a function call
+							if ((backscanIndex > 1) && (tokens[backscanIndex - 2].token_type_ == EidosTokenType::kTokenRParen))
+								break;
+							
+							// This is a function call, so look up its signature that way, using our best-guess function map
+							EidosFunctionMap *functionMapPtr = [self functionMapForTokenizedScript:script includingOptionalFunctions:YES];
+							
+							callAttrString = [self attributedSignatureForFunctionName:callName functionMap:functionMapPtr];
+							
+							delete functionMapPtr;
+						}
 						
-						return [self attributedSignatureForCallName:callName isMethodCall:isMethodCall];
+						if (!callAttrString)
+						{
+							// Assemble an attributed string for our failed lookup message
+							NSMutableAttributedString *attrStr = [[[NSMutableAttributedString alloc] init] autorelease];
+							NSDictionary *plainAttrs = [NSDictionary eidosOutputAttrsWithSize:_displayFontSize];
+							NSDictionary *functionAttrs = [NSDictionary eidosParseAttrsWithSize:_displayFontSize];
+							
+							[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:callName attributes:functionAttrs] autorelease]];
+							[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"() – unrecognized call" attributes:plainAttrs] autorelease]];
+							[attrStr addAttribute:NSBaselineOffsetAttributeName value:[NSNumber numberWithFloat:2.0] range:NSMakeRange(0, [attrStr length])];
+							
+							callAttrString = attrStr;
+						}
+						
+						return callAttrString;
 					}
 					
 					lowestParenCountSeen = parenCount;
@@ -1364,60 +1452,47 @@ using std::string;
 	return [[[NSAttributedString alloc] init] autorelease];
 }
 
-- (NSAttributedString *)attributedSignatureForCallName:(NSString *)callName isMethodCall:(BOOL)isMethodCall
+- (NSAttributedString *)attributedSignatureForFunctionName:(NSString *)callName functionMap:(EidosFunctionMap *)functionMapPtr
 {
-	// We need to figure out what the signature is for the call name.
+	std::string call_name([callName UTF8String]);
+	
+	// Look for a matching function signature for the call name.
+	for (const auto& function_iter : *functionMapPtr)
+	{
+		const EidosFunctionSignature *sig = function_iter.second;
+		const std::string &sig_call_name = sig->call_name_;
+		
+		if (sig_call_name.compare(call_name) == 0)
+			return [NSAttributedString eidosAttributedStringForCallSignature:sig size:[self displayFontSize]];
+	}
+	
+	return nil;
+}
+
+- (NSAttributedString *)attributedSignatureForMethodName:(NSString *)callName
+{
 	std::string call_name([callName UTF8String]);
 	id delegate = [self delegate];
 	
-	if (!isMethodCall)
+	// Look for a method in the global method registry last; for this to work, the Context must register all methods with Eidos.
+	// This case is much simpler than the function case, because the user can't declare their own methods.
+	const std::vector<const EidosMethodSignature *> *methodSignatures = nullptr;
+	
+	if ([delegate respondsToSelector:@selector(eidosTextViewAllMethodSignatures:)])
+		methodSignatures = [delegate eidosTextViewAllMethodSignatures:self];
+	
+	if (!methodSignatures)
+		methodSignatures = gEidos_UndefinedClassObject->Methods();
+	
+	for (const EidosMethodSignature *sig : *methodSignatures)
 	{
-		// Look for a matching function signature, including those from the Context
-		EidosFunctionMap *functionMap = EidosInterpreter::BuiltInFunctionMap();
+		const std::string &sig_call_name = sig->call_name_;
 		
-		if ([delegate respondsToSelector:@selector(eidosTextView:functionMapFromBaseMap:)])
-			functionMap = [delegate eidosTextView:self functionMapFromBaseMap:functionMap];
-		
-		for (const auto& function_iter : *functionMap)
-		{
-			const EidosFunctionSignature *sig = function_iter.second;
-			const std::string &sig_call_name = sig->call_name_;
-			
-			if (sig_call_name.compare(call_name) == 0)
-				return [NSAttributedString eidosAttributedStringForCallSignature:sig size:[self displayFontSize]];
-		}
+		if (sig_call_name.compare(call_name) == 0)
+			return [NSAttributedString eidosAttributedStringForCallSignature:sig size:[self displayFontSize]];
 	}
 	
-	if (isMethodCall)
-	{
-		// Look for a method in the global method registry last; for this to work, the Context must register all methods with Eidos
-		const std::vector<const EidosMethodSignature *> *methodSignatures = nullptr;
-		
-		if ([delegate respondsToSelector:@selector(eidosTextViewAllMethodSignatures:)])
-			methodSignatures = [delegate eidosTextViewAllMethodSignatures:self];
-		
-		if (!methodSignatures)
-			methodSignatures = gEidos_UndefinedClassObject->Methods();
-		
-		for (const EidosMethodSignature *sig : *methodSignatures)
-		{
-			const std::string &sig_call_name = sig->call_name_;
-			
-			if (sig_call_name.compare(call_name) == 0)
-				return [NSAttributedString eidosAttributedStringForCallSignature:sig size:[self displayFontSize]];
-		}
-	}
-	
-	// Assemble an attributed string for our failed lookup message
-	NSMutableAttributedString *attrStr = [[[NSMutableAttributedString alloc] init] autorelease];
-	NSDictionary *plainAttrs = [NSDictionary eidosOutputAttrsWithSize:_displayFontSize];
-	NSDictionary *functionAttrs = [NSDictionary eidosParseAttrsWithSize:_displayFontSize];
-	
-	[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:callName attributes:functionAttrs] autorelease]];
-	[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"() – unrecognized call" attributes:plainAttrs] autorelease]];
-	[attrStr addAttribute:NSBaselineOffsetAttributeName value:[NSNumber numberWithFloat:2.0] range:NSMakeRange(0, [attrStr length])];
-	
-	return attrStr;
+	return nil;
 }
 
 
@@ -1787,6 +1862,7 @@ using std::string;
 		case EidosTokenType::kTokenNext:
 		case EidosTokenType::kTokenBreak:
 		case EidosTokenType::kTokenReturn:
+		case EidosTokenType::kTokenFunction:
 			if (canExtend)
 			{
 				NSMutableArray *completions = nil;
@@ -1846,6 +1922,7 @@ using std::string;
 		case EidosTokenType::kTokenString:
 		case EidosTokenType::kTokenRParen:
 		case EidosTokenType::kTokenRBracket:
+		case EidosTokenType::kTokenSingleton:
 			// We don't have anything to suggest after such tokens; the next thing will need to be an operator, semicolon, etc.
 			return nil;
 			
@@ -1925,7 +2002,7 @@ using std::string;
 		EidosFunctionMap *functionMapPtr = &functionMap;
 		EidosCallTypeTable callTypeTable;
 		EidosCallTypeTable *callTypeTablePtr = &callTypeTable;
-		NSMutableArray *keywords = [NSMutableArray arrayWithObjects:@"break", @"do", @"else", @"for", @"if", @"in", @"next", @"return", @"while", nil];
+		NSMutableArray *keywords = [NSMutableArray arrayWithObjects:@"break", @"do", @"else", @"for", @"if", @"in", @"next", @"return", @"while", @"function", nil];
 		BOOL delegateHandled = NO;
 		
 		if ([delegate respondsToSelector:@selector(eidosTextView:completionContextWithScriptString:selection:typeTable:functionMap:callTypeTable:keywords:)])
@@ -1949,9 +2026,13 @@ using std::string;
 			if (symbols)
 				symbols->AddSymbolsToTypeTable(typeTablePtr);
 			
-			// Next, let our delegate give us a new function map
-			if ([delegate respondsToSelector:@selector(eidosTextView:functionMapFromBaseMap:)])
-				functionMapPtr = [delegate eidosTextView:self functionMapFromBaseMap:functionMapPtr];
+			// Next, a definitive function map that covers all functions defined in the entire script string (not just the script above
+			// the completion point); this seems best, for mutually recursive functions etc..  Duplicate it back into functionMap and
+			// delete the original, so we don't get confused.
+			EidosFunctionMap *definitive_function_map = [self functionMapForScriptString:scriptString includingOptionalFunctions:NO];
+			
+			functionMap = *definitive_function_map;
+			delete definitive_function_map;
 			
 			// Next, add type table entries based on parsing and analysis of the user's code
 			EidosScript script(script_string);
@@ -1960,8 +2041,8 @@ using std::string;
 			std::cout << "Eidos script:\n" << script_string << std::endl << std::endl;
 #endif
 			
-			script.Tokenize(true, false);				// make bad tokens as needed, do not keep nonsignificant tokens
-			script.ParseInterpreterBlockToAST(true);	// make bad nodes as needed (i.e. never raise, and produce a correct tree)
+			script.Tokenize(true, false);					// make bad tokens as needed, do not keep nonsignificant tokens
+			script.ParseInterpreterBlockToAST(true, true);	// make bad nodes as needed (i.e. never raise, and produce a correct tree)
 			
 #if EIDOS_DEBUG_COMPLETION
 			std::ostringstream parse_stream;
@@ -2092,7 +2173,7 @@ using std::string;
 			{
 				// the last token cannot be extended, so if the last token is something an identifier can follow, like an
 				// operator, then we can offer completions at the insertion point based on that, otherwise punt.
-				if ((token_type == EidosTokenType::kTokenNumber) || (token_type == EidosTokenType::kTokenString) || (token_type == EidosTokenType::kTokenRParen) || (token_type == EidosTokenType::kTokenRBracket) || (token_type == EidosTokenType::kTokenIdentifier) || (token_type == EidosTokenType::kTokenIf) || (token_type == EidosTokenType::kTokenWhile) || (token_type == EidosTokenType::kTokenFor) || (token_type == EidosTokenType::kTokenNext) || (token_type == EidosTokenType::kTokenBreak) || (token_type == EidosTokenType::kTokenReturn))
+				if ((token_type == EidosTokenType::kTokenNumber) || (token_type == EidosTokenType::kTokenString) || (token_type == EidosTokenType::kTokenRParen) || (token_type == EidosTokenType::kTokenRBracket) || (token_type == EidosTokenType::kTokenIdentifier) || (token_type == EidosTokenType::kTokenIf) || (token_type == EidosTokenType::kTokenWhile) || (token_type == EidosTokenType::kTokenFor) || (token_type == EidosTokenType::kTokenNext) || (token_type == EidosTokenType::kTokenBreak) || (token_type == EidosTokenType::kTokenReturn) || (token_type == EidosTokenType::kTokenFunction))
 				{
 					if (baseRange) *baseRange = NSMakeRange(NSNotFound, 0);
 					if (completions) *completions = nil;

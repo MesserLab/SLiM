@@ -152,6 +152,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 			case '&': token_type = EidosTokenType::kTokenAnd; break;
 			case '|': token_type = EidosTokenType::kTokenOr; break;
 			case '?': token_type = EidosTokenType::kTokenConditional; break;
+			case '$': token_type = EidosTokenType::kTokenSingleton; break;
 			
 			// cases that require lookahead due to ambiguity: =, <, >, !, /
 			case '=':
@@ -635,6 +636,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 				else if (token_string.compare(gEidosStr_next) == 0) token_type = EidosTokenType::kTokenNext;
 				else if (token_string.compare(gEidosStr_break) == 0) token_type = EidosTokenType::kTokenBreak;
 				else if (token_string.compare(gEidosStr_return) == 0) token_type = EidosTokenType::kTokenReturn;
+				else if (token_string.compare(gEidosStr_function) == 0) token_type = EidosTokenType::kTokenFunction;
 				
 				// We used to modify the token string here for language keywords; we don't do that any more because it messed
 				// up code completion, which assumes that the token string is a faithful copy of what matched the token.
@@ -697,7 +699,7 @@ void EidosScript::Match(EidosTokenType p_token_type, const char *p_context_cstr)
 	}
 }
 
-EidosASTNode *EidosScript::Parse_InterpreterBlock(void)
+EidosASTNode *EidosScript::Parse_InterpreterBlock(bool p_allow_functions)
 {
 	EidosToken temp_token(EidosTokenType::kTokenInterpreterBlock, gEidosStr_empty_string, 0, 0, 0, 0);
 	
@@ -710,7 +712,14 @@ EidosASTNode *EidosScript::Parse_InterpreterBlock(void)
 		
 		while (current_token_type_ != EidosTokenType::kTokenEOF)
 		{
-			EidosASTNode *child = Parse_Statement();
+			EidosASTNode *child;
+			
+			// If p_allow_functions==T we're parsing a top-level interpreter block and function declarations are thus allowed.
+			// If it is F, we are parsing something that is not a top-level block, and function declarations are not allowed.
+			if (p_allow_functions && (current_token_type_ == EidosTokenType::kTokenFunction))
+				child = Parse_FunctionDecl();
+			else
+				child = Parse_Statement();
 			
 			node->AddChild(child);
 		}
@@ -759,6 +768,11 @@ EidosASTNode *EidosScript::Parse_CompoundStatement(void)
 		
 		int token_end = current_token_->token_start_;
 		int32_t token_UTF16_end = current_token_->token_UTF16_start_;
+		
+		// We remember, with a flag, if we hit the EOF before seeing our end brace; this is used by EidosTypeInterpreter to know
+		// what scope was active at the point when the parse ended, so it can leave the correct type table in place
+		if (current_token_type_ == EidosTokenType::kTokenEOF)
+			node->hit_eof_in_tolerant_parse_ = true;
 		
 		Match(EidosTokenType::kTokenRBrace, "compound statement");
 		
@@ -1648,7 +1662,13 @@ EidosASTNode *EidosScript::Parse_PrimaryExpr(void)
 		else
 		{
 			if (!parse_make_bad_nodes_)
-				EIDOS_TERMINATION << "ERROR (EidosScript::Parse_PrimaryExpr): unexpected token '" << *current_token_ << "'." << eidos_terminate(current_token_);
+			{
+				// Give a good error message if the user is using <function> as an identifier
+				if (current_token_type_ == EidosTokenType::kTokenFunction)
+					EIDOS_TERMINATION << "ERROR (EidosScript::Parse_PrimaryExpr): unexpected token '" << *current_token_ << "'.  Note that <function> is now an Eidos language keyword and can no longer be used as an identifier.  User-defined functions may only be declared at the top level, not inside blocks.  The parameter to doCall() is now named 'functionName', and the built-in function previously named 'function' is now named 'functionSignature'." << eidos_terminate(current_token_);
+				else
+					EIDOS_TERMINATION << "ERROR (EidosScript::Parse_PrimaryExpr): unexpected token '" << *current_token_ << "'." << eidos_terminate(current_token_);
+			}
 			
 			// We're doing an error-tolerant parse, so we introduce a bad node here as a placeholder for a missing primary expression
 			EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, 0, 0, 0, 0);
@@ -1773,7 +1793,363 @@ EidosASTNode *EidosScript::Parse_Constant(void)
 	return node;
 }
 
-void EidosScript::ParseInterpreterBlockToAST(bool p_make_bad_nodes)
+EidosASTNode *EidosScript::Parse_FunctionDecl(void)
+{
+	EidosASTNode *node = nullptr, *return_type, *identifier, *param_list, *body;
+	
+	try
+	{
+		node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
+		
+		Match(EidosTokenType::kTokenFunction, "function declaration");
+		
+		return_type = Parse_ReturnTypeSpec();
+		node->AddChild(return_type);
+		
+		identifier = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
+		node->AddChild(identifier);
+		Match(EidosTokenType::kTokenIdentifier, "function declaration");
+		
+		param_list = Parse_ParamList();
+		node->AddChild(param_list);
+		
+		body = Parse_CompoundStatement();
+		node->AddChild(body);
+	}
+	catch (...)
+	{
+		if (node)
+		{
+			node->~EidosASTNode();
+			gEidosASTNodePool->DisposeChunk(const_cast<EidosASTNode*>(node));
+		}
+		
+		throw;
+	}
+	
+	return node;
+}
+
+EidosASTNode *EidosScript::Parse_ReturnTypeSpec()
+{
+	EidosASTNode *node = nullptr;
+	
+	try
+	{
+		Match(EidosTokenType::kTokenLParen, "return-type specifier");
+		
+		if (current_token_type_ == EidosTokenType::kTokenRParen)
+			if (!parse_make_bad_nodes_)
+				EIDOS_TERMINATION << "ERROR (EidosScript::Parse_ReturnTypeSpec): unexpected token '" << *current_token_ << "' in return-type specifier; perhaps 'void' is missing?  Note that function() has been renamed to functionSignature()." << eidos_terminate(current_token_);
+		
+		if ((current_token_type_ == EidosTokenType::kTokenIdentifier) && (current_token_->token_string_ == "void"))
+		{
+			// create a node for the void type-specifier, which Parse_TypeSpec() does not handle
+			node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
+			node->typespec_.type_mask = kEidosValueMaskNULL;
+			node->typespec_.object_class = nullptr;
+			
+			Match(EidosTokenType::kTokenIdentifier, "return-type specifier");
+		}
+		else
+		{
+			// create a node for the type-specifier
+			node = Parse_TypeSpec();
+		}
+		
+		Match(EidosTokenType::kTokenRParen, "return-type specifier");
+	}
+	catch (...)
+	{
+		if (node)
+		{
+			node->~EidosASTNode();
+			gEidosASTNodePool->DisposeChunk(const_cast<EidosASTNode*>(node));
+		}
+		
+		throw;
+	}
+	
+	return node;
+}
+
+EidosASTNode *EidosScript::Parse_TypeSpec(void)
+{
+	EidosASTNode *node = nullptr;
+	
+	try
+	{
+		node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
+		
+		node->typespec_.type_mask = kEidosValueMaskNone;
+		node->typespec_.object_class = nullptr;
+		
+		if (current_token_type_ == EidosTokenType::kTokenIdentifier)
+		{
+			const std::string &type = current_token_->token_string_;
+			
+			if (type == "logical")
+			{
+				node->typespec_.type_mask = kEidosValueMaskLogical;
+				Match(EidosTokenType::kTokenIdentifier, "type specifier");
+			}
+			else if (type == "integer")
+			{
+				node->typespec_.type_mask = kEidosValueMaskInt;
+				Match(EidosTokenType::kTokenIdentifier, "type specifier");
+			}
+			else if (type == "float")
+			{
+				node->typespec_.type_mask = kEidosValueMaskFloat;
+				Match(EidosTokenType::kTokenIdentifier, "type specifier");
+			}
+			else if (type == "string")
+			{
+				node->typespec_.type_mask = kEidosValueMaskString;
+				Match(EidosTokenType::kTokenIdentifier, "type specifier");
+			}
+			else if (type == "object")
+			{
+				node->typespec_.type_mask = kEidosValueMaskObject;
+				Match(EidosTokenType::kTokenIdentifier, "type specifier");
+				
+				if (current_token_type_ == EidosTokenType::kTokenLt)
+					Parse_ObjectClassSpec(node);
+			}
+			else if (type == "numeric")
+			{
+				node->typespec_.type_mask = kEidosValueMaskNumeric;
+				Match(EidosTokenType::kTokenIdentifier, "type specifier");
+			}
+			else
+			{
+				// Check for a type composed of (Nlifso)*
+				bool seen_N = false, seen_l = false, seen_i = false, seen_f = false, seen_s = false, seen_o = false;
+				bool saw_double = false;
+				
+				for (const char &c : type)
+				{
+					switch (c)
+					{
+						case 'N':	if (seen_N) saw_double = true; else seen_N = true; break;
+						case 'l':	if (seen_l) saw_double = true; else seen_l = true; break;
+						case 'i':	if (seen_i) saw_double = true; else seen_i = true; break;
+						case 'f':	if (seen_f) saw_double = true; else seen_f = true; break;
+						case 's':	if (seen_s) saw_double = true; else seen_s = true; break;
+						case 'o':	if (seen_o) saw_double = true; else seen_o = true; break;
+						default:	if (!parse_make_bad_nodes_)
+										EIDOS_TERMINATION << "ERROR (EidosScript::Parse_TypeSpec): illegal type-specifier '" << type << "' (illegal character '" << c << "')." << eidos_terminate(current_token_);
+					}
+					
+					if (saw_double)
+						if (!parse_make_bad_nodes_)
+							EIDOS_TERMINATION << "ERROR (EidosScript::Parse_TypeSpec): illegal type-specifier '" << type << "' (doubly specified type '" << c << "')." << eidos_terminate(current_token_);
+				}
+				
+				if (seen_N)		node->typespec_.type_mask |= kEidosValueMaskNULL;
+				if (seen_l)		node->typespec_.type_mask |= kEidosValueMaskLogical;
+				if (seen_i)		node->typespec_.type_mask |= kEidosValueMaskInt;
+				if (seen_f)		node->typespec_.type_mask |= kEidosValueMaskFloat;
+				if (seen_s)		node->typespec_.type_mask |= kEidosValueMaskString;
+				if (seen_o)		node->typespec_.type_mask |= kEidosValueMaskObject;
+				
+				Match(EidosTokenType::kTokenIdentifier, "type specifier");
+				
+				if (current_token_type_ == EidosTokenType::kTokenLt)
+					Parse_ObjectClassSpec(node);
+			}
+		}
+		else if (current_token_type_ == EidosTokenType::kTokenPlus)
+		{
+			// We just return a + node in this case; note it is different from a normal + node!
+			node->typespec_.type_mask = kEidosValueMaskAnyBase;
+			
+			Match(EidosTokenType::kTokenPlus, "type specifier");
+		}
+		else if (current_token_type_ == EidosTokenType::kTokenMult)
+		{
+			// We just return a * node in this case; note it is different from a normal * node!
+			node->typespec_.type_mask = kEidosValueMaskAny;
+			
+			Match(EidosTokenType::kTokenMult, "type specifier");
+		}
+		else
+		{
+			if (!parse_make_bad_nodes_)
+				EIDOS_TERMINATION << "ERROR (EidosScript::Parse_TypeSpec): unexpected token '" << *current_token_ << "' in type specifier; expected a type identifier, +, or *." << eidos_terminate(current_token_);
+		}
+		
+		if (current_token_type_ == EidosTokenType::kTokenSingleton)
+		{
+			// Mark the node as representing a singleton
+			node->typespec_.type_mask |= kEidosValueMaskSingleton;
+			
+			Match(EidosTokenType::kTokenSingleton, "type specifier");
+		}
+	}
+	catch (...)
+	{
+		if (node)
+		{
+			node->~EidosASTNode();
+			gEidosASTNodePool->DisposeChunk(const_cast<EidosASTNode*>(node));
+		}
+		
+		throw;
+	}
+	
+	return node;
+}
+
+EidosASTNode *EidosScript::Parse_ObjectClassSpec(EidosASTNode *type_node)
+{
+	try
+	{
+		Match(EidosTokenType::kTokenLt, "object-class specifier");
+		
+		const std::string &object_class = current_token_->token_string_;
+		
+		for (EidosObjectClass *eidos_class : gEidosContextClasses)
+		{
+			if (eidos_class->ElementType() == object_class)
+			{
+				type_node->typespec_.object_class = eidos_class;
+				break;
+			}
+		}
+		
+		if (!type_node->typespec_.object_class)
+			if (!parse_make_bad_nodes_)
+				EIDOS_TERMINATION << "ERROR (EidosScript::Parse_ObjectClassSpec): could not find an Eidos class named '" << object_class << "')." << eidos_terminate(current_token_);
+		
+		Match(EidosTokenType::kTokenIdentifier, "object-class specifier");
+		Match(EidosTokenType::kTokenGt, "object-class specifier");
+	}
+	catch (...)
+	{
+		throw;
+	}
+	
+	return type_node;
+}
+
+EidosASTNode *EidosScript::Parse_ParamList(void)
+{
+	EidosASTNode *node = nullptr;
+	
+	try
+	{
+		node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
+		
+		Match(EidosTokenType::kTokenLParen, "parameter list");
+		
+		if ((current_token_type_ == EidosTokenType::kTokenIdentifier) && (current_token_->token_string_ == "void"))
+		{
+			// A void parameter list is represented by no children of the param-list node
+			Match(EidosTokenType::kTokenIdentifier, "parameter list");
+		}
+		else
+		{
+			// Otherwise, each child represents one param-spec
+			while (true)
+			{
+				EidosASTNode *param_spec = Parse_ParamSpec();
+				
+				node->AddChild(param_spec);
+				
+				if (current_token_type_ == EidosTokenType::kTokenComma)
+				{
+					Match(EidosTokenType::kTokenComma, "parameter list");
+					continue;
+				}
+				
+				break;
+			}
+		}
+		
+		Match(EidosTokenType::kTokenRParen, "parameter list");
+	}
+	catch (...)
+	{
+		if (node)
+		{
+			node->~EidosASTNode();
+			gEidosASTNodePool->DisposeChunk(const_cast<EidosASTNode*>(node));
+		}
+		
+		throw;
+	}
+	
+	return node;
+}
+
+EidosASTNode *EidosScript::Parse_ParamSpec(void)
+{
+	EidosASTNode *node = nullptr, *type_node, *parameter_id, *default_value;
+	
+	try
+	{
+		node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
+		
+		if (current_token_type_ == EidosTokenType::kTokenLBracket)
+		{
+			// This is an optional argument of the form "[ type-spec ID = default-value ]"
+			// It is stored as a node with three children: type-spec, ID, default-value
+			// In this case the parent node is of type EidosTokenType::kTokenLBracket
+			Match(EidosTokenType::kTokenLBracket, "parameter specifier");
+			
+			type_node = Parse_TypeSpec();
+			type_node->typespec_.type_mask |= kEidosValueMaskOptional;
+			node->AddChild(type_node);
+			
+			parameter_id = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
+			node->AddChild(parameter_id);
+			Match(EidosTokenType::kTokenIdentifier, "parameter specifier");
+			
+			Match(EidosTokenType::kTokenAssign, "parameter specifier");
+			
+			if (current_token_type_ == EidosTokenType::kTokenIdentifier)
+			{
+				default_value = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
+				node->AddChild(default_value);
+				Match(EidosTokenType::kTokenIdentifier, "parameter specifier");
+			}
+			else
+			{
+				default_value = Parse_Constant();
+				node->AddChild(default_value);
+			}
+			
+			Match(EidosTokenType::kTokenRBracket, "parameter specifier");
+		}
+		else
+		{
+			// This is a required argument of the form "type-spec ID"
+			// It is stored as a node with two children: type-spec, ID
+			// In this case the parent node is of type EidosTokenType::kTokenIdentifier
+			type_node = Parse_TypeSpec();
+			node->AddChild(type_node);
+			
+			parameter_id = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
+			node->AddChild(parameter_id);
+			Match(EidosTokenType::kTokenIdentifier, "parameter specifier");
+		}
+	}
+	catch (...)
+	{
+		if (node)
+		{
+			node->~EidosASTNode();
+			gEidosASTNodePool->DisposeChunk(const_cast<EidosASTNode*>(node));
+		}
+		
+		throw;
+	}
+	
+	return node;
+}
+
+void EidosScript::ParseInterpreterBlockToAST(bool p_allow_functions, bool p_make_bad_nodes)
 {
 	// destroy the parse root and return it to the pool; the tree must be allocated out of gEidosASTNodePool!
 	if (parse_root_)
@@ -1794,7 +2170,7 @@ void EidosScript::ParseInterpreterBlockToAST(bool p_make_bad_nodes)
 	gEidosCurrentScript = this;
 	
 	// parse a new AST from our start token
-	parse_root_ = Parse_InterpreterBlock();
+	parse_root_ = Parse_InterpreterBlock(p_allow_functions);
 	
 	parse_root_->OptimizeTree();
 	

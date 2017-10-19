@@ -194,6 +194,13 @@ std::string StringForEidosValueMask(const EidosValueMask p_mask, const EidosObje
 //std::ostream &operator<<(std::ostream &p_outstream, const EidosValueMask p_mask);	// can't do this since EidosValueMask is just uint32_t
 
 
+// EidosTypeSpecifier is a struct that provides a full type specifier, including an optional object class, for a value
+typedef struct {
+	EidosValueMask type_mask;					// can specify kEidosValueMaskNone for no known type, or any combination of type masks
+	const EidosObjectClass *object_class;		// if kEidosValueMaskObject is included in type_mask, this can specify a class (or can be nullptr)
+} EidosTypeSpecifier;
+
+
 //	*********************************************************************************************************
 //
 //	A class representing a value resulting from script evaluation.  Eidos is quite dynamically typed;

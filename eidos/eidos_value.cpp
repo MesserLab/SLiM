@@ -2845,8 +2845,8 @@ const std::vector<const EidosMethodSignature *> *EidosObjectClass::Methods(void)
 		methods = new std::vector<const EidosMethodSignature *>;
 		
 		// keep alphabetical order here
-		methods->emplace_back(SignatureForMethodOrRaise(gEidosID_method));
-		methods->emplace_back(SignatureForMethodOrRaise(gEidosID_property));
+		methods->emplace_back(SignatureForMethodOrRaise(gEidosID_methodSignature));
+		methods->emplace_back(SignatureForMethodOrRaise(gEidosID_propertySignature));
 		methods->emplace_back(SignatureForMethodOrRaise(gEidosID_size));
 		methods->emplace_back(SignatureForMethodOrRaise(gEidosID_str));
 	}
@@ -2864,8 +2864,8 @@ const EidosMethodSignature *EidosObjectClass::SignatureForMethod(EidosGlobalStri
 	
 	if (!methodSig)
 	{
-		methodSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_method, kEidosValueMaskNULL))->AddString_OSN("methodName", gStaticEidosValueNULL);
-		propertySig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_property, kEidosValueMaskNULL))->AddString_OSN("propertyName", gStaticEidosValueNULL);
+		methodSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_methodSignature, kEidosValueMaskNULL))->AddString_OSN("methodName", gStaticEidosValueNULL);
+		propertySig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_propertySignature, kEidosValueMaskNULL))->AddString_OSN("propertyName", gStaticEidosValueNULL);
 		sizeSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_size, kEidosValueMaskInt | kEidosValueMaskSingleton));
 		strSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_str, kEidosValueMaskNULL));
 	}
@@ -2873,10 +2873,10 @@ const EidosMethodSignature *EidosObjectClass::SignatureForMethod(EidosGlobalStri
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_method_id)
 	{
-		case gEidosID_method:	return methodSig;
-		case gEidosID_property:	return propertySig;
-		case gEidosID_size:		return sizeSig;
-		case gEidosID_str:		return strSig;
+		case gEidosID_methodSignature:		return methodSig;
+		case gEidosID_propertySignature:	return propertySig;
+		case gEidosID_size:					return sizeSig;
+		case gEidosID_str:					return strSig;
 			
 			// all others, including gID_none
 		default:
@@ -2901,11 +2901,11 @@ EidosValue_SP EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_
 	switch (p_method_id)
 	{
 			//
-			//	*********************	+ (void)property([Ns$ propertyName = NULL])
+			//	*********************	+ (void)propertySignature([Ns$ propertyName = NULL])
 			//
-#pragma mark +property()
+#pragma mark +propertySignature()
 			
-		case gEidosID_property:
+		case gEidosID_propertySignature:
 		{
 			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 			bool has_match_string = (p_arguments[0]->Type() == EidosValueType::kValueString);
@@ -2933,11 +2933,11 @@ EidosValue_SP EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_
 			
 			
 			//
-			//	*********************	+ (void)method([Ns$ methodName = NULL])
+			//	*********************	+ (void)methodSignature([Ns$ methodName = NULL])
 			//
-#pragma mark +method()
+#pragma mark +methodSignature()
 			
-		case gEidosID_method:
+		case gEidosID_methodSignature:
 		{
 			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 			bool has_match_string = (p_arguments[0]->Type() == EidosValueType::kValueString);

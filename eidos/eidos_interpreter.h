@@ -65,7 +65,8 @@ class EidosInterpreter
 private:
 	EidosContext *eidos_context_;				// not owned
 	const EidosASTNode *root_node_;				// not owned
-	EidosSymbolTable &global_symbols_;			// NOT OWNED: whoever creates us must give us a reference to a symbol table, which we use
+	EidosSymbolTable *global_symbols_;			// NOT OWNED: whoever creates us must give us a reference to a symbol table, which we use
+	
 	EidosFunctionMap &function_map_;			// NOT OWNED: a map table of EidosFunctionSignature objects, keyed by function name
 	
 	// flags to handle next/break statements in do...while, while, and for loops
@@ -104,7 +105,7 @@ public:
 	std::ostringstream &ExecutionOutputStream(void);			// lazy allocation; all use of execution_output_ should get it through this accessor
 	std::string ExecutionOutput(void);
 	
-	inline __attribute__((always_inline)) EidosSymbolTable &SymbolTable(void) { return global_symbols_; };			// the returned reference is to the symbol table that the interpreter has borrowed
+	inline __attribute__((always_inline)) EidosSymbolTable &SymbolTable(void) { return *global_symbols_; };			// the returned reference is to the symbol table that the interpreter has borrowed
 	inline __attribute__((always_inline)) EidosFunctionMap &FunctionMap(void) { return function_map_; };				// the returned reference is to the function map that the interpreter has borrowed
 	inline __attribute__((always_inline)) EidosContext *Context(void) const { return eidos_context_; };
 	
@@ -116,6 +117,8 @@ public:
 	void _AssignRValueToLValue(EidosValue_SP p_rvalue, const EidosASTNode *p_lvalue_node);
 	EidosValue_SP _Evaluate_RangeExpr_Internal(const EidosASTNode *p_node, const EidosValue &p_first_child_value, const EidosValue &p_second_child_value);
 	int _ProcessArgumentList(const EidosASTNode *p_node, const EidosCallSignature *p_call_signature, EidosValue_SP *p_arg_buffer);
+	
+	EidosValue_SP DispatchUserDefinedFunction(const EidosFunctionSignature &function_signature, const EidosValue_SP *const p_arguments, int p_argument_count);
 	
 	void NullReturnRaiseForNode(const EidosASTNode *p_node);
 	EidosValue_SP EvaluateNode(const EidosASTNode *p_node);
@@ -153,10 +156,11 @@ public:
 	EidosValue_SP Evaluate_Next(const EidosASTNode *p_node);
 	EidosValue_SP Evaluate_Break(const EidosASTNode *p_node);
 	EidosValue_SP Evaluate_Return(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_FunctionDecl(const EidosASTNode *p_node);
 	
 	// Function dispatch/execution; these are implemented in eidos_functions.cpp
 	static std::vector<const EidosFunctionSignature *> &BuiltInFunctions(void);
-	static inline __attribute__((always_inline)) EidosFunctionMap *BuiltInFunctionMap(void) { return built_in_function_map_; }
+	static inline __attribute__((always_inline)) const EidosFunctionMap *BuiltInFunctionMap(void) { return built_in_function_map_; }
 	static void CacheBuiltInFunctionMap(void);	// must be called by Eidos_WarmUp() before BuiltInFunctionMap() is called
 	
 	// Utility static methods for numeric conversions

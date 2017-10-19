@@ -366,6 +366,15 @@ std::string EidosCallSignature::CallDelegate(void) const
 	return "";
 }
 
+std::string EidosCallSignature::SignatureString(void) const
+{
+	std::ostringstream ss;
+	
+	ss << *this;
+	
+	return ss.str();
+}
+
 ostream &operator<<(ostream &p_outstream, const EidosCallSignature &p_signature)
 {
 	//
@@ -447,6 +456,8 @@ EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_nam
 
 EidosFunctionSignature::~EidosFunctionSignature(void)
 {
+	if (body_script_)
+		delete body_script_;
 }
 
 std::string EidosFunctionSignature::CallType(void) const

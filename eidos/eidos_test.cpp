@@ -82,7 +82,7 @@ void EidosAssertScriptSuccess(const string &p_script_string, EidosValue_SP p_cor
 	}
 	
 	try {
-		script.ParseInterpreterBlockToAST();
+		script.ParseInterpreterBlockToAST(true);
 	}
 	catch (...)
 	{
@@ -94,7 +94,8 @@ void EidosAssertScriptSuccess(const string &p_script_string, EidosValue_SP p_cor
 	}
 	
 	try {
-		EidosInterpreter interpreter(script, symbol_table, *EidosInterpreter::BuiltInFunctionMap(), nullptr);
+		EidosFunctionMap function_map(*EidosInterpreter::BuiltInFunctionMap());
+		EidosInterpreter interpreter(script, symbol_table, function_map, nullptr);
 		
 		result = interpreter.EvaluateInterpreterBlock(true);
 	}
@@ -152,14 +153,15 @@ void EidosAssertScriptRaise(const string &p_script_string, const int p_bad_posit
 {
 	EidosScript script(p_script_string);
 	EidosSymbolTable symbol_table(EidosSymbolTableType::kVariablesTable, gEidosConstantsSymbolTable);
+	EidosFunctionMap function_map(*EidosInterpreter::BuiltInFunctionMap());
 	
 	gEidosCurrentScript = &script;
 	
 	try {
 		script.Tokenize();
-		script.ParseInterpreterBlockToAST();
+		script.ParseInterpreterBlockToAST(true);
 		
-		EidosInterpreter interpreter(script, symbol_table, *EidosInterpreter::BuiltInFunctionMap(), nullptr);
+		EidosInterpreter interpreter(script, symbol_table, function_map, nullptr);
 		
 		EidosValue_SP result = interpreter.EvaluateInterpreterBlock(true);
 		
@@ -256,6 +258,7 @@ static void _RunColorManipulationTests(void);
 static void _RunFunctionMiscTests(void);
 static void _RunMethodTests(void);
 static void _RunCodeExampleTests(void);
+static void _RunUserDefinedFunctionTests(void);
 
 
 void RunEidosTests(void)
@@ -311,6 +314,7 @@ void RunEidosTests(void)
 	_RunFunctionMiscTests();
 	_RunMethodTests();
 	_RunCodeExampleTests();
+	_RunUserDefinedFunctionTests();
 	
 	// ************************************************************************************
 	//
@@ -960,7 +964,8 @@ void _RunLiteralsIdentifiersAndTokenizationTests(void)
 	EidosAssertScriptSuccess("NAN;", gStaticEidosValue_FloatNAN);
 	EidosAssertScriptSuccess("E - exp(1) < 0.0000001;", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("PI - asin(1)*2 < 0.0000001;", gStaticEidosValue_LogicalT);
-	EidosAssertScriptRaise("foo$foo;", 3, "unrecognized token");
+	EidosAssertScriptRaise("foo$foo;", 3, "unexpected token '$'");
+	EidosAssertScriptRaise("foo#foo;", 3, "unrecognized token");
 	EidosAssertScriptRaise("3..5;", 3, "unexpected token");		// second period is a dot operator!
 	EidosAssertScriptRaise("3ee5;", 0, "unrecognized token");
 	EidosAssertScriptRaise("3e-+5;", 0, "unrecognized token");
@@ -1085,12 +1090,12 @@ void _RunFunctionDispatchTests(void)
 	EidosAssertScriptRaise("c(1, 2, x=3);", 0, "named argument x in ellipsis argument section");
 	
 	EidosAssertScriptSuccess("doCall('abs', -10);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(10)));
-	EidosAssertScriptSuccess("doCall(function='abs', -10);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(10)));
+	EidosAssertScriptSuccess("doCall(functionName='abs', -10);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(10)));
 	EidosAssertScriptRaise("doCall(x='abs', -10);", 0, "skipped over required argument");
 	EidosAssertScriptRaise("doCall('abs', x=-10);", 0, "named argument x in ellipsis argument section");
-	EidosAssertScriptRaise("doCall('abs', function=-10);", 0, "named argument function in ellipsis argument section");
+	EidosAssertScriptRaise("doCall('abs', functionName=-10);", 0, "named argument functionName in ellipsis argument section");
 	EidosAssertScriptRaise("doCall(x='abs');", 0, "skipped over required argument");
-	EidosAssertScriptRaise("doCall(function='abs');", 0, "requires 1 argument(s), but 0 are supplied");
+	EidosAssertScriptRaise("doCall(functionName='abs');", 0, "requires 1 argument(s), but 0 are supplied");
 	
 	EidosAssertScriptRaise("foobaz();", 0, "unrecognized function name");
 	EidosAssertScriptRaise("_Test(7).foobaz();", 9, "method foobaz() is not defined");
@@ -5198,16 +5203,16 @@ void _RunFunctionMiscTests(void)
 	EidosAssertScriptSuccess("foo = 5:10; rm('foo'); exists('foo');", gStaticEidosValue_LogicalF);
 	EidosAssertScriptSuccess("defineConstant('foo', 5:10); exists('foo');", gStaticEidosValue_LogicalT);
 	
-	// function()
-	EidosAssertScriptSuccess("function();", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("function('function');", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("function('foo');", gStaticEidosValueNULL);	// does not throw at present
-	EidosAssertScriptRaise("function(string(0));", 0, "must be a singleton");
-	EidosAssertScriptSuccess("function(NULL);", gStaticEidosValueNULL);		// same as omitting the parameter
-	EidosAssertScriptRaise("function(T);", 0, "cannot be type");
-	EidosAssertScriptRaise("function(3);", 0, "cannot be type");
-	EidosAssertScriptRaise("function(3.5);", 0, "cannot be type");
-	EidosAssertScriptRaise("function(_Test(7));", 0, "cannot be type");
+	// functionSignature()
+	EidosAssertScriptSuccess("functionSignature();", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("functionSignature('functionSignature');", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("functionSignature('foo');", gStaticEidosValueNULL);	// does not throw at present
+	EidosAssertScriptRaise("functionSignature(string(0));", 0, "must be a singleton");
+	EidosAssertScriptSuccess("functionSignature(NULL);", gStaticEidosValueNULL);		// same as omitting the parameter
+	EidosAssertScriptRaise("functionSignature(T);", 0, "cannot be type");
+	EidosAssertScriptRaise("functionSignature(3);", 0, "cannot be type");
+	EidosAssertScriptRaise("functionSignature(3.5);", 0, "cannot be type");
+	EidosAssertScriptRaise("functionSignature(_Test(7));", 0, "cannot be type");
 	
 	// ls()
 	EidosAssertScriptSuccess("ls();", gStaticEidosValueNULL);
@@ -5266,9 +5271,12 @@ void _RunFunctionMiscTests(void)
 	EidosAssertScriptRaise("getSeed('foo');", 0, "too many arguments supplied");
 	EidosAssertScriptRaise("getSeed(_Test(7));", 0, "too many arguments supplied");
 	
+	// source()
+	EidosAssertScriptSuccess("path = '/tmp/EidosSourceTest.txt'; writeFile(path, 'x=9*9;'); source(path); x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(81)));
+	
 	// stop()
 	EidosAssertScriptRaise("stop();", 0, "stop() called");
-	EidosAssertScriptRaise("stop('Error');", 0, "stop() called");
+	EidosAssertScriptRaise("stop('Error');", 0, "stop(\"Error\") called");
 	EidosAssertScriptRaise("stop(NULL);", 0, "stop() called");		// same as omitting the parameter
 	EidosAssertScriptRaise("stop(T);", 0, "cannot be type");
 	EidosAssertScriptRaise("stop(3);", 0, "cannot be type");
@@ -5318,13 +5326,13 @@ void _RunFunctionMiscTests(void)
 #pragma mark methods
 void _RunMethodTests(void)
 {
-	// method()
-	EidosAssertScriptSuccess("_Test(7).method();", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("_Test(7).method('method');", gStaticEidosValueNULL);
+	// methodSignature()
+	EidosAssertScriptSuccess("_Test(7).methodSignature();", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("_Test(7).methodSignature('method');", gStaticEidosValueNULL);
 	
-	// property()
-	EidosAssertScriptSuccess("_Test(7).property();", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("_Test(7).property('yolk');", gStaticEidosValueNULL);
+	// propertySignature()
+	EidosAssertScriptSuccess("_Test(7).propertySignature();", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("_Test(7).propertySignature('yolk');", gStaticEidosValueNULL);
 	
 	// size()
 	EidosAssertScriptSuccess("_Test(7).size();", gStaticEidosValue_Integer1);
@@ -5373,7 +5381,83 @@ void _RunCodeExampleTests(void)
 							 EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97,101,103,107,109,113,127,131,137,139,149,151,157,163,167,173,179,181,191,193,197,199}));
 }
 
-
+#pragma mark user-defined functions
+void _RunUserDefinedFunctionTests(void)
+{
+	// Basic functionality
+	EidosAssertScriptSuccess("function (i)plus(i x) { x + 1; } plus(5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(6)));
+	EidosAssertScriptSuccess("function (f)plus(f x) { x + 1; } plus(5.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(6.0)));
+	EidosAssertScriptSuccess("function (fi)plus(fi x) { x + 1; } plus(5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(6)));
+	EidosAssertScriptSuccess("function (fi)plus(fi x) { x + 1; } plus(5.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(6.0)));
+	EidosAssertScriptSuccess("function (fi)plus(fi x) { x + 1; } plus(c(5, 6, 7));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{6, 7, 8}));
+	EidosAssertScriptSuccess("function (fi)plus(fi x) { x + 1; } plus(c(5.0, 6.0, 7.0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{6.0, 7.0, 8.0}));
+	
+	EidosAssertScriptSuccess("function (l$)nor(l$ x, l$ y) { !(x | y); } nor(F, F);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("function (l$)nor(l$ x, l$ y) { !(x | y); } nor(T, F);", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("function (l$)nor(l$ x, l$ y) { !(x | y); } nor(F, T);", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("function (l$)nor(l$ x, l$ y) { !(x | y); } nor(T, T);", gStaticEidosValue_LogicalF);
+	
+	EidosAssertScriptSuccess("function (s)append(s x, s y) { x + ',' + y; } append('foo', 'bar');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foo,bar")));
+	EidosAssertScriptSuccess("function (s)append(s x, s y) { x + ',' + y; } append('foo', c('bar','baz'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foo,bar", "foo,baz"}));
+	
+	// Recursion
+	EidosAssertScriptSuccess("function (i)fac([i b=10]) { if (b <= 1) return 1; else return b*fac(b-1); } fac(3); ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(6)));
+	EidosAssertScriptSuccess("function (i)fac([i b=10]) { if (b <= 1) return 1; else return b*fac(b-1); } fac(5); ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(120)));
+	EidosAssertScriptSuccess("function (i)fac([i b=10]) { if (b <= 1) return 1; else return b*fac(b-1); } fac(); ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3628800)));
+	
+	EidosAssertScriptSuccess("function (s)star(i x) { if (x <= 0) ''; else '*' + star(x - 1); } star(5); ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("*****")));
+	EidosAssertScriptSuccess("function (s)star(i x) { if (x <= 0) ''; else '*' + star(x - 1); } star(10); ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("**********")));
+	EidosAssertScriptSuccess("function (s)star(i x) { if (x <= 0) ''; else '*' + star(x - 1); } star(0); ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("")));
+	
+	// Type-checking
+	EidosAssertScriptRaise("function (s)foo(i x) { x; } foo(NULL);", 28, "argument 1 (x) cannot be type NULL");
+	EidosAssertScriptRaise("function (s)foo(i x) { x; } foo(T);", 28, "argument 1 (x) cannot be type logical");
+	EidosAssertScriptRaise("function (s)foo(i x) { x; } foo(5);", 28, "return value cannot be type integer");
+	EidosAssertScriptRaise("function (s)foo(i x) { x; } foo(5.0);", 28, "argument 1 (x) cannot be type float");
+	EidosAssertScriptRaise("function (s)foo(i x) { x; } foo('foo');", 28, "argument 1 (x) cannot be type string");
+	EidosAssertScriptRaise("function (s)foo(i x) { x; } foo(_Test(7));", 28, "argument 1 (x) cannot be type object");
+	EidosAssertScriptRaise("function (s)foo(i x) { x; } foo();", 28, "missing required argument x");
+	EidosAssertScriptRaise("function (s)foo(i x) { x; } foo(5, 6);", 28, "too many arguments supplied");
+	EidosAssertScriptRaise("function (s)foo(i x) { x; } foo(x=5);", 28, "return value cannot be type integer");
+	EidosAssertScriptRaise("function (s)foo(i x) { x; } foo(y=5);", 28, "named argument y skipped over required argument x");
+	EidosAssertScriptRaise("function (s)foo(i x) { x; } foo(x=5, y=5);", 28, "too many arguments supplied");
+	
+	// Mutual recursion
+	EidosAssertScriptSuccess("function (i)foo(i x) { x + bar(x); } function (i)bar(i x) { if (x <= 1) 1; else foo(x - 1); } foo(5); ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(16)));
+	EidosAssertScriptSuccess("function (i)foo(i x) { x + bar(x); } function (i)bar(i x) { if (x <= 1) 1; else foo(x - 1); } foo(10); ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(56)));
+	EidosAssertScriptSuccess("function (i)foo(i x) { x + bar(x); } function (i)bar(i x) { if (x <= 1) 1; else foo(x - 1); } foo(-10); ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-9)));
+	
+	EidosAssertScriptSuccess("function (i)foo(i x) { x + bar(x); } function (i)bar(i x) { if (x <= 1) 1; else baz(x - 1); } function (i)baz(i x) { x * foo(x); } foo(5); ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(153)));
+	EidosAssertScriptSuccess("function (i)foo(i x) { x + bar(x); } function (i)bar(i x) { if (x <= 1) 1; else baz(x - 1); } function (i)baz(i x) { x * foo(x); } foo(10); ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(2335699)));
+	EidosAssertScriptSuccess("function (i)foo(i x) { x + bar(x); } function (i)bar(i x) { if (x <= 1) 1; else baz(x - 1); } function (i)baz(i x) { x * foo(x); } foo(-10); ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-9)));
+	
+	// Scoping
+	EidosAssertScriptRaise("defineConstant('x', 10); function (i)plus(i x) { x + 1; } plus(5);", 58, "cannot be redefined because it is a constant");
+	EidosAssertScriptRaise("defineConstant('x', 10); function (i)plus(i y) { x = y + 1; x; } plus(5);", 65, "cannot be redefined because it is a constant");
+	EidosAssertScriptSuccess("defineConstant('x', 10); function (i)plus(i y) { x + y; } plus(5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(15)));
+	EidosAssertScriptRaise("x = 10; function (i)plus(i y) { x + y; } plus(5);", 41, "undefined identifier x");
+	EidosAssertScriptSuccess("defineConstant('x', 10); y = 1; function (i)plus(i y) { x + y; } plus(5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(15)));
+	EidosAssertScriptSuccess("defineConstant('x', 10); y = 1; function (i)plus(i y) { x + y; } plus(5); y; ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(1)));
+	EidosAssertScriptSuccess("defineConstant('x', 10); y = 1; function (i)plus(i y) { y = y + 1; x + y; } plus(5); ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(16)));
+	EidosAssertScriptSuccess("defineConstant('x', 10); y = 1; function (i)plus(i y) { y = y + 1; x + y; } plus(5); y; ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(1)));
+	EidosAssertScriptSuccess("function (i)plus(i y) { defineConstant('x', 10); y = y + 1; y; } plus(5); ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(6)));
+	EidosAssertScriptSuccess("function (i)plus(i y) { defineConstant('x', 10); y = y + 1; y; } plus(5); x; ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(10)));
+	EidosAssertScriptRaise("function (i)plus(i y) { defineConstant('x', 10); y = y + 1; y; } plus(5); y; ", 74, "undefined identifier y");
+	EidosAssertScriptRaise("function (i)plus(i y) { defineConstant('x', 10); y = y + 1; y; } plus(5); plus(5); ", 74, "identifier 'x' is already defined");
+	EidosAssertScriptRaise("x = 3; function (i)plus(i y) { defineConstant('x', 10); y = y + 1; y; } plus(5); x; ", 72, "identifier 'x' is already defined");
+	EidosAssertScriptSuccess("function (i)plus(i y) { foo(); y = y + 1; y; } function (void)foo(void) { defineConstant('x', 10); } plus(5); x; ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(10)));
+	EidosAssertScriptRaise("function (i)plus(i x) { foo(); x = x + 1; x; } function (void)foo(void) { defineConstant('x', 10); } plus(5); x; ", 101, "identifier 'x' is already defined");
+	EidosAssertScriptRaise("x = 3; function (i)plus(i y) { foo(); y = y + 1; y; } function (void)foo(void) { defineConstant('x', 10); } plus(5); x; ", 108, "identifier 'x' is already defined");
+	
+	// Mutual recursion with lambdas
+	
+	
+	// Tests mimicking built-in Eidos functions; these are good for testing user-defined functions, but also good for testing our built-ins!
+	//for (int testidx = 0; testidx < 100; testidx++)	// uncomment this for a more thorough stress test
+	EidosAssertScriptSuccess(
+#include "eidos_test_builtins.h"
+		, gStaticEidosValue_LogicalT);
+}
 
 
 

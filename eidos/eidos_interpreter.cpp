@@ -112,7 +112,7 @@ bool TypeCheckAssignmentOfEidosValueIntoEidosValue(const EidosValue &base_value,
 #pragma mark EidosInterpreter
 
 EidosInterpreter::EidosInterpreter(const EidosScript &p_script, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context)
-	: root_node_(p_script.AST()), global_symbols_(p_symbols), function_map_(p_functions), eidos_context_(p_eidos_context)
+	: root_node_(p_script.AST()), global_symbols_(&p_symbols), function_map_(p_functions), eidos_context_(p_eidos_context)
 {
 	// Initialize the random number generator if and only if it has not already been initialized.  In some cases the Context will want to
 	// initialize the RNG itself, with its own seed; we don't want to override that.
@@ -121,7 +121,7 @@ EidosInterpreter::EidosInterpreter(const EidosScript &p_script, EidosSymbolTable
 }
 
 EidosInterpreter::EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context)
-	: root_node_(p_root_node_), global_symbols_(p_symbols), function_map_(p_functions), eidos_context_(p_eidos_context)
+	: root_node_(p_root_node_), global_symbols_(&p_symbols), function_map_(p_functions), eidos_context_(p_eidos_context)
 {
 	// Initialize the random number generator if and only if it has not already been initialized.  In some cases the Context will want to
 	// initialize the RNG itself, with its own seed; we don't want to override that.
@@ -451,7 +451,7 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue_SP *p_base_value_p
 		{
 			EIDOS_ASSERT_CHILD_COUNT_X(p_parent_node, "identifier", "EidosInterpreter::_ProcessSubscriptAssignment", 0, parent_token);
 			
-			EidosValue_SP identifier_value_SP = global_symbols_.GetValueOrRaiseForASTNode(p_parent_node);
+			EidosValue_SP identifier_value_SP = global_symbols_->GetValueOrRaiseForASTNode(p_parent_node);
 			EidosValue *identifier_value = identifier_value_SP.get();
 			
 			// OK, a little bit of trickiness here.  We've got the base value from the symbol table.  The problem is that it
@@ -465,7 +465,7 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue_SP *p_base_value_p
 				identifier_value_SP = identifier_value->VectorBasedCopy();
 				identifier_value = identifier_value_SP.get();
 				
-				global_symbols_.SetValueForSymbolNoCopy(p_parent_node->cached_stringID_, identifier_value_SP);
+				global_symbols_->SetValueForSymbolNoCopy(p_parent_node->cached_stringID_, identifier_value_SP);
 			}
 			
 			*p_base_value_ptr = std::move(identifier_value_SP);
@@ -603,7 +603,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue_SP p_rvalue, const Eidos
 			EIDOS_ASSERT_CHILD_COUNT_X(p_lvalue_node, "identifier", "EidosInterpreter::_AssignRValueToLValue", 0, nullptr);
 			
 			// Simple identifier; the symbol host is the global symbol table, at least for now
-			global_symbols_.SetValueForSymbol(p_lvalue_node->cached_stringID_, std::move(p_rvalue));
+			global_symbols_->SetValueForSymbol(p_lvalue_node->cached_stringID_, std::move(p_rvalue));
 			break;
 		}
 		default:
@@ -650,6 +650,7 @@ EidosValue_SP EidosInterpreter::EvaluateNode(const EidosASTNode *p_node)
 		case EidosTokenType::kTokenNext:		return Evaluate_Next(p_node);
 		case EidosTokenType::kTokenBreak:		return Evaluate_Break(p_node);
 		case EidosTokenType::kTokenReturn:		return Evaluate_Return(p_node);
+		case EidosTokenType::kTokenFunction:	return Evaluate_FunctionDecl(p_node);
 		default:
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::EvaluateNode): unexpected node token type " << p_node->token_->token_type_ << "." << eidos_terminate(p_node->token_);
 	}
@@ -975,6 +976,83 @@ int EidosInterpreter::_ProcessArgumentList(const EidosASTNode *p_node, const Eid
 	return processed_arg_count;
 }
 
+EidosValue_SP EidosInterpreter::DispatchUserDefinedFunction(const EidosFunctionSignature &function_signature, const EidosValue_SP *const p_arguments, int p_argument_count)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	// We need to add a new variables symbol table on to the top of the symbol table stack, for parameters and local variables.
+	EidosSymbolTable new_symbols(EidosSymbolTableType::kVariablesTable, global_symbols_);
+	
+	// Set up variables for the function's parameters; they have already been type-checked and had default
+	// values substituted and so forth, by the Eidos function call dispatch code.
+	if ((int)function_signature.arg_name_IDs_.size() != p_argument_count)
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::DispatchUserDefinedFunction): (internal error) parameter count does not match argument count." << eidos_terminate(nullptr);
+	
+	for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+		new_symbols.SetValueForSymbol(function_signature.arg_name_IDs_[arg_index], std::move(p_arguments[arg_index]));
+	
+	// Errors in functions should be reported for the function's script, not for the calling script,
+	// if possible.  In the GUI this does not work well, however; there, errors should be
+	// reported as occurring in the call to the function.  Here we save off the current
+	// error context and set up the error context for reporting errors inside the function,
+	// in case that is possible; see how exceptions are handled below.
+	int error_start_save = gEidosCharacterStartOfError;
+	int error_end_save = gEidosCharacterEndOfError;
+	int error_start_save_UTF16 = gEidosCharacterStartOfErrorUTF16;
+	int error_end_save_UTF16 = gEidosCharacterEndOfErrorUTF16;
+	EidosScript *current_script_save = gEidosCurrentScript;
+	bool executing_runtime_script_save = gEidosExecutingRuntimeScript;
+	
+	// Execute inside try/catch so we can handle errors well
+	gEidosCharacterStartOfError = -1;
+	gEidosCharacterEndOfError = -1;
+	gEidosCharacterStartOfErrorUTF16 = -1;
+	gEidosCharacterEndOfErrorUTF16 = -1;
+	gEidosCurrentScript = function_signature.body_script_;
+	gEidosExecutingRuntimeScript = true;
+	
+	try
+	{
+		EidosInterpreter interpreter(*function_signature.body_script_, new_symbols, function_map_, Context());
+		
+		// Get the result.  BEWARE!  This calls causes re-entry into the Eidos interpreter, which is not usually
+		// possible since Eidos does not support multithreaded usage.  This is therefore a key failure point for
+		// bugs that would otherwise not manifest.
+		result_SP = interpreter.EvaluateInterpreterBlock(false);
+		
+		// Assimilate output
+		ExecutionOutputStream() << interpreter.ExecutionOutput();
+	}
+	catch (...)
+	{
+		// If exceptions throw, then we want to set up the error information to highlight the
+		// function call that failed, since we can't highlight the actual error.  (If exceptions
+		// don't throw, this catch block will never be hit; exit() will already have been called
+		// and the error will have been reported from the context of the function's script.)
+		if (gEidosTerminateThrows)
+		{
+			gEidosCharacterStartOfError = error_start_save;
+			gEidosCharacterEndOfError = error_end_save;
+			gEidosCharacterStartOfErrorUTF16 = error_start_save_UTF16;
+			gEidosCharacterEndOfErrorUTF16 = error_end_save_UTF16;
+			gEidosCurrentScript = current_script_save;
+			gEidosExecutingRuntimeScript = executing_runtime_script_save;
+		}
+		
+		throw;
+	}
+	
+	// Restore the normal error context in the event that no exception occurring within the function
+	gEidosCharacterStartOfError = error_start_save;
+	gEidosCharacterEndOfError = error_end_save;
+	gEidosCharacterStartOfErrorUTF16 = error_start_save_UTF16;
+	gEidosCharacterEndOfErrorUTF16 = error_end_save_UTF16;
+	gEidosCurrentScript = current_script_save;
+	gEidosExecutingRuntimeScript = executing_runtime_script_save;
+	
+	return result_SP;
+}
+
 EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Call()");
@@ -1025,13 +1103,19 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 			int processed_arg_count = _ProcessArgumentList(p_node, function_signature, arguments_array);
 			
 			if (function_signature->internal_function_)
+			{
 				result_SP = function_signature->internal_function_(arguments_array, processed_arg_count, *this);
+			}
 			else if (!function_signature->delegate_name_.empty())
 			{
 				if (eidos_context_)
 					result_SP = eidos_context_->ContextDefinedFunctionDispatch(*function_name, arguments_array, processed_arg_count, *this);
 				else
 					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): function " << function_name << " is defined by the Context, but the Context is not defined." << eidos_terminate(nullptr);
+			}
+			else if (function_signature->body_script_)
+			{
+				result_SP = DispatchUserDefinedFunction(*function_signature, arguments_array, processed_arg_count);
 			}
 			else
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): unbound function " << *function_name << "." << eidos_terminate(call_identifier_token);
@@ -1046,13 +1130,19 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 			int processed_arg_count = _ProcessArgumentList(p_node, function_signature, arguments_ptr);
 			
 			if (function_signature->internal_function_)
+			{
 				result_SP = function_signature->internal_function_(arguments_ptr, processed_arg_count, *this);
+			}
 			else if (!function_signature->delegate_name_.empty())
 			{
 				if (eidos_context_)
 					result_SP = eidos_context_->ContextDefinedFunctionDispatch(*function_name, arguments_ptr, processed_arg_count, *this);
 				else
 					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): function " << function_name << " is defined by the Context, but the Context is not defined." << eidos_terminate(nullptr);
+			}
+			else if (function_signature->body_script_)
+			{
+				result_SP = DispatchUserDefinedFunction(*function_signature, arguments_ptr, processed_arg_count);
 			}
 			else
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): unbound function " << *function_name << "." << eidos_terminate(call_identifier_token);
@@ -1102,7 +1192,15 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		const EidosMethodSignature *method_signature = method_object->Class()->SignatureForMethod(method_id);
 		
 		if (!method_signature)
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): method " << StringForEidosGlobalStringID(method_id) << "() is not defined on object element type " << method_object->ElementType() << "." << eidos_terminate(call_identifier_token);
+		{
+			// Give more helpful error messages for deprecated methods
+			if (call_identifier_token->token_string_ == "method")
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): method " << StringForEidosGlobalStringID(method_id) << "() is not defined on object element type " << method_object->ElementType() << ".  Note that method() has been renamed to methodSignature()." << eidos_terminate(call_identifier_token);
+			else if (call_identifier_token->token_string_ == "property")
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): method " << StringForEidosGlobalStringID(method_id) << "() is not defined on object element type " << method_object->ElementType() << ".  Note that property() has been renamed to propertySignature()." << eidos_terminate(call_identifier_token);
+			else
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): method " << StringForEidosGlobalStringID(method_id) << "() is not defined on object element type " << method_object->ElementType() << "." << eidos_terminate(call_identifier_token);
+		}
 		
 		// If an error occurs inside a function or method call, we want to highlight the call
 		EidosErrorPosition error_pos_save = EidosScript::PushErrorPositionFromToken(call_identifier_token);
@@ -3172,7 +3270,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 		// where x is a simple identifier and the operator is one of +-/%*^; we try to optimize that case
 		EidosASTNode *lvalue_node = p_node->children_[0];
 		bool is_const;
-		EidosValue_SP lvalue_SP = global_symbols_.GetValueOrRaiseForASTNode_IsConst(lvalue_node, &is_const);
+		EidosValue_SP lvalue_SP = global_symbols_->GetValueOrRaiseForASTNode_IsConst(lvalue_node, &is_const);
 		
 		if (is_const)
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): cannot assign into a constant." << eidos_terminate(p_node->token_);
@@ -4285,7 +4383,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Identifier(const EidosASTNode *p_node)
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Identifier()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_Identifier", 0);
 	
-	EidosValue_SP result_SP = EidosValue_SP(global_symbols_.GetValueOrRaiseForASTNode(p_node));	// raises if undefined
+	EidosValue_SP result_SP = EidosValue_SP(global_symbols_->GetValueOrRaiseForASTNode(p_node));	// raises if undefined
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Identifier()");
 	return result_SP;
@@ -4680,7 +4778,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 			if (range_index == range_count)
 				range_index--;
 			
-			global_symbols_.SetValueForSymbolNoCopy(identifier_name, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(counting_up ? start_int + range_index : start_int - range_index)));
+			global_symbols_->SetValueForSymbolNoCopy(identifier_name, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(counting_up ? start_int + range_index : start_int - range_index)));
 		}
 		else	// !assigns_index, guaranteed above
 		{
@@ -4689,7 +4787,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 			EidosValue_Int_singleton_SP index_value_SP = EidosValue_Int_singleton_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(0));
 			EidosValue_Int_singleton *index_value = index_value_SP.get();
 			
-			global_symbols_.SetValueForSymbolNoCopy(identifier_name, std::move(index_value_SP));
+			global_symbols_->SetValueForSymbolNoCopy(identifier_name, std::move(index_value_SP));
 			
 			for (int range_index = 0; range_index < range_count; ++range_index)
 			{
@@ -4762,7 +4860,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				if (range_index == range_count)
 					range_index--;
 				
-				global_symbols_.SetValueForSymbolNoCopy(identifier_name, range_value->GetValueAtIndex(range_index, operator_token));
+				global_symbols_->SetValueForSymbolNoCopy(identifier_name, range_value->GetValueAtIndex(range_index, operator_token));
 				
 				loop_handled = true;
 			}
@@ -4776,7 +4874,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 					EidosValue_Int_singleton_SP index_value_SP = EidosValue_Int_singleton_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(0));
 					EidosValue_Int_singleton *index_value = index_value_SP.get();
 					
-					global_symbols_.SetValueForSymbolNoCopy(identifier_name, std::move(index_value_SP));
+					global_symbols_->SetValueForSymbolNoCopy(identifier_name, std::move(index_value_SP));
 					
 					for (int range_index = 0; range_index < range_count; ++range_index)
 					{
@@ -4809,7 +4907,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 					EidosValue_Float_singleton_SP index_value_SP = EidosValue_Float_singleton_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(0));
 					EidosValue_Float_singleton *index_value = index_value_SP.get();
 					
-					global_symbols_.SetValueForSymbolNoCopy(identifier_name, std::move(index_value_SP));
+					global_symbols_->SetValueForSymbolNoCopy(identifier_name, std::move(index_value_SP));
 					
 					for (int range_index = 0; range_index < range_count; ++range_index)
 					{
@@ -4842,7 +4940,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 					EidosValue_String_singleton_SP index_value_SP = EidosValue_String_singleton_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_empty_string));
 					EidosValue_String_singleton *index_value = index_value_SP.get();
 					
-					global_symbols_.SetValueForSymbolNoCopy(identifier_name, std::move(index_value_SP));
+					global_symbols_->SetValueForSymbolNoCopy(identifier_name, std::move(index_value_SP));
 					
 					for (int range_index = 0; range_index < range_count; ++range_index)
 					{
@@ -4875,7 +4973,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 					EidosValue_Object_singleton_SP index_value_SP = EidosValue_Object_singleton_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(nullptr, ((EidosValue_Object *)range_value.get())->Class()));
 					EidosValue_Object_singleton *index_value = index_value_SP.get();
 					
-					global_symbols_.SetValueForSymbolNoCopy(identifier_name, std::move(index_value_SP));
+					global_symbols_->SetValueForSymbolNoCopy(identifier_name, std::move(index_value_SP));
 					
 					for (int range_index = 0; range_index < range_count; ++range_index)
 					{
@@ -4911,7 +5009,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 					
 					index_value->PushLogical(false);	// initial placeholder
 					
-					global_symbols_.SetValueForSymbolNoCopy(identifier_name, std::move(index_value_SP));
+					global_symbols_->SetValueForSymbolNoCopy(identifier_name, std::move(index_value_SP));
 					
 					for (int range_index = 0; range_index < range_count; ++range_index)
 					{
@@ -4946,7 +5044,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				for (int range_index = 0; range_index < range_count; ++range_index)
 				{
 					// set the index variable to the range value and then throw the range value away
-					global_symbols_.SetValueForSymbolNoCopy(identifier_name, range_value->GetValueAtIndex(range_index, operator_token));
+					global_symbols_->SetValueForSymbolNoCopy(identifier_name, range_value->GetValueAtIndex(range_index, operator_token));
 					
 					// execute the for loop's statement by evaluating its node; evaluation values get thrown away
 					EidosASTNode *statement_node = p_node->children_[2];
@@ -5059,7 +5157,124 @@ EidosValue_SP EidosInterpreter::Evaluate_Return(const EidosASTNode *p_node)
 	return result_SP;
 }
 
-
+EidosValue_SP EidosInterpreter::Evaluate_FunctionDecl(const EidosASTNode *p_node)
+{
+	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_FunctionDecl()");
+	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_FunctionDecl", 4);
+	
+	const EidosASTNode *return_type_node = p_node->children_[0];
+	const EidosASTNode *function_name_node = p_node->children_[1];
+	const EidosASTNode *param_list_node = p_node->children_[2];
+	const EidosASTNode *body_node = p_node->children_[3];
+	
+	// Build a signature object for this function
+	EidosTypeSpecifier &return_type = return_type_node->typespec_;
+	const std::string &function_name = function_name_node->token_->token_string_;
+	EidosFunctionSignature *sig;
+	
+	if (return_type.object_class == nullptr)
+		sig = (EidosFunctionSignature *)(new EidosFunctionSignature(function_name,
+																	nullptr,
+																	return_type.type_mask));
+	else
+		sig = (EidosFunctionSignature *)(new EidosFunctionSignature(function_name,
+																	nullptr,
+																	return_type.type_mask,
+																	return_type.object_class));
+	
+	const std::vector<EidosASTNode *> &param_nodes = param_list_node->children_;
+	std::vector<std::string> used_param_names;
+	
+	for (EidosASTNode *param_node : param_nodes)
+	{
+		const std::vector<EidosASTNode *> &param_children = param_node->children_;
+		int param_children_count = (int)param_children.size();
+		
+		if ((param_children_count == 2) || (param_children_count == 3))
+		{
+			EidosTypeSpecifier &param_type = param_children[0]->typespec_;
+			const std::string &param_name = param_children[1]->token_->token_string_;
+			
+			// Check param_name; it needs to not be used by another parameter
+			if (std::find(used_param_names.begin(), used_param_names.end(), param_name) != used_param_names.end())
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_FunctionDecl): invalid name for parameter '" << param_name << "'; this name was already used for a previous parameter in this declaration." << eidos_terminate(p_node->token_);
+			
+			if (param_children_count == 2)
+			{
+				// param_node has 2 children (type, identifier)
+				sig->AddArg(param_type.type_mask, param_name, param_type.object_class);
+			}
+			else if (param_children_count == 3)
+			{
+				// param_node has 3 children (type, identifier, default); we need to figure out the default value,
+				// which is either a constant of some sort, or is an identifier representing a built-in Eidos constant
+				EidosASTNode *default_node = param_children[2];
+				EidosValue_SP default_value;
+				
+				if (default_node->token_->token_type_ == EidosTokenType::kTokenIdentifier)
+				{
+					// We just hard-code the names of the built-in Eidos constants here, for now
+					const std::string &default_string = default_node->token_->token_string_;
+					
+					if (std::find(gEidosConstantNames.begin(), gEidosConstantNames.end(), default_string) != gEidosConstantNames.end())
+						default_value = FastEvaluateNode(default_node);
+					else
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_FunctionDecl): invalid default value for parameter '" << param_name << "'; a default value must be a numeric constant, a string constant, or a built-in Eidos constant (T, F, NULL, PI, E, INF, or NAN)." << eidos_terminate(p_node->token_);
+				}
+				else
+				{
+					default_value = FastEvaluateNode(default_node);
+				}
+				
+				sig->AddArgWithDefault(param_type.type_mask, param_name, param_type.object_class, std::move(default_value));
+			}
+			
+			used_param_names.push_back(param_name);
+		}
+	}
+	
+	// Add the function body to the function signature.  We can't just use body_node, because we don't know what its
+	// lifetime will be; we need our own private copy.  The best thing, really, is to make our own EidosScript object
+	// with the appropriate substring, and re-tokenize and re-parse.  This is somewhat wasteful, but it's one-time
+	// overhead so it shouldn't matter.  It will smooth out all of the related issues with error reporting, etc.,
+	// since we won't be dependent upon somebody else's script object.  Errors in tokenization/parsing should never
+	// occur, since the code for the function body already passed through that process once.
+	EidosScript *script = new EidosScript(body_node->token_->token_string_);
+	
+	script->Tokenize();
+	script->ParseInterpreterBlockToAST(false);
+	
+	sig->body_script_ = script;
+	sig->user_defined_ = true;
+	
+	//std::cout << *sig << std::endl;
+	
+	// Check that a built-in function is not already defined with this name; no replacing the built-ins.
+	auto signature_iter = function_map_.find(function_name);
+	
+	if (signature_iter != function_map_.end())
+	{
+		const EidosFunctionSignature *prior_sig = signature_iter->second;
+		
+		if (prior_sig->internal_function_ || !prior_sig->delegate_name_.empty() || !prior_sig->user_defined_)
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_FunctionDecl): cannot replace built-in function " << function_name << "()." << eidos_terminate(p_node->token_);
+	}
+	
+	// Add the user-defined function to our function map (possibly replacing a previous version)
+	auto found_iter = function_map_.find(sig->call_name_);
+	
+	if (found_iter != function_map_.end())
+		function_map_.erase(found_iter);
+	
+	function_map_.insert(EidosFunctionMapPair(sig->call_name_, sig));
+	
+	// Always return NULL
+	EidosValue_SP result_SP = gStaticEidosValueNULLInvisible;
+	
+	EIDOS_EXIT_EXECUTION_LOG("Evaluate_FunctionDecl()");
+	
+	return result_SP;
+}
 
 
 

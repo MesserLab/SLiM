@@ -41,6 +41,13 @@
 
  */
 
+@interface EidosTextView(ObjCppExtensions)
+
+// Getting a "definitive" function map using type-interpreting to add to the delegate's function map
+- (EidosFunctionMap *)functionMapForScriptString:(NSString *)scriptString includingOptionalFunctions:(BOOL)includingOptionalFunctions;
+- (EidosFunctionMap *)functionMapForTokenizedScript:(EidosScript &)script includingOptionalFunctions:(BOOL)includingOptionalFunctions;
+
+@end
 
 @protocol EidosTextViewDelegate <NSTextViewDelegate>
 @required
@@ -62,7 +69,13 @@
 // This allows the Context to define its own functions beyond those in Eidos itself.
 // The returned symbol table is not freed by the caller, since it is assumed to be
 // an existing object with a lifetime managed by the callee.
-- (EidosFunctionMap *)eidosTextView:(EidosTextView *)eidosTextView functionMapFromBaseMap:(EidosFunctionMap *)baseFunctionMap;
+- (EidosFunctionMap *)functionMapForEidosTextView:(EidosTextView *)eidosTextView;
+
+// The functionMapForEidosTextView: delegate method returns the current function map from
+// the state of the delegate.  That may not include some optional functions, such as SLiM's
+// zero-generation functions, that EidosTextView wants to know about in some situations.
+// This delegate method requests those optional functions to be added.
+- (void)eidosTextView:(EidosTextView *)eidosTextView addOptionalFunctionsToMap:(EidosFunctionMap *)functionMap;
 
 // This allows the Context to define some special identifier tokens that should
 // receive different syntax coloring from standard identifiers because they are
@@ -82,18 +95,18 @@
 // keywords array.  If this delegate method is not implemented, EidosTextView will do its
 // standard behavior.  In particular, types will be found with ParseInterpreterBlockToAST()
 // and TypeEvaluateInterpreterBlock() in addition to symbolsFromBaseSymbols:, functions
-// will be found with functionMapFromBaseMap:, and no keywords will be added to the base
+// will be found with functionMapForEidosTextView:, and no keywords will be added to the base
 // set.  This standard behavior is fine for Contexts that do not define context-dependent
 // language constructs in the way that SLiM does.
 //
-// Note that unlike symbolsFromBaseSymbols: and functionMapFromBaseMap:, here the delegate
+// Note that unlike symbolsFromBaseSymbols: and functionMapForEidosTextView:, here the delegate
 // is expected to modify the objects passed to it.  This difference is motivated by the idea
 // that the other delegate methods are providing a standard symbol table and function map
 // kept by the Context, whereas this delegate method is expected to create context-dependent
 // information that differs from the current state of the Context.  The delegate may even
 // replace the pointers passed to the type table and/or function map, in order to substitute
 // a new object (perhaps a subclass object) for those objects; in that case, the substituted
-// object will be freed by the callee, in accord with the motivated described here.
+// object will be freed by the caller (not the delegate), so don't give your private objects.
 //
 // Also note that the delegate does not need to worry about uniquing or sorting type entries.
 //

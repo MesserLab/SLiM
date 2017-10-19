@@ -41,15 +41,15 @@ enum class EidosTokenType {
 	kTokenComma,		// ,		presently used for separating function parameters only
 	kTokenLBrace,		// {		block delimiter
 	kTokenRBrace,		// }		block delimiter
-	kTokenLParen,		// (		subexpression delimiter
+	kTokenLParen,		// (		subexpression delimiter (also used in type specifiers)
 	kTokenRParen,		// )		subexpression delimiter
 	kTokenLBracket,		// [		subset operator
 	kTokenRBracket,		// ]		subset operator
 	kTokenDot,			// .		member operator
-	kTokenPlus,			// +		addition operator
+	kTokenPlus,			// +		addition operator (also used in type specifiers)
 	kTokenMinus,		// -		subtraction operator (unary or binary)
 	kTokenMod,			// %		modulo operator
-	kTokenMult,			// *		multiplication operator
+	kTokenMult,			// *		multiplication operator (also used in type specifiers)
 	kTokenExp,			// ^		exponentiation operator
 	kTokenAnd,			// &		boolean AND
 	kTokenOr,			// |		boolean OR
@@ -60,12 +60,14 @@ enum class EidosTokenType {
 	kTokenCommentLong,	// /*		comment
 	kTokenAssign,		// =		assignment
 	kTokenEq,			// ==		equality test
-	kTokenLt,			// <		less than test
+	kTokenLt,			// <		less than test (also used in type specifiers)
 	kTokenLtEq,			// <=		less than or equals test
-	kTokenGt,			// >		greater than test
+	kTokenGt,			// >		greater than test (also used in type specifiers)
 	kTokenGtEq,			// >=		greater than or equals test
 	kTokenNot,			// !		boolean NOT
 	kTokenNotEq,		// !=		not equals test
+	
+	kTokenSingleton,	// $		used to indicate a singleton type in type-specifiers
 	
 	kTokenNumber,		//			there is a single numeric token type for both ints and floats, for now at least
 	kTokenString,		//			string literals are bounded by double quotes only, and recognize some escapes
@@ -75,7 +77,7 @@ enum class EidosTokenType {
 	
 	kTokenInterpreterBlock,			// a block of statements executed as a unit in the interpreter
 	
-	// these virtual tokens are not used by Eidos itself; they are provided as a convenience for
+	// these virtual token types are not used by Eidos itself; they are provided as a convenience for
 	// Contexts that embed Eidos within larger script files in a Context-defined format
 	
 	kTokenContextFile,				// an Eidos-based input file containing zero or more Eidos blocks in a Context-defined format
@@ -93,6 +95,7 @@ enum class EidosTokenType {
 	kTokenNext,			// next		loop jump to end
 	kTokenBreak,		// break	loop jump to completion
 	kTokenReturn,		// return	return a value from the enclosing block
+	kTokenFunction,		// function	define a user-defined function
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const EidosTokenType p_token_type);

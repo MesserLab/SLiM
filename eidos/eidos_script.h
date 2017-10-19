@@ -88,7 +88,7 @@ public:
 	void Tokenize(bool p_make_bad_tokens = false, bool p_keep_nonsignificant = false);
 	
 	// generate AST from token stream for an interpreter block ( statement* EOF )
-	void ParseInterpreterBlockToAST(bool p_make_bad_nodes = false);
+	void ParseInterpreterBlockToAST(bool p_allow_functions, bool p_make_bad_nodes = false);
 	
 	void PrintTokens(std::ostream &p_outstream) const;
 	void PrintAST(std::ostream &p_outstream) const;
@@ -131,7 +131,7 @@ public:
 	}
 	
 	// Top-level parse method for the Eidos interpreter and other contexts
-	EidosASTNode *Parse_InterpreterBlock(void);
+	EidosASTNode *Parse_InterpreterBlock(bool p_allow_functions);
 	
 	// Lower-level parsing
 	EidosASTNode *Parse_CompoundStatement(void);
@@ -159,6 +159,13 @@ public:
 	void Parse_ArgumentExprList(EidosASTNode *p_parent_node);	// adds to the parent node
 	EidosASTNode *Parse_ArgumentExpr(void);
 	EidosASTNode *Parse_Constant(void);
+	
+	EidosASTNode *Parse_FunctionDecl(void);
+	EidosASTNode *Parse_ReturnTypeSpec();
+	EidosASTNode *Parse_TypeSpec(void);
+	EidosASTNode *Parse_ObjectClassSpec(EidosASTNode *type_node);	// adds to type node
+	EidosASTNode *Parse_ParamList(void);
+	EidosASTNode *Parse_ParamSpec(void);
 };
 
 

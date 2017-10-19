@@ -122,7 +122,7 @@ double MutationType::DrawSelectionCoefficient(void) const
 				try
 				{
 					cached_dfe_script_->Tokenize();
-					cached_dfe_script_->ParseInterpreterBlockToAST();
+					cached_dfe_script_->ParseInterpreterBlockToAST(false);
 				}
 				catch (...)
 				{
@@ -156,8 +156,8 @@ double MutationType::DrawSelectionCoefficient(void) const
 				// The context for these blocks is pure Eidos; no SLiM variables, constants, or functions.
 				// This is because we have no graceful way to get our Context here; but it seems fine.
 				EidosSymbolTable client_symbols(EidosSymbolTableType::kVariablesTable, &sim_.SymbolTable());
-				EidosFunctionMap *function_map = EidosInterpreter::BuiltInFunctionMap();
-				EidosInterpreter interpreter(*cached_dfe_script_, client_symbols, *function_map, nullptr);
+				EidosFunctionMap &function_map = sim_.FunctionMap();
+				EidosInterpreter interpreter(*cached_dfe_script_, client_symbols, function_map, nullptr);
 				
 				EidosValue_SP result_SP = interpreter.EvaluateInterpreterBlock(false);
 				EidosValue *result = result_SP.get();

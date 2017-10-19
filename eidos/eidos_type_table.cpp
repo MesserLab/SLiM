@@ -125,6 +125,11 @@ void EidosTypeTable::RemoveSymbolsOfClass(const EidosObjectClass *p_object_class
 	}
 }
 
+void EidosTypeTable::RemoveAllSymbols(void)
+{
+	hash_symbols_.clear();
+}
+
 EidosTypeSpecifier EidosTypeTable::GetTypeForSymbol(EidosGlobalStringID p_symbol_name) const
 {
 	auto symbol_slot_iter = hash_symbols_.find(p_symbol_name);

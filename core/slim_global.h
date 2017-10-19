@@ -267,6 +267,7 @@ std::ostream& operator<<(std::ostream& p_out, IndividualSex p_sex);
 //	Additional global std::string objects.  See script_globals.h for details.
 //
 
+void SLiM_ConfigureContext(void);
 void SLiM_RegisterGlobalStringsAndIDs(void);
 
 

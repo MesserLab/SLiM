@@ -58,6 +58,10 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 {
 	// The symbol table for the console interpreter; needs to be wiped whenever the symbol table changes
 	EidosSymbolTable *global_symbols;
+	
+	// The function map for the console interpreter; carries over from invocation to invocation
+	EidosFunctionMap *global_function_map;
+	BOOL global_function_map_owned;			// if our delegate gave us a map, it owns it; if we made one, we own it
 }
 @end
 
@@ -117,7 +121,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	
 	// Execute a null statement to get our symbols set up, for code completion etc.
 	// Note this has the side effect of creating a random number generator gEidos_rng for our use.
-	[self validateSymbolTable];
+	[self validateSymbolTableAndFunctionMap];
 }
 
 - (void)dealloc
@@ -178,6 +182,10 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	delete global_symbols;
 	global_symbols = nil;
 	
+	if (global_function_map_owned)
+		delete global_function_map;
+	global_function_map = nil;
+	
 	[bottomSplitView setDelegate:nil];
 	[self setBottomSplitView:nil];
 	
@@ -195,7 +203,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	return outputTextView;
 }
 
-- (void)invalidateSymbolTable
+- (void)invalidateSymbolTableAndFunctionMap
 {
 	if (global_symbols)
 	{
@@ -203,19 +211,26 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		global_symbols = nil;
 	}
 	
+	if (global_function_map)
+	{
+		if (global_function_map_owned)
+			delete global_function_map;
+		global_function_map = nil;
+	}
+	
 	[browserController reloadBrowser];
 }
 
-- (void)validateSymbolTable
+- (void)validateSymbolTableAndFunctionMap
 {
-	if (!global_symbols)
+	if (!global_symbols || !global_function_map)
 	{
 		NSString *errorString = nil;
 		
 		[self _executeScriptString:@";" tokenString:NULL parseString:NULL executionString:NULL errorString:&errorString withOptionalSemicolon:NO];
 		
 		if (errorString)
-			NSLog(@"Error in validateSymbolTable: %@", errorString);
+			NSLog(@"Error in validateSymbolTableAndFunctionMap: %@", errorString);
 	}
 	
 	[browserController reloadBrowser];
@@ -241,7 +256,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		safeguardReferences = YES;
 	
 	if (safeguardReferences)
-		[self invalidateSymbolTable];
+		[self invalidateSymbolTableAndFunctionMap];
 	
 	// Make the final semicolon optional if requested; this allows input like "6+7" in the console
 	if (semicolonOptional)
@@ -296,7 +311,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	// Parse, an "interpreter block" bounded by an EOF rather than a "script block" that requires braces
 	try
 	{
-		script.ParseInterpreterBlockToAST();
+		script.ParseInterpreterBlockToAST(true);
 		
 		if (parseString)
 		{
@@ -324,11 +339,20 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		global_symbols = new EidosSymbolTable(EidosSymbolTableType::kVariablesTable, global_symbols);	// add a table for script-defined variables on top
 	}
 	
-	// Get a function map and let our delegate add functions to it
-	EidosFunctionMap *function_map = EidosInterpreter::BuiltInFunctionMap();
-	
-	if ([delegate respondsToSelector:@selector(eidosConsoleWindowController:functionMapFromBaseMap:)])
-		function_map = [delegate eidosConsoleWindowController:self functionMapFromBaseMap:function_map];
+	// Get a function map from our delegate, or make one ourselves
+	if (!global_function_map)
+	{
+		global_function_map_owned = NO;
+		
+		if ([delegate respondsToSelector:@selector(functionMapForEidosConsoleWindowController:)])
+			global_function_map = [delegate functionMapForEidosConsoleWindowController:self];
+		
+		if (!global_function_map)
+		{
+			global_function_map = new EidosFunctionMap(*EidosInterpreter::BuiltInFunctionMap());
+			global_function_map_owned = YES;
+		}
+	}
 	
 	// Get the EidosContext, if any, from the delegate
 	EidosContext *eidos_context = nullptr;
@@ -340,7 +364,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	if ([delegate respondsToSelector:@selector(eidosConsoleWindowControllerWillExecuteScript:)])
 		[delegate eidosConsoleWindowControllerWillExecuteScript:self];
 	
-	EidosInterpreter interpreter(script, *global_symbols, *function_map, eidos_context);
+	EidosInterpreter interpreter(script, *global_symbols, *global_function_map, eidos_context);
 	
 	try
 	{
@@ -373,7 +397,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	
 	// See comment on safeguardReferences above
 	if (safeguardReferences)
-		[self validateSymbolTable];
+		[self validateSymbolTableAndFunctionMap];
 	
 	return [NSString stringWithUTF8String:output.c_str()];
 }
@@ -526,7 +550,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		
 		try {
 			script.Tokenize();
-			script.ParseInterpreterBlockToAST();
+			script.ParseInterpreterBlockToAST(true);
 		}
 		catch (...)
 		{
@@ -897,12 +921,19 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	return global_symbols;	// we keep our own symbol table, so we don't call our delegate here
 }
 
-- (EidosFunctionMap *)eidosTextView:(EidosTextView *)eidosTextView functionMapFromBaseMap:(EidosFunctionMap *)baseFunctionMap
+- (EidosFunctionMap *)functionMapForEidosTextView:(EidosTextView *)eidosTextView
 {
-	if ([delegate respondsToSelector:@selector(eidosConsoleWindowController:functionMapFromBaseMap:)])
-		return [delegate eidosConsoleWindowController:self functionMapFromBaseMap:baseFunctionMap];
+	// If we have a delegate that has its own function map, use that, otherwise use ours
+	if ([delegate respondsToSelector:@selector(functionMapForEidosConsoleWindowController:)])
+		return [delegate functionMapForEidosConsoleWindowController:self];
 	else
-		return baseFunctionMap;
+		return global_function_map;
+}
+
+- (void)eidosTextView:(EidosTextView *)eidosTextView addOptionalFunctionsToMap:(EidosFunctionMap *)functionMap
+{
+	if ([delegate respondsToSelector:@selector(eidosConsoleWindowController:addOptionalFunctionsToMap:)])
+		[delegate eidosConsoleWindowController:self addOptionalFunctionsToMap:functionMap];
 }
 
 - (const std::vector<const EidosMethodSignature*> *)eidosTextViewAllMethodSignatures:(EidosTextView *)eidosTextView

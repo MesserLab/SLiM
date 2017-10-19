@@ -128,14 +128,14 @@ int main(int argc, const char * argv[])
 	gEidosExecutingRuntimeScript = false;
 	
 	script.Tokenize();
-	script.ParseInterpreterBlockToAST();
+	script.ParseInterpreterBlockToAST(true);
 	
 	// reset error position indicators used by SLiMgui
 	EidosScript::ClearErrorPosition();
 
 	EidosSymbolTable *variable_symbols = new EidosSymbolTable(EidosSymbolTableType::kVariablesTable, gEidosConstantsSymbolTable);
-	EidosFunctionMap *function_map = EidosInterpreter::BuiltInFunctionMap();
-	EidosInterpreter interpreter(script, *variable_symbols, *function_map, nullptr);
+	EidosFunctionMap function_map(*EidosInterpreter::BuiltInFunctionMap());
+	EidosInterpreter interpreter(script, *variable_symbols, function_map, nullptr);
 	
 	EidosValue_SP result = interpreter.EvaluateInterpreterBlock(true);
 	std::string output = interpreter.ExecutionOutput();

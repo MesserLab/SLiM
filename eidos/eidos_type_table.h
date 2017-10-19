@@ -36,11 +36,6 @@
 #include "eidos_value.h"
 
 
-typedef struct {
-	EidosValueMask type_mask;					// can specify kEidosValueMaskNone for no known type, or any combination of type masks
-	const EidosObjectClass *object_class;		// if kEidosValueMaskObject is included in type_mask, this can specify a class (or can be nullptr)
-} EidosTypeSpecifier;
-
 typedef std::pair<EidosGlobalStringID, EidosTypeSpecifier> EidosTypeTableEntry;
 
 
@@ -71,6 +66,7 @@ public:
 	// Remove symbols
 	void RemoveTypeForSymbol(EidosGlobalStringID p_symbol_name);
 	void RemoveSymbolsOfClass(const EidosObjectClass *p_object_class);
+	void RemoveAllSymbols(void);
 	
 	// Get the type for a symbol
 	virtual EidosTypeSpecifier GetTypeForSymbol(EidosGlobalStringID p_symbol_name) const;

@@ -136,12 +136,15 @@ void EidosASTNode::_OptimizeIdentifiers(void) const
 		const std::string &token_string = token_->token_string_;
 		
 		// if the identifier's name matches that of a global function, cache the function signature
-		EidosFunctionMap *function_map = EidosInterpreter::BuiltInFunctionMap();
+		const EidosFunctionMap *function_map = EidosInterpreter::BuiltInFunctionMap();
 		
-		auto signature_iter = function_map->find(token_string);
-		
-		if (signature_iter != function_map->end())
-			cached_signature_ = signature_iter->second;
+		if (function_map)
+		{
+			auto signature_iter = function_map->find(token_string);
+			
+			if (signature_iter != function_map->end())
+				cached_signature_ = signature_iter->second;
+		}
 		
 		// cache a uniqued ID for the identifier, allowing fast matching
 		cached_stringID_ = EidosGlobalStringIDForString(token_string);
@@ -192,6 +195,7 @@ void EidosASTNode::_OptimizeEvaluators(void) const
 		case EidosTokenType::kTokenNext:		cached_evaluator_ = &EidosInterpreter::Evaluate_Next;				break;
 		case EidosTokenType::kTokenBreak:		cached_evaluator_ = &EidosInterpreter::Evaluate_Break;				break;
 		case EidosTokenType::kTokenReturn:		cached_evaluator_ = &EidosInterpreter::Evaluate_Return;				break;
+		case EidosTokenType::kTokenFunction:	cached_evaluator_ = &EidosInterpreter::Evaluate_FunctionDecl;		break;
 		default:
 			// Node types with no known evaluator method just don't get an cached evaluator
 			break;
@@ -212,46 +216,49 @@ void EidosASTNode::_OptimizeForScan(const std::string &p_for_index_identifier, u
 		if (token_->token_string_.compare(p_for_index_identifier) == 0)
 			*p_references = true;
 	}
-	else if (token_type == EidosTokenType::kTokenAssign)
+	else if (children_.size() >= 1)
 	{
-		// if the identifier occurs anywhere on the left-hand side of an assignment, that is an assignment (overbroad, but whatever)
-		EidosASTNode *lvalue_node = children_[0];
-		uint8_t references = false, assigns = false;
-		
-		lvalue_node->_OptimizeForScan(p_for_index_identifier, &references, &assigns);
-		
-		if (references)
-			*p_assigns = true;
-	}
-	else if (token_type == EidosTokenType::kTokenFor)
-	{
-		// for loops assign into their index variable, so they are like an assignment statement
-		EidosASTNode *identifier_child = children_[0];
-		
-		if (identifier_child->token_->token_type_ == EidosTokenType::kTokenIdentifier)
+		if (token_type == EidosTokenType::kTokenAssign)
 		{
-			if (identifier_child->token_->token_string_.compare(p_for_index_identifier) == 0)
+			// if the identifier occurs anywhere on the left-hand side of an assignment, that is an assignment (overbroad, but whatever)
+			EidosASTNode *lvalue_node = children_[0];
+			uint8_t references = false, assigns = false;
+			
+			lvalue_node->_OptimizeForScan(p_for_index_identifier, &references, &assigns);
+			
+			if (references)
 				*p_assigns = true;
 		}
-	}
-	else if (token_type == EidosTokenType::kTokenLParen)
-	{
-		// certain functions are unpredictable and must be assumed to reference and/or assign
-		EidosASTNode *function_name_node = children_[0];
-		EidosTokenType function_name_token_type = function_name_node->token_->token_type_;
-		
-		if (function_name_token_type == EidosTokenType::kTokenIdentifier)	// is it a function call, not a method call?
+		else if (token_type == EidosTokenType::kTokenFor)
 		{
-			const string &function_name = function_name_node->token_->token_string_;
+			// for loops assign into their index variable, so they are like an assignment statement
+			EidosASTNode *identifier_child = children_[0];
 			
-			if ((function_name.compare(gEidosStr_apply) == 0) || (function_name.compare(gEidosStr_executeLambda) == 0) || (function_name.compare(gEidosStr_doCall) == 0) || (function_name.compare(gEidosStr_rm) == 0))
+			if (identifier_child->token_->token_type_ == EidosTokenType::kTokenIdentifier)
 			{
-				*p_references = true;
-				*p_assigns = true;
+				if (identifier_child->token_->token_string_.compare(p_for_index_identifier) == 0)
+					*p_assigns = true;
 			}
-			else if (function_name.compare(gEidosStr_ls) == 0)
+		}
+		else if (token_type == EidosTokenType::kTokenLParen)
+		{
+			// certain functions are unpredictable and must be assumed to reference and/or assign
+			EidosASTNode *function_name_node = children_[0];
+			EidosTokenType function_name_token_type = function_name_node->token_->token_type_;
+			
+			if (function_name_token_type == EidosTokenType::kTokenIdentifier)	// is it a function call, not a method call?
 			{
-				*p_references = true;
+				const string &function_name = function_name_node->token_->token_string_;
+				
+				if ((function_name.compare(gEidosStr_apply) == 0) || (function_name.compare(gEidosStr_executeLambda) == 0) || (function_name.compare(gEidosStr__executeLambda_OUTER) == 0) || (function_name.compare(gEidosStr_doCall) == 0) || (function_name.compare(gEidosStr_rm) == 0))
+				{
+					*p_references = true;
+					*p_assigns = true;
+				}
+				else if (function_name.compare(gEidosStr_ls) == 0)
+				{
+					*p_references = true;
+				}
 			}
 		}
 	}
@@ -268,7 +275,7 @@ void EidosASTNode::_OptimizeFor(void) const
 	if ((token_type == EidosTokenType::kTokenFor) && (children_.size() == 3))
 	{
 		// This node is a for loop node.  We want to determine whether any node under this node:
-		//	1. is unpredictable (executeLambda, apply, rm, ls)
+		//	1. is unpredictable (executeLambda, _executeLambda_OUTER, apply, rm, ls)
 		//	2. references our index variable
 		//	3. assigns to our index variable
 		EidosASTNode *identifier_child = children_[0];

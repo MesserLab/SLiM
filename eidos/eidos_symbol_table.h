@@ -94,12 +94,17 @@ typedef struct {
 // Clients of this class can just use the symbol table they have a reference to, which will generally be a
 // variables table at the end of the chain.  Only clients that are constructing or destructing a symbol table
 // setup need to know about these types and how they are supposed to interact.
+
+// BCH 9/10/2017: Note that now, in Eidos 1.5, it is legal to have more than one variables table at the end.
+// These represent nested function calls; when a new function call starts, a new table is added to the top, and
+// when a function call ends that table is removed.  The outer variable scopes are hidden; searches for values
+// will go from the bottommost variables table directly up to the first constants table in the chain.
 enum class EidosSymbolTableType
 {
 	kEidosIntrinsicConstantsTable = 0,	// just one of these
 	kEidosDefinedConstantsTable,		// and just one of these
 	kContextConstantsTable,				// can be any number of these
-	kVariablesTable,					// and finally, just one of these
+	kVariablesTable,					// and finally, any number of these, for nested function calls
 	kINVALID_TABLE_TYPE					// used as a sort of zombie marker in an attempt to increase code safety
 };
 
@@ -109,7 +114,7 @@ class EidosSymbolTable
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 private:
 	
-	// In this design, a whole symbol table either contains constants or variables; a mix is allowed using parent_symbol_table_ to hold constants
+	// In this design, a whole symbol table either contains constants or variables; a mix is allowed using a parent symbol table to hold constants
 	EidosSymbolTableType table_type_;
 	
 	// This flag indicates which storage strategy we are using
@@ -125,6 +130,11 @@ private:
 	// Symbol tables can be chained.  This is invisible to the user; there appears to be a single global symbol table for a given
 	// interpreter, which responds to all requests.  Behind the scenes, however, requests get passed up the symbol table chain
 	// until a hit is found or the last symbol table declares a miss.  Adds go in the symbol table that receives the request.
+	// BCH 10 Sept 2017: With the addition of user-defined functions, this gets a little more complex.  The chain_symbol_table_
+	// ivar represents the next symbol table in the search chain from this table (skipping over the variables tables belonging
+	// to callers up the chain, since they are not in scope).  The parent_symbol_table_ ivar is the next symbol table upward –
+	// either the caller or the first constants table – but it is not used for much since scoped searching is usually desired.
+	EidosSymbolTable *chain_symbol_table_ = nullptr;	// NOT OWNED
 	EidosSymbolTable *parent_symbol_table_ = nullptr;	// NOT OWNED
 	
 	// Utility methods called by the public methods to do the real work
@@ -147,8 +157,10 @@ public:
 	inline __attribute__((always_inline)) std::vector<std::string> ReadWriteSymbols(void) const { return _SymbolNames(false, true); }
 	inline __attribute__((always_inline)) std::vector<std::string> AllSymbols(void) const { return _SymbolNames(true, true); }
 	
-	// Test for containing a value for a symbol
+	// Test for containing a value for a symbol; ContainsSymbol() searches through the chain of symbol tables that are in scope, whereas
+	// SymbolDefinedAnywhere() looks through all parent tables regardless of scope.
 	bool ContainsSymbol(EidosGlobalStringID p_symbol_name) const;
+	bool SymbolDefinedAnywhere(EidosGlobalStringID p_symbol_name) const;
 	
 	// Set as a variable (raises if already defined as a constant); the NoCopy version is *not* what you want, almost certainly (see it for comments)
 	void SetValueForSymbol(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value);
@@ -180,6 +192,11 @@ public:
 	
 	// A utility method to add entries for defined symbols into an EidosTypeTable
 	void AddSymbolsToTypeTable(EidosTypeTable *p_type_table) const;
+	
+	// Direct access to the symbol table chain.  This should only be necessary for clients that are manipulating
+	// the symbol table chain themselves in some way, since normally the chain is encapsulated by this class.
+	inline __attribute__((always_inline)) EidosSymbolTable *ChainSymbolTable(void) { return chain_symbol_table_; }
+	inline __attribute__((always_inline)) EidosSymbolTable *ParentSymbolTable(void) { return parent_symbol_table_; }
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const EidosSymbolTable &p_symbols);

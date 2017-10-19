@@ -92,6 +92,7 @@ private:
 	std::vector<SLiMEidosBlock*> cached_matechoice_callbacks_;
 	std::vector<SLiMEidosBlock*> cached_modifychild_callbacks_;
 	std::vector<SLiMEidosBlock*> cached_recombination_callbacks_;
+	std::vector<SLiMEidosBlock*> cached_userdef_functions_;
 	
 #ifdef SLIMGUI
 public:
@@ -101,7 +102,7 @@ public:
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
 	eidos_profile_t profile_stage_totals_[7];										// profiling clocks; index 0 is initialize(), the rest follow SLiMGenerationStage
-	eidos_profile_t profile_callback_totals_[9];									// profiling clocks; these follow SLiMEidosBlockType
+	eidos_profile_t profile_callback_totals_[9];									// profiling clocks; these follow SLiMEidosBlockType, except no SLiMEidosUserDefinedFunction
 #if SLIM_USE_NONNEUTRAL_CACHES
 	std::vector<int32_t> profile_mutcount_history_;									// a record of the mutation run count used in each generation
 	std::vector<int32_t> profile_nonneutral_regime_history_;						// a record of the nonneutral regime used in each generation
@@ -119,6 +120,7 @@ private:
 #endif
 	
 	EidosSymbolTable *simulation_constants_ = nullptr;								// A symbol table of constants defined by SLiM (p1, g1, m1, s1, etc.)
+	EidosFunctionMap simulation_functions_;											// A map of all defined functions in the simulation
 	
 	slim_generation_t time_start_ = 0;												// the first generation number for which the simulation will run
 	slim_generation_t generation_ = 0;												// the current generation reached in simulation
@@ -247,6 +249,7 @@ public:
 	void AddScriptBlock(SLiMEidosBlock *p_script_block, EidosInterpreter *p_interpreter, const EidosToken *p_error_token);
 	void DeregisterScheduledScriptBlocks(void);
 	void DeregisterScheduledInteractionBlocks(void);
+	void ExecuteFunctionDefinitionBlock(SLiMEidosBlock *p_script_block);			// execute a SLiMEidosBlock that defines a function
 	
 	// Running generations
 	void RunInitializeCallbacks(void);												// run initialize() callbacks and check for complete initialization
@@ -277,6 +280,8 @@ public:
 	
 	// accessors
 	inline EidosSymbolTable &SymbolTable(void) const								{ return *simulation_constants_; }
+	inline EidosFunctionMap &FunctionMap(void)										{ return simulation_functions_; }
+
 	inline slim_generation_t Generation(void) const									{ return generation_; }
 	inline SLiMGenerationStage GenerationStage(void) const							{ return generation_stage_; }
 	inline Chromosome &TheChromosome(void)											{ return chromosome_; }
@@ -300,11 +305,10 @@ public:
 	virtual EidosValue_SP ContextDefinedFunctionDispatch(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	
 	EidosSymbolTable *SymbolsFromBaseSymbols(EidosSymbolTable *p_base_symbols);				// derive a symbol table, adding our own symbols if needed
-	static EidosFunctionMap *FunctionMapFromBaseMap(EidosFunctionMap *p_base_map);	// derive a new self-owned function map by adding zero-gen functions
 	
 	static const std::vector<const EidosFunctionSignature*> *ZeroGenerationFunctionSignatures(void);		// all zero-gen functions
-	static void AddZeroGenerationFunctionsToMap(EidosFunctionMap *p_map);
-	static void RemoveZeroGenerationFunctionsFromMap(EidosFunctionMap *p_map);
+	static void AddZeroGenerationFunctionsToMap(EidosFunctionMap &p_map);
+	static void RemoveZeroGenerationFunctionsFromMap(EidosFunctionMap &p_map);
 	
 	static const std::vector<const EidosMethodSignature*> *AllMethodSignatures(void);		// does not depend on sim state, so can be a class method
 	static const std::vector<const EidosPropertySignature*> *AllPropertySignatures(void);	// does not depend on sim state, so can be a class method

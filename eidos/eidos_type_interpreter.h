@@ -48,8 +48,10 @@ class EidosTypeInterpreter
 	
 protected:
 	const EidosASTNode *root_node_;				// not owned
-	EidosTypeTable &global_symbols_;			// NOT OWNED: whoever creates us must give us a reference to a type table, which we use
+	EidosTypeTable *global_symbols_;			// NOT OWNED: whoever creates us must give us a reference to a type table, which we use
+	
 	EidosFunctionMap &function_map_;			// NOT OWNED: a map table of EidosFunctionSignature objects, keyed by function name
+
 	EidosCallTypeTable &call_type_map_;			// NOT OWNED: a map table of types for function calls encountered, keyed by position
 	bool defines_only_;							// if true, we add symbols only for defineConstant() calls, not for assignments
 	
@@ -64,7 +66,7 @@ public:
 	
 	virtual ~EidosTypeInterpreter(void);										// destructor
 	
-	inline __attribute__((always_inline)) EidosTypeTable &SymbolTable(void) { return global_symbols_; };	// the returned reference is to the symbol table that the interpreter has borrowed
+	inline __attribute__((always_inline)) EidosTypeTable &SymbolTable(void) { return *global_symbols_; };	// the returned reference is to the symbol table that the interpreter has borrowed
 	inline __attribute__((always_inline)) EidosFunctionMap &FunctionMap(void) { return function_map_; };	// the returned reference is to the function map that the interpreter has borrowed
 	inline __attribute__((always_inline)) EidosCallTypeTable &CallTypeMap(void) { return call_type_map_; };	// the returned reference is to the call type map that the interpreter has borrowed
 	
@@ -106,6 +108,7 @@ public:
 	EidosTypeSpecifier TypeEvaluate_Next(const EidosASTNode *p_node);
 	EidosTypeSpecifier TypeEvaluate_Break(const EidosASTNode *p_node);
 	EidosTypeSpecifier TypeEvaluate_Return(const EidosASTNode *p_node);
+	EidosTypeSpecifier TypeEvaluate_FunctionDecl(const EidosASTNode *p_node);
 	
 	// Function/method processing.  These can implement type-defining side effects of calls; for example,
 	// defineConstant() has the side effect of defining a new symbol of a particular type.  These are

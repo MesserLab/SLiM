@@ -317,6 +317,10 @@
 				[pretty appendString:tokenString];
 				break;
 				
+			case EidosTokenType::kTokenSingleton:
+				[pretty appendString:tokenString];
+				break;
+				
 				// Nesting levels of parens and brackets are not tracked at the moment
 			case EidosTokenType::kTokenLParen:
 			case EidosTokenType::kTokenRParen:
@@ -345,6 +349,7 @@
 			case EidosTokenType::kTokenNext:
 			case EidosTokenType::kTokenBreak:
 			case EidosTokenType::kTokenReturn:
+			case EidosTokenType::kTokenFunction:
 				[pretty appendString:tokenString];
 				break;
 		}

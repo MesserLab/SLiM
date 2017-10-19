@@ -3331,13 +3331,13 @@ When
 \f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (*)doCall(string$\'a0function, ...)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\f1\fs18 \cf0 (*)doCall(string$\'a0functionName, ...)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns the results from a 
 \b call to a specified function
 \b0 .  The function named by the parameter 
-\f1\fs18 function
+\f1\fs18 functionName
 \f0\fs20  is called, and the remaining parameters to 
 \f1\fs18 doCall()
 \f0\fs20  are forwarded on to that function verbatim.  This can be useful for calling one of a set of similar functions, such as 
@@ -3346,7 +3346,11 @@ When
 \f1\fs18 cos()
 \f0\fs20 , etc., to perform a math function determined at runtime, or one of the 
 \f1\fs18 as...()
-\f0\fs20  family of functions to convert to a type determined at runtime.
+\f0\fs20  family of functions to convert to a type determined at runtime.  Note that named arguments and default arguments, beyond the 
+\f1\fs18 functionName
+\f0\fs20  argument, are not supported by 
+\f1\fs18 doCall()
+\f0\fs20 ; all arguments to the target function must be specified explicitly, without names.
 \f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -3356,9 +3360,11 @@ When
 \f0\b\fs20 \cf0 Executes a block of Eidos code
 \b0  defined by 
 \f1\fs18 lambdaSource
-\f0\fs20 .  It has been said at various points in this manual that Eidos does not allow you to define your own functions.  That is, strictly speaking, true.  However, it does allow you to execute 
+\f0\fs20 .  
+\fs22 Eidos allows you to execute 
 \i lambdas
-\i0 : blocks of Eidos code which can be called.  Eidos lambdas do not take arguments; for this reason, they are not first-class functions.  (They share the scope of the caller, however, so you may effectively pass values in and out of a lambda using global variables.)  The 
+\i0 : blocks of Eidos code which can be called directly within the same scope as the caller.  Eidos lambdas do not take arguments; for this reason, they are not first-class functions.  (Since they share the scope of the caller, however, you may effectively pass values in and out of a lambda using global variables.)
+\fs20   The 
 \f1\fs18 string
 \f0\fs20  argument 
 \f1\fs18 lambdaSource
@@ -3400,7 +3406,7 @@ The current implementation of
 \f1\fs18 lambdaSource
 \f0\fs20 , or reuse a constructed source 
 \f1\fs18 string
-\f0\fs20  stored a variable, that will improve performance considerably.
+\f0\fs20  stored in a variable, that will improve performance considerably.
 \f2 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -3432,15 +3438,17 @@ The current implementation of
 \f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (void)function([Ns$
+\f1\fs18 \cf0 (void)functionSignature([Ns$
 \f2 \'a0
 \f1 functionName
 \f2 \'a0
 \f1 =\'a0NULL])\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf0 Prints function signatures
-\b0  for all functions (if functionName is 
+\b0  for all functions (if 
+\f1\fs18 functionName
+\f0\fs20  is 
 \f1\fs18 NULL
 \f0\fs20 , the default), or for the function named by 
 \f1\fs18 functionName
@@ -3515,6 +3523,28 @@ The current implementation of
 \b0 .  Future random numbers will be based upon the seed value set, and the random number sequence generated from a particular seed value is guaranteed to be reproducible.  The last seed set can be recovered with the 
 \f1\fs18 getSeed()
 \f0\fs20  function.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (void)source(string$
+\f2 \'a0
+\f1 filePath)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf0 Executes the contents of an Eidos source file
+\b0  found at the filesystem path 
+\f1\fs18 filePath
+\f2\fs20 .
+\f0   This is essentially shorthand for calling 
+\f1\fs18 readFile()
+\f0\fs20 , joining the read lines with newlines to form a single string using 
+\f1\fs18 paste()
+\f0\fs20 , and then passing that string to 
+\f1\fs18 executeLambda()
+\f2\fs20 .
+\f0   The source file must consist of complete Eidos statements.  Regardless of what the last executed source line evaluates to, 
+\f1\fs18 source()
+\f0\fs20  has no return value.
+\f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (void)stop([Ns$

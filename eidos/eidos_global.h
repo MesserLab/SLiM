@@ -56,6 +56,16 @@ extern std::string gEidosContextVersion;
 extern std::string gEidosContextLicense;
 extern std::string gEidosContextCitation;
 
+// This is a vector of the classes defined by the Context.  This is used to translate from a string representation
+// of a class, as in a type-specifier in a function declaration, to the corresponding class object (i.e., subclass
+// of EidosObjectClass).  Because this is a global, a given process may at present have only one Context, with a
+// list of class shared by Eidos across that process.  At some point we probably want to further formalize the
+// Context as an object that is passed in to Eidos when needed, allowing different Contexts to be used within the
+// same process.
+class EidosObjectClass;
+
+extern std::vector<EidosObjectClass *> gEidosContextClasses;
+
 
 // *******************************************************************************************************************
 //
@@ -386,11 +396,10 @@ void EidosFreeGlobalStrings(void);
 extern const std::string gEidosStr_empty_string;
 extern const std::string gEidosStr_space_string;
 
-extern const std::string gEidosStr_function;
-extern const std::string gEidosStr_method;
 extern const std::string gEidosStr_apply;
 extern const std::string gEidosStr_doCall;
 extern const std::string gEidosStr_executeLambda;
+extern const std::string gEidosStr__executeLambda_OUTER;
 extern const std::string gEidosStr_ls;
 extern const std::string gEidosStr_rm;
 
@@ -403,6 +412,7 @@ extern const std::string gEidosStr_in;
 extern const std::string gEidosStr_next;
 extern const std::string gEidosStr_break;
 extern const std::string gEidosStr_return;
+extern const std::string gEidosStr_function;
 
 extern const std::string gEidosStr_T;
 extern const std::string gEidosStr_F;
@@ -422,7 +432,8 @@ extern const std::string gEidosStr_object;
 extern const std::string gEidosStr_numeric;
 
 extern const std::string gEidosStr_size;
-extern const std::string gEidosStr_property;
+extern const std::string gEidosStr_methodSignature;
+extern const std::string gEidosStr_propertySignature;
 extern const std::string gEidosStr_str;
 
 extern const std::string gEidosStr_GetPropertyOfElements;
@@ -452,9 +463,9 @@ enum _EidosGlobalStringID : uint32_t
 {
 	gEidosID_none = 0,
 	
-	gEidosID_method,
+	gEidosID_methodSignature,
 	gEidosID_size,
-	gEidosID_property,
+	gEidosID_propertySignature,
 	gEidosID_str,
 	gEidosID_applyValue,
 	
@@ -484,6 +495,8 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_LastEntry,					// IDs added by the Context should start here
 	gEidosID_LastContextEntry = 10000	// IDs added by the Context must end before this value; Eidos reserves the remaining values
 };
+
+extern std::vector<const std::string> gEidosConstantNames;	// T, F, NULL, PI, E, INF, NAN
 
 
 // *******************************************************************************************************************

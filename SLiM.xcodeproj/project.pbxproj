@@ -787,6 +787,7 @@
 		98CF26511E4353FE00E392D8 /* SLiMDocumentController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SLiMDocumentController.mm; sourceTree = "<group>"; };
 		98D218C31B2E213200156FC3 /* EidosTextView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EidosTextView.h; sourceTree = "<group>"; };
 		98D218C41B2E213200156FC3 /* EidosTextView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = EidosTextView.mm; sourceTree = "<group>"; };
+		98D2C3B21F91C56E00E5EB3A /* eidos_test_builtins.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = eidos_test_builtins.h; sourceTree = "<group>"; };
 		98D4C1B31A6F537B00FFB083 /* SLiMgui.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SLiMgui.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		98D4C1B61A6F537B00FFB083 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		98D4C1B71A6F537B00FFB083 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
@@ -1094,6 +1095,7 @@
 				989790D81AF3D0E100C6B14C /* eidos_test_element.cpp */,
 				985724A81AD4551C0047C223 /* eidos_test.h */,
 				985724A71AD4551C0047C223 /* eidos_test.cpp */,
+				98D2C3B21F91C56E00E5EB3A /* eidos_test_builtins.h */,
 				9857E33A1BB58DAE00F1C8A9 /* eidos_intrusive_ptr.h */,
 				985A11861BBA07CB009EE1FF /* eidos_object_pool.h */,
 				9893C7DC1CDA2D650029AC94 /* eidos_beep.h */,

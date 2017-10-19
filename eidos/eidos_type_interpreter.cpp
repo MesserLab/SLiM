@@ -43,12 +43,12 @@ using std::ostream;
 #pragma mark EidosTypeInterpreter
 
 EidosTypeInterpreter::EidosTypeInterpreter(const EidosScript &p_script, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, EidosCallTypeTable &p_call_types, bool p_defines_only)
-: root_node_(p_script.AST()), global_symbols_(p_symbols), function_map_(p_functions), call_type_map_(p_call_types), defines_only_(p_defines_only)
+: root_node_(p_script.AST()), global_symbols_(&p_symbols), function_map_(p_functions), call_type_map_(p_call_types), defines_only_(p_defines_only)
 {
 }
 
 EidosTypeInterpreter::EidosTypeInterpreter(const EidosASTNode *p_root_node_, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, EidosCallTypeTable &p_call_types, bool p_defines_only)
-: root_node_(p_root_node_), global_symbols_(p_symbols), function_map_(p_functions), call_type_map_(p_call_types), defines_only_(p_defines_only)
+: root_node_(p_root_node_), global_symbols_(&p_symbols), function_map_(p_functions), call_type_map_(p_call_types), defines_only_(p_defines_only)
 {
 }
 
@@ -108,6 +108,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluateNode(const EidosASTNode *p_
 			case EidosTokenType::kTokenNext:		return TypeEvaluate_Next(p_node);
 			case EidosTokenType::kTokenBreak:		return TypeEvaluate_Break(p_node);
 			case EidosTokenType::kTokenReturn:		return TypeEvaluate_Return(p_node);
+			case EidosTokenType::kTokenFunction:	return TypeEvaluate_FunctionDecl(p_node);
 			default:
 				std::cout << "ERROR (EidosTypeInterpreter::TypeEvaluateNode): unexpected node token type " << p_node->token_->token_type_ << "." << eidos_terminate(p_node->token_);
 		}
@@ -194,7 +195,7 @@ EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(str
 					EidosTypeSpecifier constant_type = TypeEvaluateNode(p_arguments[1]);
 					
 					if (constant_type.object_class == nullptr)
-						global_symbols_.SetTypeForSymbol(constant_id, constant_type);
+						global_symbols_->SetTypeForSymbol(constant_id, constant_type);
 				}
 			}
 		}
@@ -741,7 +742,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Assign(const EidosASTNode 
 		EidosGlobalStringID identifier_name = lvalue_node->cached_stringID_;
 		
 		if (!defines_only_)
-			global_symbols_.SetTypeForSymbol(identifier_name, rvalue_type);
+			global_symbols_->SetTypeForSymbol(identifier_name, rvalue_type);
 	}
 	
 	return result_type;
@@ -824,7 +825,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_String(const EidosASTNode 
 
 EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Identifier(const EidosASTNode *p_node)
 {
-	EidosTypeSpecifier result_type = global_symbols_.GetTypeForSymbol(p_node->cached_stringID_);
+	EidosTypeSpecifier result_type = global_symbols_->GetTypeForSymbol(p_node->cached_stringID_);
 	
 	return result_type;
 }
@@ -887,7 +888,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_For(const EidosASTNode *p_
 			{
 				EidosGlobalStringID identifier_name = identifier_child->cached_stringID_;
 				
-				global_symbols_.SetTypeForSymbol(identifier_name, range_type);
+				global_symbols_->SetTypeForSymbol(identifier_name, range_type);
 			}
 		}
 	}
@@ -924,6 +925,151 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Return(const EidosASTNode 
 	return result_type;
 }
 
+EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_FunctionDecl(const EidosASTNode *p_node)
+{
+#pragma unused(p_node)
+	EidosTypeSpecifier result_type = EidosTypeSpecifier{kEidosValueMaskNone, nullptr};
+	
+	if (p_node->children_.size() >= 4)
+	{
+		// We have two jobs to do.  One is to build a function signature for the declared function, so that calls to that function
+		// then return the correct type when type-interpreted, just like built-in functions.  We will do that first, so that
+		// recursive functions are type-interpreted correctly.
+		const EidosASTNode *return_type_node = p_node->children_[0];
+		const EidosASTNode *function_name_node = p_node->children_[1];
+		const EidosASTNode *param_list_node = p_node->children_[2];
+		const EidosASTNode *body_node = p_node->children_[3];
+		
+		// Build a signature object for this function
+		EidosTypeSpecifier &return_type = return_type_node->typespec_;
+		const std::string &function_name = function_name_node->token_->token_string_;
+		EidosFunctionSignature *sig;
+		
+		if (return_type.object_class == nullptr)
+			sig = (EidosFunctionSignature *)(new EidosFunctionSignature(function_name,
+																		nullptr,
+																		return_type.type_mask));
+		else
+			sig = (EidosFunctionSignature *)(new EidosFunctionSignature(function_name,
+																		nullptr,
+																		return_type.type_mask,
+																		return_type.object_class));
+		
+		const std::vector<EidosASTNode *> &param_nodes = param_list_node->children_;
+		std::vector<std::string> used_param_names;
+		
+		for (EidosASTNode *param_node : param_nodes)
+		{
+			const std::vector<EidosASTNode *> &param_children = param_node->children_;
+			int param_children_count = (int)param_children.size();
+			
+			if ((param_children_count == 2) || (param_children_count == 3))
+			{
+				EidosTypeSpecifier &param_type = param_children[0]->typespec_;
+				const std::string &param_name = param_children[1]->token_->token_string_;
+				
+				// Check param_name; it needs to not be used by another parameter
+				if (std::find(used_param_names.begin(), used_param_names.end(), param_name) != used_param_names.end())
+					continue;
+				
+				if (param_children_count >= 2)
+				{
+					// param_node has 2 or 3 children (type, identifier, [default]); we don't care about default values
+					sig->AddArg(param_type.type_mask, param_name, param_type.object_class);
+				}
+				
+				used_param_names.push_back(param_name);
+			}
+		}
+		
+		sig->user_defined_ = true;
+		
+		//std::cout << *sig << std::endl;
+		
+		// Check that a built-in function is not already defined with this name; no replacing the built-ins.
+		auto signature_iter = function_map_.find(function_name);
+		bool can_redefine = true;
+		
+		if (signature_iter != function_map_.end())
+		{
+			const EidosFunctionSignature *prior_sig = signature_iter->second;
+			
+			if (prior_sig->internal_function_ || !prior_sig->delegate_name_.empty() || !prior_sig->user_defined_)
+				can_redefine = false;
+		}
+		
+		if (can_redefine)
+		{
+			// Add the user-defined function to our function map (possibly replacing a previous version)
+			auto found_iter = function_map_.find(sig->call_name_);
+			
+			if (found_iter != function_map_.end())
+				function_map_.erase(found_iter);
+			
+			function_map_.insert(EidosFunctionMapPair(sig->call_name_, sig));
+		}
+		
+		// Our other job is to type-interpret inside the body node of the declared function, with the correct scoping set up so
+		// that the parameters of the function are defined inside the body, outer variables are not in scope, etc.  This is
+		// different from EidosInterpreter; it is as if the declared function is getting called as it is declared, in a way.
+		// This custom type scope for the function lasts only to the end of the declared function, and then we want to forget
+		// the custom scope and go back to the type table we were using before, as long as the declaration is complete.
+		if (body_node->hit_eof_in_tolerant_parse_)
+		{
+			// The EOF was hit while parsing the function body, so we're supposed to leave the type table reflecting the scope
+			// inside the function.  To do this, we don't create a sub-type-interpreter, we just repurpose our type table.
+			global_symbols_->RemoveAllSymbols();
+			
+			gEidosConstantsSymbolTable->AddSymbolsToTypeTable(global_symbols_);
+			
+			for (EidosASTNode *param_node : param_nodes)
+			{
+				const std::vector<EidosASTNode *> &param_children = param_node->children_;
+				int param_children_count = (int)param_children.size();
+				
+				if ((param_children_count == 2) || (param_children_count == 3))
+				{
+					EidosTypeSpecifier &param_type = param_children[0]->typespec_;
+					const std::string &param_name = param_children[1]->token_->token_string_;
+					
+					global_symbols_->SetTypeForSymbol(EidosGlobalStringIDForString(param_name), param_type);
+				}
+			}
+			
+			TypeEvaluateNode(body_node);	// result not used
+		}
+		else
+		{
+			// The EOF was not hit while parsing the function body, so we're supposed to leave the type table alone in the end.
+			// We do this by creating a separate type table that we just use temporarily, inside the function body.  We could
+			// almost skip type-interpreting the function body entirely, except that it might define a constant.
+			EidosTypeTable typeTable;
+			EidosCallTypeTable callTypeTable;
+			
+			gEidosConstantsSymbolTable->AddSymbolsToTypeTable(&typeTable);
+			
+			for (EidosASTNode *param_node : param_nodes)
+			{
+				const std::vector<EidosASTNode *> &param_children = param_node->children_;
+				int param_children_count = (int)param_children.size();
+				
+				if ((param_children_count == 2) || (param_children_count == 3))
+				{
+					EidosTypeSpecifier &param_type = param_children[0]->typespec_;
+					const std::string &param_name = param_children[1]->token_->token_string_;
+					
+					typeTable.SetTypeForSymbol(EidosGlobalStringIDForString(param_name), param_type);
+				}
+			}
+			
+			EidosTypeInterpreter typeInterpreter(body_node, typeTable, function_map_, callTypeTable);
+			
+			typeInterpreter.TypeEvaluateNode(body_node);	// result not used
+		}
+	}
+	
+	return result_type;
+}
 
 
 

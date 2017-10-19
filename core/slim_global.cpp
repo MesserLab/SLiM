@@ -21,6 +21,7 @@
 #include "slim_global.h"
 #include "mutation.h"
 #include "mutation_run.h"
+#include "slim_sim.h"
 
 #include <string>
 
@@ -35,6 +36,9 @@ void SLiM_WarmUp(void)
 		
 		// Set up our shared pool for Mutation objects
 		SLiM_CreateMutationBlock();
+		
+		// Configure the Eidos context information
+		SLiM_ConfigureContext();
 		
 		// Register global strings and IDs for SLiM; this is in addition to the globals set up by Eidos
 		SLiM_RegisterGlobalStringsAndIDs();
@@ -355,7 +359,7 @@ const std::string gStr_modifyChild = "modifyChild";
 const std::string gStr_recombination = "recombination";
 
 
-void SLiM_RegisterGlobalStringsAndIDs(void)
+void SLiM_ConfigureContext(void)
 {
 	static bool been_here = false;
 	
@@ -366,6 +370,29 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		gEidosContextVersion = "SLiM version 2.4.1";	// SLIM VERSION
 		gEidosContextLicense = "SLiM is free software: you can redistribute it and/or\nmodify it under the terms of the GNU General Public\nLicense as published by the Free Software Foundation,\neither version 3 of the License, or (at your option)\nany later version.\n\nSLiM is distributed in the hope that it will be\nuseful, but WITHOUT ANY WARRANTY; without even the\nimplied warranty of MERCHANTABILITY or FITNESS FOR\nA PARTICULAR PURPOSE.  See the GNU General Public\nLicense for more details.\n\nYou should have received a copy of the GNU General\nPublic License along with SLiM.  If not, see\n<http://www.gnu.org/licenses/>.\n";
 		gEidosContextCitation = "To cite SLiM in publications please use:\n\nHaller, B.C., and Messer, P.W. (2017). SLiM 2: Flexible,\nInteractive Forward Genetic Simulations. Molecular\nBiology and Evolution 34(1), 230-240.\nDOI: 10.1093/molbev/msw211\n";
+		
+		gEidosContextClasses.push_back(gSLiM_Chromosome_Class);
+		gEidosContextClasses.push_back(gSLiM_Genome_Class);
+		gEidosContextClasses.push_back(gSLiM_GenomicElement_Class);
+		gEidosContextClasses.push_back(gSLiM_GenomicElementType_Class);
+		gEidosContextClasses.push_back(gSLiM_Individual_Class);
+		gEidosContextClasses.push_back(gSLiM_InteractionType_Class);
+		gEidosContextClasses.push_back(gSLiM_Mutation_Class);
+		gEidosContextClasses.push_back(gSLiM_MutationType_Class);
+		gEidosContextClasses.push_back(gSLiM_SLiMEidosBlock_Class);
+		gEidosContextClasses.push_back(gSLiM_SLiMSim_Class);
+		gEidosContextClasses.push_back(gSLiM_Subpopulation_Class);
+		gEidosContextClasses.push_back(gSLiM_Substitution_Class);
+	}
+}
+
+void SLiM_RegisterGlobalStringsAndIDs(void)
+{
+	static bool been_here = false;
+	
+	if (!been_here)
+	{
+		been_here = true;
 		
 		Eidos_RegisterStringForGlobalID(gStr_initializeGenomicElement, gID_initializeGenomicElement);
 		Eidos_RegisterStringForGlobalID(gStr_initializeGenomicElementType, gID_initializeGenomicElementType);

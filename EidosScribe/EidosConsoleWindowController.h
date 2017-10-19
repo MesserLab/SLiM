@@ -89,11 +89,11 @@ extern NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey;
 - (EidosConsoleTextView *)textView;
 
 // Throw away the current symbol table
-- (void)invalidateSymbolTable;
+- (void)invalidateSymbolTableAndFunctionMap;
 
 // Make a new symbol table from our delegate's current state; this actually executes a minimal script, ";",
 // to produce the symbol table as a side effect of setting up for the script's execution
-- (void)validateSymbolTable;
+- (void)validateSymbolTableAndFunctionMap;
 
 // Execute the given script string, with the terminating semicolon being optional if requested
 - (void)executeScriptString:(NSString *)scriptString withOptionalSemicolon:(BOOL)semicolonOptional;

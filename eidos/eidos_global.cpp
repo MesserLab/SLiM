@@ -24,6 +24,7 @@
 #include "eidos_interpreter.h"
 #include "eidos_object_pool.h"
 #include "eidos_ast_node.h"
+#include "eidos_test_element.h"
 
 #include <stdlib.h>
 #include <execinfo.h>
@@ -156,6 +157,15 @@ void Eidos_WarmUp(void)
 	{
 		been_here = true;
 		
+		// Set up the vector of Eidos constant names
+		gEidosConstantNames.push_back(gEidosStr_T);
+		gEidosConstantNames.push_back(gEidosStr_F);
+		gEidosConstantNames.push_back(gEidosStr_NULL);
+		gEidosConstantNames.push_back(gEidosStr_PI);
+		gEidosConstantNames.push_back(gEidosStr_E);
+		gEidosConstantNames.push_back(gEidosStr_INF);
+		gEidosConstantNames.push_back(gEidosStr_NAN);
+		
 		// Make the shared EidosValue pool
 		size_t maxEidosValueSize = sizeof(EidosValue_NULL);
 		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Logical));
@@ -206,6 +216,9 @@ void Eidos_WarmUp(void)
 		gStaticEidosValue_StringAsterisk = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("*"));
 		gStaticEidosValue_StringDoubleAsterisk = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("**"));
 		
+		// Register the _Test class, 
+		gEidosContextClasses.push_back(gEidos_TestElementClass);
+		
 		// Register global strings and IDs
 		Eidos_RegisterGlobalStringsAndIDs();
 		
@@ -222,11 +235,11 @@ bool Eidos_GoodSymbolForDefine(std::string &p_symbol_name)
 	bool good_symbol = true;
 	
 	// Eidos constants are reserved
-	if ((p_symbol_name == "T") || (p_symbol_name == "F") || (p_symbol_name == "NULL") || (p_symbol_name == "PI") || (p_symbol_name == "E") || (p_symbol_name == "INF") || (p_symbol_name == "NAN"))
+	if (std::find(gEidosConstantNames.begin(), gEidosConstantNames.end(), p_symbol_name) != gEidosConstantNames.end())
 		good_symbol = false;
 	
 	// Eidos keywords are reserved (probably won't reach here anyway)
-	if ((p_symbol_name == "if") || (p_symbol_name == "else") || (p_symbol_name == "do") || (p_symbol_name == "while") || (p_symbol_name == "for") || (p_symbol_name == "in") || (p_symbol_name == "next") || (p_symbol_name == "break") || (p_symbol_name == "return"))
+	if ((p_symbol_name == "if") || (p_symbol_name == "else") || (p_symbol_name == "do") || (p_symbol_name == "while") || (p_symbol_name == "for") || (p_symbol_name == "in") || (p_symbol_name == "next") || (p_symbol_name == "break") || (p_symbol_name == "return") || (p_symbol_name == "function"))
 		good_symbol = false;
 	
 	// SLiM constants are reserved too; this code belongs in SLiM, but only
@@ -269,10 +282,11 @@ EidosValue_SP Eidos_ValueForCommandLineExpression(std::string &p_value_expressio
 	{
 		script.SetFinalSemicolonOptional(true);
 		script.Tokenize();
-		script.ParseInterpreterBlockToAST();
+		script.ParseInterpreterBlockToAST(false);
 		
 		EidosSymbolTable symbol_table(EidosSymbolTableType::kVariablesTable, gEidosConstantsSymbolTable);
-		EidosInterpreter interpreter(script, symbol_table, *EidosInterpreter::BuiltInFunctionMap(), nullptr);
+		EidosFunctionMap function_map(*EidosInterpreter::BuiltInFunctionMap());
+		EidosInterpreter interpreter(script, symbol_table, function_map, nullptr);
 		
 		value = interpreter.EvaluateInterpreterBlock(false);
 	}
@@ -301,7 +315,7 @@ void Eidos_DefineConstantsFromCommandLine(std::vector<std::string> p_constants)
 		{
 			script.SetFinalSemicolonOptional(true);
 			script.Tokenize();
-			script.ParseInterpreterBlockToAST();
+			script.ParseInterpreterBlockToAST(false);
 		}
 		catch (...)
 		{
@@ -393,6 +407,8 @@ void Eidos_DefineConstantsFromCommandLine(std::vector<std::string> p_constants)
 std::string gEidosContextVersion;
 std::string gEidosContextLicense;
 std::string gEidosContextCitation;
+
+std::vector<EidosObjectClass *> gEidosContextClasses;
 
 
 // the part of the input file that caused an error; used to highlight the token or text that caused the error
@@ -1515,11 +1531,10 @@ const std::string gEidosStr_empty_string = "";
 const std::string gEidosStr_space_string = " ";
 
 // mostly function names used in multiple places
-const std::string gEidosStr_function = "function";
-const std::string gEidosStr_method = "method";
 const std::string gEidosStr_apply = "apply";
 const std::string gEidosStr_doCall = "doCall";
 const std::string gEidosStr_executeLambda = "executeLambda";
+const std::string gEidosStr__executeLambda_OUTER = "_executeLambda_OUTER";
 const std::string gEidosStr_ls = "ls";
 const std::string gEidosStr_rm = "rm";
 
@@ -1533,6 +1548,7 @@ const std::string gEidosStr_in = "in";
 const std::string gEidosStr_next = "next";
 const std::string gEidosStr_break = "break";
 const std::string gEidosStr_return = "return";
+const std::string gEidosStr_function = "function";
 
 // mostly Eidos global constants
 const std::string gEidosStr_T = "T";
@@ -1555,7 +1571,8 @@ const std::string gEidosStr_numeric = "numeric";
 
 // Eidos function names, property names, and method names
 const std::string gEidosStr_size = "size";
-const std::string gEidosStr_property = "property";
+const std::string gEidosStr_methodSignature = "methodSignature";
+const std::string gEidosStr_propertySignature = "propertySignature";
 const std::string gEidosStr_str = "str";
 
 // other miscellaneous strings
@@ -1581,6 +1598,8 @@ const std::string gEidosStr_z = "z";
 const std::string gEidosStr_color = "color";
 
 const std::string gEidosStr_Mutation = "Mutation";	// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
+
+std::vector<const std::string> gEidosConstantNames;
 
 
 static std::unordered_map<std::string, EidosGlobalStringID> gStringToID;
@@ -1626,9 +1645,9 @@ void Eidos_RegisterGlobalStringsAndIDs(void)
 	{
 		been_here = true;
 		
-		Eidos_RegisterStringForGlobalID(gEidosStr_method, gEidosID_method);
 		Eidos_RegisterStringForGlobalID(gEidosStr_size, gEidosID_size);
-		Eidos_RegisterStringForGlobalID(gEidosStr_property, gEidosID_property);
+		Eidos_RegisterStringForGlobalID(gEidosStr_methodSignature, gEidosID_methodSignature);
+		Eidos_RegisterStringForGlobalID(gEidosStr_propertySignature, gEidosID_propertySignature);
 		Eidos_RegisterStringForGlobalID(gEidosStr_str, gEidosID_str);
 		Eidos_RegisterStringForGlobalID(gEidosStr_applyValue, gEidosID_applyValue);
 		

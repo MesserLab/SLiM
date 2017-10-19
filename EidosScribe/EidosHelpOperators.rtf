@@ -717,9 +717,11 @@ Note that this use of parentheses is distinct from the
 \f0\fs22  as an argument in another.  That is the second major purpose of functions: the 
 \i generalization
 \i0  of a useful chunk of code to easily act on different inputs.\
-In Eidos, it is not possible for you to define your own functions (but see 
-\f3\fs18 executeLambda()
-\f0\fs22 ).  This limitation is a major design simplification that made Eidos substantially easier to implement (and to document).  Since the tasks to which Eidos will be put are expected to be fairly simple, it is not expected to be an important limitation for most users.  A fairly large set of built-in functions are supplied for your use, and the hope is that they will suffice for most purposes.\
+In Eidos, you may define your own functions, or you may execute a 
+\i lambda
+\i0  (i.e., a snippet of code represented as a 
+\f3\fs18 string
+\f0\fs22  value) directly in the Eidos interpreter.  However, a fairly large set of built-in functions are supplied for your use, and the hope is that they will suffice for most purposes.\
 Functions are called using the 
 \f3\fs18 ()
 \f0\fs22  operator.  Function arguments go between the parentheses of the 

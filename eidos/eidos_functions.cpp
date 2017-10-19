@@ -256,10 +256,11 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("clock",				Eidos_ExecuteFunction_clock,		kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("date",				Eidos_ExecuteFunction_date,			kEidosValueMaskString | kEidosValueMaskSingleton)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("defineConstant",	Eidos_ExecuteFunction_defineConstant,	kEidosValueMaskNULL))->AddString_S("symbol")->AddAnyBase("value"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_doCall,	Eidos_ExecuteFunction_doCall,		kEidosValueMaskAny))->AddString_S("function")->AddEllipsis());
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_doCall,	Eidos_ExecuteFunction_doCall,		kEidosValueMaskAny))->AddString_S("functionName")->AddEllipsis());
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_executeLambda,	Eidos_ExecuteFunction_executeLambda,	kEidosValueMaskAny))->AddString_S("lambdaSource")->AddLogical_OS("timed", gStaticEidosValue_LogicalF));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr__executeLambda_OUTER,	Eidos_ExecuteFunction__executeLambda_OUTER,	kEidosValueMaskAny))->AddString_S("lambdaSource")->AddLogical_OS("timed", gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("exists",			Eidos_ExecuteFunction_exists,		kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S("symbol"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("function",			Eidos_ExecuteFunction_function,		kEidosValueMaskNULL))->AddString_OSN("functionName", gStaticEidosValueNULL));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("functionSignature",			Eidos_ExecuteFunction_functionSignature,		kEidosValueMaskNULL))->AddString_OSN("functionName", gStaticEidosValueNULL));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_ls,		Eidos_ExecuteFunction_ls,			kEidosValueMaskNULL)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("license",			Eidos_ExecuteFunction_license,		kEidosValueMaskNULL)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_rm,		Eidos_ExecuteFunction_rm,			kEidosValueMaskNULL))->AddString_ON("variableNames", gStaticEidosValueNULL)->AddLogical_OS("removeConstants", gStaticEidosValue_LogicalF));
@@ -287,9 +288,17 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		
 		// ************************************************************************************
 		//
-		//	undocumented functions
+		//	built-in user-defined functions
 		//
+		EidosFunctionSignature *source_signature = (EidosFunctionSignature *)(new EidosFunctionSignature("source",	nullptr,	kEidosValueMaskNULL))->AddString_S("filePath");
+		EidosScript *source_script = new EidosScript("{ _executeLambda_OUTER(paste(readFile(filePath), '\\n')); return; }");
 		
+		source_script->Tokenize();
+		source_script->ParseInterpreterBlockToAST(false);
+		
+		source_signature->body_script_ = source_script;
+		
+		signatures->emplace_back(source_signature);
 		
 		
 		// ************************************************************************************
@@ -7357,7 +7366,7 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const EidosValue_SP *const p_arguments
 		try
 		{
 			script->Tokenize();
-			script->ParseInterpreterBlockToAST();
+			script->ParseInterpreterBlockToAST(false);
 		}
 		catch (...)
 		{
@@ -7542,7 +7551,7 @@ EidosValue_SP Eidos_ExecuteFunction_defineConstant(const EidosValue_SP *const p_
 	return result_SP;
 }
 
-//	(*)doCall(string$ function, ...)
+//	(*)doCall(string$ functionName, ...)
 EidosValue_SP Eidos_ExecuteFunction_doCall(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
@@ -7577,6 +7586,10 @@ EidosValue_SP Eidos_ExecuteFunction_doCall(const EidosValue_SP *const p_argument
 		else
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_doCall): function " << function_name << " is defined by the Context, but the Context is not defined." << eidos_terminate(nullptr);
 	}
+	else if (function_signature->body_script_)
+	{
+		p_interpreter.DispatchUserDefinedFunction(*function_signature, arguments, argument_count);
+	}
 	else
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_doCall): unbound function " << function_name << "." << eidos_terminate(nullptr);
 	
@@ -7586,8 +7599,15 @@ EidosValue_SP Eidos_ExecuteFunction_doCall(const EidosValue_SP *const p_argument
 	return result_SP;
 }
 
-//	(*)executeLambda(string$ lambdaSource, [logical$ timed = F])
-EidosValue_SP Eidos_ExecuteFunction_executeLambda(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+// This is an internal utility method that implements executeLambda() and _executeLambda_OUTER().
+// The purpose of the p_execute_in_outer_scope flag is specifically for the source() function.  Since
+// source() is a user-defined function, it executes in a new scope with its own variables table.
+// However, we don't want that; we want it to execute the source file in the caller's scope.  So it
+// uses a special internal version of executeLambda(), named _executeLambda_OUTER(), that achieves
+// that by passing true here for p_execute_in_outer_scope.  Yes, this is a hack; an end-user could
+// not implement source() themselves as a user-defined function without using private API.  That's
+// OK, though; many Eidos built-in functions could not be implemented in Eidos themselves.
+EidosValue_SP Eidos_ExecuteLambdaInternal(const EidosValue_SP *const p_arguments, EidosInterpreter &p_interpreter, bool p_execute_in_outer_scope)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -7622,7 +7642,17 @@ EidosValue_SP Eidos_ExecuteFunction_executeLambda(const EidosValue_SP *const p_a
 		try
 		{
 			script->Tokenize();
-			script->ParseInterpreterBlockToAST();
+			script->ParseInterpreterBlockToAST(true);
+			
+			// Note that true is passed to ParseInterpreterBlockToAST(), indicating that the script is to parse the code for the lambda
+			// as if it were a top-level interpreter block, allowing functions to be defined.  We don't actually know, here, whether we
+			// have been called at the top level or not, but we allow function definitions regardless.  Eidos doesn't disallow function
+			// definitions inside blocks for any particularly strong reason; the reason is mostly just that such declarations look like
+			// they should be scoped, because in most languages they are.  Since in Eidos they wouldn't be (no scope), we disallow them
+			// to prevent confusion.  But when a function is declared inside executeLambda(), the user is presumably advanced and knows
+			// what they're doing; there's no need to get in their way.  Sometimes it might be convenient to declare a function in this
+			// way, particularly inside a file executed by source(); so let's  let the user do that, rather than bending over backwards
+			// to prevent it (which is actually difficult, if you want to allow it when executeLambda() is called at the top level).
 		}
 		catch (...)
 		{
@@ -7658,9 +7688,12 @@ EidosValue_SP Eidos_ExecuteFunction_executeLambda(const EidosValue_SP *const p_a
 	
 	try
 	{
-		EidosSymbolTable &symbols = p_interpreter.SymbolTable();									// use our own symbol table
-		EidosFunctionMap &function_map = p_interpreter.FunctionMap();								// use our own function map
-		EidosInterpreter interpreter(*script, symbols, function_map, p_interpreter.Context());
+		EidosSymbolTable *symbols = &p_interpreter.SymbolTable();									// use our own symbol table
+		
+		if (p_execute_in_outer_scope)
+			symbols = symbols->ParentSymbolTable();
+		
+		EidosInterpreter interpreter(*script, *symbols, p_interpreter.FunctionMap(), p_interpreter.Context());
 		
 		if (timed)
 			begin = clock();
@@ -7673,6 +7706,7 @@ EidosValue_SP Eidos_ExecuteFunction_executeLambda(const EidosValue_SP *const p_a
 		if (timed)
 			end = clock();
 		
+		// Assimilate output
 		p_interpreter.ExecutionOutputStream() << interpreter.ExecutionOutput();
 	}
 	catch (...)
@@ -7718,6 +7752,18 @@ EidosValue_SP Eidos_ExecuteFunction_executeLambda(const EidosValue_SP *const p_a
 	return result_SP;
 }
 
+//	(*)executeLambda(string$ lambdaSource, [logical$ timed = F])
+EidosValue_SP Eidos_ExecuteFunction_executeLambda(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+{
+	return Eidos_ExecuteLambdaInternal(p_arguments, p_interpreter, false);
+}
+
+//	(*)_executeLambda_OUTER(string$ lambdaSource, [logical$ timed = F])
+EidosValue_SP Eidos_ExecuteFunction__executeLambda_OUTER(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+{
+	return Eidos_ExecuteLambdaInternal(p_arguments, p_interpreter, true);	// see Eidos_ExecuteLambdaInternal() for comments on the true flag
+}
+
 //	(logical$)exists(string$ symbol)
 EidosValue_SP Eidos_ExecuteFunction_exists(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
 {
@@ -7734,8 +7780,8 @@ EidosValue_SP Eidos_ExecuteFunction_exists(const EidosValue_SP *const p_argument
 	return result_SP;
 }
 
-//	(void)function([Ns$ functionName = NULL])
-EidosValue_SP Eidos_ExecuteFunction_function(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+//	(void)functionSignature([Ns$ functionName = NULL])
+EidosValue_SP Eidos_ExecuteFunction_functionSignature(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -7745,7 +7791,7 @@ EidosValue_SP Eidos_ExecuteFunction_function(const EidosValue_SP *const p_argume
 	string match_string = (function_name_specified ? arg0_value->StringAtIndex(0, nullptr) : gEidosStr_empty_string);
 	bool signature_found = false;
 	
-	// function_map_ is already alphebetized since maps keep sorted order
+	// function_map_ is already alphabetized since maps keep sorted order
 	EidosFunctionMap &function_map = p_interpreter.FunctionMap();
 	
 	for (auto functionPairIter = function_map.begin(); functionPairIter != function_map.end(); ++functionPairIter)
@@ -7758,7 +7804,15 @@ EidosValue_SP Eidos_ExecuteFunction_function(const EidosValue_SP *const p_argume
 		if (!function_name_specified && (iter_signature->call_name_.substr(0, 1).compare("_") == 0))
 			continue;	// skip internal functions that start with an underscore, unless specifically requested
 		
-		output_stream << *iter_signature << endl;
+		output_stream << *iter_signature;
+		
+		if (iter_signature->body_script_ && iter_signature->user_defined_)
+		{
+			output_stream << " <user-defined>";
+		}
+		
+		output_stream << endl;
+		
 		signature_found = true;
 	}
 	
@@ -7881,9 +7935,17 @@ EidosValue_SP Eidos_ExecuteFunction_stop(const EidosValue_SP *const p_arguments,
 	EidosValue *arg0_value = p_arguments[0].get();
 	
 	if (arg0_value->Type() != EidosValueType::kValueNULL)
-		p_interpreter.ExecutionOutputStream() << p_arguments[0]->StringAtIndex(0, nullptr) << endl;
-	
-	EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_stop): stop() called." << eidos_terminate(nullptr);
+	{
+		std::string &&stop_string = p_arguments[0]->StringAtIndex(0, nullptr);
+		
+		p_interpreter.ExecutionOutputStream() << stop_string << endl;
+		
+		EIDOS_TERMINATION << ("ERROR (Eidos_ExecuteFunction_stop): stop(\"" + stop_string + "\") called.") << eidos_terminate(nullptr);
+	}
+	else
+	{
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_stop): stop() called." << eidos_terminate(nullptr);
+	}
 	
 	return result_SP;
 }

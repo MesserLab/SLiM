@@ -356,7 +356,7 @@ void _RunBasicTests(void)
 							  initializeRecombinationRate(1e-8);
 						  }
 						  1 { sim.addSubpop('p1', 500); }
-						  3 { stop('fail!'); }
+						  3 { stop(); }
 						  5 late() { sim.outputFull(); }
 						  
 						  )V0G0N");
@@ -777,7 +777,7 @@ void _RunSLiMSimTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerEarlyEvent(1, '{ stop(); }', 3, 2); }", 1, 251, "requires start <= end", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerEarlyEvent(1, '{ stop(); }', -1, -1); }", 1, 251, "out of range", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerEarlyEvent(1, '{ stop(); }', 0, 0); }", 1, 251, "out of range", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerEarlyEvent(1, '{ $; }', 2, 2); }", 1, 2, "unrecognized token", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerEarlyEvent(1, '{ $; }', 2, 2); }", 1, 2, "unexpected token '$'", __LINE__);
 	
 	// Test sim - (object<SLiMEidosBlock>)registerLateEvent(Nis$ id, string$ source, [integer$ start], [integer$ end])
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerLateEvent(NULL, '{ stop(); }', 2, 2); }", __LINE__);
@@ -788,7 +788,7 @@ void _RunSLiMSimTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerLateEvent(1, '{ stop(); }', 3, 2); }", 1, 251, "requires start <= end", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerLateEvent(1, '{ stop(); }', -1, -1); }", 1, 251, "out of range", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerLateEvent(1, '{ stop(); }', 0, 0); }", 1, 251, "out of range", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerLateEvent(1, '{ $; }', 2, 2); }", 1, 2, "unrecognized token", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerLateEvent(1, '{ $; }', 2, 2); }", 1, 2, "unexpected token '$'", __LINE__);
 	
 	// Test sim - (object<SLiMEidosBlock>)registerFitnessCallback(Nis$ id, string$ source, Nio<MutationType>$ mutType, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(NULL, '{ stop(); }', 1, NULL, 5, 10); }", __LINE__);
@@ -808,7 +808,7 @@ void _RunSLiMSimTests(void)
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(1, '{ stop(); }', m1, NULL, 3, 2); }", 1, 251, "requires start <= end", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(1, '{ stop(); }', m1, NULL, -1, -1); }", 1, 251, "out of range", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(1, '{ stop(); }', m1, NULL, 0, 0); }", 1, 251, "out of range", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(1, '{ $; }', m1, NULL, 2, 2); }", 1, 2, "unrecognized token", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(1, '{ $; }', m1, NULL, 2, 2); }", 1, 2, "unexpected token '$'", __LINE__);
 	
 	// Test sim - (object<SLiMEidosBlock>)registerInteractionCallback(Nis$ id, string$ source, io<InteractionType>$ intType, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
 	SLiMAssertScriptStop(gen1_setup_i1 + "1 { sim.registerInteractionCallback(NULL, '{ stop(); }', 1, NULL, 5, 10); }", __LINE__);
@@ -825,7 +825,7 @@ void _RunSLiMSimTests(void)
 	SLiMAssertScriptRaise(gen1_setup_i1 + "1 { sim.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 3, 2); }", 1, 351, "requires start <= end", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1 + "1 { sim.registerInteractionCallback(1, '{ stop(); }', i1, NULL, -1, -1); }", 1, 351, "out of range", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1 + "1 { sim.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 0, 0); }", 1, 351, "out of range", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1 + "1 { sim.registerInteractionCallback(1, '{ $; }', i1, NULL, 2, 2); }", 1, 2, "unrecognized token", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1 + "1 { sim.registerInteractionCallback(1, '{ $; }', i1, NULL, 2, 2); }", 1, 2, "unexpected token '$'", __LINE__);
 	
 	// Test sim - (object<SLiMEidosBlock>)registerMateChoiceCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(NULL, '{ stop(); }', NULL, 2, 2); }", __LINE__);
@@ -842,7 +842,7 @@ void _RunSLiMSimTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(1, '{ stop(); }', NULL, 3, 2); }", 1, 251, "requires start <= end", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(1, '{ stop(); }', NULL, -1, -1); }", 1, 251, "out of range", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(1, '{ stop(); }', NULL, 0, 0); }", 1, 251, "out of range", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(1, '{ $; }', NULL, 2, 2); }", 1, 2, "unrecognized token", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(1, '{ $; }', NULL, 2, 2); }", 1, 2, "unexpected token '$'", __LINE__);
 	
 	// Test sim - (object<SLiMEidosBlock>)registerModifyChildCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(NULL, '{ stop(); }', NULL, 2, 2); }", __LINE__);
@@ -859,7 +859,7 @@ void _RunSLiMSimTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(1, '{ stop(); }', NULL, 3, 2); }", 1, 251, "requires start <= end", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(1, '{ stop(); }', NULL, -1, -1); }", 1, 251, "out of range", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(1, '{ stop(); }', NULL, 0, 0); }", 1, 251, "out of range", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(1, '{ $; }', NULL, 2, 2); }", 1, 2, "unrecognized token", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(1, '{ $; }', NULL, 2, 2); }", 1, 2, "unexpected token '$'", __LINE__);
 	
 	// Test sim – (object<SLiMEidosBlock>)rescheduleScriptBlock(object<SLiMEidosBlock>$ block, [Ni$ start = NULL], [Ni$ end = NULL], [Ni generations = NULL])
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, start=10, end=9); stop(); } s1 10 { }", 1, 255, "requires start <= end", __LINE__);
@@ -3117,6 +3117,13 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1.type = 'event'; stop(); } s1 2:4 { sim = 10; } ", 1, 255, "read-only property", __LINE__);
 	
 	// No methods on SLiMEidosBlock
+	
+	// Test user-defined functions in SLiM; there is a huge amount more that could be tested, but these get tested by EidosScribe too,
+	// so mostly we just need to make sure here that they get declared and defined properly in SLiM, and are callable.
+	SLiMAssertScriptStop(gen1_setup_p1 + "function (i)A(i x) {x*2;} 1 { if (A(2) == 4) stop(); } 10 {  } ", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "function (i)A(i x) {B(x)+1;} function (i)B(i x) {x*2;} 1 { if (A(2) == 5) stop(); } 10 {  } ", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "function (i)fac([i b=10]) { if (b <= 1) return 1; else return b*fac(b-1); } 1 { if (fac(5) == 120) stop(); } 10 {  } ", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "function (i)spsize(o<Subpopulation>$ sp) { sp.individualCount; } 2 { if (spsize(p1) == 10) stop(); } 10 {  } ", __LINE__);
 }
 
 #pragma mark Continuous space tests

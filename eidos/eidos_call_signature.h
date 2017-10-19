@@ -161,6 +161,9 @@ public:
 	void CheckArguments(const EidosValue_SP *const p_arguments, unsigned int p_argument_count) const;
 	void CheckReturn(const EidosValue &p_result) const;
 	
+	// Get the signature as a string, via operator<<
+	std::string SignatureString(void) const;
+	
 	// virtual functions defined by the subclasses below
 	virtual std::string CallType(void) const = 0;				// "function" or "method"; used for error output
 	virtual std::string CallPrefix(void) const = 0;				// "", "– ", or "+ "; used for stream output
@@ -179,6 +182,10 @@ public:
 	
 	// delegated function implementations; these are dispatched through the Context object in the interpreter
 	std::string delegate_name_;
+	
+	// user-defined functions; these are dispatched using a sub-interpreter (OWNED pointer)
+	EidosScript *body_script_ = nullptr;
+	bool user_defined_ = false;
 	
 	EidosFunctionSignature(const EidosFunctionSignature&) = delete;								// no copying
 	EidosFunctionSignature& operator=(const EidosFunctionSignature&) = delete;					// no copying

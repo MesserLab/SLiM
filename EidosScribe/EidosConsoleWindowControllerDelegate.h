@@ -59,7 +59,15 @@
 - (EidosSymbolTable *)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController symbolsFromBaseSymbols:(EidosSymbolTable *)baseSymbols;
 
 // This allows the Context to define its own functions beyond those in Eidos itself
-- (EidosFunctionMap *)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController functionMapFromBaseMap:(EidosFunctionMap *)baseFunctionMap;
+// The returned symbol table is not freed by the caller, since it is assumed to be
+// an existing object with a lifetime managed by the callee.
+- (EidosFunctionMap *)functionMapForEidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController;
+
+// The functionMapForEidosConsoleWindowController: delegate method returns the current function map
+// from the state of the delegate.  That may not include some optional functions, such as SLiM's
+// zero-generation functions, that EidosConsoleWindowController wants to know about in some situations.
+// This delegate method requests those optional functions to be added.
+- (void)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController addOptionalFunctionsToMap:(EidosFunctionMap *)functionMap;
 
 // This notifies the delegate that a script check operation did or did not succeed, allowing custom UI
 - (void)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController checkScriptDidSucceed:(BOOL)succeeded;

@@ -62,6 +62,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosTokenType p_token
 		case EidosTokenType::kTokenGtEq:				p_outstream << ">=";			break;
 		case EidosTokenType::kTokenNot:					p_outstream << "!";				break;
 		case EidosTokenType::kTokenNotEq:				p_outstream << "!=";			break;
+		case EidosTokenType::kTokenSingleton:			p_outstream << "$";				break;
 		case EidosTokenType::kTokenNumber:				p_outstream << "NUMBER";		break;
 		case EidosTokenType::kTokenString:				p_outstream << "STRING";		break;
 		case EidosTokenType::kTokenIdentifier:			p_outstream << "IDENTIFIER";	break;
@@ -74,6 +75,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosTokenType p_token
 		case EidosTokenType::kTokenNext:				p_outstream << gEidosStr_next;		break;
 		case EidosTokenType::kTokenBreak:				p_outstream << gEidosStr_break;		break;
 		case EidosTokenType::kTokenReturn:				p_outstream << gEidosStr_return;	break;
+		case EidosTokenType::kTokenFunction:			p_outstream << gEidosStr_function;	break;
 			
 		case EidosTokenType::kTokenInterpreterBlock:	p_outstream << "$>";			break;
 		case EidosTokenType::kTokenContextFile:			p_outstream << "###";			break;

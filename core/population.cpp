@@ -265,9 +265,9 @@ void Population::ExecuteScript(SLiMEidosBlock *p_script_block, slim_generation_t
 #pragma unused(p_generation, p_chromosome)
 	EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim_.SymbolTable());
 	EidosSymbolTable client_symbols(EidosSymbolTableType::kVariablesTable, &callback_symbols);
-	EidosFunctionMap *function_map = SLiMSim::FunctionMapFromBaseMap(EidosInterpreter::BuiltInFunctionMap());
+	EidosFunctionMap &function_map = sim_.FunctionMap();
 	
-	EidosInterpreter interpreter(p_script_block->compound_statement_node_, client_symbols, *function_map, &sim_);
+	EidosInterpreter interpreter(p_script_block->compound_statement_node_, client_symbols, function_map, &sim_);
 	
 	if (p_script_block->contains_self_)
 		callback_symbols.InitializeConstantSymbolEntry(p_script_block->SelfSymbolTableEntry());		// define "self"
@@ -336,8 +336,8 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 			{
 				EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim_.SymbolTable());
 				EidosSymbolTable client_symbols(EidosSymbolTableType::kVariablesTable, &callback_symbols);
-				EidosFunctionMap *function_map = EidosInterpreter::BuiltInFunctionMap();
-				EidosInterpreter interpreter(mate_choice_callback->compound_statement_node_, client_symbols, *function_map, &sim_);
+				EidosFunctionMap &function_map = sim_.FunctionMap();
+				EidosInterpreter interpreter(mate_choice_callback->compound_statement_node_, client_symbols, function_map, &sim_);
 				
 				if (mate_choice_callback->contains_self_)
 					callback_symbols.InitializeConstantSymbolEntry(mate_choice_callback->SelfSymbolTableEntry());		// define "self"
@@ -637,8 +637,8 @@ bool Population::ApplyModifyChildCallbacks(slim_popsize_t p_child_index, Individ
 			// The callback is active, so we need to execute it
 			EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim_.SymbolTable());
 			EidosSymbolTable client_symbols(EidosSymbolTableType::kVariablesTable, &callback_symbols);
-			EidosFunctionMap *function_map = EidosInterpreter::BuiltInFunctionMap();
-			EidosInterpreter interpreter(modify_child_callback->compound_statement_node_, client_symbols, *function_map, &sim_);
+			EidosFunctionMap &function_map = sim_.FunctionMap();
+			EidosInterpreter interpreter(modify_child_callback->compound_statement_node_, client_symbols, function_map, &sim_);
 			
 			if (modify_child_callback->contains_self_)
 				callback_symbols.InitializeConstantSymbolEntry(modify_child_callback->SelfSymbolTableEntry());		// define "self"
@@ -1663,8 +1663,8 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 			// The callback is active, so we need to execute it
 			EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim_.SymbolTable());
 			EidosSymbolTable client_symbols(EidosSymbolTableType::kVariablesTable, &callback_symbols);
-			EidosFunctionMap *function_map = EidosInterpreter::BuiltInFunctionMap();
-			EidosInterpreter interpreter(recombination_callback->compound_statement_node_, client_symbols, *function_map, &sim_);
+			EidosFunctionMap &function_map = sim_.FunctionMap();
+			EidosInterpreter interpreter(recombination_callback->compound_statement_node_, client_symbols, function_map, &sim_);
 			
 			if (recombination_callback->contains_self_)
 				callback_symbols.InitializeConstantSymbolEntry(recombination_callback->SelfSymbolTableEntry());		// define "self"

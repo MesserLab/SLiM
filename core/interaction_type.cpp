@@ -807,10 +807,10 @@ double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Indivi
 				
 				// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
 				{
-					EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &p_subpop->population_.sim_.SymbolTable());
+					EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim.SymbolTable());
 					EidosSymbolTable client_symbols(EidosSymbolTableType::kVariablesTable, &callback_symbols);
-					EidosFunctionMap *function_map = EidosInterpreter::BuiltInFunctionMap();
-					EidosInterpreter interpreter(interaction_callback->compound_statement_node_, client_symbols, *function_map, &sim);
+					EidosFunctionMap &function_map = sim.FunctionMap();
+					EidosInterpreter interpreter(interaction_callback->compound_statement_node_, client_symbols, function_map, &sim);
 					
 					if (interaction_callback->contains_self_)
 						callback_symbols.InitializeConstantSymbolEntry(interaction_callback->SelfSymbolTableEntry());		// define "self"

@@ -1406,7 +1406,8 @@
 			
 			// Convert the profile counts in all script blocks into self counts (excluding the counts of nodes below them)
 			for (SLiMEidosBlock *script_block : script_blocks)
-				script_block->root_node_->ConvertProfileTotalsToSelfCounts();
+				if (script_block->type_ != SLiMEidosBlockType::SLiMEidosUserDefinedFunction)		// exclude function blocks; not user-visible
+					script_block->root_node_->ConvertProfileTotalsToSelfCounts();
 		}
 		{
 			[content eidosAppendString:@"\n" attributes:optima13_d];
@@ -1418,6 +1419,9 @@
 			
 			for (SLiMEidosBlock *script_block : script_blocks)
 			{
+				if (script_block->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
+					continue;
+				
 				const EidosASTNode *profile_root = script_block->root_node_;
 				double total_block_time = Eidos_ElapsedProfileTime(profile_root->TotalOfSelfCounts());	// relies on ConvertProfileTotalsToSelfCounts() being called above!
 				double percent_block_time = (total_block_time / elapsedWallClockTimeInSLiM) * 100.0;
@@ -1461,6 +1465,9 @@
 			
 			for (SLiMEidosBlock *script_block : script_blocks)
 			{
+				if (script_block->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
+					continue;
+				
 				const EidosASTNode *profile_root = script_block->root_node_;
 				double total_block_time = Eidos_ElapsedProfileTime(profile_root->TotalOfSelfCounts());	// relies on ConvertProfileTotalsToSelfCounts() being called above!
 				double percent_block_time = (total_block_time / elapsedWallClockTimeInSLiM) * 100.0;
@@ -1492,6 +1499,120 @@
 				[content eidosAppendString:@"\n" attributes:menlo11_d];
 				[content eidosAppendString:@"\n" attributes:optima3_d];
 				[content eidosAppendString:@"(blocks using < 0.01 s and < 0.01% of total wall clock time are not shown)" attributes:optima13i_d];
+			}
+		}
+	}
+	
+	//
+	//	User-defined functions (if any)
+	//
+	if (elapsedWallClockTimeInSLiM > 0.0)
+	{
+		EidosFunctionMap &function_map = sim->FunctionMap();
+		std::vector<const EidosFunctionSignature *> userDefinedFunctions;
+		
+		for (auto functionPairIter = function_map.begin(); functionPairIter != function_map.end(); ++functionPairIter)
+		{
+			const EidosFunctionSignature *signature = functionPairIter->second;
+			
+			if (signature->body_script_ && signature->user_defined_)
+			{
+				signature->body_script_->AST()->ConvertProfileTotalsToSelfCounts();
+				userDefinedFunctions.push_back(signature);
+			}
+		}
+		
+		if (userDefinedFunctions.size())
+		{
+			[content eidosAppendString:@"\n" attributes:menlo11_d];
+			[content eidosAppendString:@"\n" attributes:optima13_d];
+			[content eidosAppendString:@"User-defined functions (as a fraction of corrected wall clock time)\n" attributes:optima14b_d];
+			[content eidosAppendString:@"\n" attributes:optima3_d];
+			
+			bool firstBlock = true, hiddenInconsequentialBlocks = false;
+			
+			for (const EidosFunctionSignature *signature : userDefinedFunctions)
+			{
+				const EidosASTNode *profile_root = signature->body_script_->AST();
+				double total_block_time = Eidos_ElapsedProfileTime(profile_root->TotalOfSelfCounts());	// relies on ConvertProfileTotalsToSelfCounts() being called above!
+				double percent_block_time = (total_block_time / elapsedWallClockTimeInSLiM) * 100.0;
+				
+				if ((total_block_time >= 0.01) || (percent_block_time >= 0.01))
+				{
+					if (!firstBlock)
+						[content eidosAppendString:@"\n\n" attributes:menlo11_d];
+					firstBlock = false;
+					
+					const std::string &script_std_string = profile_root->token_->token_string_;
+					NSString *script_string = [NSString stringWithUTF8String:script_std_string.c_str()];
+					NSMutableAttributedString *scriptAttrString = [[NSMutableAttributedString alloc] initWithString:script_string attributes:menlo11_d];
+					const std::string &&signature_string = signature->SignatureString();
+					NSString *signatureString = [NSString stringWithUTF8String:signature_string.c_str()];
+					
+					[self colorScript:scriptAttrString withProfileCountsFromNode:profile_root elapsedTime:elapsedWallClockTimeInSLiM baseIndex:profile_root->token_->token_UTF16_start_];
+					
+					[content eidosAppendString:[NSString stringWithFormat:@"%0.2f s (%0.2f%%):\n", total_block_time, percent_block_time] attributes:menlo11_d];
+					[content eidosAppendString:@"\n" attributes:optima3_d];
+					[content eidosAppendString:[NSString stringWithFormat:@"%@\n", signatureString] attributes:menlo11_d];
+					
+					[content appendAttributedString:scriptAttrString];
+				}
+				else
+					hiddenInconsequentialBlocks = YES;
+			}
+			
+			if (hiddenInconsequentialBlocks)
+			{
+				[content eidosAppendString:@"\n" attributes:menlo11_d];
+				[content eidosAppendString:@"\n" attributes:optima3_d];
+				[content eidosAppendString:@"(functions using < 0.01 s and < 0.01% of total wall clock time are not shown)" attributes:optima13i_d];
+			}
+		}
+		if (userDefinedFunctions.size())
+		{
+			[content eidosAppendString:@"\n" attributes:menlo11_d];
+			[content eidosAppendString:@"\n" attributes:optima13_d];
+			[content eidosAppendString:@"User-defined functions (as a fraction of within-block wall clock time)\n" attributes:optima14b_d];
+			[content eidosAppendString:@"\n" attributes:optima3_d];
+			
+			bool firstBlock = true, hiddenInconsequentialBlocks = false;
+			
+			for (const EidosFunctionSignature *signature : userDefinedFunctions)
+			{
+				const EidosASTNode *profile_root = signature->body_script_->AST();
+				double total_block_time = Eidos_ElapsedProfileTime(profile_root->TotalOfSelfCounts());	// relies on ConvertProfileTotalsToSelfCounts() being called above!
+				double percent_block_time = (total_block_time / elapsedWallClockTimeInSLiM) * 100.0;
+				
+				if ((total_block_time >= 0.01) || (percent_block_time >= 0.01))
+				{
+					if (!firstBlock)
+						[content eidosAppendString:@"\n\n" attributes:menlo11_d];
+					firstBlock = false;
+					
+					const std::string &script_std_string = profile_root->token_->token_string_;
+					NSString *script_string = [NSString stringWithUTF8String:script_std_string.c_str()];
+					NSMutableAttributedString *scriptAttrString = [[NSMutableAttributedString alloc] initWithString:script_string attributes:menlo11_d];
+					const std::string &&signature_string = signature->SignatureString();
+					NSString *signatureString = [NSString stringWithUTF8String:signature_string.c_str()];
+					
+					if (total_block_time > 0.0)
+						[self colorScript:scriptAttrString withProfileCountsFromNode:profile_root elapsedTime:total_block_time baseIndex:profile_root->token_->token_UTF16_start_];
+					
+					[content eidosAppendString:[NSString stringWithFormat:@"%0.2f s (%0.2f%%):\n", total_block_time, percent_block_time] attributes:menlo11_d];
+					[content eidosAppendString:@"\n" attributes:optima3_d];
+					[content eidosAppendString:[NSString stringWithFormat:@"%@\n", signatureString] attributes:menlo11_d];
+					
+					[content appendAttributedString:scriptAttrString];
+				}
+				else
+					hiddenInconsequentialBlocks = YES;
+			}
+			
+			if (hiddenInconsequentialBlocks)
+			{
+				[content eidosAppendString:@"\n" attributes:menlo11_d];
+				[content eidosAppendString:@"\n" attributes:optima3_d];
+				[content eidosAppendString:@"(functions using < 0.01 s and < 0.01% of total wall clock time are not shown)" attributes:optima13i_d];
 			}
 		}
 	}
@@ -1662,7 +1783,7 @@
 	sim->profile_stage_totals_[(int)(SLiMGenerationStage::kStage5ExecuteLateScripts)] = 0;
 	sim->profile_stage_totals_[(int)(SLiMGenerationStage::kStage6CalculateFitness)] = 0;
 	
-	// zero out profile counts for callback types
+	// zero out profile counts for callback types (note SLiMEidosUserDefinedFunction is excluded; that is not a category we profile)
 	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosEventEarly)] = 0;
 	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosEventLate)] = 0;
 	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosInitializeCallback)] = 0;
@@ -1677,7 +1798,19 @@
 	std::vector<SLiMEidosBlock*> &script_blocks = sim->AllScriptBlocks();
 	
 	for (SLiMEidosBlock *script_block : script_blocks)
-		script_block->root_node_->ZeroProfileTotals();
+		if (script_block->type_ != SLiMEidosBlockType::SLiMEidosUserDefinedFunction)	// exclude user-defined functions; not user-visible as blocks
+			script_block->root_node_->ZeroProfileTotals();
+	
+	// zero out profile counts for all user-defined functions
+	EidosFunctionMap &function_map = sim->FunctionMap();
+	
+	for (auto functionPairIter = function_map.begin(); functionPairIter != function_map.end(); ++functionPairIter)
+	{
+		const EidosFunctionSignature *signature = functionPairIter->second;
+		
+		if (signature->body_script_ && signature->user_defined_)
+			signature->body_script_->AST()->ZeroProfileTotals();
+	}
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
 	// zero out mutation run metrics
@@ -1743,9 +1876,9 @@
 {
 	if (!invalidSimulation)
 	{
-		[_consoleController invalidateSymbolTable];
+		[_consoleController invalidateSymbolTableAndFunctionMap];
 		[self setReachedSimulationEnd:![self runSimOneGeneration]];
-		[_consoleController validateSymbolTable];
+		[_consoleController validateSymbolTableAndFunctionMap];
 		[self updateAfterTickFull:YES];
 	}
 }
@@ -1956,7 +2089,7 @@
 		isProfileAction ? [self setProfilePlayOn:YES] : [self setNonProfilePlayOn:YES];
 		
 		// invalidate the console symbols, and don't validate them until we are done
-		[_consoleController invalidateSymbolTable];
+		[_consoleController invalidateSymbolTableAndFunctionMap];
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// prepare profiling information if necessary
@@ -2005,7 +2138,7 @@
 		[self setContinuousPlayOn:NO];
 		isProfileAction ? [self setProfilePlayOn:NO] : [self setNonProfilePlayOn:NO];
 		
-		[_consoleController validateSymbolTable];
+		[_consoleController validateSymbolTableAndFunctionMap];
 		[self updateAfterTickFull:YES];
 		
 		// Work around a bug that when the simulation ends during menu tracking, menus do not update until menu tracking finishes
@@ -2108,7 +2241,7 @@
 		[self setGenerationPlayOn:YES];
 		
 		// invalidate the console symbols, and don't validate them until we are done
-		[_consoleController invalidateSymbolTable];
+		[_consoleController invalidateSymbolTableAndFunctionMap];
 		
 		// get the first responder out of the generation textfield
 		[[self window] performSelector:@selector(makeFirstResponder:) withObject:nil afterDelay:0.0];
@@ -2124,7 +2257,7 @@
 		[self setGenerationPlayOn:NO];
 		[generationProgressIndicator stopAnimation:nil];
 		
-		[_consoleController validateSymbolTable];
+		[_consoleController validateSymbolTableAndFunctionMap];
 		
 		// Work around a bug that when the simulation ends during menu tracking, menus do not update until menu tracking finishes
 		if ([self reachedSimulationEnd])
@@ -2136,10 +2269,10 @@
 {
 	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
 	
-	[_consoleController invalidateSymbolTable];
+	[_consoleController invalidateSymbolTableAndFunctionMap];
 	[self clearOutput:nil];
 	[self setScriptStringAndInitializeSimulation:[scriptTextView string]];
-	[_consoleController validateSymbolTable];
+	[_consoleController validateSymbolTableAndFunctionMap];
 	[self updateAfterTickFull:YES];
 	
 	// A bit of playing with undo.  We want to break undo coalescing at the point of recycling, so that undo and redo stop
@@ -2576,7 +2709,7 @@
 				
 				// Clean up after the import; the order of these steps may be sensitive, so be careful
 				[self updateAfterTickFull:YES];
-				[_consoleController validateSymbolTable];	// trigger a reload of the variable browser to show the new symbols
+				[_consoleController validateSymbolTableAndFunctionMap];	// trigger a reload of the variable browser to show the new symbols
 			}
 			
 			[op autorelease];
@@ -2755,9 +2888,16 @@
 	return baseSymbols;
 }
 
-- (EidosFunctionMap *)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController functionMapFromBaseMap:(EidosFunctionMap *)baseFunctionMap
+- (EidosFunctionMap *)functionMapForEidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController
 {
-	return SLiMSim::FunctionMapFromBaseMap(baseFunctionMap);
+	if (sim && !invalidSimulation)
+		return &sim->FunctionMap();
+	return nullptr;
+}
+
+- (void)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController addOptionalFunctionsToMap:(EidosFunctionMap *)functionMap
+{
+	SLiMSim::AddZeroGenerationFunctionsToMap(*functionMap);
 }
 
 - (const std::vector<const EidosMethodSignature*> *)eidosConsoleWindowControllerAllMethodSignatures:(EidosConsoleWindowController *)eidosConsoleController
@@ -2871,9 +3011,14 @@
 	return [_consoleController symbols];
 }
 
-- (EidosFunctionMap *)eidosTextView:(EidosTextView *)eidosTextView functionMapFromBaseMap:(EidosFunctionMap *)baseFunctionMap
+- (EidosFunctionMap *)functionMapForEidosTextView:(EidosTextView *)eidosTextView
 {
-	return [self eidosConsoleWindowController:nullptr functionMapFromBaseMap:baseFunctionMap];
+	return [self functionMapForEidosConsoleWindowController:nullptr];
+}
+
+- (void)eidosTextView:(EidosTextView *)eidosTextView addOptionalFunctionsToMap:(EidosFunctionMap *)functionMap
+{
+	[self eidosConsoleWindowController:nullptr addOptionalFunctionsToMap:functionMap];
 }
 
 - (const std::vector<const EidosMethodSignature*> *)eidosTextViewAllMethodSignatures:(EidosTextView *)eidosTextView;
@@ -2913,7 +3058,7 @@
 		std::cout << "SLiM script:\n" << script_string << std::endl << std::endl;
 #endif
 		
-		// Parse, an "interpreter block" bounded by an EOF rather than a "script block" that requires braces
+		// Parse an "interpreter block" bounded by an EOF rather than a "script block" that requires braces
 		script.Tokenize(true, false);				// make bad tokens as needed, do not keep nonsignificant tokens
 		script.ParseSLiMFileToAST(true);			// make bad nodes as needed (i.e. never raise, and produce a correct tree)
 		
@@ -2930,6 +3075,10 @@
 		
 		if (symbols)
 			symbols->AddSymbolsToTypeTable(*typeTable);
+		
+		// Use the script text view's facility for using type-interpreting to get a "definitive" function map.  This way
+		// all functions that are defined, even if below the completion point, end up in the function map.
+		*functionMap = [scriptTextView functionMapForScriptString:[scriptTextView string] includingOptionalFunctions:NO];
 		
 		// Now we scan through the children of the root node, each of which is the root of a SLiM script block.  The last
 		// script block is the one we are actually completing inside, but we also want to do a quick scan of any other
@@ -3001,6 +3150,14 @@
 						{
 							block_statement_root = block_child;
 						}
+						else if (child_token->token_type_ == EidosTokenType::kTokenFunction)
+						{
+							// We handle function blocks a bit differently; see below
+							block_type = SLiMEidosBlockType::SLiMEidosUserDefinedFunction;
+							
+							if (block_child->children_.size() >= 4)
+								block_statement_root = block_child->children_[3];
+						}
 					}
 					
 					// Now we know the type of the node, and the root node of its compound statement; extract what we want
@@ -3009,7 +3166,7 @@
 						// The symbol sim is defined in initialize() blocks and not in other blocks; we need to add and remove it
 						// dynamically so that each block has it defined or not defined as necessary.  Since the completion block
 						// is last, the sim symbol will be correctly defined at the end of this process.
-						if (block_type == SLiMEidosBlockType::SLiMEidosInitializeCallback)
+						if ((block_type == SLiMEidosBlockType::SLiMEidosInitializeCallback) || (block_type == SLiMEidosBlockType::SLiMEidosUserDefinedFunction))
 							(*typeTable)->RemoveTypeForSymbol(gID_sim);
 						else
 							(*typeTable)->SetTypeForSymbol(gID_sim, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMSim_Class});
@@ -3017,16 +3174,22 @@
 						// Do the same for the zero-generation functions, which should be defined in initialization() blocks and
 						// not in other blocks; we add and remove them dynamically so they are defined as appropriate.  We ought
 						// to do this for other block-specific stuff as well (like the stuff below), but it is unlikely to matter.
-						if (block_type == SLiMEidosBlockType::SLiMEidosInitializeCallback)
-							SLiMSim::AddZeroGenerationFunctionsToMap(*functionMap);
+						// Note that we consider the zero-gen functions to always be defined inside function blocks, since the
+						// function might be called from the zero gen (we have no way of knowing definitively).
+						if ((block_type == SLiMEidosBlockType::SLiMEidosInitializeCallback) || (block_type == SLiMEidosBlockType::SLiMEidosUserDefinedFunction))
+							SLiMSim::AddZeroGenerationFunctionsToMap(**functionMap);
 						else
-							SLiMSim::RemoveZeroGenerationFunctionsFromMap(*functionMap);
+							SLiMSim::RemoveZeroGenerationFunctionsFromMap(**functionMap);
 						
 						if (script_block_node == completion_block)
 						{
 							// This is the block we're actually completing in the context of; it is also the last block in the script
 							// snippet that we're working with.  We want to first define any callback-associated variables for the block.
-							(*typeTable)->SetTypeForSymbol(gID_self, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class});
+							// Note that self is not defined inside functions, even though they are SLiMEidosBlocks; we pretend we are Eidos.
+							if (block_type == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
+								(*typeTable)->RemoveTypeForSymbol(gID_self);
+							else
+								(*typeTable)->SetTypeForSymbol(gID_self, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class});
 							
 							switch (block_type)
 							{
@@ -3087,8 +3250,43 @@
 									(*typeTable)->SetTypeForSymbol(gID_gcStarts,		EidosTypeSpecifier{kEidosValueMaskInt, nullptr});
 									(*typeTable)->SetTypeForSymbol(gID_gcEnds,			EidosTypeSpecifier{kEidosValueMaskInt, nullptr});
 									break;
+								case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:
+								{
+									// Similar to the local variables that are defined for callbacks above, here we need to define the parameters to the
+									// function, by parsing the relevant AST nodes; this is parallel to EidosTypeInterpreter::TypeEvaluate_FunctionDecl()
+									EidosASTNode *function_declaration_node = script_block_node->children_[0];
+									const EidosASTNode *param_list_node = function_declaration_node->children_[2];
+									const std::vector<EidosASTNode *> &param_nodes = param_list_node->children_;
+									std::vector<std::string> used_param_names;
+									
+									for (EidosASTNode *param_node : param_nodes)
+									{
+										const std::vector<EidosASTNode *> &param_children = param_node->children_;
+										int param_children_count = (int)param_children.size();
+										
+										if ((param_children_count == 2) || (param_children_count == 3))
+										{
+											EidosTypeSpecifier &param_type = param_children[0]->typespec_;
+											const std::string &param_name = param_children[1]->token_->token_string_;
+											
+											// Check param_name; it needs to not be used by another parameter
+											if (std::find(used_param_names.begin(), used_param_names.end(), param_name) != used_param_names.end())
+												continue;
+											
+											if (param_children_count >= 2)
+											{
+												// param_node has 2 or 3 children (type, identifier, [default]); we don't care about default values
+												(*typeTable)->SetTypeForSymbol(EidosGlobalStringIDForString(param_name), param_type);
+											}
+										}
+									}
+									break;
+								}
 							}
-							
+						}
+						
+						if (script_block_node == completion_block)
+						{
 							// Make a type interpreter and add symbols to our type table using it
 							// We use SLiMTypeInterpreter because we want to pick up definitions of SLiM constants
 							SLiMTypeInterpreter typeInterpreter(block_statement_root, **typeTable, **functionMap, **callTypeTable);
@@ -3119,7 +3317,7 @@
 		// This means that standard Eidos language keywords like "while", "next", etc. are not legal, but SLiM script block
 		// keywords like "early", "late", "fitness", "interaction", "mateChoice", "modifyChild", and "recombination" are.
 		[keywords removeAllObjects];
-		[keywords addObjectsFromArray:@[@"initialize() {\n\n}\n", @"early() {\n\n}\n", @"late() {\n\n}\n", @"fitness() {\n\n}\n", @"interaction() {\n\n}\n", @"mateChoice() {\n\n}\n", @"modifyChild() {\n\n}\n", @"recombination() {\n\n}\n"]];
+		[keywords addObjectsFromArray:@[@"initialize() {\n\n}\n", @"early() {\n\n}\n", @"late() {\n\n}\n", @"fitness() {\n\n}\n", @"interaction() {\n\n}\n", @"mateChoice() {\n\n}\n", @"modifyChild() {\n\n}\n", @"recombination() {\n\n}\n", @"function (void)name(void) {\n\n}\n"]];
 		
 		// At the outer level, functions are also not legal
 		(*functionMap)->clear();
@@ -3584,21 +3782,27 @@
 				{
 					slim_objectid_t block_id = scriptBlock->block_id_;
 					
-					if (block_id == -1)
+					if (scriptBlock->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
+						return @"—";
+					else if (block_id == -1)
 						return @"—";
 					else
 						return [NSString stringWithFormat:@"s%lld", (int64_t)block_id];
 				}
 				else if (aTableColumn == scriptBlocksStartColumn)
 				{
-					if (scriptBlock->start_generation_ == -1)
+					if (scriptBlock->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
+						return @"—";
+					else if (scriptBlock->start_generation_ == -1)
 						return @"MIN";
 					else
 						return [NSString stringWithFormat:@"%lld", (int64_t)scriptBlock->start_generation_];
 				}
 				else if (aTableColumn == scriptBlocksEndColumn)
 				{
-					if (scriptBlock->end_generation_ == SLIM_MAX_GENERATION)
+					if (scriptBlock->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
+						return @"—";
+					else if (scriptBlock->end_generation_ == SLIM_MAX_GENERATION)
 						return @"MAX";
 					else
 						return [NSString stringWithFormat:@"%lld", (int64_t)scriptBlock->end_generation_];
@@ -3616,6 +3820,15 @@
 						case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		return @"mateChoice()";
 						case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		return @"modifyChild()";
 						case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	return @"recombination()";
+						case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:
+						{
+							EidosASTNode *function_decl_node = scriptBlock->root_node_->children_[0];
+							EidosASTNode *function_name_node = function_decl_node->children_[1];
+							const std::string &function_name = function_name_node->token_->token_string_;
+							NSString *functionName = [NSString stringWithUTF8String:function_name.c_str()];
+							
+							return [functionName stringByAppendingString:@"()"];
+						}
 					}
 				}
 			}
