@@ -1599,7 +1599,7 @@ const std::string gEidosStr_color = "color";
 
 const std::string gEidosStr_Mutation = "Mutation";	// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
 
-std::vector<const std::string> gEidosConstantNames;
+std::vector<std::string> gEidosConstantNames;
 
 
 static std::unordered_map<std::string, EidosGlobalStringID> gStringToID;

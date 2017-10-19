@@ -496,7 +496,7 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_LastContextEntry = 10000	// IDs added by the Context must end before this value; Eidos reserves the remaining values
 };
 
-extern std::vector<const std::string> gEidosConstantNames;	// T, F, NULL, PI, E, INF, NAN
+extern std::vector<std::string> gEidosConstantNames;	// T, F, NULL, PI, E, INF, NAN
 
 
 // *******************************************************************************************************************
