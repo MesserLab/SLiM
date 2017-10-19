@@ -1,3 +1,16 @@
+// Calculate the FST between two subpopulations
+function (f$)calcFST(o<Subpopulation>$ subpop1, o<Subpopulation>$ subpop2)
+{
+	p1_p = sim.mutationFrequencies(subpop1);
+	p2_p = sim.mutationFrequencies(subpop2);
+	mean_p = (p1_p + p2_p) / 2.0;
+	H_t = 2.0 * mean_p * (1.0 - mean_p);
+	H_s = p1_p * (1.0 - p1_p) + p2_p * (1.0 - p2_p);
+	fst = 1.0 - H_s/H_t;
+	
+	return mean(fst);
+}
+
 initialize() {
 	initializeMutationRate(1e-7);
 	initializeMutationType("m1", 0.5, "f", 0.0);
@@ -27,13 +40,7 @@ fitness(m2, p2) { return -0.2; }
 		return weights * ifelse(parent2HasMut, 0.5, 1.0);
 }
 3000: late() {
-	p1_p = sim.mutationFrequencies(p1);
-	p2_p = sim.mutationFrequencies(p2);
-	mean_p = (p1_p + p2_p) / 2.0;
-	pq = p1_p * (1 - p1_p);
-	mean_pq = mean_p * (1 - mean_p);
-	fst = abs((mean_pq - pq) / mean_pq);
-	sim.setValue("FST", sim.getValue("FST") + mean(fst));
+	sim.setValue("FST", sim.getValue("FST") + calcFST(p1, p2));
 }
 3499 late() {
 	cat("Mean FST at equilibrium: " + (sim.getValue("FST") / 500));

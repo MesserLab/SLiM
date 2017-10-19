@@ -30,6 +30,7 @@ development head:
 	rename argument "function" for doCall() to "functionName"
 	add support for user-defined functions in Eidos and SLiM
 	add a source() function to read in and execute a source file
+	revise recipe 11.1 to fix the FST calculation code and encapsulate it into a reusable function
 
 
 2.4.2 (build 1167 on branch mutid_bug_242; Eidos version 1.4.2):
