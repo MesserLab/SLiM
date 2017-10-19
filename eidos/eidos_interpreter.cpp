@@ -28,6 +28,7 @@
 #include <stdexcept>
 #include <utility>
 #include <cmath>
+#include <algorithm>
 
 
 using std::string;
