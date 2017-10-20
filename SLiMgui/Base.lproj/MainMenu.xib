@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="12118" systemVersion="16F73" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="12118" systemVersion="16G29" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="12118"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
@@ -563,6 +563,12 @@ DQ
                                     <action selector="showSlimHomePage:" target="Voe-Tx-rLC" id="R8x-VO-uO1"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="SLiM-Extras on GitHub" id="MLQ-w3-xwG">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="showSlimExtrasPage:" target="Voe-Tx-rLC" id="bE2-8U-QpS"/>
+                                </connections>
+                            </menuItem>
                             <menuItem title="Haller &amp; Messer 2017 MBE" id="9r1-EZ-j3E">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
@@ -596,7 +602,7 @@ DQ
         <window title="SLiMgui Preferences" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" restorable="NO" hidesOnDeactivate="YES" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" animationBehavior="default" id="cET-rW-zho" customClass="NSPanel">
             <windowStyleMask key="styleMask" titled="YES" closable="YES"/>
             <rect key="contentRect" x="272" y="199" width="268" height="431"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="1680" height="1027"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1920" height="1057"/>
             <view key="contentView" id="ae8-oN-lQF">
                 <rect key="frame" x="0.0" y="0.0" width="268" height="431"/>
                 <autoresizingMask key="autoresizingMask"/>

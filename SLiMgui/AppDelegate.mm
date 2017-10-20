@@ -327,6 +327,11 @@ typedef enum SLiMLaunchAction
 	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://messerlab.org/slim/"]];
 }
 
+- (IBAction)showSlimExtrasPage:(id)sender
+{
+	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://github.com/MesserLab/SLiM-Extras"]];
+}
+
 - (IBAction)showSlimPublication:(id)sender
 {
 	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://dx.doi.org/10.1093/molbev/msw211"]];
