@@ -33,6 +33,7 @@ development head:
 	revise recipe 11.1 to fix the FST calculation code and encapsulate it into a reusable function
 	add menu item in SLiMgui to open the SLiM-Extras repository on GitHub
 	fix a major bug preventing new mutations from being introduced during clonal reproduction (existing in 2.4, 2.4.1, and 2.4.2)
+	add recipe 13.13, illustrating how to make a simple haploid model
 
 
 2.4.2 (build 1167 on branch mutid_bug_242; Eidos version 1.4.2):
