@@ -2684,7 +2684,6 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 		
 		// loop over mutation runs and either (1) copy the mutrun pointer from the parent, or (2) make a new mutrun by modifying that of the parent
 		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-		Genome &parental_genome = p_source_subpop->parent_genomes_[p_parent_genome_index];
 		
 		int mutrun_count = child_genome.mutrun_count_;
 		int mutrun_length = child_genome.mutrun_length_;
@@ -2692,7 +2691,7 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 		const MutationIndex *mutation_iter		= mutations_to_add.begin_pointer_const();
 		const MutationIndex *mutation_iter_max	= mutations_to_add.end_pointer_const();
 		MutationIndex mutation_iter_mutation_index = *mutation_iter;
-		slim_position_t mutation_iter_pos = (mut_block_ptr + *mutation_iter)->position_;
+		slim_position_t mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
 		int mutation_iter_mutrun_index = mutation_iter_pos / mutrun_length;
 		
 		for (int run_index = 0; run_index < mutrun_count; ++run_index)
@@ -2700,18 +2699,18 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 			if (mutation_iter_mutrun_index > run_index)
 			{
 				// no mutations in this run, so just copy the run pointer
-				child_genome.mutruns_[run_index] = parental_genome.mutruns_[run_index];
+				child_genome.mutruns_[run_index] = parent_genome->mutruns_[run_index];
 			}
 			else
 			{
 				// interleave the parental genome with the new mutations
 				MutationRun *child_run = child_genome.WillCreateRun(run_index);
-				MutationRun *parent_run = parental_genome.mutruns_[run_index].get();
+				MutationRun *parent_run = parent_genome->mutruns_[run_index].get();
 				const MutationIndex *parent_iter		= parent_run->begin_pointer_const();
 				const MutationIndex *parent_iter_max	= parent_run->end_pointer_const();
 				
-				// there is at least one new mutation left to place in this run; so while there are still old mutations in the parent...
-				while (parent_iter != parent_iter_max)
+				// while there is at least one new mutation left to place in this run... (which we know is true when we first reach here)
+				do
 				{
 					// while an old mutation in the parent is before or at the next new mutation...
 					while ((parent_iter != parent_iter_max) && ((mut_block_ptr + *parent_iter)->position_ <= mutation_iter_pos))
@@ -2722,10 +2721,10 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 						parent_iter++;
 					}
 					
-					// while a new mutation is before the next old mutation in the parent...
+					// while a new mutation in this run is before the next old mutation in the parent... (which we know is true when we first reach here)
 					slim_position_t parent_iter_pos = (parent_iter == parent_iter_max) ? (SLIM_INF_BASE_POSITION) : (mut_block_ptr + *parent_iter)->position_;
 					
-					while ((mutation_iter_mutrun_index == run_index) && (mutation_iter_pos < parent_iter_pos))
+					do
 					{
 						// we know the mutation is not already present, since mutations on the parent strand are already uniqued,
 						// and new mutations are, by definition, new and thus cannot match the existing mutations
@@ -2754,18 +2753,23 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 						else
 						{
 							mutation_iter_mutation_index = *mutation_iter;
-							mutation_iter_pos = (mutation_iter == mutation_iter_max) ? (SLIM_INF_BASE_POSITION) : (mut_block_ptr + *mutation_iter)->position_;
+							mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
 						}
 						
 						mutation_iter_mutrun_index = mutation_iter_pos / mutrun_length;
+						
+						// if we're out of new mutations for this run, transfer down to the simpler loop below
+						if (mutation_iter_mutrun_index != run_index)
+							goto noNewMutationsLeft;
 					}
+					while (mutation_iter_pos < parent_iter_pos);
 					
-					// if we're out of new mutations for this run, break and transfer down to the simpler loop below
-					if (mutation_iter_mutrun_index != run_index)
-						break;
+					// at this point we know we have a new mutation to place in this run, but it falls after the next parental mutation, so we loop back
 				}
+				while (true);
 				
 				// complete the mutation run after all new mutations within this run have been placed
+			noNewMutationsLeft:
 				while (parent_iter != parent_iter_max)
 				{
 					child_run->emplace_back(*parent_iter);
