@@ -54,21 +54,35 @@ EidosCallSignature *EidosCallSignature::AddArg(EidosValueMask p_arg_mask, const 
 	return AddArgWithDefault(p_arg_mask, p_argument_name, p_argument_class, EidosValue_SP(nullptr));
 }
 
-EidosCallSignature *EidosCallSignature::AddArgWithDefault(EidosValueMask p_arg_mask, const std::string &p_argument_name, const EidosObjectClass *p_argument_class, EidosValue_SP p_default_value)
+EidosCallSignature *EidosCallSignature::AddArgWithDefault(EidosValueMask p_arg_mask, const std::string &p_argument_name, const EidosObjectClass *p_argument_class, EidosValue_SP p_default_value, bool p_fault_tolerant)
 {
 	bool is_optional = !!(p_arg_mask & kEidosValueMaskOptional);
 	
+	// If we're doing a fault-tolerant parse and the signature is badly malformed, we just don't add the offending argument
 	if (has_optional_args_ && !is_optional)
+	{
+		if (p_fault_tolerant)
+			return this;
 		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) cannot add a required argument after an optional argument has been added." << eidos_terminate(nullptr);
-	
+	}
 	if (has_ellipsis_)
+	{
+		if (p_fault_tolerant)
+			return this;
 		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) cannot add an argument after an ellipsis." << eidos_terminate(nullptr);
-	
+	}
 	if (p_argument_name.size() == 0)
+	{
+		if (p_fault_tolerant)
+			return this;
 		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) an argument name is required." << eidos_terminate(nullptr);
-	
+	}
 	if (p_argument_class && !(p_arg_mask & kEidosValueMaskObject))
+	{
+		if (p_fault_tolerant)
+			return this;
 		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) an object element type may only be supplied for an argument of object type." << eidos_terminate(nullptr);
+	}
 	
 	arg_masks_.emplace_back(p_arg_mask);
 	arg_names_.emplace_back(p_argument_name);
@@ -78,6 +92,10 @@ EidosCallSignature *EidosCallSignature::AddArgWithDefault(EidosValueMask p_arg_m
 	
 	if (is_optional)
 		has_optional_args_ = true;
+	
+	// If we're doing a fault-tolerant parse, skip the rest; we're not going to raise anyway, so there's no point in checking
+	if (p_fault_tolerant)
+		return this;
 	
 	// Check the default argument; see CheckArguments() for parallel code
 	if (is_optional && !p_default_value)

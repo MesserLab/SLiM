@@ -58,7 +58,7 @@ public:
 	// C++ doesn't have Objective-C's instancetype return, but that's what is needed for all of these...
 	// instead, callers will have to cast back to the correct subclass type
 	EidosCallSignature *AddArg(EidosValueMask p_arg_mask, const std::string &p_argument_name, const EidosObjectClass *p_argument_class);
-	EidosCallSignature *AddArgWithDefault(EidosValueMask p_arg_mask, const std::string &p_argument_name, const EidosObjectClass *p_argument_class, EidosValue_SP p_default_value);
+	EidosCallSignature *AddArgWithDefault(EidosValueMask p_arg_mask, const std::string &p_argument_name, const EidosObjectClass *p_argument_class, EidosValue_SP p_default_value, bool p_fault_tolerant=false);
 	EidosCallSignature *AddEllipsis(void);
 	
 	// vanilla type-specified arguments

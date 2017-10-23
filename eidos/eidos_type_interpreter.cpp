@@ -976,7 +976,17 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_FunctionDecl(const EidosAS
 				if (param_children_count >= 2)
 				{
 					// param_node has 2 or 3 children (type, identifier, [default]); we don't care about default values
-					sig->AddArg(param_type.type_mask, param_name, param_type.object_class);
+					
+					// Note that we really can't easily deal with default values, because we would have to actually parse the
+					// defualt-value node to get a value, if it is an identifier, and then once we have the value we can't
+					// easily represent it symbolically any more anyway.  This means function signature previews in the
+					// status bar won't show default arguments for user-defined functions; the information to do that will
+					// not be gathered here.  Maybe this can be improved at some point.  FIXME BCH 23 October 2017
+					
+					// we call AddArgWithDefault() so we can specify fault-tolerance; we're not allowed to raise!
+					// note this means that erroneous function prototypes will lead to faulty signatures in our function map,
+					// but that is fine, it may just mean that an incorrect signature gets previewed to the user
+					sig->AddArgWithDefault(param_type.type_mask, param_name, param_type.object_class, EidosValue_SP(nullptr), true);	// true is fault-tolerant
 				}
 				
 				used_param_names.push_back(param_name);
