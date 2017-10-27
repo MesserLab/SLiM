@@ -8,6 +8,9 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 
 development head:
+
+
+2.5 (build 1204; Eidos version 1.5):
 	add a check for completeness of the help information compared to class definitions, and add doc for a few missing items
 	change the getValue()/setValue() implementation to be more memory-efficient when not used (but a little slower and less memory-efficient when used)
 	Mutation now supports getValue()/setValue() for greater extensibility
@@ -36,7 +39,6 @@ development head:
 	add recipe 13.13, illustrating how to make a simple haploid model
 	add recipe 13.14, showing how to use variation in the mutation rate along the chromosome to model varying functional density
 	fix recipe 5.3.3, which had recipe 5.3.2's code in its file
-
 
 2.4.2 (build 1167 on branch mutid_bug_242; Eidos version 1.4.2):
 	fix for incorrect output due to non-unique mutation IDs
