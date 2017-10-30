@@ -1597,6 +1597,11 @@ void _RunGenomeTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0].countOfMutationsOfType(1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0:1].countOfMutationsOfType(1); stop(); }", __LINE__);
 	
+	// Test Genome - (integer$)positionsOfMutationsOfType(io<MutationType>$ mutType)
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0].positionsOfMutationsOfType(m1); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0].positionsOfMutationsOfType(1); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0:1].positionsOfMutationsOfType(1); stop(); }", __LINE__);
+	
 	// Test Genome - (float$)sumOfMutationsOfType(io<MutationType>$ mutType)
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0].sumOfMutationsOfType(m1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0].sumOfMutationsOfType(1); stop(); }", __LINE__);

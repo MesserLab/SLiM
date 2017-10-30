@@ -229,6 +229,7 @@ const std::string gStr_addNewDrawnMutation = "addNewDrawnMutation";
 const std::string gStr_addNewMutation = "addNewMutation";
 const std::string gStr_containsMutations = "containsMutations";
 const std::string gStr_countOfMutationsOfType = "countOfMutationsOfType";
+const std::string gStr_positionsOfMutationsOfType = "positionsOfMutationsOfType";
 const std::string gStr_containsMarkerMutation = "containsMarkerMutation";
 const std::string gStr_relatedness = "relatedness";
 const std::string gStr_mutationsOfType = "mutationsOfType";
@@ -499,6 +500,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_addNewDrawnMutation, gID_addNewDrawnMutation);
 		Eidos_RegisterStringForGlobalID(gStr_addNewMutation, gID_addNewMutation);
 		Eidos_RegisterStringForGlobalID(gStr_countOfMutationsOfType, gID_countOfMutationsOfType);
+		Eidos_RegisterStringForGlobalID(gStr_positionsOfMutationsOfType, gID_positionsOfMutationsOfType);
 		Eidos_RegisterStringForGlobalID(gStr_containsMarkerMutation, gID_containsMarkerMutation);
 		Eidos_RegisterStringForGlobalID(gStr_relatedness, gID_relatedness);
 		Eidos_RegisterStringForGlobalID(gStr_containsMutations, gID_containsMutations);

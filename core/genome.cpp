@@ -955,6 +955,57 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 			
 			
 			//
+			//	*********************	- (integer)positionsOfMutationsOfType(io<MutationType>$ mutType)
+			//
+#pragma mark -positionsOfMutationsOfType()
+			
+		case gID_positionsOfMutationsOfType:
+		{
+			if (IsNull())
+				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): positionsOfMutationsOfType() cannot be called on a null genome." << eidos_terminate();
+			
+			MutationType *mutation_type_ptr = nullptr;
+			
+			if (arg0_value->Type() == EidosValueType::kValueInt)
+			{
+				SLiMSim &sim = subpop_->population_.sim_;
+				slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
+				auto found_muttype_pair = sim.MutationTypes().find(mutation_type_id);
+				
+				if (found_muttype_pair == sim.MutationTypes().end())
+					EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): positionsOfMutationsOfType() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+				
+				mutation_type_ptr = found_muttype_pair->second;
+			}
+			else
+			{
+				mutation_type_ptr = (MutationType *)(arg0_value->ObjectElementAtIndex(0, nullptr));
+			}
+			
+			// Return the positions of mutations of the given type
+			EidosValue_Int_vector *int_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector();
+			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+			
+			for (int run_index = 0; run_index < mutrun_count_; ++run_index)
+			{
+				MutationRun *mutrun = mutruns_[run_index].get();
+				int mut_count = mutrun->size();
+				const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
+				
+				for (int mut_index = 0; mut_index < mut_count; ++mut_index)
+				{
+					Mutation *mutation = mut_block_ptr + mut_ptr[mut_index];
+					
+					if (mutation->mutation_type_ptr_ == mutation_type_ptr)
+						int_result->PushInt(mutation->position_);
+				}
+			}
+			
+			return EidosValue_SP(int_result);
+		}
+			
+			
+			//
 			//	*********************	- (integer$)sumOfMutationsOfType(io<MutationType>$ mutType)
 			//
 #pragma mark -sumOfMutationsOfType()
@@ -1441,6 +1492,7 @@ const std::vector<const EidosMethodSignature *> *Genome_Class::Methods(void) con
 		methods->emplace_back(SignatureForMethodOrRaise(gID_containsMarkerMutation));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_containsMutations));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_countOfMutationsOfType));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_positionsOfMutationsOfType));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_mutationsOfType));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_outputMS));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_outputVCF));
@@ -1461,6 +1513,7 @@ const EidosMethodSignature *Genome_Class::SignatureForMethod(EidosGlobalStringID
 	static EidosInstanceMethodSignature *containsMarkerMutationSig = nullptr;
 	static EidosInstanceMethodSignature *containsMutationsSig = nullptr;
 	static EidosInstanceMethodSignature *countOfMutationsOfTypeSig = nullptr;
+	static EidosInstanceMethodSignature *positionsOfMutationsOfTypeSig = nullptr;
 	static EidosInstanceMethodSignature *mutationsOfTypeSig = nullptr;
 	static EidosClassMethodSignature *removeMutationsSig = nullptr;
 	static EidosClassMethodSignature *outputMSSig = nullptr;
@@ -1476,6 +1529,7 @@ const EidosMethodSignature *Genome_Class::SignatureForMethod(EidosGlobalStringID
 		containsMarkerMutationSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMarkerMutation, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class)->AddInt_S("position");
 		containsMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMutations, kEidosValueMaskLogical))->AddObject("mutations", gSLiM_Mutation_Class);
 		countOfMutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
+		positionsOfMutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_positionsOfMutationsOfType, kEidosValueMaskInt))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
 		mutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
 		removeMutationsSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_removeMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class)->AddLogical_OS("substitute", gStaticEidosValue_LogicalF);
 		outputMSSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputMS, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF);
@@ -1493,6 +1547,7 @@ const EidosMethodSignature *Genome_Class::SignatureForMethod(EidosGlobalStringID
 		case gID_containsMarkerMutation:	return containsMarkerMutationSig;
 		case gID_containsMutations:			return containsMutationsSig;
 		case gID_countOfMutationsOfType:	return countOfMutationsOfTypeSig;
+		case gID_positionsOfMutationsOfType:	return positionsOfMutationsOfTypeSig;
 		case gID_mutationsOfType:			return mutationsOfTypeSig;
 		case gID_removeMutations:			return removeMutationsSig;
 		case gID_outputMS:					return outputMSSig;

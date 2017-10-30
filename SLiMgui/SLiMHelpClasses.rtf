@@ -650,13 +650,13 @@ Calling this will normally affect the fitness values calculated at the end of th
 \f3\fs20 .
 \f0   This method is provided for speed; it is much faster than the corresponding Eidos code.
 \f3 \
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96
 \f3 \'a0
 \f2 (object<Mutation>)mutationsOfType(io<MutationType>$\'a0mutType)
 \f3 \
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns an 
 \f2\fs18 object
@@ -666,6 +666,14 @@ Calling this will normally affect the fitness values calculated at the end of th
 \f2\fs18 Mutation
 \f0\fs20  objects, rather than a vector of the matches, use 
 \f2\fs18 -countOfMutationsOfType()
+\f0\fs20 ; if you need just the positions of matching 
+\f2\fs18 Mutation
+\f0\fs20  objects, use 
+\f2\fs18 -positionsOfMutationsOfType()
+\f0\fs20 ; and if you are aiming for a sum of the selection coefficients of matching 
+\f2\fs18 Mutation
+\f0\fs20  objects, use 
+\f2\fs18 -sumOfMutationsOfType()
 \f3\fs20 .
 \f0   This method is provided for speed; it is much faster than the corresponding Eidos code.
 \f3 \
@@ -818,6 +826,20 @@ See
 \f0\fs20  for other output formats.  Output is generally done in a 
 \f2\fs18 late()
 \f0\fs20  event, so that the output reflects the state of the simulation at the end of a generation.
+\f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \'96\'a0(integer)positionsOfMutationsOfType(io<MutationType>$\'a0mutType)
+\f3 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns the positions of mutations that are of the type specified by 
+\f2\fs18 mutType
+\f0\fs20 , out of all of the mutations in the genome.  If you need a vector of the matching 
+\f2\fs18 Mutation
+\f0\fs20  objects, rather than just positions, use 
+\f2\fs18 -mutationsOfType()
+\f0\fs20 .  This method is provided for speed; it is much faster than the corresponding Eidos code.
 \f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
