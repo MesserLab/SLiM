@@ -408,6 +408,48 @@ public:
 		// finally, put the mutation where it belongs
 		*sort_position = p_mutation_index;
 	}
+
+	/*
+	 This version of insert_sorted_mutation() searches for the insertion point from the end
+	 instead of the beginning.  I investigated that, but ultimately decided on a different
+	 course of action, and this change seems unnecessary and destabilizing; I don't think
+	 it would benefit any of the users of this method, on average.  Keeping the code for
+	 posterity.  BCH 29 October 2017
+	 
+	inline void insert_sorted_mutation(MutationIndex p_mutation_index)
+	{
+		// first push it back on the end, which deals with capacity/locking issues
+		emplace_back(p_mutation_index);
+		
+		// if it was our first element, then we're done; this would work anyway, but since it is extremely common let's short-circuit it
+		if (mutation_count_ == 1)
+			return;
+		
+		// then find the proper position for it; mutations are often added in ascending order, so let's search backwards
+		Mutation *mut_ptr_to_insert = gSLiM_Mutation_Block + p_mutation_index;
+		MutationIndex *sort_position = end_pointer() - 2;				// the position back one from the newly added element (at end-1)
+		const MutationIndex *end_position = begin_pointer_const() - 1;	// the position back one from the start of the mutation run
+		
+		// check for the mutation actually belonging at the end, for the quick return and simple completion design
+		if (!CompareMutations(mut_ptr_to_insert, gSLiM_Mutation_Block + *sort_position))	// if (p_mutation->position_ >= (*sort_position)->position_)
+			return;
+		
+		// ok, it doesn't belong at the end; start searching at end_pointer() - 3, which might not exist (might ==end_position)
+		--sort_position;
+		
+		for ( ; sort_position != end_position; --sort_position)
+			if (!CompareMutations(mut_ptr_to_insert, gSLiM_Mutation_Block + *sort_position))	// if (p_mutation->position_ >= (*sort_position)->position_)
+				break;
+		
+		// ok, it belongs right *after* sort_position; the mutation at sort_position should stay, so skip ahead one
+		++sort_position;
+		
+		// the new mutation has a position less than that at sort_position, so we need to move everybody upward
+		memmove(sort_position + 1, sort_position, (char *)(end_pointer_const() - 1) - (char *)sort_position);
+		
+		// finally, put the mutation where it belongs
+		*sort_position = p_mutation_index;
+	}*/
 	
 	inline void insert_sorted_mutation_if_unique(MutationIndex p_mutation_index)
 	{
@@ -488,6 +530,13 @@ public:
 		memcpy(mutations_, p_source_run.mutations_, source_mutation_count * sizeof(MutationIndex));
 		mutation_count_ = source_mutation_count;
 	}
+	
+	// Shorthand for clear(), then copy_from_run(p_mutations_to_set), then insert_sorted_mutation() on every
+	// mutation in p_mutations_to_add, with checks with enforce_stack_policy_for_addition().  The point of
+	// this is speed: like DoClonalMutation(), we can merge the new mutations in much faster if we do it in
+	// bulk.  Note that p_mutations_to_set and p_mutations_to_add must both be sorted by position, and it
+	// must be guaranteed that none of the mutations in the two given runs are the same.
+	void clear_set_and_merge(MutationRun &p_mutations_to_set, MutationRun &p_mutations_to_add);
 	
 	inline const MutationIndex *begin_pointer_const(void) const
 	{

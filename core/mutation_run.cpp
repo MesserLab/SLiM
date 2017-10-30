@@ -309,17 +309,166 @@ void MutationRun::check_nonneutral_mutation_cache()
 
 #endif
 
+// Shorthand for clear(), then copy_from_run(p_mutations_to_set), then insert_sorted_mutation() on every
+// mutation in p_mutations_to_add, with checks with enforce_stack_policy_for_addition().  The point of
+// this is speed: like DoClonalMutation(), we can merge the new mutations in much faster if we do it in
+// bulk.  Note that p_mutations_to_set and p_mutations_to_add must both be sorted by position.
+void MutationRun::clear_set_and_merge(MutationRun &p_mutations_to_set, MutationRun &p_mutations_to_add)
+{
+	SLIM_MUTRUN_LOCK_CHECK();
+	
+	// first, clear all mutations out of the receiver
+	clear();
+	
+	// handle the cases with no mutations in one or the other given run, so we can assume >= 1 mutations below
+	int mut_to_set_count = p_mutations_to_set.size();
+	int mut_to_add_count = p_mutations_to_add.size();
+	
+	if (mut_to_add_count == 0)
+	{
+		copy_from_run(p_mutations_to_set);
+		return;
+	}
+	
+	if (mut_to_set_count == 0)
+	{
+		copy_from_run(p_mutations_to_add);
+		return;
+	}
+	
+	// assume that all mutations will be added, and adjust capacity accordingly
+	if (mut_to_set_count + mut_to_add_count > mutation_capacity_)
+	{
+		// See emplace_back for comments on our capacity policy
+		if (mutations_ == mutations_buffer_)
+		{
+			// We're allocating a malloced buffer for the first time, so we outgrew our internal buffer.  We might try jumping by
+			// more than a factor of two, to avoid repeated reallocs; in practice, that is not a win.  The large majority of SLiM's
+			// memory usage in typical simulations comes from these arrays of pointers kept by Genome, so making them larger
+			// than necessary can massively balloon SLiM's memory usage for very little gain.  The realloc() calls are very fast;
+			// avoiding it is not a major concern.  In fact, using *8 here instead of *2 actually slows down a test simulation,
+			// perhaps because it causes a true realloc rather than just a size increment of the existing malloc block.  Who knows.
+			mutation_capacity_ = SLIM_MUTRUN_BUFFER_SIZE * 2;
+			
+			while (mut_to_set_count + mut_to_add_count > mutation_capacity_)
+			{
+				if (mutation_capacity_ < 32)
+					mutation_capacity_ <<= 1;		// double the number of pointers we can hold
+				else
+					mutation_capacity_ += 16;
+			}
+			
+			mutations_ = (MutationIndex *)malloc(mutation_capacity_ * sizeof(MutationIndex));
+			
+			memcpy(mutations_, mutations_buffer_, mutation_count_ * sizeof(MutationIndex));
+		}
+		else
+		{
+			do
+			{
+				if (mutation_capacity_ < 32)
+					mutation_capacity_ <<= 1;		// double the number of pointers we can hold
+				else
+					mutation_capacity_ += 16;
+			}
+			while (mut_to_set_count + mut_to_add_count > mutation_capacity_);
+			
+			mutations_ = (MutationIndex *)realloc(mutations_, mutation_capacity_ * sizeof(MutationIndex));
+		}
+	}
+	
+	// then interleave mutations together, effectively setting p_mutations_to_set and then adding in p_mutations_to_add
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	const MutationIndex *mutation_iter		= p_mutations_to_add.begin_pointer_const();
+	const MutationIndex *mutation_iter_max	= p_mutations_to_add.end_pointer_const();
+	MutationIndex mutation_iter_mutation_index = *mutation_iter;
+	slim_position_t mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
+	
+	const MutationIndex *parent_iter		= p_mutations_to_set.begin_pointer_const();
+	const MutationIndex *parent_iter_max	= p_mutations_to_set.end_pointer_const();
+	MutationIndex parent_iter_mutation_index = *parent_iter;
+	slim_position_t parent_iter_pos = (mut_block_ptr + parent_iter_mutation_index)->position_;
+	
+	// this loop runs while we are still interleaving mutations from both sources
+	do
+	{
+		if (parent_iter_pos <= mutation_iter_pos)
+		{
+			// we have a parent mutation that comes first, so copy it
+			emplace_back(*parent_iter);
+			
+			parent_iter++;
+			if (parent_iter == parent_iter_max)
+				break;
+			
+			parent_iter_mutation_index = *parent_iter;
+			parent_iter_pos = (mut_block_ptr + parent_iter_mutation_index)->position_;
+		}
+		else
+		{
+			// we have a new mutation to add, which we know is not already present; check the stacking policy
+			if (enforce_stack_policy_for_addition(mutation_iter_pos, (mut_block_ptr + mutation_iter_mutation_index)->mutation_type_ptr_))
+				emplace_back(mutation_iter_mutation_index);
+			
+			mutation_iter++;
+			if (mutation_iter == mutation_iter_max)
+				break;
+			
+			mutation_iter_mutation_index = *mutation_iter;
+			mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
+		}
+	}
+	while (true);
+	
+	// one source is exhausted, but there are still mutations left in the other source
+	while (parent_iter != parent_iter_max)
+	{
+		emplace_back(*parent_iter);
+		parent_iter++;
+	}
+	
+	while (mutation_iter != mutation_iter_max)
+	{
+		mutation_iter_mutation_index = *mutation_iter;
+		mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
 		
+		if (enforce_stack_policy_for_addition(mutation_iter_pos, (mut_block_ptr + mutation_iter_mutation_index)->mutation_type_ptr_))
+			emplace_back(mutation_iter_mutation_index);
 		
-		
-		
-		
-		
-		
-		
-		
-		
-		
+		mutation_iter++;
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

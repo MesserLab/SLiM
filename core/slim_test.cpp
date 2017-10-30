@@ -1484,7 +1484,7 @@ void _RunGenomeTests(void)
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; gen.addMutations(p1.genomes[1].mutations[0]); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; mut = p1.genomes[1].mutations[0]; gen.addMutations(rep(mut, 10)); if (sum(gen.mutations == mut) == 1) stop(); }", __LINE__);
 	
-	// Test Genome + (object<Mutation>)addNewDrawnMutation(io<MutationType>$ mutationType, integer$ position, [Ni$ originGeneration], [io<Subpopulation>$ originSubpop])
+	// Test Genome + (object<Mutation>)addNewDrawnMutation(io<MutationType> mutationType, integer position, [Ni originGeneration], [Nio<Subpopulation> originSubpop])
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(m1, 5000, 10, p1); p1.genomes.addMutations(mut); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(m1, 5000, 10, 1); p1.genomes.addMutations(mut); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(m1, 5000, 10); p1.genomes.addMutations(mut); stop(); }", __LINE__);
@@ -1495,6 +1495,11 @@ void _RunGenomeTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(1, 5000); p1.genomes.addMutations(mut); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(1, 5000, NULL, 1); p1.genomes.addMutations(mut); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(1, 5000, NULL); p1.genomes.addMutations(mut); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(1, 5000, NULL, NULL); p1.genomes.addMutations(mut); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(m1, 5000:5003, 10, p1); p1.genomes.addMutations(mut); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(m1, 5000:5003, 10:13, 1); p1.genomes.addMutations(mut); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(m1, 5000:5003, 10, 0:3); p1.genomes.addMutations(mut); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(m1, 5000:5003); p1.genomes.addMutations(mut); stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(7, 5000, NULL, 1); stop(); }", 1, 278, "not defined", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(1, 5000, 0, 1); stop(); }", 1, 278, "out of range", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(1, -1, NULL, 1); stop(); }", 1, 278, "out of range", __LINE__);
@@ -1502,7 +1507,7 @@ void _RunGenomeTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(1, 5000, NULL, 237); stop(); }", __LINE__);											// bad subpop, but this is legal to allow "tagging" of mutations
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(1, 5000, NULL, -1); stop(); }", 1, 278, "out of range", __LINE__);					// however, such tags must be within range
 	
-	// Test Genome + (object<Mutation>)addNewMutation(io<MutationType>$ mutationType, numeric$ selectionCoeff, integer$ position, [Ni$ originGeneration], [io<Subpopulation>$ originSubpop])
+	// Test Genome + (object<Mutation>)addNewMutation(io<MutationType> mutationType, numeric selectionCoeff, integer position, [Ni originGeneration], [Nio<Subpopulation> originSubpop])
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(m1, 0.1, 5000, 10, p1); p1.genomes.addMutations(mut); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(m1, 0.1, 5000, 10, 1); p1.genomes.addMutations(mut); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(m1, 0.1, 5000, 10); p1.genomes.addMutations(mut); stop(); }", __LINE__);
@@ -1513,6 +1518,13 @@ void _RunGenomeTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, 0.1, 5000); p1.genomes.addMutations(mut); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, 0.1, 5000, NULL, 1); p1.genomes.addMutations(mut); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, 0.1, 5000, NULL); p1.genomes.addMutations(mut); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, 0.1, 5000, NULL, NULL); p1.genomes.addMutations(mut); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(m1, 0.1, 5000:5003, 10, p1); p1.genomes.addMutations(mut); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(m1, 0.1, 5000:5003, 10:13, 1); p1.genomes.addMutations(mut); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(m1, 0.1, 5000:5003, 10, 0:3); p1.genomes.addMutations(mut); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(m1, 0.1, 5000:5003); p1.genomes.addMutations(mut); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(m1, (0:3)/10, 5000:5003); p1.genomes.addMutations(mut); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(m1, (0:3)/10, 5000:5003, 10, 0:3); p1.genomes.addMutations(mut); stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(7, 0.1, 5000, NULL, 1); p1.genomes.addMutations(mut); stop(); }", 1, 278, "not defined", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, 0.1, 5000, 0, 1); p1.genomes.addMutations(mut); stop(); }", 1, 278, "out of range", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, 0.1, -1, NULL, 1); p1.genomes.addMutations(mut); stop(); }", 1, 278, "out of range", __LINE__);
@@ -1520,7 +1532,7 @@ void _RunGenomeTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, 0.1, 5000, NULL, 237); p1.genomes.addMutations(mut); stop(); }", __LINE__);							// bad subpop, but this is legal to allow "tagging" of mutations
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(1, 0.1, 5000, NULL, -1); p1.genomes.addMutations(mut); stop(); }", 1, 278, "out of range", __LINE__);	// however, such tags must be within range
 	
-	// Test Genome + (object<Mutation>)addNewDrawnMutation(io<MutationType>$ mutationType, integer$ position, [Ni$ originGeneration], [io<Subpopulation>$ originSubpop]) with new class method non-multiplex behavior
+	// Test Genome + (object<Mutation>)addNewDrawnMutation(io<MutationType> mutationType, integer position, [Ni originGeneration], [io<Subpopulation> originSubpop]) with new class method non-multiplex behavior
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.genomes.addNewDrawnMutation(m1, 5000, 10, p1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.genomes.addNewDrawnMutation(m1, 5000, 10, 1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.genomes.addNewDrawnMutation(m1, 5000, 10); stop(); }", __LINE__);
@@ -1531,6 +1543,11 @@ void _RunGenomeTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.genomes.addNewDrawnMutation(1, 5000); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.genomes.addNewDrawnMutation(1, 5000, NULL, 1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.genomes.addNewDrawnMutation(1, 5000, NULL); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.genomes.addNewDrawnMutation(1, 5000, NULL, NULL); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.genomes.addNewDrawnMutation(m1, 5000:5003, 10, p1); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.genomes.addNewDrawnMutation(m1, 5000:5003, 10:13, 1); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.genomes.addNewDrawnMutation(m1, 5000:5003, 10, 0:3); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.genomes.addNewDrawnMutation(m1, 5000:5003); stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.genomes.addNewDrawnMutation(7, 5000, NULL, 1); stop(); }", 1, 258, "not defined", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.genomes.addNewDrawnMutation(1, 5000, 0, 1); stop(); }", 1, 258, "out of range", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.genomes.addNewDrawnMutation(1, -1, NULL, 1); stop(); }", 1, 258, "out of range", __LINE__);
@@ -1538,7 +1555,7 @@ void _RunGenomeTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.genomes.addNewDrawnMutation(1, 5000, NULL, 237); stop(); }", __LINE__);											// bad subpop, but this is legal to allow "tagging" of mutations
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.genomes.addNewDrawnMutation(1, 5000, NULL, -1); stop(); }", 1, 258, "out of range", __LINE__);					// however, such tags must be within range
 	
-	// Test Genome + (object<Mutation>)addNewMutation(io<MutationType>$ mutationType, numeric$ selectionCoeff, integer$ position, [Ni$ originGeneration], [io<Subpopulation>$ originSubpop]) with new class method non-multiplex behavior
+	// Test Genome + (object<Mutation>)addNewMutation(io<MutationType> mutationType, numeric selectionCoeff, integer position, [Ni originGeneration], [io<Subpopulation> originSubpop]) with new class method non-multiplex behavior
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.genomes.addNewMutation(m1, 0.1, 5000, 10, p1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.genomes.addNewMutation(m1, 0.1, 5000, 10, 1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.genomes.addNewMutation(m1, 0.1, 5000, 10); stop(); }", __LINE__);
@@ -1549,6 +1566,13 @@ void _RunGenomeTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.genomes.addNewMutation(1, 0.1, 5000); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.genomes.addNewMutation(1, 0.1, 5000, NULL, 1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.genomes.addNewMutation(1, 0.1, 5000, NULL); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.genomes.addNewMutation(1, 0.1, 5000, NULL, NULL); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.genomes.addNewMutation(m1, 0.1, 5000:5003, 10, p1); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.genomes.addNewMutation(m1, 0.1, 5000:5003, 10:13, 1); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.genomes.addNewMutation(m1, 0.1, 5000:5003, 10, 0:3); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.genomes.addNewMutation(m1, 0.1, 5000:5003); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.genomes.addNewMutation(m1, (0:3)/10, 5000:5003); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.genomes.addNewMutation(m1, (0:3)/10, 5000:5003, 10, 0:3); stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.genomes.addNewMutation(7, 0.1, 5000, NULL, 1); stop(); }", 1, 258, "not defined", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.genomes.addNewMutation(1, 0.1, 5000, 0, 1); stop(); }", 1, 258, "out of range", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.genomes.addNewMutation(1, 0.1, -1, NULL, 1); stop(); }", 1, 258, "out of range", __LINE__);
