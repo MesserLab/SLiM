@@ -1308,12 +1308,12 @@
 \f1\fs18 0.0
 \f0\fs20  values.  This can be useful for pre-allocating a vector which you then fill with values by subscripting.
 \f2 \
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (integer)integer(integer$
 \f2 \'a0
-\f1 length)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\f1 length, [integer$\'a0fill1\'a0=\'a00], [integer$\'a0fill2\'a0=\'a01], [Ni\'a0fill2Indices\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a 
 \b new 
@@ -1323,7 +1323,36 @@
 \f1\fs18 length
 \f0\fs20 , filled with 
 \f1\fs18 0
-\f0\fs20  values.  This can be useful for pre-allocating a vector which you then fill with values by subscripting.
+\f0\fs20  values by default.  This can be useful for pre-allocating a vector which you then fill with values by subscripting.\
+If a value is supplied for 
+\f1\fs18 fill1
+\f0\fs20 , the new vector will be filled with that value instead of the default of 
+\f1\fs18 0
+\f2\fs20 .
+\f0   Additionally, if a non-
+\f1\fs18 NULL
+\f0\fs20  vector is supplied for 
+\f1\fs18 fill2Indices
+\f0\fs20 , the indices specified by 
+\f1\fs18 fill2Indices
+\f0\fs20  will be filled with the value provided by 
+\f1\fs18 fill2
+\f2\fs20 .
+\f0   For example, given the default values of 
+\f1\fs18 0
+\f0\fs20  and 
+\f1\fs18 1
+\f0\fs20  for 
+\f1\fs18 fill1
+\f0\fs20  and 
+\f1\fs18 fill2
+\f0\fs20 , the returned vector will contain 
+\f1\fs18 1
+\f0\fs20  at all positions specified by 
+\f1\fs18 fill2Indices
+\f0\fs20 , and will contain 
+\f1\fs18 0
+\f0\fs20  at all other positions.
 \f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 

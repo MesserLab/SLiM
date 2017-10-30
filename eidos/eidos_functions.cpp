@@ -173,7 +173,7 @@ vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 		
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("c",				Eidos_ExecuteFunction_c,				kEidosValueMaskAny))->AddEllipsis());
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_float,	Eidos_ExecuteFunction_float,			kEidosValueMaskFloat))->AddInt_S("length"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_integer,	Eidos_ExecuteFunction_integer,		kEidosValueMaskInt))->AddInt_S("length"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_integer,	Eidos_ExecuteFunction_integer,		kEidosValueMaskInt))->AddInt_S("length")->AddInt_OS("fill1", gStaticEidosValue_Integer0)->AddInt_OS("fill2", gStaticEidosValue_Integer1)->AddInt_ON("fill2Indices", gStaticEidosValueNULL));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_logical,	Eidos_ExecuteFunction_logical,		kEidosValueMaskLogical))->AddInt_S("length"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_object,	Eidos_ExecuteFunction_object,		kEidosValueMaskObject, gEidos_UndefinedClassObject)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rep",				Eidos_ExecuteFunction_rep,			kEidosValueMaskAny))->AddAny("x")->AddInt_S("count"));
@@ -4675,13 +4675,17 @@ EidosValue_SP Eidos_ExecuteFunction_float(const EidosValue_SP *const p_arguments
 	return result_SP;
 }
 
-//	(integer)integer(integer$ length)
+//	(integer)integer(integer$ length, [integer$ fill1 = 0], [integer$ fill2 = 1], [Ni fill2Indices = NULL])
 EidosValue_SP Eidos_ExecuteFunction_integer(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *arg1_value = p_arguments[1].get();
+	EidosValue *arg2_value = p_arguments[2].get();
+	EidosValue *arg3_value = p_arguments[3].get();
 	int64_t element_count = arg0_value->IntAtIndex(0, nullptr);
+	int64_t fill1 = arg1_value->IntAtIndex(0, nullptr);
 	
 	if (element_count < 0)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integer): function integer() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << eidos_terminate(nullptr);
@@ -4690,7 +4694,22 @@ EidosValue_SP Eidos_ExecuteFunction_integer(const EidosValue_SP *const p_argumen
 	result_SP = EidosValue_SP(int_result);
 	
 	for (int64_t value_index = element_count; value_index > 0; --value_index)
-		int_result->PushInt(0);
+		int_result->PushInt(fill1);
+	
+	if (arg3_value->Type() == EidosValueType::kValueInt)
+	{
+		int64_t fill2 = arg2_value->IntAtIndex(0, nullptr);
+		const std::vector<int64_t> &positions_vec = *arg3_value->IntVector();
+		std::vector<int64_t> &result_vec = *int_result->IntVector_Mutable();
+		
+		for (int64_t position : positions_vec)
+		{
+			if ((position < 0) || (position >= element_count))
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integer): function integer() requires positions in fill2Indices to be between 0 and length - 1 (" << position << " supplied)." << eidos_terminate(nullptr);
+			
+			result_vec[position] = fill2;
+		}
+	}
 	
 	return result_SP;
 }

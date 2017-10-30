@@ -10,6 +10,7 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 development head:
 	make addNewMutation() and addNewDrawnMutation() vectorized, for much higher performance when adding many mutations in bulk; note policy change that requested mutations are returned whether added or not
 	add positionsOfMutationsOfType() method to Genome for speed of models that need that
+	extend the integer() function to be able to construct vectors of 0 and 1 at specified positions (sort of the opposite of which())
 
 
 2.5 (build 1204; Eidos version 1.5):
