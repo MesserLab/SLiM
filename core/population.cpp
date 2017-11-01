@@ -3692,15 +3692,15 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 	}
 	
 	// Second, figure out whether the last tally was of the same thing, such that we can skip the work
-	if (!p_force_recache && (cached_genome_count_ != 0))
+	if (!p_force_recache && (cached_tally_genome_count_ != 0))
 	{
 		if ((p_subpops_to_tally == nullptr) && (last_tallied_subpops_.size() == 0))
 		{
-			return cached_genome_count_;
+			return cached_tally_genome_count_;
 		}
 		else if (p_subpops_to_tally && last_tallied_subpops_.size() && (last_tallied_subpops_ == *p_subpops_to_tally))
 		{
-			return cached_genome_count_;
+			return cached_tally_genome_count_;
 		}
 	}
 	
@@ -3748,7 +3748,7 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 		
 		// set up the cache info
 		last_tallied_subpops_ = *p_subpops_to_tally;
-		cached_genome_count_ = total_genome_count;
+		cached_tally_genome_count_ = total_genome_count;
 		
 		return total_genome_count;
 	}
@@ -3764,12 +3764,19 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 			can_tally_runs = false;
 		
 #ifdef SLIMGUI
-		// To tally using MutationRun, we should either not be in SLiMgui, or all subpops should be selected,
-		// so that SLiMgui's selected-subpop totals can be calculated trivially.
-		if (can_tally_runs)
-			for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
-				if (!subpop_pair.second->gui_selected_)
-					can_tally_runs = false;
+		// If we're in SLiMgui, we need to figure out how we're going to handle its refcounts, which are
+		// separate from slim's since the user can select just a subset of subpopulations.
+		bool slimgui_subpop_subset_selected = false;
+		
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
+			if (!subpop_pair.second->gui_selected_)
+				slimgui_subpop_subset_selected = true;
+		
+		// If a subset of subpops is selected, we can't tally using MutationRun, because the MutationRun
+		// refcounts are across all subpopulations.  (We could tally just for slim, but we would be left with
+		// no way to get the sub-tallies for SLiMgui, so there's no point in doing that.)
+		if (slimgui_subpop_subset_selected)
+			can_tally_runs = false;
 #endif
 		
 		// To tally using MutationRun, the refcounts of all active MutationRun objects should add up to the same
@@ -3818,7 +3825,7 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 			
 			// set up the cache info
 			last_tallied_subpops_.clear();
-			cached_genome_count_ = total_genome_count;
+			cached_tally_genome_count_ = total_genome_count;
 			
 			// set up the global genome counts
 			total_genome_count_ = total_genome_count;
@@ -3858,23 +3865,32 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 #endif
 			
 			// first zero out the refcounts in all registered Mutation objects
-			slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
 #ifdef SLIMGUI
-			const MutationIndex *registry_iter = mutation_registry_.begin_pointer_const();
-			const MutationIndex *registry_iter_end = mutation_registry_.end_pointer_const();
-			
-			while (registry_iter != registry_iter_end)
+			// So, we have two different cases in SLiMgui that are both handled by the slow case here.  One is that all subpops are
+			// selected in SLiMgui; in this case we can just copy the refcounts over after they have been tallied, so we don't
+			// need to zero out the gui tallies here, or tally them separately below.  The other is that only some subpops are
+			// selected in SLiMgui; in that case, we have to go the super-slow route and increment the gui tallies one by one,
+			// so we have to zero them out here.
+			if (slimgui_subpop_subset_selected)
 			{
-				MutationIndex mutation_index = *registry_iter;
-				Mutation *mutation = mut_block_ptr + mutation_index;
+				const MutationIndex *registry_iter = mutation_registry_.begin_pointer_const();
+				const MutationIndex *registry_iter_end = mutation_registry_.end_pointer_const();
 				
-				mutation->gui_reference_count_ = 0;
-				registry_iter++;
+				while (registry_iter != registry_iter_end)
+				{
+					MutationIndex mutation_index = *registry_iter;
+					Mutation *mutation = mut_block_ptr + mutation_index;
+					
+					mutation->gui_reference_count_ = 0;
+					registry_iter++;
+				}
 			}
 #endif
 			SLiM_ZeroRefcountBlock(mutation_registry_);
 			
 			// then increment the refcounts through all pointers to Mutation in all genomes
+			slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
+			
 			for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
 			{
 				Subpopulation *subpop = subpop_pair.second;
@@ -3886,8 +3902,9 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 				
 #ifdef SLIMGUI
 				// When running under SLiMgui, we need to tally up mutation references within the selected subpops, too; note
-				// the else clause here drops outside of the #ifdef to the standard tally code.
-				if (subpop->gui_selected_)
+				// the else clause here drops outside of the #ifdef to the standard tally code.  Note that this clause is used
+				// only when a subset of subpops in selected in SLiMgui; if all are selected, we can be smarter (below).
+				if (slimgui_subpop_subset_selected && subpop->gui_selected_)
 				{
 					for (slim_popsize_t i = 0; i < subpop_genome_count; i++)							// child genomes
 					{
@@ -3971,11 +3988,31 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 			
 			// set up the cache info
 			last_tallied_subpops_.clear();
-			cached_genome_count_ = total_genome_count;
+			cached_tally_genome_count_ = total_genome_count;
 			
 			// set up the global genome counts
 			total_genome_count_ = total_genome_count;
+			
 #ifdef SLIMGUI
+			// If all subpops are selected in SLiMgui, we now copy the refcounts over, as in the fast case
+			if (!slimgui_subpop_subset_selected)
+			{
+				const MutationIndex *registry_iter = mutation_registry_.begin_pointer_const();
+				const MutationIndex *registry_iter_end = mutation_registry_.end_pointer_const();
+				
+				while (registry_iter != registry_iter_end)
+				{
+					MutationIndex mut_index = *registry_iter;
+					slim_refcount_t *refcount_ptr = refcount_block_ptr + mut_index;
+					const Mutation *mutation = mut_block_ptr + mut_index;
+					
+					mutation->gui_reference_count_ = *refcount_ptr;
+					registry_iter++;
+				}
+				
+				gui_total_genome_count = total_genome_count;
+			}
+			
 			gui_total_genome_count_ = gui_total_genome_count;
 #endif
 			
@@ -4008,7 +4045,7 @@ slim_refcount_t Population::TallyMutationReferences_FAST(void)
 			
 			if (!genome.IsNull())
 			{
-				genome.TallyMutationReferences(operation_id);
+				genome.TallyGenomeMutationReferences(operation_id);
 				total_genome_count++;	// count only non-null genomes to determine fixation
 			}
 		}

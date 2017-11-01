@@ -176,7 +176,7 @@ public:
 	void TallyGenomeReferences(slim_refcount_t *p_mutrun_ref_tally, slim_refcount_t *p_mutrun_tally, int64_t p_operation_id);
 	
 	// This tallies up individual Mutation references, using MutationRun usage counts for speed
-	void TallyMutationReferences(int64_t p_operation_id);
+	void TallyGenomeMutationReferences(int64_t p_operation_id);
 	
 	inline int mutation_count(void) const	// used to be called size(); renamed to avoid confusion with MutationRun::size() and break code using the wrong method
 	{

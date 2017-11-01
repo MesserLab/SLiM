@@ -438,7 +438,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		}
 	}
 	
-	population_.cached_genome_count_ = 0;
+	population_.cached_tally_genome_count_ = 0;
 	
 	// If there is an Individuals section (added in SLiM 2.0), we now need to parse it since it might contain spatial positions
 	if (line.find("Individuals") != string::npos)
@@ -971,7 +971,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		}
 	}
 	
-	population_.cached_genome_count_ = 0;
+	population_.cached_tally_genome_count_ = 0;
 	
 	if (p + sizeof(section_end_tag) > buf_end)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unexpected EOF after mutations." << eidos_terminate();
@@ -2683,6 +2683,15 @@ bool SLiMSim::_RunOneGeneration(void)
 		//
 		{
 			generation_stage_ = SLiMGenerationStage::kStage7AdvanceGenerationCounter;
+			
+#ifdef SLIMGUI
+			// re-tally for SLiMgui; this should avoid doing any new work if no mutations have been added or removed since the last tally
+			// it is needed, though, so that if the user added/removed mutations in a late() event SLiMgui displays correctly
+			// NOTE that this means tallies may be different in SLiMgui than in slim!  I *think* this will never be visible to the
+			// user's model, because if they ask for mutation counts/frequences a call to TallyMutationReferences() will be made at that
+			// point anyway to synchronize; but in slim's code itself, not in Eidos, the tallies can definitely differ!  Beware!
+			population_.TallyMutationReferences(nullptr, false);
+#endif
 			
 			cached_value_generation_.reset();
 			generation_++;

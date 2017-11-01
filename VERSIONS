@@ -12,6 +12,8 @@ development head:
 	add positionsOfMutationsOfType() method to Genome for speed of models that need that
 	extend the integer() function to be able to construct vectors of 0 and 1 at specified positions (sort of the opposite of which())
 	revise recipe 13.9 to use new vectorized addNewMutation(), as well as the new positionsOfMutationsOfType() and integer()
+	fix possible incorrect frequency/count info immediately after using addMutations() or removeMutations() (but not addNewMutation()/addNewDrawnMutation()) – the changes would not be reflected in freqs/counts immediately
+	fix a display bug with added (or removed) mutations in SLiMgui
 
 
 2.5 (build 1204; Eidos version 1.5):

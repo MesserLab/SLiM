@@ -276,7 +276,7 @@ void Genome::TallyGenomeReferences(slim_refcount_t *p_mutrun_ref_tally, slim_ref
 	}
 }
 
-void Genome::TallyMutationReferences(int64_t p_operation_id)
+void Genome::TallyGenomeMutationReferences(int64_t p_operation_id)
 {
 #ifdef DEBUG
 	if (mutrun_count_ == 0)
@@ -1591,6 +1591,7 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 			Genome *genome_0 = (Genome *)p_target->ObjectElementAtIndex(0, nullptr);
 			int mutrun_length = genome_0->mutrun_length_;
 			SLiMSim &sim = genome_0->subpop_->population_.sim_;
+			Population &pop = sim.ThePopulation();
 			
 			sim.CheckMutationStackPolicy();
 			
@@ -1663,6 +1664,9 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 				
 				// now we have handled all mutations at this index (and all previous indices)
 				last_handled_mutrun_index = mutrun_index;
+				
+				// invalidate cached mutation refcounts; refcounts have changed
+				pop.cached_tally_genome_count_ = 0;
 			}
 			
 			return gStaticEidosValueNULLInvisible;
@@ -1889,8 +1893,6 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 					}
 				}
 				
-				pop.cached_genome_count_ = 0;
-				
 				// Now start the bulk operation and add mutations_to_add to every target genome
 				Genome::BulkOperationStart(operation_id, mutrun_index);
 				
@@ -1918,6 +1920,9 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 				Genome::BulkOperationEnd(operation_id, mutrun_index);
 				
 				MutationRun::FreeMutationRun(&mutations_to_add);
+				
+				// invalidate cached mutation refcounts; refcounts have changed
+				pop.cached_tally_genome_count_ = 0;
 			}
 			
 			return retval;
@@ -2152,6 +2157,9 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 				
 				// now we have handled all mutations at this index (and all previous indices)
 				last_handled_mutrun_index = mutrun_index;
+				
+				// invalidate cached mutation refcounts; refcounts have changed
+				pop.cached_tally_genome_count_ = 0;
 			}
 			
 			return gStaticEidosValueNULLInvisible;
