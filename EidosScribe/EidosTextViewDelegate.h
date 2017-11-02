@@ -41,6 +41,14 @@
 
  */
 
+enum class EidosSyntaxHighlightType
+{
+	kNoSyntaxHighlight,
+	kHighlightAsIdentifier,
+	kHighlightAsKeyword,
+	kHighlightAsContextKeyword
+};
+
 @interface EidosTextView(ObjCppExtensions)
 
 // Getting a "definitive" function map using type-interpreting to add to the delegate's function map
@@ -80,7 +88,7 @@
 // This allows the Context to define some special identifier tokens that should
 // receive different syntax coloring from standard identifiers because they are
 // in some way built in or provided by the Context automatically
-- (BOOL)eidosTextView:(EidosTextView *)eidosTextView tokenStringIsSpecialIdentifier:(const std::string &)token_string;
+- (EidosSyntaxHighlightType)eidosTextView:(EidosTextView *)eidosTextView tokenStringIsSpecialIdentifier:(const std::string &)token_string;
 
 // This allows the Context to define substitutions for help searches when the user
 // option-clicks a token, to provide more targeted help results.  If no substitution

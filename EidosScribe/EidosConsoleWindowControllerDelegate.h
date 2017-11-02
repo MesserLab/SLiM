@@ -24,6 +24,7 @@
 #include <string>
 
 #include "eidos_interpreter.h"
+#include "EidosTextViewDelegate.h"
 
 @class EidosConsoleWindowController;
 
@@ -82,7 +83,7 @@
 - (void)eidosConsoleWindowControllerConsoleWindowWillClose:(EidosConsoleWindowController *)eidosConsoleController;
 
 // messages from EidosTextViewDelegate that we essentially forward on to our delegate; see EidosTextView.h
-- (BOOL)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController tokenStringIsSpecialIdentifier:(const std::string &)token_string;
+- (EidosSyntaxHighlightType)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController tokenStringIsSpecialIdentifier:(const std::string &)token_string;
 - (NSString *)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController helpTextForClickedText:(NSString *)clickedText;
 
 @end

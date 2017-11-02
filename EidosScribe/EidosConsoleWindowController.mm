@@ -944,12 +944,12 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		return nullptr;
 }
 
-- (BOOL)eidosTextView:(EidosTextView *)eidosTextView tokenStringIsSpecialIdentifier:(const std::string &)token_string
+- (EidosSyntaxHighlightType)eidosTextView:(EidosTextView *)eidosTextView tokenStringIsSpecialIdentifier:(const std::string &)token_string
 {
 	if ([delegate respondsToSelector:@selector(eidosConsoleWindowController:tokenStringIsSpecialIdentifier:)])
 		return [delegate eidosConsoleWindowController:self tokenStringIsSpecialIdentifier:token_string];
 	else
-		return NO;
+		return EidosSyntaxHighlightType::kNoSyntaxHighlight;
 }
 
 - (NSString *)eidosTextView:(EidosTextView *)eidosTextView helpTextForClickedText:(NSString *)clickedText

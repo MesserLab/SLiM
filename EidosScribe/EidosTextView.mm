@@ -1052,6 +1052,7 @@ using std::string;
 	static NSColor *commentColor = nil;
 	static NSColor *identifierColor = nil;
 	static NSColor *keywordColor = nil;
+	static NSColor *contextKeywordColor = nil;
 	
 	if (!numberLiteralColor)
 	{
@@ -1060,6 +1061,7 @@ using std::string;
 		commentColor = [[NSColor colorWithCalibratedRed:0/255.0 green:116/255.0 blue:0/255.0 alpha:1.0] retain];
 		identifierColor = [[NSColor colorWithCalibratedRed:63/255.0 green:110/255.0 blue:116/255.0 alpha:1.0] retain];
 		keywordColor = [[NSColor colorWithCalibratedRed:170/255.0 green:13/255.0 blue:145/255.0 alpha:1.0] retain];
+		contextKeywordColor = [[NSColor colorWithCalibratedRed:80/255.0 green:13/255.0 blue:145/255.0 alpha:1.0] retain];
 	}
 	
 	// Syntax color!
@@ -1098,8 +1100,16 @@ using std::string;
 			{
 				// we also let the Context specify special identifiers that we will syntax color
 				if ([delegate respondsToSelector:@selector(eidosTextView:tokenStringIsSpecialIdentifier:)])
-					if ([delegate eidosTextView:self tokenStringIsSpecialIdentifier:token_string])
+				{
+					EidosSyntaxHighlightType highlightType = [delegate eidosTextView:self tokenStringIsSpecialIdentifier:token_string];
+					
+					if (highlightType == EidosSyntaxHighlightType::kHighlightAsIdentifier)
 						[lm addTemporaryAttribute:NSForegroundColorAttributeName value:identifierColor forCharacterRange:tokenRange];
+					else if (highlightType == EidosSyntaxHighlightType::kHighlightAsKeyword)
+						[lm addTemporaryAttribute:NSForegroundColorAttributeName value:keywordColor forCharacterRange:tokenRange];
+					else if (highlightType == EidosSyntaxHighlightType::kHighlightAsContextKeyword)
+						[lm addTemporaryAttribute:NSForegroundColorAttributeName value:contextKeywordColor forCharacterRange:tokenRange];
+				}
 			}
 		}
 	}

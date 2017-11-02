@@ -2907,10 +2907,32 @@
 	return SLiMSim::AllMethodSignatures();
 }
 
-- (BOOL)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController tokenStringIsSpecialIdentifier:(const std::string &)token_string
+- (EidosSyntaxHighlightType)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController tokenStringIsSpecialIdentifier:(const std::string &)token_string
 {
 	if (token_string.compare("sim") == 0)
-		return YES;
+		return EidosSyntaxHighlightType::kHighlightAsIdentifier;
+	
+	// Request that SLiM's callback keywords be highlighted as "context keywords", which gives them a special color
+	// I'm not sure that I'm crazy about this; feels like it makes the color scheme too jumbled.
+	// Leaving it out for now.  BCH 2 Nov. 2017
+	/*
+	if (token_string.compare("initialize") == 0)
+		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
+	if (token_string.compare("early") == 0)
+		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
+	if (token_string.compare("late") == 0)
+		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
+	if (token_string.compare("fitness") == 0)
+		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
+	if (token_string.compare("mateChoice") == 0)
+		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
+	if (token_string.compare("modifyChild") == 0)
+		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
+	if (token_string.compare("interaction") == 0)
+		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
+	if (token_string.compare("recombination") == 0)
+		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
+	*/
 	
 	int len = (int)token_string.length();
 	
@@ -2925,14 +2947,14 @@
 				unichar idx_ch = token_string[ch_index];
 				
 				if ((idx_ch < '0') || (idx_ch > '9'))
-					return NO;
+					return EidosSyntaxHighlightType::kNoSyntaxHighlight;
 			}
 			
-			return YES;
+			return EidosSyntaxHighlightType::kHighlightAsIdentifier;
 		}
 	}
 	
-	return NO;
+	return EidosSyntaxHighlightType::kNoSyntaxHighlight;
 }
 
 - (NSString *)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController helpTextForClickedText:(NSString *)clickedText
@@ -3028,7 +3050,7 @@
 	return [self eidosConsoleWindowControllerAllMethodSignatures:nullptr];
 }
 
-- (BOOL)eidosTextView:(EidosTextView *)eidosTextView tokenStringIsSpecialIdentifier:(const std::string &)token_string;
+- (EidosSyntaxHighlightType)eidosTextView:(EidosTextView *)eidosTextView tokenStringIsSpecialIdentifier:(const std::string &)token_string;
 {
 	return [self eidosConsoleWindowController:nullptr tokenStringIsSpecialIdentifier:token_string];
 }
