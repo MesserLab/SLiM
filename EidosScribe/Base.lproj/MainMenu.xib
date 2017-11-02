@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="12118" systemVersion="16F73" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="12118" systemVersion="16G29" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
         <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="12118"/>
@@ -147,6 +147,12 @@
                             <menuItem title="Copy" keyEquivalent="c" id="x3v-GG-iWU">
                                 <connections>
                                     <action selector="copy:" target="-1" id="G1f-GL-Joy"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Copy As Paragraph" alternate="YES" keyEquivalent="c" id="uOX-3J-tcu">
+                                <modifierMask key="keyEquivalentModifierMask" option="YES" command="YES"/>
+                                <connections>
+                                    <action selector="copyAsParagraph:" target="-1" id="1rs-pZ-xWU"/>
                                 </connections>
                             </menuItem>
                             <menuItem title="Paste" keyEquivalent="v" id="gVA-U4-sdL">

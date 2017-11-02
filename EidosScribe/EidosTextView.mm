@@ -295,9 +295,8 @@ using std::string;
 // user can't change the font, size, etc.  But we still can, and do, programatically do our syntax formatting.  We want that style information to get
 // copied to the pasteboard.  This has gotten even trickier now that our syntax coloring is done with temporary attributes; we need to translate those
 // into real attributes here.
-- (IBAction)copy:(id)sender
+- (NSMutableAttributedString *)eidosAttrStringForSelectedRange
 {
-	NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
 	NSAttributedString *attrString = [self textStorage];
 	NSRange selectedRange = [self selectedRange];
 	NSMutableAttributedString *attrStringInRange = [[[attrString attributedSubstringFromRange:selectedRange] mutableCopy] autorelease];
@@ -315,6 +314,37 @@ using std::string;
 			[attrStringInRange addAttribute:NSForegroundColorAttributeName value:color range:NSMakeRange(effectiveRange.location - selectedRange.location, effectiveRange.length)];
 		
 		charIndex = effectiveRange.location + effectiveRange.length;
+	}
+	
+	return attrStringInRange;
+}
+
+- (IBAction)copy:(id)sender
+{
+	NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
+	NSAttributedString *attrStringInRange = [self eidosAttrStringForSelectedRange];
+	
+	// The documentation sucks, but as far as I can tell, this puts both a plain-text and a rich-text representation on the pasteboard
+	[pasteboard clearContents];
+	[pasteboard writeObjects:@[attrStringInRange]];
+}
+
+- (IBAction)copyAsParagraph:(id)sender
+{
+	NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
+	NSMutableAttributedString *attrStringInRange = [self eidosAttrStringForSelectedRange];
+	NSString *originalString = [attrStringInRange string];
+	unichar lineBreakChar = NSLineSeparatorCharacter;
+	NSString *lineSeparator = [NSString stringWithCharacters:&lineBreakChar length:1];
+	
+	// Replace new paragraphs (\n) with linebreaks (NSLineSeparatorCharacter) except at the very end (thus -2)
+	// We do this by very dumb brute force, for now; doesn't matter
+	for (int i = (int)[attrStringInRange length] - 2; i >= 0; --i)
+	{
+		unichar ch = [originalString characterAtIndex:i];
+		
+		if (ch == '\n')
+			[attrStringInRange replaceCharactersInRange:NSMakeRange(i, 1) withString:lineSeparator];
 	}
 	
 	// The documentation sucks, but as far as I can tell, this puts both a plain-text and a rich-text representation on the pasteboard
@@ -679,6 +709,17 @@ using std::string;
 	{
 		NSBeep();
 	}
+}
+
+- (BOOL)validateMenuItem:(NSMenuItem *)menuItem
+{
+	SEL sel = [menuItem action];
+	
+	// Mimic the way copy: enables, for consistency; enabled only when the selection is not zero-length
+	if (sel == @selector(copyAsParagraph:))
+		return ([self selectedRange].length > 0);
+	
+	return [super validateMenuItem:menuItem];
 }
 
 - (void)selectErrorRange
