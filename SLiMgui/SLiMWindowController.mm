@@ -2165,6 +2165,7 @@
 
 - (void)_generationPlay:(id)sender
 {
+	// FIXME would be nice to have a way to stop this prematurely, if an inccorect generation is entered or whatever... BCH 2 Nov. 2017
 	if (!invalidSimulation)
 	{
 		NSDate *startDate = [NSDate date];
