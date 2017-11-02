@@ -339,6 +339,8 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 				if ((ch == ' ') || (ch == '\t') || (ch == '\n') || (ch == '\r'))
 				{
 					// whitespace; any nonzero-length sequence of space, tab, \n, \r
+					// FIXME it would be nice for &nbsp; to be considered whitespace too, but that gets bogged down
+					// in encoding issues I guess; we are not very Unicode-friendly right now.  BCH 2 Nov. 2017
 					while (token_end + 1 < len)
 					{
 						int chn = (unsigned char)script_string_[token_end + 1];
