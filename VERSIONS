@@ -14,6 +14,7 @@ development head:
 	revise recipe 13.9 to use new vectorized addNewMutation(), as well as the new positionsOfMutationsOfType() and integer()
 	fix possible incorrect frequency/count info immediately after using addMutations() or removeMutations() (but not addNewMutation()/addNewDrawnMutation()) – the changes would not be reflected in freqs/counts immediately
 	fix a display bug with added (or removed) mutations in SLiMgui
+	add "Copy as Paragraph", remove "Paste and Match Style", in SLiMgui and EidosScribe
 
 
 2.5 (build 1204; Eidos version 1.5):
