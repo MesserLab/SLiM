@@ -333,7 +333,8 @@
 	[alert beginSheetModalForWindow:[self window] completionHandler:^(NSModalResponse returnCode) { [alert autorelease]; [terminationMessage autorelease]; }];
 	
 	// Depending on the circumstances of the error, we might be able to select a range in our input file to show what caused the error
-	[scriptTextView selectErrorRange];
+	if (![[self document] changedSinceRecycle])
+		[scriptTextView selectErrorRange];
 	
 	// Show the error in the status bar also
 	NSString *trimmedError = [terminationMessage stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];

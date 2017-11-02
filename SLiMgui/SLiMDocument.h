@@ -32,7 +32,7 @@
 	// most elegant design; probably a bunch of stuff should move from SLiMWindowController over to here.
 	NSString *documentScriptString;
 	
-	// Change count tracking relative to our last recycle
+	// Change count tracking relative to our last recycle (which is change count 0)
 	int slimChangeCount;
 	
 	// Transient document support
@@ -48,6 +48,7 @@
 
 - (SLiMWindowController *)slimWindowController;
 
+- (BOOL)changedSinceRecycle;
 - (void)resetSLiMChangeCount;
 
 // Transient documents

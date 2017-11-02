@@ -15,6 +15,7 @@ development head:
 	fix possible incorrect frequency/count info immediately after using addMutations() or removeMutations() (but not addNewMutation()/addNewDrawnMutation()) – the changes would not be reflected in freqs/counts immediately
 	fix a display bug with added (or removed) mutations in SLiMgui
 	add "Copy as Paragraph", remove "Paste and Match Style", in SLiMgui and EidosScribe
+	fix to only highlight errors in SLiMgui if the script has not changed since the last recycle (otherwise character positions are unreliable)
 
 
 2.5 (build 1204; Eidos version 1.5):

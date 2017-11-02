@@ -222,6 +222,11 @@
 	[[self slimWindowController] updateRecycleHighlightForChangeCount:slimChangeCount];
 }
 
+- (BOOL)changedSinceRecycle
+{
+	return !(slimChangeCount == 0);
+}
+
 - (void)resetSLiMChangeCount
 {
 	slimChangeCount = 0;
