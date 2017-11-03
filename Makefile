@@ -55,6 +55,11 @@ slim: FORCE
 	@echo "    BC Haller, PW Messer. (2017).  SLiM 2: Flexible, interactive forward"
 	@echo "        genetic simulations.  Molecular Biology and Evolution 34 (1), 230-240."
 	@echo
+	@echo "Subscribe to our mailing lists for announcements and discussion about SLiM:"
+	@echo
+	@echo "    slim-announce: http://bit.ly/slim-announce"
+	@echo "    slim-discuss:  http://bit.ly/slim-discuss"
+	@echo
 
 eidos: FORCE
 	mkdir -p ./bin
