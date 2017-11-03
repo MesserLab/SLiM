@@ -308,7 +308,7 @@ int EidosValue::valueTrackingCount;
 std::vector<EidosValue *> EidosValue::valueTrackingVector;
 #endif
 
-EidosValue::EidosValue(EidosValueType p_value_type, bool p_singleton) : intrusive_ref_count(0), invisible_(false), cached_type_(p_value_type), is_singleton_(p_singleton)
+EidosValue::EidosValue(EidosValueType p_value_type, bool p_singleton) : intrusive_ref_count_(0), invisible_(false), cached_type_(p_value_type), is_singleton_(p_singleton)
 {
 #ifdef EIDOS_TRACK_VALUE_ALLOCATION
 	valueTrackingCount++;

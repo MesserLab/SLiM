@@ -212,7 +212,7 @@ class EidosValue
 	//	This class has its assignment operator disabled, to prevent accidental copying.
 protected:
 	
-	mutable uint32_t intrusive_ref_count;					// used by Eidos_intrusive_ptr
+	mutable uint32_t intrusive_ref_count_;					// used by Eidos_intrusive_ptr
 	const EidosValueType cached_type_;						// allows Type() to be an inline function; cached at construction
 	uint8_t invisible_;										// as in R; if true, the value will not normally be printed to the console
 	uint8_t is_singleton_;									// allows Count() and IsSingleton() to be inline; cached at construction
@@ -273,8 +273,8 @@ public:
 	virtual std::vector<EidosObjectElement *> *ObjectElementVector_Mutable(void) { RaiseForUnimplementedVectorCall(); }
 	
 	// Eidos_intrusive_ptr support; we use Eidos_intrusive_ptr as a fast smart pointer to EidosValue.
-	inline __attribute__((always_inline)) uint32_t use_count() const { return intrusive_ref_count; }
-	inline __attribute__((always_inline)) void stack_allocated() { intrusive_ref_count++; }			// used with stack-allocated EidosValues that have to be put under Eidos_intrusive_ptr
+	inline __attribute__((always_inline)) uint32_t use_count() const { return intrusive_ref_count_; }
+	inline __attribute__((always_inline)) void stack_allocated() { intrusive_ref_count_++; }			// used with stack-allocated EidosValues that have to be put under Eidos_intrusive_ptr
 	
 	friend void Eidos_intrusive_ptr_add_ref(const EidosValue *p_value);
 	friend void Eidos_intrusive_ptr_release(const EidosValue *p_value);
@@ -295,12 +295,12 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosValue &p_value);
 // Eidos_intrusive_ptr support
 inline __attribute__((always_inline)) void Eidos_intrusive_ptr_add_ref(const EidosValue *p_value)
 {
-	++(p_value->intrusive_ref_count);
+	++(p_value->intrusive_ref_count_);
 }
 
 inline __attribute__((always_inline)) void Eidos_intrusive_ptr_release(const EidosValue *p_value)
 {
-	if ((--(p_value->intrusive_ref_count)) == 0)
+	if ((--(p_value->intrusive_ref_count_)) == 0)
 	{
 		// We no longer delete; all EidosValues under Eidos_intrusive_ptr should have been allocated out of gEidosValuePool, so it handles the free
 		//delete p_value;

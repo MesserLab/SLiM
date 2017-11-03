@@ -54,7 +54,7 @@ typedef std::pair<std::string, const EidosFunctionSignature*> EidosFunctionMapPa
 typedef std::map<std::string, const EidosFunctionSignature*> EidosFunctionMap;
 
 // utility functions
-bool TypeCheckAssignmentOfEidosValueIntoEidosValue(const EidosValue &base_value, const EidosValue &destination_value);	// codifies what promotions can occur in assignment
+bool TypeCheckAssignmentOfEidosValueIntoEidosValue(const EidosValue &p_base_value, const EidosValue &p_destination_value);	// codifies what promotions can occur in assignment
 
 
 // A class representing a script interpretation context with all associated symbol table state

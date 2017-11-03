@@ -1596,7 +1596,7 @@ void SLiMSim::AddScriptBlock(SLiMEidosBlock *p_script_block, EidosInterpreter *p
 	}
 	
 	// Notify the various interested parties that the script blocks have changed
-	last_script_block_gen_cached = false;
+	last_script_block_gen_cached_ = false;
 	script_block_types_cached_ = false;
 	scripts_changed_ = true;
 }
@@ -1620,7 +1620,7 @@ void SLiMSim::DeregisterScheduledScriptBlocks(void)
 			
 			// Then remove it from our script block list and deallocate it
 			script_blocks_.erase(script_block_position);
-			last_script_block_gen_cached = false;
+			last_script_block_gen_cached_ = false;
 			script_block_types_cached_ = false;
 			scripts_changed_ = true;
 			delete block_to_dereg;
@@ -1643,7 +1643,7 @@ void SLiMSim::DeregisterScheduledInteractionBlocks(void)
 			
 			// Then remove it from our script block list and deallocate it
 			script_blocks_.erase(script_block_position);
-			last_script_block_gen_cached = false;
+			last_script_block_gen_cached_ = false;
 			script_block_types_cached_ = false;
 			scripts_changed_ = true;
 			delete block_to_dereg;
@@ -1811,7 +1811,7 @@ void SLiMSim::InitiateMutationRunExperiments(void)
 	x_previous_runtimes_ = (double *)malloc(SLIM_MUTRUN_EXPERIMENT_LENGTH * sizeof(double));
 	x_previous_buflen_ = 0;
 	
-	x_continuing_trend = false;
+	x_continuing_trend_ = false;
 	
 	x_stasis_limit_ = 5;				// once we reach stasis, we will conduct 5 stasis experiments before exploring again
 	x_stasis_alpha_ = 0.01;				// initially, we use an alpha of 0.01 to break out of stasis due to a change in mean
@@ -1872,7 +1872,7 @@ void SLiMSim::EnterStasisForMutationRunExperiments(void)
 	}
 	
 	x_stasis_counter_ = 1;
-	x_continuing_trend = false;
+	x_continuing_trend_ = false;
 	
 	// Preserve a memory of the last two *different* mutcounts we entered stasis on.  Only forget the old value
 	// in x_prev2_stasis_mutcount_ if x_prev1_stasis_mutcount_ is about to get a new and different value.
@@ -2119,7 +2119,7 @@ void SLiMSim::MaintainMutationRunExperiments(double p_last_gen_runtime)
 #endif
 						
 						TransitionToNewExperimentAgainstCurrentExperiment(trend_next);
-						x_continuing_trend = true;
+						x_continuing_trend_ = true;
 					}
 					else
 					{
@@ -2140,7 +2140,7 @@ void SLiMSim::MaintainMutationRunExperiments(double p_last_gen_runtime)
 			{
 				// The old mean was better, and either the difference is significant or the trend is toward more mutation
 				// runs, so we want to give up on this trend and go back
-				if (x_continuing_trend)
+				if (x_continuing_trend_)
 				{
 					// We already tried a step on the opposite side of the old position, so the old position appears ideal; ****** ENTER STASIS.
 					// We throw away the current, failed experiment and keep the last experiment at the previous position as the first stasis experiment.
@@ -2181,7 +2181,7 @@ void SLiMSim::MaintainMutationRunExperiments(double p_last_gen_runtime)
 #endif
 						
 						TransitionToNewExperimentAgainstPreviousExperiment(new_mutcount);
-						x_continuing_trend = true;
+						x_continuing_trend_ = true;
 					}
 				}
 			}
@@ -2307,7 +2307,7 @@ slim_generation_t SLiMSim::FirstGeneration(void)
 slim_generation_t SLiMSim::EstimatedLastGeneration(void)
 {
 	// return our cached value if we have one
-	if (last_script_block_gen_cached)
+	if (last_script_block_gen_cached_)
 		return last_script_block_gen_;
 	
 	// otherwise, fill the cache
@@ -2322,7 +2322,7 @@ slim_generation_t SLiMSim::EstimatedLastGeneration(void)
 			last_gen = script_block->end_generation_;
 	
 	last_script_block_gen_ = last_gen;
-	last_script_block_gen_cached = true;
+	last_script_block_gen_cached_ = true;
 	
 	return last_script_block_gen_;
 }
@@ -2720,12 +2720,12 @@ bool SLiMSim::_RunOneGeneration(void)
 // This function is called by both SLiM and SLiMgui to run a generation.  In SLiM, it simply calls _RunOneGeneration(),
 // with no exception handling; in that scenario exceptions should not be thrown, since eidos_terminate() will log an
 // error and then call exit().  In SLiMgui, eidos_terminate() will raise an exception, and it will be caught right
-// here and converted to an "invalid simulation" state (simulationValid == false), which will be noticed by SLiMgui
+// here and converted to an "invalid simulation" state (simulation_valid_ == false), which will be noticed by SLiMgui
 // and will cause error reporting to occur based upon the error-tracking variables set.
 bool SLiMSim::RunOneGeneration(void)
 {
 #ifdef SLIMGUI
-	if (simulationValid)
+	if (simulation_valid_)
 	{
 		try
 		{
@@ -2735,7 +2735,7 @@ bool SLiMSim::RunOneGeneration(void)
 		}
 		catch (...)
 		{
-			simulationValid = false;
+			simulation_valid_ = false;
 			
 			// In the event of a raise, we clear gEidosCurrentScript, which is not normally part of the error-
 			// reporting state, but is used only to inform eidos_terminate() about the current script at the point
@@ -2852,7 +2852,7 @@ void SLiMSim::_CheckMutationStackPolicy(void)
 	}
 	
 	// we're good until the next change
-	mutation_stack_policy_changed = false;
+	mutation_stack_policy_changed_ = false;
 }
 
 
@@ -2910,7 +2910,7 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 		// Check that the new element will not overlap any existing element; if end_position > last_genomic_element_position we are safe.
 		// Otherwise, we have to check all previously defined elements.  The use of last_genomic_element_position is an optimization to
 		// avoid an O(N) scan with each added element; as long as elements are added in sorted order there is no need to scan.
-		if (start_position <= last_genomic_element_position)
+		if (start_position <= last_genomic_element_position_)
 		{
 			for (auto &element : chromosome_)
 			{
@@ -2919,8 +2919,8 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 			}
 		}
 		
-		if (end_position > last_genomic_element_position)
-			last_genomic_element_position = end_position;
+		if (end_position > last_genomic_element_position_)
+			last_genomic_element_position_ = end_position;
 		
 		// Create and add the new element
 		GenomicElement new_genomic_element(genomic_element_type_ptr, start_position, end_position);
@@ -3651,7 +3651,7 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 			// [logical$ preventIncidentalSelfing = F]
 			bool prevent_selfing = arg3_value->LogicalAtIndex(0, nullptr);
 			
-			prevent_incidental_selfing = prevent_selfing;
+			prevent_incidental_selfing_ = prevent_selfing;
 		}
 		
 		if (DEBUG_INPUT)
@@ -3686,10 +3686,10 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 				previous_params = true;
 			}
 			
-			if (prevent_incidental_selfing)
+			if (prevent_incidental_selfing_)
 			{
 				if (previous_params) output_stream << ", ";
-				output_stream << "preventIncidentalSelfing = " << (prevent_incidental_selfing ? "T" : "F");
+				output_stream << "preventIncidentalSelfing = " << (prevent_incidental_selfing_ ? "T" : "F");
 				previous_params = true;
 			}
 			
@@ -4957,7 +4957,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 				
 				block->start_generation_ = start;
 				block->end_generation_ = end;
-				last_script_block_gen_cached = false;
+				last_script_block_gen_cached_ = false;
 				script_block_types_cached_ = false;
 				scripts_changed_ = true;
 				
@@ -5023,7 +5023,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 							block->start_generation_ = start;
 							block->end_generation_ = end;
 							first_block = false;
-							last_script_block_gen_cached = false;
+							last_script_block_gen_cached_ = false;
 							script_block_types_cached_ = false;
 							scripts_changed_ = true;
 							

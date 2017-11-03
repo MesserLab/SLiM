@@ -420,7 +420,7 @@
 	catch (...)
 	{
 		if (sim)
-			sim->simulationValid = false;
+			sim->simulation_valid_ = false;
 		[self setReachedSimulationEnd:YES];
 		[self checkForSimulationTermination];
 	}
@@ -2642,7 +2642,7 @@
 {
 	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
 	
-	if (invalidSimulation || continuousPlayOn || generationPlayOn || reachedSimulationEnd || hasImported || !sim || !sim->simulationValid || (sim->generation_ != 1))
+	if (invalidSimulation || continuousPlayOn || generationPlayOn || reachedSimulationEnd || hasImported || !sim || !sim->simulation_valid_ || (sim->generation_ != 1))
 	{
 		// Can only import when in a very specific state
 		NSAlert *alert = [[NSAlert alloc] init];

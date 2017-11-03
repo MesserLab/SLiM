@@ -77,7 +77,7 @@ private:
 	std::vector<SLiMEidosBlock*> scheduled_interaction_deregs_;						// NOT OWNED: interaction() callbacks in script_blocks_ that are scheduled for deregistration
 	
 	// a cache of the last generation for the simulation, for speed
-	bool last_script_block_gen_cached = false;
+	bool last_script_block_gen_cached_ = false;
 	slim_generation_t last_script_block_gen_;										// the last generation in which a bounded script block is scheduled to run
 	
 	// scripts blocks prearranged for fast lookup; these are all stored in script_blocks_ as well
@@ -97,7 +97,7 @@ private:
 #ifdef SLIMGUI
 public:
 	
-	bool simulationValid = true;													// set to false if a terminating condition is encountered while running in SLiMgui
+	bool simulation_valid_ = true;													// set to false if a terminating condition is encountered while running in SLiMgui
 
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
@@ -136,7 +136,7 @@ private:
 	std::map<slim_objectid_t,GenomicElementType*> genomic_element_types_;			// OWNED POINTERS: this map is the owner of all allocated GenomicElementType objects
 	std::map<slim_objectid_t,InteractionType*> interaction_types_;					// OWNED POINTERS: this map is the owner of all allocated InteractionType objects
 	
-	bool mutation_stack_policy_changed;												// when set, the stacking policy settings need to be checked for consistency
+	bool mutation_stack_policy_changed_;											// when set, the stacking policy settings need to be checked for consistency
 	
 	// SEX ONLY: sex-related instance variables
 	bool sex_enabled_ = false;														// true if sex is tracked for individuals; if false, all individuals are hermaphroditic
@@ -161,7 +161,7 @@ private:
 	int num_sex_declarations_;	// SEX ONLY; used to check for sex vs. non-sex errors in the file, so the #SEX tag must come before any reliance on SEX ONLY features
 	int num_options_declarations_;
 	
-	slim_position_t last_genomic_element_position = -1;	// used to check new genomic elements for consistency
+	slim_position_t last_genomic_element_position_ = -1;	// used to check new genomic elements for consistency
 	
 	// change flags; used only by SLiMgui, to know that something has changed and a UI update is needed; start as true to provoke an initial display
 	bool interaction_types_changed_ = true;
@@ -180,7 +180,7 @@ private:
 	int preferred_mutrun_count_ = 0;												// 0 represents no preference
 	
 	// preventing incidental selfing in hermaphroditic models
-	bool prevent_incidental_selfing = false;
+	bool prevent_incidental_selfing_ = false;
 	
 	EidosSymbolTableEntry self_symbol_;												// for fast setup of the symbol table
 	
@@ -203,7 +203,7 @@ private:
 	double *x_previous_runtimes_;		// generation runtimes recorded at that mutcount (SLIM_MUTRUN_EXPERIMENT_MAXLENGTH length)
 	int x_previous_buflen_;				// the number of runtimes in the previous_mutcount_runtimes_ buffer
 	
-	bool x_continuing_trend;			// if true, the current experiment continues a trend, such that the opposite trend can be excluded
+	bool x_continuing_trend_;			// if true, the current experiment continues a trend, such that the opposite trend can be excluded
 	
 	int64_t x_stasis_limit_;			// how many stasis experiments we're running between change experiments; gets longer over time
 	double x_stasis_alpha_;				// the alpha threshold at which we decide that stasis has been broken; gets smaller over time
@@ -274,8 +274,8 @@ public:
 #endif
 	
 	// Mutation stack policy checking
-	inline void MutationStackPolicyChanged(void)									{ mutation_stack_policy_changed = true; }
-	inline void CheckMutationStackPolicy(void)										{ if (mutation_stack_policy_changed) _CheckMutationStackPolicy(); }
+	inline void MutationStackPolicyChanged(void)									{ mutation_stack_policy_changed_ = true; }
+	inline void CheckMutationStackPolicy(void)										{ if (mutation_stack_policy_changed_) _CheckMutationStackPolicy(); }
 	void _CheckMutationStackPolicy(void);
 	
 	// accessors
@@ -292,7 +292,7 @@ public:
 	
 	inline bool SexEnabled(void) const												{ return sex_enabled_; }
 	inline bool PedigreesEnabled(void) const										{ return pedigrees_enabled_; }
-	inline bool PreventIncidentalSelfing(void) const								{ return prevent_incidental_selfing; }
+	inline bool PreventIncidentalSelfing(void) const								{ return prevent_incidental_selfing_; }
 	inline GenomeType ModeledChromosomeType(void) const								{ return modeled_chromosome_type_; }
 	inline double XDominanceCoefficient(void) const									{ return x_chromosome_dominance_coeff_; }
 	inline int SpatialDimensionality(void) const									{ return spatial_dimensionality_; }

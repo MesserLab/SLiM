@@ -166,8 +166,8 @@ Mutation::Mutation(MutationType *p_mutation_type_ptr, slim_position_t p_position
 mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), generation_(p_generation), mutation_id_(gSLiM_next_mutation_id++)
 {
 	// cache values used by the fitness calculation code for speed; see header
-	cached_one_plus_sel = (slim_selcoeff_t)std::max(0.0, 1.0 + selection_coeff_);
-	cached_one_plus_dom_sel = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->dominance_coeff_ * selection_coeff_);
+	cached_one_plus_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + selection_coeff_);
+	cached_one_plus_dom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->dominance_coeff_ * selection_coeff_);
 	
 	// zero out our refcount, which is now kept in a separate buffer
 	gSLiM_Mutation_Refcounts[BlockIndex()] = 0;
@@ -181,8 +181,8 @@ Mutation::Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_typ
 mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), generation_(p_generation), mutation_id_(p_mutation_id)
 {
 	// cache values used by the fitness calculation code for speed; see header
-	cached_one_plus_sel = (slim_selcoeff_t)std::max(0.0, 1.0 + selection_coeff_);
-	cached_one_plus_dom_sel = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->dominance_coeff_ * selection_coeff_);
+	cached_one_plus_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + selection_coeff_);
+	cached_one_plus_dom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->dominance_coeff_ * selection_coeff_);
 
 	// zero out our refcount, which is now kept in a separate buffer
 	gSLiM_Mutation_Refcounts[BlockIndex()] = 0;
@@ -373,8 +373,8 @@ EidosValue_SP Mutation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, c
 		}
 		
 		// cache values used by the fitness calculation code for speed; see header
-		cached_one_plus_sel = (slim_selcoeff_t)std::max(0.0, 1.0 + selection_coeff_);
-		cached_one_plus_dom_sel = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->dominance_coeff_ * selection_coeff_);
+		cached_one_plus_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + selection_coeff_);
+		cached_one_plus_dom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->dominance_coeff_ * selection_coeff_);
 		
 		return gStaticEidosValueNULLInvisible;
 	}
@@ -412,8 +412,8 @@ EidosValue_SP Mutation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, c
 		mutation_type_ptr_ = mutation_type_ptr;
 		
 		// cache values used by the fitness calculation code for speed; see header
-		cached_one_plus_sel = (slim_selcoeff_t)std::max(0.0, 1.0 + selection_coeff_);
-		cached_one_plus_dom_sel = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->dominance_coeff_ * selection_coeff_);
+		cached_one_plus_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + selection_coeff_);
+		cached_one_plus_dom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->dominance_coeff_ * selection_coeff_);
 		
 		return gStaticEidosValueNULLInvisible;
 	}

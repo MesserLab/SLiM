@@ -74,7 +74,7 @@ class MutationRun
 	
 protected:
 
-	mutable uint32_t intrusive_ref_count;						// used by Eidos_intrusive_ptr
+	mutable uint32_t intrusive_ref_count_;						// used by Eidos_intrusive_ptr
 
 protected:
 	
@@ -213,9 +213,9 @@ public:
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
 	// Added (nonneutral_mutations_count_ != -1) with the addition of the nonneutral caches; modifying a unique run should not occur after it has cached
-#define SLIM_MUTRUN_LOCK_CHECK()	if ((intrusive_ref_count > 1) || (nonneutral_mutations_count_ != -1)) LockingViolation();
+#define SLIM_MUTRUN_LOCK_CHECK()	if ((intrusive_ref_count_ > 1) || (nonneutral_mutations_count_ != -1)) LockingViolation();
 #else
-#define SLIM_MUTRUN_LOCK_CHECK()	if (intrusive_ref_count > 1) LockingViolation();
+#define SLIM_MUTRUN_LOCK_CHECK()	if (intrusive_ref_count_ > 1) LockingViolation();
 #endif
 
 #else
@@ -700,7 +700,7 @@ public:
 #endif	// SLIM_USE_NONNEUTRAL_CACHES
 	
 	// Eidos_intrusive_ptr support
-	inline __attribute__((always_inline)) uint32_t use_count() const { return intrusive_ref_count; }
+	inline __attribute__((always_inline)) uint32_t use_count() const { return intrusive_ref_count_; }
 	
 	friend void Eidos_intrusive_ptr_add_ref(const MutationRun *p_value);
 	friend void Eidos_intrusive_ptr_release(const MutationRun *p_value);
@@ -709,12 +709,12 @@ public:
 // Eidos_intrusive_ptr support
 inline __attribute__((always_inline)) void Eidos_intrusive_ptr_add_ref(const MutationRun *p_value)
 {
-	++(p_value->intrusive_ref_count);
+	++(p_value->intrusive_ref_count_);
 }
 
 inline __attribute__((always_inline)) void Eidos_intrusive_ptr_release(const MutationRun *p_value)
 {
-	if ((--(p_value->intrusive_ref_count)) == 0)
+	if ((--(p_value->intrusive_ref_count_)) == 0)
 	{
 		// Do not delete; all MutationRun objects under Eidos_intrusive_ptr should have been allocated
 		// by MutationRun::NewMutationRun(), so we return them to that pool here without destructing

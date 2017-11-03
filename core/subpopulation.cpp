@@ -1285,7 +1285,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_
 			{
 				// with other types of unpaired chromosomes (like the Y chromosome of a male when we are modeling the Y) there is no dominance coefficient
 				while (genome_iter != genome_max)
-					w *= (mut_block_ptr + *genome_iter++)->cached_one_plus_sel;
+					w *= (mut_block_ptr + *genome_iter++)->cached_one_plus_sel_;
 			}
 		}
 		
@@ -1327,7 +1327,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_
 					if (genome1_iter_position < genome2_iter_position)
 					{
 						// Process a mutation in genome1 since it is leading
-						w *= (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel;
+						w *= (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_;
 						
 						if (++genome1_iter == genome1_max)
 							break;
@@ -1339,7 +1339,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_
 					else if (genome1_iter_position > genome2_iter_position)
 					{
 						// Process a mutation in genome2 since it is leading
-						w *= (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel;
+						w *= (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_;
 						
 						if (++genome2_iter == genome2_max)
 							break;
@@ -1365,7 +1365,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_
 								if (genome1_mutation == *genome2_matchscan) 		// note pointer equality test
 								{
 									// a match was found, so we multiply our fitness by the full selection coefficient
-									w *= (mut_block_ptr + genome1_mutation)->cached_one_plus_sel;
+									w *= (mut_block_ptr + genome1_mutation)->cached_one_plus_sel_;
 									goto homozygousExit1;
 								}
 								
@@ -1373,7 +1373,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_
 							}
 							
 							// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-							w *= (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel;
+							w *= (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_;
 							
 						homozygousExit1:
 							
@@ -1403,7 +1403,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_
 							}
 							
 							// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-							w *= (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel;
+							w *= (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_;
 							
 						homozygousExit2:
 							
@@ -1429,11 +1429,11 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_
 			
 			// if genome1 is unfinished, finish it
 			while (genome1_iter != genome1_max)
-				w *= (mut_block_ptr + *genome1_iter++)->cached_one_plus_dom_sel;
+				w *= (mut_block_ptr + *genome1_iter++)->cached_one_plus_dom_sel_;
 			
 			// if genome2 is unfinished, finish it
 			while (genome2_iter != genome2_max)
-				w *= (mut_block_ptr + *genome2_iter++)->cached_one_plus_dom_sel;
+				w *= (mut_block_ptr + *genome2_iter++)->cached_one_plus_dom_sel_;
 		}
 		
 		return w;
@@ -1510,7 +1510,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 				{
 					MutationIndex genome_mutation = *genome_iter;
 					
-					w *= ApplyFitnessCallbacks(genome_mutation, -1, (mut_block_ptr + genome_mutation)->cached_one_plus_sel, p_fitness_callbacks, individual, genome1, genome2);
+					w *= ApplyFitnessCallbacks(genome_mutation, -1, (mut_block_ptr + genome_mutation)->cached_one_plus_sel_, p_fitness_callbacks, individual, genome1, genome2);
 					
 					if (w <= 0.0)
 						return 0.0;
@@ -1558,7 +1558,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 					if (genome1_iter_position < genome2_iter_position)
 					{
 						// Process a mutation in genome1 since it is leading
-						w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel, p_fitness_callbacks, individual, genome1, genome2);
+						w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
 						
 						if (w <= 0.0)
 							return 0.0;
@@ -1573,7 +1573,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 					else if (genome1_iter_position > genome2_iter_position)
 					{
 						// Process a mutation in genome2 since it is leading
-						w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel, p_fitness_callbacks, individual, genome1, genome2);
+						w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
 						
 						if (w <= 0.0)
 							return 0.0;
@@ -1602,7 +1602,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 								if (genome1_mutation == *genome2_matchscan)		// note pointer equality test
 								{
 									// a match was found, so we multiply our fitness by the full selection coefficient
-									w *= ApplyFitnessCallbacks(genome1_mutation, true, (mut_block_ptr + genome1_mutation)->cached_one_plus_sel, p_fitness_callbacks, individual, genome1, genome2);
+									w *= ApplyFitnessCallbacks(genome1_mutation, true, (mut_block_ptr + genome1_mutation)->cached_one_plus_sel_, p_fitness_callbacks, individual, genome1, genome2);
 									
 									goto homozygousExit3;
 								}
@@ -1611,7 +1611,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 							}
 							
 							// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-							w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel, p_fitness_callbacks, individual, genome1, genome2);
+							w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
 							
 						homozygousExit3:
 							
@@ -1644,7 +1644,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 							}
 							
 							// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-							w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel, p_fitness_callbacks, individual, genome1, genome2);
+							w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
 							
 							if (w <= 0.0)
 								return 0.0;
@@ -1674,7 +1674,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 			{
 				MutationIndex genome1_mutation = *genome1_iter;
 				
-				w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel, p_fitness_callbacks, individual, genome1, genome2);
+				w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
 				
 				if (w <= 0.0)
 					return 0.0;
@@ -1687,7 +1687,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 			{
 				MutationIndex genome2_mutation = *genome2_iter;
 				
-				w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel, p_fitness_callbacks, individual, genome1, genome2);
+				w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
 				
 				if (w <= 0.0)
 					return 0.0;
@@ -1785,14 +1785,14 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 					
 					if ((mut_block_ptr + genome_mutation)->mutation_type_ptr_ == p_single_callback_mut_type)
 					{
-						w *= ApplyFitnessCallbacks(genome_mutation, -1, (mut_block_ptr + genome_mutation)->cached_one_plus_sel, p_fitness_callbacks, individual, genome1, genome2);
+						w *= ApplyFitnessCallbacks(genome_mutation, -1, (mut_block_ptr + genome_mutation)->cached_one_plus_sel_, p_fitness_callbacks, individual, genome1, genome2);
 						
 						if (w <= 0.0)
 							return 0.0;
 					}
 					else
 					{
-						w *= (mut_block_ptr + genome_mutation)->cached_one_plus_sel;
+						w *= (mut_block_ptr + genome_mutation)->cached_one_plus_sel_;
 					}
 					
 					genome_iter++;
@@ -1842,14 +1842,14 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 						
 						if (genome1_muttype == p_single_callback_mut_type)
 						{
-							w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel, p_fitness_callbacks, individual, genome1, genome2);
+							w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
 							
 							if (w <= 0.0)
 								return 0.0;
 						}
 						else
 						{
-							w *= (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel;
+							w *= (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_;
 						}
 						
 						if (++genome1_iter == genome1_max)
@@ -1866,14 +1866,14 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 						
 						if (genome2_muttype == p_single_callback_mut_type)
 						{
-							w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel, p_fitness_callbacks, individual, genome1, genome2);
+							w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
 							
 							if (w <= 0.0)
 								return 0.0;
 						}
 						else
 						{
-							w *= (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel;
+							w *= (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_;
 						}
 						
 						if (++genome2_iter == genome2_max)
@@ -1904,7 +1904,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 									if (genome1_mutation == *genome2_matchscan)		// note pointer equality test
 									{
 										// a match was found, so we multiply our fitness by the full selection coefficient
-										w *= ApplyFitnessCallbacks(genome1_mutation, true, (mut_block_ptr + genome1_mutation)->cached_one_plus_sel, p_fitness_callbacks, individual, genome1, genome2);
+										w *= ApplyFitnessCallbacks(genome1_mutation, true, (mut_block_ptr + genome1_mutation)->cached_one_plus_sel_, p_fitness_callbacks, individual, genome1, genome2);
 										
 										goto homozygousExit5;
 									}
@@ -1913,7 +1913,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 								}
 								
 								// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-								w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel, p_fitness_callbacks, individual, genome1, genome2);
+								w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
 								
 							homozygousExit5:
 								
@@ -1930,7 +1930,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 									if (genome1_mutation == *genome2_matchscan) 		// note pointer equality test
 									{
 										// a match was found, so we multiply our fitness by the full selection coefficient
-										w *= (mut_block_ptr + genome1_mutation)->cached_one_plus_sel;
+										w *= (mut_block_ptr + genome1_mutation)->cached_one_plus_sel_;
 										goto homozygousExit6;
 									}
 									
@@ -1938,7 +1938,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 								}
 								
 								// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-								w *= (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel;
+								w *= (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_;
 								
 							homozygousExit6:
 								;
@@ -1974,7 +1974,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 								}
 								
 								// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-								w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel, p_fitness_callbacks, individual, genome1, genome2);
+								w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
 								
 								if (w <= 0.0)
 									return 0.0;
@@ -1999,7 +1999,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 								}
 								
 								// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-								w *= (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel;
+								w *= (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_;
 								
 							homozygousExit8:
 								;
@@ -2031,14 +2031,14 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 				
 				if (genome1_muttype == p_single_callback_mut_type)
 				{
-					w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel, p_fitness_callbacks, individual, genome1, genome2);
+					w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
 					
 					if (w <= 0.0)
 						return 0.0;
 				}
 				else
 				{
-					w *= (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel;
+					w *= (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_;
 				}
 				
 				genome1_iter++;
@@ -2052,14 +2052,14 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 				
 				if (genome2_muttype == p_single_callback_mut_type)
 				{
-					w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel, p_fitness_callbacks, individual, genome1, genome2);
+					w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
 					
 					if (w <= 0.0)
 						return 0.0;
 				}
 				else
 				{
-					w *= (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel;
+					w *= (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_;
 				}
 				
 				genome2_iter++;

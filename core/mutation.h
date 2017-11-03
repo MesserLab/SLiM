@@ -75,8 +75,8 @@ public:
 	// when it is homozygous or heterozygous, respectively.  These values are clamped to a minimum of 0.0, so that multiplying
 	// by them cannot cause the fitness of the individual to go below 0.0, avoiding slow tests in the core fitness loop.  These
 	// values use slim_selcoeff_t for speed; roundoff should not be a concern, since such differences would be inconsequential.
-	slim_selcoeff_t cached_one_plus_sel;				// a cached value for (1 + selection_coeff_), clamped to 0.0 minimum
-	slim_selcoeff_t cached_one_plus_dom_sel;			// a cached value for (1 + dominance_coeff * selection_coeff_), clamped to 0.0 minimum
+	slim_selcoeff_t cached_one_plus_sel_;				// a cached value for (1 + selection_coeff_), clamped to 0.0 minimum
+	slim_selcoeff_t cached_one_plus_dom_sel_;			// a cached value for (1 + dominance_coeff * selection_coeff_), clamped to 0.0 minimum
 	
 	Mutation(const Mutation&) = delete;					// no copying
 	Mutation& operator=(const Mutation&) = delete;		// no copying

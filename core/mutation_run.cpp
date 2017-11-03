@@ -29,7 +29,7 @@ int64_t gSLiM_MutationRun_OperationID = 0;
 std::vector<MutationRun *> MutationRun::s_freed_mutation_runs_;
 
 
-MutationRun::MutationRun() : intrusive_ref_count(0)
+MutationRun::MutationRun() : intrusive_ref_count_(0)
 {
 }
 
