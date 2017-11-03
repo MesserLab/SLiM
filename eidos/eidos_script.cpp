@@ -2003,7 +2003,7 @@ EidosASTNode *EidosScript::Parse_TypeSpec(void)
 	return node;
 }
 
-EidosASTNode *EidosScript::Parse_ObjectClassSpec(EidosASTNode *type_node)
+EidosASTNode *EidosScript::Parse_ObjectClassSpec(EidosASTNode *p_type_node)
 {
 	try
 	{
@@ -2015,12 +2015,12 @@ EidosASTNode *EidosScript::Parse_ObjectClassSpec(EidosASTNode *type_node)
 		{
 			if (eidos_class->ElementType() == object_class)
 			{
-				type_node->typespec_.object_class = eidos_class;
+				p_type_node->typespec_.object_class = eidos_class;
 				break;
 			}
 		}
 		
-		if (!type_node->typespec_.object_class)
+		if (!p_type_node->typespec_.object_class)
 			if (!parse_make_bad_nodes_)
 				EIDOS_TERMINATION << "ERROR (EidosScript::Parse_ObjectClassSpec): could not find an Eidos class named '" << object_class << "')." << eidos_terminate(current_token_);
 		
@@ -2032,7 +2032,7 @@ EidosASTNode *EidosScript::Parse_ObjectClassSpec(EidosASTNode *type_node)
 		throw;
 	}
 	
-	return type_node;
+	return p_type_node;
 }
 
 EidosASTNode *EidosScript::Parse_ParamList(void)

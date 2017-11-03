@@ -2783,7 +2783,7 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 }
 
 #ifdef SLIMGUI
-void Population::RecordFitness(slim_generation_t p_history_index, slim_objectid_t p_subpop_id, double fitness_value)
+void Population::RecordFitness(slim_generation_t p_history_index, slim_objectid_t p_subpop_id, double p_fitness_value)
 {
 	FitnessHistory *history_rec_ptr = nullptr;
 	
@@ -2828,7 +2828,7 @@ void Population::RecordFitness(slim_generation_t p_history_index, slim_objectid_
 			history_rec_ptr->history_length_ = history_length;
 		}
 		
-		history[p_history_index] = fitness_value;
+		history[p_history_index] = p_fitness_value;
 	}
 }
 

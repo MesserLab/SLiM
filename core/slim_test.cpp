@@ -22,9 +22,9 @@ using std::endl;
 
 
 // Helper functions for testing
-void SLiMAssertScriptSuccess(const string &p_script_string, int lineNumber = -1);
-void SLiMAssertScriptRaise(const string &p_script_string, const int p_bad_line, const int p_bad_position, const std::string &p_reason_snip, int lineNumber = -1);
-void SLiMAssertScriptStop(const string &p_script_string, int lineNumber = -1);
+void SLiMAssertScriptSuccess(const string &p_script_string, int p_lineNumber = -1);
+void SLiMAssertScriptRaise(const string &p_script_string, const int p_bad_line, const int p_bad_position, const std::string &p_reason_snip, int p_lineNumber = -1);
+void SLiMAssertScriptStop(const string &p_script_string, int p_lineNumber = -1);
 
 // Keeping records of test success / failure
 static int gSLiMTestSuccessCount = 0;
@@ -32,7 +32,7 @@ static int gSLiMTestFailureCount = 0;
 
 
 // Instantiates and runs the script, and prints an error if the result does not match expectations
-void SLiMAssertScriptSuccess(const string &p_script_string, int lineNumber)
+void SLiMAssertScriptSuccess(const string &p_script_string, int p_lineNumber)
 {
 	gSLiMTestFailureCount++;	// assume failure; we will fix this at the end if we succeed
 	
@@ -45,8 +45,8 @@ void SLiMAssertScriptSuccess(const string &p_script_string, int lineNumber)
 	}
 	catch (...)
 	{
-		if (lineNumber != -1)
-			std::cerr << "[" << lineNumber << "] ";
+		if (p_lineNumber != -1)
+			std::cerr << "[" << p_lineNumber << "] ";
 		
 		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during new SLiMSim(): " << EidosGetTrimmedRaiseMessage() << endl;
 		
@@ -63,8 +63,8 @@ void SLiMAssertScriptSuccess(const string &p_script_string, int lineNumber)
 		delete sim;
 		MutationRun::DeleteMutationRunFreeList();
 		
-		if (lineNumber != -1)
-			std::cerr << "[" << lineNumber << "] ";
+		if (p_lineNumber != -1)
+			std::cerr << "[" << p_lineNumber << "] ";
 		
 		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during RunOneGeneration(): " << EidosGetTrimmedRaiseMessage() << endl;
 		
@@ -85,7 +85,7 @@ void SLiMAssertScriptSuccess(const string &p_script_string, int lineNumber)
 	gEidosExecutingRuntimeScript = false;
 }
 
-void SLiMAssertScriptRaise(const string &p_script_string, const int p_bad_line, const int p_bad_position, const std::string &p_reason_snip, int lineNumber)
+void SLiMAssertScriptRaise(const string &p_script_string, const int p_bad_line, const int p_bad_position, const std::string &p_reason_snip, int p_lineNumber)
 {
 	SLiMSim *sim = nullptr;
 	
@@ -99,8 +99,8 @@ void SLiMAssertScriptRaise(const string &p_script_string, const int p_bad_line, 
 		
 		gSLiMTestFailureCount++;
 		
-		if (lineNumber != -1)
-			std::cerr << "[" << lineNumber << "] ";
+		if (p_lineNumber != -1)
+			std::cerr << "[" << p_lineNumber << "] ";
 		
 		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : no raise during SLiM execution (expected \"" << p_reason_snip << "\")." << endl;
 	}
@@ -125,8 +125,8 @@ void SLiMAssertScriptRaise(const string &p_script_string, const int p_bad_line, 
 					{
 						gSLiMTestFailureCount++;
 						
-						if (lineNumber != -1)
-							std::cerr << "[" << lineNumber << "] ";
+						if (p_lineNumber != -1)
+							std::cerr << "[" << p_lineNumber << "] ";
 						
 						std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise expected, but no error info set" << endl;
 						std::cerr << "   raise message: " << raise_message << endl;
@@ -141,8 +141,8 @@ void SLiMAssertScriptRaise(const string &p_script_string, const int p_bad_line, 
 					{
 						gSLiMTestFailureCount++;
 						
-						if (lineNumber != -1)
-							std::cerr << "[" << lineNumber << "] ";
+						if (p_lineNumber != -1)
+							std::cerr << "[" << p_lineNumber << "] ";
 						
 						std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise expected, but error position unexpected" << endl;
 						std::cerr << "   raise message: " << raise_message << endl;
@@ -161,8 +161,8 @@ void SLiMAssertScriptRaise(const string &p_script_string, const int p_bad_line, 
 			{
 				gSLiMTestFailureCount++;
 				
-				if (lineNumber != -1)
-					std::cerr << "[" << lineNumber << "] ";
+				if (p_lineNumber != -1)
+					std::cerr << "[" << p_lineNumber << "] ";
 				
 				std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise message mismatch (expected \"" << p_reason_snip << "\")." << endl;
 				std::cerr << "   raise message: " << raise_message << endl;
@@ -173,8 +173,8 @@ void SLiMAssertScriptRaise(const string &p_script_string, const int p_bad_line, 
 		{
 			gSLiMTestFailureCount++;
 			
-			if (lineNumber != -1)
-				std::cerr << "[" << lineNumber << "] ";
+			if (p_lineNumber != -1)
+				std::cerr << "[" << p_lineNumber << "] ";
 			
 			std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : stop() reached (expected \"" << p_reason_snip << "\")." << endl;
 			std::cerr << "--------------------" << std::endl << std::endl;
@@ -188,7 +188,7 @@ void SLiMAssertScriptRaise(const string &p_script_string, const int p_bad_line, 
 	gEidosExecutingRuntimeScript = false;
 }
 
-void SLiMAssertScriptStop(const string &p_script_string, int lineNumber)
+void SLiMAssertScriptStop(const string &p_script_string, int p_lineNumber)
 {
 	SLiMSim *sim = nullptr;
 	
@@ -202,8 +202,8 @@ void SLiMAssertScriptStop(const string &p_script_string, int lineNumber)
 		
 		gSLiMTestFailureCount++;
 		
-		if (lineNumber != -1)
-			std::cerr << "[" << lineNumber << "] ";
+		if (p_lineNumber != -1)
+			std::cerr << "[" << p_lineNumber << "] ";
 		
 		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : no raise during SLiM execution." << endl;
 	}
@@ -216,8 +216,8 @@ void SLiMAssertScriptStop(const string &p_script_string, int lineNumber)
 		{
 			gSLiMTestFailureCount++;
 			
-			if (lineNumber != -1)
-				std::cerr << "[" << lineNumber << "] ";
+			if (p_lineNumber != -1)
+				std::cerr << "[" << p_lineNumber << "] ";
 			
 			std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : stop() not reached" << endl;
 			std::cerr << "   raise message: " << raise_message << endl;

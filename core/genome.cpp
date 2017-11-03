@@ -1069,17 +1069,17 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 }
 
 // print the sample represented by genomes, using SLiM's own format
-void Genome::PrintGenomes_slim(std::ostream &p_out, std::vector<Genome *> &genomes, slim_objectid_t p_source_subpop_id)
+void Genome::PrintGenomes_slim(std::ostream &p_out, std::vector<Genome *> &p_genomes, slim_objectid_t p_source_subpop_id)
 {
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	slim_popsize_t sample_size = (slim_popsize_t)genomes.size();
+	slim_popsize_t sample_size = (slim_popsize_t)p_genomes.size();
 	
 	// get the polymorphisms within the sample
 	PolymorphismMap polymorphisms;
 	
 	for (slim_popsize_t s = 0; s < sample_size; s++)
 	{
-		Genome &genome = *genomes[s];
+		Genome &genome = *p_genomes[s];
 		
 		if (genome.IsNull())
 			EIDOS_TERMINATION << "ERROR (Genome::PrintGenomes_slim): cannot output null genomes." << eidos_terminate();
@@ -1106,7 +1106,7 @@ void Genome::PrintGenomes_slim(std::ostream &p_out, std::vector<Genome *> &genom
 	
 	for (slim_popsize_t j = 0; j < sample_size; j++)														// go through all individuals
 	{
-		Genome &genome = *genomes[j];
+		Genome &genome = *p_genomes[j];
 		
 		if (p_source_subpop_id == -1)
 			p_out << "p*:" << j;
@@ -1137,10 +1137,10 @@ void Genome::PrintGenomes_slim(std::ostream &p_out, std::vector<Genome *> &genom
 }
 
 // print the sample represented by genomes, using "ms" format
-void Genome::PrintGenomes_ms(std::ostream &p_out, std::vector<Genome *> &genomes, const Chromosome &p_chromosome)
+void Genome::PrintGenomes_ms(std::ostream &p_out, std::vector<Genome *> &p_genomes, const Chromosome &p_chromosome)
 {
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	slim_popsize_t sample_size = (slim_popsize_t)genomes.size();
+	slim_popsize_t sample_size = (slim_popsize_t)p_genomes.size();
 	
 	// BCH 7 Nov. 2016: sort the polymorphisms by position since that is the expected sort
 	// order in MS output.  In other types of output, sorting by the mutation id seems to
@@ -1153,7 +1153,7 @@ void Genome::PrintGenomes_ms(std::ostream &p_out, std::vector<Genome *> &genomes
 		
 		for (slim_popsize_t s = 0; s < sample_size; s++)
 		{
-			Genome &genome = *genomes[s];
+			Genome &genome = *p_genomes[s];
 			
 			if (genome.IsNull())
 				EIDOS_TERMINATION << "ERROR (Genome::PrintGenomes_ms): cannot output null genomes." << eidos_terminate();
@@ -1203,7 +1203,7 @@ void Genome::PrintGenomes_ms(std::ostream &p_out, std::vector<Genome *> &genomes
 	// print the sample's genotypes
 	for (slim_popsize_t j = 0; j < sample_size; j++)														// go through all individuals
 	{
-		Genome &genome = *genomes[j];
+		Genome &genome = *p_genomes[j];
 		std::string genotype(sorted_polymorphisms.size(), '0'); // fill with 0s
 		
 		for (int run_index = 0; run_index < genome.mutrun_count_; ++run_index)
@@ -1236,10 +1236,10 @@ void Genome::PrintGenomes_ms(std::ostream &p_out, std::vector<Genome *> &genomes
 }
 
 // print the sample represented by genomes, using "vcf" format
-void Genome::PrintGenomes_vcf(std::ostream &p_out, std::vector<Genome *> &genomes, bool p_output_multiallelics)
+void Genome::PrintGenomes_vcf(std::ostream &p_out, std::vector<Genome *> &p_genomes, bool p_output_multiallelics)
 {
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	slim_popsize_t sample_size = (slim_popsize_t)genomes.size();
+	slim_popsize_t sample_size = (slim_popsize_t)p_genomes.size();
 	
 	if (sample_size % 2 == 1)
 		EIDOS_TERMINATION << "ERROR (Genome::PrintGenomes_vcf): Genome vector must be an even, since genomes are paired into individuals." << eidos_terminate();
@@ -1251,8 +1251,8 @@ void Genome::PrintGenomes_vcf(std::ostream &p_out, std::vector<Genome *> &genome
 	
 	for (slim_popsize_t s = 0; s < sample_size; s++)
 	{
-		Genome &genome1 = *genomes[s * 2];
-		Genome &genome2 = *genomes[s * 2 + 1];
+		Genome &genome1 = *p_genomes[s * 2];
+		Genome &genome2 = *p_genomes[s * 2 + 1];
 		
 		if (!genome1.IsNull())
 		{
@@ -1358,8 +1358,8 @@ void Genome::PrintGenomes_vcf(std::ostream &p_out, std::vector<Genome *> &genome
 			// emit the individual calls
 			for (slim_popsize_t s = 0; s < sample_size; s++)
 			{
-				Genome &g1 = *genomes[s * 2];
-				Genome &g2 = *genomes[s * 2 + 1];
+				Genome &g1 = *p_genomes[s * 2];
+				Genome &g2 = *p_genomes[s * 2 + 1];
 				bool g1_null = g1.IsNull(), g2_null = g2.IsNull();
 				
 				if (g1_null && g2_null)

@@ -118,7 +118,7 @@ public:
 	EidosValue_SP _Evaluate_RangeExpr_Internal(const EidosASTNode *p_node, const EidosValue &p_first_child_value, const EidosValue &p_second_child_value);
 	int _ProcessArgumentList(const EidosASTNode *p_node, const EidosCallSignature *p_call_signature, EidosValue_SP *p_arg_buffer);
 	
-	EidosValue_SP DispatchUserDefinedFunction(const EidosFunctionSignature &function_signature, const EidosValue_SP *const p_arguments, int p_argument_count);
+	EidosValue_SP DispatchUserDefinedFunction(const EidosFunctionSignature &p_function_signature, const EidosValue_SP *const p_arguments, int p_argument_count);
 	
 	void NullReturnRaiseForNode(const EidosASTNode *p_node);
 	EidosValue_SP EvaluateNode(const EidosASTNode *p_node);

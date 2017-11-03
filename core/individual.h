@@ -123,20 +123,20 @@ public:
 	
 	// This sets the receiver up as a new individual, with a newly assigned pedigree id, and gets
 	// parental and grandparental information from the supplied parents.
-	inline void TrackPedigreeWithParents(Individual &parent1, Individual &parent2)
+	inline void TrackPedigreeWithParents(Individual &p_parent1, Individual &p_parent2)
 	{
 		pedigree_id_ = gSLiM_next_pedigree_id++;
 		
-		pedigree_p1_ = parent1.pedigree_id_;
-		pedigree_p2_ = parent2.pedigree_id_;
+		pedigree_p1_ = p_parent1.pedigree_id_;
+		pedigree_p2_ = p_parent2.pedigree_id_;
 		
-		pedigree_g1_ = parent1.pedigree_p1_;
-		pedigree_g2_ = parent1.pedigree_p2_;
-		pedigree_g3_ = parent2.pedigree_p1_;
-		pedigree_g4_ = parent2.pedigree_p2_;
+		pedigree_g1_ = p_parent1.pedigree_p1_;
+		pedigree_g2_ = p_parent1.pedigree_p2_;
+		pedigree_g3_ = p_parent2.pedigree_p1_;
+		pedigree_g4_ = p_parent2.pedigree_p2_;
 	}
 	
-	double RelatednessToIndividual(Individual &ind);
+	double RelatednessToIndividual(Individual &p_ind);
 	
 	//
 	// Eidos support

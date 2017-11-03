@@ -67,18 +67,18 @@ using std::ostream;
 #endif
 
 
-bool TypeCheckAssignmentOfEidosValueIntoEidosValue(const EidosValue &base_value, const EidosValue &dest_value)
+bool TypeCheckAssignmentOfEidosValueIntoEidosValue(const EidosValue &p_base_value, const EidosValue &p_dest_value)
 {
-	EidosValueType base_type = base_value.Type();
-	EidosValueType dest_type = dest_value.Type();
+	EidosValueType base_type = p_base_value.Type();
+	EidosValueType dest_type = p_dest_value.Type();
 	bool base_is_object = (base_type == EidosValueType::kValueObject);
 	bool dest_is_object = (dest_type == EidosValueType::kValueObject);
 	
 	if (base_is_object && dest_is_object)
 	{
 		// objects must match in their element type, or one or both must have no defined element type (due to being empty)
-		const EidosObjectClass *base_element_class = ((const EidosValue_Object &)base_value).Class();
-		const EidosObjectClass *dest_element_class = ((const EidosValue_Object &)dest_value).Class();
+		const EidosObjectClass *base_element_class = ((const EidosValue_Object &)p_base_value).Class();
+		const EidosObjectClass *dest_element_class = ((const EidosValue_Object &)p_dest_value).Class();
 		bool base_is_typeless = (base_element_class == gEidos_UndefinedClassObject);
 		bool dest_is_typeless = (dest_element_class == gEidos_UndefinedClassObject);
 		
@@ -977,7 +977,7 @@ int EidosInterpreter::_ProcessArgumentList(const EidosASTNode *p_node, const Eid
 	return processed_arg_count;
 }
 
-EidosValue_SP EidosInterpreter::DispatchUserDefinedFunction(const EidosFunctionSignature &function_signature, const EidosValue_SP *const p_arguments, int p_argument_count)
+EidosValue_SP EidosInterpreter::DispatchUserDefinedFunction(const EidosFunctionSignature &p_function_signature, const EidosValue_SP *const p_arguments, int p_argument_count)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -986,11 +986,11 @@ EidosValue_SP EidosInterpreter::DispatchUserDefinedFunction(const EidosFunctionS
 	
 	// Set up variables for the function's parameters; they have already been type-checked and had default
 	// values substituted and so forth, by the Eidos function call dispatch code.
-	if ((int)function_signature.arg_name_IDs_.size() != p_argument_count)
+	if ((int)p_function_signature.arg_name_IDs_.size() != p_argument_count)
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::DispatchUserDefinedFunction): (internal error) parameter count does not match argument count." << eidos_terminate(nullptr);
 	
 	for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
-		new_symbols.SetValueForSymbol(function_signature.arg_name_IDs_[arg_index], std::move(p_arguments[arg_index]));
+		new_symbols.SetValueForSymbol(p_function_signature.arg_name_IDs_[arg_index], std::move(p_arguments[arg_index]));
 	
 	// Errors in functions should be reported for the function's script, not for the calling script,
 	// if possible.  In the GUI this does not work well, however; there, errors should be
@@ -1009,12 +1009,12 @@ EidosValue_SP EidosInterpreter::DispatchUserDefinedFunction(const EidosFunctionS
 	gEidosCharacterEndOfError = -1;
 	gEidosCharacterStartOfErrorUTF16 = -1;
 	gEidosCharacterEndOfErrorUTF16 = -1;
-	gEidosCurrentScript = function_signature.body_script_;
+	gEidosCurrentScript = p_function_signature.body_script_;
 	gEidosExecutingRuntimeScript = true;
 	
 	try
 	{
-		EidosInterpreter interpreter(*function_signature.body_script_, new_symbols, function_map_, Context());
+		EidosInterpreter interpreter(*p_function_signature.body_script_, new_symbols, function_map_, Context());
 		
 		// Get the result.  BEWARE!  This calls causes re-entry into the Eidos interpreter, which is not usually
 		// possible since Eidos does not support multithreaded usage.  This is therefore a key failure point for

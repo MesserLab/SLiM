@@ -180,9 +180,9 @@ public:
 	void DrawMutationAndBreakpointCounts(IndividualSex p_sex, int *p_mut_count, int *p_break_count) const;
 	
 	// initialize the joint probabilities used by DrawMutationAndBreakpointCounts()
-	void _InitializeJointProbabilities(double p_overall_mutation_rate, double exp_neg_overall_mutation_rate,
-												   double p_overall_recombination_rate, double exp_neg_overall_recombination_rate,
-												   double &p_both_0, double &p_both_0_OR_mut_0_break_non0_, double &p_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_);
+	void _InitializeJointProbabilities(double p_overall_mutation_rate, double p_exp_neg_overall_mutation_rate,
+												   double p_overall_recombination_rate, double p_exp_neg_overall_recombination_rate,
+												   double &p_both_0, double &p_both_0_OR_mut_0_break_non0, double &p_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0);
 #endif
 	
 	// internal methods for throwing errors from inline functions when assumptions about the configuration of maps are violated

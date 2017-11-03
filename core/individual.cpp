@@ -84,10 +84,10 @@ Individual::~Individual(void)
 {
 }
 
-double Individual::RelatednessToIndividual(Individual &ind)
+double Individual::RelatednessToIndividual(Individual &p_ind)
 {
 	// If we're being asked about ourselves, return 1.0, even if pedigree tracking is off
-	if (this == &ind)
+	if (this == &p_ind)
 		return 1.0;
 	
 	// Otherwise, if our own pedigree information is not initialized, then we have nothing to go on
@@ -97,7 +97,7 @@ double Individual::RelatednessToIndividual(Individual &ind)
 	// Start with 0.0 and add in factors for shared ancestors
 	double relatedness = 0.0;
 	
-	if ((pedigree_g1_ != -1) && (ind.pedigree_g1_ != -1))
+	if ((pedigree_g1_ != -1) && (p_ind.pedigree_g1_ != -1))
 	{
 		// We have grandparental information, so use that; that will be the most accurate
 		double g1 = pedigree_g1_;
@@ -105,10 +105,10 @@ double Individual::RelatednessToIndividual(Individual &ind)
 		double g3 = pedigree_g3_;
 		double g4 = pedigree_g4_;
 		
-		double ind_g1 = ind.pedigree_g1_;
-		double ind_g2 = ind.pedigree_g2_;
-		double ind_g3 = ind.pedigree_g3_;
-		double ind_g4 = ind.pedigree_g4_;
+		double ind_g1 = p_ind.pedigree_g1_;
+		double ind_g2 = p_ind.pedigree_g2_;
+		double ind_g3 = p_ind.pedigree_g3_;
+		double ind_g4 = p_ind.pedigree_g4_;
 		
 		// Each shared grandparent adds 0.125, for a maximum of 0.5
 		if ((g1 == ind_g1) || (g1 == ind_g2) || (g1 == ind_g3) || (g1 == ind_g4))	relatedness += 0.125;
@@ -116,14 +116,14 @@ double Individual::RelatednessToIndividual(Individual &ind)
 		if ((g3 == ind_g1) || (g3 == ind_g2) || (g3 == ind_g3) || (g3 == ind_g4))	relatedness += 0.125;
 		if ((g4 == ind_g1) || (g4 == ind_g2) || (g4 == ind_g3) || (g4 == ind_g4))	relatedness += 0.125;
 	}
-	else if ((pedigree_p1_ != -1) && (ind.pedigree_p1_ != -1))
+	else if ((pedigree_p1_ != -1) && (p_ind.pedigree_p1_ != -1))
 	{
 		// We have parental information; that's second-best
 		double p1 = pedigree_p1_;
 		double p2 = pedigree_p2_;
 		
-		double ind_p1 = ind.pedigree_p1_;
-		double ind_p2 = ind.pedigree_p2_;
+		double ind_p1 = p_ind.pedigree_p1_;
+		double ind_p2 = p_ind.pedigree_p2_;
 		
 		// Each shared parent adds 0.25, for a maximum of 0.5
 		if ((p1 == ind_p1) || (p1 == ind_p2))	relatedness += 0.25;

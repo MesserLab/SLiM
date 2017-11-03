@@ -102,13 +102,13 @@ static inline __attribute__((always_inline)) bool eidos_random_bool(gsl_rng *p_r
 // the gsl_rng_uniform_int() function is very slow, so this is a customized version that should be faster
 // basically it is faster because (1) the range of the taus2 generator is hard-coded, (2) the range check
 // is done only on #if DEBUG, and (3) it uses uint32; otherwise the logic is the same.
-inline uint32_t eidos_random_int(gsl_rng *r, uint32_t n)
+inline uint32_t eidos_random_int(gsl_rng *p_r, uint32_t p_n)
 {
-	uint32_t scale = UINT32_MAX / n;
+	uint32_t scale = UINT32_MAX / p_n;
 	uint32_t k;
 	
 #if DEBUG
-	if ((n > INT32_MAX) || (n <= 0)) 
+	if ((p_n > INT32_MAX) || (p_n <= 0)) 
 	{
 		GSL_ERROR_VAL ("invalid n, either 0 or exceeds maximum value of generator", GSL_EINVAL, 0) ;
 	}
@@ -116,9 +116,9 @@ inline uint32_t eidos_random_int(gsl_rng *r, uint32_t n)
 	
 	do
 	{
-		k = ((uint32_t)((r->type->get) (r->state))) / scale;
+		k = ((uint32_t)((p_r->type->get) (p_r->state))) / scale;
 	}
-	while (k >= n);
+	while (k >= p_n);
 	
 	return k;
 }

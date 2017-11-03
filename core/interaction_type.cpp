@@ -710,24 +710,24 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 	}
 }
 
-double InteractionType::CalculateDistance(double *position1, double *position2)
+double InteractionType::CalculateDistance(double *p_position1, double *p_position2)
 {
 	if (spatiality_ == 1)
 	{
-		return fabs(position1[0] - position2[0]);
+		return fabs(p_position1[0] - p_position2[0]);
 	}
 	else if (spatiality_ == 2)
 	{
-		double distance_x = (position1[0] - position2[0]);
-		double distance_y = (position1[1] - position2[1]);
+		double distance_x = (p_position1[0] - p_position2[0]);
+		double distance_y = (p_position1[1] - p_position2[1]);
 		
 		return sqrt(distance_x * distance_x + distance_y * distance_y);
 	}
 	else if (spatiality_ == 3)
 	{
-		double distance_x = (position1[0] - position2[0]);
-		double distance_y = (position1[1] - position2[1]);
-		double distance_z = (position1[2] - position2[2]);
+		double distance_x = (p_position1[0] - p_position2[0]);
+		double distance_y = (p_position1[1] - p_position2[1]);
+		double distance_z = (p_position1[2] - p_position2[2]);
 		
 		return sqrt(distance_x * distance_x + distance_y * distance_y + distance_z * distance_z);
 	}
@@ -755,7 +755,7 @@ double InteractionType::CalculateStrengthNoCallbacks(double p_distance)
 	}
 }
 
-double InteractionType::CalculateStrengthWithCallbacks(double p_distance, Individual *receiver, Individual *exerter, Subpopulation *p_subpop, std::vector<SLiMEidosBlock*> &p_interaction_callbacks)
+double InteractionType::CalculateStrengthWithCallbacks(double p_distance, Individual *p_receiver, Individual *p_exerter, Subpopulation *p_subpop, std::vector<SLiMEidosBlock*> &p_interaction_callbacks)
 {
 	// CAUTION: This method should only be called when p_distance <= max_distance_ (or is NAN).
 	// It is the caller's responsibility to do that filtering, for performance reasons!
@@ -764,7 +764,7 @@ double InteractionType::CalculateStrengthWithCallbacks(double p_distance, Indivi
 	// zeroes out all self-interactions at the outset.  This will never be called in that case.
 	double strength = CalculateStrengthNoCallbacks(p_distance);
 	
-	strength = ApplyInteractionCallbacks(receiver, exerter, p_subpop, strength, p_distance, p_interaction_callbacks);
+	strength = ApplyInteractionCallbacks(p_receiver, p_exerter, p_subpop, strength, p_distance, p_interaction_callbacks);
 	
 	return strength;
 }
@@ -1043,10 +1043,10 @@ void InteractionType::InitializeStrengths(InteractionsData &p_subpop_data)
 // Ironically, the incorrect logic of the RosettaCode version only produced incorrect results when there
 // were duplicated values in the coordinate vector.
 
-inline void swap(SLiM_kdNode *x, SLiM_kdNode *y)
+inline void swap(SLiM_kdNode *p_x, SLiM_kdNode *p_y)
 {
-	std::swap(x->x, y->x);
-	std::swap(x->individual_index_, y->individual_index_);
+	std::swap(p_x->x, p_y->x);
+	std::swap(p_x->individual_index_, p_y->individual_index_);
 }
 
 // find median for phase 0 (x)
@@ -4164,32 +4164,32 @@ EidosValue_SP InteractionType_Class::ExecuteClassMethod(EidosGlobalStringID p_me
 #pragma mark -
 #pragma mark InteractionType_Class
 
-_InteractionsData::_InteractionsData(_InteractionsData&& source)
+_InteractionsData::_InteractionsData(_InteractionsData&& p_source)
 {
-	evaluated_ = source.evaluated_;
-	evaluation_interaction_callbacks_.swap(source.evaluation_interaction_callbacks_);
-	individual_count_ = source.individual_count_;
-	first_male_index_ = source.first_male_index_;
-	positions_ = source.positions_;
-	distances_ = source.distances_;
-	strengths_ = source.strengths_;
-	kd_nodes_ = source.kd_nodes_;
-	kd_root_ = source.kd_root_;
+	evaluated_ = p_source.evaluated_;
+	evaluation_interaction_callbacks_.swap(p_source.evaluation_interaction_callbacks_);
+	individual_count_ = p_source.individual_count_;
+	first_male_index_ = p_source.first_male_index_;
+	positions_ = p_source.positions_;
+	distances_ = p_source.distances_;
+	strengths_ = p_source.strengths_;
+	kd_nodes_ = p_source.kd_nodes_;
+	kd_root_ = p_source.kd_root_;
 	
-	source.evaluated_ = false;
-	source.evaluation_interaction_callbacks_.clear();
-	source.individual_count_ = 0;
-	source.first_male_index_ = 0;
-	source.positions_ = nullptr;
-	source.distances_ = nullptr;
-	source.strengths_ = nullptr;
-	source.kd_nodes_ = nullptr;
-	source.kd_root_ = nullptr;
+	p_source.evaluated_ = false;
+	p_source.evaluation_interaction_callbacks_.clear();
+	p_source.individual_count_ = 0;
+	p_source.first_male_index_ = 0;
+	p_source.positions_ = nullptr;
+	p_source.distances_ = nullptr;
+	p_source.strengths_ = nullptr;
+	p_source.kd_nodes_ = nullptr;
+	p_source.kd_root_ = nullptr;
 }
 
-_InteractionsData& _InteractionsData::operator=(_InteractionsData&& source)
+_InteractionsData& _InteractionsData::operator=(_InteractionsData&& p_source)
 {
-	if (this != &source)  
+	if (this != &p_source)  
 	{
 		if (positions_)
 			free(positions_);
@@ -4200,25 +4200,25 @@ _InteractionsData& _InteractionsData::operator=(_InteractionsData&& source)
 		if (kd_nodes_)
 			free(kd_nodes_);
 		
-		evaluated_ = source.evaluated_;
-		evaluation_interaction_callbacks_.swap(source.evaluation_interaction_callbacks_);
-		individual_count_ = source.individual_count_;
-		first_male_index_ = source.first_male_index_;
-		positions_ = source.positions_;
-		distances_ = source.distances_;
-		strengths_ = source.strengths_;
-		kd_nodes_ = source.kd_nodes_;
-		kd_root_ = source.kd_root_;
+		evaluated_ = p_source.evaluated_;
+		evaluation_interaction_callbacks_.swap(p_source.evaluation_interaction_callbacks_);
+		individual_count_ = p_source.individual_count_;
+		first_male_index_ = p_source.first_male_index_;
+		positions_ = p_source.positions_;
+		distances_ = p_source.distances_;
+		strengths_ = p_source.strengths_;
+		kd_nodes_ = p_source.kd_nodes_;
+		kd_root_ = p_source.kd_root_;
 		
-		source.evaluated_ = false;
-		source.evaluation_interaction_callbacks_.clear();
-		source.individual_count_ = 0;
-		source.first_male_index_ = 0;
-		source.positions_ = nullptr;
-		source.distances_ = nullptr;
-		source.strengths_ = nullptr;
-		source.kd_nodes_ = nullptr;
-		source.kd_root_ = nullptr;
+		p_source.evaluated_ = false;
+		p_source.evaluation_interaction_callbacks_.clear();
+		p_source.individual_count_ = 0;
+		p_source.first_male_index_ = 0;
+		p_source.positions_ = nullptr;
+		p_source.distances_ = nullptr;
+		p_source.strengths_ = nullptr;
+		p_source.kd_nodes_ = nullptr;
+		p_source.kd_root_ = nullptr;
 	}
 	
 	return *this;

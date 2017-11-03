@@ -58,9 +58,9 @@ public:
 	void print(std::ostream &p_out) const;			// includes polymorphism_id_ at the beginning
 	void print_no_id(std::ostream &p_out) const;	// does not include polymorphism_id_
 	
-	friend bool operator<(const Polymorphism& l, const Polymorphism& r)
+	friend bool operator<(const Polymorphism& p_l, const Polymorphism& p_r)
 	{
-		return l.mutation_ptr_->position_ < r.mutation_ptr_->position_; // keep the same order
+		return p_l.mutation_ptr_->position_ < p_r.mutation_ptr_->position_; // keep the same order
 	}
 };
 

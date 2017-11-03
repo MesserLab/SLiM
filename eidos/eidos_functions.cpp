@@ -582,7 +582,7 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 	return EidosValue_SP(nullptr);
 }
 
-EidosValue_SP UniqueEidosValue(const EidosValue *p_arg0_value, bool p_force_new_vector, bool preserve_order)
+EidosValue_SP UniqueEidosValue(const EidosValue *p_arg0_value, bool p_force_new_vector, bool p_preserve_order)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -662,7 +662,7 @@ EidosValue_SP UniqueEidosValue(const EidosValue *p_arg0_value, bool p_force_new_
 		EidosValue_Int_vector *int_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector();
 		result_SP = EidosValue_SP(int_result);
 		
-		if (preserve_order)
+		if (p_preserve_order)
 		{
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 			{
@@ -698,7 +698,7 @@ EidosValue_SP UniqueEidosValue(const EidosValue *p_arg0_value, bool p_force_new_
 		EidosValue_Float_vector *float_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector();
 		result_SP = EidosValue_SP(float_result);
 		
-		if (preserve_order)
+		if (p_preserve_order)
 		{
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 			{
@@ -734,7 +734,7 @@ EidosValue_SP UniqueEidosValue(const EidosValue *p_arg0_value, bool p_force_new_
 		EidosValue_String_vector *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector();
 		result_SP = EidosValue_SP(string_result);
 		
-		if (preserve_order)
+		if (p_preserve_order)
 		{
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 			{
@@ -770,7 +770,7 @@ EidosValue_SP UniqueEidosValue(const EidosValue *p_arg0_value, bool p_force_new_
 		EidosValue_Object_vector *object_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(((EidosValue_Object *)arg0_value)->Class());
 		result_SP = EidosValue_SP(object_result);
 		
-		if (preserve_order)
+		if (p_preserve_order)
 		{
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 			{
@@ -6089,17 +6089,17 @@ EidosValue_SP Eidos_ExecuteFunction_nchar(const EidosValue_SP *const p_arguments
 
 // Get indexes that would result in sorted ordering of a vector.  This rather nice code is adapted from http://stackoverflow.com/a/12399290/2752221
 template <typename T>
-vector<int64_t> EidosSortIndexes(const vector<T> &v, bool ascending = true)
+vector<int64_t> EidosSortIndexes(const vector<T> &p_v, bool p_ascending = true)
 {
 	// initialize original index locations
-	vector<int64_t> idx(v.size());
+	vector<int64_t> idx(p_v.size());
 	std::iota(idx.begin(), idx.end(), 0);
 	
 	// sort indexes based on comparing values in v
-	if (ascending)
-		std::sort(idx.begin(), idx.end(), [&v](int64_t i1, int64_t i2) {return v[i1] < v[i2];});
+	if (p_ascending)
+		std::sort(idx.begin(), idx.end(), [&p_v](int64_t i1, int64_t i2) {return p_v[i1] < p_v[i2];});
 	else
-		std::sort(idx.begin(), idx.end(), [&v](int64_t i1, int64_t i2) {return v[i1] > v[i2];});
+		std::sort(idx.begin(), idx.end(), [&p_v](int64_t i1, int64_t i2) {return p_v[i1] > p_v[i2];});
 	
 	return idx;
 }

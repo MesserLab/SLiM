@@ -98,14 +98,14 @@ _SpatialMap::~_SpatialMap(void)
 		free(display_buffer_);
 }
 
-double _SpatialMap::ValueAtPoint(double *point)
+double _SpatialMap::ValueAtPoint(double *p_point)
 {
 	// This looks up the value at point, which is in coordinates that have been normalized and clamped to [0,1]
 	switch (spatiality_)
 	{
 		case 1:
 		{
-			double x_fraction = point[0];
+			double x_fraction = p_point[0];
 			int64_t xsize = grid_size_[0];
 			
 			if (interpolate_)
@@ -130,8 +130,8 @@ double _SpatialMap::ValueAtPoint(double *point)
 		}
 		case 2:
 		{
-			double x_fraction = point[0];
-			double y_fraction = point[1];
+			double x_fraction = p_point[0];
+			double y_fraction = p_point[1];
 			int64_t xsize = grid_size_[0];
 			int64_t ysize = grid_size_[1];
 			
@@ -165,9 +165,9 @@ double _SpatialMap::ValueAtPoint(double *point)
 		}
 		case 3:
 		{
-			double x_fraction = point[0];
-			double y_fraction = point[1];
-			double z_fraction = point[2];
+			double x_fraction = p_point[0];
+			double y_fraction = p_point[1];
+			double z_fraction = p_point[2];
 			int64_t xsize = grid_size_[0];
 			int64_t ysize = grid_size_[1];
 			int64_t zsize = grid_size_[2];

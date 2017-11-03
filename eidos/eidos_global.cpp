@@ -972,16 +972,16 @@ std::string EidosResolvedPath(const std::string p_path)
 #define TMP_MAX_EIDOS 16384
 #endif
 
-int Eidos_mkstemps(char *pattern, int suffix_len)
+int Eidos_mkstemps(char *p_pattern, int p_suffix_len)
 {
 	static const char letters[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 	static uint64_t value;
-	size_t len = strlen(pattern);
+	size_t len = strlen(p_pattern);
 	
-	if (((int)len < 6 + suffix_len) || strncmp(&pattern[len - 6 - suffix_len], "XXXXXX", 6))
+	if (((int)len < 6 + p_suffix_len) || strncmp(&p_pattern[len - 6 - p_suffix_len], "XXXXXX", 6))
 		return -1;
 	
-	char *XXXXXX = &pattern[len - 6 - suffix_len];
+	char *XXXXXX = &p_pattern[len - 6 - p_suffix_len];
 	
 	// Get some more or less random data
 	struct timeval tv;
@@ -1006,7 +1006,7 @@ int Eidos_mkstemps(char *pattern, int suffix_len)
 		v /= 62;
 		XXXXXX[5] = letters[v % 62];
 		
-		int fd = open(pattern, O_BINARY | O_RDWR | O_CREAT | O_EXCL, 0600);
+		int fd = open(p_pattern, O_BINARY | O_RDWR | O_CREAT | O_EXCL, 0600);
 		
 		if (fd >= 0)
 			return fd;									// The file does not exist
@@ -1020,7 +1020,7 @@ int Eidos_mkstemps(char *pattern, int suffix_len)
 	}
 	
 	// We return the null string if we can't find a unique file name
-	pattern[0] = '\0';
+	p_pattern[0] = '\0';
 	return -1;
 }
 
@@ -1055,9 +1055,9 @@ int Eidos_mkstemps(char *pattern, int suffix_len)
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-double Eidos_TTest_TwoSampleWelch(const double *set1, int count1, const double *set2, int count2, double *set_mean1, double *set_mean2)
+double Eidos_TTest_TwoSampleWelch(const double *p_set1, int p_count1, const double *p_set2, int p_count2, double *p_set_mean1, double *p_set_mean2)
 {
-	if ((count1 <= 1) || (count2 <= 1))
+	if ((p_count1 <= 1) || (p_count2 <= 1))
 	{
 		std::cout << "Eidos_TTest_TwoSampleWelch requires enough elements to compute variance" << std::endl;
 		return NAN;
@@ -1067,43 +1067,43 @@ double Eidos_TTest_TwoSampleWelch(const double *set1, int count1, const double *
 	double sum1 = 0, sum2 = 0, sumSq1 = 0, sumSq2 = 0;
 	int index;
 	
-	for (index = 0; index < count1; index++) {
-		double value = set1[index];
+	for (index = 0; index < p_count1; index++) {
+		double value = p_set1[index];
 		
 		sum1 += value;
 		sumSq1 += value * value;
 	}
 	
-	for (index = 0; index < count2; index++) {
-		double value = set2[index];
+	for (index = 0; index < p_count2; index++) {
+		double value = p_set2[index];
 		
 		sum2 += value;
 		sumSq2 += value * value;
 	}
 	
-	double mean1 = sum1 / count1;
-	double mean2 = sum2 / count2;
-	double meanSq1 = sumSq1 / count1;
-	double meanSq2 = sumSq2 / count2;
+	double mean1 = sum1 / p_count1;
+	double mean2 = sum2 / p_count2;
+	double meanSq1 = sumSq1 / p_count1;
+	double meanSq2 = sumSq2 / p_count2;
 	double var1 = meanSq1 - mean1 * mean1;
 	double var2 = meanSq2 - mean2 * mean2;
 	
-	if (set_mean1)
-		*set_mean1 = mean1;
-	if (set_mean2)
-		*set_mean2 = mean2;
+	if (p_set_mean1)
+		*p_set_mean1 = mean1;
+	if (p_set_mean2)
+		*p_set_mean2 = mean2;
 	
 	// To avoid divisions by 0:
 	if (var1 + var2 == 0)
 		return NAN;
 	
 	// two-sample test
-	double t = (mean1 - mean2) / sqrt(var1 / count1 + var2 / count2);
+	double t = (mean1 - mean2) / sqrt(var1 / p_count1 + var2 / p_count2);
 	
 	if (t < 0)
 		t = -t;
 	
-	double nu = (var1 / count1 + var2 / count2) * (var1 / count1 + var2 / count2) / ((var1 * var1) / (count1 * count1 * (count1 - 1)) + (var2 * var2) / (count2 * count2 * (count2 - 1)));
+	double nu = (var1 / p_count1 + var2 / p_count2) * (var1 / p_count1 + var2 / p_count2) / ((var1 * var1) / (p_count1 * p_count1 * (p_count1 - 1)) + (var2 * var2) / (p_count2 * p_count2 * (p_count2 - 1)));
 	
 	// return the P-value
 	return 2 * gsl_cdf_tdist_Q(t, nu);
@@ -1113,9 +1113,9 @@ double Eidos_TTest_TwoSampleWelch(const double *set1, int count1, const double *
 // the mean of the sample is equal to mu.  This code is obviously derived from
 // the code above, but was written by me in consultation with Wikipedia.
 
-double Eidos_TTest_OneSample(const double *set1, int count1, double mu, double *set_mean1)
+double Eidos_TTest_OneSample(const double *p_set1, int p_count1, double p_mu, double *p_set_mean1)
 {
-	if (count1 <= 1)
+	if (p_count1 <= 1)
 	{
 		std::cout << "Eidos_TTest_OneSample requires enough elements to compute variance" << std::endl;
 		return NAN;
@@ -1125,31 +1125,31 @@ double Eidos_TTest_OneSample(const double *set1, int count1, double mu, double *
 	double sum1 = 0, sumSq1 = 0;
 	int index;
 	
-	for (index = 0; index < count1; index++) {
-		double value = set1[index];
+	for (index = 0; index < p_count1; index++) {
+		double value = p_set1[index];
 		
 		sum1 += value;
 		sumSq1 += value * value;
 	}
 	
-	double mean1 = sum1 / count1;
-	double meanSq1 = sumSq1 / count1;
+	double mean1 = sum1 / p_count1;
+	double meanSq1 = sumSq1 / p_count1;
 	double var1 = meanSq1 - mean1 * mean1;
 	
-	if (set_mean1)
-		*set_mean1 = mean1;
+	if (p_set_mean1)
+		*p_set_mean1 = mean1;
 	
 	// To avoid divisions by 0:
 	if (var1 == 0)
 		return NAN;
 	
 	// one-sample test
-	double t = (mean1 - mu) / (sqrt(var1) / sqrt(count1));
+	double t = (mean1 - p_mu) / (sqrt(var1) / sqrt(p_count1));
 	
 	if (t < 0)
 		t = -t;
 	
-	double nu = count1 - 1;
+	double nu = p_count1 - 1;
 	
 	// return the P-value
 	return 2 * gsl_cdf_tdist_Q(t, nu);
@@ -1281,7 +1281,7 @@ to be bound by the terms and conditions of this License Agreement.
  Depends on IEEE 754 arithmetic guarantees and half-even rounding.
  */
 
-double Eidos_ExactSum(const double *double_vec, int64_t vec_length)
+double Eidos_ExactSum(const double *p_double_vec, int64_t p_vec_length)
 {
 	// We allocate the partials using malloc() rather than initially using the stack,
 	// and keep the allocated block around forever; simpler if a bit less efficient.
@@ -1299,11 +1299,11 @@ double Eidos_ExactSum(const double *double_vec, int64_t vec_length)
 	double xsave, special_sum = 0.0, inf_sum = 0.0;
 	volatile double hi, yr, lo = 0.0;		// see comment above re: volatile; added initializer to get rid of a false warning
 	
-	for (int64_t vec_index = 0; vec_index < vec_length; ++vec_index)
+	for (int64_t vec_index = 0; vec_index < p_vec_length; ++vec_index)
 	{
 		//assert(0 <= n && n <= m);
 		
-		x = double_vec[vec_index];
+		x = p_double_vec[vec_index];
 		
 		xsave = x;
 		for (i = j = 0; j < n; j++) {       /* for y in partials */
@@ -1395,11 +1395,11 @@ double Eidos_ExactSum(const double *double_vec, int64_t vec_length)
 }
 
 // run a Un*x command; thanks to http://stackoverflow.com/questions/478898/how-to-execute-a-command-and-get-output-of-command-within-c-using-posix
-std::string EidosExec(const char* cmd)
+std::string EidosExec(const char *p_cmd)
 {
 	char buffer[128];
 	std::string result = "";
-	std::shared_ptr<FILE> pipe(popen(cmd, "r"), pclose);
+	std::shared_ptr<FILE> pipe(popen(p_cmd, "r"), pclose);
 	if (!pipe) throw std::runtime_error("popen() failed!");
 	while (!feof(pipe.get())) {
 		if (fgets(buffer, 128, pipe.get()) != NULL)

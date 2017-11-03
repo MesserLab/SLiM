@@ -114,7 +114,7 @@ size_t EidosGetPeakRSS(void);
 size_t EidosGetCurrentRSS(void);
 
 // Memory limits, retrieved by calling "ulimit -m"; cached internally.  Returns a size in bytes; 0 means "no limit".
-std::string EidosExec(const char* cmd);
+std::string EidosExec(const char *p_cmd);
 size_t EidosGetMaxRSS(void);
 
 // This checks whether our memory usage has gotten within 10 MB of the maximum memory usage, and terminates if so.
@@ -278,14 +278,14 @@ std::string EidosGetUntrimmedRaiseMessage(void);
 std::string EidosResolvedPath(const std::string p_path);
 
 // Create a temporary file based upon a template filename; note that pattern is modified!
-int Eidos_mkstemps(char *pattern, int suffix_len);
+int Eidos_mkstemps(char *p_pattern, int p_suffix_len);
 
 // Welch's t-test functions; sample means are returned in mean1 and mean2, which may be nullptr
-double Eidos_TTest_TwoSampleWelch(const double *set1, int count1, const double *set2, int count2, double *mean1, double *mean2);
-double Eidos_TTest_OneSample(const double *set1, int count1, double mu, double *mean1);
+double Eidos_TTest_TwoSampleWelch(const double *p_set1, int p_count1, const double *p_set2, int p_count2, double *p_mean1, double *p_mean2);
+double Eidos_TTest_OneSample(const double *p_set1, int p_count1, double p_mu, double *p_mean1);
 
 // Exact summation of a floating-point vector using the Shewchuk algorithm; surprisingly, not in the GSL
-double Eidos_ExactSum(const double *double_vec, int64_t vec_length);
+double Eidos_ExactSum(const double *p_double_vec, int64_t p_vec_length);
 
 
 // *******************************************************************************************************************

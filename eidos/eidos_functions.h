@@ -34,7 +34,7 @@
 
 // Utility functions usable by everybody
 EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int p_argument_count, bool p_allow_null);
-EidosValue_SP UniqueEidosValue(const EidosValue *p_value, bool p_force_new_vector, bool preserve_order);
+EidosValue_SP UniqueEidosValue(const EidosValue *p_value, bool p_force_new_vector, bool p_preserve_order);
 EidosValue_SP Eidos_ExecuteLambdaInternal(const EidosValue_SP *const p_arguments, EidosInterpreter &p_interpreter, bool p_execute_in_outer_scope);
 
 

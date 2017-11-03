@@ -133,9 +133,9 @@ class InteractionType : public SLiMEidosDictionary
 	std::map<slim_objectid_t, InteractionsData> data_;		// cached data for the interaction, for each subpopulation
 	
 	void CalculateAllInteractions(Subpopulation *p_subpop);
-	double CalculateDistance(double *position1, double *position2);
+	double CalculateDistance(double *p_position1, double *p_position2);
 	double CalculateStrengthNoCallbacks(double p_distance);
-	double CalculateStrengthWithCallbacks(double p_distance, Individual *receiver, Individual *exerter, Subpopulation *p_subpop, std::vector<SLiMEidosBlock*> &p_interaction_callbacks);
+	double CalculateStrengthWithCallbacks(double p_distance, Individual *p_receiver, Individual *p_exerter, Subpopulation *p_subpop, std::vector<SLiMEidosBlock*> &p_interaction_callbacks);
 	void EnsureDistancesPresent(InteractionsData &p_subpop_data);
 	void InitializeDistances(InteractionsData &p_subpop_data);
 	void EnsureStrengthsPresent(InteractionsData &p_subpop_data);

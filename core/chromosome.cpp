@@ -239,16 +239,16 @@ void Chromosome::InitializeDraws(void)
 }
 
 #ifndef USE_GSL_POISSON
-void Chromosome::_InitializeJointProbabilities(double p_overall_mutation_rate, double exp_neg_overall_mutation_rate,
-											   double p_overall_recombination_rate, double exp_neg_overall_recombination_rate,
-											   double &p_both_0, double &p_both_0_OR_mut_0_break_non0_, double &p_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_)
+void Chromosome::_InitializeJointProbabilities(double p_overall_mutation_rate, double p_exp_neg_overall_mutation_rate,
+											   double p_overall_recombination_rate, double p_exp_neg_overall_recombination_rate,
+											   double &p_both_0, double &p_both_0_OR_mut_0_break_non0, double &p_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0)
 {
 	// precalculate probabilities for Poisson draws of mutation count and breakpoint count
 	double prob_mutation_0 = eidos_fast_ran_poisson_PRECALCULATE(p_overall_mutation_rate);			// exp(-mu); can be 0 due to underflow
 	double prob_breakpoint_0 = eidos_fast_ran_poisson_PRECALCULATE(p_overall_recombination_rate);	// exp(-mu); can be 0 due to underflow
 	
 	// this is a validity check on the previous calculation of the exp_neg rates
-	if ((exp_neg_overall_mutation_rate != prob_mutation_0) || (exp_neg_overall_recombination_rate != prob_breakpoint_0))
+	if ((p_exp_neg_overall_mutation_rate != prob_mutation_0) || (p_exp_neg_overall_recombination_rate != prob_breakpoint_0))
 		EIDOS_TERMINATION << "ERROR (Chromosome::_InitializeJointProbabilities): zero-probability does not match previous calculation." << eidos_terminate();
 	
 	double prob_mutation_not_0 = 1.0 - prob_mutation_0;
@@ -267,8 +267,8 @@ void Chromosome::_InitializeJointProbabilities(double p_overall_mutation_rate, d
 	//	std::cout << "prob_mutation_not_0_breakpoint_0 == " << prob_mutation_not_0_breakpoint_0 << std::endl;
 	
 	p_both_0 = prob_both_0;
-	p_both_0_OR_mut_0_break_non0_ = prob_both_0 + prob_mutation_0_breakpoint_not_0;
-	p_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_ = prob_both_0 + (prob_mutation_0_breakpoint_not_0 + prob_mutation_not_0_breakpoint_0);
+	p_both_0_OR_mut_0_break_non0 = prob_both_0 + prob_mutation_0_breakpoint_not_0;
+	p_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0 = prob_both_0 + (prob_mutation_0_breakpoint_not_0 + prob_mutation_not_0_breakpoint_0);
 }
 #endif
 

@@ -163,7 +163,7 @@ public:
 	EidosASTNode *Parse_FunctionDecl(void);
 	EidosASTNode *Parse_ReturnTypeSpec();
 	EidosASTNode *Parse_TypeSpec(void);
-	EidosASTNode *Parse_ObjectClassSpec(EidosASTNode *type_node);	// adds to type node
+	EidosASTNode *Parse_ObjectClassSpec(EidosASTNode *p_type_node);	// adds to type node
 	EidosASTNode *Parse_ParamList(void);
 	EidosASTNode *Parse_ParamSpec(void);
 };

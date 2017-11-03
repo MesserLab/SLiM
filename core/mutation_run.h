@@ -650,7 +650,7 @@ public:
 	
 	void check_nonneutral_mutation_cache();
 	
-	inline void beginend_nonneutral_pointers(const MutationIndex **mutptr_iter, const MutationIndex **mutptr_max, int32_t p_nonneutral_change_counter, int32_t p_nonneutral_regime)
+	inline void beginend_nonneutral_pointers(const MutationIndex **p_mutptr_iter, const MutationIndex **p_mutptr_max, int32_t p_nonneutral_change_counter, int32_t p_nonneutral_regime)
 	{
 		if ((nonneutral_change_validation_ != p_nonneutral_change_counter) || (nonneutral_mutations_count_ == -1))
 		{
@@ -676,22 +676,22 @@ public:
 #endif
 		
 		// Return the requested pointers to allow the caller to iterate over the nonneutral mutation buffer
-		*mutptr_iter = nonneutral_mutations_;
-		*mutptr_max = nonneutral_mutations_ + nonneutral_mutations_count_;
+		*p_mutptr_iter = nonneutral_mutations_;
+		*p_mutptr_max = nonneutral_mutations_ + nonneutral_mutations_count_;
 	}
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
-	inline void tally_nonneutral_mutations(int64_t *mutation_count, int64_t *nonneutral_count, int64_t *recached_count)
+	inline void tally_nonneutral_mutations(int64_t *p_mutation_count, int64_t *p_nonneutral_count, int64_t *p_recached_count)
 	{
-		*mutation_count += mutation_count_;
+		*p_mutation_count += mutation_count_;
 		
 		if (nonneutral_mutations_count_ != -1)
-			*nonneutral_count += nonneutral_mutations_count_;
+			*p_nonneutral_count += nonneutral_mutations_count_;
 		
 		if (recached_run_)
 		{
-			(*recached_count)++;
+			(*p_recached_count)++;
 			recached_run_ = false;
 		}
 	}

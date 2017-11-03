@@ -190,7 +190,7 @@ public:
 	
 	// additional methods for SLiMgui, for information-gathering support
 #ifdef SLIMGUI
-	void RecordFitness(slim_generation_t p_history_index, slim_objectid_t p_subpop_id, double fitness_value);
+	void RecordFitness(slim_generation_t p_history_index, slim_objectid_t p_subpop_id, double p_fitness_value);
 	void SurveyPopulation(void);
 	void AddTallyForMutationTypeAndBinNumber(int p_mutation_type_index, int p_mutation_type_count, slim_generation_t p_bin_number, slim_generation_t **p_buffer, uint32_t *p_bufferBins);
 #endif
