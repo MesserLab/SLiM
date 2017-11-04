@@ -35,11 +35,11 @@
 #include <vector>
 
 
-// See Eidos_TestElement::GetProperty(), Eidos_TestElement::ExecuteInstanceMethod, and 
-static std::vector<Eidos_TestElement *> inc_element_thunk;
-static std::vector<Eidos_TestElement *> sq_element_thunk;
+// See EidosTestElement::GetProperty(), EidosTestElement::ExecuteInstanceMethod, and 
+static std::vector<EidosTestElement *> inc_element_thunk;
+static std::vector<EidosTestElement *> sq_element_thunk;
 
-void Eidos_TestElement::FreeThunks(void)
+void EidosTestElement::FreeThunks(void)
 {
 	// Valgrind doesn't seem happy with our spuriously allocated test elements just being referenced
 	// by a vector; maybe std::vector does not guarantee alignment or something.  Anyway, if we free
@@ -57,36 +57,36 @@ void Eidos_TestElement::FreeThunks(void)
 
 
 //
-//	Eidos_TestElement
+//	EidosTestElement
 //
-#pragma mark Eidos_TestElement
+#pragma mark EidosTestElement
 
-Eidos_TestElement::Eidos_TestElement(int64_t p_value) : yolk_(p_value)
+EidosTestElement::EidosTestElement(int64_t p_value) : yolk_(p_value)
 {
 }
 
-const EidosObjectClass *Eidos_TestElement::Class(void) const
+const EidosObjectClass *EidosTestElement::Class(void) const
 {
-	return gEidos_TestElementClass;
+	return gEidosTestElement_Class;
 }
 
-EidosValue_SP Eidos_TestElement::GetProperty(EidosGlobalStringID p_property_id)
+EidosValue_SP EidosTestElement::GetProperty(EidosGlobalStringID p_property_id)
 {
 	if (p_property_id == gEidosID__yolk)				// ACCELERATED
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(yolk_));
 	else if (p_property_id == gEidosID__increment)
 	{
 		// The way we handle the increment property is extremely questionable; we create a new
-		// Eidos_TestElement object that is not owned by anyone, so it ends up as a leak in
-		// Instruments.  This doesn't matter, since Eidos_TestElement is only used in test code,
+		// EidosTestElement object that is not owned by anyone, so it ends up as a leak in
+		// Instruments.  This doesn't matter, since EidosTestElement is only used in test code,
 		// but it clutters up leak reports confusingly.  To get rid of those leak reports, we
 		// keep a static vector of pointers to the leaked elements, so they are no longer
 		// considered leaks.  This is an ugly hack, but is completely harmless.
-		Eidos_TestElement *inc_element = new Eidos_TestElement(yolk_ + 1);
+		EidosTestElement *inc_element = new EidosTestElement(yolk_ + 1);
 		
 		inc_element_thunk.push_back(inc_element);
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(inc_element, gEidos_TestElementClass));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(inc_element, gEidosTestElement_Class));
 	}
 	
 	// all others, including gID_none
@@ -94,7 +94,7 @@ EidosValue_SP Eidos_TestElement::GetProperty(EidosGlobalStringID p_property_id)
 		return EidosObjectElement::GetProperty(p_property_id);
 }
 
-int64_t Eidos_TestElement::GetProperty_Accelerated_Int(EidosGlobalStringID p_property_id)
+int64_t EidosTestElement::GetProperty_Accelerated_Int(EidosGlobalStringID p_property_id)
 {
 	switch (p_property_id)
 	{
@@ -104,7 +104,7 @@ int64_t Eidos_TestElement::GetProperty_Accelerated_Int(EidosGlobalStringID p_pro
 	}
 }
 
-void Eidos_TestElement::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
+void EidosTestElement::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
 {
 	if (p_property_id == gEidosID__yolk)
 	{
@@ -117,7 +117,7 @@ void Eidos_TestElement::SetProperty(EidosGlobalStringID p_property_id, const Eid
 		return EidosObjectElement::SetProperty(p_property_id, p_value);
 }
 
-EidosValue_SP Eidos_TestElement::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP EidosTestElement::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_method_id)
@@ -128,42 +128,42 @@ EidosValue_SP Eidos_TestElement::ExecuteInstanceMethod(EidosGlobalStringID p_met
 	}
 }
 
-EidosValue_SP Eidos_TestElement::ExecuteMethod_cubicYolk(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP EidosTestElement::ExecuteMethod_cubicYolk(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(yolk_ * yolk_ * yolk_));
 }
 
-EidosValue_SP Eidos_TestElement::ExecuteMethod_squareTest(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP EidosTestElement::ExecuteMethod_squareTest(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
 	// The way we handle the squareTest property is extremely questionable; we create a new
-	// Eidos_TestElement object that is not owned by anyone, so it ends up as a leak in
-	// Instruments.  This doesn't matter, since Eidos_TestElement is only used in test code,
+	// EidosTestElement object that is not owned by anyone, so it ends up as a leak in
+	// Instruments.  This doesn't matter, since EidosTestElement is only used in test code,
 	// but it clutters up leak reports confusingly.  To get rid of those leak reports, we
 	// keep a static vector of pointers to the leaked elements, so they are no longer
 	// considered leaks.  This is an ugly hack, but is completely harmless.
-	Eidos_TestElement *sq_element = new Eidos_TestElement(yolk_ * yolk_);
+	EidosTestElement *sq_element = new EidosTestElement(yolk_ * yolk_);
 	
 	sq_element_thunk.push_back(sq_element);
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(sq_element, gEidos_TestElementClass));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(sq_element, gEidosTestElement_Class));
 }
 
 
 //
-//	Eidos_TestElementClass
+//	EidosTestElement_Class
 //
 #pragma mark -
-#pragma mark Eidos_TestElementClass
+#pragma mark EidosTestElement_Class
 
-class Eidos_TestElementClass : public EidosObjectClass
+class EidosTestElement_Class : public EidosObjectClass
 {
 public:
-	Eidos_TestElementClass(const Eidos_TestElementClass &p_original) = delete;	// no copy-construct
-	Eidos_TestElementClass& operator=(const Eidos_TestElementClass&) = delete;	// no copying
+	EidosTestElement_Class(const EidosTestElement_Class &p_original) = delete;	// no copy-construct
+	EidosTestElement_Class& operator=(const EidosTestElement_Class&) = delete;	// no copying
 	
-	Eidos_TestElementClass(void);
+	EidosTestElement_Class(void);
 	
 	virtual const std::string &ElementType(void) const;
 	
@@ -175,19 +175,19 @@ public:
 	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 };
 
-EidosObjectClass *gEidos_TestElementClass = new Eidos_TestElementClass();
+EidosObjectClass *gEidosTestElement_Class = new EidosTestElement_Class();
 
 
-Eidos_TestElementClass::Eidos_TestElementClass(void)
+EidosTestElement_Class::EidosTestElement_Class(void)
 {
 }
 
-const std::string &Eidos_TestElementClass::ElementType(void) const
+const std::string &EidosTestElement_Class::ElementType(void) const
 {
 	return gEidosStr__TestElement;
 }
 
-const std::vector<const EidosPropertySignature *> *Eidos_TestElementClass::Properties(void) const
+const std::vector<const EidosPropertySignature *> *EidosTestElement_Class::Properties(void) const
 {
 	static std::vector<const EidosPropertySignature *> *properties = nullptr;
 	
@@ -202,7 +202,7 @@ const std::vector<const EidosPropertySignature *> *Eidos_TestElementClass::Prope
 	return properties;
 }
 
-const EidosPropertySignature *Eidos_TestElementClass::SignatureForProperty(EidosGlobalStringID p_property_id) const
+const EidosPropertySignature *EidosTestElement_Class::SignatureForProperty(EidosGlobalStringID p_property_id) const
 {
 	// Signatures are all preallocated, for speed
 	static EidosPropertySignature *yolkSig = nullptr;
@@ -211,7 +211,7 @@ const EidosPropertySignature *Eidos_TestElementClass::SignatureForProperty(Eidos
 	if (!yolkSig)
 	{
 		yolkSig =		(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr__yolk,		gEidosID__yolk,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
-		incrementSig =	(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr__increment,	gEidosID__increment,	true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gEidos_TestElementClass));
+		incrementSig =	(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr__increment,	gEidosID__increment,	true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosTestElement_Class));
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -226,7 +226,7 @@ const EidosPropertySignature *Eidos_TestElementClass::SignatureForProperty(Eidos
 	}
 }
 
-const std::vector<const EidosMethodSignature *> *Eidos_TestElementClass::Methods(void) const
+const std::vector<const EidosMethodSignature *> *EidosTestElement_Class::Methods(void) const
 {
 	static std::vector<const EidosMethodSignature *> *methods = nullptr;
 	
@@ -241,7 +241,7 @@ const std::vector<const EidosMethodSignature *> *Eidos_TestElementClass::Methods
 	return methods;
 }
 
-const EidosMethodSignature *Eidos_TestElementClass::SignatureForMethod(EidosGlobalStringID p_method_id) const
+const EidosMethodSignature *EidosTestElement_Class::SignatureForMethod(EidosGlobalStringID p_method_id) const
 {
 	// Signatures are all preallocated, for speed
 	static EidosInstanceMethodSignature *cubicYolkSig = nullptr;
@@ -250,7 +250,7 @@ const EidosMethodSignature *Eidos_TestElementClass::SignatureForMethod(EidosGlob
 	if (!cubicYolkSig)
 	{
 		cubicYolkSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr__cubicYolk, kEidosValueMaskInt | kEidosValueMaskSingleton));
-		squareTestSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr__squareTest, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidos_TestElementClass));
+		squareTestSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr__squareTest, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosTestElement_Class));
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -265,7 +265,7 @@ const EidosMethodSignature *Eidos_TestElementClass::SignatureForMethod(EidosGlob
 	}
 }
 
-EidosValue_SP Eidos_TestElementClass::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
+EidosValue_SP EidosTestElement_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
 {
 	return EidosObjectClass::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
 }

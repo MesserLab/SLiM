@@ -55,8 +55,8 @@ public:
 	Polymorphism(void) = delete;				// no null construction
 	Polymorphism(slim_polymorphismid_t p_polymorphism_id, const Mutation *p_mutation_ptr, slim_refcount_t p_prevalence);
 	
-	void print(std::ostream &p_out) const;			// includes polymorphism_id_ at the beginning
-	void print_no_id(std::ostream &p_out) const;	// does not include polymorphism_id_
+	void Print(std::ostream &p_out) const;			// includes polymorphism_id_ at the beginning
+	void Print_NoID(std::ostream &p_out) const;	// does not include polymorphism_id_
 	
 	friend bool operator<(const Polymorphism& p_l, const Polymorphism& p_r)
 	{

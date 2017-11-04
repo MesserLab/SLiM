@@ -217,7 +217,7 @@ void Eidos_WarmUp(void)
 		gStaticEidosValue_StringDoubleAsterisk = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("**"));
 		
 		// Register the _Test class, 
-		gEidosContextClasses.push_back(gEidos_TestElementClass);
+		gEidosContextClasses.push_back(gEidosTestElement_Class);
 		
 		// Register global strings and IDs
 		Eidos_RegisterGlobalStringsAndIDs();
@@ -361,7 +361,7 @@ void Eidos_DefineConstantsFromCommandLine(std::vector<std::string> p_constants)
 									//std::cout << "define " << symbol_name << " = " << value_expression << std::endl;
 									
 									// Permanently alter the global Eidos symbol table; don't do this at home!
-									EidosGlobalStringID symbol_id = EidosGlobalStringIDForString(symbol_name);
+									EidosGlobalStringID symbol_id = Eidos_GlobalStringIDForString(symbol_name);
 									EidosSymbolTableEntry table_entry(symbol_id, x_value_sp);
 									
 									gEidosConstantsSymbolTable->InitializeConstantSymbolEntry(table_entry);
@@ -374,7 +374,7 @@ void Eidos_DefineConstantsFromCommandLine(std::vector<std::string> p_constants)
 						{
 							gEidosTerminateThrows = save_throws;
 							
-							EIDOS_TERMINATION << "ERROR (Eidos_DefineConstantsFromCommandLine): illegal defined constant name \"" << symbol_name << "\"." << eidos_terminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (Eidos_DefineConstantsFromCommandLine): illegal defined constant name \"" << symbol_name << "\"." << EidosTerminate(nullptr);
 						}
 					}
 				}
@@ -388,11 +388,11 @@ void Eidos_DefineConstantsFromCommandLine(std::vector<std::string> p_constants)
 		
 		if (gEidosTerminateThrows)
 		{
-			EIDOS_TERMINATION << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << EidosTerminate(nullptr);
 		}
 		else
 		{
-			// This is from operator<<(std::ostream& p_out, const eidos_terminate &p_terminator)
+			// This is from operator<<(std::ostream& p_out, const EidosTerminate &p_terminator)
 			EIDOS_TERMINATION << std::endl;
 			EIDOS_TERMINATION.flush();
 			exit(EXIT_FAILURE);
@@ -427,7 +427,7 @@ bool gEidosTerminated;
 
 
 /** Print a demangled stack backtrace of the caller function to FILE* out. */
-void eidos_print_stacktrace(FILE *p_out, unsigned int p_max_frames)
+void Eidos_PrintStacktrace(FILE *p_out, unsigned int p_max_frames)
 {
 	fprintf(p_out, "stack trace:\n");
 	
@@ -584,7 +584,7 @@ void eidos_print_stacktrace(FILE *p_out, unsigned int p_max_frames)
 	fflush(p_out);
 }
 
-void eidos_script_error_position(int p_start, int p_end, EidosScript *p_script)
+void Eidos_ScriptErrorPosition(int p_start, int p_end, EidosScript *p_script)
 {
 	gEidosErrorLine = -1;
 	gEidosErrorLineCharacter = -1;
@@ -621,7 +621,7 @@ void eidos_script_error_position(int p_start, int p_end, EidosScript *p_script)
 	}
 }
 
-void eidos_log_script_error(std::ostream& p_out, int p_start, int p_end, EidosScript *p_script, bool p_inside_lambda)
+void Eidos_LogScriptError(std::ostream& p_out, int p_start, int p_end, EidosScript *p_script, bool p_inside_lambda)
 {
 	if (p_script && (p_start >= 0) && (p_end >= p_start))
 	{
@@ -696,51 +696,51 @@ void eidos_log_script_error(std::ostream& p_out, int p_start, int p_end, EidosSc
 	}
 }
 
-eidos_terminate::eidos_terminate(const EidosToken *p_error_token)
+EidosTerminate::EidosTerminate(const EidosToken *p_error_token)
 {
 	// This is the end of the line, so we don't need to treat the error position as a stack
 	if (p_error_token)
 		EidosScript::PushErrorPositionFromToken(p_error_token);
 }
 
-eidos_terminate::eidos_terminate(bool p_print_backtrace) : print_backtrace_(p_print_backtrace)
+EidosTerminate::EidosTerminate(bool p_print_backtrace) : print_backtrace_(p_print_backtrace)
 {
 }
 
-eidos_terminate::eidos_terminate(const EidosToken *p_error_token, bool p_print_backtrace) : print_backtrace_(p_print_backtrace)
+EidosTerminate::EidosTerminate(const EidosToken *p_error_token, bool p_print_backtrace) : print_backtrace_(p_print_backtrace)
 {
 	// This is the end of the line, so we don't need to treat the error position as a stack
 	if (p_error_token)
 		EidosScript::PushErrorPositionFromToken(p_error_token);
 }
 
-void operator<<(std::ostream& p_out, const eidos_terminate &p_terminator)
+void operator<<(std::ostream& p_out, const EidosTerminate &p_terminator)
 {
 	p_out << std::endl;
 	
 	p_out.flush();
 	
 	if (p_terminator.print_backtrace_)
-		eidos_print_stacktrace(stderr);
+		Eidos_PrintStacktrace(stderr);
 	
 	if (gEidosTerminateThrows)
 	{
-		// In this case, eidos_terminate() throws an exception that gets caught by the Context.  That invalidates the simulation object, and
+		// In this case, EidosTerminate() throws an exception that gets caught by the Context.  That invalidates the simulation object, and
 		// causes the Context to display an error message and ends the simulation run, but it does not terminate the app.
 		throw std::runtime_error("A runtime error occurred in Eidos");
 	}
 	else
 	{
-		// In this case, eidos_terminate() does in fact terminate; this is appropriate when errors are simply fatal and there is no UI.
+		// In this case, EidosTerminate() does in fact terminate; this is appropriate when errors are simply fatal and there is no UI.
 		// In this case, we want to emit a diagnostic showing the line of script where the error occurred, if we can.
 		// This facility uses only the non-UTF16 positions, since it is based on std::string, so those positions can be ignored.
-		eidos_log_script_error(p_out, gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCurrentScript, gEidosExecutingRuntimeScript);
+		Eidos_LogScriptError(p_out, gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCurrentScript, gEidosExecutingRuntimeScript);
 		
 		exit(EXIT_FAILURE);
 	}
 }
 
-std::string EidosGetTrimmedRaiseMessage(void)
+std::string Eidos_GetTrimmedRaiseMessage(void)
 {
 	if (gEidosTerminateThrows)
 	{
@@ -762,7 +762,7 @@ std::string EidosGetTrimmedRaiseMessage(void)
 	}
 }
 
-std::string EidosGetUntrimmedRaiseMessage(void)
+std::string Eidos_GetUntrimmedRaiseMessage(void)
 {
 	if (gEidosTerminateThrows)
 	{
@@ -821,7 +821,7 @@ std::string EidosGetUntrimmedRaiseMessage(void)
  * memory use) measured in bytes, or zero if the value cannot be
  * determined on this OS.
  */
-size_t EidosGetPeakRSS(void)
+size_t Eidos_GetPeakRSS(void)
 {
 #if defined(_WIN32)
 	/* Windows -------------------------------------------------- */
@@ -864,7 +864,7 @@ size_t EidosGetPeakRSS(void)
  * Returns the current resident set size (physical memory use) measured
  * in bytes, or zero if the value cannot be determined on this OS.
  */
-size_t EidosGetCurrentRSS(void)
+size_t Eidos_GetCurrentRSS(void)
 {
 #if defined(_WIN32)
 	/* Windows -------------------------------------------------- */
@@ -903,7 +903,7 @@ size_t EidosGetCurrentRSS(void)
 
 
 // resolve a leading ~ in a filesystem path to the user's home directory
-std::string EidosResolvedPath(const std::string p_path)
+std::string Eidos_ResolvedPath(const std::string p_path)
 {
 	std::string path = p_path;
 	
@@ -1328,7 +1328,7 @@ double Eidos_ExactSum(const double *p_double_vec, int64_t p_vec_length)
 				if (std::isfinite(xsave))
 				{
 					// Python returns some sort of error object in this case; we throw
-					EIDOS_TERMINATION << "ERROR (Eidos_ExactSum): intermediate overflow in Eidos_ExactSum()." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (Eidos_ExactSum): intermediate overflow in Eidos_ExactSum()." << EidosTerminate(nullptr);
 				}
 				
 				if (std::isinf(xsave))
@@ -1354,7 +1354,7 @@ double Eidos_ExactSum(const double *p_double_vec, int64_t p_vec_length)
 		if (std::isnan(inf_sum))
 		{
 			// Python returns some sort of error object in this case; we throw
-			EIDOS_TERMINATION << "ERROR (Eidos_ExactSum): -inf + inf in Eidos_ExactSum()." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExactSum): -inf + inf in Eidos_ExactSum()." << EidosTerminate(nullptr);
 		}
 		else
 		{
@@ -1395,7 +1395,7 @@ double Eidos_ExactSum(const double *p_double_vec, int64_t p_vec_length)
 }
 
 // run a Un*x command; thanks to http://stackoverflow.com/questions/478898/how-to-execute-a-command-and-get-output-of-command-within-c-using-posix
-std::string EidosExec(const char *p_cmd)
+std::string Eidos_Exec(const char *p_cmd)
 {
 	char buffer[128];
 	std::string result = "";
@@ -1408,7 +1408,7 @@ std::string EidosExec(const char *p_cmd)
 	return result;
 }
 
-size_t EidosGetMaxRSS(void)
+size_t Eidos_GetMaxRSS(void)
 {
 	static bool beenHere = false;
 	static size_t max_rss = 0;
@@ -1417,7 +1417,7 @@ size_t EidosGetMaxRSS(void)
 	{
 #if 0
 		// Find our RSS limit by launching a subshell to run "ulimit -m"
-		std::string limit_string = EidosExec("ulimit -m");
+		std::string limit_string = Eidos_Exec("ulimit -m");
 		
 		std::string unlimited("unlimited");
 		
@@ -1472,7 +1472,7 @@ size_t EidosGetMaxRSS(void)
 	return max_rss;
 }
 
-void EidosCheckRSSAgainstMax(std::string p_message1, std::string p_message2)
+void Eidos_CheckRSSAgainstMax(std::string p_message1, std::string p_message2)
 {
 	static bool beenHere = false;
 	static size_t max_rss = 0;
@@ -1480,7 +1480,7 @@ void EidosCheckRSSAgainstMax(std::string p_message1, std::string p_message2)
 	if (!beenHere)
 	{
 		// The first time we are called, we get the memory limit and sanity-check it
-		max_rss = EidosGetMaxRSS();
+		max_rss = Eidos_GetMaxRSS();
 		
 #if 0
 		// Impose a 20 MB limit, for testing
@@ -1490,10 +1490,10 @@ void EidosCheckRSSAgainstMax(std::string p_message1, std::string p_message2)
 		
 		if (max_rss != 0)
 		{
-			size_t current_rss = EidosGetCurrentRSS();
+			size_t current_rss = Eidos_GetCurrentRSS();
 			
 			// If we are already within 10 MB of overrunning our supposed limit, disable checking; assume that
-			// either EidosGetMaxRSS() or EidosGetCurrentRSS() is not telling us the truth.
+			// either Eidos_GetMaxRSS() or Eidos_GetCurrentRSS() is not telling us the truth.
 			if (current_rss + 10L*1024L*1024L > max_rss)
 				max_rss = 0;
 		}
@@ -1508,7 +1508,7 @@ void EidosCheckRSSAgainstMax(std::string p_message1, std::string p_message2)
 	
 	if (eidos_do_memory_checks && (max_rss != 0))
 	{
-		size_t current_rss = EidosGetCurrentRSS();
+		size_t current_rss = Eidos_GetCurrentRSS();
 		
 		// If we are within 10 MB of overrunning our limit, then terminate with a message before
 		// the system does it for us.  10 MB gives us a little headroom, so that we detect this
@@ -1581,7 +1581,7 @@ const std::string gEidosStr_ExecuteInstanceMethod = "ExecuteInstanceMethod";
 const std::string gEidosStr_undefined = "undefined";
 const std::string gEidosStr_applyValue = "applyValue";
 
-// strings for Eidos_TestElement
+// strings for EidosTestElement
 const std::string gEidosStr__TestElement = "_TestElement";
 const std::string gEidosStr__yolk = "_yolk";
 const std::string gEidosStr__increment = "_increment";
@@ -1613,7 +1613,7 @@ void Eidos_RegisterStringForGlobalID(const std::string &p_string, EidosGlobalStr
 	// BCH 13 September 2016: So, this is a tricky issue without a good resolution at the moment.  Eidos explicitly registers
 	// a few strings, using this method, right below in Eidos_RegisterGlobalStringsAndIDs().  And SLiM explicitly registers
 	// a bunch more strings, in SLiM_RegisterGlobalStringsAndIDs().  So far so good.  But Eidos also registers a bunch of
-	// strings "in passing", as a side effect of calling EidosGlobalStringIDForString(), because it doesn't care what the
+	// strings "in passing", as a side effect of calling Eidos_GlobalStringIDForString(), because it doesn't care what the
 	// IDs of those strings are, it just wants them to be registered for later matching.  This happens to function names and
 	// parameter names, in particular.  This is good; we don't want to have to explicitly enumerate and register all of those
 	// strings, that would be a tremendous pain.  The problem is that these "in passing" registrations can conflict with
@@ -1625,13 +1625,13 @@ void Eidos_RegisterStringForGlobalID(const std::string &p_string, EidosGlobalStr
 	// but I don't see any good solution.  Sure is nice how uniquing of selectors just happens automatically in Obj-C!  That
 	// is basically what we're trying to duplicate here, without language support.
 	if (gStringToID.find(p_string) != gStringToID.end())
-		EIDOS_TERMINATION << "ERROR (Eidos_RegisterStringForGlobalID): string " << p_string << " has already been registered." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_RegisterStringForGlobalID): string " << p_string << " has already been registered." << EidosTerminate(nullptr);
 	
 	if (gIDToString.find(p_string_id) != gIDToString.end())
-		EIDOS_TERMINATION << "ERROR (Eidos_RegisterStringForGlobalID): id " << p_string_id << " has already been registered." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_RegisterStringForGlobalID): id " << p_string_id << " has already been registered." << EidosTerminate(nullptr);
 	
 	if (p_string_id >= gEidosID_LastContextEntry)
-		EIDOS_TERMINATION << "ERROR (Eidos_RegisterStringForGlobalID): id " << p_string_id << " it out of the legal range for preregistered strings." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_RegisterStringForGlobalID): id " << p_string_id << " it out of the legal range for preregistered strings." << EidosTerminate(nullptr);
 	
 	gStringToID[p_string] = p_string_id;
 	gIDToString[p_string_id] = &p_string;
@@ -1676,9 +1676,9 @@ void Eidos_RegisterGlobalStringsAndIDs(void)
 	}
 }
 
-EidosGlobalStringID EidosGlobalStringIDForString(const std::string &p_string)
+EidosGlobalStringID Eidos_GlobalStringIDForString(const std::string &p_string)
 {
-	//std::cerr << "EidosGlobalStringIDForString: " << p_string << std::endl;
+	//std::cerr << "Eidos_GlobalStringIDForString: " << p_string << std::endl;
 	auto found_iter = gStringToID.find(p_string);
 	
 	if (found_iter == gStringToID.end())
@@ -1693,7 +1693,7 @@ EidosGlobalStringID EidosGlobalStringIDForString(const std::string &p_string)
 		auto found_ID_iter = gIDToString.find(string_id);
 		
 		if (found_ID_iter != gIDToString.end())
-			EIDOS_TERMINATION << "ERROR (EidosGlobalStringIDForString): id " << string_id << " was already in use; collision during in-passing registration of global string '" << p_string << "'." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_GlobalStringIDForString): id " << string_id << " was already in use; collision during in-passing registration of global string '" << p_string << "'." << EidosTerminate(nullptr);
 #endif
 		
 		const std::string *copied_string = new const std::string(p_string);
@@ -1703,7 +1703,7 @@ EidosGlobalStringID EidosGlobalStringIDForString(const std::string &p_string)
 		
 #if DEBUG
 		// We add copied strings to a thunk vector so we can free them at the end to un-confuse Valgrind;
-		// see EidosFreeGlobalStrings().  We do this only in DEBUG since we run Valgrind on a DEBUG build.
+		// see Eidos_FreeGlobalStrings().  We do this only in DEBUG since we run Valgrind on a DEBUG build.
 		gIDToString_Thunk.push_back(copied_string);
 #endif
 		
@@ -1713,9 +1713,9 @@ EidosGlobalStringID EidosGlobalStringIDForString(const std::string &p_string)
 		return found_iter->second;
 }
 
-const std::string &StringForEidosGlobalStringID(EidosGlobalStringID p_string_id)
+const std::string &Eidos_StringForGlobalStringID(EidosGlobalStringID p_string_id)
 {
-	//std::cerr << "StringForEidosGlobalStringID: " << p_string_id << std::endl;
+	//std::cerr << "Eidos_StringForGlobalStringID: " << p_string_id << std::endl;
 	auto found_iter = gIDToString.find(p_string_id);
 	
 	if (found_iter == gIDToString.end())
@@ -1724,12 +1724,12 @@ const std::string &StringForEidosGlobalStringID(EidosGlobalStringID p_string_id)
 		return *(found_iter->second);
 }
 
-void EidosFreeGlobalStrings(void)
+void Eidos_FreeGlobalStrings(void)
 {
 	// The gIDToString map will not be safe to use, since we will have freed strings out from under it
 	gIDToString.clear();
 	
-	// Now we free all of the strings that we copied above in EidosGlobalStringIDForString().
+	// Now we free all of the strings that we copied above in Eidos_GlobalStringIDForString().
 	// The point of this thunk vector is to prevent Valgrind from being confused and thinking we
 	// have leaked the global strings that we copied; apparently unordered_map keeps them in
 	// a way (unaligned?) that Valgrind does not recognize as a reference to the copies, so it
@@ -2409,7 +2409,7 @@ EidosNamedColor gEidosNamedColors[] = {
 	{nullptr, 0, 0, 0}
 };
 
-void EidosGetColorComponents(const std::string &p_color_name, float *p_red_component, float *p_green_component, float *p_blue_component)
+void Eidos_GetColorComponents(const std::string &p_color_name, float *p_red_component, float *p_green_component, float *p_blue_component)
 {
 	// Colors can be specified either in hex as "#RRGGBB" or as a named color from the list above
 	if ((p_color_name.length() == 7) && (p_color_name[0] == '#'))
@@ -2427,7 +2427,7 @@ void EidosGetColorComponents(const std::string &p_color_name, float *p_red_compo
 		}
 		catch (...)
 		{
-			EIDOS_TERMINATION << "ERROR (EidosGetColorComponents): color specification \"" << p_color_name << "\" is malformed." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Eidos_GetColorComponents): color specification \"" << p_color_name << "\" is malformed." << EidosTerminate();
 		}
 	}
 	else
@@ -2444,10 +2444,10 @@ void EidosGetColorComponents(const std::string &p_color_name, float *p_red_compo
 		}
 	}
 	
-	EIDOS_TERMINATION << "ERROR (EidosGetColorComponents): color named \"" << p_color_name << "\" could not be found." << eidos_terminate();
+	EIDOS_TERMINATION << "ERROR (Eidos_GetColorComponents): color named \"" << p_color_name << "\" could not be found." << EidosTerminate();
 }
 
-void EidosGetColorComponents(const std::string &p_color_name, uint8_t *p_red_component, uint8_t *p_green_component, uint8_t *p_blue_component)
+void Eidos_GetColorComponents(const std::string &p_color_name, uint8_t *p_red_component, uint8_t *p_green_component, uint8_t *p_blue_component)
 {
 	// Colors can be specified either in hex as "#RRGGBB" or as a named color from the list above
 	if ((p_color_name.length() == 7) && (p_color_name[0] == '#'))
@@ -2465,7 +2465,7 @@ void EidosGetColorComponents(const std::string &p_color_name, uint8_t *p_red_com
 		}
 		catch (...)
 		{
-			EIDOS_TERMINATION << "ERROR (EidosGetColorComponents): color specification \"" << p_color_name << "\" is malformed." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Eidos_GetColorComponents): color specification \"" << p_color_name << "\" is malformed." << EidosTerminate();
 		}
 	}
 	else
@@ -2482,10 +2482,10 @@ void EidosGetColorComponents(const std::string &p_color_name, uint8_t *p_red_com
 		}
 	}
 	
-	EIDOS_TERMINATION << "ERROR (EidosGetColorComponents): color named \"" << p_color_name << "\" could not be found." << eidos_terminate();
+	EIDOS_TERMINATION << "ERROR (Eidos_GetColorComponents): color named \"" << p_color_name << "\" could not be found." << EidosTerminate();
 }
 
-void EidosGetColorString(double p_red, double p_green, double p_blue, char *p_string_buffer)
+void Eidos_GetColorString(double p_red, double p_green, double p_blue, char *p_string_buffer)
 {
 	if (p_red < 0.0) p_red = 0.0;
 	if (p_red > 1.0) p_red = 1.0;

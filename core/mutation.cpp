@@ -63,7 +63,7 @@ void SLiM_CreateMutationBlock(void)
 void SLiM_IncreaseMutationBlockCapacity(void)
 {
 	if (!gSLiM_Mutation_Block)
-		EIDOS_TERMINATION << "ERROR (SLiM_NewMutationFromBlock_realloc): (internal error) called before SLiM_CreateMutationBlock()." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiM_NewMutationFromBlock_realloc): (internal error) called before SLiM_CreateMutationBlock()." << EidosTerminate();
 	
 	// We need to expand the size of our Mutation block.  This has the consequence of invalidating
 	// every Mutation * in the program.  In general that is fine; we are careful to only keep
@@ -352,7 +352,7 @@ EidosValue_SP Mutation::ExecuteMethod_setSelectionCoeff(EidosGlobalStringID p_me
 		SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
 		
 		if (!sim)
-			EIDOS_TERMINATION << "ERROR (Mutation::ExecuteMethod_setSelectionCoeff): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Mutation::ExecuteMethod_setSelectionCoeff): (internal error) the sim is not registered as the context pointer." << EidosTerminate();
 		
 		sim->pure_neutral_ = false;							// let the sim know that it is no longer a pure-neutral simulation
 		mutation_type_ptr_->all_pure_neutral_DFE_ = false;	// let the mutation type for this mutation know that it is no longer pure neutral
@@ -368,7 +368,7 @@ EidosValue_SP Mutation::ExecuteMethod_setSelectionCoeff(EidosGlobalStringID p_me
 		SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
 		
 		if (!sim)
-			EIDOS_TERMINATION << "ERROR (Mutation::ExecuteMethod_setSelectionCoeff): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Mutation::ExecuteMethod_setSelectionCoeff): (internal error) the sim is not registered as the context pointer." << EidosTerminate();
 		
 		// If a selection coefficient has changed from zero to non-zero, or vice versa, MutationRun's nonneutral mutation caches need revalidation
 		sim->nonneutral_change_counter_++;
@@ -391,7 +391,7 @@ EidosValue_SP Mutation::ExecuteMethod_setMutationType(EidosGlobalStringID p_meth
 	SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
 	
 	if (!sim)
-		EIDOS_TERMINATION << "ERROR (Mutation::ExecuteMethod_setMutationType): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Mutation::ExecuteMethod_setMutationType): (internal error) the sim is not registered as the context pointer." << EidosTerminate();
 	
 	MutationType *mutation_type_ptr = nullptr;
 	
@@ -401,7 +401,7 @@ EidosValue_SP Mutation::ExecuteMethod_setMutationType(EidosGlobalStringID p_meth
 		auto found_muttype_pair = sim->MutationTypes().find(mutation_type_id);
 		
 		if (found_muttype_pair == sim->MutationTypes().end())
-			EIDOS_TERMINATION << "ERROR (Mutation::ExecuteMethod_setMutationType): setMutationType() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Mutation::ExecuteMethod_setMutationType): setMutationType() mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
 		
 		mutation_type_ptr = found_muttype_pair->second;
 	}

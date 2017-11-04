@@ -65,7 +65,7 @@ void EidosAssertScriptSuccess(const std::string &p_script_string, EidosValue_SP 
 	}
 	catch (...)
 	{
-		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during Tokenize(): " << EidosGetTrimmedRaiseMessage() << std::endl;
+		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during Tokenize(): " << Eidos_GetTrimmedRaiseMessage() << std::endl;
 		
 		gEidosCurrentScript = nullptr;
 		gEidosExecutingRuntimeScript = false;
@@ -77,7 +77,7 @@ void EidosAssertScriptSuccess(const std::string &p_script_string, EidosValue_SP 
 	}
 	catch (...)
 	{
-		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during ParseToAST(): " << EidosGetTrimmedRaiseMessage() << std::endl;
+		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during ParseToAST(): " << Eidos_GetTrimmedRaiseMessage() << std::endl;
 		
 		gEidosCurrentScript = nullptr;
 		gEidosExecutingRuntimeScript = false;
@@ -92,7 +92,7 @@ void EidosAssertScriptSuccess(const std::string &p_script_string, EidosValue_SP 
 	}
 	catch (...)
 	{
-		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during EvaluateInterpreterBlock(): " << EidosGetTrimmedRaiseMessage() << std::endl;
+		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during EvaluateInterpreterBlock(): " << Eidos_GetTrimmedRaiseMessage() << std::endl;
 		
 		gEidosCurrentScript = nullptr;
 		gEidosExecutingRuntimeScript = false;
@@ -162,8 +162,8 @@ void EidosAssertScriptRaise(const std::string &p_script_string, const int p_bad_
 	}
 	catch (...)
 	{
-		// We need to call EidosGetTrimmedRaiseMessage() here to empty the error stringstream, even if we don't log the error
-		std::string raise_message = EidosGetTrimmedRaiseMessage();
+		// We need to call Eidos_GetTrimmedRaiseMessage() here to empty the error stringstream, even if we don't log the error
+		std::string raise_message = Eidos_GetTrimmedRaiseMessage();
 		
 		if (raise_message.find(p_reason_snip) != std::string::npos)
 		{
@@ -181,7 +181,7 @@ void EidosAssertScriptRaise(const std::string &p_script_string, const int p_bad_
 				
 				std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise expected, but error position unexpected" << std::endl;
 				std::cerr << p_script_string << "   raise message: " << raise_message << std::endl;
-				eidos_log_script_error(std::cerr, gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCurrentScript, gEidosExecutingRuntimeScript);
+				Eidos_LogScriptError(std::cerr, gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCurrentScript, gEidosExecutingRuntimeScript);
 				std::cerr << "--------------------" << std::endl << std::endl;
 			}
 			else
@@ -325,7 +325,7 @@ void RunEidosTests(void)
 	
 	// Do some tests of our custom math functions
 #if 0
-	EidosInitializeRNGFromSeed(EidosGenerateSeedFromPIDAndTime());
+	Eidos_InitializeRNGFromSeed(Eidos_GenerateSeedFromPIDAndTime());
 	
 	int64_t totals[17];		// note 17 is prime
 	
@@ -333,7 +333,7 @@ void RunEidosTests(void)
 		totals[i] = 0;
 	
 	for (int i = 0; i < 100000000; ++i)
-		totals[eidos_random_int(gEidos_rng, 17)]++;
+		totals[Eidos_RandomInt(gEidos_rng, 17)]++;
 	
 	for (int i = 0; i < 17; ++i)
 		std::cout << "totals[" << i << "] == " << totals[i] << std::endl;
@@ -341,7 +341,7 @@ void RunEidosTests(void)
 	
 #if 0
 	//#ifndef USE_GSL_POISSON
-	EidosInitializeRNGFromSeed(EidosGenerateSeedFromPIDAndTime());
+	Eidos_InitializeRNGFromSeed(Eidos_GenerateSeedFromPIDAndTime());
 	
 	double total;
 	int i;
@@ -349,9 +349,9 @@ void RunEidosTests(void)
 	std::cout << std::endl << std::endl;
 	
 	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += eidos_fast_ran_poisson(1.0);
+		total += Eidos_FastRandomPoisson(1.0);
 	
-	std::cout << "eidos_fast_ran_poisson(1.0): mean = " << (total / 1000000) << ", expected 1.0" << std::endl;
+	std::cout << "Eidos_FastRandomPoisson(1.0): mean = " << (total / 1000000) << ", expected 1.0" << std::endl;
 	
 	for (total = 0.0, i = 0; i < 1000000; i++)
 		total += gsl_ran_poisson(gEidos_rng, 1.0);
@@ -359,9 +359,9 @@ void RunEidosTests(void)
 	std::cout << "gsl_ran_poisson(1.0): mean = " << (total / 1000000) << ", expected 1.0" << std::endl << std::endl;
 	
 	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += eidos_fast_ran_poisson(0.001);
+		total += Eidos_FastRandomPoisson(0.001);
 	
-	std::cout << "eidos_fast_ran_poisson(0.001): mean = " << (total / 1000000) << ", expected 0.001" << std::endl;
+	std::cout << "Eidos_FastRandomPoisson(0.001): mean = " << (total / 1000000) << ", expected 0.001" << std::endl;
 	
 	for (total = 0.0, i = 0; i < 1000000; i++)
 		total += gsl_ran_poisson(gEidos_rng, 0.001);
@@ -369,9 +369,9 @@ void RunEidosTests(void)
 	std::cout << "gsl_ran_poisson(0.001): mean = " << (total / 1000000) << ", expected 0.001" << std::endl << std::endl;
 	
 	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += eidos_fast_ran_poisson(0.00001);
+		total += Eidos_FastRandomPoisson(0.00001);
 	
-	std::cout << "eidos_fast_ran_poisson(0.00001): mean = " << (total / 1000000) << ", expected 0.00001" << std::endl;
+	std::cout << "Eidos_FastRandomPoisson(0.00001): mean = " << (total / 1000000) << ", expected 0.00001" << std::endl;
 	
 	for (total = 0.0, i = 0; i < 1000000; i++)
 		total += gsl_ran_poisson(gEidos_rng, 0.00001);
@@ -379,9 +379,9 @@ void RunEidosTests(void)
 	std::cout << "gsl_ran_poisson(0.00001): mean = " << (total / 1000000) << ", expected 0.00001" << std::endl << std::endl;
 	
 	for (total = 0.0, i = 0; i < 100000; i++)
-		total += eidos_fast_ran_poisson(100);
+		total += Eidos_FastRandomPoisson(100);
 	
-	std::cout << "eidos_fast_ran_poisson(100): mean = " << (total / 100000) << ", expected 100" << std::endl;
+	std::cout << "Eidos_FastRandomPoisson(100): mean = " << (total / 100000) << ", expected 100" << std::endl;
 	
 	for (total = 0.0, i = 0; i < 100000; i++)
 		total += gsl_ran_poisson(gEidos_rng, 100);
@@ -392,9 +392,9 @@ void RunEidosTests(void)
 	std::cout << std::endl;
 	
 	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += eidos_fast_ran_poisson(1.0, exp(-1.0));
+		total += Eidos_FastRandomPoisson(1.0, exp(-1.0));
 	
-	std::cout << "eidos_fast_ran_poisson(1.0): mean = " << (total / 1000000) << ", expected 1.0" << std::endl;
+	std::cout << "Eidos_FastRandomPoisson(1.0): mean = " << (total / 1000000) << ", expected 1.0" << std::endl;
 	
 	for (total = 0.0, i = 0; i < 1000000; i++)
 		total += gsl_ran_poisson(gEidos_rng, 1.0);
@@ -402,9 +402,9 @@ void RunEidosTests(void)
 	std::cout << "gsl_ran_poisson(1.0): mean = " << (total / 1000000) << ", expected 1.0" << std::endl << std::endl;
 	
 	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += eidos_fast_ran_poisson(0.001, exp(-0.001));
+		total += Eidos_FastRandomPoisson(0.001, exp(-0.001));
 	
-	std::cout << "eidos_fast_ran_poisson(0.001): mean = " << (total / 1000000) << ", expected 0.001" << std::endl;
+	std::cout << "Eidos_FastRandomPoisson(0.001): mean = " << (total / 1000000) << ", expected 0.001" << std::endl;
 	
 	for (total = 0.0, i = 0; i < 1000000; i++)
 		total += gsl_ran_poisson(gEidos_rng, 0.001);
@@ -412,9 +412,9 @@ void RunEidosTests(void)
 	std::cout << "gsl_ran_poisson(0.001): mean = " << (total / 1000000) << ", expected 0.001" << std::endl << std::endl;
 	
 	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += eidos_fast_ran_poisson(0.00001, exp(-0.00001));
+		total += Eidos_FastRandomPoisson(0.00001, exp(-0.00001));
 	
-	std::cout << "eidos_fast_ran_poisson(0.00001): mean = " << (total / 1000000) << ", expected 0.00001" << std::endl;
+	std::cout << "Eidos_FastRandomPoisson(0.00001): mean = " << (total / 1000000) << ", expected 0.00001" << std::endl;
 	
 	for (total = 0.0, i = 0; i < 1000000; i++)
 		total += gsl_ran_poisson(gEidos_rng, 0.00001);
@@ -422,9 +422,9 @@ void RunEidosTests(void)
 	std::cout << "gsl_ran_poisson(0.00001): mean = " << (total / 1000000) << ", expected 0.00001" << std::endl << std::endl;
 	
 	for (total = 0.0, i = 0; i < 100000; i++)
-		total += eidos_fast_ran_poisson(100, exp(-100));
+		total += Eidos_FastRandomPoisson(100, exp(-100));
 	
-	std::cout << "eidos_fast_ran_poisson(100): mean = " << (total / 100000) << ", expected 100" << std::endl;
+	std::cout << "Eidos_FastRandomPoisson(100): mean = " << (total / 100000) << ", expected 100" << std::endl;
 	
 	for (total = 0.0, i = 0; i < 100000; i++)
 		total += gsl_ran_poisson(gEidos_rng, 100);
@@ -435,9 +435,10 @@ void RunEidosTests(void)
 	std::cout << std::endl;
 	
 	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += eidos_fast_ran_poisson_nonzero(1.0, exp(-1.0));
+		total += Eidos_FastRandomPoisson_NONZERO
+(1.0, exp(-1.0));
 	
-	std::cout << "eidos_fast_ran_poisson(1.0): mean = " << (total / 1000000) << ", expected ~1.58" << std::endl;
+	std::cout << "Eidos_FastRandomPoisson(1.0): mean = " << (total / 1000000) << ", expected ~1.58" << std::endl;
 	
 	for (total = 0.0, i = 0; i < 1000000; i++)
 	{
@@ -453,9 +454,10 @@ void RunEidosTests(void)
 	std::cout << "gsl_ran_poisson(1.0): mean = " << (total / 1000000) << ", expected ~1.58" << std::endl << std::endl;
 	
 	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += eidos_fast_ran_poisson_nonzero(0.001, exp(-0.001));
+		total += Eidos_FastRandomPoisson_NONZERO
+(0.001, exp(-0.001));
 	
-	std::cout << "eidos_fast_ran_poisson(0.001): mean = " << (total / 1000000) << ", expected ~1.0005" << std::endl;
+	std::cout << "Eidos_FastRandomPoisson(0.001): mean = " << (total / 1000000) << ", expected ~1.0005" << std::endl;
 	
 	//	for (total = 0.0, i = 0; i < 1000000; i++)
 	//	{
@@ -471,9 +473,10 @@ void RunEidosTests(void)
 	//	std::cout << "gsl_ran_poisson(0.001): mean = " << (total / 1000000) << ", expected ~1.0005" << std::endl;
 	
 	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += eidos_fast_ran_poisson_nonzero(0.00001, exp(-0.00001));
+		total += Eidos_FastRandomPoisson_NONZERO
+(0.00001, exp(-0.00001));
 	
-	std::cout << std::endl << "eidos_fast_ran_poisson(0.00001): mean = " << (total / 1000000) << ", expected ~1.00001" << std::endl;
+	std::cout << std::endl << "Eidos_FastRandomPoisson(0.00001): mean = " << (total / 1000000) << ", expected ~1.00001" << std::endl;
 	
 	//	for (total = 0.0, i = 0; i < 1000000; i++)
 	//	{
@@ -489,9 +492,10 @@ void RunEidosTests(void)
 	//	std::cout << "gsl_ran_poisson(0.00001): mean = " << (total / 1000000) << ", expected ~1.00001" << std::endl;
 	
 	for (total = 0.0, i = 0; i < 100000; i++)
-		total += eidos_fast_ran_poisson_nonzero(100, exp(-100));
+		total += Eidos_FastRandomPoisson_NONZERO
+(100, exp(-100));
 	
-	std::cout << std::endl << "eidos_fast_ran_poisson(100): mean = " << (total / 100000) << ", expected ~100" << std::endl;
+	std::cout << std::endl << "Eidos_FastRandomPoisson(100): mean = " << (total / 100000) << ", expected ~100" << std::endl;
 	
 	for (total = 0.0, i = 0; i < 100000; i++)
 	{
@@ -509,7 +513,7 @@ void RunEidosTests(void)
 #endif
 	
 #if 0
-	// Speed tests of gsl_ran_poisson() vs. eidos_fast_ran_poisson()
+	// Speed tests of gsl_ran_poisson() vs. Eidos_FastRandomPoisson()
 	// When built with optimization, this indicates that (on my present machine) the GSL's method
 	// starts to be faster at about mu > 250, so we will cross over at that point.
 	for (int iteration = 0; iteration <= 19; ++iteration)
@@ -537,7 +541,7 @@ void RunEidosTests(void)
 		if (iteration == 18) mu = 10000.0;
 		if (iteration == 19) mu = 100000.0;
 		
-		exp_neg_mu = eidos_fast_ran_poisson_PRECALCULATE(mu);
+		exp_neg_mu = Eidos_FastRandomPoisson_PRECALCULATE(mu);
 		
 		for (int type = 0; type <= 2; ++type)
 		{
@@ -547,12 +551,12 @@ void RunEidosTests(void)
 			if (type == 0)
 			{
 				for (int i = 0; i < 1000000; i++)
-					total += eidos_fast_ran_poisson(mu);
+					total += Eidos_FastRandomPoisson(mu);
 			}
 			else if (type == 1)
 			{
 				for (int i = 0; i < 1000000; i++)
-					total += eidos_fast_ran_poisson(mu, exp_neg_mu);
+					total += Eidos_FastRandomPoisson(mu, exp_neg_mu);
 			}
 			else if (type == 2)
 			{
@@ -924,7 +928,7 @@ void RunEidosTests(void)
 #endif
 	
 	// If we ran tests, the random number seed has been set; let's set it back to a good seed value
-	EidosInitializeRNGFromSeed(EidosGenerateSeedFromPIDAndTime());
+	Eidos_InitializeRNGFromSeed(Eidos_GenerateSeedFromPIDAndTime());
 }
 
 #pragma mark literals & identifiers
@@ -3955,9 +3959,9 @@ void _RunFunctionVectorConstructionTests(void)
 	EidosAssertScriptSuccess("c(object(), _Test(7))._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(7)));
 	EidosAssertScriptSuccess("c(_Test(7), object())._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(7)));
 	EidosAssertScriptSuccess("c(object(), object());", gStaticEidosValue_Object_ZeroVec);
-	//EidosAssertScriptSuccess("c(object(), object());", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidos_TestElementClass)));		// should fail
-	EidosAssertScriptSuccess("c(object(), _Test(7)[F]);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidos_TestElementClass)));
-	EidosAssertScriptSuccess("c(_Test(7)[F], object());", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidos_TestElementClass)));
+	//EidosAssertScriptSuccess("c(object(), object());", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidosTestElement_Class)));		// should fail
+	EidosAssertScriptSuccess("c(object(), _Test(7)[F]);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidosTestElement_Class)));
+	EidosAssertScriptSuccess("c(_Test(7)[F], object());", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidosTestElement_Class)));
 	
 	// float()
 	EidosAssertScriptSuccess("float(0);", gStaticEidosValue_Float_ZeroVec);
@@ -4013,7 +4017,7 @@ void _RunFunctionVectorConstructionTests(void)
 	EidosAssertScriptSuccess("rep(3, 0);", gStaticEidosValue_Integer_ZeroVec);
 	EidosAssertScriptSuccess("rep(3.5, 0);", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess("rep('foo', 0);", gStaticEidosValue_String_ZeroVec);
-	EidosAssertScriptSuccess("rep(_Test(7), 0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidos_TestElementClass)));
+	EidosAssertScriptSuccess("rep(_Test(7), 0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidosTestElement_Class)));
 	EidosAssertScriptSuccess("rep(NULL, 2);", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("rep(T, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
 	EidosAssertScriptSuccess("rep(3, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3, 3}));
@@ -4045,7 +4049,7 @@ void _RunFunctionVectorConstructionTests(void)
 	EidosAssertScriptSuccess("repEach(3, 0);", gStaticEidosValue_Integer_ZeroVec);
 	EidosAssertScriptSuccess("repEach(3.5, 0);", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess("repEach('foo', 0);", gStaticEidosValue_String_ZeroVec);
-	EidosAssertScriptSuccess("repEach(_Test(7), 0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidos_TestElementClass)));
+	EidosAssertScriptSuccess("repEach(_Test(7), 0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidosTestElement_Class)));
 	EidosAssertScriptSuccess("repEach(NULL, 2);", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("repEach(T, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
 	EidosAssertScriptSuccess("repEach(3, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3, 3}));

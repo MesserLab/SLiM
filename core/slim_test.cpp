@@ -44,7 +44,7 @@ void SLiMAssertScriptSuccess(const std::string &p_script_string, int p_lineNumbe
 		if (p_lineNumber != -1)
 			std::cerr << "[" << p_lineNumber << "] ";
 		
-		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during new SLiMSim(): " << EidosGetTrimmedRaiseMessage() << std::endl;
+		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during new SLiMSim(): " << Eidos_GetTrimmedRaiseMessage() << std::endl;
 		
 		gEidosCurrentScript = nullptr;
 		gEidosExecutingRuntimeScript = false;
@@ -62,7 +62,7 @@ void SLiMAssertScriptSuccess(const std::string &p_script_string, int p_lineNumbe
 		if (p_lineNumber != -1)
 			std::cerr << "[" << p_lineNumber << "] ";
 		
-		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during RunOneGeneration(): " << EidosGetTrimmedRaiseMessage() << std::endl;
+		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during RunOneGeneration(): " << Eidos_GetTrimmedRaiseMessage() << std::endl;
 		
 		gEidosCurrentScript = nullptr;
 		gEidosExecutingRuntimeScript = false;
@@ -102,8 +102,8 @@ void SLiMAssertScriptRaise(const std::string &p_script_string, const int p_bad_l
 	}
 	catch (...)
 	{
-		// We need to call EidosGetTrimmedRaiseMessage() here to empty the error stringstream, even if we don't log the error
-		std::string raise_message = EidosGetTrimmedRaiseMessage();
+		// We need to call Eidos_GetTrimmedRaiseMessage() here to empty the error stringstream, even if we don't log the error
+		std::string raise_message = Eidos_GetTrimmedRaiseMessage();
 		
 		if (raise_message.find("stop() called") == std::string::npos)
 		{
@@ -131,7 +131,7 @@ void SLiMAssertScriptRaise(const std::string &p_script_string, const int p_bad_l
 				}
 				else
 				{
-					eidos_script_error_position(gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCurrentScript);
+					Eidos_ScriptErrorPosition(gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCurrentScript);
 					
 					if ((gEidosErrorLine != p_bad_line) || (gEidosErrorLineCharacter != p_bad_position))
 					{
@@ -142,7 +142,7 @@ void SLiMAssertScriptRaise(const std::string &p_script_string, const int p_bad_l
 						
 						std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise expected, but error position unexpected" << std::endl;
 						std::cerr << "   raise message: " << raise_message << std::endl;
-						eidos_log_script_error(std::cerr, gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCurrentScript, gEidosExecutingRuntimeScript);
+						Eidos_LogScriptError(std::cerr, gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCurrentScript, gEidosExecutingRuntimeScript);
 						std::cerr << "--------------------" << std::endl << std::endl;
 					}
 					else
@@ -205,8 +205,8 @@ void SLiMAssertScriptStop(const std::string &p_script_string, int p_lineNumber)
 	}
 	catch (...)
 	{
-		// We need to call EidosGetTrimmedRaiseMessage() here to empty the error stringstream, even if we don't log the error
-		std::string raise_message = EidosGetTrimmedRaiseMessage();
+		// We need to call Eidos_GetTrimmedRaiseMessage() here to empty the error stringstream, even if we don't log the error
+		std::string raise_message = Eidos_GetTrimmedRaiseMessage();
 		
 		if (raise_message.find("stop() called") == std::string::npos)
 		{
@@ -220,8 +220,8 @@ void SLiMAssertScriptStop(const std::string &p_script_string, int p_lineNumber)
 			
 			if ((gEidosCharacterStartOfError != -1) && (gEidosCharacterEndOfError != -1) && gEidosCurrentScript)
 			{
-				eidos_script_error_position(gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCurrentScript);
-				eidos_log_script_error(std::cerr, gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCurrentScript, gEidosExecutingRuntimeScript);
+				Eidos_ScriptErrorPosition(gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCurrentScript);
+				Eidos_LogScriptError(std::cerr, gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCurrentScript, gEidosExecutingRuntimeScript);
 			}
 			
 			std::cerr << "--------------------" << std::endl << std::endl;

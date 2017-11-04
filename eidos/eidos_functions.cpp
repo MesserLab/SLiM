@@ -297,7 +297,7 @@ std::vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(
 		//	object instantiation
 		//
 		
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("_Test",			Eidos_ExecuteFunction__Test,			kEidosValueMaskObject | kEidosValueMaskSingleton, gEidos_TestElementClass))->AddInt_S("yolk"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("_Test",			Eidos_ExecuteFunction__Test,			kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosTestElement_Class))->AddInt_S("yolk"));
 		
 		
 		// alphabetize, mostly to be nice to the auto-completion feature
@@ -307,20 +307,20 @@ std::vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(
 	return *signatures;
 }
 
-EidosFunctionMap *EidosInterpreter::built_in_function_map_ = nullptr;
+EidosFunctionMap *EidosInterpreter::s_built_in_function_map_ = nullptr;
 
 void EidosInterpreter::CacheBuiltInFunctionMap(void)
 {
 	// The built-in function map is statically allocated for faster EidosInterpreter startup
 	
-	if (!built_in_function_map_)
+	if (!s_built_in_function_map_)
 	{
 		std::vector<const EidosFunctionSignature *> &built_in_functions = EidosInterpreter::BuiltInFunctions();
 		
-		built_in_function_map_ = new EidosFunctionMap;
+		s_built_in_function_map_ = new EidosFunctionMap;
 		
 		for (auto sig : built_in_functions)
-			built_in_function_map_->insert(EidosFunctionMapPair(sig->call_name_, sig));
+			s_built_in_function_map_->insert(EidosFunctionMapPair(sig->call_name_, sig));
 	}
 }
 
@@ -349,7 +349,7 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 		reserve_size += arg_value_count;
 		
 		if (!p_allow_null && (arg_type == EidosValueType::kValueNULL))
-			EIDOS_TERMINATION << "ERROR (ConcatenateEidosValues): NULL is not allowed to be used in this context." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (ConcatenateEidosValues): NULL is not allowed to be used in this context." << EidosTerminate(nullptr);
 		
 		// The highest type includes arguments of zero length; doing c(3, 7, string(0)) should produce a string vector
 		if (arg_type > highest_type)
@@ -373,7 +373,7 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 				{
 					// we've already seen a object type, so check that this one is the same type
 					if (element_class != this_element_class)
-						EIDOS_TERMINATION << "ERROR (ConcatenateEidosValues): objects of different types cannot be mixed." << eidos_terminate(nullptr);
+						EIDOS_TERMINATION << "ERROR (ConcatenateEidosValues): objects of different types cannot be mixed." << EidosTerminate(nullptr);
 				}
 			}
 			
@@ -384,7 +384,7 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 	}
 	
 	if (has_object_type && has_nonobject_type)
-		EIDOS_TERMINATION << "ERROR (ConcatenateEidosValues): object and non-object types cannot be mixed." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (ConcatenateEidosValues): object and non-object types cannot be mixed." << EidosTerminate(nullptr);
 	
 	// If we've got nothing but NULL, then return NULL; preserve invisibility
 	if (highest_type == EidosValueType::kValueNULL)
@@ -567,7 +567,7 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 	}
 	else
 	{
-		EIDOS_TERMINATION << "ERROR (ConcatenateEidosValues): type '" << highest_type << "' is not supported by ConcatenateEidosValues()." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (ConcatenateEidosValues): type '" << highest_type << "' is not supported by ConcatenateEidosValues()." << EidosTerminate(nullptr);
 	}
 	
 	return EidosValue_SP(nullptr);
@@ -825,7 +825,7 @@ EidosValue_SP Eidos_ExecuteFunction_abs(const EidosValue_SP *const p_arguments, 
 			
 			// the absolute value of INT64_MIN cannot be represented in int64_t
 			if (operand == INT64_MIN)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_abs): function abs() cannot take the absolute value of the most negative integer." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_abs): function abs() cannot take the absolute value of the most negative integer." << EidosTerminate(nullptr);
 			
 			int64_t abs_result = llabs(operand);
 			
@@ -847,7 +847,7 @@ EidosValue_SP Eidos_ExecuteFunction_abs(const EidosValue_SP *const p_arguments, 
 				
 				// the absolute value of INT64_MIN cannot be represented in int64_t
 				if (operand == INT64_MIN)
-					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_abs): function abs() cannot take the absolute value of the most negative integer." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_abs): function abs() cannot take the absolute value of the most negative integer." << EidosTerminate(nullptr);
 				
 				int64_t abs_result = llabs(operand);
 				
@@ -959,7 +959,7 @@ EidosValue_SP Eidos_ExecuteFunction_atan2(const EidosValue_SP *const p_arguments
 	int arg1_count = arg1_value->Count();
 	
 	if (arg0_count != arg1_count)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_atan2): function atan2() requires arguments of equal length." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_atan2): function atan2() requires arguments of equal length." << EidosTerminate(nullptr);
 	
 	if (arg0_count == 1)
 	{
@@ -1057,7 +1057,7 @@ EidosValue_SP Eidos_ExecuteFunction_cumProduct(const EidosValue_SP *const p_argu
 				bool overflow = Eidos_mul_overflow(product, operand, &product);
 				
 				if (overflow)
-					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cumProduct): integer multiplication overflow in function cumProduct()." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cumProduct): integer multiplication overflow in function cumProduct()." << EidosTerminate(nullptr);
 				
 				int_result->PushInt(product);
 			}
@@ -1118,7 +1118,7 @@ EidosValue_SP Eidos_ExecuteFunction_cumSum(const EidosValue_SP *const p_argument
 				bool overflow = Eidos_add_overflow(sum, operand, &sum);
 				
 				if (overflow)
-					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cumSum): integer addition overflow in function cumSum()." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cumSum): integer addition overflow in function cumSum()." << EidosTerminate(nullptr);
 				
 				int_result->PushInt(sum);
 			}
@@ -1215,7 +1215,7 @@ EidosValue_SP Eidos_ExecuteFunction_integerDiv(const EidosValue_SP *const p_argu
 		int64_t int2 = arg1_value->IntAtIndex(0, nullptr);
 		
 		if (int2 == 0)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerDiv): function integerDiv() cannot perform division by 0." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerDiv): function integerDiv() cannot perform division by 0." << EidosTerminate(nullptr);
 		
 		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(int1 / int2));
 	}
@@ -1234,7 +1234,7 @@ EidosValue_SP Eidos_ExecuteFunction_integerDiv(const EidosValue_SP *const p_argu
 				int64_t int2 = int2_vec[value_index];
 				
 				if (int2 == 0)
-					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerDiv): function integerDiv() cannot perform division by 0." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerDiv): function integerDiv() cannot perform division by 0." << EidosTerminate(nullptr);
 				
 				int_result->PushInt(int1 / int2);
 			}
@@ -1251,7 +1251,7 @@ EidosValue_SP Eidos_ExecuteFunction_integerDiv(const EidosValue_SP *const p_argu
 				int64_t int2 = int2_vec[value_index];
 				
 				if (int2 == 0)
-					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerDiv): function integerDiv() cannot perform division by 0." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerDiv): function integerDiv() cannot perform division by 0." << EidosTerminate(nullptr);
 				
 				int_result->PushInt(int1 / int2);
 			}
@@ -1264,7 +1264,7 @@ EidosValue_SP Eidos_ExecuteFunction_integerDiv(const EidosValue_SP *const p_argu
 			result_SP = EidosValue_SP(int_result);
 			
 			if (int2 == 0)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerDiv): function integerDiv() cannot perform division by 0." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerDiv): function integerDiv() cannot perform division by 0." << EidosTerminate(nullptr);
 			
 			// Special-case division by 2, since it is common
 			// BCH 13 April 2017: Removing this optimization; it produces inconsistent behavior for negative numerators.
@@ -1282,7 +1282,7 @@ EidosValue_SP Eidos_ExecuteFunction_integerDiv(const EidosValue_SP *const p_argu
 		}
 		else	// if ((arg0_count != arg1_count) && (arg0_count != 1) && (arg1_count != 1))
 		{
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerDiv): function integerDiv() requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerDiv): function integerDiv() requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(nullptr);
 		}
 	}
 	
@@ -1305,7 +1305,7 @@ EidosValue_SP Eidos_ExecuteFunction_integerMod(const EidosValue_SP *const p_argu
 		int64_t int2 = arg1_value->IntAtIndex(0, nullptr);
 		
 		if (int2 == 0)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerMod): function integerMod() cannot perform modulo by 0." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerMod): function integerMod() cannot perform modulo by 0." << EidosTerminate(nullptr);
 		
 		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(int1 % int2));
 	}
@@ -1324,7 +1324,7 @@ EidosValue_SP Eidos_ExecuteFunction_integerMod(const EidosValue_SP *const p_argu
 				int64_t int2 = int2_vec[value_index];
 				
 				if (int2 == 0)
-					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerMod): function integerMod() cannot perform modulo by 0." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerMod): function integerMod() cannot perform modulo by 0." << EidosTerminate(nullptr);
 				
 				int_result->PushInt(int1 % int2);
 			}
@@ -1341,7 +1341,7 @@ EidosValue_SP Eidos_ExecuteFunction_integerMod(const EidosValue_SP *const p_argu
 				int64_t int2 = int2_vec[value_index];
 				
 				if (int2 == 0)
-					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerMod): function integerMod() cannot perform modulo by 0." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerMod): function integerMod() cannot perform modulo by 0." << EidosTerminate(nullptr);
 				
 				int_result->PushInt(int1 % int2);
 			}
@@ -1354,7 +1354,7 @@ EidosValue_SP Eidos_ExecuteFunction_integerMod(const EidosValue_SP *const p_argu
 			result_SP = EidosValue_SP(int_result);
 			
 			if (int2 == 0)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerMod): function integerMod() cannot perform modulo by 0." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerMod): function integerMod() cannot perform modulo by 0." << EidosTerminate(nullptr);
 			
 			// Special-case modulo by 2, since it is common
 			// BCH 13 April 2017: Removing this optimization; it produces inconsistent behavior for negative numerators.
@@ -1372,7 +1372,7 @@ EidosValue_SP Eidos_ExecuteFunction_integerMod(const EidosValue_SP *const p_argu
 		}
 		else	// if ((arg0_count != arg1_count) && (arg0_count != 1) && (arg1_count != 1))
 		{
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerMod): function integerMod() requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerMod): function integerMod() requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(nullptr);
 		}
 	}
 	
@@ -1619,7 +1619,7 @@ EidosValue_SP Eidos_ExecuteFunction_setUnion(const EidosValue_SP *const p_argume
 	int arg1_count = arg1_value->Count();
 	
 	if (arg0_type != arg1_type)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setUnion): function setUnion() requires that both operands have the same type." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setUnion): function setUnion() requires that both operands have the same type." << EidosTerminate(nullptr);
 	
 	EidosValueType arg_type = arg0_type;
 	const EidosObjectClass *class0 = nullptr, *class1 = nullptr;
@@ -1630,7 +1630,7 @@ EidosValue_SP Eidos_ExecuteFunction_setUnion(const EidosValue_SP *const p_argume
 		class1 = ((EidosValue_Object *)arg1_value)->Class();
 		
 		if ((class0 != class1) && (class0 != gEidos_UndefinedClassObject) && (class1 != gEidos_UndefinedClassObject))
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setUnion): function setUnion() requires that both operands of object type have the same class (or undefined class)." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setUnion): function setUnion() requires that both operands of object type have the same class (or undefined class)." << EidosTerminate(nullptr);
 	}
 	
 	if (arg0_count + arg1_count == 0)
@@ -1866,7 +1866,7 @@ EidosValue_SP Eidos_ExecuteFunction_setIntersection(const EidosValue_SP *const p
 	int arg1_count = arg1_value->Count();
 	
 	if (arg0_type != arg1_type)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setIntersection): function setIntersection() requires that both operands have the same type." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setIntersection): function setIntersection() requires that both operands have the same type." << EidosTerminate(nullptr);
 	
 	EidosValueType arg_type = arg0_type;
 	const EidosObjectClass *class0 = nullptr, *class1 = nullptr;
@@ -1877,7 +1877,7 @@ EidosValue_SP Eidos_ExecuteFunction_setIntersection(const EidosValue_SP *const p
 		class1 = ((EidosValue_Object *)arg1_value)->Class();
 		
 		if ((class0 != class1) && (class0 != gEidos_UndefinedClassObject) && (class1 != gEidos_UndefinedClassObject))
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setIntersection): function setIntersection() requires that both operands of object type have the same class (or undefined class)." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setIntersection): function setIntersection() requires that both operands of object type have the same class (or undefined class)." << EidosTerminate(nullptr);
 	}
 	
 	if ((arg0_count == 0) || (arg1_count == 0))
@@ -2205,7 +2205,7 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const EidosValue_SP *const p_a
 	int arg1_count = arg1_value->Count();
 	
 	if (arg0_type != arg1_type)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setDifference): function setDifference() requires that both operands have the same type." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setDifference): function setDifference() requires that both operands have the same type." << EidosTerminate(nullptr);
 	
 	EidosValueType arg_type = arg0_type;
 	const EidosObjectClass *class0 = nullptr, *class1 = nullptr;
@@ -2216,7 +2216,7 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const EidosValue_SP *const p_a
 		class1 = ((EidosValue_Object *)arg1_value)->Class();
 		
 		if ((class0 != class1) && (class0 != gEidos_UndefinedClassObject) && (class1 != gEidos_UndefinedClassObject))
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setDifference): function setDifference() requires that both operands of object type have the same class (or undefined class)." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setDifference): function setDifference() requires that both operands of object type have the same class (or undefined class)." << EidosTerminate(nullptr);
 	}
 	
 	if (arg0_count == 0)
@@ -2595,7 +2595,7 @@ EidosValue_SP Eidos_ExecuteFunction_setSymmetricDifference(const EidosValue_SP *
 	int arg1_count = arg1_value->Count();
 	
 	if (arg0_type != arg1_type)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setSymmetricDifference): function setSymmetricDifference() requires that both operands have the same type." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setSymmetricDifference): function setSymmetricDifference() requires that both operands have the same type." << EidosTerminate(nullptr);
 	
 	EidosValueType arg_type = arg0_type;
 	const EidosObjectClass *class0 = nullptr, *class1 = nullptr;
@@ -2606,7 +2606,7 @@ EidosValue_SP Eidos_ExecuteFunction_setSymmetricDifference(const EidosValue_SP *
 		class1 = ((EidosValue_Object *)arg1_value)->Class();
 		
 		if ((class0 != class1) && (class0 != gEidos_UndefinedClassObject) && (class1 != gEidos_UndefinedClassObject))
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setSymmetricDifference): function setSymmetricDifference() requires that both operands of object type have the same class (or undefined class)." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setSymmetricDifference): function setSymmetricDifference() requires that both operands of object type have the same class (or undefined class)." << EidosTerminate(nullptr);
 	}
 	
 	if (arg0_count + arg1_count == 0)
@@ -3291,7 +3291,7 @@ EidosValue_SP Eidos_ExecuteFunction_max(const EidosValue_SP *const p_arguments, 
 		EidosValueType arg_type = arg_value->Type();
 		
 		if (arg_type != arg0_type)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_max): function max() requires all arguments to be the same type." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_max): function max() requires all arguments to be the same type." << EidosTerminate(nullptr);
 		
 		if (first_nonempty_argument == -1)
 		{
@@ -3495,7 +3495,7 @@ EidosValue_SP Eidos_ExecuteFunction_min(const EidosValue_SP *const p_arguments, 
 		EidosValueType arg_type = arg_value->Type();
 		
 		if (arg_type != arg0_type)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_min): function min() requires all arguments to be the same type." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_min): function min() requires all arguments to be the same type." << EidosTerminate(nullptr);
 		
 		if (first_nonempty_argument == -1)
 		{
@@ -3646,9 +3646,9 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const EidosValue_SP *const p_arguments,
 	int arg1_count = arg1_value->Count();
 	
 	if (arg0_type != arg1_type)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_pmax): function pmax() requires arguments x and y to be the same type." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_pmax): function pmax() requires arguments x and y to be the same type." << EidosTerminate(nullptr);
 	if ((arg0_count != arg1_count) && (arg0_count != 1) && (arg1_count != 1))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_pmax): function pmax() requires arguments x and y to be of equal length, or either x or y must be a singleton." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_pmax): function pmax() requires arguments x and y to be of equal length, or either x or y must be a singleton." << EidosTerminate(nullptr);
 	
 	if (arg0_type == EidosValueType::kValueNULL)
 	{
@@ -3778,9 +3778,9 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const EidosValue_SP *const p_arguments,
 	int arg1_count = arg1_value->Count();
 	
 	if (arg0_type != arg1_type)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_pmin): function pmin() requires arguments x and y to be the same type." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_pmin): function pmin() requires arguments x and y to be the same type." << EidosTerminate(nullptr);
 	if ((arg0_count != arg1_count) && (arg0_count != 1) && (arg1_count != 1))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_pmin): function pmin() requires arguments x and y to be of equal length, or either x or y must be a singleton." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_pmin): function pmin() requires arguments x and y to be of equal length, or either x or y must be a singleton." << EidosTerminate(nullptr);
 	
 	if (arg0_type == EidosValueType::kValueNULL)
 	{
@@ -3913,7 +3913,7 @@ EidosValue_SP Eidos_ExecuteFunction_range(const EidosValue_SP *const p_arguments
 		EidosValueType arg_type = arg_value->Type();
 		
 		if (arg_type != arg0_type)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_min): function min() requires all arguments to be the same type." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_min): function min() requires all arguments to be the same type." << EidosTerminate(nullptr);
 		
 		if (first_nonempty_argument == -1)
 		{
@@ -4074,9 +4074,9 @@ EidosValue_SP Eidos_ExecuteFunction_dnorm(const EidosValue_SP *const p_arguments
 	bool sigma_singleton = (arg_sigma_count == 1);
 	
 	if (!mu_singleton && (arg_mu_count != num_quantiles))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dnorm): function dnorm() requires mean to be of length 1 or equal in length to x." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dnorm): function dnorm() requires mean to be of length 1 or equal in length to x." << EidosTerminate(nullptr);
 	if (!sigma_singleton && (arg_sigma_count != num_quantiles))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dnorm): function dnorm() requires sd to be of length 1 or equal in length to x." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dnorm): function dnorm() requires sd to be of length 1 or equal in length to x." << EidosTerminate(nullptr);
 	
 	double mu0 = (arg_mu_count ? arg_mu->FloatAtIndex(0, nullptr) : 0.0);
 	double sigma0 = (arg_sigma_count ? arg_sigma->FloatAtIndex(0, nullptr) : 1.0);
@@ -4084,7 +4084,7 @@ EidosValue_SP Eidos_ExecuteFunction_dnorm(const EidosValue_SP *const p_arguments
 	if (mu_singleton && sigma_singleton)
 	{
 		if (sigma0 <= 0.0)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dnorm): function dnorm() requires sd > 0.0 (" << sigma0 << " supplied)." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dnorm): function dnorm() requires sd > 0.0 (" << sigma0 << " supplied)." << EidosTerminate(nullptr);
 		
 		if (num_quantiles == 1)
 		{
@@ -4112,7 +4112,7 @@ EidosValue_SP Eidos_ExecuteFunction_dnorm(const EidosValue_SP *const p_arguments
 			double sigma = (sigma_singleton ? sigma0 : arg_sigma->FloatAtIndex(value_index, nullptr));
 			
 			if (sigma <= 0.0)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dnorm): function dnorm() requires sd > 0.0 (" << sigma << " supplied)." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dnorm): function dnorm() requires sd > 0.0 (" << sigma << " supplied)." << EidosTerminate(nullptr);
 			
 			float_result->PushFloat(gsl_ran_gaussian_pdf(float_vec[value_index] - mu, sigma));
 		}
@@ -4136,11 +4136,11 @@ EidosValue_SP Eidos_ExecuteFunction_rbinom(const EidosValue_SP *const p_argument
 	bool prob_singleton = (arg_prob_count == 1);
 	
 	if (num_draws < 0)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rbinom): function rbinom() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rbinom): function rbinom() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << EidosTerminate(nullptr);
 	if (!size_singleton && (arg_size_count != num_draws))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rbinom): function rbinom() requires size to be of length 1 or n." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rbinom): function rbinom() requires size to be of length 1 or n." << EidosTerminate(nullptr);
 	if (!prob_singleton && (arg_prob_count != num_draws))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rbinom): function rbinom() requires prob to be of length 1 or n." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rbinom): function rbinom() requires prob to be of length 1 or n." << EidosTerminate(nullptr);
 	
 	int size0 = (int)arg_size->IntAtIndex(0, nullptr);
 	double probability0 = arg_prob->FloatAtIndex(0, nullptr);
@@ -4148,9 +4148,9 @@ EidosValue_SP Eidos_ExecuteFunction_rbinom(const EidosValue_SP *const p_argument
 	if (size_singleton && prob_singleton)
 	{
 		if (size0 < 0)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rbinom): function rbinom() requires size >= 0 (" << size0 << " supplied)." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rbinom): function rbinom() requires size >= 0 (" << size0 << " supplied)." << EidosTerminate(nullptr);
 		if ((probability0 < 0.0) || (probability0 > 1.0))
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rbinom): function rbinom() requires probability in [0.0, 1.0] (" << probability0 << " supplied)." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rbinom): function rbinom() requires probability in [0.0, 1.0] (" << probability0 << " supplied)." << EidosTerminate(nullptr);
 		
 		if (num_draws == 1)
 		{
@@ -4176,9 +4176,9 @@ EidosValue_SP Eidos_ExecuteFunction_rbinom(const EidosValue_SP *const p_argument
 			double probability = (prob_singleton ? probability0 : arg_prob->FloatAtIndex(draw_index, nullptr));
 			
 			if (size < 0)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rbinom): function rbinom() requires size >= 0 (" << size << " supplied)." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rbinom): function rbinom() requires size >= 0 (" << size << " supplied)." << EidosTerminate(nullptr);
 			if ((probability < 0.0) || (probability > 1.0))
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rbinom): function rbinom() requires probability in [0.0, 1.0] (" << probability << " supplied)." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rbinom): function rbinom() requires probability in [0.0, 1.0] (" << probability << " supplied)." << EidosTerminate(nullptr);
 			
 			int_result->PushInt(gsl_ran_binomial(gEidos_rng, probability, size));
 		}
@@ -4199,9 +4199,9 @@ EidosValue_SP Eidos_ExecuteFunction_rexp(const EidosValue_SP *const p_arguments,
 	bool mu_singleton = (arg_mu_count == 1);
 	
 	if (num_draws < 0)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rexp): function rexp() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rexp): function rexp() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << EidosTerminate(nullptr);
 	if (!mu_singleton && (arg_mu_count != num_draws))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rexp): function rexp() requires mu to be of length 1 or n." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rexp): function rexp() requires mu to be of length 1 or n." << EidosTerminate(nullptr);
 	
 	if (mu_singleton)
 	{
@@ -4251,11 +4251,11 @@ EidosValue_SP Eidos_ExecuteFunction_rgamma(const EidosValue_SP *const p_argument
 	bool shape_singleton = (arg_shape_count == 1);
 	
 	if (num_draws < 0)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgamma): function rgamma() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgamma): function rgamma() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << EidosTerminate(nullptr);
 	if (!mean_singleton && (arg_mean_count != num_draws))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgamma): function rgamma() requires mean to be of length 1 or n." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgamma): function rgamma() requires mean to be of length 1 or n." << EidosTerminate(nullptr);
 	if (!shape_singleton && (arg_shape_count != num_draws))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgamma): function rgamma() requires shape to be of length 1 or n." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgamma): function rgamma() requires shape to be of length 1 or n." << EidosTerminate(nullptr);
 	
 	double mean0 = (arg_mean_count ? arg_mean->FloatAtIndex(0, nullptr) : 1.0);
 	double shape0 = (arg_shape_count ? arg_shape->FloatAtIndex(0, nullptr) : 0.0);
@@ -4263,7 +4263,7 @@ EidosValue_SP Eidos_ExecuteFunction_rgamma(const EidosValue_SP *const p_argument
 	if (mean_singleton && shape_singleton)
 	{
 		if (shape0 <= 0.0)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgamma): function rgamma() requires shape > 0.0 (" << shape0 << " supplied)." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgamma): function rgamma() requires shape > 0.0 (" << shape0 << " supplied)." << EidosTerminate(nullptr);
 		
 		if (num_draws == 1)
 		{
@@ -4291,7 +4291,7 @@ EidosValue_SP Eidos_ExecuteFunction_rgamma(const EidosValue_SP *const p_argument
 			double shape = (shape_singleton ? shape0 : arg_shape->FloatAtIndex(draw_index, nullptr));
 			
 			if (shape <= 0.0)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgamma): function rgamma() requires shape > 0.0 (" << shape << " supplied)." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgamma): function rgamma() requires shape > 0.0 (" << shape << " supplied)." << EidosTerminate(nullptr);
 			
 			float_result->PushFloat(gsl_ran_gamma(gEidos_rng, shape, mean / shape));
 		}
@@ -4315,11 +4315,11 @@ EidosValue_SP Eidos_ExecuteFunction_rlnorm(const EidosValue_SP *const p_argument
 	bool sdlog_singleton = (arg_sdlog_count == 1);
 	
 	if (num_draws < 0)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rlnorm): function rlnorm() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rlnorm): function rlnorm() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << EidosTerminate(nullptr);
 	if (!meanlog_singleton && (arg_meanlog_count != num_draws))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rlnorm): function rlnorm() requires meanlog to be of length 1 or n." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rlnorm): function rlnorm() requires meanlog to be of length 1 or n." << EidosTerminate(nullptr);
 	if (!sdlog_singleton && (arg_sdlog_count != num_draws))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rlnorm): function rlnorm() requires sdlog to be of length 1 or n." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rlnorm): function rlnorm() requires sdlog to be of length 1 or n." << EidosTerminate(nullptr);
 	
 	double meanlog0 = (arg_meanlog_count ? arg_meanlog->FloatAtIndex(0, nullptr) : 0.0);
 	double sdlog0 = (arg_sdlog_count ? arg_sdlog->FloatAtIndex(0, nullptr) : 1.0);
@@ -4371,11 +4371,11 @@ EidosValue_SP Eidos_ExecuteFunction_rnorm(const EidosValue_SP *const p_arguments
 	bool sigma_singleton = (arg_sigma_count == 1);
 	
 	if (num_draws < 0)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rnorm): function rnorm() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rnorm): function rnorm() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << EidosTerminate(nullptr);
 	if (!mu_singleton && (arg_mu_count != num_draws))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rnorm): function rnorm() requires mean to be of length 1 or n." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rnorm): function rnorm() requires mean to be of length 1 or n." << EidosTerminate(nullptr);
 	if (!sigma_singleton && (arg_sigma_count != num_draws))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rnorm): function rnorm() requires sd to be of length 1 or n." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rnorm): function rnorm() requires sd to be of length 1 or n." << EidosTerminate(nullptr);
 	
 	double mu0 = (arg_mu_count ? arg_mu->FloatAtIndex(0, nullptr) : 0.0);
 	double sigma0 = (arg_sigma_count ? arg_sigma->FloatAtIndex(0, nullptr) : 1.0);
@@ -4383,7 +4383,7 @@ EidosValue_SP Eidos_ExecuteFunction_rnorm(const EidosValue_SP *const p_arguments
 	if (mu_singleton && sigma_singleton)
 	{
 		if (sigma0 < 0.0)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rnorm): function rnorm() requires sd >= 0.0 (" << sigma0 << " supplied)." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rnorm): function rnorm() requires sd >= 0.0 (" << sigma0 << " supplied)." << EidosTerminate(nullptr);
 		
 		if (num_draws == 1)
 		{
@@ -4409,7 +4409,7 @@ EidosValue_SP Eidos_ExecuteFunction_rnorm(const EidosValue_SP *const p_arguments
 			double sigma = (sigma_singleton ? sigma0 : arg_sigma->FloatAtIndex(draw_index, nullptr));
 			
 			if (sigma < 0.0)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rnorm): function rnorm() requires sd >= 0.0 (" << sigma << " supplied)." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rnorm): function rnorm() requires sd >= 0.0 (" << sigma << " supplied)." << EidosTerminate(nullptr);
 			
 			float_result->PushFloat(gsl_ran_gaussian(gEidos_rng, sigma) + mu);
 		}
@@ -4430,9 +4430,9 @@ EidosValue_SP Eidos_ExecuteFunction_rpois(const EidosValue_SP *const p_arguments
 	bool lambda_singleton = (arg_lambda_count == 1);
 	
 	if (num_draws < 0)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rpois): function rpois() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rpois): function rpois() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << EidosTerminate(nullptr);
 	if (!lambda_singleton && (arg_lambda_count != num_draws))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rpois): function rpois() requires lambda to be of length 1 or n." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rpois): function rpois() requires lambda to be of length 1 or n." << EidosTerminate(nullptr);
 	
 	// Here we ignore USE_GSL_POISSON and always use the GSL.  This is because we don't know whether lambda (otherwise known as mu) is
 	// small or large, and because we don't know what level of accuracy is demanded by whatever the user is doing with the deviates,
@@ -4443,7 +4443,7 @@ EidosValue_SP Eidos_ExecuteFunction_rpois(const EidosValue_SP *const p_arguments
 		double lambda0 = arg_lambda->FloatAtIndex(0, nullptr);
 		
 		if (lambda0 <= 0.0)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rpois): function rpois() requires lambda > 0.0 (" << lambda0 << " supplied)." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rpois): function rpois() requires lambda > 0.0 (" << lambda0 << " supplied)." << EidosTerminate(nullptr);
 		
 		if (num_draws == 1)
 		{
@@ -4468,7 +4468,7 @@ EidosValue_SP Eidos_ExecuteFunction_rpois(const EidosValue_SP *const p_arguments
 			double lambda = arg_lambda->FloatAtIndex(draw_index, nullptr);
 			
 			if (lambda <= 0.0)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rpois): function rpois() requires lambda > 0.0 (" << lambda << " supplied)." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rpois): function rpois() requires lambda > 0.0 (" << lambda << " supplied)." << EidosTerminate(nullptr);
 			
 			int_result->PushInt(gsl_ran_poisson(gEidos_rng, lambda));
 		}
@@ -4492,11 +4492,11 @@ EidosValue_SP Eidos_ExecuteFunction_runif(const EidosValue_SP *const p_arguments
 	bool max_singleton = (arg_max_count == 1);
 	
 	if (num_draws < 0)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_runif): function runif() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_runif): function runif() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << EidosTerminate(nullptr);
 	if (!min_singleton && (arg_min_count != num_draws))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_runif): function runif() requires min to be of length 1 or n." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_runif): function runif() requires min to be of length 1 or n." << EidosTerminate(nullptr);
 	if (!max_singleton && (arg_max_count != num_draws))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_runif): function runif() requires max to be of length 1 or n." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_runif): function runif() requires max to be of length 1 or n." << EidosTerminate(nullptr);
 	
 	double min_value0 = (arg_min_count ? arg_min->FloatAtIndex(0, nullptr) : 0.0);
 	double max_value0 = (arg_max_count ? arg_max->FloatAtIndex(0, nullptr) : 1.0);
@@ -4524,7 +4524,7 @@ EidosValue_SP Eidos_ExecuteFunction_runif(const EidosValue_SP *const p_arguments
 		if (min_singleton && max_singleton)
 		{
 			if (range0 < 0.0)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_runif): function runif() requires min < max." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_runif): function runif() requires min < max." << EidosTerminate(nullptr);
 			
 			if (num_draws == 1)
 			{
@@ -4551,7 +4551,7 @@ EidosValue_SP Eidos_ExecuteFunction_runif(const EidosValue_SP *const p_arguments
 				double range = max_value - min_value;
 				
 				if (range < 0.0)
-					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_runif): function runif() requires min < max." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_runif): function runif() requires min < max." << EidosTerminate(nullptr);
 				
 				float_result->PushFloat(gsl_rng_uniform(gEidos_rng) * range + min_value);
 			}
@@ -4576,11 +4576,11 @@ EidosValue_SP Eidos_ExecuteFunction_rweibull(const EidosValue_SP *const p_argume
 	bool k_singleton = (arg_k_count == 1);
 	
 	if (num_draws < 0)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rweibull): function rweibull() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rweibull): function rweibull() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << EidosTerminate(nullptr);
 	if (!lambda_singleton && (arg_lambda_count != num_draws))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rweibull): function rweibull() requires lambda to be of length 1 or n." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rweibull): function rweibull() requires lambda to be of length 1 or n." << EidosTerminate(nullptr);
 	if (!k_singleton && (arg_k_count != num_draws))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rweibull): function rweibull() requires k to be of length 1 or n." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rweibull): function rweibull() requires k to be of length 1 or n." << EidosTerminate(nullptr);
 	
 	double lambda0 = (arg_lambda_count ? arg_lambda->FloatAtIndex(0, nullptr) : 0.0);
 	double k0 = (arg_k_count ? arg_k->FloatAtIndex(0, nullptr) : 0.0);
@@ -4588,9 +4588,9 @@ EidosValue_SP Eidos_ExecuteFunction_rweibull(const EidosValue_SP *const p_argume
 	if (lambda_singleton && k_singleton)
 	{
 		if (lambda0 <= 0.0)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rweibull): function rweibull() requires lambda > 0.0 (" << lambda0 << " supplied)." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rweibull): function rweibull() requires lambda > 0.0 (" << lambda0 << " supplied)." << EidosTerminate(nullptr);
 		if (k0 <= 0.0)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rweibull): function rweibull() requires k > 0.0 (" << k0 << " supplied)." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rweibull): function rweibull() requires k > 0.0 (" << k0 << " supplied)." << EidosTerminate(nullptr);
 		
 		if (num_draws == 1)
 		{
@@ -4616,9 +4616,9 @@ EidosValue_SP Eidos_ExecuteFunction_rweibull(const EidosValue_SP *const p_argume
 			double k = (k_singleton ? k0 : arg_k->FloatAtIndex(draw_index, nullptr));
 			
 			if (lambda <= 0.0)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rweibull): function rweibull() requires lambda > 0.0 (" << lambda << " supplied)." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rweibull): function rweibull() requires lambda > 0.0 (" << lambda << " supplied)." << EidosTerminate(nullptr);
 			if (k <= 0.0)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rweibull): function rweibull() requires k > 0.0 (" << k << " supplied)." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rweibull): function rweibull() requires k > 0.0 (" << k << " supplied)." << EidosTerminate(nullptr);
 			
 			float_result->PushFloat(gsl_ran_weibull(gEidos_rng, lambda, k));
 		}
@@ -4655,7 +4655,7 @@ EidosValue_SP Eidos_ExecuteFunction_float(const EidosValue_SP *const p_arguments
 	int64_t element_count = arg0_value->IntAtIndex(0, nullptr);
 	
 	if (element_count < 0)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_float): function float() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_float): function float() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << EidosTerminate(nullptr);
 	
 	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve((int)element_count);
 	result_SP = EidosValue_SP(float_result);
@@ -4679,7 +4679,7 @@ EidosValue_SP Eidos_ExecuteFunction_integer(const EidosValue_SP *const p_argumen
 	int64_t fill1 = arg1_value->IntAtIndex(0, nullptr);
 	
 	if (element_count < 0)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integer): function integer() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integer): function integer() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << EidosTerminate(nullptr);
 	
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->Reserve((int)element_count);
 	result_SP = EidosValue_SP(int_result);
@@ -4696,7 +4696,7 @@ EidosValue_SP Eidos_ExecuteFunction_integer(const EidosValue_SP *const p_argumen
 		for (int64_t position : positions_vec)
 		{
 			if ((position < 0) || (position >= element_count))
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integer): function integer() requires positions in fill2Indices to be between 0 and length - 1 (" << position << " supplied)." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integer): function integer() requires positions in fill2Indices to be between 0 and length - 1 (" << position << " supplied)." << EidosTerminate(nullptr);
 			
 			result_vec[position] = fill2;
 		}
@@ -4714,7 +4714,7 @@ EidosValue_SP Eidos_ExecuteFunction_logical(const EidosValue_SP *const p_argumen
 	int64_t element_count = arg0_value->IntAtIndex(0, nullptr);
 	
 	if (element_count < 0)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_logical): function logical() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_logical): function logical() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << EidosTerminate(nullptr);
 	
 	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve((int)element_count);
 	std::vector<eidos_logical_t> &logical_result_vec = *logical_result->LogicalVector_Mutable();
@@ -4748,7 +4748,7 @@ EidosValue_SP Eidos_ExecuteFunction_rep(const EidosValue_SP *const p_arguments, 
 	int64_t rep_count = arg1_value->IntAtIndex(0, nullptr);
 	
 	if (rep_count < 0)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rep): function rep() requires count to be greater than or equal to 0 (" << rep_count << " supplied)." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rep): function rep() requires count to be greater than or equal to 0 (" << rep_count << " supplied)." << EidosTerminate(nullptr);
 	
 	// the return type depends on the type of the first argument, which will get replicated
 	result_SP = arg0_value->NewMatchingType();
@@ -4780,7 +4780,7 @@ EidosValue_SP Eidos_ExecuteFunction_repEach(const EidosValue_SP *const p_argumen
 		int64_t rep_count = arg1_value->IntAtIndex(0, nullptr);
 		
 		if (rep_count < 0)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_repEach): function repEach() requires count to be greater than or equal to 0 (" << rep_count << " supplied)." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_repEach): function repEach() requires count to be greater than or equal to 0 (" << rep_count << " supplied)." << EidosTerminate(nullptr);
 		
 		for (int value_idx = 0; value_idx < arg0_count; value_idx++)
 			for (int rep_idx = 0; rep_idx < rep_count; rep_idx++)
@@ -4793,7 +4793,7 @@ EidosValue_SP Eidos_ExecuteFunction_repEach(const EidosValue_SP *const p_argumen
 			int64_t rep_count = arg1_value->IntAtIndex(value_idx, nullptr);
 			
 			if (rep_count < 0)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_repEach): function repEach() requires all elements of count to be greater than or equal to 0 (" << rep_count << " supplied)." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_repEach): function repEach() requires all elements of count to be greater than or equal to 0 (" << rep_count << " supplied)." << EidosTerminate(nullptr);
 			
 			for (int rep_idx = 0; rep_idx < rep_count; rep_idx++)
 				result->PushValueFromIndexOfEidosValue(value_idx, *arg0_value, nullptr);
@@ -4801,7 +4801,7 @@ EidosValue_SP Eidos_ExecuteFunction_repEach(const EidosValue_SP *const p_argumen
 	}
 	else
 	{
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_repEach): function repEach() requires that parameter count's size() either (1) be equal to 1, or (2) be equal to the size() of its first argument." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_repEach): function repEach() requires that parameter count's size() either (1) be equal to 1, or (2) be equal to the size() of its first argument." << EidosTerminate(nullptr);
 	}
 	
 	return result_SP;
@@ -4819,7 +4819,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const EidosValue_SP *const p_argument
 	int arg0_count = arg0_value->Count();
 	
 	if (sample_size < 0)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() requires a sample size >= 0 (" << sample_size << " supplied)." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() requires a sample size >= 0 (" << sample_size << " supplied)." << EidosTerminate(nullptr);
 	if (sample_size == 0)
 	{
 		result_SP = arg0_value->NewMatchingType();
@@ -4827,10 +4827,10 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const EidosValue_SP *const p_argument
 	}
 	
 	if (arg0_count == 0)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() provided with insufficient elements (0 supplied)." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() provided with insufficient elements (0 supplied)." << EidosTerminate(nullptr);
 	
 	if (!replace && (arg0_count < sample_size))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() provided with insufficient elements (" << arg0_count << " supplied, " << sample_size << " needed)." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() provided with insufficient elements (" << arg0_count << " supplied, " << sample_size << " needed)." << EidosTerminate(nullptr);
 	
 	result_SP = arg0_value->NewMatchingType();
 	EidosValue *result = result_SP.get();
@@ -4844,14 +4844,14 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const EidosValue_SP *const p_argument
 		int arg3_count = weights_value->Count();
 		
 		if (arg3_count != arg0_count)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() requires x and weights to be the same length." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() requires x and weights to be the same length." << EidosTerminate(nullptr);
 		
 		for (int value_index = 0; value_index < arg0_count; ++value_index)
 		{
 			double weight = weights_value->FloatAtIndex(value_index, nullptr);
 			
 			if (weight < 0.0)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() requires all weights to be non-negative (" << weight << " supplied)." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() requires all weights to be non-negative (" << weight << " supplied)." << EidosTerminate(nullptr);
 			
 			weights_vector.emplace_back(weight);
 			weights_sum += weight;
@@ -4869,9 +4869,9 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const EidosValue_SP *const p_argument
 		for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
 		{
 			if (contender_count <= 0)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() ran out of eligible elements from which to sample." << eidos_terminate(nullptr);		// CODE COVERAGE: This is dead code
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() ran out of eligible elements from which to sample." << EidosTerminate(nullptr);		// CODE COVERAGE: This is dead code
 			if (weights_sum <= 0.0)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() encountered weights summing to <= 0." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() encountered weights summing to <= 0." << EidosTerminate(nullptr);
 			
 			double rose = gsl_rng_uniform(gEidos_rng) * weights_sum;
 			double rose_sum = 0.0;
@@ -4920,7 +4920,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const EidosValue_SP *const p_argument
 			{
 				// this error should never occur, since we checked the count above
 				if (contender_count <= 0)
-					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): (internal error) function sample() ran out of eligible elements from which to sample." << eidos_terminate(nullptr);		// CODE COVERAGE: This is dead code
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): (internal error) function sample() ran out of eligible elements from which to sample." << EidosTerminate(nullptr);		// CODE COVERAGE: This is dead code
 				
 				int rose_index = (int)gsl_rng_uniform_int(gEidos_rng, contender_count);
 				
@@ -4950,11 +4950,11 @@ EidosValue_SP Eidos_ExecuteFunction_seq(const EidosValue_SP *const p_arguments, 
 	EidosValueType arg3_type = arg3_value->Type();
 	
 	if ((arg0_type == EidosValueType::kValueFloat) && !std::isfinite(arg0_value->FloatAtIndex(0, nullptr)))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() requires a finite value for the 'from' parameter." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() requires a finite value for the 'from' parameter." << EidosTerminate(nullptr);
 	if ((arg1_type == EidosValueType::kValueFloat) && !std::isfinite(arg1_value->FloatAtIndex(0, nullptr)))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() requires a finite value for the 'to' parameter." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() requires a finite value for the 'to' parameter." << EidosTerminate(nullptr);
 	if ((arg2_type != EidosValueType::kValueNULL) && (arg3_type != EidosValueType::kValueNULL))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() may be supplied with either 'by' or 'length', but not both." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() may be supplied with either 'by' or 'length', but not both." << EidosTerminate(nullptr);
 	
 	if (arg3_type != EidosValueType::kValueNULL)
 	{
@@ -4962,9 +4962,9 @@ EidosValue_SP Eidos_ExecuteFunction_seq(const EidosValue_SP *const p_arguments, 
 		int64_t length = arg3_value->IntAtIndex(0, nullptr);
 		
 		if (length <= 0)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() requires that length, if supplied, must be > 0." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() requires that length, if supplied, must be > 0." << EidosTerminate(nullptr);
 		if (length > 10000000)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() cannot construct a sequence with more than 10000000 entries." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() cannot construct a sequence with more than 10000000 entries." << EidosTerminate(nullptr);
 		
 		if ((arg0_type == EidosValueType::kValueFloat) || (arg1_type == EidosValueType::kValueFloat))
 		{
@@ -5037,9 +5037,9 @@ EidosValue_SP Eidos_ExecuteFunction_seq(const EidosValue_SP *const p_arguments, 
 			double by_value = ((arg2_type != EidosValueType::kValueNULL) ? arg2_value->FloatAtIndex(0, nullptr) : default_by);
 			
 			if (by_value == 0.0)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() requires by != 0." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() requires by != 0." << EidosTerminate(nullptr);
 			if (((first_value < second_value) && (by_value < 0)) || ((first_value > second_value) && (by_value > 0)))
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() by has incorrect sign." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() by has incorrect sign." << EidosTerminate(nullptr);
 			
 			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(int(1 + ceil((second_value - first_value) / by_value)));	// take a stab at a reserve size; might not be quite right, but no harm
 			result_SP = EidosValue_SP(float_result);
@@ -5060,9 +5060,9 @@ EidosValue_SP Eidos_ExecuteFunction_seq(const EidosValue_SP *const p_arguments, 
 			int64_t by_value = ((arg2_type != EidosValueType::kValueNULL) ? arg2_value->IntAtIndex(0, nullptr) : default_by);
 			
 			if (by_value == 0)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() requires by != 0." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() requires by != 0." << EidosTerminate(nullptr);
 			if (((first_value < second_value) && (by_value < 0)) || ((first_value > second_value) && (by_value > 0)))
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() by has incorrect sign." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() by has incorrect sign." << EidosTerminate(nullptr);
 			
 			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->Reserve((int)(1 + (second_value - first_value) / by_value));		// take a stab at a reserve size; might not be quite right, but no harm
 			result_SP = EidosValue_SP(int_result);
@@ -5104,7 +5104,7 @@ EidosValue_SP Eidos_ExecuteFunction_string(const EidosValue_SP *const p_argument
 	int64_t element_count = arg0_value->IntAtIndex(0, nullptr);
 	
 	if (element_count < 0)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_string): function string() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_string): function string() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << EidosTerminate(nullptr);
 	
 	EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve((int)element_count);
 	result_SP = EidosValue_SP(string_result);
@@ -5137,7 +5137,7 @@ EidosValue_SP Eidos_ExecuteFunction_all(const EidosValue_SP *const p_arguments, 
 		EidosValue *arg_value = p_arguments[arg_index].get();
 		
 		if (arg_value->Type() != EidosValueType::kValueLogical)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_all): function all() requires that all arguments be of type logical." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_all): function all() requires that all arguments be of type logical." << EidosTerminate(nullptr);
 		
 		int arg_count = arg_value->Count();
 		const std::vector<eidos_logical_t> &logical_vec = *arg_value->LogicalVector();
@@ -5165,7 +5165,7 @@ EidosValue_SP Eidos_ExecuteFunction_any(const EidosValue_SP *const p_arguments, 
 		EidosValue *arg_value = p_arguments[arg_index].get();
 		
 		if (arg_value->Type() != EidosValueType::kValueLogical)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_any): function any() requires that all arguments be of type logical." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_any): function any() requires that all arguments be of type logical." << EidosTerminate(nullptr);
 		
 		int arg_count = arg_value->Count();
 		const std::vector<eidos_logical_t> &logical_vec = *arg_value->LogicalVector();
@@ -5274,7 +5274,7 @@ EidosValue_SP Eidos_ExecuteFunction_format(const EidosValue_SP *const p_argument
 			else if (conversion_specifier_pos != -1)
 			{
 				// we already saw a format specifier
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_format): bad format string in function format(); only one % escape is allowed." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_format): bad format string in function format(); only one % escape is allowed." << EidosTerminate(nullptr);
 			}
 			else
 			{
@@ -5291,7 +5291,7 @@ EidosValue_SP Eidos_ExecuteFunction_format(const EidosValue_SP *const p_argument
 					if (flag == '+')
 					{
 						if (flag_plus)
-							EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_format): bad format string in function format(); flag '+' specified more than once." << eidos_terminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_format): bad format string in function format(); flag '+' specified more than once." << EidosTerminate(nullptr);
 						
 						flag_plus = true;
 						++pos;	// skip the '+'
@@ -5299,7 +5299,7 @@ EidosValue_SP Eidos_ExecuteFunction_format(const EidosValue_SP *const p_argument
 					else if (flag == '-')
 					{
 						if (flag_minus)
-							EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_format): bad format string in function format(); flag '-' specified more than once." << eidos_terminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_format): bad format string in function format(); flag '-' specified more than once." << EidosTerminate(nullptr);
 						
 						flag_minus = true;
 						++pos;	// skip the '-'
@@ -5307,7 +5307,7 @@ EidosValue_SP Eidos_ExecuteFunction_format(const EidosValue_SP *const p_argument
 					else if (flag == ' ')
 					{
 						if (flag_space)
-							EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_format): bad format string in function format(); flag ' ' specified more than once." << eidos_terminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_format): bad format string in function format(); flag ' ' specified more than once." << EidosTerminate(nullptr);
 						
 						flag_space = true;
 						++pos;	// skip the ' '
@@ -5315,7 +5315,7 @@ EidosValue_SP Eidos_ExecuteFunction_format(const EidosValue_SP *const p_argument
 					else if (flag == '#')
 					{
 						if (flag_pound)
-							EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_format): bad format string in function format(); flag '#' specified more than once." << eidos_terminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_format): bad format string in function format(); flag '#' specified more than once." << EidosTerminate(nullptr);
 						
 						flag_pound = true;
 						++pos;	// skip the '#'
@@ -5323,7 +5323,7 @@ EidosValue_SP Eidos_ExecuteFunction_format(const EidosValue_SP *const p_argument
 					else if (flag == '0')
 					{
 						if (flag_zero)
-							EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_format): bad format string in function format(); flag '0' specified more than once." << eidos_terminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_format): bad format string in function format(); flag '0' specified more than once." << EidosTerminate(nullptr);
 						
 						flag_zero = true;
 						++pos;	// skip the '0'
@@ -5385,21 +5385,21 @@ EidosValue_SP Eidos_ExecuteFunction_format(const EidosValue_SP *const p_argument
 					if ((conv_ch == 'd') || (conv_ch == 'i') || (conv_ch == 'o') || (conv_ch == 'x') || (conv_ch == 'X'))
 					{
 						if (arg1_type != EidosValueType::kValueInt)
-							EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_format): bad format string in function format(); conversion specifier '" << conv_ch << "' requires an argument of type integer." << eidos_terminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_format): bad format string in function format(); conversion specifier '" << conv_ch << "' requires an argument of type integer." << EidosTerminate(nullptr);
 					}
 					else if ((conv_ch == 'f') || (conv_ch == 'F') || (conv_ch == 'e') || (conv_ch == 'E') || (conv_ch == 'g') || (conv_ch == 'G'))
 					{
 						if (arg1_type != EidosValueType::kValueFloat)
-							EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_format): bad format string in function format(); conversion specifier '" << conv_ch << "' requires an argument of type float." << eidos_terminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_format): bad format string in function format(); conversion specifier '" << conv_ch << "' requires an argument of type float." << EidosTerminate(nullptr);
 					}
 					else
 					{
-						EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_format): bad format string in function format(); conversion specifier '" << conv_ch << "' not supported." << eidos_terminate(nullptr);
+						EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_format): bad format string in function format(); conversion specifier '" << conv_ch << "' not supported." << EidosTerminate(nullptr);
 					}
 				}
 				else
 				{
-					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_format): bad format string in function format(); missing conversion specifier after '%'." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_format): bad format string in function format(); missing conversion specifier after '%'." << EidosTerminate(nullptr);
 				}
 			}
 		}
@@ -5428,14 +5428,14 @@ EidosValue_SP Eidos_ExecuteFunction_format(const EidosValue_SP *const p_argument
 		else if (conv_ch == 'X')
 			new_conv_string = PRIX64;
 		else
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_format): (internal error) bad format string in function format(); conversion specifier '" << conv_ch << "' not recognized." << eidos_terminate(nullptr);		// CODE COVERAGE: This is dead code
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_format): (internal error) bad format string in function format(); conversion specifier '" << conv_ch << "' not recognized." << EidosTerminate(nullptr);		// CODE COVERAGE: This is dead code
 		
 		format.replace(conversion_specifier_pos, 1, new_conv_string);
 	}
 	
 	// Check for possibilities that produce undefined behavior according to the C++11 standard
 	if (flag_pound && ((conv_ch == 'd') || (conv_ch == 'i')))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_format): bad format string in function format(); the flag '#' may not be used with the conversion specifier '" << conv_ch << "'." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_format): bad format string in function format(); the flag '#' may not be used with the conversion specifier '" << conv_ch << "'." << EidosTerminate(nullptr);
 	
 	if (arg1_count == 1)
 	{
@@ -5608,7 +5608,7 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const EidosValue_SP *const p_argument
 	int arg2_count = arg2_value->Count();
 	
 	if (arg1_type != arg2_type)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ifelse): function ifelse() requires arguments 2 and 3 to be the same type (" << arg1_type << " and " << arg2_type << " supplied)." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ifelse): function ifelse() requires arguments 2 and 3 to be the same type (" << arg1_type << " and " << arg2_type << " supplied)." << EidosTerminate(nullptr);
 	
 	if ((arg1_count == arg0_count) && (arg2_count == arg0_count))
 	{
@@ -5670,7 +5670,7 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const EidosValue_SP *const p_argument
 				const EidosObjectClass *arg2_class = ((EidosValue_Object *)arg2_value)->Class();
 				
 				if (arg1_class != arg2_class)
-					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ifelse): objects of different types cannot be mixed." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ifelse): objects of different types cannot be mixed." << EidosTerminate(nullptr);
 				
 				const std::vector<EidosObjectElement *> &true_vec = (*arg1_value->ObjectElementVector());
 				const std::vector<EidosObjectElement *> &false_vec = (*arg2_value->ObjectElementVector());
@@ -5756,7 +5756,7 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const EidosValue_SP *const p_argument
 				const EidosObjectClass *arg2_class = ((EidosValue_Object *)arg2_value)->Class();
 				
 				if (arg1_class != arg2_class)
-					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ifelse): objects of different types cannot be mixed." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ifelse): objects of different types cannot be mixed." << EidosTerminate(nullptr);
 				
 				EidosObjectElement *true_value = arg1_value->ObjectElementAtIndex(0, nullptr);
 				EidosObjectElement *false_value = arg2_value->ObjectElementAtIndex(0, nullptr);
@@ -5814,7 +5814,7 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const EidosValue_SP *const p_argument
 	}
 	else
 	{
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ifelse): function ifelse() requires that trueValues and falseValues each be either of length 1, or equal in length to test." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ifelse): function ifelse() requires that trueValues and falseValues each be either of length 1, or equal in length to test." << EidosTerminate(nullptr);
 	}
 	
 	return result_SP;
@@ -5833,7 +5833,7 @@ EidosValue_SP Eidos_ExecuteFunction_match(const EidosValue_SP *const p_arguments
 	int arg1_count = arg1_value->Count();
 	
 	if (arg0_type != arg1_type)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_match): function match() requires arguments x and table to be the same type." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_match): function match() requires arguments x and table to be the same type." << EidosTerminate(nullptr);
 	
 	if (arg0_type == EidosValueType::kValueNULL)
 	{
@@ -6367,7 +6367,7 @@ EidosValue_SP Eidos_ExecuteFunction_substr(const EidosValue_SP *const p_argument
 		int arg_first_count = arg_first->Count();
 		
 		if (arg_first_count != arg0_count)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_substr): function substr() requires the size of first to be 1, or equal to the size of x." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_substr): function substr() requires the size of first to be 1, or equal to the size of x." << EidosTerminate(nullptr);
 		
 		int64_t first0 = arg_first->IntAtIndex(0, nullptr);
 		
@@ -6377,7 +6377,7 @@ EidosValue_SP Eidos_ExecuteFunction_substr(const EidosValue_SP *const p_argument
 			int arg_last_count = arg_last->Count();
 			
 			if (arg_last_count != arg0_count)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_substr): function substr() requires the size of last to be 1, or equal to the size of x." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_substr): function substr() requires the size of last to be 1, or equal to the size of x." << EidosTerminate(nullptr);
 			
 			int64_t last0 = arg_last->IntAtIndex(0, nullptr);
 			
@@ -6413,7 +6413,7 @@ EidosValue_SP Eidos_ExecuteFunction_substr(const EidosValue_SP *const p_argument
 		bool first_singleton = (arg_first_count == 1);
 		
 		if (!first_singleton && (arg_first_count != arg0_count))
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_substr): function substr() requires the size of first to be 1, or equal to the size of x." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_substr): function substr() requires the size of first to be 1, or equal to the size of x." << EidosTerminate(nullptr);
 		
 		EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(arg0_count);
 		result_SP = EidosValue_SP(string_result);
@@ -6427,7 +6427,7 @@ EidosValue_SP Eidos_ExecuteFunction_substr(const EidosValue_SP *const p_argument
 			bool last_singleton = (arg_last_count == 1);
 			
 			if (!last_singleton && (arg_last_count != arg0_count))
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_substr): function substr() requires the size of last to be 1, or equal to the size of x." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_substr): function substr() requires the size of last to be 1, or equal to the size of x." << EidosTerminate(nullptr);
 			
 			int64_t last0 = arg_last->IntAtIndex(0, nullptr);
 			
@@ -6901,7 +6901,7 @@ EidosValue_SP Eidos_ExecuteFunction_createDirectory(const EidosValue_SP *const p
 	if (base_path_ends_in_slash)
 		base_path.pop_back();		// remove the trailing slash, which just confuses stat()
 	
-	std::string path = EidosResolvedPath(base_path);
+	std::string path = Eidos_ResolvedPath(base_path);
 	
 	errno = 0;
 	
@@ -6958,7 +6958,7 @@ EidosValue_SP Eidos_ExecuteFunction_filesAtPath(const EidosValue_SP *const p_arg
 	std::string base_path = arg0_value->StringAtIndex(0, nullptr);
 	int base_path_length = (int)base_path.length();
 	bool base_path_ends_in_slash = (base_path_length > 0) && (base_path[base_path_length-1] == '/');
-	std::string path = EidosResolvedPath(base_path);
+	std::string path = Eidos_ResolvedPath(base_path);
 	bool fullPaths = p_arguments[1]->LogicalAtIndex(0, nullptr);
 	
 	// this code modified from GNU: http://www.gnu.org/software/libc/manual/html_node/Simple-Directory-Lister.html#Simple-Directory-Lister
@@ -7002,7 +7002,7 @@ EidosValue_SP Eidos_ExecuteFunction_deleteFile(const EidosValue_SP *const p_argu
 	
 	EidosValue *arg0_value = p_arguments[0].get();
 	std::string base_path = arg0_value->StringAtIndex(0, nullptr);
-	std::string file_path = EidosResolvedPath(base_path);
+	std::string file_path = Eidos_ResolvedPath(base_path);
 	
 	result_SP = ((remove(file_path.c_str()) == 0) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 	
@@ -7016,7 +7016,7 @@ EidosValue_SP Eidos_ExecuteFunction_readFile(const EidosValue_SP *const p_argume
 	
 	EidosValue *arg0_value = p_arguments[0].get();
 	std::string base_path = arg0_value->StringAtIndex(0, nullptr);
-	std::string file_path = EidosResolvedPath(base_path);
+	std::string file_path = Eidos_ResolvedPath(base_path);
 	
 	// read the contents in
 	std::ifstream file_stream(file_path.c_str());
@@ -7056,7 +7056,7 @@ EidosValue_SP Eidos_ExecuteFunction_writeFile(const EidosValue_SP *const p_argum
 	
 	EidosValue *arg0_value = p_arguments[0].get();
 	std::string base_path = arg0_value->StringAtIndex(0, nullptr);
-	std::string file_path = EidosResolvedPath(base_path);
+	std::string file_path = Eidos_ResolvedPath(base_path);
 	
 	// the second argument is the file contents to write
 	EidosValue *arg1_value = p_arguments[1].get();
@@ -7126,7 +7126,7 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const EidosValue_SP *const p_a
 	std::string file_path_template = "/tmp/" + filename;		// the /tmp directory is standard on OS X and Linux; probably on all Un*x systems
 	
 	if ((filename.find("~") != std::string::npos) || (filename.find("/") != std::string::npos))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_writeTempFile): prefix and suffix may not contain '~' or '/'; they may specify only a filename." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_writeTempFile): prefix and suffix may not contain '~' or '/'; they may specify only a filename." << EidosTerminate(nullptr);
 	
 	// the third argument is the file contents to write
 	EidosValue *contents_value = p_arguments[2].get();
@@ -7139,7 +7139,7 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const EidosValue_SP *const p_a
 	if (fd == -1)
 	{
 		free(file_path_cstr);
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_writeTempFile): (internal error) Eidos_mkstemps() failed!" << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_writeTempFile): (internal error) Eidos_mkstemps() failed!" << EidosTerminate(nullptr);
 	}
 	
 	std::string file_path(file_path_cstr);
@@ -7208,7 +7208,7 @@ EidosValue_SP Eidos_ExecuteFunction_hsv2rgb(const EidosValue_SP *const p_argumen
 	int arg0_count = arg0_value->Count();
 	
 	if (arg0_count != 3)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_hsv2rgb): hsv must contain exactly three elements." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_hsv2rgb): hsv must contain exactly three elements." << EidosTerminate(nullptr);
 	
 	double h = arg0_value->FloatAtIndex(0, nullptr);
 	double s = arg0_value->FloatAtIndex(1, nullptr);
@@ -7247,7 +7247,7 @@ EidosValue_SP Eidos_ExecuteFunction_rgb2hsv(const EidosValue_SP *const p_argumen
 	int arg0_count = arg0_value->Count();
 	
 	if (arg0_count != 3)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgb2hsv): rgb must contain exactly three elements." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgb2hsv): rgb must contain exactly three elements." << EidosTerminate(nullptr);
 	
 	double r = arg0_value->FloatAtIndex(0, nullptr);
 	double g = arg0_value->FloatAtIndex(1, nullptr);
@@ -7295,14 +7295,14 @@ EidosValue_SP Eidos_ExecuteFunction_rgb2color(const EidosValue_SP *const p_argum
 	int arg0_count = arg0_value->Count();
 	
 	if (arg0_count != 3)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgb2color): rgb must contain exactly three elements." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgb2color): rgb must contain exactly three elements." << EidosTerminate(nullptr);
 	
 	double r = arg0_value->FloatAtIndex(0, nullptr);
 	double g = arg0_value->FloatAtIndex(1, nullptr);
 	double b = arg0_value->FloatAtIndex(2, nullptr);
 	char hex_chars[8];
 	
-	EidosGetColorString(r, g, b, hex_chars);
+	Eidos_GetColorString(r, g, b, hex_chars);
 	
 	std::string hex_string(hex_chars);
 	
@@ -7320,7 +7320,7 @@ EidosValue_SP Eidos_ExecuteFunction_color2rgb(const EidosValue_SP *const p_argum
 	std::string color_string = arg0_value->StringAtIndex(0, nullptr);
 	float r, g, b;
 	
-	EidosGetColorComponents(color_string, &r, &g, &b);
+	Eidos_GetColorComponents(color_string, &r, &g, &b);
 	
 	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{r, g, b});
 	
@@ -7477,7 +7477,7 @@ EidosValue_SP Eidos_ExecuteFunction_beep(const EidosValue_SP *const p_arguments,
 	EidosValue *arg0_value = p_arguments[0].get();
 	std::string name_string = ((arg0_value->Type() == EidosValueType::kValueString) ? arg0_value->StringAtIndex(0, nullptr) : gEidosStr_empty_string);
 	
-	std::string beep_error = EidosBeep(name_string);
+	std::string beep_error = Eidos_Beep(name_string);
 	
 	if (beep_error.length())
 	{
@@ -7551,7 +7551,7 @@ EidosValue_SP Eidos_ExecuteFunction_defineConstant(const EidosValue_SP *const p_
 	
 	std::string symbol_name = p_arguments[0]->StringAtIndex(0, nullptr);
 	const EidosValue_SP x_value_sp = p_arguments[1];
-	EidosGlobalStringID symbol_id = EidosGlobalStringIDForString(symbol_name);
+	EidosGlobalStringID symbol_id = Eidos_GlobalStringIDForString(symbol_name);
 	EidosSymbolTable &symbols = p_interpreter.SymbolTable();
 	
 	symbols.DefineConstantForSymbol(symbol_id, x_value_sp);
@@ -7575,7 +7575,7 @@ EidosValue_SP Eidos_ExecuteFunction_doCall(const EidosValue_SP *const p_argument
 	auto signature_iter = function_map.find(function_name);
 	
 	if (signature_iter == function_map.end())
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_doCall): unrecognized function name " << function_name << "." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_doCall): unrecognized function name " << function_name << "." << EidosTerminate(nullptr);
 	
 	const EidosFunctionSignature *function_signature = signature_iter->second;
 	
@@ -7594,14 +7594,14 @@ EidosValue_SP Eidos_ExecuteFunction_doCall(const EidosValue_SP *const p_argument
 		if (context)
 			result_SP = context->ContextDefinedFunctionDispatch(function_name, arguments, argument_count, p_interpreter);
 		else
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_doCall): function " << function_name << " is defined by the Context, but the Context is not defined." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_doCall): function " << function_name << " is defined by the Context, but the Context is not defined." << EidosTerminate(nullptr);
 	}
 	else if (function_signature->body_script_)
 	{
 		p_interpreter.DispatchUserDefinedFunction(*function_signature, arguments, argument_count);
 	}
 	else
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_doCall): unbound function " << function_name << "." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_doCall): unbound function " << function_name << "." << EidosTerminate(nullptr);
 	
 	// Check the return value against the signature
 	function_signature->CheckReturn(*result_SP);
@@ -7780,7 +7780,7 @@ EidosValue_SP Eidos_ExecuteFunction_exists(const EidosValue_SP *const p_argument
 	EidosValue_SP result_SP(nullptr);
 	
 	std::string symbol_name = p_arguments[0]->StringAtIndex(0, nullptr);
-	EidosGlobalStringID symbol_id = EidosGlobalStringIDForString(symbol_name);
+	EidosGlobalStringID symbol_id = Eidos_GlobalStringIDForString(symbol_name);
 	EidosSymbolTable &symbols = p_interpreter.SymbolTable();
 	
 	bool exists = symbols.ContainsSymbol(symbol_id);
@@ -7903,10 +7903,10 @@ EidosValue_SP Eidos_ExecuteFunction_rm(const EidosValue_SP *const p_arguments, _
 	
 	if (removeConstants)
 		for (std::string &symbol : symbols_to_remove)
-			symbols.RemoveConstantForSymbol(EidosGlobalStringIDForString(symbol));
+			symbols.RemoveConstantForSymbol(Eidos_GlobalStringIDForString(symbol));
 	else
 		for (std::string &symbol : symbols_to_remove)
-			symbols.RemoveValueForSymbol(EidosGlobalStringIDForString(symbol));
+			symbols.RemoveValueForSymbol(Eidos_GlobalStringIDForString(symbol));
 	
 	result_SP = gStaticEidosValueNULLInvisible;
 	
@@ -7920,7 +7920,7 @@ EidosValue_SP Eidos_ExecuteFunction_setSeed(const EidosValue_SP *const p_argumen
 	
 	EidosValue *arg0_value = p_arguments[0].get();
 	
-	EidosInitializeRNGFromSeed(arg0_value->IntAtIndex(0, nullptr));
+	Eidos_InitializeRNGFromSeed(arg0_value->IntAtIndex(0, nullptr));
 	
 	result_SP = gStaticEidosValueNULLInvisible;
 	
@@ -7950,11 +7950,11 @@ EidosValue_SP Eidos_ExecuteFunction_stop(const EidosValue_SP *const p_arguments,
 		
 		p_interpreter.ExecutionOutputStream() << stop_string << std::endl;
 		
-		EIDOS_TERMINATION << ("ERROR (Eidos_ExecuteFunction_stop): stop(\"" + stop_string + "\") called.") << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << ("ERROR (Eidos_ExecuteFunction_stop): stop(\"" + stop_string + "\") called.") << EidosTerminate(nullptr);
 	}
 	else
 	{
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_stop): stop() called." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_stop): stop() called." << EidosTerminate(nullptr);
 	}
 	
 	return result_SP;
@@ -7978,7 +7978,7 @@ EidosValue_SP Eidos_ExecuteFunction_system(const EidosValue_SP *const p_argument
 	std::string command_string = command_value->StringAtIndex(0, nullptr);
 	
 	if (command_string.length() == 0)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_system): a non-empty command string must be supplied to system()." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_system): a non-empty command string must be supplied to system()." << EidosTerminate(nullptr);
 	
 	if (has_args)
 	{
@@ -7998,13 +7998,13 @@ EidosValue_SP Eidos_ExecuteFunction_system(const EidosValue_SP *const p_argument
 		int fd = mkstemp(name);
 		
 		if (fd == -1)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_system): (internal error) mkstemp() failed!" << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_system): (internal error) mkstemp() failed!" << EidosTerminate(nullptr);
 		
 		std::ofstream file_stream(name, std::ios_base::out);
 		close(fd);	// opened by mkstemp()
 		
 		if (!file_stream.is_open())
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_system): (internal error) ofstream() failed!" << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_system): (internal error) ofstream() failed!" << EidosTerminate(nullptr);
 		
 		if (input_count == 1)
 		{
@@ -8024,7 +8024,7 @@ EidosValue_SP Eidos_ExecuteFunction_system(const EidosValue_SP *const p_argument
 		}
 		
 		if (file_stream.bad())
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_system): (internal error) stream errors writing temporary file for input" << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_system): (internal error) stream errors writing temporary file for input" << EidosTerminate(nullptr);
 		
 		command_string.append(" < ");
 		command_string.append(name);
@@ -8046,7 +8046,7 @@ EidosValue_SP Eidos_ExecuteFunction_system(const EidosValue_SP *const p_argument
 	std::string result = "";
 	std::shared_ptr<FILE> pipe(popen(command_string.c_str(), "r"), pclose);
 	if (!pipe)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_system): (internal error) popen() failed!" << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_system): (internal error) popen() failed!" << EidosTerminate(nullptr);
 	while (!feof(pipe.get())) {
 		if (fgets(buffer, 128, pipe.get()) != NULL)
 			result += buffer;
@@ -8097,9 +8097,9 @@ EidosValue_SP Eidos_ExecuteFunction_ttest(const EidosValue_SP *const p_arguments
 	EidosValueType arg2_type = arg2_value->Type();
 	
 	if ((arg1_type == EidosValueType::kValueNULL) && (arg2_type == EidosValueType::kValueNULL))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ttest): function ttest() requires either y or mu to be non-NULL." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ttest): function ttest() requires either y or mu to be non-NULL." << EidosTerminate(nullptr);
 	if ((arg1_type != EidosValueType::kValueNULL) && (arg2_type != EidosValueType::kValueNULL))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ttest): function ttest() requires either y or mu to be NULL." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ttest): function ttest() requires either y or mu to be NULL." << EidosTerminate(nullptr);
 	
 	double pvalue = 0.0;
 	const double *vec1 = nullptr;
@@ -8116,13 +8116,13 @@ EidosValue_SP Eidos_ExecuteFunction_ttest(const EidosValue_SP *const p_arguments
 	}
 	
 	if (arg0_count <= 1)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ttest): function ttest() requires enough elements in x to compute variance." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ttest): function ttest() requires enough elements in x to compute variance." << EidosTerminate(nullptr);
 	
 	if (arg1_type != EidosValueType::kValueNULL)
 	{
 		// This is the x & y case, which is a two-sample Welch's t-test
 		if (arg1_count <= 1)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ttest): function ttest() requires enough elements in y to compute variance." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ttest): function ttest() requires enough elements in y to compute variance." << EidosTerminate(nullptr);
 		
 		const double *vec2 = nullptr;
 		double singleton2;
@@ -8200,8 +8200,8 @@ EidosValue_SP Eidos_ExecuteFunction__Test(const EidosValue_SP *const p_arguments
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *arg0_value = p_arguments[0].get();
-	Eidos_TestElement *testElement = new Eidos_TestElement(arg0_value->IntAtIndex(0, nullptr));
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(testElement, gEidos_TestElementClass));
+	EidosTestElement *testElement = new EidosTestElement(arg0_value->IntAtIndex(0, nullptr));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(testElement, gEidosTestElement_Class));
 	testElement->Release();
 	
 	return result_SP;

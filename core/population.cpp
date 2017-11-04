@@ -124,9 +124,9 @@ void Population::RemoveAllSubpopulationInfo(void)
 Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, slim_popsize_t p_subpop_size, double p_initial_sex_ratio) 
 { 
 	if (count(p_subpop_id) != 0)
-		EIDOS_TERMINATION << "ERROR (Population::AddSubpopulation): subpopulation p" << p_subpop_id << " already exists." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::AddSubpopulation): subpopulation p" << p_subpop_id << " already exists." << EidosTerminate();
 	if (p_subpop_size < 1)
-		EIDOS_TERMINATION << "ERROR (Population::AddSubpopulation): subpopulation p" << p_subpop_id << " empty." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::AddSubpopulation): subpopulation p" << p_subpop_id << " empty." << EidosTerminate();
 	
 	// make and add the new subpopulation
 	Subpopulation *new_subpop = nullptr;
@@ -154,9 +154,9 @@ Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, slim_po
 Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, Subpopulation &p_source_subpop, slim_popsize_t p_subpop_size, double p_initial_sex_ratio)
 {
 	if (count(p_subpop_id) != 0)
-		EIDOS_TERMINATION << "ERROR (Population::AddSubpopulation): subpopulation p" << p_subpop_id << " already exists." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::AddSubpopulation): subpopulation p" << p_subpop_id << " already exists." << EidosTerminate();
 	if (p_subpop_size < 1)
-		EIDOS_TERMINATION << "ERROR (Population::AddSubpopulation): subpopulation p" << p_subpop_id << " empty." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::AddSubpopulation): subpopulation p" << p_subpop_id << " empty." << EidosTerminate();
 	
 	// make and add the new subpopulation
 	Subpopulation *new_subpop = nullptr;
@@ -213,7 +213,7 @@ void Population::SetSize(Subpopulation &p_subpop, slim_popsize_t p_subpop_size)
 	// SetSize() can only be called when the child generation has not yet been generated.  It sets the size on the child generation,
 	// and then that size takes effect when the children are generated from the parents in EvolveSubpopulation().
 	if (child_generation_valid_)
-		EIDOS_TERMINATION << "ERROR (Population::SetSize): called when the child generation was valid." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::SetSize): called when the child generation was valid." << EidosTerminate();
 	
 	if (p_subpop_size == 0) // remove subpopulation p_subpop_id
 	{
@@ -244,9 +244,9 @@ void Population::SetSize(Subpopulation &p_subpop, slim_popsize_t p_subpop_size)
 void Population::SetMigration(Subpopulation &p_subpop, slim_objectid_t p_source_subpop_id, double p_migrant_fraction) 
 { 
 	if (count(p_source_subpop_id) == 0)
-		EIDOS_TERMINATION << "ERROR (Population::SetMigration): no subpopulation p" << p_source_subpop_id << "." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::SetMigration): no subpopulation p" << p_source_subpop_id << "." << EidosTerminate();
 	if (p_migrant_fraction < 0.0 || p_migrant_fraction > 1.0)
-		EIDOS_TERMINATION << "ERROR (Population::SetMigration): migration fraction has to be within [0,1] (" << p_migrant_fraction << " supplied)." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::SetMigration): migration fraction has to be within [0,1] (" << p_migrant_fraction << " supplied)." << EidosTerminate();
 	
 	if (p_subpop.migrant_fractions_.count(p_source_subpop_id) != 0)
 		p_subpop.migrant_fractions_.erase(p_source_subpop_id);
@@ -395,7 +395,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 						}
 						else
 						{
-							EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): invalid return value for mateChoice() callback." << eidos_terminate(mate_choice_callback->identifier_token_);
+							EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): invalid return value for mateChoice() callback." << EidosTerminate(mate_choice_callback->identifier_token_);
 						}
 					}
 					else if (result->Type() == EidosValueType::kValueFloat)
@@ -434,12 +434,12 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 						}
 						else
 						{
-							EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): invalid return value for mateChoice() callback." << eidos_terminate(mate_choice_callback->identifier_token_);
+							EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): invalid return value for mateChoice() callback." << EidosTerminate(mate_choice_callback->identifier_token_);
 						}
 					}
 					else
 					{
-						EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): invalid return value for mateChoice() callback." << eidos_terminate(mate_choice_callback->identifier_token_);
+						EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): invalid return value for mateChoice() callback." << EidosTerminate(mate_choice_callback->identifier_token_);
 					}
 					
 					// Output generated by the interpreter goes to our output stream
@@ -481,7 +481,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 		if (sex_enabled)
 		{
 			if (drawn_parent < p_source_subpop->parent_first_male_index_)
-				EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): second parent chosen by mateChoice() callback is female." << eidos_terminate(last_interventionist_mate_choice_callback->identifier_token_);
+				EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): second parent chosen by mateChoice() callback is female." << EidosTerminate(last_interventionist_mate_choice_callback->identifier_token_);
 		}
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
@@ -505,7 +505,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 			double x = current_weights[weight_index];
 			
 			if (!std::isfinite(x))
-				EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): weight returned by mateChoice() callback is not finite." << eidos_terminate(last_interventionist_mate_choice_callback->identifier_token_);
+				EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): weight returned by mateChoice() callback is not finite." << EidosTerminate(last_interventionist_mate_choice_callback->identifier_token_);
 			
 			if (x > 0.0)
 			{
@@ -515,7 +515,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 			}
 			
 			if (x < 0.0)
-				EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): weight returned by mateChoice() callback is less than 0.0." << eidos_terminate(last_interventionist_mate_choice_callback->identifier_token_);
+				EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): weight returned by mateChoice() callback is less than 0.0." << EidosTerminate(last_interventionist_mate_choice_callback->identifier_token_);
 		}
 		
 		if (weights_sum <= 0.0)
@@ -525,7 +525,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 			// chain, whereas returning a vector of 0 values can be modified by a downstream mateChoice() callback.  Usually that is
 			// not an important distinction.  Returning float(0) is faster in principle, but if one is already constructing a vector
 			// of weights that can simply end up being all zero, then this path is much easier.  BCH 5 March 2017
-			//EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): weights returned by mateChoice() callback sum to 0.0 or less." << eidos_terminate(last_interventionist_mate_choice_callback->identifier_token_);
+			//EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): weights returned by mateChoice() callback sum to 0.0 or less." << EidosTerminate(last_interventionist_mate_choice_callback->identifier_token_);
 			if (weights_modified)
 				free(current_weights);
 			
@@ -591,14 +591,14 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 		
 		// we should always have a chosen parent at this point
 		if (drawn_parent == -1)
-			EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): failed to choose a mate." << eidos_terminate(last_interventionist_mate_choice_callback->identifier_token_);
+			EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): failed to choose a mate." << EidosTerminate(last_interventionist_mate_choice_callback->identifier_token_);
 		
 		free(current_weights);
 		
 		if (sex_enabled)
 		{
 			if (drawn_parent < p_source_subpop->parent_first_male_index_)
-				EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): second parent chosen by mateChoice() callback is female." << eidos_terminate(last_interventionist_mate_choice_callback->identifier_token_);
+				EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): second parent chosen by mateChoice() callback is female." << EidosTerminate(last_interventionist_mate_choice_callback->identifier_token_);
 		}
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
@@ -724,7 +724,7 @@ bool Population::ApplyModifyChildCallbacks(slim_popsize_t p_child_index, Individ
 				EidosValue *result = result_SP.get();
 				
 				if ((result->Type() != EidosValueType::kValueLogical) || (result->Count() != 1))
-					EIDOS_TERMINATION << "ERROR (Population::ApplyModifyChildCallbacks): modifyChild() callbacks must provide a logical singleton return value." << eidos_terminate(modify_child_callback->identifier_token_);
+					EIDOS_TERMINATION << "ERROR (Population::ApplyModifyChildCallbacks): modifyChild() callbacks must provide a logical singleton return value." << EidosTerminate(modify_child_callback->identifier_token_);
 				
 				eidos_logical_t generate_child = result->LogicalAtIndex(0, nullptr);
 				
@@ -786,7 +786,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 			auto migrant_source_pair = find(migrant_source_id);
 			
 			if (migrant_source_pair == end())
-				EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): no migrant source subpopulation p" << migrant_source_id << "." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): no migrant source subpopulation p" << migrant_source_id << "." << EidosTerminate();
 			
 			migration_rates[pop_count] = fractions_pair.second;
 			migration_sources[pop_count] = migrant_source_pair->second;
@@ -801,7 +801,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 			migration_sources[pop_count] = &p_subpop;
 		}
 		else
-			EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): too many migrants in subpopulation p" << p_subpop.subpopulation_id_ << "; migration fractions must sum to <= 1.0." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): too many migrants in subpopulation p" << p_subpop.subpopulation_id_ << "; migration fractions must sum to <= 1.0." << EidosTerminate();
 	}
 	else
 	{
@@ -823,7 +823,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 		number_of_sexes = 2;
 		
 		if (total_male_children <= 0 || total_female_children <= 0)
-			EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): sex ratio " << sex_ratio << " results in a unisexual child population." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): sex ratio " << sex_ratio << " results in a unisexual child population." << EidosTerminate();
 	}
 	
 	if (p_mate_choice_callbacks_present || p_modify_child_callbacks_present || p_recombination_callbacks_present)
@@ -966,7 +966,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 				retryChild:
 					
 					if (num_tries > 1000000)
-						EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): failed to generate child after 1 million attempts; terminating to avoid infinite loop." << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): failed to generate child after 1 million attempts; terminating to avoid infinite loop." << EidosTerminate();
 					
 					if (num_tries == 0)
 					{
@@ -1132,7 +1132,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 							parent1 = source_subpop.DrawParentUsingFitness();
 							
 							if (num_tries > 1000000)
-								EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): failed to generate child after 1 million attempts; terminating to avoid infinite loop." << eidos_terminate();
+								EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): failed to generate child after 1 million attempts; terminating to avoid infinite loop." << EidosTerminate();
 						}
 					}
 					
@@ -1150,7 +1150,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 							num_tries++;
 							
 							if (num_tries > 1000000)
-								EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): failed to generate child after 1 million attempts; terminating to avoid infinite loop." << eidos_terminate();
+								EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): failed to generate child after 1 million attempts; terminating to avoid infinite loop." << EidosTerminate();
 							
 							continue;
 						}
@@ -1310,7 +1310,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 			retryWithSameSourceSubpop:
 				
 				if (num_tries > 1000000)
-					EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): failed to generate child after 1 million attempts; terminating to avoid infinite loop." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): failed to generate child after 1 million attempts; terminating to avoid infinite loop." << EidosTerminate();
 				
 				if (num_tries == 0)
 				{
@@ -1708,7 +1708,7 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 				EidosValue *result = result_SP.get();
 				
 				if ((result->Type() != EidosValueType::kValueLogical) || (result->Count() != 1))
-					EIDOS_TERMINATION << "ERROR (Population::ApplyRecombinationCallbacks): recombination() callbacks must provide a logical singleton return value." << eidos_terminate(recombination_callback->identifier_token_);
+					EIDOS_TERMINATION << "ERROR (Population::ApplyRecombinationCallbacks): recombination() callbacks must provide a logical singleton return value." << EidosTerminate(recombination_callback->identifier_token_);
 				
 				eidos_logical_t breakpoints_changed = result->LogicalAtIndex(0, nullptr);
 				
@@ -1722,7 +1722,7 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 						if (new_crossovers != local_crossovers_ptr)
 						{
 							if (new_crossovers->Type() != EidosValueType::kValueInt)
-								EIDOS_TERMINATION << "ERROR (Population::ApplyRecombinationCallbacks): recombination() callbacks must provide output values (breakpoints) of type integer." << eidos_terminate(recombination_callback->identifier_token_);
+								EIDOS_TERMINATION << "ERROR (Population::ApplyRecombinationCallbacks): recombination() callbacks must provide output values (breakpoints) of type integer." << EidosTerminate(recombination_callback->identifier_token_);
 							
 							new_crossovers.swap(local_crossovers_ptr);
 							crossovers_changed = true;
@@ -1735,7 +1735,7 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 						if (new_gcstarts != local_gcstarts_ptr)
 						{
 							if (new_gcstarts->Type() != EidosValueType::kValueInt)
-								EIDOS_TERMINATION << "ERROR (Population::ApplyRecombinationCallbacks): recombination() callbacks must provide output values (gcStarts) of type integer." << eidos_terminate(recombination_callback->identifier_token_);
+								EIDOS_TERMINATION << "ERROR (Population::ApplyRecombinationCallbacks): recombination() callbacks must provide output values (gcStarts) of type integer." << EidosTerminate(recombination_callback->identifier_token_);
 							
 							new_gcstarts.swap(local_gcstarts_ptr);
 							gcstarts_changed = true;
@@ -1748,7 +1748,7 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 						if (new_gcends != local_gcends_ptr)
 						{
 							if (new_gcends->Type() != EidosValueType::kValueInt)
-								EIDOS_TERMINATION << "ERROR (Population::ApplyRecombinationCallbacks): recombination() callbacks must provide output values (gcEnds) of type integer." << eidos_terminate(recombination_callback->identifier_token_);
+								EIDOS_TERMINATION << "ERROR (Population::ApplyRecombinationCallbacks): recombination() callbacks must provide output values (gcEnds) of type integer." << EidosTerminate(recombination_callback->identifier_token_);
 							
 							new_gcends.swap(local_gcends_ptr);
 							gcends_changed = true;
@@ -1854,7 +1854,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 	
 #ifdef DEBUG
 	if (p_child_sex == IndividualSex::kUnspecified)
-		EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Child sex cannot be IndividualSex::kUnspecified." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Child sex cannot be IndividualSex::kUnspecified." << EidosTerminate();
 #endif
 	
 	bool use_only_strand_1 = false;		// if true, we are in a case where crossover cannot occur, and we are to use only parent strand 1
@@ -1872,7 +1872,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 		// If we're modeling autosomes, we can disregard p_child_sex entirely; we don't care whether we're modeling sexual or hermaphrodite individuals
 #ifdef DEBUG
 		if (parent1_genome_type != GenomeType::kAutosome || parent2_genome_type != GenomeType::kAutosome)
-			EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Mismatch between parent and child genome types (case 1)." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Mismatch between parent and child genome types (case 1)." << EidosTerminate();
 #endif
 	}
 	else
@@ -1880,9 +1880,9 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 		// SEX ONLY: If we're modeling sexual individuals, then there are various degenerate cases to be considered, since X and Y don't cross over, there are null chromosomes, etc.
 #ifdef DEBUG
 		if (p_child_sex == IndividualSex::kHermaphrodite)
-			EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): A hermaphrodite child is requested but the child genome is not autosomal." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): A hermaphrodite child is requested but the child genome is not autosomal." << EidosTerminate();
 		if (parent1_genome_type == GenomeType::kAutosome || parent2_genome_type == GenomeType::kAutosome)
-			EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Mismatch between parent and child genome types (case 2)." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Mismatch between parent and child genome types (case 2)." << EidosTerminate();
 #endif
 		
 		if (child_genome_type == GenomeType::kXChromosome)
@@ -1891,7 +1891,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 			{
 				// If our parent is male (XY or YX), then we have a mismatch, because we're supposed to be male and we're supposed to be getting an X chromosome, but the X must come from the female
 				if (parent1_genome_type == GenomeType::kYChromosome || parent2_genome_type == GenomeType::kYChromosome)
-					EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Mismatch between parent and child genome types (case 3)." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Mismatch between parent and child genome types (case 3)." << EidosTerminate();
 				
 				// else: we're doing inheritance from the female (XX) to get our X chromosome; we treat this just like the autosomal case
 			}
@@ -1913,7 +1913,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 		else // (child_genome_type == GenomeType::kYChromosome), so p_child_sex == IndividualSex::kMale
 		{
 			if (p_child_sex == IndividualSex::kFemale)
-				EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): A female child is requested but the child genome is a Y chromosome." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): A female child is requested but the child genome is a Y chromosome." << EidosTerminate();
 			
 			if (parent1_genome_type == GenomeType::kYChromosome && parent2_genome_type == GenomeType::kXChromosome)
 			{
@@ -1928,13 +1928,13 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 			else
 			{
 				// else: we're doing inheritance from the female (XX) to get a Y chromosome, so this is a mismatch
-				EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Mismatch between parent and child genome types (case 4)." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Mismatch between parent and child genome types (case 4)." << EidosTerminate();
 			}
 		}
 	}
 	
 	// swap strands in half of cases to assure random assortment (or in all cases, if use_only_strand_1 == true, meaning that crossover cannot occur)
-	if (do_swap && (use_only_strand_1 || eidos_random_bool(gEidos_rng)))
+	if (do_swap && (use_only_strand_1 || Eidos_RandomBool(gEidos_rng)))
 	{
 		std::swap(parent_genome_1_index, parent_genome_2_index);
 		std::swap(parent_genome_1, parent_genome_2);
@@ -1955,13 +1955,13 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 		{
 			// If we're trying to cross over, both parental strands had better be null
 			if (!parent_genome_1_null || !parent_genome_2_null)
-				EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Child genome is null, but crossover is requested and a parental genome is non-null." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Child genome is null, but crossover is requested and a parental genome is non-null." << EidosTerminate();
 		}
 		else
 		{
 			// So we are not crossing over, and we are supposed to use strand 1; it should also be null, otherwise something has gone wrong
 			if (!parent_genome_1_null)
-				EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Child genome is null, but the parental strand is not." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Child genome is null, but the parental strand is not." << EidosTerminate();
 		}
 #endif
 		
@@ -1971,10 +1971,10 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 	
 #ifdef DEBUG
 	if (use_only_strand_1 && parent_genome_1_null)
-		EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Child genome is non-null, but the parental strand is null." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Child genome is non-null, but the parental strand is null." << EidosTerminate();
 	
 	if (!use_only_strand_1 && (parent_genome_1_null || parent_genome_2_null))
-		EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Child genome is non-null, but a parental strand is null." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Child genome is non-null, but a parental strand is null." << EidosTerminate();
 #endif
 	
 	//
@@ -2605,7 +2605,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 				}
 				else
 				{
-					EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): (internal error) logic fail." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): (internal error) logic fail." << EidosTerminate();
 				}
 			}
 		}
@@ -2617,7 +2617,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 #if 0
 	for (int i = 0; i < child_genome.mutrun_count_; ++i)
 		if (child_genome.mutruns_[i].get() == nullptr)
-			EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): (internal error) null mutation run left at end of crossover-mutation." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): (internal error) null mutation run left at end of crossover-mutation." << EidosTerminate();
 #endif
 }
 
@@ -2626,7 +2626,7 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 #pragma unused(p_child_sex)
 #ifdef DEBUG
 	if (p_child_sex == IndividualSex::kUnspecified)
-		EIDOS_TERMINATION << "ERROR (Population::DoClonalMutation): Child sex cannot be IndividualSex::kUnspecified." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::DoClonalMutation): Child sex cannot be IndividualSex::kUnspecified." << EidosTerminate();
 #endif
 	
 	Genome &child_genome = p_subpop->child_genomes_[p_child_genome_index];
@@ -2635,14 +2635,14 @@ void Population::DoClonalMutation(Subpopulation *p_subpop, Subpopulation *p_sour
 	GenomeType parent_genome_type = parent_genome->Type();
 	
 	if (child_genome_type != parent_genome_type)
-		EIDOS_TERMINATION << "ERROR (Population::DoClonalMutation): Mismatch between parent and child genome types (type != type)." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::DoClonalMutation): Mismatch between parent and child genome types (type != type)." << EidosTerminate();
 	
 	// check for null cases
 	bool child_genome_null = child_genome.IsNull();
 	bool parent_genome_null = parent_genome->IsNull();
 	
 	if (child_genome_null != parent_genome_null)
-		EIDOS_TERMINATION << "ERROR (Population::DoClonalMutation): Mismatch between parent and child genome types (null != null)." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::DoClonalMutation): Mismatch between parent and child genome types (null != null)." << EidosTerminate();
 	
 	if (child_genome_null)
 	{
@@ -3264,7 +3264,7 @@ void Population::UniqueMutationRuns(void)
 #endif
 	
 	if (total_final != total_mutruns - total_identical)
-		EIDOS_TERMINATION << "ERROR (Population::UniqueMutationRuns): (internal error) bookkeeping error in mutation run uniquing." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::UniqueMutationRuns): (internal error) bookkeeping error in mutation run uniquing." << EidosTerminate();
 }
 
 void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
@@ -3342,7 +3342,7 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 					MutationRun_SP &mutrun_sp_ref = genome.mutruns_[run_index];
 					MutationRun *mutrun = mutrun_sp_ref.get();
 					
-					if (mutrun->use_count() == 1)
+					if (mutrun->UseCount() == 1)
 					{
 						// this mutrun is only referenced once, so we can just replace it without using the map
 						MutationRun *first_half, *second_half;
@@ -3504,7 +3504,7 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 					MutationRun *mutrun1 = mutrun1_sp_ref.get();
 					MutationRun *mutrun2 = mutrun2_sp_ref.get();
 					
-					if ((mutrun1->use_count() == 1) || (mutrun2->use_count() == 1))
+					if ((mutrun1->UseCount() == 1) || (mutrun2->UseCount() == 1))
 					{
 						// one of these mutruns is only referenced once, so we can just replace them without using the map
 						MutationRun *joined_run = MutationRun::NewMutationRun();	// take from shared pool of used objects
@@ -3629,7 +3629,7 @@ void Population::AssessMutationRuns(void)
 						
 						if (mutrun->operation_id_ != operation_id)
 						{
-							slim_refcount_t use_count = (slim_refcount_t)mutrun->use_count();
+							slim_refcount_t use_count = (slim_refcount_t)mutrun->UseCount();
 							
 							total_shared_mutrun_count++;
 							use_count_total += use_count;
@@ -3805,7 +3805,7 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 			int mutrun_count = sim_.TheChromosome().mutrun_count_;
 			
 			if (total_genome_count * mutrun_count != tally_mutrun_ref_count)
-				EIDOS_TERMINATION << "ERROR (Population::TallyMutationReferences): (internal error) tally != total genome count." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Population::TallyMutationReferences): (internal error) tally != total genome count." << EidosTerminate();
 			
 			//std::cout << "Total genomes / MutationRuns: " << total_genome_count << " / " << total_mutrun_count << std::endl;
 		}
@@ -4251,7 +4251,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions) 
 	int mem_check_counter = 0, mem_check_mod = 100;
 	
 	if (eidos_do_memory_checks)
-		EidosCheckRSSAgainstMax("Population::PrintAll", "(The memory usage was already out of bounds on entry.)");
+		Eidos_CheckRSSAgainstMax("Population::PrintAll", "(The memory usage was already out of bounds on entry.)");
 #endif
 	
 	// Figure out spatial position output.  If it was not requested, then we don't do it, and that's fine.  If it
@@ -4282,7 +4282,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions) 
 		
 #if DO_MEMORY_CHECKS
 		if (eidos_do_memory_checks && ((++mem_check_counter) % mem_check_mod == 0))
-			EidosCheckRSSAgainstMax("Population::PrintAll", "(Out of memory while outputting population list.)");
+			Eidos_CheckRSSAgainstMax("Population::PrintAll", "(Out of memory while outputting population list.)");
 #endif
 	}
 	
@@ -4312,7 +4312,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions) 
 			
 #if DO_MEMORY_CHECKS
 			if (eidos_do_memory_checks && ((++mem_check_counter) % mem_check_mod == 0))
-				EidosCheckRSSAgainstMax("Population::PrintAll", "(Out of memory while assembling polymorphisms.)");
+				Eidos_CheckRSSAgainstMax("Population::PrintAll", "(Out of memory while assembling polymorphisms.)");
 #endif
 		}
 	}
@@ -4322,11 +4322,11 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions) 
 	
 	for (const PolymorphismPair &polymorphism_pair : polymorphisms)
 	{
-		polymorphism_pair.second.print(p_out);							// NOTE this added mutation_id_, BCH 11 June 2016
+		polymorphism_pair.second.Print(p_out);							// NOTE this added mutation_id_, BCH 11 June 2016
 		
 #if DO_MEMORY_CHECKS
 		if (eidos_do_memory_checks && ((++mem_check_counter) % mem_check_mod == 0))
-			EidosCheckRSSAgainstMax("Population::PrintAll", "(Out of memory while printing polymorphisms.)");
+			Eidos_CheckRSSAgainstMax("Population::PrintAll", "(Out of memory while printing polymorphisms.)");
 #endif
 	}
 	
@@ -4369,7 +4369,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions) 
 			
 #if DO_MEMORY_CHECKS
 			if (eidos_do_memory_checks && ((++mem_check_counter) % mem_check_mod == 0))
-				EidosCheckRSSAgainstMax("Population::PrintAll", "(Out of memory while printing individuals.)");
+				Eidos_CheckRSSAgainstMax("Population::PrintAll", "(Out of memory while printing individuals.)");
 #endif
 		}
 	}
@@ -4408,7 +4408,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions) 
 						slim_polymorphismid_t polymorphism_id = FindMutationInPolymorphismMap(polymorphisms, mut_block_ptr + mut_ptr[mut_index]);
 						
 						if (polymorphism_id == -1)
-							EIDOS_TERMINATION << "ERROR (Population::PrintAll): (internal error) polymorphism not found." << eidos_terminate();
+							EIDOS_TERMINATION << "ERROR (Population::PrintAll): (internal error) polymorphism not found." << EidosTerminate();
 						
 						p_out << " " << polymorphism_id;
 					}
@@ -4419,7 +4419,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions) 
 			
 #if DO_MEMORY_CHECKS
 			if (eidos_do_memory_checks && ((++mem_check_counter) % mem_check_mod == 0))
-				EidosCheckRSSAgainstMax("Population::PrintAll", "(Out of memory while printing genomes.)");
+				Eidos_CheckRSSAgainstMax("Population::PrintAll", "(Out of memory while printing genomes.)");
 #endif
 		}
 	}
@@ -4661,7 +4661,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 							slim_polymorphismid_t polymorphism_id = FindMutationInPolymorphismMap(polymorphisms, mut_block_ptr + mut_ptr[mut_index]);
 							
 							if (polymorphism_id == -1)
-								EIDOS_TERMINATION << "ERROR (Population::PrintAll): (internal error) polymorphism not found." << eidos_terminate();
+								EIDOS_TERMINATION << "ERROR (Population::PrintAll): (internal error) polymorphism not found." << EidosTerminate();
 							
 							if (polymorphism_id <= UINT16_MAX - 1)
 							{
@@ -4671,7 +4671,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 							}
 							else
 							{
-								EIDOS_TERMINATION << "ERROR (Population::PrintAllBinary): (internal error) mutation id out of 16-bit bounds." << eidos_terminate();
+								EIDOS_TERMINATION << "ERROR (Population::PrintAllBinary): (internal error) mutation id out of 16-bit bounds." << EidosTerminate();
 							}
 						}
 					}
@@ -4692,7 +4692,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 							slim_polymorphismid_t polymorphism_id = FindMutationInPolymorphismMap(polymorphisms, mut_block_ptr + mut_ptr[mut_index]);
 							
 							if (polymorphism_id == -1)
-								EIDOS_TERMINATION << "ERROR (Population::PrintAll): (internal error) polymorphism not found." << eidos_terminate();
+								EIDOS_TERMINATION << "ERROR (Population::PrintAll): (internal error) polymorphism not found." << EidosTerminate();
 							
 							p_out.write(reinterpret_cast<char *>(&polymorphism_id), sizeof polymorphism_id);
 						}
@@ -4709,7 +4709,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 }
 
 // print sample of p_sample_size genomes from subpopulation p_subpop_id
-void Population::PrintSample_slim(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex) const
+void Population::PrintSample_SLiM(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex) const
 {
 	// This function is written to be able to print the population whether child_generation_valid is true or false.
 	
@@ -4717,7 +4717,7 @@ void Population::PrintSample_slim(std::ostream &p_out, Subpopulation &p_subpop, 
 	slim_popsize_t subpop_size = (child_generation_valid_ ? p_subpop.child_subpop_size_ : p_subpop.parent_subpop_size_);
 	
 	if (p_requested_sex == IndividualSex::kFemale && p_subpop.modeled_chromosome_type_ == GenomeType::kYChromosome)
-		EIDOS_TERMINATION << "ERROR (Population::PrintSample_slim): called to output Y chromosomes from females." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::PrintSample_SLiM): called to output Y chromosomes from females." << EidosTerminate();
 	
 	// assemble a sample (with or without replacement)
 	std::vector<slim_popsize_t> candidates;
@@ -4736,7 +4736,7 @@ void Population::PrintSample_slim(std::ostream &p_out, Subpopulation &p_subpop, 
 		do {
 			// select a random genome (not a random individual) by selecting a random candidate entry
 			if (candidates.size() == 0)
-				EIDOS_TERMINATION << "ERROR (Population::PrintSample_slim): not enough eligible genomes for sampling without replacement." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Population::PrintSample_SLiM): not enough eligible genomes for sampling without replacement." << EidosTerminate();
 			
 			candidate_index = static_cast<slim_popsize_t>(gsl_rng_uniform_int(gEidos_rng, candidates.size()));
 			genome_index = candidates[candidate_index];
@@ -4753,11 +4753,11 @@ void Population::PrintSample_slim(std::ostream &p_out, Subpopulation &p_subpop, 
 	}
 	
 	// print the sample using Genome's static member function
-	Genome::PrintGenomes_slim(p_out, sample, p_subpop.subpopulation_id_);
+	Genome::PrintGenomes_SLiM(p_out, sample, p_subpop.subpopulation_id_);
 }
 
 // print sample of p_sample_size genomes from subpopulation p_subpop_id, using "ms" format
-void Population::PrintSample_ms(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex, const Chromosome &p_chromosome) const
+void Population::PrintSample_MS(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex, const Chromosome &p_chromosome) const
 {
 	// This function is written to be able to print the population whether child_generation_valid is true or false.
 	
@@ -4765,7 +4765,7 @@ void Population::PrintSample_ms(std::ostream &p_out, Subpopulation &p_subpop, sl
 	slim_popsize_t subpop_size = (child_generation_valid_ ? p_subpop.child_subpop_size_ : p_subpop.parent_subpop_size_);
 	
 	if (p_requested_sex == IndividualSex::kFemale && p_subpop.modeled_chromosome_type_ == GenomeType::kYChromosome)
-		EIDOS_TERMINATION << "ERROR (Population::PrintSample_ms): called to output Y chromosomes from females." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::PrintSample_MS): called to output Y chromosomes from females." << EidosTerminate();
 	
 	// assemble a sample (with or without replacement)
 	std::vector<slim_popsize_t> candidates;
@@ -4784,7 +4784,7 @@ void Population::PrintSample_ms(std::ostream &p_out, Subpopulation &p_subpop, sl
 		do {
 			// select a random genome (not a random individual) by selecting a random candidate entry
 			if (candidates.size() == 0)
-				EIDOS_TERMINATION << "ERROR (Population::PrintSample_ms): not enough eligible genomes for sampling without replacement." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Population::PrintSample_MS): not enough eligible genomes for sampling without replacement." << EidosTerminate();
 			
 			candidate_index = static_cast<slim_popsize_t>(gsl_rng_uniform_int(gEidos_rng, candidates.size()));
 			genome_index = candidates[candidate_index];
@@ -4801,11 +4801,11 @@ void Population::PrintSample_ms(std::ostream &p_out, Subpopulation &p_subpop, sl
 	}
 	
 	// print the sample using Genome's static member function
-	Genome::PrintGenomes_ms(p_out, sample, p_chromosome);
+	Genome::PrintGenomes_MS(p_out, sample, p_chromosome);
 }
 
 // print sample of p_sample_size *individuals* (NOT genomes) from subpopulation p_subpop_id
-void Population::PrintSample_vcf(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex, bool p_output_multiallelics) const
+void Population::PrintSample_VCF(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex, bool p_output_multiallelics) const
 {
 	// This function is written to be able to print the population whether child_generation_valid is true or false.
 	
@@ -4813,9 +4813,9 @@ void Population::PrintSample_vcf(std::ostream &p_out, Subpopulation &p_subpop, s
 	slim_popsize_t subpop_size = (child_generation_valid_ ? p_subpop.child_subpop_size_ : p_subpop.parent_subpop_size_);
 	
 	if (p_requested_sex == IndividualSex::kFemale && p_subpop.modeled_chromosome_type_ == GenomeType::kYChromosome)
-		EIDOS_TERMINATION << "ERROR (Population::PrintSample_vcf): called to output Y chromosomes from females." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::PrintSample_VCF): called to output Y chromosomes from females." << EidosTerminate();
 	if (p_requested_sex == IndividualSex::kUnspecified && p_subpop.modeled_chromosome_type_ == GenomeType::kYChromosome)
-		EIDOS_TERMINATION << "ERROR (Population::PrintSample_vcf): called to output Y chromosomes from both sexes." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Population::PrintSample_VCF): called to output Y chromosomes from both sexes." << EidosTerminate();
 	
 	// assemble a sample (with or without replacement)
 	std::vector<slim_popsize_t> candidates;
@@ -4835,7 +4835,7 @@ void Population::PrintSample_vcf(std::ostream &p_out, Subpopulation &p_subpop, s
 		do {
 			// select a random genome (not a random individual) by selecting a random candidate entry
 			if (candidates.size() == 0)
-				EIDOS_TERMINATION << "ERROR (Population::PrintSample_vcf): not enough eligible individuals for sampling without replacement." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Population::PrintSample_VCF): not enough eligible individuals for sampling without replacement." << EidosTerminate();
 			
 			candidate_index = static_cast<slim_popsize_t>(gsl_rng_uniform_int(gEidos_rng, candidates.size()));
 			individual_index = candidates[candidate_index];
@@ -4856,7 +4856,7 @@ void Population::PrintSample_vcf(std::ostream &p_out, Subpopulation &p_subpop, s
 	}
 	
 	// print the sample using Genome's static member function
-	Genome::PrintGenomes_vcf(p_out, sample, p_output_multiallelics);
+	Genome::PrintGenomes_VCF(p_out, sample, p_output_multiallelics);
 }
 
 

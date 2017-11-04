@@ -125,7 +125,7 @@ protected:
 	//
 	// Mutation runs are considered to be immutable in SLiM if they are referred to by more than one genome.
 	// If they are referred to only once, however, they can be changed.  What that occurs, their nonneutral
-	// cache must be invalidated.  This means that any code that calls use_count() on a mutrun, and modifies it
+	// cache must be invalidated.  This means that any code that calls UseCount() on a mutrun, and modifies it
 	// if the count is 1, must also invalidate the nonneutral cache.  This is done automatically by the existing
 	// methods – in particular, MutationRun::will_modify_run(), which should be a funnel for all such code.
 	// Newly created mutation runs are also routinely modified on the (valid) assumption that they are referred
@@ -490,7 +490,7 @@ public:
 		*sort_position = p_mutation_index;
 	}
 	
-	bool _enforce_stack_policy_for_addition(slim_position_t p_position, MutationStackPolicy p_policy, int64_t p_stack_group);
+	bool _EnforceStackPolicyForAddition(slim_position_t p_position, MutationStackPolicy p_policy, int64_t p_stack_group);
 	
 	inline bool enforce_stack_policy_for_addition(slim_position_t p_position, MutationType *p_mut_type_ptr)
 	{
@@ -504,7 +504,7 @@ public:
 		else
 		{
 			// Otherwise, a relatively complicated check is needed, so we call out to a non-inline function
-			return _enforce_stack_policy_for_addition(p_position, policy, p_mut_type_ptr->stack_group_);
+			return _EnforceStackPolicyForAddition(p_position, policy, p_mut_type_ptr->stack_group_);
 		}
 	}
 	
@@ -700,7 +700,7 @@ public:
 #endif	// SLIM_USE_NONNEUTRAL_CACHES
 	
 	// Eidos_intrusive_ptr support
-	inline __attribute__((always_inline)) uint32_t use_count() const { return intrusive_ref_count_; }
+	inline __attribute__((always_inline)) uint32_t UseCount() const { return intrusive_ref_count_; }
 	
 	friend void Eidos_intrusive_ptr_add_ref(const MutationRun *p_value);
 	friend void Eidos_intrusive_ptr_release(const MutationRun *p_value);

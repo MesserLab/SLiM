@@ -110,8 +110,8 @@ void test_exit(void)
 {
 	// This does a little cleanup that helps Valgrind to understand that some things have not been leaked.
 	// I think perhaps unordered_map keeps values in an unaligned manner that Valgrind doesn't see as pointers.
-	EidosFreeGlobalStrings();
-	Eidos_TestElement::FreeThunks();
+	Eidos_FreeGlobalStrings();
+	EidosTestElement::FreeThunks();
 	
 	exit(0);
 }
@@ -270,7 +270,7 @@ int main(int argc, char *argv[])
 	if (keep_mem)
 	{
 		// note we subtract the size of our memory-tracking buffer, here and below
-		initial_mem_usage = EidosGetCurrentRSS() - mem_record_capacity * sizeof(size_t);
+		initial_mem_usage = Eidos_GetCurrentRSS() - mem_record_capacity * sizeof(size_t);
 	}
 	
 	// run the simulation
@@ -283,7 +283,7 @@ int main(int argc, char *argv[])
 	Eidos_DefineConstantsFromCommandLine(defined_constants);	// do this after the RNG has been set up
 	
 	if (keep_mem_hist)
-		mem_record[mem_record_index++] = EidosGetCurrentRSS() - mem_record_capacity * sizeof(size_t);
+		mem_record[mem_record_index++] = Eidos_GetCurrentRSS() - mem_record_capacity * sizeof(size_t);
 	
 	if (sim)
 	{
@@ -307,7 +307,7 @@ int main(int argc, char *argv[])
 					mem_record = (size_t *)realloc(mem_record, mem_record_capacity * sizeof(size_t));
 				}
 				
-				mem_record[mem_record_index++] = EidosGetCurrentRSS() - mem_record_capacity * sizeof(size_t);
+				mem_record[mem_record_index++] = Eidos_GetCurrentRSS() - mem_record_capacity * sizeof(size_t);
 			}
 			
 #if DO_MEMORY_CHECKS
@@ -318,7 +318,7 @@ int main(int argc, char *argv[])
 				
 				message << "(Limit exceeded at end of generation " << sim->Generation() << ".)" << std::endl;
 				
-				EidosCheckRSSAgainstMax("main()", message.str());
+				Eidos_CheckRSSAgainstMax("main()", message.str());
 			}
 #endif
 		}
@@ -338,7 +338,7 @@ int main(int argc, char *argv[])
 	// print memory usage stats
 	if (keep_mem)
 	{
-		peak_mem_usage = EidosGetPeakRSS();
+		peak_mem_usage = Eidos_GetPeakRSS();
 		
 		SLIM_ERRSTREAM << "// ********** Initial memory usage: " << initial_mem_usage << " bytes (" << initial_mem_usage / 1024.0 << "K, " << initial_mem_usage / (1024.0 * 1024) << "MB)" << std::endl;
 		SLIM_ERRSTREAM << "// ********** Peak memory usage: " << peak_mem_usage << " bytes (" << peak_mem_usage / 1024.0 << "K, " << peak_mem_usage / (1024.0 * 1024) << "MB)" << std::endl;

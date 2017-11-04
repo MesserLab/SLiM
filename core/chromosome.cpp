@@ -72,7 +72,7 @@ Chromosome::Chromosome(void) :
 	// Set up the default color for fixed mutations in SLiMgui
 	color_sub_ = "#3333FF";
 	if (!color_sub_.empty())
-		EidosGetColorComponents(color_sub_, &color_sub_red_, &color_sub_green_, &color_sub_blue_);
+		Eidos_GetColorComponents(color_sub_, &color_sub_red_, &color_sub_green_, &color_sub_blue_);
 }
 
 Chromosome::~Chromosome(void)
@@ -102,7 +102,7 @@ Chromosome::~Chromosome(void)
 void Chromosome::InitializeDraws(void)
 {
 	if (size() == 0)
-		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): empty chromosome." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): empty chromosome." << EidosTerminate();
 	
 	// determine which case we are working with: separate recombination maps for the sexes, or one map
 	auto rec_rates_H_size = recombination_rates_H_.size();
@@ -114,7 +114,7 @@ void Chromosome::InitializeDraws(void)
 	else if ((rec_rates_H_size == 0) && (rec_rates_M_size > 0) && (rec_rates_F_size > 0))
 		single_recombination_map_ = false;
 	else
-		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): (internal error) unclear whether we have separate recombination maps or not, or recombination rate not specified." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): (internal error) unclear whether we have separate recombination maps or not, or recombination rate not specified." << EidosTerminate();
 	
 	// determine which case we are working with: separate mutation maps for the sexes, or one map
 	auto mut_rates_H_size = mutation_rates_H_.size();
@@ -126,7 +126,7 @@ void Chromosome::InitializeDraws(void)
 	else if ((mut_rates_H_size == 0) && (mut_rates_M_size > 0) && (mut_rates_F_size > 0))
 		single_mutation_map_ = false;
 	else
-		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): (internal error) unclear whether we have separate mutation maps or not, or mutation rate not specified." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): (internal error) unclear whether we have separate mutation maps or not, or mutation rate not specified." << EidosTerminate();
 	
 	// Calculate the last chromosome base position from our genomic elements, mutation and recombination maps
 	// the end of the last genomic element may be before the end of the chromosome; the end of mutation and
@@ -244,12 +244,12 @@ void Chromosome::_InitializeJointProbabilities(double p_overall_mutation_rate, d
 											   double &p_both_0, double &p_both_0_OR_mut_0_break_non0, double &p_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0)
 {
 	// precalculate probabilities for Poisson draws of mutation count and breakpoint count
-	double prob_mutation_0 = eidos_fast_ran_poisson_PRECALCULATE(p_overall_mutation_rate);			// exp(-mu); can be 0 due to underflow
-	double prob_breakpoint_0 = eidos_fast_ran_poisson_PRECALCULATE(p_overall_recombination_rate);	// exp(-mu); can be 0 due to underflow
+	double prob_mutation_0 = Eidos_FastRandomPoisson_PRECALCULATE(p_overall_mutation_rate);			// exp(-mu); can be 0 due to underflow
+	double prob_breakpoint_0 = Eidos_FastRandomPoisson_PRECALCULATE(p_overall_recombination_rate);	// exp(-mu); can be 0 due to underflow
 	
 	// this is a validity check on the previous calculation of the exp_neg rates
 	if ((p_exp_neg_overall_mutation_rate != prob_mutation_0) || (p_exp_neg_overall_recombination_rate != prob_breakpoint_0))
-		EIDOS_TERMINATION << "ERROR (Chromosome::_InitializeJointProbabilities): zero-probability does not match previous calculation." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Chromosome::_InitializeJointProbabilities): zero-probability does not match previous calculation." << EidosTerminate();
 	
 	double prob_mutation_not_0 = 1.0 - prob_mutation_0;
 	double prob_breakpoint_not_0 = 1.0 - prob_breakpoint_0;
@@ -280,7 +280,7 @@ void Chromosome::ChooseMutationRunLayout(int p_preferred_count)
 	{
 		// The user has given us a mutation run count, so use that count and divide the chromosome evenly
 		if (p_preferred_count < 1)
-			EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): there must be at least one mutation run per genome." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): there must be at least one mutation run per genome." << EidosTerminate();
 		
 		mutrun_count_ = p_preferred_count;
 		mutrun_length_ = (int)ceil((last_position_ + 1) / (double)mutrun_count_);
@@ -308,9 +308,9 @@ void Chromosome::ChooseMutationRunLayout(int p_preferred_count)
 	
 	// Consistency check
 	if ((mutrun_length_ < 1) || (mutrun_count_ * mutrun_length_ <= last_position_))
-		EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): (internal error) math error in mutation run calculations." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): (internal error) math error in mutation run calculations." << EidosTerminate();
 	if (last_position_mutrun_ < last_position_)
-		EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): (internal error) math error in mutation run calculations." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): (internal error) math error in mutation run calculations." << EidosTerminate();
 }
 
 // initialize one recombination map, used internally by InitializeDraws() to avoid code duplication
@@ -322,13 +322,13 @@ void Chromosome::_InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, v
 	{
 		// patching can only be done when a single uniform rate is specified
 		if (p_rates.size() != 1)
-			EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): recombination endpoints not specified." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): recombination endpoints not specified." << EidosTerminate();
 		
 		p_end_positions.emplace_back(last_position_);
 	}
 	
 	if (p_end_positions[p_rates.size() - 1] < last_position_)
-		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): recombination endpoints do not cover the full chromosome." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): recombination endpoints do not cover the full chromosome." << EidosTerminate();
 	
 	// Calculate the overall recombination rate and the lookup table for breakpoints
 	std::vector<double> B(p_rates.size());
@@ -342,7 +342,7 @@ void Chromosome::_InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, v
 	p_overall_rate = Eidos_ExactSum(B.data(), p_rates.size());
 	
 #ifndef USE_GSL_POISSON
-	p_exp_neg_overall_rate = eidos_fast_ran_poisson_PRECALCULATE(p_overall_rate);				// exp(-mu); can be 0 due to underflow
+	p_exp_neg_overall_rate = Eidos_FastRandomPoisson_PRECALCULATE(p_overall_rate);				// exp(-mu); can be 0 due to underflow
 #endif
 	
 	if (p_lookup)
@@ -360,13 +360,13 @@ void Chromosome::_InitializeOneMutationMap(gsl_ran_discrete_t *&p_lookup, vector
 	{
 		// patching can only be done when a single uniform rate is specified
 		if (p_rates.size() != 1)
-			EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): mutation rate endpoints not specified." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): mutation rate endpoints not specified." << EidosTerminate();
 		
 		p_end_positions.emplace_back(last_position_);
 	}
 	
 	if (p_end_positions[p_rates.size() - 1] < last_position_)
-		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): recombination endpoints do not cover the full chromosome." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): recombination endpoints do not cover the full chromosome." << EidosTerminate();
 	
 	// Calculate the overall mutation rate and the lookup table for mutation events.  This is more complicated than
 	// for recombination maps, because the mutation rate map needs to be intersected with the genomic element map
@@ -423,7 +423,7 @@ void Chromosome::_InitializeOneMutationMap(gsl_ran_discrete_t *&p_lookup, vector
 	p_overall_rate = Eidos_ExactSum(B.data(), B.size());
 	
 #ifndef USE_GSL_POISSON
-	p_exp_neg_overall_rate = eidos_fast_ran_poisson_PRECALCULATE(p_overall_rate);				// exp(-mu); can be 0 due to underflow
+	p_exp_neg_overall_rate = Eidos_FastRandomPoisson_PRECALCULATE(p_overall_rate);				// exp(-mu); can be 0 due to underflow
 #endif
 	
 	if (p_lookup)
@@ -435,11 +435,11 @@ void Chromosome::_InitializeOneMutationMap(gsl_ran_discrete_t *&p_lookup, vector
 // prints an error message and exits
 void Chromosome::MutationMapConfigError(void) const
 {
-	EIDOS_TERMINATION << "ERROR (Chromosome::MutationMapConfigError): (internal error) an error occurred in the configuration of mutation maps." << eidos_terminate();
+	EIDOS_TERMINATION << "ERROR (Chromosome::MutationMapConfigError): (internal error) an error occurred in the configuration of mutation maps." << EidosTerminate();
 }
 void Chromosome::RecombinationMapConfigError(void) const
 {
-	EIDOS_TERMINATION << "ERROR (Chromosome::RecombinationMapConfigError): (internal error) an error occurred in the configuration of recombination maps." << eidos_terminate();
+	EIDOS_TERMINATION << "ERROR (Chromosome::RecombinationMapConfigError): (internal error) an error occurred in the configuration of recombination maps." << EidosTerminate();
 }
 
 
@@ -774,7 +774,7 @@ void Chromosome::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 		{
 			color_sub_ = p_value.StringAtIndex(0, nullptr);
 			if (!color_sub_.empty())
-				EidosGetColorComponents(color_sub_, &color_sub_red_, &color_sub_green_, &color_sub_blue_);
+				Eidos_GetColorComponents(color_sub_, &color_sub_red_, &color_sub_green_, &color_sub_blue_);
 			return;
 		}
 		case gID_geneConversionFraction:
@@ -782,7 +782,7 @@ void Chromosome::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 			double value = p_value.FloatAtIndex(0, nullptr);
 			
 			if ((value < 0.0) || (value > 1.0))
-				EIDOS_TERMINATION << "ERROR (Chromosome::SetProperty): new value " << value << " for property " << StringForEidosGlobalStringID(p_property_id) << " is out of range." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Chromosome::SetProperty): new value " << value << " for property " << Eidos_StringForGlobalStringID(p_property_id) << " is out of range." << EidosTerminate();
 			
 			gene_conversion_fraction_ = value;
 			return;
@@ -792,7 +792,7 @@ void Chromosome::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 			double value = p_value.FloatAtIndex(0, nullptr);
 			
 			if (value <= 0.0)		// intentionally no upper bound
-				EIDOS_TERMINATION << "ERROR (Chromosome::SetProperty): new value " << value << " for property " << StringForEidosGlobalStringID(p_property_id) << " is out of range." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Chromosome::SetProperty): new value " << value << " for property " << Eidos_StringForGlobalStringID(p_property_id) << " is out of range." << EidosTerminate();
 			
 			gene_conversion_avg_length_ = value;
 			return;
@@ -844,12 +844,12 @@ EidosValue_SP Chromosome::ExecuteMethod_setMutationRate(EidosGlobalStringID p_me
 	else if (sex_string.compare("*") == 0)
 		requested_sex = IndividualSex::kUnspecified;
 	else
-		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() requested sex \"" << sex_string << "\" unsupported." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() requested sex \"" << sex_string << "\" unsupported." << EidosTerminate();
 	
 	// Make sure specifying a map for that sex is legal, given our current state
 	if (((requested_sex == IndividualSex::kUnspecified) && !single_mutation_map_) ||
 		((requested_sex != IndividualSex::kUnspecified) && single_mutation_map_))
-		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() cannot change the chromosome between using a single map versus separate maps for the sexes; the original configuration must be preserved." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() cannot change the chromosome between using a single map versus separate maps for the sexes; the original configuration must be preserved." << EidosTerminate();
 	
 	// Set up to replace the requested map
 	vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? mutation_end_positions_H_ : 
@@ -861,13 +861,13 @@ EidosValue_SP Chromosome::ExecuteMethod_setMutationRate(EidosGlobalStringID p_me
 	{
 		// ends is missing/NULL
 		if (rate_count != 1)
-			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() requires rates to be a singleton if ends is not supplied." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() requires rates to be a singleton if ends is not supplied." << EidosTerminate();
 		
 		double mutation_rate = arg0_value->FloatAtIndex(0, nullptr);
 		
 		// check values
 		if (mutation_rate < 0.0)		// intentionally no upper bound
-			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() rate " << mutation_rate << " out of range; rates must be >= 0." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() rate " << mutation_rate << " out of range; rates must be >= 0." << EidosTerminate();
 		
 		// then adopt them
 		rates.clear();
@@ -882,7 +882,7 @@ EidosValue_SP Chromosome::ExecuteMethod_setMutationRate(EidosGlobalStringID p_me
 		int end_count = arg1_value->Count();
 		
 		if ((end_count != rate_count) || (end_count == 0))
-			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() requires ends and rates to be of equal and nonzero size." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() requires ends and rates to be of equal and nonzero size." << EidosTerminate();
 		
 		// check values
 		for (int value_index = 0; value_index < end_count; ++value_index)
@@ -892,10 +892,10 @@ EidosValue_SP Chromosome::ExecuteMethod_setMutationRate(EidosGlobalStringID p_me
 			
 			if (value_index > 0)
 				if (mutation_end_position <= arg1_value->IntAtIndex(value_index - 1, nullptr))
-					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() requires ends to be in strictly ascending order." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() requires ends to be in strictly ascending order." << EidosTerminate();
 			
 			if (mutation_rate < 0.0)		// intentionally no upper bound
-				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() rate " << mutation_rate << " out of range; rates must be >= 0." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() rate " << mutation_rate << " out of range; rates must be >= 0." << EidosTerminate();
 		}
 		
 		// The stake here is that the last position in the chromosome is not allowed to change after the chromosome is
@@ -904,7 +904,7 @@ EidosValue_SP Chromosome::ExecuteMethod_setMutationRate(EidosGlobalStringID p_me
 		int64_t new_last_position = arg1_value->IntAtIndex(end_count - 1, nullptr);
 		
 		if (new_last_position != last_position_)
-			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() rate " << new_last_position << " noncompliant; the last interval must end at the last position of the chromosome (" << last_position_ << ")." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() rate " << new_last_position << " noncompliant; the last interval must end at the last position of the chromosome (" << last_position_ << ")." << EidosTerminate();
 		
 		// then adopt them
 		rates.clear();
@@ -948,12 +948,12 @@ EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID
 	else if (sex_string.compare("*") == 0)
 		requested_sex = IndividualSex::kUnspecified;
 	else
-		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() requested sex \"" << sex_string << "\" unsupported." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() requested sex \"" << sex_string << "\" unsupported." << EidosTerminate();
 	
 	// Make sure specifying a map for that sex is legal, given our current state
 	if (((requested_sex == IndividualSex::kUnspecified) && !single_recombination_map_) ||
 		((requested_sex != IndividualSex::kUnspecified) && single_recombination_map_))
-		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() cannot change the chromosome between using a single map versus separate maps for the sexes; the original configuration must be preserved." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() cannot change the chromosome between using a single map versus separate maps for the sexes; the original configuration must be preserved." << EidosTerminate();
 	
 	// Set up to replace the requested map
 	vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? recombination_end_positions_H_ : 
@@ -965,13 +965,13 @@ EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID
 	{
 		// ends is missing/NULL
 		if (rate_count != 1)
-			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() requires rates to be a singleton if ends is not supplied." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() requires rates to be a singleton if ends is not supplied." << EidosTerminate();
 		
 		double recombination_rate = arg0_value->FloatAtIndex(0, nullptr);
 		
 		// check values
 		if (recombination_rate < 0.0)		// intentionally no upper bound
-			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() rate " << recombination_rate << " out of range; rates must be >= 0." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() rate " << recombination_rate << " out of range; rates must be >= 0." << EidosTerminate();
 		
 		// then adopt them
 		rates.clear();
@@ -986,7 +986,7 @@ EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID
 		int end_count = arg1_value->Count();
 		
 		if ((end_count != rate_count) || (end_count == 0))
-			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() requires ends and rates to be of equal and nonzero size." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() requires ends and rates to be of equal and nonzero size." << EidosTerminate();
 		
 		// check values
 		for (int value_index = 0; value_index < end_count; ++value_index)
@@ -996,10 +996,10 @@ EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID
 			
 			if (value_index > 0)
 				if (recombination_end_position <= arg1_value->IntAtIndex(value_index - 1, nullptr))
-					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() requires ends to be in strictly ascending order." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() requires ends to be in strictly ascending order." << EidosTerminate();
 			
 			if (recombination_rate < 0.0)		// intentionally no upper bound
-				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() rate " << recombination_rate << " out of range; rates must be >= 0." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() rate " << recombination_rate << " out of range; rates must be >= 0." << EidosTerminate();
 		}
 		
 		// The stake here is that the last position in the chromosome is not allowed to change after the chromosome is
@@ -1008,7 +1008,7 @@ EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID
 		int64_t new_last_position = arg1_value->IntAtIndex(end_count - 1, nullptr);
 		
 		if (new_last_position != last_position_)
-			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() rate " << new_last_position << " noncompliant; the last interval must end at the last position of the chromosome (" << last_position_ << ")." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() rate " << new_last_position << " noncompliant; the last interval must end at the last position of the chromosome (" << last_position_ << ")." << EidosTerminate();
 		
 		// then adopt them
 		rates.clear();

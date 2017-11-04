@@ -232,18 +232,18 @@ inline __attribute__((always_inline)) int Chromosome::DrawMutationCount(Individu
 	if (single_mutation_map_)
 	{
 		// With a single map, we don't care what sex we are passed; same map for all, and sex may be enabled or disabled
-		return eidos_fast_ran_poisson(overall_mutation_rate_H_, exp_neg_overall_mutation_rate_H_);
+		return Eidos_FastRandomPoisson(overall_mutation_rate_H_, exp_neg_overall_mutation_rate_H_);
 	}
 	else
 	{
 		// With sex-specific maps, we treat males and females separately, and the individual we're given better be one of the two
 		if (p_sex == IndividualSex::kMale)
 		{
-			return eidos_fast_ran_poisson(overall_mutation_rate_M_, exp_neg_overall_mutation_rate_M_);
+			return Eidos_FastRandomPoisson(overall_mutation_rate_M_, exp_neg_overall_mutation_rate_M_);
 		}
 		else if (p_sex == IndividualSex::kFemale)
 		{
-			return eidos_fast_ran_poisson(overall_mutation_rate_F_, exp_neg_overall_mutation_rate_F_);
+			return Eidos_FastRandomPoisson(overall_mutation_rate_F_, exp_neg_overall_mutation_rate_F_);
 		}
 		else
 		{
@@ -282,18 +282,18 @@ inline __attribute__((always_inline)) int Chromosome::DrawBreakpointCount(Indivi
 	if (single_recombination_map_)
 	{
 		// With a single map, we don't care what sex we are passed; same map for all, and sex may be enabled or disabled
-		return eidos_fast_ran_poisson(overall_recombination_rate_H_, exp_neg_overall_recombination_rate_H_);
+		return Eidos_FastRandomPoisson(overall_recombination_rate_H_, exp_neg_overall_recombination_rate_H_);
 	}
 	else
 	{
 		// With sex-specific maps, we treat males and females separately, and the individual we're given better be one of the two
 		if (p_sex == IndividualSex::kMale)
 		{
-			return eidos_fast_ran_poisson(overall_recombination_rate_M_, exp_neg_overall_recombination_rate_M_);
+			return Eidos_FastRandomPoisson(overall_recombination_rate_M_, exp_neg_overall_recombination_rate_M_);
 		}
 		else if (p_sex == IndividualSex::kFemale)
 		{
-			return eidos_fast_ran_poisson(overall_recombination_rate_F_, exp_neg_overall_recombination_rate_F_);
+			return Eidos_FastRandomPoisson(overall_recombination_rate_F_, exp_neg_overall_recombination_rate_F_);
 		}
 		else
 		{
@@ -305,7 +305,7 @@ inline __attribute__((always_inline)) int Chromosome::DrawBreakpointCount(Indivi
 
 #ifndef USE_GSL_POISSON
 // determine both the mutation count and the breakpoint count with (usually) a single RNG draw
-// this method relies on eidos_fast_ran_poisson_nonzero() and cannot be called when USE_GSL_POISSON is defined
+// this method relies on Eidos_FastRandomPoisson_NONZERO() and cannot be called when USE_GSL_POISSON is defined
 inline __attribute__((always_inline)) void Chromosome::DrawMutationAndBreakpointCounts(IndividualSex p_sex, int *p_mut_count, int *p_break_count) const
 {
 	double u = gsl_rng_uniform(gEidos_rng);
@@ -322,17 +322,21 @@ inline __attribute__((always_inline)) void Chromosome::DrawMutationAndBreakpoint
 		else if (u <= probability_both_0_OR_mut_0_break_non0_H_)
 		{
 			*p_mut_count = 0;
-			*p_break_count = eidos_fast_ran_poisson_nonzero(overall_recombination_rate_H_, exp_neg_overall_recombination_rate_H_);
+			*p_break_count = Eidos_FastRandomPoisson_NONZERO
+(overall_recombination_rate_H_, exp_neg_overall_recombination_rate_H_);
 		}
 		else if (u <= probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_H_)
 		{
-			*p_mut_count = eidos_fast_ran_poisson_nonzero(overall_mutation_rate_H_, exp_neg_overall_mutation_rate_H_);
+			*p_mut_count = Eidos_FastRandomPoisson_NONZERO
+(overall_mutation_rate_H_, exp_neg_overall_mutation_rate_H_);
 			*p_break_count = 0;
 		}
 		else
 		{
-			*p_mut_count = eidos_fast_ran_poisson_nonzero(overall_mutation_rate_H_, exp_neg_overall_mutation_rate_H_);
-			*p_break_count = eidos_fast_ran_poisson_nonzero(overall_recombination_rate_H_, exp_neg_overall_recombination_rate_H_);
+			*p_mut_count = Eidos_FastRandomPoisson_NONZERO
+(overall_mutation_rate_H_, exp_neg_overall_mutation_rate_H_);
+			*p_break_count = Eidos_FastRandomPoisson_NONZERO
+(overall_recombination_rate_H_, exp_neg_overall_recombination_rate_H_);
 		}
 	}
 	else
@@ -351,17 +355,21 @@ inline __attribute__((always_inline)) void Chromosome::DrawMutationAndBreakpoint
 			else if (u <= probability_both_0_OR_mut_0_break_non0_M_)
 			{
 				*p_mut_count = 0;
-				*p_break_count = eidos_fast_ran_poisson_nonzero(overall_recombination_rate_M_, exp_neg_overall_recombination_rate_M_);
+				*p_break_count = Eidos_FastRandomPoisson_NONZERO
+(overall_recombination_rate_M_, exp_neg_overall_recombination_rate_M_);
 			}
 			else if (u <= probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_M_)
 			{
-				*p_mut_count = eidos_fast_ran_poisson_nonzero(overall_mutation_rate_M_, exp_neg_overall_mutation_rate_M_);
+				*p_mut_count = Eidos_FastRandomPoisson_NONZERO
+(overall_mutation_rate_M_, exp_neg_overall_mutation_rate_M_);
 				*p_break_count = 0;
 			}
 			else
 			{
-				*p_mut_count = eidos_fast_ran_poisson_nonzero(overall_mutation_rate_M_, exp_neg_overall_mutation_rate_M_);
-				*p_break_count = eidos_fast_ran_poisson_nonzero(overall_recombination_rate_M_, exp_neg_overall_recombination_rate_M_);
+				*p_mut_count = Eidos_FastRandomPoisson_NONZERO
+(overall_mutation_rate_M_, exp_neg_overall_mutation_rate_M_);
+				*p_break_count = Eidos_FastRandomPoisson_NONZERO
+(overall_recombination_rate_M_, exp_neg_overall_recombination_rate_M_);
 			}
 		}
 		else if (p_sex == IndividualSex::kFemale)
@@ -374,17 +382,21 @@ inline __attribute__((always_inline)) void Chromosome::DrawMutationAndBreakpoint
 			else if (u <= probability_both_0_OR_mut_0_break_non0_F_)
 			{
 				*p_mut_count = 0;
-				*p_break_count = eidos_fast_ran_poisson_nonzero(overall_recombination_rate_F_, exp_neg_overall_recombination_rate_F_);
+				*p_break_count = Eidos_FastRandomPoisson_NONZERO
+(overall_recombination_rate_F_, exp_neg_overall_recombination_rate_F_);
 			}
 			else if (u <= probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_F_)
 			{
-				*p_mut_count = eidos_fast_ran_poisson_nonzero(overall_mutation_rate_F_, exp_neg_overall_mutation_rate_F_);
+				*p_mut_count = Eidos_FastRandomPoisson_NONZERO
+(overall_mutation_rate_F_, exp_neg_overall_mutation_rate_F_);
 				*p_break_count = 0;
 			}
 			else
 			{
-				*p_mut_count = eidos_fast_ran_poisson_nonzero(overall_mutation_rate_F_, exp_neg_overall_mutation_rate_F_);
-				*p_break_count = eidos_fast_ran_poisson_nonzero(overall_recombination_rate_F_, exp_neg_overall_recombination_rate_F_);
+				*p_mut_count = Eidos_FastRandomPoisson_NONZERO
+(overall_mutation_rate_F_, exp_neg_overall_mutation_rate_F_);
+				*p_break_count = Eidos_FastRandomPoisson_NONZERO
+(overall_recombination_rate_F_, exp_neg_overall_recombination_rate_F_);
 			}
 		}
 		else

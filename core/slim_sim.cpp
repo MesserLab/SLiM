@@ -65,7 +65,7 @@ SLiMSim::SLiMSim(const char *p_input_file) : population_(*this), self_symbol_(gI
 	std::ifstream infile(p_input_file);
 	
 	if (!infile.is_open())
-		EIDOS_TERMINATION << std::endl << "ERROR (SLiMSim::SLiMSim): could not open input file: " << p_input_file << "." << eidos_terminate();
+		EIDOS_TERMINATION << std::endl << "ERROR (SLiMSim::SLiMSim): could not open input file: " << p_input_file << "." << EidosTerminate();
 	
 	// read all configuration information from the input file
 	infile.seekg(0, std::fstream::beg);
@@ -110,9 +110,9 @@ SLiMSim::~SLiMSim(void)
 void SLiMSim::InitializeRNGFromSeed(unsigned long int *p_override_seed_ptr)
 {
 	// track the random number seed given, if there is one
-	unsigned long int rng_seed = (p_override_seed_ptr ? *p_override_seed_ptr : EidosGenerateSeedFromPIDAndTime());
+	unsigned long int rng_seed = (p_override_seed_ptr ? *p_override_seed_ptr : Eidos_GenerateSeedFromPIDAndTime());
 	
-	EidosInitializeRNGFromSeed(rng_seed);
+	Eidos_InitializeRNGFromSeed(rng_seed);
 	
 	if (DEBUG_INPUT)
 		SLIM_OUTSTREAM << "// Initial random seed:\n" << rng_seed << "\n" << std::endl;
@@ -212,9 +212,9 @@ slim_generation_t SLiMSim::InitializePopulationFromFile(const char *p_file, Eido
 	int file_format = FormatOfPopulationFile(p_file);	// -1 is file does not exist, 0 is format unrecognized, 1 is text, 2 is binary
 	
 	if (file_format == -1)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromFile): initialization file does not exist or is empty." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromFile): initialization file does not exist or is empty." << EidosTerminate();
 	if (file_format == 0)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromFile): initialization file is invalid." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromFile): initialization file is invalid." << EidosTerminate();
 	
 	{
 		if (p_interpreter)
@@ -225,7 +225,7 @@ slim_generation_t SLiMSim::InitializePopulationFromFile(const char *p_file, Eido
 			
 			for (std::string symbol_name : all_symbols)
 			{
-				EidosGlobalStringID symbol_ID = EidosGlobalStringIDForString(symbol_name);
+				EidosGlobalStringID symbol_ID = Eidos_GlobalStringIDForString(symbol_name);
 				EidosValue_SP symbol_value = symbols.GetValueOrRaiseForSymbol(symbol_ID);
 				
 				if (symbol_value->Type() == EidosValueType::kValueObject)
@@ -254,7 +254,7 @@ slim_generation_t SLiMSim::InitializePopulationFromFile(const char *p_file, Eido
 	else if (file_format == 2)
 		return _InitializePopulationFromBinaryFile(p_file, p_interpreter);
 	else
-		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromFile): unreconized format code." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromFile): unreconized format code." << EidosTerminate();
 }
 
 slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file, EidosInterpreter *p_interpreter)
@@ -265,7 +265,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 	std::ifstream infile(p_file);
 	
 	if (!infile.is_open())
-		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): could not open initialization file." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): could not open initialization file." << EidosTerminate();
 	
 	// Parse the first line, to get the generation
 	{
@@ -298,7 +298,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			file_version = (int64_t)EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
 			
 			if ((file_version != 1) && (file_version != 2) && (file_version != 3))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): unrecognized version." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): unrecognized version." << EidosTerminate();
 			
 			continue;
 		}
@@ -345,7 +345,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		EidosSymbolTableEntry &symbol_entry = new_subpop->SymbolTableEntry();
 		
 		if (p_interpreter && p_interpreter->SymbolTable().ContainsSymbol(symbol_entry.first))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): new subpopulation symbol " << StringForEidosGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): new subpopulation symbol " << Eidos_StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate();
 		
 		simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 	}
@@ -406,12 +406,12 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		auto found_muttype_pair = mutation_types_.find(mutation_type_id);
 		
 		if (found_muttype_pair == mutation_types_.end()) 
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " has not been defined." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " has not been defined." << EidosTerminate();
 		
 		MutationType *mutation_type_ptr = found_muttype_pair->second;
 		
 		if (fabs(mutation_type_ptr->dominance_coeff_ - dominance_coeff) > 0.001)	// a reasonable tolerance to allow for I/O roundoff
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << EidosTerminate();
 		
 		// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
 		MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
@@ -453,19 +453,19 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			const char *individual_index_string = sub.substr(pos + 1, std::string::npos).c_str();
 			
 			if (individual_index_string[0] != 'i')
-				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): reference to individual is malformed." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): reference to individual is malformed." << EidosTerminate();
 			
 			int64_t individual_index = EidosInterpreter::NonnegativeIntegerForString(individual_index_string + 1, nullptr);
 			
 			auto subpop_pair = population_.find(subpop_id);
 			
 			if (subpop_pair == population_.end())
-				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): referenced subpopulation p" << subpop_id << " not defined." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): referenced subpopulation p" << subpop_id << " not defined." << EidosTerminate();
 			
 			Subpopulation &subpop = *subpop_pair->second;
 			
 			if (individual_index >= subpop.parent_subpop_size_)
-				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): referenced individual i" << individual_index << " is out of range." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): referenced individual i" << individual_index << " is out of range." << EidosTerminate();
 			
 			Individual &individual = subpop.parent_individuals_[individual_index];
 			
@@ -496,7 +496,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			}
 			
 			if (iss >> sub)
-				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): output spatial dimensionality does not match that of the simulation." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): output spatial dimensionality does not match that of the simulation." << EidosTerminate();
 		}
 	}
 	
@@ -520,7 +520,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		auto subpop_pair = population_.find(subpop_id);
 		
 		if (subpop_pair == population_.end())
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): referenced subpopulation p" << subpop_id << " not defined." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): referenced subpopulation p" << subpop_id << " not defined." << EidosTerminate();
 		
 		Subpopulation &subpop = *subpop_pair->second;
 		
@@ -528,7 +528,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		int64_t genome_index_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
 		
 		if ((genome_index_long < 0) || (genome_index_long > SLIM_MAX_SUBPOP_SIZE * 2))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): genome index out of permitted range." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): genome index out of permitted range." << EidosTerminate();
 		slim_popsize_t genome_index = static_cast<slim_popsize_t>(genome_index_long);	// range-check is above since we need to check against SLIM_MAX_SUBPOP_SIZE * 2
 		
 		Genome &genome = subpop.parent_genomes_[genome_index];
@@ -541,25 +541,25 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			{
 				// Let's do a little error-checking against what has already been instantiated for us...
 				if ((sub.compare(gStr_A) == 0) && genome.Type() != GenomeType::kAutosome)
-					EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): genome is specified as A (autosome), but the instantiated genome does not match." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): genome is specified as A (autosome), but the instantiated genome does not match." << EidosTerminate();
 				if ((sub.compare(gStr_X) == 0) && genome.Type() != GenomeType::kXChromosome)
-					EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): genome is specified as X (X-chromosome), but the instantiated genome does not match." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): genome is specified as X (X-chromosome), but the instantiated genome does not match." << EidosTerminate();
 				if ((sub.compare(gStr_Y) == 0) && genome.Type() != GenomeType::kYChromosome)
-					EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): genome is specified as Y (Y-chromosome), but the instantiated genome does not match." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): genome is specified as Y (Y-chromosome), but the instantiated genome does not match." << EidosTerminate();
 				
 				if (iss >> sub)
 				{
 					if (sub == "<null>")
 					{
 						if (!genome.IsNull())
-							EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): genome is specified as null, but the instantiated genome is non-null." << eidos_terminate();
+							EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): genome is specified as null, but the instantiated genome is non-null." << EidosTerminate();
 						
 						continue;	// this line is over
 					}
 					else
 					{
 						if (genome.IsNull())
-							EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): genome is specified as non-null, but the instantiated genome is null." << eidos_terminate();
+							EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): genome is specified as non-null, but the instantiated genome is null." << EidosTerminate();
 						
 						// drop through, and sub will be interpreted as a mutation id below
 					}
@@ -580,7 +580,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 				auto found_mut_pair = mutations.find(polymorphism_id);
 				
 				if (found_mut_pair == mutations.end()) 
-					EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): polymorphism " << polymorphism_id << " has not been defined." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): polymorphism " << polymorphism_id << " has not been defined." << EidosTerminate();
 				
 				MutationIndex mutation = found_mut_pair->second;
 				int mutrun_index = (mut_block_ptr + mutation)->position_ / mutrun_length_;
@@ -661,7 +661,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	std::ifstream infile(p_file, std::ios::in | std::ios::binary);
 	
 	if (!infile.is_open() || infile.eof())
-		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): could not open initialization file." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): could not open initialization file." << EidosTerminate();
 	
 	// Determine the file length
 	infile.seekg(0, std::ios_base::end);
@@ -672,7 +672,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	char *buf = raii_buf.get();
 	
 	if (!buf)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): could not allocate input buffer." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): could not allocate input buffer." << EidosTerminate();
 	
 	char *buf_end = buf + file_size;
 	char *p = buf;
@@ -691,7 +691,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		int32_t endianness_tag, version_tag;
 		
 		if (p + sizeof(endianness_tag) + sizeof(version_tag) > buf_end)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unexpected EOF while reading header." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unexpected EOF while reading header." << EidosTerminate();
 		
 		endianness_tag = *(int32_t *)p;
 		p += sizeof(endianness_tag);
@@ -700,9 +700,9 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		p += sizeof(version_tag);
 		
 		if (endianness_tag != 0x12345678)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): endianness mismatch." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): endianness mismatch." << EidosTerminate();
 		if ((version_tag != 1) && (version_tag != 2) && (version_tag != 3))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unrecognized version." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unrecognized version." << EidosTerminate();
 		
 		file_version = version_tag;
 	}
@@ -718,7 +718,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			header_length += sizeof(slim_mutationid_t_size) + sizeof(slim_polymorphismid_t_size);
 		
 		if (p + header_length > buf_end)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unexpected EOF while reading header." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unexpected EOF while reading header." << EidosTerminate();
 		
 		double_size = *(int32_t *)p;
 		p += sizeof(double_size);
@@ -777,9 +777,9 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		p += sizeof(section_end_tag);
 		
 		if (double_size != sizeof(double))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): sizeof(double) mismatch." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): sizeof(double) mismatch." << EidosTerminate();
 		if (double_test != 1234567890.0987654321)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): double format mismatch." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): double format mismatch." << EidosTerminate();
 		if ((slim_generation_t_size != sizeof(slim_generation_t)) ||
 			(slim_position_t_size != sizeof(slim_position_t)) ||
 			(slim_objectid_t_size != sizeof(slim_objectid_t)) ||
@@ -788,13 +788,13 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			(slim_selcoeff_t_size != sizeof(slim_selcoeff_t)) ||
 			(slim_mutationid_t_size != sizeof(slim_mutationid_t)) ||
 			(slim_polymorphismid_t_size != sizeof(slim_polymorphismid_t)))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): SLiM datatype size mismatch." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): SLiM datatype size mismatch." << EidosTerminate();
 		if ((spatial_output_count < 0) || (spatial_output_count > 3))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): spatial output count out of range." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): spatial output count out of range." << EidosTerminate();
 		if ((spatial_output_count > 0) && (spatial_output_count != spatial_dimensionality_))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): output spatial dimensionality does not match that of the simulation." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): output spatial dimensionality does not match that of the simulation." << EidosTerminate();
 		if (section_end_tag != (int32_t)0xFFFF0000)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): missing section end after header." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): missing section end after header." << EidosTerminate();
 	}
 	
 	// Populations section
@@ -837,27 +837,27 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		EidosSymbolTableEntry &symbol_entry = new_subpop->SymbolTableEntry();
 		
 		if (p_interpreter && p_interpreter->SymbolTable().ContainsSymbol(symbol_entry.first))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): new subpopulation symbol " << StringForEidosGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): new subpopulation symbol " << Eidos_StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate();
 		
 		simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 	}
 	
 	if (p + sizeof(section_end_tag) > buf_end)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unexpected EOF after subpopulations." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unexpected EOF after subpopulations." << EidosTerminate();
 	else
 	{
 		section_end_tag = *(int32_t *)p;
 		p += sizeof(section_end_tag);
 		
 		if (section_end_tag != (int32_t)0xFFFF0000)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): missing section end after subpopulations." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): missing section end after subpopulations." << EidosTerminate();
 	}
 	
 	// Read in the size of the mutation map, so we can allocate a vector rather than utilizing std::map
 	int32_t mutation_map_size;
 	
 	if (p + sizeof(mutation_map_size) > buf_end)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unexpected EOF at mutation map size." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unexpected EOF at mutation map size." << EidosTerminate();
 	else
 	{
 		mutation_map_size = *(int32_t *)p;
@@ -869,7 +869,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	MutationIndex *mutations = raii_mutations.get();
 	
 	if (!mutations)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): could not allocate mutations buffer." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): could not allocate mutations buffer." << EidosTerminate();
 	
 	while (true)
 	{
@@ -939,12 +939,12 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		auto found_muttype_pair = mutation_types_.find(mutation_type_id);
 		
 		if (found_muttype_pair == mutation_types_.end()) 
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has not been defined." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has not been defined." << EidosTerminate();
 		
 		MutationType *mutation_type_ptr = found_muttype_pair->second;
 		
 		if (mutation_type_ptr->dominance_coeff_ != dominance_coeff)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << EidosTerminate();
 		
 		// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
 		MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
@@ -966,14 +966,14 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	population_.cached_tally_genome_count_ = 0;
 	
 	if (p + sizeof(section_end_tag) > buf_end)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unexpected EOF after mutations." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unexpected EOF after mutations." << EidosTerminate();
 	else
 	{
 		section_end_tag = *(int32_t *)p;
 		p += sizeof(section_end_tag);
 		
 		if (section_end_tag != (int32_t)0xFFFF0000)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): missing section end after mutations." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): missing section end after mutations." << EidosTerminate();
 	}
 	
 	// Genomes section
@@ -1012,7 +1012,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		auto subpop_pair = population_.find(subpop_id);
 		
 		if (subpop_pair == population_.end())
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): referenced subpopulation p" << subpop_id << " not defined." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): referenced subpopulation p" << subpop_id << " not defined." << EidosTerminate();
 		
 		Subpopulation &subpop = *subpop_pair->second;
 		
@@ -1048,24 +1048,24 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		
 		// Look up the genome
 		if ((genome_index < 0) || (genome_index > SLIM_MAX_SUBPOP_SIZE * 2))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): genome index out of permitted range." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): genome index out of permitted range." << EidosTerminate();
 		
 		Genome &genome = subpop.parent_genomes_[genome_index];
 		
 		// Error-check the genome type
 		if (genome_type != (int32_t)genome.Type())
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): genome type does not match the instantiated genome." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): genome type does not match the instantiated genome." << EidosTerminate();
 		
 		// Check the null genome state
 		if (total_mutations == (int32_t)0xFFFF1000)
 		{
 			if (!genome.IsNull())
-				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): genome is specified as null, but the instantiated genome is non-null." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): genome is specified as null, but the instantiated genome is non-null." << EidosTerminate();
 		}
 		else
 		{
 			if (genome.IsNull())
-				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): genome is specified as non-null, but the instantiated genome is null." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): genome is specified as non-null, but the instantiated genome is null." << EidosTerminate();
 			
 			// Read in the mutation list
 			int32_t mutcount = 0;
@@ -1076,7 +1076,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 				uint16_t mutation_id;
 				
 				if (p + sizeof(mutation_id) * total_mutations > buf_end)
-					EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unexpected EOF while reading genome." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unexpected EOF while reading genome." << EidosTerminate();
 				
 				for (; mutcount < total_mutations; ++mutcount)
 				{
@@ -1085,7 +1085,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 					
 					// Add mutation to genome
 					if ((mutation_id < 0) || (mutation_id >= mutation_map_size)) 
-						EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): mutation " << mutation_id << " has not been defined." << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): mutation " << mutation_id << " has not been defined." << EidosTerminate();
 					
 					genomebuf[mutcount] = mutations[mutation_id];
 				}
@@ -1096,7 +1096,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 				int32_t mutation_id;
 				
 				if (p + sizeof(mutation_id) * total_mutations > buf_end)
-					EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unexpected EOF while reading genome." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unexpected EOF while reading genome." << EidosTerminate();
 				
 				for (; mutcount < total_mutations; ++mutcount)
 				{
@@ -1105,7 +1105,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 					
 					// Add mutation to genome
 					if ((mutation_id < 0) || (mutation_id >= mutation_map_size)) 
-						EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): mutation " << mutation_id << " has not been defined." << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): mutation " << mutation_id << " has not been defined." << EidosTerminate();
 					
 					genomebuf[mutcount] = mutations[mutation_id];
 				}
@@ -1134,14 +1134,14 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	}
 	
 	if (p + sizeof(section_end_tag) > buf_end)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unexpected EOF after genomes." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unexpected EOF after genomes." << EidosTerminate();
 	else
 	{
 		section_end_tag = *(int32_t *)p;
 		p += sizeof(section_end_tag);
 		
 		if (section_end_tag != (int32_t)0xFFFF0000)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): missing section end after genomes." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): missing section end after genomes." << EidosTerminate();
 	}
 	
 	// It's a little unclear how we ought to clean up after ourselves, and this is a continuing source of bugs.  We could be loading
@@ -1582,7 +1582,7 @@ void SLiMSim::AddScriptBlock(SLiMEidosBlock *p_script_block, EidosInterpreter *p
 		EidosGlobalStringID symbol_id = symbol_entry.first;
 		
 		if ((simulation_constants_->ContainsSymbol(symbol_id)) || (p_interpreter && p_interpreter->SymbolTable().ContainsSymbol(symbol_id)))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::AddScriptBlock): script block symbol " << StringForEidosGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << eidos_terminate(p_error_token);
+			EIDOS_TERMINATION << "ERROR (SLiMSim::AddScriptBlock): script block symbol " << Eidos_StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate(p_error_token);
 		
 		simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 	}
@@ -1717,33 +1717,33 @@ void SLiMSim::RunInitializeCallbacks(void)
 	
 	// check for complete initialization
 	if (num_mutation_rates_ == 0)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): At least one mutation rate interval must be defined in an initialize() callback with initializeMutationRate()." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): At least one mutation rate interval must be defined in an initialize() callback with initializeMutationRate()." << EidosTerminate();
 	
 	if (num_mutation_types_ == 0)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): At least one mutation type must be defined in an initialize() callback with initializeMutationType()." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): At least one mutation type must be defined in an initialize() callback with initializeMutationType()." << EidosTerminate();
 	
 	if (num_genomic_element_types_ == 0)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): At least one genomic element type must be defined in an initialize() callback with initializeGenomicElementType()." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): At least one genomic element type must be defined in an initialize() callback with initializeGenomicElementType()." << EidosTerminate();
 	
 	if (num_genomic_elements_ == 0)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): At least one genomic element must be defined in an initialize() callback with initializeGenomicElement()." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): At least one genomic element must be defined in an initialize() callback with initializeGenomicElement()." << EidosTerminate();
 	
 	if (num_recombination_rates_ == 0)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): At least one recombination rate interval must be defined in an initialize() callback with initializeRecombinationRate()." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): At least one recombination rate interval must be defined in an initialize() callback with initializeRecombinationRate()." << EidosTerminate();
 	
 	if ((chromosome_.recombination_rates_H_.size() != 0) && ((chromosome_.recombination_rates_M_.size() != 0) || (chromosome_.recombination_rates_F_.size() != 0)))
-		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): Cannot define both sex-specific and sex-nonspecific recombination rates." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): Cannot define both sex-specific and sex-nonspecific recombination rates." << EidosTerminate();
 	
 	if (((chromosome_.recombination_rates_M_.size() == 0) && (chromosome_.recombination_rates_F_.size() != 0)) ||
 		((chromosome_.recombination_rates_M_.size() != 0) && (chromosome_.recombination_rates_F_.size() == 0)))
-		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): Both sex-specific recombination rates must be defined, not just one (but one may be defined as zero)." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): Both sex-specific recombination rates must be defined, not just one (but one may be defined as zero)." << EidosTerminate();
 	
 	CheckMutationStackPolicy();
 	
 	time_start_ = FirstGeneration();	// SLIM_MAX_GENERATION if it can't find a first block
 	
 	if (time_start_ == SLIM_MAX_GENERATION)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): No Eidos event found to start the simulation." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): No Eidos event found to start the simulation." << EidosTerminate();
 	
 	// start at the beginning
 	generation_ = time_start_;
@@ -1883,7 +1883,7 @@ void SLiMSim::MaintainMutationRunExperiments(double p_last_gen_runtime)
 {
 	// Log the last generation time into our buffer
 	if (x_current_buflen_ >= SLIM_MUTRUN_EXPERIMENT_LENGTH)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::MaintainMutationRunExperiments): Buffer overrun, failure to reset after completion of an experiment." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::MaintainMutationRunExperiments): Buffer overrun, failure to reset after completion of an experiment." << EidosTerminate();
 	
 	x_current_runtimes_[x_current_buflen_] = p_last_gen_runtime;
 	
@@ -2228,7 +2228,7 @@ void SLiMSim::MaintainMutationRunExperiments(double p_last_gen_runtime)
 		}
 		
 		if (chromosome_.mutrun_count_ != x_current_mutcount_)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::MaintainMutationRunExperiments): Failed to transition to new mutation run count" << x_current_mutcount_ << "." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::MaintainMutationRunExperiments): Failed to transition to new mutation run count" << x_current_mutcount_ << "." << EidosTerminate();
 	}
 }
 
@@ -2710,8 +2710,8 @@ bool SLiMSim::_RunOneGeneration(void)
 }
 
 // This function is called by both SLiM and SLiMgui to run a generation.  In SLiM, it simply calls _RunOneGeneration(),
-// with no exception handling; in that scenario exceptions should not be thrown, since eidos_terminate() will log an
-// error and then call exit().  In SLiMgui, eidos_terminate() will raise an exception, and it will be caught right
+// with no exception handling; in that scenario exceptions should not be thrown, since EidosTerminate() will log an
+// error and then call exit().  In SLiMgui, EidosTerminate() will raise an exception, and it will be caught right
 // here and converted to an "invalid simulation" state (simulation_valid_ == false), which will be noticed by SLiMgui
 // and will cause error reporting to occur based upon the error-tracking variables set.
 bool SLiMSim::RunOneGeneration(void)
@@ -2730,7 +2730,7 @@ bool SLiMSim::RunOneGeneration(void)
 			simulation_valid_ = false;
 			
 			// In the event of a raise, we clear gEidosCurrentScript, which is not normally part of the error-
-			// reporting state, but is used only to inform eidos_terminate() about the current script at the point
+			// reporting state, but is used only to inform EidosTerminate() about the current script at the point
 			// when a raise occurs.  We don't want raises after RunOneGeneration() returns to be attributed to us,
 			// so we clear the script pointer.  We do NOT clear any of the error-reporting state, since it will
 			// be used by higher levels to select the error in the GUI.
@@ -2836,7 +2836,7 @@ void SLiMSim::_CheckMutationStackPolicy(void)
 				MutationType *muttype2 = muttype_iter2.second;
 				
 				if ((muttype2->stack_group_ == stack_group) && (muttype2->stack_policy_ != stack_policy))
-					EIDOS_TERMINATION << "ERROR (SLiMSim::_CheckMutationStackPolicy): inconsistent mutationStackPolicy values within one mutationStackGroup." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::_CheckMutationStackPolicy): inconsistent mutationStackPolicy values within one mutationStackGroup." << EidosTerminate();
 			}
 			
 			checked_groups.push_back(stack_group);
@@ -2860,7 +2860,7 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 	
 	// we only define initialize...() functions; so we must be in an initialize() callback
 	if (generation_ != 0)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): the function " << p_function_name << "() may only be called in an initialize() callback." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): the function " << p_function_name << "() may only be called in an initialize() callback." << EidosTerminate();
 	
 	if (p_function_name.compare(gStr_initializeGenomicElement) == 0)			return ExecuteContextFunction_initializeGenomicElement(p_function_name, p_arguments, p_argument_count, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeGenomicElementType) == 0)	return ExecuteContextFunction_initializeGenomicElementType(p_function_name, p_arguments, p_argument_count, p_interpreter);
@@ -2872,7 +2872,7 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 	else if (p_function_name.compare(gStr_initializeSex) == 0)					return ExecuteContextFunction_initializeSex(p_function_name, p_arguments, p_argument_count, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeSLiMOptions) == 0)			return ExecuteContextFunction_initializeSLiMOptions(p_function_name, p_arguments, p_argument_count, p_interpreter);
 	
-	EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): the function " << p_function_name << "() is not implemented by SLiMSim." << eidos_terminate();
+	EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): the function " << p_function_name << "() is not implemented by SLiMSim." << EidosTerminate();
 	return gStaticEidosValueNULLInvisible;
 }
 
@@ -2896,7 +2896,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElement(const std
 		auto found_getype_pair = genomic_element_types_.find(genomic_element_type);
 		
 		if (found_getype_pair == genomic_element_types_.end())
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElement): initializeGenomicElement() genomic element type g" << genomic_element_type << " not defined." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElement): initializeGenomicElement() genomic element type g" << genomic_element_type << " not defined." << EidosTerminate();
 		
 		genomic_element_type_ptr = found_getype_pair->second;
 	}
@@ -2906,7 +2906,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElement(const std
 	}
 	
 	if (end_position < start_position)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElement): initializeGenomicElement() end position " << end_position << " is less than start position " << start_position << "." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElement): initializeGenomicElement() end position " << end_position << " is less than start position " << start_position << "." << EidosTerminate();
 	
 	// Check that the new element will not overlap any existing element; if end_position > last_genomic_element_position we are safe.
 	// Otherwise, we have to check all previously defined elements.  The use of last_genomic_element_position is an optimization to
@@ -2916,7 +2916,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElement(const std
 		for (auto &element : chromosome_)
 		{
 			if ((element.start_position_ <= end_position) && (element.end_position_ >= start_position))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElement): initializeGenomicElement() genomic element from start position " << start_position << " to end position " << end_position << " overlaps existing genomic element." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElement): initializeGenomicElement() genomic element from start position " << start_position << " to end position " << end_position << " overlaps existing genomic element." << EidosTerminate();
 		}
 	}
 	
@@ -2963,13 +2963,13 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElementType(const
 	slim_objectid_t map_identifier = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 'g', nullptr);
 	
 	if (genomic_element_types_.count(map_identifier) > 0) 
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElementType): initializeGenomicElementType() genomic element type g" << map_identifier << " already defined." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElementType): initializeGenomicElementType() genomic element type g" << map_identifier << " already defined." << EidosTerminate();
 	
 	int mut_type_id_count = arg1_value->Count();
 	int proportion_count = arg2_value->Count();
 	
 	if (mut_type_id_count != proportion_count)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElementType): initializeGenomicElementType() requires the sizes of mutationTypes and proportions to be equal." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElementType): initializeGenomicElementType() requires the sizes of mutationTypes and proportions to be equal." << EidosTerminate();
 	
 	std::vector<MutationType*> mutation_types;
 	std::vector<double> mutation_fractions;
@@ -2980,7 +2980,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElementType(const
 		double proportion = arg2_value->FloatAtIndex(mut_type_index, nullptr);
 		
 		if (proportion < 0)		// == 0 is allowed but must be fixed before the simulation executes; see InitializeDraws()
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElementType): initializeGenomicElementType() proportions must be greater than or equal to zero (" << proportion << " supplied)." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElementType): initializeGenomicElementType() proportions must be greater than or equal to zero (" << proportion << " supplied)." << EidosTerminate();
 		
 		if (arg1_value->Type() == EidosValueType::kValueInt)
 		{
@@ -2991,7 +2991,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElementType(const
 				mutation_type_ptr = found_muttype_pair->second;
 			
 			if (!mutation_type_ptr)
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElementType): initializeGenomicElementType() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElementType): initializeGenomicElementType() mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
 		}
 		else
 		{
@@ -2999,7 +2999,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElementType(const
 		}
 		
 		if (std::find(mutation_types.begin(), mutation_types.end(), mutation_type_ptr) != mutation_types.end())
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElementType): initializeGenomicElementType() mutation type m" << mutation_type_ptr->mutation_type_id_ << " used more than once." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElementType): initializeGenomicElementType() mutation type m" << mutation_type_ptr->mutation_type_id_ << " used more than once." << EidosTerminate();
 		
 		mutation_types.emplace_back(mutation_type_ptr);
 		mutation_fractions.emplace_back(proportion);
@@ -3022,7 +3022,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElementType(const
 	EidosSymbolTableEntry &symbol_entry = new_genomic_element_type->SymbolTableEntry();
 	
 	if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElementType): initializeGenomicElementType() symbol " << StringForEidosGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElementType): initializeGenomicElementType() symbol " << Eidos_StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate();
 	
 	simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 	
@@ -3076,7 +3076,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeInteractionType(const st
 	IndividualSex receiver_sex = IndividualSex::kUnspecified, exerter_sex = IndividualSex::kUnspecified;
 	
 	if (interaction_types_.count(map_identifier) > 0) 
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeInteractionType): initializeInteractionType() mutation type m" << map_identifier << " already defined." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeInteractionType): initializeInteractionType() mutation type m" << map_identifier << " already defined." << EidosTerminate();
 	
 	if (spatiality_string.length() == 0)					required_dimensionality = 0;
 	else if (spatiality_string.compare(gEidosStr_x) == 0)	required_dimensionality = 1;
@@ -3087,15 +3087,15 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeInteractionType(const st
 	else if (spatiality_string.compare("yz") == 0)			required_dimensionality = 3;
 	else if (spatiality_string.compare("xyz") == 0)			required_dimensionality = 3;
 	else
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeInteractionType): initializeInteractionType() spatiality \"" << spatiality_string << "\" must be \"\", \"x\", \"y\", \"z\", \"xy\", \"xz\", \"yz\", or \"xyz\"." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeInteractionType): initializeInteractionType() spatiality \"" << spatiality_string << "\" must be \"\", \"x\", \"y\", \"z\", \"xy\", \"xz\", \"yz\", or \"xyz\"." << EidosTerminate();
 	
 	if (required_dimensionality > spatial_dimensionality_)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeInteractionType): initializeInteractionType() spatiality cannot utilize spatial dimensions beyond those set in initializeSLiMOptions()." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeInteractionType): initializeInteractionType() spatiality cannot utilize spatial dimensions beyond those set in initializeSLiMOptions()." << EidosTerminate();
 	
 	if (max_distance < 0.0)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeInteractionType): initializeInteractionType() maxDistance must be >= 0.0." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeInteractionType): initializeInteractionType() maxDistance must be >= 0.0." << EidosTerminate();
 	if ((required_dimensionality == 0) && (!std::isinf(max_distance) || (max_distance < 0.0)))
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeInteractionType): initializeInteractionType() maxDistance must be INF for non-spatial interactions." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeInteractionType): initializeInteractionType() maxDistance must be INF for non-spatial interactions." << EidosTerminate();
 	
 	if (sex_string == "**")			{ receiver_sex = IndividualSex::kUnspecified;	exerter_sex = IndividualSex::kUnspecified;	}
 	else if (sex_string == "*M")	{ receiver_sex = IndividualSex::kUnspecified;	exerter_sex = IndividualSex::kMale;			}
@@ -3107,10 +3107,10 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeInteractionType(const st
 	else if (sex_string == "FM")	{ receiver_sex = IndividualSex::kFemale;		exerter_sex = IndividualSex::kMale;			}
 	else if (sex_string == "FF")	{ receiver_sex = IndividualSex::kFemale;		exerter_sex = IndividualSex::kFemale;		}
 	else
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeInteractionType): initializeInteractionType() unsupported sexSegregation value (must be '**', '*M', '*F', 'M*', 'MM', 'MF', 'F*', 'FM', or 'FF')." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeInteractionType): initializeInteractionType() unsupported sexSegregation value (must be '**', '*M', '*F', 'M*', 'MM', 'MF', 'F*', 'FM', or 'FF')." << EidosTerminate();
 	
 	if (((receiver_sex != IndividualSex::kUnspecified) || (exerter_sex != IndividualSex::kUnspecified)) && !sex_enabled_)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeInteractionType): initializeInteractionType() sexSegregation value other than '**' unsupported in non-sexual simulation." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeInteractionType): initializeInteractionType() sexSegregation value other than '**' unsupported in non-sexual simulation." << EidosTerminate();
 	
 	InteractionType *new_interaction_type = new InteractionType(map_identifier, spatiality_string, reciprocal, max_distance, receiver_sex, exerter_sex);
 	
@@ -3121,7 +3121,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeInteractionType(const st
 	EidosSymbolTableEntry &symbol_entry = new_interaction_type->SymbolTableEntry();
 	
 	if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeInteractionType): initializeInteractionType() symbol " << StringForEidosGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeInteractionType): initializeInteractionType() symbol " << Eidos_StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate();
 	
 	simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 	
@@ -3165,7 +3165,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationType(const std::
 	bool numericParams = true;		// if true, params must be int/float; if false, params must be string
 	
 	if (mutation_types_.count(map_identifier) > 0) 
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationType): initializeMutationType() mutation type m" << map_identifier << " already defined." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationType): initializeMutationType() mutation type m" << map_identifier << " already defined." << EidosTerminate();
 	
 	if (dfe_type_string.compare(gStr_f) == 0)
 	{
@@ -3199,10 +3199,10 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationType(const std::
 		numericParams = false;
 	}
 	else
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationType): initializeMutationType() distributionType \"" << dfe_type_string << "\" must be \"f\", \"g\", \"e\", \"n\", \"w\", or \"s\"." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationType): initializeMutationType() distributionType \"" << dfe_type_string << "\" must be \"f\", \"g\", \"e\", \"n\", \"w\", or \"s\"." << EidosTerminate();
 	
 	if (p_argument_count != 3 + expected_dfe_param_count)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationType): initializeMutationType() distributionType \"" << dfe_type << "\" requires exactly " << expected_dfe_param_count << " DFE parameter" << (expected_dfe_param_count == 1 ? "" : "s") << "." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationType): initializeMutationType() distributionType \"" << dfe_type << "\" requires exactly " << expected_dfe_param_count << " DFE parameter" << (expected_dfe_param_count == 1 ? "" : "s") << "." << EidosTerminate();
 	
 	for (int dfe_param_index = 0; dfe_param_index < expected_dfe_param_count; ++dfe_param_index)
 	{
@@ -3212,7 +3212,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationType(const std::
 		if (numericParams)
 		{
 			if ((dfe_param_type != EidosValueType::kValueFloat) && (dfe_param_type != EidosValueType::kValueInt))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationType): initializeMutationType() requires that DFE parameters be numeric (integer or float)." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationType): initializeMutationType() requires that DFE parameters be numeric (integer or float)." << EidosTerminate();
 			
 			dfe_parameters.emplace_back(dfe_param_value->FloatAtIndex(0, nullptr));
 			// intentionally no bounds checks for DFE parameters
@@ -3220,7 +3220,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationType(const std::
 		else
 		{
 			if (dfe_param_type != EidosValueType::kValueString)
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationType): initializeMutationType() requires that the parameters for this DFE be of type string." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationType): initializeMutationType() requires that the parameters for this DFE be of type string." << EidosTerminate();
 			
 			dfe_strings.emplace_back(dfe_param_value->StringAtIndex(0, nullptr));
 			// intentionally no bounds checks for DFE parameters
@@ -3241,7 +3241,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationType(const std::
 	EidosSymbolTableEntry &symbol_entry = new_mutation_type->SymbolTableEntry();
 	
 	if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationType): initializeMutationType() symbol " << StringForEidosGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationType): initializeMutationType() symbol " << Eidos_StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate();
 	
 	simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 	
@@ -3298,19 +3298,19 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeRecombinationRate(const 
 	else if (sex_string.compare("*") == 0)
 		requested_sex = IndividualSex::kUnspecified;
 	else
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requested sex \"" << sex_string << "\" unsupported." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requested sex \"" << sex_string << "\" unsupported." << EidosTerminate();
 	
 	if ((requested_sex != IndividualSex::kUnspecified) && !sex_enabled_)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() sex-specific recombination map supplied in non-sexual simulation." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() sex-specific recombination map supplied in non-sexual simulation." << EidosTerminate();
 	
 	// Make sure specifying a map for that sex is legal, given our current state.  Since single_recombination_map_ has not been set
 	// yet, we just look to see whether the chromosome's policy has already been determined or not.
 	if (((requested_sex == IndividualSex::kUnspecified) && ((chromosome_.recombination_rates_M_.size() != 0) || (chromosome_.recombination_rates_F_.size() != 0))) ||
 		((requested_sex != IndividualSex::kUnspecified) && (chromosome_.recombination_rates_H_.size() != 0)))
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() cannot change the chromosome between using a single map versus separate maps for the sexes; the original configuration must be preserved." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() cannot change the chromosome between using a single map versus separate maps for the sexes; the original configuration must be preserved." << EidosTerminate();
 	
 	if (((requested_sex == IndividualSex::kUnspecified) && (num_recombination_rates_ > 0)) || ((requested_sex != IndividualSex::kUnspecified) && (num_recombination_rates_ > 1)))
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() may be called only once (or once per sex, with sex-specific recombination maps).  The multiple recombination regions of a recombination map must be set up in a single call to initializeRecombinationRate()." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() may be called only once (or once per sex, with sex-specific recombination maps).  The multiple recombination regions of a recombination map must be set up in a single call to initializeRecombinationRate()." << EidosTerminate();
 	
 	// Set up to replace the requested map
 	std::vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_.recombination_end_positions_H_ : 
@@ -3321,13 +3321,13 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeRecombinationRate(const 
 	if (arg1_value->Type() == EidosValueType::kValueNULL)
 	{
 		if (rate_count != 1)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requires rates to be a singleton if ends is not supplied." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requires rates to be a singleton if ends is not supplied." << EidosTerminate();
 		
 		double recombination_rate = arg0_value->FloatAtIndex(0, nullptr);
 		
 		// check values
 		if (recombination_rate < 0.0)		// intentionally no upper bound
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requires rates to be >= 0 (" << recombination_rate << " supplied)." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requires rates to be >= 0 (" << recombination_rate << " supplied)." << EidosTerminate();
 		
 		// then adopt them
 		rates.clear();
@@ -3341,7 +3341,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeRecombinationRate(const 
 		int end_count = arg1_value->Count();
 		
 		if ((end_count != rate_count) || (end_count == 0))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requires ends and rates to be of equal and nonzero size." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requires ends and rates to be of equal and nonzero size." << EidosTerminate();
 		
 		// check values
 		for (int value_index = 0; value_index < end_count; ++value_index)
@@ -3351,10 +3351,10 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeRecombinationRate(const 
 			
 			if (value_index > 0)
 				if (recombination_end_position <= arg1_value->IntAtIndex(value_index - 1, nullptr))
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requires ends to be in strictly ascending order." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requires ends to be in strictly ascending order." << EidosTerminate();
 			
 			if (recombination_rate < 0.0)		// intentionally no upper bound
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requires rates to be >= 0 (" << recombination_rate << " supplied)." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requires rates to be >= 0 (" << recombination_rate << " supplied)." << EidosTerminate();
 		}
 		
 		// then adopt them
@@ -3417,15 +3417,15 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGeneConversion(const std
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	if (num_gene_conversions_ > 0)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGeneConversion): initializeGeneConversion() may be called only once." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGeneConversion): initializeGeneConversion() may be called only once." << EidosTerminate();
 	
 	double gene_conversion_fraction = arg0_value->FloatAtIndex(0, nullptr);
 	double gene_conversion_avg_length = arg1_value->FloatAtIndex(0, nullptr);
 	
 	if ((gene_conversion_fraction < 0.0) || (gene_conversion_fraction > 1.0))
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGeneConversion): initializeGeneConversion() conversionFraction must be between 0.0 and 1.0 inclusive (" << gene_conversion_fraction << " supplied)." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGeneConversion): initializeGeneConversion() conversionFraction must be between 0.0 and 1.0 inclusive (" << gene_conversion_fraction << " supplied)." << EidosTerminate();
 	if (gene_conversion_avg_length <= 0.0)		// intentionally no upper bound
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGeneConversion): initializeGeneConversion() meanLength must be greater than 0.0 (" << gene_conversion_avg_length << " supplied)." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGeneConversion): initializeGeneConversion() meanLength must be greater than 0.0 (" << gene_conversion_avg_length << " supplied)." << EidosTerminate();
 	
 	chromosome_.gene_conversion_fraction_ = gene_conversion_fraction;
 	chromosome_.gene_conversion_avg_length_ = gene_conversion_avg_length;
@@ -3461,19 +3461,19 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationRate(const std::
 	else if (sex_string.compare("*") == 0)
 		requested_sex = IndividualSex::kUnspecified;
 	else
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requested sex \"" << sex_string << "\" unsupported." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requested sex \"" << sex_string << "\" unsupported." << EidosTerminate();
 	
 	if ((requested_sex != IndividualSex::kUnspecified) && !sex_enabled_)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() sex-specific mutation map supplied in non-sexual simulation." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() sex-specific mutation map supplied in non-sexual simulation." << EidosTerminate();
 	
 	// Make sure specifying a map for that sex is legal, given our current state.  Since single_mutation_map_ has not been set
 	// yet, we just look to see whether the chromosome's policy has already been determined or not.
 	if (((requested_sex == IndividualSex::kUnspecified) && ((chromosome_.mutation_rates_M_.size() != 0) || (chromosome_.mutation_rates_F_.size() != 0))) ||
 		((requested_sex != IndividualSex::kUnspecified) && (chromosome_.mutation_rates_H_.size() != 0)))
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() cannot change the chromosome between using a single map versus separate maps for the sexes; the original configuration must be preserved." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() cannot change the chromosome between using a single map versus separate maps for the sexes; the original configuration must be preserved." << EidosTerminate();
 	
 	if (((requested_sex == IndividualSex::kUnspecified) && (num_mutation_rates_ > 0)) || ((requested_sex != IndividualSex::kUnspecified) && (num_mutation_rates_ > 1)))
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() may be called only once (or once per sex, with sex-specific mutation maps).  The multiple mutation regions of a mutation map must be set up in a single call to initializeMutationRate()." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() may be called only once (or once per sex, with sex-specific mutation maps).  The multiple mutation regions of a mutation map must be set up in a single call to initializeMutationRate()." << EidosTerminate();
 	
 	// Set up to replace the requested map
 	std::vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_.mutation_end_positions_H_ : 
@@ -3484,13 +3484,13 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationRate(const std::
 	if (arg1_value->Type() == EidosValueType::kValueNULL)
 	{
 		if (rate_count != 1)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requires rates to be a singleton if ends is not supplied." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requires rates to be a singleton if ends is not supplied." << EidosTerminate();
 		
 		double mutation_rate = arg0_value->FloatAtIndex(0, nullptr);
 		
 		// check values
 		if (mutation_rate < 0.0)		// intentionally no upper bound
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requires rates to be >= 0 (" << mutation_rate << " supplied)." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requires rates to be >= 0 (" << mutation_rate << " supplied)." << EidosTerminate();
 		
 		// then adopt them
 		rates.clear();
@@ -3504,7 +3504,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationRate(const std::
 		int end_count = arg1_value->Count();
 		
 		if ((end_count != rate_count) || (end_count == 0))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requires ends and rates to be of equal and nonzero size." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requires ends and rates to be of equal and nonzero size." << EidosTerminate();
 		
 		// check values
 		for (int value_index = 0; value_index < end_count; ++value_index)
@@ -3514,10 +3514,10 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationRate(const std::
 			
 			if (value_index > 0)
 				if (mutation_end_position <= arg1_value->IntAtIndex(value_index - 1, nullptr))
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requires ends to be in strictly ascending order." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requires ends to be in strictly ascending order." << EidosTerminate();
 			
 			if (mutation_rate < 0.0)		// intentionally no upper bound
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requires rates to be >= 0 (" << mutation_rate << " supplied)." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requires rates to be >= 0 (" << mutation_rate << " supplied)." << EidosTerminate();
 		}
 		
 		// then adopt them
@@ -3580,7 +3580,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSex(const std::string &p
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	if (num_sex_declarations_ > 0)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSex): initializeSex() may be called only once." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSex): initializeSex() may be called only once." << EidosTerminate();
 	
 	std::string chromosome_type = arg0_value->StringAtIndex(0, nullptr);
 	
@@ -3591,14 +3591,14 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSex(const std::string &p
 	else if (chromosome_type.compare(gStr_Y) == 0)
 		modeled_chromosome_type_ = GenomeType::kYChromosome;
 	else
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSex): initializeSex() requires a chromosomeType of \"A\", \"X\", or \"Y\" (\"" << chromosome_type << "\" supplied)." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSex): initializeSex() requires a chromosomeType of \"A\", \"X\", or \"Y\" (\"" << chromosome_type << "\" supplied)." << EidosTerminate();
 	
 	if (arg1_value->FloatAtIndex(0, nullptr) != 1.0)
 	{
 		if (modeled_chromosome_type_ == GenomeType::kXChromosome)
 			x_chromosome_dominance_coeff_ = arg1_value->FloatAtIndex(0, nullptr);		// intentionally no bounds check
 		else
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSex): initializeSex() xDominanceCoeff may be supplied only for chromosomeType \"X\"." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSex): initializeSex() xDominanceCoeff may be supplied only for chromosomeType \"X\"." << EidosTerminate();
 	}
 	
 	if (DEBUG_INPUT)
@@ -3629,10 +3629,10 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	if (num_options_declarations_ > 0)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMOptions): initializeSLiMOptions() may be called only once." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMOptions): initializeSLiMOptions() may be called only once." << EidosTerminate();
 	
 	if ((num_interaction_types_ > 0) || (num_mutation_types_ > 0) || (num_mutation_rates_ > 0) || (num_genomic_element_types_ > 0) || (num_genomic_elements_ > 0) || (num_recombination_rates_ > 0) || (num_gene_conversions_ > 0) || (num_sex_declarations_ > 0))
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMOptions): initializeSLiMOptions() must be called before all other initialization functions." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMOptions): initializeSLiMOptions() must be called before all other initialization functions." << EidosTerminate();
 	
 	{
 		// [logical$ keepPedigrees = F]
@@ -3654,7 +3654,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 			else if (space == "xyz")
 				spatial_dimensionality_ = 3;
 			else
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMOptions): in initializeSLiMOptions(), legal non-empty values for parameter dimensionality are only 'x', 'xy', and 'xyz'." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMOptions): in initializeSLiMOptions(), legal non-empty values for parameter dimensionality are only 'x', 'xy', and 'xyz'." << EidosTerminate();
 		}
 	}
 	
@@ -3665,7 +3665,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 		if (mutrun_count != 0)
 		{
 			if ((mutrun_count < 1) || (mutrun_count > 10000))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMOptions): in initializeSLiMOptions(), parameter mutationRuns currently must be between 1 and 10000, inclusive." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMOptions): in initializeSLiMOptions(), parameter mutationRuns currently must be between 1 and 10000, inclusive." << EidosTerminate();
 			
 			preferred_mutrun_count_ = (int)mutrun_count;
 		}
@@ -3924,7 +3924,7 @@ EidosSymbolTable *SLiMSim::SymbolsFromBaseSymbols(EidosSymbolTable *p_base_symbo
 {
 	// Since we keep our own symbol table long-term, this function does not actually re-derive a new table, but just returns the cached table
 	if (p_base_symbols != gEidosConstantsSymbolTable)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::SymbolsFromBaseSymbols): (internal error) SLiM requires that its parent symbol table be the standard Eidos symbol table." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::SymbolsFromBaseSymbols): (internal error) SLiM requires that its parent symbol table be the standard Eidos symbol table." << EidosTerminate();
 	
 	return simulation_constants_;
 }
@@ -4130,7 +4130,7 @@ void SLiMSim::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p
 		case gID_dominanceCoeffX:
 		{
 			if (!sex_enabled_ || (modeled_chromosome_type_ != GenomeType::kXChromosome))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::SetProperty): attempt to set property dominanceCoeffX when not simulating an X chromosome." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::SetProperty): attempt to set property dominanceCoeffX when not simulating an X chromosome." << EidosTerminate();
 			
 			double value = p_value.FloatAtIndex(0, nullptr);
 			
@@ -4196,7 +4196,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_addSubpop(EidosGlobalStringID p_method_id, 
 	double sex_ratio = arg2_value->FloatAtIndex(0, nullptr);
 	
 	if ((sex_ratio != 0.5) && !sex_enabled_)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_addSubpop): addSubpop() sex ratio supplied in non-sexual simulation." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_addSubpop): addSubpop() sex ratio supplied in non-sexual simulation." << EidosTerminate();
 	
 	// construct the subpop; we always pass the sex ratio, but AddSubpopulation will not use it if sex is not enabled, for simplicity
 	Subpopulation *new_subpop = population_.AddSubpopulation(subpop_id, subpop_size, sex_ratio);
@@ -4205,7 +4205,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_addSubpop(EidosGlobalStringID p_method_id, 
 	EidosSymbolTableEntry &symbol_entry = new_subpop->SymbolTableEntry();
 	
 	if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_addSubpop): addSubpop() symbol " << StringForEidosGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_addSubpop): addSubpop() symbol " << Eidos_StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate();
 	
 	simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 	
@@ -4240,7 +4240,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_addSubpopSplit(EidosGlobalStringID p_method
 		}
 		
 		if (!source_subpop)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_addSubpopSplit): addSubpopSplit() subpopulation p" << source_subpop_id << " not defined." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_addSubpopSplit): addSubpopSplit() subpopulation p" << source_subpop_id << " not defined." << EidosTerminate();
 	}
 	else
 	{
@@ -4250,7 +4250,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_addSubpopSplit(EidosGlobalStringID p_method
 	double sex_ratio = arg3_value->FloatAtIndex(0, nullptr);
 	
 	if ((sex_ratio != 0.5) && !sex_enabled_)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_addSubpopSplit): addSubpopSplit() sex ratio supplied in non-sexual simulation." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_addSubpopSplit): addSubpopSplit() sex ratio supplied in non-sexual simulation." << EidosTerminate();
 	
 	// construct the subpop; we always pass the sex ratio, but AddSubpopulation will not use it if sex is not enabled, for simplicity
 	Subpopulation *new_subpop = population_.AddSubpopulation(subpop_id, *source_subpop, subpop_size, sex_ratio);
@@ -4259,7 +4259,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_addSubpopSplit(EidosGlobalStringID p_method
 	EidosSymbolTableEntry &symbol_entry = new_subpop->SymbolTableEntry();
 	
 	if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_addSubpopSplit): addSubpopSplit() symbol " << StringForEidosGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_addSubpopSplit): addSubpopSplit() symbol " << Eidos_StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate();
 	
 	simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 	
@@ -4293,7 +4293,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_deregisterScriptBlock(EidosGlobalStringID p
 				}
 			
 			if (!block)
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_deregisterScriptBlock): deregisterScriptBlock() SLiMEidosBlock s" << block_id << " not defined." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_deregisterScriptBlock): deregisterScriptBlock() SLiMEidosBlock s" << block_id << " not defined." << EidosTerminate();
 		}
 		else
 		{
@@ -4303,7 +4303,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_deregisterScriptBlock(EidosGlobalStringID p
 		if (block->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
 		{
 			// this should never be hit, because the user should have to way to get a reference to a function block
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_deregisterScriptBlock): (internal error) deregisterScriptBlock() cannot be called on user-defined function script blocks." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_deregisterScriptBlock): (internal error) deregisterScriptBlock() cannot be called on user-defined function script blocks." << EidosTerminate();
 		}
 		else if (block->type_ == SLiMEidosBlockType::SLiMEidosInteractionCallback)
 		{
@@ -4311,7 +4311,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_deregisterScriptBlock(EidosGlobalStringID p
 			// interaction has been evaluated, up until the interaction is invalidated; we can't make pointers
 			// to interaction() callbacks go stale except at that specific point in the generation cycle
 			if (std::find(scheduled_interaction_deregs_.begin(), scheduled_interaction_deregs_.end(), block) != scheduled_interaction_deregs_.end())
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_deregisterScriptBlock): deregisterScriptBlock() called twice on the same script block." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_deregisterScriptBlock): deregisterScriptBlock() called twice on the same script block." << EidosTerminate();
 			
 			scheduled_interaction_deregs_.emplace_back(block);
 		}
@@ -4319,7 +4319,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_deregisterScriptBlock(EidosGlobalStringID p
 		{
 			// all other script blocks go on the main list and get cleared out at the end of each generation stage
 			if (std::find(scheduled_deregistrations_.begin(), scheduled_deregistrations_.end(), block) != scheduled_deregistrations_.end())
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_deregisterScriptBlock): deregisterScriptBlock() called twice on the same script block." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_deregisterScriptBlock): deregisterScriptBlock() called twice on the same script block." << EidosTerminate();
 			
 			scheduled_deregistrations_.emplace_back(block);
 		}
@@ -4442,7 +4442,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_metho
 		auto found_muttype_pair = mutation_types_.find(mutation_type_id);
 		
 		if (found_muttype_pair == mutation_types_.end())
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_mutationsOfType): mutationsOfType() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_mutationsOfType): mutationsOfType() mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
 		
 		mutation_type_ptr = found_muttype_pair->second;
 	}
@@ -4510,7 +4510,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_countOfMutationsOfType(EidosGlobalStringID 
 		auto found_muttype_pair = mutation_types_.find(mutation_type_id);
 		
 		if (found_muttype_pair == mutation_types_.end())
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_countOfMutationsOfType): countOfMutationsOfType() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_countOfMutationsOfType): countOfMutationsOfType() mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
 		
 		mutation_type_ptr = found_muttype_pair->second;
 	}
@@ -4554,14 +4554,14 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_
 	
 	if (arg0_value->Type() != EidosValueType::kValueNULL)
 	{
-		outfile_path = EidosResolvedPath(arg0_value->StringAtIndex(0, nullptr));
+		outfile_path = Eidos_ResolvedPath(arg0_value->StringAtIndex(0, nullptr));
 		bool append = arg1_value->LogicalAtIndex(0, nullptr);
 		
 		outfile.open(outfile_path.c_str(), append ? (std::ios_base::app | std::ios_base::out) : std::ios_base::out);
 		has_file = true;
 		
 		if (!outfile.is_open())
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_outputFixedMutations): outputFixedMutations() could not open "<< outfile_path << "." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_outputFixedMutations): outputFixedMutations() could not open "<< outfile_path << "." << EidosTerminate();
 	}
 	
 	std::ostream &out = *(has_file ? dynamic_cast<std::ostream *>(&outfile) : dynamic_cast<std::ostream *>(&output_stream));
@@ -4572,7 +4572,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_
 	int mem_check_counter = 0, mem_check_mod = 100;
 	
 	if (eidos_do_memory_checks)
-		EidosCheckRSSAgainstMax("SLiMSim::ExecuteMethod_outputFixedMutations", "(outputFixedMutations(): The memory usage was already out of bounds on entry.)");
+		Eidos_CheckRSSAgainstMax("SLiMSim::ExecuteMethod_outputFixedMutations", "(outputFixedMutations(): The memory usage was already out of bounds on entry.)");
 #endif
 	
 	// Output header line
@@ -4591,11 +4591,11 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_
 	for (unsigned int i = 0; i < subs.size(); i++)
 	{
 		out << i << " ";
-		subs[i]->print(out);
+		subs[i]->PrintForSLiMOutput(out);
 		
 #if DO_MEMORY_CHECKS
 		if (eidos_do_memory_checks && ((++mem_check_counter) % mem_check_mod == 0))
-			EidosCheckRSSAgainstMax("SLiMSim::ExecuteMethod_outputFixedMutations", "(outputFixedMutations(): Out of memory while outputting substitution objects.)");
+			Eidos_CheckRSSAgainstMax("SLiMSim::ExecuteMethod_outputFixedMutations", "(outputFixedMutations(): Out of memory while outputting substitution objects.)");
 #endif
 	}
 	
@@ -4627,7 +4627,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 	if (arg0_value->Type() == EidosValueType::kValueNULL)
 	{
 		if (use_binary)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_outputFull): outputFull() cannot output in binary format to the standard output stream; specify a file for output." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_outputFull): outputFull() cannot output in binary format to the standard output stream; specify a file for output." << EidosTerminate();
 		
 		std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 		
@@ -4636,12 +4636,12 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 	}
 	else
 	{
-		std::string outfile_path = EidosResolvedPath(arg0_value->StringAtIndex(0, nullptr));
+		std::string outfile_path = Eidos_ResolvedPath(arg0_value->StringAtIndex(0, nullptr));
 		bool append = arg2_value->LogicalAtIndex(0, nullptr);
 		std::ofstream outfile;
 		
 		if (use_binary && append)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_outputFull): outputFull() cannot append in binary format." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_outputFull): outputFull() cannot append in binary format." << EidosTerminate();
 		
 		if (use_binary)
 			outfile.open(outfile_path.c_str(), std::ios::out | std::ios::binary);
@@ -4670,7 +4670,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 		}
 		else
 		{
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_outputFull): outputFull() could not open "<< outfile_path << "." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_outputFull): outputFull() could not open "<< outfile_path << "." << EidosTerminate();
 		}
 	}
 	
@@ -4699,14 +4699,14 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 	
 	if (arg1_value->Type() != EidosValueType::kValueNULL)
 	{
-		std::string outfile_path = EidosResolvedPath(arg1_value->StringAtIndex(0, nullptr));
+		std::string outfile_path = Eidos_ResolvedPath(arg1_value->StringAtIndex(0, nullptr));
 		bool append = arg2_value->LogicalAtIndex(0, nullptr);
 		
 		outfile.open(outfile_path.c_str(), append ? (std::ios_base::app | std::ios_base::out) : std::ios_base::out);
 		has_file = true;
 		
 		if (!outfile.is_open())
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_outputMutations): outputMutations() could not open "<< outfile_path << "." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_outputMutations): outputMutations() could not open "<< outfile_path << "." << EidosTerminate();
 	}
 	
 	std::ostream &out = *(has_file ? (std::ostream *)&outfile : (std::ostream *)&output_stream);
@@ -4756,7 +4756,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 			for (const PolymorphismPair &polymorphism_pair : polymorphisms) 
 			{ 
 				out << "#OUT: " << generation_ << " T p" << subpop_pair.first << " ";
-				polymorphism_pair.second.print_no_id(out);
+				polymorphism_pair.second.Print_NoID(out);
 			}
 		}
 	}
@@ -4780,7 +4780,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_readFromPopulationFile(EidosGlobalStringID 
 		warned_early_read_ = true;
 	}
 	
-	std::string file_path = EidosResolvedPath(arg0_value->StringAtIndex(0, nullptr));
+	std::string file_path = Eidos_ResolvedPath(arg0_value->StringAtIndex(0, nullptr));
 	
 	// first we clear out all variables of type Subpopulation etc. from the symbol table; they will all be invalid momentarily
 	// note that we do this not only in our constants table, but in the user's variables as well; we can leave no stone unturned
@@ -4829,7 +4829,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerEarlyLateEvent(EidosGlobalStringID 
 		script_id = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 's', nullptr);
 	
 	if (start_generation > end_generation)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerEarlyLateEvent): register" << ((p_method_id == gID_registerEarlyEvent) ? "Early" : "Late") << "Event() requires start <= end." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerEarlyLateEvent): register" << ((p_method_id == gID_registerEarlyEvent) ? "Early" : "Late") << "Event() requires start <= end." << EidosTerminate();
 	
 	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, (p_method_id == gID_registerEarlyEvent) ? SLiMEidosBlockType::SLiMEidosEventEarly : SLiMEidosBlockType::SLiMEidosEventLate, start_generation, end_generation);
 	
@@ -4867,7 +4867,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerFitnessCallback(EidosGlobalStringID
 		subpop_id = (arg3_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg3_value->IntAtIndex(0, nullptr)) : ((Subpopulation *)arg3_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
 	
 	if (start_generation > end_generation)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerFitnessCallback): registerFitnessCallback() requires start <= end." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerFitnessCallback): registerFitnessCallback() requires start <= end." << EidosTerminate();
 	
 	SLiMEidosBlockType block_type = ((mut_type_id == -2) ? SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback : SLiMEidosBlockType::SLiMEidosFitnessCallback);
 	
@@ -4907,7 +4907,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerInteractionCallback(EidosGlobalStri
 		subpop_id = (arg3_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg3_value->IntAtIndex(0, nullptr)) : ((Subpopulation *)arg3_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
 	
 	if (start_generation > end_generation)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerInteractionCallback): registerInteractionCallback() requires start <= end." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerInteractionCallback): registerInteractionCallback() requires start <= end." << EidosTerminate();
 	
 	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, SLiMEidosBlockType::SLiMEidosInteractionCallback, start_generation, end_generation);
 	
@@ -4945,7 +4945,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerMateModifyRecCallback(EidosGlobalSt
 		subpop_id = (arg2_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg2_value->IntAtIndex(0, nullptr)) : ((Subpopulation *)arg2_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
 	
 	if (start_generation > end_generation)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerMateModifyRecCallback): " << StringForEidosGlobalStringID(p_method_id) << " requires start <= end." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerMateModifyRecCallback): " << Eidos_StringForGlobalStringID(p_method_id) << " requires start <= end." << EidosTerminate();
 	
 	SLiMEidosBlockType block_type;
 	
@@ -4984,13 +4984,13 @@ EidosValue_SP SLiMSim::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID p
 	if (block->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
 	{
 		// this should never be hit, because the user should have to way to get a reference to a function block
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_rescheduleScriptBlock): (internal error) rescheduleScriptBlock() cannot be called on user-defined function script blocks." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_rescheduleScriptBlock): (internal error) rescheduleScriptBlock() cannot be called on user-defined function script blocks." << EidosTerminate();
 	}
 	
 	SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
 	
 	if (!sim)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_rescheduleScriptBlock): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_rescheduleScriptBlock): (internal error) the sim is not registered as the context pointer." << EidosTerminate();
 	
 	if ((!start_null || !end_null) && generations_null)
 	{
@@ -5000,7 +5000,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID p
 		slim_generation_t end = (end_null ? SLIM_MAX_GENERATION : SLiMCastToGenerationTypeOrRaise(end_value->IntAtIndex(0, nullptr)));
 		
 		if (start > end)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_rescheduleScriptBlock): reschedule() requires start <= end." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_rescheduleScriptBlock): reschedule() requires start <= end." << EidosTerminate();
 		
 		block->start_generation_ = start;
 		block->end_generation_ = end;
@@ -5019,7 +5019,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID p
 		int gen_count = generations_value->Count();
 		
 		if (gen_count < 1)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_rescheduleScriptBlock): reschedule() requires at least one generation; use deregisterScriptBlock() to remove a script block from the simulation." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_rescheduleScriptBlock): reschedule() requires at least one generation; use deregisterScriptBlock() to remove a script block from the simulation." << EidosTerminate();
 		
 		generations.reserve(gen_count);
 		
@@ -5056,7 +5056,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID p
 			}
 			else if (gen <= end)
 			{
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_rescheduleScriptBlock): reschedule() requires that the generation vector contain unique values; the same generation cannot be used twice." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_rescheduleScriptBlock): reschedule() requires that the generation vector contain unique values; the same generation cannot be used twice." << EidosTerminate();
 			}
 			
 			// make new block and move on to start the next sequence
@@ -5100,7 +5100,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID p
 	}
 	else
 	{
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_rescheduleScriptBlock): reschedule() requires that either start/end or generations be supplied, but not both." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_rescheduleScriptBlock): reschedule() requires that either start/end or generations be supplied, but not both." << EidosTerminate();
 	}
 }
 

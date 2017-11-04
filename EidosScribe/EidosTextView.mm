@@ -1775,7 +1775,7 @@
 	// the beginning of the key path, and figure out what the class of the key path root is
 	int key_path_index = (int)identifiers.size() - 1;
 	std::string &identifier_name = identifiers[key_path_index];
-	EidosGlobalStringID identifier_ID = EidosGlobalStringIDForString(identifier_name);
+	EidosGlobalStringID identifier_ID = Eidos_GlobalStringIDForString(identifier_name);
 	bool identifier_is_call = identifiers_are_calls[key_path_index];
 	const EidosObjectClass *key_path_class = nullptr;
 	
@@ -1827,7 +1827,7 @@
 		identifier_name = identifiers[key_path_index];
 		identifier_is_call = identifiers_are_calls[key_path_index];
 		
-		EidosGlobalStringID identifier_id = EidosGlobalStringIDForString(identifier_name);
+		EidosGlobalStringID identifier_id = Eidos_GlobalStringIDForString(identifier_name);
 		
 		if (identifier_id == gEidosID_none)
 			return nil;			// unrecognized identifier in the key path, so there is probably a typo and we can't complete off of it

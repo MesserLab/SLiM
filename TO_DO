@@ -7,6 +7,9 @@ building on the command line:
 look for exported symbols that are not tagged with "eidos" or "Eidos" somewhere in the symbol before the parameter list:
 	nm -g -U -j ./EidosScribe | grep -E -v "^_+([^_\r\n]+_)*[^_]*[Ee]idos"
 
+dump demangled symbols from SLiMgui:
+	nm -g -U -j ./SLiMgui | c++filt
+
 some valgrind commands:
 	valgrind --leak-check=yes --track-origins=yes --expensive-definedness-checks=yes --num-callers=20 ./slim -testEidos		(with Debug version)
 	valgrind --leak-check=yes --track-origins=yes --expensive-definedness-checks=yes --num-callers=20 ./slim -testSLiM		(with Debug version)

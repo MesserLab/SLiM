@@ -166,7 +166,7 @@ int CompareEidosValues_Logical(const EidosValue &p_value1, int p_index1, const E
 
 typedef int (*EidosCompareFunctionPtr)(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token);
 
-EidosCompareFunctionPtr EidosGetCompareFunctionForTypes(EidosValueType p_type1, EidosValueType p_type2, const EidosToken *p_blame_token);
+EidosCompareFunctionPtr Eidos_GetCompareFunctionForTypes(EidosValueType p_type1, EidosValueType p_type2, const EidosToken *p_blame_token);
 
 
 // EidosValueMask is a uint32_t used as a bit mask to identify permitted types for EidosValue objects (arguments, returns)
@@ -273,8 +273,8 @@ public:
 	virtual std::vector<EidosObjectElement *> *ObjectElementVector_Mutable(void) { RaiseForUnimplementedVectorCall(); }
 	
 	// Eidos_intrusive_ptr support; we use Eidos_intrusive_ptr as a fast smart pointer to EidosValue.
-	inline __attribute__((always_inline)) uint32_t use_count() const { return intrusive_ref_count_; }
-	inline __attribute__((always_inline)) void stack_allocated() { intrusive_ref_count_++; }			// used with stack-allocated EidosValues that have to be put under Eidos_intrusive_ptr
+	inline __attribute__((always_inline)) uint32_t UseCount() const { return intrusive_ref_count_; }
+	inline __attribute__((always_inline)) void StackAllocated() { intrusive_ref_count_++; }			// used with stack-allocated EidosValues that have to be put under Eidos_intrusive_ptr
 	
 	friend void Eidos_intrusive_ptr_add_ref(const EidosValue *p_value);
 	friend void Eidos_intrusive_ptr_release(const EidosValue *p_value);
@@ -398,7 +398,7 @@ public:
 	EidosValue_Logical_const(void) = delete;										// no default constructor
 	EidosValue_Logical_const& operator=(const EidosValue_Logical_const&) = delete;	// no copying
 	explicit EidosValue_Logical_const(eidos_logical_t p_logical1);
-	virtual ~EidosValue_Logical_const(void);											// destructor calls eidos_terminate()
+	virtual ~EidosValue_Logical_const(void);											// destructor calls EidosTerminate()
 	
 	static EidosValue_Logical_SP Static_EidosValue_Logical_T(void);
 	static EidosValue_Logical_SP Static_EidosValue_Logical_F(void);

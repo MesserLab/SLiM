@@ -45,7 +45,7 @@ void SLiM_WarmUp(void)
 		
 #if DO_MEMORY_CHECKS
 		// Check for a memory limit and prepare for memory-limit testing
-		EidosCheckRSSAgainstMax("SLiM_WarmUp()", "This internal check should never fail!");
+		Eidos_CheckRSSAgainstMax("SLiM_WarmUp()", "This internal check should never fail!");
 #endif
 		
 		//std::cout << "sizeof(Mutation) == " << sizeof(Mutation) << std::endl;
@@ -58,34 +58,34 @@ std::ostringstream gSLiMOut;
 
 
 // Functions for casting from Eidos ints (int64_t) to SLiM int types safely
-void SLiMRaiseGenerationRangeError(int64_t p_long_value)
+void SLiM_RaiseGenerationRangeError(int64_t p_long_value)
 {
-	EIDOS_TERMINATION << "ERROR (SLiMRaiseGenerationRangeError): value " << p_long_value << " for a generation index or duration is out of range." << eidos_terminate();
+	EIDOS_TERMINATION << "ERROR (SLiM_RaiseGenerationRangeError): value " << p_long_value << " for a generation index or duration is out of range." << EidosTerminate();
 }
 
-void SLiMRaisePositionRangeError(int64_t p_long_value)
+void SLiM_RaisePositionRangeError(int64_t p_long_value)
 {
-	EIDOS_TERMINATION << "ERROR (SLiMRaisePositionRangeError): value " << p_long_value << " for a chromosome position or length is out of range." << eidos_terminate();
+	EIDOS_TERMINATION << "ERROR (SLiM_RaisePositionRangeError): value " << p_long_value << " for a chromosome position or length is out of range." << EidosTerminate();
 }
 
-void SLiMRaiseObjectidRangeError(int64_t p_long_value)
+void SLiM_RaiseObjectidRangeError(int64_t p_long_value)
 {
-	EIDOS_TERMINATION << "ERROR (SLiMRaiseObjectidRangeError): value " << p_long_value << " for a SLiM object identifier value is out of range." << eidos_terminate();
+	EIDOS_TERMINATION << "ERROR (SLiM_RaiseObjectidRangeError): value " << p_long_value << " for a SLiM object identifier value is out of range." << EidosTerminate();
 }
 
-void SLiMRaisePopsizeRangeError(int64_t p_long_value)
+void SLiM_RaisePopsizeRangeError(int64_t p_long_value)
 {
-	EIDOS_TERMINATION << "ERROR (SLiMRaisePopsizeRangeError): value " << p_long_value << " for a subpopulation size, individual index, or genome index is out of range." << eidos_terminate();
+	EIDOS_TERMINATION << "ERROR (SLiM_RaisePopsizeRangeError): value " << p_long_value << " for a subpopulation size, individual index, or genome index is out of range." << EidosTerminate();
 }
 
-void SLiMRaiseUsertagRangeError(int64_t p_long_value)
+void SLiM_RaiseUsertagRangeError(int64_t p_long_value)
 {
-	EIDOS_TERMINATION << "ERROR (SLiMRaiseUsertagRangeError): value " << p_long_value << " for a user-supplied tag is out of range." << eidos_terminate();
+	EIDOS_TERMINATION << "ERROR (SLiM_RaiseUsertagRangeError): value " << p_long_value << " for a user-supplied tag is out of range." << EidosTerminate();
 }
 
-void SLiMRaisePolymorphismidRangeError(int64_t p_long_value)
+void SLiM_RaisePolymorphismidRangeError(int64_t p_long_value)
 {
-	EIDOS_TERMINATION << "ERROR (SLiMRaisePolymorphismidRangeError): value " << p_long_value << " for a polymorphism identifier is out of range." << eidos_terminate();
+	EIDOS_TERMINATION << "ERROR (SLiM_RaisePolymorphismidRangeError): value " << p_long_value << " for a polymorphism identifier is out of range." << EidosTerminate();
 }
 
 

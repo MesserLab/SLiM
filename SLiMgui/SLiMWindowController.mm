@@ -2401,7 +2401,7 @@
 		}
 		catch (...)
 		{
-			errorDiagnostic = [[NSString stringWithUTF8String:EidosGetTrimmedRaiseMessage().c_str()] retain];
+			errorDiagnostic = [[NSString stringWithUTF8String:Eidos_GetTrimmedRaiseMessage().c_str()] retain];
 		}
 	}
 	
@@ -2555,7 +2555,7 @@
 		for (unsigned int i = 0; i < sim->population_.substitutions_.size(); i++)
 		{
 			SLIM_OUTSTREAM << i << " ";
-			sim->population_.substitutions_[i]->print(SLIM_OUTSTREAM);
+			sim->population_.substitutions_[i]->PrintForSLiMOutput(SLIM_OUTSTREAM);
 		}
 		
 		// now send SLIM_OUTSTREAM to the output textview
@@ -3163,7 +3163,7 @@
 									
 									if (all_numeric)
 									{
-										EidosGlobalStringID constant_id = EidosGlobalStringIDForString(child_string);
+										EidosGlobalStringID constant_id = Eidos_GlobalStringIDForString(child_string);
 										
 										(*typeTable)->SetTypeForSymbol(constant_id, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class});
 									}
@@ -3300,7 +3300,7 @@
 											if (param_children_count >= 2)
 											{
 												// param_node has 2 or 3 children (type, identifier, [default]); we don't care about default values
-												(*typeTable)->SetTypeForSymbol(EidosGlobalStringIDForString(param_name), param_type);
+												(*typeTable)->SetTypeForSymbol(Eidos_GlobalStringIDForString(param_name), param_type);
 											}
 										}
 									}

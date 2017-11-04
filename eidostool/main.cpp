@@ -104,7 +104,7 @@ int main(int argc, const char * argv[])
 	if (keep_mem)
 	{
 		// note we subtract the size of our memory-tracking buffer, here and below
-		initial_mem_usage = EidosGetCurrentRSS();
+		initial_mem_usage = Eidos_GetCurrentRSS();
 	}
 	
 	// warm up and load the script
@@ -114,7 +114,7 @@ int main(int argc, const char * argv[])
 	std::ifstream infile(input_file);
 	
 	if (!infile.is_open())
-		EIDOS_TERMINATION << "ERROR (eidos): could not open input file: " << input_file << "." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (eidos): could not open input file: " << input_file << "." << EidosTerminate();
 	
 	infile.seekg(0, std::fstream::beg);
 	std::stringstream buffer;
@@ -152,7 +152,7 @@ int main(int argc, const char * argv[])
 	// print memory usage stats
 	if (keep_mem)
 	{
-		peak_mem_usage = EidosGetPeakRSS();
+		peak_mem_usage = Eidos_GetPeakRSS();
 		
 		std::cout << "// ********** Initial memory usage: " << initial_mem_usage << " bytes (" << initial_mem_usage / 1024.0 << "K, " << initial_mem_usage / (1024.0 * 1024) << "MB)" << std::endl;
 		std::cout << "// ********** Peak memory usage: " << peak_mem_usage << " bytes (" << peak_mem_usage / 1024.0 << "K, " << peak_mem_usage / (1024.0 * 1024) << "MB)" << std::endl;

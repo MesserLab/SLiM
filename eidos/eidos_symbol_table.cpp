@@ -48,7 +48,7 @@ EidosSymbolTable::EidosSymbolTable(EidosSymbolTableType p_table_type, EidosSymbo
 		// We statically allocate our base symbols for fast setup / teardown.
 #ifdef DEBUG
 		if (table_type_ != EidosSymbolTableType::kEidosIntrinsicConstantsTable)
-			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::EidosSymbolTable): (internal error) symbol tables must have a parent table, except the Eidos intrinsic constants table." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::EidosSymbolTable): (internal error) symbol tables must have a parent table, except the Eidos intrinsic constants table." << EidosTerminate(nullptr);
 #endif
 		
 		static EidosSymbolTableEntry *trueConstant = nullptr;
@@ -94,11 +94,11 @@ EidosSymbolTable::EidosSymbolTable(EidosSymbolTableType p_table_type, EidosSymbo
 		
 #ifdef DEBUG
 		if (table_type_ == EidosSymbolTableType::kEidosIntrinsicConstantsTable)
-			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::EidosSymbolTable): (internal error) the Eidos intrinsic constants table cannot have a parent." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::EidosSymbolTable): (internal error) the Eidos intrinsic constants table cannot have a parent." << EidosTerminate(nullptr);
 		if (chain_symbol_table_->table_type_ == EidosSymbolTableType::kVariablesTable)
-			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::EidosSymbolTable): (internal error) the chained symbol table must be constant in the current design." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::EidosSymbolTable): (internal error) the chained symbol table must be constant in the current design." << EidosTerminate(nullptr);
 		if (parent_symbol_table_->table_type_ == EidosSymbolTableType::kINVALID_TABLE_TYPE)
-			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::EidosSymbolTable): (internal error) zombie symbol table re-used as parent table." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::EidosSymbolTable): (internal error) zombie symbol table re-used as parent table." << EidosTerminate(nullptr);
 #endif
 	}
 }
@@ -107,7 +107,7 @@ EidosSymbolTable::~EidosSymbolTable(void)
 {
 	// We do a little bit of zombie-fication here to try to catch problematic table usage patterns
 	if (table_type_ == EidosSymbolTableType::kINVALID_TABLE_TYPE)
-		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::~EidosSymbolTable): (internal error) zombie symbol table being destructed." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::~EidosSymbolTable): (internal error) zombie symbol table being destructed." << EidosTerminate(nullptr);
 	
 	table_type_ = EidosSymbolTableType::kINVALID_TABLE_TYPE;
 	
@@ -138,12 +138,12 @@ std::vector<std::string> EidosSymbolTable::_SymbolNames(bool p_include_constants
 		if (using_internal_symbols_)
 		{
 			for (size_t symbol_index = 0; symbol_index < internal_symbol_count_; ++symbol_index)
-				symbol_names.emplace_back(StringForEidosGlobalStringID(internal_symbols_[symbol_index].symbol_name_));
+				symbol_names.emplace_back(Eidos_StringForGlobalStringID(internal_symbols_[symbol_index].symbol_name_));
 		}
 		else
 		{
 			for (auto symbol_slot_iter = hash_symbols_.begin(); symbol_slot_iter != hash_symbols_.end(); ++symbol_slot_iter)
-				symbol_names.emplace_back(StringForEidosGlobalStringID(symbol_slot_iter->first));
+				symbol_names.emplace_back(Eidos_StringForGlobalStringID(symbol_slot_iter->first));
 		}
 	}
 	
@@ -219,7 +219,7 @@ EidosValue_SP EidosSymbolTable::_GetValue(EidosGlobalStringID p_symbol_name, con
 	if (chain_symbol_table_)
 		return chain_symbol_table_->_GetValue(p_symbol_name, p_symbol_token);
 	
-	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_GetValue): undefined identifier " << StringForEidosGlobalStringID(p_symbol_name) << "." << eidos_terminate(p_symbol_token);
+	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_GetValue): undefined identifier " << Eidos_StringForGlobalStringID(p_symbol_name) << "." << EidosTerminate(p_symbol_token);
 }
 
 // same as above except for handling the p_is_const flag
@@ -254,7 +254,7 @@ EidosValue_SP EidosSymbolTable::_GetValue_IsConst(EidosGlobalStringID p_symbol_n
 	if (chain_symbol_table_)
 		return chain_symbol_table_->_GetValue_IsConst(p_symbol_name, p_symbol_token, p_is_const);	// the chain sets p_is_const
 	
-	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_GetValue): undefined identifier " << StringForEidosGlobalStringID(p_symbol_name) << "." << eidos_terminate(p_symbol_token);
+	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_GetValue): undefined identifier " << Eidos_StringForGlobalStringID(p_symbol_name) << "." << EidosTerminate(p_symbol_token);
 }
 
 void EidosSymbolTable::_SwitchToHash(void)
@@ -282,7 +282,7 @@ void EidosSymbolTable::SetValueForSymbol(EidosGlobalStringID p_symbol_name, Eido
 	// If we have the only reference to the value, we don't need to copy it; otherwise we copy, since we don't want to hold
 	// onto a reference that somebody else might modify under us (or that we might modify under them, with syntaxes like
 	// x[2]=...; and x=x+1;). If the value is invisible then we copy it, since the symbol table never stores invisible values.
-	if ((p_value->use_count() != 1) || p_value->Invisible())
+	if ((p_value->UseCount() != 1) || p_value->Invisible())
 		p_value = p_value->CopyValues();
 	
 	if (using_internal_symbols_)
@@ -299,7 +299,7 @@ void EidosSymbolTable::SetValueForSymbol(EidosGlobalStringID p_symbol_name, Eido
 			// The symbol is not already defined in this table.  Before we can define it, we need to check that it is not defined in a chained table.
 			// At present, we assume that if it is defined in a chained table it is a constant, which is true for now.
 			if (chain_symbol_table_ && chain_symbol_table_->ContainsSymbol(p_symbol_name))
-				EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbol): identifier '" << StringForEidosGlobalStringID(p_symbol_name) << "' cannot be redefined because it is a constant." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbol): identifier '" << Eidos_StringForGlobalStringID(p_symbol_name) << "' cannot be redefined because it is a constant." << EidosTerminate(nullptr);
 			
 			if (internal_symbol_count_ < EIDOS_SYMBOL_TABLE_BASE_SIZE)
 			{
@@ -332,7 +332,7 @@ void EidosSymbolTable::SetValueForSymbol(EidosGlobalStringID p_symbol_name, Eido
 		// The symbol is not already defined in this table.  Before we can define it, we need to check that it is not defined in a chained table.
 		// At present, we assume that if it is defined in a chained table it is a constant, which is true for now.
 		if (chain_symbol_table_ && chain_symbol_table_->ContainsSymbol(p_symbol_name))
-			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbol): identifier '" << StringForEidosGlobalStringID(p_symbol_name) << "' cannot be redefined because it is a constant." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbol): identifier '" << Eidos_StringForGlobalStringID(p_symbol_name) << "' cannot be redefined because it is a constant." << EidosTerminate(nullptr);
 		
 		hash_symbols_.insert(std::pair<EidosGlobalStringID, EidosValue_SP>(p_symbol_name, std::move(p_value)));
 	}
@@ -352,7 +352,7 @@ void EidosSymbolTable::SetValueForSymbolNoCopy(EidosGlobalStringID p_symbol_name
 	// vector value so that it can do a subscripted assignment.  For that special purpose, this function is provided.
 	// DO NOT USE THIS UNLESS YOU KNOW WHAT YOU'RE DOING!  It can lead to seriously weird behavior if used incorrectly.
 	if (p_value->Invisible())
-		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbol): (internal) no copy requested with invisible value." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbol): (internal) no copy requested with invisible value." << EidosTerminate(nullptr);
 	
 	if (using_internal_symbols_)
 	{
@@ -368,7 +368,7 @@ void EidosSymbolTable::SetValueForSymbolNoCopy(EidosGlobalStringID p_symbol_name
 			// The symbol is not already defined in this table.  Before we can define it, we need to check that it is not defined in a chained table.
 			// At present, we assume that if it is defined in a chained table it is a constant, which is true for now.
 			if (chain_symbol_table_ && chain_symbol_table_->ContainsSymbol(p_symbol_name))
-				EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbol): identifier '" << StringForEidosGlobalStringID(p_symbol_name) << "' cannot be redefined because it is a constant." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbol): identifier '" << Eidos_StringForGlobalStringID(p_symbol_name) << "' cannot be redefined because it is a constant." << EidosTerminate(nullptr);
 			
 			if (internal_symbol_count_ < EIDOS_SYMBOL_TABLE_BASE_SIZE)
 			{
@@ -401,7 +401,7 @@ void EidosSymbolTable::SetValueForSymbolNoCopy(EidosGlobalStringID p_symbol_name
 		// The symbol is not already defined in this table.  Before we can define it, we need to check that it is not defined in a chained table.
 		// At present, we assume that if it is defined in a chained table it is a constant, which is true for now.
 		if (chain_symbol_table_ && chain_symbol_table_->ContainsSymbol(p_symbol_name))
-			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbol): identifier '" << StringForEidosGlobalStringID(p_symbol_name) << "' cannot be redefined because it is a constant." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbol): identifier '" << Eidos_StringForGlobalStringID(p_symbol_name) << "' cannot be redefined because it is a constant." << EidosTerminate(nullptr);
 		
 		hash_symbols_.insert(std::pair<EidosGlobalStringID, EidosValue_SP>(p_symbol_name, std::move(p_value)));
 	}
@@ -417,7 +417,7 @@ void EidosSymbolTable::DefineConstantForSymbol(EidosGlobalStringID p_symbol_name
 	// We use SymbolDefinedAnywhere() because defined constants cannot conflict with any symbol defined anywhere, whether
 	// currently in scope or not – as soon as the conflicting scope comes into scope, the conflict will be manifest.
 	if (SymbolDefinedAnywhere(p_symbol_name))
-		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::DefineConstantForSymbol): identifier '" << StringForEidosGlobalStringID(p_symbol_name) << "' is already defined." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::DefineConstantForSymbol): identifier '" << Eidos_StringForGlobalStringID(p_symbol_name) << "' is already defined." << EidosTerminate(nullptr);
 	
 	// Search through our chain for a defined constants table; if we don't find one, add one
 	EidosSymbolTable *definedConstantsTable;
@@ -435,7 +435,7 @@ void EidosSymbolTable::DefineConstantForSymbol(EidosGlobalStringID p_symbol_name
 				break;
 		
 		if (!childTable)
-			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::DefineConstantForSymbol): (internal) could not find child symbol table of the intrinsic constants table." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::DefineConstantForSymbol): (internal) could not find child symbol table of the intrinsic constants table." << EidosTerminate(nullptr);
 		
 		EidosSymbolTable *intrinsicConstantsTable = childTable->parent_symbol_table_;
 		
@@ -457,7 +457,7 @@ void EidosSymbolTable::DefineConstantForSymbol(EidosGlobalStringID p_symbol_name
 	// If we have the only reference to the value, we don't need to copy it; otherwise we copy, since we don't want to hold
 	// onto a reference that somebody else might modify under us (or that we might modify under them, with syntaxes like
 	// x[2]=...; and x=x+1;). If the value is invisible then we copy it, since the symbol table never stores invisible values.
-	if ((p_value->use_count() != 1) || p_value->Invisible())
+	if ((p_value->UseCount() != 1) || p_value->Invisible())
 		p_value = p_value->CopyValues();
 	
 	// Then ask the defined constants table to add the constant
@@ -480,9 +480,9 @@ void EidosSymbolTable::_RemoveSymbol(EidosGlobalStringID p_symbol_name, bool p_r
 			if (table_type_ != EidosSymbolTableType::kVariablesTable)
 			{
 				if (table_type_ == EidosSymbolTableType::kEidosIntrinsicConstantsTable)
-					EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_RemoveSymbol): identifier '" << StringForEidosGlobalStringID(p_symbol_name) << "' is an intrinsic Eidos constant and thus cannot be removed." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_RemoveSymbol): identifier '" << Eidos_StringForGlobalStringID(p_symbol_name) << "' is an intrinsic Eidos constant and thus cannot be removed." << EidosTerminate(nullptr);
 				if (!p_remove_constant)
-					EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_RemoveSymbol): identifier '" << StringForEidosGlobalStringID(p_symbol_name) << "' is a constant and thus cannot be removed." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_RemoveSymbol): identifier '" << Eidos_StringForGlobalStringID(p_symbol_name) << "' is a constant and thus cannot be removed." << EidosTerminate(nullptr);
 			}
 			
 			EidosSymbolTable_InternalSlot *existing_symbol_slot_ptr = internal_symbols_ + symbol_slot;
@@ -518,9 +518,9 @@ void EidosSymbolTable::_RemoveSymbol(EidosGlobalStringID p_symbol_name, bool p_r
 			if (table_type_ != EidosSymbolTableType::kVariablesTable)
 			{
 				if (table_type_ == EidosSymbolTableType::kEidosIntrinsicConstantsTable)
-					EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_RemoveSymbol): identifier '" << StringForEidosGlobalStringID(p_symbol_name) << "' is an intrinsic Eidos constant and thus cannot be removed." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_RemoveSymbol): identifier '" << Eidos_StringForGlobalStringID(p_symbol_name) << "' is an intrinsic Eidos constant and thus cannot be removed." << EidosTerminate(nullptr);
 				if (!p_remove_constant)
-					EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_RemoveSymbol): identifier '" << StringForEidosGlobalStringID(p_symbol_name) << "' is a constant and thus cannot be removed." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_RemoveSymbol): identifier '" << Eidos_StringForGlobalStringID(p_symbol_name) << "' is a constant and thus cannot be removed." << EidosTerminate(nullptr);
 			}
 			
 			hash_symbols_.erase(remove_iter);
@@ -538,9 +538,9 @@ void EidosSymbolTable::_InitializeConstantSymbolEntry(EidosGlobalStringID p_symb
 {
 #ifdef DEBUG
 	if (p_value->Invisible())
-		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_InitializeConstantSymbolEntry): (internal error) this method should be called only for non-invisible objects." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_InitializeConstantSymbolEntry): (internal error) this method should be called only for non-invisible objects." << EidosTerminate(nullptr);
 	if (table_type_ == EidosSymbolTableType::kVariablesTable)
-		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_InitializeConstantSymbolEntry): (internal error) this method should be called only on constant symbol tables." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_InitializeConstantSymbolEntry): (internal error) this method should be called only on constant symbol tables." << EidosTerminate(nullptr);
 #endif
 	
 	// we assume that this symbol is not yet defined, for maximal set-up speed
@@ -611,7 +611,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosSymbolTable &p_sy
 	for (auto symbol_name_iter = symbol_names.begin(); symbol_name_iter != symbol_names.end(); ++symbol_name_iter)
 	{
 		const std::string &symbol_name = *symbol_name_iter;
-		EidosValue_SP symbol_value = p_symbols.GetValueOrRaiseForSymbol(EidosGlobalStringIDForString(symbol_name));
+		EidosValue_SP symbol_value = p_symbols.GetValueOrRaiseForSymbol(Eidos_GlobalStringIDForString(symbol_name));
 		int symbol_count = symbol_value->Count();
 		bool is_const = std::find(read_only_symbol_names.begin(), read_only_symbol_names.end(), symbol_name) != read_only_symbol_names.end();
 		

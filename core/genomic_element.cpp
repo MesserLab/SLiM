@@ -54,7 +54,7 @@ GenomicElement::GenomicElement(const GenomicElement& p_original)
 	if (s_log_copy_and_assign_)
 	{
 		SLIM_ERRSTREAM << "********* GenomicElement::GenomicElement(GenomicElement&) called!" << std::endl;
-		eidos_print_stacktrace(stderr);
+		Eidos_PrintStacktrace(stderr);
 		SLIM_ERRSTREAM << "************************************************" << std::endl;
 	}
 	
@@ -68,7 +68,7 @@ GenomicElement& GenomicElement::operator= (const GenomicElement& p_original)
 	if (s_log_copy_and_assign_)
 	{
 		SLIM_ERRSTREAM << "********* GenomicElement::operator=(GenomicElement&) called!" << std::endl;
-		eidos_print_stacktrace(stderr);
+		Eidos_PrintStacktrace(stderr);
 		SLIM_ERRSTREAM << "************************************************" << std::endl;
 	}
 	
@@ -196,7 +196,7 @@ EidosValue_SP GenomicElement::ExecuteMethod_setGenomicElementType(EidosGlobalStr
 		}
 		
 		if (!getype_ptr)
-			EIDOS_TERMINATION << "ERROR (GenomicElement::ExecuteMethod_setGenomicElementType): setGenomicElementType() genomic element type g" << getype_id << " not defined." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (GenomicElement::ExecuteMethod_setGenomicElementType): setGenomicElementType() genomic element type g" << getype_id << " not defined." << EidosTerminate();
 	}
 	else
 	{

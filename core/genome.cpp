@@ -39,9 +39,9 @@ bool Genome::s_log_copy_and_assign_ = true;
 #endif
 
 // Static class variables in support of Genome's bulk operation optimization; see Genome::WillModifyRunForBulkOperation()
-int64_t Genome::s_bulk_operation_id = 0;
-int Genome::s_bulk_operation_mutrun_index = -1;
-std::map<MutationRun*, MutationRun*> Genome::s_bulk_operation_runs;
+int64_t Genome::s_bulk_operation_id_ = 0;
+int Genome::s_bulk_operation_mutrun_index_ = -1;
+std::map<MutationRun*, MutationRun*> Genome::s_bulk_operation_runs_;
 
 
 // default constructor; gives a non-null genome of type GenomeType::kAutosome
@@ -139,19 +139,19 @@ Genome::~Genome(void)
 // prints an error message, a stacktrace, and exits; called only for DEBUG
 void Genome::NullGenomeAccessError(void) const
 {
-	EIDOS_TERMINATION << "ERROR (Genome::NullGenomeAccessError): (internal error) a null genome was accessed." << eidos_terminate();
+	EIDOS_TERMINATION << "ERROR (Genome::NullGenomeAccessError): (internal error) a null genome was accessed." << EidosTerminate();
 }
 
 void Genome::WillModifyRun(int p_run_index)
 {
 #ifdef DEBUG
 	if (p_run_index >= mutrun_count_)
-		EIDOS_TERMINATION << "ERROR (Genome::WillModifyRun): (internal error) attempt to modify an out-of-index run." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Genome::WillModifyRun): (internal error) attempt to modify an out-of-index run." << EidosTerminate();
 #endif
 	
 	MutationRun *original_run = mutruns_[p_run_index].get();
 	
-	if (original_run->use_count() > 1)
+	if (original_run->UseCount() > 1)
 	{
 		MutationRun *new_run = MutationRun::NewMutationRun();	// take from shared pool of used objects
 		
@@ -166,9 +166,9 @@ void Genome::WillModifyRun(int p_run_index)
 
 void Genome::BulkOperationStart(int64_t p_operation_id, int p_mutrun_index)
 {
-	if (s_bulk_operation_id != 0)
+	if (s_bulk_operation_id_ != 0)
 	{
-		//EIDOS_TERMINATION << "ERROR (Genome::BulkOperationStart): (internal error) unmatched bulk operation start." << eidos_terminate();
+		//EIDOS_TERMINATION << "ERROR (Genome::BulkOperationStart): (internal error) unmatched bulk operation start." << EidosTerminate();
 		
 		// It would be nice to be able to throw an exception here, but in the present design, the
 		// bulk operation info can get messed up if the bulk operation throws an exception that
@@ -176,19 +176,19 @@ void Genome::BulkOperationStart(int64_t p_operation_id, int p_mutrun_index)
 		std::cout << "WARNING (Genome::BulkOperationStart): (internal error) unmatched bulk operation start." << std::endl;
 		
 		// For now, we assume that the end call got blown through, and we close out the old operation.
-		Genome::BulkOperationEnd(s_bulk_operation_id, s_bulk_operation_mutrun_index);
+		Genome::BulkOperationEnd(s_bulk_operation_id_, s_bulk_operation_mutrun_index_);
 	}
 	
-	s_bulk_operation_id = p_operation_id;
-	s_bulk_operation_mutrun_index = p_mutrun_index;
+	s_bulk_operation_id_ = p_operation_id;
+	s_bulk_operation_mutrun_index_ = p_mutrun_index;
 }
 
 bool Genome::WillModifyRunForBulkOperation(int64_t p_operation_id, int p_mutrun_index)
 {
-	if (p_mutrun_index != s_bulk_operation_mutrun_index)
-		EIDOS_TERMINATION << "ERROR (Genome::WillModifyRunForBulkOperation): (internal error) incorrect run index during bulk operation." << eidos_terminate();
+	if (p_mutrun_index != s_bulk_operation_mutrun_index_)
+		EIDOS_TERMINATION << "ERROR (Genome::WillModifyRunForBulkOperation): (internal error) incorrect run index during bulk operation." << EidosTerminate();
 	if (p_mutrun_index >= mutrun_count_)
-		EIDOS_TERMINATION << "ERROR (Genome::WillModifyRunForBulkOperation): (internal error) attempt to modify an out-of-index run." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Genome::WillModifyRunForBulkOperation): (internal error) attempt to modify an out-of-index run." << EidosTerminate();
 	
 #if 0
 #warning Genome::WillModifyRunForBulkOperation disabled...
@@ -201,12 +201,12 @@ bool Genome::WillModifyRunForBulkOperation(int64_t p_operation_id, int p_mutrun_
 	// tracks original/final MutationRun pointers, returning F if an original is matched.
 	MutationRun *original_run = mutruns_[p_mutrun_index].get();
 	
-	if (p_operation_id != s_bulk_operation_id)
-			EIDOS_TERMINATION << "ERROR (Genome::WillModifyRunForBulkOperation): (internal error) missing bulk operation start." << eidos_terminate();
+	if (p_operation_id != s_bulk_operation_id_)
+			EIDOS_TERMINATION << "ERROR (Genome::WillModifyRunForBulkOperation): (internal error) missing bulk operation start." << EidosTerminate();
 	
-	auto found_run_pair = s_bulk_operation_runs.find(original_run);
+	auto found_run_pair = s_bulk_operation_runs_.find(original_run);
 	
-	if (found_run_pair == s_bulk_operation_runs.end())
+	if (found_run_pair == s_bulk_operation_runs_.end())
 	{
 		// This MutationRun is not in the map, so we need to set up a new entry
 		MutationRun *product_run = MutationRun::NewMutationRun();
@@ -214,7 +214,7 @@ bool Genome::WillModifyRunForBulkOperation(int64_t p_operation_id, int p_mutrun_
 		product_run->copy_from_run(*original_run);
 		mutruns_[p_mutrun_index] = MutationRun_SP(product_run);
 		
-		s_bulk_operation_runs.insert(std::pair<MutationRun*, MutationRun*>(original_run, product_run));
+		s_bulk_operation_runs_.insert(std::pair<MutationRun*, MutationRun*>(original_run, product_run));
 		
 		//std::cout << "WillModifyRunForBulkOperation() created product for " << original_run << std::endl;
 		
@@ -234,15 +234,15 @@ bool Genome::WillModifyRunForBulkOperation(int64_t p_operation_id, int p_mutrun_
 
 void Genome::BulkOperationEnd(int64_t p_operation_id, int p_mutrun_index)
 {
-	if ((p_operation_id == s_bulk_operation_id) && (p_mutrun_index == s_bulk_operation_mutrun_index))
+	if ((p_operation_id == s_bulk_operation_id_) && (p_mutrun_index == s_bulk_operation_mutrun_index_))
 	{
-		s_bulk_operation_runs.clear();
-		s_bulk_operation_id = 0;
-		s_bulk_operation_mutrun_index = -1;
+		s_bulk_operation_runs_.clear();
+		s_bulk_operation_id_ = 0;
+		s_bulk_operation_mutrun_index_ = -1;
 	}
 	else
 	{
-		EIDOS_TERMINATION << "ERROR (Genome::BulkOperationEnd): (internal error) unmatched bulk operation end." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Genome::BulkOperationEnd): (internal error) unmatched bulk operation end." << EidosTerminate();
 	}
 }
 
@@ -269,7 +269,7 @@ void Genome::TallyGenomeReferences(slim_refcount_t *p_mutrun_ref_tally, slim_ref
 	{
 		if (mutruns_[run_index]->operation_id_ != p_operation_id)
 		{
-			(*p_mutrun_ref_tally) += mutruns_[run_index]->use_count();
+			(*p_mutrun_ref_tally) += mutruns_[run_index]->UseCount();
 			(*p_mutrun_tally)++;
 			mutruns_[run_index]->operation_id_ = p_operation_id;
 		}
@@ -290,7 +290,7 @@ void Genome::TallyGenomeMutationReferences(int64_t p_operation_id)
 		
 		if (mutrun->operation_id_ != p_operation_id)
 		{
-			slim_refcount_t use_count = (slim_refcount_t)mutrun->use_count();
+			slim_refcount_t use_count = (slim_refcount_t)mutrun->UseCount();
 			
 			const MutationIndex *genome_iter = mutrun->begin_pointer_const();
 			const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
@@ -345,7 +345,7 @@ Genome::Genome(const Genome &p_original)
 	if (s_log_copy_and_assign_)
 	{
 		SLIM_ERRSTREAM << "********* Genome::Genome(Genome&) called!" << std::endl;
-		eidos_print_stacktrace(stderr);
+		Eidos_PrintStacktrace(stderr);
 		SLIM_ERRSTREAM << "************************************************" << std::endl;
 	}
 #endif
@@ -385,7 +385,7 @@ Genome& Genome::operator= (const Genome& p_original)
 	if (s_log_copy_and_assign_)
 	{
 		SLIM_ERRSTREAM << "********* Genome::operator=(Genome&) called!" << std::endl;
-		eidos_print_stacktrace(stderr);
+		Eidos_PrintStacktrace(stderr);
 		SLIM_ERRSTREAM << "************************************************" << std::endl;
 	}
 #endif
@@ -401,7 +401,7 @@ Genome& Genome::operator= (const Genome& p_original)
 		{
 			// copy all mutation runs; these are shared-pointer copies
 			if ((mutrun_count_ != p_original.mutrun_count_) || (mutrun_length_ != p_original.mutrun_length_))
-				EIDOS_TERMINATION << "ERROR (Genome::operator=): (internal error) assignment from genome with different count/length." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Genome::operator=): (internal error) assignment from genome with different count/length." << EidosTerminate();
 			
 			for (int run_index = 0; run_index < mutrun_count_; ++run_index)
 				mutruns_[run_index] = p_original.mutruns_[run_index];
@@ -472,9 +472,9 @@ void Genome::assert_identical_to_runs(MutationRun_SP *p_mutruns, int32_t p_mutru
 	}
 	
 	if (genome_muts.size() != param_muts.size())
-		EIDOS_TERMINATION << "ERROR (Genome::assert_identical_to_runs): (internal error) genome unequal in size after transformation." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Genome::assert_identical_to_runs): (internal error) genome unequal in size after transformation." << EidosTerminate();
 	if (genome_muts != param_muts)
-		EIDOS_TERMINATION << "ERROR (Genome::assert_identical_to_runs): (internal error) genome unequal in contents after transformation." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Genome::assert_identical_to_runs): (internal error) genome unequal in contents after transformation." << EidosTerminate();
 	
 	// Check that mutations are also placed into the correct mutation run based on their position
 	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
@@ -489,7 +489,7 @@ void Genome::assert_identical_to_runs(MutationRun_SP *p_mutruns, int32_t p_mutru
 			slim_position_t position = mutation->position_;
 			
 			if (position / mutrun_length_ != run_index)
-				EIDOS_TERMINATION << "ERROR (Genome::assert_identical_to_runs): (internal error) genome has mutation at bad position." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Genome::assert_identical_to_runs): (internal error) genome has mutation at bad position." << EidosTerminate();
 		}
 	}
 }
@@ -650,7 +650,7 @@ EidosValue_SP Genome::ExecuteMethod_containsMarkerMutation(EidosGlobalStringID p
 	EidosValue *arg1_value = p_arguments[1].get();
 	
 	if (IsNull())
-		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_containsMarkerMutation): containsMarkerMutation() cannot be called on a null genome." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_containsMarkerMutation): containsMarkerMutation() cannot be called on a null genome." << EidosTerminate();
 	
 	SLiMSim &sim = subpop_->population_.sim_;
 	MutationType *mutation_type_ptr = nullptr;
@@ -661,7 +661,7 @@ EidosValue_SP Genome::ExecuteMethod_containsMarkerMutation(EidosGlobalStringID p
 		auto found_muttype_pair = sim.MutationTypes().find(mutation_type_id);
 		
 		if (found_muttype_pair == sim.MutationTypes().end())
-			EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_containsMarkerMutation): containsMarkerMutation() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_containsMarkerMutation): containsMarkerMutation() mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
 		
 		mutation_type_ptr = found_muttype_pair->second;
 	}
@@ -674,7 +674,7 @@ EidosValue_SP Genome::ExecuteMethod_containsMarkerMutation(EidosGlobalStringID p
 	slim_position_t last_position = sim.TheChromosome().last_position_;
 	
 	if (marker_position > last_position)
-		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_containsMarkerMutation): containsMarkerMutation() position " << marker_position << " is past the end of the chromosome." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_containsMarkerMutation): containsMarkerMutation() position " << marker_position << " is past the end of the chromosome." << EidosTerminate();
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	MutationRun *mutrun = mutruns_[marker_position / mutrun_length_].get();
@@ -781,7 +781,7 @@ EidosValue_SP Genome::ExecuteMethod_containsMutations(EidosGlobalStringID p_meth
 	EidosValue *arg0_value = p_arguments[0].get();
 	
 	if (IsNull())
-		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_containsMutations): containsMutations() cannot be called on a null genome." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_containsMutations): containsMutations() cannot be called on a null genome." << EidosTerminate();
 	
 	int arg0_count = arg0_value->Count();
 	
@@ -832,7 +832,7 @@ EidosValue_SP Genome::ExecuteMethod_countOfMutationsOfType(EidosGlobalStringID p
 	EidosValue *arg0_value = p_arguments[0].get();
 	
 	if (IsNull())
-		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_countOfMutationsOfType): countOfMutationsOfType() cannot be called on a null genome." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_countOfMutationsOfType): countOfMutationsOfType() cannot be called on a null genome." << EidosTerminate();
 	
 	MutationType *mutation_type_ptr = nullptr;
 	
@@ -843,7 +843,7 @@ EidosValue_SP Genome::ExecuteMethod_countOfMutationsOfType(EidosGlobalStringID p
 		auto found_muttype_pair = sim.MutationTypes().find(mutation_type_id);
 		
 		if (found_muttype_pair == sim.MutationTypes().end())
-			EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_countOfMutationsOfType): countOfMutationsOfType() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_countOfMutationsOfType): countOfMutationsOfType() mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
 		
 		mutation_type_ptr = found_muttype_pair->second;
 	}
@@ -878,7 +878,7 @@ EidosValue_SP Genome::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_method
 	EidosValue *arg0_value = p_arguments[0].get();
 	
 	if (IsNull())
-		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_mutationsOfType): mutationsOfType() cannot be called on a null genome." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_mutationsOfType): mutationsOfType() cannot be called on a null genome." << EidosTerminate();
 	
 	MutationType *mutation_type_ptr = nullptr;
 	
@@ -889,7 +889,7 @@ EidosValue_SP Genome::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_method
 		auto found_muttype_pair = sim.MutationTypes().find(mutation_type_id);
 		
 		if (found_muttype_pair == sim.MutationTypes().end())
-			EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_mutationsOfType): mutationsOfType() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_mutationsOfType): mutationsOfType() mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
 		
 		mutation_type_ptr = found_muttype_pair->second;
 	}
@@ -962,7 +962,7 @@ EidosValue_SP Genome::ExecuteMethod_positionsOfMutationsOfType(EidosGlobalString
 	EidosValue *arg0_value = p_arguments[0].get();
 	
 	if (IsNull())
-		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_positionsOfMutationsOfType): positionsOfMutationsOfType() cannot be called on a null genome." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_positionsOfMutationsOfType): positionsOfMutationsOfType() cannot be called on a null genome." << EidosTerminate();
 	
 	MutationType *mutation_type_ptr = nullptr;
 	
@@ -973,7 +973,7 @@ EidosValue_SP Genome::ExecuteMethod_positionsOfMutationsOfType(EidosGlobalString
 		auto found_muttype_pair = sim.MutationTypes().find(mutation_type_id);
 		
 		if (found_muttype_pair == sim.MutationTypes().end())
-			EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_positionsOfMutationsOfType): positionsOfMutationsOfType() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_positionsOfMutationsOfType): positionsOfMutationsOfType() mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
 		
 		mutation_type_ptr = found_muttype_pair->second;
 	}
@@ -1012,7 +1012,7 @@ EidosValue_SP Genome::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID p_m
 	EidosValue *arg0_value = p_arguments[0].get();
 	
 	if (IsNull())
-		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_sumOfMutationsOfType): sumOfMutationsOfType() cannot be called on a null genome." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_sumOfMutationsOfType): sumOfMutationsOfType() cannot be called on a null genome." << EidosTerminate();
 	
 	MutationType *mutation_type_ptr = nullptr;
 	
@@ -1024,7 +1024,7 @@ EidosValue_SP Genome::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID p_m
 		auto found_muttype_pair = sim.MutationTypes().find(mutation_type_id);
 		
 		if (found_muttype_pair == sim.MutationTypes().end())
-			EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_sumOfMutationsOfType): sumOfMutationsOfType() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_sumOfMutationsOfType): sumOfMutationsOfType() mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
 		
 		mutation_type_ptr = found_muttype_pair->second;
 	}
@@ -1057,7 +1057,7 @@ EidosValue_SP Genome::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID p_m
 }
 
 // print the sample represented by genomes, using SLiM's own format
-void Genome::PrintGenomes_slim(std::ostream &p_out, std::vector<Genome *> &p_genomes, slim_objectid_t p_source_subpop_id)
+void Genome::PrintGenomes_SLiM(std::ostream &p_out, std::vector<Genome *> &p_genomes, slim_objectid_t p_source_subpop_id)
 {
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	slim_popsize_t sample_size = (slim_popsize_t)p_genomes.size();
@@ -1070,7 +1070,7 @@ void Genome::PrintGenomes_slim(std::ostream &p_out, std::vector<Genome *> &p_gen
 		Genome &genome = *p_genomes[s];
 		
 		if (genome.IsNull())
-			EIDOS_TERMINATION << "ERROR (Genome::PrintGenomes_slim): cannot output null genomes." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Genome::PrintGenomes_SLiM): cannot output null genomes." << EidosTerminate();
 		
 		for (int run_index = 0; run_index < genome.mutrun_count_; ++run_index)
 		{
@@ -1087,7 +1087,7 @@ void Genome::PrintGenomes_slim(std::ostream &p_out, std::vector<Genome *> &p_gen
 	p_out << "Mutations:"  << std::endl;
 	
 	for (const PolymorphismPair &polymorphism_pair : polymorphisms) 
-		polymorphism_pair.second.print(p_out);
+		polymorphism_pair.second.Print(p_out);
 	
 	// print the sample's genomes
 	p_out << "Genomes:" << std::endl;
@@ -1114,7 +1114,7 @@ void Genome::PrintGenomes_slim(std::ostream &p_out, std::vector<Genome *> &p_gen
 				slim_polymorphismid_t polymorphism_id = FindMutationInPolymorphismMap(polymorphisms, mut_block_ptr + mut_ptr[mut_index]);
 				
 				if (polymorphism_id == -1)
-					EIDOS_TERMINATION << "ERROR (Genome::PrintGenomes_slim): (internal error) polymorphism not found." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Genome::PrintGenomes_SLiM): (internal error) polymorphism not found." << EidosTerminate();
 				
 				p_out << " " << polymorphism_id;
 			}
@@ -1125,7 +1125,7 @@ void Genome::PrintGenomes_slim(std::ostream &p_out, std::vector<Genome *> &p_gen
 }
 
 // print the sample represented by genomes, using "ms" format
-void Genome::PrintGenomes_ms(std::ostream &p_out, std::vector<Genome *> &p_genomes, const Chromosome &p_chromosome)
+void Genome::PrintGenomes_MS(std::ostream &p_out, std::vector<Genome *> &p_genomes, const Chromosome &p_chromosome)
 {
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	slim_popsize_t sample_size = (slim_popsize_t)p_genomes.size();
@@ -1144,7 +1144,7 @@ void Genome::PrintGenomes_ms(std::ostream &p_out, std::vector<Genome *> &p_genom
 			Genome &genome = *p_genomes[s];
 			
 			if (genome.IsNull())
-				EIDOS_TERMINATION << "ERROR (Genome::PrintGenomes_ms): cannot output null genomes." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Genome::PrintGenomes_MS): cannot output null genomes." << EidosTerminate();
 			
 			for (int run_index = 0; run_index < genome.mutrun_count_; ++run_index)
 			{
@@ -1224,13 +1224,13 @@ void Genome::PrintGenomes_ms(std::ostream &p_out, std::vector<Genome *> &p_genom
 }
 
 // print the sample represented by genomes, using "vcf" format
-void Genome::PrintGenomes_vcf(std::ostream &p_out, std::vector<Genome *> &p_genomes, bool p_output_multiallelics)
+void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_genomes, bool p_output_multiallelics)
 {
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	slim_popsize_t sample_size = (slim_popsize_t)p_genomes.size();
 	
 	if (sample_size % 2 == 1)
-		EIDOS_TERMINATION << "ERROR (Genome::PrintGenomes_vcf): Genome vector must be an even, since genomes are paired into individuals." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Genome::PrintGenomes_VCF): Genome vector must be an even, since genomes are paired into individuals." << EidosTerminate();
 	
 	sample_size /= 2;
 	
@@ -1353,7 +1353,7 @@ void Genome::PrintGenomes_vcf(std::ostream &p_out, std::vector<Genome *> &p_geno
 				if (g1_null && g2_null)
 				{
 					// Both genomes are null; we should have eliminated the possibility of this with the check above
-					EIDOS_TERMINATION << "ERROR (Population::PrintSample_vcf): (internal error) no non-null genome to output for individual." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Population::PrintSample_VCF): (internal error) no non-null genome to output for individual." << EidosTerminate();
 				}
 				else if (g1_null)
 				{
@@ -1629,7 +1629,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 			Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
 			
 			if (target_genome->IsNull())
-				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addMutations): addMutations() cannot be called on a null genome." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addMutations): addMutations() cannot be called on a null genome." << EidosTerminate();
 			
 			// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
 			if (target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index))
@@ -1697,7 +1697,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	
 	if ((sim.GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim.warned_early_mutation_add_))
 	{
-		p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addNewMutation): " << StringForEidosGlobalStringID(p_method_id) << " should probably not be called from an early() event; the added mutation will not influence fitness values during offspring generation." << std::endl;
+		p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " should probably not be called from an early() event; the added mutation will not influence fitness values during offspring generation." << std::endl;
 		sim.warned_early_mutation_add_ = true;
 	}
 	
@@ -1727,7 +1727,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		((position_count != 1) && (position_count != count_to_add)) ||
 		((origin_gen_count != 1) && (origin_gen_count != count_to_add)) ||
 		((origin_subpop_count != 1) && (origin_subpop_count != count_to_add)))
-		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << StringForEidosGlobalStringID(p_method_id) << " requires that mutationType, " << ((p_method_id == gID_addNewMutation) ? "selectionCoeff, " : "") << "position, originGeneration, and originSubpop be either (1) singleton, or (2) equal in length to the other non-singleton argument(s), or (3) for originGeneration or originSubpop, NULL." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " requires that mutationType, " << ((p_method_id == gID_addNewMutation) ? "selectionCoeff, " : "") << "position, originGeneration, and originSubpop be either (1) singleton, or (2) equal in length to the other non-singleton argument(s), or (3) for originGeneration or originSubpop, NULL." << EidosTerminate();
 	
 	EidosValue_Object_vector_SP retval(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class));
 	
@@ -1743,7 +1743,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		slim_position_t position = SLiMCastToPositionTypeOrRaise(arg_position->IntAtIndex(position_index, nullptr));
 		
 		if (position > last_position)
-			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << StringForEidosGlobalStringID(p_method_id) << " position " << position << " is past the end of the chromosome." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " position " << position << " is past the end of the chromosome." << EidosTerminate();
 	}
 	
 	// each bulk operation is performed on a single mutation run, so we need to figure out which runs we're influencing
@@ -1778,7 +1778,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 			singleton_mutation_type_ptr = found_muttype_pair->second;
 		
 		if (!singleton_mutation_type_ptr)
-			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << StringForEidosGlobalStringID(p_method_id) << " mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
 	}
 	else
 	{
@@ -1848,7 +1848,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 							mutation_type_ptr = found_muttype_pair->second;
 						
 						if (!mutation_type_ptr)
-							EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << StringForEidosGlobalStringID(p_method_id) << " mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+							EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
 					}
 					else
 					{
@@ -1899,7 +1899,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 			Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(target_index, nullptr);
 			
 			if (target_genome->IsNull())
-				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << StringForEidosGlobalStringID(p_method_id) << " cannot be called on a null genome." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " cannot be called on a null genome." << EidosTerminate();
 			
 			// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
 			if (target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index))
@@ -1973,16 +1973,16 @@ EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_i
 		
 		// Call out to print the actual sample
 		if (p_method_id == gID_output)
-			Genome::PrintGenomes_slim(output_stream, genomes, -1);	// -1 represents unknown source subpopulation
+			Genome::PrintGenomes_SLiM(output_stream, genomes, -1);	// -1 represents unknown source subpopulation
 		else if (p_method_id == gID_outputMS)
-			Genome::PrintGenomes_ms(output_stream, genomes, chromosome);
+			Genome::PrintGenomes_MS(output_stream, genomes, chromosome);
 		else if (p_method_id == gID_outputVCF)
-			Genome::PrintGenomes_vcf(output_stream, genomes, output_multiallelics);
+			Genome::PrintGenomes_VCF(output_stream, genomes, output_multiallelics);
 	}
 	else
 	{
 		// Otherwise, output to filePath
-		std::string outfile_path = EidosResolvedPath(arg0_value->StringAtIndex(0, nullptr));
+		std::string outfile_path = Eidos_ResolvedPath(arg0_value->StringAtIndex(0, nullptr));
 		bool append = ((p_method_id == gID_outputVCF) ? arg2_value : arg1_value)->LogicalAtIndex(0, nullptr);
 		std::ofstream outfile;
 		
@@ -1995,13 +1995,13 @@ EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_i
 				case gID_output:
 					// For file output, we put out the descriptive SLiM-style header only for SLiM-format output
 					outfile << "#OUT: " << sim->Generation() << " GS " << sample_size << " " << outfile_path << std::endl;
-					Genome::PrintGenomes_slim(outfile, genomes, -1);	// -1 represents unknown source subpopulation
+					Genome::PrintGenomes_SLiM(outfile, genomes, -1);	// -1 represents unknown source subpopulation
 					break;
 				case gID_outputMS:
-					Genome::PrintGenomes_ms(outfile, genomes, chromosome);
+					Genome::PrintGenomes_MS(outfile, genomes, chromosome);
 					break;
 				case gID_outputVCF:
-					Genome::PrintGenomes_vcf(outfile, genomes, output_multiallelics);
+					Genome::PrintGenomes_VCF(outfile, genomes, output_multiallelics);
 					break;
 			}
 			
@@ -2009,7 +2009,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_i
 		}
 		else
 		{
-			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_outputX): could not open "<< outfile_path << "." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_outputX): could not open "<< outfile_path << "." << EidosTerminate();
 		}
 	}
 	
@@ -2089,7 +2089,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 			Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
 			
 			if (target_genome->IsNull())
-				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called on a null genome." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called on a null genome." << EidosTerminate();
 			
 			// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
 			if (target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index))

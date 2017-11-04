@@ -47,7 +47,7 @@ std::vector<std::string> EidosTypeTable::AllSymbols(void) const
 	for (auto symbol_slot_iter = hash_symbols_.begin(); symbol_slot_iter != hash_symbols_.end(); ++symbol_slot_iter)
 	{
 		EidosGlobalStringID string_id = symbol_slot_iter->first;
-		const std::string &string_ref = StringForEidosGlobalStringID(string_id);
+		const std::string &string_ref = Eidos_StringForGlobalStringID(string_id);
 		
 		symbol_names.emplace_back(string_ref);
 	}
@@ -151,7 +151,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosTypeTable &p_symb
 	for (auto symbol_name_iter = symbol_names.begin(); symbol_name_iter != symbol_names.end(); ++symbol_name_iter)
 	{
 		const std::string &symbol_name = *symbol_name_iter;
-		EidosTypeSpecifier symbol_type = p_symbols.GetTypeForSymbol(EidosGlobalStringIDForString(symbol_name));
+		EidosTypeSpecifier symbol_type = p_symbols.GetTypeForSymbol(Eidos_GlobalStringIDForString(symbol_name));
 		
 		p_outstream << symbol_name << " ~> (" << StringForEidosValueMask(symbol_type.type_mask, symbol_type.object_class, "", nullptr) << ") " << std::endl;
 	}

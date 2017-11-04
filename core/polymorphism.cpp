@@ -30,13 +30,13 @@ Polymorphism::Polymorphism(slim_polymorphismid_t p_polymorphism_id, const Mutati
 {
 }
 
-void Polymorphism::print(std::ostream &p_out) const
+void Polymorphism::Print(std::ostream &p_out) const
 {
 	// Added mutation_ptr_->mutation_id_ to this output, BCH 11 June 2016
 	p_out << polymorphism_id_ << " " << mutation_ptr_->mutation_id_ << " " << "m" << mutation_ptr_->mutation_type_ptr_->mutation_type_id_ << " " << mutation_ptr_->position_ << " " << mutation_ptr_->selection_coeff_ << " " << mutation_ptr_->mutation_type_ptr_->dominance_coeff_ << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->generation_ << " " << prevalence_ << std::endl;
 }
 
-void Polymorphism::print_no_id(std::ostream &p_out) const
+void Polymorphism::Print_NoID(std::ostream &p_out) const
 {
 	// Added mutation_ptr_->mutation_id_ to this output, BCH 11 June 2016
 	p_out << mutation_ptr_->mutation_id_ << " " << "m" << mutation_ptr_->mutation_type_ptr_->mutation_type_id_ << " " << mutation_ptr_->position_ << " " << mutation_ptr_->selection_coeff_ << " " << mutation_ptr_->mutation_type_ptr_->dominance_coeff_ << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->generation_ << " " << prevalence_ << std::endl;
@@ -64,7 +64,7 @@ void AddMutationToPolymorphismMap(PolymorphismMap *p_polymorphisms, const Mutati
 		auto polymorphisms_size = p_polymorphisms->size();
 		
 		if (polymorphisms_size > INT32_MAX)
-			EIDOS_TERMINATION << "ERROR (AddMutationToPolymorphismMap): (internal error) polymorphism_id does not fit in int32_t." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (AddMutationToPolymorphismMap): (internal error) polymorphism_id does not fit in int32_t." << EidosTerminate();
 		
 		slim_polymorphismid_t polymorphism_id = static_cast<slim_polymorphismid_t>(polymorphisms_size);
 		Polymorphism new_polymorphism = Polymorphism(polymorphism_id, p_mutation, 1);

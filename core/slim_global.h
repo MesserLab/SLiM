@@ -91,17 +91,17 @@ typedef float slim_selcoeff_t;			// storage of selection coefficients in memory-
 #define SLIM_MAX_SUBPOP_SIZE	(1000000000L)	// subpopulations can range in size from 0 to this; genome indexes, up to 2x this
 
 // Functions for casting from Eidos ints (int64_t) to SLiM int types safely; not needed for slim_refcount_t at present
-void SLiMRaiseGenerationRangeError(int64_t p_long_value);
-void SLiMRaisePositionRangeError(int64_t p_long_value);
-void SLiMRaiseObjectidRangeError(int64_t p_long_value);
-void SLiMRaisePopsizeRangeError(int64_t p_long_value);
-void SLiMRaiseUsertagRangeError(int64_t p_long_value);
-void SLiMRaisePolymorphismidRangeError(int64_t p_long_value);
+void SLiM_RaiseGenerationRangeError(int64_t p_long_value);
+void SLiM_RaisePositionRangeError(int64_t p_long_value);
+void SLiM_RaiseObjectidRangeError(int64_t p_long_value);
+void SLiM_RaisePopsizeRangeError(int64_t p_long_value);
+void SLiM_RaiseUsertagRangeError(int64_t p_long_value);
+void SLiM_RaisePolymorphismidRangeError(int64_t p_long_value);
 
 inline __attribute__((always_inline)) slim_generation_t SLiMCastToGenerationTypeOrRaise(int64_t p_long_value)
 {
 	if ((p_long_value < 1) || (p_long_value > SLIM_MAX_GENERATION))
-		SLiMRaiseGenerationRangeError(p_long_value);
+		SLiM_RaiseGenerationRangeError(p_long_value);
 	
 	return static_cast<slim_generation_t>(p_long_value);
 }
@@ -109,7 +109,7 @@ inline __attribute__((always_inline)) slim_generation_t SLiMCastToGenerationType
 inline __attribute__((always_inline)) slim_position_t SLiMCastToPositionTypeOrRaise(int64_t p_long_value)
 {
 	if ((p_long_value < 0) || (p_long_value > SLIM_MAX_BASE_POSITION))
-		SLiMRaisePositionRangeError(p_long_value);
+		SLiM_RaisePositionRangeError(p_long_value);
 	
 	return static_cast<slim_position_t>(p_long_value);
 }
@@ -117,7 +117,7 @@ inline __attribute__((always_inline)) slim_position_t SLiMCastToPositionTypeOrRa
 inline __attribute__((always_inline)) slim_objectid_t SLiMCastToObjectidTypeOrRaise(int64_t p_long_value)
 {
 	if ((p_long_value < 0) || (p_long_value > SLIM_MAX_ID_VALUE))
-		SLiMRaiseObjectidRangeError(p_long_value);
+		SLiM_RaiseObjectidRangeError(p_long_value);
 	
 	return static_cast<slim_objectid_t>(p_long_value);
 }
@@ -125,7 +125,7 @@ inline __attribute__((always_inline)) slim_objectid_t SLiMCastToObjectidTypeOrRa
 inline __attribute__((always_inline)) slim_popsize_t SLiMCastToPopsizeTypeOrRaise(int64_t p_long_value)
 {
 	if ((p_long_value < 0) || (p_long_value > SLIM_MAX_SUBPOP_SIZE))
-		SLiMRaisePopsizeRangeError(p_long_value);
+		SLiM_RaisePopsizeRangeError(p_long_value);
 	
 	return static_cast<slim_popsize_t>(p_long_value);
 }
@@ -133,7 +133,7 @@ inline __attribute__((always_inline)) slim_popsize_t SLiMCastToPopsizeTypeOrRais
 inline __attribute__((always_inline)) slim_usertag_t SLiMCastToUsertagTypeOrRaise(int64_t p_long_value)
 {
 	// no range check at present since slim_usertag_t is in fact int64_t; it is in range by definition
-	// SLiMRaiseUsertagRangeError(long_value);
+	// SLiM_RaiseUsertagRangeError(long_value);
 	
 	return static_cast<slim_usertag_t>(p_long_value);
 }
@@ -141,7 +141,7 @@ inline __attribute__((always_inline)) slim_usertag_t SLiMCastToUsertagTypeOrRais
 inline __attribute__((always_inline)) slim_polymorphismid_t SLiMCastToPolymorphismidTypeOrRaise(int64_t p_long_value)
 {
 	if ((p_long_value < 0) || (p_long_value > INT32_MAX))
-		SLiMRaisePolymorphismidRangeError(p_long_value);
+		SLiM_RaisePolymorphismidRangeError(p_long_value);
 	
 	return static_cast<slim_polymorphismid_t>(p_long_value);
 }

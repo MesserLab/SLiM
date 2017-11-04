@@ -80,7 +80,7 @@ void EidosASTNode::ReplaceTokenWithToken(EidosToken *p_token)
 void EidosASTNode::OptimizeTree(void) const
 {
 	_OptimizeConstants();		// cache values for numeric and string constants, and for return statements and constant compound statements
-	_OptimizeIdentifiers();		// cache unique IDs for identifiers using EidosGlobalStringIDForString()
+	_OptimizeIdentifiers();		// cache unique IDs for identifiers using Eidos_GlobalStringIDForString()
 	_OptimizeEvaluators();		// cache evaluator functions in cached_evaluator_ for fast node evaluation
 	_OptimizeFor();				// cache information about for loops that allows them to be accelerated at runtime
 	_OptimizeAssignments();		// cache information about assignments that allows simple increment/decrement assignments to be accelerated
@@ -144,7 +144,7 @@ void EidosASTNode::_OptimizeIdentifiers(void) const
 		}
 		
 		// cache a uniqued ID for the identifier, allowing fast matching
-		cached_stringID_ = EidosGlobalStringIDForString(token_string);
+		cached_stringID_ = Eidos_GlobalStringIDForString(token_string);
 	}
 }
 
@@ -367,7 +367,7 @@ double EidosASTNode::CachedNumericValue(void) const
 			return -minus_child->cached_value_->FloatAtIndex(0, nullptr);
 	}
 	
-	EIDOS_TERMINATION << "ERROR (EidosASTNode::CachedNumericValue): (internal error) no cached numeric value" << eidos_terminate(nullptr);
+	EIDOS_TERMINATION << "ERROR (EidosASTNode::CachedNumericValue): (internal error) no cached numeric value" << EidosTerminate(nullptr);
 }
 
 void EidosASTNode::PrintToken(std::ostream &p_outstream) const

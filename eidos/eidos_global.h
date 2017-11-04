@@ -85,7 +85,7 @@ extern int gEidosCharacterStartOfErrorUTF16, gEidosCharacterEndOfErrorUTF16;
 extern EidosScript *gEidosCurrentScript;
 extern bool gEidosExecutingRuntimeScript;
 
-extern int gEidosErrorLine, gEidosErrorLineCharacter;	// set up by eidos_terminate()
+extern int gEidosErrorLine, gEidosErrorLineCharacter;	// set up by EidosTerminate()
 
 
 // *******************************************************************************************************************
@@ -110,17 +110,17 @@ extern bool eidos_do_memory_checks;
 #pragma mark Memory usage monitoring
 
 // Memory-monitoring calls.  See the .cpp for comments.  These return a size in bytes.
-size_t EidosGetPeakRSS(void);
-size_t EidosGetCurrentRSS(void);
+size_t Eidos_GetPeakRSS(void);
+size_t Eidos_GetCurrentRSS(void);
 
 // Memory limits, retrieved by calling "ulimit -m"; cached internally.  Returns a size in bytes; 0 means "no limit".
-std::string EidosExec(const char *p_cmd);
-size_t EidosGetMaxRSS(void);
+std::string Eidos_Exec(const char *p_cmd);
+size_t Eidos_GetMaxRSS(void);
 
 // This checks whether our memory usage has gotten within 10 MB of the maximum memory usage, and terminates if so.
 // p_message1 should be the name of the calling function/method; p_message2 can be any clarifying message.
 // It is a good idea to check eidos_do_memory_checks before calling this, to save calling overhead.
-void EidosCheckRSSAgainstMax(std::string p_message1, std::string p_message2);
+void Eidos_CheckRSSAgainstMax(std::string p_message1, std::string p_message2);
 
 
 // *******************************************************************************************************************
@@ -225,13 +225,13 @@ void Eidos_PrepareForProfiling(void);
 #pragma mark Termination handling
 
 // Print a demangled stack backtrace of the caller function to FILE* out; see eidos_global.cpp for credits and comments.
-void eidos_print_stacktrace(FILE *p_out = stderr, unsigned int p_max_frames = 63);
+void Eidos_PrintStacktrace(FILE *p_out = stderr, unsigned int p_max_frames = 63);
 
 // Print an offending line of script with carets indicating an error position
-void eidos_script_error_position(int p_start, int p_end, EidosScript *p_script);
-void eidos_log_script_error(std::ostream& p_out, int p_start, int p_end, EidosScript *p_script, bool p_inside_lambda);
+void Eidos_ScriptErrorPosition(int p_start, int p_end, EidosScript *p_script);
+void Eidos_LogScriptError(std::ostream& p_out, int p_start, int p_end, EidosScript *p_script, bool p_inside_lambda);
 
-// If gEidosTerminateThrows == 0, << eidos_terminate causes a call to exit().  In that mode, output
+// If gEidosTerminateThrows == 0, << EidosTerminate causes a call to exit().  In that mode, output
 // related to termination output goes to cerr.  The other mode has gEidosTerminateThrows == 1.  In that mode,
 // we use a global ostringstream to capture all termination-related output, and whoever catches the raise handles
 // the termination stream.  All other Eidos output goes to ExecutionOutputStream(), defined on EidosInterpreter.
@@ -243,28 +243,28 @@ extern std::ostringstream gEidosTermination;
 // This little class is used as a stream manipulator that causes termination with EXIT_FAILURE, optionally
 // with a backtrace.  This is nice since it lets us log and terminate in a single line of code.  It also allows
 // a GUI to intercept the exit() call and do something more graceful with it.
-class eidos_terminate
+class EidosTerminate
 {
 public:
 	bool print_backtrace_ = false;
 	
-	eidos_terminate(void) = default;							// default constructor, no backtrace, does not change error range
-	explicit eidos_terminate(const EidosToken *p_error_token);	// supply a token from which an error range is taken
+	EidosTerminate(void) = default;							// default constructor, no backtrace, does not change error range
+	explicit EidosTerminate(const EidosToken *p_error_token);	// supply a token from which an error range is taken
 	
 	// These constructors request a backtrace as well
-	explicit eidos_terminate(bool p_print_backtrace);
-	eidos_terminate(const EidosToken *p_error_token, bool p_print_backtrace);
+	explicit EidosTerminate(bool p_print_backtrace);
+	EidosTerminate(const EidosToken *p_error_token, bool p_print_backtrace);
 };
 
-// Send an eidos_terminate object to an output stream, causing a raise or an exit() call depending on
+// Send an EidosTerminate object to an output stream, causing a raise or an exit() call depending on
 // gEidosTerminateThrows.  Either way, this call does not return, so it is marked as noreturn as a hint
 // to the compiler.  Also, since this is always an error case, it is marked as cold as a hint to branch
 // prediction and optimization; all code paths that lead to this will be considered cold.
-void operator<<(std::ostream& p_out, const eidos_terminate &p_terminator) __attribute__((__noreturn__)) __attribute__((cold));
+void operator<<(std::ostream& p_out, const EidosTerminate &p_terminator) __attribute__((__noreturn__)) __attribute__((cold));
 
 // Get the message from the last raise out of gEidosTermination, optionally with newlines trimmed from the ends
-std::string EidosGetTrimmedRaiseMessage(void);
-std::string EidosGetUntrimmedRaiseMessage(void);
+std::string Eidos_GetTrimmedRaiseMessage(void);
+std::string Eidos_GetUntrimmedRaiseMessage(void);
 
 
 // *******************************************************************************************************************
@@ -275,7 +275,7 @@ std::string EidosGetUntrimmedRaiseMessage(void);
 #pragma mark Utility functions
 
 // Resolve a leading ~ in a filesystem path to the user's home directory
-std::string EidosResolvedPath(const std::string p_path);
+std::string Eidos_ResolvedPath(const std::string p_path);
 
 // Create a temporary file based upon a template filename; note that pattern is modified!
 int Eidos_mkstemps(char *p_pattern, int p_suffix_len);
@@ -372,14 +372,14 @@ double Eidos_ExactSum(const double *p_double_vec, int64_t p_vec_length);
 
 typedef uint32_t EidosGlobalStringID;
 
-// EidosGlobalStringIDForString() takes any string and uniques through a hash table.  If the string does not already exist
+// Eidos_GlobalStringIDForString() takes any string and uniques through a hash table.  If the string does not already exist
 // in the hash table, it is copied, and the copy is registered and returned as the uniqed string.
-EidosGlobalStringID EidosGlobalStringIDForString(const std::string &p_string);
+EidosGlobalStringID Eidos_GlobalStringIDForString(const std::string &p_string);
 
-// StringForEidosGlobalStringID() returns the uniqued global string for the ID through a reverse lookup.  The reference
+// Eidos_StringForGlobalStringID() returns the uniqued global string for the ID through a reverse lookup.  The reference
 // returned is to the uniqued string stored internally by the hash table, so it will be the same every time this is called,
 // and does not need to be copied if kept externally.
-const std::string &StringForEidosGlobalStringID(EidosGlobalStringID p_string_id);
+const std::string &Eidos_StringForGlobalStringID(EidosGlobalStringID p_string_id);
 
 // This registers a standard string with a given ID; called by Eidos_RegisterGlobalStringsAndIDs(), and can be used by
 // the Context to set up strings that need to have fixed IDs.  All IDs used by the Context should start at gEidosID_LastEntry.
@@ -390,7 +390,7 @@ void Eidos_RegisterStringForGlobalID(const std::string &p_string, EidosGlobalStr
 void Eidos_RegisterGlobalStringsAndIDs(void);
 
 // Frees all copied strings in the global string registry; used to help Valgrind understand what we're doing
-void EidosFreeGlobalStrings(void);
+void Eidos_FreeGlobalStrings(void);
 
 
 extern const std::string gEidosStr_empty_string;
@@ -513,10 +513,10 @@ typedef struct {
 
 extern EidosNamedColor gEidosNamedColors[];
 
-void EidosGetColorComponents(const std::string &p_color_name, float *p_red_component, float *p_green_component, float *p_blue_component);
-void EidosGetColorComponents(const std::string &p_color_name, uint8_t *p_red_component, uint8_t *p_green_component, uint8_t *p_blue_component);
+void Eidos_GetColorComponents(const std::string &p_color_name, float *p_red_component, float *p_green_component, float *p_blue_component);
+void Eidos_GetColorComponents(const std::string &p_color_name, uint8_t *p_red_component, uint8_t *p_green_component, uint8_t *p_blue_component);
 
-void EidosGetColorString(double p_red, double p_green, double p_blue, char *p_string_buffer);	// p_string_buffer must have room for 8 chars, including the null
+void Eidos_GetColorString(double p_red, double p_green, double p_blue, char *p_string_buffer);	// p_string_buffer must have room for 8 chars, including the null
 
 
 #endif /* defined(__Eidos__eidos_global__) */

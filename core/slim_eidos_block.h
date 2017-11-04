@@ -69,7 +69,7 @@ public:
 	
 	// A utility method for extracting the numeric component of an identifier like 'p2', 's3', 'm17', or 'g5'
 	// This raises if the expected character prefix is not present, or if anything but numeric digits are present, or if the ID is out of range
-	// The token-based API uses the token for error tracking if an exception is raised; the string-based API just calls eidos_terminate(), and
+	// The token-based API uses the token for error tracking if an exception is raised; the string-based API just calls EidosTerminate(), and
 	// thus inherits whatever error-tracking token information might have been previously set.
 	static bool StringIsIDWithPrefix(const std::string &p_identifier_string, char p_prefix_char);
 	static slim_objectid_t ExtractIDFromStringWithPrefix(const std::string &p_identifier_string, char p_prefix_char, const EidosToken *p_blame_token);
@@ -179,7 +179,7 @@ public:
 	// Eidos support
 	//
 	EidosSymbolTableEntry &SelfSymbolTableEntry(void) { return self_symbol_; };
-	EidosSymbolTableEntry &ScriptBlockSymbolTableEntry(void) { if (block_id_ != -1) return script_block_symbol_; else EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::ScriptBlockSymbolTableEntry): (internal error) no symbol table entry." << eidos_terminate(); };
+	EidosSymbolTableEntry &ScriptBlockSymbolTableEntry(void) { if (block_id_ != -1) return script_block_symbol_; else EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::ScriptBlockSymbolTableEntry): (internal error) no symbol table entry." << EidosTerminate(); };
 	
 	virtual const EidosObjectClass *Class(void) const;
 	virtual void Print(std::ostream &p_ostream) const;

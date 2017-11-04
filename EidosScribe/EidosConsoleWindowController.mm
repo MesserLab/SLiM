@@ -295,7 +295,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	}
 	catch (...)
 	{
-		*errorString = [NSString stringWithUTF8String:EidosGetUntrimmedRaiseMessage().c_str()];
+		*errorString = [NSString stringWithUTF8String:Eidos_GetUntrimmedRaiseMessage().c_str()];
 		return nil;
 	}
 	
@@ -315,7 +315,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	}
 	catch (...)
 	{
-		*errorString = [NSString stringWithUTF8String:EidosGetUntrimmedRaiseMessage().c_str()];
+		*errorString = [NSString stringWithUTF8String:Eidos_GetUntrimmedRaiseMessage().c_str()];
 		return nil;
 	}
 	
@@ -378,7 +378,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		
 		output = interpreter.ExecutionOutput();
 		
-		*errorString = [NSString stringWithUTF8String:EidosGetUntrimmedRaiseMessage().c_str()];
+		*errorString = [NSString stringWithUTF8String:Eidos_GetUntrimmedRaiseMessage().c_str()];
 		
 		return [NSString stringWithUTF8String:output.c_str()];
 	}
@@ -545,7 +545,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		}
 		catch (...)
 		{
-			errorDiagnostic = [[NSString stringWithUTF8String:EidosGetTrimmedRaiseMessage().c_str()] retain];
+			errorDiagnostic = [[NSString stringWithUTF8String:Eidos_GetTrimmedRaiseMessage().c_str()] retain];
 		}
 	}
 	

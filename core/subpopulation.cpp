@@ -214,7 +214,7 @@ double _SpatialMap::ValueAtPoint(double *p_point)
 void _SpatialMap::ColorForValue(double p_value, double *p_rgb_ptr)
 {
 	if (n_colors_ == 0)
-		EIDOS_TERMINATION << "ERROR (_SpatialMap::ColorForValue): no color map defined for spatial map." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (_SpatialMap::ColorForValue): no color map defined for spatial map." << EidosTerminate();
 	
 	double value_fraction = (p_value - min_value_) / (max_value_ - min_value_);
 	double color_index = value_fraction * (n_colors_ - 1);
@@ -244,7 +244,7 @@ void _SpatialMap::ColorForValue(double p_value, double *p_rgb_ptr)
 void _SpatialMap::ColorForValue(double p_value, float *p_rgb_ptr)
 {
 	if (n_colors_ == 0)
-		EIDOS_TERMINATION << "ERROR (_SpatialMap::ColorForValue): no color map defined for spatial map." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (_SpatialMap::ColorForValue): no color map defined for spatial map." << EidosTerminate();
 	
 	double value_fraction = (p_value - min_value_) / (max_value_ - min_value_);
 	double color_index = value_fraction * (n_colors_ - 1);
@@ -301,9 +301,9 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 		child_first_male_index_ = child_subpop_size_ - total_males;
 		
 		if (child_first_male_index_ <= 0)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFit): child sex ratio of " << child_sex_ratio_ << " produced no females." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFit): child sex ratio of " << child_sex_ratio_ << " produced no females." << EidosTerminate();
 		else if (child_first_male_index_ >= child_subpop_size_)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFit): child sex ratio of " << child_sex_ratio_ << " produced no males." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFit): child sex ratio of " << child_sex_ratio_ << " produced no males." << EidosTerminate();
 		
 		if (p_parents_also)
 		{
@@ -312,9 +312,9 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 			parent_first_male_index_ = parent_subpop_size_ - total_males;
 			
 			if (parent_first_male_index_ <= 0)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFit): parent sex ratio of " << parent_sex_ratio_ << " produced no females." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFit): parent sex ratio of " << parent_sex_ratio_ << " produced no females." << EidosTerminate();
 			else if (parent_first_male_index_ >= parent_subpop_size_)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFit): parent sex ratio of " << parent_sex_ratio_ << " produced no males." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFit): parent sex ratio of " << parent_sex_ratio_ << " produced no males." << EidosTerminate();
 		}
 		
 		switch (modeled_chromosome_type_)
@@ -496,7 +496,7 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 }
 
 Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size) : population_(p_population), subpopulation_id_(p_subpopulation_id), parent_subpop_size_(p_subpop_size), child_subpop_size_(p_subpop_size),
-	self_symbol_(EidosGlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Subpopulation_Class)))
+	self_symbol_(Eidos_GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Subpopulation_Class)))
 {
 	GenerateChildrenToFit(true);
 	
@@ -516,7 +516,7 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 // SEX ONLY
 Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, double p_sex_ratio, GenomeType p_modeled_chromosome_type, double p_x_chromosome_dominance_coeff) :
 population_(p_population), subpopulation_id_(p_subpopulation_id), sex_enabled_(true), parent_subpop_size_(p_subpop_size), child_subpop_size_(p_subpop_size), parent_sex_ratio_(p_sex_ratio), child_sex_ratio_(p_sex_ratio), modeled_chromosome_type_(p_modeled_chromosome_type), x_chromosome_dominance_coeff_(p_x_chromosome_dominance_coeff),
-	self_symbol_(EidosGlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Subpopulation_Class)))
+	self_symbol_(Eidos_GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Subpopulation_Class)))
 {
 	GenerateChildrenToFit(true);
 	
@@ -804,7 +804,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		
 		totalFitness += totalFemaleFitness;
 		if (totalFemaleFitness <= 0.0)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of females is <= 0.0." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of females is <= 0.0." << EidosTerminate(nullptr);
 		
 		// in pure neutral models we don't set up the discrete preproc
 		if (!pure_neutral)
@@ -871,7 +871,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		(void)totalFitness;		// tell the static analyzer that we know we just did a dead store
 		
 		if (totalMaleFitness <= 0.0)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of males is <= 0.0." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of males is <= 0.0." << EidosTerminate(nullptr);
 		
 		// in pure neutral models we don't set up the discrete preproc
 		if (!pure_neutral)
@@ -936,7 +936,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		}
 		
 		if (totalFitness <= 0.0)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of all individuals is <= 0.0." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of all individuals is <= 0.0." << EidosTerminate(nullptr);
 		
 		// in pure neutral models we don't set up the discrete preproc
 		if (!pure_neutral)
@@ -979,7 +979,7 @@ double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homo
 					EidosValue *result = result_SP.get();
 					
 					if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
-						EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessCallbacks): fitness() callbacks must provide a float singleton return value." << eidos_terminate(fitness_callback->identifier_token_);
+						EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessCallbacks): fitness() callbacks must provide a float singleton return value." << EidosTerminate(fitness_callback->identifier_token_);
 					
 					p_computed_fitness = result->FloatAtIndex(0, nullptr);
 					
@@ -1008,12 +1008,12 @@ double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homo
 						// referred to by the values may change, but the values themselves will not change).
 						if (fitness_callback->contains_mut_)
 						{
-							local_mut.stack_allocated();			// prevent Eidos_intrusive_ptr from trying to delete this
+							local_mut.StackAllocated();			// prevent Eidos_intrusive_ptr from trying to delete this
 							callback_symbols.InitializeConstantSymbolEntry(gID_mut, EidosValue_SP(&local_mut));
 						}
 						if (fitness_callback->contains_relFitness_)
 						{
-							local_relFitness.stack_allocated();		// prevent Eidos_intrusive_ptr from trying to delete this
+							local_relFitness.StackAllocated();		// prevent Eidos_intrusive_ptr from trying to delete this
 							callback_symbols.InitializeConstantSymbolEntry(gID_relFitness, EidosValue_SP(&local_relFitness));
 						}
 						if (fitness_callback->contains_individual_)
@@ -1042,7 +1042,7 @@ double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homo
 							EidosValue *result = result_SP.get();
 							
 							if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
-								EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessCallbacks): fitness() callbacks must provide a float singleton return value." << eidos_terminate(fitness_callback->identifier_token_);
+								EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessCallbacks): fitness() callbacks must provide a float singleton return value." << EidosTerminate(fitness_callback->identifier_token_);
 							
 							p_computed_fitness = result->FloatAtIndex(0, nullptr);
 							
@@ -1100,7 +1100,7 @@ double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &
 				EidosValue *result = result_SP.get();
 				
 				if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
-					EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyGlobalFitnessCallbacks): fitness() callbacks must provide a float singleton return value." << eidos_terminate(fitness_callback->identifier_token_);
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyGlobalFitnessCallbacks): fitness() callbacks must provide a float singleton return value." << EidosTerminate(fitness_callback->identifier_token_);
 				
 				computed_fitness *= result->FloatAtIndex(0, nullptr);
 				
@@ -1125,7 +1125,7 @@ double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &
 				}
 				else
 				{
-					EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyGlobalFitnessCallbacks): (internal error) cached optimization flag mismatch" << eidos_terminate(fitness_callback->identifier_token_);
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyGlobalFitnessCallbacks): (internal error) cached optimization flag mismatch" << EidosTerminate(fitness_callback->identifier_token_);
 				}
 			}
 			else
@@ -1166,7 +1166,7 @@ double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &
 						EidosValue *result = result_SP.get();
 						
 						if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
-							EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyGlobalFitnessCallbacks): fitness() callbacks must provide a float singleton return value." << eidos_terminate(fitness_callback->identifier_token_);
+							EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyGlobalFitnessCallbacks): fitness() callbacks must provide a float singleton return value." << EidosTerminate(fitness_callback->identifier_token_);
 						
 						computed_fitness *= result->FloatAtIndex(0, nullptr);
 						
@@ -2158,10 +2158,10 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 					{
 						for (int i = 0; i < vec_size; ++i)
 							if ((*vec_direct)[i] != &(child_genomes_[i]))
-								EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): value mismatch in cached_child_genomes_value_." << eidos_terminate();
+								EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): value mismatch in cached_child_genomes_value_." << EidosTerminate();
 					}
 					else
-						EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): size mismatch in cached_child_genomes_value_." << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): size mismatch in cached_child_genomes_value_." << EidosTerminate();
 				}
 				*/
 				
@@ -2189,10 +2189,10 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 					{
 						for (int i = 0; i < vec_size; ++i)
 							if ((*vec_direct)[i] != &(parent_genomes_[i]))
-								EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): value mismatch in cached_parent_genomes_value_." << eidos_terminate();
+								EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): value mismatch in cached_parent_genomes_value_." << EidosTerminate();
 					}
 					else
-						EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): size mismatch in cached_parent_genomes_value_." << eidos_terminate();
+						EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): size mismatch in cached_parent_genomes_value_." << EidosTerminate();
 				}
 				*/
 				
@@ -2383,7 +2383,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setMigrationRates(EidosGlobalStringID
 	std::vector<slim_objectid_t> subpops_seen;
 	
 	if (source_subpops_count != rates_count)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setMigrationRates): setMigrationRates() requires sourceSubpops and rates to be equal in size." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setMigrationRates): setMigrationRates() requires sourceSubpops and rates to be equal in size." << EidosTerminate();
 	
 	for (int value_index = 0; value_index < source_subpops_count; ++value_index)
 	{
@@ -2395,7 +2395,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setMigrationRates(EidosGlobalStringID
 			auto found_subpop_pair = population_.find(subpop_id);
 			
 			if (found_subpop_pair == population_.end())
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setMigrationRates): setMigrationRates() subpopulation p" << subpop_id << " not defined." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setMigrationRates): setMigrationRates() subpopulation p" << subpop_id << " not defined." << EidosTerminate();
 			
 			source_subpop = found_subpop_pair->second;
 		}
@@ -2407,9 +2407,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_setMigrationRates(EidosGlobalStringID
 		slim_objectid_t source_subpop_id = ((Subpopulation *)(source_subpop))->subpopulation_id_;
 		
 		if (source_subpop_id == subpopulation_id_)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setMigrationRates): setMigrationRates() does not allow migration to be self-referential (originating within the destination subpopulation)." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setMigrationRates): setMigrationRates() does not allow migration to be self-referential (originating within the destination subpopulation)." << EidosTerminate();
 		if (std::find(subpops_seen.begin(), subpops_seen.end(), source_subpop_id) != subpops_seen.end())
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setMigrationRates): setMigrationRates() two rates set for subpopulation p" << source_subpop_id << "." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setMigrationRates): setMigrationRates() two rates set for subpopulation p" << source_subpop_id << "." << EidosTerminate();
 		
 		double migrant_fraction = arg1_value->FloatAtIndex(value_index, nullptr);
 		
@@ -2433,9 +2433,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointInBounds(EidosGlobalStringID p_m
 	int value_count = arg0_value->Count();
 	
 	if (dimensionality == 0)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointInBounds): pointInBounds() cannot be called in non-spatial simulations." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointInBounds): pointInBounds() cannot be called in non-spatial simulations." << EidosTerminate();
 	if (value_count != dimensionality)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointInBounds): pointInBounds() requires exactly as many coordinates as the spatial dimensionality of the simulation." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointInBounds): pointInBounds() requires exactly as many coordinates as the spatial dimensionality of the simulation." << EidosTerminate();
 	
 	switch (dimensionality)
 	{
@@ -2478,9 +2478,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointReflected(EidosGlobalStringID p_
 	int value_count = arg0_value->Count();
 	
 	if (dimensionality == 0)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointReflected): pointReflected() cannot be called in non-spatial simulations." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointReflected): pointReflected() cannot be called in non-spatial simulations." << EidosTerminate();
 	if (value_count != dimensionality)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointReflected): pointReflected() requires exactly as many coordinates as the spatial dimensionality of the simulation." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointReflected): pointReflected() requires exactly as many coordinates as the spatial dimensionality of the simulation." << EidosTerminate();
 	
 	switch (dimensionality)
 	{
@@ -2565,9 +2565,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointStopped(EidosGlobalStringID p_me
 	int value_count = arg0_value->Count();
 	
 	if (dimensionality == 0)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointStopped): pointStopped() cannot be called in non-spatial simulations." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointStopped): pointStopped() cannot be called in non-spatial simulations." << EidosTerminate();
 	if (value_count != dimensionality)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointStopped): pointStopped() requires exactly as many coordinates as the spatial dimensionality of the simulation." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointStopped): pointStopped() requires exactly as many coordinates as the spatial dimensionality of the simulation." << EidosTerminate();
 	
 	switch (dimensionality)
 	{
@@ -2608,7 +2608,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_me
 	int dimensionality = sim.SpatialDimensionality();
 	
 	if (dimensionality == 0)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointUniform): pointUniform() cannot be called in non-spatial simulations." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointUniform): pointUniform() cannot be called in non-spatial simulations." << EidosTerminate();
 	
 	switch (dimensionality)
 	{
@@ -2651,15 +2651,15 @@ EidosValue_SP Subpopulation::ExecuteMethod_setCloningRate(EidosGlobalStringID p_
 	{
 		// SEX ONLY: either one or two values may be specified; if two, it is female at 0, male at 1
 		if ((value_count < 1) || (value_count > 2))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setCloningRate): setCloningRate() requires a rate vector containing either one or two values, in sexual simulations." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setCloningRate): setCloningRate() requires a rate vector containing either one or two values, in sexual simulations." << EidosTerminate();
 		
 		double female_cloning_fraction = arg0_value->FloatAtIndex(0, nullptr);
 		double male_cloning_fraction = (value_count == 2) ? arg0_value->FloatAtIndex(1, nullptr) : female_cloning_fraction;
 		
 		if (female_cloning_fraction < 0.0 || female_cloning_fraction > 1.0)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setCloningRate): setCloningRate() requires cloning fractions within [0,1] (" << female_cloning_fraction << " supplied)." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setCloningRate): setCloningRate() requires cloning fractions within [0,1] (" << female_cloning_fraction << " supplied)." << EidosTerminate();
 		if (male_cloning_fraction < 0.0 || male_cloning_fraction > 1.0)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setCloningRate): setCloningRate() requires cloning fractions within [0,1] (" << male_cloning_fraction << " supplied)." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setCloningRate): setCloningRate() requires cloning fractions within [0,1] (" << male_cloning_fraction << " supplied)." << EidosTerminate();
 		
 		female_clone_fraction_ = female_cloning_fraction;
 		male_clone_fraction_ = male_cloning_fraction;
@@ -2668,12 +2668,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_setCloningRate(EidosGlobalStringID p_
 	{
 		// ASEX ONLY: only one value may be specified
 		if (value_count != 1)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setCloningRate): setCloningRate() requires a rate vector containing exactly one value, in asexual simulations.." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setCloningRate): setCloningRate() requires a rate vector containing exactly one value, in asexual simulations.." << EidosTerminate();
 		
 		double cloning_fraction = arg0_value->FloatAtIndex(0, nullptr);
 		
 		if (cloning_fraction < 0.0 || cloning_fraction > 1.0)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setCloningRate): setCloningRate() requires cloning fractions within [0,1] (" << cloning_fraction << " supplied)." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setCloningRate): setCloningRate() requires cloning fractions within [0,1] (" << cloning_fraction << " supplied)." << EidosTerminate();
 		
 		female_clone_fraction_ = cloning_fraction;
 		male_clone_fraction_ = cloning_fraction;
@@ -2692,10 +2692,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSelfingRate(EidosGlobalStringID p_
 	double selfing_fraction = arg0_value->FloatAtIndex(0, nullptr);
 	
 	if ((selfing_fraction != 0.0) && sex_enabled_)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSelfingRate): setSelfingRate() is limited to the hermaphroditic case, and cannot be called in sexual simulations." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSelfingRate): setSelfingRate() is limited to the hermaphroditic case, and cannot be called in sexual simulations." << EidosTerminate();
 	
 	if (selfing_fraction < 0.0 || selfing_fraction > 1.0)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSelfingRate): setSelfingRate() requires a selfing fraction within [0,1] (" << selfing_fraction << " supplied)." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSelfingRate): setSelfingRate() requires a selfing fraction within [0,1] (" << selfing_fraction << " supplied)." << EidosTerminate();
 	
 	selfing_fraction_ = selfing_fraction;
 	
@@ -2712,16 +2712,16 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSexRatio(EidosGlobalStringID p_met
 	// SetSexRatio() can only be called when the child generation has not yet been generated.  It sets the sex ratio on the child generation,
 	// and then that sex ratio takes effect when the children are generated from the parents in EvolveSubpopulation().
 	if (child_generation_valid_)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSexRatio): setSexRatio() called when the child generation was valid." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSexRatio): setSexRatio() called when the child generation was valid." << EidosTerminate();
 	
 	// SEX ONLY
 	if (!sex_enabled_)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSexRatio): setSexRatio() is limited to the sexual case, and cannot be called in asexual simulations." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSexRatio): setSexRatio() is limited to the sexual case, and cannot be called in asexual simulations." << EidosTerminate();
 	
 	double sex_ratio = arg0_value->FloatAtIndex(0, nullptr);
 	
 	if (sex_ratio < 0.0 || sex_ratio > 1.0)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSexRatio): setSexRatio() requires a sex ratio within [0,1] (" << sex_ratio << " supplied)." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSexRatio): setSexRatio() requires a sex ratio within [0,1] (" << sex_ratio << " supplied)." << EidosTerminate();
 	
 	// After we change the subpop sex ratio, we need to generate new children genomes to fit the new requirements
 	child_sex_ratio_ = sex_ratio;
@@ -2743,10 +2743,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSpatialBounds(EidosGlobalStringID 
 	int value_count = arg0_value->Count();
 	
 	if (dimensionality == 0)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSpatialBounds): setSpatialBounds() cannot be called in non-spatial simulations." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSpatialBounds): setSpatialBounds() cannot be called in non-spatial simulations." << EidosTerminate();
 	
 	if (value_count != dimensionality * 2)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSpatialBounds): setSpatialBounds() requires twice as many coordinates as the spatial dimensionality of the simulation." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSpatialBounds): setSpatialBounds() requires twice as many coordinates as the spatial dimensionality of the simulation." << EidosTerminate();
 	
 	bool bad_bounds = false;
 	
@@ -2779,7 +2779,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSpatialBounds(EidosGlobalStringID 
 	}
 	
 	if (bad_bounds)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSpatialBounds): setSpatialBounds() requires min coordinates to be less than max coordinates." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSpatialBounds): setSpatialBounds() requires min coordinates to be less than max coordinates." << EidosTerminate();
 	
 	return gStaticEidosValueNULLInvisible;
 }			
@@ -2806,9 +2806,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 	EidosValue *arg0_value = p_arguments[0].get();
 	
 	if (child_generation_valid_)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may only be called when the parental generation is active (before or during offspring generation)." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may only be called when the parental generation is active (before or during offspring generation)." << EidosTerminate();
 	if (cached_fitness_size_ == 0)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may not be called while fitness values are being calculated, or before the first time they are calculated." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may not be called while fitness values are being calculated, or before the first time they are calculated." << EidosTerminate();
 	
 	bool do_all_indices = (arg0_value->Type() == EidosValueType::kValueNULL);
 	slim_popsize_t index_count = (do_all_indices ? parent_subpop_size_ : SLiMCastToPopsizeTypeOrRaise(arg0_value->Count()));
@@ -2822,7 +2822,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 			index = SLiMCastToPopsizeTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
 			
 			if (index >= cached_fitness_size_)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() index " << index << " out of range." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() index " << index << " out of range." << EidosTerminate();
 		}
 		
 		double fitness = cached_parental_fitness_[index];
@@ -2843,7 +2843,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 				index = SLiMCastToPopsizeTypeOrRaise(arg0_value->IntAtIndex(value_index, nullptr));
 				
 				if (index >= cached_fitness_size_)
-					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() index " << index << " out of range." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() index " << index << " out of range." << EidosTerminate();
 			}
 			
 			double fitness = cached_parental_fitness_[index];
@@ -2877,7 +2877,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID 
 	EidosValue *colors = arg6_value;
 	
 	if (map_name.length() == 0)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() map name must not be zero-length." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() map name must not be zero-length." << EidosTerminate();
 	
 	SLiMSim &sim = population_.sim_;
 	int spatial_dimensionality = sim.SpatialDimensionality();
@@ -2892,13 +2892,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID 
 	else if (spatiality_string.compare("yz") == 0)			{	required_dimensionality = 3;	map_spatiality = 2;	}
 	else if (spatiality_string.compare("xyz") == 0)			{	required_dimensionality = 3;	map_spatiality = 3;	}
 	else
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() spatiality \"" << spatiality_string << "\" must be \"x\", \"y\", \"z\", \"xy\", \"xz\", \"yz\", or \"xyz\"." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() spatiality \"" << spatiality_string << "\" must be \"x\", \"y\", \"z\", \"xy\", \"xz\", \"yz\", or \"xyz\"." << EidosTerminate();
 	
 	if (required_dimensionality > spatial_dimensionality)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() spatiality cannot utilize spatial dimensions beyond those set in initializeSLiMOptions()." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() spatiality cannot utilize spatial dimensions beyond those set in initializeSLiMOptions()." << EidosTerminate();
 	
 	if (grid_size->Count() != map_spatiality)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() gridSize must match the spatiality defined for the map." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() gridSize must match the spatiality defined for the map." << EidosTerminate();
 	
 	int64_t map_size = 1;
 	int64_t dimension_sizes[3];
@@ -2908,14 +2908,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID 
 		int64_t dimension_size = grid_size->IntAtIndex(dimension_index, nullptr);
 		
 		if (dimension_size < 2)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() all elements of gridSize must be of length >= 2." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() all elements of gridSize must be of length >= 2." << EidosTerminate();
 		
 		dimension_sizes[dimension_index] = dimension_size;
 		map_size *= dimension_size;
 	}
 	
 	if (values->Count() != map_size)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): size of the values vector (" << values->Count() << ") does not match the product of the sizes in gridSize (" << map_size << ")." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): size of the values vector (" << values->Count() << ") does not match the product of the sizes in gridSize (" << map_size << ")." << EidosTerminate();
 	
 	bool range_is_null = (value_range->Type() == EidosValueType::kValueNULL);
 	bool colors_is_null = (colors->Type() == EidosValueType::kValueNULL);
@@ -2925,21 +2925,21 @@ EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID 
 	if (!range_is_null || !colors_is_null)
 	{
 		if (range_is_null || colors_is_null)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): valueRange and colors must either both be supplied, or neither supplied." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): valueRange and colors must either both be supplied, or neither supplied." << EidosTerminate();
 		
 		if (value_range->Count() != 2)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): valueRange must be exactly length 2 (giving the min and max value permitted)." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): valueRange must be exactly length 2 (giving the min and max value permitted)." << EidosTerminate();
 		
 		range_min = value_range->FloatAtIndex(0, nullptr);
 		range_max = value_range->FloatAtIndex(1, nullptr);
 		
 		if (!std::isfinite(range_min) || !std::isfinite(range_max) || (range_min >= range_max))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): valueRange must be finite, and min < max is required." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): valueRange must be finite, and min < max is required." << EidosTerminate();
 		
 		color_count = colors->Count();
 		
 		if (color_count < 2)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): colors must be of length >= 2." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): colors must be of length >= 2." << EidosTerminate();
 	}
 	
 	// OK, everything seems to check out, so we can make our SpatialMap struct and populate it
@@ -2958,7 +2958,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID 
 		const std::string *colors_vec_ptr = colors->StringVector()->data();
 		
 		for (int colors_index = 0; colors_index < color_count; ++colors_index)
-			EidosGetColorComponents(colors_vec_ptr[colors_index], red_ptr++, green_ptr++, blue_ptr++);
+			Eidos_GetColorComponents(colors_vec_ptr[colors_index], red_ptr++, green_ptr++, blue_ptr++);
 	}
 	
 	// Add the new SpatialMap to our map for future reference
@@ -2990,7 +2990,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapColor(EidosGlobalStringID p
 	EidosValue *values = arg1_value;
 	
 	if (map_name.length() == 0)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapColor): spatialMapColor() map name must not be zero-length." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapColor): spatialMapColor() map name must not be zero-length." << EidosTerminate();
 	
 	// Find the named SpatialMap
 	auto map_iter = spatial_maps_.find(map_name);
@@ -3000,7 +3000,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapColor(EidosGlobalStringID p
 		SpatialMap *map = map_iter->second;
 		
 		if (map->n_colors_ == 0)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapColor): spatialMapColor() no color map defined for spatial map." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapColor): spatialMapColor() no color map defined for spatial map." << EidosTerminate();
 		
 		int value_count = values->Count();
 		EidosValue_String_vector *string_return = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(value_count);
@@ -3013,14 +3013,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapColor(EidosGlobalStringID p
 			char hex_chars[8];
 			
 			map->ColorForValue(value, rgb);
-			EidosGetColorString(rgb[0], rgb[1], rgb[2], hex_chars);
+			Eidos_GetColorString(rgb[0], rgb[1], rgb[2], hex_chars);
 			string_return->PushString(std::string(hex_chars));
 		}
 		
 		return result_SP;
 	}
 	else
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapColor): spatialMapColor() could not find map with name " << map_name << "." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapColor): spatialMapColor() could not find map with name " << map_name << "." << EidosTerminate();
 	
 	return gStaticEidosValueNULLInvisible;
 }
@@ -3037,7 +3037,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p
 	EidosValue *point = arg1_value;
 	
 	if (map_name.length() == 0)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): spatialMapValue() map name must not be zero-length." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): spatialMapValue() map name must not be zero-length." << EidosTerminate();
 	
 	// Find the named SpatialMap
 	auto map_iter = spatial_maps_.find(map_name);
@@ -3047,7 +3047,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p
 		SpatialMap *map = map_iter->second;
 		
 		if (point->Count() != map->spatiality_)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): spatialMapValue() length of point does not match spatiality of map " << map_name << "." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): spatialMapValue() length of point does not match spatiality of map " << map_name << "." << EidosTerminate();
 		
 		// We need to use the correct spatial bounds for each coordinate, which depends upon our exact spatiality
 		// There is doubtless a way to make this code smarter, but brute force is sometimes best...
@@ -3128,7 +3128,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(map_value));
 	}
 	else
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): spatialMapValue() could not find map with name " << map_name << "." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): spatialMapValue() could not find map with name " << map_name << "." << EidosTerminate();
 	
 	return gStaticEidosValueNULLInvisible;
 }
@@ -3152,7 +3152,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 	
 	if ((sim.GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim.warned_early_output_))
 	{
-		output_stream << "#WARNING (Subpopulation::ExecuteMethod_outputXSample): " << StringForEidosGlobalStringID(p_method_id) << "() should probably not be called from an early() event; the output will reflect state at the beginning of the generation, not the end." << std::endl;
+		output_stream << "#WARNING (Subpopulation::ExecuteMethod_outputXSample): " << Eidos_StringForGlobalStringID(p_method_id) << "() should probably not be called from an early() event; the output will reflect state at the beginning of the generation, not the end." << std::endl;
 		sim.warned_early_output_ = true;
 	}
 	
@@ -3171,10 +3171,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 	else if (sex_string.compare("*") == 0)
 		requested_sex = IndividualSex::kUnspecified;
 	else
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_outputXSample): " << StringForEidosGlobalStringID(p_method_id) << "() requested sex \"" << sex_string << "\" unsupported." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_outputXSample): " << Eidos_StringForGlobalStringID(p_method_id) << "() requested sex \"" << sex_string << "\" unsupported." << EidosTerminate();
 	
 	if (!sim.SexEnabled() && requested_sex != IndividualSex::kUnspecified)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_outputXSample): " << StringForEidosGlobalStringID(p_method_id) << "() requested sex is not legal in a non-sexual simulation." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_outputXSample): " << Eidos_StringForGlobalStringID(p_method_id) << "() requested sex is not legal in a non-sexual simulation." << EidosTerminate();
 	
 	bool output_multiallelics = true;
 	
@@ -3190,14 +3190,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 	
 	if (file_arg->Type() != EidosValueType::kValueNULL)
 	{
-		outfile_path = EidosResolvedPath(file_arg->StringAtIndex(0, nullptr));
+		outfile_path = Eidos_ResolvedPath(file_arg->StringAtIndex(0, nullptr));
 		bool append = append_arg->LogicalAtIndex(0, nullptr);
 		
 		outfile.open(outfile_path.c_str(), append ? (std::ios_base::app | std::ios_base::out) : std::ios_base::out);
 		has_file = true;
 		
 		if (!outfile.is_open())
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_outputXSample): " << StringForEidosGlobalStringID(p_method_id) << "() could not open "<< outfile_path << "." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_outputXSample): " << Eidos_StringForGlobalStringID(p_method_id) << "() could not open "<< outfile_path << "." << EidosTerminate();
 	}
 	
 	std::ostream &out = *(has_file ? dynamic_cast<std::ostream *>(&outfile) : dynamic_cast<std::ostream *>(&output_stream));
@@ -3227,11 +3227,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 	
 	// Call out to produce the actual sample
 	if (p_method_id == gID_outputSample)
-		population_.PrintSample_slim(out, *this, sample_size, replace, requested_sex);
+		population_.PrintSample_SLiM(out, *this, sample_size, replace, requested_sex);
 	else if (p_method_id == gID_outputMSSample)
-		population_.PrintSample_ms(out, *this, sample_size, replace, requested_sex, sim.TheChromosome());
+		population_.PrintSample_MS(out, *this, sample_size, replace, requested_sex, sim.TheChromosome());
 	else if (p_method_id == gID_outputVCFSample)
-		population_.PrintSample_vcf(out, *this, sample_size, replace, requested_sex, output_multiallelics);
+		population_.PrintSample_VCF(out, *this, sample_size, replace, requested_sex, output_multiallelics);
 	
 	if (has_file)
 		outfile.close(); 

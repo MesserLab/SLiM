@@ -177,13 +177,13 @@ public:
 	void PrintAllBinary(std::ostream &p_out, bool p_output_spatial_positions) const;
 	
 	// print sample of p_sample_size genomes from subpopulation p_subpop_id, using SLiM's own format
-	void PrintSample_slim(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex) const;
+	void PrintSample_SLiM(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex) const;
 	
 	// print sample of p_sample_size genomes from subpopulation p_subpop_id, using "ms" format
-	void PrintSample_ms(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex, const Chromosome &p_chromosome) const;
+	void PrintSample_MS(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex, const Chromosome &p_chromosome) const;
 	
 	// print sample of p_sample_size genomes from subpopulation p_subpop_id, using "vcf" format
-	void PrintSample_vcf(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex, bool p_output_multiallelics) const;
+	void PrintSample_VCF(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex, bool p_output_multiallelics) const;
 	
 	// remove subpopulations, purge all mutations and substitutions, etc.; called before InitializePopulationFrom[Text|Binary]File()
 	void RemoveAllSubpopulationInfo(void);

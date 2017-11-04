@@ -97,9 +97,9 @@ private:
 	// Bulk operation optimization; see WillModifyRunForBulkOperation().  The idea is to keep track of changes to MutationRun
 	// objects in a bulk operation, and short-circuit the operation for all Genomes with the same initial MutationRun (since
 	// the bulk operation will produce the same product MutationRun given the same initial MutationRun).
-	static int64_t s_bulk_operation_id;
-	static int s_bulk_operation_mutrun_index;
-	static std::map<MutationRun*, MutationRun*> s_bulk_operation_runs;
+	static int64_t s_bulk_operation_id_;
+	static int s_bulk_operation_mutrun_index_;
+	static std::map<MutationRun*, MutationRun*> s_bulk_operation_runs_;
 	
 public:
 	
@@ -137,9 +137,9 @@ public:
 	{
 #ifdef DEBUG
 		if (p_run_index < 0)
-			EIDOS_TERMINATION << "ERROR (Genome::WillModifyRun): (internal error) attempt to modify a negative-index run." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Genome::WillModifyRun): (internal error) attempt to modify a negative-index run." << EidosTerminate();
 		if (p_run_index >= mutrun_count_)
-			EIDOS_TERMINATION << "ERROR (Genome::WillModifyRun): (internal error) attempt to modify an out-of-index run." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Genome::WillModifyRun): (internal error) attempt to modify an out-of-index run." << EidosTerminate();
 #endif
 		
 		MutationRun *new_run = MutationRun::NewMutationRun();	// take from shared pool of used objects
@@ -213,7 +213,7 @@ public:
 			if (mutrun->size() != 0)
 			{
 				// If the MutationRun is private to us, we can just empty it out, otherwise we replace it with a new empty one
-				if (mutrun->use_count() == 1)
+				if (mutrun->UseCount() == 1)
 					mutrun->clear();
 				else
 					*mutrun_sp = MutationRun_SP(MutationRun::NewMutationRun());
@@ -271,7 +271,7 @@ public:
 			// Otherwise, a relatively complicated check is needed, so we call out to a non-inline function
 			MutationRun *mutrun = mutruns_[p_position / mutrun_length_].get();
 			
-			return mutrun->_enforce_stack_policy_for_addition(p_position, policy, p_mut_type_ptr->stack_group_);
+			return mutrun->_EnforceStackPolicyForAddition(p_position, policy, p_mut_type_ptr->stack_group_);
 		}
 	}
 	
@@ -290,7 +290,7 @@ public:
 #endif
 #ifdef DEBUG
 			if ((mutrun_count_ != p_source_genome.mutrun_count_) || (mutrun_length_ != p_source_genome.mutrun_length_))
-				EIDOS_TERMINATION << "ERROR (Genome::copy_from_genome): (internal error) assignment from genome with different count/length." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Genome::copy_from_genome): (internal error) assignment from genome with different count/length." << EidosTerminate();
 #endif
 			
 			if (mutrun_count_ == 1)
@@ -317,13 +317,13 @@ public:
 	//void assert_identical_to_runs(MutationRun_SP *p_mutruns, int32_t p_mutrun_count);
 	
 	// print the sample represented by genomes, using SLiM's own format
-	static void PrintGenomes_slim(std::ostream &p_out, std::vector<Genome *> &p_genomes, slim_objectid_t p_source_subpop_id);
+	static void PrintGenomes_SLiM(std::ostream &p_out, std::vector<Genome *> &p_genomes, slim_objectid_t p_source_subpop_id);
 	
 	// print the sample represented by genomes, using "ms" format
-	static void PrintGenomes_ms(std::ostream &p_out, std::vector<Genome *> &p_genomes, const Chromosome &p_chromosome);
+	static void PrintGenomes_MS(std::ostream &p_out, std::vector<Genome *> &p_genomes, const Chromosome &p_chromosome);
 	
 	// print the sample represented by genomes, using "vcf" format
-	static void PrintGenomes_vcf(std::ostream &p_out, std::vector<Genome *> &p_genomes, bool p_output_multiallelics);
+	static void PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_genomes, bool p_output_multiallelics);
 	
 	
 	//

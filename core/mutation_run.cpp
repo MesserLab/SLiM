@@ -48,7 +48,7 @@ MutationRun::~MutationRun(void)
 #ifdef SLIM_MUTRUN_CHECK_LOCKING
 void MutationRun::LockingViolation(void) const
 {
-	EIDOS_TERMINATION << "ERROR (MutationRun::LockingViolation): (internal error) a locked MutationRun was modified." << eidos_terminate();
+	EIDOS_TERMINATION << "ERROR (MutationRun::LockingViolation): (internal error) a locked MutationRun was modified." << EidosTerminate();
 }
 #endif
 
@@ -108,7 +108,7 @@ void MutationRun::_RemoveFixedMutations(void)
 	}
 }
 
-bool MutationRun::_enforce_stack_policy_for_addition(slim_position_t p_position, MutationStackPolicy p_policy, int64_t p_stack_group)
+bool MutationRun::_EnforceStackPolicyForAddition(slim_position_t p_position, MutationStackPolicy p_policy, int64_t p_stack_group)
 {
 	MutationIndex *begin_ptr = begin_pointer();
 	MutationIndex *end_ptr = end_pointer();
@@ -179,7 +179,7 @@ bool MutationRun::_enforce_stack_policy_for_addition(slim_position_t p_position,
 		return true;
 	}
 	else
-		EIDOS_TERMINATION << "ERROR (Genome::_enforce_stack_policy_for_addition): (internal error) invalid policy." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Genome::_EnforceStackPolicyForAddition): (internal error) invalid policy." << EidosTerminate();
 }
 
 void MutationRun::split_run(MutationRun **p_first_half, MutationRun **p_second_half, int32_t p_split_first_position)
@@ -283,11 +283,11 @@ void MutationRun::cache_nonneutral_mutations_REGIME_3()
 void MutationRun::check_nonneutral_mutation_cache()
 {
 	if (!nonneutral_mutations_)
-		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache_REGIME_1): (internal error) cache not allocated." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache_REGIME_1): (internal error) cache not allocated." << EidosTerminate();
 	if (nonneutral_mutations_count_ == -1)
-		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache_REGIME_1): (internal error) unvalidated cache." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache_REGIME_1): (internal error) unvalidated cache." << EidosTerminate();
 	if (nonneutral_mutations_count_ > nonneutral_mutation_capacity_)
-		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache_REGIME_1): (internal error) cache size exceeds cache capacity." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache_REGIME_1): (internal error) cache size exceeds cache capacity." << EidosTerminate();
 	
 	// Check for correctness in regime 1.  Now that we have three regimes, this isn't really worth maintaining;
 	// it really just replicates the above logic exactly, so it is not a very effective cross-check.
@@ -302,7 +302,7 @@ void MutationRun::check_nonneutral_mutation_cache()
 		
 		if (mutptr->selection_coeff_ != 0.0)
 			if (*(nonneutral_mutations_ + cache_index++) != mutindex)
-				EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache_REGIME_1): (internal error) unsynchronized cache." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache_REGIME_1): (internal error) unsynchronized cache." << EidosTerminate();
 	}
 	 */
 }

@@ -103,7 +103,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluateNode(const EidosASTNode *p_
 			case EidosTokenType::kTokenReturn:		return TypeEvaluate_Return(p_node);
 			case EidosTokenType::kTokenFunction:	return TypeEvaluate_FunctionDecl(p_node);
 			default:
-				std::cout << "ERROR (EidosTypeInterpreter::TypeEvaluateNode): unexpected node token type " << p_node->token_->token_type_ << "." << eidos_terminate(p_node->token_);
+				std::cout << "ERROR (EidosTypeInterpreter::TypeEvaluateNode): unexpected node token type " << p_node->token_->token_type_ << "." << EidosTerminate(p_node->token_);
 		}
 	}
 	
@@ -184,7 +184,7 @@ EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(std
 				if (p_arguments[0]->token_->token_type_ == EidosTokenType::kTokenString)
 				{
 					const std::string &constant_name = p_arguments[0]->token_->token_string_;
-					EidosGlobalStringID constant_id = EidosGlobalStringIDForString(constant_name);
+					EidosGlobalStringID constant_id = Eidos_GlobalStringIDForString(constant_name);
 					EidosTypeSpecifier constant_type = TypeEvaluateNode(p_arguments[1]);
 					
 					if (constant_type.object_class == nullptr)
@@ -1035,7 +1035,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_FunctionDecl(const EidosAS
 					EidosTypeSpecifier &param_type = param_children[0]->typespec_;
 					const std::string &param_name = param_children[1]->token_->token_string_;
 					
-					global_symbols_->SetTypeForSymbol(EidosGlobalStringIDForString(param_name), param_type);
+					global_symbols_->SetTypeForSymbol(Eidos_GlobalStringIDForString(param_name), param_type);
 				}
 			}
 			
@@ -1061,7 +1061,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_FunctionDecl(const EidosAS
 					EidosTypeSpecifier &param_type = param_children[0]->typespec_;
 					const std::string &param_name = param_children[1]->token_->token_string_;
 					
-					typeTable.SetTypeForSymbol(EidosGlobalStringIDForString(param_name), param_type);
+					typeTable.SetTypeForSymbol(Eidos_GlobalStringIDForString(param_name), param_type);
 				}
 			}
 			

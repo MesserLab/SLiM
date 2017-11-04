@@ -485,7 +485,7 @@
 
 // This is declared in eidos_beep.h, but in the GUI case (EidosScribe and SLiMgui) it is actually defined here,
 // because we want the definition in that case to be able to use Objective-C and Cocoa.
-std::string EidosBeep(std::string p_sound_name)
+std::string Eidos_Beep(std::string p_sound_name)
 {
 	NSString *soundName = [NSString stringWithUTF8String:p_sound_name.c_str()];
 	
@@ -526,7 +526,7 @@ std::string EidosBeep(std::string p_sound_name)
 		// If the requested sound did not exist, we fall back on the default, which ought to always exist
 		if (!cachedSound)
 		{
-			return_string = "#WARNING (EidosBeep): function beep() could not find the requested sound.";
+			return_string = "#WARNING (Eidos_Beep): function beep() could not find the requested sound.";
 			
 			soundName = @"Pop";
 			cachedSound = [[NSSound soundNamed:soundName] retain];

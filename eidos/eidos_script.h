@@ -101,7 +101,7 @@ public:
 	void Consume(void);
 	void Match(EidosTokenType p_token_type, const char *p_context_cstr);
 	
-	// Setting the error position; call just before you throw, or better, pass the token to eidos_terminate()
+	// Setting the error position; call just before you throw, or better, pass the token to EidosTerminate()
 	static inline __attribute__((always_inline)) EidosErrorPosition PushErrorPositionFromToken(const EidosToken *p_naughty_token_)
 	{
 		EidosErrorPosition old_position = {gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCharacterStartOfErrorUTF16, gEidosCharacterEndOfErrorUTF16};

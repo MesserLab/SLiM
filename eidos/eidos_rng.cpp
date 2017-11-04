@@ -30,7 +30,7 @@ uint32_t gEidos_random_bool_bit_buffer = 0;
 unsigned long int gEidos_rng_last_seed = 0;				// unsigned long int is the type used by gsl_rng_set()
 
 
-unsigned long int EidosGenerateSeedFromPIDAndTime(void)
+unsigned long int Eidos_GenerateSeedFromPIDAndTime(void)
 {
 	static long int hereCounter = 0;
 	pid_t pid = getpid();
@@ -46,7 +46,7 @@ unsigned long int EidosGenerateSeedFromPIDAndTime(void)
 	return (unsigned long int)milliseconds;
 }
 
-void EidosInitializeRNGFromSeed(unsigned long int p_seed)
+void Eidos_InitializeRNGFromSeed(unsigned long int p_seed)
 {
 	// Allocate the RNG if needed
 	if (!gEidos_rng)
@@ -75,7 +75,7 @@ void EidosInitializeRNGFromSeed(unsigned long int p_seed)
 }
 
 #ifndef USE_GSL_POISSON
-double eidos_fast_ran_poisson_PRECALCULATE(double p_mu)
+double Eidos_FastRandomPoisson_PRECALCULATE(double p_mu)
 {
 	// OK, so where does 720 come from?  Primarily, values much greater than that cause an underflow in the algorithm
 	// we're using to do fast Poisson draws, so that's a showstopper.  Devroye cites Atkinson 1979 as using lookup tables
@@ -88,7 +88,7 @@ double eidos_fast_ran_poisson_PRECALCULATE(double p_mu)
 	// We no longer raise for mu > 720.  Instead, we defer to the GSL in that case, when the draw actually occurs.
 	//
 	//if (p_mu > 720)
-	//	EIDOS_TERMINATION << "ERROR (eidos_fast_ran_poisson_PRECALCULATE): rate for Poisson draws is too large; please compile SLiM with -D USE_GSL_POISSON if you really want to use a mutation or recombination rate this high." << eidos_terminate(nullptr);
+	//	EIDOS_TERMINATION << "ERROR (Eidos_FastRandomPoisson_PRECALCULATE): rate for Poisson draws is too large; please compile SLiM with -D USE_GSL_POISSON if you really want to use a mutation or recombination rate this high." << EidosTerminate(nullptr);
 	
 	return exp(-p_mu);
 }

@@ -57,30 +57,30 @@ EidosCallSignature *EidosCallSignature::AddArgWithDefault(EidosValueMask p_arg_m
 	{
 		if (p_fault_tolerant)
 			return this;
-		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) cannot add a required argument after an optional argument has been added." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) cannot add a required argument after an optional argument has been added." << EidosTerminate(nullptr);
 	}
 	if (has_ellipsis_)
 	{
 		if (p_fault_tolerant)
 			return this;
-		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) cannot add an argument after an ellipsis." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) cannot add an argument after an ellipsis." << EidosTerminate(nullptr);
 	}
 	if (p_argument_name.size() == 0)
 	{
 		if (p_fault_tolerant)
 			return this;
-		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) an argument name is required." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) an argument name is required." << EidosTerminate(nullptr);
 	}
 	if (p_argument_class && !(p_arg_mask & kEidosValueMaskObject))
 	{
 		if (p_fault_tolerant)
 			return this;
-		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) an object element type may only be supplied for an argument of object type." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) an object element type may only be supplied for an argument of object type." << EidosTerminate(nullptr);
 	}
 	
 	arg_masks_.emplace_back(p_arg_mask);
 	arg_names_.emplace_back(p_argument_name);
-	arg_name_IDs_.emplace_back(EidosGlobalStringIDForString(p_argument_name));
+	arg_name_IDs_.emplace_back(Eidos_GlobalStringIDForString(p_argument_name));
 	arg_classes_.emplace_back(p_argument_class);
 	arg_defaults_.emplace_back(p_default_value);
 	
@@ -93,9 +93,9 @@ EidosCallSignature *EidosCallSignature::AddArgWithDefault(EidosValueMask p_arg_m
 	
 	// Check the default argument; see CheckArguments() for parallel code
 	if (is_optional && !p_default_value)
-		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) no default argument supplied for optional argument." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) no default argument supplied for optional argument." << EidosTerminate(nullptr);
 	if (!is_optional && p_default_value)
-		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) default argument supplied for required argument." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) default argument supplied for required argument." << EidosTerminate(nullptr);
 	
 	if (is_optional)
 	{
@@ -136,18 +136,18 @@ EidosCallSignature *EidosCallSignature::AddArgWithDefault(EidosValueMask p_arg_m
 							if ((argument_class == gEidos_UndefinedClassObject) && (argument->Count() == 0))
 								break;
 							
-							EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) default argument cannot be object element type " << argument->ElementType() << "; expected object element type " << signature_class->ElementType() << "." << eidos_terminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) default argument cannot be object element type " << argument->ElementType() << "; expected object element type " << signature_class->ElementType() << "." << EidosTerminate(nullptr);
 						}
 					}
 					break;
 			}
 			
 			if (!type_ok)
-				EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) default argument cannot be type " << arg_type << "." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) default argument cannot be type " << arg_type << "." << EidosTerminate(nullptr);
 			
 			// if NULL is explicitly permitted by the signature, we skip the singleton check
 			if (requires_singleton && (argument->Count() != 1) && (arg_type != EidosValueType::kValueNULL))
-				EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) default argument must be a singleton (size() == 1), but size() == " << argument->Count() << "." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) default argument must be a singleton (size() == 1), but size() == " << argument->Count() << "." << EidosTerminate(nullptr);
 		}
 	}
 	
@@ -157,10 +157,10 @@ EidosCallSignature *EidosCallSignature::AddArgWithDefault(EidosValueMask p_arg_m
 EidosCallSignature *EidosCallSignature::AddEllipsis(void)
 {
 	if (has_optional_args_)
-		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddEllipsis): cannot add an ellipsis after an optional argument has been added." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddEllipsis): cannot add an ellipsis after an optional argument has been added." << EidosTerminate(nullptr);
 	
 	if (has_ellipsis_)
-		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddEllipsis): cannot add more than one ellipsis." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddEllipsis): cannot add more than one ellipsis." << EidosTerminate(nullptr);
 	
 	has_ellipsis_ = true;
 	
@@ -263,10 +263,10 @@ void EidosCallSignature::CheckArguments(const EidosValue_SP *const p_arguments, 
 	if (!has_ellipsis_ && (p_argument_count != arg_masks_size))
 	{
 		if (p_argument_count > arg_masks_size)
-			EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): " << CallType() << " " << call_name_ << "() requires at most " << arg_masks_.size() << " argument(s), but " << p_argument_count << " are supplied (after incorporating default arguments)." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): " << CallType() << " " << call_name_ << "() requires at most " << arg_masks_.size() << " argument(s), but " << p_argument_count << " are supplied (after incorporating default arguments)." << EidosTerminate(nullptr);
 		
 		if (p_argument_count < arg_masks_size)
-			EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): " << CallType() << " " << call_name_ << "() requires " << arg_masks_.size() << " argument(s), but " << p_argument_count << " are supplied (after incorporating default arguments)." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): " << CallType() << " " << call_name_ << "() requires " << arg_masks_.size() << " argument(s), but " << p_argument_count << " are supplied (after incorporating default arguments)." << EidosTerminate(nullptr);
 	}
 	
 	// Check the types of all arguments specified in the signature
@@ -284,7 +284,7 @@ void EidosCallSignature::CheckArguments(const EidosValue_SP *const p_arguments, 
 //			if (is_optional)
 //				break;			// all the rest of the arguments must be optional, so we're done checking
 //			else
-//				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): missing required argument " << arg_names_[arg_index] << " for " << CallType() << " " << call_name_ << "()." << eidos_terminate(nullptr);
+//				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): missing required argument " << arg_names_[arg_index] << " for " << CallType() << " " << call_name_ << "()." << EidosTerminate(nullptr);
 //		}
 		
 		// an argument was passed, so check its type
@@ -319,18 +319,18 @@ void EidosCallSignature::CheckArguments(const EidosValue_SP *const p_arguments, 
 							if ((argument_class == gEidos_UndefinedClassObject) && (argument->Count() == 0))
 								break;
 							
-							EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " cannot be object element type " << argument->ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << signature_class->ElementType() << "." << eidos_terminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " cannot be object element type " << argument->ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << signature_class->ElementType() << "." << EidosTerminate(nullptr);
 						}
 					}
 					break;
 			}
 			
 			if (!type_ok)
-				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " (" << arg_names_[arg_index] << ") cannot be type " << arg_type << " for " << CallType() << " " << call_name_ << "()." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " (" << arg_names_[arg_index] << ") cannot be type " << arg_type << " for " << CallType() << " " << call_name_ << "()." << EidosTerminate(nullptr);
 			
 			// if NULL is explicitly permitted by the signature, we skip the singleton check
 			if (requires_singleton && (argument->Count() != 1) && (arg_type != EidosValueType::kValueNULL))
-				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " (" << arg_names_[arg_index] << ") must be a singleton (size() == 1) for " << CallType() << " " << call_name_ << "(), but size() == " << argument->Count() << "." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " (" << arg_names_[arg_index] << ") must be a singleton (size() == 1) for " << CallType() << " " << call_name_ << "(), but size() == " << argument->Count() << "." << EidosTerminate(nullptr);
 		}
 	}
 }
@@ -359,18 +359,18 @@ void EidosCallSignature::CheckReturn(const EidosValue &p_result) const
 			// in the signature, check the object element type of the return.  Note this uses pointer equality!
 			if (return_type_ok && return_class_ && (((EidosValue_Object &)p_result).Class() != return_class_))
 			{
-				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): (internal error) object return value cannot be element type " << p_result.ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << return_class_->ElementType() << "." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): (internal error) object return value cannot be element type " << p_result.ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << return_class_->ElementType() << "." << EidosTerminate(nullptr);
 			}
 			break;
 	}
 	
 	if (!return_type_ok)
-		EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): (internal error) return value cannot be type " << p_result.Type() << " for " << CallType() << " " << call_name_ << "()." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): (internal error) return value cannot be type " << p_result.Type() << " for " << CallType() << " " << call_name_ << "()." << EidosTerminate(nullptr);
 	
 	bool return_is_singleton = !!(retmask & kEidosValueMaskSingleton);
 	
 	if (return_is_singleton && (p_result.Count() != 1))
-		EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): (internal error) return value must be a singleton (size() == 1) for " << CallType() << " " << call_name_ << "(), but size() == " << p_result.Count() << "." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): (internal error) return value must be a singleton (size() == 1) for " << CallType() << " " << call_name_ << "(), but size() == " << p_result.Count() << "." << EidosTerminate(nullptr);
 }
 
 std::string EidosCallSignature::CallDelegate(void) const

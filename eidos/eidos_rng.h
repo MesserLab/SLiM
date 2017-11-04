@@ -67,18 +67,18 @@ extern unsigned long int gEidos_rng_last_seed;				// unsigned long int is the ty
 
 
 // generate a new random number seed from the PID and clock time
-unsigned long int EidosGenerateSeedFromPIDAndTime(void);
+unsigned long int Eidos_GenerateSeedFromPIDAndTime(void);
 
 // set up the random number generator with a given seed
-void EidosInitializeRNGFromSeed(unsigned long int p_seed);
+void Eidos_InitializeRNGFromSeed(unsigned long int p_seed);
 
 
 // get a random bool from a random number generator
-//static inline bool eidos_random_bool(gsl_rng * r) { return (bool)(gsl_rng_get(r) & 0x01); }
+//static inline bool Eidos_RandomBool(gsl_rng * r) { return (bool)(gsl_rng_get(r) & 0x01); }
 
 // optimization of this is possible assuming each bit returned by gsl_rng_get() is independent and usable as a random boolean.
 // I can't find a hard guarantee of this for gsl_rng_taus2, but it is generally true of good modern RNGs...
-static inline __attribute__((always_inline)) bool eidos_random_bool(gsl_rng *p_r)
+static inline __attribute__((always_inline)) bool Eidos_RandomBool(gsl_rng *p_r)
 {
 	bool retval;
 	
@@ -102,7 +102,7 @@ static inline __attribute__((always_inline)) bool eidos_random_bool(gsl_rng *p_r
 // the gsl_rng_uniform_int() function is very slow, so this is a customized version that should be faster
 // basically it is faster because (1) the range of the taus2 generator is hard-coded, (2) the range check
 // is done only on #if DEBUG, and (3) it uses uint32; otherwise the logic is the same.
-inline uint32_t eidos_random_int(gsl_rng *p_r, uint32_t p_n)
+inline uint32_t Eidos_RandomInt(gsl_rng *p_r, uint32_t p_n)
 {
 	uint32_t scale = UINT32_MAX / p_n;
 	uint32_t k;
@@ -142,7 +142,7 @@ inline uint32_t eidos_random_int(gsl_rng *p_r, uint32_t p_n)
 
 #ifndef USE_GSL_POISSON
 
-static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson(double p_mu)
+static inline __attribute__((always_inline)) unsigned int Eidos_FastRandomPoisson(double p_mu)
 {
 	// Defer to the GSL for large values of mu; see comments above.
 	if (p_mu > 250)
@@ -166,7 +166,7 @@ static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson
 }
 
 // This version allows the caller to supply a precalculated exp(-mu) value
-static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson(double p_mu, double p_exp_neg_mu)
+static inline __attribute__((always_inline)) unsigned int Eidos_FastRandomPoisson(double p_mu, double p_exp_neg_mu)
 {
 	// Defer to the GSL for large values of mu; see comments above.
 	if (p_mu > 250)
@@ -174,7 +174,7 @@ static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson
 	
 	// Test consistency; normally this is commented out
 	//if (p_exp_neg_mu != exp(-p_mu))
-	//	EIDOS_TERMINATION << "ERROR (eidos_fast_ran_poisson): p_exp_neg_mu incorrect." << eidos_terminate(nullptr);
+	//	EIDOS_TERMINATION << "ERROR (Eidos_FastRandomPoisson): p_exp_neg_mu incorrect." << EidosTerminate(nullptr);
 	
 	unsigned int x = 0;
 	double p = p_exp_neg_mu;
@@ -194,7 +194,8 @@ static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson
 }
 
 // This version specifies that the count is guaranteed not to be zero; zero has been ruled out by a previous test
-static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson_nonzero(double p_mu, double p_exp_neg_mu)
+static inline __attribute__((always_inline)) unsigned int Eidos_FastRandomPoisson_NONZERO
+(double p_mu, double p_exp_neg_mu)
 {
 	// Defer to the GSL for large values of mu; see comments above.
 	if (p_mu > 250)
@@ -212,7 +213,7 @@ static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson
 	
 	// Test consistency; normally this is commented out
 	//if (p_exp_neg_mu != exp(-p_mu))
-	//	EIDOS_TERMINATION << "ERROR (eidos_fast_ran_poisson_nonzero): p_exp_neg_mu incorrect." << eidos_terminate(nullptr);
+	//	EIDOS_TERMINATION << "ERROR (Eidos_FastRandomPoisson_NONZERO): p_exp_neg_mu incorrect." << EidosTerminate(nullptr);
 	
 	unsigned int x = 0;
 	double p = p_exp_neg_mu;
@@ -239,7 +240,7 @@ static inline __attribute__((always_inline)) unsigned int eidos_fast_ran_poisson
 	return x;
 }
 
-double eidos_fast_ran_poisson_PRECALCULATE(double p_mu);	// exp(-mu); can underflow to zero, in which case the GSL will be used
+double Eidos_FastRandomPoisson_PRECALCULATE(double p_mu);	// exp(-mu); can underflow to zero, in which case the GSL will be used
 
 
 #endif // USE_GSL_POISSON

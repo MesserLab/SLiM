@@ -40,10 +40,10 @@
 #define EIDOS_EXIT_EXECUTION_LOG(method_name)						if (logging_execution_) *execution_log_ << IndentString(--execution_log_indent_) << method_name << " : return == " << *result_SP << "\n";
 #define EIDOS_BEGIN_EXECUTION_LOG()									if (logging_execution_) execution_log_indent_ = 0;
 #define EIDOS_END_EXECUTION_LOG()									if (gEidosLogEvaluation) std::cout << ExecutionLog();
-#define EIDOS_ASSERT_CHILD_COUNT(method_name, count)				if (p_node->children_.size() != count) EIDOS_TERMINATION << "ERROR (" << method_name << "): (internal error) expected " << count << " child(ren)." << eidos_terminate(p_node->token_);
-#define EIDOS_ASSERT_CHILD_COUNT_GTEQ(method_name, min_count)		if (p_node->children_.size() < min_count) EIDOS_TERMINATION << "ERROR (" << method_name << "): (internal error) expected " << min_count << "+ child(ren)." << eidos_terminate(p_node->token_);
-#define EIDOS_ASSERT_CHILD_RANGE(method_name, lower, upper)			if ((p_node->children_.size() < lower) || (p_node->children_.size() > upper)) EIDOS_TERMINATION << "ERROR (" << method_name << "): (internal error) expected " << lower << " to " << upper << " children." << eidos_terminate(p_node->token_);
-#define EIDOS_ASSERT_CHILD_COUNT_X(node, node_type, method_name, count, blame_token)		if (node->children_.size() != count) EIDOS_TERMINATION << "ERROR (" << method_name << "): (internal error) expected " << count << " child(ren) for " << node_type << " node." << eidos_terminate(blame_token);
+#define EIDOS_ASSERT_CHILD_COUNT(method_name, count)				if (p_node->children_.size() != count) EIDOS_TERMINATION << "ERROR (" << method_name << "): (internal error) expected " << count << " child(ren)." << EidosTerminate(p_node->token_);
+#define EIDOS_ASSERT_CHILD_COUNT_GTEQ(method_name, min_count)		if (p_node->children_.size() < min_count) EIDOS_TERMINATION << "ERROR (" << method_name << "): (internal error) expected " << min_count << "+ child(ren)." << EidosTerminate(p_node->token_);
+#define EIDOS_ASSERT_CHILD_RANGE(method_name, lower, upper)			if ((p_node->children_.size() < lower) || (p_node->children_.size() > upper)) EIDOS_TERMINATION << "ERROR (" << method_name << "): (internal error) expected " << lower << " to " << upper << " children." << EidosTerminate(p_node->token_);
+#define EIDOS_ASSERT_CHILD_COUNT_X(node, node_type, method_name, count, blame_token)		if (node->children_.size() != count) EIDOS_TERMINATION << "ERROR (" << method_name << "): (internal error) expected " << count << " child(ren) for " << node_type << " node." << EidosTerminate(blame_token);
 
 #else
 
@@ -110,7 +110,7 @@ EidosInterpreter::EidosInterpreter(const EidosScript &p_script, EidosSymbolTable
 	// Initialize the random number generator if and only if it has not already been initialized.  In some cases the Context will want to
 	// initialize the RNG itself, with its own seed; we don't want to override that.
 	if (!gEidos_rng)
-		EidosInitializeRNGFromSeed(EidosGenerateSeedFromPIDAndTime());
+		Eidos_InitializeRNGFromSeed(Eidos_GenerateSeedFromPIDAndTime());
 }
 
 EidosInterpreter::EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context)
@@ -119,7 +119,7 @@ EidosInterpreter::EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbol
 	// Initialize the random number generator if and only if it has not already been initialized.  In some cases the Context will want to
 	// initialize the RNG itself, with its own seed; we don't want to override that.
 	if (!gEidos_rng)
-		EidosInitializeRNGFromSeed(EidosGenerateSeedFromPIDAndTime());
+		Eidos_InitializeRNGFromSeed(Eidos_GenerateSeedFromPIDAndTime());
 }
 
 EidosInterpreter::~EidosInterpreter(void)
@@ -144,7 +144,7 @@ void EidosInterpreter::SetShouldLogExecution(bool p_log)
 			execution_log_ = new std::ostringstream();
 #else
 		// Logging execution is disabled until we are either in a DEBUG build or a GUI (EIDOS_GUI)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::SetShouldLogExecution): execution logging is disabled in this build configuration of Eidos." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::SetShouldLogExecution): execution logging is disabled in this build configuration of Eidos." << EidosTerminate(nullptr);
 #endif
 	}
 }
@@ -213,7 +213,7 @@ EidosValue_SP EidosInterpreter::EvaluateInternalBlock(EidosScript *p_script_for_
 	
 	// if a next or break statement was hit and was not handled by a loop, throw an error
 	if (next_statement_hit_ || break_statement_hit_)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::EvaluateInternalBlock): statement \"" << (next_statement_hit_ ? gEidosStr_next : gEidosStr_break) << "\" encountered with no enclosing loop." << eidos_terminate(nullptr);		// nullptr used to allow the token set by the next/break to be used
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::EvaluateInternalBlock): statement \"" << (next_statement_hit_ ? gEidosStr_next : gEidosStr_break) << "\" encountered with no enclosing loop." << EidosTerminate(nullptr);		// nullptr used to allow the token set by the next/break to be used
 	
 	// handle a return statement; we're at the top level, so there's not much to do
 	if (return_statement_hit_)
@@ -279,7 +279,7 @@ EidosValue_SP EidosInterpreter::EvaluateInterpreterBlock(bool p_print_output)
 		
 		// if a next or break statement was hit and was not handled by a loop, throw an error
 		if (next_statement_hit_ || break_statement_hit_)
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::EvaluateInterpreterBlock): statement \"" << (next_statement_hit_ ? gEidosStr_next : gEidosStr_break) << "\" encountered with no enclosing loop." << eidos_terminate(nullptr);		// nullptr used to allow the token set by the next/break to be used
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::EvaluateInterpreterBlock): statement \"" << (next_statement_hit_ ? gEidosStr_next : gEidosStr_break) << "\" encountered with no enclosing loop." << EidosTerminate(nullptr);		// nullptr used to allow the token set by the next/break to be used
 		
 		// send the result of each statement to our output stream; result==nullptr indicates invisible NULL, so we don't print
 		EidosValue *result = result_SP.get();
@@ -346,7 +346,7 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue_SP *p_base_value_p
 			EidosValueType second_child_type = second_child_value->Type();
 			
 			if ((second_child_type != EidosValueType::kValueInt) && (second_child_type != EidosValueType::kValueFloat) && (second_child_type != EidosValueType::kValueLogical))
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): index operand type " << second_child_type << " is not supported by the '[]' operator." << eidos_terminate(parent_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): index operand type " << second_child_type << " is not supported by the '[]' operator." << EidosTerminate(parent_token);
 			
 			int second_child_count = second_child_value->Count();
 			
@@ -354,7 +354,7 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue_SP *p_base_value_p
 			{
 				// A logical vector must exactly match in length; if it does, it selects corresponding indices from base_indices
 				if (second_child_count != (int)base_indices.size())
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): the '[]' operator requires that the size() of a logical index operand must match the size() of the indexed operand." << eidos_terminate(parent_token);
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): the '[]' operator requires that the size() of a logical index operand must match the size() of the indexed operand." << EidosTerminate(parent_token);
 				
 				for (int value_idx = 0; value_idx < second_child_count; value_idx++)
 				{
@@ -376,7 +376,7 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue_SP *p_base_value_p
 						int64_t index_value = second_child_value->IntAtIndex(0, parent_token);
 						
 						if ((index_value < 0) || (index_value >= base_indices_count))
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(parent_token);
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(parent_token);
 						else
 							p_indices_ptr->emplace_back(base_indices[index_value]);
 					}
@@ -390,7 +390,7 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue_SP *p_base_value_p
 							int64_t index_value = second_child_vec[value_idx];
 							
 							if ((index_value < 0) || (index_value >= base_indices_count))
-								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(parent_token);
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(parent_token);
 							else
 								p_indices_ptr->emplace_back(base_indices[index_value]);
 						}
@@ -405,7 +405,7 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue_SP *p_base_value_p
 						int64_t index_value = second_child_value->IntAtIndex(value_idx, parent_token);
 						
 						if ((index_value < 0) || (index_value >= base_indices_count))
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(parent_token);
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(parent_token);
 						else
 							p_indices_ptr->emplace_back(base_indices[index_value]);
 					}
@@ -425,13 +425,13 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue_SP *p_base_value_p
 			EidosValueType first_child_type = first_child_value->Type();
 			
 			if (first_child_type != EidosValueType::kValueObject)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): operand type " << first_child_type << " is not supported by the '.' operator (not an object)." << eidos_terminate(parent_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): operand type " << first_child_type << " is not supported by the '.' operator (not an object)." << EidosTerminate(parent_token);
 			
 			if (right_operand->token_->token_type_ != EidosTokenType::kTokenIdentifier)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): the '.' operator for x.y requires operand y to be an identifier." << eidos_terminate(parent_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): the '.' operator for x.y requires operand y to be an identifier." << EidosTerminate(parent_token);
 			
 			*p_base_value_ptr = first_child_value;
-			*p_property_string_id_ptr = EidosGlobalStringIDForString(right_operand->token_->token_string_);
+			*p_property_string_id_ptr = Eidos_GlobalStringIDForString(right_operand->token_->token_string_);
 			
 			int number_of_elements = first_child_value->Count();	// property operations are guaranteed to produce one value per element
 			
@@ -471,7 +471,7 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue_SP *p_base_value_p
 			break;
 		}
 		default:
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): (internal error) unexpected node token type " << token_type << "; lvalue required." << eidos_terminate(parent_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): (internal error) unexpected node token type " << token_type << "; lvalue required." << EidosTerminate(parent_token);
 			break;
 	}
 }
@@ -512,7 +512,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue_SP p_rvalue, const Eidos
 				if (property_string_id == gEidosID_none)
 				{
 					if (!TypeCheckAssignmentOfEidosValueIntoEidosValue(*p_rvalue, *base_value))
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): type mismatch in assignment (" << p_rvalue->Type() << " versus " << base_value->Type() << ")." << eidos_terminate(nullptr);
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): type mismatch in assignment (" << p_rvalue->Type() << " versus " << base_value->Type() << ")." << EidosTerminate(nullptr);
 					
 					// we have a multiplex assignment of one value to (maybe) more than one index in a symbol host: x[5:10] = 10
 					for (int value_idx = 0; value_idx < index_count; value_idx++)
@@ -528,7 +528,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue_SP p_rvalue, const Eidos
 						EidosValue_SP temp_lvalue = base_value->GetValueAtIndex(indices[value_idx], nullptr);
 						
 						if (temp_lvalue->Type() != EidosValueType::kValueObject)
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): (internal error) dot operator used with non-object value." << eidos_terminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): (internal error) dot operator used with non-object value." << EidosTerminate(nullptr);
 						
 						static_cast<EidosValue_Object *>(temp_lvalue.get())->SetPropertyOfElements(property_string_id, *p_rvalue);
 					}
@@ -539,7 +539,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue_SP p_rvalue, const Eidos
 				if (property_string_id == gEidosID_none)
 				{
 					if (!TypeCheckAssignmentOfEidosValueIntoEidosValue(*p_rvalue, *base_value))
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): type mismatch in assignment (" << p_rvalue->Type() << " versus " << base_value->Type() << ")." << eidos_terminate(nullptr);
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): type mismatch in assignment (" << p_rvalue->Type() << " versus " << base_value->Type() << ")." << EidosTerminate(nullptr);
 					
 					// we have a one-to-one assignment of values to indices in a symbol host: x[5:10] = 5:10
 					for (int value_idx = 0; value_idx < index_count; value_idx++)
@@ -559,7 +559,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue_SP p_rvalue, const Eidos
 						EidosValue_SP temp_rvalue = p_rvalue->GetValueAtIndex(value_idx, nullptr);
 						
 						if (temp_lvalue->Type() != EidosValueType::kValueObject)
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): (internal error) dot operator used with non-object value." << eidos_terminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): (internal error) dot operator used with non-object value." << EidosTerminate(nullptr);
 						
 						static_cast<EidosValue_Object *>(temp_lvalue.get())->SetPropertyOfElements(property_string_id, *temp_rvalue);
 					}
@@ -567,7 +567,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue_SP p_rvalue, const Eidos
 			}
 			else
 			{
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): assignment to a subscript requires an rvalue that is a singleton (multiplex assignment) or that has a .size() matching the .size of the lvalue." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): assignment to a subscript requires an rvalue that is a singleton (multiplex assignment) or that has a .size() matching the .size of the lvalue." << EidosTerminate(nullptr);
 			}
 			
 			break;
@@ -580,12 +580,12 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue_SP p_rvalue, const Eidos
 			EidosValueType first_child_type = first_child_value->Type();
 			
 			if (first_child_type != EidosValueType::kValueObject)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): (internal error) operand type " << first_child_type << " is not supported by the '.' operator." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): (internal error) operand type " << first_child_type << " is not supported by the '.' operator." << EidosTerminate(nullptr);
 			
 			EidosASTNode *second_child_node = p_lvalue_node->children_[1];
 			
 			if (second_child_node->token_->token_type_ != EidosTokenType::kTokenIdentifier)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): (internal error) the '.' operator for x.y requires operand y to be an identifier." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): (internal error) the '.' operator for x.y requires operand y to be an identifier." << EidosTerminate(nullptr);
 			
 			// OK, we have <object type>.<identifier>; we can work with that
 			static_cast<EidosValue_Object *>(first_child_value.get())->SetPropertyOfElements(second_child_node->cached_stringID_, *p_rvalue);
@@ -600,7 +600,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue_SP p_rvalue, const Eidos
 			break;
 		}
 		default:
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): unexpected node token type " << token_type << "; lvalue required." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): unexpected node token type " << token_type << "; lvalue required." << EidosTerminate(nullptr);
 			break;
 	}
 }
@@ -645,7 +645,7 @@ EidosValue_SP EidosInterpreter::EvaluateNode(const EidosASTNode *p_node)
 		case EidosTokenType::kTokenReturn:		return Evaluate_Return(p_node);
 		case EidosTokenType::kTokenFunction:	return Evaluate_FunctionDecl(p_node);
 		default:
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::EvaluateNode): unexpected node token type " << p_node->token_->token_type_ << "." << eidos_terminate(p_node->token_);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::EvaluateNode): unexpected node token type " << p_node->token_->token_type_ << "." << EidosTerminate(p_node->token_);
 	}
 }
 
@@ -698,16 +698,16 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 	EidosValue_SP result_SP;
 	
 	if ((first_child_type != EidosValueType::kValueInt) && (first_child_type != EidosValueType::kValueFloat))
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): operand type " << first_child_type << " is not supported by the ':' operator." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): operand type " << first_child_type << " is not supported by the ':' operator." << EidosTerminate(operator_token);
 	
 	if ((second_child_type != EidosValueType::kValueInt) && (second_child_type != EidosValueType::kValueFloat))
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): operand type " << second_child_type << " is not supported by the ':' operator." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): operand type " << second_child_type << " is not supported by the ':' operator." << EidosTerminate(operator_token);
 	
 	int first_child_count = p_first_child_value.Count();
 	int second_child_count = p_second_child_value.Count();
 	
 	if ((first_child_count != 1) || (second_child_count != 1))
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): operands of the ':' operator must have size() == 1." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): operands of the ':' operator must have size() == 1." << EidosTerminate(operator_token);
 	
 	// OK, we've got good operands; calculate the result.  If both operands are int, the result is int, otherwise float.
 	bool underflow = false;
@@ -720,7 +720,7 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 		if (first_int <= second_int)
 		{
 			if (second_int - first_int + 1 >= 10000000)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 10000000 entries cannot be constructed." << eidos_terminate(operator_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 10000000 entries cannot be constructed." << EidosTerminate(operator_token);
 			
 			EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 			EidosValue_Int_vector *int_result = int_result_SP->Reserve((int)(second_int - first_int + 1));
@@ -733,7 +733,7 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 		else
 		{
 			if (first_int - second_int + 1 >= 10000000)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 10000000 entries cannot be constructed." << eidos_terminate(operator_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 10000000 entries cannot be constructed." << EidosTerminate(operator_token);
 			
 			EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 			EidosValue_Int_vector *int_result = int_result_SP->Reserve((int)(first_int - second_int + 1));
@@ -750,12 +750,12 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 		double second_float = p_second_child_value.FloatAtIndex(0, operator_token);
 		
 		if (std::isnan(first_float) || std::isnan(second_float))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): operands of the ':' operator must not be NAN." << eidos_terminate(operator_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): operands of the ':' operator must not be NAN." << EidosTerminate(operator_token);
 		
 		if (first_float <= second_float)
 		{
 			if (second_float - first_float + 1 >= 10000000)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 10000000 entries cannot be constructed." << eidos_terminate(operator_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 10000000 entries cannot be constructed." << EidosTerminate(operator_token);
 			
 			EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 			EidosValue_Float_vector *float_result = float_result_SP->Reserve((int)(second_float - first_float + 1));
@@ -782,7 +782,7 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 		else
 		{
 			if (first_float - second_float + 1 >= 10000000)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 10000000 entries cannot be constructed." << eidos_terminate(operator_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 10000000 entries cannot be constructed." << EidosTerminate(operator_token);
 			
 			EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 			EidosValue_Float_vector *float_result = float_result_SP->Reserve((int)(first_float - second_float + 1));
@@ -809,7 +809,7 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 	}
 	
 	if (underflow)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): the floating-point range could not be constructed due to underflow." << eidos_terminate(operator_token);	// CODE COVERAGE: This is dead code
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): the floating-point range could not be constructed due to underflow." << EidosTerminate(operator_token);	// CODE COVERAGE: This is dead code
 	
 	return result_SP;
 }
@@ -869,7 +869,7 @@ int EidosInterpreter::_ProcessArgumentList(const EidosASTNode *p_node, const Eid
 			{
 				// We have a non-named argument; it will go into the next argument slot from the signature
 				if (had_named_argument)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): unnamed argument may not follow after named arguments; once named arguments begin, all arguments must be named arguments (or ellipsis arguments)." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): unnamed argument may not follow after named arguments; once named arguments begin, all arguments must be named arguments (or ellipsis arguments)." << EidosTerminate(nullptr);
 				
 				sig_arg_index++;
 			}
@@ -879,7 +879,7 @@ int EidosInterpreter::_ProcessArgumentList(const EidosASTNode *p_node, const Eid
 				const std::vector<EidosASTNode *> &child_children = child->children_;
 				
 				if (child_children.size() != 2)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): (internal error) named argument node child count != 2." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): (internal error) named argument node child count != 2." << EidosTerminate(nullptr);
 				
 				EidosASTNode *named_arg_name_node = child_children[0];
 				EidosASTNode *named_arg_value_node = child_children[1];
@@ -904,12 +904,12 @@ int EidosInterpreter::_ProcessArgumentList(const EidosASTNode *p_node, const Eid
 					EidosValueMask arg_mask = p_call_signature->arg_masks_[sig_arg_index];
 					
 					if (!(arg_mask & kEidosValueMaskOptional))
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument " << named_arg_name_node->token_->token_string_ << " skipped over required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << eidos_terminate(nullptr);
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument " << named_arg_name_node->token_->token_string_ << " skipped over required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << EidosTerminate(nullptr);
 					
 					EidosValue_SP default_value = p_call_signature->arg_defaults_[sig_arg_index];
 					
 					if (!default_value)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): (internal error) missing default value for optional argument." << eidos_terminate(nullptr);
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): (internal error) missing default value for optional argument." << EidosTerminate(nullptr);
 					
 					p_arg_buffer[processed_arg_count] = std::move(default_value);
 					processed_arg_count++;
@@ -917,7 +917,7 @@ int EidosInterpreter::_ProcessArgumentList(const EidosASTNode *p_node, const Eid
 					// Move to the next signature argument; if we have run out of them, then treat this argument is illegal
 					sig_arg_index++;
 					if (sig_arg_index == sig_arg_count)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): ran out of optional arguments while searching for named argument " << named_arg_name_node->token_->token_string_ << "." << eidos_terminate(nullptr);
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): ran out of optional arguments while searching for named argument " << named_arg_name_node->token_->token_string_ << "." << EidosTerminate(nullptr);
 				}
 				while (true);
 				
@@ -928,14 +928,14 @@ int EidosInterpreter::_ProcessArgumentList(const EidosASTNode *p_node, const Eid
 		{
 			// We're beyond the end of the signature's arguments; check whether this argument can qualify as an ellipsis argument
 			if (!p_call_signature->has_ellipsis_)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): too many arguments supplied to function " << p_call_signature->call_name_ << "." << eidos_terminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): too many arguments supplied to function " << p_call_signature->call_name_ << "." << EidosTerminate(nullptr);
 			
 			if (child->token_->token_type_ == EidosTokenType::kTokenAssign)
 			{
 				if (child->children_.size() == 2)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument " << child->children_[0]->token_->token_string_ << " in ellipsis argument section (after the last explicit argument)." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument " << child->children_[0]->token_->token_string_ << " in ellipsis argument section (after the last explicit argument)." << EidosTerminate(nullptr);
 				else
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument in ellipsis argument section (after the last explicit argument)." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument in ellipsis argument section (after the last explicit argument)." << EidosTerminate(nullptr);
 			}
 		}
 		
@@ -950,12 +950,12 @@ int EidosInterpreter::_ProcessArgumentList(const EidosASTNode *p_node, const Eid
 		EidosValueMask arg_mask = p_call_signature->arg_masks_[sig_arg_index];
 		
 		if (!(arg_mask & kEidosValueMaskOptional))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): missing required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): missing required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << EidosTerminate(nullptr);
 		
 		EidosValue_SP default_value = p_call_signature->arg_defaults_[sig_arg_index];
 		
 		if (!default_value)
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): (internal error) missing default value for optional argument." << eidos_terminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): (internal error) missing default value for optional argument." << EidosTerminate(nullptr);
 		
 		p_arg_buffer[processed_arg_count] = std::move(default_value);
 		processed_arg_count++;
@@ -979,7 +979,7 @@ EidosValue_SP EidosInterpreter::DispatchUserDefinedFunction(const EidosFunctionS
 	// Set up variables for the function's parameters; they have already been type-checked and had default
 	// values substituted and so forth, by the Eidos function call dispatch code.
 	if ((int)p_function_signature.arg_name_IDs_.size() != p_argument_count)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::DispatchUserDefinedFunction): (internal error) parameter count does not match argument count." << eidos_terminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::DispatchUserDefinedFunction): (internal error) parameter count does not match argument count." << EidosTerminate(nullptr);
 	
 	for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
 		new_symbols.SetValueForSymbol(p_function_signature.arg_name_IDs_[arg_index], std::move(p_arguments[arg_index]));
@@ -1079,7 +1079,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 			auto signature_iter = function_map_.find(*function_name);
 			
 			if (signature_iter == function_map_.end())
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): unrecognized function name " << *function_name << "." << eidos_terminate(call_identifier_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): unrecognized function name " << *function_name << "." << EidosTerminate(call_identifier_token);
 			
 			function_signature = signature_iter->second;
 		}
@@ -1104,14 +1104,14 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 				if (eidos_context_)
 					result_SP = eidos_context_->ContextDefinedFunctionDispatch(*function_name, arguments_array, processed_arg_count, *this);
 				else
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): function " << function_name << " is defined by the Context, but the Context is not defined." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): function " << function_name << " is defined by the Context, but the Context is not defined." << EidosTerminate(nullptr);
 			}
 			else if (function_signature->body_script_)
 			{
 				result_SP = DispatchUserDefinedFunction(*function_signature, arguments_array, processed_arg_count);
 			}
 			else
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): unbound function " << *function_name << "." << eidos_terminate(call_identifier_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): unbound function " << *function_name << "." << EidosTerminate(call_identifier_token);
 		}
 		else
 		{
@@ -1131,14 +1131,14 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 				if (eidos_context_)
 					result_SP = eidos_context_->ContextDefinedFunctionDispatch(*function_name, arguments_ptr, processed_arg_count, *this);
 				else
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): function " << function_name << " is defined by the Context, but the Context is not defined." << eidos_terminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): function " << function_name << " is defined by the Context, but the Context is not defined." << EidosTerminate(nullptr);
 			}
 			else if (function_signature->body_script_)
 			{
 				result_SP = DispatchUserDefinedFunction(*function_signature, arguments_ptr, processed_arg_count);
 			}
 			else
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): unbound function " << *function_name << "." << eidos_terminate(call_identifier_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): unbound function " << *function_name << "." << EidosTerminate(call_identifier_token);
 		}
 		
 		// If the code above supplied no return value, invisible NULL is assumed as a default to prevent a crash;
@@ -1168,12 +1168,12 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		EidosValueType first_child_type = first_child_value->Type();
 		
 		if (first_child_type != EidosValueType::kValueObject)
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): (internal error) operand type " << first_child_type << " is not supported by the '.' operator." << eidos_terminate(call_name_node->token_);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): (internal error) operand type " << first_child_type << " is not supported by the '.' operator." << EidosTerminate(call_name_node->token_);
 		
 		EidosASTNode *second_child_node = call_name_node->children_[1];
 		
 		if (second_child_node->token_->token_type_ != EidosTokenType::kTokenIdentifier)
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): (internal error) the '.' operator for x.y requires operand y to be an identifier." << eidos_terminate(call_name_node->token_);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): (internal error) the '.' operator for x.y requires operand y to be an identifier." << EidosTerminate(call_name_node->token_);
 		
 		// OK, we have <object type>.<identifier>(...); that's a well-formed method call
 		call_identifier_token = second_child_node->token_;
@@ -1188,11 +1188,11 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		{
 			// Give more helpful error messages for deprecated methods
 			if (call_identifier_token->token_string_ == "method")
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): method " << StringForEidosGlobalStringID(method_id) << "() is not defined on object element type " << method_object->ElementType() << ".  Note that method() has been renamed to methodSignature()." << eidos_terminate(call_identifier_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): method " << Eidos_StringForGlobalStringID(method_id) << "() is not defined on object element type " << method_object->ElementType() << ".  Note that method() has been renamed to methodSignature()." << EidosTerminate(call_identifier_token);
 			else if (call_identifier_token->token_string_ == "property")
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): method " << StringForEidosGlobalStringID(method_id) << "() is not defined on object element type " << method_object->ElementType() << ".  Note that property() has been renamed to propertySignature()." << eidos_terminate(call_identifier_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): method " << Eidos_StringForGlobalStringID(method_id) << "() is not defined on object element type " << method_object->ElementType() << ".  Note that property() has been renamed to propertySignature()." << EidosTerminate(call_identifier_token);
 			else
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): method " << StringForEidosGlobalStringID(method_id) << "() is not defined on object element type " << method_object->ElementType() << "." << eidos_terminate(call_identifier_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): method " << Eidos_StringForGlobalStringID(method_id) << "() is not defined on object element type " << method_object->ElementType() << "." << EidosTerminate(call_identifier_token);
 		}
 		
 		// If an error occurs inside a function or method call, we want to highlight the call
@@ -1249,7 +1249,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 	}
 	else
 	{
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): (internal error) type " << call_name_token_type << " is not supported by the '()' operator (illegal operand for a function call operation)." << eidos_terminate(call_name_node->token_);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): (internal error) type " << call_name_token_type << " is not supported by the '()' operator (illegal operand for a function call operation)." << EidosTerminate(call_name_node->token_);
 	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Call()");
@@ -1278,7 +1278,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 		EidosValueType second_child_type = second_child_value->Type();
 		
 		if ((second_child_type != EidosValueType::kValueInt) && (second_child_type != EidosValueType::kValueFloat) && (second_child_type != EidosValueType::kValueLogical))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): index operand type " << second_child_type << " is not supported by the '[]' operator." << eidos_terminate(operator_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): index operand type " << second_child_type << " is not supported by the '[]' operator." << EidosTerminate(operator_token);
 		
 		// OK, we can definitely do this subset
 		int first_child_count = first_child_value->Count();
@@ -1288,7 +1288,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 		{
 			// Subsetting with a logical vector means the vectors must match in length; indices with a T value will be taken
 			if (first_child_count != second_child_count)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): the '[]' operator requires that the size() of a logical index operand must match the size() of the indexed operand." << eidos_terminate(operator_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): the '[]' operator requires that the size() of a logical index operand must match the size() of the indexed operand." << EidosTerminate(operator_token);
 			
 			// Subsetting with a logical vector does not attempt to allocate singleton values, for now; seems unlikely to be a frequently hit case
 			const std::vector<eidos_logical_t> &logical_index_vec = *second_child_value->LogicalVector();
@@ -1391,7 +1391,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 					int64_t index_value = second_child_value->IntAtIndex(value_idx, operator_token);
 					
 					if ((index_value < 0) || (index_value >= first_child_count))
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(operator_token);
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(operator_token);
 					else
 						result->PushValueFromIndexOfEidosValue((int)index_value, *first_child_value, operator_token);
 				}
@@ -1416,7 +1416,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 							int64_t index_value = int_index_vec[value_idx];
 							
 							if ((index_value < 0) || (index_value >= first_child_count))
-								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(operator_token);
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(operator_token);
 							else
 								float_result->PushFloat(first_child_vec[index_value]);
 						}
@@ -1429,7 +1429,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 							int64_t index_value = second_child_value->IntAtIndex(value_idx, operator_token);
 							
 							if ((index_value < 0) || (index_value >= first_child_count))
-								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(operator_token);
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(operator_token);
 							else
 								float_result->PushFloat(first_child_vec[index_value]);
 						}
@@ -1454,7 +1454,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 							int64_t index_value = int_index_vec[value_idx];
 							
 							if ((index_value < 0) || (index_value >= first_child_count))
-								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(operator_token);
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(operator_token);
 							else
 								int_result->PushInt(first_child_vec[index_value]);
 						}
@@ -1467,7 +1467,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 							int64_t index_value = second_child_value->IntAtIndex(value_idx, operator_token);
 							
 							if ((index_value < 0) || (index_value >= first_child_count))
-								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(operator_token);
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(operator_token);
 							else
 								int_result->PushInt(first_child_vec[index_value]);
 						}
@@ -1492,7 +1492,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 							int64_t index_value = int_index_vec[value_idx];
 							
 							if ((index_value < 0) || (index_value >= first_child_count))
-								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(operator_token);
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(operator_token);
 							else
 								obj_result->PushObjectElement(first_child_vec[index_value]);
 						}
@@ -1505,7 +1505,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 							int64_t index_value = second_child_value->IntAtIndex(value_idx, operator_token);
 							
 							if ((index_value < 0) || (index_value >= first_child_count))
-								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(operator_token);
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(operator_token);
 							else
 								obj_result->PushObjectElement(first_child_vec[index_value]);
 						}
@@ -1531,7 +1531,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 							int64_t index_value = int_index_vec[value_idx];
 							
 							if ((index_value < 0) || (index_value >= first_child_count))
-								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(operator_token);
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(operator_token);
 							else
 								logical_result_vec.emplace_back(first_child_vec[index_value]);
 						}
@@ -1544,7 +1544,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 							int64_t index_value = second_child_value->IntAtIndex(value_idx, operator_token);
 							
 							if ((index_value < 0) || (index_value >= first_child_count))
-								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(operator_token);
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(operator_token);
 							else
 								logical_result_vec.emplace_back(first_child_vec[index_value]);
 						}
@@ -1569,7 +1569,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 							int64_t index_value = int_index_vec[value_idx];
 							
 							if ((index_value < 0) || (index_value >= first_child_count))
-								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(operator_token);
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(operator_token);
 							else
 								string_result->PushString(first_child_vec[index_value]);
 						}
@@ -1582,7 +1582,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 							int64_t index_value = second_child_value->IntAtIndex(value_idx, operator_token);
 							
 							if ((index_value < 0) || (index_value >= first_child_count))
-								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(operator_token);
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(operator_token);
 							else
 								string_result->PushString(first_child_vec[index_value]);
 						}
@@ -1603,7 +1603,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 						int64_t index_value = second_child_value->IntAtIndex(value_idx, operator_token);
 						
 						if ((index_value < 0) || (index_value >= first_child_count))
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << eidos_terminate(operator_token);
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(operator_token);
 						else
 							result->PushValueFromIndexOfEidosValue((int)index_value, *first_child_value, operator_token);
 					}
@@ -1628,13 +1628,13 @@ EidosValue_SP EidosInterpreter::Evaluate_MemberRef(const EidosASTNode *p_node)
 	EidosValueType first_child_type = first_child_value->Type();
 	
 	if (first_child_type != EidosValueType::kValueObject)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_MemberRef): (internal error) operand type " << first_child_type << " is not supported by the '.' operator." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_MemberRef): (internal error) operand type " << first_child_type << " is not supported by the '.' operator." << EidosTerminate(operator_token);
 	
 	EidosASTNode *second_child_node = p_node->children_[1];
 	EidosToken *second_child_token = second_child_node->token_;
 	
 	if (second_child_token->token_type_ != EidosTokenType::kTokenIdentifier)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_MemberRef): (internal error) the '.' operator for x.y requires operand y to be an identifier." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_MemberRef): (internal error) the '.' operator for x.y requires operand y to be an identifier." << EidosTerminate(operator_token);
 	
 	// If an error occurs inside a function or method call, we want to highlight the call
 	EidosErrorPosition error_pos_save = EidosScript::PushErrorPositionFromToken(second_child_token);
@@ -1648,7 +1648,7 @@ EidosValue_SP EidosInterpreter::Evaluate_MemberRef(const EidosASTNode *p_node)
 	
 	// check result; this should never happen, since GetProperty should check
 	if (!result_SP)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_MemberRef): undefined property " << StringForEidosGlobalStringID(property_string_ID) << "." << eidos_terminate(operator_token);		// CODE COVERAGE: This is dead code
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_MemberRef): undefined property " << Eidos_StringForGlobalStringID(property_string_ID) << "." << EidosTerminate(operator_token);		// CODE COVERAGE: This is dead code
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_MemberRef()");
 	return result_SP;
@@ -1669,7 +1669,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 		EidosValueType first_child_type = first_child_value->Type();
 		
 		if ((first_child_type != EidosValueType::kValueInt) && (first_child_type != EidosValueType::kValueFloat))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): operand type " << first_child_type << " is not supported by the unary '+' operator." << eidos_terminate(operator_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): operand type " << first_child_type << " is not supported by the unary '+' operator." << EidosTerminate(operator_token);
 		
 		result_SP = std::move(first_child_value);
 	}
@@ -1689,7 +1689,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 		{
 			// If either operand is a string, then we are doing string concatenation, with promotion to strings if needed
 			if (((first_child_type == EidosValueType::kValueNULL) || (second_child_type == EidosValueType::kValueNULL)))
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): the binary '+' operator does not support operands of type NULL." << eidos_terminate(operator_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): the binary '+' operator does not support operands of type NULL." << EidosTerminate(operator_token);
 			
 			if ((first_child_count == 1) && (second_child_count == 1))
 			{
@@ -1731,7 +1731,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 				}
 				else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
 				{
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): the '+' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): the '+' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
 				}
 			}
 		}
@@ -1751,7 +1751,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 					bool overflow = Eidos_add_overflow(first_operand, second_operand, &add_result);
 					
 					if (overflow)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): integer addition overflow with the binary '+' operator." << eidos_terminate(operator_token);
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): integer addition overflow with the binary '+' operator." << EidosTerminate(operator_token);
 					
 					result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(add_result));
 				}
@@ -1773,7 +1773,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 						bool overflow = Eidos_add_overflow(first_operand, second_operand, &add_result);
 						
 						if (overflow)
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): integer addition overflow with the binary '+' operator." << eidos_terminate(operator_token);
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): integer addition overflow with the binary '+' operator." << EidosTerminate(operator_token);
 						
 						int_result->PushInt(add_result);
 					}
@@ -1798,7 +1798,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 					bool overflow = Eidos_add_overflow(singleton_int, second_operand, &add_result);
 					
 					if (overflow)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): integer addition overflow with the binary '+' operator." << eidos_terminate(operator_token);
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): integer addition overflow with the binary '+' operator." << EidosTerminate(operator_token);
 					
 					int_result->PushInt(add_result);
 				}
@@ -1822,7 +1822,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 					bool overflow = Eidos_add_overflow(first_operand, singleton_int, &add_result);
 					
 					if (overflow)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): integer addition overflow with the binary '+' operator." << eidos_terminate(operator_token);
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): integer addition overflow with the binary '+' operator." << EidosTerminate(operator_token);
 					
 					int_result->PushInt(add_result);
 				}
@@ -1831,13 +1831,13 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 			}
 			else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
 			{
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): the '+' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): the '+' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
 			}
 		}
 		else
 		{
 			if (((first_child_type != EidosValueType::kValueInt) && (first_child_type != EidosValueType::kValueFloat)) || ((second_child_type != EidosValueType::kValueInt) && (second_child_type != EidosValueType::kValueFloat)))
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): the combination of operand types " << first_child_type << " and " << second_child_type << " is not supported by the binary '+' operator." << eidos_terminate(operator_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): the combination of operand types " << first_child_type << " and " << second_child_type << " is not supported by the binary '+' operator." << EidosTerminate(operator_token);
 			
 			// We have at least one float operand, so we are computing a float result
 			if (first_child_count == second_child_count)
@@ -1927,7 +1927,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 			}
 			else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
 			{
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): the '+' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): the '+' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
 			}
 		}
 	}
@@ -1948,7 +1948,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 	EidosValueType first_child_type = first_child_value->Type();
 	
 	if ((first_child_type != EidosValueType::kValueInt) && (first_child_type != EidosValueType::kValueFloat))
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): operand type " << first_child_type << " is not supported by the '-' operator." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): operand type " << first_child_type << " is not supported by the '-' operator." << EidosTerminate(operator_token);
 	
 	int first_child_count = first_child_value->Count();
 	
@@ -1967,7 +1967,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 				bool overflow = Eidos_sub_overflow((int64_t)0, operand, &subtract_result);
 				
 				if (overflow)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer negation overflow with the unary '-' operator." << eidos_terminate(operator_token);
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer negation overflow with the unary '-' operator." << EidosTerminate(operator_token);
 				
 				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(subtract_result));
 			}
@@ -1987,7 +1987,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 					bool overflow = Eidos_sub_overflow((int64_t)0, operand, &subtract_result);
 					
 					if (overflow)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer negation overflow with the unary '-' operator." << eidos_terminate(operator_token);
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer negation overflow with the unary '-' operator." << EidosTerminate(operator_token);
 					
 					int_result->PushInt(subtract_result);
 				}
@@ -2021,7 +2021,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 		EidosValueType second_child_type = second_child_value->Type();
 		
 		if ((second_child_type != EidosValueType::kValueInt) && (second_child_type != EidosValueType::kValueFloat))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): operand type " << second_child_type << " is not supported by the '-' operator." << eidos_terminate(operator_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): operand type " << second_child_type << " is not supported by the '-' operator." << EidosTerminate(operator_token);
 		
 		int second_child_count = second_child_value->Count();
 		
@@ -2041,7 +2041,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 					bool overflow = Eidos_sub_overflow(first_operand, second_operand, &subtract_result);
 					
 					if (overflow)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer subtraction overflow with the binary '-' operator." << eidos_terminate(operator_token);
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer subtraction overflow with the binary '-' operator." << EidosTerminate(operator_token);
 					
 					result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(subtract_result));
 				}
@@ -2063,7 +2063,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 						bool overflow = Eidos_sub_overflow(first_operand, second_operand, &subtract_result);
 						
 						if (overflow)
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer subtraction overflow with the binary '-' operator." << eidos_terminate(operator_token);
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer subtraction overflow with the binary '-' operator." << EidosTerminate(operator_token);
 						
 						int_result->PushInt(subtract_result);
 					}
@@ -2088,7 +2088,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 					bool overflow = Eidos_sub_overflow(singleton_int, second_operand, &subtract_result);
 					
 					if (overflow)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer subtraction overflow with the binary '-' operator." << eidos_terminate(operator_token);
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer subtraction overflow with the binary '-' operator." << EidosTerminate(operator_token);
 					
 					int_result->PushInt(subtract_result);
 				}
@@ -2112,7 +2112,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 					bool overflow = Eidos_sub_overflow(first_operand, singleton_int, &subtract_result);
 					
 					if (overflow)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer subtraction overflow with the binary '-' operator." << eidos_terminate(operator_token);
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer subtraction overflow with the binary '-' operator." << EidosTerminate(operator_token);
 					
 					int_result->PushInt(subtract_result);
 				}
@@ -2121,7 +2121,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 			}
 			else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
 			{
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): the '-' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): the '-' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
 			}
 		}
 		else
@@ -2214,7 +2214,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 			}
 			else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
 			{
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): the '-' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): the '-' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
 			}
 		}
 	}
@@ -2236,10 +2236,10 @@ EidosValue_SP EidosInterpreter::Evaluate_Mod(const EidosASTNode *p_node)
 	EidosValueType second_child_type = second_child_value->Type();
 	
 	if ((first_child_type != EidosValueType::kValueInt) && (first_child_type != EidosValueType::kValueFloat))
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mod): operand type " << first_child_type << " is not supported by the '%' operator." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mod): operand type " << first_child_type << " is not supported by the '%' operator." << EidosTerminate(operator_token);
 	
 	if ((second_child_type != EidosValueType::kValueInt) && (second_child_type != EidosValueType::kValueFloat))
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mod): operand type " << second_child_type << " is not supported by the '%' operator." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mod): operand type " << second_child_type << " is not supported by the '%' operator." << EidosTerminate(operator_token);
 	
 	int first_child_count = first_child_value->Count();
 	int second_child_count = second_child_value->Count();
@@ -2345,7 +2345,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mod(const EidosASTNode *p_node)
 	}
 	else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
 	{
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mod): the '%' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mod): the '%' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
 	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Mod()");
@@ -2365,10 +2365,10 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 	EidosValueType second_child_type = second_child_value->Type();
 	
 	if ((first_child_type != EidosValueType::kValueInt) && (first_child_type != EidosValueType::kValueFloat))
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): operand type " << first_child_type << " is not supported by the '*' operator." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): operand type " << first_child_type << " is not supported by the '*' operator." << EidosTerminate(operator_token);
 	
 	if ((second_child_type != EidosValueType::kValueInt) && (second_child_type != EidosValueType::kValueFloat))
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): operand type " << second_child_type << " is not supported by the '*' operator." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): operand type " << second_child_type << " is not supported by the '*' operator." << EidosTerminate(operator_token);
 	
 	int first_child_count = first_child_value->Count();
 	int second_child_count = second_child_value->Count();
@@ -2391,7 +2391,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 				bool overflow = Eidos_mul_overflow(first_operand, second_operand, &multiply_result);
 				
 				if (overflow)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): integer multiplication overflow with the '*' operator." << eidos_terminate(operator_token);
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): integer multiplication overflow with the '*' operator." << EidosTerminate(operator_token);
 				
 				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(multiply_result));
 			}
@@ -2413,7 +2413,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 					bool overflow = Eidos_mul_overflow(first_operand, second_operand, &multiply_result);
 					
 					if (overflow)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): integer multiplication overflow with the '*' operator." << eidos_terminate(operator_token);
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): integer multiplication overflow with the '*' operator." << EidosTerminate(operator_token);
 					
 					int_result->PushInt(multiply_result);
 				}
@@ -2501,7 +2501,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 				bool overflow = Eidos_mul_overflow(first_operand, singleton_int, &multiply_result);
 				
 				if (overflow)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): integer multiplication overflow with the '*' operator." << eidos_terminate(operator_token);
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): integer multiplication overflow with the '*' operator." << EidosTerminate(operator_token);
 				
 				int_result->PushInt(multiply_result);
 			}
@@ -2535,7 +2535,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 	}
 	else
 	{
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): the '*' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): the '*' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
 	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Mult()");
@@ -2555,10 +2555,10 @@ EidosValue_SP EidosInterpreter::Evaluate_Div(const EidosASTNode *p_node)
 	EidosValueType second_child_type = second_child_value->Type();
 	
 	if ((first_child_type != EidosValueType::kValueInt) && (first_child_type != EidosValueType::kValueFloat))
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Div): operand type " << first_child_type << " is not supported by the '/' operator." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Div): operand type " << first_child_type << " is not supported by the '/' operator." << EidosTerminate(operator_token);
 	
 	if ((second_child_type != EidosValueType::kValueInt) && (second_child_type != EidosValueType::kValueFloat))
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Div): operand type " << second_child_type << " is not supported by the '/' operator." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Div): operand type " << second_child_type << " is not supported by the '/' operator." << EidosTerminate(operator_token);
 	
 	int first_child_count = first_child_value->Count();
 	int second_child_count = second_child_value->Count();
@@ -2664,7 +2664,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Div(const EidosASTNode *p_node)
 	}
 	else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
 	{
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Div): the '/' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Div): the '/' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
 	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Div()");
@@ -2704,7 +2704,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Conditional(const EidosASTNode *p_node)
 	}
 	else
 	{
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Conditional): condition for ternary conditional has size() != 1." << eidos_terminate(p_node->token_);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Conditional): condition for ternary conditional has size() != 1." << EidosTerminate(p_node->token_);
 	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Conditional()");
@@ -2724,10 +2724,10 @@ EidosValue_SP EidosInterpreter::Evaluate_Exp(const EidosASTNode *p_node)
 	EidosValueType second_child_type = second_child_value->Type();
 	
 	if ((first_child_type != EidosValueType::kValueInt) && (first_child_type != EidosValueType::kValueFloat))
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Exp): operand type " << first_child_type << " is not supported by the '^' operator." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Exp): operand type " << first_child_type << " is not supported by the '^' operator." << EidosTerminate(operator_token);
 	
 	if ((second_child_type != EidosValueType::kValueInt) && (second_child_type != EidosValueType::kValueFloat))
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Exp): operand type " << second_child_type << " is not supported by the '^' operator." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Exp): operand type " << second_child_type << " is not supported by the '^' operator." << EidosTerminate(operator_token);
 	
 	int first_child_count = first_child_value->Count();
 	int second_child_count = second_child_value->Count();
@@ -2830,7 +2830,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Exp(const EidosASTNode *p_node)
 	}
 	else
 	{
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Exp): the '^' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Exp): the '^' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
 	}
 	
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Exp()");
@@ -2897,7 +2897,7 @@ EidosValue_SP EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 			EidosValueType child_type = child_result->Type();
 			
 			if ((child_type != EidosValueType::kValueLogical) && (child_type != EidosValueType::kValueString) && (child_type != EidosValueType::kValueInt) && (child_type != EidosValueType::kValueFloat))
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_And): operand type " << child_type << " is not supported by the '&' operator." << eidos_terminate(operator_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_And): operand type " << child_type << " is not supported by the '&' operator." << EidosTerminate(operator_token);
 			
 			int child_count = child_result->Count();
 			
@@ -2912,7 +2912,7 @@ EidosValue_SP EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 					logical_result = child_result->LogicalAtIndex(0, operator_token);
 					result_count = 1;
 				}
-				else if ((child_type == EidosValueType::kValueLogical) && (child_result->use_count() == 1))
+				else if ((child_type == EidosValueType::kValueLogical) && (child_result->UseCount() == 1))
 				{
 					// child_result is a logical EidosValue owned only by us, so we can just take it over as our initial result
 					result_SP = static_pointer_cast<EidosValue_Logical>(std::move(child_result));
@@ -2934,7 +2934,7 @@ EidosValue_SP EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 			{
 				// otherwise, we treat our current result as the left operand, and perform our operation with the right operand
 				if ((result_count != child_count) && (result_count != 1) && (child_count != 1))
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_And): operands to the '&' operator are not compatible in size()." << eidos_terminate(operator_token);
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_And): operands to the '&' operator are not compatible in size()." << EidosTerminate(operator_token);
 				
 				if (child_count == 1)
 				{
@@ -3067,7 +3067,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 			EidosValueType child_type = child_result->Type();
 			
 			if ((child_type != EidosValueType::kValueLogical) && (child_type != EidosValueType::kValueString) && (child_type != EidosValueType::kValueInt) && (child_type != EidosValueType::kValueFloat))
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Or): operand type " << child_type << " is not supported by the '|' operator." << eidos_terminate(operator_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Or): operand type " << child_type << " is not supported by the '|' operator." << EidosTerminate(operator_token);
 			
 			int child_count = child_result->Count();
 			
@@ -3082,7 +3082,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 					logical_result = child_result->LogicalAtIndex(0, operator_token);
 					result_count = 1;
 				}
-				else if ((child_type == EidosValueType::kValueLogical) && (child_result->use_count() == 1))
+				else if ((child_type == EidosValueType::kValueLogical) && (child_result->UseCount() == 1))
 				{
 					// child_result is a logical EidosValue owned only by us, so we can just take it over as our initial result
 					result_SP = static_pointer_cast<EidosValue_Logical>(std::move(child_result));
@@ -3106,7 +3106,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 			{
 				// otherwise, we treat our current result as the left operand, and perform our operation with the right operand
 				if ((result_count != child_count) && (result_count != 1) && (child_count != 1))
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Or): operands to the '|' operator are not compatible in size()." << eidos_terminate(operator_token);
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Or): operands to the '|' operator are not compatible in size()." << EidosTerminate(operator_token);
 				
 				if (child_count == 1)
 				{
@@ -3203,7 +3203,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Not(const EidosASTNode *p_node)
 		EidosValueType first_child_type = first_child_value->Type();
 		
 		if ((first_child_type != EidosValueType::kValueLogical) && (first_child_type != EidosValueType::kValueString) && (first_child_type != EidosValueType::kValueInt) && (first_child_type != EidosValueType::kValueFloat))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Not): operand type " << first_child_type << " is not supported by the '!' operator." << eidos_terminate(operator_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Not): operand type " << first_child_type << " is not supported by the '!' operator." << EidosTerminate(operator_token);
 		
 		int first_child_count = first_child_value->Count();
 		
@@ -3266,7 +3266,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 		EidosValue_SP lvalue_SP = global_symbols_->GetValueOrRaiseForASTNode_IsConst(lvalue_node, &is_const);
 		
 		if (is_const)
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): cannot assign into a constant." << eidos_terminate(p_node->token_);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): cannot assign into a constant." << EidosTerminate(p_node->token_);
 		
 		EidosValue *lvalue = lvalue_SP.get();
 		int lvalue_count = lvalue->Count();
@@ -3302,7 +3302,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 								bool overflow = Eidos_add_overflow(operand1_value, operand2_value, &operand1_value);
 								
 								if (overflow)
-									EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer addition overflow with the binary '+' operator." << eidos_terminate(rvalue_node->token_);
+									EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer addition overflow with the binary '+' operator." << EidosTerminate(rvalue_node->token_);
 								goto compoundAssignmentSuccess;
 							}
 							case EidosTokenType::kTokenMinus:
@@ -3311,7 +3311,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 								bool overflow = Eidos_sub_overflow(operand1_value, operand2_value, &operand1_value);
 								
 								if (overflow)
-									EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer subtraction overflow with the binary '-' operator." << eidos_terminate(rvalue_node->token_);
+									EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer subtraction overflow with the binary '-' operator." << EidosTerminate(rvalue_node->token_);
 								goto compoundAssignmentSuccess;
 							}
 							case EidosTokenType::kTokenMult:
@@ -3320,7 +3320,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 								bool overflow = Eidos_mul_overflow(operand1_value, operand2_value, &operand1_value);
 								
 								if (overflow)
-									EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer multiplication overflow with the '*' operator." << eidos_terminate(rvalue_node->token_);
+									EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer multiplication overflow with the '*' operator." << EidosTerminate(rvalue_node->token_);
 								goto compoundAssignmentSuccess;
 							}
 							default:	// div, mod, and exp always produce float, so we don't handle them for int; we can't change the type of x here
@@ -3341,7 +3341,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 									bool overflow = Eidos_add_overflow(int_vec_value, operand2_value, &int_vec_value);
 									
 									if (overflow)
-										EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer addition overflow with the binary '+' operator." << eidos_terminate(rvalue_node->token_);
+										EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer addition overflow with the binary '+' operator." << EidosTerminate(rvalue_node->token_);
 								}
 								goto compoundAssignmentSuccess;
 							}
@@ -3353,7 +3353,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 									bool overflow = Eidos_sub_overflow(int_vec_value, operand2_value, &int_vec_value);
 									
 									if (overflow)
-										EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer subtraction overflow with the binary '-' operator." << eidos_terminate(rvalue_node->token_);
+										EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer subtraction overflow with the binary '-' operator." << EidosTerminate(rvalue_node->token_);
 								}
 								goto compoundAssignmentSuccess;
 							}
@@ -3365,7 +3365,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 									bool overflow = Eidos_mul_overflow(int_vec_value, operand2_value, &int_vec_value);
 									
 									if (overflow)
-										EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer multiplication overflow with the '*' operator." << eidos_terminate(rvalue_node->token_);
+										EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer multiplication overflow with the '*' operator." << EidosTerminate(rvalue_node->token_);
 								}
 								goto compoundAssignmentSuccess;
 							}
@@ -3529,7 +3529,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 		// both operands are non-NULL, so we're doing a real comparison
 		int first_child_count = first_child_value->Count();
 		int second_child_count = second_child_value->Count();
-		EidosCompareFunctionPtr compareFunc = EidosGetCompareFunctionForTypes(first_child_type, second_child_type, operator_token);
+		EidosCompareFunctionPtr compareFunc = Eidos_GetCompareFunctionForTypes(first_child_type, second_child_type, operator_token);
 		
 		if (first_child_count == second_child_count)
 		{
@@ -3669,12 +3669,12 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 		}
 		else
 		{
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Eq): the '==' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Eq): the '==' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
 		}
 	}
 	else
 	{
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Eq): testing NULL with the '==' operator is an error; use isNULL()." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Eq): testing NULL with the '==' operator is an error; use isNULL()." << EidosTerminate(operator_token);
 	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Eq()");
@@ -3696,14 +3696,14 @@ EidosValue_SP EidosInterpreter::Evaluate_Lt(const EidosASTNode *p_node)
 	EidosValueType second_child_type = second_child_value->Type();
 	
 	if ((first_child_type == EidosValueType::kValueObject) || (second_child_type == EidosValueType::kValueObject))
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Lt): the '<' operator cannot be used with type object." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Lt): the '<' operator cannot be used with type object." << EidosTerminate(operator_token);
 	
 	if ((first_child_type != EidosValueType::kValueNULL) && (second_child_type != EidosValueType::kValueNULL))
 	{
 		// both operands are non-NULL, so we're doing a real comparison
 		int first_child_count = first_child_value->Count();
 		int second_child_count = second_child_value->Count();
-		EidosCompareFunctionPtr compareFunc = EidosGetCompareFunctionForTypes(first_child_type, second_child_type, operator_token);
+		EidosCompareFunctionPtr compareFunc = Eidos_GetCompareFunctionForTypes(first_child_type, second_child_type, operator_token);
 		
 		if (first_child_count == second_child_count)
 		{
@@ -3762,13 +3762,13 @@ EidosValue_SP EidosInterpreter::Evaluate_Lt(const EidosASTNode *p_node)
 		}
 		else
 		{
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Lt): the '<' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Lt): the '<' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
 		}
 	}
 	else
 	{
 		// if either operand is NULL (including if both are), it is an error
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Lt): testing NULL with the '<' operator is an error; use isNULL()." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Lt): testing NULL with the '<' operator is an error; use isNULL()." << EidosTerminate(operator_token);
 	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Lt()");
@@ -3790,14 +3790,14 @@ EidosValue_SP EidosInterpreter::Evaluate_LtEq(const EidosASTNode *p_node)
 	EidosValueType second_child_type = second_child_value->Type();
 	
 	if ((first_child_type == EidosValueType::kValueObject) || (second_child_type == EidosValueType::kValueObject))
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_LtEq): the '<=' operator cannot be used with type object." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_LtEq): the '<=' operator cannot be used with type object." << EidosTerminate(operator_token);
 	
 	if ((first_child_type != EidosValueType::kValueNULL) && (second_child_type != EidosValueType::kValueNULL))
 	{
 		// both operands are non-NULL, so we're doing a real comparison
 		int first_child_count = first_child_value->Count();
 		int second_child_count = second_child_value->Count();
-		EidosCompareFunctionPtr compareFunc = EidosGetCompareFunctionForTypes(first_child_type, second_child_type, operator_token);
+		EidosCompareFunctionPtr compareFunc = Eidos_GetCompareFunctionForTypes(first_child_type, second_child_type, operator_token);
 		
 		if (first_child_count == second_child_count)
 		{
@@ -3856,13 +3856,13 @@ EidosValue_SP EidosInterpreter::Evaluate_LtEq(const EidosASTNode *p_node)
 		}
 		else
 		{
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_LtEq): the '<=' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_LtEq): the '<=' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
 		}
 	}
 	else
 	{
 		// if either operand is NULL (including if both are), it is an error
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_LtEq): testing NULL with the '<=' operator is an error; use isNULL()." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_LtEq): testing NULL with the '<=' operator is an error; use isNULL()." << EidosTerminate(operator_token);
 	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_LtEq()");
@@ -3884,14 +3884,14 @@ EidosValue_SP EidosInterpreter::Evaluate_Gt(const EidosASTNode *p_node)
 	EidosValueType second_child_type = second_child_value->Type();
 	
 	if ((first_child_type == EidosValueType::kValueObject) || (second_child_type == EidosValueType::kValueObject))
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Gt): the '>' operator cannot be used with type object." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Gt): the '>' operator cannot be used with type object." << EidosTerminate(operator_token);
 	
 	if ((first_child_type != EidosValueType::kValueNULL) && (second_child_type != EidosValueType::kValueNULL))
 	{
 		// both operands are non-NULL, so we're doing a real comparison
 		int first_child_count = first_child_value->Count();
 		int second_child_count = second_child_value->Count();
-		EidosCompareFunctionPtr compareFunc = EidosGetCompareFunctionForTypes(first_child_type, second_child_type, operator_token);
+		EidosCompareFunctionPtr compareFunc = Eidos_GetCompareFunctionForTypes(first_child_type, second_child_type, operator_token);
 		
 		if (first_child_count == second_child_count)
 		{
@@ -3950,13 +3950,13 @@ EidosValue_SP EidosInterpreter::Evaluate_Gt(const EidosASTNode *p_node)
 		}
 		else
 		{
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Gt): the '>' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Gt): the '>' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
 		}
 	}
 	else
 	{
 		// if either operand is NULL (including if both are), it is an error
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Gt): testing NULL with the '>' operator is an error; use isNULL()." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Gt): testing NULL with the '>' operator is an error; use isNULL()." << EidosTerminate(operator_token);
 	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Gt()");
@@ -3978,14 +3978,14 @@ EidosValue_SP EidosInterpreter::Evaluate_GtEq(const EidosASTNode *p_node)
 	EidosValueType second_child_type = second_child_value->Type();
 	
 	if ((first_child_type == EidosValueType::kValueObject) || (second_child_type == EidosValueType::kValueObject))
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_GtEq): the '>=' operator cannot be used with type object." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_GtEq): the '>=' operator cannot be used with type object." << EidosTerminate(operator_token);
 	
 	if ((first_child_type != EidosValueType::kValueNULL) && (second_child_type != EidosValueType::kValueNULL))
 	{
 		// both operands are non-NULL, so we're doing a real comparison
 		int first_child_count = first_child_value->Count();
 		int second_child_count = second_child_value->Count();
-		EidosCompareFunctionPtr compareFunc = EidosGetCompareFunctionForTypes(first_child_type, second_child_type, operator_token);
+		EidosCompareFunctionPtr compareFunc = Eidos_GetCompareFunctionForTypes(first_child_type, second_child_type, operator_token);
 		
 		if (first_child_count == second_child_count)
 		{
@@ -4044,13 +4044,13 @@ EidosValue_SP EidosInterpreter::Evaluate_GtEq(const EidosASTNode *p_node)
 		}
 		else
 		{
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_GtEq): the '>=' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_GtEq): the '>=' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
 		}
 	}
 	else
 	{
 		// if either operand is NULL (including if both are), it is an error
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_GtEq): testing NULL with the '>=' operator is an error; use isNULL()." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_GtEq): testing NULL with the '>=' operator is an error; use isNULL()." << EidosTerminate(operator_token);
 	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_GtEq()");
@@ -4076,7 +4076,7 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 		// both operands are non-NULL, so we're doing a real comparison
 		int first_child_count = first_child_value->Count();
 		int second_child_count = second_child_value->Count();
-		EidosCompareFunctionPtr compareFunc = EidosGetCompareFunctionForTypes(first_child_type, second_child_type, operator_token);
+		EidosCompareFunctionPtr compareFunc = Eidos_GetCompareFunctionForTypes(first_child_type, second_child_type, operator_token);
 		
 		if (first_child_count == second_child_count)
 		{
@@ -4216,13 +4216,13 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 		}
 		else
 		{
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_NotEq): the '!=' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << eidos_terminate(operator_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_NotEq): the '!=' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
 		}
 	}
 	else
 	{
 		// if either operand is NULL (including if both are), it is an error
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_NotEq): testing NULL with the '!=' operator is an error; use isNULL()." << eidos_terminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_NotEq): testing NULL with the '!=' operator is an error; use isNULL()." << EidosTerminate(operator_token);
 	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_NotEq()");
@@ -4243,7 +4243,7 @@ int64_t EidosInterpreter::NonnegativeIntegerForString(const std::string &p_numbe
 	
 	if ((p_number_string.find('.') != std::string::npos) || (p_number_string.find('-') != std::string::npos))
 	{
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::IntegerForString): \"" << p_number_string << "\" could not be represented as an integer (decimal or negative exponent)." << eidos_terminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::IntegerForString): \"" << p_number_string << "\" could not be represented as an integer (decimal or negative exponent)." << EidosTerminate(p_blame_token);
 		return 0;
 	}
 	else if ((p_number_string.find('e') != std::string::npos) || (p_number_string.find('E') != std::string::npos))	// has an exponent
@@ -4251,11 +4251,11 @@ int64_t EidosInterpreter::NonnegativeIntegerForString(const std::string &p_numbe
 		double converted_value = strtod(c_str, &last_used_char);
 		
 		if (errno || (last_used_char == c_str))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::IntegerForString): \"" << p_number_string << "\" could not be represented as an integer (strtod conversion error)." << eidos_terminate(p_blame_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::IntegerForString): \"" << p_number_string << "\" could not be represented as an integer (strtod conversion error)." << EidosTerminate(p_blame_token);
 		
 		// nwellnhof on stackoverflow points out that the >= here is correct even though it looks wrong, because reasons...
 		if ((converted_value < INT64_MIN) || (converted_value >= INT64_MAX))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::IntegerForString): \"" << p_number_string << "\" could not be represented as an integer (out of range)." << eidos_terminate(p_blame_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::IntegerForString): \"" << p_number_string << "\" could not be represented as an integer (out of range)." << EidosTerminate(p_blame_token);
 		
 		return static_cast<int64_t>(converted_value);
 	}
@@ -4264,7 +4264,7 @@ int64_t EidosInterpreter::NonnegativeIntegerForString(const std::string &p_numbe
 		int64_t converted_value = strtoq(c_str, &last_used_char, 10);
 		
 		if (errno || (last_used_char == c_str))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::IntegerForString): \"" << p_number_string << "\" could not be represented as an integer (strtoq conversion error)." << eidos_terminate(p_blame_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::IntegerForString): \"" << p_number_string << "\" could not be represented as an integer (strtoq conversion error)." << EidosTerminate(p_blame_token);
 		
 		return converted_value;
 	}
@@ -4282,7 +4282,7 @@ double EidosInterpreter::FloatForString(const std::string &p_number_string, cons
 	double converted_value = strtod(c_str, &last_used_char);
 	
 	if (errno || (last_used_char == c_str))
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::FloatForString): \"" << p_number_string << "\" could not be represented as a float (strtod conversion error)." << eidos_terminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::FloatForString): \"" << p_number_string << "\" could not be represented as a float (strtod conversion error)." << EidosTerminate(p_blame_token);
 	
 	return converted_value;
 }
@@ -4305,7 +4305,7 @@ EidosValue_SP EidosInterpreter::NumericValueForString(const std::string &p_numbe
 		double converted_value = strtod(c_str, &last_used_char);
 		
 		if (errno || (last_used_char == c_str))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): \"" << p_number_string << "\" could not be represented as a float (strtod conversion error)." << eidos_terminate(p_blame_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): \"" << p_number_string << "\" could not be represented as a float (strtod conversion error)." << EidosTerminate(p_blame_token);
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(converted_value));
 	}
@@ -4314,11 +4314,11 @@ EidosValue_SP EidosInterpreter::NumericValueForString(const std::string &p_numbe
 		double converted_value = strtod(c_str, &last_used_char);
 		
 		if (errno || (last_used_char == c_str))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): \"" << p_number_string << "\" could not be represented as an integer (strtod conversion error)." << eidos_terminate(p_blame_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): \"" << p_number_string << "\" could not be represented as an integer (strtod conversion error)." << EidosTerminate(p_blame_token);
 		
 		// nwellnhof on stackoverflow points out that the >= here is correct even though it looks wrong, because reasons...
 		if ((converted_value < INT64_MIN) || (converted_value >= INT64_MAX))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): \"" << p_number_string << "\" could not be represented as an integer (out of range)." << eidos_terminate(p_blame_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): \"" << p_number_string << "\" could not be represented as an integer (out of range)." << EidosTerminate(p_blame_token);
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(static_cast<int64_t>(converted_value)));
 	}
@@ -4327,7 +4327,7 @@ EidosValue_SP EidosInterpreter::NumericValueForString(const std::string &p_numbe
 		int64_t converted_value = strtoq(c_str, &last_used_char, 10);
 		
 		if (errno || (last_used_char == c_str))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): \"" << p_number_string << "\" could not be represented as an integer (strtoq conversion error)." << eidos_terminate(p_blame_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): \"" << p_number_string << "\" could not be represented as an integer (strtoq conversion error)." << EidosTerminate(p_blame_token);
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(converted_value));
 	}
@@ -4479,7 +4479,7 @@ EidosValue_SP EidosInterpreter::Evaluate_If(const EidosASTNode *p_node)
 	}
 	else
 	{
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_If): condition for if statement has size() != 1." << eidos_terminate(p_node->token_);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_If): condition for if statement has size() != 1." << EidosTerminate(p_node->token_);
 	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_If()");
@@ -4550,7 +4550,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Do(const EidosASTNode *p_node)
 		}
 		else
 		{
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Do): condition for do-while loop has size() != 1." << eidos_terminate(p_node->token_);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Do): condition for do-while loop has size() != 1." << EidosTerminate(p_node->token_);
 		}
 	}
 	while (true);
@@ -4594,7 +4594,7 @@ EidosValue_SP EidosInterpreter::Evaluate_While(const EidosASTNode *p_node)
 		}
 		else
 		{
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_While): condition for while loop has size() != 1." << eidos_terminate(p_node->token_);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_While): condition for while loop has size() != 1." << EidosTerminate(p_node->token_);
 		}
 		
 		// execute the while loop's statement by evaluating its node; evaluation values get thrown away
@@ -4647,7 +4647,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 	
 	// we require an identifier to assign into; I toyed with allowing any lvalue, but that is kind of weird / complicated...
 	if (identifier_child->token_->token_type_ != EidosTokenType::kTokenIdentifier)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): the 'for' keyword requires an identifier for its left operand." << eidos_terminate(p_node->token_);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): the 'for' keyword requires an identifier for its left operand." << EidosTerminate(p_node->token_);
 	
 	EidosGlobalStringID identifier_name = identifier_child->cached_stringID_;
 	const EidosASTNode *range_node = p_node->children_[1];
@@ -5076,7 +5076,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 		else
 		{
 			if (range_type == EidosValueType::kValueNULL)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): the 'for' keyword does not allow NULL for its right operand (the range to be iterated over)." << eidos_terminate(p_node->token_);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): the 'for' keyword does not allow NULL for its right operand (the range to be iterated over)." << EidosTerminate(p_node->token_);
 		}
 	}
 	
@@ -5190,7 +5190,7 @@ EidosValue_SP EidosInterpreter::Evaluate_FunctionDecl(const EidosASTNode *p_node
 			
 			// Check param_name; it needs to not be used by another parameter
 			if (std::find(used_param_names.begin(), used_param_names.end(), param_name) != used_param_names.end())
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_FunctionDecl): invalid name for parameter '" << param_name << "'; this name was already used for a previous parameter in this declaration." << eidos_terminate(p_node->token_);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_FunctionDecl): invalid name for parameter '" << param_name << "'; this name was already used for a previous parameter in this declaration." << EidosTerminate(p_node->token_);
 			
 			if (param_children_count == 2)
 			{
@@ -5212,7 +5212,7 @@ EidosValue_SP EidosInterpreter::Evaluate_FunctionDecl(const EidosASTNode *p_node
 					if (std::find(gEidosConstantNames.begin(), gEidosConstantNames.end(), default_string) != gEidosConstantNames.end())
 						default_value = FastEvaluateNode(default_node);
 					else
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_FunctionDecl): invalid default value for parameter '" << param_name << "'; a default value must be a numeric constant, a string constant, or a built-in Eidos constant (T, F, NULL, PI, E, INF, or NAN)." << eidos_terminate(p_node->token_);
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_FunctionDecl): invalid default value for parameter '" << param_name << "'; a default value must be a numeric constant, a string constant, or a built-in Eidos constant (T, F, NULL, PI, E, INF, or NAN)." << EidosTerminate(p_node->token_);
 				}
 				else
 				{
@@ -5250,7 +5250,7 @@ EidosValue_SP EidosInterpreter::Evaluate_FunctionDecl(const EidosASTNode *p_node
 		const EidosFunctionSignature *prior_sig = signature_iter->second;
 		
 		if (prior_sig->internal_function_ || !prior_sig->delegate_name_.empty() || !prior_sig->user_defined_)
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_FunctionDecl): cannot replace built-in function " << function_name << "()." << eidos_terminate(p_node->token_);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_FunctionDecl): cannot replace built-in function " << function_name << "()." << EidosTerminate(p_node->token_);
 	}
 	
 	// Add the user-defined function to our function map (possibly replacing a previous version)

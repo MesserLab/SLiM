@@ -58,7 +58,7 @@ public:
 	Substitution(void) = delete;										// no null construction
 	Substitution(Mutation &p_mutation, slim_generation_t p_fixation_generation);		// construct from the mutation that has fixed, and the generation in which it fixed
 	
-	void print(std::ostream &p_out) const;
+	void PrintForSLiMOutput(std::ostream &p_out) const;
 	
 	//
 	// Eidos support

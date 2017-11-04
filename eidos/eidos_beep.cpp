@@ -46,7 +46,7 @@
  *
  */
 
-std::string EidosBeep(std::string p_sound_name)
+std::string Eidos_Beep(std::string p_sound_name)
 {
 #pragma unused (p_sound_name)
 	// Find a device to output to.  The beep utility uses /dev/tty0 or /dev/vc/0, but those do not seem to work on OS X;
@@ -69,7 +69,7 @@ std::string EidosBeep(std::string p_sound_name)
 			return "";
 		
 		been_here = true;
-		return "#WARNING (EidosBeep): function beep() could not open /dev/tty0 or /dev/vc/0 for writing; output stream may contain control characters to produce beeps.";
+		return "#WARNING (Eidos_Beep): function beep() could not open /dev/tty0 or /dev/vc/0 for writing; output stream may contain control characters to produce beeps.";
 	}
 	
 	// Output a '\a', which rings the bell.  All the other stuff in the beep utility seems to be Linux-specific...

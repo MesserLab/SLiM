@@ -19,7 +19,7 @@
 
 /*
  
- The class Eidos_TestElement is an object element class (i.e. an element class for EidosValue_Object) for testing of Eidos's objects.
+ The class EidosTestElement is an object element class (i.e. an element class for EidosValue_Object) for testing of Eidos's objects.
  It just encapsulates an integer value, so it is not useful for anything but testing.
  
  */
@@ -30,19 +30,19 @@
 #include "eidos_value.h"
 
 
-extern EidosObjectClass *gEidos_TestElementClass;
+extern EidosObjectClass *gEidosTestElement_Class;
 
 
-class Eidos_TestElement : public EidosObjectElementInternal
+class EidosTestElement : public EidosObjectElementInternal
 {
 private:
 	int64_t yolk_;
 	
 public:
-	Eidos_TestElement(const Eidos_TestElement &p_original) = delete;	// no copy-construct
-	Eidos_TestElement& operator=(const Eidos_TestElement&) = delete;	// no copying
+	EidosTestElement(const EidosTestElement &p_original) = delete;	// no copy-construct
+	EidosTestElement& operator=(const EidosTestElement&) = delete;	// no copying
 	
-	explicit Eidos_TestElement(int64_t p_value);
+	explicit EidosTestElement(int64_t p_value);
 	
 	static void FreeThunks(void);										// a hack to de-confuse Valgrind
 	

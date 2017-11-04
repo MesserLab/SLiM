@@ -31,7 +31,7 @@
 
 GenomicElementType::GenomicElementType(slim_objectid_t p_genomic_element_type_id, std::vector<MutationType*> p_mutation_type_ptrs, std::vector<double> p_mutation_fractions) :
 	genomic_element_type_id_(p_genomic_element_type_id), mutation_type_ptrs_(p_mutation_type_ptrs), mutation_fractions_(p_mutation_fractions),
-	self_symbol_(EidosGlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('g', p_genomic_element_type_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_GenomicElementType_Class)))
+	self_symbol_(Eidos_GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('g', p_genomic_element_type_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_GenomicElementType_Class)))
 {
 	InitializeDraws();
 }
@@ -52,7 +52,7 @@ void GenomicElementType::InitializeDraws(void)
 	size_t mutation_type_count = mutation_type_ptrs_.size();
 	
 	if (mutation_type_count != mutation_fractions_.size())
-		EIDOS_TERMINATION << "ERROR (GenomicElementType::InitializeDraws): mutation types and fractions have different sizes." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (GenomicElementType::InitializeDraws): mutation types and fractions have different sizes." << EidosTerminate();
 	
 	if (lookup_mutation_type_)
 	{
@@ -88,7 +88,7 @@ void GenomicElementType::InitializeDraws(void)
 MutationType *GenomicElementType::DrawMutationType(void) const
 {
 	if (!lookup_mutation_type_)
-		EIDOS_TERMINATION << "ERROR (GenomicElementType::DrawMutationType): empty mutation type vector for genomic element type." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (GenomicElementType::DrawMutationType): empty mutation type vector for genomic element type." << EidosTerminate();
 	
 	return mutation_type_ptrs_[gsl_ran_discrete(gEidos_rng, lookup_mutation_type_)];
 }
@@ -215,7 +215,7 @@ void GenomicElementType::SetProperty(EidosGlobalStringID p_property_id, const Ei
 		{
 			color_ = p_value.StringAtIndex(0, nullptr);
 			if (!color_.empty())
-				EidosGetColorComponents(color_, &color_red_, &color_green_, &color_blue_);
+				Eidos_GetColorComponents(color_, &color_red_, &color_green_, &color_blue_);
 			return;
 		}
 		case gID_tag:
@@ -254,7 +254,7 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationFractions(EidosGlobal
 	int proportion_count = arg1_value->Count();
 	
 	if (mut_type_id_count != proportion_count)
-		EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteMethod_setMutationFractions): setMutationFractions() requires the sizes of mutationTypes and proportions to be equal." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteMethod_setMutationFractions): setMutationFractions() requires the sizes of mutationTypes and proportions to be equal." << EidosTerminate();
 	
 	std::vector<MutationType*> mutation_types;
 	std::vector<double> mutation_fractions;
@@ -265,7 +265,7 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationFractions(EidosGlobal
 		double proportion = arg1_value->FloatAtIndex(mut_type_index, nullptr);
 		
 		if (proportion < 0)		// == 0 is allowed but must be fixed before the simulation executes; see InitializeDraws()
-			EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteMethod_setMutationFractions): setMutationFractions() proportions must be greater than or equal to zero (" << proportion << " supplied)." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteMethod_setMutationFractions): setMutationFractions() proportions must be greater than or equal to zero (" << proportion << " supplied)." << EidosTerminate();
 		
 		if (arg0_value->Type() == EidosValueType::kValueInt)
 		{
@@ -281,7 +281,7 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationFractions(EidosGlobal
 			}
 			
 			if (!mutation_type_ptr)
-				EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteMethod_setMutationFractions): setMutationFractions() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteMethod_setMutationFractions): setMutationFractions() mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
 		}
 		else
 		{
@@ -289,7 +289,7 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationFractions(EidosGlobal
 		}
 		
 		if (std::find(mutation_types.begin(), mutation_types.end(), mutation_type_ptr) != mutation_types.end())
-			EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteMethod_setMutationFractions): setMutationFractions() mutation type m" << mutation_type_ptr->mutation_type_id_ << " used more than once." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteMethod_setMutationFractions): setMutationFractions() mutation type m" << mutation_type_ptr->mutation_type_id_ << " used more than once." << EidosTerminate();
 		
 		mutation_types.emplace_back(mutation_type_ptr);
 		mutation_fractions.emplace_back(proportion);

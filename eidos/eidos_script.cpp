@@ -199,7 +199,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 							gEidosCharacterStartOfErrorUTF16 = token_UTF16_start;
 							gEidosCharacterEndOfErrorUTF16 = token_UTF16_end;
 							
-							EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unexpected EOF in custom-delimited string literal." << eidos_terminate();
+							EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unexpected EOF in custom-delimited string literal." << EidosTerminate();
 						}
 						
 						unsigned char chn = (unsigned char)script_string_[token_end + 1];
@@ -463,7 +463,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 							gEidosCharacterStartOfErrorUTF16 = token_UTF16_start;
 							gEidosCharacterEndOfErrorUTF16 = token_UTF16_end;
 							
-							EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unexpected EOF in string literal " << (double_quoted ? "\"" : "'") << token_string << (double_quoted ? "\"" : "'") << "." << eidos_terminate();
+							EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unexpected EOF in string literal " << (double_quoted ? "\"" : "'") << token_string << (double_quoted ? "\"" : "'") << "." << EidosTerminate();
 						}
 						
 						unsigned char chn = (unsigned char)script_string_[token_end + 1];
@@ -491,7 +491,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 								gEidosCharacterStartOfErrorUTF16 = token_UTF16_start;
 								gEidosCharacterEndOfErrorUTF16 = token_UTF16_end;
 								
-								EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unexpected EOF in string literal " << (double_quoted ? "\"" : "'") << token_string << (double_quoted ? "\"" : "'") << "." << eidos_terminate();
+								EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unexpected EOF in string literal " << (double_quoted ? "\"" : "'") << token_string << (double_quoted ? "\"" : "'") << "." << EidosTerminate();
 							}
 							
 							unsigned char ch_esq = (unsigned char)script_string_[token_end + 2];
@@ -525,7 +525,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 									gEidosCharacterStartOfErrorUTF16 = token_UTF16_end + 1;
 									gEidosCharacterEndOfErrorUTF16 = token_UTF16_end + 1 + BYTE_WIDTHS[ch_esq];
 									
-									EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): illegal escape \\" << (char)ch_esq << " in string literal " << (double_quoted ? "\"" : "'") << token_string << (double_quoted ? "\"" : "'") << "." << eidos_terminate();
+									EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): illegal escape \\" << (char)ch_esq << " in string literal " << (double_quoted ? "\"" : "'") << token_string << (double_quoted ? "\"" : "'") << "." << EidosTerminate();
 								}
 							}
 						}
@@ -543,7 +543,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 							gEidosCharacterStartOfErrorUTF16 = token_UTF16_start;
 							gEidosCharacterEndOfErrorUTF16 = token_UTF16_end;
 							
-							EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): illegal newline in string literal " << (double_quoted ? "\"" : "'") << token_string << (double_quoted ? "\"" : "'") << "." << eidos_terminate();
+							EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): illegal newline in string literal " << (double_quoted ? "\"" : "'") << token_string << (double_quoted ? "\"" : "'") << "." << EidosTerminate();
 						}
 						else
 						{
@@ -606,7 +606,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 				gEidosCharacterStartOfErrorUTF16 = token_UTF16_start;
 				gEidosCharacterEndOfErrorUTF16 = token_UTF16_end;
 				
-				EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unrecognized token at '" << script_string_.substr(token_start, token_end - token_start + 1) << "'." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unrecognized token at '" << script_string_.substr(token_start, token_end - token_start + 1) << "'." << EidosTerminate();
 			}
 		}
 		
@@ -689,7 +689,7 @@ void EidosScript::Match(EidosTokenType p_token_type, const char *p_context_cstr)
 	{
 		// if we are doing a fault-tolerant parse, just pretend we saw the token; otherwise, not finding the right token type is fatal
 		if (!parse_make_bad_nodes_)
-			EIDOS_TERMINATION << "ERROR (EidosScript::Match): unexpected token '" << *current_token_ << "' in " << std::string(p_context_cstr) << "; expected '" << p_token_type << "'." << eidos_terminate(current_token_);
+			EIDOS_TERMINATION << "ERROR (EidosScript::Match): unexpected token '" << *current_token_ << "' in " << std::string(p_context_cstr) << "; expected '" << p_token_type << "'." << EidosTerminate(current_token_);
 	}
 }
 
@@ -1659,9 +1659,9 @@ EidosASTNode *EidosScript::Parse_PrimaryExpr(void)
 			{
 				// Give a good error message if the user is using <function> as an identifier
 				if (current_token_type_ == EidosTokenType::kTokenFunction)
-					EIDOS_TERMINATION << "ERROR (EidosScript::Parse_PrimaryExpr): unexpected token '" << *current_token_ << "'.  Note that <function> is now an Eidos language keyword and can no longer be used as an identifier.  User-defined functions may only be declared at the top level, not inside blocks.  The parameter to doCall() is now named 'functionName', and the built-in function previously named 'function' is now named 'functionSignature'." << eidos_terminate(current_token_);
+					EIDOS_TERMINATION << "ERROR (EidosScript::Parse_PrimaryExpr): unexpected token '" << *current_token_ << "'.  Note that <function> is now an Eidos language keyword and can no longer be used as an identifier.  User-defined functions may only be declared at the top level, not inside blocks.  The parameter to doCall() is now named 'functionName', and the built-in function previously named 'function' is now named 'functionSignature'." << EidosTerminate(current_token_);
 				else
-					EIDOS_TERMINATION << "ERROR (EidosScript::Parse_PrimaryExpr): unexpected token '" << *current_token_ << "'." << eidos_terminate(current_token_);
+					EIDOS_TERMINATION << "ERROR (EidosScript::Parse_PrimaryExpr): unexpected token '" << *current_token_ << "'." << EidosTerminate(current_token_);
 			}
 			
 			// We're doing an error-tolerant parse, so we introduce a bad node here as a placeholder for a missing primary expression
@@ -1764,7 +1764,7 @@ EidosASTNode *EidosScript::Parse_Constant(void)
 		{
 			// This case should actually never be hit, since Parse_Constant() is only called when we have already seen a number or string token
 			if (!parse_make_bad_nodes_)
-				EIDOS_TERMINATION << "ERROR (EidosScript::Parse_Constant): unexpected token '" << *current_token_ << "'." << eidos_terminate(current_token_);
+				EIDOS_TERMINATION << "ERROR (EidosScript::Parse_Constant): unexpected token '" << *current_token_ << "'." << EidosTerminate(current_token_);
 			
 			// We're doing an error-tolerant parse, so we introduce a bad node here as a placeholder for a missing constant
 			EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, 0, 0, 0, 0);
@@ -1834,7 +1834,7 @@ EidosASTNode *EidosScript::Parse_ReturnTypeSpec()
 		
 		if (current_token_type_ == EidosTokenType::kTokenRParen)
 			if (!parse_make_bad_nodes_)
-				EIDOS_TERMINATION << "ERROR (EidosScript::Parse_ReturnTypeSpec): unexpected token '" << *current_token_ << "' in return-type specifier; perhaps 'void' is missing?  Note that function() has been renamed to functionSignature()." << eidos_terminate(current_token_);
+				EIDOS_TERMINATION << "ERROR (EidosScript::Parse_ReturnTypeSpec): unexpected token '" << *current_token_ << "' in return-type specifier; perhaps 'void' is missing?  Note that function() has been renamed to functionSignature()." << EidosTerminate(current_token_);
 		
 		if ((current_token_type_ == EidosTokenType::kTokenIdentifier) && (current_token_->token_string_ == "void"))
 		{
@@ -1932,12 +1932,12 @@ EidosASTNode *EidosScript::Parse_TypeSpec(void)
 						case 's':	if (seen_s) saw_double = true; else seen_s = true; break;
 						case 'o':	if (seen_o) saw_double = true; else seen_o = true; break;
 						default:	if (!parse_make_bad_nodes_)
-										EIDOS_TERMINATION << "ERROR (EidosScript::Parse_TypeSpec): illegal type-specifier '" << type << "' (illegal character '" << c << "')." << eidos_terminate(current_token_);
+										EIDOS_TERMINATION << "ERROR (EidosScript::Parse_TypeSpec): illegal type-specifier '" << type << "' (illegal character '" << c << "')." << EidosTerminate(current_token_);
 					}
 					
 					if (saw_double)
 						if (!parse_make_bad_nodes_)
-							EIDOS_TERMINATION << "ERROR (EidosScript::Parse_TypeSpec): illegal type-specifier '" << type << "' (doubly specified type '" << c << "')." << eidos_terminate(current_token_);
+							EIDOS_TERMINATION << "ERROR (EidosScript::Parse_TypeSpec): illegal type-specifier '" << type << "' (doubly specified type '" << c << "')." << EidosTerminate(current_token_);
 				}
 				
 				if (seen_N)		node->typespec_.type_mask |= kEidosValueMaskNULL;
@@ -1970,7 +1970,7 @@ EidosASTNode *EidosScript::Parse_TypeSpec(void)
 		else
 		{
 			if (!parse_make_bad_nodes_)
-				EIDOS_TERMINATION << "ERROR (EidosScript::Parse_TypeSpec): unexpected token '" << *current_token_ << "' in type specifier; expected a type identifier, +, or *." << eidos_terminate(current_token_);
+				EIDOS_TERMINATION << "ERROR (EidosScript::Parse_TypeSpec): unexpected token '" << *current_token_ << "' in type specifier; expected a type identifier, +, or *." << EidosTerminate(current_token_);
 		}
 		
 		if (current_token_type_ == EidosTokenType::kTokenSingleton)
@@ -2014,7 +2014,7 @@ EidosASTNode *EidosScript::Parse_ObjectClassSpec(EidosASTNode *p_type_node)
 		
 		if (!p_type_node->typespec_.object_class)
 			if (!parse_make_bad_nodes_)
-				EIDOS_TERMINATION << "ERROR (EidosScript::Parse_ObjectClassSpec): could not find an Eidos class named '" << object_class << "')." << eidos_terminate(current_token_);
+				EIDOS_TERMINATION << "ERROR (EidosScript::Parse_ObjectClassSpec): could not find an Eidos class named '" << object_class << "')." << EidosTerminate(current_token_);
 		
 		Match(EidosTokenType::kTokenIdentifier, "object-class specifier");
 		Match(EidosTokenType::kTokenGt, "object-class specifier");

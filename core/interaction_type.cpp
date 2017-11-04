@@ -46,7 +46,7 @@ std::ostream& operator<<(std::ostream& p_out, IFType p_if_type)
 
 InteractionType::InteractionType(slim_objectid_t p_interaction_type_id, std::string p_spatiality_string, bool p_reciprocal, double p_max_distance, IndividualSex p_receiver_sex, IndividualSex p_exerter_sex) :
 	interaction_type_id_(p_interaction_type_id), spatiality_string_(p_spatiality_string), reciprocal_(p_reciprocal), max_distance_(p_max_distance), max_distance_sq_(p_max_distance * p_max_distance), receiver_sex_(p_receiver_sex), exerter_sex_(p_exerter_sex), if_type_(IFType::kFixed), if_param1_(1.0), if_param2_(0.0),
-	self_symbol_(EidosGlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('i', p_interaction_type_id)),
+	self_symbol_(Eidos_GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('i', p_interaction_type_id)),
 				 EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_InteractionType_Class)))
 {
 	// Figure out our spatiality, which is the number of spatial dimensions we actively use for distances
@@ -59,7 +59,7 @@ InteractionType::InteractionType(slim_objectid_t p_interaction_type_id, std::str
 	else if (spatiality_string_ == "xyz")
 		spatiality_ = 3;
 	else
-		EIDOS_TERMINATION << "ERROR (InteractionType::InteractionType): illegal spatiality string value" << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::InteractionType): illegal spatiality string value" << EidosTerminate();
 	
 	// Correct our reciprocality for sex-segregation.  Basically, male-male, female-female, and *-* interactions
 	// can be reciprocal because the receivers are the same set of individuals as the exerters; others cannot be,
@@ -213,7 +213,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 		}
 		else
 		{
-			EIDOS_TERMINATION << "ERROR (InteractionType::EvaluateSubpopulation): (internal error) illegal spatiality string value" << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (InteractionType::EvaluateSubpopulation): (internal error) illegal spatiality string value" << EidosTerminate();
 		}
 	}
 	
@@ -732,7 +732,7 @@ double InteractionType::CalculateDistance(double *p_position1, double *p_positio
 		return sqrt(distance_x * distance_x + distance_y * distance_y + distance_z * distance_z);
 	}
 	else
-		EIDOS_TERMINATION << "ERROR (InteractionType::CalculateDistance): calculation of distances requires that the interaction be spatial." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::CalculateDistance): calculation of distances requires that the interaction be spatial." << EidosTerminate();
 }
 
 double InteractionType::CalculateStrengthNoCallbacks(double p_distance)
@@ -792,7 +792,7 @@ double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Indivi
 				EidosValue *result = result_SP.get();
 				
 				if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
-					EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyInteractionCallbacks): interaction() callbacks must provide a float singleton return value." << eidos_terminate(interaction_callback->identifier_token_);
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyInteractionCallbacks): interaction() callbacks must provide a float singleton return value." << EidosTerminate(interaction_callback->identifier_token_);
 				
 				p_strength = result->FloatAtIndex(0, nullptr);
 				
@@ -821,12 +821,12 @@ double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Indivi
 					// referred to by the values may change, but the values themselves will not change).
 					if (interaction_callback->contains_distance_)
 					{
-						local_distance.stack_allocated();		// prevent Eidos_intrusive_ptr from trying to delete this
+						local_distance.StackAllocated();		// prevent Eidos_intrusive_ptr from trying to delete this
 						callback_symbols.InitializeConstantSymbolEntry(gID_distance, EidosValue_SP(&local_distance));
 					}
 					if (interaction_callback->contains_strength_)
 					{
-						local_strength.stack_allocated();		// prevent Eidos_intrusive_ptr from trying to delete this
+						local_strength.StackAllocated();		// prevent Eidos_intrusive_ptr from trying to delete this
 						callback_symbols.InitializeConstantSymbolEntry(gID_strength, EidosValue_SP(&local_strength));
 					}
 					if (interaction_callback->contains_receiver_)
@@ -843,12 +843,12 @@ double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Indivi
 						EidosValue *result = result_SP.get();
 						
 						if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
-							EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyInteractionCallbacks): interaction() callbacks must provide a float singleton return value." << eidos_terminate(interaction_callback->identifier_token_);
+							EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyInteractionCallbacks): interaction() callbacks must provide a float singleton return value." << EidosTerminate(interaction_callback->identifier_token_);
 						
 						p_strength = result->FloatAtIndex(0, nullptr);
 						
 						if (std::isnan(p_strength) || std::isinf(p_strength) || (p_strength < 0.0))
-							EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyInteractionCallbacks): interaction() callbacks must return a finite value >= 0.0." << eidos_terminate(interaction_callback->identifier_token_);
+							EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyInteractionCallbacks): interaction() callbacks must return a finite value >= 0.0." << EidosTerminate(interaction_callback->identifier_token_);
 						
 						// Output generated by the interpreter goes to our output stream
 						SLIM_OUTSTREAM << interpreter.ExecutionOutput();
@@ -876,7 +876,7 @@ double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Indivi
 void InteractionType::EnsureDistancesPresent(InteractionsData &p_subpop_data)
 {
 	if (!p_subpop_data.evaluated_)
-		EIDOS_TERMINATION << "ERROR (InteractionType::EnsureDistancesPresent): (internal error) the interaction has not been evaluated." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::EnsureDistancesPresent): (internal error) the interaction has not been evaluated." << EidosTerminate();
 	
 	if (!p_subpop_data.distances_ && spatiality_)
 	{
@@ -914,7 +914,7 @@ void InteractionType::InitializeDistances(InteractionsData &p_subpop_data)
 void InteractionType::EnsureStrengthsPresent(InteractionsData &p_subpop_data)
 {
 	if (!p_subpop_data.evaluated_)
-		EIDOS_TERMINATION << "ERROR (InteractionType::EnsureDistancesPresent): (internal error) the interaction has not been evaluated." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::EnsureDistancesPresent): (internal error) the interaction has not been evaluated." << EidosTerminate();
 	
 	if (!p_subpop_data.distances_ && spatiality_)
 		EnsureDistancesPresent(p_subpop_data);
@@ -1238,11 +1238,11 @@ SLiM_kdNode *InteractionType::MakeKDTree3_p2(SLiM_kdNode *t, int len)
 void InteractionType::EnsureKDTreePresent(InteractionsData &p_subpop_data)
 {
 	if (!p_subpop_data.evaluated_)
-		EIDOS_TERMINATION << "ERROR (InteractionType::EnsureKDTreePresent): (internal error) the interaction has not been evaluated." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::EnsureKDTreePresent): (internal error) the interaction has not been evaluated." << EidosTerminate();
 	
 	if (spatiality_ == 0)
 	{
-		EIDOS_TERMINATION << "ERROR (InteractionType::EnsureKDTreePresent): (internal error) k-d tree cannot be constructed for non-spatial interactions." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::EnsureKDTreePresent): (internal error) k-d tree cannot be constructed for non-spatial interactions." << EidosTerminate();
 	}
 	else if (!p_subpop_data.kd_nodes_)
 	{
@@ -1317,7 +1317,7 @@ void InteractionType::EnsureKDTreePresent(InteractionsData &p_subpop_data)
 			}
 			
 			if (total_tree_count != p_subpop_data.individual_count_)
-				EIDOS_TERMINATION << "ERROR (InteractionType::EnsureKDTreePresent): (internal error) the k-d tree count " << total_tree_count << " does not match the total individual count" << p_subpop_data.individual_count_ << "." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (InteractionType::EnsureKDTreePresent): (internal error) the k-d tree count " << total_tree_count << " does not match the total individual count" << p_subpop_data.individual_count_ << "." << EidosTerminate();
 #endif
 		}
 	}
@@ -1351,9 +1351,9 @@ void InteractionType::CheckKDTree1_p0_r(SLiM_kdNode *t, double split, bool isLef
 	double x = t->x[0];
 	
 	if (isLeftSubtree) {
-		if (x > split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree1_p0_r): (internal error) the k-d tree is not correctly sorted." << eidos_terminate();
+		if (x > split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree1_p0_r): (internal error) the k-d tree is not correctly sorted." << EidosTerminate();
 	} else {
-		if (x < split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree1_p0_r): (internal error) the k-d tree is not correctly sorted." << eidos_terminate();
+		if (x < split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree1_p0_r): (internal error) the k-d tree is not correctly sorted." << EidosTerminate();
 	}
 	if (t->left) CheckKDTree1_p0_r(t->left, split, isLeftSubtree);
 	if (t->right) CheckKDTree1_p0_r(t->right, split, isLeftSubtree);
@@ -1377,9 +1377,9 @@ void InteractionType::CheckKDTree2_p0_r(SLiM_kdNode *t, double split, bool isLef
 	double x = t->x[0];
 	
 	if (isLeftSubtree) {
-		if (x > split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree2_p0_r): (internal error) the k-d tree is not correctly sorted." << eidos_terminate();
+		if (x > split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree2_p0_r): (internal error) the k-d tree is not correctly sorted." << EidosTerminate();
 	} else {
-		if (x < split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree2_p0_r): (internal error) the k-d tree is not correctly sorted." << eidos_terminate();
+		if (x < split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree2_p0_r): (internal error) the k-d tree is not correctly sorted." << EidosTerminate();
 	}
 	if (t->left) CheckKDTree2_p0_r(t->left, split, isLeftSubtree);
 	if (t->right) CheckKDTree2_p0_r(t->right, split, isLeftSubtree);
@@ -1403,9 +1403,9 @@ void InteractionType::CheckKDTree2_p1_r(SLiM_kdNode *t, double split, bool isLef
 	double x = t->x[1];
 	
 	if (isLeftSubtree) {
-		if (x > split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree2_p1_r): (internal error) the k-d tree is not correctly sorted." << eidos_terminate();
+		if (x > split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree2_p1_r): (internal error) the k-d tree is not correctly sorted." << EidosTerminate();
 	} else {
-		if (x < split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree2_p1_r): (internal error) the k-d tree is not correctly sorted." << eidos_terminate();
+		if (x < split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree2_p1_r): (internal error) the k-d tree is not correctly sorted." << EidosTerminate();
 	}
 	if (t->left) CheckKDTree2_p1_r(t->left, split, isLeftSubtree);
 	if (t->right) CheckKDTree2_p1_r(t->right, split, isLeftSubtree);
@@ -1429,9 +1429,9 @@ void InteractionType::CheckKDTree3_p0_r(SLiM_kdNode *t, double split, bool isLef
 	double x = t->x[0];
 	
 	if (isLeftSubtree) {
-		if (x > split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree3_p0_r): (internal error) the k-d tree is not correctly sorted." << eidos_terminate();
+		if (x > split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree3_p0_r): (internal error) the k-d tree is not correctly sorted." << EidosTerminate();
 	} else {
-		if (x < split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree3_p0_r): (internal error) the k-d tree is not correctly sorted." << eidos_terminate();
+		if (x < split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree3_p0_r): (internal error) the k-d tree is not correctly sorted." << EidosTerminate();
 	}
 	if (t->left) CheckKDTree3_p0_r(t->left, split, isLeftSubtree);
 	if (t->right) CheckKDTree3_p0_r(t->right, split, isLeftSubtree);
@@ -1455,9 +1455,9 @@ void InteractionType::CheckKDTree3_p1_r(SLiM_kdNode *t, double split, bool isLef
 	double x = t->x[1];
 	
 	if (isLeftSubtree) {
-		if (x > split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree3_p1_r): (internal error) the k-d tree is not correctly sorted." << eidos_terminate();
+		if (x > split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree3_p1_r): (internal error) the k-d tree is not correctly sorted." << EidosTerminate();
 	} else {
-		if (x < split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree3_p1_r): (internal error) the k-d tree is not correctly sorted." << eidos_terminate();
+		if (x < split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree3_p1_r): (internal error) the k-d tree is not correctly sorted." << EidosTerminate();
 	}
 	if (t->left) CheckKDTree3_p1_r(t->left, split, isLeftSubtree);
 	if (t->right) CheckKDTree3_p1_r(t->right, split, isLeftSubtree);
@@ -1481,9 +1481,9 @@ void InteractionType::CheckKDTree3_p2_r(SLiM_kdNode *t, double split, bool isLef
 	double x = t->x[2];
 	
 	if (isLeftSubtree) {
-		if (x > split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree3_p2_r): (internal error) the k-d tree is not correctly sorted." << eidos_terminate();
+		if (x > split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree3_p2_r): (internal error) the k-d tree is not correctly sorted." << EidosTerminate();
 	} else {
-		if (x < split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree3_p2_r): (internal error) the k-d tree is not correctly sorted." << eidos_terminate();
+		if (x < split)	EIDOS_TERMINATION << "ERROR (InteractionType::CheckKDTree3_p2_r): (internal error) the k-d tree is not correctly sorted." << EidosTerminate();
 	}
 	if (t->left) CheckKDTree3_p2_r(t->left, split, isLeftSubtree);
 	if (t->right) CheckKDTree3_p2_r(t->right, split, isLeftSubtree);
@@ -1964,15 +1964,15 @@ void InteractionType::FindNeighbors(Subpopulation *p_subpop, InteractionsData &p
 {
 	if (spatiality_ == 0)
 	{
-		EIDOS_TERMINATION << "ERROR (InteractionType::FindNeighbors): (internal error) neighbors cannot be found for non-spatial interactions." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::FindNeighbors): (internal error) neighbors cannot be found for non-spatial interactions." << EidosTerminate();
 	}
 	else if (!p_subpop_data.kd_nodes_)
 	{
-		EIDOS_TERMINATION << "ERROR (InteractionType::FindNeighbors): (internal error) the k-d tree has not been constructed." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::FindNeighbors): (internal error) the k-d tree has not been constructed." << EidosTerminate();
 	}
 	else if (!p_subpop_data.kd_root_)
 	{
-		EIDOS_TERMINATION << "ERROR (InteractionType::FindNeighbors): (internal error) the k-d tree is rootless." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::FindNeighbors): (internal error) the k-d tree is rootless." << EidosTerminate();
 	}
 	else
 	{
@@ -2405,15 +2405,15 @@ double InteractionType::TotalNeighborStrength(Subpopulation *p_subpop, Interacti
 {
 	if (spatiality_ == 0)
 	{
-		EIDOS_TERMINATION << "ERROR (InteractionType::TotalNeighborStrength): (internal error) neighbors cannot be found for non-spatial interactions." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::TotalNeighborStrength): (internal error) neighbors cannot be found for non-spatial interactions." << EidosTerminate();
 	}
 	else if (!p_subpop_data.kd_nodes_)
 	{
-		EIDOS_TERMINATION << "ERROR (InteractionType::TotalNeighborStrength): (internal error) the k-d tree has not been constructed." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::TotalNeighborStrength): (internal error) the k-d tree has not been constructed." << EidosTerminate();
 	}
 	else if (!p_subpop_data.kd_root_)
 	{
-		EIDOS_TERMINATION << "ERROR (InteractionType::TotalNeighborStrength): (internal error) the k-d tree is rootless." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::TotalNeighborStrength): (internal error) the k-d tree is rootless." << EidosTerminate();
 	}
 	else
 	{
@@ -2818,15 +2818,15 @@ void InteractionType::FillNeighborStrengths(Subpopulation *p_subpop, Interaction
 {
 	if (spatiality_ == 0)
 	{
-		EIDOS_TERMINATION << "ERROR (InteractionType::FillNeighborStrengths): (internal error) neighbors cannot be found for non-spatial interactions." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::FillNeighborStrengths): (internal error) neighbors cannot be found for non-spatial interactions." << EidosTerminate();
 	}
 	else if (!p_subpop_data.kd_nodes_)
 	{
-		EIDOS_TERMINATION << "ERROR (InteractionType::FillNeighborStrengths): (internal error) the k-d tree has not been constructed." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::FillNeighborStrengths): (internal error) the k-d tree has not been constructed." << EidosTerminate();
 	}
 	else if (!p_subpop_data.kd_root_)
 	{
-		EIDOS_TERMINATION << "ERROR (InteractionType::FillNeighborStrengths): (internal error) the k-d tree is rootless." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::FillNeighborStrengths): (internal error) the k-d tree is rootless." << EidosTerminate();
 	}
 	else
 	{
@@ -2982,15 +2982,15 @@ void InteractionType::SetProperty(EidosGlobalStringID p_property_id, const Eidos
 		case gID_maxDistance:
 		{
 			if (AnyEvaluated())
-				EIDOS_TERMINATION << "ERROR (InteractionType::SetProperty): maxDistance cannot be changed while the interaction is being evaluated; call unevaluate() first, or set maxDistance prior to evaluation of the interaction." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (InteractionType::SetProperty): maxDistance cannot be changed while the interaction is being evaluated; call unevaluate() first, or set maxDistance prior to evaluation of the interaction." << EidosTerminate();
 			
 			max_distance_ = p_value.FloatAtIndex(0, nullptr);
 			max_distance_sq_ = max_distance_ * max_distance_;
 			
 			if (max_distance_ < 0.0)
-				EIDOS_TERMINATION << "ERROR (InteractionType::SetProperty): the maximum interaction distance must be greater than or equal to zero." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (InteractionType::SetProperty): the maximum interaction distance must be greater than or equal to zero." << EidosTerminate();
 			if ((if_type_ == IFType::kLinear) && (std::isinf(max_distance_) || (max_distance_ <= 0.0)))
-				EIDOS_TERMINATION << "ERROR (InteractionType::SetProperty): the maximum interaction distance must be finite and greater than zero when interaction type 'l' has been chosen." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (InteractionType::SetProperty): the maximum interaction distance must be finite and greater than zero when interaction type 'l' has been chosen." << EidosTerminate();
 			
 			return;
 		}
@@ -3040,9 +3040,9 @@ EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_meth
 	int count1 = individuals1->Count(), count2 = individuals2->Count();
 	
 	if (spatiality_ == 0)
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distance): distance() requires that the interaction be spatial." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distance): distance() requires that the interaction be spatial." << EidosTerminate();
 	if ((count1 != 1) && (count2 != 1))
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distance): distance() requires that either individuals1 or individuals2 be singleton." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distance): distance() requires that either individuals1 or individuals2 be singleton." << EidosTerminate();
 	
 	// Rearrange so that if either vector is non-singleton, it is the second that is non-singleton (one-to-many)
 	if (count1 != 1)
@@ -3060,7 +3060,7 @@ EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_meth
 	auto subpop_data_iter = data_.find(subpop1_id);
 	
 	if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distance): distance() requires that the interaction has been evaluated for the subpopulation first." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distance): distance() requires that the interaction has been evaluated for the subpopulation first." << EidosTerminate();
 	
 	InteractionsData &subpop_data = subpop_data_iter->second;
 	
@@ -3123,7 +3123,7 @@ EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_meth
 			Individual *ind2 = (Individual *)individuals2->ObjectElementAtIndex(ind2_index, nullptr);
 			
 			if (subpop1 != &(ind2->subpopulation_))
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distance): distance() requires that all individuals be in the same subpopulation." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distance): distance() requires that all individuals be in the same subpopulation." << EidosTerminate();
 			
 			slim_popsize_t ind2_index_in_subpop = ind2->index_;
 			double distance = ind1_distances[ind2_index_in_subpop];
@@ -3158,9 +3158,9 @@ EidosValue_SP InteractionType::ExecuteMethod_distanceToPoint(EidosGlobalStringID
 	int count = individuals->Count(), point_count = point->Count();
 	
 	if (spatiality_ == 0)
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distanceToPoint): distanceToPoint() requires that the interaction be spatial." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distanceToPoint): distanceToPoint() requires that the interaction be spatial." << EidosTerminate();
 	if (point_count != spatiality_)
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distanceToPoint): distanceToPoint() requires that point is of length equal to the interaction spatiality." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distanceToPoint): distanceToPoint() requires that point is of length equal to the interaction spatiality." << EidosTerminate();
 	
 	if (count == 0)
 		return gStaticEidosValue_Float_ZeroVec;
@@ -3178,7 +3178,7 @@ EidosValue_SP InteractionType::ExecuteMethod_distanceToPoint(EidosGlobalStringID
 	auto subpop_data_iter = data_.find(subpop1_id);
 	
 	if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distanceToPoint): distanceToPoint() requires that the interaction has been evaluated for the subpopulation first." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distanceToPoint): distanceToPoint() requires that the interaction has been evaluated for the subpopulation first." << EidosTerminate();
 	
 	InteractionsData &subpop_data = subpop_data_iter->second;
 	
@@ -3191,7 +3191,7 @@ EidosValue_SP InteractionType::ExecuteMethod_distanceToPoint(EidosGlobalStringID
 		Individual *ind = (Individual *)individuals->ObjectElementAtIndex(ind_index, nullptr);
 		
 		if (subpop1 != &(ind->subpopulation_))
-			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distanceToPoint): distanceToPoint() requires that all individuals be in the same subpopulation." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distanceToPoint): distanceToPoint() requires that all individuals be in the same subpopulation." << EidosTerminate();
 		
 		double *ind_position = position_data + ind->index_ * SLIM_MAX_DIMENSIONALITY;
 		
@@ -3218,13 +3218,13 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 	auto subpop_data_iter = data_.find(subpop_id);
 	
 	if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires that the interaction has been evaluated for the subpopulation first." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires that the interaction has been evaluated for the subpopulation first." << EidosTerminate();
 	
 	// Check the count
 	int64_t count = arg1_value->IntAtIndex(0, nullptr);
 	
 	if (count < 0)
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires count > 0." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires count > 0." << EidosTerminate();
 	
 	if (count == 0)
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
@@ -3416,10 +3416,10 @@ EidosValue_SP InteractionType::ExecuteMethod_evaluate(EidosGlobalStringID p_meth
 	SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
 	
 	if (!sim)
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_evaluate): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_evaluate): (internal error) the sim is not registered as the context pointer." << EidosTerminate();
 	
 	if (sim->GenerationStage() == SLiMGenerationStage::kStage2GenerateOffspring)
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_evaluate): evaluate() may not be called during offspring generation." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_evaluate): evaluate() may not be called during offspring generation." << EidosTerminate();
 	
 	bool immediate = arg1_value->LogicalAtIndex(0, nullptr);
 	
@@ -3453,7 +3453,7 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighbors(EidosGlobalStringI
 	EidosValue *arg1_value = p_arguments[1].get();
 	
 	if (spatiality_ == 0)
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighbors): nearestNeighbors() requires that the interaction be spatial." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighbors): nearestNeighbors() requires that the interaction be spatial." << EidosTerminate();
 	
 	// Check the individual and subpop
 	Individual *individual = (Individual *)arg0_value->ObjectElementAtIndex(0, nullptr);
@@ -3464,13 +3464,13 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighbors(EidosGlobalStringI
 	auto subpop_data_iter = data_.find(subpop_id);
 	
 	if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighbors): nearestNeighbors() requires that the interaction has been evaluated for the subpopulation first." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighbors): nearestNeighbors() requires that the interaction has been evaluated for the subpopulation first." << EidosTerminate();
 	
 	// Check the count
 	int64_t count = arg1_value->IntAtIndex(0, nullptr);
 	
 	if (count < 0)
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighbors): nearestNeighbors() requires count > 0." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighbors): nearestNeighbors() requires count > 0." << EidosTerminate();
 	if (count == 0)
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 	
@@ -3503,7 +3503,7 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighborsOfPoint(EidosGlobal
 	EidosValue *arg2_value = p_arguments[2].get();
 	
 	if (spatiality_ == 0)
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighborsOfPoint): nearestNeighborsOfPoint() requires that the interaction be spatial." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighborsOfPoint): nearestNeighborsOfPoint() requires that the interaction be spatial." << EidosTerminate();
 	
 	// Check the subpop
 	Subpopulation *subpop = (Subpopulation *)arg0_value->ObjectElementAtIndex(0, nullptr);
@@ -3512,11 +3512,11 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighborsOfPoint(EidosGlobal
 	auto subpop_data_iter = data_.find(subpop_id);
 	
 	if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighborsOfPoint): nearestNeighborsOfPoint() requires that the interaction has been evaluated for the subpopulation first." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighborsOfPoint): nearestNeighborsOfPoint() requires that the interaction has been evaluated for the subpopulation first." << EidosTerminate();
 	
 	// Check the point
 	if (arg1_value->Count() < spatiality_)
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighborsOfPoint): nearestNeighborsOfPoint() requires a point vector with at least as many elements as the InteractionType spatiality." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighborsOfPoint): nearestNeighborsOfPoint() requires a point vector with at least as many elements as the InteractionType spatiality." << EidosTerminate();
 	
 	double point_array[3];
 	
@@ -3527,7 +3527,7 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighborsOfPoint(EidosGlobal
 	int64_t count = arg2_value->IntAtIndex(0, nullptr);
 	
 	if (count < 0)
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighborsOfPoint): nearestNeighborsOfPoint() requires count > 0." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighborsOfPoint): nearestNeighborsOfPoint() requires count > 0." << EidosTerminate();
 	if (count == 0)
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 	
@@ -3561,7 +3561,7 @@ EidosValue_SP InteractionType::ExecuteMethod_setInteractionFunction(EidosGlobalS
 	std::vector<std::string> if_strings;
 	
 	if (AnyEvaluated())
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): setInteractionFunction() cannot be called while the interaction is being evaluated; call unevaluate() first, or call setInteractionFunction() prior to evaluation of the interaction." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): setInteractionFunction() cannot be called while the interaction is being evaluated; call unevaluate() first, or call setInteractionFunction() prior to evaluation of the interaction." << EidosTerminate();
 	
 	if (if_type_string.compare(gStr_f) == 0)
 	{
@@ -3574,7 +3574,7 @@ EidosValue_SP InteractionType::ExecuteMethod_setInteractionFunction(EidosGlobalS
 		expected_if_param_count = 1;
 		
 		if (std::isinf(max_distance_) || (max_distance_ <= 0.0))
-			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): interaction type 'l' cannot be set in setInteractionFunction() unless a finite maximum interaction distance greater than zero has been set." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): interaction type 'l' cannot be set in setInteractionFunction() unless a finite maximum interaction distance greater than zero has been set." << EidosTerminate();
 	}
 	else if (if_type_string.compare(gStr_e) == 0)
 	{
@@ -3587,13 +3587,13 @@ EidosValue_SP InteractionType::ExecuteMethod_setInteractionFunction(EidosGlobalS
 		expected_if_param_count = 2;
 	}
 	else
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): setInteractionFunction() functionType \"" << if_type_string << "\" must be \"f\", \"l\", \"e\", or \"n\"." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): setInteractionFunction() functionType \"" << if_type_string << "\" must be \"f\", \"l\", \"e\", or \"n\"." << EidosTerminate();
 	
 	if ((spatiality_ == 0) && (if_type != IFType::kFixed))
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): setInteractionFunction() requires functionType 'f' for non-spatial interactions." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): setInteractionFunction() requires functionType 'f' for non-spatial interactions." << EidosTerminate();
 	
 	if (p_argument_count != 1 + expected_if_param_count)
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): setInteractionFunction() functionType \"" << if_type << "\" requires exactly " << expected_if_param_count << " DFE parameter" << (expected_if_param_count == 1 ? "" : "s") << "." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): setInteractionFunction() functionType \"" << if_type << "\" requires exactly " << expected_if_param_count << " DFE parameter" << (expected_if_param_count == 1 ? "" : "s") << "." << EidosTerminate();
 	
 	for (int if_param_index = 0; if_param_index < expected_if_param_count; ++if_param_index)
 	{
@@ -3601,7 +3601,7 @@ EidosValue_SP InteractionType::ExecuteMethod_setInteractionFunction(EidosGlobalS
 		EidosValueType if_param_type = if_param_value->Type();
 		
 		if ((if_param_type != EidosValueType::kValueFloat) && (if_param_type != EidosValueType::kValueInt))
-			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): setInteractionFunction() requires that the parameters for this interaction function be of type numeric (integer or float)." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): setInteractionFunction() requires that the parameters for this interaction function be of type numeric (integer or float)." << EidosTerminate();
 		
 		if_parameters.emplace_back(if_param_value->FloatAtIndex(0, nullptr));
 		// intentionally no bounds checks for IF parameters
@@ -3627,7 +3627,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 	int count1 = individuals1->Count(), count2 = individuals2->Count();
 	
 	if ((count1 != 1) && (count2 != 1))
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that either individuals1 or individuals2 be singleton." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that either individuals1 or individuals2 be singleton." << EidosTerminate();
 	
 	// Rearrange so that if either vector is non-singleton, it is the second that is non-singleton (one-to-many)
 	if (count1 != 1)
@@ -3645,7 +3645,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 	auto subpop_data_iter = data_.find(subpop1_id);
 	
 	if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that the interaction has been evaluated for the subpopulation first." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that the interaction has been evaluated for the subpopulation first." << EidosTerminate();
 	
 	InteractionsData &subpop_data = subpop_data_iter->second;
 	std::vector<SLiMEidosBlock*> &callbacks = subpop_data.evaluation_interaction_callbacks_;
@@ -3779,7 +3779,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 				Individual *ind2 = (Individual *)individuals2->ObjectElementAtIndex(ind2_index, nullptr);
 				
 				if (subpop1 != &(ind2->subpopulation_))
-					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that all individuals be in the same subpopulation." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that all individuals be in the same subpopulation." << EidosTerminate();
 				
 				slim_popsize_t ind2_index_in_subpop = ind2->index_;
 				double strength = ind1_strengths[ind2_index_in_subpop];
@@ -3887,7 +3887,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 				Individual *ind2 = (Individual *)individuals2->ObjectElementAtIndex(ind2_index, nullptr);
 				
 				if (subpop1 != &(ind2->subpopulation_))
-					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that all individuals be in the same subpopulation." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that all individuals be in the same subpopulation." << EidosTerminate();
 				
 				slim_popsize_t ind2_index_in_subpop = ind2->index_;
 				double strength = ind1_strengths[ind2_index_in_subpop];
@@ -3921,7 +3921,7 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 	EidosValue *arg0_value = p_arguments[0].get();
 	
 	if (spatiality_ == 0)
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_totalOfNeighborStrengths): totalOfNeighborStrengths() requires that the interaction be spatial." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_totalOfNeighborStrengths): totalOfNeighborStrengths() requires that the interaction be spatial." << EidosTerminate();
 	
 	EidosValue *individuals = arg0_value;
 	int count = individuals->Count();
@@ -3936,7 +3936,7 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 	auto subpop_data_iter = data_.find(subpop_id);
 	
 	if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_totalOfNeighborStrengths): totalOfNeighborStrengths() requires that the interaction has been evaluated for the subpopulation first." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_totalOfNeighborStrengths): totalOfNeighborStrengths() requires that the interaction has been evaluated for the subpopulation first." << EidosTerminate();
 	
 	InteractionsData &subpop_data = subpop_data_iter->second;
 	
@@ -3951,7 +3951,7 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 		Individual *individual = (Individual *)individuals->ObjectElementAtIndex(ind_index, nullptr);
 		
 		if (subpop != &(individual->subpopulation_))
-			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_totalOfNeighborStrengths): totalOfNeighborStrengths() requires that all individuals be in the same subpopulation." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_totalOfNeighborStrengths): totalOfNeighborStrengths() requires that all individuals be in the same subpopulation." << EidosTerminate();
 		
 		slim_popsize_t ind_index_in_subpop = individual->index_;
 		double *position_data = subpop_data.positions_;

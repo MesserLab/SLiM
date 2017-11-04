@@ -83,7 +83,7 @@ private:
 	std::ostringstream *execution_output_ = nullptr;	// allocated lazily
 	
 	// The standard built-in function map, set up by CacheBuiltInFunctionMap()
-	static EidosFunctionMap *built_in_function_map_;
+	static EidosFunctionMap *s_built_in_function_map_;
 	
 public:
 	
@@ -160,7 +160,7 @@ public:
 	
 	// Function dispatch/execution; these are implemented in eidos_functions.cpp
 	static std::vector<const EidosFunctionSignature *> &BuiltInFunctions(void);
-	static inline __attribute__((always_inline)) const EidosFunctionMap *BuiltInFunctionMap(void) { return built_in_function_map_; }
+	static inline __attribute__((always_inline)) const EidosFunctionMap *BuiltInFunctionMap(void) { return s_built_in_function_map_; }
 	static void CacheBuiltInFunctionMap(void);	// must be called by Eidos_WarmUp() before BuiltInFunctionMap() is called
 	
 	// Utility static methods for numeric conversions

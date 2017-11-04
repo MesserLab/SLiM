@@ -50,7 +50,7 @@ Individual::Individual(const Individual &p_original) : subpopulation_(p_original
 	if (s_log_copy_and_assign_)
 	{
 		SLIM_ERRSTREAM << "********* Individual::Individual(Individual&) called!" << std::endl;
-		eidos_print_stacktrace(stderr);
+		Eidos_PrintStacktrace(stderr);
 		SLIM_ERRSTREAM << "************************************************" << std::endl;
 	}
 #endif
@@ -181,7 +181,7 @@ void Individual::GetGenomes(Genome **p_genome1, Genome **p_genome2) const
 	else if (is_child && !is_parent)
 		genomes = &subpopulation_.child_genomes_;
 	else
-		EIDOS_TERMINATION << "ERROR (Individual::GetGenomes): (internal error) unable to unambiguously find genomes." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Individual::GetGenomes): (internal error) unable to unambiguously find genomes." << EidosTerminate();
 	
 	Genome *genome1, *genome2;
 	int genome_count = (int)genomes->size();
@@ -219,7 +219,7 @@ IndividualSex Individual::Sex(void) const
 		else if (is_child && !is_parent)
 			return ((index_ < subpopulation_.child_first_male_index_) ? IndividualSex::kFemale : IndividualSex::kMale);
 		else
-			EIDOS_TERMINATION << "ERROR (Individual::Sex): (internal error) unable to unambiguously find genomes." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Individual::Sex): (internal error) unable to unambiguously find genomes." << EidosTerminate();
 	}
 	else
 	{
@@ -314,12 +314,12 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			SLiMSim *sim = &(subpopulation_.population_.sim_);
 			
 			if (!sim)
-				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): (internal error) the sim is not registered as the context pointer." << EidosTerminate();
 			
 			switch (sim->SpatialDimensionality())
 			{
 				case 0:
-					EIDOS_TERMINATION << "ERROR (Individual::GetProperty): position cannot be accessed in non-spatial simulations." << eidos_terminate();
+					EIDOS_TERMINATION << "ERROR (Individual::GetProperty): position cannot be accessed in non-spatial simulations." << EidosTerminate();
 				case 1:
 					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(spatial_x_));
 				case 2:
@@ -566,7 +566,7 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 			color_ = p_value.StringAtIndex(0, nullptr);
 			if (!color_.empty())
 			{
-				EidosGetColorComponents(color_, &color_red_, &color_green_, &color_blue_);
+				Eidos_GetColorComponents(color_, &color_red_, &color_green_, &color_blue_);
 				gSLiM_Individual_custom_colors = true;	// notify the display code that custom colors are being used
 			}
 			return;
@@ -636,7 +636,7 @@ void Individual::SetProperty_Accelerated_String(EidosGlobalStringID p_property_i
 			color_ = p_value;
 			if (!color_.empty())
 			{
-				EidosGetColorComponents(color_, &color_red_, &color_green_, &color_blue_);
+				Eidos_GetColorComponents(color_, &color_red_, &color_green_, &color_blue_);
 				gSLiM_Individual_custom_colors = true;	// notify the display code that custom colors are being used
 			}
 			return;
@@ -723,13 +723,13 @@ EidosValue_SP Individual::ExecuteMethod_countOfMutationsOfType(EidosGlobalString
 			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
 			
 			if (!sim)
-				EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_countOfMutationsOfType): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_countOfMutationsOfType): (internal error) the sim is not registered as the context pointer." << EidosTerminate();
 			
 			slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
 			auto found_muttype_pair = sim->MutationTypes().find(mutation_type_id);
 			
 			if (found_muttype_pair == sim->MutationTypes().end())
-				EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_countOfMutationsOfType): countOfMutationsOfType() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_countOfMutationsOfType): countOfMutationsOfType() mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
 			
 			mutation_type_ptr = found_muttype_pair->second;
 		}
@@ -823,16 +823,16 @@ EidosValue_SP Individual::ExecuteMethod_setSpatialPosition(EidosGlobalStringID p
 	SLiMSim *sim = &(subpopulation_.population_.sim_);
 	
 	if (!sim)
-		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_setSpatialPosition): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_setSpatialPosition): (internal error) the sim is not registered as the context pointer." << EidosTerminate();
 	
 	int dimensionality = sim->SpatialDimensionality();
 	int value_count = arg0_value->Count();
 	
 	if (dimensionality == 0)
-		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_setSpatialPosition): setPosition() cannot be called in non-spatial simulations." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_setSpatialPosition): setPosition() cannot be called in non-spatial simulations." << EidosTerminate();
 	
 	if (value_count < dimensionality)
-		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_setSpatialPosition): setPosition() requires at least as many coordinates as the spatial dimensionality of the simulation." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_setSpatialPosition): setPosition() requires at least as many coordinates as the spatial dimensionality of the simulation." << EidosTerminate();
 	
 	switch (dimensionality)
 	{
@@ -873,13 +873,13 @@ EidosValue_SP Individual::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID
 			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
 			
 			if (!sim)
-				EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_sumOfMutationsOfType): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_sumOfMutationsOfType): (internal error) the sim is not registered as the context pointer." << EidosTerminate();
 			
 			slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
 			auto found_muttype_pair = sim->MutationTypes().find(mutation_type_id);
 			
 			if (found_muttype_pair == sim->MutationTypes().end())
-				EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_sumOfMutationsOfType): sumOfMutationsOfType() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_sumOfMutationsOfType): sumOfMutationsOfType() mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
 			
 			mutation_type_ptr = found_muttype_pair->second;
 		}
@@ -951,13 +951,13 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 		SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
 		
 		if (!sim)
-			EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_uniqueMutationsOfType): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_uniqueMutationsOfType): (internal error) the sim is not registered as the context pointer." << EidosTerminate();
 		
 		slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
 		auto found_muttype_pair = sim->MutationTypes().find(mutation_type_id);
 		
 		if (found_muttype_pair == sim->MutationTypes().end())
-			EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_uniqueMutationsOfType): uniqueMutationsOfType() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+			EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_uniqueMutationsOfType): uniqueMutationsOfType() mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
 		
 		mutation_type_ptr = found_muttype_pair->second;
 	}
