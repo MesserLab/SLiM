@@ -30,14 +30,6 @@
 #include <algorithm>
 
 
-using std::string;
-using std::vector;
-using std::endl;
-using std::istringstream;
-using std::istream;
-using std::ostream;
-
-
 //
 //	EidosTypeInterpreter
 //
@@ -164,7 +156,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_RangeExpr(const EidosASTNo
 	return result_type;
 }
 
-EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(string const &p_function_name, const EidosFunctionSignature *p_function_signature, const std::vector<EidosASTNode *> &p_arguments)
+EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(std::string const &p_function_name, const EidosFunctionSignature *p_function_signature, const std::vector<EidosASTNode *> &p_arguments)
 {
 #pragma unused(p_function_name)
 	EidosTypeSpecifier result_type = EidosTypeSpecifier{kEidosValueMaskNone, nullptr};
@@ -360,7 +352,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Call(const EidosASTNode *p
 		call_identifier_token = call_name_node->token_;
 		
 		// OK, we have <identifier>(...); that's a well-formed function call
-		const string *function_name = &(call_identifier_token->token_string_);
+		const std::string *function_name = &(call_identifier_token->token_string_);
 		const EidosFunctionSignature *function_signature = call_name_node->cached_signature_;
 		
 		// If the function call is a built-in Eidos function, we might already have a pointer to its signature cached; if not, we'll have to look it up
@@ -376,7 +368,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Call(const EidosASTNode *p
 		if (function_signature)
 		{
 			// Argument processing
-			vector<EidosASTNode *> arguments;
+			std::vector<EidosASTNode *> arguments;
 			
 			_ProcessArgumentListTypes(p_node, function_signature, arguments);
 			
@@ -415,7 +407,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Call(const EidosASTNode *p
 					if (method_signature)
 					{
 						// Argument processing
-						vector<EidosASTNode *> arguments;
+						std::vector<EidosASTNode *> arguments;
 						
 						_ProcessArgumentListTypes(p_node, method_signature, arguments);
 						

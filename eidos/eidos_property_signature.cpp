@@ -23,10 +23,6 @@
 #include <string>
 
 
-using std::string;
-using std::ostream;
-
-
 EidosPropertySignature::EidosPropertySignature(const std::string &p_property_name, EidosGlobalStringID p_property_id, bool p_read_only, EidosValueMask p_value_mask)
 	: property_name_(p_property_name), property_id_(p_property_id), read_only_(p_read_only), value_mask_(p_value_mask), value_class_(nullptr), accelerated_get_(false), accelerated_set_(false)
 {
@@ -187,7 +183,7 @@ EidosPropertySignature *EidosPropertySignature::DeclareAcceleratedSet(void)
 	return this;
 }
 
-ostream &operator<<(ostream &p_outstream, const EidosPropertySignature &p_signature)
+std::ostream &operator<<(std::ostream &p_outstream, const EidosPropertySignature &p_signature)
 {
 	p_outstream << p_signature.property_name_ << " " << p_signature.PropertySymbol() << " (";
 	p_outstream << StringForEidosValueMask(p_signature.value_mask_, p_signature.value_class_, "", nullptr) << ")";

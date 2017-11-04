@@ -35,10 +35,6 @@
 #include "polymorphism.h"
 
 
-using std::endl;
-using std::string;
-
-
 Population::Population(SLiMSim &p_sim) : sim_(p_sim)
 {
 }
@@ -4215,7 +4211,7 @@ void Population::CheckMutationRegistry(void)
 	// first check that we don't have any zombies in our registry
 	for (; registry_iter != registry_iter_end; ++registry_iter)
 		if (*(refcount_block_ptr + *registry_iter) == -1)
-			SLIM_ERRSTREAM << "Zombie found in registry with address " << (*registry_iter) << endl;
+			SLIM_ERRSTREAM << "Zombie found in registry with address " << (*registry_iter) << std::endl;
 	
 	// then check that we don't have any zombies in any genomes
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)		// subpopulations
@@ -4237,7 +4233,7 @@ void Population::CheckMutationRegistry(void)
 				
 				for (; genome_iter != genome_end_iter; ++genome_iter)
 					if (*(refcount_block_ptr + *genome_iter) == -1)
-						SLIM_ERRSTREAM << "Zombie found in genome with address " << (*genome_iter) << endl;
+						SLIM_ERRSTREAM << "Zombie found in genome with address " << (*genome_iter) << std::endl;
 			}
 		}
 	}
@@ -4264,10 +4260,10 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions) 
 	
 	// Starting in SLiM 2.3, we output a version indicator at the top of the file so we can decode different versions, etc.
 	// We use the same version numbers used in PrintAllBinary(), for simplicity.
-	p_out << "Version: 3" << endl;
+	p_out << "Version: 3" << std::endl;
 	
 	// Output populations first
-	p_out << "Populations:" << endl;
+	p_out << "Populations:" << std::endl;
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
 	{
 		Subpopulation *subpop = subpop_pair.second;
@@ -4282,7 +4278,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions) 
 		else
 			p_out << " H";
 		
-		p_out << endl;
+		p_out << std::endl;
 		
 #if DO_MEMORY_CHECKS
 		if (eidos_do_memory_checks && ((++mem_check_counter) % mem_check_mod == 0))
@@ -4322,7 +4318,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions) 
 	}
 	
 	// print all polymorphisms
-	p_out << "Mutations:"  << endl;
+	p_out << "Mutations:"  << std::endl;
 	
 	for (const PolymorphismPair &polymorphism_pair : polymorphisms)
 	{
@@ -4335,7 +4331,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions) 
 	}
 	
 	// print all individuals
-	p_out << "Individuals:" << endl;
+	p_out << "Individuals:" << std::endl;
 	
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)			// go through all subpopulations
 	{
@@ -4369,7 +4365,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions) 
 					p_out << " " << individual.spatial_z_;
 			}
 			
-			p_out << endl;
+			p_out << std::endl;
 			
 #if DO_MEMORY_CHECKS
 			if (eidos_do_memory_checks && ((++mem_check_counter) % mem_check_mod == 0))
@@ -4379,7 +4375,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions) 
 	}
 	
 	// print all genomes
-	p_out << "Genomes:" << endl;
+	p_out << "Genomes:" << std::endl;
 	
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)			// go through all subpopulations
 	{
@@ -4419,7 +4415,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions) 
 				}
 			}
 			
-			p_out << endl;
+			p_out << std::endl;
 			
 #if DO_MEMORY_CHECKS
 			if (eidos_do_memory_checks && ((++mem_check_counter) % mem_check_mod == 0))
@@ -4554,7 +4550,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		}
 	}
 	
-	// Write out the size of the mutation map, so we can allocate a vector rather than using std::map when reading
+	// Write out the size of the mutation map, so we can allocate a vector rather than utilizing std::map when reading
 	int32_t mutation_map_size = (int32_t)polymorphisms.size();
 	
 	p_out.write(reinterpret_cast<char *>(&mutation_map_size), sizeof mutation_map_size);

@@ -30,14 +30,6 @@
 #include <cmath>
 
 
-using std::string;
-using std::vector;
-using std::endl;
-using std::istringstream;
-using std::istream;
-using std::ostream;
-
-
 //
 //	EidosSymbolTable
 //
@@ -624,13 +616,13 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosSymbolTable &p_sy
 		bool is_const = std::find(read_only_symbol_names.begin(), read_only_symbol_names.end(), symbol_name) != read_only_symbol_names.end();
 		
 		if (symbol_count <= 2)
-			p_outstream << symbol_name << (is_const ? " => (" : " -> (") << symbol_value->Type() << ") " << *symbol_value << endl;
+			p_outstream << symbol_name << (is_const ? " => (" : " -> (") << symbol_value->Type() << ") " << *symbol_value << std::endl;
 		else
 		{
 			EidosValue_SP first_value = symbol_value->GetValueAtIndex(0, nullptr);
 			EidosValue_SP second_value = symbol_value->GetValueAtIndex(1, nullptr);
 			
-			p_outstream << symbol_name << (is_const ? " => (" : " -> (") << symbol_value->Type() << ") " << *first_value << " " << *second_value << " ... (" << symbol_count << " values)" << endl;
+			p_outstream << symbol_name << (is_const ? " => (" : " -> (") << symbol_value->Type() << ") " << *first_value << " " << *second_value << " ... (" << symbol_count << " values)" << std::endl;
 		}
 	}
 	

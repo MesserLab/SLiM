@@ -23,16 +23,12 @@
 #include <vector>
 
 
-using std::endl;
-using std::string;
-
-
 //
 //	SLiMEidosScript
 //
 #pragma mark SLiMEidosScript
 
-SLiMEidosScript::SLiMEidosScript(const string &p_script_string) : EidosScript(p_script_string)
+SLiMEidosScript::SLiMEidosScript(const std::string &p_script_string) : EidosScript(p_script_string)
 {
 }
 
@@ -402,7 +398,7 @@ void SLiMEidosScript::ParseSLiMFileToAST(bool p_make_bad_nodes)
 	parse_make_bad_nodes_ = false;
 }
 
-bool SLiMEidosScript::StringIsIDWithPrefix(const string &p_identifier_string, char p_prefix_char)
+bool SLiMEidosScript::StringIsIDWithPrefix(const std::string &p_identifier_string, char p_prefix_char)
 {
 	const char *id_cstr = p_identifier_string.c_str();
 	size_t id_cstr_len = strlen(id_cstr);
@@ -415,7 +411,7 @@ bool SLiMEidosScript::StringIsIDWithPrefix(const string &p_identifier_string, ch
 	return true;
 }
 
-slim_objectid_t SLiMEidosScript::ExtractIDFromStringWithPrefix(const string &p_identifier_string, char p_prefix_char, const EidosToken *p_blame_token)
+slim_objectid_t SLiMEidosScript::ExtractIDFromStringWithPrefix(const std::string &p_identifier_string, char p_prefix_char, const EidosToken *p_blame_token)
 {
 	const char *id_cstr = p_identifier_string.c_str();
 	size_t id_cstr_len = strlen(id_cstr);
@@ -1221,7 +1217,7 @@ void SLiMTypeInterpreter::_SetTypeForISArgumentOfClass(const EidosASTNode *p_arg
 	}
 }
 
-EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(string const &p_function_name, const EidosFunctionSignature *p_function_signature, const std::vector<EidosASTNode *> &p_arguments)
+EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(std::string const &p_function_name, const EidosFunctionSignature *p_function_signature, const std::vector<EidosASTNode *> &p_arguments)
 {
 	// In figuring this stuff out, we need to be careful about the fact that the p_arguments vector can contain nullptr
 	// values if there were missing arguments, etc.; we try to be error-tolerant, so we allow cases that would raise

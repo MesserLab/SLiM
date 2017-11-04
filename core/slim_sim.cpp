@@ -37,14 +37,6 @@
 #include <utility>
 
 
-using std::string;
-using std::endl;
-using std::istream;
-using std::istringstream;
-using std::ifstream;
-using std::vector;
-
-
 SLiMSim::SLiMSim(std::istream &p_infile) : population_(*this), self_symbol_(gID_sim, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMSim_Class))), x_experiments_enabled_(false)
 {
 	// set up the symbol table we will use for all of our constants
@@ -123,7 +115,7 @@ void SLiMSim::InitializeRNGFromSeed(unsigned long int *p_override_seed_ptr)
 	EidosInitializeRNGFromSeed(rng_seed);
 	
 	if (DEBUG_INPUT)
-		SLIM_OUTSTREAM << "// Initial random seed:\n" << rng_seed << "\n" << endl;
+		SLIM_OUTSTREAM << "// Initial random seed:\n" << rng_seed << "\n" << std::endl;
 }
 
 void SLiMSim::InitializeFromFile(std::istream &p_infile)
@@ -165,14 +157,14 @@ void SLiMSim::InitializeFromFile(std::istream &p_infile)
 }
 
 // get one line of input, sanitizing by removing comments and whitespace; used only by SLiMSim::InitializePopulationFromTextFile
-void GetInputLine(istream &p_input_file, string &p_line);
-void GetInputLine(istream &p_input_file, string &p_line)
+void GetInputLine(std::istream &p_input_file, std::string &p_line);
+void GetInputLine(std::istream &p_input_file, std::string &p_line)
 {
 	getline(p_input_file, p_line);
 	
 	// remove all after "//", the comment start sequence
 	// BCH 16 Dec 2014: note this was "/" in SLiM 1.8 and earlier, changed to allow full filesystem paths to be specified.
-	if (p_line.find("//") != string::npos)
+	if (p_line.find("//") != std::string::npos)
 		p_line.erase(p_line.find("//"));
 	
 	// remove leading and trailing whitespace (spaces and tabs)
@@ -184,7 +176,7 @@ int SLiMSim::FormatOfPopulationFile(const char *p_file)
 {
 	if (p_file)
 	{
-		ifstream infile(p_file, std::ios::in | std::ios::binary);
+		std::ifstream infile(p_file, std::ios::in | std::ios::binary);
 		
 		if (!infile.is_open() || infile.eof())
 			return -1;
@@ -231,7 +223,7 @@ slim_generation_t SLiMSim::InitializePopulationFromFile(const char *p_file, Eido
 			std::vector<std::string> all_symbols = symbols.AllSymbols();
 			std::vector<EidosGlobalStringID> symbols_to_remove;
 			
-			for (string symbol_name : all_symbols)
+			for (std::string symbol_name : all_symbols)
 			{
 				EidosGlobalStringID symbol_ID = EidosGlobalStringIDForString(symbol_name);
 				EidosValue_SP symbol_value = symbols.GetValueOrRaiseForSymbol(symbol_ID);
@@ -269,8 +261,8 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 {
 	slim_generation_t file_generation;
 	std::map<slim_polymorphismid_t,MutationIndex> mutations;
-	string line, sub; 
-	ifstream infile(p_file);
+	std::string line, sub; 
+	std::ifstream infile(p_file);
 	
 	if (!infile.is_open())
 		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): could not open initialization file." << eidos_terminate();
@@ -279,7 +271,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 	{
 		GetInputLine(infile, line);
 	
-		istringstream iss(line);
+		std::istringstream iss(line);
 		
 		iss >> sub;		// #OUT:
 		
@@ -296,9 +288,9 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		GetInputLine(infile, line);
 		
 		// Starting in SLiM 3, we will handle a Version line if we see one in passing
-		if (line.find("Version:") != string::npos)
+		if (line.find("Version:") != std::string::npos)
 		{
-			istringstream iss(line);
+			std::istringstream iss(line);
 			
 			iss >> sub;		// Version:
 			iss >> sub;		// version number
@@ -311,7 +303,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			continue;
 		}
 		
-		if (line.find("Populations") != string::npos)
+		if (line.find("Populations") != std::string::npos)
 			break;
 	}
 	
@@ -322,10 +314,10 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		
 		if (line.length() == 0)
 			continue;
-		if (line.find("Mutations") != string::npos)
+		if (line.find("Mutations") != std::string::npos)
 			break;
 		
-		istringstream iss(line);
+		std::istringstream iss(line);
 		
 		iss >> sub;
 		slim_objectid_t subpop_index = SLiMEidosScript::ExtractIDFromStringWithPrefix(sub.c_str(), 'p', nullptr);
@@ -365,12 +357,12 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		
 		if (line.length() == 0)
 			continue;
-		if (line.find("Genomes") != string::npos)
+		if (line.find("Genomes") != std::string::npos)
 			break;
-		if (line.find("Individuals") != string::npos)	// SLiM 2.0 added this section
+		if (line.find("Individuals") != std::string::npos)	// SLiM 2.0 added this section
 			break;
 		
-		istringstream iss(line);
+		std::istringstream iss(line);
 		
 		iss >> sub;
 		int64_t polymorphismid_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
@@ -441,7 +433,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 	population_.cached_tally_genome_count_ = 0;
 	
 	// If there is an Individuals section (added in SLiM 2.0), we now need to parse it since it might contain spatial positions
-	if (line.find("Individuals") != string::npos)
+	if (line.find("Individuals") != std::string::npos)
 	{
 		while (!infile.eof()) 
 		{
@@ -449,16 +441,16 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			
 			if (line.length() == 0)
 				continue;
-			if (line.find("Genomes") != string::npos)
+			if (line.find("Genomes") != std::string::npos)
 				break;
 			
-			istringstream iss(line);
+			std::istringstream iss(line);
 			
 			iss >> sub;		// pX:iY – individual identifier
 			int pos = static_cast<int>(sub.find_first_of(":"));
 			const char *subpop_id_string = sub.substr(0, pos).c_str();
 			slim_objectid_t subpop_id = SLiMEidosScript::ExtractIDFromStringWithPrefix(subpop_id_string, 'p', nullptr);
-			const char *individual_index_string = sub.substr(pos + 1, string::npos).c_str();
+			const char *individual_index_string = sub.substr(pos + 1, std::string::npos).c_str();
 			
 			if (individual_index_string[0] != 'i')
 				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): reference to individual is malformed." << eidos_terminate();
@@ -518,7 +510,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		if (line.length() == 0)
 			continue;
 		
-		istringstream iss(line);
+		std::istringstream iss(line);
 		
 		iss >> sub;
 		int pos = static_cast<int>(sub.find_first_of(":"));
@@ -666,7 +658,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	int32_t spatial_output_count;
 	
 	// Read file into buf
-	ifstream infile(p_file, std::ios::in | std::ios::binary);
+	std::ifstream infile(p_file, std::ios::in | std::ios::binary);
 	
 	if (!infile.is_open() || infile.eof())
 		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): could not open initialization file." << eidos_terminate();
@@ -861,7 +853,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): missing section end after subpopulations." << eidos_terminate();
 	}
 	
-	// Read in the size of the mutation map, so we can allocate a vector rather than using std::map
+	// Read in the size of the mutation map, so we can allocate a vector rather than utilizing std::map
 	int32_t mutation_map_size;
 	
 	if (p + sizeof(mutation_map_size) > buf_end)
@@ -1689,7 +1681,7 @@ void SLiMSim::RunInitializeCallbacks(void)
 	num_options_declarations_ = 0;
 	
 	if (DEBUG_INPUT)
-		SLIM_OUTSTREAM << "// RunInitializeCallbacks():" << endl;
+		SLIM_OUTSTREAM << "// RunInitializeCallbacks():" << std::endl;
 	
 	// execute user-defined function blocks first; no need to profile this, it's just the definitions not the executions
 	std::vector<SLiMEidosBlock*> function_blocks = ScriptBlocksMatching(-1, SLiMEidosBlockType::SLiMEidosUserDefinedFunction, -1, -1, -1);
@@ -2936,11 +2928,11 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 			if (ABBREVIATE_DEBUG_INPUT && (num_genomic_elements_ > 99))
 			{
 				if (num_genomic_elements_ == 100)
-					output_stream << "(...more initializeGenomicElement() calls omitted...)" << endl;
+					output_stream << "(...more initializeGenomicElement() calls omitted...)" << std::endl;
 			}
 			else
 			{
-				output_stream << "initializeGenomicElement(g" << genomic_element_type_ptr->genomic_element_type_id_ << ", " << start_position << ", " << end_position << ");" << endl;
+				output_stream << "initializeGenomicElement(g" << genomic_element_type_ptr->genomic_element_type_id_ << ", " << start_position << ", " << end_position << ");" << std::endl;
 			}
 		}
 		
@@ -3026,7 +3018,7 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 			if (ABBREVIATE_DEBUG_INPUT && (num_genomic_element_types_ > 99))
 			{
 				if (num_genomic_element_types_ == 100)
-					output_stream << "(...more initializeGenomicElementType() calls omitted...)" << endl;
+					output_stream << "(...more initializeGenomicElementType() calls omitted...)" << std::endl;
 			}
 			else
 			{
@@ -3042,7 +3034,7 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 					output_stream << (mut_type_index > 0 ? ", " : "") << arg2_value->FloatAtIndex(mut_type_index, nullptr);
 				output_stream << ((mut_type_id_count > 1) ? ")" : "");
 				
-				output_stream << ");" << endl;
+				output_stream << ");" << std::endl;
 			}
 		}
 		
@@ -3059,10 +3051,10 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 	else if (p_function_name.compare(gStr_initializeInteractionType) == 0)
 	{
 		slim_objectid_t map_identifier = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 'i', nullptr);
-		string spatiality_string = arg1_value->StringAtIndex(0, nullptr);
+		std::string spatiality_string = arg1_value->StringAtIndex(0, nullptr);
 		bool reciprocal = arg2_value->LogicalAtIndex(0, nullptr);
 		double max_distance = arg3_value->FloatAtIndex(0, nullptr);
-		string sex_string = arg4_value->StringAtIndex(0, nullptr);
+		std::string sex_string = arg4_value->StringAtIndex(0, nullptr);
 		int required_dimensionality;
 		IndividualSex receiver_sex = IndividualSex::kUnspecified, exerter_sex = IndividualSex::kUnspecified;
 		
@@ -3129,7 +3121,7 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 			if (sex_string != "**")
 				output_stream << "\", sexSegregation=" << sex_string;
 			
-			output_stream << ");" << endl;
+			output_stream << ");" << std::endl;
 		}
 		
 		num_interaction_types_++;
@@ -3146,7 +3138,7 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 	{
 		slim_objectid_t map_identifier = (arg0_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(arg0_value->StringAtIndex(0, nullptr), 'm', nullptr);
 		double dominance_coeff = arg1_value->FloatAtIndex(0, nullptr);
-		string dfe_type_string = arg2_value->StringAtIndex(0, nullptr);
+		std::string dfe_type_string = arg2_value->StringAtIndex(0, nullptr);
 		DFEType dfe_type;
 		int expected_dfe_param_count = 0;
 		std::vector<double> dfe_parameters;
@@ -3239,7 +3231,7 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 			if (ABBREVIATE_DEBUG_INPUT && (num_mutation_types_ > 99))
 			{
 				if (num_mutation_types_ == 100)
-					output_stream << "(...more initializeMutationType() calls omitted...)" << endl;
+					output_stream << "(...more initializeMutationType() calls omitted...)" << std::endl;
 			}
 			else
 			{
@@ -3256,7 +3248,7 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 						output_stream << ", \"" << dfe_param << "\"";
 				}
 				
-				output_stream << ");" << endl;
+				output_stream << ");" << std::endl;
 			}
 		}
 		
@@ -3300,9 +3292,9 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeRecombinationRate() may be called only once (or once per sex, with sex-specific recombination maps).  The multiple recombination regions of a recombination map must be set up in a single call to initializeRecombinationRate()." << eidos_terminate();
 		
 		// Set up to replace the requested map
-		vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_.recombination_end_positions_H_ : 
+		std::vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_.recombination_end_positions_H_ : 
 											  ((requested_sex == IndividualSex::kMale) ? chromosome_.recombination_end_positions_M_ : chromosome_.recombination_end_positions_F_));
-		vector<double> &rates = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_.recombination_rates_H_ : 
+		std::vector<double> &rates = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_.recombination_rates_H_ : 
 								 ((requested_sex == IndividualSex::kMale) ? chromosome_.recombination_rates_M_ : chromosome_.recombination_rates_F_));
 		
 		if (arg1_value->Type() == EidosValueType::kValueNULL)
@@ -3386,7 +3378,7 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 					output_stream << ")";
 			}
 			
-			output_stream << ");" << endl;
+			output_stream << ");" << std::endl;
 		}
 		
 		num_recombination_rates_++;
@@ -3415,7 +3407,7 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 		chromosome_.gene_conversion_avg_length_ = gene_conversion_avg_length;
 		
 		if (DEBUG_INPUT)
-			output_stream << "initializeGeneConversion(" << gene_conversion_fraction << ", " << gene_conversion_avg_length << ");" << endl;
+			output_stream << "initializeGeneConversion(" << gene_conversion_fraction << ", " << gene_conversion_avg_length << ");" << std::endl;
 		
 		num_gene_conversions_++;
 	}
@@ -3456,9 +3448,9 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeMutationRate() may be called only once (or once per sex, with sex-specific mutation maps).  The multiple mutation regions of a mutation map must be set up in a single call to initializeMutationRate()." << eidos_terminate();
 		
 		// Set up to replace the requested map
-		vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_.mutation_end_positions_H_ : 
+		std::vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_.mutation_end_positions_H_ : 
 											  ((requested_sex == IndividualSex::kMale) ? chromosome_.mutation_end_positions_M_ : chromosome_.mutation_end_positions_F_));
-		vector<double> &rates = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_.mutation_rates_H_ : 
+		std::vector<double> &rates = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_.mutation_rates_H_ : 
 								 ((requested_sex == IndividualSex::kMale) ? chromosome_.mutation_rates_M_ : chromosome_.mutation_rates_F_));
 		
 		if (arg1_value->Type() == EidosValueType::kValueNULL)
@@ -3542,7 +3534,7 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 					output_stream << ")";
 			}
 			
-			output_stream << ");" << endl;
+			output_stream << ");" << std::endl;
 		}
 		
 		num_mutation_rates_++;
@@ -3559,7 +3551,7 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 		if (num_sex_declarations_ > 0)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): initializeSex() may be called only once." << eidos_terminate();
 		
-		string chromosome_type = arg0_value->StringAtIndex(0, nullptr);
+		std::string chromosome_type = arg0_value->StringAtIndex(0, nullptr);
 		
 		if (chromosome_type.compare(gStr_A) == 0)
 			modeled_chromosome_type_ = GenomeType::kAutosome;
@@ -3585,7 +3577,7 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 			if (modeled_chromosome_type_ == GenomeType::kXChromosome)
 				output_stream << ", " << x_chromosome_dominance_coeff_;
 			
-			output_stream << ");" << endl;
+			output_stream << ");" << std::endl;
 		}
 		
 		sex_enabled_ = true;
@@ -3693,7 +3685,7 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 				previous_params = true;
 			}
 			
-			output_stream << ");" << endl;
+			output_stream << ");" << std::endl;
 		}
 		
 		num_options_declarations_++;
@@ -4310,7 +4302,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			{
 				// requested subpops, so get them
 				int requested_subpop_count = arg0_value->Count();
-				vector<Subpopulation*> subpops_to_tally;
+				std::vector<Subpopulation*> subpops_to_tally;
 				
 				if (requested_subpop_count)
 				{
@@ -4513,7 +4505,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 			std::ofstream outfile;
 			bool has_file = false;
-			string outfile_path;
+			std::string outfile_path;
 			
 			if (arg0_value->Type() != EidosValueType::kValueNULL)
 			{
@@ -4544,10 +4536,10 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			if (has_file)
 				out << " " << outfile_path;
 			
-			out << endl;
+			out << std::endl;
 			
 			// Output Mutations section
-			out << "Mutations:" << endl;
+			out << "Mutations:" << std::endl;
 			
 			std::vector<Substitution*> &subs = population_.substitutions_;
 			
@@ -4592,12 +4584,12 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 				
 				std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 				
-				output_stream << "#OUT: " << generation_ << " A" << endl;
+				output_stream << "#OUT: " << generation_ << " A" << std::endl;
 				population_.PrintAll(output_stream, output_spatial_positions);
 			}
 			else
 			{
-				string outfile_path = EidosResolvedPath(arg0_value->StringAtIndex(0, nullptr));
+				std::string outfile_path = EidosResolvedPath(arg0_value->StringAtIndex(0, nullptr));
 				bool append = arg2_value->LogicalAtIndex(0, nullptr);
 				std::ofstream outfile;
 				
@@ -4623,7 +4615,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 						//				for (int i = 0; i < input_parameters.size(); i++)
 						//					outfile << input_parameters[i] << endl;
 						
-						outfile << "#OUT: " << generation_ << " A " << outfile_path << endl;
+						outfile << "#OUT: " << generation_ << " A " << outfile_path << std::endl;
 						population_.PrintAll(outfile, output_spatial_positions);
 					}
 					
@@ -4659,7 +4651,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 			if (arg1_value->Type() != EidosValueType::kValueNULL)
 			{
-				string outfile_path = EidosResolvedPath(arg1_value->StringAtIndex(0, nullptr));
+				std::string outfile_path = EidosResolvedPath(arg1_value->StringAtIndex(0, nullptr));
 				bool append = arg2_value->LogicalAtIndex(0, nullptr);
 				
 				outfile.open(outfile_path.c_str(), append ? (std::ios_base::app | std::ios_base::out) : std::ios_base::out);
@@ -4741,7 +4733,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 				warned_early_read_ = true;
 			}
 			
-			string file_path = EidosResolvedPath(arg0_value->StringAtIndex(0, nullptr));
+			std::string file_path = EidosResolvedPath(arg0_value->StringAtIndex(0, nullptr));
 			
 			// first we clear out all variables of type Subpopulation etc. from the symbol table; they will all be invalid momentarily
 			// note that we do this not only in our constants table, but in the user's variables as well; we can leave no stone unturned
@@ -4783,7 +4775,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 		case gID_registerLateEvent:
 		{
 			slim_objectid_t script_id = -1;		// used if the arg0 is NULL, to indicate an anonymous block
-			string script_string = arg1_value->StringAtIndex(0, nullptr);
+			std::string script_string = arg1_value->StringAtIndex(0, nullptr);
 			slim_generation_t start_generation = ((arg2_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(arg2_value->IntAtIndex(0, nullptr)) : 1);
 			slim_generation_t end_generation = ((arg3_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(arg3_value->IntAtIndex(0, nullptr)) : SLIM_MAX_GENERATION);
 			
@@ -4809,7 +4801,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 		case gID_registerFitnessCallback:
 		{
 			slim_objectid_t script_id = -1;		// used if arg0 is NULL, to indicate an anonymous block
-			string script_string = arg1_value->StringAtIndex(0, nullptr);
+			std::string script_string = arg1_value->StringAtIndex(0, nullptr);
 			slim_objectid_t mut_type_id = -2;	// used if arg2 is NULL, to indicate a global fitness() callback
 			slim_objectid_t subpop_id = -1;		// used if arg3 is NULL, to indicate applicability to all subpops
 			slim_generation_t start_generation = ((arg4_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(arg4_value->IntAtIndex(0, nullptr)) : 1);
@@ -4848,7 +4840,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 		case gID_registerInteractionCallback:
 		{
 			slim_objectid_t script_id = -1;		// used if the arg0 is NULL, to indicate an anonymous block
-			string script_string = arg1_value->StringAtIndex(0, nullptr);
+			std::string script_string = arg1_value->StringAtIndex(0, nullptr);
 			slim_objectid_t int_type_id = (arg2_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg2_value->IntAtIndex(0, nullptr)) : ((InteractionType *)arg2_value->ObjectElementAtIndex(0, nullptr))->interaction_type_id_;
 			slim_objectid_t subpop_id = -1;
 			slim_generation_t start_generation = ((arg4_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(arg4_value->IntAtIndex(0, nullptr)) : 1);
@@ -4888,7 +4880,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 		case gID_registerRecombinationCallback:
 		{
 			slim_objectid_t script_id = -1;		// used if the arg0 is NULL, to indicate an anonymous block
-			string script_string = arg1_value->StringAtIndex(0, nullptr);
+			std::string script_string = arg1_value->StringAtIndex(0, nullptr);
 			slim_objectid_t subpop_id = -1;
 			slim_generation_t start_generation = ((arg3_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(arg3_value->IntAtIndex(0, nullptr)) : 1);
 			slim_generation_t end_generation = ((arg4_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(arg4_value->IntAtIndex(0, nullptr)) : SLIM_MAX_GENERATION);

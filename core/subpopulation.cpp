@@ -34,10 +34,6 @@
 #include <map>
 
 
-using std::string;
-using std::endl;
-
-
 _SpatialMap::_SpatialMap(std::string p_spatiality_string, int p_spatiality, int64_t *p_grid_sizes, bool p_interpolate, double p_min_value, double p_max_value, int p_num_colors) :
 	spatiality_string_(p_spatiality_string), spatiality_(p_spatiality), interpolate_(p_interpolate), min_value_(p_min_value), max_value_(p_max_value), n_colors_(p_num_colors)
 {
@@ -3192,7 +3188,7 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 			
 			IndividualSex requested_sex;
 			
-			string sex_string = arg2_value->StringAtIndex(0, nullptr);
+			std::string sex_string = arg2_value->StringAtIndex(0, nullptr);
 			
 			if (sex_string.compare("M") == 0)
 				requested_sex = IndividualSex::kMale;
@@ -3214,7 +3210,7 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 			// Figure out the right output stream
 			std::ofstream outfile;
 			bool has_file = false;
-			string outfile_path;
+			std::string outfile_path;
 			EidosValue *file_arg = ((p_method_id == gID_outputVCFSample) ? arg4_value : arg3_value);
 			EidosValue *append_arg = ((p_method_id == gID_outputVCFSample) ? arg5_value : arg4_value);
 			
@@ -3252,7 +3248,7 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 				if (has_file)
 					out << " " << outfile_path;
 				
-				out << endl;
+				out << std::endl;
 			}
 			
 			// Call out to produce the actual sample

@@ -38,15 +38,6 @@
 #include <stdexcept>
 
 
-using std::string;
-using std::vector;
-using std::map;
-using std::endl;
-using std::istringstream;
-using std::istream;
-using std::ostream;
-
-
 // User defaults keys
 NSString *EidosDefaultsShowTokensKey = @"EidosShowTokens";
 NSString *EidosDefaultsShowParseKey = @"EidosShowParse";
@@ -238,9 +229,9 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 
 - (NSString *)_executeScriptString:(NSString *)scriptString tokenString:(NSString **)tokenString parseString:(NSString **)parseString executionString:(NSString **)executionString errorString:(NSString **)errorString withOptionalSemicolon:(BOOL)semicolonOptional
 {
-	string script_string([scriptString UTF8String]);
+	std::string script_string([scriptString UTF8String]);
 	EidosScript script(script_string);
-	string output;
+	std::string output;
 	
 	// Unfortunately, running readFromPopulationFile() is too much of a shock for SLiMgui.  It invalidates variables that are being displayed in
 	// the variable browser, in such an abrupt way that it causes a crash.  Basically, the code in readFromPopulationFile() that "cleans" all

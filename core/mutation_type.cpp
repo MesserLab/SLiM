@@ -31,10 +31,6 @@
 #include <algorithm>
 
 
-using std::endl;
-using std::string;
-
-
 // stream output for enumerations
 std::ostream& operator<<(std::ostream& p_out, DFEType p_dfe_type)
 {
@@ -463,7 +459,7 @@ EidosValue_SP MutationType::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 		assert(p_argument_count >= 1);
 #endif
 		
-		string dfe_type_string = arg0_value->StringAtIndex(0, nullptr);
+		std::string dfe_type_string = arg0_value->StringAtIndex(0, nullptr);
 		DFEType dfe_type;
 		int expected_dfe_param_count = 0;
 		std::vector<double> dfe_parameters;

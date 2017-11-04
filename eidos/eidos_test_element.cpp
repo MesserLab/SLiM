@@ -35,11 +35,6 @@
 #include <vector>
 
 
-using std::string;
-using std::vector;
-using std::endl;
-
-
 // See Eidos_TestElement::GetProperty(), Eidos_TestElement::ExecuteInstanceMethod, and 
 static std::vector<Eidos_TestElement *> inc_element_thunk;
 static std::vector<Eidos_TestElement *> sq_element_thunk;

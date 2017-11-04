@@ -34,10 +34,6 @@
 #include <memory>
 
 
-using std::vector;
-using std::string;
-
-
 //	EidosTextStorage – a little subclass to make word selection in EidosTextView work the way it should, defined below
 @interface EidosTextStorage : NSTextStorage
 - (id)init;
@@ -1407,7 +1403,7 @@ using std::string;
 		// Tokenize
 		script.Tokenize(true, false);	// make bad tokens as needed, don't keep nonsignificant tokens
 		
-		const vector<EidosToken> &tokens = script.Tokens();
+		const std::vector<EidosToken> &tokens = script.Tokens();
 		int tokenCount = (int)tokens.size();
 		
 		//NSLog(@"script string \"%@\" contains %d tokens", scriptString, tokenCount);
@@ -1667,9 +1663,9 @@ using std::string;
 	// We'll trace backward, adding identifiers to a vector to build up the chain of references.  If we hit a bracket, we'll
 	// skip back over everything inside it, since subsetting does not change the type; we just need to balance brackets.  If we
 	// hit a parenthesis, we do similarly.  If we hit other things – a semicolon, a comma, a brace – that terminates the key path chain.
-	vector<string> identifiers;
-	vector<bool> identifiers_are_calls;
-	vector<int32_t> identifier_positions;
+	std::vector<std::string> identifiers;
+	std::vector<bool> identifiers_are_calls;
+	std::vector<int32_t> identifier_positions;
 	int bracketCount = 0, parenCount = 0;
 	BOOL lastTokenWasDot = YES, justFinishedParenBlock = NO;
 	
@@ -1778,7 +1774,7 @@ using std::string;
 	// OK, we've got an identifier chain in identifiers, in reverse order.  We want to start at
 	// the beginning of the key path, and figure out what the class of the key path root is
 	int key_path_index = (int)identifiers.size() - 1;
-	string &identifier_name = identifiers[key_path_index];
+	std::string &identifier_name = identifiers[key_path_index];
 	EidosGlobalStringID identifier_ID = EidosGlobalStringIDForString(identifier_name);
 	bool identifier_is_call = identifiers_are_calls[key_path_index];
 	const EidosObjectClass *key_path_class = nullptr;

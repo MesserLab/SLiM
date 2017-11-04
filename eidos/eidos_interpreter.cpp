@@ -31,14 +31,6 @@
 #include <algorithm>
 
 
-using std::string;
-using std::vector;
-using std::endl;
-using std::istringstream;
-using std::istream;
-using std::ostream;
-
-
 // We have a bunch of behaviors that we want to do only when compiled DEBUG or EIDOS_GUI; #if tests everywhere are very ugly, so we make
 // some #defines here that help structure this.
 
@@ -301,7 +293,7 @@ EidosValue_SP EidosInterpreter::EvaluateInterpreterBlock(bool p_print_output)
 			
 			// EidosValue does not put an endl on the stream, so if it emitted any output, add an endl
 			if (position != execution_output.tellp())
-				execution_output << endl;
+				execution_output << std::endl;
 		}
 		
 		// handle a return statement; we're at the top level, so there's not much to do except stop execution
@@ -328,7 +320,7 @@ EidosValue_SP EidosInterpreter::EvaluateInterpreterBlock(bool p_print_output)
 // representations kept by external classes in the Context).  In other words, assignment relies upon the fact that a temporary object
 // constructed by Evaluate_Node() refers to the same underlying element objects as the original source of the elements does, and thus
 // assigning into the temporary also assigns into the original.
-void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue_SP *p_base_value_ptr, EidosGlobalStringID *p_property_string_id_ptr, vector<int> *p_indices_ptr, const EidosASTNode *p_parent_node)
+void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue_SP *p_base_value_ptr, EidosGlobalStringID *p_property_string_id_ptr, std::vector<int> *p_indices_ptr, const EidosASTNode *p_parent_node)
 {
 	// The left operand is the thing we're subscripting.  If it is an identifier or a dot operator, then we are the deepest (i.e. first)
 	// subscript operation, and we can resolve the symbol host, set up a vector of indices, and return.  If it is a subscript, we recurse.
@@ -344,7 +336,7 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue_SP *p_base_value_p
 			EidosASTNode *left_operand = p_parent_node->children_[0];
 			EidosASTNode *right_operand = p_parent_node->children_[1];
 			
-			vector<int> base_indices;
+			std::vector<int> base_indices;
 			
 			// Recurse to find the symbol host and property name that we are ultimately subscripting off of
 			_ProcessSubscriptAssignment(p_base_value_ptr, p_property_string_id_ptr, &base_indices, left_operand);
@@ -508,7 +500,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue_SP p_rvalue, const Eidos
 			
 			EidosValue_SP base_value;
 			EidosGlobalStringID property_string_id = gEidosID_none;
-			vector<int> indices;
+			std::vector<int> indices;
 			
 			_ProcessSubscriptAssignment(&base_value, &property_string_id, &indices, p_lvalue_node);
 			
@@ -1077,7 +1069,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		call_identifier_token = call_name_node->token_;
 		
 		// OK, we have <identifier>(...); that's a well-formed function call
-		const string *function_name = &(call_identifier_token->token_string_);
+		const std::string *function_name = &(call_identifier_token->token_string_);
 		const EidosFunctionSignature *function_signature = call_name_node->cached_signature_;
 		
 		// If the function call is a built-in Eidos function, we might already have a pointer to its signature cached; if not, we'll have to look it up
@@ -1123,7 +1115,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		}
 		else
 		{
-			vector<EidosValue_SP> arguments;
+			std::vector<EidosValue_SP> arguments;
 			
 			arguments.resize(max_arg_count);
 			
@@ -1230,7 +1222,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		}
 		else
 		{
-			vector<EidosValue_SP> arguments;
+			std::vector<EidosValue_SP> arguments;
 			
 			arguments.resize(max_arg_count);
 			
@@ -1717,7 +1709,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 				}
 				else if (first_child_count == 1)
 				{
-					string singleton_int = first_child_value->StringAtIndex(0, operator_token);
+					std::string singleton_int = first_child_value->StringAtIndex(0, operator_token);
 					EidosValue_String_vector_SP string_result_SP = EidosValue_String_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector());
 					EidosValue_String_vector *string_result = string_result_SP->Reserve(second_child_count);
 					
@@ -1728,7 +1720,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 				}
 				else if (second_child_count == 1)
 				{
-					string singleton_int = second_child_value->StringAtIndex(0, operator_token);
+					std::string singleton_int = second_child_value->StringAtIndex(0, operator_token);
 					EidosValue_String_vector_SP string_result_SP = EidosValue_String_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector());
 					EidosValue_String_vector *string_result = string_result_SP->Reserve(first_child_count);
 					
@@ -4249,12 +4241,12 @@ int64_t EidosInterpreter::NonnegativeIntegerForString(const std::string &p_numbe
 	
 	errno = 0;
 	
-	if ((p_number_string.find('.') != string::npos) || (p_number_string.find('-') != string::npos))
+	if ((p_number_string.find('.') != std::string::npos) || (p_number_string.find('-') != std::string::npos))
 	{
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::IntegerForString): \"" << p_number_string << "\" could not be represented as an integer (decimal or negative exponent)." << eidos_terminate(p_blame_token);
 		return 0;
 	}
-	else if ((p_number_string.find('e') != string::npos) || (p_number_string.find('E') != string::npos))	// has an exponent
+	else if ((p_number_string.find('e') != std::string::npos) || (p_number_string.find('E') != std::string::npos))	// has an exponent
 	{
 		double converted_value = strtod(c_str, &last_used_char);
 		
@@ -4308,7 +4300,7 @@ EidosValue_SP EidosInterpreter::NumericValueForString(const std::string &p_numbe
 	// This might need revision in future; 1.2e3 could be an int, for example.  However, it is an ambiguity in
 	// the syntax that will never be terribly comfortable; it's the price we pay for wanting ints to be
 	// expressable using scientific notation.
-	if ((p_number_string.find('.') != string::npos) || (p_number_string.find('-', 1) != string::npos))			// requires a float
+	if ((p_number_string.find('.') != std::string::npos) || (p_number_string.find('-', 1) != std::string::npos))			// requires a float
 	{
 		double converted_value = strtod(c_str, &last_used_char);
 		
@@ -4317,7 +4309,7 @@ EidosValue_SP EidosInterpreter::NumericValueForString(const std::string &p_numbe
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(converted_value));
 	}
-	else if ((p_number_string.find('e') != string::npos) || (p_number_string.find('E') != string::npos))		// has an exponent
+	else if ((p_number_string.find('e') != std::string::npos) || (p_number_string.find('E') != std::string::npos))		// has an exponent
 	{
 		double converted_value = strtod(c_str, &last_used_char);
 		

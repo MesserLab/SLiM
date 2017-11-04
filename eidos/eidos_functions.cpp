@@ -76,27 +76,18 @@ std::string EidosStringFormat(const std::string& format, Args ... args)
 }
 
 
-using std::string;
-using std::vector;
-using std::map;
-using std::endl;
-using std::istringstream;
-using std::istream;
-using std::ostream;
-
-
 //
 //	Construct our built-in function map
 //
 
 // We allocate all of our function signatures once and keep them forever, for faster EidosInterpreter startup
-vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
+std::vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
 {
-	static vector<const EidosFunctionSignature *> *signatures = nullptr;
+	static std::vector<const EidosFunctionSignature *> *signatures = nullptr;
 	
 	if (!signatures)
 	{
-		signatures = new vector<const EidosFunctionSignature *>;
+		signatures = new std::vector<const EidosFunctionSignature *>;
 		
 		// ************************************************************************************
 		//
@@ -324,7 +315,7 @@ void EidosInterpreter::CacheBuiltInFunctionMap(void)
 	
 	if (!built_in_function_map_)
 	{
-		vector<const EidosFunctionSignature *> &built_in_functions = EidosInterpreter::BuiltInFunctions();
+		std::vector<const EidosFunctionSignature *> &built_in_functions = EidosInterpreter::BuiltInFunctions();
 		
 		built_in_function_map_ = new EidosFunctionMap;
 		
@@ -738,7 +729,7 @@ EidosValue_SP UniqueEidosValue(const EidosValue *p_arg0_value, bool p_force_new_
 		{
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 			{
-				string value = string_vec[value_index];
+				std::string value = string_vec[value_index];
 				int scan_index;
 				
 				for (scan_index = 0; scan_index < value_index; ++scan_index)
@@ -3406,7 +3397,7 @@ EidosValue_SP Eidos_ExecuteFunction_max(const EidosValue_SP *const p_arguments, 
 	}
 	else if (arg0_type == EidosValueType::kValueString)
 	{
-		string max = p_arguments[first_nonempty_argument]->StringAtIndex(0, nullptr);
+		std::string max = p_arguments[first_nonempty_argument]->StringAtIndex(0, nullptr);
 		
 		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
 		{
@@ -3415,7 +3406,7 @@ EidosValue_SP Eidos_ExecuteFunction_max(const EidosValue_SP *const p_arguments, 
 			
 			if (arg_count == 1)
 			{
-				const string &temp = arg_value->StringAtIndex(0, nullptr);
+				const std::string &temp = arg_value->StringAtIndex(0, nullptr);
 				if (max < temp)
 					max = temp;
 			}
@@ -3425,7 +3416,7 @@ EidosValue_SP Eidos_ExecuteFunction_max(const EidosValue_SP *const p_arguments, 
 				
 				for (int value_index = 0; value_index < arg_count; ++value_index)
 				{
-					const string &temp = string_vec[value_index];
+					const std::string &temp = string_vec[value_index];
 					if (max < temp)
 						max = temp;
 				}
@@ -3610,7 +3601,7 @@ EidosValue_SP Eidos_ExecuteFunction_min(const EidosValue_SP *const p_arguments, 
 	}
 	else if (arg0_type == EidosValueType::kValueString)
 	{
-		string min = p_arguments[first_nonempty_argument]->StringAtIndex(0, nullptr);
+		std::string min = p_arguments[first_nonempty_argument]->StringAtIndex(0, nullptr);
 		
 		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
 		{
@@ -3619,7 +3610,7 @@ EidosValue_SP Eidos_ExecuteFunction_min(const EidosValue_SP *const p_arguments, 
 			
 			if (arg_count == 1)
 			{
-				const string &temp = arg_value->StringAtIndex(0, nullptr);
+				const std::string &temp = arg_value->StringAtIndex(0, nullptr);
 				if (min > temp)
 					min = temp;
 			}
@@ -3629,7 +3620,7 @@ EidosValue_SP Eidos_ExecuteFunction_min(const EidosValue_SP *const p_arguments, 
 				
 				for (int value_index = 0; value_index < arg_count; ++value_index)
 				{
-					const string &temp = string_vec[value_index];
+					const std::string &temp = string_vec[value_index];
 					if (min > temp)
 						min = temp;
 				}
@@ -4848,7 +4839,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const EidosValue_SP *const p_argument
 	if (weights_value->Type() != EidosValueType::kValueNULL)
 	{
 		// weights supplied
-		vector<double> weights_vector;
+		std::vector<double> weights_vector;
 		double weights_sum = 0.0;
 		int arg3_count = weights_value->Count();
 		
@@ -4867,7 +4858,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const EidosValue_SP *const p_argument
 		}
 		
 		// get indices of x; we sample from this vector and then look up the corresponding EidosValue element
-		vector<int> index_vector;
+		std::vector<int> index_vector;
 		
 		for (int value_index = 0; value_index < arg0_count; ++value_index)
 			index_vector.emplace_back(value_index);
@@ -4917,7 +4908,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const EidosValue_SP *const p_argument
 		else
 		{
 			// get indices of x; we sample from this vector and then look up the corresponding EidosValue element
-			vector<int> index_vector;
+			std::vector<int> index_vector;
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 				index_vector.emplace_back(value_index);
@@ -5200,7 +5191,7 @@ EidosValue_SP Eidos_ExecuteFunction_cat(const EidosValue_SP *const p_arguments, 
 	int arg0_count = arg0_value->Count();
 	EidosValueType arg0_type = arg0_value->Type();
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
-	string separator = p_arguments[1]->StringAtIndex(0, nullptr);
+	std::string separator = p_arguments[1]->StringAtIndex(0, nullptr);
 	
 	for (int value_index = 0; value_index < arg0_count; ++value_index)
 	{
@@ -5228,7 +5219,7 @@ EidosValue_SP Eidos_ExecuteFunction_catn(const EidosValue_SP *const p_arguments,
 	int arg0_count = arg0_value->Count();
 	EidosValueType arg0_type = arg0_value->Type();
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
-	string separator = p_arguments[1]->StringAtIndex(0, nullptr);
+	std::string separator = p_arguments[1]->StringAtIndex(0, nullptr);
 	
 	for (int value_index = 0; value_index < arg0_count; ++value_index)
 	{
@@ -5254,7 +5245,7 @@ EidosValue_SP Eidos_ExecuteFunction_format(const EidosValue_SP *const p_argument
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *arg0_value = p_arguments[0].get();
-	string format = arg0_value->StringAtIndex(0, nullptr);
+	std::string format = arg0_value->StringAtIndex(0, nullptr);
 	EidosValue *arg1_value = p_arguments[1].get();
 	EidosValueType arg1_type = arg1_value->Type();
 	int arg1_count = arg1_value->Count();
@@ -5424,7 +5415,7 @@ EidosValue_SP Eidos_ExecuteFunction_format(const EidosValue_SP *const p_argument
 	// PRId64, PRIi64, PRIo64, PRIx64, and PRIX64.
 	if (arg1_type == EidosValueType::kValueInt)
 	{
-		string new_conv_string;
+		std::string new_conv_string;
 		
 		if (conv_ch == 'd')
 			new_conv_string = PRId64;
@@ -5449,7 +5440,7 @@ EidosValue_SP Eidos_ExecuteFunction_format(const EidosValue_SP *const p_argument
 	if (arg1_count == 1)
 	{
 		// singleton case
-		string result_string;
+		std::string result_string;
 		
 		if (arg1_type == EidosValueType::kValueInt)
 			result_string = EidosStringFormat(format, arg1_value->IntAtIndex(0, nullptr));
@@ -6089,10 +6080,10 @@ EidosValue_SP Eidos_ExecuteFunction_nchar(const EidosValue_SP *const p_arguments
 
 // Get indexes that would result in sorted ordering of a vector.  This rather nice code is adapted from http://stackoverflow.com/a/12399290/2752221
 template <typename T>
-vector<int64_t> EidosSortIndexes(const vector<T> &p_v, bool p_ascending = true)
+std::vector<int64_t> EidosSortIndexes(const std::vector<T> &p_v, bool p_ascending = true)
 {
 	// initialize original index locations
-	vector<int64_t> idx(p_v.size());
+	std::vector<int64_t> idx(p_v.size());
 	std::iota(idx.begin(), idx.end(), 0);
 	
 	// sort indexes based on comparing values in v
@@ -6127,7 +6118,7 @@ EidosValue_SP Eidos_ExecuteFunction_order(const EidosValue_SP *const p_arguments
 		// Here we handle the vector cases, which can be done with direct access
 		EidosValueType arg0_type = arg0_value->Type();
 		bool ascending = p_arguments[1]->LogicalAtIndex(0, nullptr);
-		vector<int64_t> order;
+		std::vector<int64_t> order;
 		
 		if (arg0_type == EidosValueType::kValueLogical)
 			order = EidosSortIndexes(*arg0_value->LogicalVector(), ascending);
@@ -6154,8 +6145,8 @@ EidosValue_SP Eidos_ExecuteFunction_paste(const EidosValue_SP *const p_arguments
 	EidosValue *arg0_value = p_arguments[0].get();
 	int arg0_count = arg0_value->Count();
 	EidosValueType arg0_type = arg0_value->Type();
-	string separator = p_arguments[1]->StringAtIndex(0, nullptr);
-	string result_string;
+	std::string separator = p_arguments[1]->StringAtIndex(0, nullptr);
+	std::string result_string;
 	
 	for (int value_index = 0; value_index < arg0_count; ++value_index)
 	{
@@ -6188,7 +6179,7 @@ EidosValue_SP Eidos_ExecuteFunction_paste0(const EidosValue_SP *const p_argument
 	EidosValue *arg0_value = p_arguments[0].get();
 	int arg0_count = arg0_value->Count();
 	EidosValueType arg0_type = arg0_value->Type();
-	string result_string;
+	std::string result_string;
 	
 	for (int value_index = 0; value_index < arg0_count; ++value_index)
 	{
@@ -6216,7 +6207,7 @@ EidosValue_SP Eidos_ExecuteFunction_print(const EidosValue_SP *const p_arguments
 	
 	EidosValue *arg0_value = p_arguments[0].get();
 	
-	p_interpreter.ExecutionOutputStream() << *arg0_value << endl;
+	p_interpreter.ExecutionOutputStream() << *arg0_value << std::endl;
 	
 	result_SP = gStaticEidosValueNULLInvisible;
 	
@@ -6302,13 +6293,13 @@ EidosValue_SP Eidos_ExecuteFunction_str(const EidosValue_SP *const p_arguments, 
 	output_stream << "(" << arg0_type << ") ";
 	
 	if (arg0_count <= 2)
-		output_stream << *arg0_value << endl;
+		output_stream << *arg0_value << std::endl;
 	else
 	{
 		EidosValue_SP first_value = arg0_value->GetValueAtIndex(0, nullptr);
 		EidosValue_SP second_value = arg0_value->GetValueAtIndex(1, nullptr);
 		
-		output_stream << *first_value << gEidosStr_space_string << *second_value << " ... (" << arg0_count << " values)" << endl;
+		output_stream << *first_value << gEidosStr_space_string << *second_value << " ... (" << arg0_count << " values)" << std::endl;
 	}
 	
 	result_SP = gStaticEidosValueNULLInvisible;
@@ -6325,9 +6316,9 @@ EidosValue_SP Eidos_ExecuteFunction_strsplit(const EidosValue_SP *const p_argume
 	EidosValue_String_vector *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector();
 	result_SP = EidosValue_SP(string_result);
 	
-	string joined_string = arg0_value->StringAtIndex(0, nullptr);
-	string separator = p_arguments[1]->StringAtIndex(0, nullptr);
-	string::size_type start_idx = 0, sep_idx;
+	std::string joined_string = arg0_value->StringAtIndex(0, nullptr);
+	std::string separator = p_arguments[1]->StringAtIndex(0, nullptr);
+	std::string::size_type start_idx = 0, sep_idx;
 	
 	if (separator.length() == 0)
 	{
@@ -6342,7 +6333,7 @@ EidosValue_SP Eidos_ExecuteFunction_strsplit(const EidosValue_SP *const p_argume
 		{
 			sep_idx = joined_string.find(separator, start_idx);
 			
-			if (sep_idx == string::npos)
+			if (sep_idx == std::string::npos)
 			{
 				string_result->PushString(joined_string.substr(start_idx));
 				break;
@@ -6569,7 +6560,7 @@ EidosValue_SP Eidos_ExecuteFunction_whichMax(const EidosValue_SP *const p_argume
 		}
 		else if (arg0_type == EidosValueType::kValueString)
 		{
-			string max = arg0_value->StringAtIndex(0, nullptr);
+			std::string max = arg0_value->StringAtIndex(0, nullptr);
 			
 			if (arg0_count > 1)
 			{
@@ -6578,7 +6569,7 @@ EidosValue_SP Eidos_ExecuteFunction_whichMax(const EidosValue_SP *const p_argume
 				
 				for (int value_index = 1; value_index < arg0_count; ++value_index)
 				{
-					const string &temp = string_vec[value_index];
+					const std::string &temp = string_vec[value_index];
 					if (max < temp) { max = temp; first_index = value_index; }
 				}
 			}
@@ -6657,7 +6648,7 @@ EidosValue_SP Eidos_ExecuteFunction_whichMin(const EidosValue_SP *const p_argume
 		}
 		else if (arg0_type == EidosValueType::kValueString)
 		{
-			string min = arg0_value->StringAtIndex(0, nullptr);
+			std::string min = arg0_value->StringAtIndex(0, nullptr);
 			
 			if (arg0_count > 1)
 			{
@@ -6666,7 +6657,7 @@ EidosValue_SP Eidos_ExecuteFunction_whichMin(const EidosValue_SP *const p_argume
 				
 				for (int value_index = 1; value_index < arg0_count; ++value_index)
 				{
-					const string &temp = string_vec[value_index];
+					const std::string &temp = string_vec[value_index];
 					if (min > temp) { min = temp; first_index = value_index; }
 				}
 			}
@@ -6903,14 +6894,14 @@ EidosValue_SP Eidos_ExecuteFunction_createDirectory(const EidosValue_SP *const p
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *arg0_value = p_arguments[0].get();
-	string base_path = arg0_value->StringAtIndex(0, nullptr);
+	std::string base_path = arg0_value->StringAtIndex(0, nullptr);
 	int base_path_length = (int)base_path.length();
 	bool base_path_ends_in_slash = (base_path_length > 0) && (base_path[base_path_length-1] == '/');
 	
 	if (base_path_ends_in_slash)
 		base_path.pop_back();		// remove the trailing slash, which just confuses stat()
 	
-	string path = EidosResolvedPath(base_path);
+	std::string path = EidosResolvedPath(base_path);
 	
 	errno = 0;
 	
@@ -6923,12 +6914,12 @@ EidosValue_SP Eidos_ExecuteFunction_createDirectory(const EidosValue_SP *const p
 		
 		if (is_directory)
 		{
-			p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_createDirectory): function createDirectory() could not create a directory at " << path << " because a directory at that path already exists." << endl;
+			p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_createDirectory): function createDirectory() could not create a directory at " << path << " because a directory at that path already exists." << std::endl;
 			result_SP = gStaticEidosValue_LogicalT;
 		}
 		else
 		{
-			p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_createDirectory): function createDirectory() could not create a directory at " << path << " because a file at that path already exists." << endl;
+			p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_createDirectory): function createDirectory() could not create a directory at " << path << " because a file at that path already exists." << std::endl;
 			result_SP = gStaticEidosValue_LogicalF;
 		}
 	}
@@ -6944,14 +6935,14 @@ EidosValue_SP Eidos_ExecuteFunction_createDirectory(const EidosValue_SP *const p
 		}
 		else
 		{
-			p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_createDirectory): function createDirectory() could not create a directory at " << path << " because of an unspecified filesystem error." << endl;
+			p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_createDirectory): function createDirectory() could not create a directory at " << path << " because of an unspecified filesystem error." << std::endl;
 			result_SP = gStaticEidosValue_LogicalF;
 		}
 	}
 	else
 	{
 		// The stat() call failed for an unknown reason
-		p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_createDirectory): function createDirectory() could not create a directory at " << path << " because of an unspecified filesystem error." << endl;
+		p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_createDirectory): function createDirectory() could not create a directory at " << path << " because of an unspecified filesystem error." << std::endl;
 		result_SP = gStaticEidosValue_LogicalF;
 	}
 	
@@ -6964,10 +6955,10 @@ EidosValue_SP Eidos_ExecuteFunction_filesAtPath(const EidosValue_SP *const p_arg
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *arg0_value = p_arguments[0].get();
-	string base_path = arg0_value->StringAtIndex(0, nullptr);
+	std::string base_path = arg0_value->StringAtIndex(0, nullptr);
 	int base_path_length = (int)base_path.length();
 	bool base_path_ends_in_slash = (base_path_length > 0) && (base_path[base_path_length-1] == '/');
-	string path = EidosResolvedPath(base_path);
+	std::string path = EidosResolvedPath(base_path);
 	bool fullPaths = p_arguments[1]->LogicalAtIndex(0, nullptr);
 	
 	// this code modified from GNU: http://www.gnu.org/software/libc/manual/html_node/Simple-Directory-Lister.html#Simple-Directory-Lister
@@ -6984,7 +6975,7 @@ EidosValue_SP Eidos_ExecuteFunction_filesAtPath(const EidosValue_SP *const p_arg
 		
 		while ((ep = readdir(dp)))
 		{
-			string filename = ep->d_name;
+			std::string filename = ep->d_name;
 			
 			if (fullPaths)
 				filename = base_path + (base_path_ends_in_slash ? "" : "/") + filename;
@@ -6997,7 +6988,7 @@ EidosValue_SP Eidos_ExecuteFunction_filesAtPath(const EidosValue_SP *const p_arg
 	else
 	{
 		// not a fatal error, just a warning log
-		p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_filesAtPath): function filesAtPath() could not open path " << path << "." << endl;
+		p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_filesAtPath): function filesAtPath() could not open path " << path << "." << std::endl;
 		result_SP = gStaticEidosValueNULL;
 	}
 	
@@ -7010,8 +7001,8 @@ EidosValue_SP Eidos_ExecuteFunction_deleteFile(const EidosValue_SP *const p_argu
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *arg0_value = p_arguments[0].get();
-	string base_path = arg0_value->StringAtIndex(0, nullptr);
-	string file_path = EidosResolvedPath(base_path);
+	std::string base_path = arg0_value->StringAtIndex(0, nullptr);
+	std::string file_path = EidosResolvedPath(base_path);
 	
 	result_SP = ((remove(file_path.c_str()) == 0) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 	
@@ -7024,8 +7015,8 @@ EidosValue_SP Eidos_ExecuteFunction_readFile(const EidosValue_SP *const p_argume
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *arg0_value = p_arguments[0].get();
-	string base_path = arg0_value->StringAtIndex(0, nullptr);
-	string file_path = EidosResolvedPath(base_path);
+	std::string base_path = arg0_value->StringAtIndex(0, nullptr);
+	std::string file_path = EidosResolvedPath(base_path);
 	
 	// read the contents in
 	std::ifstream file_stream(file_path.c_str());
@@ -7033,7 +7024,7 @@ EidosValue_SP Eidos_ExecuteFunction_readFile(const EidosValue_SP *const p_argume
 	if (!file_stream.is_open())
 	{
 		// not a fatal error, just a warning log
-		p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_readFile): function readFile() could not read file at path " << file_path << "." << endl;
+		p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_readFile): function readFile() could not read file at path " << file_path << "." << std::endl;
 		result_SP = gStaticEidosValueNULL;
 	}
 	else
@@ -7041,7 +7032,7 @@ EidosValue_SP Eidos_ExecuteFunction_readFile(const EidosValue_SP *const p_argume
 		EidosValue_String_vector *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector();
 		result_SP = EidosValue_SP(string_result);
 		
-		string line;
+		std::string line;
 		
 		while (getline(file_stream, line))
 			string_result->PushString(line);
@@ -7049,7 +7040,7 @@ EidosValue_SP Eidos_ExecuteFunction_readFile(const EidosValue_SP *const p_argume
 		if (file_stream.bad())
 		{
 			// not a fatal error, just a warning log
-			p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_readFile): function readFile() encountered stream errors while reading file at path " << file_path << "." << endl;
+			p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_readFile): function readFile() encountered stream errors while reading file at path " << file_path << "." << std::endl;
 			
 			result_SP = gStaticEidosValueNULL;
 		}
@@ -7064,8 +7055,8 @@ EidosValue_SP Eidos_ExecuteFunction_writeFile(const EidosValue_SP *const p_argum
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *arg0_value = p_arguments[0].get();
-	string base_path = arg0_value->StringAtIndex(0, nullptr);
-	string file_path = EidosResolvedPath(base_path);
+	std::string base_path = arg0_value->StringAtIndex(0, nullptr);
+	std::string file_path = EidosResolvedPath(base_path);
 	
 	// the second argument is the file contents to write
 	EidosValue *arg1_value = p_arguments[1].get();
@@ -7080,7 +7071,7 @@ EidosValue_SP Eidos_ExecuteFunction_writeFile(const EidosValue_SP *const p_argum
 	if (!file_stream.is_open())
 	{
 		// Not a fatal error, just a warning log
-		p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeFile): function writeFile() could not write to file at path " << file_path << "." << endl;
+		p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeFile): function writeFile() could not write to file at path " << file_path << "." << std::endl;
 		result_SP = gStaticEidosValue_LogicalF;
 	}
 	else
@@ -7090,7 +7081,7 @@ EidosValue_SP Eidos_ExecuteFunction_writeFile(const EidosValue_SP *const p_argum
 			// BCH 27 January 2017: changed to add a newline after the last line, too, so appending new content to a file produces correct line breaks
 			// Note that system() and writeTempFile() do not append this newline, to allow the user to exactly specify file contents,
 			// but with writeFile() appending seems more likely to me; we'll see if anybody squawks
-			file_stream << arg1_value->StringAtIndex(0, nullptr) << endl;
+			file_stream << arg1_value->StringAtIndex(0, nullptr) << std::endl;
 		}
 		else
 		{
@@ -7103,14 +7094,14 @@ EidosValue_SP Eidos_ExecuteFunction_writeFile(const EidosValue_SP *const p_argum
 				// Add newlines after all lines but the last
 				// BCH 27 January 2017: changed to add a newline after the last line, too, so appending new content to a file produces correct line breaks
 				//if (value_index + 1 < arg1_count)
-				file_stream << endl;
+				file_stream << std::endl;
 			}
 		}
 		
 		if (file_stream.bad())
 		{
 			// Not a fatal error, just a warning log
-			p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeFile): function writeFile() encountered stream errors while writing to file at path " << file_path << "." << endl;
+			p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeFile): function writeFile() encountered stream errors while writing to file at path " << file_path << "." << std::endl;
 			result_SP = gStaticEidosValue_LogicalF;
 		}
 		else
@@ -7128,13 +7119,13 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const EidosValue_SP *const p_a
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *prefix_value = p_arguments[0].get();
-	string prefix = prefix_value->StringAtIndex(0, nullptr);
+	std::string prefix = prefix_value->StringAtIndex(0, nullptr);
 	EidosValue *suffix_value = p_arguments[1].get();
-	string suffix = suffix_value->StringAtIndex(0, nullptr);
-	string filename = prefix + "XXXXXX" + suffix;
-	string file_path_template = "/tmp/" + filename;		// the /tmp directory is standard on OS X and Linux; probably on all Un*x systems
+	std::string suffix = suffix_value->StringAtIndex(0, nullptr);
+	std::string filename = prefix + "XXXXXX" + suffix;
+	std::string file_path_template = "/tmp/" + filename;		// the /tmp directory is standard on OS X and Linux; probably on all Un*x systems
 	
-	if ((filename.find("~") != string::npos) || (filename.find("/") != string::npos))
+	if ((filename.find("~") != std::string::npos) || (filename.find("/") != std::string::npos))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_writeTempFile): prefix and suffix may not contain '~' or '/'; they may specify only a filename." << eidos_terminate(nullptr);
 	
 	// the third argument is the file contents to write
@@ -7151,14 +7142,14 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const EidosValue_SP *const p_a
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_writeTempFile): (internal error) Eidos_mkstemps() failed!" << eidos_terminate(nullptr);
 	}
 	
-	string file_path(file_path_cstr);
+	std::string file_path(file_path_cstr);
 	std::ofstream file_stream(file_path.c_str(), std::ios_base::out);
 	close(fd);	// opened by Eidos_mkstemps()
 	
 	if (!file_stream.is_open())
 	{
 		// Not a fatal error, just a warning log
-		p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeTempFile): function writeTempFile() could not write to file at path " << file_path << "." << endl;
+		p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeTempFile): function writeTempFile() could not write to file at path " << file_path << "." << std::endl;
 		result_SP = gStaticEidosValue_StringEmpty;
 	}
 	else
@@ -7178,14 +7169,14 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const EidosValue_SP *const p_a
 				// Add newlines after all lines but the last
 				// BCH 27 January 2017: changed to add a newline after the last line, too, so appending new content to a file produces correct line breaks
 				//if (value_index + 1 < contents_count)
-				file_stream << endl;
+				file_stream << std::endl;
 			}
 		}
 		
 		if (file_stream.bad())
 		{
 			// Not a fatal error, just a warning log
-			p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeTempFile): function writeTempFile() encountered stream errors while writing to file at path " << file_path << "." << endl;
+			p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeTempFile): function writeTempFile() encountered stream errors while writing to file at path " << file_path << "." << std::endl;
 			result_SP = gStaticEidosValue_StringEmpty;
 		}
 		else
@@ -7356,7 +7347,7 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const EidosValue_SP *const p_arguments
 	EidosValue *arg1_value = p_arguments[1].get();
 	EidosValue_String_singleton *arg1_value_singleton = dynamic_cast<EidosValue_String_singleton *>(p_arguments[1].get());
 	EidosScript *script = (arg1_value_singleton ? arg1_value_singleton->CachedScript() : nullptr);
-	vector<EidosValue_SP> results;
+	std::vector<EidosValue_SP> results;
 	
 	// Errors in lambdas should be reported for the lambda script, not for the calling script,
 	// if possible.  In the GUI this does not work well, however; there, errors should be
@@ -7484,9 +7475,9 @@ EidosValue_SP Eidos_ExecuteFunction_beep(const EidosValue_SP *const p_arguments,
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *arg0_value = p_arguments[0].get();
-	string name_string = ((arg0_value->Type() == EidosValueType::kValueString) ? arg0_value->StringAtIndex(0, nullptr) : gEidosStr_empty_string);
+	std::string name_string = ((arg0_value->Type() == EidosValueType::kValueString) ? arg0_value->StringAtIndex(0, nullptr) : gEidosStr_empty_string);
 	
-	string beep_error = EidosBeep(name_string);
+	std::string beep_error = EidosBeep(name_string);
 	
 	if (beep_error.length())
 	{
@@ -7513,8 +7504,8 @@ EidosValue_SP Eidos_ExecuteFunction_citation(__attribute__((unused)) const Eidos
 	
 	if (gEidosContextCitation.length())
 	{
-		output_stream << "---------------------------------------------------------" << endl << endl;
-		output_stream << gEidosContextCitation << endl;
+		output_stream << "---------------------------------------------------------" << std::endl << std::endl;
+		output_stream << gEidosContextCitation << std::endl;
 	}
 	
 	result_SP = gStaticEidosValueNULLInvisible;
@@ -7548,7 +7539,7 @@ EidosValue_SP Eidos_ExecuteFunction_date(__attribute__((unused)) const EidosValu
 	timeinfo = localtime(&rawtime);
 	strftime(buffer, 25, "%d-%m-%Y", timeinfo);
 	
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(string(buffer)));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(std::string(buffer)));
 	
 	return result_SP;
 }
@@ -7807,7 +7798,7 @@ EidosValue_SP Eidos_ExecuteFunction_functionSignature(const EidosValue_SP *const
 	EidosValue *arg0_value = p_arguments[0].get();
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 	bool function_name_specified = (arg0_value->Type() == EidosValueType::kValueString);
-	string match_string = (function_name_specified ? arg0_value->StringAtIndex(0, nullptr) : gEidosStr_empty_string);
+	std::string match_string = (function_name_specified ? arg0_value->StringAtIndex(0, nullptr) : gEidosStr_empty_string);
 	bool signature_found = false;
 	
 	// function_map_ is already alphabetized since maps keep sorted order
@@ -7830,13 +7821,13 @@ EidosValue_SP Eidos_ExecuteFunction_functionSignature(const EidosValue_SP *const
 			output_stream << " <user-defined>";
 		}
 		
-		output_stream << endl;
+		output_stream << std::endl;
 		
 		signature_found = true;
 	}
 	
 	if (function_name_specified && !signature_found)
-		output_stream << "No function signature found for \"" << match_string << "\"." << endl;
+		output_stream << "No function signature found for \"" << match_string << "\"." << std::endl;
 	
 	result_SP = gStaticEidosValueNULLInvisible;
 	
@@ -7862,26 +7853,26 @@ EidosValue_SP Eidos_ExecuteFunction_license(__attribute__((unused)) const EidosV
 	
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 	
-	output_stream << "Eidos is free software: you can redistribute it and/or" << endl;
-	output_stream << "modify it under the terms of the GNU General Public" << endl;
-	output_stream << "License as published by the Free Software Foundation," << endl;
-	output_stream << "either version 3 of the License, or (at your option)" << endl;
-	output_stream << "any later version." << endl << endl;
+	output_stream << "Eidos is free software: you can redistribute it and/or" << std::endl;
+	output_stream << "modify it under the terms of the GNU General Public" << std::endl;
+	output_stream << "License as published by the Free Software Foundation," << std::endl;
+	output_stream << "either version 3 of the License, or (at your option)" << std::endl;
+	output_stream << "any later version." << std::endl << std::endl;
 	
-	output_stream << "Eidos is distributed in the hope that it will be" << endl;
-	output_stream << "useful, but WITHOUT ANY WARRANTY; without even the" << endl;
-	output_stream << "implied warranty of MERCHANTABILITY or FITNESS FOR" << endl;
-	output_stream << "A PARTICULAR PURPOSE.  See the GNU General Public" << endl;
-	output_stream << "License for more details." << endl << endl;
+	output_stream << "Eidos is distributed in the hope that it will be" << std::endl;
+	output_stream << "useful, but WITHOUT ANY WARRANTY; without even the" << std::endl;
+	output_stream << "implied warranty of MERCHANTABILITY or FITNESS FOR" << std::endl;
+	output_stream << "A PARTICULAR PURPOSE.  See the GNU General Public" << std::endl;
+	output_stream << "License for more details." << std::endl << std::endl;
 	
-	output_stream << "You should have received a copy of the GNU General" << endl;
-	output_stream << "Public License along with Eidos.  If not, see" << endl;
-	output_stream << "<http://www.gnu.org/licenses/>." << endl << endl;
+	output_stream << "You should have received a copy of the GNU General" << std::endl;
+	output_stream << "Public License along with Eidos.  If not, see" << std::endl;
+	output_stream << "<http://www.gnu.org/licenses/>." << std::endl << std::endl;
 	
 	if (gEidosContextLicense.length())
 	{
-		output_stream << "---------------------------------------------------------" << endl << endl;
-		output_stream << gEidosContextLicense << endl;
+		output_stream << "---------------------------------------------------------" << std::endl << std::endl;
+		output_stream << gEidosContextLicense << std::endl;
 	}
 	
 	result_SP = gStaticEidosValueNULLInvisible;
@@ -7896,7 +7887,7 @@ EidosValue_SP Eidos_ExecuteFunction_rm(const EidosValue_SP *const p_arguments, _
 	
 	EidosValue *arg0_value = p_arguments[0].get();
 	bool removeConstants = p_arguments[1]->LogicalAtIndex(0, nullptr);
-	vector<string> symbols_to_remove;
+	std::vector<std::string> symbols_to_remove;
 	
 	EidosSymbolTable &symbols = p_interpreter.SymbolTable();
 	
@@ -7911,10 +7902,10 @@ EidosValue_SP Eidos_ExecuteFunction_rm(const EidosValue_SP *const p_arguments, _
 	}
 	
 	if (removeConstants)
-		for (string &symbol : symbols_to_remove)
+		for (std::string &symbol : symbols_to_remove)
 			symbols.RemoveConstantForSymbol(EidosGlobalStringIDForString(symbol));
 	else
-		for (string &symbol : symbols_to_remove)
+		for (std::string &symbol : symbols_to_remove)
 			symbols.RemoveValueForSymbol(EidosGlobalStringIDForString(symbol));
 	
 	result_SP = gStaticEidosValueNULLInvisible;
@@ -7957,7 +7948,7 @@ EidosValue_SP Eidos_ExecuteFunction_stop(const EidosValue_SP *const p_arguments,
 	{
 		std::string &&stop_string = p_arguments[0]->StringAtIndex(0, nullptr);
 		
-		p_interpreter.ExecutionOutputStream() << stop_string << endl;
+		p_interpreter.ExecutionOutputStream() << stop_string << std::endl;
 		
 		EIDOS_TERMINATION << ("ERROR (Eidos_ExecuteFunction_stop): stop(\"" + stop_string + "\") called.") << eidos_terminate(nullptr);
 	}
@@ -8087,7 +8078,7 @@ EidosValue_SP Eidos_ExecuteFunction_time(__attribute__((unused)) const EidosValu
 	timeinfo = localtime(&rawtime);
 	strftime(buffer, 20, "%H:%M:%S", timeinfo);
 	
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(string(buffer)));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(std::string(buffer)));
 	
 	return result_SP;
 }
@@ -8170,10 +8161,10 @@ EidosValue_SP Eidos_ExecuteFunction_version(__attribute__((unused)) const EidosV
 	
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 	
-	output_stream << "Eidos version 1.5" << endl;	// EIDOS VERSION
+	output_stream << "Eidos version 1.5" << std::endl;	// EIDOS VERSION
 	
 	if (gEidosContextVersion.length())
-		output_stream << gEidosContextVersion << endl;
+		output_stream << gEidosContextVersion << std::endl;
 	
 	result_SP = gStaticEidosValueNULLInvisible;
 	

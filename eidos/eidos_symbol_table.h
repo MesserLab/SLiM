@@ -124,7 +124,7 @@ private:
 	EidosSymbolTable_InternalSlot internal_symbols_[EIDOS_SYMBOL_TABLE_BASE_SIZE];
 	size_t internal_symbol_count_;
 	
-	// If using_internal_symbols_==false, we have switched over to this external hash table using std::unordered_map.
+	// If using_internal_symbols_==false, we have switched over to this external hash table utilizing std::unordered_map.
 	std::unordered_map<EidosGlobalStringID, EidosValue_SP> hash_symbols_;
 	
 	// Symbol tables can be chained.  This is invisible to the user; there appears to be a single global symbol table for a given

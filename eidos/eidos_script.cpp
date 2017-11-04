@@ -28,14 +28,6 @@
 #include <sstream>
 
 
-using std::string;
-using std::vector;
-using std::endl;
-using std::istringstream;
-using std::istream;
-using std::ostream;
-
-
 // set these to true to get logging of tokens / AST / evaluation
 bool gEidosLogTokens = false;
 bool gEidosLogAST = false;
@@ -79,7 +71,7 @@ static size_t Eidos_utf8_utf16width(const unsigned char *string, size_t len)
 //
 #pragma mark Script
 
-EidosScript::EidosScript(const string &p_script_string) :
+EidosScript::EidosScript(const std::string &p_script_string) :
 	script_string_(p_script_string)
 {
 }
@@ -127,7 +119,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 		int ch2 = ((pos >= len) ? 0 : (unsigned char)script_string_[pos + 1]);		// look ahead one character (assuming ch is a single-byte character)
 		bool skip = false;															// set to true to skip creating/adding this token
 		EidosTokenType token_type = EidosTokenType::kTokenNone;
-		string token_string;
+		std::string token_string;
 		int32_t token_UTF16_start = pos_UTF16;
 		int32_t token_UTF16_end = pos_UTF16;
 		
@@ -2188,24 +2180,24 @@ void EidosScript::ParseInterpreterBlockToAST(bool p_allow_functions, bool p_make
 	parse_make_bad_nodes_ = false;
 }
 
-void EidosScript::PrintTokens(ostream &p_outstream) const
+void EidosScript::PrintTokens(std::ostream &p_outstream) const
 {
 	if (token_stream_.size())
 	{
 		for (auto &token : token_stream_)
 			p_outstream << token << " ";
 		
-		p_outstream << endl;
+		p_outstream << std::endl;
 	}
 }
 
-void EidosScript::PrintAST(ostream &p_outstream) const
+void EidosScript::PrintAST(std::ostream &p_outstream) const
 {
 	if (parse_root_)
 	{
 		parse_root_->PrintTreeWithIndent(p_outstream, 0);
 		
-		p_outstream << endl;
+		p_outstream << std::endl;
 	}
 }
 

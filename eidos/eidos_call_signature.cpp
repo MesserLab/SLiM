@@ -24,18 +24,12 @@
 #include <utility>
 
 
-using std::string;
-using std::vector;
-using std::endl;
-using std::ostream;
-
-
 //
 //	EidosCallSignature
 //
 #pragma mark EidosCallSignature
 
-EidosCallSignature::EidosCallSignature(const string &p_call_name, EidosValueMask p_return_mask)
+EidosCallSignature::EidosCallSignature(const std::string &p_call_name, EidosValueMask p_return_mask)
 	: call_name_(p_call_name), return_mask_(p_return_mask), return_class_(nullptr)
 {
 }
@@ -393,7 +387,7 @@ std::string EidosCallSignature::SignatureString(void) const
 	return ss.str();
 }
 
-ostream &operator<<(ostream &p_outstream, const EidosCallSignature &p_signature)
+std::ostream &operator<<(std::ostream &p_outstream, const EidosCallSignature &p_signature)
 {
 	//
 	//	Note this logic is paralleled in +[NSAttributedString eidosAttributedStringForCallSignature:].
@@ -418,7 +412,7 @@ ostream &operator<<(ostream &p_outstream, const EidosCallSignature &p_signature)
 		for (int arg_index = 0; arg_index < arg_mask_count; ++arg_index)
 		{
 			EidosValueMask type_mask = p_signature.arg_masks_[arg_index];
-			const string &arg_name = p_signature.arg_names_[arg_index];
+			const std::string &arg_name = p_signature.arg_names_[arg_index];
 			const EidosObjectClass *arg_obj_class = p_signature.arg_classes_[arg_index];
 			EidosValue_SP arg_default = p_signature.arg_defaults_[arg_index];
 			
@@ -462,7 +456,7 @@ EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_nam
 {
 }
 
-EidosFunctionSignature::EidosFunctionSignature(const string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask, const string &p_delegate_name)
+EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask, const std::string &p_delegate_name)
 	: EidosCallSignature(p_function_name, p_return_mask), delegate_name_(p_delegate_name), internal_function_(p_function_ptr)
 {
 }

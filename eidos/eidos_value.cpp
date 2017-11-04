@@ -29,14 +29,6 @@
 #include "errno.h"
 
 
-using std::string;
-using std::vector;
-using std::endl;
-using std::istringstream;
-using std::istream;
-using std::ostream;
-
-
 // The global object pool for EidosValue, initialized in Eidos_WarmUp()
 EidosObjectPool *gEidosValuePool = nullptr;
 
@@ -75,7 +67,7 @@ EidosValue_String_SP gStaticEidosValue_StringDoubleAsterisk;
 EidosObjectClass *gEidos_UndefinedClassObject = new EidosObjectClass();
 
 
-string StringForEidosValueType(const EidosValueType p_type)
+std::string StringForEidosValueType(const EidosValueType p_type)
 {
 	switch (p_type)
 	{
@@ -186,8 +178,8 @@ int CompareEidosValues(const EidosValue &p_value1, int p_index1, const EidosValu
 	// string is the highest type, so we promote to string if either operand is a string
 	if ((type1 == EidosValueType::kValueString) || (type2 == EidosValueType::kValueString))
 	{
-		string string1 = p_value1.StringAtIndex(p_index1, p_blame_token);
-		string string2 = p_value2.StringAtIndex(p_index2, p_blame_token);
+		std::string string1 = p_value1.StringAtIndex(p_index1, p_blame_token);
+		std::string string2 = p_value2.StringAtIndex(p_index2, p_blame_token);
 		int compare_result = string1.compare(string2);		// not guaranteed to be -1 / 0 / +1, just negative / 0 / positive
 		
 		return (compare_result < 0) ? -1 : ((compare_result > 0) ? 1 : 0);
@@ -235,8 +227,8 @@ int CompareEidosValues_Object(const EidosValue &p_value1, int p_index1, const Ei
 
 int CompareEidosValues_String(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token)
 {
-	string string1 = p_value1.StringAtIndex(p_index1, p_blame_token);
-	string string2 = p_value2.StringAtIndex(p_index2, p_blame_token);
+	std::string string1 = p_value1.StringAtIndex(p_index1, p_blame_token);
+	std::string string2 = p_value2.StringAtIndex(p_index2, p_blame_token);
 	int compare_result = string1.compare(string2);		// not guaranteed to be -1 / 0 / +1, just negative / 0 / positive
 	
 	return (compare_result < 0) ? -1 : ((compare_result > 0) ? 1 : 0);
@@ -737,7 +729,7 @@ void EidosValue_String_vector::Print(std::ostream &p_ostream) const
 	{
 		bool first = true;
 		
-		for (const string &value : values_)
+		for (const std::string &value : values_)
 		{
 			if (first)
 				first = false;
@@ -1845,7 +1837,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 		case EidosValueType::kValueLogical:
 		{
 			// make a vector of pairs: first is the value returned for the sorting property, second is the object element
-			vector<std::pair<eidos_logical_t, EidosObjectElement*>> sortable_pairs;
+			std::vector<std::pair<eidos_logical_t, EidosObjectElement*>> sortable_pairs;
 			
 			for (auto value : values_)
 			{
@@ -1877,7 +1869,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 		case EidosValueType::kValueInt:
 		{
 			// make a vector of pairs: first is the value returned for the sorting property, second is the object element
-			vector<std::pair<int64_t, EidosObjectElement*>> sortable_pairs;
+			std::vector<std::pair<int64_t, EidosObjectElement*>> sortable_pairs;
 			
 			for (auto value : values_)
 			{
@@ -1909,7 +1901,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 		case EidosValueType::kValueFloat:
 		{
 			// make a vector of pairs: first is the value returned for the sorting property, second is the object element
-			vector<std::pair<double, EidosObjectElement*>> sortable_pairs;
+			std::vector<std::pair<double, EidosObjectElement*>> sortable_pairs;
 			
 			for (auto value : values_)
 			{
@@ -1941,7 +1933,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 		case EidosValueType::kValueString:
 		{
 			// make a vector of pairs: first is the value returned for the sorting property, second is the object element
-			vector<std::pair<std::string, EidosObjectElement*>> sortable_pairs;
+			std::vector<std::pair<std::string, EidosObjectElement*>> sortable_pairs;
 			
 			for (auto value : values_)
 			{
@@ -2083,7 +2075,7 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 	else
 	{
 		// get the value from all properties and collect the results
-		vector<EidosValue_SP> results;
+		std::vector<EidosValue_SP> results;
 		
 		if (values_size < 10)
 		{
@@ -2371,7 +2363,7 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 	else
 	{
 		// call the method on all elements and collect the results
-		vector<EidosValue_SP> results;
+		std::vector<EidosValue_SP> results;
 		
 		if (values_size < 10)
 		{
@@ -2663,7 +2655,7 @@ EidosValue_SP EidosObjectElement::ExecuteInstanceMethod(EidosGlobalStringID p_me
 		{
 			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 			
-			output_stream << Class()->ElementType() << ":" << endl;
+			output_stream << Class()->ElementType() << ":" << std::endl;
 			
 			const std::vector<const EidosPropertySignature *> *properties = Class()->Properties();
 			
@@ -2691,20 +2683,20 @@ EidosValue_SP EidosObjectElement::ExecuteInstanceMethod(EidosGlobalStringID p_me
 						output_stream << ") ";
 					
 					if (property_count <= 2)
-						output_stream << *property_value << endl;
+						output_stream << *property_value << std::endl;
 					else
 					{
 						EidosValue_SP first_value = property_value->GetValueAtIndex(0, nullptr);
 						EidosValue_SP second_value = property_value->GetValueAtIndex(1, nullptr);
 						
-						output_stream << *first_value << " " << *second_value << " ... (" << property_count << " values)" << endl;
+						output_stream << *first_value << " " << *second_value << " ... (" << property_count << " values)" << std::endl;
 					}
 				}
 				else
 				{
 					// The property threw an error when we tried to access it, which is allowed
 					// for properties that are only valid in specific circumstances
-					output_stream << "\t" << property_name << " " << property_sig->PropertySymbol() << " <inaccessible>" << endl;
+					output_stream << "\t" << property_name << " " << property_sig->PropertySymbol() << " <inaccessible>" << std::endl;
 				}
 			}
 			
@@ -2909,7 +2901,7 @@ EidosValue_SP EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_
 		{
 			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 			bool has_match_string = (p_arguments[0]->Type() == EidosValueType::kValueString);
-			string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0, nullptr) : gEidosStr_empty_string);
+			std::string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0, nullptr) : gEidosStr_empty_string);
 			const std::vector<const EidosPropertySignature *> *properties = Properties();
 			bool signature_found = false;
 			
@@ -2920,13 +2912,13 @@ EidosValue_SP EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_
 				if (has_match_string && (property_name.compare(match_string) != 0))
 					continue;
 				
-				output_stream << property_name << " " << property_sig->PropertySymbol() << " (" << StringForEidosValueMask(property_sig->value_mask_, property_sig->value_class_, "", nullptr) << ")" << endl;
+				output_stream << property_name << " " << property_sig->PropertySymbol() << " (" << StringForEidosValueMask(property_sig->value_mask_, property_sig->value_class_, "", nullptr) << ")" << std::endl;
 				
 				signature_found = true;
 			}
 			
 			if (has_match_string && !signature_found)
-				output_stream << "No property found for \"" << match_string << "\"." << endl;
+				output_stream << "No property found for \"" << match_string << "\"." << std::endl;
 			
 			return gStaticEidosValueNULLInvisible;
 		}
@@ -2941,7 +2933,7 @@ EidosValue_SP EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_
 		{
 			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 			bool has_match_string = (p_arguments[0]->Type() == EidosValueType::kValueString);
-			string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0, nullptr) : gEidosStr_empty_string);
+			std::string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0, nullptr) : gEidosStr_empty_string);
 			const std::vector<const EidosMethodSignature *> *methods = Methods();
 			bool signature_found = false;
 			
@@ -2956,7 +2948,7 @@ EidosValue_SP EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_
 				if (has_match_string && (method_name.compare(match_string) != 0))
 					continue;
 				
-				output_stream << *method_sig << endl;
+				output_stream << *method_sig << std::endl;
 				signature_found = true;
 			}
 			
@@ -2971,12 +2963,12 @@ EidosValue_SP EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_
 				if (has_match_string && (method_name.compare(match_string) != 0))
 					continue;
 				
-				output_stream << *method_sig << endl;
+				output_stream << *method_sig << std::endl;
 				signature_found = true;
 			}
 			
 			if (has_match_string && !signature_found)
-				output_stream << "No method signature found for \"" << match_string << "\"." << endl;
+				output_stream << "No method signature found for \"" << match_string << "\"." << std::endl;
 			
 			return gStaticEidosValueNULLInvisible;
 		}

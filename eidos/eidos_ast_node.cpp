@@ -26,9 +26,6 @@
 #include <algorithm>
 
 
-using std::string;
-
-
 // The global object pool for EidosASTNode, initialized in Eidos_WarmUp()
 EidosObjectPool *gEidosASTNodePool = nullptr;
 
@@ -248,7 +245,7 @@ void EidosASTNode::_OptimizeForScan(const std::string &p_for_index_identifier, u
 			
 			if (function_name_token_type == EidosTokenType::kTokenIdentifier)	// is it a function call, not a method call?
 			{
-				const string &function_name = function_name_node->token_->token_string_;
+				const std::string &function_name = function_name_node->token_->token_string_;
 				
 				if ((function_name.compare(gEidosStr_apply) == 0) || (function_name.compare(gEidosStr_executeLambda) == 0) || (function_name.compare(gEidosStr__executeLambda_OUTER) == 0) || (function_name.compare(gEidosStr_doCall) == 0) || (function_name.compare(gEidosStr_rm) == 0))
 				{
