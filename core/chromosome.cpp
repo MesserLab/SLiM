@@ -813,229 +813,220 @@ void Chromosome::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 
 EidosValue_SP Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
-	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0].get() : nullptr);
-	EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1].get() : nullptr);
-	EidosValue *arg2_value = ((p_argument_count >= 3) ? p_arguments[2].get() : nullptr);
-	
-	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_method_id)
 	{
-			//
-			//	*********************	– (void)setMutationRate(numeric rates, [Ni ends = NULL], [string$ sex = "*"])
-			//
-#pragma mark -setMutationRate()
-			
-		case gID_setMutationRate:
-		{
-#ifdef __clang_analyzer__
-			assert(p_argument_count == 3);
-#endif
-			
-			int rate_count = arg0_value->Count();
-			
-			// Figure out what sex we are being given a map for
-			IndividualSex requested_sex = IndividualSex::kUnspecified;
-			
-			std::string sex_string = arg2_value->StringAtIndex(0, nullptr);
-			
-			if (sex_string.compare("M") == 0)
-				requested_sex = IndividualSex::kMale;
-			else if (sex_string.compare("F") == 0)
-				requested_sex = IndividualSex::kFemale;
-			else if (sex_string.compare("*") == 0)
-				requested_sex = IndividualSex::kUnspecified;
-			else
-				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setMutationRate() requested sex \"" << sex_string << "\" unsupported." << eidos_terminate();
-			
-			// Make sure specifying a map for that sex is legal, given our current state
-			if (((requested_sex == IndividualSex::kUnspecified) && !single_mutation_map_) ||
-				((requested_sex != IndividualSex::kUnspecified) && single_mutation_map_))
-				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setMutationRate() cannot change the chromosome between using a single map versus separate maps for the sexes; the original configuration must be preserved." << eidos_terminate();
-			
-			// Set up to replace the requested map
-			vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? mutation_end_positions_H_ : 
-												  ((requested_sex == IndividualSex::kMale) ? mutation_end_positions_M_ : mutation_end_positions_F_));
-			vector<double> &rates = ((requested_sex == IndividualSex::kUnspecified) ? mutation_rates_H_ : 
-									 ((requested_sex == IndividualSex::kMale) ? mutation_rates_M_ : mutation_rates_F_));
-			
-			if (arg1_value->Type() == EidosValueType::kValueNULL)
-			{
-				// ends is missing/NULL
-				if (rate_count != 1)
-					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setMutationRate() requires rates to be a singleton if ends is not supplied." << eidos_terminate();
-				
-				double mutation_rate = arg0_value->FloatAtIndex(0, nullptr);
-				
-				// check values
-				if (mutation_rate < 0.0)		// intentionally no upper bound
-					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setMutationRate() rate " << mutation_rate << " out of range; rates must be >= 0." << eidos_terminate();
-				
-				// then adopt them
-				rates.clear();
-				positions.clear();
-				
-				rates.emplace_back(mutation_rate);
-				//positions.emplace_back(?);	// deferred; patched in Chromosome::InitializeDraws().
-			}
-			else
-			{
-				// ends is supplied
-				int end_count = arg1_value->Count();
-				
-				if ((end_count != rate_count) || (end_count == 0))
-					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setMutationRate() requires ends and rates to be of equal and nonzero size." << eidos_terminate();
-				
-				// check values
-				for (int value_index = 0; value_index < end_count; ++value_index)
-				{
-					double mutation_rate = arg0_value->FloatAtIndex(value_index, nullptr);
-					slim_position_t mutation_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(value_index, nullptr));
-					
-					if (value_index > 0)
-						if (mutation_end_position <= arg1_value->IntAtIndex(value_index - 1, nullptr))
-							EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setMutationRate() requires ends to be in strictly ascending order." << eidos_terminate();
-					
-					if (mutation_rate < 0.0)		// intentionally no upper bound
-						EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setMutationRate() rate " << mutation_rate << " out of range; rates must be >= 0." << eidos_terminate();
-				}
-				
-				// The stake here is that the last position in the chromosome is not allowed to change after the chromosome is
-				// constructed.  When we call InitializeDraws() below, we recalculate the last position – and we must come up
-				// with the same answer that we got before, otherwise our last_position_ cache is invalid.
-				int64_t new_last_position = arg1_value->IntAtIndex(end_count - 1, nullptr);
-				
-				if (new_last_position != last_position_)
-					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setMutationRate() rate " << new_last_position << " noncompliant; the last interval must end at the last position of the chromosome (" << last_position_ << ")." << eidos_terminate();
-				
-				// then adopt them
-				rates.clear();
-				positions.clear();
-				
-				for (int interval_index = 0; interval_index < end_count; ++interval_index)
-				{
-					double mutation_rate = arg0_value->FloatAtIndex(interval_index, nullptr);
-					slim_position_t mutation_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(interval_index, nullptr));
-					
-					rates.emplace_back(mutation_rate);
-					positions.emplace_back(mutation_end_position);
-				}
-			}
-			
-			InitializeDraws();
-			
-			return gStaticEidosValueNULLInvisible;
-		}
-			
-			//
-			//	*********************	– (void)setRecombinationRate(numeric rates, [Ni ends = NULL], [string$ sex = "*"])
-			//
-#pragma mark -setRecombinationRate()
-			
-		case gID_setRecombinationRate:
-		{
-#ifdef __clang_analyzer__
-			assert(p_argument_count == 3);
-#endif
-			
-			int rate_count = arg0_value->Count();
-			
-			// Figure out what sex we are being given a map for
-			IndividualSex requested_sex = IndividualSex::kUnspecified;
-			
-			std::string sex_string = arg2_value->StringAtIndex(0, nullptr);
-			
-			if (sex_string.compare("M") == 0)
-				requested_sex = IndividualSex::kMale;
-			else if (sex_string.compare("F") == 0)
-				requested_sex = IndividualSex::kFemale;
-			else if (sex_string.compare("*") == 0)
-				requested_sex = IndividualSex::kUnspecified;
-			else
-				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() requested sex \"" << sex_string << "\" unsupported." << eidos_terminate();
-			
-			// Make sure specifying a map for that sex is legal, given our current state
-			if (((requested_sex == IndividualSex::kUnspecified) && !single_recombination_map_) ||
-				((requested_sex != IndividualSex::kUnspecified) && single_recombination_map_))
-				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() cannot change the chromosome between using a single map versus separate maps for the sexes; the original configuration must be preserved." << eidos_terminate();
-			
-			// Set up to replace the requested map
-			vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? recombination_end_positions_H_ : 
-												  ((requested_sex == IndividualSex::kMale) ? recombination_end_positions_M_ : recombination_end_positions_F_));
-			vector<double> &rates = ((requested_sex == IndividualSex::kUnspecified) ? recombination_rates_H_ : 
-									 ((requested_sex == IndividualSex::kMale) ? recombination_rates_M_ : recombination_rates_F_));
-			
-			if (arg1_value->Type() == EidosValueType::kValueNULL)
-			{
-				// ends is missing/NULL
-				if (rate_count != 1)
-					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() requires rates to be a singleton if ends is not supplied." << eidos_terminate();
-				
-				double recombination_rate = arg0_value->FloatAtIndex(0, nullptr);
-				
-				// check values
-				if (recombination_rate < 0.0)		// intentionally no upper bound
-					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() rate " << recombination_rate << " out of range; rates must be >= 0." << eidos_terminate();
-				
-				// then adopt them
-				rates.clear();
-				positions.clear();
-				
-				rates.emplace_back(recombination_rate);
-				//positions.emplace_back(?);	// deferred; patched in Chromosome::InitializeDraws().
-			}
-			else
-			{
-				// ends is supplied
-				int end_count = arg1_value->Count();
-				
-				if ((end_count != rate_count) || (end_count == 0))
-					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() requires ends and rates to be of equal and nonzero size." << eidos_terminate();
-				
-				// check values
-				for (int value_index = 0; value_index < end_count; ++value_index)
-				{
-					double recombination_rate = arg0_value->FloatAtIndex(value_index, nullptr);
-					slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(value_index, nullptr));
-					
-					if (value_index > 0)
-						if (recombination_end_position <= arg1_value->IntAtIndex(value_index - 1, nullptr))
-							EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() requires ends to be in strictly ascending order." << eidos_terminate();
-					
-					if (recombination_rate < 0.0)		// intentionally no upper bound
-						EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() rate " << recombination_rate << " out of range; rates must be >= 0." << eidos_terminate();
-				}
-				
-				// The stake here is that the last position in the chromosome is not allowed to change after the chromosome is
-				// constructed.  When we call InitializeDraws() below, we recalculate the last position – and we must come up
-				// with the same answer that we got before, otherwise our last_position_ cache is invalid.
-				int64_t new_last_position = arg1_value->IntAtIndex(end_count - 1, nullptr);
-				
-				if (new_last_position != last_position_)
-					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteInstanceMethod): setRecombinationRate() rate " << new_last_position << " noncompliant; the last interval must end at the last position of the chromosome (" << last_position_ << ")." << eidos_terminate();
-				
-				// then adopt them
-				rates.clear();
-				positions.clear();
-				
-				for (int interval_index = 0; interval_index < end_count; ++interval_index)
-				{
-					double recombination_rate = arg0_value->FloatAtIndex(interval_index, nullptr);
-					slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(interval_index, nullptr));
-					
-					rates.emplace_back(recombination_rate);
-					positions.emplace_back(recombination_end_position);
-				}
-			}
-			
-			InitializeDraws();
-			
-			return gStaticEidosValueNULLInvisible;
-		}
-			
-			// all others, including gID_none
-		default:
-			return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_setMutationRate:		return ExecuteMethod_setMutationRate(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_setRecombinationRate:	return ExecuteMethod_setRecombinationRate(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		default:						return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 	}
+}
+
+//	*********************	– (void)setMutationRate(numeric rates, [Ni ends = NULL], [string$ sex = "*"])
+//
+EidosValue_SP Chromosome::ExecuteMethod_setMutationRate(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *arg1_value = p_arguments[1].get();
+	EidosValue *arg2_value = p_arguments[2].get();
+	
+	int rate_count = arg0_value->Count();
+	
+	// Figure out what sex we are being given a map for
+	IndividualSex requested_sex = IndividualSex::kUnspecified;
+	
+	std::string sex_string = arg2_value->StringAtIndex(0, nullptr);
+	
+	if (sex_string.compare("M") == 0)
+		requested_sex = IndividualSex::kMale;
+	else if (sex_string.compare("F") == 0)
+		requested_sex = IndividualSex::kFemale;
+	else if (sex_string.compare("*") == 0)
+		requested_sex = IndividualSex::kUnspecified;
+	else
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() requested sex \"" << sex_string << "\" unsupported." << eidos_terminate();
+	
+	// Make sure specifying a map for that sex is legal, given our current state
+	if (((requested_sex == IndividualSex::kUnspecified) && !single_mutation_map_) ||
+		((requested_sex != IndividualSex::kUnspecified) && single_mutation_map_))
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() cannot change the chromosome between using a single map versus separate maps for the sexes; the original configuration must be preserved." << eidos_terminate();
+	
+	// Set up to replace the requested map
+	vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? mutation_end_positions_H_ : 
+										  ((requested_sex == IndividualSex::kMale) ? mutation_end_positions_M_ : mutation_end_positions_F_));
+	vector<double> &rates = ((requested_sex == IndividualSex::kUnspecified) ? mutation_rates_H_ : 
+							 ((requested_sex == IndividualSex::kMale) ? mutation_rates_M_ : mutation_rates_F_));
+	
+	if (arg1_value->Type() == EidosValueType::kValueNULL)
+	{
+		// ends is missing/NULL
+		if (rate_count != 1)
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() requires rates to be a singleton if ends is not supplied." << eidos_terminate();
+		
+		double mutation_rate = arg0_value->FloatAtIndex(0, nullptr);
+		
+		// check values
+		if (mutation_rate < 0.0)		// intentionally no upper bound
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() rate " << mutation_rate << " out of range; rates must be >= 0." << eidos_terminate();
+		
+		// then adopt them
+		rates.clear();
+		positions.clear();
+		
+		rates.emplace_back(mutation_rate);
+		//positions.emplace_back(?);	// deferred; patched in Chromosome::InitializeDraws().
+	}
+	else
+	{
+		// ends is supplied
+		int end_count = arg1_value->Count();
+		
+		if ((end_count != rate_count) || (end_count == 0))
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() requires ends and rates to be of equal and nonzero size." << eidos_terminate();
+		
+		// check values
+		for (int value_index = 0; value_index < end_count; ++value_index)
+		{
+			double mutation_rate = arg0_value->FloatAtIndex(value_index, nullptr);
+			slim_position_t mutation_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(value_index, nullptr));
+			
+			if (value_index > 0)
+				if (mutation_end_position <= arg1_value->IntAtIndex(value_index - 1, nullptr))
+					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() requires ends to be in strictly ascending order." << eidos_terminate();
+			
+			if (mutation_rate < 0.0)		// intentionally no upper bound
+				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() rate " << mutation_rate << " out of range; rates must be >= 0." << eidos_terminate();
+		}
+		
+		// The stake here is that the last position in the chromosome is not allowed to change after the chromosome is
+		// constructed.  When we call InitializeDraws() below, we recalculate the last position – and we must come up
+		// with the same answer that we got before, otherwise our last_position_ cache is invalid.
+		int64_t new_last_position = arg1_value->IntAtIndex(end_count - 1, nullptr);
+		
+		if (new_last_position != last_position_)
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() rate " << new_last_position << " noncompliant; the last interval must end at the last position of the chromosome (" << last_position_ << ")." << eidos_terminate();
+		
+		// then adopt them
+		rates.clear();
+		positions.clear();
+		
+		for (int interval_index = 0; interval_index < end_count; ++interval_index)
+		{
+			double mutation_rate = arg0_value->FloatAtIndex(interval_index, nullptr);
+			slim_position_t mutation_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(interval_index, nullptr));
+			
+			rates.emplace_back(mutation_rate);
+			positions.emplace_back(mutation_end_position);
+		}
+	}
+	
+	InitializeDraws();
+	
+	return gStaticEidosValueNULLInvisible;
+}
+
+//	*********************	– (void)setRecombinationRate(numeric rates, [Ni ends = NULL], [string$ sex = "*"])
+//
+EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *arg1_value = p_arguments[1].get();
+	EidosValue *arg2_value = p_arguments[2].get();
+	
+	int rate_count = arg0_value->Count();
+	
+	// Figure out what sex we are being given a map for
+	IndividualSex requested_sex = IndividualSex::kUnspecified;
+	
+	std::string sex_string = arg2_value->StringAtIndex(0, nullptr);
+	
+	if (sex_string.compare("M") == 0)
+		requested_sex = IndividualSex::kMale;
+	else if (sex_string.compare("F") == 0)
+		requested_sex = IndividualSex::kFemale;
+	else if (sex_string.compare("*") == 0)
+		requested_sex = IndividualSex::kUnspecified;
+	else
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() requested sex \"" << sex_string << "\" unsupported." << eidos_terminate();
+	
+	// Make sure specifying a map for that sex is legal, given our current state
+	if (((requested_sex == IndividualSex::kUnspecified) && !single_recombination_map_) ||
+		((requested_sex != IndividualSex::kUnspecified) && single_recombination_map_))
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() cannot change the chromosome between using a single map versus separate maps for the sexes; the original configuration must be preserved." << eidos_terminate();
+	
+	// Set up to replace the requested map
+	vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? recombination_end_positions_H_ : 
+										  ((requested_sex == IndividualSex::kMale) ? recombination_end_positions_M_ : recombination_end_positions_F_));
+	vector<double> &rates = ((requested_sex == IndividualSex::kUnspecified) ? recombination_rates_H_ : 
+							 ((requested_sex == IndividualSex::kMale) ? recombination_rates_M_ : recombination_rates_F_));
+	
+	if (arg1_value->Type() == EidosValueType::kValueNULL)
+	{
+		// ends is missing/NULL
+		if (rate_count != 1)
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() requires rates to be a singleton if ends is not supplied." << eidos_terminate();
+		
+		double recombination_rate = arg0_value->FloatAtIndex(0, nullptr);
+		
+		// check values
+		if (recombination_rate < 0.0)		// intentionally no upper bound
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() rate " << recombination_rate << " out of range; rates must be >= 0." << eidos_terminate();
+		
+		// then adopt them
+		rates.clear();
+		positions.clear();
+		
+		rates.emplace_back(recombination_rate);
+		//positions.emplace_back(?);	// deferred; patched in Chromosome::InitializeDraws().
+	}
+	else
+	{
+		// ends is supplied
+		int end_count = arg1_value->Count();
+		
+		if ((end_count != rate_count) || (end_count == 0))
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() requires ends and rates to be of equal and nonzero size." << eidos_terminate();
+		
+		// check values
+		for (int value_index = 0; value_index < end_count; ++value_index)
+		{
+			double recombination_rate = arg0_value->FloatAtIndex(value_index, nullptr);
+			slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(value_index, nullptr));
+			
+			if (value_index > 0)
+				if (recombination_end_position <= arg1_value->IntAtIndex(value_index - 1, nullptr))
+					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() requires ends to be in strictly ascending order." << eidos_terminate();
+			
+			if (recombination_rate < 0.0)		// intentionally no upper bound
+				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() rate " << recombination_rate << " out of range; rates must be >= 0." << eidos_terminate();
+		}
+		
+		// The stake here is that the last position in the chromosome is not allowed to change after the chromosome is
+		// constructed.  When we call InitializeDraws() below, we recalculate the last position – and we must come up
+		// with the same answer that we got before, otherwise our last_position_ cache is invalid.
+		int64_t new_last_position = arg1_value->IntAtIndex(end_count - 1, nullptr);
+		
+		if (new_last_position != last_position_)
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() rate " << new_last_position << " noncompliant; the last interval must end at the last position of the chromosome (" << last_position_ << ")." << eidos_terminate();
+		
+		// then adopt them
+		rates.clear();
+		positions.clear();
+		
+		for (int interval_index = 0; interval_index < end_count; ++interval_index)
+		{
+			double recombination_rate = arg0_value->FloatAtIndex(interval_index, nullptr);
+			slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(interval_index, nullptr));
+			
+			rates.emplace_back(recombination_rate);
+			positions.emplace_back(recombination_end_position);
+		}
+	}
+	
+	InitializeDraws();
+	
+	return gStaticEidosValueNULLInvisible;
 }
 
 

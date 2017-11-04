@@ -122,29 +122,32 @@ EidosValue_SP Eidos_TestElement::ExecuteInstanceMethod(EidosGlobalStringID p_met
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_method_id)
 	{
-		case gEidosID__cubicYolk:
-		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(yolk_ * yolk_ * yolk_));
-		}
-		case gEidosID__squareTest:
-		{
-			// The way we handle the squareTest property is extremely questionable; we create a new
-			// Eidos_TestElement object that is not owned by anyone, so it ends up as a leak in
-			// Instruments.  This doesn't matter, since Eidos_TestElement is only used in test code,
-			// but it clutters up leak reports confusingly.  To get rid of those leak reports, we
-			// keep a static vector of pointers to the leaked elements, so they are no longer
-			// considered leaks.  This is an ugly hack, but is completely harmless.
-			Eidos_TestElement *sq_element = new Eidos_TestElement(yolk_ * yolk_);
-			
-			sq_element_thunk.push_back(sq_element);
-			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(sq_element, gEidos_TestElementClass));
-		}
-			
-			// all others, including gID_none
-		default:
-			return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gEidosID__cubicYolk:	return ExecuteMethod_cubicYolk(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gEidosID__squareTest:	return ExecuteMethod_squareTest(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		default:					return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 	}
+}
+
+EidosValue_SP Eidos_TestElement::ExecuteMethod_cubicYolk(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(yolk_ * yolk_ * yolk_));
+}
+
+EidosValue_SP Eidos_TestElement::ExecuteMethod_squareTest(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	// The way we handle the squareTest property is extremely questionable; we create a new
+	// Eidos_TestElement object that is not owned by anyone, so it ends up as a leak in
+	// Instruments.  This doesn't matter, since Eidos_TestElement is only used in test code,
+	// but it clutters up leak reports confusingly.  To get rid of those leak reports, we
+	// keep a static vector of pointers to the leaked elements, so they are no longer
+	// considered leaks.  This is an ugly hack, but is completely harmless.
+	Eidos_TestElement *sq_element = new Eidos_TestElement(yolk_ * yolk_);
+	
+	sq_element_thunk.push_back(sq_element);
+	
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(sq_element, gEidos_TestElementClass));
 }
 
 

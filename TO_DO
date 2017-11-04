@@ -49,6 +49,11 @@ finding out the generation number of a running simulation in lldb:
 	0x7f9e28413fb0: 0x28414310 0x00007f9e 0x00000001 0x000021ef		-> 0x000021ef is the generation
 	if the memory layout moves, just look for 0x00000007 which will be the generation stage at this point in the code; the generation is immediately before it
 
+reassuring the Clang analyzer that a precondition is met:
+	#ifdef __clang_analyzer__
+		assert(p_argument_count >= 5);
+	#endif
+
 
 
 

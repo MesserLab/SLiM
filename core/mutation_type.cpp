@@ -446,109 +446,104 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 
 EidosValue_SP MutationType::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
-	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0].get() : nullptr);
-	
-	//
-	//	*********************	- (void)setDistribution(string$ distributionType, ...)
-	//
-#pragma mark -setDistribution()
-	
-	if (p_method_id == gID_setDistribution)
+	switch (p_method_id)
 	{
-#ifdef __clang_analyzer__
-		assert(p_argument_count >= 1);
-#endif
+		case gID_setDistribution:	return ExecuteMethod_setDistribution(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		default:					return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+	}
+}
+
+//	*********************	- (void)setDistribution(string$ distributionType, ...)
+//
+EidosValue_SP MutationType::ExecuteMethod_setDistribution(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *arg0_value = p_arguments[0].get();
+	
+	std::string dfe_type_string = arg0_value->StringAtIndex(0, nullptr);
+	DFEType dfe_type;
+	int expected_dfe_param_count = 0;
+	std::vector<double> dfe_parameters;
+	std::vector<std::string> dfe_strings;
+	bool numericParams = true;		// if true, params must be int/float; if false, params must be string
+	
+	if (dfe_type_string.compare(gStr_f) == 0)
+	{
+		dfe_type = DFEType::kFixed;
+		expected_dfe_param_count = 1;
+	}
+	else if (dfe_type_string.compare(gStr_g) == 0)
+	{
+		dfe_type = DFEType::kGamma;
+		expected_dfe_param_count = 2;
+	}
+	else if (dfe_type_string.compare(gStr_e) == 0)
+	{
+		dfe_type = DFEType::kExponential;
+		expected_dfe_param_count = 1;
+	}
+	else if (dfe_type_string.compare(gEidosStr_n) == 0)
+	{
+		dfe_type = DFEType::kNormal;
+		expected_dfe_param_count = 2;
+	}
+	else if (dfe_type_string.compare(gStr_w) == 0)
+	{
+		dfe_type = DFEType::kWeibull;
+		expected_dfe_param_count = 2;
+	}
+	else if (dfe_type_string.compare(gStr_s) == 0)
+	{
+		dfe_type = DFEType::kScript;
+		expected_dfe_param_count = 1;
+		numericParams = false;
+	}
+	else
+		EIDOS_TERMINATION << "ERROR (MutationType::ExecuteMethod_setDistribution): setDistribution() distributionType \"" << dfe_type_string << "\" must be \"f\", \"g\", \"e\", \"n\", \"w\", or \"s\"." << eidos_terminate();
+	
+	if (p_argument_count != 1 + expected_dfe_param_count)
+		EIDOS_TERMINATION << "ERROR (MutationType::ExecuteMethod_setDistribution): setDistribution() distributionType \"" << dfe_type << "\" requires exactly " << expected_dfe_param_count << " DFE parameter" << (expected_dfe_param_count == 1 ? "" : "s") << "." << eidos_terminate();
+	
+	for (int dfe_param_index = 0; dfe_param_index < expected_dfe_param_count; ++dfe_param_index)
+	{
+		EidosValue *dfe_param_value = p_arguments[1 + dfe_param_index].get();
+		EidosValueType dfe_param_type = dfe_param_value->Type();
 		
-		std::string dfe_type_string = arg0_value->StringAtIndex(0, nullptr);
-		DFEType dfe_type;
-		int expected_dfe_param_count = 0;
-		std::vector<double> dfe_parameters;
-		std::vector<std::string> dfe_strings;
-		bool numericParams = true;		// if true, params must be int/float; if false, params must be string
-		
-		if (dfe_type_string.compare(gStr_f) == 0)
+		if (numericParams)
 		{
-			dfe_type = DFEType::kFixed;
-			expected_dfe_param_count = 1;
-		}
-		else if (dfe_type_string.compare(gStr_g) == 0)
-		{
-			dfe_type = DFEType::kGamma;
-			expected_dfe_param_count = 2;
-		}
-		else if (dfe_type_string.compare(gStr_e) == 0)
-		{
-			dfe_type = DFEType::kExponential;
-			expected_dfe_param_count = 1;
-		}
-		else if (dfe_type_string.compare(gEidosStr_n) == 0)
-		{
-			dfe_type = DFEType::kNormal;
-			expected_dfe_param_count = 2;
-		}
-		else if (dfe_type_string.compare(gStr_w) == 0)
-		{
-			dfe_type = DFEType::kWeibull;
-			expected_dfe_param_count = 2;
-		}
-		else if (dfe_type_string.compare(gStr_s) == 0)
-		{
-			dfe_type = DFEType::kScript;
-			expected_dfe_param_count = 1;
-			numericParams = false;
+			if ((dfe_param_type != EidosValueType::kValueFloat) && (dfe_param_type != EidosValueType::kValueInt))
+				EIDOS_TERMINATION << "ERROR (MutationType::ExecuteMethod_setDistribution): setDistribution() requires that the parameters for this DFE be of type numeric (integer or float)." << eidos_terminate();
+			
+			dfe_parameters.emplace_back(dfe_param_value->FloatAtIndex(0, nullptr));
+			// intentionally no bounds checks for DFE parameters
 		}
 		else
-			EIDOS_TERMINATION << "ERROR (MutationType::ExecuteInstanceMethod): setDistribution() distributionType \"" << dfe_type_string << "\" must be \"f\", \"g\", \"e\", \"n\", \"w\", or \"s\"." << eidos_terminate();
-		
-		if (p_argument_count != 1 + expected_dfe_param_count)
-			EIDOS_TERMINATION << "ERROR (MutationType::ExecuteInstanceMethod): setDistribution() distributionType \"" << dfe_type << "\" requires exactly " << expected_dfe_param_count << " DFE parameter" << (expected_dfe_param_count == 1 ? "" : "s") << "." << eidos_terminate();
-		
-		for (int dfe_param_index = 0; dfe_param_index < expected_dfe_param_count; ++dfe_param_index)
 		{
-			EidosValue *dfe_param_value = p_arguments[1 + dfe_param_index].get();
-			EidosValueType dfe_param_type = dfe_param_value->Type();
+			if (dfe_param_type != EidosValueType::kValueString)
+				EIDOS_TERMINATION << "ERROR (MutationType::ExecuteMethod_setDistribution): setDistribution() requires that the parameters for this DFE be of type string." << eidos_terminate();
 			
-			if (numericParams)
-			{
-				if ((dfe_param_type != EidosValueType::kValueFloat) && (dfe_param_type != EidosValueType::kValueInt))
-					EIDOS_TERMINATION << "ERROR (MutationType::ExecuteInstanceMethod): setDistribution() requires that the parameters for this DFE be of type numeric (integer or float)." << eidos_terminate();
-				
-				dfe_parameters.emplace_back(dfe_param_value->FloatAtIndex(0, nullptr));
-				// intentionally no bounds checks for DFE parameters
-			}
-			else
-			{
-				if (dfe_param_type != EidosValueType::kValueString)
-					EIDOS_TERMINATION << "ERROR (MutationType::ExecuteInstanceMethod): setDistribution() requires that the parameters for this DFE be of type string." << eidos_terminate();
-				
-				dfe_strings.emplace_back(dfe_param_value->StringAtIndex(0, nullptr));
-				// intentionally no bounds checks for DFE parameters
-			}
+			dfe_strings.emplace_back(dfe_param_value->StringAtIndex(0, nullptr));
+			// intentionally no bounds checks for DFE parameters
 		}
-		
-		// Everything seems to be in order, so replace our distribution info with the new info
-		dfe_type_ = dfe_type;
-		dfe_parameters_ = dfe_parameters;
-		dfe_strings_ = dfe_strings;
-		
-		// check whether we are now using a DFE type that is non-neutral; check and set pure_neutral_ and all_pure_neutral_DFE_
-		if ((dfe_type_ != DFEType::kFixed) || (dfe_parameters_[0] != 0.0))
-		{
-			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
-			
-			if (sim)
-				sim->pure_neutral_ = false;
-			
-			all_pure_neutral_DFE_ = false;
-		}
-		
-		return gStaticEidosValueNULLInvisible;
 	}
 	
+	// Everything seems to be in order, so replace our distribution info with the new info
+	dfe_type_ = dfe_type;
+	dfe_parameters_ = dfe_parameters;
+	dfe_strings_ = dfe_strings;
 	
-	// all others, including gID_none
-	else
-		return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+	// check whether we are now using a DFE type that is non-neutral; check and set pure_neutral_ and all_pure_neutral_DFE_
+	if ((dfe_type_ != DFEType::kFixed) || (dfe_parameters_[0] != 0.0))
+	{
+		SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
+		
+		if (sim)
+			sim->pure_neutral_ = false;
+		
+		all_pure_neutral_DFE_ = false;
+	}
+	
+	return gStaticEidosValueNULLInvisible;
 }
 
 

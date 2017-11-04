@@ -732,7 +732,7 @@ double InteractionType::CalculateDistance(double *p_position1, double *p_positio
 		return sqrt(distance_x * distance_x + distance_y * distance_y + distance_z * distance_z);
 	}
 	else
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): calculation of distances requires that the interaction be spatial." << eidos_terminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::CalculateDistance): calculation of distances requires that the interaction be spatial." << eidos_terminate();
 }
 
 double InteractionType::CalculateStrengthNoCallbacks(double p_distance)
@@ -2982,15 +2982,15 @@ void InteractionType::SetProperty(EidosGlobalStringID p_property_id, const Eidos
 		case gID_maxDistance:
 		{
 			if (AnyEvaluated())
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): maxDistance cannot be changed while the interaction is being evaluated; call unevaluate() first, or set maxDistance prior to evaluation of the interaction." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (InteractionType::SetProperty): maxDistance cannot be changed while the interaction is being evaluated; call unevaluate() first, or set maxDistance prior to evaluation of the interaction." << eidos_terminate();
 			
 			max_distance_ = p_value.FloatAtIndex(0, nullptr);
 			max_distance_sq_ = max_distance_ * max_distance_;
 			
 			if (max_distance_ < 0.0)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): the maximum interaction distance must be greater than or equal to zero." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (InteractionType::SetProperty): the maximum interaction distance must be greater than or equal to zero." << eidos_terminate();
 			if ((if_type_ == IFType::kLinear) && (std::isinf(max_distance_) || (max_distance_ <= 0.0)))
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): the maximum interaction distance must be finite and greater than zero when interaction type 'l' has been chosen." << eidos_terminate();
+				EIDOS_TERMINATION << "ERROR (InteractionType::SetProperty): the maximum interaction distance must be finite and greater than zero when interaction type 'l' has been chosen." << eidos_terminate();
 			
 			return;
 		}
@@ -3012,790 +3012,683 @@ void InteractionType::SetProperty(EidosGlobalStringID p_property_id, const Eidos
 
 EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
-	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0].get() : nullptr);
-	EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1].get() : nullptr);
-	EidosValue *arg2_value = ((p_argument_count >= 3) ? p_arguments[2].get() : nullptr);
-	
-	
 	switch (p_method_id)
 	{
-			//
-			//	*********************	– (float)distance(object<Individual> individuals1, [No<Individual> individuals2 = NULL])
-			//
-			#pragma mark -distance()
-			
-		case gID_distance:
+		case gID_distance:					return ExecuteMethod_distance(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_distanceToPoint:			return ExecuteMethod_distanceToPoint(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_drawByStrength:			return ExecuteMethod_drawByStrength(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_evaluate:					return ExecuteMethod_evaluate(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_nearestNeighbors:			return ExecuteMethod_nearestNeighbors(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_nearestNeighborsOfPoint:	return ExecuteMethod_nearestNeighborsOfPoint(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_setInteractionFunction:	return ExecuteMethod_setInteractionFunction(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_strength:					return ExecuteMethod_strength(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_totalOfNeighborStrengths:	return ExecuteMethod_totalOfNeighborStrengths(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_unevaluate:				return ExecuteMethod_unevaluate(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		default:							return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+	}
+}
+
+//
+//	*********************	– (float)distance(object<Individual> individuals1, [No<Individual> individuals2 = NULL])
+EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *arg1_value = p_arguments[1].get();
+	
+	EidosValue *individuals1 = arg0_value, *individuals2 = arg1_value;
+	int count1 = individuals1->Count(), count2 = individuals2->Count();
+	
+	if (spatiality_ == 0)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distance): distance() requires that the interaction be spatial." << eidos_terminate();
+	if ((count1 != 1) && (count2 != 1))
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distance): distance() requires that either individuals1 or individuals2 be singleton." << eidos_terminate();
+	
+	// Rearrange so that if either vector is non-singleton, it is the second that is non-singleton (one-to-many)
+	if (count1 != 1)
+	{
+		std::swap(individuals1, individuals2);
+		std::swap(count1, count2);
+	}
+	
+	// individuals1 is guaranteed to be singleton; let's get the info on it
+	Individual *ind1 = (Individual *)individuals1->ObjectElementAtIndex(0, nullptr);
+	Subpopulation *subpop1 = &(ind1->subpopulation_);
+	slim_objectid_t subpop1_id = subpop1->subpopulation_id_;
+	slim_popsize_t subpop1_size = subpop1->parent_subpop_size_;
+	int ind1_index = ind1->index_;
+	auto subpop_data_iter = data_.find(subpop1_id);
+	
+	if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distance): distance() requires that the interaction has been evaluated for the subpopulation first." << eidos_terminate();
+	
+	InteractionsData &subpop_data = subpop_data_iter->second;
+	
+	EnsureDistancesPresent(subpop_data);
+	
+	double *ind1_distances = subpop_data.distances_ + ind1_index * subpop1_size;
+	double *mirror_ind1_distances = subpop_data.distances_ + ind1_index;			// used when reciprocality is enabled
+	double *position_data = subpop_data.positions_;
+	double *ind1_position = position_data + ind1_index * SLIM_MAX_DIMENSIONALITY;
+	
+	if (individuals2->Type() == EidosValueType::kValueNULL)
+	{
+		// NULL means return distances from individuals1 (which must be singleton) to all individuals in the subpopulation
+		EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(subpop1_size);
+		
+		if (!reciprocal_)
 		{
-			EidosValue *individuals1 = arg0_value, *individuals2 = arg1_value;
-			int count1 = individuals1->Count(), count2 = individuals2->Count();
-			
-			if (spatiality_ == 0)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): distance() requires that the interaction be spatial." << eidos_terminate();
-			if ((count1 != 1) && (count2 != 1))
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): distance() requires that either individuals1 or individuals2 be singleton." << eidos_terminate();
-			
-			// Rearrange so that if either vector is non-singleton, it is the second that is non-singleton (one-to-many)
-			if (count1 != 1)
+			// No reciprocality, so we don't mirror
+			for (int ind2_index = 0; ind2_index < subpop1_size; ++ind2_index)
 			{
-				std::swap(individuals1, individuals2);
-				std::swap(count1, count2);
+				double distance = ind1_distances[ind2_index];
+				
+				if (std::isnan(distance))
+				{
+					distance = CalculateDistance(ind1_position, position_data + ind2_index * SLIM_MAX_DIMENSIONALITY);
+					ind1_distances[ind2_index] = distance;
+				}
+				
+				result_vec->PushFloat(distance);
+			}
+		}
+		else
+		{
+			// Reciprocality; mirror all values that we calculate
+			for (int ind2_index = 0; ind2_index < subpop1_size; ++ind2_index, mirror_ind1_distances += subpop1_size)
+			{
+				double distance = ind1_distances[ind2_index];
+				
+				if (std::isnan(distance))
+				{
+					distance = CalculateDistance(ind1_position, position_data + ind2_index * SLIM_MAX_DIMENSIONALITY);
+					ind1_distances[ind2_index] = distance;
+					
+					*(mirror_ind1_distances) = distance;
+				}
+				
+				result_vec->PushFloat(distance);
+			}
+		}
+		
+		return EidosValue_SP(result_vec);
+	}
+	else
+	{
+		// Otherwise, individuals1 is singleton, and individuals2 is any length, so we loop over individuals2
+		EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(count2);
+		
+		for (int ind2_index = 0; ind2_index < count2; ++ind2_index)
+		{
+			Individual *ind2 = (Individual *)individuals2->ObjectElementAtIndex(ind2_index, nullptr);
+			
+			if (subpop1 != &(ind2->subpopulation_))
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distance): distance() requires that all individuals be in the same subpopulation." << eidos_terminate();
+			
+			slim_popsize_t ind2_index_in_subpop = ind2->index_;
+			double distance = ind1_distances[ind2_index_in_subpop];
+			
+			if (std::isnan(distance))
+			{
+				distance = CalculateDistance(ind1_position, position_data + ind2_index_in_subpop * SLIM_MAX_DIMENSIONALITY);
+				ind1_distances[ind2_index_in_subpop] = distance;
+				
+				// If reciprocality is enabled, push the calculated distance into the reciprocal entry.  There's
+				// enough cruft in this version of the loop that it doesn't seem worth cloning the whole loop.
+				if (reciprocal_)
+					*(mirror_ind1_distances + ind2_index_in_subpop * subpop1_size) = distance;
 			}
 			
-			// individuals1 is guaranteed to be singleton; let's get the info on it
-			Individual *ind1 = (Individual *)individuals1->ObjectElementAtIndex(0, nullptr);
-			Subpopulation *subpop1 = &(ind1->subpopulation_);
-			slim_objectid_t subpop1_id = subpop1->subpopulation_id_;
-			slim_popsize_t subpop1_size = subpop1->parent_subpop_size_;
-			int ind1_index = ind1->index_;
-			auto subpop_data_iter = data_.find(subpop1_id);
+			result_vec->PushFloat(distance);
+		}
+		
+		return EidosValue_SP(result_vec);
+	}
+}
+
+//	*********************	– (float)distanceToPoint(object<Individual> individuals1, float point)
+//
+EidosValue_SP InteractionType::ExecuteMethod_distanceToPoint(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *arg1_value = p_arguments[1].get();
+	
+	EidosValue *individuals = arg0_value, *point = arg1_value;
+	int count = individuals->Count(), point_count = point->Count();
+	
+	if (spatiality_ == 0)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distanceToPoint): distanceToPoint() requires that the interaction be spatial." << eidos_terminate();
+	if (point_count != spatiality_)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distanceToPoint): distanceToPoint() requires that point is of length equal to the interaction spatiality." << eidos_terminate();
+	
+	if (count == 0)
+		return gStaticEidosValue_Float_ZeroVec;
+	
+	// Get the point's coordinates into a double[]
+	double point_data[SLIM_MAX_DIMENSIONALITY];
+	
+	for (int point_index = 0; point_index < spatiality_; ++point_index)
+		point_data[point_index] = point->FloatAtIndex(point_index, nullptr);
+	
+	// individuals is guaranteed to be of length >= 1; let's get the info on it
+	Individual *ind_first = (Individual *)individuals->ObjectElementAtIndex(0, nullptr);
+	Subpopulation *subpop1 = &(ind_first->subpopulation_);
+	slim_objectid_t subpop1_id = subpop1->subpopulation_id_;
+	auto subpop_data_iter = data_.find(subpop1_id);
+	
+	if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distanceToPoint): distanceToPoint() requires that the interaction has been evaluated for the subpopulation first." << eidos_terminate();
+	
+	InteractionsData &subpop_data = subpop_data_iter->second;
+	
+	double *position_data = subpop_data.positions_;
+	
+	EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(count);
+	
+	for (int ind_index = 0; ind_index < count; ++ind_index)
+	{
+		Individual *ind = (Individual *)individuals->ObjectElementAtIndex(ind_index, nullptr);
+		
+		if (subpop1 != &(ind->subpopulation_))
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distanceToPoint): distanceToPoint() requires that all individuals be in the same subpopulation." << eidos_terminate();
+		
+		double *ind_position = position_data + ind->index_ * SLIM_MAX_DIMENSIONALITY;
+		
+		result_vec->PushFloat(CalculateDistance(ind_position, point_data));
+	}
+	
+	return EidosValue_SP(result_vec);
+}
+
+//	*********************	– (object<Individual>)drawByStrength(object<Individual>$ individual, [integer$ count = 1])
+//
+EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *arg1_value = p_arguments[1].get();
+	
+	// Check the individual and subpop
+	Individual *individual = (Individual *)arg0_value->ObjectElementAtIndex(0, nullptr);
+	Subpopulation *subpop = &(individual->subpopulation_);
+	slim_objectid_t subpop_id = subpop->subpopulation_id_;
+	slim_popsize_t subpop_size = subpop->parent_subpop_size_;
+	int ind_index = individual->index_;
+	auto subpop_data_iter = data_.find(subpop_id);
+	
+	if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires that the interaction has been evaluated for the subpopulation first." << eidos_terminate();
+	
+	// Check the count
+	int64_t count = arg1_value->IntAtIndex(0, nullptr);
+	
+	if (count < 0)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires count > 0." << eidos_terminate();
+	
+	if (count == 0)
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+	
+	// Find the neighbors
+	InteractionsData &subpop_data = subpop_data_iter->second;
+	std::vector<SLiMEidosBlock*> &callbacks = subpop_data.evaluation_interaction_callbacks_;
+	bool no_callbacks = (callbacks.size() == 0);
+	std::vector<EidosObjectElement *> neighbors;
+	
+	if (spatiality_ == 0)
+	{
+		EnsureStrengthsPresent(subpop_data);
+		
+		// For non-spatial interactions, just use the subpop's vector of individuals
+		neighbors.reserve(subpop_size);
+		for (Individual &subpop_individual : subpop->parent_individuals_)
+			neighbors.emplace_back(&subpop_individual);
+	}
+	else
+	{
+		EnsureKDTreePresent(subpop_data);
+		EnsureStrengthsPresent(subpop_data);
+		
+		// For spatial interactions, find all neighbors, up to the subpopulation size
+		double *position_data = subpop_data.positions_;
+		double *ind_position = position_data + ind_index * SLIM_MAX_DIMENSIONALITY;
+		
+		neighbors.reserve(subpop_size);
+		FindNeighbors(subpop, subpop_data, ind_position, subpop_size, neighbors, individual);
+	}
+	
+	// Total the interaction strengths with all neighbors; this has the side effect of caching all relevant strengths
+	double total_interaction_strength = 0.0;
+	std::vector<double> cached_strength;
+	
+	cached_strength.reserve((int)count);
+	
+	if (spatiality_ == 0)
+	{
+		double *ind1_strengths = subpop_data.strengths_ + ind_index * subpop_size;
+		double *mirror_ind1_strengths = subpop_data.strengths_ + ind_index;			// used when reciprocality is enabled
+		
+		for (EidosObjectElement *neighbor : neighbors)
+		{
+			Individual *ind2 = (Individual *)neighbor;
 			
-			if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): distance() requires that the interaction has been evaluated for the subpopulation first." << eidos_terminate();
+			slim_popsize_t ind2_index_in_subpop = ind2->index_;
+			double strength = ind1_strengths[ind2_index_in_subpop];
 			
-			InteractionsData &subpop_data = subpop_data_iter->second;
-			
-			EnsureDistancesPresent(subpop_data);
-			
-			double *ind1_distances = subpop_data.distances_ + ind1_index * subpop1_size;
-			double *mirror_ind1_distances = subpop_data.distances_ + ind1_index;			// used when reciprocality is enabled
-			double *position_data = subpop_data.positions_;
-			double *ind1_position = position_data + ind1_index * SLIM_MAX_DIMENSIONALITY;
-			
-			if (individuals2->Type() == EidosValueType::kValueNULL)
+			if (std::isnan(strength))
 			{
-				// NULL means return distances from individuals1 (which must be singleton) to all individuals in the subpopulation
-				EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(subpop1_size);
+				if (no_callbacks)
+					strength = CalculateStrengthNoCallbacks(NAN);
+				else
+					strength = CalculateStrengthWithCallbacks(NAN, individual, ind2, subpop, callbacks);
 				
+				ind1_strengths[ind2_index_in_subpop] = strength;
+				
+				if (reciprocal_)
+					*(mirror_ind1_strengths + ind2_index_in_subpop * subpop_size) = strength;
+			}
+			
+			total_interaction_strength += strength;
+			cached_strength.emplace_back(strength);
+		}
+	}
+	else
+	{
+		double *ind1_strengths = subpop_data.strengths_ + ind_index * subpop_size;
+		double *mirror_ind1_strengths = subpop_data.strengths_ + ind_index;			// for reciprocality
+		double *ind1_distances = subpop_data.distances_ + ind_index * subpop_size;
+		double *mirror_ind1_distances = subpop_data.distances_ + ind_index;			// for reciprocality
+		double *position_data = subpop_data.positions_;
+		double *ind1_position = position_data + ind_index * SLIM_MAX_DIMENSIONALITY;
+		
+		for (EidosObjectElement *neighbor : neighbors)
+		{
+			Individual *ind2 = (Individual *)neighbor;
+			
+			slim_popsize_t ind2_index_in_subpop = ind2->index_;
+			double strength = ind1_strengths[ind2_index_in_subpop];
+			
+			if (std::isnan(strength))
+			{
+				double distance = ind1_distances[ind2_index_in_subpop];
+				
+				if (std::isnan(distance))
+				{
+					distance = CalculateDistance(ind1_position, position_data + ind2_index_in_subpop * SLIM_MAX_DIMENSIONALITY);
+					ind1_distances[ind2_index_in_subpop] = distance;
+					
+					if (reciprocal_)
+						*(mirror_ind1_distances + ind2_index_in_subpop * subpop_size) = distance;
+				}
+				
+				if (distance <= max_distance_)
+				{
+					if (no_callbacks)
+						strength = CalculateStrengthNoCallbacks(distance);
+					else
+						strength = CalculateStrengthWithCallbacks(distance, individual, ind2, subpop, callbacks);
+				}
+				else
+				{
+					strength = 0.0;
+				}
+				
+				ind1_strengths[ind2_index_in_subpop] = strength;
+				
+				if (reciprocal_)
+					*(mirror_ind1_strengths + ind2_index_in_subpop * subpop_size) = strength;
+			}
+			
+			total_interaction_strength += strength;
+			cached_strength.emplace_back(strength);
+		}
+	}
+	
+	// Draw individuals; we do this using either the GSL or linear search, depending on the query size
+	// This choice is somewhat problematic.  I empirically determined at what query size the GSL started
+	// to pay off despite the overhead of setup with gsl_ran_discrete_preproc().  However, I did that for
+	// a particular subpopulation size; and the crossover point might also depend upon the distribution
+	// of strength values in the subpopulation.  I'm not going to worry about this too much, though; it
+	// is not really answerable in general, and a crossover of 50 seems reasonable.  For small counts,
+	// linear search won't take that long anyway, and there must be a limit >= 1 where linear is faster
+	// than the GSL; and for large counts the GSL is surely a win.  Trying to figure out exactly where
+	// the crossover is in all cases would be overkill; my testing indicates the performance difference
+	// between the two methods is not really that large anyway.
+	EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+	
+	if (total_interaction_strength > 0.0)
+	{
+		result_vec->Reserve((int)count);
+		std::vector<EidosObjectElement *> *result_direct = result_vec->ObjectElementVector_Mutable();
+		
+		if (count > 50)		// the empirically determined crossover point in performance
+		{
+			// Use gsl_ran_discrete() to do the drawing
+			gsl_ran_discrete_t *gsl_lookup = gsl_ran_discrete_preproc(cached_strength.size(), cached_strength.data());
+			
+			for (int draw_index = 0; draw_index < count; ++draw_index)
+			{
+				int hit_index = (int)gsl_ran_discrete(gEidos_rng, gsl_lookup);
+				
+				result_direct->push_back(neighbors[hit_index]);
+			}
+			
+			gsl_ran_discrete_free(gsl_lookup);
+		}
+		else
+		{
+			// Use linear search to do the drawing
+			for (int draw_index = 0; draw_index < count; ++draw_index)
+			{
+				double the_rose_in_the_teeth = gsl_rng_uniform(gEidos_rng) * total_interaction_strength;
+				double cumulative_strength = 0.0;
+				int neighbors_size = (int)neighbors.size();
+				int hit_index;
+				
+				for (hit_index = 0; hit_index < neighbors_size; ++hit_index)
+				{
+					double strength = cached_strength[hit_index];
+					
+					cumulative_strength += strength;
+					
+					if (the_rose_in_the_teeth <= cumulative_strength)
+						break;
+				}
+				if (hit_index >= neighbors_size)
+					hit_index = neighbors_size - 1;
+				
+				result_direct->push_back(neighbors[hit_index]);
+			}
+		}
+	}
+	
+	return EidosValue_SP(result_vec);
+}
+
+//	*********************	- (void)evaluate([No<Subpopulation> subpops = NULL], [logical$ immediate = F])
+//
+EidosValue_SP InteractionType::ExecuteMethod_evaluate(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *arg1_value = p_arguments[1].get();
+	
+	SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
+	
+	if (!sim)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_evaluate): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
+	
+	if (sim->GenerationStage() == SLiMGenerationStage::kStage2GenerateOffspring)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_evaluate): evaluate() may not be called during offspring generation." << eidos_terminate();
+	
+	bool immediate = arg1_value->LogicalAtIndex(0, nullptr);
+	
+	if (arg0_value->Type() == EidosValueType::kValueNULL)
+	{
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : sim->ThePopulation())
+			EvaluateSubpopulation(subpop_pair.second, immediate);
+	}
+	else
+	{
+		// requested subpops, so get them
+		int requested_subpop_count = arg0_value->Count();
+		std::vector<Subpopulation*> subpops_to_evaluate;
+		
+		if (requested_subpop_count)
+		{
+			for (int requested_subpop_index = 0; requested_subpop_index < requested_subpop_count; ++requested_subpop_index)
+				EvaluateSubpopulation((Subpopulation *)(arg0_value->ObjectElementAtIndex(requested_subpop_index, nullptr)), immediate);
+		}
+	}
+	
+	return gStaticEidosValueNULLInvisible;
+}
+
+//	*********************	– (object<Individual>)nearestNeighbors(object<Individual>$ individual, [integer$ count = 1])
+//
+EidosValue_SP InteractionType::ExecuteMethod_nearestNeighbors(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *arg1_value = p_arguments[1].get();
+	
+	if (spatiality_ == 0)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighbors): nearestNeighbors() requires that the interaction be spatial." << eidos_terminate();
+	
+	// Check the individual and subpop
+	Individual *individual = (Individual *)arg0_value->ObjectElementAtIndex(0, nullptr);
+	Subpopulation *subpop = &(individual->subpopulation_);
+	slim_objectid_t subpop_id = subpop->subpopulation_id_;
+	slim_popsize_t subpop_size = subpop->parent_subpop_size_;
+	int ind_index = individual->index_;
+	auto subpop_data_iter = data_.find(subpop_id);
+	
+	if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighbors): nearestNeighbors() requires that the interaction has been evaluated for the subpopulation first." << eidos_terminate();
+	
+	// Check the count
+	int64_t count = arg1_value->IntAtIndex(0, nullptr);
+	
+	if (count < 0)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighbors): nearestNeighbors() requires count > 0." << eidos_terminate();
+	if (count == 0)
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+	
+	if (count > subpop_size)
+		count = subpop_size;
+	
+	// Find the neighbors
+	InteractionsData &subpop_data = subpop_data_iter->second;
+	
+	double *position_data = subpop_data.positions_;
+	double *ind_position = position_data + ind_index * SLIM_MAX_DIMENSIONALITY;
+	
+	EnsureKDTreePresent(subpop_data);
+	
+	EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class))->Reserve((int)count);
+	std::vector<EidosObjectElement *> *result_direct = result_vec->ObjectElementVector_Mutable();
+	
+	FindNeighbors(subpop, subpop_data, ind_position, (int)count, *result_direct, individual);
+	
+	return EidosValue_SP(result_vec);
+}
+
+//	*********************	– (object<Individual>)nearestNeighborsOfPoint(object<Subpopulation>$ subpop, float point, [integer$ count = 1])
+//
+EidosValue_SP InteractionType::ExecuteMethod_nearestNeighborsOfPoint(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *arg1_value = p_arguments[1].get();
+	EidosValue *arg2_value = p_arguments[2].get();
+	
+	if (spatiality_ == 0)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighborsOfPoint): nearestNeighborsOfPoint() requires that the interaction be spatial." << eidos_terminate();
+	
+	// Check the subpop
+	Subpopulation *subpop = (Subpopulation *)arg0_value->ObjectElementAtIndex(0, nullptr);
+	slim_objectid_t subpop_id = subpop->subpopulation_id_;
+	slim_popsize_t subpop_size = subpop->parent_subpop_size_;
+	auto subpop_data_iter = data_.find(subpop_id);
+	
+	if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighborsOfPoint): nearestNeighborsOfPoint() requires that the interaction has been evaluated for the subpopulation first." << eidos_terminate();
+	
+	// Check the point
+	if (arg1_value->Count() < spatiality_)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighborsOfPoint): nearestNeighborsOfPoint() requires a point vector with at least as many elements as the InteractionType spatiality." << eidos_terminate();
+	
+	double point_array[3];
+	
+	for (int point_index = 0; point_index < spatiality_; ++point_index)
+		point_array[point_index] = arg1_value->FloatAtIndex(point_index, nullptr);
+	
+	// Check the count
+	int64_t count = arg2_value->IntAtIndex(0, nullptr);
+	
+	if (count < 0)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighborsOfPoint): nearestNeighborsOfPoint() requires count > 0." << eidos_terminate();
+	if (count == 0)
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+	
+	if (count > subpop_size)
+		count = subpop_size;
+	
+	// Find the neighbors
+	InteractionsData &subpop_data = subpop_data_iter->second;
+	
+	EnsureKDTreePresent(subpop_data);
+	
+	EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class))->Reserve((int)count);
+	std::vector<EidosObjectElement *> *result_direct = result_vec->ObjectElementVector_Mutable();
+	
+	FindNeighbors(subpop, subpop_data, point_array, (int)count, *result_direct, nullptr);
+	
+	return EidosValue_SP(result_vec);
+}
+
+//	*********************	- (void)setInteractionFunction(string$ functionType, ...)
+//
+EidosValue_SP InteractionType::ExecuteMethod_setInteractionFunction(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *arg0_value = p_arguments[0].get();
+	
+	std::string if_type_string = arg0_value->StringAtIndex(0, nullptr);
+	IFType if_type;
+	int expected_if_param_count = 0;
+	std::vector<double> if_parameters;
+	std::vector<std::string> if_strings;
+	
+	if (AnyEvaluated())
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): setInteractionFunction() cannot be called while the interaction is being evaluated; call unevaluate() first, or call setInteractionFunction() prior to evaluation of the interaction." << eidos_terminate();
+	
+	if (if_type_string.compare(gStr_f) == 0)
+	{
+		if_type = IFType::kFixed;
+		expected_if_param_count = 1;
+	}
+	else if (if_type_string.compare(gStr_l) == 0)
+	{
+		if_type = IFType::kLinear;
+		expected_if_param_count = 1;
+		
+		if (std::isinf(max_distance_) || (max_distance_ <= 0.0))
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): interaction type 'l' cannot be set in setInteractionFunction() unless a finite maximum interaction distance greater than zero has been set." << eidos_terminate();
+	}
+	else if (if_type_string.compare(gStr_e) == 0)
+	{
+		if_type = IFType::kExponential;
+		expected_if_param_count = 2;
+	}
+	else if (if_type_string.compare(gEidosStr_n) == 0)
+	{
+		if_type = IFType::kNormal;
+		expected_if_param_count = 2;
+	}
+	else
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): setInteractionFunction() functionType \"" << if_type_string << "\" must be \"f\", \"l\", \"e\", or \"n\"." << eidos_terminate();
+	
+	if ((spatiality_ == 0) && (if_type != IFType::kFixed))
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): setInteractionFunction() requires functionType 'f' for non-spatial interactions." << eidos_terminate();
+	
+	if (p_argument_count != 1 + expected_if_param_count)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): setInteractionFunction() functionType \"" << if_type << "\" requires exactly " << expected_if_param_count << " DFE parameter" << (expected_if_param_count == 1 ? "" : "s") << "." << eidos_terminate();
+	
+	for (int if_param_index = 0; if_param_index < expected_if_param_count; ++if_param_index)
+	{
+		EidosValue *if_param_value = p_arguments[1 + if_param_index].get();
+		EidosValueType if_param_type = if_param_value->Type();
+		
+		if ((if_param_type != EidosValueType::kValueFloat) && (if_param_type != EidosValueType::kValueInt))
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): setInteractionFunction() requires that the parameters for this interaction function be of type numeric (integer or float)." << eidos_terminate();
+		
+		if_parameters.emplace_back(if_param_value->FloatAtIndex(0, nullptr));
+		// intentionally no bounds checks for IF parameters
+	}
+	
+	// Everything seems to be in order, so replace our IF info with the new info
+	if_type_ = if_type;
+	if_param1_ = ((if_parameters.size() >= 1) ? if_parameters[0] : 0.0);
+	if_param2_ = ((if_parameters.size() >= 2) ? if_parameters[1] : 0.0);
+	
+	return gStaticEidosValueNULLInvisible;
+}
+
+//	*********************	– (float)strength(object<Individual> individuals1, [No<Individual> individuals2 = NULL])
+//
+EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *arg1_value = p_arguments[1].get();
+	
+	EidosValue *individuals1 = arg0_value, *individuals2 = arg1_value;
+	int count1 = individuals1->Count(), count2 = individuals2->Count();
+	
+	if ((count1 != 1) && (count2 != 1))
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that either individuals1 or individuals2 be singleton." << eidos_terminate();
+	
+	// Rearrange so that if either vector is non-singleton, it is the second that is non-singleton (one-to-many)
+	if (count1 != 1)
+	{
+		std::swap(individuals1, individuals2);
+		std::swap(count1, count2);
+	}
+	
+	// individuals1 is guaranteed to be singleton; let's get the info on it
+	Individual *ind1 = (Individual *)individuals1->ObjectElementAtIndex(0, nullptr);
+	Subpopulation *subpop1 = &(ind1->subpopulation_);
+	slim_objectid_t subpop1_id = subpop1->subpopulation_id_;
+	slim_popsize_t subpop1_size = subpop1->parent_subpop_size_;
+	int ind1_index = ind1->index_;
+	auto subpop_data_iter = data_.find(subpop1_id);
+	
+	if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that the interaction has been evaluated for the subpopulation first." << eidos_terminate();
+	
+	InteractionsData &subpop_data = subpop_data_iter->second;
+	std::vector<SLiMEidosBlock*> &callbacks = subpop_data.evaluation_interaction_callbacks_;
+	bool no_callbacks = (callbacks.size() == 0);
+	
+	EnsureStrengthsPresent(subpop_data);
+	
+	if (spatiality_)
+	{
+		//
+		// Spatial case; distances used
+		//
+		
+		double *ind1_strengths = subpop_data.strengths_ + ind1_index * subpop1_size;
+		double *mirror_ind1_strengths = subpop_data.strengths_ + ind1_index;			// for reciprocality
+		double *ind1_distances = subpop_data.distances_ + ind1_index * subpop1_size;
+		double *mirror_ind1_distances = subpop_data.distances_ + ind1_index;			// for reciprocality
+		double *position_data = subpop_data.positions_;
+		double *ind1_position = position_data + ind1_index * SLIM_MAX_DIMENSIONALITY;
+		
+		if (individuals2->Type() == EidosValueType::kValueNULL)
+		{
+			// NULL means return strengths from individuals1 (which must be singleton) to all individuals in the subpopulation
+			EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(subpop1_size);
+			
+			if (std::isinf(max_distance_))
+			{
+				// This is the brute-force approach – loop through the subpop, calculate distances and strengths for everyone.
+				// If the interaction is non-local (max_distance_ of INF) then this makes sense; all this work will need to be done.
 				if (!reciprocal_)
 				{
-					// No reciprocality, so we don't mirror
 					for (int ind2_index = 0; ind2_index < subpop1_size; ++ind2_index)
 					{
-						double distance = ind1_distances[ind2_index];
-						
-						if (std::isnan(distance))
-						{
-							distance = CalculateDistance(ind1_position, position_data + ind2_index * SLIM_MAX_DIMENSIONALITY);
-							ind1_distances[ind2_index] = distance;
-						}
-						
-						result_vec->PushFloat(distance);
-					}
-				}
-				else
-				{
-					// Reciprocality; mirror all values that we calculate
-					for (int ind2_index = 0; ind2_index < subpop1_size; ++ind2_index, mirror_ind1_distances += subpop1_size)
-					{
-						double distance = ind1_distances[ind2_index];
-						
-						if (std::isnan(distance))
-						{
-							distance = CalculateDistance(ind1_position, position_data + ind2_index * SLIM_MAX_DIMENSIONALITY);
-							ind1_distances[ind2_index] = distance;
-							
-							*(mirror_ind1_distances) = distance;
-						}
-						
-						result_vec->PushFloat(distance);
-					}
-				}
-				
-				return EidosValue_SP(result_vec);
-			}
-			else
-			{
-				// Otherwise, individuals1 is singleton, and individuals2 is any length, so we loop over individuals2
-				EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(count2);
-				
-				for (int ind2_index = 0; ind2_index < count2; ++ind2_index)
-				{
-					Individual *ind2 = (Individual *)individuals2->ObjectElementAtIndex(ind2_index, nullptr);
-					
-					if (subpop1 != &(ind2->subpopulation_))
-						EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): distance() requires that all individuals be in the same subpopulation." << eidos_terminate();
-					
-					slim_popsize_t ind2_index_in_subpop = ind2->index_;
-					double distance = ind1_distances[ind2_index_in_subpop];
-					
-					if (std::isnan(distance))
-					{
-						distance = CalculateDistance(ind1_position, position_data + ind2_index_in_subpop * SLIM_MAX_DIMENSIONALITY);
-						ind1_distances[ind2_index_in_subpop] = distance;
-						
-						// If reciprocality is enabled, push the calculated distance into the reciprocal entry.  There's
-						// enough cruft in this version of the loop that it doesn't seem worth cloning the whole loop.
-						if (reciprocal_)
-							*(mirror_ind1_distances + ind2_index_in_subpop * subpop1_size) = distance;
-					}
-					
-					result_vec->PushFloat(distance);
-				}
-				
-				return EidosValue_SP(result_vec);
-			}
-		}
-			
-			//
-			//	*********************	– (float)distanceToPoint(object<Individual> individuals1, float point)
-			//
-			#pragma mark -distanceToPoint()
-			
-		case gID_distanceToPoint:
-		{
-			EidosValue *individuals = arg0_value, *point = arg1_value;
-			int count = individuals->Count(), point_count = point->Count();
-			
-			if (spatiality_ == 0)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): distanceToPoint() requires that the interaction be spatial." << eidos_terminate();
-			if (point_count != spatiality_)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): distanceToPoint() requires that point is of length equal to the interaction spatiality." << eidos_terminate();
-			
-			if (count == 0)
-				return gStaticEidosValue_Float_ZeroVec;
-			
-			// Get the point's coordinates into a double[]
-			double point_data[SLIM_MAX_DIMENSIONALITY];
-			
-			for (int point_index = 0; point_index < spatiality_; ++point_index)
-				point_data[point_index] = point->FloatAtIndex(point_index, nullptr);
-			
-			// individuals is guaranteed to be of length >= 1; let's get the info on it
-			Individual *ind_first = (Individual *)individuals->ObjectElementAtIndex(0, nullptr);
-			Subpopulation *subpop1 = &(ind_first->subpopulation_);
-			slim_objectid_t subpop1_id = subpop1->subpopulation_id_;
-			auto subpop_data_iter = data_.find(subpop1_id);
-			
-			if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): distanceToPoint() requires that the interaction has been evaluated for the subpopulation first." << eidos_terminate();
-			
-			InteractionsData &subpop_data = subpop_data_iter->second;
-			
-			double *position_data = subpop_data.positions_;
-			
-			EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(count);
-			
-			for (int ind_index = 0; ind_index < count; ++ind_index)
-			{
-				Individual *ind = (Individual *)individuals->ObjectElementAtIndex(ind_index, nullptr);
-				
-				if (subpop1 != &(ind->subpopulation_))
-					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): distanceToPoint() requires that all individuals be in the same subpopulation." << eidos_terminate();
-				
-				double *ind_position = position_data + ind->index_ * SLIM_MAX_DIMENSIONALITY;
-				
-				result_vec->PushFloat(CalculateDistance(ind_position, point_data));
-			}
-			
-			return EidosValue_SP(result_vec);
-		}
-			
-			
-			//
-			//	*********************	– (object<Individual>)drawByStrength(object<Individual>$ individual, [integer$ count = 1])
-			//
-			#pragma mark -drawByStrength()
-			
-		case gID_drawByStrength:
-		{
-			// Check the individual and subpop
-			Individual *individual = (Individual *)arg0_value->ObjectElementAtIndex(0, nullptr);
-			Subpopulation *subpop = &(individual->subpopulation_);
-			slim_objectid_t subpop_id = subpop->subpopulation_id_;
-			slim_popsize_t subpop_size = subpop->parent_subpop_size_;
-			int ind_index = individual->index_;
-			auto subpop_data_iter = data_.find(subpop_id);
-			
-			if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): drawByStrength() requires that the interaction has been evaluated for the subpopulation first." << eidos_terminate();
-			
-			// Check the count
-			int64_t count = arg1_value->IntAtIndex(0, nullptr);
-			
-			if (count < 0)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): drawByStrength() requires count > 0." << eidos_terminate();
-			
-			if (count == 0)
-				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
-			
-			// Find the neighbors
-			InteractionsData &subpop_data = subpop_data_iter->second;
-			std::vector<SLiMEidosBlock*> &callbacks = subpop_data.evaluation_interaction_callbacks_;
-			bool no_callbacks = (callbacks.size() == 0);
-			std::vector<EidosObjectElement *> neighbors;
-			
-			if (spatiality_ == 0)
-			{
-				EnsureStrengthsPresent(subpop_data);
-				
-				// For non-spatial interactions, just use the subpop's vector of individuals
-				neighbors.reserve(subpop_size);
-				for (Individual &subpop_individual : subpop->parent_individuals_)
-					neighbors.emplace_back(&subpop_individual);
-			}
-			else
-			{
-				EnsureKDTreePresent(subpop_data);
-				EnsureStrengthsPresent(subpop_data);
-				
-				// For spatial interactions, find all neighbors, up to the subpopulation size
-				double *position_data = subpop_data.positions_;
-				double *ind_position = position_data + ind_index * SLIM_MAX_DIMENSIONALITY;
-				
-				neighbors.reserve(subpop_size);
-				FindNeighbors(subpop, subpop_data, ind_position, subpop_size, neighbors, individual);
-			}
-			
-			// Total the interaction strengths with all neighbors; this has the side effect of caching all relevant strengths
-			double total_interaction_strength = 0.0;
-			std::vector<double> cached_strength;
-			
-			cached_strength.reserve((int)count);
-			
-			if (spatiality_ == 0)
-			{
-				double *ind1_strengths = subpop_data.strengths_ + ind_index * subpop_size;
-				double *mirror_ind1_strengths = subpop_data.strengths_ + ind_index;			// used when reciprocality is enabled
-				
-				for (EidosObjectElement *neighbor : neighbors)
-				{
-					Individual *ind2 = (Individual *)neighbor;
-					
-					slim_popsize_t ind2_index_in_subpop = ind2->index_;
-					double strength = ind1_strengths[ind2_index_in_subpop];
-					
-					if (std::isnan(strength))
-					{
-						if (no_callbacks)
-							strength = CalculateStrengthNoCallbacks(NAN);
-						else
-							strength = CalculateStrengthWithCallbacks(NAN, individual, ind2, subpop, callbacks);
-						
-						ind1_strengths[ind2_index_in_subpop] = strength;
-						
-						if (reciprocal_)
-							*(mirror_ind1_strengths + ind2_index_in_subpop * subpop_size) = strength;
-					}
-					
-					total_interaction_strength += strength;
-					cached_strength.emplace_back(strength);
-				}
-			}
-			else
-			{
-				double *ind1_strengths = subpop_data.strengths_ + ind_index * subpop_size;
-				double *mirror_ind1_strengths = subpop_data.strengths_ + ind_index;			// for reciprocality
-				double *ind1_distances = subpop_data.distances_ + ind_index * subpop_size;
-				double *mirror_ind1_distances = subpop_data.distances_ + ind_index;			// for reciprocality
-				double *position_data = subpop_data.positions_;
-				double *ind1_position = position_data + ind_index * SLIM_MAX_DIMENSIONALITY;
-				
-				for (EidosObjectElement *neighbor : neighbors)
-				{
-					Individual *ind2 = (Individual *)neighbor;
-					
-					slim_popsize_t ind2_index_in_subpop = ind2->index_;
-					double strength = ind1_strengths[ind2_index_in_subpop];
-					
-					if (std::isnan(strength))
-					{
-						double distance = ind1_distances[ind2_index_in_subpop];
-						
-						if (std::isnan(distance))
-						{
-							distance = CalculateDistance(ind1_position, position_data + ind2_index_in_subpop * SLIM_MAX_DIMENSIONALITY);
-							ind1_distances[ind2_index_in_subpop] = distance;
-							
-							if (reciprocal_)
-								*(mirror_ind1_distances + ind2_index_in_subpop * subpop_size) = distance;
-						}
-						
-						if (distance <= max_distance_)
-						{
-							if (no_callbacks)
-								strength = CalculateStrengthNoCallbacks(distance);
-							else
-								strength = CalculateStrengthWithCallbacks(distance, individual, ind2, subpop, callbacks);
-						}
-						else
-						{
-							strength = 0.0;
-						}
-						
-						ind1_strengths[ind2_index_in_subpop] = strength;
-						
-						if (reciprocal_)
-							*(mirror_ind1_strengths + ind2_index_in_subpop * subpop_size) = strength;
-					}
-					
-					total_interaction_strength += strength;
-					cached_strength.emplace_back(strength);
-				}
-			}
-			
-			// Draw individuals; we do this using either the GSL or linear search, depending on the query size
-			// This choice is somewhat problematic.  I empirically determined at what query size the GSL started
-			// to pay off despite the overhead of setup with gsl_ran_discrete_preproc().  However, I did that for
-			// a particular subpopulation size; and the crossover point might also depend upon the distribution
-			// of strength values in the subpopulation.  I'm not going to worry about this too much, though; it
-			// is not really answerable in general, and a crossover of 50 seems reasonable.  For small counts,
-			// linear search won't take that long anyway, and there must be a limit >= 1 where linear is faster
-			// than the GSL; and for large counts the GSL is surely a win.  Trying to figure out exactly where
-			// the crossover is in all cases would be overkill; my testing indicates the performance difference
-			// between the two methods is not really that large anyway.
-			EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
-			
-			if (total_interaction_strength > 0.0)
-			{
-				result_vec->Reserve((int)count);
-				std::vector<EidosObjectElement *> *result_direct = result_vec->ObjectElementVector_Mutable();
-				
-				if (count > 50)		// the empirically determined crossover point in performance
-				{
-					// Use gsl_ran_discrete() to do the drawing
-					gsl_ran_discrete_t *gsl_lookup = gsl_ran_discrete_preproc(cached_strength.size(), cached_strength.data());
-					
-					for (int draw_index = 0; draw_index < count; ++draw_index)
-					{
-						int hit_index = (int)gsl_ran_discrete(gEidos_rng, gsl_lookup);
-						
-						result_direct->push_back(neighbors[hit_index]);
-					}
-					
-					gsl_ran_discrete_free(gsl_lookup);
-				}
-				else
-				{
-					// Use linear search to do the drawing
-					for (int draw_index = 0; draw_index < count; ++draw_index)
-					{
-						double the_rose_in_the_teeth = gsl_rng_uniform(gEidos_rng) * total_interaction_strength;
-						double cumulative_strength = 0.0;
-						int neighbors_size = (int)neighbors.size();
-						int hit_index;
-						
-						for (hit_index = 0; hit_index < neighbors_size; ++hit_index)
-						{
-							double strength = cached_strength[hit_index];
-							
-							cumulative_strength += strength;
-							
-							if (the_rose_in_the_teeth <= cumulative_strength)
-								break;
-						}
-						if (hit_index >= neighbors_size)
-							hit_index = neighbors_size - 1;
-						
-						result_direct->push_back(neighbors[hit_index]);
-					}
-				}
-			}
-			
-			return EidosValue_SP(result_vec);
-		}
-			
-			
-			//
-			//	*********************	- (void)evaluate([No<Subpopulation> subpops = NULL], [logical$ immediate = F])
-			//
-			#pragma mark -evaluate()
-			
-		case gID_evaluate:
-		{
-			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
-			
-			if (!sim)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): (internal error) the sim is not registered as the context pointer." << eidos_terminate();
-			
-			if (sim->GenerationStage() == SLiMGenerationStage::kStage2GenerateOffspring)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): evaluate() may not be called during offspring generation." << eidos_terminate();
-			
-			bool immediate = arg1_value->LogicalAtIndex(0, nullptr);
-			
-			if (arg0_value->Type() == EidosValueType::kValueNULL)
-			{
-				for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : sim->ThePopulation())
-					EvaluateSubpopulation(subpop_pair.second, immediate);
-			}
-			else
-			{
-				// requested subpops, so get them
-				int requested_subpop_count = arg0_value->Count();
-				std::vector<Subpopulation*> subpops_to_evaluate;
-				
-				if (requested_subpop_count)
-				{
-					for (int requested_subpop_index = 0; requested_subpop_index < requested_subpop_count; ++requested_subpop_index)
-						EvaluateSubpopulation((Subpopulation *)(arg0_value->ObjectElementAtIndex(requested_subpop_index, nullptr)), immediate);
-				}
-			}
-			
-			return gStaticEidosValueNULLInvisible;
-		}
-			
-			
-			//
-			//	*********************	– (object<Individual>)nearestNeighbors(object<Individual>$ individual, [integer$ count = 1])
-			//
-			#pragma mark -nearestNeighbors()
-			
-		case gID_nearestNeighbors:
-		{
-			if (spatiality_ == 0)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): nearestNeighbors() requires that the interaction be spatial." << eidos_terminate();
-			
-			// Check the individual and subpop
-			Individual *individual = (Individual *)arg0_value->ObjectElementAtIndex(0, nullptr);
-			Subpopulation *subpop = &(individual->subpopulation_);
-			slim_objectid_t subpop_id = subpop->subpopulation_id_;
-			slim_popsize_t subpop_size = subpop->parent_subpop_size_;
-			int ind_index = individual->index_;
-			auto subpop_data_iter = data_.find(subpop_id);
-			
-			if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): nearestNeighbors() requires that the interaction has been evaluated for the subpopulation first." << eidos_terminate();
-			
-			// Check the count
-			int64_t count = arg1_value->IntAtIndex(0, nullptr);
-			
-			if (count < 0)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): nearestNeighbors() requires count > 0." << eidos_terminate();
-			if (count == 0)
-				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
-			
-			if (count > subpop_size)
-				count = subpop_size;
-			
-			// Find the neighbors
-			InteractionsData &subpop_data = subpop_data_iter->second;
-			
-			double *position_data = subpop_data.positions_;
-			double *ind_position = position_data + ind_index * SLIM_MAX_DIMENSIONALITY;
-			
-			EnsureKDTreePresent(subpop_data);
-			
-			EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class))->Reserve((int)count);
-			std::vector<EidosObjectElement *> *result_direct = result_vec->ObjectElementVector_Mutable();
-			
-			FindNeighbors(subpop, subpop_data, ind_position, (int)count, *result_direct, individual);
-			
-			return EidosValue_SP(result_vec);
-		}
-			
-			
-			//
-			//	*********************	– (object<Individual>)nearestNeighborsOfPoint(object<Subpopulation>$ subpop, float point, [integer$ count = 1])
-			//
-			#pragma mark -nearestNeighborsOfPoint()
-			
-		case gID_nearestNeighborsOfPoint:
-		{
-#ifdef __clang_analyzer__
-			assert(p_argument_count == 3);
-#endif
-			
-			if (spatiality_ == 0)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): nearestNeighborsOfPoint() requires that the interaction be spatial." << eidos_terminate();
-			
-			// Check the subpop
-			Subpopulation *subpop = (Subpopulation *)arg0_value->ObjectElementAtIndex(0, nullptr);
-			slim_objectid_t subpop_id = subpop->subpopulation_id_;
-			slim_popsize_t subpop_size = subpop->parent_subpop_size_;
-			auto subpop_data_iter = data_.find(subpop_id);
-			
-			if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): nearestNeighborsOfPoint() requires that the interaction has been evaluated for the subpopulation first." << eidos_terminate();
-			
-			// Check the point
-			if (arg1_value->Count() < spatiality_)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): nearestNeighborsOfPoint() requires a point vector with at least as many elements as the InteractionType spatiality." << eidos_terminate();
-			
-			double point_array[3];
-			
-			for (int point_index = 0; point_index < spatiality_; ++point_index)
-				point_array[point_index] = arg1_value->FloatAtIndex(point_index, nullptr);
-			
-			// Check the count
-			int64_t count = arg2_value->IntAtIndex(0, nullptr);
-			
-			if (count < 0)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): nearestNeighborsOfPoint() requires count > 0." << eidos_terminate();
-			if (count == 0)
-				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
-			
-			if (count > subpop_size)
-				count = subpop_size;
-			
-			// Find the neighbors
-			InteractionsData &subpop_data = subpop_data_iter->second;
-			
-			EnsureKDTreePresent(subpop_data);
-			
-			EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class))->Reserve((int)count);
-			std::vector<EidosObjectElement *> *result_direct = result_vec->ObjectElementVector_Mutable();
-			
-			FindNeighbors(subpop, subpop_data, point_array, (int)count, *result_direct, nullptr);
-			
-			return EidosValue_SP(result_vec);
-		}
-			
-			
-			//
-			//	*********************	- (void)setInteractionFunction(string$ functionType, ...)
-			//
-			#pragma mark -setInteractionFunction()
-			
-		case gID_setInteractionFunction:
-		{
-#ifdef __clang_analyzer__
-			assert(p_argument_count >= 1);
-#endif
-			
-			std::string if_type_string = arg0_value->StringAtIndex(0, nullptr);
-			IFType if_type;
-			int expected_if_param_count = 0;
-			std::vector<double> if_parameters;
-			std::vector<std::string> if_strings;
-			
-			if (AnyEvaluated())
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): setInteractionFunction() cannot be called while the interaction is being evaluated; call unevaluate() first, or call setInteractionFunction() prior to evaluation of the interaction." << eidos_terminate();
-			
-			if (if_type_string.compare(gStr_f) == 0)
-			{
-				if_type = IFType::kFixed;
-				expected_if_param_count = 1;
-			}
-			else if (if_type_string.compare(gStr_l) == 0)
-			{
-				if_type = IFType::kLinear;
-				expected_if_param_count = 1;
-				
-				if (std::isinf(max_distance_) || (max_distance_ <= 0.0))
-					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): interaction type 'l' cannot be set in setInteractionFunction() unless a finite maximum interaction distance greater than zero has been set." << eidos_terminate();
-			}
-			else if (if_type_string.compare(gStr_e) == 0)
-			{
-				if_type = IFType::kExponential;
-				expected_if_param_count = 2;
-			}
-			else if (if_type_string.compare(gEidosStr_n) == 0)
-			{
-				if_type = IFType::kNormal;
-				expected_if_param_count = 2;
-			}
-			else
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): setInteractionFunction() functionType \"" << if_type_string << "\" must be \"f\", \"l\", \"e\", or \"n\"." << eidos_terminate();
-			
-			if ((spatiality_ == 0) && (if_type != IFType::kFixed))
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): setInteractionFunction() requires functionType 'f' for non-spatial interactions." << eidos_terminate();
-			
-			if (p_argument_count != 1 + expected_if_param_count)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): setInteractionFunction() functionType \"" << if_type << "\" requires exactly " << expected_if_param_count << " DFE parameter" << (expected_if_param_count == 1 ? "" : "s") << "." << eidos_terminate();
-			
-			for (int if_param_index = 0; if_param_index < expected_if_param_count; ++if_param_index)
-			{
-				EidosValue *if_param_value = p_arguments[1 + if_param_index].get();
-				EidosValueType if_param_type = if_param_value->Type();
-				
-				if ((if_param_type != EidosValueType::kValueFloat) && (if_param_type != EidosValueType::kValueInt))
-					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): setInteractionFunction() requires that the parameters for this interaction function be of type numeric (integer or float)." << eidos_terminate();
-				
-				if_parameters.emplace_back(if_param_value->FloatAtIndex(0, nullptr));
-				// intentionally no bounds checks for IF parameters
-			}
-			
-			// Everything seems to be in order, so replace our IF info with the new info
-			if_type_ = if_type;
-			if_param1_ = ((if_parameters.size() >= 1) ? if_parameters[0] : 0.0);
-			if_param2_ = ((if_parameters.size() >= 2) ? if_parameters[1] : 0.0);
-			
-			return gStaticEidosValueNULLInvisible;
-		}
-
-			
-			//
-			//	*********************	– (float)strength(object<Individual> individuals1, [No<Individual> individuals2 = NULL])
-			//
-			#pragma mark -strength()
-			
-		case gID_strength:
-		{
-#ifdef __clang_analyzer__
-			assert(p_argument_count == 2);
-#endif
-			
-			EidosValue *individuals1 = arg0_value, *individuals2 = arg1_value;
-			int count1 = individuals1->Count(), count2 = individuals2->Count();
-			
-			if ((count1 != 1) && (count2 != 1))
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): strength() requires that either individuals1 or individuals2 be singleton." << eidos_terminate();
-			
-			// Rearrange so that if either vector is non-singleton, it is the second that is non-singleton (one-to-many)
-			if (count1 != 1)
-			{
-				std::swap(individuals1, individuals2);
-				std::swap(count1, count2);
-			}
-			
-			// individuals1 is guaranteed to be singleton; let's get the info on it
-			Individual *ind1 = (Individual *)individuals1->ObjectElementAtIndex(0, nullptr);
-			Subpopulation *subpop1 = &(ind1->subpopulation_);
-			slim_objectid_t subpop1_id = subpop1->subpopulation_id_;
-			slim_popsize_t subpop1_size = subpop1->parent_subpop_size_;
-			int ind1_index = ind1->index_;
-			auto subpop_data_iter = data_.find(subpop1_id);
-			
-			if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): strength() requires that the interaction has been evaluated for the subpopulation first." << eidos_terminate();
-			
-			InteractionsData &subpop_data = subpop_data_iter->second;
-			std::vector<SLiMEidosBlock*> &callbacks = subpop_data.evaluation_interaction_callbacks_;
-			bool no_callbacks = (callbacks.size() == 0);
-			
-			EnsureStrengthsPresent(subpop_data);
-			
-			if (spatiality_)
-			{
-				//
-				// Spatial case; distances used
-				//
-				
-				double *ind1_strengths = subpop_data.strengths_ + ind1_index * subpop1_size;
-				double *mirror_ind1_strengths = subpop_data.strengths_ + ind1_index;			// for reciprocality
-				double *ind1_distances = subpop_data.distances_ + ind1_index * subpop1_size;
-				double *mirror_ind1_distances = subpop_data.distances_ + ind1_index;			// for reciprocality
-				double *position_data = subpop_data.positions_;
-				double *ind1_position = position_data + ind1_index * SLIM_MAX_DIMENSIONALITY;
-				
-				if (individuals2->Type() == EidosValueType::kValueNULL)
-				{
-					// NULL means return strengths from individuals1 (which must be singleton) to all individuals in the subpopulation
-					EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(subpop1_size);
-					
-					if (std::isinf(max_distance_))
-					{
-						// This is the brute-force approach – loop through the subpop, calculate distances and strengths for everyone.
-						// If the interaction is non-local (max_distance_ of INF) then this makes sense; all this work will need to be done.
-						if (!reciprocal_)
-						{
-							for (int ind2_index = 0; ind2_index < subpop1_size; ++ind2_index)
-							{
-								double strength = ind1_strengths[ind2_index];
-								
-								if (std::isnan(strength))
-								{
-									double distance = ind1_distances[ind2_index];
-									
-									if (std::isnan(distance))
-									{
-										distance = CalculateDistance(ind1_position, position_data + ind2_index * SLIM_MAX_DIMENSIONALITY);
-										ind1_distances[ind2_index] = distance;
-									}
-									
-									if (distance <= max_distance_)
-									{
-										if (no_callbacks)
-											strength = CalculateStrengthNoCallbacks(distance);
-										else
-											strength = CalculateStrengthWithCallbacks(distance, ind1, &subpop1->parent_individuals_[ind2_index], subpop1, callbacks);
-									}
-									else
-									{
-										strength = 0.0;
-									}
-									
-									ind1_strengths[ind2_index] = strength;
-								}
-								
-								result_vec->PushFloat(strength);
-							}
-						}
-						else
-						{
-							for (int ind2_index = 0; ind2_index < subpop1_size; ++ind2_index, mirror_ind1_distances += subpop1_size, mirror_ind1_strengths += subpop1_size)
-							{
-								double strength = ind1_strengths[ind2_index];
-								
-								if (std::isnan(strength))
-								{
-									double distance = ind1_distances[ind2_index];
-									
-									if (std::isnan(distance))
-									{
-										distance = CalculateDistance(ind1_position, position_data + ind2_index * SLIM_MAX_DIMENSIONALITY);
-										ind1_distances[ind2_index] = distance;
-										*(mirror_ind1_distances) = distance;
-									}
-									
-									if (distance <= max_distance_)
-									{
-										if (no_callbacks)
-											strength = CalculateStrengthNoCallbacks(distance);
-										else
-											strength = CalculateStrengthWithCallbacks(distance, ind1, &subpop1->parent_individuals_[ind2_index], subpop1, callbacks);
-									}
-									else
-									{
-										strength = 0.0;
-									}
-									
-									ind1_strengths[ind2_index] = strength;
-									*(mirror_ind1_strengths) = strength;
-								}
-								
-								result_vec->PushFloat(strength);
-							}
-						}
-					}
-					else
-					{
-						// If the interaction is local, this approach should be much more efficient: allocate a results vector,
-						// fill it with zeros as the default value, and then find all neighbors and fill in their strengths.
-						// Zeroing out the vector is still O(N), but the constant is much smaller, and the rest is then < O(N).
-						// In point of fact, performance measurements indicate that with wide (but non-INF) interactions, this
-						// k-d tree case can be somewhat (~20%) slower than the brute-force method above, because all of the
-						// interactions need to be calculated anyway, and here we add the k-d tree construction and traversal
-						// overhead, plus making twice as many memory writes (one for zeros, one for values).  But the difference
-						// is not large, so I'm not too worried.  The big goal is to make it so that simulations involving large
-						// spatial areas with large numbers of individuals and highly localized interactions perform as well as
-						// possible, and this k-d tree case ensures that.
-						std::vector<double> &result_cpp_vec = *result_vec->FloatVector_Mutable();
-						
-						result_cpp_vec.resize(subpop1_size);	// this value-initializes, so it zero-fills
-						
-						EnsureKDTreePresent(subpop_data);
-						
-						FillNeighborStrengths(subpop1, subpop_data, ind1_position, ind1, result_cpp_vec);
-					}
-					
-					return EidosValue_SP(result_vec);
-				}
-				else
-				{
-					// Otherwise, individuals1 is singleton, and individuals2 is any length, so we loop over individuals2
-					EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(count2);
-					
-					for (int ind2_index = 0; ind2_index < count2; ++ind2_index)
-					{
-						Individual *ind2 = (Individual *)individuals2->ObjectElementAtIndex(ind2_index, nullptr);
-						
-						if (subpop1 != &(ind2->subpopulation_))
-							EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): strength() requires that all individuals be in the same subpopulation." << eidos_terminate();
-						
-						slim_popsize_t ind2_index_in_subpop = ind2->index_;
-						double strength = ind1_strengths[ind2_index_in_subpop];
+						double strength = ind1_strengths[ind2_index];
 						
 						if (std::isnan(strength))
 						{
-							double distance = ind1_distances[ind2_index_in_subpop];
+							double distance = ind1_distances[ind2_index];
 							
 							if (std::isnan(distance))
 							{
-								distance = CalculateDistance(ind1_position, position_data + ind2_index_in_subpop * SLIM_MAX_DIMENSIONALITY);
-								ind1_distances[ind2_index_in_subpop] = distance;
-								
-								if (reciprocal_)
-									*(mirror_ind1_distances + ind2_index_in_subpop * subpop1_size) = distance;
+								distance = CalculateDistance(ind1_position, position_data + ind2_index * SLIM_MAX_DIMENSIONALITY);
+								ind1_distances[ind2_index] = distance;
 							}
 							
 							if (distance <= max_distance_)
@@ -3803,192 +3696,285 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 								if (no_callbacks)
 									strength = CalculateStrengthNoCallbacks(distance);
 								else
-									strength = CalculateStrengthWithCallbacks(distance, ind1, ind2, subpop1, callbacks);
+									strength = CalculateStrengthWithCallbacks(distance, ind1, &subpop1->parent_individuals_[ind2_index], subpop1, callbacks);
 							}
 							else
 							{
 								strength = 0.0;
 							}
 							
-							ind1_strengths[ind2_index_in_subpop] = strength;
-							
-							if (reciprocal_)
-								*(mirror_ind1_strengths + ind2_index_in_subpop * subpop1_size) = strength;
+							ind1_strengths[ind2_index] = strength;
 						}
 						
 						result_vec->PushFloat(strength);
 					}
-					
-					return EidosValue_SP(result_vec);
+				}
+				else
+				{
+					for (int ind2_index = 0; ind2_index < subpop1_size; ++ind2_index, mirror_ind1_distances += subpop1_size, mirror_ind1_strengths += subpop1_size)
+					{
+						double strength = ind1_strengths[ind2_index];
+						
+						if (std::isnan(strength))
+						{
+							double distance = ind1_distances[ind2_index];
+							
+							if (std::isnan(distance))
+							{
+								distance = CalculateDistance(ind1_position, position_data + ind2_index * SLIM_MAX_DIMENSIONALITY);
+								ind1_distances[ind2_index] = distance;
+								*(mirror_ind1_distances) = distance;
+							}
+							
+							if (distance <= max_distance_)
+							{
+								if (no_callbacks)
+									strength = CalculateStrengthNoCallbacks(distance);
+								else
+									strength = CalculateStrengthWithCallbacks(distance, ind1, &subpop1->parent_individuals_[ind2_index], subpop1, callbacks);
+							}
+							else
+							{
+								strength = 0.0;
+							}
+							
+							ind1_strengths[ind2_index] = strength;
+							*(mirror_ind1_strengths) = strength;
+						}
+						
+						result_vec->PushFloat(strength);
+					}
 				}
 			}
 			else
 			{
-				//
-				// Non-spatial case; no distances used
-				//
+				// If the interaction is local, this approach should be much more efficient: allocate a results vector,
+				// fill it with zeros as the default value, and then find all neighbors and fill in their strengths.
+				// Zeroing out the vector is still O(N), but the constant is much smaller, and the rest is then < O(N).
+				// In point of fact, performance measurements indicate that with wide (but non-INF) interactions, this
+				// k-d tree case can be somewhat (~20%) slower than the brute-force method above, because all of the
+				// interactions need to be calculated anyway, and here we add the k-d tree construction and traversal
+				// overhead, plus making twice as many memory writes (one for zeros, one for values).  But the difference
+				// is not large, so I'm not too worried.  The big goal is to make it so that simulations involving large
+				// spatial areas with large numbers of individuals and highly localized interactions perform as well as
+				// possible, and this k-d tree case ensures that.
+				std::vector<double> &result_cpp_vec = *result_vec->FloatVector_Mutable();
 				
-				double *ind1_strengths = subpop_data.strengths_ + ind1_index * subpop1_size;
-				double *mirror_ind1_strengths = subpop_data.strengths_ + ind1_index;			// for reciprocality
+				result_cpp_vec.resize(subpop1_size);	// this value-initializes, so it zero-fills
 				
-				if (individuals2->Type() == EidosValueType::kValueNULL)
-				{
-					// NULL means return strengths from individuals1 (which must be singleton) to all individuals in the subpopulation
-					EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(subpop1_size);
-					
-					if (!reciprocal_)
-					{
-						for (int ind2_index = 0; ind2_index < subpop1_size; ++ind2_index)
-						{
-							double strength = ind1_strengths[ind2_index];
-							
-							if (std::isnan(strength))
-							{
-								if (no_callbacks)
-									strength = CalculateStrengthNoCallbacks(NAN);
-								else
-									strength = CalculateStrengthWithCallbacks(NAN, ind1, &subpop1->parent_individuals_[ind2_index], subpop1, callbacks);
-								
-								ind1_strengths[ind2_index] = strength;
-							}
-							
-							result_vec->PushFloat(strength);
-						}
-					}
-					else
-					{
-						for (int ind2_index = 0; ind2_index < subpop1_size; ++ind2_index, mirror_ind1_strengths += subpop1_size)
-						{
-							double strength = ind1_strengths[ind2_index];
-							
-							if (std::isnan(strength))
-							{
-								if (no_callbacks)
-									strength = CalculateStrengthNoCallbacks(NAN);
-								else
-									strength = CalculateStrengthWithCallbacks(NAN, ind1, &subpop1->parent_individuals_[ind2_index], subpop1, callbacks);
-								
-								ind1_strengths[ind2_index] = strength;
-								*(mirror_ind1_strengths) = strength;
-							}
-							
-							result_vec->PushFloat(strength);
-						}
-					}
-					
-					return EidosValue_SP(result_vec);
-				}
-				else
-				{
-					// Otherwise, individuals1 is singleton, and individuals2 is any length, so we loop over individuals2
-					EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(count2);
-					
-					for (int ind2_index = 0; ind2_index < count2; ++ind2_index)
-					{
-						Individual *ind2 = (Individual *)individuals2->ObjectElementAtIndex(ind2_index, nullptr);
-						
-						if (subpop1 != &(ind2->subpopulation_))
-							EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): strength() requires that all individuals be in the same subpopulation." << eidos_terminate();
-						
-						slim_popsize_t ind2_index_in_subpop = ind2->index_;
-						double strength = ind1_strengths[ind2_index_in_subpop];
-						
-						if (std::isnan(strength))
-						{
-							if (no_callbacks)
-								strength = CalculateStrengthNoCallbacks(NAN);
-							else
-								strength = CalculateStrengthWithCallbacks(NAN, ind1, ind2, subpop1, callbacks);
-							
-							ind1_strengths[ind2_index_in_subpop] = strength;
-							
-							if (reciprocal_)
-								*(mirror_ind1_strengths + ind2_index_in_subpop * subpop1_size) = strength;
-						}
-						
-						result_vec->PushFloat(strength);
-					}
-					
-					return EidosValue_SP(result_vec);
-				}
-			}
-		}
-			
-			
-			//
-			//	*********************	– (float)totalOfNeighborStrengths(object<Individual> individuals)
-			//
-			#pragma mark -totalOfNeighborStrengths()
-			
-		case gID_totalOfNeighborStrengths:
-		{
-#ifdef __clang_analyzer__
-			assert(p_argument_count == 1);
-#endif
-			
-			if (spatiality_ == 0)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): totalOfNeighborStrengths() requires that the interaction be spatial." << eidos_terminate();
-			
-			EidosValue *individuals = arg0_value;
-			int count = individuals->Count();
-			
-			if (count == 0)
-				return gStaticEidosValue_Float_ZeroVec;
-			
-			// individuals is guaranteed to have at least one value
-			Individual *first_ind = (Individual *)individuals->ObjectElementAtIndex(0, nullptr);
-			Subpopulation *subpop = &(first_ind->subpopulation_);
-			slim_objectid_t subpop_id = subpop->subpopulation_id_;
-			auto subpop_data_iter = data_.find(subpop_id);
-			
-			if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): totalOfNeighborStrengths() requires that the interaction has been evaluated for the subpopulation first." << eidos_terminate();
-			
-			InteractionsData &subpop_data = subpop_data_iter->second;
-			
-			EnsureStrengthsPresent(subpop_data);
-			EnsureKDTreePresent(subpop_data);
-			
-			// Loop over the requested individuals and get the totals
-			EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(count);
-			
-			for (int ind_index = 0; ind_index < count; ++ind_index)
-			{
-				Individual *individual = (Individual *)individuals->ObjectElementAtIndex(ind_index, nullptr);
+				EnsureKDTreePresent(subpop_data);
 				
-				if (subpop != &(individual->subpopulation_))
-					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteInstanceMethod): totalOfNeighborStrengths() requires that all individuals be in the same subpopulation." << eidos_terminate();
-				
-				slim_popsize_t ind_index_in_subpop = individual->index_;
-				double *position_data = subpop_data.positions_;
-				double *ind_position = position_data + ind_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
-				
-				// use the k-d tree to find neighbors, and total their strengths
-				double total_strength = TotalNeighborStrength(subpop, subpop_data, ind_position, individual);
-				
-				result_vec->PushFloat(total_strength);
+				FillNeighborStrengths(subpop1, subpop_data, ind1_position, ind1, result_cpp_vec);
 			}
 			
 			return EidosValue_SP(result_vec);
 		}
-			
-			
-			//
-			//	*********************	– (float)unevaluate(void)
-			//
-			#pragma mark -unevaluate()
-			
-		case gID_unevaluate:
+		else
 		{
-			Invalidate();
+			// Otherwise, individuals1 is singleton, and individuals2 is any length, so we loop over individuals2
+			EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(count2);
 			
-			return gStaticEidosValueNULLInvisible;
+			for (int ind2_index = 0; ind2_index < count2; ++ind2_index)
+			{
+				Individual *ind2 = (Individual *)individuals2->ObjectElementAtIndex(ind2_index, nullptr);
+				
+				if (subpop1 != &(ind2->subpopulation_))
+					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that all individuals be in the same subpopulation." << eidos_terminate();
+				
+				slim_popsize_t ind2_index_in_subpop = ind2->index_;
+				double strength = ind1_strengths[ind2_index_in_subpop];
+				
+				if (std::isnan(strength))
+				{
+					double distance = ind1_distances[ind2_index_in_subpop];
+					
+					if (std::isnan(distance))
+					{
+						distance = CalculateDistance(ind1_position, position_data + ind2_index_in_subpop * SLIM_MAX_DIMENSIONALITY);
+						ind1_distances[ind2_index_in_subpop] = distance;
+						
+						if (reciprocal_)
+							*(mirror_ind1_distances + ind2_index_in_subpop * subpop1_size) = distance;
+					}
+					
+					if (distance <= max_distance_)
+					{
+						if (no_callbacks)
+							strength = CalculateStrengthNoCallbacks(distance);
+						else
+							strength = CalculateStrengthWithCallbacks(distance, ind1, ind2, subpop1, callbacks);
+					}
+					else
+					{
+						strength = 0.0;
+					}
+					
+					ind1_strengths[ind2_index_in_subpop] = strength;
+					
+					if (reciprocal_)
+						*(mirror_ind1_strengths + ind2_index_in_subpop * subpop1_size) = strength;
+				}
+				
+				result_vec->PushFloat(strength);
+			}
+			
+			return EidosValue_SP(result_vec);
 		}
-			
-			// all others, including gID_none
-		default:
-			return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 	}
+	else
+	{
+		//
+		// Non-spatial case; no distances used
+		//
+		
+		double *ind1_strengths = subpop_data.strengths_ + ind1_index * subpop1_size;
+		double *mirror_ind1_strengths = subpop_data.strengths_ + ind1_index;			// for reciprocality
+		
+		if (individuals2->Type() == EidosValueType::kValueNULL)
+		{
+			// NULL means return strengths from individuals1 (which must be singleton) to all individuals in the subpopulation
+			EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(subpop1_size);
+			
+			if (!reciprocal_)
+			{
+				for (int ind2_index = 0; ind2_index < subpop1_size; ++ind2_index)
+				{
+					double strength = ind1_strengths[ind2_index];
+					
+					if (std::isnan(strength))
+					{
+						if (no_callbacks)
+							strength = CalculateStrengthNoCallbacks(NAN);
+						else
+							strength = CalculateStrengthWithCallbacks(NAN, ind1, &subpop1->parent_individuals_[ind2_index], subpop1, callbacks);
+						
+						ind1_strengths[ind2_index] = strength;
+					}
+					
+					result_vec->PushFloat(strength);
+				}
+			}
+			else
+			{
+				for (int ind2_index = 0; ind2_index < subpop1_size; ++ind2_index, mirror_ind1_strengths += subpop1_size)
+				{
+					double strength = ind1_strengths[ind2_index];
+					
+					if (std::isnan(strength))
+					{
+						if (no_callbacks)
+							strength = CalculateStrengthNoCallbacks(NAN);
+						else
+							strength = CalculateStrengthWithCallbacks(NAN, ind1, &subpop1->parent_individuals_[ind2_index], subpop1, callbacks);
+						
+						ind1_strengths[ind2_index] = strength;
+						*(mirror_ind1_strengths) = strength;
+					}
+					
+					result_vec->PushFloat(strength);
+				}
+			}
+			
+			return EidosValue_SP(result_vec);
+		}
+		else
+		{
+			// Otherwise, individuals1 is singleton, and individuals2 is any length, so we loop over individuals2
+			EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(count2);
+			
+			for (int ind2_index = 0; ind2_index < count2; ++ind2_index)
+			{
+				Individual *ind2 = (Individual *)individuals2->ObjectElementAtIndex(ind2_index, nullptr);
+				
+				if (subpop1 != &(ind2->subpopulation_))
+					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that all individuals be in the same subpopulation." << eidos_terminate();
+				
+				slim_popsize_t ind2_index_in_subpop = ind2->index_;
+				double strength = ind1_strengths[ind2_index_in_subpop];
+				
+				if (std::isnan(strength))
+				{
+					if (no_callbacks)
+						strength = CalculateStrengthNoCallbacks(NAN);
+					else
+						strength = CalculateStrengthWithCallbacks(NAN, ind1, ind2, subpop1, callbacks);
+					
+					ind1_strengths[ind2_index_in_subpop] = strength;
+					
+					if (reciprocal_)
+						*(mirror_ind1_strengths + ind2_index_in_subpop * subpop1_size) = strength;
+				}
+				
+				result_vec->PushFloat(strength);
+			}
+			
+			return EidosValue_SP(result_vec);
+		}
+	}
+}
+
+//	*********************	– (float)totalOfNeighborStrengths(object<Individual> individuals)
+//
+EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *arg0_value = p_arguments[0].get();
+	
+	if (spatiality_ == 0)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_totalOfNeighborStrengths): totalOfNeighborStrengths() requires that the interaction be spatial." << eidos_terminate();
+	
+	EidosValue *individuals = arg0_value;
+	int count = individuals->Count();
+	
+	if (count == 0)
+		return gStaticEidosValue_Float_ZeroVec;
+	
+	// individuals is guaranteed to have at least one value
+	Individual *first_ind = (Individual *)individuals->ObjectElementAtIndex(0, nullptr);
+	Subpopulation *subpop = &(first_ind->subpopulation_);
+	slim_objectid_t subpop_id = subpop->subpopulation_id_;
+	auto subpop_data_iter = data_.find(subpop_id);
+	
+	if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_totalOfNeighborStrengths): totalOfNeighborStrengths() requires that the interaction has been evaluated for the subpopulation first." << eidos_terminate();
+	
+	InteractionsData &subpop_data = subpop_data_iter->second;
+	
+	EnsureStrengthsPresent(subpop_data);
+	EnsureKDTreePresent(subpop_data);
+	
+	// Loop over the requested individuals and get the totals
+	EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(count);
+	
+	for (int ind_index = 0; ind_index < count; ++ind_index)
+	{
+		Individual *individual = (Individual *)individuals->ObjectElementAtIndex(ind_index, nullptr);
+		
+		if (subpop != &(individual->subpopulation_))
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_totalOfNeighborStrengths): totalOfNeighborStrengths() requires that all individuals be in the same subpopulation." << eidos_terminate();
+		
+		slim_popsize_t ind_index_in_subpop = individual->index_;
+		double *position_data = subpop_data.positions_;
+		double *ind_position = position_data + ind_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
+		
+		// use the k-d tree to find neighbors, and total their strengths
+		double total_strength = TotalNeighborStrength(subpop, subpop_data, ind_position, individual);
+		
+		result_vec->PushFloat(total_strength);
+	}
+	
+	return EidosValue_SP(result_vec);
+}
+
+//	*********************	– (float)unevaluate(void)
+//
+EidosValue_SP InteractionType::ExecuteMethod_unevaluate(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	
+	Invalidate();
+	
+	return gStaticEidosValueNULLInvisible;
 }
 
 

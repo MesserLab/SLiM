@@ -52,74 +52,64 @@ const EidosObjectClass *SLiMEidosDictionary::Class(void) const
 
 EidosValue_SP SLiMEidosDictionary::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
-	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0].get() : nullptr);
-	
-	
-	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_method_id)
 	{
-			//
-			//	*********************	- (+)getValue(string $key)
-			//
-#pragma mark -getValue()
-			
-		case gID_getValue:
-		{
-#ifdef __clang_analyzer__
-			assert(p_argument_count == 1);
-#endif
-			
-			std::string key = arg0_value->StringAtIndex(0, nullptr);
-			
-			if (!hash_symbols_)
-				return gStaticEidosValueNULL;
-			
-			auto found_iter = hash_symbols_->find(key);
-			
-			if (found_iter == hash_symbols_->end())
-			{
-				return gStaticEidosValueNULL;
-			}
-			else
-			{
-				return found_iter->second;
-			}
-		}
-			
-			
-			//
-			//	*********************	- (void)setValue(string $key, + value)
-			//
-#pragma mark -setValue()
-			
-		case gID_setValue:
-		{
-			std::string key = arg0_value->StringAtIndex(0, nullptr);
-			EidosValue_SP value = p_arguments[1];
-			EidosValueType value_type = value->Type();
-			
-			if (value_type == EidosValueType::kValueNULL)
-			{
-				// Setting a key to NULL removes it from the map
-				if (hash_symbols_)
-					hash_symbols_->erase(key);
-			}
-			else
-			{
-				if (!hash_symbols_)
-					hash_symbols_ = new std::unordered_map<std::string, EidosValue_SP>;
-				
-				(*hash_symbols_)[key] = std::move(value);
-			}
-			
-			return gStaticEidosValueNULLInvisible;
-		}
-			
-			
-			// all others, including gID_none
-		default:
-			return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_getValue:	return ExecuteMethod_getValue(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_setValue:	return ExecuteMethod_setValue(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		default:			return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 	}
+}
+
+//	*********************	- (+)getValue(string $key)
+//
+EidosValue_SP SLiMEidosDictionary::ExecuteMethod_getValue(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *arg0_value = p_arguments[0].get();
+	
+	std::string key = arg0_value->StringAtIndex(0, nullptr);
+	
+	if (!hash_symbols_)
+		return gStaticEidosValueNULL;
+	
+	auto found_iter = hash_symbols_->find(key);
+	
+	if (found_iter == hash_symbols_->end())
+	{
+		return gStaticEidosValueNULL;
+	}
+	else
+	{
+		return found_iter->second;
+	}
+}
+
+//	*********************	- (void)setValue(string $key, + value)
+//
+EidosValue_SP SLiMEidosDictionary::ExecuteMethod_setValue(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *arg0_value = p_arguments[0].get();
+	
+	std::string key = arg0_value->StringAtIndex(0, nullptr);
+	EidosValue_SP value = p_arguments[1];
+	EidosValueType value_type = value->Type();
+	
+	if (value_type == EidosValueType::kValueNULL)
+	{
+		// Setting a key to NULL removes it from the map
+		if (hash_symbols_)
+			hash_symbols_->erase(key);
+	}
+	else
+	{
+		if (!hash_symbols_)
+			hash_symbols_ = new std::unordered_map<std::string, EidosValue_SP>;
+		
+		(*hash_symbols_)[key] = std::move(value);
+	}
+	
+	return gStaticEidosValueNULLInvisible;
 }
 
 

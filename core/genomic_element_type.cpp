@@ -235,88 +235,83 @@ void GenomicElementType::SetProperty(EidosGlobalStringID p_property_id, const Ei
 
 EidosValue_SP GenomicElementType::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
-	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0].get() : nullptr);
-	EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1].get() : nullptr);
-	
-	//
-	//	*********************	- (void)setMutationFractions(io<MutationType> mutationTypes, numeric proportions)
-	//
-#pragma mark -setMutationFractions()
-	
-	if (p_method_id == gID_setMutationFractions)
+	switch (p_method_id)
 	{
-#ifdef __clang_analyzer__
-		assert(p_argument_count == 2);
-#endif
+		case gID_setMutationFractions:	return ExecuteMethod_setMutationFractions(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		default:						return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+	}
+}
+
+//	*********************	- (void)setMutationFractions(io<MutationType> mutationTypes, numeric proportions)
+//
+EidosValue_SP GenomicElementType::ExecuteMethod_setMutationFractions(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *arg1_value = p_arguments[1].get();
+	
+	int mut_type_id_count = arg0_value->Count();
+	int proportion_count = arg1_value->Count();
+	
+	if (mut_type_id_count != proportion_count)
+		EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteMethod_setMutationFractions): setMutationFractions() requires the sizes of mutationTypes and proportions to be equal." << eidos_terminate();
+	
+	std::vector<MutationType*> mutation_types;
+	std::vector<double> mutation_fractions;
+	
+	for (int mut_type_index = 0; mut_type_index < mut_type_id_count; ++mut_type_index)
+	{ 
+		MutationType *mutation_type_ptr = nullptr;
+		double proportion = arg1_value->FloatAtIndex(mut_type_index, nullptr);
 		
-		int mut_type_id_count = arg0_value->Count();
-		int proportion_count = arg1_value->Count();
+		if (proportion < 0)		// == 0 is allowed but must be fixed before the simulation executes; see InitializeDraws()
+			EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteMethod_setMutationFractions): setMutationFractions() proportions must be greater than or equal to zero (" << proportion << " supplied)." << eidos_terminate();
 		
-		if (mut_type_id_count != proportion_count)
-			EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteInstanceMethod): setMutationFractions() requires the sizes of mutationTypes and proportions to be equal." << eidos_terminate();
-		
-		std::vector<MutationType*> mutation_types;
-		std::vector<double> mutation_fractions;
-		
-		for (int mut_type_index = 0; mut_type_index < mut_type_id_count; ++mut_type_index)
-		{ 
-			MutationType *mutation_type_ptr = nullptr;
-			double proportion = arg1_value->FloatAtIndex(mut_type_index, nullptr);
+		if (arg0_value->Type() == EidosValueType::kValueInt)
+		{
+			slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(mut_type_index, nullptr));
+			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
 			
-			if (proportion < 0)		// == 0 is allowed but must be fixed before the simulation executes; see InitializeDraws()
-				EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteInstanceMethod): setMutationFractions() proportions must be greater than or equal to zero (" << proportion << " supplied)." << eidos_terminate();
-			
-			if (arg0_value->Type() == EidosValueType::kValueInt)
+			if (sim)
 			{
-				slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(mut_type_index, nullptr));
-				SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
+				auto found_muttype_pair = sim->MutationTypes().find(mutation_type_id);
 				
-				if (sim)
-				{
-					auto found_muttype_pair = sim->MutationTypes().find(mutation_type_id);
-					
-					if (found_muttype_pair != sim->MutationTypes().end())
-						mutation_type_ptr = found_muttype_pair->second;
-				}
-				
-				if (!mutation_type_ptr)
-					EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteInstanceMethod): setMutationFractions() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
-			}
-			else
-			{
-				mutation_type_ptr = dynamic_cast<MutationType *>(arg0_value->ObjectElementAtIndex(mut_type_index, nullptr));
+				if (found_muttype_pair != sim->MutationTypes().end())
+					mutation_type_ptr = found_muttype_pair->second;
 			}
 			
-			if (std::find(mutation_types.begin(), mutation_types.end(), mutation_type_ptr) != mutation_types.end())
-				EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteInstanceMethod): setMutationFractions() mutation type m" << mutation_type_ptr->mutation_type_id_ << " used more than once." << eidos_terminate();
-			
-			mutation_types.emplace_back(mutation_type_ptr);
-			mutation_fractions.emplace_back(proportion);
-			
-			// check whether we are now using a mutation type that is non-neutral; check and set pure_neutral_
-			if ((mutation_type_ptr->dfe_type_ != DFEType::kFixed) || (mutation_type_ptr->dfe_parameters_[0] != 0.0))
-			{
-				SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
-				
-				if (sim)
-					sim->pure_neutral_ = false;
-			}
+			if (!mutation_type_ptr)
+				EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteMethod_setMutationFractions): setMutationFractions() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+		}
+		else
+		{
+			mutation_type_ptr = dynamic_cast<MutationType *>(arg0_value->ObjectElementAtIndex(mut_type_index, nullptr));
 		}
 		
-		// Everything seems to be in order, so replace our mutation info with the new info
-		mutation_type_ptrs_ = mutation_types;
-		mutation_fractions_ = mutation_fractions;
+		if (std::find(mutation_types.begin(), mutation_types.end(), mutation_type_ptr) != mutation_types.end())
+			EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteMethod_setMutationFractions): setMutationFractions() mutation type m" << mutation_type_ptr->mutation_type_id_ << " used more than once." << eidos_terminate();
 		
-		// Reinitialize our mutation type lookup based on the new info
-		InitializeDraws();
+		mutation_types.emplace_back(mutation_type_ptr);
+		mutation_fractions.emplace_back(proportion);
 		
-		return gStaticEidosValueNULLInvisible;
+		// check whether we are now using a mutation type that is non-neutral; check and set pure_neutral_
+		if ((mutation_type_ptr->dfe_type_ != DFEType::kFixed) || (mutation_type_ptr->dfe_parameters_[0] != 0.0))
+		{
+			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
+			
+			if (sim)
+				sim->pure_neutral_ = false;
+		}
 	}
 	
+	// Everything seems to be in order, so replace our mutation info with the new info
+	mutation_type_ptrs_ = mutation_types;
+	mutation_fractions_ = mutation_fractions;
 	
-	// all others, including gID_none
-	else
-		return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+	// Reinitialize our mutation type lookup based on the new info
+	InitializeDraws();
+	
+	return gStaticEidosValueNULLInvisible;
 }
 
 

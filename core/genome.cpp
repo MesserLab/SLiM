@@ -629,280 +629,311 @@ void Genome::SetProperty_Accelerated_Int(EidosGlobalStringID p_property_id, int6
 
 EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
-	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0].get() : nullptr);
-	//EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1].get() : nullptr);
-	
-
-	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_method_id)
 	{
-			//
-			//	*********************	- (logical$)containsMarkerMutation(io<MutationType>$ mutType, integer$ position)
-			//
-#pragma mark -containsMarkerMutation()
-			
-		case gID_containsMarkerMutation:
+		case gID_containsMarkerMutation:		return ExecuteMethod_containsMarkerMutation(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_containsMutations:				return ExecuteMethod_containsMutations(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_countOfMutationsOfType:		return ExecuteMethod_countOfMutationsOfType(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_mutationsOfType:				return ExecuteMethod_mutationsOfType(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_positionsOfMutationsOfType:	return ExecuteMethod_positionsOfMutationsOfType(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_sumOfMutationsOfType:			return ExecuteMethod_sumOfMutationsOfType(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		default:								return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+	}
+}
+
+//	*********************	- (logical$)containsMarkerMutation(io<MutationType>$ mutType, integer$ position)
+//
+EidosValue_SP Genome::ExecuteMethod_containsMarkerMutation(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *arg1_value = p_arguments[1].get();
+	
+	if (IsNull())
+		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_containsMarkerMutation): containsMarkerMutation() cannot be called on a null genome." << eidos_terminate();
+	
+	SLiMSim &sim = subpop_->population_.sim_;
+	MutationType *mutation_type_ptr = nullptr;
+	
+	if (arg0_value->Type() == EidosValueType::kValueInt)
+	{
+		slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
+		auto found_muttype_pair = sim.MutationTypes().find(mutation_type_id);
+		
+		if (found_muttype_pair == sim.MutationTypes().end())
+			EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_containsMarkerMutation): containsMarkerMutation() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+		
+		mutation_type_ptr = found_muttype_pair->second;
+	}
+	else
+	{
+		mutation_type_ptr = (MutationType *)(arg0_value->ObjectElementAtIndex(0, nullptr));
+	}
+	
+	slim_position_t marker_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));
+	slim_position_t last_position = sim.TheChromosome().last_position_;
+	
+	if (marker_position > last_position)
+		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_containsMarkerMutation): containsMarkerMutation() position " << marker_position << " is past the end of the chromosome." << eidos_terminate();
+	
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	MutationRun *mutrun = mutruns_[marker_position / mutrun_length_].get();
+	int mut_count = mutrun->size();
+	const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
+	int mut_index;
+	
+	if (marker_position == 0)
+	{
+		// The marker is supposed to be at position 0.  This is a very common case, so we special-case it
+		// to avoid an inefficient binary search.  Instead, we just look at the beginning.
+		if (mut_count == 0)
+			return gStaticEidosValue_LogicalF;
+		
+		if ((mut_block_ptr + mut_ptr[0])->position_ > 0)
+			return gStaticEidosValue_LogicalF;
+		
+		if ((mut_block_ptr + mut_ptr[0])->mutation_type_ptr_ == mutation_type_ptr)
+			return gStaticEidosValue_LogicalT;
+		
+		mut_index = 0;	// drop through to forward scan
+	}
+	else if (marker_position == last_position)
+	{
+		// The marker is supposed to be at the very end of the chromosome.  This is also a common case,
+		// so we special-case it by starting at the last mutation in the genome.
+		if (mut_count == 0)
+			return gStaticEidosValue_LogicalF;
+		
+		mut_index = mut_count - 1;
+		
+		if ((mut_block_ptr + mut_ptr[mut_index])->position_ < last_position)
+			return gStaticEidosValue_LogicalF;
+		
+		if ((mut_block_ptr + mut_ptr[mut_index])->mutation_type_ptr_ == mutation_type_ptr)
+			return gStaticEidosValue_LogicalT;
+		
+		// drop through to backward scan
+	}
+	else
+	{
+		// Find the requested position by binary search
+		slim_position_t mut_pos;
+		
 		{
-			if (IsNull())
-				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): containsMarkerMutation() cannot be called on a null genome." << eidos_terminate();
+			int L = 0, R = mut_count - 1;
 			
-			SLiMSim &sim = subpop_->population_.sim_;
-			MutationType *mutation_type_ptr = nullptr;
-			
-			if (arg0_value->Type() == EidosValueType::kValueInt)
+			do
 			{
-				slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
-				auto found_muttype_pair = sim.MutationTypes().find(mutation_type_id);
+				if (L > R)
+					return gStaticEidosValue_LogicalF;
 				
-				if (found_muttype_pair == sim.MutationTypes().end())
-					EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): containsMarkerMutation() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+				mut_index = (L + R) / 2;	// overflow-safe because base positions have a max of 1000000000L
+				mut_pos = (mut_block_ptr + mut_ptr[mut_index])->position_;
 				
-				mutation_type_ptr = found_muttype_pair->second;
+				if (mut_pos < marker_position)
+				{
+					L = mut_index + 1;
+					continue;
+				}
+				if (mut_pos > marker_position)
+				{
+					R = mut_index - 1;
+					continue;
+				}
+				
+				// mut_pos == marker_position
+				break;
 			}
-			else
-			{
-				mutation_type_ptr = (MutationType *)(arg0_value->ObjectElementAtIndex(0, nullptr));
-			}
-			
-			EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1].get() : nullptr);
-			slim_position_t marker_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));
-			slim_position_t last_position = sim.TheChromosome().last_position_;
-			
-			if (marker_position > last_position)
-				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): containsMarkerMutation() position " << marker_position << " is past the end of the chromosome." << eidos_terminate();
-			
-			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-			MutationRun *mutrun = mutruns_[marker_position / mutrun_length_].get();
+			while (true);
+		}
+		
+		// The mutation at mut_index is at marker_position, but it may not be the only such
+		// We check it first, then we check before it scanning backwards, and check after it scanning forwards
+		if ((mut_block_ptr + mut_ptr[mut_index])->mutation_type_ptr_ == mutation_type_ptr)
+			return gStaticEidosValue_LogicalT;
+	}
+	
+	// backward & forward scan are shared by both code paths
+	{
+		slim_position_t back_scan = mut_index;
+		
+		while ((back_scan > 0) && ((mut_block_ptr + mut_ptr[--back_scan])->position_ == marker_position))
+			if ((mut_block_ptr + mut_ptr[back_scan])->mutation_type_ptr_ == mutation_type_ptr)
+				return gStaticEidosValue_LogicalT;
+	}
+	
+	{
+		slim_position_t forward_scan = mut_index;
+		
+		while ((forward_scan < mut_count - 1) && ((mut_block_ptr + mut_ptr[++forward_scan])->position_ == marker_position))
+			if ((mut_block_ptr + mut_ptr[forward_scan])->mutation_type_ptr_ == mutation_type_ptr)
+				return gStaticEidosValue_LogicalT;
+	}
+	
+	return gStaticEidosValue_LogicalF;
+}
+
+//	*********************	- (logical)containsMutations(object<Mutation> mutations)
+//
+EidosValue_SP Genome::ExecuteMethod_containsMutations(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *arg0_value = p_arguments[0].get();
+	
+	if (IsNull())
+		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_containsMutations): containsMutations() cannot be called on a null genome." << eidos_terminate();
+	
+	int arg0_count = arg0_value->Count();
+	
+	if (arg0_count == 1)
+	{
+		Mutation *mut = (Mutation *)(arg0_value->ObjectElementAtIndex(0, nullptr));
+		MutationIndex mut_block_index = mut->BlockIndex();
+		MutationRun *mutrun = mutruns_[mut->position_ / mutrun_length_].get();
+		int mut_count = mutrun->size();
+		const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
+		
+		for (int mut_index = 0; mut_index < mut_count; ++mut_index)
+			if (mut_ptr[mut_index] == mut_block_index)
+				return gStaticEidosValue_LogicalT;
+		
+		return gStaticEidosValue_LogicalF;
+	}
+	else
+	{
+		EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve(arg0_count);
+		std::vector<eidos_logical_t> &logical_result_vec = *logical_result->LogicalVector_Mutable();
+		
+		for (int value_index = 0; value_index < arg0_count; ++value_index)
+		{
+			Mutation *mut = (Mutation *)(arg0_value->ObjectElementAtIndex(value_index, nullptr));
+			MutationIndex mut_block_index = mut->BlockIndex();
+			MutationRun *mutrun = mutruns_[mut->position_ / mutrun_length_].get();
 			int mut_count = mutrun->size();
 			const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
-			int mut_index;
+			bool contains_mut = false;
 			
-			if (marker_position == 0)
-			{
-				// The marker is supposed to be at position 0.  This is a very common case, so we special-case it
-				// to avoid an inefficient binary search.  Instead, we just look at the beginning.
-				if (mut_count == 0)
-					return gStaticEidosValue_LogicalF;
-				
-				if ((mut_block_ptr + mut_ptr[0])->position_ > 0)
-					return gStaticEidosValue_LogicalF;
-				
-				if ((mut_block_ptr + mut_ptr[0])->mutation_type_ptr_ == mutation_type_ptr)
-					return gStaticEidosValue_LogicalT;
-				
-				mut_index = 0;	// drop through to forward scan
-			}
-			else if (marker_position == last_position)
-			{
-				// The marker is supposed to be at the very end of the chromosome.  This is also a common case,
-				// so we special-case it by starting at the last mutation in the genome.
-				if (mut_count == 0)
-					return gStaticEidosValue_LogicalF;
-				
-				mut_index = mut_count - 1;
-				
-				if ((mut_block_ptr + mut_ptr[mut_index])->position_ < last_position)
-					return gStaticEidosValue_LogicalF;
-				
-				if ((mut_block_ptr + mut_ptr[mut_index])->mutation_type_ptr_ == mutation_type_ptr)
-					return gStaticEidosValue_LogicalT;
-				
-				// drop through to backward scan
-			}
-			else
-			{
-				// Find the requested position by binary search
-				slim_position_t mut_pos;
-				
-				{
-					int L = 0, R = mut_count - 1;
-					
-					do
-					{
-						if (L > R)
-							return gStaticEidosValue_LogicalF;
-						
-						mut_index = (L + R) / 2;	// overflow-safe because base positions have a max of 1000000000L
-						mut_pos = (mut_block_ptr + mut_ptr[mut_index])->position_;
-						
-						if (mut_pos < marker_position)
-						{
-							L = mut_index + 1;
-							continue;
-						}
-						if (mut_pos > marker_position)
-						{
-							R = mut_index - 1;
-							continue;
-						}
-						
-						// mut_pos == marker_position
-						break;
-					}
-					while (true);
-				}
-				
-				// The mutation at mut_index is at marker_position, but it may not be the only such
-				// We check it first, then we check before it scanning backwards, and check after it scanning forwards
-				if ((mut_block_ptr + mut_ptr[mut_index])->mutation_type_ptr_ == mutation_type_ptr)
-					return gStaticEidosValue_LogicalT;
-			}
+			for (int mut_index = 0; mut_index < mut_count; ++mut_index)
+				if (mut_ptr[mut_index] == mut_block_index)
+					contains_mut = true;
 			
-			// backward & forward scan are shared by both code paths
-			{
-				slim_position_t back_scan = mut_index;
-				
-				while ((back_scan > 0) && ((mut_block_ptr + mut_ptr[--back_scan])->position_ == marker_position))
-					if ((mut_block_ptr + mut_ptr[back_scan])->mutation_type_ptr_ == mutation_type_ptr)
-						return gStaticEidosValue_LogicalT;
-			}
-			
-			{
-				slim_position_t forward_scan = mut_index;
-				
-				while ((forward_scan < mut_count - 1) && ((mut_block_ptr + mut_ptr[++forward_scan])->position_ == marker_position))
-					if ((mut_block_ptr + mut_ptr[forward_scan])->mutation_type_ptr_ == mutation_type_ptr)
-						return gStaticEidosValue_LogicalT;
-			}
-			
-			return gStaticEidosValue_LogicalF;
+			logical_result_vec.emplace_back(contains_mut);
 		}
-			
-			//
-			//	*********************	- (logical)containsMutations(object<Mutation> mutations)
-			//
-#pragma mark -containsMutations()
-			
-		case gID_containsMutations:
+		
+		return EidosValue_SP(logical_result);
+	}
+}
+
+//	*********************	- (integer$)countOfMutationsOfType(io<MutationType>$ mutType)
+//
+EidosValue_SP Genome::ExecuteMethod_countOfMutationsOfType(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *arg0_value = p_arguments[0].get();
+	
+	if (IsNull())
+		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_countOfMutationsOfType): countOfMutationsOfType() cannot be called on a null genome." << eidos_terminate();
+	
+	MutationType *mutation_type_ptr = nullptr;
+	
+	if (arg0_value->Type() == EidosValueType::kValueInt)
+	{
+		SLiMSim &sim = subpop_->population_.sim_;
+		slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
+		auto found_muttype_pair = sim.MutationTypes().find(mutation_type_id);
+		
+		if (found_muttype_pair == sim.MutationTypes().end())
+			EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_countOfMutationsOfType): countOfMutationsOfType() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+		
+		mutation_type_ptr = found_muttype_pair->second;
+	}
+	else
+	{
+		mutation_type_ptr = (MutationType *)(arg0_value->ObjectElementAtIndex(0, nullptr));
+	}
+	
+	// Count the number of mutations of the given type
+	int match_count = 0;
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	
+	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
+	{
+		MutationRun *mutrun = mutruns_[run_index].get();
+		int mut_count = mutrun->size();
+		const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
+		
+		for (int mut_index = 0; mut_index < mut_count; ++mut_index)
+			if ((mut_block_ptr + mut_ptr[mut_index])->mutation_type_ptr_ == mutation_type_ptr)
+				++match_count;
+	}
+	
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(match_count));
+}
+
+//	*********************	- (object<Mutation>)mutationsOfType(io<MutationType>$ mutType)
+//
+EidosValue_SP Genome::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *arg0_value = p_arguments[0].get();
+	
+	if (IsNull())
+		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_mutationsOfType): mutationsOfType() cannot be called on a null genome." << eidos_terminate();
+	
+	MutationType *mutation_type_ptr = nullptr;
+	
+	if (arg0_value->Type() == EidosValueType::kValueInt)
+	{
+		SLiMSim &sim = subpop_->population_.sim_;
+		slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
+		auto found_muttype_pair = sim.MutationTypes().find(mutation_type_id);
+		
+		if (found_muttype_pair == sim.MutationTypes().end())
+			EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_mutationsOfType): mutationsOfType() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+		
+		mutation_type_ptr = found_muttype_pair->second;
+	}
+	else
+	{
+		mutation_type_ptr = (MutationType *)(arg0_value->ObjectElementAtIndex(0, nullptr));
+	}
+	
+	// Count the number of mutations of the given type, so we can reserve the right vector size
+	// To avoid having to scan the genome twice for the simplest case of a single mutation, we cache the first mutation found
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	int match_count = 0;
+	Mutation *first_match = nullptr;
+	
+	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
+	{
+		MutationRun *mutrun = mutruns_[run_index].get();
+		int mut_count = mutrun->size();
+		const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
+		
+		for (int mut_index = 0; mut_index < mut_count; ++mut_index)
 		{
-			if (IsNull())
-				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): containsMutations() cannot be called on a null genome." << eidos_terminate();
+			Mutation *mut = (mut_block_ptr + mut_ptr[mut_index]);
 			
-			int arg0_count = arg0_value->Count();
-			
-			if (arg0_count == 1)
+			if (mut->mutation_type_ptr_ == mutation_type_ptr)
 			{
-				Mutation *mut = (Mutation *)(arg0_value->ObjectElementAtIndex(0, nullptr));
-				MutationIndex mut_block_index = mut->BlockIndex();
-				MutationRun *mutrun = mutruns_[mut->position_ / mutrun_length_].get();
-				int mut_count = mutrun->size();
-				const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
-				
-				for (int mut_index = 0; mut_index < mut_count; ++mut_index)
-					if (mut_ptr[mut_index] == mut_block_index)
-						return gStaticEidosValue_LogicalT;
-				
-				return gStaticEidosValue_LogicalF;
-			}
-			else
-			{
-				EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve(arg0_count);
-				std::vector<eidos_logical_t> &logical_result_vec = *logical_result->LogicalVector_Mutable();
-				
-				for (int value_index = 0; value_index < arg0_count; ++value_index)
-				{
-					Mutation *mut = (Mutation *)(arg0_value->ObjectElementAtIndex(value_index, nullptr));
-					MutationIndex mut_block_index = mut->BlockIndex();
-					MutationRun *mutrun = mutruns_[mut->position_ / mutrun_length_].get();
-					int mut_count = mutrun->size();
-					const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
-					bool contains_mut = false;
-					
-					for (int mut_index = 0; mut_index < mut_count; ++mut_index)
-						if (mut_ptr[mut_index] == mut_block_index)
-							contains_mut = true;
-					
-					logical_result_vec.emplace_back(contains_mut);
-				}
-				
-				return EidosValue_SP(logical_result);
+				if (++match_count == 1)
+					first_match = mut;
 			}
 		}
-			
-			//
-			//	*********************	- (integer$)countOfMutationsOfType(io<MutationType>$ mutType)
-			//
-#pragma mark -countOfMutationsOfType()
-			
-		case gID_countOfMutationsOfType:
+	}
+	
+	// Now allocate the result vector and assemble it
+	if (match_count == 1)
+	{
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(first_match, gSLiM_Mutation_Class));
+	}
+	else
+	{
+		EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->Reserve(match_count);
+		EidosValue_SP result_SP = EidosValue_SP(vec);
+		
+		if (match_count != 0)
 		{
-			if (IsNull())
-				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): countOfMutationsOfType() cannot be called on a null genome." << eidos_terminate();
-			
-			MutationType *mutation_type_ptr = nullptr;
-			
-			if (arg0_value->Type() == EidosValueType::kValueInt)
-			{
-				SLiMSim &sim = subpop_->population_.sim_;
-				slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
-				auto found_muttype_pair = sim.MutationTypes().find(mutation_type_id);
-				
-				if (found_muttype_pair == sim.MutationTypes().end())
-					EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): countOfMutationsOfType() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
-				
-				mutation_type_ptr = found_muttype_pair->second;
-			}
-			else
-			{
-				mutation_type_ptr = (MutationType *)(arg0_value->ObjectElementAtIndex(0, nullptr));
-			}
-			
-			// Count the number of mutations of the given type
-			int match_count = 0;
-			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-			
-			for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-			{
-				MutationRun *mutrun = mutruns_[run_index].get();
-				int mut_count = mutrun->size();
-				const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
-				
-				for (int mut_index = 0; mut_index < mut_count; ++mut_index)
-					if ((mut_block_ptr + mut_ptr[mut_index])->mutation_type_ptr_ == mutation_type_ptr)
-						++match_count;
-			}
-			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(match_count));
-		}
-			
-			//
-			//	*********************	- (object<Mutation>)mutationsOfType(io<MutationType>$ mutType)
-			//
-#pragma mark -mutationsOfType()
-			
-		case gID_mutationsOfType:
-		{
-#ifdef __clang_analyzer__
-			assert(p_argument_count == 1);
-#endif
-			
-			if (IsNull())
-				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): mutationsOfType() cannot be called on a null genome." << eidos_terminate();
-			
-			MutationType *mutation_type_ptr = nullptr;
-			
-			if (arg0_value->Type() == EidosValueType::kValueInt)
-			{
-				SLiMSim &sim = subpop_->population_.sim_;
-				slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
-				auto found_muttype_pair = sim.MutationTypes().find(mutation_type_id);
-				
-				if (found_muttype_pair == sim.MutationTypes().end())
-					EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): mutationsOfType() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
-				
-				mutation_type_ptr = found_muttype_pair->second;
-			}
-			else
-			{
-				mutation_type_ptr = (MutationType *)(arg0_value->ObjectElementAtIndex(0, nullptr));
-			}
-			
-			// Count the number of mutations of the given type, so we can reserve the right vector size
-			// To avoid having to scan the genome twice for the simplest case of a single mutation, we cache the first mutation found
-			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-			int match_count = 0;
-			Mutation *first_match = nullptr;
-			
 			for (int run_index = 0; run_index < mutrun_count_; ++run_index)
 			{
 				MutationRun *mutrun = mutruns_[run_index].get();
@@ -914,158 +945,115 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 					Mutation *mut = (mut_block_ptr + mut_ptr[mut_index]);
 					
 					if (mut->mutation_type_ptr_ == mutation_type_ptr)
-					{
-						if (++match_count == 1)
-							first_match = mut;
-					}
+						vec->PushObjectElement(mut);
 				}
-			}
-			
-			// Now allocate the result vector and assemble it
-			if (match_count == 1)
-			{
-				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(first_match, gSLiM_Mutation_Class));
-			}
-			else
-			{
-				EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->Reserve(match_count);
-				EidosValue_SP result_SP = EidosValue_SP(vec);
-				
-				if (match_count != 0)
-				{
-					for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-					{
-						MutationRun *mutrun = mutruns_[run_index].get();
-						int mut_count = mutrun->size();
-						const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
-						
-						for (int mut_index = 0; mut_index < mut_count; ++mut_index)
-						{
-							Mutation *mut = (mut_block_ptr + mut_ptr[mut_index]);
-							
-							if (mut->mutation_type_ptr_ == mutation_type_ptr)
-								vec->PushObjectElement(mut);
-						}
-					}
-				}
-				
-				return result_SP;
 			}
 		}
-			
-			
-			//
-			//	*********************	- (integer)positionsOfMutationsOfType(io<MutationType>$ mutType)
-			//
-#pragma mark -positionsOfMutationsOfType()
-			
-		case gID_positionsOfMutationsOfType:
-		{
-			if (IsNull())
-				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): positionsOfMutationsOfType() cannot be called on a null genome." << eidos_terminate();
-			
-			MutationType *mutation_type_ptr = nullptr;
-			
-			if (arg0_value->Type() == EidosValueType::kValueInt)
-			{
-				SLiMSim &sim = subpop_->population_.sim_;
-				slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
-				auto found_muttype_pair = sim.MutationTypes().find(mutation_type_id);
-				
-				if (found_muttype_pair == sim.MutationTypes().end())
-					EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): positionsOfMutationsOfType() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
-				
-				mutation_type_ptr = found_muttype_pair->second;
-			}
-			else
-			{
-				mutation_type_ptr = (MutationType *)(arg0_value->ObjectElementAtIndex(0, nullptr));
-			}
-			
-			// Return the positions of mutations of the given type
-			EidosValue_Int_vector *int_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector();
-			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-			
-			for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-			{
-				MutationRun *mutrun = mutruns_[run_index].get();
-				int mut_count = mutrun->size();
-				const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
-				
-				for (int mut_index = 0; mut_index < mut_count; ++mut_index)
-				{
-					Mutation *mutation = mut_block_ptr + mut_ptr[mut_index];
-					
-					if (mutation->mutation_type_ptr_ == mutation_type_ptr)
-						int_result->PushInt(mutation->position_);
-				}
-			}
-			
-			return EidosValue_SP(int_result);
-		}
-			
-			
-			//
-			//	*********************	- (integer$)sumOfMutationsOfType(io<MutationType>$ mutType)
-			//
-#pragma mark -sumOfMutationsOfType()
-			
-		case gID_sumOfMutationsOfType:
-		{
-#ifdef __clang_analyzer__
-			assert(p_argument_count == 1);
-#endif
-			
-			if (IsNull())
-				EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): sumOfMutationsOfType() cannot be called on a null genome." << eidos_terminate();
-			
-			MutationType *mutation_type_ptr = nullptr;
-			
-			if (arg0_value->Type() == EidosValueType::kValueInt)
-			{
-				SLiMSim &sim = subpop_->population_.sim_;
-				
-				slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
-				auto found_muttype_pair = sim.MutationTypes().find(mutation_type_id);
-				
-				if (found_muttype_pair == sim.MutationTypes().end())
-					EIDOS_TERMINATION << "ERROR (Genome::ExecuteInstanceMethod): sumOfMutationsOfType() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
-				
-				mutation_type_ptr = found_muttype_pair->second;
-			}
-			else
-			{
-				mutation_type_ptr = (MutationType *)(arg0_value->ObjectElementAtIndex(0, nullptr));
-			}
-			
-			// Count the number of mutations of the given type
-			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-			double selcoeff_sum = 0.0;
-			int mutrun_count = mutrun_count_;
-			
-			for (int run_index = 0; run_index < mutrun_count; ++run_index)
-			{
-				MutationRun *mutrun = mutruns_[run_index].get();
-				int genome1_count = mutrun->size();
-				const MutationIndex *genome_ptr = mutrun->begin_pointer_const();
-				
-				for (int mut_index = 0; mut_index < genome1_count; ++mut_index)
-				{
-					Mutation *mut_ptr = mut_block_ptr + genome_ptr[mut_index];
-					
-					if (mut_ptr->mutation_type_ptr_ == mutation_type_ptr)
-						selcoeff_sum += mut_ptr->selection_coeff_;
-				}
-			}
-			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(selcoeff_sum));
-		}
-			
-			
-			// all others, including gID_none
-		default:
-			return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		
+		return result_SP;
 	}
+}
+
+//	*********************	- (integer)positionsOfMutationsOfType(io<MutationType>$ mutType)
+//
+EidosValue_SP Genome::ExecuteMethod_positionsOfMutationsOfType(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *arg0_value = p_arguments[0].get();
+	
+	if (IsNull())
+		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_positionsOfMutationsOfType): positionsOfMutationsOfType() cannot be called on a null genome." << eidos_terminate();
+	
+	MutationType *mutation_type_ptr = nullptr;
+	
+	if (arg0_value->Type() == EidosValueType::kValueInt)
+	{
+		SLiMSim &sim = subpop_->population_.sim_;
+		slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
+		auto found_muttype_pair = sim.MutationTypes().find(mutation_type_id);
+		
+		if (found_muttype_pair == sim.MutationTypes().end())
+			EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_positionsOfMutationsOfType): positionsOfMutationsOfType() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+		
+		mutation_type_ptr = found_muttype_pair->second;
+	}
+	else
+	{
+		mutation_type_ptr = (MutationType *)(arg0_value->ObjectElementAtIndex(0, nullptr));
+	}
+	
+	// Return the positions of mutations of the given type
+	EidosValue_Int_vector *int_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector();
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	
+	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
+	{
+		MutationRun *mutrun = mutruns_[run_index].get();
+		int mut_count = mutrun->size();
+		const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
+		
+		for (int mut_index = 0; mut_index < mut_count; ++mut_index)
+		{
+			Mutation *mutation = mut_block_ptr + mut_ptr[mut_index];
+			
+			if (mutation->mutation_type_ptr_ == mutation_type_ptr)
+				int_result->PushInt(mutation->position_);
+		}
+	}
+	
+	return EidosValue_SP(int_result);
+}
+
+//	*********************	- (integer$)sumOfMutationsOfType(io<MutationType>$ mutType)
+//
+EidosValue_SP Genome::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *arg0_value = p_arguments[0].get();
+	
+	if (IsNull())
+		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_sumOfMutationsOfType): sumOfMutationsOfType() cannot be called on a null genome." << eidos_terminate();
+	
+	MutationType *mutation_type_ptr = nullptr;
+	
+	if (arg0_value->Type() == EidosValueType::kValueInt)
+	{
+		SLiMSim &sim = subpop_->population_.sim_;
+		
+		slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
+		auto found_muttype_pair = sim.MutationTypes().find(mutation_type_id);
+		
+		if (found_muttype_pair == sim.MutationTypes().end())
+			EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_sumOfMutationsOfType): sumOfMutationsOfType() mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+		
+		mutation_type_ptr = found_muttype_pair->second;
+	}
+	else
+	{
+		mutation_type_ptr = (MutationType *)(arg0_value->ObjectElementAtIndex(0, nullptr));
+	}
+	
+	// Count the number of mutations of the given type
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	double selcoeff_sum = 0.0;
+	int mutrun_count = mutrun_count_;
+	
+	for (int run_index = 0; run_index < mutrun_count; ++run_index)
+	{
+		MutationRun *mutrun = mutruns_[run_index].get();
+		int genome1_count = mutrun->size();
+		const MutationIndex *genome_ptr = mutrun->begin_pointer_const();
+		
+		for (int mut_index = 0; mut_index < genome1_count; ++mut_index)
+		{
+			Mutation *mut_ptr = mut_block_ptr + genome_ptr[mut_index];
+			
+			if (mut_ptr->mutation_type_ptr_ == mutation_type_ptr)
+				selcoeff_sum += mut_ptr->selection_coeff_;
+		}
+	}
+	
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(selcoeff_sum));
 }
 
 // print the sample represented by genomes, using SLiM's own format
@@ -1417,7 +1405,12 @@ public:
 	
 	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
 	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
+	
 	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
+	EidosValue_SP ExecuteMethod_addMutations(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
+	EidosValue_SP ExecuteMethod_addNewMutation(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
+	EidosValue_SP ExecuteMethod_outputX(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
+	EidosValue_SP ExecuteMethod_removeMutations(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 };
 
 EidosObjectClass *gSLiM_Genome_Class = new Genome_Class();
@@ -1563,612 +1556,604 @@ const EidosMethodSignature *Genome_Class::SignatureForMethod(EidosGlobalStringID
 
 EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
 {
-	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0].get() : nullptr);
-	EidosValue *arg1_value = ((p_argument_count >= 2) ? p_arguments[1].get() : nullptr);
-	EidosValue *arg2_value = ((p_argument_count >= 3) ? p_arguments[2].get() : nullptr);
-	EidosValue *arg3_value = ((p_argument_count >= 4) ? p_arguments[3].get() : nullptr);
-	EidosValue *arg4_value = ((p_argument_count >= 5) ? p_arguments[4].get() : nullptr);
-	
-	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_method_id)
 	{
-			//
-			//	*********************	+ (void)addMutations(object mutations)
-			//
-#pragma mark +addMutations()
-			
-		case gID_addMutations:
-		{
-			// FIXME this method should be optimized for large-scale bulk addition in the same
-			// way that addNewMutation() and addNewDrawnMutation() now are.  BCH 29 Oct 2017
-			
-			int target_size = p_target->Count();
-			
-			if (target_size == 0)
-				return gStaticEidosValueNULLInvisible;
-			
-			// Use the 0th genome in the target to find out what the mutation run length is, so we can calculate run indices
-			Genome *genome_0 = (Genome *)p_target->ObjectElementAtIndex(0, nullptr);
-			int mutrun_length = genome_0->mutrun_length_;
-			SLiMSim &sim = genome_0->subpop_->population_.sim_;
-			Population &pop = sim.ThePopulation();
-			
-			sim.CheckMutationStackPolicy();
-			
-			if ((sim.GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim.warned_early_mutation_add_))
-			{
-				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteClassMethod): addMutations() should probably not be called from an early() event; the added mutation(s) will not influence fitness values during offspring generation." << std::endl;
-				sim.warned_early_mutation_add_ = true;
-			}
-			
-			// Construct a vector of mutations to add that is sorted by position
-			int arg0_count = arg0_value->Count();
-			std::vector<Mutation *> mutations_to_add;
-			
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				mutations_to_add.push_back((Mutation *)arg0_value->ObjectElementAtIndex(value_index, nullptr));
-			
-			std::sort(mutations_to_add.begin(), mutations_to_add.end(), [ ](Mutation *i1, Mutation *i2) {return i1->position_ < i2->position_;});
-			
-			// Now handle the mutations to add, broken into bulk operations according to the mutation run they fall into
-			int last_handled_mutrun_index = -1;
-			
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
-			{
-				Mutation *next_mutation = mutations_to_add[value_index];
-				const slim_position_t pos = next_mutation->position_;
-				int mutrun_index = pos / mutrun_length;
-				
-				if (mutrun_index <= last_handled_mutrun_index)
-					continue;
-				
-				// We have not yet processed this mutation run; do this mutation run index as a bulk operation
-				int64_t operation_id = ++gSLiM_MutationRun_OperationID;
-				
-				Genome::BulkOperationStart(operation_id, mutrun_index);
-				
-				for (int genome_index = 0; genome_index < target_size; ++genome_index)
-				{
-					Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
-					
-					if (target_genome->IsNull())
-						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteClassMethod): addMutations() cannot be called on a null genome." << eidos_terminate();
-					
-					// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
-					if (target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index))
-					{
-						for (int mut_index = value_index; mut_index < arg0_count; ++mut_index)
-						{
-							Mutation *mut_to_add = mutations_to_add[mut_index];
-							const slim_position_t add_pos = mut_to_add->position_;
-							
-							// since we're in sorted order by position, as soon as we leave the current mutation run we're done
-							if (add_pos / mutrun_length != mutrun_index)
-								break;
-							
-							if (target_genome->enforce_stack_policy_for_addition(mut_to_add->position_, mut_to_add->mutation_type_ptr_))
-							{
-								target_genome->insert_sorted_mutation_if_unique(mut_to_add->BlockIndex());
-								
-								// I think this is not needed; how would the user ever get a Mutation that was not already in the registry?
-								//if (!registry.contains_mutation(new_mutation))
-								//	registry.emplace_back(new_mutation);
-								
-								// Similarly, no need to check and set pure_neutral_ and all_pure_neutral_DFE_; the mutation is already in the system
-							}
-						}
-					}
-				}
-				
-				Genome::BulkOperationEnd(operation_id, mutrun_index);
-				
-				// now we have handled all mutations at this index (and all previous indices)
-				last_handled_mutrun_index = mutrun_index;
-				
-				// invalidate cached mutation refcounts; refcounts have changed
-				pop.cached_tally_genome_count_ = 0;
-			}
-			
-			return gStaticEidosValueNULLInvisible;
-		}
-			
-			
-			//
-			//	*********************	+ (object<Mutation>)addNewDrawnMutation(io<MutationType> mutationType, integer position, [Ni originGeneration = NULL], [Nio<Subpopulation> originSubpop = NULL])
-			//	*********************	+ (object<Mutation>)addNewMutation(io<MutationType> mutationType, numeric selectionCoeff, integer position, [Ni originGeneration = NULL], [Nio<Subpopulation> originSubpop = NULL])
-			//
-#pragma mark +addNewDrawnMutation()
-#pragma mark +addNewMutation()
-			
+		case gID_addMutations:			return ExecuteMethod_addMutations(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
 		case gID_addNewDrawnMutation:
-		case gID_addNewMutation:
-		{
-			int target_size = p_target->Count();
-			
-			if (target_size == 0)
-				return gStaticEidosValueNULLInvisible;	// this is almost an error condition, since a mutation was expected to be added and none was
-			
-			// Use the 0th genome in the target to find out what the mutation run length is, so we can calculate run indices
-			Genome *genome_0 = (Genome *)p_target->ObjectElementAtIndex(0, nullptr);
-			int mutrun_count = genome_0->mutrun_count_;
-			int mutrun_length = genome_0->mutrun_length_;
-			SLiMSim &sim = genome_0->subpop_->population_.sim_;
-			Population &pop = sim.ThePopulation();
-			
-			sim.CheckMutationStackPolicy();
-			
-			if ((sim.GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim.warned_early_mutation_add_))
-			{
-				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteClassMethod): " << StringForEidosGlobalStringID(p_method_id) << " should probably not be called from an early() event; the added mutation will not influence fitness values during offspring generation." << std::endl;
-				sim.warned_early_mutation_add_ = true;
-			}
-			
-			// generalize our parameters; since this code serves both addNewDrawnMutation() and addNewMutation()
-			EidosValue *arg_muttype = arg0_value;
-			EidosValue *arg_selcoeff = (p_method_id == gID_addNewDrawnMutation ? nullptr : arg1_value);
-			EidosValue *arg_position = (p_method_id == gID_addNewDrawnMutation ? arg1_value : arg2_value);
-			EidosValue *arg_origin_gen = (p_method_id == gID_addNewDrawnMutation ? arg2_value : arg3_value);
-			EidosValue *arg_origin_subpop = (p_method_id == gID_addNewDrawnMutation ? arg3_value : arg4_value);
-			
-			// position, originGeneration, and originSubpop can now be either singletons or vectors of matching length or NULL; check them all
-			int muttype_count = arg_muttype->Count();
-			int selcoeff_count = (arg_selcoeff ? arg_selcoeff->Count() : 0);
-			int position_count = arg_position->Count();
-			int origin_gen_count = arg_origin_gen->Count();
-			int origin_subpop_count = arg_origin_subpop->Count();
-			
-			if (arg_origin_gen->Type() == EidosValueType::kValueNULL)
-				origin_gen_count = 1;
-			if (arg_origin_subpop->Type() == EidosValueType::kValueNULL)
-				origin_subpop_count = 1;
-			
-			int count_to_add = std::max({muttype_count, selcoeff_count, position_count, origin_gen_count, origin_subpop_count});
-			
-			if (((muttype_count != 1) && (muttype_count != count_to_add)) ||
-				(arg_selcoeff && (selcoeff_count != 1) && (selcoeff_count != count_to_add)) ||
-				((position_count != 1) && (position_count != count_to_add)) ||
-				((origin_gen_count != 1) && (origin_gen_count != count_to_add)) ||
-				((origin_subpop_count != 1) && (origin_subpop_count != count_to_add)))
-				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteClassMethod): " << StringForEidosGlobalStringID(p_method_id) << " requires that mutationType, " << ((p_method_id == gID_addNewMutation) ? "selectionCoeff, " : "") << "position, originGeneration, and originSubpop be either (1) singleton, or (2) equal in length to the other non-singleton argument(s), or (3) for originGeneration or originSubpop, NULL." << eidos_terminate();
-			
-			EidosValue_Object_vector_SP retval(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class));
-			
-			if (count_to_add == 0)
-				return retval;
-			
-			// before proceeding, let's check that all positions supplied are valid, so we don't need to worry about it below
-			// would be better not to call IntAtIndex() multiple times for the same position, but that will not be the majority of our time anyway...
-			slim_position_t last_position = sim.TheChromosome().last_position_;
-			
-			for (int position_index = 0; position_index < position_count; ++position_index)
-			{
-				slim_position_t position = SLiMCastToPositionTypeOrRaise(arg_position->IntAtIndex(position_index, nullptr));
-				
-				if (position > last_position)
-					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteClassMethod): " << StringForEidosGlobalStringID(p_method_id) << " position " << position << " is past the end of the chromosome." << eidos_terminate();
-			}
-			
-			// each bulk operation is performed on a single mutation run, so we need to figure out which runs we're influencing
-			std::vector<int> mutrun_indexes;
-			
-			if (mutrun_count == 1)
-			{
-				// if we have just a single mutrun, we can avoid the sorting and uniquing; all valid positions are in mutrun 0
-				mutrun_indexes.push_back(0);
-			}
-			else
-			{
-				for (int pos_index = 0; pos_index < position_count; ++pos_index)
-				{
-					slim_position_t position = SLiMCastToPositionTypeOrRaise(arg_position->IntAtIndex(pos_index, nullptr));
-					mutrun_indexes.push_back(position / mutrun_length);
-				}
-				
-				std::sort(mutrun_indexes.begin(), mutrun_indexes.end());
-				mutrun_indexes.resize(std::distance(mutrun_indexes.begin(), std::unique(mutrun_indexes.begin(), mutrun_indexes.end())));
-			}
-			
-			// for the singleton case for each of the parameters, get all the info
-			MutationType *singleton_mutation_type_ptr = nullptr;
-			
-			if (arg_muttype->Type() == EidosValueType::kValueInt)
-			{
-				slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg_muttype->IntAtIndex(0, nullptr));
-				auto found_muttype_pair = sim.MutationTypes().find(mutation_type_id);
-				
-				if (found_muttype_pair != sim.MutationTypes().end())
-					singleton_mutation_type_ptr = found_muttype_pair->second;
-				
-				if (!singleton_mutation_type_ptr)
-					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteClassMethod): " << StringForEidosGlobalStringID(p_method_id) << " mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
-			}
-			else
-			{
-				singleton_mutation_type_ptr = dynamic_cast<MutationType *>(arg_muttype->ObjectElementAtIndex(0, nullptr));
-			}
-			
-			double singleton_selection_coeff = (arg_selcoeff ? arg_selcoeff->FloatAtIndex(0, nullptr) : 0.0);
-			
-			slim_position_t singleton_position = SLiMCastToPositionTypeOrRaise(arg_position->IntAtIndex(0, nullptr));
-			
-			slim_generation_t singleton_origin_generation;
-			
-			if (arg_origin_gen->Type() == EidosValueType::kValueNULL)
-				singleton_origin_generation = sim.Generation();
-			else
-				singleton_origin_generation = SLiMCastToGenerationTypeOrRaise(arg_origin_gen->IntAtIndex(0, nullptr));
-			
-			slim_objectid_t singleton_origin_subpop_id;
-			
-			if (arg_origin_subpop->Type() == EidosValueType::kValueNULL)
-			{
-				singleton_origin_subpop_id = -1;
-				
-				// We set the origin subpopulation based on the first genome in the target
-				if (target_size >= 1)
-				{
-					Genome *first_target = (Genome *)p_target->ObjectElementAtIndex(0, nullptr);
-					singleton_origin_subpop_id = first_target->subpop_->subpopulation_id_;
-				}
-			}
-			else if (arg_origin_subpop->Type() == EidosValueType::kValueInt)
-				singleton_origin_subpop_id = SLiMCastToObjectidTypeOrRaise(arg_origin_subpop->IntAtIndex(0, nullptr));
-			else
-				singleton_origin_subpop_id = dynamic_cast<Subpopulation *>(arg_origin_subpop->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
-			
-			// ok, now loop to add the mutations in a single bulk operation per mutation run
-			for (int mutrun_index : mutrun_indexes)
-			{
-				int64_t operation_id = ++gSLiM_MutationRun_OperationID;
-				MutationRun &mutations_to_add = *MutationRun::NewMutationRun();		// take from shared pool of used objects;
-				
-				// Before starting the bulk operation for this mutation run, construct all of the mutations and add them all to the registry, etc.
-				// It is possible that some mutations will not actually be added to any genome, due to stacking; they will be cleared from the
-				// registry as lost mutations in the next generation.  All mutations are returned to the user, whether actually added or not.
-				MutationType *mutation_type_ptr = singleton_mutation_type_ptr;
-				double selection_coeff = singleton_selection_coeff;
-				slim_position_t position = singleton_position;
-				slim_generation_t origin_generation = singleton_origin_generation;
-				slim_objectid_t origin_subpop_id = singleton_origin_subpop_id;
-				
-				for (int mut_parameter_index = 0; mut_parameter_index < count_to_add; ++mut_parameter_index)
-				{
-					if (position_count != 1)
-						position = SLiMCastToPositionTypeOrRaise(arg_position->IntAtIndex(mut_parameter_index, nullptr));
-					
-					// check that this mutation will be added to this mutation run
-					if (position / mutrun_length == mutrun_index)
-					{
-						if (muttype_count != 1)
-						{
-							if (arg_muttype->Type() == EidosValueType::kValueInt)
-							{
-								slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg_muttype->IntAtIndex(mut_parameter_index, nullptr));
-								auto found_muttype_pair = sim.MutationTypes().find(mutation_type_id);
-								
-								if (found_muttype_pair != sim.MutationTypes().end())
-									mutation_type_ptr = found_muttype_pair->second;
-								
-								if (!mutation_type_ptr)
-									EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteClassMethod): " << StringForEidosGlobalStringID(p_method_id) << " mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
-							}
-							else
-							{
-								mutation_type_ptr = dynamic_cast<MutationType *>(arg_muttype->ObjectElementAtIndex(mut_parameter_index, nullptr));
-							}
-						}
-						
-						if (selcoeff_count != 1)
-						{
-							if (arg_selcoeff)
-								selection_coeff = arg_selcoeff->FloatAtIndex(mut_parameter_index, nullptr);
-							else
-								selection_coeff = mutation_type_ptr->DrawSelectionCoefficient();
-						}
-						
-						if (origin_gen_count != 1)
-							origin_generation = SLiMCastToGenerationTypeOrRaise(arg_origin_gen->IntAtIndex(mut_parameter_index, nullptr));
-						
-						if (origin_subpop_count != 1)
-						{
-							if (arg_origin_subpop->Type() == EidosValueType::kValueInt)
-								origin_subpop_id = SLiMCastToObjectidTypeOrRaise(arg_origin_subpop->IntAtIndex(mut_parameter_index, nullptr));
-							else
-								origin_subpop_id = dynamic_cast<Subpopulation *>(arg_origin_subpop->ObjectElementAtIndex(mut_parameter_index, nullptr))->subpopulation_id_;
-						}
-						
-						MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
-						
-						new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_generation);
-						
-						// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
-						// No need to worry about all_pure_neutral_DFE_ here, though, since the selcoeff was drawn from the muttype's DFE
-						if (selection_coeff != 0.0)
-							sim.pure_neutral_ = false;
-						
-						// add to the registry, return value, genome, etc.
-						pop.mutation_registry_.emplace_back(new_mut_index);
-						retval->PushObjectElement(gSLiM_Mutation_Block + new_mut_index);
-						mutations_to_add.emplace_back(new_mut_index);
-					}
-				}
-				
-				// Now start the bulk operation and add mutations_to_add to every target genome
-				Genome::BulkOperationStart(operation_id, mutrun_index);
-				
-				for (int target_index = 0; target_index < target_size; ++target_index)
-				{
-					Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(target_index, nullptr);
-					
-					if (target_genome->IsNull())
-						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteClassMethod): " << StringForEidosGlobalStringID(p_method_id) << " cannot be called on a null genome." << eidos_terminate();
-					
-					// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
-					if (target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index))
-					{
-						MutationRun &original_mutrun = *(target_genome->mutruns_[mutrun_index]);
-						MutationRun &merge_run = *MutationRun::NewMutationRun();		// take from shared pool of used objects;
-						
-						// We merge the original run and mutations_to_add into a new temporary mutrun, and then copy it back to the target
-						merge_run.clear_set_and_merge(original_mutrun, mutations_to_add);
-						original_mutrun.copy_from_run(merge_run);
-						
-						MutationRun::FreeMutationRun(&merge_run);
-					}
-				}
-				
-				Genome::BulkOperationEnd(operation_id, mutrun_index);
-				
-				MutationRun::FreeMutationRun(&mutations_to_add);
-				
-				// invalidate cached mutation refcounts; refcounts have changed
-				pop.cached_tally_genome_count_ = 0;
-			}
-			
-			return retval;
-		}
-			
-			
-			//
-			//	*********************	+ (void)output([Ns$ filePath = NULL], [logical$ append=F])
-			//	*********************	+ (void)outputMS([Ns$ filePath = NULL], [logical$ append=F])
-			//	*********************	+ (void)outputVCF([Ns$ filePath = NULL], [logical$ outputMultiallelics = T], [logical$ append=F])
-			//
-#pragma mark +output()
-#pragma mark +outputMS()
-#pragma mark +outputVCF()
-			
+		case gID_addNewMutation:		return ExecuteMethod_addNewMutation(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
 		case gID_output:
 		case gID_outputMS:
-		case gID_outputVCF:
+		case gID_outputVCF:				return ExecuteMethod_outputX(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
+		case gID_removeMutations:		return ExecuteMethod_removeMutations(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
+		default:						return EidosObjectClass::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
+	}
+}
+
+//	*********************	+ (void)addMutations(object mutations)
+//
+EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
+{
+#pragma unused (p_method_id, p_target, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *arg0_value = p_arguments[0].get();
+	
+	// FIXME this method should be optimized for large-scale bulk addition in the same
+	// way that addNewMutation() and addNewDrawnMutation() now are.  BCH 29 Oct 2017
+	
+	int target_size = p_target->Count();
+	
+	if (target_size == 0)
+		return gStaticEidosValueNULLInvisible;
+	
+	// Use the 0th genome in the target to find out what the mutation run length is, so we can calculate run indices
+	Genome *genome_0 = (Genome *)p_target->ObjectElementAtIndex(0, nullptr);
+	int mutrun_length = genome_0->mutrun_length_;
+	SLiMSim &sim = genome_0->subpop_->population_.sim_;
+	Population &pop = sim.ThePopulation();
+	
+	sim.CheckMutationStackPolicy();
+	
+	if ((sim.GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim.warned_early_mutation_add_))
+	{
+		p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addMutations): addMutations() should probably not be called from an early() event; the added mutation(s) will not influence fitness values during offspring generation." << std::endl;
+		sim.warned_early_mutation_add_ = true;
+	}
+	
+	// Construct a vector of mutations to add that is sorted by position
+	int arg0_count = arg0_value->Count();
+	std::vector<Mutation *> mutations_to_add;
+	
+	for (int value_index = 0; value_index < arg0_count; ++value_index)
+		mutations_to_add.push_back((Mutation *)arg0_value->ObjectElementAtIndex(value_index, nullptr));
+	
+	std::sort(mutations_to_add.begin(), mutations_to_add.end(), [ ](Mutation *i1, Mutation *i2) {return i1->position_ < i2->position_;});
+	
+	// Now handle the mutations to add, broken into bulk operations according to the mutation run they fall into
+	int last_handled_mutrun_index = -1;
+	
+	for (int value_index = 0; value_index < arg0_count; ++value_index)
+	{
+		Mutation *next_mutation = mutations_to_add[value_index];
+		const slim_position_t pos = next_mutation->position_;
+		int mutrun_index = pos / mutrun_length;
+		
+		if (mutrun_index <= last_handled_mutrun_index)
+			continue;
+		
+		// We have not yet processed this mutation run; do this mutation run index as a bulk operation
+		int64_t operation_id = ++gSLiM_MutationRun_OperationID;
+		
+		Genome::BulkOperationStart(operation_id, mutrun_index);
+		
+		for (int genome_index = 0; genome_index < target_size; ++genome_index)
 		{
-			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
-			Chromosome &chromosome = sim->TheChromosome();
+			Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
 			
-			// default to outputting multiallelic positions (used by VCF output only)
-			bool output_multiallelics = true;
+			if (target_genome->IsNull())
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addMutations): addMutations() cannot be called on a null genome." << eidos_terminate();
 			
-			if (p_method_id == gID_outputVCF)
-				output_multiallelics = arg1_value->LogicalAtIndex(0, nullptr);
-			
-			// Get all the genomes we're sampling from p_target
-			int sample_size = p_target->Count();
-			std::vector<Genome *> genomes;
-			
-			for (int index = 0; index < sample_size; ++index)
-				genomes.push_back((Genome *)p_target->ObjectElementAtIndex(index, nullptr));
-			
-			// Now handle stream/file output and dispatch to the actual print method
-			if (arg0_value->Type() == EidosValueType::kValueNULL)
+			// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
+			if (target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index))
 			{
-				// If filePath is NULL, output to our output stream
-				std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
-				
-				// For the output stream, we put out a descriptive SLiM-style header for all output types
-				output_stream << "#OUT: " << sim->Generation() << " G";
-				
-				if (p_method_id == gID_output)
-					output_stream << "S";
-				else if (p_method_id == gID_outputMS)
-					output_stream << "M";
-				else if (p_method_id == gID_outputVCF)
-					output_stream << "V";
-				
-				output_stream << " " << sample_size << std::endl;
-				
-				// Call out to print the actual sample
-				if (p_method_id == gID_output)
-					Genome::PrintGenomes_slim(output_stream, genomes, -1);	// -1 represents unknown source subpopulation
-				else if (p_method_id == gID_outputMS)
-					Genome::PrintGenomes_ms(output_stream, genomes, chromosome);
-				else if (p_method_id == gID_outputVCF)
-					Genome::PrintGenomes_vcf(output_stream, genomes, output_multiallelics);
-			}
-			else
-			{
-				// Otherwise, output to filePath
-				std::string outfile_path = EidosResolvedPath(arg0_value->StringAtIndex(0, nullptr));
-				bool append = ((p_method_id == gID_outputVCF) ? arg2_value : arg1_value)->LogicalAtIndex(0, nullptr);
-				std::ofstream outfile;
-				
-				outfile.open(outfile_path.c_str(), append ? (std::ios_base::app | std::ios_base::out) : std::ios_base::out);
-				
-				if (outfile.is_open())
+				for (int mut_index = value_index; mut_index < arg0_count; ++mut_index)
 				{
-					switch (p_method_id)
+					Mutation *mut_to_add = mutations_to_add[mut_index];
+					const slim_position_t add_pos = mut_to_add->position_;
+					
+					// since we're in sorted order by position, as soon as we leave the current mutation run we're done
+					if (add_pos / mutrun_length != mutrun_index)
+						break;
+					
+					if (target_genome->enforce_stack_policy_for_addition(mut_to_add->position_, mut_to_add->mutation_type_ptr_))
 					{
-						case gID_output:
-							// For file output, we put out the descriptive SLiM-style header only for SLiM-format output
-							outfile << "#OUT: " << sim->Generation() << " GS " << sample_size << " " << outfile_path << std::endl;
-							Genome::PrintGenomes_slim(outfile, genomes, -1);	// -1 represents unknown source subpopulation
-							break;
-						case gID_outputMS:
-							Genome::PrintGenomes_ms(outfile, genomes, chromosome);
-							break;
-						case gID_outputVCF:
-							Genome::PrintGenomes_vcf(outfile, genomes, output_multiallelics);
-							break;
-					}
-					
-					outfile.close(); 
-				}
-				else
-				{
-					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteClassMethod): could not open "<< outfile_path << "." << eidos_terminate();
-				}
-			}
-			
-			return gStaticEidosValueNULLInvisible;
-		}
-			
-			
-			//
-			//	*********************	+ (void)removeMutations(object mutations, [logical$ substitute = F])
-			//
-#pragma mark +removeMutations()
-			
-		case gID_removeMutations:
-		{
-#ifdef __clang_analyzer__
-			assert(p_argument_count == 2);
-#endif
-			
-			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-			int target_size = p_target->Count();
-			
-			if (target_size == 0)
-				return gStaticEidosValueNULLInvisible;
-			
-			// Use the 0th genome in the target to find out what the mutation run length is, so we can calculate run indices
-			Genome *genome_0 = (Genome *)p_target->ObjectElementAtIndex(0, nullptr);
-			int mutrun_length = genome_0->mutrun_length_;
-			SLiMSim &sim = genome_0->subpop_->population_.sim_;
-			
-			if ((sim.GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim.warned_early_mutation_remove_))
-			{
-				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteClassMethod): removeMutations() should probably not be called from an early() event; the removed mutation(s) will still influence fitness values during offspring generation." << std::endl;
-				sim.warned_early_mutation_remove_ = true;
-			}
-			
-			Population &pop = sim.ThePopulation();
-			slim_generation_t generation = sim.Generation();
-			
-			// Construct a vector of mutations to remove that is sorted by position
-			int arg0_count = arg0_value->Count();
-			std::vector<Mutation *> mutations_to_remove;
-			
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
-				mutations_to_remove.push_back((Mutation *)arg0_value->ObjectElementAtIndex(value_index, nullptr));
-			
-			std::sort(mutations_to_remove.begin(), mutations_to_remove.end(), [ ](Mutation *i1, Mutation *i2) {return i1->position_ < i2->position_;});
-			
-			// Create substitutions for the mutations being removed, if requested.
-			// Note we don't test for the mutations actually being fixed; that is the caller's responsibility to manage.
-			bool create_substitutions = arg1_value->LogicalAtIndex(0, nullptr);
-			
-			if (create_substitutions)
-			{
-				for (int value_index = 0; value_index < arg0_count; ++value_index)
-				{
-					Mutation *mut = (Mutation *)arg0_value->ObjectElementAtIndex(value_index, nullptr);
-					
-					pop.substitutions_.emplace_back(new Substitution(*mut, generation));
-				}
-			}
-			
-			// Now handle the mutations to remove, broken into bulk operations according to the mutation run they fall into
-			int last_handled_mutrun_index = -1;
-			
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
-			{
-				Mutation *next_mutation = mutations_to_remove[value_index];
-				const slim_position_t pos = next_mutation->position_;
-				int mutrun_index = pos / mutrun_length;
-				
-				if (mutrun_index <= last_handled_mutrun_index)
-					continue;
-				
-				// We have not yet processed this mutation run; do this mutation run index as a bulk operation
-				int64_t operation_id = ++gSLiM_MutationRun_OperationID;
-				
-				Genome::BulkOperationStart(operation_id, mutrun_index);
-				
-				for (int genome_index = 0; genome_index < target_size; ++genome_index)
-				{
-					Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
-					
-					if (target_genome->IsNull())
-						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteClassMethod): removeMutations() cannot be called on a null genome." << eidos_terminate();
-					
-					// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
-					if (target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index))
-					{
-						// Remove the specified mutations; see RemoveFixedMutations for the origins of this code
-						MutationRun *mutrun = target_genome->mutruns_[mutrun_index].get();
-						MutationIndex *genome_iter = mutrun->begin_pointer();
-						MutationIndex *genome_backfill_iter = mutrun->begin_pointer();
-						MutationIndex *genome_max = mutrun->end_pointer();
+						target_genome->insert_sorted_mutation_if_unique(mut_to_add->BlockIndex());
 						
-						// genome_iter advances through the mutation list; for each entry it hits, the entry is either removed (skip it) or not removed (copy it backward to the backfill pointer)
-						while (genome_iter != genome_max)
+						// I think this is not needed; how would the user ever get a Mutation that was not already in the registry?
+						//if (!registry.contains_mutation(new_mutation))
+						//	registry.emplace_back(new_mutation);
+						
+						// Similarly, no need to check and set pure_neutral_ and all_pure_neutral_DFE_; the mutation is already in the system
+					}
+				}
+			}
+		}
+		
+		Genome::BulkOperationEnd(operation_id, mutrun_index);
+		
+		// now we have handled all mutations at this index (and all previous indices)
+		last_handled_mutrun_index = mutrun_index;
+		
+		// invalidate cached mutation refcounts; refcounts have changed
+		pop.cached_tally_genome_count_ = 0;
+	}
+	
+	return gStaticEidosValueNULLInvisible;
+}
+
+//	*********************	+ (object<Mutation>)addNewDrawnMutation(io<MutationType> mutationType, integer position, [Ni originGeneration = NULL], [Nio<Subpopulation> originSubpop = NULL])
+//	*********************	+ (object<Mutation>)addNewMutation(io<MutationType> mutationType, numeric selectionCoeff, integer position, [Ni originGeneration = NULL], [Nio<Subpopulation> originSubpop = NULL])
+//
+EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
+{
+#pragma unused (p_method_id, p_target, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *arg1_value = p_arguments[1].get();
+	EidosValue *arg2_value = p_arguments[2].get();
+	EidosValue *arg3_value = p_arguments[3].get();
+	EidosValue *arg4_value = ((p_argument_count >= 5) ? p_arguments[4].get() : nullptr);	// conditional because we handle multiple methods with different args
+	
+	int target_size = p_target->Count();
+	
+	if (target_size == 0)
+		return gStaticEidosValueNULLInvisible;	// this is almost an error condition, since a mutation was expected to be added and none was
+	
+	// Use the 0th genome in the target to find out what the mutation run length is, so we can calculate run indices
+	Genome *genome_0 = (Genome *)p_target->ObjectElementAtIndex(0, nullptr);
+	int mutrun_count = genome_0->mutrun_count_;
+	int mutrun_length = genome_0->mutrun_length_;
+	SLiMSim &sim = genome_0->subpop_->population_.sim_;
+	Population &pop = sim.ThePopulation();
+	
+	sim.CheckMutationStackPolicy();
+	
+	if ((sim.GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim.warned_early_mutation_add_))
+	{
+		p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addNewMutation): " << StringForEidosGlobalStringID(p_method_id) << " should probably not be called from an early() event; the added mutation will not influence fitness values during offspring generation." << std::endl;
+		sim.warned_early_mutation_add_ = true;
+	}
+	
+	// generalize our parameters; since this code serves both addNewDrawnMutation() and addNewMutation()
+	EidosValue *arg_muttype = arg0_value;
+	EidosValue *arg_selcoeff = (p_method_id == gID_addNewDrawnMutation ? nullptr : arg1_value);
+	EidosValue *arg_position = (p_method_id == gID_addNewDrawnMutation ? arg1_value : arg2_value);
+	EidosValue *arg_origin_gen = (p_method_id == gID_addNewDrawnMutation ? arg2_value : arg3_value);
+	EidosValue *arg_origin_subpop = (p_method_id == gID_addNewDrawnMutation ? arg3_value : arg4_value);
+	
+	// position, originGeneration, and originSubpop can now be either singletons or vectors of matching length or NULL; check them all
+	int muttype_count = arg_muttype->Count();
+	int selcoeff_count = (arg_selcoeff ? arg_selcoeff->Count() : 0);
+	int position_count = arg_position->Count();
+	int origin_gen_count = arg_origin_gen->Count();
+	int origin_subpop_count = arg_origin_subpop->Count();
+	
+	if (arg_origin_gen->Type() == EidosValueType::kValueNULL)
+		origin_gen_count = 1;
+	if (arg_origin_subpop->Type() == EidosValueType::kValueNULL)
+		origin_subpop_count = 1;
+	
+	int count_to_add = std::max({muttype_count, selcoeff_count, position_count, origin_gen_count, origin_subpop_count});
+	
+	if (((muttype_count != 1) && (muttype_count != count_to_add)) ||
+		(arg_selcoeff && (selcoeff_count != 1) && (selcoeff_count != count_to_add)) ||
+		((position_count != 1) && (position_count != count_to_add)) ||
+		((origin_gen_count != 1) && (origin_gen_count != count_to_add)) ||
+		((origin_subpop_count != 1) && (origin_subpop_count != count_to_add)))
+		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << StringForEidosGlobalStringID(p_method_id) << " requires that mutationType, " << ((p_method_id == gID_addNewMutation) ? "selectionCoeff, " : "") << "position, originGeneration, and originSubpop be either (1) singleton, or (2) equal in length to the other non-singleton argument(s), or (3) for originGeneration or originSubpop, NULL." << eidos_terminate();
+	
+	EidosValue_Object_vector_SP retval(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class));
+	
+	if (count_to_add == 0)
+		return retval;
+	
+	// before proceeding, let's check that all positions supplied are valid, so we don't need to worry about it below
+	// would be better not to call IntAtIndex() multiple times for the same position, but that will not be the majority of our time anyway...
+	slim_position_t last_position = sim.TheChromosome().last_position_;
+	
+	for (int position_index = 0; position_index < position_count; ++position_index)
+	{
+		slim_position_t position = SLiMCastToPositionTypeOrRaise(arg_position->IntAtIndex(position_index, nullptr));
+		
+		if (position > last_position)
+			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << StringForEidosGlobalStringID(p_method_id) << " position " << position << " is past the end of the chromosome." << eidos_terminate();
+	}
+	
+	// each bulk operation is performed on a single mutation run, so we need to figure out which runs we're influencing
+	std::vector<int> mutrun_indexes;
+	
+	if (mutrun_count == 1)
+	{
+		// if we have just a single mutrun, we can avoid the sorting and uniquing; all valid positions are in mutrun 0
+		mutrun_indexes.push_back(0);
+	}
+	else
+	{
+		for (int pos_index = 0; pos_index < position_count; ++pos_index)
+		{
+			slim_position_t position = SLiMCastToPositionTypeOrRaise(arg_position->IntAtIndex(pos_index, nullptr));
+			mutrun_indexes.push_back(position / mutrun_length);
+		}
+		
+		std::sort(mutrun_indexes.begin(), mutrun_indexes.end());
+		mutrun_indexes.resize(std::distance(mutrun_indexes.begin(), std::unique(mutrun_indexes.begin(), mutrun_indexes.end())));
+	}
+	
+	// for the singleton case for each of the parameters, get all the info
+	MutationType *singleton_mutation_type_ptr = nullptr;
+	
+	if (arg_muttype->Type() == EidosValueType::kValueInt)
+	{
+		slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg_muttype->IntAtIndex(0, nullptr));
+		auto found_muttype_pair = sim.MutationTypes().find(mutation_type_id);
+		
+		if (found_muttype_pair != sim.MutationTypes().end())
+			singleton_mutation_type_ptr = found_muttype_pair->second;
+		
+		if (!singleton_mutation_type_ptr)
+			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << StringForEidosGlobalStringID(p_method_id) << " mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+	}
+	else
+	{
+		singleton_mutation_type_ptr = dynamic_cast<MutationType *>(arg_muttype->ObjectElementAtIndex(0, nullptr));
+	}
+	
+	double singleton_selection_coeff = (arg_selcoeff ? arg_selcoeff->FloatAtIndex(0, nullptr) : 0.0);
+	
+	slim_position_t singleton_position = SLiMCastToPositionTypeOrRaise(arg_position->IntAtIndex(0, nullptr));
+	
+	slim_generation_t singleton_origin_generation;
+	
+	if (arg_origin_gen->Type() == EidosValueType::kValueNULL)
+		singleton_origin_generation = sim.Generation();
+	else
+		singleton_origin_generation = SLiMCastToGenerationTypeOrRaise(arg_origin_gen->IntAtIndex(0, nullptr));
+	
+	slim_objectid_t singleton_origin_subpop_id;
+	
+	if (arg_origin_subpop->Type() == EidosValueType::kValueNULL)
+	{
+		singleton_origin_subpop_id = -1;
+		
+		// We set the origin subpopulation based on the first genome in the target
+		if (target_size >= 1)
+		{
+			Genome *first_target = (Genome *)p_target->ObjectElementAtIndex(0, nullptr);
+			singleton_origin_subpop_id = first_target->subpop_->subpopulation_id_;
+		}
+	}
+	else if (arg_origin_subpop->Type() == EidosValueType::kValueInt)
+		singleton_origin_subpop_id = SLiMCastToObjectidTypeOrRaise(arg_origin_subpop->IntAtIndex(0, nullptr));
+	else
+		singleton_origin_subpop_id = dynamic_cast<Subpopulation *>(arg_origin_subpop->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
+	
+	// ok, now loop to add the mutations in a single bulk operation per mutation run
+	for (int mutrun_index : mutrun_indexes)
+	{
+		int64_t operation_id = ++gSLiM_MutationRun_OperationID;
+		MutationRun &mutations_to_add = *MutationRun::NewMutationRun();		// take from shared pool of used objects;
+		
+		// Before starting the bulk operation for this mutation run, construct all of the mutations and add them all to the registry, etc.
+		// It is possible that some mutations will not actually be added to any genome, due to stacking; they will be cleared from the
+		// registry as lost mutations in the next generation.  All mutations are returned to the user, whether actually added or not.
+		MutationType *mutation_type_ptr = singleton_mutation_type_ptr;
+		double selection_coeff = singleton_selection_coeff;
+		slim_position_t position = singleton_position;
+		slim_generation_t origin_generation = singleton_origin_generation;
+		slim_objectid_t origin_subpop_id = singleton_origin_subpop_id;
+		
+		for (int mut_parameter_index = 0; mut_parameter_index < count_to_add; ++mut_parameter_index)
+		{
+			if (position_count != 1)
+				position = SLiMCastToPositionTypeOrRaise(arg_position->IntAtIndex(mut_parameter_index, nullptr));
+			
+			// check that this mutation will be added to this mutation run
+			if (position / mutrun_length == mutrun_index)
+			{
+				if (muttype_count != 1)
+				{
+					if (arg_muttype->Type() == EidosValueType::kValueInt)
+					{
+						slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg_muttype->IntAtIndex(mut_parameter_index, nullptr));
+						auto found_muttype_pair = sim.MutationTypes().find(mutation_type_id);
+						
+						if (found_muttype_pair != sim.MutationTypes().end())
+							mutation_type_ptr = found_muttype_pair->second;
+						
+						if (!mutation_type_ptr)
+							EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << StringForEidosGlobalStringID(p_method_id) << " mutation type m" << mutation_type_id << " not defined." << eidos_terminate();
+					}
+					else
+					{
+						mutation_type_ptr = dynamic_cast<MutationType *>(arg_muttype->ObjectElementAtIndex(mut_parameter_index, nullptr));
+					}
+				}
+				
+				if (selcoeff_count != 1)
+				{
+					if (arg_selcoeff)
+						selection_coeff = arg_selcoeff->FloatAtIndex(mut_parameter_index, nullptr);
+					else
+						selection_coeff = mutation_type_ptr->DrawSelectionCoefficient();
+				}
+				
+				if (origin_gen_count != 1)
+					origin_generation = SLiMCastToGenerationTypeOrRaise(arg_origin_gen->IntAtIndex(mut_parameter_index, nullptr));
+				
+				if (origin_subpop_count != 1)
+				{
+					if (arg_origin_subpop->Type() == EidosValueType::kValueInt)
+						origin_subpop_id = SLiMCastToObjectidTypeOrRaise(arg_origin_subpop->IntAtIndex(mut_parameter_index, nullptr));
+					else
+						origin_subpop_id = dynamic_cast<Subpopulation *>(arg_origin_subpop->ObjectElementAtIndex(mut_parameter_index, nullptr))->subpopulation_id_;
+				}
+				
+				MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
+				
+				new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_generation);
+				
+				// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
+				// No need to worry about all_pure_neutral_DFE_ here, though, since the selcoeff was drawn from the muttype's DFE
+				if (selection_coeff != 0.0)
+					sim.pure_neutral_ = false;
+				
+				// add to the registry, return value, genome, etc.
+				pop.mutation_registry_.emplace_back(new_mut_index);
+				retval->PushObjectElement(gSLiM_Mutation_Block + new_mut_index);
+				mutations_to_add.emplace_back(new_mut_index);
+			}
+		}
+		
+		// Now start the bulk operation and add mutations_to_add to every target genome
+		Genome::BulkOperationStart(operation_id, mutrun_index);
+		
+		for (int target_index = 0; target_index < target_size; ++target_index)
+		{
+			Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(target_index, nullptr);
+			
+			if (target_genome->IsNull())
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << StringForEidosGlobalStringID(p_method_id) << " cannot be called on a null genome." << eidos_terminate();
+			
+			// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
+			if (target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index))
+			{
+				MutationRun &original_mutrun = *(target_genome->mutruns_[mutrun_index]);
+				MutationRun &merge_run = *MutationRun::NewMutationRun();		// take from shared pool of used objects;
+				
+				// We merge the original run and mutations_to_add into a new temporary mutrun, and then copy it back to the target
+				merge_run.clear_set_and_merge(original_mutrun, mutations_to_add);
+				original_mutrun.copy_from_run(merge_run);
+				
+				MutationRun::FreeMutationRun(&merge_run);
+			}
+		}
+		
+		Genome::BulkOperationEnd(operation_id, mutrun_index);
+		
+		MutationRun::FreeMutationRun(&mutations_to_add);
+		
+		// invalidate cached mutation refcounts; refcounts have changed
+		pop.cached_tally_genome_count_ = 0;
+	}
+	
+	return retval;
+}
+
+//	*********************	+ (void)output([Ns$ filePath = NULL], [logical$ append=F])
+//	*********************	+ (void)outputMS([Ns$ filePath = NULL], [logical$ append=F])
+//	*********************	+ (void)outputVCF([Ns$ filePath = NULL], [logical$ outputMultiallelics = T], [logical$ append=F])
+//
+EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
+{
+#pragma unused (p_method_id, p_target, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *arg1_value = p_arguments[1].get();
+	EidosValue *arg2_value = ((p_argument_count >= 3) ? p_arguments[2].get() : nullptr);	// conditional because we handle multiple methods with different args
+	
+	SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
+	Chromosome &chromosome = sim->TheChromosome();
+	
+	// default to outputting multiallelic positions (used by VCF output only)
+	bool output_multiallelics = true;
+	
+	if (p_method_id == gID_outputVCF)
+		output_multiallelics = arg1_value->LogicalAtIndex(0, nullptr);
+	
+	// Get all the genomes we're sampling from p_target
+	int sample_size = p_target->Count();
+	std::vector<Genome *> genomes;
+	
+	for (int index = 0; index < sample_size; ++index)
+		genomes.push_back((Genome *)p_target->ObjectElementAtIndex(index, nullptr));
+	
+	// Now handle stream/file output and dispatch to the actual print method
+	if (arg0_value->Type() == EidosValueType::kValueNULL)
+	{
+		// If filePath is NULL, output to our output stream
+		std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
+		
+		// For the output stream, we put out a descriptive SLiM-style header for all output types
+		output_stream << "#OUT: " << sim->Generation() << " G";
+		
+		if (p_method_id == gID_output)
+			output_stream << "S";
+		else if (p_method_id == gID_outputMS)
+			output_stream << "M";
+		else if (p_method_id == gID_outputVCF)
+			output_stream << "V";
+		
+		output_stream << " " << sample_size << std::endl;
+		
+		// Call out to print the actual sample
+		if (p_method_id == gID_output)
+			Genome::PrintGenomes_slim(output_stream, genomes, -1);	// -1 represents unknown source subpopulation
+		else if (p_method_id == gID_outputMS)
+			Genome::PrintGenomes_ms(output_stream, genomes, chromosome);
+		else if (p_method_id == gID_outputVCF)
+			Genome::PrintGenomes_vcf(output_stream, genomes, output_multiallelics);
+	}
+	else
+	{
+		// Otherwise, output to filePath
+		std::string outfile_path = EidosResolvedPath(arg0_value->StringAtIndex(0, nullptr));
+		bool append = ((p_method_id == gID_outputVCF) ? arg2_value : arg1_value)->LogicalAtIndex(0, nullptr);
+		std::ofstream outfile;
+		
+		outfile.open(outfile_path.c_str(), append ? (std::ios_base::app | std::ios_base::out) : std::ios_base::out);
+		
+		if (outfile.is_open())
+		{
+			switch (p_method_id)
+			{
+				case gID_output:
+					// For file output, we put out the descriptive SLiM-style header only for SLiM-format output
+					outfile << "#OUT: " << sim->Generation() << " GS " << sample_size << " " << outfile_path << std::endl;
+					Genome::PrintGenomes_slim(outfile, genomes, -1);	// -1 represents unknown source subpopulation
+					break;
+				case gID_outputMS:
+					Genome::PrintGenomes_ms(outfile, genomes, chromosome);
+					break;
+				case gID_outputVCF:
+					Genome::PrintGenomes_vcf(outfile, genomes, output_multiallelics);
+					break;
+			}
+			
+			outfile.close(); 
+		}
+		else
+		{
+			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_outputX): could not open "<< outfile_path << "." << eidos_terminate();
+		}
+	}
+	
+	return gStaticEidosValueNULLInvisible;
+}
+
+//	*********************	+ (void)removeMutations(object mutations, [logical$ substitute = F])
+//
+EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
+{
+#pragma unused (p_method_id, p_target, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *arg1_value = p_arguments[1].get();
+	
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	int target_size = p_target->Count();
+	
+	if (target_size == 0)
+		return gStaticEidosValueNULLInvisible;
+	
+	// Use the 0th genome in the target to find out what the mutation run length is, so we can calculate run indices
+	Genome *genome_0 = (Genome *)p_target->ObjectElementAtIndex(0, nullptr);
+	int mutrun_length = genome_0->mutrun_length_;
+	SLiMSim &sim = genome_0->subpop_->population_.sim_;
+	
+	if ((sim.GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim.warned_early_mutation_remove_))
+	{
+		p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_removeMutations): removeMutations() should probably not be called from an early() event; the removed mutation(s) will still influence fitness values during offspring generation." << std::endl;
+		sim.warned_early_mutation_remove_ = true;
+	}
+	
+	Population &pop = sim.ThePopulation();
+	slim_generation_t generation = sim.Generation();
+	
+	// Construct a vector of mutations to remove that is sorted by position
+	int arg0_count = arg0_value->Count();
+	std::vector<Mutation *> mutations_to_remove;
+	
+	for (int value_index = 0; value_index < arg0_count; ++value_index)
+		mutations_to_remove.push_back((Mutation *)arg0_value->ObjectElementAtIndex(value_index, nullptr));
+	
+	std::sort(mutations_to_remove.begin(), mutations_to_remove.end(), [ ](Mutation *i1, Mutation *i2) {return i1->position_ < i2->position_;});
+	
+	// Create substitutions for the mutations being removed, if requested.
+	// Note we don't test for the mutations actually being fixed; that is the caller's responsibility to manage.
+	bool create_substitutions = arg1_value->LogicalAtIndex(0, nullptr);
+	
+	if (create_substitutions)
+	{
+		for (int value_index = 0; value_index < arg0_count; ++value_index)
+		{
+			Mutation *mut = (Mutation *)arg0_value->ObjectElementAtIndex(value_index, nullptr);
+			
+			pop.substitutions_.emplace_back(new Substitution(*mut, generation));
+		}
+	}
+	
+	// Now handle the mutations to remove, broken into bulk operations according to the mutation run they fall into
+	int last_handled_mutrun_index = -1;
+	
+	for (int value_index = 0; value_index < arg0_count; ++value_index)
+	{
+		Mutation *next_mutation = mutations_to_remove[value_index];
+		const slim_position_t pos = next_mutation->position_;
+		int mutrun_index = pos / mutrun_length;
+		
+		if (mutrun_index <= last_handled_mutrun_index)
+			continue;
+		
+		// We have not yet processed this mutation run; do this mutation run index as a bulk operation
+		int64_t operation_id = ++gSLiM_MutationRun_OperationID;
+		
+		Genome::BulkOperationStart(operation_id, mutrun_index);
+		
+		for (int genome_index = 0; genome_index < target_size; ++genome_index)
+		{
+			Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
+			
+			if (target_genome->IsNull())
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called on a null genome." << eidos_terminate();
+			
+			// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
+			if (target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index))
+			{
+				// Remove the specified mutations; see RemoveFixedMutations for the origins of this code
+				MutationRun *mutrun = target_genome->mutruns_[mutrun_index].get();
+				MutationIndex *genome_iter = mutrun->begin_pointer();
+				MutationIndex *genome_backfill_iter = mutrun->begin_pointer();
+				MutationIndex *genome_max = mutrun->end_pointer();
+				
+				// genome_iter advances through the mutation list; for each entry it hits, the entry is either removed (skip it) or not removed (copy it backward to the backfill pointer)
+				while (genome_iter != genome_max)
+				{
+					MutationIndex candidate_mutation = *genome_iter;
+					const slim_position_t candidate_pos = (mut_block_ptr + candidate_mutation)->position_;
+					bool should_remove = false;
+					
+					for (int mut_index = value_index; mut_index < arg0_count; ++mut_index)
+					{
+						Mutation *mut_to_remove = mutations_to_remove[mut_index];
+						MutationIndex mut_to_remove_index = mut_to_remove->BlockIndex();
+						
+						if (mut_to_remove_index == candidate_mutation)
 						{
-							MutationIndex candidate_mutation = *genome_iter;
-							const slim_position_t candidate_pos = (mut_block_ptr + candidate_mutation)->position_;
-							bool should_remove = false;
-							
-							for (int mut_index = value_index; mut_index < arg0_count; ++mut_index)
-							{
-								Mutation *mut_to_remove = mutations_to_remove[mut_index];
-								MutationIndex mut_to_remove_index = mut_to_remove->BlockIndex();
-								
-								if (mut_to_remove_index == candidate_mutation)
-								{
-									should_remove = true;
-									break;
-								}
-								
-								// since we're in sorted order by position, as soon as we pass the candidate we're done
-								if (mut_to_remove->position_ > candidate_pos)
-									break;
-							}
-							
-							if (should_remove)
-							{
-								// Removed mutation; we want to omit it, so we just advance our pointer
-								++genome_iter;
-							}
-							else
-							{
-								// Unremoved mutation; we want to keep it, so we copy it backward and advance our backfill pointer as well as genome_iter
-								if (genome_backfill_iter != genome_iter)
-									*genome_backfill_iter = *genome_iter;
-								
-								++genome_backfill_iter;
-								++genome_iter;
-							}
+							should_remove = true;
+							break;
 						}
 						
-						// excess mutations at the end have been copied back already; we just adjust mutation_count_ and forget about them
-						mutrun->set_size(mutrun->size() - (int)(genome_iter - genome_backfill_iter));
+						// since we're in sorted order by position, as soon as we pass the candidate we're done
+						if (mut_to_remove->position_ > candidate_pos)
+							break;
+					}
+					
+					if (should_remove)
+					{
+						// Removed mutation; we want to omit it, so we just advance our pointer
+						++genome_iter;
+					}
+					else
+					{
+						// Unremoved mutation; we want to keep it, so we copy it backward and advance our backfill pointer as well as genome_iter
+						if (genome_backfill_iter != genome_iter)
+							*genome_backfill_iter = *genome_iter;
+						
+						++genome_backfill_iter;
+						++genome_iter;
 					}
 				}
 				
-				Genome::BulkOperationEnd(operation_id, mutrun_index);
-				
-				// now we have handled all mutations at this index (and all previous indices)
-				last_handled_mutrun_index = mutrun_index;
-				
-				// invalidate cached mutation refcounts; refcounts have changed
-				pop.cached_tally_genome_count_ = 0;
+				// excess mutations at the end have been copied back already; we just adjust mutation_count_ and forget about them
+				mutrun->set_size(mutrun->size() - (int)(genome_iter - genome_backfill_iter));
 			}
-			
-			return gStaticEidosValueNULLInvisible;
 		}
-			
-			// all others, including gID_none
-		default:
-			return EidosObjectClass::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
+		
+		Genome::BulkOperationEnd(operation_id, mutrun_index);
+		
+		// now we have handled all mutations at this index (and all previous indices)
+		last_handled_mutrun_index = mutrun_index;
+		
+		// invalidate cached mutation refcounts; refcounts have changed
+		pop.cached_tally_genome_count_ = 0;
 	}
+	
+	return gStaticEidosValueNULLInvisible;
 }
 
 

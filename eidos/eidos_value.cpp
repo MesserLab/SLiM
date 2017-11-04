@@ -2642,68 +2642,10 @@ void EidosObjectElement::SetProperty(EidosGlobalStringID p_property_id, const Ei
 EidosValue_SP EidosObjectElement::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused(p_arguments, p_argument_count, p_interpreter)
-	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_method_id)
 	{
+		case gEidosID_str:	return ExecuteMethod_str(p_method_id, p_arguments, p_argument_count, p_interpreter);
 			
-			//
-			//	*********************	– (void)str(void)
-			//
-#pragma mark -str()
-			
-		case gEidosID_str:
-		{
-			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
-			
-			output_stream << Class()->ElementType() << ":" << std::endl;
-			
-			const std::vector<const EidosPropertySignature *> *properties = Class()->Properties();
-			
-			for (auto property_sig : *properties)
-			{
-				const std::string &property_name = property_sig->property_name_;
-				EidosGlobalStringID property_id = property_sig->property_id_;
-				EidosValue_SP property_value;
-				
-				try {
-					property_value = GetProperty(property_id);
-				} catch (...) {
-				}
-				
-				if (property_value)
-				{
-					int property_count = property_value->Count();
-					EidosValueType property_type = property_value->Type();
-					
-					output_stream << "\t" << property_name << " " << property_sig->PropertySymbol() << " (" << property_type;
-					
-					if (property_type == EidosValueType::kValueObject)
-						output_stream << "<" << property_value->ElementType() << ">) ";
-					else
-						output_stream << ") ";
-					
-					if (property_count <= 2)
-						output_stream << *property_value << std::endl;
-					else
-					{
-						EidosValue_SP first_value = property_value->GetValueAtIndex(0, nullptr);
-						EidosValue_SP second_value = property_value->GetValueAtIndex(1, nullptr);
-						
-						output_stream << *first_value << " " << *second_value << " ... (" << property_count << " values)" << std::endl;
-					}
-				}
-				else
-				{
-					// The property threw an error when we tried to access it, which is allowed
-					// for properties that are only valid in specific circumstances
-					output_stream << "\t" << property_name << " " << property_sig->PropertySymbol() << " <inaccessible>" << std::endl;
-				}
-			}
-			
-			return gStaticEidosValueNULLInvisible;
-		}
-			
-			// all others, including gID_none
 		default:
 		{
 			// Check whether the method call failed due to a bad subclass implementation
@@ -2718,6 +2660,62 @@ EidosValue_SP EidosObjectElement::ExecuteInstanceMethod(EidosGlobalStringID p_me
 			EIDOS_TERMINATION << "ERROR (EidosObjectElement::ExecuteInstanceMethod for " << Class()->ElementType() << "): unrecognized method name " << method_name << "." << eidos_terminate(nullptr);
 		}
 	}
+}
+
+//	*********************	– (void)str(void)
+//
+EidosValue_SP EidosObjectElement::ExecuteMethod_str(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	
+	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
+	
+	output_stream << Class()->ElementType() << ":" << std::endl;
+	
+	const std::vector<const EidosPropertySignature *> *properties = Class()->Properties();
+	
+	for (auto property_sig : *properties)
+	{
+		const std::string &property_name = property_sig->property_name_;
+		EidosGlobalStringID property_id = property_sig->property_id_;
+		EidosValue_SP property_value;
+		
+		try {
+			property_value = GetProperty(property_id);
+		} catch (...) {
+		}
+		
+		if (property_value)
+		{
+			int property_count = property_value->Count();
+			EidosValueType property_type = property_value->Type();
+			
+			output_stream << "\t" << property_name << " " << property_sig->PropertySymbol() << " (" << property_type;
+			
+			if (property_type == EidosValueType::kValueObject)
+				output_stream << "<" << property_value->ElementType() << ">) ";
+			else
+				output_stream << ") ";
+			
+			if (property_count <= 2)
+				output_stream << *property_value << std::endl;
+			else
+			{
+				EidosValue_SP first_value = property_value->GetValueAtIndex(0, nullptr);
+				EidosValue_SP second_value = property_value->GetValueAtIndex(1, nullptr);
+				
+				output_stream << *first_value << " " << *second_value << " ... (" << property_count << " values)" << std::endl;
+			}
+		}
+		else
+		{
+			// The property threw an error when we tried to access it, which is allowed
+			// for properties that are only valid in specific circumstances
+			output_stream << "\t" << property_name << " " << property_sig->PropertySymbol() << " <inaccessible>" << std::endl;
+		}
+	}
+	
+	return gStaticEidosValueNULLInvisible;
 }
 
 EidosValue_SP EidosObjectElement::ContextDefinedFunctionDispatch(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
@@ -2888,103 +2886,12 @@ const EidosMethodSignature *EidosObjectClass::SignatureForMethodOrRaise(EidosGlo
 
 EidosValue_SP EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
 {
-#pragma unused(p_argument_count)
-	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_method_id)
 	{
-			//
-			//	*********************	+ (void)propertySignature([Ns$ propertyName = NULL])
-			//
-#pragma mark +propertySignature()
+		case gEidosID_propertySignature:	return ExecuteMethod_propertySignature(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
+		case gEidosID_methodSignature:		return ExecuteMethod_methodSignature(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
+		case gEidosID_size:					return ExecuteMethod_size(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
 			
-		case gEidosID_propertySignature:
-		{
-			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
-			bool has_match_string = (p_arguments[0]->Type() == EidosValueType::kValueString);
-			std::string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0, nullptr) : gEidosStr_empty_string);
-			const std::vector<const EidosPropertySignature *> *properties = Properties();
-			bool signature_found = false;
-			
-			for (auto property_sig : *properties)
-			{
-				const std::string &property_name = property_sig->property_name_;
-				
-				if (has_match_string && (property_name.compare(match_string) != 0))
-					continue;
-				
-				output_stream << property_name << " " << property_sig->PropertySymbol() << " (" << StringForEidosValueMask(property_sig->value_mask_, property_sig->value_class_, "", nullptr) << ")" << std::endl;
-				
-				signature_found = true;
-			}
-			
-			if (has_match_string && !signature_found)
-				output_stream << "No property found for \"" << match_string << "\"." << std::endl;
-			
-			return gStaticEidosValueNULLInvisible;
-		}
-			
-			
-			//
-			//	*********************	+ (void)methodSignature([Ns$ methodName = NULL])
-			//
-#pragma mark +methodSignature()
-			
-		case gEidosID_methodSignature:
-		{
-			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
-			bool has_match_string = (p_arguments[0]->Type() == EidosValueType::kValueString);
-			std::string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0, nullptr) : gEidosStr_empty_string);
-			const std::vector<const EidosMethodSignature *> *methods = Methods();
-			bool signature_found = false;
-			
-			// Output class methods first
-			for (auto method_sig : *methods)
-			{
-				if (!method_sig->is_class_method)
-					continue;
-				
-				const std::string &method_name = method_sig->call_name_;
-				
-				if (has_match_string && (method_name.compare(match_string) != 0))
-					continue;
-				
-				output_stream << *method_sig << std::endl;
-				signature_found = true;
-			}
-			
-			// Then instance methods
-			for (auto method_sig : *methods)
-			{
-				if (method_sig->is_class_method)
-					continue;
-				
-				const std::string &method_name = method_sig->call_name_;
-				
-				if (has_match_string && (method_name.compare(match_string) != 0))
-					continue;
-				
-				output_stream << *method_sig << std::endl;
-				signature_found = true;
-			}
-			
-			if (has_match_string && !signature_found)
-				output_stream << "No method signature found for \"" << match_string << "\"." << std::endl;
-			
-			return gStaticEidosValueNULLInvisible;
-		}
-			
-			
-			//
-			//	*********************	+ (integer$)size(void)
-			//
-#pragma mark +size()
-			
-		case gEidosID_size:
-		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(p_target->Count()));
-		}
-			
-			// all others, including gID_none
 		default:
 		{
 			// Check whether the method call failed due to a bad subclass implementation
@@ -2999,6 +2906,93 @@ EidosValue_SP EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_
 			EIDOS_TERMINATION << "ERROR (EidosObjectClass::ExecuteClassMethod for " << ElementType() << "): unrecognized method name " << method_name << "." << eidos_terminate(nullptr);
 		}
 	}
+}
+
+//	*********************	+ (void)propertySignature([Ns$ propertyName = NULL])
+//
+EidosValue_SP EidosObjectClass::ExecuteMethod_propertySignature(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
+{
+#pragma unused (p_method_id, p_target, p_arguments, p_argument_count, p_interpreter)
+	
+	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
+	bool has_match_string = (p_arguments[0]->Type() == EidosValueType::kValueString);
+	std::string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0, nullptr) : gEidosStr_empty_string);
+	const std::vector<const EidosPropertySignature *> *properties = Properties();
+	bool signature_found = false;
+	
+	for (auto property_sig : *properties)
+	{
+		const std::string &property_name = property_sig->property_name_;
+		
+		if (has_match_string && (property_name.compare(match_string) != 0))
+			continue;
+		
+		output_stream << property_name << " " << property_sig->PropertySymbol() << " (" << StringForEidosValueMask(property_sig->value_mask_, property_sig->value_class_, "", nullptr) << ")" << std::endl;
+		
+		signature_found = true;
+	}
+	
+	if (has_match_string && !signature_found)
+		output_stream << "No property found for \"" << match_string << "\"." << std::endl;
+	
+	return gStaticEidosValueNULLInvisible;
+}
+
+//	*********************	+ (void)methodSignature([Ns$ methodName = NULL])
+//
+EidosValue_SP EidosObjectClass::ExecuteMethod_methodSignature(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
+{
+#pragma unused (p_method_id, p_target, p_arguments, p_argument_count, p_interpreter)
+	
+	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
+	bool has_match_string = (p_arguments[0]->Type() == EidosValueType::kValueString);
+	std::string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0, nullptr) : gEidosStr_empty_string);
+	const std::vector<const EidosMethodSignature *> *methods = Methods();
+	bool signature_found = false;
+	
+	// Output class methods first
+	for (auto method_sig : *methods)
+	{
+		if (!method_sig->is_class_method)
+			continue;
+		
+		const std::string &method_name = method_sig->call_name_;
+		
+		if (has_match_string && (method_name.compare(match_string) != 0))
+			continue;
+		
+		output_stream << *method_sig << std::endl;
+		signature_found = true;
+	}
+	
+	// Then instance methods
+	for (auto method_sig : *methods)
+	{
+		if (method_sig->is_class_method)
+			continue;
+		
+		const std::string &method_name = method_sig->call_name_;
+		
+		if (has_match_string && (method_name.compare(match_string) != 0))
+			continue;
+		
+		output_stream << *method_sig << std::endl;
+		signature_found = true;
+	}
+	
+	if (has_match_string && !signature_found)
+		output_stream << "No method signature found for \"" << match_string << "\"." << std::endl;
+	
+	return gStaticEidosValueNULLInvisible;
+}
+
+//	*********************	+ (integer$)size(void)
+//
+EidosValue_SP EidosObjectClass::ExecuteMethod_size(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
+{
+#pragma unused (p_method_id, p_target, p_arguments, p_argument_count, p_interpreter)
+	
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(p_target->Count()));
 }
 
 

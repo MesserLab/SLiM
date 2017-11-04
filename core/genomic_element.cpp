@@ -166,51 +166,46 @@ void GenomicElement::SetProperty(EidosGlobalStringID p_property_id, const EidosV
 
 EidosValue_SP GenomicElement::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
-	EidosValue *arg0_value = ((p_argument_count >= 1) ? p_arguments[0].get() : nullptr);
-	
-	//
-	//	*********************	- (void)setGenomicElementType(io<GenomicElementType>$ genomicElementType)
-	//
-#pragma mark -setGenomicElementType()
-	
-	if (p_method_id == gID_setGenomicElementType)
+	switch (p_method_id)
 	{
-#ifdef __clang_analyzer__
-		assert(p_argument_count == 1);
-#endif
+		case gID_setGenomicElementType: return ExecuteMethod_setGenomicElementType(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		default:						return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+	}
+}
+
+//	*********************	- (void)setGenomicElementType(io<GenomicElementType>$ genomicElementType)
+//
+EidosValue_SP GenomicElement::ExecuteMethod_setGenomicElementType(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *arg0_value = p_arguments[0].get();
+	
+	GenomicElementType *getype_ptr = nullptr;
+	
+	if (arg0_value->Type() == EidosValueType::kValueInt)
+	{
+		slim_objectid_t getype_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
+		SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
 		
-		GenomicElementType *getype_ptr = nullptr;
-		
-		if (arg0_value->Type() == EidosValueType::kValueInt)
+		if (sim)
 		{
-			slim_objectid_t getype_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
-			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
+			auto found_getype_pair = sim->GenomicElementTypes().find(getype_id);
 			
-			if (sim)
-			{
-				auto found_getype_pair = sim->GenomicElementTypes().find(getype_id);
-				
-				if (found_getype_pair != sim->GenomicElementTypes().end())
-					getype_ptr = found_getype_pair->second;
-			}
-			
-			if (!getype_ptr)
-				EIDOS_TERMINATION << "ERROR (GenomicElement::ExecuteInstanceMethod): setGenomicElementType() genomic element type g" << getype_id << " not defined." << eidos_terminate();
-		}
-		else
-		{
-			getype_ptr = dynamic_cast<GenomicElementType *>(arg0_value->ObjectElementAtIndex(0, nullptr));
+			if (found_getype_pair != sim->GenomicElementTypes().end())
+				getype_ptr = found_getype_pair->second;
 		}
 		
-		genomic_element_type_ptr_ = getype_ptr;
-		
-		return gStaticEidosValueNULLInvisible;
+		if (!getype_ptr)
+			EIDOS_TERMINATION << "ERROR (GenomicElement::ExecuteMethod_setGenomicElementType): setGenomicElementType() genomic element type g" << getype_id << " not defined." << eidos_terminate();
+	}
+	else
+	{
+		getype_ptr = dynamic_cast<GenomicElementType *>(arg0_value->ObjectElementAtIndex(0, nullptr));
 	}
 	
+	genomic_element_type_ptr_ = getype_ptr;
 	
-	// all others, including gID_none
-	else
-		return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+	return gStaticEidosValueNULLInvisible;
 }
 
 
