@@ -179,29 +179,8 @@ EidosValue_SP GenomicElement::ExecuteMethod_setGenomicElementType(EidosGlobalStr
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
 	EidosValue *arg0_value = p_arguments[0].get();
-	
-	GenomicElementType *getype_ptr = nullptr;
-	
-	if (arg0_value->Type() == EidosValueType::kValueInt)
-	{
-		slim_objectid_t getype_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
-		SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
-		
-		if (sim)
-		{
-			auto found_getype_pair = sim->GenomicElementTypes().find(getype_id);
-			
-			if (found_getype_pair != sim->GenomicElementTypes().end())
-				getype_ptr = found_getype_pair->second;
-		}
-		
-		if (!getype_ptr)
-			EIDOS_TERMINATION << "ERROR (GenomicElement::ExecuteMethod_setGenomicElementType): setGenomicElementType() genomic element type g" << getype_id << " not defined." << EidosTerminate();
-	}
-	else
-	{
-		getype_ptr = dynamic_cast<GenomicElementType *>(arg0_value->ObjectElementAtIndex(0, nullptr));
-	}
+	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
+	GenomicElementType *getype_ptr = SLiM_ExtractGenomicElementTypeFromEidosValue_io(arg0_value, 0, sim, "setGenomicElementType()");
 	
 	genomic_element_type_ptr_ = getype_ptr;
 	

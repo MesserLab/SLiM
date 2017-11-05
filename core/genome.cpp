@@ -652,24 +652,8 @@ EidosValue_SP Genome::ExecuteMethod_containsMarkerMutation(EidosGlobalStringID p
 	if (IsNull())
 		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_containsMarkerMutation): containsMarkerMutation() cannot be called on a null genome." << EidosTerminate();
 	
-	SLiMSim &sim = subpop_->population_.sim_;
-	MutationType *mutation_type_ptr = nullptr;
-	
-	if (arg0_value->Type() == EidosValueType::kValueInt)
-	{
-		slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
-		auto found_muttype_pair = sim.MutationTypes().find(mutation_type_id);
-		
-		if (found_muttype_pair == sim.MutationTypes().end())
-			EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_containsMarkerMutation): containsMarkerMutation() mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
-		
-		mutation_type_ptr = found_muttype_pair->second;
-	}
-	else
-	{
-		mutation_type_ptr = (MutationType *)(arg0_value->ObjectElementAtIndex(0, nullptr));
-	}
-	
+	SLiMSim &sim = SLiM_GetSimFromPopulation(subpop_->population_);
+	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg0_value, 0, sim, "containsMarkerMutation()");
 	slim_position_t marker_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));
 	slim_position_t last_position = sim.TheChromosome().last_position_;
 	
@@ -834,23 +818,8 @@ EidosValue_SP Genome::ExecuteMethod_countOfMutationsOfType(EidosGlobalStringID p
 	if (IsNull())
 		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_countOfMutationsOfType): countOfMutationsOfType() cannot be called on a null genome." << EidosTerminate();
 	
-	MutationType *mutation_type_ptr = nullptr;
-	
-	if (arg0_value->Type() == EidosValueType::kValueInt)
-	{
-		SLiMSim &sim = subpop_->population_.sim_;
-		slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
-		auto found_muttype_pair = sim.MutationTypes().find(mutation_type_id);
-		
-		if (found_muttype_pair == sim.MutationTypes().end())
-			EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_countOfMutationsOfType): countOfMutationsOfType() mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
-		
-		mutation_type_ptr = found_muttype_pair->second;
-	}
-	else
-	{
-		mutation_type_ptr = (MutationType *)(arg0_value->ObjectElementAtIndex(0, nullptr));
-	}
+	SLiMSim &sim = SLiM_GetSimFromPopulation(subpop_->population_);
+	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg0_value, 0, sim, "countOfMutationsOfType()");
 	
 	// Count the number of mutations of the given type
 	int match_count = 0;
@@ -880,23 +849,8 @@ EidosValue_SP Genome::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_method
 	if (IsNull())
 		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_mutationsOfType): mutationsOfType() cannot be called on a null genome." << EidosTerminate();
 	
-	MutationType *mutation_type_ptr = nullptr;
-	
-	if (arg0_value->Type() == EidosValueType::kValueInt)
-	{
-		SLiMSim &sim = subpop_->population_.sim_;
-		slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
-		auto found_muttype_pair = sim.MutationTypes().find(mutation_type_id);
-		
-		if (found_muttype_pair == sim.MutationTypes().end())
-			EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_mutationsOfType): mutationsOfType() mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
-		
-		mutation_type_ptr = found_muttype_pair->second;
-	}
-	else
-	{
-		mutation_type_ptr = (MutationType *)(arg0_value->ObjectElementAtIndex(0, nullptr));
-	}
+	SLiMSim &sim = SLiM_GetSimFromPopulation(subpop_->population_);
+	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg0_value, 0, sim, "mutationsOfType()");
 	
 	// Count the number of mutations of the given type, so we can reserve the right vector size
 	// To avoid having to scan the genome twice for the simplest case of a single mutation, we cache the first mutation found
@@ -964,23 +918,8 @@ EidosValue_SP Genome::ExecuteMethod_positionsOfMutationsOfType(EidosGlobalString
 	if (IsNull())
 		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_positionsOfMutationsOfType): positionsOfMutationsOfType() cannot be called on a null genome." << EidosTerminate();
 	
-	MutationType *mutation_type_ptr = nullptr;
-	
-	if (arg0_value->Type() == EidosValueType::kValueInt)
-	{
-		SLiMSim &sim = subpop_->population_.sim_;
-		slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
-		auto found_muttype_pair = sim.MutationTypes().find(mutation_type_id);
-		
-		if (found_muttype_pair == sim.MutationTypes().end())
-			EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_positionsOfMutationsOfType): positionsOfMutationsOfType() mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
-		
-		mutation_type_ptr = found_muttype_pair->second;
-	}
-	else
-	{
-		mutation_type_ptr = (MutationType *)(arg0_value->ObjectElementAtIndex(0, nullptr));
-	}
+	SLiMSim &sim = SLiM_GetSimFromPopulation(subpop_->population_);
+	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg0_value, 0, sim, "positionsOfMutationsOfType()");
 	
 	// Return the positions of mutations of the given type
 	EidosValue_Int_vector *int_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector();
@@ -1014,24 +953,8 @@ EidosValue_SP Genome::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID p_m
 	if (IsNull())
 		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_sumOfMutationsOfType): sumOfMutationsOfType() cannot be called on a null genome." << EidosTerminate();
 	
-	MutationType *mutation_type_ptr = nullptr;
-	
-	if (arg0_value->Type() == EidosValueType::kValueInt)
-	{
-		SLiMSim &sim = subpop_->population_.sim_;
-		
-		slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
-		auto found_muttype_pair = sim.MutationTypes().find(mutation_type_id);
-		
-		if (found_muttype_pair == sim.MutationTypes().end())
-			EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_sumOfMutationsOfType): sumOfMutationsOfType() mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
-		
-		mutation_type_ptr = found_muttype_pair->second;
-	}
-	else
-	{
-		mutation_type_ptr = (MutationType *)(arg0_value->ObjectElementAtIndex(0, nullptr));
-	}
+	SLiMSim &sim = SLiM_GetSimFromPopulation(subpop_->population_);
+	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg0_value, 0, sim, "sumOfMutationsOfType()");
 	
 	// Count the number of mutations of the given type
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
@@ -1587,7 +1510,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 	// Use the 0th genome in the target to find out what the mutation run length is, so we can calculate run indices
 	Genome *genome_0 = (Genome *)p_target->ObjectElementAtIndex(0, nullptr);
 	int mutrun_length = genome_0->mutrun_length_;
-	SLiMSim &sim = genome_0->subpop_->population_.sim_;
+	SLiMSim &sim = SLiM_GetSimFromPopulation(genome_0->subpop_->population_);
 	Population &pop = sim.ThePopulation();
 	
 	sim.CheckMutationStackPolicy();
@@ -1690,7 +1613,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	Genome *genome_0 = (Genome *)p_target->ObjectElementAtIndex(0, nullptr);
 	int mutrun_count = genome_0->mutrun_count_;
 	int mutrun_length = genome_0->mutrun_length_;
-	SLiMSim &sim = genome_0->subpop_->population_.sim_;
+	SLiMSim &sim = SLiM_GetSimFromPopulation(genome_0->subpop_->population_);
 	Population &pop = sim.ThePopulation();
 	
 	sim.CheckMutationStackPolicy();
@@ -1767,23 +1690,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	}
 	
 	// for the singleton case for each of the parameters, get all the info
-	MutationType *singleton_mutation_type_ptr = nullptr;
-	
-	if (arg_muttype->Type() == EidosValueType::kValueInt)
-	{
-		slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg_muttype->IntAtIndex(0, nullptr));
-		auto found_muttype_pair = sim.MutationTypes().find(mutation_type_id);
-		
-		if (found_muttype_pair != sim.MutationTypes().end())
-			singleton_mutation_type_ptr = found_muttype_pair->second;
-		
-		if (!singleton_mutation_type_ptr)
-			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
-	}
-	else
-	{
-		singleton_mutation_type_ptr = dynamic_cast<MutationType *>(arg_muttype->ObjectElementAtIndex(0, nullptr));
-	}
+	MutationType *singleton_mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg_muttype, 0, sim, Eidos_StringForGlobalStringID(p_method_id).c_str());
 	
 	double singleton_selection_coeff = (arg_selcoeff ? arg_selcoeff->FloatAtIndex(0, nullptr) : 0.0);
 	
@@ -1838,23 +1745,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 			if (position / mutrun_length == mutrun_index)
 			{
 				if (muttype_count != 1)
-				{
-					if (arg_muttype->Type() == EidosValueType::kValueInt)
-					{
-						slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg_muttype->IntAtIndex(mut_parameter_index, nullptr));
-						auto found_muttype_pair = sim.MutationTypes().find(mutation_type_id);
-						
-						if (found_muttype_pair != sim.MutationTypes().end())
-							mutation_type_ptr = found_muttype_pair->second;
-						
-						if (!mutation_type_ptr)
-							EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
-					}
-					else
-					{
-						mutation_type_ptr = dynamic_cast<MutationType *>(arg_muttype->ObjectElementAtIndex(mut_parameter_index, nullptr));
-					}
-				}
+					mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg_muttype, mut_parameter_index, sim, Eidos_StringForGlobalStringID(p_method_id).c_str());
 				
 				if (selcoeff_count != 1)
 				{
@@ -1937,8 +1828,8 @@ EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_i
 	EidosValue *arg1_value = p_arguments[1].get();
 	EidosValue *arg2_value = ((p_argument_count >= 3) ? p_arguments[2].get() : nullptr);	// conditional because we handle multiple methods with different args
 	
-	SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
-	Chromosome &chromosome = sim->TheChromosome();
+	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
+	Chromosome &chromosome = sim.TheChromosome();
 	
 	// default to outputting multiallelic positions (used by VCF output only)
 	bool output_multiallelics = true;
@@ -1960,7 +1851,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_i
 		std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 		
 		// For the output stream, we put out a descriptive SLiM-style header for all output types
-		output_stream << "#OUT: " << sim->Generation() << " G";
+		output_stream << "#OUT: " << sim.Generation() << " G";
 		
 		if (p_method_id == gID_output)
 			output_stream << "S";
@@ -1994,7 +1885,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_i
 			{
 				case gID_output:
 					// For file output, we put out the descriptive SLiM-style header only for SLiM-format output
-					outfile << "#OUT: " << sim->Generation() << " GS " << sample_size << " " << outfile_path << std::endl;
+					outfile << "#OUT: " << sim.Generation() << " GS " << sample_size << " " << outfile_path << std::endl;
 					Genome::PrintGenomes_SLiM(outfile, genomes, -1);	// -1 represents unknown source subpopulation
 					break;
 				case gID_outputMS:
@@ -2033,7 +1924,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 	// Use the 0th genome in the target to find out what the mutation run length is, so we can calculate run indices
 	Genome *genome_0 = (Genome *)p_target->ObjectElementAtIndex(0, nullptr);
 	int mutrun_length = genome_0->mutrun_length_;
-	SLiMSim &sim = genome_0->subpop_->population_.sim_;
+	SLiMSim &sim = SLiM_GetSimFromPopulation(genome_0->subpop_->population_);
 	
 	if ((sim.GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim.warned_early_mutation_remove_))
 	{

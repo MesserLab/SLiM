@@ -349,29 +349,23 @@ EidosValue_SP Mutation::ExecuteMethod_setSelectionCoeff(EidosGlobalStringID p_me
 	// since this selection coefficient came from the user, check and set pure_neutral_ and all_pure_neutral_DFE_
 	if (selection_coeff_ != 0.0)
 	{
-		SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
+		SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
 		
-		if (!sim)
-			EIDOS_TERMINATION << "ERROR (Mutation::ExecuteMethod_setSelectionCoeff): (internal error) the sim is not registered as the context pointer." << EidosTerminate();
-		
-		sim->pure_neutral_ = false;							// let the sim know that it is no longer a pure-neutral simulation
+		sim.pure_neutral_ = false;							// let the sim know that it is no longer a pure-neutral simulation
 		mutation_type_ptr_->all_pure_neutral_DFE_ = false;	// let the mutation type for this mutation know that it is no longer pure neutral
 		
 		// If a selection coefficient has changed from zero to non-zero, or vice versa, MutationRun's nonneutral mutation caches need revalidation
 		if (old_coeff == 0.0)
 		{
-			sim->nonneutral_change_counter_++;
+			sim.nonneutral_change_counter_++;
 		}
 	}
 	else if (old_coeff != 0.0)	// && (selection_coeff_ == 0.0) implied by the "else"
 	{
-		SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
-		
-		if (!sim)
-			EIDOS_TERMINATION << "ERROR (Mutation::ExecuteMethod_setSelectionCoeff): (internal error) the sim is not registered as the context pointer." << EidosTerminate();
+		SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
 		
 		// If a selection coefficient has changed from zero to non-zero, or vice versa, MutationRun's nonneutral mutation caches need revalidation
-		sim->nonneutral_change_counter_++;
+		sim.nonneutral_change_counter_++;
 	}
 	
 	// cache values used by the fitness calculation code for speed; see header
@@ -387,28 +381,9 @@ EidosValue_SP Mutation::ExecuteMethod_setMutationType(EidosGlobalStringID p_meth
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
 	EidosValue *arg0_value = p_arguments[0].get();
+	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
 	
-	SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
-	
-	if (!sim)
-		EIDOS_TERMINATION << "ERROR (Mutation::ExecuteMethod_setMutationType): (internal error) the sim is not registered as the context pointer." << EidosTerminate();
-	
-	MutationType *mutation_type_ptr = nullptr;
-	
-	if (arg0_value->Type() == EidosValueType::kValueInt)
-	{
-		slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
-		auto found_muttype_pair = sim->MutationTypes().find(mutation_type_id);
-		
-		if (found_muttype_pair == sim->MutationTypes().end())
-			EIDOS_TERMINATION << "ERROR (Mutation::ExecuteMethod_setMutationType): setMutationType() mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
-		
-		mutation_type_ptr = found_muttype_pair->second;
-	}
-	else
-	{
-		mutation_type_ptr = (MutationType *)(arg0_value->ObjectElementAtIndex(0, nullptr));
-	}
+	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg0_value, 0, sim, "setMutationType()");
 	
 	// We take just the mutation type pointer; if the user wants a new selection coefficient, they can do that themselves
 	mutation_type_ptr_ = mutation_type_ptr;

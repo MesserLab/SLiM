@@ -30,6 +30,15 @@
 
 #include "eidos_global.h"
 
+class EidosValue;
+class MutationType;
+class SLiMSim;
+class EidosInterpreter;
+class Population;
+class GenomicElementType;
+class Subpopulation;
+class SLiMEidosBlock;
+
 
 // This should be called once at startup to give SLiM an opportunity to initialize static state
 void SLiM_WarmUp(void);
@@ -187,6 +196,14 @@ inline __attribute__((always_inline)) slim_usertag_t SLiMClampToUsertagType(int6
 	// no range check at present since slim_usertag_t is in fact int64_t; it is in range by definition
 	return static_cast<slim_usertag_t>(p_long_value);
 }
+
+SLiMSim &SLiM_GetSimFromInterpreter(EidosInterpreter &p_interpreter);
+SLiMSim &SLiM_GetSimFromPopulation(Population &p_population);
+slim_objectid_t SLiM_ExtractObjectIDFromEidosValue_is(EidosValue *p_value, int p_index, char p_prefix_char);
+MutationType *SLiM_ExtractMutationTypeFromEidosValue_io(EidosValue *p_value, int p_index, SLiMSim &p_sim, const char *p_method_name);
+GenomicElementType *SLiM_ExtractGenomicElementTypeFromEidosValue_io(EidosValue *p_value, int p_index, SLiMSim &p_sim, const char *p_method_name);
+Subpopulation *SLiM_ExtractSubpopulationFromEidosValue_io(EidosValue *p_value, int p_index, SLiMSim &p_sim, const char *p_method_name);
+SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value, int p_index, SLiMSim &p_sim, const char *p_method_name);
 
 
 // *******************************************************************************************************************

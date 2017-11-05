@@ -311,12 +311,9 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_spatialPosition:
 		{
-			SLiMSim *sim = &(subpopulation_.population_.sim_);
+			SLiMSim &sim = SLiM_GetSimFromPopulation(subpopulation_.population_);
 			
-			if (!sim)
-				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): (internal error) the sim is not registered as the context pointer." << EidosTerminate();
-			
-			switch (sim->SpatialDimensionality())
+			switch (sim.SpatialDimensionality())
 			{
 				case 0:
 					EIDOS_TERMINATION << "ERROR (Individual::GetProperty): position cannot be accessed in non-spatial simulations." << EidosTerminate();
@@ -716,27 +713,8 @@ EidosValue_SP Individual::ExecuteMethod_countOfMutationsOfType(EidosGlobalString
 	
 	if (genome1 && genome2)
 	{
-		MutationType *mutation_type_ptr = nullptr;
-		
-		if (arg0_value->Type() == EidosValueType::kValueInt)
-		{
-			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
-			
-			if (!sim)
-				EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_countOfMutationsOfType): (internal error) the sim is not registered as the context pointer." << EidosTerminate();
-			
-			slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
-			auto found_muttype_pair = sim->MutationTypes().find(mutation_type_id);
-			
-			if (found_muttype_pair == sim->MutationTypes().end())
-				EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_countOfMutationsOfType): countOfMutationsOfType() mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
-			
-			mutation_type_ptr = found_muttype_pair->second;
-		}
-		else
-		{
-			mutation_type_ptr = (MutationType *)(arg0_value->ObjectElementAtIndex(0, nullptr));
-		}
+		SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
+		MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg0_value, 0, sim, "countOfMutationsOfType()");
 		
 		// Count the number of mutations of the given type
 		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
@@ -819,13 +797,9 @@ EidosValue_SP Individual::ExecuteMethod_setSpatialPosition(EidosGlobalStringID p
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
 	EidosValue *arg0_value = p_arguments[0].get();
+	SLiMSim &sim = SLiM_GetSimFromPopulation(subpopulation_.population_);
 	
-	SLiMSim *sim = &(subpopulation_.population_.sim_);
-	
-	if (!sim)
-		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_setSpatialPosition): (internal error) the sim is not registered as the context pointer." << EidosTerminate();
-	
-	int dimensionality = sim->SpatialDimensionality();
+	int dimensionality = sim.SpatialDimensionality();
 	int value_count = arg0_value->Count();
 	
 	if (dimensionality == 0)
@@ -866,27 +840,8 @@ EidosValue_SP Individual::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID
 	
 	if (genome1 && genome2)
 	{
-		MutationType *mutation_type_ptr = nullptr;
-		
-		if (arg0_value->Type() == EidosValueType::kValueInt)
-		{
-			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
-			
-			if (!sim)
-				EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_sumOfMutationsOfType): (internal error) the sim is not registered as the context pointer." << EidosTerminate();
-			
-			slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
-			auto found_muttype_pair = sim->MutationTypes().find(mutation_type_id);
-			
-			if (found_muttype_pair == sim->MutationTypes().end())
-				EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_sumOfMutationsOfType): sumOfMutationsOfType() mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
-			
-			mutation_type_ptr = found_muttype_pair->second;
-		}
-		else
-		{
-			mutation_type_ptr = (MutationType *)(arg0_value->ObjectElementAtIndex(0, nullptr));
-		}
+		SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
+		MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg0_value, 0, sim, "sumOfMutationsOfType()");
 		
 		// Count the number of mutations of the given type
 		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
@@ -944,27 +899,8 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
 	EidosValue *arg0_value = p_arguments[0].get();
 	
-	MutationType *mutation_type_ptr = nullptr;
-	
-	if (arg0_value->Type() == EidosValueType::kValueInt)
-	{
-		SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
-		
-		if (!sim)
-			EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_uniqueMutationsOfType): (internal error) the sim is not registered as the context pointer." << EidosTerminate();
-		
-		slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
-		auto found_muttype_pair = sim->MutationTypes().find(mutation_type_id);
-		
-		if (found_muttype_pair == sim->MutationTypes().end())
-			EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_uniqueMutationsOfType): uniqueMutationsOfType() mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
-		
-		mutation_type_ptr = found_muttype_pair->second;
-	}
-	else
-	{
-		mutation_type_ptr = (MutationType *)(arg0_value->ObjectElementAtIndex(0, nullptr));
-	}
+	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
+	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg0_value, 0, sim, "uniqueMutationsOfType()");
 	
 	// This code is adapted from uniqueMutations and follows its logic closely
 	Genome *genome1, *genome2;

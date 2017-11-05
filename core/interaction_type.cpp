@@ -218,7 +218,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 	}
 	
 	// Cache the interaction() callbacks applicable at this moment, for this subpopulation and this interaction type
-	SLiMSim &sim = p_subpop->population_.sim_;
+	SLiMSim &sim = SLiM_GetSimFromPopulation(p_subpop->population_);
 	slim_generation_t generation = sim.Generation();
 	
 	subpop_data->evaluation_interaction_callbacks_ = sim.ScriptBlocksMatching(generation, SLiMEidosBlockType::SLiMEidosInteractionCallback, -1, interaction_type_id_, subpop_id);
@@ -776,7 +776,7 @@ double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Indivi
 	SLIM_PROFILE_BLOCK_START();
 #endif
 	
-	SLiMSim &sim = p_subpop->population_.sim_;
+	SLiMSim &sim = SLiM_GetSimFromPopulation(p_subpop->population_);
 	
 	for (SLiMEidosBlock *interaction_callback : p_interaction_callbacks)
 	{
@@ -3412,20 +3412,16 @@ EidosValue_SP InteractionType::ExecuteMethod_evaluate(EidosGlobalStringID p_meth
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
 	EidosValue *arg0_value = p_arguments[0].get();
 	EidosValue *arg1_value = p_arguments[1].get();
+	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
 	
-	SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
-	
-	if (!sim)
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_evaluate): (internal error) the sim is not registered as the context pointer." << EidosTerminate();
-	
-	if (sim->GenerationStage() == SLiMGenerationStage::kStage2GenerateOffspring)
+	if (sim.GenerationStage() == SLiMGenerationStage::kStage2GenerateOffspring)
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_evaluate): evaluate() may not be called during offspring generation." << EidosTerminate();
 	
 	bool immediate = arg1_value->LogicalAtIndex(0, nullptr);
 	
 	if (arg0_value->Type() == EidosValueType::kValueNULL)
 	{
-		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : sim->ThePopulation())
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : sim.ThePopulation())
 			EvaluateSubpopulation(subpop_pair.second, immediate);
 	}
 	else

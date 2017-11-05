@@ -88,6 +88,99 @@ void SLiM_RaisePolymorphismidRangeError(int64_t p_long_value)
 	EIDOS_TERMINATION << "ERROR (SLiM_RaisePolymorphismidRangeError): value " << p_long_value << " for a polymorphism identifier is out of range." << EidosTerminate();
 }
 
+SLiMSim &SLiM_GetSimFromInterpreter(EidosInterpreter &p_interpreter)
+{
+	SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
+	
+	if (!sim)
+		EIDOS_TERMINATION << "ERROR (SLiM_GetSimFromInterpreter): (internal error) the sim is not registered as the context pointer." << EidosTerminate();
+	
+	return *sim;
+}
+
+SLiMSim &SLiM_GetSimFromPopulation(Population &p_population)
+{
+	return p_population.sim_;
+}
+
+slim_objectid_t SLiM_ExtractObjectIDFromEidosValue_is(EidosValue *p_value, int p_index, char p_prefix_char)
+{
+	return (p_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(p_index, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(p_value->StringAtIndex(p_index, nullptr), p_prefix_char, nullptr);
+}
+
+MutationType *SLiM_ExtractMutationTypeFromEidosValue_io(EidosValue *p_value, int p_index, SLiMSim &p_sim, const char *p_method_name)
+{
+	if (p_value->Type() == EidosValueType::kValueInt)
+	{
+		slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(p_index, nullptr));
+		auto found_muttype_pair = p_sim.MutationTypes().find(mutation_type_id);
+		
+		if (found_muttype_pair == p_sim.MutationTypes().end())
+			EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): " << p_method_name << " mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
+		
+		return found_muttype_pair->second;
+	}
+	else
+	{
+		return dynamic_cast<MutationType *>(p_value->ObjectElementAtIndex(p_index, nullptr));
+	}
+}
+
+GenomicElementType *SLiM_ExtractGenomicElementTypeFromEidosValue_io(EidosValue *p_value, int p_index, SLiMSim &p_sim, const char *p_method_name)
+{
+	if (p_value->Type() == EidosValueType::kValueInt)
+	{
+		slim_objectid_t getype_id = SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(p_index, nullptr));
+		auto found_getype_pair = p_sim.GenomicElementTypes().find(getype_id);
+		
+		if (found_getype_pair == p_sim.GenomicElementTypes().end())
+			EIDOS_TERMINATION << "ERROR (SLiM_ExtractGenomicElementTypeFromEidosValue_io): " << p_method_name << " genomic element type g" << getype_id << " not defined." << EidosTerminate();
+		
+		return found_getype_pair->second;
+	}
+	else
+	{
+		return dynamic_cast<GenomicElementType *>(p_value->ObjectElementAtIndex(p_index, nullptr));
+	}
+}
+
+Subpopulation *SLiM_ExtractSubpopulationFromEidosValue_io(EidosValue *p_value, int p_index, SLiMSim &p_sim, const char *p_method_name)
+{
+	if (p_value->Type() == EidosValueType::kValueInt)
+	{
+		slim_objectid_t source_subpop_id = SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(p_index, nullptr));
+		auto found_subpop_pair = p_sim.ThePopulation().find(source_subpop_id);
+		
+		if (found_subpop_pair == p_sim.ThePopulation().end())
+			EIDOS_TERMINATION << "ERROR (SLiM_ExtractSubpopulationFromEidosValue_io): " << p_method_name << " subpopulation p" << source_subpop_id << " not defined." << EidosTerminate();
+		
+		return found_subpop_pair->second;
+	}
+	else
+	{
+		return dynamic_cast<Subpopulation *>(p_value->ObjectElementAtIndex(p_index, nullptr));
+	}
+}
+
+SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value, int p_index, SLiMSim &p_sim, const char *p_method_name)
+{
+	if (p_value->Type() == EidosValueType::kValueInt)
+	{
+		slim_objectid_t block_id = SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(p_index, nullptr));
+		std::vector<SLiMEidosBlock*> &script_blocks = p_sim.AllScriptBlocks();
+		
+		for (SLiMEidosBlock *found_block : script_blocks)
+			if (found_block->block_id_ == block_id)
+				return found_block;
+		
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_deregisterScriptBlock): " << p_method_name << " SLiMEidosBlock s" << block_id << " not defined." << EidosTerminate();
+	}
+	else
+	{
+		return dynamic_cast<SLiMEidosBlock *>(p_value->ObjectElementAtIndex(p_index, nullptr));
+	}
+}
+
 
 // Verbosity, from the command-line option -l[ong]
 bool SLiM_verbose_output = false;

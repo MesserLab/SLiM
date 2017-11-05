@@ -261,32 +261,12 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationFractions(EidosGlobal
 	
 	for (int mut_type_index = 0; mut_type_index < mut_type_id_count; ++mut_type_index)
 	{ 
-		MutationType *mutation_type_ptr = nullptr;
+		SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
+		MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg0_value, mut_type_index, sim, "setMutationFractions()");
 		double proportion = arg1_value->FloatAtIndex(mut_type_index, nullptr);
 		
 		if (proportion < 0)		// == 0 is allowed but must be fixed before the simulation executes; see InitializeDraws()
 			EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteMethod_setMutationFractions): setMutationFractions() proportions must be greater than or equal to zero (" << proportion << " supplied)." << EidosTerminate();
-		
-		if (arg0_value->Type() == EidosValueType::kValueInt)
-		{
-			slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(arg0_value->IntAtIndex(mut_type_index, nullptr));
-			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
-			
-			if (sim)
-			{
-				auto found_muttype_pair = sim->MutationTypes().find(mutation_type_id);
-				
-				if (found_muttype_pair != sim->MutationTypes().end())
-					mutation_type_ptr = found_muttype_pair->second;
-			}
-			
-			if (!mutation_type_ptr)
-				EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteMethod_setMutationFractions): setMutationFractions() mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
-		}
-		else
-		{
-			mutation_type_ptr = dynamic_cast<MutationType *>(arg0_value->ObjectElementAtIndex(mut_type_index, nullptr));
-		}
 		
 		if (std::find(mutation_types.begin(), mutation_types.end(), mutation_type_ptr) != mutation_types.end())
 			EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteMethod_setMutationFractions): setMutationFractions() mutation type m" << mutation_type_ptr->mutation_type_id_ << " used more than once." << EidosTerminate();
@@ -296,12 +276,7 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationFractions(EidosGlobal
 		
 		// check whether we are now using a mutation type that is non-neutral; check and set pure_neutral_
 		if ((mutation_type_ptr->dfe_type_ != DFEType::kFixed) || (mutation_type_ptr->dfe_parameters_[0] != 0.0))
-		{
-			SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
-			
-			if (sim)
-				sim->pure_neutral_ = false;
-		}
+			sim.pure_neutral_ = false;
 	}
 	
 	// Everything seems to be in order, so replace our mutation info with the new info

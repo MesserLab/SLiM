@@ -535,11 +535,9 @@ EidosValue_SP MutationType::ExecuteMethod_setDistribution(EidosGlobalStringID p_
 	// check whether we are now using a DFE type that is non-neutral; check and set pure_neutral_ and all_pure_neutral_DFE_
 	if ((dfe_type_ != DFEType::kFixed) || (dfe_parameters_[0] != 0.0))
 	{
-		SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
+		SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
 		
-		if (sim)
-			sim->pure_neutral_ = false;
-		
+		sim.pure_neutral_ = false;
 		all_pure_neutral_DFE_ = false;
 	}
 	
