@@ -48,6 +48,7 @@ class EidosObjectClass;
 // Check for complete documentation
 - (void)checkDocumentationOfFunctions:(const std::vector<const EidosFunctionSignature*> *)functions;
 - (void)checkDocumentationOfClass:(EidosObjectClass *)classObject;
+- (void)checkDocumentationForDuplicatePointers;
 
 @end
 

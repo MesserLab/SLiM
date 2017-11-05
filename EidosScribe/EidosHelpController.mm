@@ -25,6 +25,9 @@
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
 
+#include <vector>
+#include <algorithm>
+
 
 // BCH 4/7/2016: So we can build against the OS X 10.9 SDK
 #ifndef NS_DESIGNATED_INITIALIZER
@@ -108,9 +111,30 @@
 		[self checkDocumentationOfFunctions:&EidosInterpreter::BuiltInFunctions()];
 		
 		[self checkDocumentationOfClass:gEidos_UndefinedClassObject];
+		
+		[self checkDocumentationForDuplicatePointers];
 	}
 	
 	return self;
+}
+
+// So, we have a little problem involving a private NSString subclass called NSTaggedPointerString:
+//
+// https://www.mikeash.com/pyblog/friday-qa-2015-07-31-tagged-pointer-strings.html
+//
+// The problem is that for short strings, NSTaggedPointerString effectively means that all copies of a given string are the
+// same exact object (the same pointer value), which means that using pointer equality to test whether two strings are
+// different objects, even though they contain the same characters, does not work – such tests are always true if the strings
+// are represented with NSTaggedPointerString.  We depend upon pointer equality to look up the right topics, due to the
+// crappy NSDictionary-based design of this class that I should probably rip out.  So we need to prevent NSTaggedPointerString
+// from getting into our topic tree.  As it turns out, at least for now -[NSString stringWithString:] will return a clean
+// string that is not an NSTaggedPointerString.  This is surprising, actually, since there is really no reason for it to make
+// a copy, but it does.  This could break at any point, but for now it works, and if it breaks I have a check elsewhere that
+// will detect the duplicate topic pointers and log (see -checkDocumentationForDuplicatePointers).  BCH 11/5/2017
+- (NSString *)guardAgainstNSTaggedPointerString:(NSString *)oldString
+{
+	//return oldString;		// can be used to test the efficacy of checkDocumentationForDuplicatePointers; in OS X 10.12.6 we're good
+	return [NSString stringWithString:oldString];
 }
 
 // The attributed strings straight out of the RTF file need a little reformatting, since they have paragraph indents and small font sizes appropriate for print/PDF.
@@ -211,8 +235,8 @@
 	NSString *numberedTitle = [NSString stringWithFormat:@"%@. %@", [sectionComponents lastObject], title];
 	NSMutableDictionary *parentTopicDict = [self parentDictForSection:sectionString title:title currentTopicDicts:topics topDict:topLevelDict];
 	
-	[parentTopicDict setObject:newTopicDict forKey:numberedTitle];
-	[topics setObject:newTopicDict forKey:sectionString];
+	[parentTopicDict setObject:newTopicDict forKey:[self guardAgainstNSTaggedPointerString:numberedTitle]];
+	[topics setObject:newTopicDict forKey:[self guardAgainstNSTaggedPointerString:sectionString]];
 	
 	return newTopicDict;
 }
@@ -248,7 +272,7 @@
 	NSMutableDictionary *topics = [NSMutableDictionary dictionary];			// keys are strings like 3.1 or 3.1.2 or whatever
 	NSMutableDictionary *currentTopicDict = topLevelDict;					// start out putting new topics in the top level dict
 	
-	[topicRoot setObject:topLevelDict forKey:topLevelHeading];
+	[topicRoot setObject:topLevelDict forKey:[self guardAgainstNSTaggedPointerString:topLevelHeading]];
 	
 	// Set up the current topic item that we are appending content into
 	NSString *topicItemKey = nil;
@@ -321,7 +345,7 @@
 			// This line starts a new header or item or ends the file, so we need to terminate the current item
 			if (topicItemAttrString && topicItemKey)
 			{
-				[currentTopicDict setObject:topicItemAttrString forKey:topicItemKey];
+				[currentTopicDict setObject:topicItemAttrString forKey:[self guardAgainstNSTaggedPointerString:topicItemKey]];
 				
 				topicItemAttrString= nil;
 				topicItemKey = nil;
@@ -627,6 +651,44 @@
 	else
 	{
 		NSLog(@"*** no documentation found for class %@", classString);
+	}
+}
+
+- (void)_gatherKeysWithinDictionary:(NSDictionary *)searchDict intoVector:(std::vector<pointer_t> &)vec
+{
+	[searchDict enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
+		vec.push_back((pointer_t)key);
+		
+		if ([obj isKindOfClass:[NSDictionary class]])
+			[self _gatherKeysWithinDictionary:obj intoVector:vec];
+	}];
+}
+
+- (void)checkDocumentationForDuplicatePointers
+{
+	// The goal here is to check that no two topics in the tree have the same pointer for their key.  This can happen if
+	// NSStrings are uniqued behind out back, which it turns out Apple actually does now using NSTaggedPointerString; see
+	// guardAgainstNSTaggedPointerString: above.  We have a workaround for that problem, for now, but need to be vigilant
+	// in case our workaround breaks, as might happen if Apple makes +[NSString stringWithString:] smart enough to return
+	// an NSTaggedPointerString back to us.
+	std::vector<pointer_t> topic_keys;
+	
+	[self _gatherKeysWithinDictionary:[self effectiveTopicRoot] intoVector:topic_keys];
+	
+	// Now that we've got all the keys, sort, and then find and print duplicates
+	std::sort(topic_keys.begin(), topic_keys.end());
+	
+	std::vector<pointer_t>::iterator topic_iter = topic_keys.begin();
+	
+	while (YES)
+	{
+		topic_iter = std::adjacent_find(topic_iter, topic_keys.end());
+		
+		if (topic_iter == topic_keys.end())
+			break;
+		
+		NSLog(@"*** duplicate topic keys in help tree: %@", (NSString *)*topic_iter);
+		++topic_iter;
 	}
 }
 

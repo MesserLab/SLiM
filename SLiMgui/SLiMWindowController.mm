@@ -2874,6 +2874,8 @@
 		[sharedHelp checkDocumentationOfClass:gSLiM_Subpopulation_Class];
 		[sharedHelp checkDocumentationOfClass:gSLiM_Substitution_Class];
 		
+		[sharedHelp checkDocumentationForDuplicatePointers];
+		
 		// Run startup tests, iff the option key is down; NOTE THAT THIS CAUSES MASSIVE LEAKING DUE TO RAISES INSIDE EIDOS!
 		if ([NSEvent modifierFlags] & NSAlternateKeyMask)
 			RunSLiMTests();
