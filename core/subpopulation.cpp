@@ -958,7 +958,7 @@ double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homo
 #endif
 	
 	slim_objectid_t mutation_type_id = (gSLiM_Mutation_Block + p_mutation)->mutation_type_ptr_->mutation_type_id_;
-	SLiMSim &sim = SLiM_GetSimFromPopulation(population_);
+	SLiMSim &sim = population_.sim_;
 	
 	for (SLiMEidosBlock *fitness_callback : p_fitness_callbacks)
 	{
@@ -1083,7 +1083,7 @@ double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &
 	Individual *individual = &(parent_individuals_[p_individual_index]);
 	Genome *genome1 = &(parent_genomes_[p_individual_index * 2]);
 	Genome *genome2 = &(parent_genomes_[p_individual_index * 2 + 1]);
-	SLiMSim &sim = SLiM_GetSimFromPopulation(population_);
+	SLiMSim &sim = population_.sim_;
 	
 	for (SLiMEidosBlock *fitness_callback : p_fitness_callbacks)
 	{
@@ -1221,7 +1221,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_
 	double w = 1.0;
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
-	SLiMSim &sim = SLiM_GetSimFromPopulation(population_);
+	SLiMSim &sim = population_.sim_;
 	int32_t nonneutral_change_counter = sim.nonneutral_change_counter_;
 	int32_t nonneutral_regime = sim.last_nonneutral_regime_;
 #endif
@@ -1444,7 +1444,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 	double w = 1.0;
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
-	SLiMSim &sim = SLiM_GetSimFromPopulation(population_);
+	SLiMSim &sim = population_.sim_;
 	int32_t nonneutral_change_counter = sim.nonneutral_change_counter_;
 	int32_t nonneutral_regime = sim.last_nonneutral_regime_;
 #endif
@@ -1704,7 +1704,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 	double w = 1.0;
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
-	SLiMSim &sim = SLiM_GetSimFromPopulation(population_);
+	SLiMSim &sim = population_.sim_;
 	int32_t nonneutral_change_counter = sim.nonneutral_change_counter_;
 	int32_t nonneutral_regime = sim.last_nonneutral_regime_;
 #endif
@@ -2277,7 +2277,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(child_generation_valid_ ? child_sex_ratio_ : parent_sex_ratio_));
 		case gID_spatialBounds:
 		{
-			SLiMSim &sim = SLiM_GetSimFromPopulation(population_);
+			SLiMSim &sim = population_.sim_;
 			int dimensionality = sim.SpatialDimensionality();
 			
 			switch (dimensionality)
@@ -2387,7 +2387,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setMigrationRates(EidosGlobalStringID
 	
 	for (int value_index = 0; value_index < source_subpops_count; ++value_index)
 	{
-		SLiMSim &sim = SLiM_GetSimFromPopulation(population_);
+		SLiMSim &sim = population_.sim_;
 		EidosObjectElement *source_subpop = SLiM_ExtractSubpopulationFromEidosValue_io(arg0_value, value_index, sim, "setMigrationRates()");
 		slim_objectid_t source_subpop_id = ((Subpopulation *)(source_subpop))->subpopulation_id_;
 		
@@ -2412,7 +2412,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointInBounds(EidosGlobalStringID p_m
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
 	EidosValue *arg0_value = p_arguments[0].get();
 	
-	SLiMSim &sim = SLiM_GetSimFromPopulation(population_);
+	SLiMSim &sim = population_.sim_;
 	
 	int dimensionality = sim.SpatialDimensionality();
 	int value_count = arg0_value->Count();
@@ -2457,7 +2457,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointReflected(EidosGlobalStringID p_
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
 	EidosValue *arg0_value = p_arguments[0].get();
 	
-	SLiMSim &sim = SLiM_GetSimFromPopulation(population_);
+	SLiMSim &sim = population_.sim_;
 	
 	int dimensionality = sim.SpatialDimensionality();
 	int value_count = arg0_value->Count();
@@ -2544,7 +2544,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointStopped(EidosGlobalStringID p_me
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
 	EidosValue *arg0_value = p_arguments[0].get();
 	
-	SLiMSim &sim = SLiM_GetSimFromPopulation(population_);
+	SLiMSim &sim = population_.sim_;
 	
 	int dimensionality = sim.SpatialDimensionality();
 	int value_count = arg0_value->Count();
@@ -2588,7 +2588,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_me
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
 	
-	SLiMSim &sim = SLiM_GetSimFromPopulation(population_);
+	SLiMSim &sim = population_.sim_;
 	
 	int dimensionality = sim.SpatialDimensionality();
 	
@@ -2722,7 +2722,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSpatialBounds(EidosGlobalStringID 
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
 	EidosValue *arg0_value = p_arguments[0].get();
 	
-	SLiMSim &sim = SLiM_GetSimFromPopulation(population_);
+	SLiMSim &sim = population_.sim_;
 	
 	int dimensionality = sim.SpatialDimensionality();
 	int value_count = arg0_value->Count();
@@ -2864,7 +2864,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID 
 	if (map_name.length() == 0)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() map name must not be zero-length." << EidosTerminate();
 	
-	SLiMSim &sim = SLiM_GetSimFromPopulation(population_);
+	SLiMSim &sim = population_.sim_;
 	int spatial_dimensionality = sim.SpatialDimensionality();
 	int required_dimensionality;
 	int map_spatiality;
@@ -3133,7 +3133,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 	EidosValue *arg5_value = ((p_argument_count >= 6) ? p_arguments[5].get() : nullptr);	// conditional because we handle multiple methods with different args
 	
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
-	SLiMSim &sim = SLiM_GetSimFromPopulation(population_);
+	SLiMSim &sim = population_.sim_;
 	
 	if ((sim.GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim.warned_early_output_))
 	{

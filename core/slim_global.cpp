@@ -98,11 +98,6 @@ SLiMSim &SLiM_GetSimFromInterpreter(EidosInterpreter &p_interpreter)
 	return *sim;
 }
 
-SLiMSim &SLiM_GetSimFromPopulation(Population &p_population)
-{
-	return p_population.sim_;
-}
-
 slim_objectid_t SLiM_ExtractObjectIDFromEidosValue_is(EidosValue *p_value, int p_index, char p_prefix_char)
 {
 	return (p_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(p_index, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(p_value->StringAtIndex(p_index, nullptr), p_prefix_char, nullptr);

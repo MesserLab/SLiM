@@ -198,7 +198,6 @@ inline __attribute__((always_inline)) slim_usertag_t SLiMClampToUsertagType(int6
 }
 
 SLiMSim &SLiM_GetSimFromInterpreter(EidosInterpreter &p_interpreter);
-SLiMSim &SLiM_GetSimFromPopulation(Population &p_population);
 slim_objectid_t SLiM_ExtractObjectIDFromEidosValue_is(EidosValue *p_value, int p_index, char p_prefix_char);
 MutationType *SLiM_ExtractMutationTypeFromEidosValue_io(EidosValue *p_value, int p_index, SLiMSim &p_sim, const char *p_method_name);
 GenomicElementType *SLiM_ExtractGenomicElementTypeFromEidosValue_io(EidosValue *p_value, int p_index, SLiMSim &p_sim, const char *p_method_name);

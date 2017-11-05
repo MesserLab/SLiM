@@ -311,7 +311,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_spatialPosition:
 		{
-			SLiMSim &sim = SLiM_GetSimFromPopulation(subpopulation_.population_);
+			SLiMSim &sim = subpopulation_.population_.sim_;
 			
 			switch (sim.SpatialDimensionality())
 			{
@@ -797,7 +797,7 @@ EidosValue_SP Individual::ExecuteMethod_setSpatialPosition(EidosGlobalStringID p
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
 	EidosValue *arg0_value = p_arguments[0].get();
-	SLiMSim &sim = SLiM_GetSimFromPopulation(subpopulation_.population_);
+	SLiMSim &sim = subpopulation_.population_.sim_;
 	
 	int dimensionality = sim.SpatialDimensionality();
 	int value_count = arg0_value->Count();

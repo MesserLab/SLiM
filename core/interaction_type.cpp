@@ -218,7 +218,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 	}
 	
 	// Cache the interaction() callbacks applicable at this moment, for this subpopulation and this interaction type
-	SLiMSim &sim = SLiM_GetSimFromPopulation(p_subpop->population_);
+	SLiMSim &sim = p_subpop->population_.sim_;
 	slim_generation_t generation = sim.Generation();
 	
 	subpop_data->evaluation_interaction_callbacks_ = sim.ScriptBlocksMatching(generation, SLiMEidosBlockType::SLiMEidosInteractionCallback, -1, interaction_type_id_, subpop_id);
@@ -776,7 +776,7 @@ double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Indivi
 	SLIM_PROFILE_BLOCK_START();
 #endif
 	
-	SLiMSim &sim = SLiM_GetSimFromPopulation(p_subpop->population_);
+	SLiMSim &sim = p_subpop->population_.sim_;
 	
 	for (SLiMEidosBlock *interaction_callback : p_interaction_callbacks)
 	{
