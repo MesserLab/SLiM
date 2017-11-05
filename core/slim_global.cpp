@@ -24,6 +24,7 @@
 #include "slim_sim.h"
 
 #include <string>
+#include <vector>
 
 
 void SLiM_WarmUp(void)
