@@ -4657,6 +4657,9 @@ EidosValue_SP Eidos_ExecuteFunction_float(const EidosValue_SP *const p_arguments
 	if (element_count < 0)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_float): function float() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << EidosTerminate(nullptr);
 	
+	if (element_count == 0)
+		return gStaticEidosValue_Float_ZeroVec;
+	
 	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve((int)element_count);
 	result_SP = EidosValue_SP(float_result);
 	
@@ -4680,6 +4683,9 @@ EidosValue_SP Eidos_ExecuteFunction_integer(const EidosValue_SP *const p_argumen
 	
 	if (element_count < 0)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integer): function integer() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << EidosTerminate(nullptr);
+	
+	if (element_count == 0)
+		return gStaticEidosValue_Integer_ZeroVec;
 	
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->Reserve((int)element_count);
 	result_SP = EidosValue_SP(int_result);
@@ -4715,6 +4721,9 @@ EidosValue_SP Eidos_ExecuteFunction_logical(const EidosValue_SP *const p_argumen
 	
 	if (element_count < 0)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_logical): function logical() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << EidosTerminate(nullptr);
+	
+	if (element_count == 0)
+		return gStaticEidosValue_Logical_ZeroVec;
 	
 	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve((int)element_count);
 	std::vector<eidos_logical_t> &logical_result_vec = *logical_result->LogicalVector_Mutable();
@@ -5105,6 +5114,9 @@ EidosValue_SP Eidos_ExecuteFunction_string(const EidosValue_SP *const p_argument
 	
 	if (element_count < 0)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_string): function string() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << EidosTerminate(nullptr);
+	
+	if (element_count == 0)
+		return gStaticEidosValue_String_ZeroVec;
 	
 	EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve((int)element_count);
 	result_SP = EidosValue_SP(string_result);
