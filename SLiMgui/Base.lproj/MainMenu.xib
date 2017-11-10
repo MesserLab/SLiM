@@ -428,6 +428,13 @@
                                     <action selector="graphPopulationVisualization:" target="-1" id="yhD-GA-1K7"/>
                                 </connections>
                             </menuItem>
+                            <menuItem isSeparatorItem="YES" id="y3S-hm-vJt"/>
+                            <menuItem title="Create Haplotype Plot" id="C5t-tf-csy">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="graphHaplotypes:" target="-1" id="Yqt-cJ-GjB"/>
+                                </connections>
+                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="CsN-zd-8hB"/>
                             <menuItem title="Dump Population State" keyEquivalent="" id="7LZ-Ir-BDL">
                                 <connections>

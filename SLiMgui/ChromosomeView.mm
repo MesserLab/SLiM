@@ -21,6 +21,7 @@
 #import "ChromosomeView.h"
 #import "SLiMWindowController.h"
 #import "CocoaExtra.h"
+#import "SLiMHaplotypeManager.h"
 
 
 // We now use OpenGL to do some of our drawing, so we need these headers
@@ -1737,7 +1738,26 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		
 		// draw mutations in interior
 		if (shouldDrawMutations)
-			[self glDrawMutationsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange];
+		{
+			if (display_haplotypes_)
+			{
+				// display mutations as a haplotype plot, courtesy of SLiMHaplotypeManager; we use kSLiMHaplotypeClusterNearestNeighbor and
+				// kSLiMHaplotypeClusterNoOptimization because they're fast, and NN might also provide a bit more run-to-run continuity
+				int interiorHeight = (int)ceil(interiorRect.size.height);	// one sample per available pixel line, for simplicity and speed; 47, in the current UI layout
+				SLiMHaplotypeManager *haplotypeManager = [[SLiMHaplotypeManager alloc] initWithClusteringMethod:kSLiMHaplotypeClusterNearestNeighbor optimizationMethod:kSLiMHaplotypeClusterNoOptimization sourceController:controller sampleSize:interiorHeight clusterInBackground:NO];
+				
+				[haplotypeManager glDrawHaplotypesInRect:interiorRect displayBlackAndWhite:NO showSubpopStrips:NO eraseBackground:NO];
+				
+				// it's a little bit odd to throw away haplotypeManager here; if the user drag-resizes the window, we do a new display each
+				// time, with a new sample, and so the haplotype display changes with every pixel resize change; we could keep this...?
+				[haplotypeManager release];
+			}
+			else
+			{
+				// display mutations as a frequency plot; this is the standard display mode
+				[self glDrawMutationsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange];
+			}
+		}
 		
 		// overlay the selection last, since it bridges over the frame
 		if (hasSelection)
@@ -1961,11 +1981,30 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	isTracking = NO;
 }
 
+- (IBAction)displayFrequencies:(id)sender
+{
+	if (display_haplotypes_)
+	{
+		display_haplotypes_ = NO;
+		
+		[self setNeedsDisplay:YES];
+	}
+}
+
+- (IBAction)displayHaplotypes:(id)sender
+{
+	if (!display_haplotypes_)
+	{
+		display_haplotypes_ = YES;
+		
+		[self setNeedsDisplay:YES];
+	}
+}
+
 - (IBAction)filterMutations:(id)sender
 {
 	int muttype_id = (int)[sender tag];
 	
-	//NSLog(@"muttype_id %d", muttype_id);
 	display_muttype_ = muttype_id;
 	
 	[self setNeedsDisplay:YES];
@@ -1988,18 +2027,26 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 				NSMenu *menu = [[NSMenu alloc] initWithTitle:@"chromosome_menu"];
 				NSMenuItem *menuItem;
 				
+				menuItem = [menu addItemWithTitle:@"Display Frequencies" action:@selector(displayFrequencies:) keyEquivalent:@""];
+				[menuItem setTarget:self];
+				[menuItem setState:(display_haplotypes_ ? NSOffState : NSOnState)];
+				
+				menuItem = [menu addItemWithTitle:@"Display Haplotypes" action:@selector(displayHaplotypes:) keyEquivalent:@""];
+				[menuItem setTarget:self];
+				[menuItem setState:(display_haplotypes_ ? NSOnState : NSOffState)];
+				
+				[menu addItem:[NSMenuItem separatorItem]];
+				
 				menuItem = [menu addItemWithTitle:@"Display All Mutations" action:@selector(filterMutations:) keyEquivalent:@""];
 				[menuItem setTag:-1];
 				[menuItem setTarget:self];
-				
-				[menu addItem:[NSMenuItem separatorItem]];
 				
 				for (auto muttype_iter : muttypes)
 				{
 					MutationType *muttype = muttype_iter.second;
 					slim_objectid_t muttype_id = muttype->mutation_type_id_;
 					
-					menuItem = [menu addItemWithTitle:[NSString stringWithFormat:@"m%d", (int)muttype_id] action:@selector(filterMutations:) keyEquivalent:@""];
+					menuItem = [menu addItemWithTitle:[NSString stringWithFormat:@"Display Only m%d", (int)muttype_id] action:@selector(filterMutations:) keyEquivalent:@""];
 					[menuItem setTag:muttype_id];
 					[menuItem setTarget:self];
 				}
@@ -2014,6 +2061,20 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	}
 	
 	return nil;
+}
+
+- (BOOL)validateMenuItem:(NSMenuItem *)menuItem
+{
+	SEL sel = [menuItem action];
+	
+	if ((sel == @selector(filterMutations:)) && display_haplotypes_)
+	{
+		// No filtering of mutations when displaying haplotypes, for now, so uncheck those items and dim them
+		[menuItem setState:NSOffState];
+		return NO;
+	}
+	
+	return YES;
 }
 
 @end

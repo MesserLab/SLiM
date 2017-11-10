@@ -17,6 +17,8 @@ development head:
 	add "Copy as Paragraph", remove "Paste and Match Style", in SLiMgui and EidosScribe
 	fix to only highlight errors in SLiMgui if the script has not changed since the last recycle (otherwise character positions are unreliable)
 	fix a bug causing the wrong help text to appear for "id" properties on some classes in the help panel in SLiMgui
+	add haplotype snapshot plot (create from the Graph pop-up menu or the Simulation menu)
+	add haplotype display option for the chromosome view (control-click and select from context menu)
 
 
 2.5 (build 1204; Eidos version 1.5):

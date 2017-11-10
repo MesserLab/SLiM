@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		980613AD1FAFD79100D379BA /* SLiMHaplotypeGraphView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 980613AC1FAFD79100D379BA /* SLiMHaplotypeGraphView.mm */; };
+		980613B01FAFF16000D379BA /* SLiMHaplotypeGraphWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 980613AE1FAFF16000D379BA /* SLiMHaplotypeGraphWindow.xib */; };
 		98090FA21B1B8B5800791DBF /* show_browser_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98090FA01B1B8B5800791DBF /* show_browser_H.pdf */; };
 		98090FA31B1B8B5800791DBF /* show_browser.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98090FA11B1B8B5800791DBF /* show_browser.pdf */; };
 		98090FA61B1B978900791DBF /* EidosValueWrapper.mm in Sources */ = {isa = PBXBuildFile; fileRef = 98090FA51B1B978900791DBF /* EidosValueWrapper.mm */; };
@@ -210,6 +212,9 @@
 		98AB597B1B2531F10077CB4A /* slim_eidos_block.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98AB59791B2531F10077CB4A /* slim_eidos_block.cpp */; };
 		98AB597C1B2531F10077CB4A /* slim_eidos_block.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98AB59791B2531F10077CB4A /* slim_eidos_block.cpp */; };
 		98ADD5B61ED2E4380027C27B /* PopulationViewOptionsSheet.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98ADD5B41ED2E4380027C27B /* PopulationViewOptionsSheet.xib */; };
+		98B40DFA1FB2DA8C0046F695 /* SLiMHaplotypeManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 98B40DF91FB2DA8C0046F695 /* SLiMHaplotypeManager.mm */; };
+		98B40DFE1FB436120046F695 /* SLiMHaplotypeOptionsSheet.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98B40DFC1FB436120046F695 /* SLiMHaplotypeOptionsSheet.xib */; };
+		98B40E011FB452440046F695 /* SLiMHaplotypeProgressSheet.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98B40DFF1FB452440046F695 /* SLiMHaplotypeProgressSheet.xib */; };
 		98C0943E1B7663DF00766A9A /* female_symbol.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98C0943C1B7663DF00766A9A /* female_symbol.pdf */; };
 		98C0943F1B7663DF00766A9A /* male_symbol.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98C0943D1B7663DF00766A9A /* male_symbol.pdf */; };
 		98C821241C7A980000548839 /* inline.c in Sources */ = {isa = PBXBuildFile; fileRef = 98C820E51C7A980000548839 /* inline.c */; };
@@ -498,6 +503,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		980613AB1FAFD79100D379BA /* SLiMHaplotypeGraphView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SLiMHaplotypeGraphView.h; sourceTree = "<group>"; };
+		980613AC1FAFD79100D379BA /* SLiMHaplotypeGraphView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SLiMHaplotypeGraphView.mm; sourceTree = "<group>"; };
+		980613AF1FAFF16000D379BA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/SLiMHaplotypeGraphWindow.xib; sourceTree = "<group>"; };
 		98090FA01B1B8B5800791DBF /* show_browser_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = show_browser_H.pdf; sourceTree = "<group>"; };
 		98090FA11B1B8B5800791DBF /* show_browser.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = show_browser.pdf; sourceTree = "<group>"; };
 		98090FA41B1B978900791DBF /* EidosValueWrapper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EidosValueWrapper.h; sourceTree = "<group>"; };
@@ -702,7 +710,7 @@
 		98A02F941BA1E648002DDE54 /* EidosConsoleWindowControllerDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = EidosConsoleWindowControllerDelegate.h; sourceTree = "<group>"; };
 		98A240581B8E3295005C9A30 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		98A2405C1B8E338E005C9A30 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
-		98A2FF881D7DF4D7007E3DB8 /* Recipes */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Recipes; path = SLiMgui/Recipes; sourceTree = "<group>"; };
+		98A2FF881D7DF4D7007E3DB8 /* Recipes */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Recipes; sourceTree = "<group>"; };
 		98A4EC931B67C1CD00CD92FD /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/EidosConsoleWindow.xib; sourceTree = "<group>"; };
 		98A5134D1B66B69E005A753D /* eidos_token.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_token.cpp; sourceTree = "<group>"; };
 		98A5134E1B66B69E005A753D /* eidos_token.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_token.h; sourceTree = "<group>"; };
@@ -712,6 +720,10 @@
 		98AB597A1B2531F10077CB4A /* slim_eidos_block.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = slim_eidos_block.h; sourceTree = "<group>"; };
 		98ADD5B51ED2E4380027C27B /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/PopulationViewOptionsSheet.xib; sourceTree = "<group>"; };
 		98AF84641CB307300030D1EB /* VERSIONS */ = {isa = PBXFileReference; lastKnownFileType = text; path = VERSIONS; sourceTree = "<group>"; };
+		98B40DF81FB2DA8C0046F695 /* SLiMHaplotypeManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SLiMHaplotypeManager.h; sourceTree = "<group>"; };
+		98B40DF91FB2DA8C0046F695 /* SLiMHaplotypeManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SLiMHaplotypeManager.mm; sourceTree = "<group>"; };
+		98B40DFD1FB436120046F695 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/SLiMHaplotypeOptionsSheet.xib; sourceTree = "<group>"; };
+		98B40E001FB452440046F695 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/SLiMHaplotypeProgressSheet.xib; sourceTree = "<group>"; };
 		98C0943C1B7663DF00766A9A /* female_symbol.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = female_symbol.pdf; sourceTree = "<group>"; };
 		98C0943D1B7663DF00766A9A /* male_symbol.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = male_symbol.pdf; sourceTree = "<group>"; };
 		98C820E11C7A980000548839 /* build.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = build.h; sourceTree = "<group>"; };
@@ -865,7 +877,7 @@
 		98EFE6331ADD92BC00CBEC78 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/EidosAboutWindow.xib; sourceTree = "<group>"; };
 		98F65D521DF145230058BD29 /* TipsWindowController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TipsWindowController.h; sourceTree = "<group>"; };
 		98F65D531DF145230058BD29 /* TipsWindowController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TipsWindowController.m; sourceTree = "<group>"; };
-		98F65D551DF14DA40058BD29 /* Tips */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Tips; path = SLiMgui/Tips; sourceTree = "<group>"; };
+		98F65D551DF14DA40058BD29 /* Tips */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Tips; sourceTree = "<group>"; };
 		98F65D591DF39F9D0058BD29 /* Tip_END.rtfd */ = {isa = PBXFileReference; lastKnownFileType = wrapper.rtfd; path = Tip_END.rtfd; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -914,6 +926,20 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		980613AA1FAFD50400D379BA /* Haplotypes */ = {
+			isa = PBXGroup;
+			children = (
+				98B40DF81FB2DA8C0046F695 /* SLiMHaplotypeManager.h */,
+				98B40DF91FB2DA8C0046F695 /* SLiMHaplotypeManager.mm */,
+				980613AB1FAFD79100D379BA /* SLiMHaplotypeGraphView.h */,
+				980613AC1FAFD79100D379BA /* SLiMHaplotypeGraphView.mm */,
+				980613AE1FAFF16000D379BA /* SLiMHaplotypeGraphWindow.xib */,
+				98B40DFC1FB436120046F695 /* SLiMHaplotypeOptionsSheet.xib */,
+				98B40DFF1FB452440046F695 /* SLiMHaplotypeProgressSheet.xib */,
+			);
+			name = Haplotypes;
+			sourceTree = "<group>";
+		};
 		9821E1F61ABC671D0036EAEA /* ScriptMod */ = {
 			isa = PBXGroup;
 			children = (
@@ -992,8 +1018,6 @@
 				982556AA1BA8E77C0054CB3F /* eidostool */,
 				985724B01AD478630047C223 /* EidosScribe */,
 				98D4C1B41A6F537B00FFB083 /* SLiMgui */,
-				98A2FF881D7DF4D7007E3DB8 /* Recipes */,
-				98F65D551DF14DA40058BD29 /* Tips */,
 				98A2405B1B8E32F4005C9A30 /* Shared Frameworks */,
 				984D5FA91E3AF0D200473719 /* EidosSLiMTests */,
 				982663511A3BABD300A0CBBF /* Products */,
@@ -1241,6 +1265,18 @@
 			path = buttons;
 			sourceTree = "<group>";
 		};
+		98B40DFB1FB433F40046F695 /* Tips Window */ = {
+			isa = PBXGroup;
+			children = (
+				98F65D521DF145230058BD29 /* TipsWindowController.h */,
+				98F65D531DF145230058BD29 /* TipsWindowController.m */,
+				98DC7BB91DF13CD50037A1DD /* TipsWindow.xib */,
+				98F65D591DF39F9D0058BD29 /* Tip_END.rtfd */,
+				98F65D551DF14DA40058BD29 /* Tips */,
+			);
+			name = "Tips Window";
+			sourceTree = "<group>";
+		};
 		98C820E01C7A980000548839 /* gsl */ = {
 			isa = PBXGroup;
 			children = (
@@ -1377,9 +1413,11 @@
 		98D4C1B41A6F537B00FFB083 /* SLiMgui */ = {
 			isa = PBXGroup;
 			children = (
+				986926D61AA13D340000E138 /* Graphing */,
+				980613AA1FAFD50400D379BA /* Haplotypes */,
 				988794681EA87FC300AE0C8D /* PDF */,
 				9821E1F61ABC671D0036EAEA /* ScriptMod */,
-				986926D61AA13D340000E138 /* Graphing */,
+				98B40DFB1FB433F40046F695 /* Tips Window */,
 				98D4C21A1A718EFD00FFB083 /* CocoaExtra.h */,
 				98D4C21B1A718EFD00FFB083 /* CocoaExtra.mm */,
 				98D4C1B71A6F537B00FFB083 /* AppDelegate.h */,
@@ -1396,21 +1434,16 @@
 				98D4C2091A7086FF00FFB083 /* ChromosomeView.mm */,
 				984AD1941DF54E3C002D4AC8 /* ChromosomeGLView.h */,
 				984AD1951DF54E3C002D4AC8 /* ChromosomeGLView.mm */,
-				98F65D521DF145230058BD29 /* TipsWindowController.h */,
-				98F65D531DF145230058BD29 /* TipsWindowController.m */,
-				98D4C1BC1A6F537B00FFB083 /* Images.xcassets */,
-				98CF264E1E42DBE200E392D8 /* slim.iconset */,
 				98D4C1BE1A6F537B00FFB083 /* MainMenu.xib */,
 				98D4C1FF1A70192A00FFB083 /* SLiMWindow.xib */,
 				98D4C20B1A715F6100FFB083 /* AboutWindow.xib */,
 				98D4C2121A71838400FFB083 /* HelpWindow.xib */,
-				98DC7BB91DF13CD50037A1DD /* TipsWindow.xib */,
 				98EA965A1ECC2541006BA35B /* ProfileReport.xib */,
 				98ADD5B41ED2E4380027C27B /* PopulationViewOptionsSheet.xib */,
 				9825566E1BA4FAD00054CB3F /* SLiMHelpFunctions.rtf */,
 				982556A21BA5F0810054CB3F /* SLiMHelpClasses.rtf */,
 				989228331BAFB27300429674 /* SLiMHelpCallbacks.rtf */,
-				98F65D591DF39F9D0058BD29 /* Tip_END.rtfd */,
+				98A2FF881D7DF4D7007E3DB8 /* Recipes */,
 				98D4C1E41A6FD8D600FFB083 /* buttons */,
 				98D4C1B51A6F537B00FFB083 /* Supporting Files */,
 			);
@@ -1420,6 +1453,8 @@
 		98D4C1B51A6F537B00FFB083 /* Supporting Files */ = {
 			isa = PBXGroup;
 			children = (
+				98D4C1BC1A6F537B00FFB083 /* Images.xcassets */,
+				98CF264E1E42DBE200E392D8 /* slim.iconset */,
 				98D4C1B61A6F537B00FFB083 /* Info.plist */,
 				98D4C1BA1A6F537B00FFB083 /* main.m */,
 				98A2405C1B8E338E005C9A30 /* OpenGL.framework */,
@@ -1704,6 +1739,7 @@
 				980DD51A1AAE42F900D5B7B8 /* GraphAxisRescaleSheet.xib in Resources */,
 				9892282B1BAE279700429674 /* EidosHelpOperators.rtf in Resources */,
 				98D4C1ED1A6FEAB500FFB083 /* add_subpop.pdf in Resources */,
+				98B40E011FB452440046F695 /* SLiMHaplotypeProgressSheet.xib in Resources */,
 				9892282E1BAE27AA00429674 /* EidosHelpTypes.rtf in Resources */,
 				98D4C2271A71F8AD00FFB083 /* check_H.pdf in Resources */,
 				987AD8801B2CBE580035D6C8 /* show_execution_H.pdf in Resources */,
@@ -1728,6 +1764,7 @@
 				98DE4C1D1B713F25004FDF5F /* ScriptMod_AddSubpop.xib in Resources */,
 				98453F571A76004300C058CB /* open_type_drawer.pdf in Resources */,
 				98DE4C1B1B713F1A004FDF5F /* ScriptMod_RemoveSubpop.xib in Resources */,
+				980613B01FAFF16000D379BA /* SLiMHaplotypeGraphWindow.xib in Resources */,
 				982556A01BA5DFEB0054CB3F /* EidosHelpMethods.rtf in Resources */,
 				98F65D5A1DF39F9D0058BD29 /* Tip_END.rtfd in Resources */,
 				987AD87F1B2CBE550035D6C8 /* show_tokens.pdf in Resources */,
@@ -1742,6 +1779,7 @@
 				98453F5D1A76004300C058CB /* show_mutations.pdf in Resources */,
 				987AD87A1B2CBE330035D6C8 /* execute_selection_H.pdf in Resources */,
 				98D4C1FC1A700DC100FFB083 /* play_H.pdf in Resources */,
+				98B40DFE1FB436120046F695 /* SLiMHaplotypeOptionsSheet.xib in Resources */,
 				989228341BAFB27300429674 /* SLiMHelpCallbacks.rtf in Resources */,
 				987AD8791B2CBE2E0035D6C8 /* execute_script.pdf in Resources */,
 				986926D51AA1337A0000E138 /* graph_submenu.pdf in Resources */,
@@ -2097,6 +2135,7 @@
 				98C8214C1C7A983700548839 /* gauss.c in Sources */,
 				98D4C1E31A6F544B00FFB083 /* population.cpp in Sources */,
 				98C821561C7A983700548839 /* elementary.c in Sources */,
+				98B40DFA1FB2DA8C0046F695 /* SLiMHaplotypeManager.mm in Sources */,
 				98DE4C321B713F6F004FDF5F /* ScriptMod_AddRecombinationRate.mm in Sources */,
 				986926E81AA40AFF0000E138 /* GraphView_FitnessOverTime.mm in Sources */,
 				98D4C2041A701D5A00FFB083 /* SLiMWindowController.mm in Sources */,
@@ -2123,6 +2162,7 @@
 				986D73E91B07E89E007FBB70 /* eidos_call_signature.cpp in Sources */,
 				98DE4C1A1B713F16004FDF5F /* ScriptMod_RemoveSubpop.mm in Sources */,
 				98D4C20A1A7086FF00FFB083 /* ChromosomeView.mm in Sources */,
+				980613AD1FAFD79100D379BA /* SLiMHaplotypeGraphView.mm in Sources */,
 				987AD8821B2CBF960035D6C8 /* EidosConsoleTextView.mm in Sources */,
 				98C821441C7A983700548839 /* math.c in Sources */,
 				9887946F1EA8808000AE0C8D /* SLiMPDFWindowController.mm in Sources */,
@@ -2166,6 +2206,14 @@
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
+		980613AE1FAFF16000D379BA /* SLiMHaplotypeGraphWindow.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				980613AF1FAFF16000D379BA /* Base */,
+			);
+			name = SLiMHaplotypeGraphWindow.xib;
+			sourceTree = "<group>";
+		};
 		980DD5181AAE42F900D5B7B8 /* GraphAxisRescaleSheet.xib */ = {
 			isa = PBXVariantGroup;
 			children = (
@@ -2348,6 +2396,22 @@
 				98ADD5B51ED2E4380027C27B /* Base */,
 			);
 			name = PopulationViewOptionsSheet.xib;
+			sourceTree = "<group>";
+		};
+		98B40DFC1FB436120046F695 /* SLiMHaplotypeOptionsSheet.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				98B40DFD1FB436120046F695 /* Base */,
+			);
+			name = SLiMHaplotypeOptionsSheet.xib;
+			sourceTree = "<group>";
+		};
+		98B40DFF1FB452440046F695 /* SLiMHaplotypeProgressSheet.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				98B40E001FB452440046F695 /* Base */,
+			);
+			name = SLiMHaplotypeProgressSheet.xib;
 			sourceTree = "<group>";
 		};
 		98D4C1BE1A6F537B00FFB083 /* MainMenu.xib */ = {

@@ -50,6 +50,7 @@ extern NSString *SLiMChromosomeSelectionChangedNotification;
 	float *glArrayColors;
 	
 	// Display options
+	BOOL display_haplotypes_;			// if NO, displaying frequencies; if YES, displaying haplotypes
 	slim_objectid_t display_muttype_;	// if -1, display all mutation types; otherwise, display only the muttype chosen
 }
 

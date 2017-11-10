@@ -27,6 +27,7 @@
 #import "GraphView_FitnessOverTime.h"
 #import "GraphView_PopulationVisualization.h"
 #import "GraphView_MutationFrequencyTrajectory.h"
+#import "SLiMHaplotypeGraphView.h"
 #import "ScriptMod_ChangeSubpopSize.h"
 #import "ScriptMod_RemoveSubpop.h"
 #import "ScriptMod_AddSubpop.h"
@@ -239,8 +240,8 @@
 	
 	// All graph windows attached to this controller need to be closed, since they refer back to us;
 	// closing them will come back via windowWillClose: and make them release and nil themselves
-	[self sendAllGraphViewsSelector:@selector(cleanup)];
-	[self sendAllGraphWindowsSelector:@selector(close)];
+	[self sendAllLinkedViewsSelector:@selector(cleanup)];
+	[self sendAllLinkedWindowsSelector:@selector(close)];
 	
 	[graphWindowMutationFreqSpectrum autorelease];
 	[graphWindowMutationFreqTrajectories autorelease];
@@ -255,6 +256,9 @@
 	graphWindowMutationFixationTimeHistogram = nil;
 	graphWindowFitnessOverTime = nil;
 	graphWindowPopulationVisualization = nil;
+	
+	[linkedWindows autorelease];
+	linkedWindows = nil;
 	
 	// We also need to close and release our console window and its associated variable browser window.
 	// We don't track the console or var browser in windowWillClose: since we want those windows to
@@ -474,7 +478,7 @@
 	return (GraphView *)[window contentView];
 }
 
-- (void)sendAllGraphViewsSelector:(SEL)selector
+- (void)sendAllLinkedViewsSelector:(SEL)selector
 {
 	[[self graphViewForGraphWindow:graphWindowMutationFreqSpectrum] performSelector:selector];
 	[[self graphViewForGraphWindow:graphWindowMutationFreqTrajectories] performSelector:selector];
@@ -482,9 +486,17 @@
 	[[self graphViewForGraphWindow:graphWindowMutationFixationTimeHistogram] performSelector:selector];
 	[[self graphViewForGraphWindow:graphWindowFitnessOverTime] performSelector:selector];
 	[[self graphViewForGraphWindow:graphWindowPopulationVisualization] performSelector:selector];
+	
+	for (NSWindow *window : linkedWindows)
+	{
+		NSView *contentView = [window contentView];
+		
+		if ([contentView respondsToSelector:selector])
+			[contentView performSelector:selector];
+	}
 }
 
-- (void)sendAllGraphWindowsSelector:(SEL)selector
+- (void)sendAllLinkedWindowsSelector:(SEL)selector
 {
 	[graphWindowMutationFreqSpectrum performSelector:selector];
 	[graphWindowMutationFreqTrajectories performSelector:selector];
@@ -492,6 +504,8 @@
 	[graphWindowMutationFixationTimeHistogram performSelector:selector];
 	[graphWindowFitnessOverTime performSelector:selector];
 	[graphWindowPopulationVisualization performSelector:selector];
+	
+	[linkedWindows makeObjectsPerformSelector:selector];
 }
 
 - (void)updateOutputTextView
@@ -671,12 +685,12 @@
 	
 	// Update graph windows as well; this will usually trigger a setNeedsDisplay:YES but may do other updating work as well
 	if (fullUpdate)
-		[self sendAllGraphViewsSelector:@selector(updateAfterTick)];
+		[self sendAllLinkedViewsSelector:@selector(updateAfterTick)];
 }
 
 - (void)chromosomeSelectionChanged:(NSNotification *)note
 {
-	[self sendAllGraphViewsSelector:@selector(controllerSelectionChanged)];
+	[self sendAllLinkedViewsSelector:@selector(controllerSelectionChanged)];
 }
 
 - (void)replaceHeaderForColumn:(NSTableColumn *)column withImageNamed:(NSString *)imageName scaledToSize:(int)imageSize withSexSymbol:(IndividualSex)sexSymbol
@@ -923,6 +937,8 @@
 		return !(invalidSimulation);
 	if (sel == @selector(graphFitnessOverTime:))
 		return !(invalidSimulation);
+	if (sel == @selector(graphHaplotypes:))
+		return (!invalidSimulation && sim && (sim->generation_ > 1) && (sim->population_.size() > 0));	// must be past initialize() and have subpops
 	
 	if (sel == @selector(checkScript:))
 		return !(continuousPlayOn || generationPlayOn);
@@ -1145,7 +1161,7 @@
 	// Set the graph window title
 	[graphWindow setTitle:windowTitle];
 	
-	// We substitute in a GraphView subclass here, in place in place of graphView
+	// We substitute in a GraphView subclass here, in place in place of the contentView
 	NSView *oldContentView = [graphWindow contentView];
 	NSRect contentRect = [oldContentView frame];
 	GraphView *graphView = [[viewClass alloc] initWithFrame:contentRect withController:self];
@@ -1209,6 +1225,60 @@
 		graphWindowPopulationVisualization = [[self graphWindowWithTitle:@"Population Visualization" viewClass:[GraphView_PopulationVisualization class]] retain];
 	
 	[graphWindowPopulationVisualization orderFront:nil];
+}
+
+- (IBAction)graphHaplotypes:(id)sender
+{
+	// Run the options sheet for the haplotype plot.  If OK is pressed there, -createHaplotypePlot does the real work.
+	[self runHaplotypePlotOptionsSheet];
+	
+	// The sequence of events involved in this is actually quite complicated, because the genome clustering work happens in
+	// a background thread, which gets launched halfway through the setup of the plot window, and there is a progress panel
+	// that is run in SLiMWindowController's window as a sheet even though the clutering is done in SLiMHaplotypeManager,
+	// and there is a configuration sheet that runs first, and so forth.  The sequence of events involved here is:
+	//
+	//	- runHaplotypePlotOptionsSheet is called to get configuration options from the user
+	//		* the options sheet nib is loaded and run
+	//		* upon completion, -createHaplotypePlot is set up as a delayed perform
+	//	- createHaplotypePlot is called
+	//		* the plot window nib is loaded, creating the plot view and window
+	//		- configureForDisplayWithSlimWindowController: is called on the SLiMHaplotypeGraphView
+	//			* the SLiMHaplotypeManager is created by the SLiMHaplotypeGraphView
+	//			- initWithClusteringMethod:... is called on the SLiMHaplotypeManager
+	//				* the first stage of the haplotype analysis is done; genome references are kept
+	//				- runHaplotypePlotProgressSheetWithGenomeCount: is called to start the progress sheet
+	//					* the progress sheet nib is loaded
+	//					* haplotypeProgressTaskCancelled is set to NO to indicate we are not cancelled
+	//					* the progress sheet starts running; it will run until haplotypeProgressSheetOK: below
+	//				* a new background thread is started to run finishClusteringAnalysisWithBackgroundController:
+	//				* initWithClusteringMethod: then returns
+	//		* after configureForDisplayWithSlimWindowController: returns, the graph view and window are remembered
+	//	- finishClusteringAnalysisWithBackgroundController: is called on a background thread
+	//		- haplotypeProgressTaskStarting is called to lock haplotypeProgressLock for the background thread
+	//		* finishClustering... calls the backgroundController periodically to update progress counters and check for cancellation
+	//		* IF CANCELLATION OCCURS DURING PROCESSING:
+	//			- haplotypeProgressSheetCancel: is called on the main thread
+	//				- endSheet:returnCode: is called to trigger the end of the progress sheet
+	//					* haplotypeProgressTaskCancelled is set to YES to signal the background task of cancellation
+	//					* the sheet completion handler spins until the background task sees haplotypeProgressTaskCancelled and drops out
+	//					* the progress sheet is released and goes away
+	//		* OTHERWISE (NO CANCELLATION):
+	//			* the genomes are clustered
+	//			* the display list is created
+	//		* IN EITHER CASE:
+	//			- haplotypeProgressTaskFinished is called on SLiMWindowController
+	//				* haplotypeProgressLock is unlocked
+	//				* the main thread is requested to perform haplotypeProgressSheetOK: (unless haplotypeProgressSheetCancel: has been called already)
+	//			* the background thread terminates by dropping off the end
+	//	- haplotypeProgressSheetOK: is called on the main thread
+	//		- endSheet:returnCode: is called to trigger the end of the progress sheet
+	//			* the progress sheet is released and goes away
+	//			- configurePlotWindowWithSlimWindowController: is called
+	//				* the window is sized and titled
+	//			* the graph window is ordered front
+	//			* the remembered graph view and window are forgotten
+	//
+	// Gah.  Multithreading with UI sucks.
 }
 
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
@@ -1868,7 +1938,7 @@
 	
 	// We also want to let graphViews know when each generation has finished, in case they need to pull data from the sim.  Note this
 	// happens after every generation, not just when we are updating the UI, so drawing and setNeedsDisplay: should not happen here.
-	[self sendAllGraphViewsSelector:@selector(controllerGenerationFinished)];
+	[self sendAllLinkedViewsSelector:@selector(controllerGenerationFinished)];
 	
 	return stillRunning;
 }
@@ -2291,7 +2361,7 @@
 	// initialize() functions to show their prototypes in the status bar whether we are in the zero generation or not.
 	//[self updateStatusFieldFromSelection];
 
-	[self sendAllGraphViewsSelector:@selector(controllerRecycled)];
+	[self sendAllLinkedViewsSelector:@selector(controllerRecycled)];
 }
 
 - (IBAction)playSpeedChanged:(id)sender
@@ -2802,6 +2872,312 @@
 			[sp autorelease];
 		}
 	}];
+}
+
+
+//
+//	Haplotype Plot Options Sheet methods
+//
+#pragma mark -
+#pragma mark Haplotype Plot Options Sheet
+
+- (void)runHaplotypePlotOptionsSheet
+{
+	// Nil out our outlets for a bit of safety, and then load our sheet nib
+	_haplotypeOptionsSheet = nil;
+	_haplotypeSampleTextField = nil;
+	_haplotypeOKButton = nil;
+	
+	// these are the default choices in the nib
+	_haplotypeSample = 0;
+	_haplotypeClustering = 1;
+	
+	[[NSBundle mainBundle] loadNibNamed:@"SLiMHaplotypeOptionsSheet" owner:self topLevelObjects:NULL];
+	
+	// Run the sheet in our window
+	if (_haplotypeOptionsSheet)
+	{
+		[_haplotypeSampleTextField setStringValue:@"1000"];
+		
+		[self validateHaplotypeSheetControls:nil];
+		
+		NSWindow *window = [self window];
+		
+		[window beginSheet:_haplotypeOptionsSheet completionHandler:^(NSModalResponse returnCode) {
+			if (returnCode == NSAlertFirstButtonReturn)
+			{
+				// pull values from controls and make the plot
+				[self setHaplotypeSampleSize:[_haplotypeSampleTextField intValue]];
+				[self performSelector:@selector(createHaplotypePlot) withObject:nil afterDelay:0.001];
+			}
+			
+			[_haplotypeOptionsSheet autorelease];
+			_haplotypeOptionsSheet = nil;
+		}];
+	}
+}
+
+- (IBAction)changedHaplotypeSample:(id)sender
+{
+	int tag = (int)[sender tag];
+	
+	if (tag != _haplotypeSample)
+	{
+		_haplotypeSample = tag;
+		[self validateHaplotypeSheetControls:nil];
+	}
+}
+
+- (IBAction)changedHaplotypeClustering:(id)sender
+{
+	int tag = (int)[sender tag];
+	
+	if (tag != _haplotypeClustering)
+	{
+		_haplotypeClustering = tag;
+		//[self validateHaplotypeSheetControls:nil];
+	}
+}
+
+- (IBAction)validateHaplotypeSheetControls:(id)sender
+{
+	if (_haplotypeSample == 0)
+	{
+		[_haplotypeSampleTextField setEnabled:NO];
+		[_haplotypeOKButton setEnabled:YES];
+	}
+	else
+	{
+		BOOL sampleSizeValid = [ScriptMod validIntValueInTextField:_haplotypeSampleTextField withMin:2 max:9999];
+		
+		[_haplotypeSampleTextField setEnabled:YES];
+		[_haplotypeSampleTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:sampleSizeValid]];
+		[_haplotypeOKButton setEnabled:sampleSizeValid];
+	}
+}
+
+- (IBAction)haplotypeSheetOK:(id)sender
+{
+	[[self window] endSheet:_haplotypeOptionsSheet returnCode:NSAlertFirstButtonReturn];
+}
+
+- (IBAction)haplotypeSheetCancel:(id)sender
+{
+	[[self window] endSheet:_haplotypeOptionsSheet returnCode:NSAlertSecondButtonReturn];
+}
+
+- (void)controlTextDidChange:(NSNotification *)notification
+{
+	// NSTextField delegate method
+	[self validateHaplotypeSheetControls:nil];
+}
+
+- (void)createHaplotypePlot
+{
+	// This roughly follows the outline of -graphWindowWithTitle:viewClass: with minor differences (no positioning,
+	// and the graph view is in the nib since NSOpenGLView is much easier to use when it comes out of a nib).
+	// How are we not a graph window?  There can be many of us open; we don't update as the sim changes; we don't position
+	// the way graph windows do; we set our own title and size; we use an NSOpenGLView subclass (that's why we can't subclass).
+	
+	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
+	
+	[[NSBundle mainBundle] loadNibNamed:@"SLiMHaplotypeGraphWindow" owner:self topLevelObjects:NULL];
+	
+	// We find our SLiMHaplotypeGraphView here, inside the contentView
+	NSView *contentView = [graphWindow contentView];
+	
+	if ([[contentView subviews] count] == 1)
+	{
+		NSView *subview = [[contentView subviews] objectAtIndex:0];
+		
+		if ([subview isKindOfClass:[SLiMHaplotypeGraphView class]])
+		{
+			SLiMHaplotypeGraphView *graphView = (SLiMHaplotypeGraphView *)subview;
+			
+			[graphView configureForDisplayWithSlimWindowController:self];
+			
+			// The call above will create a background thread for clustering and return quickly.  As a side
+			// effect, however, it will call runHaplotypePlotProgressSheetWithGenomeCount:
+			// which will show the plot window once it is ready, using newHaplotypeGraphView.
+			newHaplotypeGraphView = [graphView retain];
+			
+			// We use one nib for all graph types, so we transfer the outlet to a separate ivar
+			// This puts a retain on the window, too; if the operation is cancelled it will be removed.
+			if (!linkedWindows)
+				linkedWindows = [[NSMutableArray alloc] init];
+			
+			[linkedWindows addObject:graphWindow];
+			
+			return;
+		}
+	}
+	
+	NSLog(@"SLiMHaplotypeGraphWindow.xib not configured correctly!");
+	graphWindow = nil;
+}
+
+- (void)runHaplotypePlotProgressSheetWithGenomeCount:(int)genome_count
+{
+	// Nil out our outlets for a bit of safety, and then load our sheet nib
+	_haplotypeProgressSheet = nil;
+	_haplotypeProgressDistances = nil;
+	_haplotypeProgressClustering = nil;
+	_haplotypeProgressOptimization = nil;
+	_haplotypeProgressOptimizationLabel = nil;
+	_haplotypeProgressNoOptConstraint = nil;
+	
+	[[NSBundle mainBundle] loadNibNamed:@"SLiMHaplotypeProgressSheet" owner:self topLevelObjects:NULL];
+	
+	// Run the sheet in our window
+	if (_haplotypeProgressSheet)
+	{
+		// Make a lock for use by the background thread to indicate when it is done
+		haplotypeProgressTaskCancelled = NO;
+		if (!haplotypeProgressLock)
+			haplotypeProgressLock = [[NSLock alloc] init];
+		
+		haplotypeProgressTaskDistances_Value = 0;
+		haplotypeProgressTaskClustering_Value = 0;
+		haplotypeProgressTaskOptimization_Value = 0;
+		
+		[_haplotypeProgressDistances setMaxValue:genome_count];
+		[_haplotypeProgressClustering setMaxValue:genome_count];
+		[_haplotypeProgressOptimization setMaxValue:genome_count];
+		
+		[_haplotypeProgressDistances setDoubleValue:0.0];
+		[_haplotypeProgressClustering setDoubleValue:0.0];
+		[_haplotypeProgressOptimization setDoubleValue:0.0];
+		
+		if (_haplotypeClustering != 2)
+		{
+			// If we're not doing an optimization step, hide that progress bar.  If we could just dim it,
+			// that would work, but there is no setEnabled: method for NSProgressIndicator.  So instead,
+			// we hide the progress bar and its label.
+			[_haplotypeProgressOptimizationLabel removeFromSuperview];
+			_haplotypeProgressOptimizationLabel = nil;
+			
+			[_haplotypeProgressOptimization removeFromSuperview];
+			_haplotypeProgressOptimization = nil;
+			
+			// We need to adjust constraints to resize the panel.  Just adjusting the layout constraint's
+			// constant does not cause the window to resize; I don't understand why, since failing to do
+			// so means the window's layout constraints are violated.  Anyway, to address that we tweak
+			// the sheet's frame as well.  The mysteries of autolayout.
+			double layoutConstant = [_haplotypeProgressNoOptConstraint constant];
+			const double newConstant = 26;
+			double heightAdjust = layoutConstant - newConstant;
+			NSRect frame = [_haplotypeProgressSheet frame];
+			
+			frame.size.height -= heightAdjust;
+			
+			[_haplotypeProgressNoOptConstraint setConstant:newConstant];
+			[_haplotypeProgressSheet setFrame:frame display:NO];
+		}
+		
+		NSWindow *window = [self window];
+		
+		[window beginSheet:_haplotypeProgressSheet completionHandler:^(NSModalResponse returnCode) {
+			if (returnCode == NSAlertSecondButtonReturn)
+			{
+				// We got cancelled; spin until the background thread says it is done.  When it
+				// unlocks this lock, we will be able to proceed here.
+				haplotypeProgressTaskCancelled = YES;
+				[haplotypeProgressLock lock];
+				[haplotypeProgressLock unlock];
+				
+				// The new window was added to linkedWindows to retain it, even though it was not
+				// yet visible; since the operation has been cancelled, remove it.
+				[linkedWindows removeLastObject];
+			}
+			
+			// Dismiss the progress sheet
+			[_haplotypeOptionsSheet autorelease];
+			_haplotypeOptionsSheet = nil;
+			
+			if (returnCode == NSAlertFirstButtonReturn)
+			{
+				// Tell the plot window to finish configuring itself
+				[newHaplotypeGraphView configurePlotWindowWithSlimWindowController:self];
+				
+				// Now we are finally ready to show the window
+				[graphWindow orderFront:nil];
+				graphWindow = nil;
+			}
+			
+			// We're done with our responsibilities toward the new graph window
+			[newHaplotypeGraphView release];
+			newHaplotypeGraphView = nil;
+			graphWindow = nil;
+		}];
+	}
+}
+
+- (IBAction)haplotypeProgressSheetOK:(id)sender
+{
+	// We check haplotypeProgressTaskCancelled here again because now we are on the main thread and
+	// there could have been a race condition; the sheet might have gotten cancelled on the main thread
+	// in the time since the background thread requested that this method be called.  I think the way
+	// that haplotypeProgressSheetOK: and haplotypeProgressSheetCancel: both funnel through the main
+	// thread should prevent any races between OK and Cancel, with this check.
+	if (!haplotypeProgressTaskCancelled)
+		if (_haplotypeProgressSheet)
+			[[self window] endSheet:_haplotypeProgressSheet returnCode:NSAlertFirstButtonReturn];
+}
+
+- (IBAction)haplotypeProgressSheetCancel:(id)sender
+{
+	if (_haplotypeProgressSheet)
+		[[self window] endSheet:_haplotypeProgressSheet returnCode:NSAlertSecondButtonReturn];
+}
+
+- (void)updateProgressBars
+{
+	// This should always be on the main thread
+	if (_haplotypeProgressSheet)
+	{
+		[_haplotypeProgressDistances setDoubleValue:haplotypeProgressTaskDistances_Value];
+		[_haplotypeProgressClustering setDoubleValue:haplotypeProgressTaskClustering_Value];
+		[_haplotypeProgressOptimization setDoubleValue:haplotypeProgressTaskOptimization_Value];
+	}
+}
+
+- (void)setHaplotypeProgress:(int)progress forStage:(int)stage
+{
+	// This can be called on a background thread
+	if (_haplotypeProgressSheet)
+	{
+		switch (stage)
+		{
+			case 0: haplotypeProgressTaskDistances_Value = progress; break;
+			case 1: haplotypeProgressTaskClustering_Value = progress; break;
+			case 2: haplotypeProgressTaskOptimization_Value = progress; break;
+		}
+	}
+	
+	[self performSelectorOnMainThread:@selector(updateProgressBars) withObject:nil waitUntilDone:NO];
+}
+
+- (BOOL)haplotypeProgressIsCancelled
+{
+	// This can be called on a background thread; this is how the background task checks for cancellation
+	return haplotypeProgressTaskCancelled;
+}
+
+- (void)haplotypeProgressTaskStarting
+{
+	// This can be called on a background thread; this is how the background task tells us it is starting
+	[haplotypeProgressLock lock];
+}
+
+- (void)haplotypeProgressTaskFinished
+{
+	// This can be called on a background thread; this is how the background task tells us it is done
+	[haplotypeProgressLock unlock];
+	
+	// If the sheet was cancelled, it is already finishing up, and is just waiting for us to release the lock above.
+	// If it was not cancelled, though, then we effectively press the OK button on it to dismiss it.
+	if (!haplotypeProgressTaskCancelled)
+		[self performSelectorOnMainThread:@selector(haplotypeProgressSheetOK:) withObject:nil waitUntilDone:NO];
 }
 
 
@@ -3417,6 +3793,11 @@
 		//NSLog(@"graphWindowPopulationVisualization window closing...");
 		[graphWindowPopulationVisualization autorelease];
 		graphWindowPopulationVisualization = nil;
+	}
+	else if ([linkedWindows containsObject:closingWindow])
+	{
+		//NSLog(@"linked window window closing...");
+		[linkedWindows removeObject:closingWindow];
 	}
 	
 	// If all of our subsidiary graph windows have been closed, we are effectively back at square one regarding window placement

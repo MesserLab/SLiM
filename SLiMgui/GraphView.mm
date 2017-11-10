@@ -126,9 +126,9 @@
 
 - (void)dealloc
 {
-	//NSLog(@"[GraphView dealloc]");
-	
 	[self cleanup];
+	
+	//NSLog(@"[GraphView dealloc]");
 	[super dealloc];
 }
 

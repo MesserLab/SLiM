@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="12118" systemVersion="16G29" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="12118"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="SLiMWindowController">
+            <connections>
+                <outlet property="haplotypeOKButton" destination="34a-7k-94q" id="GnC-t1-ftH"/>
+                <outlet property="haplotypeOptionsSheet" destination="QvC-M9-y7g" id="cHf-Dg-3Hc"/>
+                <outlet property="haplotypeSampleTextField" destination="7Lw-on-Nye" id="ayN-YK-Z0d"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <window title="Haplotype Plot Options Sheet" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" restorable="NO" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" animationBehavior="default" id="QvC-M9-y7g">
+            <windowStyleMask key="styleMask" titled="YES"/>
+            <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
+            <rect key="contentRect" x="196" y="240" width="426" height="347"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1920" height="1057"/>
+            <view key="contentView" wantsLayer="YES" id="EiT-Mj-1SZ">
+                <rect key="frame" x="0.0" y="0.0" width="449" height="347"/>
+                <autoresizingMask key="autoresizingMask"/>
+                <subviews>
+                    <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="J3R-Qk-Jd9">
+                        <rect key="frame" x="20" y="279" width="48" height="48"/>
+                        <constraints>
+                            <constraint firstAttribute="width" constant="48" id="eZE-oK-Ieb"/>
+                            <constraint firstAttribute="height" constant="48" id="olv-GF-Ogn"/>
+                        </constraints>
+                        <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" image="NSApplicationIcon" id="Tol-Ec-WJB"/>
+                    </imageView>
+                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="NO" translatesAutoresizingMaskIntoConstraints="NO" id="7Lj-Ga-jfd">
+                        <rect key="frame" x="86" y="310" width="205" height="17"/>
+                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Haplotype Plot Display Options" id="zam-SA-ymZ">
+                            <font key="font" metaFont="systemBold"/>
+                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="NO" preferredMaxLayoutWidth="318" translatesAutoresizingMaskIntoConstraints="NO" id="9jF-K1-9EN">
+                        <rect key="frame" x="86" y="251" width="318" height="51"/>
+                        <textFieldCell key="cell" sendsActionOnEndEditing="YES" id="A4U-xl-mfS">
+                            <font key="font" metaFont="system"/>
+                            <string key="title">Choose options to be used in generating the haplotype plot.  Note that some choices may cause plot generation to take a very long time!</string>
+                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="NO" translatesAutoresizingMaskIntoConstraints="NO" id="xbu-26-qvn">
+                        <rect key="frame" x="98" y="214" width="128" height="17"/>
+                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Genomes to display:" id="sV2-7L-1fs">
+                            <font key="font" metaFont="system"/>
+                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="NO" translatesAutoresizingMaskIntoConstraints="NO" id="YtK-RQ-b2q">
+                        <rect key="frame" x="98" y="135" width="131" height="17"/>
+                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Clustering algorithm:" id="FlS-Nf-Uvo">
+                            <font key="font" metaFont="system"/>
+                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="34a-7k-94q">
+                        <rect key="frame" x="353" y="13" width="82" height="32"/>
+                        <buttonCell key="cell" type="push" title="OK" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="h34-IA-sbs">
+                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="system"/>
+                            <string key="keyEquivalent" base64-UTF8="YES">
+DQ
+</string>
+                        </buttonCell>
+                        <connections>
+                            <action selector="haplotypeSheetOK:" target="-2" id="zu9-2c-b2B"/>
+                        </connections>
+                    </button>
+                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="f1F-Vs-kd6">
+                        <rect key="frame" x="271" y="13" width="82" height="32"/>
+                        <buttonCell key="cell" type="push" title="Cancel" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="J74-fu-rdi">
+                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="system"/>
+                            <string key="keyEquivalent" base64-UTF8="YES">
+Gw
+</string>
+                        </buttonCell>
+                        <connections>
+                            <action selector="haplotypeSheetCancel:" target="-2" id="AeU-zy-84C"/>
+                        </connections>
+                    </button>
+                    <button translatesAutoresizingMaskIntoConstraints="NO" id="UXl-VS-LUk">
+                        <rect key="frame" x="111" y="189" width="286" height="18"/>
+                        <buttonCell key="cell" type="radio" title="All genomes in the selected subpopulations" bezelStyle="regularSquare" imagePosition="left" alignment="left" state="on" inset="2" id="4Nj-rP-dWG">
+                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                            <font key="font" metaFont="system"/>
+                        </buttonCell>
+                        <connections>
+                            <action selector="changedHaplotypeSample:" target="-2" id="C9k-yl-8Ul"/>
+                        </connections>
+                    </button>
+                    <button tag="1" translatesAutoresizingMaskIntoConstraints="NO" id="O1Z-4M-hK4">
+                        <rect key="frame" x="111" y="167" width="254" height="18"/>
+                        <buttonCell key="cell" type="radio" title="A sample from those genomes of size:" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="9Gl-Gx-Lbe">
+                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                            <font key="font" metaFont="system"/>
+                        </buttonCell>
+                        <connections>
+                            <action selector="changedHaplotypeSample:" target="-2" id="s6c-ol-r3I"/>
+                        </connections>
+                    </button>
+                    <button translatesAutoresizingMaskIntoConstraints="NO" id="dZG-jn-Cky">
+                        <rect key="frame" x="111" y="110" width="283" height="18"/>
+                        <buttonCell key="cell" type="radio" title="Nearest neighbor (faster for large samples)" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="gmF-7S-4vy">
+                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                            <font key="font" metaFont="system"/>
+                        </buttonCell>
+                        <connections>
+                            <action selector="changedHaplotypeClustering:" target="-2" id="Nu7-yH-fO9"/>
+                        </connections>
+                    </button>
+                    <button tag="1" translatesAutoresizingMaskIntoConstraints="NO" id="S8f-I4-G5B">
+                        <rect key="frame" x="111" y="88" width="271" height="18"/>
+                        <buttonCell key="cell" type="radio" title="Greedy (a little slower, but higher quality)" bezelStyle="regularSquare" imagePosition="left" alignment="left" state="on" inset="2" id="jyQ-7v-Dxu">
+                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                            <font key="font" metaFont="system"/>
+                        </buttonCell>
+                        <connections>
+                            <action selector="changedHaplotypeClustering:" target="-2" id="YrN-1O-qQL"/>
+                        </connections>
+                    </button>
+                    <button tag="2" translatesAutoresizingMaskIntoConstraints="NO" id="HLq-KV-hT8">
+                        <rect key="frame" x="111" y="66" width="281" height="18"/>
+                        <buttonCell key="cell" type="radio" title="Greedy + 2-opt (very slow, highest quality)" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="KLy-4c-SEw">
+                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                            <font key="font" metaFont="system"/>
+                        </buttonCell>
+                        <connections>
+                            <action selector="changedHaplotypeClustering:" target="-2" id="0YY-AC-YXt"/>
+                        </connections>
+                    </button>
+                    <textField verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="NO" translatesAutoresizingMaskIntoConstraints="NO" id="7Lw-on-Nye">
+                        <rect key="frame" x="369" y="166" width="50" height="22"/>
+                        <constraints>
+                            <constraint firstAttribute="width" constant="50" id="bm7-8f-Ef6"/>
+                        </constraints>
+                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" title="1000" drawsBackground="YES" id="d9O-yL-wjw">
+                            <font key="font" metaFont="system"/>
+                            <color key="textColor" name="textColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                        <connections>
+                            <outlet property="delegate" destination="-2" id="UOV-kz-gzQ"/>
+                        </connections>
+                    </textField>
+                </subviews>
+                <constraints>
+                    <constraint firstItem="9jF-K1-9EN" firstAttribute="leading" secondItem="7Lj-Ga-jfd" secondAttribute="leading" id="2HB-CJ-R55"/>
+                    <constraint firstItem="7Lj-Ga-jfd" firstAttribute="leading" secondItem="J3R-Qk-Jd9" secondAttribute="trailing" constant="20" id="2YJ-aE-Rzl"/>
+                    <constraint firstItem="7Lw-on-Nye" firstAttribute="baseline" secondItem="O1Z-4M-hK4" secondAttribute="baseline" constant="-1" id="2dk-H2-1oQ"/>
+                    <constraint firstItem="xbu-26-qvn" firstAttribute="leading" secondItem="9jF-K1-9EN" secondAttribute="leading" constant="12" id="7hO-qg-lN5"/>
+                    <constraint firstItem="xbu-26-qvn" firstAttribute="top" secondItem="9jF-K1-9EN" secondAttribute="bottom" constant="20" id="BF3-oX-i6j"/>
+                    <constraint firstItem="dZG-jn-Cky" firstAttribute="leading" secondItem="O1Z-4M-hK4" secondAttribute="leading" id="BnJ-xh-iMw"/>
+                    <constraint firstItem="34a-7k-94q" firstAttribute="width" secondItem="f1F-Vs-kd6" secondAttribute="width" id="E4l-Et-bHS"/>
+                    <constraint firstItem="O1Z-4M-hK4" firstAttribute="leading" secondItem="UXl-VS-LUk" secondAttribute="leading" id="Hhz-gE-CZf"/>
+                    <constraint firstItem="7Lw-on-Nye" firstAttribute="leading" secondItem="O1Z-4M-hK4" secondAttribute="trailing" constant="6" id="KGJ-NY-qyD"/>
+                    <constraint firstItem="YtK-RQ-b2q" firstAttribute="top" secondItem="O1Z-4M-hK4" secondAttribute="bottom" constant="16" id="PL6-ZD-9Zj"/>
+                    <constraint firstItem="UXl-VS-LUk" firstAttribute="leading" secondItem="xbu-26-qvn" secondAttribute="leading" constant="12" id="Qv9-aw-j1l"/>
+                    <constraint firstItem="7Lj-Ga-jfd" firstAttribute="top" secondItem="J3R-Qk-Jd9" secondAttribute="top" id="VHY-QC-h7a"/>
+                    <constraint firstItem="J3R-Qk-Jd9" firstAttribute="leading" secondItem="EiT-Mj-1SZ" secondAttribute="leading" constant="20" id="YCJ-FJ-mIr"/>
+                    <constraint firstItem="O1Z-4M-hK4" firstAttribute="top" secondItem="UXl-VS-LUk" secondAttribute="bottom" constant="6" id="ZDV-0u-rmf"/>
+                    <constraint firstItem="9jF-K1-9EN" firstAttribute="top" secondItem="7Lj-Ga-jfd" secondAttribute="bottom" constant="8" id="cfQ-pc-wCX"/>
+                    <constraint firstAttribute="bottom" secondItem="f1F-Vs-kd6" secondAttribute="bottom" constant="20" id="ciX-fR-FWr"/>
+                    <constraint firstItem="dZG-jn-Cky" firstAttribute="top" secondItem="YtK-RQ-b2q" secondAttribute="bottom" constant="8" id="efP-DE-kHc"/>
+                    <constraint firstItem="YtK-RQ-b2q" firstAttribute="leading" secondItem="xbu-26-qvn" secondAttribute="leading" id="fgm-dl-5Cu"/>
+                    <constraint firstAttribute="trailing" secondItem="7Lw-on-Nye" secondAttribute="trailing" constant="30" id="fxn-du-Jjw"/>
+                    <constraint firstItem="34a-7k-94q" firstAttribute="top" secondItem="HLq-KV-hT8" secondAttribute="bottom" constant="26" id="fye-uI-ird"/>
+                    <constraint firstItem="J3R-Qk-Jd9" firstAttribute="top" secondItem="EiT-Mj-1SZ" secondAttribute="top" constant="20" id="gIH-MD-o77"/>
+                    <constraint firstItem="HLq-KV-hT8" firstAttribute="leading" secondItem="S8f-I4-G5B" secondAttribute="leading" id="inW-tb-lmA"/>
+                    <constraint firstAttribute="bottom" secondItem="34a-7k-94q" secondAttribute="bottom" constant="20" id="om5-7f-aCa"/>
+                    <constraint firstItem="HLq-KV-hT8" firstAttribute="top" secondItem="S8f-I4-G5B" secondAttribute="bottom" constant="6" id="qnK-Vn-yCh"/>
+                    <constraint firstItem="34a-7k-94q" firstAttribute="leading" secondItem="f1F-Vs-kd6" secondAttribute="trailing" constant="12" id="rwn-xR-8Bd"/>
+                    <constraint firstAttribute="trailing" secondItem="34a-7k-94q" secondAttribute="trailing" constant="20" id="t0F-kj-IqP"/>
+                    <constraint firstItem="S8f-I4-G5B" firstAttribute="leading" secondItem="dZG-jn-Cky" secondAttribute="leading" id="uVh-g0-qrS"/>
+                    <constraint firstItem="S8f-I4-G5B" firstAttribute="top" secondItem="dZG-jn-Cky" secondAttribute="bottom" constant="6" id="ucG-l8-BLV"/>
+                    <constraint firstItem="UXl-VS-LUk" firstAttribute="top" secondItem="xbu-26-qvn" secondAttribute="bottom" constant="8" id="vgB-bs-cdM"/>
+                </constraints>
+            </view>
+            <point key="canvasLocation" x="736" y="542.5"/>
+        </window>
+    </objects>
+    <resources>
+        <image name="NSApplicationIcon" width="128" height="128"/>
+    </resources>
+</document>

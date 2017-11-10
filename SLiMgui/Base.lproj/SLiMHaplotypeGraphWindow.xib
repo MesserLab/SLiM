@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="12118" systemVersion="16G29" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="12118"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="SLiMWindowController">
+            <connections>
+                <outlet property="graphWindow" destination="QvC-M9-y7g" id="mRM-bL-YbH"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <window title="Haplotype snapshot" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" restorable="NO" hidesOnDeactivate="YES" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" frameAutosaveName="" animationBehavior="default" id="QvC-M9-y7g" customClass="NSPanel">
+            <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES" utility="YES" nonactivatingPanel="YES"/>
+            <windowPositionMask key="initialPositionMask" rightStrut="YES" topStrut="YES"/>
+            <rect key="contentRect" x="2217" y="1250" width="300" height="300"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1920" height="1057"/>
+            <value key="minSize" type="size" width="250" height="250"/>
+            <view key="contentView" id="EiT-Mj-1SZ">
+                <rect key="frame" x="0.0" y="0.0" width="300" height="300"/>
+                <autoresizingMask key="autoresizingMask"/>
+                <subviews>
+                    <openGLView colorSize="5bit_RGB_8bit_Alpha" useAuxiliaryDepthBufferStencil="NO" useDoubleBufferingEnabled="YES" allowOffline="YES" translatesAutoresizingMaskIntoConstraints="NO" id="7Pt-JH-O3e" customClass="SLiMHaplotypeGraphView">
+                        <rect key="frame" x="5" y="5" width="290" height="290"/>
+                    </openGLView>
+                </subviews>
+                <constraints>
+                    <constraint firstAttribute="trailing" secondItem="7Pt-JH-O3e" secondAttribute="trailing" constant="5" id="6l5-gu-90L"/>
+                    <constraint firstItem="7Pt-JH-O3e" firstAttribute="top" secondItem="EiT-Mj-1SZ" secondAttribute="top" constant="5" id="WwK-qL-0QL"/>
+                    <constraint firstItem="7Pt-JH-O3e" firstAttribute="leading" secondItem="EiT-Mj-1SZ" secondAttribute="leading" constant="5" id="ZaR-Wl-tL9"/>
+                    <constraint firstAttribute="bottom" secondItem="7Pt-JH-O3e" secondAttribute="bottom" constant="5" id="uPL-jQ-0ao"/>
+                </constraints>
+            </view>
+            <connections>
+                <outlet property="delegate" destination="-2" id="HKp-7A-xuM"/>
+            </connections>
+        </window>
+    </objects>
+</document>
