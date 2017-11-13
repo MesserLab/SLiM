@@ -89,16 +89,25 @@ BidiIter random_unique(BidiIter begin, BidiIter end, size_t num_random)
 		
 		// Set our window title from the controller's state
 		NSString *title = @"";
-		bool first_subpop = true;
 		
-		for (Subpopulation *subpop : selected_subpops)
+		if (selected_subpops.size() == 0)
 		{
-			if (!first_subpop)
-				title = [title stringByAppendingString:@" "];
+			// If there are no subpops (which can happen at the very start of running a model, for example), use a dash
+			title = @"–";
+		}
+		else
+		{
+			bool first_subpop = true;
 			
-			title = [title stringByAppendingFormat:@"p%d", (int)subpop->subpopulation_id_];
-			
-			first_subpop = false;
+			for (Subpopulation *subpop : selected_subpops)
+			{
+				if (!first_subpop)
+					title = [title stringByAppendingString:@" "];
+				
+				title = [title stringByAppendingFormat:@"p%d", (int)subpop->subpopulation_id_];
+				
+				first_subpop = false;
+			}
 		}
 		
 		if (usingSubrange)
@@ -276,6 +285,10 @@ BidiIter random_unique(BidiIter begin, BidiIter end, size_t num_random)
 - (void)sortGenomesWithBackgroundController:(SLiMWindowController *)backgroundController
 {
 	int genome_count = (int)genomes.size();
+	
+	if (genome_count == 0)
+		return;
+	
 	std::vector<Genome *> original_genomes = genomes;	// copy the vector because we will need to reorder it below
 	std::vector<int> final_path;
 	
