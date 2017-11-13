@@ -507,8 +507,11 @@
 	[scriptLines insertObject:lineToInsert atIndex:bestInsertionIndex];
 	
 	// Set the doctored string back into the textview
-	[scriptTextView setSelectedRange:NSMakeRange(0, [[scriptTextView textStorage] length])];
-	[scriptTextView insertText:[scriptLines componentsJoinedByString:@"\n"]];
+	NSUInteger tsLength = [[scriptTextView textStorage] length];
+	NSString *replacementString = [scriptLines componentsJoinedByString:@"\n"];
+	
+	[scriptTextView setSelectedRange:NSMakeRange(0, tsLength)];
+	[scriptTextView insertText:replacementString replacementRange:NSMakeRange(tsLength, [replacementString length])];	// insertText: was deprecated in 10.11 so I switched to this; BCH 13 Nov. 2017
 	
 	// Select the inserted line
 	NSUInteger lineStartCharacter = 0;
