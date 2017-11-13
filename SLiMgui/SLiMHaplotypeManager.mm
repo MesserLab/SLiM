@@ -87,6 +87,9 @@ BidiIter random_unique(BidiIter begin, BidiIter end, size_t num_random)
 			subrangeLastBase = overviewChromosomeView->selectionLastBase;
 		}
 		
+		// Also dig to find out whether we're displaying all mutation types or just a subset; if a subset, each MutationType has a display flag
+		displayingMuttypeSubset = (controller->chromosomeZoomed->display_muttypes_.size() != 0);
+		
 		// Set our window title from the controller's state
 		NSString *title = @"";
 		
@@ -275,6 +278,8 @@ BidiIter random_unique(BidiIter begin, BidiIter end, size_t num_random)
 		}
 		
 		haplo_mut->neutral_ = (mut->selection_coeff_ == 0.0);
+		
+		haplo_mut->display_ = mut_type->mutation_type_displayed_;
 	}
 	
 	// Remember the chromosome length
@@ -295,10 +300,20 @@ BidiIter random_unique(BidiIter begin, BidiIter end, size_t num_random)
 	// first get our distance matrix; these are inter-city distances
 	int64_t *distances;
 	
-	if (usingSubrange)
-		distances = [self buildDistanceArrayForSubrangeWithBackgroundController:backgroundController];
+	if (displayingMuttypeSubset)
+	{
+		if (usingSubrange)
+			distances = [self buildDistanceArrayForSubrangeAndSubtypesWithBackgroundController:backgroundController];
+		else
+			distances = [self buildDistanceArrayForSubtypesWithBackgroundController:backgroundController];
+	}
 	else
-		distances = [self buildDistanceArrayWithBackgroundController:backgroundController];
+	{
+		if (usingSubrange)
+			distances = [self buildDistanceArrayForSubrangeWithBackgroundController:backgroundController];
+		else
+			distances = [self buildDistanceArrayWithBackgroundController:backgroundController];
+	}
 	
 	if ([backgroundController haplotypeProgressIsCancelled])
 		goto cancelledExit;
@@ -382,8 +397,23 @@ cancelledExit:
 				const MutationIndex *mut_start_ptr = mutrun->begin_pointer_const();
 				const MutationIndex *mut_end_ptr = mutrun->end_pointer_const();
 				
-				for (const MutationIndex *mut_ptr = mut_start_ptr; mut_ptr < mut_end_ptr; ++mut_ptr)
-					genome_display.push_back(*mut_ptr);
+				if (displayingMuttypeSubset)
+				{
+					// displaying a subset of mutation types, need to check
+					for (const MutationIndex *mut_ptr = mut_start_ptr; mut_ptr < mut_end_ptr; ++mut_ptr)
+					{
+						MutationIndex mut_index = *mut_ptr;
+						
+						if ((mutationInfo + mut_index)->display_)
+							genome_display.push_back(*mut_ptr);
+					}
+				}
+				else
+				{
+					// displaying all mutation types, no need to check
+					for (const MutationIndex *mut_ptr = mut_start_ptr; mut_ptr < mut_end_ptr; ++mut_ptr)
+						genome_display.push_back(*mut_ptr);
+				}
 			}
 		}
 		else
@@ -397,13 +427,30 @@ cancelledExit:
 				const MutationIndex *mut_start_ptr = mutrun->begin_pointer_const();
 				const MutationIndex *mut_end_ptr = mutrun->end_pointer_const();
 				
-				for (const MutationIndex *mut_ptr = mut_start_ptr; mut_ptr < mut_end_ptr; ++mut_ptr)
+				if (displayingMuttypeSubset)
 				{
-					MutationIndex mut_index = *mut_ptr;
-					slim_position_t mut_position = *(mutationPositions + mut_index);
-					
-					if ((mut_position >= subrangeFirstBase) && (mut_position <= subrangeLastBase))
-						genome_display.push_back(mut_index);
+					// displaying a subset of mutation types, need to check
+					for (const MutationIndex *mut_ptr = mut_start_ptr; mut_ptr < mut_end_ptr; ++mut_ptr)
+					{
+						MutationIndex mut_index = *mut_ptr;
+						slim_position_t mut_position = *(mutationPositions + mut_index);
+						
+						if ((mut_position >= subrangeFirstBase) && (mut_position <= subrangeLastBase))
+							if ((mutationInfo + mut_index)->display_)
+								genome_display.push_back(mut_index);
+					}
+				}
+				else
+				{
+					// displaying all mutation types, no need to check
+					for (const MutationIndex *mut_ptr = mut_start_ptr; mut_ptr < mut_end_ptr; ++mut_ptr)
+					{
+						MutationIndex mut_index = *mut_ptr;
+						slim_position_t mut_position = *(mutationPositions + mut_index);
+						
+						if ((mut_position >= subrangeFirstBase) && (mut_position <= subrangeLastBase))
+							genome_display.push_back(mut_index);
+					}
 				}
 			}
 		}
@@ -798,7 +845,9 @@ static float *glArrayColors = nil;
 // This allocates and builds an array of distances between genomes.  The returned array is owned by the caller.  This is where
 // we spend the large majority of our time, at present; this algorithm is O(N^2), but has a large constant (because really also
 // it depends on the length of the chromosome, the configuration of mutation runs, etc.).  This method runs prior to the actual
-// Traveling Salesman Problem; here we're just figuring out the distances between our "cities".
+// Traveling Salesman Problem; here we're just figuring out the distances between our "cities".  We have four versions of this
+// method, for speed; this is the base version, and separate versions are below that handle a chromosome subrange and/or a
+// subset of all of the mutation types.
 - (int64_t *)buildDistanceArrayWithBackgroundController:(SLiMWindowController *)backgroundController
 {
 	int genome_count = (int)genomes.size();
@@ -838,7 +887,7 @@ static float *glArrayColors = nil;
 				else
 				{
 					// We use a radix strategy to count the number of mismatches; assume up front that all mutations are mismatched,
-					// and then subtract two for each mutation that turns out to be shared, using a unit8_t buffer to track usage.
+					// and then subtract two for each mutation that turns out to be shared, using a uint8_t buffer to track usage.
 					distance += genome1_mutcount + genome2_mutcount;
 					
 					const MutationIndex *mutrun1_end = genome1_mutrun->end_pointer_const();
@@ -951,6 +1000,206 @@ static float *glArrayColors = nil;
 								distance -= 1;	// matched, so decrement to compensate for the assumption of non-match above
 							else
 								distance++;		// not matched, so increment
+						}
+					}
+					
+					// To avoid having to clear the usage buffer every time, we play an additional trick: we use an incrementing
+					// marker value to indicate usage, and clear the buffer only when it reaches 255.  Makes about a 10% difference!
+					seen_marker++;
+					
+					if (seen_marker == 0)
+					{
+						bzero(mutation_seen, mutationIndexCount);
+						
+						seen_marker = 1;
+					}
+				}
+			}
+			
+			// set the distance at both mirrored locations in the distance buffer
+			*(distance_column + j * genome_count) = distance;
+			*(distance_row + j) = distance;
+		}
+		
+		if ([backgroundController haplotypeProgressIsCancelled])
+			break;
+		
+		[backgroundController setHaplotypeProgress:(i + 1) forStage:0];
+	}
+	
+	free(mutation_seen);
+	
+	return distances;
+}
+
+// This does the same thing as buildDistanceArrayForGenomes:, but uses only mutations of a mutation type that is chosen for display
+- (int64_t *)buildDistanceArrayForSubtypesWithBackgroundController:(SLiMWindowController *)backgroundController
+{
+	int genome_count = (int)genomes.size();
+	int64_t *distances = (int64_t *)malloc(genome_count * genome_count * sizeof(int64_t));
+	uint8_t *mutation_seen = (uint8_t *)calloc(mutationIndexCount, sizeof(uint8_t));
+	uint8_t seen_marker = 1;
+	
+	for (int i = 0; i < genome_count; ++i)
+	{
+		Genome *genome1 = genomes[i];
+		int64_t *distance_column = distances + i;
+		int64_t *distance_row = distances + i * genome_count;
+		int mutrun_count = genome1->mutrun_count_;
+		MutationRun_SP *genome1_mutruns = genome1->mutruns_;
+		
+		distance_row[i] = 0;
+		
+		for (int j = i + 1; j < genome_count; ++j)
+		{
+			Genome *genome2 = genomes[j];
+			MutationRun_SP *genome2_mutruns = genome2->mutruns_;
+			int64_t distance = 0;
+			
+			for (int mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
+			{
+				MutationRun *genome1_mutrun = genome1_mutruns[mutrun_index].get();
+				MutationRun *genome2_mutrun = genome2_mutruns[mutrun_index].get();
+				
+				if (genome1_mutrun == genome2_mutrun)
+					;										// identical runs have no differences
+				else
+				{
+					// We use a radix strategy to count the number of mismatches.  Note this is done a bit differently than in
+					// buildDistanceArrayForGenomes:; here we do not add the total and then subtract matches.
+					const MutationIndex *mutrun1_end = genome1_mutrun->end_pointer_const();
+					
+					for (const MutationIndex *mutrun1_ptr = genome1_mutrun->begin_pointer_const(); mutrun1_ptr != mutrun1_end; ++mutrun1_ptr)
+					{
+						MutationIndex mut1_index = *mutrun1_ptr;
+						
+						if (mutationInfo[mut1_index].display_)
+						{
+							mutation_seen[mut1_index] = seen_marker;
+							distance++;		// assume unmatched
+						}
+					}
+					
+					const MutationIndex *mutrun2_end = genome2_mutrun->end_pointer_const();
+					
+					for (const MutationIndex *mutrun2_ptr = genome2_mutrun->begin_pointer_const(); mutrun2_ptr != mutrun2_end; ++mutrun2_ptr)
+					{
+						MutationIndex mut2_index = *mutrun2_ptr;
+						
+						if (mutationInfo[mut2_index].display_)
+						{
+							if (mutation_seen[mut2_index] == seen_marker)
+								distance -= 1;	// matched, so decrement to compensate for the assumption of non-match above
+							else
+								distance++;		// not matched, so increment
+						}
+					}
+					
+					// To avoid having to clear the usage buffer every time, we play an additional trick: we use an incrementing
+					// marker value to indicate usage, and clear the buffer only when it reaches 255.  Makes about a 10% difference!
+					seen_marker++;
+					
+					if (seen_marker == 0)
+					{
+						bzero(mutation_seen, mutationIndexCount);
+						
+						seen_marker = 1;
+					}
+				}
+			}
+			
+			// set the distance at both mirrored locations in the distance buffer
+			*(distance_column + j * genome_count) = distance;
+			*(distance_row + j) = distance;
+		}
+		
+		if ([backgroundController haplotypeProgressIsCancelled])
+			break;
+		
+		[backgroundController setHaplotypeProgress:(i + 1) forStage:0];
+	}
+	
+	free(mutation_seen);
+	
+	return distances;
+}
+
+// This does the same thing as buildDistanceArrayForGenomes:, but uses the chosen subrange of each genome, and only mutations of mutation types being displayed
+- (int64_t *)buildDistanceArrayForSubrangeAndSubtypesWithBackgroundController:(SLiMWindowController *)backgroundController
+{
+	slim_position_t firstBase = subrangeFirstBase, lastBase = subrangeLastBase;
+	
+	int genome_count = (int)genomes.size();
+	int64_t *distances = (int64_t *)malloc(genome_count * genome_count * sizeof(int64_t));
+	uint8_t *mutation_seen = (uint8_t *)calloc(mutationIndexCount, sizeof(uint8_t));
+	uint8_t seen_marker = 1;
+	
+	for (int i = 0; i < genome_count; ++i)
+	{
+		Genome *genome1 = genomes[i];
+		int64_t *distance_column = distances + i;
+		int64_t *distance_row = distances + i * genome_count;
+		int mutrun_length = genome1->mutrun_length_;
+		int mutrun_count = genome1->mutrun_count_;
+		MutationRun_SP *genome1_mutruns = genome1->mutruns_;
+		
+		distance_row[i] = 0;
+		
+		for (int j = i + 1; j < genome_count; ++j)
+		{
+			Genome *genome2 = genomes[j];
+			MutationRun_SP *genome2_mutruns = genome2->mutruns_;
+			int64_t distance = 0;
+			
+			for (int mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
+			{
+				// Skip mutation runs outside of the subrange we're focused on
+				if ((mutrun_length * mutrun_index > lastBase) || (mutrun_length * mutrun_index + mutrun_length - 1 < firstBase))
+					continue;
+				
+				// OK, this mutrun intersects with our chosen subrange; proceed
+				MutationRun *genome1_mutrun = genome1_mutruns[mutrun_index].get();
+				MutationRun *genome2_mutrun = genome2_mutruns[mutrun_index].get();
+				
+				if (genome1_mutrun == genome2_mutrun)
+					;										// identical runs have no differences
+				else
+				{
+					// We use a radix strategy to count the number of mismatches.  Note this is done a bit differently than in
+					// buildDistanceArrayForGenomes:; here we do not add the total and then subtract matches.
+					const MutationIndex *mutrun1_end = genome1_mutrun->end_pointer_const();
+					
+					for (const MutationIndex *mutrun1_ptr = genome1_mutrun->begin_pointer_const(); mutrun1_ptr != mutrun1_end; ++mutrun1_ptr)
+					{
+						MutationIndex mut1_index = *mutrun1_ptr;
+						slim_position_t mut1_position = mutationPositions[mut1_index];
+						
+						if ((mut1_position >= firstBase) && (mut1_position <= lastBase))
+						{
+							if (mutationInfo[mut1_index].display_)
+							{
+								mutation_seen[mut1_index] = seen_marker;
+								distance++;		// assume unmatched
+							}
+						}
+					}
+					
+					const MutationIndex *mutrun2_end = genome2_mutrun->end_pointer_const();
+					
+					for (const MutationIndex *mutrun2_ptr = genome2_mutrun->begin_pointer_const(); mutrun2_ptr != mutrun2_end; ++mutrun2_ptr)
+					{
+						MutationIndex mut2_index = *mutrun2_ptr;
+						slim_position_t mut2_position = mutationPositions[mut2_index];
+						
+						if ((mut2_position >= firstBase) && (mut2_position <= lastBase))
+						{
+							if (mutationInfo[mut2_index].display_)
+							{
+								if (mutation_seen[mut2_index] == seen_marker)
+									distance -= 1;	// matched, so decrement to compensate for the assumption of non-match above
+								else
+									distance++;		// not matched, so increment
+							}
 						}
 					}
 					

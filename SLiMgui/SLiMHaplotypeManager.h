@@ -35,7 +35,8 @@ class Genome;
 typedef struct {
 	slim_position_t position_;
 	float red_, green_, blue_;
-	BOOL neutral_;
+	BOOL neutral_;					// selection_coeff_ == 0.0, used to display neutral mutations under selected mutations
+	BOOL display_;					// from the mutation type's mutation_type_displayed_ flag
 } SLiMHaploMutation;
 
 typedef enum
@@ -77,6 +78,9 @@ typedef enum
 	// Chromosome subrange information
 	BOOL usingSubrange;
 	slim_position_t subrangeFirstBase, subrangeLastBase;
+	
+	// Mutation type display information
+	BOOL displayingMuttypeSubset;
 }
 
 @property (nonatomic, retain) NSString *titleString;

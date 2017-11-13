@@ -2135,20 +2135,6 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	return nil;
 }
 
-- (BOOL)validateMenuItem:(NSMenuItem *)menuItem
-{
-	SEL sel = [menuItem action];
-	
-	if ((sel == @selector(filterMutations:)) && display_haplotypes_)
-	{
-		// No filtering of mutations when displaying haplotypes, for now, so uncheck those items and dim them
-		[menuItem setState:NSOffState];
-		return NO;
-	}
-	
-	return YES;
-}
-
 @end
 
 
