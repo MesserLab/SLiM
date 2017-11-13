@@ -20,6 +20,7 @@ development head:
 	add haplotype snapshot plot (create from the Graph pop-up menu or the Simulation menu)
 	add haplotype display option for the chromosome view (control-click and select from context menu)
 	extended recipe 13.5 to show the new haplotype display options
+	make so the chromosome view can display a subset (but more than one) of the mutation types defined
 
 
 2.5 (build 1204; Eidos version 1.5):

@@ -24,6 +24,8 @@
 #include "slim_global.h"
 #include "ChromosomeGLView.h"
 
+#include <vector>
+
 
 extern NSString *SLiMChromosomeSelectionChangedNotification;
 
@@ -51,7 +53,7 @@ extern NSString *SLiMChromosomeSelectionChangedNotification;
 	
 	// Display options
 	BOOL display_haplotypes_;			// if NO, displaying frequencies; if YES, displaying haplotypes
-	slim_objectid_t display_muttype_;	// if -1, display all mutation types; otherwise, display only the muttype chosen
+	std::vector<slim_objectid_t> display_muttypes_;	// if empty, display all mutation types; otherwise, display only the muttypes chosen
 }
 
 @property (nonatomic, retain) ChromosomeView *referenceChromosomeView;		// asked for the range to display

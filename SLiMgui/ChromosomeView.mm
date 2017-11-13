@@ -132,7 +132,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 
 - (void)awakeFromNib
 {
-	display_muttype_ = -1;
+	display_muttypes_.clear();
 	
 	[self bind:@"enabled" toObject:[[self window] windowController] withKeyPath:@"invalidSimulation" options:@{NSValueTransformerNameBindingOption : NSNegateBooleanTransformerName}];
 	
@@ -1100,6 +1100,39 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 
 #pragma mark Drawing mutations
 
+- (void)updateDisplayedMutationTypes
+{
+	// We use a flag in MutationType to indicate whether we're drawing that type or not; we update those flags here,
+	// before every drawing of mutations, from the vector of mutation type IDs that we keep internally
+	SLiMWindowController *controller = (SLiMWindowController *)[[self window] windowController];
+	
+	if (controller)
+	{
+		SLiMSim *sim = controller->sim;
+		
+		if (sim)
+		{
+			std::map<slim_objectid_t,MutationType*> &muttypes = sim->mutation_types_;
+			
+			for (auto muttype_iter : muttypes)
+			{
+				MutationType *muttype = muttype_iter.second;
+				
+				if (display_muttypes_.size())
+				{
+					slim_objectid_t muttype_id = muttype->mutation_type_id_;
+					
+					muttype->mutation_type_displayed_ = (std::find(display_muttypes_.begin(), display_muttypes_.end(), muttype_id) != display_muttypes_.end());
+				}
+				else
+				{
+					muttype->mutation_type_displayed_ = true;
+				}
+			}
+		}
+	}
+}
+
 - (void)drawMutationsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
 	double scalingFactor = controller->selectionColorScale;
@@ -1119,7 +1152,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 			const Mutation *mutation = mut_block_ptr + mutations[mutIndex];
 			const MutationType *mutType = mutation->mutation_type_ptr_;
 			
-			if ((display_muttype_ == -1) || (mutType->mutation_type_id_ == display_muttype_))
+			if (mutType->mutation_type_displayed_)
 			{
 				slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
 				slim_position_t mutationPosition = mutation->position_;
@@ -1166,7 +1199,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		{
 			MutationType *mut_type = mutationTypeIter->second;
 			
-			if ((display_muttype_ == -1) || (mut_type->mutation_type_id_ == display_muttype_))
+			if (mut_type->mutation_type_displayed_)
 			{
 				bool mut_type_fixed_color = !mut_type->color_.empty();
 				
@@ -1349,7 +1382,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 			const Mutation *mutation = mut_block_ptr + mutations[mutIndex];
 			const MutationType *mutType = mutation->mutation_type_ptr_;
 			
-			if ((display_muttype_ == -1) || (mutType->mutation_type_id_ == display_muttype_))
+			if (mutType->mutation_type_displayed_)
 			{
 				slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
 				slim_position_t mutationPosition = mutation->position_;
@@ -1398,7 +1431,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		{
 			MutationType *mut_type = mutationTypeIter->second;
 			
-			if ((display_muttype_ == -1) || (mut_type->mutation_type_id_ == display_muttype_))
+			if (mut_type->mutation_type_displayed_)
 			{
 				bool mut_type_fixed_color = !mut_type->color_.empty();
 				
@@ -1671,7 +1704,10 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 			
 			// draw mutations in interior
 			if (shouldDrawMutations)
+			{
+				[self updateDisplayedMutationTypes];
 				[self drawMutationsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange];
+			}
 		}
 		
 		// frame near the end, so that any roundoff errors that caused overdrawing by a pixel get cleaned up
@@ -1739,6 +1775,8 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		// draw mutations in interior
 		if (shouldDrawMutations)
 		{
+			[self updateDisplayedMutationTypes];
+			
 			if (display_haplotypes_)
 			{
 				// display mutations as a haplotype plot, courtesy of SLiMHaplotypeManager; we use kSLiMHaplotypeClusterNearestNeighbor and
@@ -2003,9 +2041,27 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 
 - (IBAction)filterMutations:(id)sender
 {
-	int muttype_id = (int)[sender tag];
+	slim_objectid_t muttype_id = (int)[sender tag];
 	
-	display_muttype_ = muttype_id;
+	if (muttype_id == -1)
+	{
+		display_muttypes_.clear();
+	}
+	else
+	{
+		auto present_iter = std::find(display_muttypes_.begin(), display_muttypes_.end(), muttype_id);
+		
+		if (present_iter == display_muttypes_.end())
+		{
+			// this mut-type is not being displayed, so add it to our display list
+			display_muttypes_.push_back(muttype_id);
+		}
+		else
+		{
+			// this mut-type is being displayed, so remove it from our display list
+			display_muttypes_.erase(present_iter);
+		}
+	}
 	
 	[self setNeedsDisplay:YES];
 }
@@ -2041,19 +2097,35 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 				[menuItem setTag:-1];
 				[menuItem setTarget:self];
 				
+				if (display_muttypes_.size() == 0)
+					[menuItem setState:NSOnState];
+				
+				// Make a sorted list of all mutation types we know – those that exist, and those that used to exist that we are displaying
+				std::vector<slim_objectid_t> all_muttypes;
+				
 				for (auto muttype_iter : muttypes)
 				{
 					MutationType *muttype = muttype_iter.second;
 					slim_objectid_t muttype_id = muttype->mutation_type_id_;
 					
-					menuItem = [menu addItemWithTitle:[NSString stringWithFormat:@"Display Only m%d", (int)muttype_id] action:@selector(filterMutations:) keyEquivalent:@""];
-					[menuItem setTag:muttype_id];
-					[menuItem setTarget:self];
+					all_muttypes.push_back(muttype_id);
 				}
 				
-				// Check the item corresponding to our current display preference, if any
-				menuItem = [menu itemWithTag:display_muttype_];
-				[menuItem setState:NSOnState];
+				all_muttypes.insert(all_muttypes.end(), display_muttypes_.begin(), display_muttypes_.end());
+				
+				std::sort(all_muttypes.begin(), all_muttypes.end());
+				all_muttypes.resize(std::distance(all_muttypes.begin(), std::unique(all_muttypes.begin(), all_muttypes.end())));
+				
+				// Then add menu items for each of those muttypes
+				for (slim_objectid_t muttype_id : all_muttypes)
+				{
+					menuItem = [menu addItemWithTitle:[NSString stringWithFormat:@"Display m%d", (int)muttype_id] action:@selector(filterMutations:) keyEquivalent:@""];
+					[menuItem setTag:muttype_id];
+					[menuItem setTarget:self];
+					
+					if (std::find(display_muttypes_.begin(), display_muttypes_.end(), muttype_id) != display_muttypes_.end())
+						[menuItem setState:NSOnState];
+				}
 				
 				return [menu autorelease];
 			}

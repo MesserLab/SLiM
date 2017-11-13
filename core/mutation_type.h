@@ -141,6 +141,7 @@ public:
 	
 #ifdef SLIMGUI
 	int mutation_type_index_;					// a zero-based index for this mutation type, used by SLiMgui to bin data by mutation type
+	bool mutation_type_displayed_;				// a flag used by SLiMgui to indicate whether this mutation type is being displayed in the chromosome view
 #endif
 	
 	MutationType(const MutationType&) = delete;					// no copying
