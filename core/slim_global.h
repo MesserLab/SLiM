@@ -382,6 +382,7 @@ extern const std::string gStr_pedigreeGrandparentIDs;
 extern const std::string gStr_reciprocal;
 extern const std::string gStr_sexSegregation;
 extern const std::string gStr_dimensionality;
+extern const std::string gStr_periodicity;
 extern const std::string gStr_spatiality;
 extern const std::string gStr_spatialPosition;
 extern const std::string gStr_maxDistance;
@@ -431,6 +432,7 @@ extern const std::string gStr_setMigrationRates;
 extern const std::string gStr_pointInBounds;
 extern const std::string gStr_pointReflected;
 extern const std::string gStr_pointStopped;
+extern const std::string gStr_pointPeriodic;
 extern const std::string gStr_pointUniform;
 extern const std::string gStr_setCloningRate;
 extern const std::string gStr_setSelfingRate;
@@ -617,6 +619,7 @@ enum _SLiMGlobalStringID : int {
 	gID_reciprocal,
 	gID_sexSegregation,
 	gID_dimensionality,
+	gID_periodicity,
 	gID_spatiality,
 	gID_spatialPosition,
 	gID_maxDistance,
@@ -666,6 +669,7 @@ enum _SLiMGlobalStringID : int {
 	gID_pointInBounds,
 	gID_pointReflected,
 	gID_pointStopped,
+	gID_pointPeriodic,
 	gID_pointUniform,
 	gID_setCloningRate,
 	gID_setSelfingRate,

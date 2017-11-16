@@ -1,8 +1,8 @@
 {\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf830
 {\fonttbl\f0\fnil\fcharset0 Menlo-Regular;\f1\froman\fcharset0 TimesNewRomanPSMT;\f2\fswiss\fcharset0 Optima-Regular;
 \f3\fswiss\fcharset0 Helvetica;}
-{\colortbl;\red255\green255\blue255;}
-{\*\expandedcolortbl;;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;}
+{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;}
 \margl1440\margr1440\vieww9000\viewh8400\viewkind0
 \deftab720
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -477,7 +477,7 @@ Note that by default, all mutations of a given mutation type will be converted i
 \f2\fs20  chosen for simulation.  There is no way to disable sex once it has been enabled; if you don\'92t want to have sex, don\'92t call this function.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f0\fs18 \cf0 (void)initializeSLiMOptions([logical$\'a0keepPedigrees\'a0=\'a0F], [string$\'a0dimensionality\'a0=\'a0""], [integer$\'a0mutationRuns\'a0=\'a00], [logical$\'a0preventIncidentalSelfing\'a0=\'a0F])
+\f0\fs18 \cf0 (void)initializeSLiMOptions([logical$\'a0keepPedigrees\'a0=\'a0F], [string$\'a0dimensionality\'a0=\'a0""], [string$\'a0periodicity\'a0=\'a0""], [integer$\'a0mutationRuns\'a0=\'a00], [logical$\'a0preventIncidentalSelfing\'a0=\'a0F])
 \f1 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -532,7 +532,31 @@ If
 \f2\fs20  and 
 \f0\fs18 interaction()
 \f2\fs20  callbacks.  And third, it enables the use of any other properties and methods related to continuous space, such as setting the spatial boundaries of subpopulations, which would otherwise raise an error.\
+\cf2 \expnd0\expndtw0\kerning0
 If 
+\f0\fs18 periodicity
+\f2\fs20  is not 
+\f0\fs18 ""
+\f2\fs20 , SLiM will designate the specified spatial dimensions as being periodic \'96 wrapping around at the edges of the spatial boundaries of that dimension.  This option may only be used if the 
+\f0\fs18 dimensionality
+\f2\fs20  parameter to 
+\f0\fs18 initializeSLiMOptions()
+\f2\fs20  has been used to enable spatiality in the model, and only spatial dimensions that were specified in the dimensionality of the model may be declared to be periodic (but if desired, it is permissible to make just a subset of those dimensions periodic; it is not an all-or-none proposition).  For example, if the specified dimensionality is 
+\f0\fs18 "xy"
+\f2\fs20 , the model\'92s periodicity may be 
+\f0\fs18 "x"
+\f2\fs20 , 
+\f0\fs18 "y"
+\f2\fs20 , or 
+\f0\fs18 "xy"
+\f2\fs20  (or 
+\f0\fs18 ""
+\f2\fs20 , the default, to specify that there are no periodic dimensions).  A one-dimensional periodic model would model a space like the perimeter of a circle.  A two-dimensional model periodic in one of those dimensions would model a space like a cylinder without its end caps; if periodic in both dimensions, the modeled space is a torus.  The shapes of three-dimensional periodic models are harder to visualize, but are essentially higher-dimensional analogues of these concepts.  Periodic boundary conditions are commonly used to model spatial scenarios without \'93edge effects\'94, since there are no edges in the periodic spatial dimensions.  The 
+\f0\fs18 pointPeriodic()
+\f2\fs20  method of 
+\f0\fs18 Subpopulation
+\f2\fs20  is typically used in conjunction with this option, to actually implement the periodic boundary condition for the specified dimensions.\
+\cf0 \kerning1\expnd0\expndtw0 If 
 \f0\fs18 mutationRuns
 \f2\fs20  is not 
 \f0\fs18 0

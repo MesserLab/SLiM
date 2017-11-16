@@ -267,7 +267,9 @@ static std::string gen2_stop(" 2 { stop(); } ");
 static std::string gen1_setup_highmut_p1("initialize() { initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } 1 { sim.addSubpop('p1', 10); } ");
 static std::string gen1_setup_i1("initialize() { initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', ''); } 1 { sim.addSubpop('p1', 10); } 1:10 late() { i1.evaluate(); i1.strength(p1.individuals[0]); } ");
 static std::string gen1_setup_i1x("initialize() { initializeSLiMOptions(dimensionality='x'); initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'x'); } 1 { sim.addSubpop('p1', 10); } 1:10 late() { p1.individuals.x = runif(10); i1.evaluate(); i1.strength(p1.individuals[0]); } ");
+static std::string gen1_setup_i1xPx("initialize() { initializeSLiMOptions(dimensionality='x', periodicity='x'); initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'x'); } 1 { sim.addSubpop('p1', 10); } 1:10 late() { p1.individuals.x = runif(10); i1.evaluate(); i1.strength(p1.individuals[0]); } ");
 static std::string gen1_setup_i1xyz("initialize() { initializeSLiMOptions(dimensionality='xyz'); initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'xyz'); } 1 { sim.addSubpop('p1', 10); } 1:10 late() { p1.individuals.x = runif(10); p1.individuals.y = runif(10); p1.individuals.z = runif(10); i1.evaluate(); i1.strength(p1.individuals[0]); } ");
+static std::string gen1_setup_i1xyzPxz("initialize() { initializeSLiMOptions(dimensionality='xyz', periodicity='xz'); initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'xyz'); } 1 { sim.addSubpop('p1', 10); } 1:10 late() { p1.individuals.x = runif(10); p1.individuals.y = runif(10); p1.individuals.z = runif(10); i1.evaluate(); i1.strength(p1.individuals[0]); } ");
 static std::string gen1_setup_p1(gen1_setup + "1 { sim.addSubpop('p1', 10); } ");
 static std::string gen1_setup_sex_p1(gen1_setup_sex + "1 { sim.addSubpop('p1', 10); } ");
 static std::string gen1_setup_p1p2p3(gen1_setup + "1 { sim.addSubpop('p1', 10); sim.addSubpop('p2', 10); sim.addSubpop('p3', 10); } ");
@@ -518,7 +520,7 @@ void _RunInitTests(void)
 	SLiMAssertScriptStop("initialize() { initializeSex('X', 10000); stop(); }", __LINE__);															// legal: no maximum value for dominance coeff
 	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeSex('A'); stop(); }", 1, 35, "may be called only once", __LINE__);
 	
-	// Test (void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""], [integer$ mutationRuns = 0], [logical$ preventIncidentalSelfing = F])
+	// Test (void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""], [string$ periodicity = ""], [integer$ mutationRuns = 0], [logical$ preventIncidentalSelfing = F])
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(F); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(T); stop(); }", __LINE__);
@@ -531,6 +533,21 @@ void _RunInitTests(void)
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='x'); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='xy'); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='xyz'); stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='', periodicity=''); stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='x', periodicity=''); stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='x', periodicity='x'); stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='xy', periodicity=''); stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='xy', periodicity='x'); stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='xy', periodicity='y'); stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='xy', periodicity='xy'); stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='xyz', periodicity=''); stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='xyz', periodicity='x'); stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='xyz', periodicity='y'); stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='xyz', periodicity='z'); stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='xyz', periodicity='xy'); stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='xyz', periodicity='xz'); stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='xyz', periodicity='yz'); stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='xyz', periodicity='xyz'); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(mutationRuns=0); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(mutationRuns=1); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(mutationRuns=100); stop(); }", __LINE__);
@@ -546,6 +563,12 @@ void _RunInitTests(void)
 	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(dimensionality='xz'); stop(); }", 1, 15, "legal non-empty values", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(dimensionality='yz'); stop(); }", 1, 15, "legal non-empty values", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(dimensionality='zyx'); stop(); }", 1, 15, "legal non-empty values", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(dimensionality='', periodicity='x'); stop(); }", 1, 15, "may not be set in non-spatial simulations", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(dimensionality='x', periodicity='y'); stop(); }", 1, 15, "cannot utilize spatial dimensions beyond", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(dimensionality='x', periodicity='z'); stop(); }", 1, 15, "cannot utilize spatial dimensions beyond", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(dimensionality='xy', periodicity='z'); stop(); }", 1, 15, "cannot utilize spatial dimensions beyond", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(dimensionality='xyz', periodicity='foo'); stop(); }", 1, 15, "legal non-empty values", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(dimensionality='xyz', periodicity='xzy'); stop(); }", 1, 15, "legal non-empty values", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(); initializeSLiMOptions(); stop(); }", 1, 40, "may be called only once", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeMutationRate(0.0); initializeSLiMOptions(); stop(); }", 1, 44, "must be called before all other initialization functions", __LINE__);
 	
@@ -652,7 +675,12 @@ void _RunSLiMSimTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1 + "1 { if (sim.interactionTypes == i1) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1 + "1 { sim.interactionTypes = i1; }", 1, 368, "read-only property", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1x + "1 { if (sim.interactionTypes == i1) stop(); }", __LINE__);
-
+	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.periodicity == '') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1 + "1 { if (sim.periodicity == '') stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1 + "1 { sim.periodicity = 'x'; }", 1, 363, "read-only property", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1x + "1 { if (sim.periodicity == '') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyzPxz + "1 { if (sim.periodicity == 'xz') stop(); }", __LINE__);
+	
 #ifdef SLIMGUI
 	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.inSLiMgui == T) stop(); } ", __LINE__);
 #else
@@ -1920,11 +1948,12 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setValue('foo', 3:5); p1.setValue('foo', 'foobar'); } 10 { if (identical(p1.getValue('foo'), 'foobar')) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.setValue('foo', 3:5); p1.setValue('foo', NULL); } 10 { if (isNULL(p1.getValue('foo'))) stop(); }", __LINE__);
 	
-	// Test spatial stuff including spatialBounds, setSpatialBounds(), pointInBounds(), pointReflected(), pointStopped(), pointUniform()
+	// Test spatial stuff including spatialBounds, setSpatialBounds(), pointInBounds(), pointPeriodic(), pointReflected(), pointStopped(), pointUniform()
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(p1.spatialBounds, float(0))) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.spatialBounds = 0.0; stop(); }", 1, 264, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.setSpatialBounds(-2.0); stop(); }", 1, 250, "setSpatialBounds() cannot be called in non-spatial simulations", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.pointInBounds(-2.0); stop(); }", 1, 250, "pointInBounds() cannot be called in non-spatial simulations", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.pointPeriodic(-2.0); stop(); }", 1, 250, "pointPeriodic() cannot be called in non-spatial simulations", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.pointReflected(-2.0); stop(); }", 1, 250, "pointReflected() cannot be called in non-spatial simulations", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.pointStopped(-2.0); stop(); }", 1, 250, "pointStopped() cannot be called in non-spatial simulations", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.pointUniform(); stop(); }", 1, 250, "pointUniform() cannot be called in non-spatial simulations", __LINE__);
@@ -1960,12 +1989,25 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptRaise(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-5.0, 2.5)); if (p1.pointStopped(c(11.0, 0.0)) == -4.0) stop(); }", 1, 463, "requires exactly as many coordinates", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-5.0, 2.5)); if (size(p1.pointUniform()) == 1) stop(); }", __LINE__);
 	
+	SLiMAssertScriptRaise(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-5.0, 2.5)); if (p1.pointPeriodic(-15.5) == -0.5) stop(); }", 1, 463, "no periodic spatial dimension", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xPx + "1 { p1.setSpatialBounds(c(-5.0, 2.5)); if (p1.pointPeriodic(-15.5) == -0.5) stop(); }", 1, 441, "requires min coordinates to be 0.0", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xPx + "1 { p1.setSpatialBounds(c(0.0, 2.5)); if (p1.pointPeriodic(-0.5) == 2.0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xPx + "1 { p1.setSpatialBounds(c(0.0, 2.5)); if (p1.pointPeriodic(-5.5) == 2.0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xPx + "1 { p1.setSpatialBounds(c(0.0, 2.5)); if (p1.pointPeriodic(0.0) == 0.0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xPx + "1 { p1.setSpatialBounds(c(0.0, 2.5)); if (p1.pointPeriodic(2.0) == 2.0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xPx + "1 { p1.setSpatialBounds(c(0.0, 2.5)); if (p1.pointPeriodic(2.5) == 2.5) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xPx + "1 { p1.setSpatialBounds(c(0.0, 2.5)); if (p1.pointPeriodic(3.5) == 1.0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xPx + "1 { p1.setSpatialBounds(c(0.0, 2.5)); if (p1.pointPeriodic(11.0) == 1.0) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xPx + "1 { p1.setSpatialBounds(c(0.0, 2.5)); if (p1.pointPeriodic(11.0, 0.0) == -4.0) stop(); }", 1, 479, "too many arguments supplied", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xPx + "1 { p1.setSpatialBounds(c(0.0, 2.5)); if (p1.pointPeriodic(c(11.0, 0.0)) == -4.0) stop(); }", 1, 479, "requires exactly as many coordinates", __LINE__);
+	
 	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { if (identical(p1.spatialBounds, c(0.0, 0.0, 0.0, 1.0, 1.0, 1.0))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.setSpatialBounds(c(-2.0, -100, 10.0, 7.5, -99.5, 12.0)); if (identical(p1.spatialBounds, c(-2.0, -100, 10.0, 7.5, -99.5, 12.0))) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.setSpatialBounds(-2.0); stop(); }", 1, 488, "requires twice as many coordinates", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.setSpatialBounds(c(0.0, 0.0, 1.0, 1.0)); stop(); }", 1, 488, "requires twice as many coordinates", __LINE__);
 	
 	std::string gen1_setup_i1xyz_bounds(gen1_setup_i1xyz + "1 { p1.setSpatialBounds(c(-10.0, 0.0, 10.0,    -9.0, 2.0, 13.0)); ");
+	std::string gen1_setup_i1xyzPxz_bounds(gen1_setup_i1xyzPxz + "1 { p1.setSpatialBounds(c(0.0, 0.0, 0.0,    9.0, 2.0, 13.0)); ");
 	
 	SLiMAssertScriptStop(gen1_setup_i1xyz_bounds + "if (p1.pointInBounds(c(-10.1, 1.0, 11.0)) == F) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_bounds + "if (p1.pointInBounds(c(-9.5, 1.0, 11.0)) == T) stop(); }", __LINE__);
@@ -2001,6 +2043,18 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptRaise(gen1_setup_i1xyz_bounds + "if (p1.pointStopped(11.0, 0.0) == -4.0) stop(); }", 1, 554, "too many arguments supplied", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1xyz_bounds + "if (p1.pointStopped(c(11.0, 0.0)) == -4.0) stop(); }", 1, 554, "requires exactly as many coordinates", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_bounds + "if (size(p1.pointUniform()) == 3) stop(); }", __LINE__);
+	
+	SLiMAssertScriptStop(gen1_setup_i1xyzPxz_bounds + "if (identical(p1.pointPeriodic(c(-10.5, 1.0, 11.0)), c(7.5, 1.0, 11.0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyzPxz_bounds + "if (identical(p1.pointPeriodic(c(-9.5, 1.0, 11.0)), c(8.5, 1.0, 11.0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyzPxz_bounds + "if (identical(p1.pointPeriodic(c(-8.0, 1.0, 11.0)), c(1.0, 1.0, 11.0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyzPxz_bounds + "if (identical(p1.pointPeriodic(c(-9.5, -1.0, 11.0)), c(8.5, -1.0, 11.0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyzPxz_bounds + "if (identical(p1.pointPeriodic(c(-9.5, 1.0, 11.0)), c(8.5, 1.0, 11.0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyzPxz_bounds + "if (identical(p1.pointPeriodic(c(-9.5, 2.5, 11.0)), c(8.5, 2.5, 11.0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyzPxz_bounds + "if (identical(p1.pointPeriodic(c(-9.5, 1.0, 4.5)), c(8.5, 1.0, 4.5))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyzPxz_bounds + "if (identical(p1.pointPeriodic(c(-9.5, 1.0, 11.0)), c(8.5, 1.0, 11.0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyzPxz_bounds + "if (identical(p1.pointPeriodic(c(-9.5, 1.0, 14.5)), c(8.5, 1.0, 1.5))) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyzPxz_bounds + "if (p1.pointPeriodic(11.0, 0.0) == -4.0) stop(); }", 1, 568, "too many arguments supplied", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyzPxz_bounds + "if (p1.pointPeriodic(c(11.0, 0.0)) == -4.0) stop(); }", 1, 568, "requires exactly as many coordinates", __LINE__);
 	
 	// Test spatial stuff including defineSpatialMap(), spatialMapColor(), and spatialMapValue()
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.defineSpatialMap('map', '', integer(0), float(0)); stop(); }", 1, 250, "spatiality \"\" must be", __LINE__);

@@ -1,8 +1,8 @@
 {\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf830
 {\fonttbl\f0\fswiss\fcharset0 Optima-Regular;\f1\fnil\fcharset0 Menlo-Italic;\f2\fnil\fcharset0 Menlo-Regular;
 \f3\froman\fcharset0 TimesNewRomanPSMT;\f4\fswiss\fcharset0 Helvetica;}
-{\colortbl;\red255\green255\blue255;}
-{\*\expandedcolortbl;;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;}
+{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;}
 \margl1440\margr1440\vieww9000\viewh19740\viewkind0
 \deftab720
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
@@ -1769,29 +1769,31 @@ Importantly, distances are calculated according to the spatiality of the
 \f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 Returns a vector containing distances between individuals in 
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+Returns a vector containing distances between individuals in 
 \f2\fs18 individuals1
 \f0\fs20  and the point given by the spatial coordinates in 
 \f2\fs18 point
-\f3\fs20 .
-\f0   The 
+\f0\fs20 .  The 
 \f2\fs18 point
 \f0\fs20  vector is interpreted as providing coordinates precisely as specified by the spatiality of the interaction type; if the interaction type\'92s spatiality is 
 \f2\fs18 "xz"
 \f0\fs20 , for example, then 
 \f2\fs18 point[0]
 \f0\fs20  is assumed to be an 
-\i x
-\i0  value, and 
+\i \cf2 x
+\i0 \cf2  value, and 
 \f2\fs18 point[1]
 \f0\fs20  is assumed to be a 
-\i z
-\i0  value.  Be careful; this means that in general it is not safe to pass an individual\'92s 
+\i \cf2 z
+\i0 \cf2  value.  Be careful; this means that in general it is not safe to pass an individual\'92s 
 \f2\fs18 spatialPosition
 \f0\fs20  property for 
 \f2\fs18 point
-\f0\fs20 , for example (although it is safe if the spatiality of the interaction matches the dimensionality of the simulation).\
-Importantly, distances are calculated according to the spatiality of the 
+\f0\fs20 , for example (although it is safe if the spatiality of the interaction matches the dimensionality of the simulation).  A coordinate for a periodic spatial dimension must be within the spatial bounds for that dimension, since coordinates outside of periodic bounds are meaningless (
+\f2\fs18 pointPeriodic()
+\f0\fs20  may be used to ensure this); coordinates for non-periodic spatial dimensions are not restricted.\
+\cf0 \kerning1\expnd0\expndtw0 Importantly, distances are calculated according to the spatiality of the 
 \f2\fs18 InteractionType
 \f0\fs20  (as declared in 
 \f2\fs18 initializeInteractionType()
@@ -2905,7 +2907,20 @@ The mutation stacking policy applies only within the given mutation type\'92s st
 \f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 scriptBlocks => (object<SLiMEidosBlock>)\
+\f2\fs18 \cf0 periodicity => (string$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+The spatial periodicity of the simulation, as specified in 
+\f2\fs18 initializeSLiMOptions()
+\f0\fs20 .  This will be 
+\f2\fs18 ""
+\f0\fs20  (the empty string) for non-spatial simulations and simulations with no periodic spatial dimensions (the default).  Otherwise, it will be a string representing the subset of spatial dimensions that have been declared to be periodic, as specified to 
+\f2\fs18 initializeSLiMOptions()
+\f0\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 scriptBlocks => (object<SLiMEidosBlock>)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 All registered 
@@ -4050,8 +4065,10 @@ Note that new script blocks can also be created and scheduled using the
 \i0 , then in 
 \i z
 \f3\i0 .\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0 If 
+\f0 \cf2 \expnd0\expndtw0\kerning0
+If 
 \f2\fs18 interpolate
 \f0\fs20  is 
 \f2\fs18 F
@@ -4063,7 +4080,7 @@ Note that new script blocks can also be created and scheduled using the
 \f2\fs18 setSpatialBoundary()
 \f0\fs20 , and the value grid is then stretched across the spatial extent of the subpopulation in such a manner as to produce equal spacing between the values along each dimension.  The setting of 
 \f2\fs18 interpolation
-\f0\fs20  only affects how values between these grid points are calculated: by nearest-neighbor, or by linear interpolation.\
+\f0\fs20  only affects how values between these grid points are calculated: by nearest-neighbor, or by linear interpolation.  Interpolation of spatial maps with periodic boundaries is not handled specially; to ensure that the edges of a periodic spatial map join smoothly, simply ensure that the grid values at the edges of the map are identical, since they will be coincident after periodic wrapping.\cf0 \kerning1\expnd0\expndtw0 \
 The 
 \f2\fs18 valueRange
 \f0\fs20  and 
@@ -4321,7 +4338,35 @@ If the optional parameter
 \f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(float)pointReflected(float\'a0point)
+\f2\fs18 \cf0 \'96\'a0(float)pointPeriodic(float\'a0point)
+\f3 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+Returns a revised version of 
+\f2\fs18 point
+\f0\fs20  that has been brought inside the periodic spatial boundaries of the subpopulation (as specified by the 
+\f2\fs18 periodicity
+\f0\fs20  parameter of 
+\f2\fs18 initializeSLiMOptions()
+\f0\fs20 ) by wrapping around periodic spatial boundaries.  In brief, if a coordinate of 
+\f2\fs18 point
+\f0\fs20  lies beyond a periodic spatial boundary, that coordinate is wrapped around the boundary, so that it lies inside the spatial extent by the same magnitude that it previously lay outside, but on the opposite side of the space; in effect, the two edges of the periodic spatial boundary are seamlessly joined.  This is done iteratively until all coordinates lie inside the subpopulation\'92s periodic boundaries.  Note that non-periodic spatial boundaries are not enforced by this method; they should be enforced using 
+\f2\fs18 pointReflected()
+\f0\fs20 , 
+\f2\fs18 pointStopped()
+\f0\fs20 , or some other means of enforcing boundary constraints (which can be used after 
+\f2\fs18 pointPeriodic()
+\f0\fs20  to bring the remaining coordinates into bounds; coordinates already brought into bounds by 
+\f2\fs18 pointPeriodic()
+\f0\fs20  will be unaffected by those calls).  This method is useful for implementing periodic boundary conditions.  This may only be called in simulations for which continuous space  and at least one periodic spatial dimension have been enabled with 
+\f2\fs18 initializeSLiMOptions()
+\f0\fs20 , and the length of 
+\f2\fs18 point
+\f0\fs20  must match the dimensionality of the simulation.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(float)pointReflected(float\'a0point)
 \f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -4424,12 +4469,12 @@ If the optional parameter
 
 \f2\fs18 \cf0 \'96\'a0(void)setSpatialBounds(float\'a0bounds)
 \f3 \
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 Set the spatial boundaries of the subpopulation to 
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+Set the spatial boundaries of the subpopulation to 
 \f2\fs18 bounds
-\f3\fs20 .
-\f0   This method may be called only for simulations in which continuous space has been enabled with 
+\f0\fs20 .  This method may be called only for simulations in which continuous space has been enabled with 
 \f2\fs18 initializeSLiMOptions()
 \f0\fs20 .  The length of 
 \f2\fs18 bounds
@@ -4455,12 +4500,17 @@ If the optional parameter
 \f2\fs18 pointStopped()
 \f0\fs20 , and 
 \f2\fs18 pointUniform()
-\f3\fs20 .
-\f0   The default spatial boundaries for all subpopulations span the interval 
+\f0\fs20 .  The default spatial boundaries for all subpopulations span the interval 
 \f2\fs18 [0,1]
-\f0\fs20  in each dimension.  The current spatial bounds for the subpopulation may be obtained through the 
+\f0\fs20  in each dimension.  Spatial dimensions that are periodic (as established with the 
+\f2\fs18 periodicity
+\f0\fs20  parameter to 
+\f2\fs18 initializeSLiMOptions()
+\f0\fs20 ) must have a minimum coordinate value of 
+\f2\fs18 0.0
+\f0\fs20  (a restriction that allows the handling of periodicity to be somewhat more efficient).  The current spatial bounds for the subpopulation may be obtained through the 
 \f2\fs18 spatialBounds
-\f0\fs20  property.\
+\f0\fs20  property.\cf0 \kerning1\expnd0\expndtw0 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \'96\'a0(void)setSubpopulationSize(integer$\'a0size)
@@ -4521,7 +4571,8 @@ If the optional parameter
 \f3 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 Looks up the spatial map indicated by 
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+Looks up the spatial map indicated by 
 \f2\fs18 name
 \f0\fs20 , and uses its mapping machinery (as defined by the 
 \f2\fs18 gridSize
@@ -4545,10 +4596,12 @@ If the optional parameter
 \i x
 \i0  and 
 \i z
-\i0  coordinates of the point to be evaluated.  Interpolation will automatically be used if it was enabled for the spatial map.  See the documentation for 
+\i0  coordinates of the point to be evaluated.  Interpolation will automatically be used if it was enabled for the spatial map.  Point coordinates are clamped into the range defined by the spatial boundaries, even if the spatial boundaries are periodic; use 
+\f2\fs18 pointPeriodic()
+\f0\fs20  to wrap the point coordinates first if desired.  See the documentation for 
 \f2\fs18 defineSpatialMap()
 \f0\fs20  for information regarding the details of value mapping.
-\f3 \
+\f3 \cf0 \kerning1\expnd0\expndtw0 \
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf0 5.13  Class Substitution\

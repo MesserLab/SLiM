@@ -2353,6 +2353,7 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 		case gID_pointInBounds:			return ExecuteMethod_pointInBounds(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_pointReflected:		return ExecuteMethod_pointReflected(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_pointStopped:			return ExecuteMethod_pointStopped(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_pointPeriodic:			return ExecuteMethod_pointPeriodic(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_pointUniform:			return ExecuteMethod_pointUniform(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_setCloningRate:		return ExecuteMethod_setCloningRate(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_setSelfingRate:		return ExecuteMethod_setSelfingRate(p_method_id, p_arguments, p_argument_count, p_interpreter);
@@ -2582,6 +2583,96 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointStopped(EidosGlobalStringID p_me
 	return gStaticEidosValueNULLInvisible;
 }			
 
+//	*********************	– (float)pointPeriodic(float point)
+//
+EidosValue_SP Subpopulation::ExecuteMethod_pointPeriodic(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *arg0_value = p_arguments[0].get();
+	
+	SLiMSim &sim = population_.sim_;
+	
+	int dimensionality = sim.SpatialDimensionality();
+	int value_count = arg0_value->Count();
+	
+	if (dimensionality == 0)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointPeriodic): pointPeriodic() cannot be called in non-spatial simulations." << EidosTerminate();
+	if (value_count != dimensionality)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointPeriodic): pointPeriodic() requires exactly as many coordinates as the spatial dimensionality of the simulation." << EidosTerminate();
+	
+	bool periodic_x, periodic_y, periodic_z;
+	
+	sim.SpatialPeriodicity(&periodic_x, &periodic_y, &periodic_z);
+	
+	if (!periodic_x && !periodic_y && !periodic_z)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointPeriodic): pointPeriodic() cannot be called when no periodic spatial dimension has been set up." << EidosTerminate();
+	
+	// Wrap coordinates; note that we assume here that bounds_x0_ == bounds_y0_ == bounds_z0_ == 0,
+	// which is enforced when periodic boundary conditions are set, in setSpatialBounds().  Note also
+	// that we don't use fmod(); maybe we should, rather than looping, but then we have to worry about
+	// sign, and since new spatial points are probably usually close to being in bounds, these loops
+	// probably won't execute more than once anyway...
+	switch (dimensionality)
+	{
+		case 1:
+		{
+			double x = arg0_value->FloatAtIndex(0, nullptr);
+			
+			if (periodic_x)
+			{
+				while (x < 0.0)			x += bounds_x1_;
+				while (x > bounds_x1_)	x -= bounds_x1_;
+			}
+			
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(x));
+		}
+		case 2:
+		{
+			double x = arg0_value->FloatAtIndex(0, nullptr);
+			double y = arg0_value->FloatAtIndex(1, nullptr);
+			
+			if (periodic_x)
+			{
+				while (x < 0.0)			x += bounds_x1_;
+				while (x > bounds_x1_)	x -= bounds_x1_;
+			}
+			if (periodic_y)
+			{
+				while (y < 0.0)			y += bounds_y1_;
+				while (y > bounds_y1_)	y -= bounds_y1_;
+			}
+			
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{x, y});
+		}
+		case 3:
+		{
+			double x = arg0_value->FloatAtIndex(0, nullptr);
+			double y = arg0_value->FloatAtIndex(1, nullptr);
+			double z = arg0_value->FloatAtIndex(2, nullptr);
+			
+			if (periodic_x)
+			{
+				while (x < 0.0)			x += bounds_x1_;
+				while (x > bounds_x1_)	x -= bounds_x1_;
+			}
+			if (periodic_y)
+			{
+				while (y < 0.0)			y += bounds_y1_;
+				while (y > bounds_y1_)	y -= bounds_y1_;
+			}
+			if (periodic_z)
+			{
+				while (z < 0.0)			z += bounds_z1_;
+				while (z > bounds_z1_)	z -= bounds_z1_;
+			}
+			
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{x, y, z});
+		}
+	}
+	
+	return gStaticEidosValueNULLInvisible;
+}			
+
 //	*********************	– (float)pointUniform(void)
 //
 EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
@@ -2733,7 +2824,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSpatialBounds(EidosGlobalStringID 
 	if (value_count != dimensionality * 2)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSpatialBounds): setSpatialBounds() requires twice as many coordinates as the spatial dimensionality of the simulation." << EidosTerminate();
 	
-	bool bad_bounds = false;
+	bool bad_bounds = false, bad_periodic_bounds = false;
+	bool periodic_x, periodic_y, periodic_z;
+	
+	sim.SpatialPeriodicity(&periodic_x, &periodic_y, &periodic_z);
 	
 	switch (dimensionality)
 	{
@@ -2742,6 +2836,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSpatialBounds(EidosGlobalStringID 
 			
 			if (bounds_x1_ <= bounds_x0_)
 				bad_bounds = true;
+			if (periodic_x && (bounds_x0_ != 0.0))
+				bad_periodic_bounds = true;
 			
 			break;
 		case 2:
@@ -2750,6 +2846,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSpatialBounds(EidosGlobalStringID 
 			
 			if ((bounds_x1_ <= bounds_x0_) || (bounds_y1_ <= bounds_y0_))
 				bad_bounds = true;
+			if ((periodic_x && (bounds_x0_ != 0.0)) || (periodic_y && (bounds_y0_ != 0.0)))
+				bad_periodic_bounds = true;
 			
 			break;
 		case 3:
@@ -2759,12 +2857,19 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSpatialBounds(EidosGlobalStringID 
 			
 			if ((bounds_x1_ <= bounds_x0_) || (bounds_y1_ <= bounds_y0_) || (bounds_z1_ <= bounds_z0_))
 				bad_bounds = true;
+			if ((periodic_x && (bounds_x0_ != 0.0)) || (periodic_y && (bounds_y0_ != 0.0)) || (periodic_z && (bounds_z0_ != 0.0)))
+				bad_periodic_bounds = true;
 			
 			break;
 	}
 	
 	if (bad_bounds)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSpatialBounds): setSpatialBounds() requires min coordinates to be less than max coordinates." << EidosTerminate();
+	
+	// When a spatial dimension has been declared to be periodic, we require a min coordinate of 0.0 for that dimension
+	// to keep the wrapping math simple and fast; it would not be hard to generalize the math but it would be slower
+	if (bad_periodic_bounds)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSpatialBounds): setSpatialBounds() requires min coordinates to be 0.0 for dimensions that are periodic." << EidosTerminate();
 	
 	return gStaticEidosValueNULLInvisible;
 }			
@@ -3351,6 +3456,7 @@ const std::vector<const EidosMethodSignature *> *Subpopulation_Class::Methods(vo
 		methods->emplace_back(SignatureForMethodOrRaise(gID_pointInBounds));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_pointReflected));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_pointStopped));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_pointPeriodic));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_pointUniform));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_setCloningRate));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_setSelfingRate));
@@ -3377,6 +3483,7 @@ const EidosMethodSignature *Subpopulation_Class::SignatureForMethod(EidosGlobalS
 	static EidosInstanceMethodSignature *pointInBoundsSig = nullptr;
 	static EidosInstanceMethodSignature *pointReflectedSig = nullptr;
 	static EidosInstanceMethodSignature *pointStoppedSig = nullptr;
+	static EidosInstanceMethodSignature *pointPeriodicSig = nullptr;
 	static EidosInstanceMethodSignature *pointUniformSig = nullptr;
 	static EidosInstanceMethodSignature *setCloningRateSig = nullptr;
 	static EidosInstanceMethodSignature *setSelfingRateSig = nullptr;
@@ -3397,6 +3504,7 @@ const EidosMethodSignature *Subpopulation_Class::SignatureForMethod(EidosGlobalS
 		pointInBoundsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointInBounds, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddFloat("point");
 		pointReflectedSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointReflected, kEidosValueMaskFloat))->AddFloat("point");
 		pointStoppedSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointStopped, kEidosValueMaskFloat))->AddFloat("point");
+		pointPeriodicSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointPeriodic, kEidosValueMaskFloat))->AddFloat("point");
 		pointUniformSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointUniform, kEidosValueMaskFloat));
 		setCloningRateSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setCloningRate, kEidosValueMaskNULL))->AddNumeric("rate");
 		setSelfingRateSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSelfingRate, kEidosValueMaskNULL))->AddNumeric_S("rate");
@@ -3419,6 +3527,7 @@ const EidosMethodSignature *Subpopulation_Class::SignatureForMethod(EidosGlobalS
 		case gID_pointInBounds:			return pointInBoundsSig;
 		case gID_pointReflected:		return pointReflectedSig;
 		case gID_pointStopped:			return pointStoppedSig;
+		case gID_pointPeriodic:			return pointPeriodicSig;
 		case gID_pointUniform:			return pointUniformSig;
 		case gID_setCloningRate:		return setCloningRateSig;
 		case gID_setSelfingRate:		return setSelfingRateSig;

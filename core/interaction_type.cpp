@@ -74,6 +74,7 @@ InteractionType::~InteractionType(void)
 
 void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_immediate)
 {
+	SLiMSim &sim = p_subpop->population_.sim_;
 	slim_objectid_t subpop_id = p_subpop->subpopulation_id_;
 	slim_popsize_t subpop_size = p_subpop->parent_subpop_size_;
 	Individual *subpop_individuals = p_subpop->parent_individuals_.data();
@@ -107,6 +108,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 		}
 		
 		subpop_data->first_male_index_ = p_subpop->parent_first_male_index_;
+		subpop_data->kd_node_count_ = 0;
 		
 		// Ensure that other parts of the subpop data block are correctly reset to the same state that Invalidate()
 		// uses; normally this has already been done by Initialize(), but not necessarily.
@@ -150,75 +152,272 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 		// only place in the code where spatiality_string_ should be used (apart from the property accessor); everywhere
 		// else, spatiality_ should suffice.  Be careful to keep following this convention, and the different spatiality
 		// values will just automatically work.
+		bool out_of_bounds_seen = false;
+		
 		if (spatiality_string_ == "x")
 		{
-			while (ind_index < subpop_size)
+			sim.SpatialPeriodicity(&periodic_x_, nullptr, nullptr);
+			subpop_data->bounds_x1_ = p_subpop->bounds_x1_;
+			
+			if (!periodic_x_)
 			{
-				ind_positions[0] = individual->spatial_x_;
-				++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+				// fast loop for the non-periodic case
+				while (ind_index < subpop_size)
+				{
+					ind_positions[0] = individual->spatial_x_;
+					++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+				}
+			}
+			else
+			{
+				// bounds-check individual coordinates when periodic
+				double coord_bound = subpop_data->bounds_x1_;
+				
+				while (ind_index < subpop_size)
+				{
+					double coord = individual->spatial_x_;
+					
+					if ((coord < 0.0) || (coord > coord_bound))
+						out_of_bounds_seen = true;
+					
+					ind_positions[0] = coord;
+					++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+				}
 			}
 		}
 		else if (spatiality_string_ == "y")
 		{
-			while (ind_index < subpop_size)
+			sim.SpatialPeriodicity(nullptr, &periodic_x_, nullptr);
+			subpop_data->bounds_x1_ = p_subpop->bounds_y1_;
+			
+			if (!periodic_x_)
 			{
-				ind_positions[0] = individual->spatial_y_;
-				++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+				// fast loop for the non-periodic case
+				while (ind_index < subpop_size)
+				{
+					ind_positions[0] = individual->spatial_y_;
+					++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+				}
+			}
+			else
+			{
+				// bounds-check individual coordinates when periodic
+				double coord_bound = subpop_data->bounds_x1_;
+				
+				while (ind_index < subpop_size)
+				{
+					double coord = individual->spatial_y_;
+					
+					if ((coord < 0.0) || (coord > coord_bound))
+						out_of_bounds_seen = true;
+					
+					ind_positions[0] = coord;
+					++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+				}
 			}
 		}
 		else if (spatiality_string_ == "z")
 		{
-			while (ind_index < subpop_size)
+			sim.SpatialPeriodicity(nullptr, nullptr, &periodic_x_);
+			subpop_data->bounds_x1_ = p_subpop->bounds_z1_;
+			
+			if (!periodic_x_)
 			{
-				ind_positions[0] = individual->spatial_z_;
-				++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+				// fast loop for the non-periodic case
+				while (ind_index < subpop_size)
+				{
+					ind_positions[0] = individual->spatial_z_;
+					++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+				}
+			}
+			else
+			{
+				// bounds-check individual coordinates when periodic
+				double coord_bound = subpop_data->bounds_x1_;
+				
+				while (ind_index < subpop_size)
+				{
+					double coord = individual->spatial_z_;
+					
+					if ((coord < 0.0) || (coord > coord_bound))
+						out_of_bounds_seen = true;
+					
+					ind_positions[0] = coord;
+					++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+				}
 			}
 		}
 		else if (spatiality_string_ == "xy")
 		{
-			while (ind_index < subpop_size)
+			sim.SpatialPeriodicity(&periodic_x_, &periodic_y_, nullptr);
+			subpop_data->bounds_x1_ = p_subpop->bounds_x1_;
+			subpop_data->bounds_y1_ = p_subpop->bounds_y1_;
+			
+			if (!periodic_x_ && !periodic_y_)
 			{
-				ind_positions[0] = individual->spatial_x_;
-				ind_positions[1] = individual->spatial_y_;
-				++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+				// fast loop for the non-periodic case
+				while (ind_index < subpop_size)
+				{
+					ind_positions[0] = individual->spatial_x_;
+					ind_positions[1] = individual->spatial_y_;
+					++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+				}
+			}
+			else
+			{
+				// bounds-check individual coordinates when periodic
+				double coord1_bound = subpop_data->bounds_x1_;
+				double coord2_bound = subpop_data->bounds_y1_;
+				
+				while (ind_index < subpop_size)
+				{
+					double coord1 = individual->spatial_x_;
+					double coord2 = individual->spatial_y_;
+					
+					if ((periodic_x_ && ((coord1 < 0.0) || (coord1 > coord1_bound))) ||
+						(periodic_y_ && ((coord2 < 0.0) || (coord2 > coord2_bound))))
+						out_of_bounds_seen = true;
+					
+					ind_positions[0] = coord1;
+					ind_positions[1] = coord2;
+					++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+				}
 			}
 		}
 		else if (spatiality_string_ == "xz")
 		{
-			while (ind_index < subpop_size)
+			sim.SpatialPeriodicity(&periodic_x_, nullptr, &periodic_y_);
+			subpop_data->bounds_x1_ = p_subpop->bounds_x1_;
+			subpop_data->bounds_y1_ = p_subpop->bounds_z1_;
+			
+			if (!periodic_x_ && !periodic_y_)
 			{
-				ind_positions[0] = individual->spatial_x_;
-				ind_positions[1] = individual->spatial_z_;
-				++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+				// fast loop for the non-periodic case
+				while (ind_index < subpop_size)
+				{
+					ind_positions[0] = individual->spatial_x_;
+					ind_positions[1] = individual->spatial_z_;
+					++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+				}
+			}
+			else
+			{
+				// bounds-check individual coordinates when periodic
+				double coord1_bound = subpop_data->bounds_x1_;
+				double coord2_bound = subpop_data->bounds_y1_;
+				
+				while (ind_index < subpop_size)
+				{
+					double coord1 = individual->spatial_x_;
+					double coord2 = individual->spatial_z_;
+					
+					if ((periodic_x_ && ((coord1 < 0.0) || (coord1 > coord1_bound))) ||
+						(periodic_y_ && ((coord2 < 0.0) || (coord2 > coord2_bound))))
+						out_of_bounds_seen = true;
+					
+					ind_positions[0] = coord1;
+					ind_positions[1] = coord2;
+					++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+				}
 			}
 		}
 		else if (spatiality_string_ == "yz")
 		{
-			while (ind_index < subpop_size)
+			sim.SpatialPeriodicity(nullptr, &periodic_x_, &periodic_y_);
+			subpop_data->bounds_x1_ = p_subpop->bounds_y1_;
+			subpop_data->bounds_y1_ = p_subpop->bounds_z1_;
+			
+			if (!periodic_x_ && !periodic_y_)
 			{
-				ind_positions[0] = individual->spatial_y_;
-				ind_positions[1] = individual->spatial_z_;
-				++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+				// fast loop for the non-periodic case
+				while (ind_index < subpop_size)
+				{
+					ind_positions[0] = individual->spatial_y_;
+					ind_positions[1] = individual->spatial_z_;
+					++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+				}
+			}
+			else
+			{
+				// bounds-check individual coordinates when periodic
+				double coord1_bound = subpop_data->bounds_x1_;
+				double coord2_bound = subpop_data->bounds_y1_;
+				
+				while (ind_index < subpop_size)
+				{
+					double coord1 = individual->spatial_y_;
+					double coord2 = individual->spatial_z_;
+					
+					if ((periodic_x_ && ((coord1 < 0.0) || (coord1 > coord1_bound))) ||
+						(periodic_y_ && ((coord2 < 0.0) || (coord2 > coord2_bound))))
+						out_of_bounds_seen = true;
+					
+					ind_positions[0] = coord1;
+					ind_positions[1] = coord2;
+					++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+				}
 			}
 		}
 		else if (spatiality_string_ == "xyz")
 		{
-			while (ind_index < subpop_size)
+			sim.SpatialPeriodicity(&periodic_x_, &periodic_y_, &periodic_z_);
+			subpop_data->bounds_x1_ = p_subpop->bounds_x1_;
+			subpop_data->bounds_y1_ = p_subpop->bounds_y1_;
+			subpop_data->bounds_z1_ = p_subpop->bounds_z1_;
+			
+			if (!periodic_x_ && !periodic_y_ && !periodic_z_)
 			{
-				ind_positions[0] = individual->spatial_x_;
-				ind_positions[1] = individual->spatial_y_;
-				ind_positions[2] = individual->spatial_z_;
-				++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+				// fast loop for the non-periodic case
+				while (ind_index < subpop_size)
+				{
+					ind_positions[0] = individual->spatial_x_;
+					ind_positions[1] = individual->spatial_y_;
+					ind_positions[2] = individual->spatial_z_;
+					++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+				}
+			}
+			else
+			{
+				// bounds-check individual coordinates when periodic
+				double coord1_bound = subpop_data->bounds_x1_;
+				double coord2_bound = subpop_data->bounds_y1_;
+				double coord3_bound = subpop_data->bounds_z1_;
+				
+				while (ind_index < subpop_size)
+				{
+					double coord1 = individual->spatial_x_;
+					double coord2 = individual->spatial_y_;
+					double coord3 = individual->spatial_z_;
+					
+					if ((periodic_x_ && ((coord1 < 0.0) || (coord1 > coord1_bound))) ||
+						(periodic_y_ && ((coord2 < 0.0) || (coord2 > coord2_bound))) ||
+						(periodic_z_ && ((coord3 < 0.0) || (coord3 > coord3_bound))))
+						out_of_bounds_seen = true;
+					
+					ind_positions[0] = coord1;
+					ind_positions[1] = coord2;
+					ind_positions[2] = coord3;
+					++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+				}
 			}
 		}
 		else
 		{
 			EIDOS_TERMINATION << "ERROR (InteractionType::EvaluateSubpopulation): (internal error) illegal spatiality string value" << EidosTerminate();
 		}
+		
+		if (out_of_bounds_seen)
+			EIDOS_TERMINATION << "ERROR (InteractionType::EvaluateSubpopulation): an individual position was seen that is out of bounds for a periodic spatial dimension; positions within periodic bounds are required by InteractionType since the underlying spatial engine's integrity depends upon them.  The use of pointPeriodic() is recommended to enforce periodic boundaries." << EidosTerminate();
 	}
 	
+	// Check that our maximum interactions distance does not violate the assumptions of periodic boundaries;
+	// an individual cannot interact with the same individual more than once, through wrapping around.
+	if ((periodic_x_ && (subpop_data->bounds_x1_ <= max_distance_ * 2.0)) ||
+		(periodic_y_ && (subpop_data->bounds_y1_ <= max_distance_ * 2.0)) ||
+		(periodic_z_ && (subpop_data->bounds_z1_ <= max_distance_ * 2.0)))
+		EIDOS_TERMINATION << "ERROR (InteractionType::EvaluateSubpopulation): maximum interaction distance is greater than or equal to half of the spatial extent of a periodic spatial dimension, which would allow an individual to participate in more than one interaction with a single individual.  When periodic boundaries are used, the maximum interaction distance of interaction types involving periodic dimensions must be less than half of the spatial extent of those dimensions." << EidosTerminate();
+	
 	// Cache the interaction() callbacks applicable at this moment, for this subpopulation and this interaction type
-	SLiMSim &sim = p_subpop->population_.sim_;
 	slim_generation_t generation = sim.Generation();
 	
 	subpop_data->evaluation_interaction_callbacks_ = sim.ScriptBlocksMatching(generation, SLiMEidosBlockType::SLiMEidosInteractionCallback, -1, interaction_type_id_, subpop_id);
@@ -446,9 +645,189 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 			}
 		}
 	}
+	else if (periodic_x_ || periodic_y_ || periodic_z_)
+	{
+		// Spatial with at least one periodic dimension; we call out to CalculateDistanceWithPeriodicity() in this case.
+		// Otherwise this section is identical to the non-periodic section below, which inlines its distance calculations.
+		if (!reciprocal_)
+		{
+			// No reciprocality, so we don't need to mirror; just go through strengths_ sequentially
+			int receiving_index = 0;
+			double *receiving_position = subpop_data.positions_;
+			double *receiving_distance = subpop_data.distances_;
+			double *receiving_strength = subpop_data.strengths_;
+			Individual *receiving_individual = subpop_individuals;
+			
+			while (receiving_index < subpop_size)
+			{
+				int exerting_index = 0;
+				double *exerting_position = subpop_data.positions_;
+				double *exerting_distance = receiving_distance;		// follow the row of receiver data
+				double *exerting_strength = receiving_strength;		// follow the row of receiver data
+				Individual *exerting_individual = subpop_individuals;
+				
+				// The inner loop depends on sex-segregation.  If it is enabled, we need to check the existing strength value
+				// and fill only when necessary; if not, we fill in all values with no check because we're overwriting garbage.
+				if (is_sex_segregated)
+				{
+					while (exerting_index < subpop_size)
+					{
+						// First, we always calculate the distance
+						double distance = CalculateDistanceWithPeriodicity(exerting_position, receiving_position, subpop_data);
+						
+						*exerting_distance = distance;
+						
+						// Then we calculate the strength, only if it is NAN; no need to check for self-interaction here
+						if (std::isnan(*exerting_strength))
+						{
+							if (distance <= max_distance_)
+							{
+								if (no_callbacks)
+									*exerting_strength = CalculateStrengthNoCallbacks(distance);
+								else
+									*exerting_strength = CalculateStrengthWithCallbacks(distance, receiving_individual, exerting_individual, p_subpop, callbacks);
+							}
+							else
+								*exerting_strength = 0.0;
+						}
+						
+						exerting_index++, exerting_position += SLIM_MAX_DIMENSIONALITY, exerting_distance++, exerting_strength++, exerting_individual++;
+					}
+				}
+				else
+				{
+					while (exerting_index < subpop_size)
+					{
+						if (receiving_index == exerting_index)
+						{
+							// Individuals are at zero distance from themselves, but exert no interaction strength
+							*exerting_distance = 0;
+							*exerting_strength = 0;
+						}
+						else
+						{
+							// Calculate the distance and the interaction strength
+							double distance = CalculateDistanceWithPeriodicity(exerting_position, receiving_position, subpop_data);
+							
+							*exerting_distance = distance;
+							
+							if (distance <= max_distance_)
+							{
+								if (no_callbacks)
+									*exerting_strength = CalculateStrengthNoCallbacks(distance);
+								else
+									*exerting_strength = CalculateStrengthWithCallbacks(distance, receiving_individual, exerting_individual, p_subpop, callbacks);
+							}
+							else
+								*exerting_strength = 0.0;
+						}
+						
+						exerting_index++, exerting_position += SLIM_MAX_DIMENSIONALITY, exerting_distance++, exerting_strength++, exerting_individual++;
+					}
+				}
+				
+				receiving_index++, receiving_position += SLIM_MAX_DIMENSIONALITY, receiving_distance += subpop_size, receiving_strength += subpop_size, receiving_individual++;
+			}
+		}
+		else
+		{
+			// Reciprocality, so we will do the top-right half and mirror it down into the bottom-left half
+			// This is essentially parallel to the code above, but with twice the pointers and half the work
+			int receiving_index = 0;
+			double *receiving_position = subpop_data.positions_;
+			double *receiving_distance = subpop_data.distances_;
+			double *mirror_receiving_distance = subpop_data.distances_;
+			double *receiving_strength = subpop_data.strengths_;
+			double *mirror_receiving_strength = subpop_data.strengths_;
+			Individual *receiving_individual = subpop_individuals;
+			
+			while (receiving_index < subpop_size)
+			{
+				int exerting_index = receiving_index;
+				double *exerting_position = subpop_data.positions_ + exerting_index * SLIM_MAX_DIMENSIONALITY;
+				double *exerting_distance = receiving_distance + exerting_index;
+				double *mirror_exerting_distance = mirror_receiving_distance + exerting_index * subpop_size;
+				double *exerting_strength = receiving_strength + exerting_index;
+				double *mirror_exerting_strength = mirror_receiving_strength + exerting_index * subpop_size;
+				Individual *exerting_individual = subpop_individuals;
+				
+				if (is_sex_segregated)
+				{
+					while (exerting_index < subpop_size)
+					{
+						double distance = CalculateDistanceWithPeriodicity(exerting_position, receiving_position, subpop_data);
+						
+						*exerting_distance = distance;
+						*mirror_exerting_distance = distance;
+						
+						if (std::isnan(*exerting_strength))
+						{
+							double strength;
+							
+							if (distance <= max_distance_)
+							{
+								if (no_callbacks)
+									strength = CalculateStrengthNoCallbacks(distance);
+								else
+									strength = CalculateStrengthWithCallbacks(distance, receiving_individual, exerting_individual, p_subpop, callbacks);
+							}
+							else
+								strength = 0.0;
+							
+							*exerting_strength = strength;
+							*mirror_exerting_strength = strength;
+						}
+						
+						exerting_index++, exerting_position += SLIM_MAX_DIMENSIONALITY, exerting_distance++, exerting_strength++, exerting_individual++;
+						mirror_exerting_distance += subpop_size, mirror_exerting_strength += subpop_size;
+					}
+				}
+				else
+				{
+					while (exerting_index < subpop_size)
+					{
+						if (receiving_index == exerting_index)
+						{
+							*exerting_distance = 0;
+							*exerting_strength = 0;
+							// no need to set *mirror_exerting_distance or *mirror_exerting_strength, they point to the same memory
+						}
+						else
+						{
+							double distance = CalculateDistanceWithPeriodicity(exerting_position, receiving_position, subpop_data);
+							
+							*exerting_distance = distance;
+							*mirror_exerting_distance = distance;
+							
+							double strength;
+							
+							if (distance <= max_distance_)
+							{
+								if (no_callbacks)
+									strength = CalculateStrengthNoCallbacks(distance);
+								else
+									strength = CalculateStrengthWithCallbacks(distance, receiving_individual, exerting_individual, p_subpop, callbacks);
+							}
+							else
+								strength = 0.0;
+							
+							*exerting_strength = strength;
+							*mirror_exerting_strength = strength;
+						}
+						
+						exerting_index++, exerting_position += SLIM_MAX_DIMENSIONALITY, exerting_distance++, exerting_strength++, exerting_individual++;
+						mirror_exerting_distance += subpop_size, mirror_exerting_strength += subpop_size;
+					}
+				}
+				
+				receiving_index++, receiving_position += SLIM_MAX_DIMENSIONALITY, receiving_distance += subpop_size, receiving_strength += subpop_size, receiving_individual++;
+				mirror_receiving_distance++, mirror_receiving_strength++;
+			}
+		}
+	}
 	else
 	{
-		// Spatial interactions involve distances, so we need to calculate those, too
+		// Spatial interactions involve distances, so we need to calculate those, too.  This is the no-periodicity case.
 		if (!reciprocal_)
 		{
 			// No reciprocality, so we don't need to mirror; just go through strengths_ sequentially
@@ -735,6 +1114,112 @@ double InteractionType::CalculateDistance(double *p_position1, double *p_positio
 		EIDOS_TERMINATION << "ERROR (InteractionType::CalculateDistance): calculation of distances requires that the interaction be spatial." << EidosTerminate();
 }
 
+// Calculate a distance including effects of periodicity.  This can always be called instead of
+// CalculateDistance(), it is just a little slower since it has to check the periodicity flags.
+double InteractionType::CalculateDistanceWithPeriodicity(double *p_position1, double *p_position2, InteractionsData &p_subpop_data)
+{
+	if (spatiality_ == 1)
+	{
+		if (periodic_x_)
+		{
+			double x1 = p_position1[0], x2 = p_position2[0], d1, d2;
+			
+			if (x1 < x2)	{ d1 = x2 - x1; d2 = (x1 + p_subpop_data.bounds_x1_) - x2; }
+			else			{ d1 = x1 - x2; d2 = (x2 + p_subpop_data.bounds_x1_) - x1; }
+			
+			return std::min(d1, d2);
+		}
+		else
+		{
+			return fabs(p_position1[0] - p_position2[0]);
+		}
+	}
+	else if (spatiality_ == 2)
+	{
+		double distance_x, distance_y;
+		
+		if (periodic_x_)
+		{
+			double x1 = p_position1[0], x2 = p_position2[0], d1, d2;
+			
+			if (x1 < x2)	{ d1 = x2 - x1; d2 = (x1 + p_subpop_data.bounds_x1_) - x2; }
+			else			{ d1 = x1 - x2; d2 = (x2 + p_subpop_data.bounds_x1_) - x1; }
+			
+			distance_x = std::min(d1, d2);
+		}
+		else
+		{
+			distance_x = p_position1[0] - p_position2[0];
+		}
+		
+		if (periodic_y_)
+		{
+			double y1 = p_position1[1], y2 = p_position2[1], d1, d2;
+			
+			if (y1 < y2)	{ d1 = y2 - y1; d2 = (y1 + p_subpop_data.bounds_y1_) - y2; }
+			else			{ d1 = y1 - y2; d2 = (y2 + p_subpop_data.bounds_y1_) - y1; }
+			
+			distance_y = std::min(d1, d2);
+		}
+		else
+		{
+			distance_y = p_position1[1] - p_position2[1];
+		}
+		
+		return sqrt(distance_x * distance_x + distance_y * distance_y);
+	}
+	else if (spatiality_ == 3)
+	{
+		double distance_x, distance_y, distance_z;
+		
+		if (periodic_x_)
+		{
+			double x1 = p_position1[0], x2 = p_position2[0], d1, d2;
+			
+			if (x1 < x2)	{ d1 = x2 - x1; d2 = (x1 + p_subpop_data.bounds_x1_) - x2; }
+			else			{ d1 = x1 - x2; d2 = (x2 + p_subpop_data.bounds_x1_) - x1; }
+			
+			distance_x = std::min(d1, d2);
+		}
+		else
+		{
+			distance_x = p_position1[0] - p_position2[0];
+		}
+		
+		if (periodic_y_)
+		{
+			double y1 = p_position1[1], y2 = p_position2[1], d1, d2;
+			
+			if (y1 < y2)	{ d1 = y2 - y1; d2 = (y1 + p_subpop_data.bounds_y1_) - y2; }
+			else			{ d1 = y1 - y2; d2 = (y2 + p_subpop_data.bounds_y1_) - y1; }
+			
+			distance_y = std::min(d1, d2);
+		}
+		else
+		{
+			distance_y = p_position1[1] - p_position2[1];
+		}
+		
+		if (periodic_z_)
+		{
+			double z1 = p_position1[2], z2 = p_position2[2], d1, d2;
+			
+			if (z1 < z2)	{ d1 = z2 - z1; d2 = (z1 + p_subpop_data.bounds_z1_) - z2; }
+			else			{ d1 = z1 - z2; d2 = (z2 + p_subpop_data.bounds_z1_) - z1; }
+			
+			distance_z = std::min(d1, d2);
+		}
+		else
+		{
+			distance_z = p_position1[2] - p_position2[2];
+		}
+		
+		return sqrt(distance_x * distance_x + distance_y * distance_y + distance_z * distance_z);
+	}
+	else
+		EIDOS_TERMINATION << "ERROR (InteractionType::CalculateDistanceWithPeriodicity): calculation of distances requires that the interaction be spatial." << EidosTerminate();
+}
+
 double InteractionType::CalculateStrengthNoCallbacks(double p_distance)
 {
 	// CAUTION: This method should only be called when p_distance <= max_distance_ (or is NAN).
@@ -792,7 +1277,7 @@ double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Indivi
 				EidosValue *result = result_SP.get();
 				
 				if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
-					EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyInteractionCallbacks): interaction() callbacks must provide a float singleton return value." << EidosTerminate(interaction_callback->identifier_token_);
+					EIDOS_TERMINATION << "ERROR (InteractionType::ApplyInteractionCallbacks): interaction() callbacks must provide a float singleton return value." << EidosTerminate(interaction_callback->identifier_token_);
 				
 				p_strength = result->FloatAtIndex(0, nullptr);
 				
@@ -843,12 +1328,12 @@ double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Indivi
 						EidosValue *result = result_SP.get();
 						
 						if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
-							EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyInteractionCallbacks): interaction() callbacks must provide a float singleton return value." << EidosTerminate(interaction_callback->identifier_token_);
+							EIDOS_TERMINATION << "ERROR (InteractionType::ApplyInteractionCallbacks): interaction() callbacks must provide a float singleton return value." << EidosTerminate(interaction_callback->identifier_token_);
 						
 						p_strength = result->FloatAtIndex(0, nullptr);
 						
 						if (std::isnan(p_strength) || std::isinf(p_strength) || (p_strength < 0.0))
-							EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyInteractionCallbacks): interaction() callbacks must return a finite value >= 0.0." << EidosTerminate(interaction_callback->identifier_token_);
+							EIDOS_TERMINATION << "ERROR (InteractionType::ApplyInteractionCallbacks): interaction() callbacks must return a finite value >= 0.0." << EidosTerminate(interaction_callback->identifier_token_);
 						
 						// Output generated by the interpreter goes to our output stream
 						SLIM_OUTSTREAM << interpreter.ExecutionOutput();
@@ -1246,50 +1731,152 @@ void InteractionType::EnsureKDTreePresent(InteractionsData &p_subpop_data)
 	}
 	else if (!p_subpop_data.kd_nodes_)
 	{
-		int count = p_subpop_data.individual_count_;
+		int individual_count = p_subpop_data.individual_count_;
+		int count = individual_count;
+		
+		// If we have any periodic dimensions, we need to replicate our nodes spatially
+		int periodic_dimensions = (periodic_x_ ? 1 : 0) + (periodic_y_ ? 1 : 0) + (periodic_z_ ? 1 : 0);
+		int periodicity_multiplier = 1;
+		
+		if (periodic_dimensions == 1)
+			periodicity_multiplier = 3;
+		else if (periodic_dimensions == 2)
+			periodicity_multiplier = 9;
+		else if (periodic_dimensions == 3)
+			periodicity_multiplier = 27;
+		
+		count *= periodicity_multiplier;
+		p_subpop_data.kd_node_count_ = count;
+		
+		// Now allocate the chosen number of nodes
 		SLiM_kdNode *nodes = (SLiM_kdNode *)calloc(count, sizeof(SLiM_kdNode));
 		
 		// Fill the nodes with their initial data
-		switch (spatiality_)
+		if (periodic_dimensions)
 		{
-			case 1:
-				for (int i = 0; i < count; ++i)
+			// This is the periodic case; we replicate the individual position data and add an offset to each replicate
+			for (int replicate = 0; replicate < periodicity_multiplier; ++replicate)
+			{
+				SLiM_kdNode *replicate_nodes = nodes + replicate * individual_count;
+				double x_offset = 0, y_offset = 0, z_offset = 0;
+				
+				// Determine the correct offsets for this replicate of the individual position data;
+				// maybe there is a smarter way to do this, but whatever
+				int replication_dim_1 = (replicate % 3) - 1;
+				int replication_dim_2 = ((replicate / 3) % 3) - 1;
+				int replication_dim_3 = (replicate / 9) - 1;
+				
+				if (periodic_x_)
 				{
-					SLiM_kdNode *node = nodes + i;
-					double *position_data = p_subpop_data.positions_ + i * SLIM_MAX_DIMENSIONALITY;
+					x_offset = p_subpop_data.bounds_x1_ * replication_dim_1;
 					
-					node->x[0] = position_data[0];
-					node->individual_index_ = i;
+					if (periodic_y_)
+					{
+						y_offset = p_subpop_data.bounds_y1_ * replication_dim_2;
+						
+						if (periodic_z_)
+							z_offset = p_subpop_data.bounds_z1_ * replication_dim_3;
+					}
+					else if (periodic_z_)
+					{
+						z_offset = p_subpop_data.bounds_z1_ * replication_dim_2;
+					}
 				}
-				break;
-			case 2:
-				for (int i = 0; i < count; ++i)
+				else if (periodic_y_)
 				{
-					SLiM_kdNode *node = nodes + i;
-					double *position_data = p_subpop_data.positions_ + i * SLIM_MAX_DIMENSIONALITY;
+					y_offset = p_subpop_data.bounds_y1_ * replication_dim_1;
 					
-					node->x[0] = position_data[0];
-					node->x[1] = position_data[1];
-					node->individual_index_ = i;
+					if (periodic_z_)
+						z_offset = p_subpop_data.bounds_z1_ * replication_dim_2;
 				}
-				break;
-			case 3:
-				for (int i = 0; i < count; ++i)
+				else if (periodic_z_)
 				{
-					SLiM_kdNode *node = nodes + i;
-					double *position_data = p_subpop_data.positions_ + i * SLIM_MAX_DIMENSIONALITY;
-					
-					node->x[0] = position_data[0];
-					node->x[1] = position_data[1];
-					node->x[2] = position_data[2];
-					node->individual_index_ = i;
+					z_offset = p_subpop_data.bounds_z1_ * replication_dim_1;
 				}
-				break;
+				
+				// Now that we have our offsets, copy the data for the replicate
+				switch (spatiality_)
+				{
+					case 1:
+						for (int i = 0; i < individual_count; ++i)
+						{
+							SLiM_kdNode *node = replicate_nodes + i;
+							double *position_data = p_subpop_data.positions_ + i * SLIM_MAX_DIMENSIONALITY;
+							
+							node->x[0] = position_data[0] + x_offset;
+							node->individual_index_ = i;
+						}
+						break;
+					case 2:
+						for (int i = 0; i < individual_count; ++i)
+						{
+							SLiM_kdNode *node = replicate_nodes + i;
+							double *position_data = p_subpop_data.positions_ + i * SLIM_MAX_DIMENSIONALITY;
+							
+							node->x[0] = position_data[0] + x_offset;
+							node->x[1] = position_data[1] + y_offset;
+							node->individual_index_ = i;
+						}
+						break;
+					case 3:
+						for (int i = 0; i < individual_count; ++i)
+						{
+							SLiM_kdNode *node = replicate_nodes + i;
+							double *position_data = p_subpop_data.positions_ + i * SLIM_MAX_DIMENSIONALITY;
+							
+							node->x[0] = position_data[0] + x_offset;
+							node->x[1] = position_data[1] + y_offset;
+							node->x[2] = position_data[2] + z_offset;
+							node->individual_index_ = i;
+						}
+						break;
+				}
+			}
+		}
+		else
+		{
+			// This is the non-periodic base case, split into spatiality cases for speed
+			switch (spatiality_)
+			{
+				case 1:
+					for (int i = 0; i < count; ++i)
+					{
+						SLiM_kdNode *node = nodes + i;
+						double *position_data = p_subpop_data.positions_ + i * SLIM_MAX_DIMENSIONALITY;
+						
+						node->x[0] = position_data[0];
+						node->individual_index_ = i;
+					}
+					break;
+				case 2:
+					for (int i = 0; i < count; ++i)
+					{
+						SLiM_kdNode *node = nodes + i;
+						double *position_data = p_subpop_data.positions_ + i * SLIM_MAX_DIMENSIONALITY;
+						
+						node->x[0] = position_data[0];
+						node->x[1] = position_data[1];
+						node->individual_index_ = i;
+					}
+					break;
+				case 3:
+					for (int i = 0; i < count; ++i)
+					{
+						SLiM_kdNode *node = nodes + i;
+						double *position_data = p_subpop_data.positions_ + i * SLIM_MAX_DIMENSIONALITY;
+						
+						node->x[0] = position_data[0];
+						node->x[1] = position_data[1];
+						node->x[2] = position_data[2];
+						node->individual_index_ = i;
+					}
+					break;
+			}
 		}
 		
 		p_subpop_data.kd_nodes_ = nodes;
 		
-		if (p_subpop_data.individual_count_ == 0)
+		if (p_subpop_data.kd_node_count_ == 0)
 		{
 			p_subpop_data.kd_root_ = 0;
 		}
@@ -1298,9 +1885,9 @@ void InteractionType::EnsureKDTreePresent(InteractionsData &p_subpop_data)
 			// Now call out to recursively construct the tree
 			switch (spatiality_)
 			{
-				case 1: p_subpop_data.kd_root_ = MakeKDTree1_p0(p_subpop_data.kd_nodes_, p_subpop_data.individual_count_);	break;
-				case 2: p_subpop_data.kd_root_ = MakeKDTree2_p0(p_subpop_data.kd_nodes_, p_subpop_data.individual_count_);	break;
-				case 3: p_subpop_data.kd_root_ = MakeKDTree3_p0(p_subpop_data.kd_nodes_, p_subpop_data.individual_count_);	break;
+				case 1: p_subpop_data.kd_root_ = MakeKDTree1_p0(p_subpop_data.kd_nodes_, p_subpop_data.kd_node_count_);	break;
+				case 2: p_subpop_data.kd_root_ = MakeKDTree2_p0(p_subpop_data.kd_nodes_, p_subpop_data.kd_node_count_);	break;
+				case 3: p_subpop_data.kd_root_ = MakeKDTree3_p0(p_subpop_data.kd_nodes_, p_subpop_data.kd_node_count_);	break;
 			}
 			
 			// Check the tree for correctness; for now I will leave this enabled in the DEBUG case,
@@ -1316,8 +1903,8 @@ void InteractionType::EnsureKDTreePresent(InteractionsData &p_subpop_data)
 				case 3: total_tree_count = CheckKDTree3_p0(p_subpop_data.kd_root_);	break;
 			}
 			
-			if (total_tree_count != p_subpop_data.individual_count_)
-				EIDOS_TERMINATION << "ERROR (InteractionType::EnsureKDTreePresent): (internal error) the k-d tree count " << total_tree_count << " does not match the total individual count" << p_subpop_data.individual_count_ << "." << EidosTerminate();
+			if (total_tree_count != p_subpop_data.kd_node_count_)
+				EIDOS_TERMINATION << "ERROR (InteractionType::EnsureKDTreePresent): (internal error) the k-d tree count " << total_tree_count << " does not match the allocated node count" << p_subpop_data.kd_node_count_ << "." << EidosTerminate();
 #endif
 		}
 	}
@@ -2006,7 +2593,7 @@ void InteractionType::FindNeighbors(Subpopulation *p_subpop, InteractionsData &p
 				p_result_vec.emplace_back(best_individual);
 			}
 		}
-		else if (p_count >= p_subpop_data.individual_count_ - 1)
+		else if (p_count >= p_subpop_data.individual_count_ - 1)	// -1 because the focal individual is excluded
 		{
 			// Finding all neighbors within the interaction distance is special-cased
 			switch (spatiality_)
@@ -3070,6 +3657,7 @@ EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_meth
 	double *mirror_ind1_distances = subpop_data.distances_ + ind1_index;			// used when reciprocality is enabled
 	double *position_data = subpop_data.positions_;
 	double *ind1_position = position_data + ind1_index * SLIM_MAX_DIMENSIONALITY;
+	bool periodicity_enabled = (periodic_x_ || periodic_y_ || periodic_z_);
 	
 	if (individuals2->Type() == EidosValueType::kValueNULL)
 	{
@@ -3079,35 +3667,73 @@ EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_meth
 		if (!reciprocal_)
 		{
 			// No reciprocality, so we don't mirror
-			for (int ind2_index = 0; ind2_index < subpop1_size; ++ind2_index)
+			if (periodicity_enabled)
 			{
-				double distance = ind1_distances[ind2_index];
-				
-				if (std::isnan(distance))
+				for (int ind2_index = 0; ind2_index < subpop1_size; ++ind2_index)
 				{
-					distance = CalculateDistance(ind1_position, position_data + ind2_index * SLIM_MAX_DIMENSIONALITY);
-					ind1_distances[ind2_index] = distance;
+					double distance = ind1_distances[ind2_index];
+					
+					if (std::isnan(distance))
+					{
+						distance = CalculateDistanceWithPeriodicity(ind1_position, position_data + ind2_index * SLIM_MAX_DIMENSIONALITY, subpop_data);
+						ind1_distances[ind2_index] = distance;
+					}
+					
+					result_vec->PushFloat(distance);
 				}
-				
-				result_vec->PushFloat(distance);
+			}
+			else
+			{
+				for (int ind2_index = 0; ind2_index < subpop1_size; ++ind2_index)
+				{
+					double distance = ind1_distances[ind2_index];
+					
+					if (std::isnan(distance))
+					{
+						distance = CalculateDistance(ind1_position, position_data + ind2_index * SLIM_MAX_DIMENSIONALITY);
+						ind1_distances[ind2_index] = distance;
+					}
+					
+					result_vec->PushFloat(distance);
+				}
 			}
 		}
 		else
 		{
 			// Reciprocality; mirror all values that we calculate
-			for (int ind2_index = 0; ind2_index < subpop1_size; ++ind2_index, mirror_ind1_distances += subpop1_size)
+			if (periodicity_enabled)
 			{
-				double distance = ind1_distances[ind2_index];
-				
-				if (std::isnan(distance))
+				for (int ind2_index = 0; ind2_index < subpop1_size; ++ind2_index, mirror_ind1_distances += subpop1_size)
 				{
-					distance = CalculateDistance(ind1_position, position_data + ind2_index * SLIM_MAX_DIMENSIONALITY);
-					ind1_distances[ind2_index] = distance;
+					double distance = ind1_distances[ind2_index];
 					
-					*(mirror_ind1_distances) = distance;
+					if (std::isnan(distance))
+					{
+						distance = CalculateDistanceWithPeriodicity(ind1_position, position_data + ind2_index * SLIM_MAX_DIMENSIONALITY, subpop_data);
+						ind1_distances[ind2_index] = distance;
+						
+						*(mirror_ind1_distances) = distance;
+					}
+					
+					result_vec->PushFloat(distance);
 				}
-				
-				result_vec->PushFloat(distance);
+			}
+			else
+			{
+				for (int ind2_index = 0; ind2_index < subpop1_size; ++ind2_index, mirror_ind1_distances += subpop1_size)
+				{
+					double distance = ind1_distances[ind2_index];
+					
+					if (std::isnan(distance))
+					{
+						distance = CalculateDistance(ind1_position, position_data + ind2_index * SLIM_MAX_DIMENSIONALITY);
+						ind1_distances[ind2_index] = distance;
+						
+						*(mirror_ind1_distances) = distance;
+					}
+					
+					result_vec->PushFloat(distance);
+				}
 			}
 		}
 		
@@ -3130,7 +3756,11 @@ EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_meth
 			
 			if (std::isnan(distance))
 			{
-				distance = CalculateDistance(ind1_position, position_data + ind2_index_in_subpop * SLIM_MAX_DIMENSIONALITY);
+				if (periodicity_enabled)
+					distance = CalculateDistanceWithPeriodicity(ind1_position, position_data + ind2_index_in_subpop * SLIM_MAX_DIMENSIONALITY, subpop_data);
+				else
+					distance = CalculateDistance(ind1_position, position_data + ind2_index_in_subpop * SLIM_MAX_DIMENSIONALITY);
+				
 				ind1_distances[ind2_index_in_subpop] = distance;
 				
 				// If reciprocality is enabled, push the calculated distance into the reciprocal entry.  There's
@@ -3181,21 +3811,47 @@ EidosValue_SP InteractionType::ExecuteMethod_distanceToPoint(EidosGlobalStringID
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distanceToPoint): distanceToPoint() requires that the interaction has been evaluated for the subpopulation first." << EidosTerminate();
 	
 	InteractionsData &subpop_data = subpop_data_iter->second;
-	
 	double *position_data = subpop_data.positions_;
+	bool periodicity_enabled = (periodic_x_ || periodic_y_ || periodic_z_);
+	
+	// If we're using periodic boundaries, the point supplied has to be within bounds in the periodic dimensions; points outside periodic bounds make no sense
+	if (periodicity_enabled)
+	{
+		if ((periodic_x_ && ((point_data[0] < 0.0) || (point_data[0] > subpop_data.bounds_x1_))) ||
+			(periodic_y_ && ((point_data[1] < 0.0) || (point_data[1] > subpop_data.bounds_y1_))) ||
+			(periodic_z_ && ((point_data[2] < 0.0) || (point_data[2] > subpop_data.bounds_z1_))))
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distanceToPoint): distanceToPoint() requires that coordinates for periodic spatial dimensions fall inside spatial bounaries; use pointPeriodic() to ensure this if necessary." << EidosTerminate();
+	}
 	
 	EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(count);
 	
-	for (int ind_index = 0; ind_index < count; ++ind_index)
+	if (periodicity_enabled)
 	{
-		Individual *ind = (Individual *)individuals->ObjectElementAtIndex(ind_index, nullptr);
-		
-		if (subpop1 != &(ind->subpopulation_))
-			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distanceToPoint): distanceToPoint() requires that all individuals be in the same subpopulation." << EidosTerminate();
-		
-		double *ind_position = position_data + ind->index_ * SLIM_MAX_DIMENSIONALITY;
-		
-		result_vec->PushFloat(CalculateDistance(ind_position, point_data));
+		for (int ind_index = 0; ind_index < count; ++ind_index)
+		{
+			Individual *ind = (Individual *)individuals->ObjectElementAtIndex(ind_index, nullptr);
+			
+			if (subpop1 != &(ind->subpopulation_))
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distanceToPoint): distanceToPoint() requires that all individuals be in the same subpopulation." << EidosTerminate();
+			
+			double *ind_position = position_data + ind->index_ * SLIM_MAX_DIMENSIONALITY;
+			
+			result_vec->PushFloat(CalculateDistanceWithPeriodicity(ind_position, point_data, subpop_data));
+		}
+	}
+	else
+	{
+		for (int ind_index = 0; ind_index < count; ++ind_index)
+		{
+			Individual *ind = (Individual *)individuals->ObjectElementAtIndex(ind_index, nullptr);
+			
+			if (subpop1 != &(ind->subpopulation_))
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distanceToPoint): distanceToPoint() requires that all individuals be in the same subpopulation." << EidosTerminate();
+			
+			double *ind_position = position_data + ind->index_ * SLIM_MAX_DIMENSIONALITY;
+			
+			result_vec->PushFloat(CalculateDistance(ind_position, point_data));
+		}
 	}
 	
 	return EidosValue_SP(result_vec);
@@ -3314,7 +3970,8 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 				
 				if (std::isnan(distance))
 				{
-					distance = CalculateDistance(ind1_position, position_data + ind2_index_in_subpop * SLIM_MAX_DIMENSIONALITY);
+					// We just always use CalculateDistanceWithPeriodicity() here; this is not the slow part of this method...
+					distance = CalculateDistanceWithPeriodicity(ind1_position, position_data + ind2_index_in_subpop * SLIM_MAX_DIMENSIONALITY, subpop_data);
 					ind1_distances[ind2_index_in_subpop] = distance;
 					
 					if (reciprocal_)
@@ -3683,7 +4340,8 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 							
 							if (std::isnan(distance))
 							{
-								distance = CalculateDistance(ind1_position, position_data + ind2_index * SLIM_MAX_DIMENSIONALITY);
+								// We just always use CalculateDistanceWithPeriodicity() here; this is not the slow part of this method...
+								distance = CalculateDistanceWithPeriodicity(ind1_position, position_data + ind2_index * SLIM_MAX_DIMENSIONALITY, subpop_data);
 								ind1_distances[ind2_index] = distance;
 							}
 							
@@ -3717,7 +4375,8 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 							
 							if (std::isnan(distance))
 							{
-								distance = CalculateDistance(ind1_position, position_data + ind2_index * SLIM_MAX_DIMENSIONALITY);
+								// We just always use CalculateDistanceWithPeriodicity() here; this is not the slow part of this method...
+								distance = CalculateDistanceWithPeriodicity(ind1_position, position_data + ind2_index * SLIM_MAX_DIMENSIONALITY, subpop_data);
 								ind1_distances[ind2_index] = distance;
 								*(mirror_ind1_distances) = distance;
 							}
@@ -3786,7 +4445,8 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 					
 					if (std::isnan(distance))
 					{
-						distance = CalculateDistance(ind1_position, position_data + ind2_index_in_subpop * SLIM_MAX_DIMENSIONALITY);
+						// We just always use CalculateDistanceWithPeriodicity() here; this is not the slow part of this method...
+						distance = CalculateDistanceWithPeriodicity(ind1_position, position_data + ind2_index_in_subpop * SLIM_MAX_DIMENSIONALITY, subpop_data);
 						ind1_distances[ind2_index_in_subpop] = distance;
 						
 						if (reciprocal_)
@@ -4152,6 +4812,7 @@ _InteractionsData::_InteractionsData(_InteractionsData&& p_source)
 	evaluation_interaction_callbacks_.swap(p_source.evaluation_interaction_callbacks_);
 	individual_count_ = p_source.individual_count_;
 	first_male_index_ = p_source.first_male_index_;
+	kd_node_count_ = p_source.kd_node_count_;
 	positions_ = p_source.positions_;
 	distances_ = p_source.distances_;
 	strengths_ = p_source.strengths_;
@@ -4162,6 +4823,7 @@ _InteractionsData::_InteractionsData(_InteractionsData&& p_source)
 	p_source.evaluation_interaction_callbacks_.clear();
 	p_source.individual_count_ = 0;
 	p_source.first_male_index_ = 0;
+	p_source.kd_node_count_ = 0;
 	p_source.positions_ = nullptr;
 	p_source.distances_ = nullptr;
 	p_source.strengths_ = nullptr;
@@ -4186,6 +4848,7 @@ _InteractionsData& _InteractionsData::operator=(_InteractionsData&& p_source)
 		evaluation_interaction_callbacks_.swap(p_source.evaluation_interaction_callbacks_);
 		individual_count_ = p_source.individual_count_;
 		first_male_index_ = p_source.first_male_index_;
+		kd_node_count_ = p_source.kd_node_count_;
 		positions_ = p_source.positions_;
 		distances_ = p_source.distances_;
 		strengths_ = p_source.strengths_;
@@ -4196,6 +4859,7 @@ _InteractionsData& _InteractionsData::operator=(_InteractionsData&& p_source)
 		p_source.evaluation_interaction_callbacks_.clear();
 		p_source.individual_count_ = 0;
 		p_source.first_male_index_ = 0;
+		p_source.kd_node_count_ = 0;
 		p_source.positions_ = nullptr;
 		p_source.distances_ = nullptr;
 		p_source.strengths_ = nullptr;

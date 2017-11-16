@@ -3585,15 +3585,16 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSex(const std::string &p
 	return gStaticEidosValueNULLInvisible;
 }
 
-//	*********************	(void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""], [integer$ mutationRuns = 0], [logical$ preventIncidentalSelfing = F])
+//	*********************	(void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""], [string$ periodicity = ""], [integer$ mutationRuns = 0], [logical$ preventIncidentalSelfing = F])
 //
 EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_function_name, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
-	EidosValue *arg2_value = p_arguments[2].get();
-	EidosValue *arg3_value = p_arguments[3].get();
+	EidosValue *arg_keepPedigrees_value = p_arguments[0].get();
+	EidosValue *arg_dimensionality_value = p_arguments[1].get();
+	EidosValue *arg_periodicity_value = p_arguments[2].get();
+	EidosValue *arg_mutationRuns_value = p_arguments[3].get();
+	EidosValue *arg_preventIncidentalSelfing_value = p_arguments[4].get();
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	if (num_options_declarations_ > 0)
@@ -3604,14 +3605,14 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 	
 	{
 		// [logical$ keepPedigrees = F]
-		bool keep_pedigrees = arg0_value->LogicalAtIndex(0, nullptr);
+		bool keep_pedigrees = arg_keepPedigrees_value->LogicalAtIndex(0, nullptr);
 		
 		pedigrees_enabled_ = keep_pedigrees;
 	}
 	
 	{
 		// [string$ dimensionality = ""]
-		std::string space = arg1_value->StringAtIndex(0, nullptr);
+		std::string space = arg_dimensionality_value->StringAtIndex(0, nullptr);
 		
 		if (space.length() != 0)
 		{
@@ -3627,8 +3628,39 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 	}
 	
 	{
+		// [string$ periodicity = ""]
+		std::string periodicity = arg_periodicity_value->StringAtIndex(0, nullptr);
+		
+		if (periodicity.length() != 0)
+		{
+			if (spatial_dimensionality_ == 0)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMOptions): in initializeSLiMOptions(), parameter periodicity may not be set in non-spatial simulations." << EidosTerminate();
+			
+			if (periodicity == "x")
+				periodic_x_ = true;
+			else if (periodicity == "y")
+				periodic_y_ = true;
+			else if (periodicity == "z")
+				periodic_z_ = true;
+			else if (periodicity == "xy")
+				periodic_x_ = periodic_y_ = true;
+			else if (periodicity == "xz")
+				periodic_x_ = periodic_z_ = true;
+			else if (periodicity == "yz")
+				periodic_y_ = periodic_z_ = true;
+			else if (periodicity == "xyz")
+				periodic_x_ = periodic_y_ = periodic_z_ = true;
+			else
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMOptions): in initializeSLiMOptions(), legal non-empty values for parameter periodicity are only 'x', 'y', 'z', 'xy', 'xz', 'yz', and 'xyz'." << EidosTerminate();
+			
+			if ((periodic_y_ && (spatial_dimensionality_ < 2)) || (periodic_z_ && (spatial_dimensionality_ < 3)))
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMOptions): in initializeSLiMOptions(), parameter periodicity cannot utilize spatial dimensions beyond those set by the dimensionality parameter of initializeSLiMOptions()." << EidosTerminate();
+		}
+	}
+	
+	{
 		// [integer$ mutationRuns = 0]
-		int64_t mutrun_count = arg2_value->IntAtIndex(0, nullptr);
+		int64_t mutrun_count = arg_mutationRuns_value->IntAtIndex(0, nullptr);
 		
 		if (mutrun_count != 0)
 		{
@@ -3641,7 +3673,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 	
 	{
 		// [logical$ preventIncidentalSelfing = F]
-		bool prevent_selfing = arg3_value->LogicalAtIndex(0, nullptr);
+		bool prevent_selfing = arg_preventIncidentalSelfing_value->LogicalAtIndex(0, nullptr);
 		
 		prevent_incidental_selfing_ = prevent_selfing;
 	}
@@ -3667,6 +3699,19 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 			if (spatial_dimensionality_ == 1) output_stream << "'x'";
 			else if (spatial_dimensionality_ == 2) output_stream << "'xy'";
 			else if (spatial_dimensionality_ == 3) output_stream << "'xyz'";
+			
+			previous_params = true;
+		}
+		
+		if (periodic_x_ || periodic_y_ || periodic_z_)
+		{
+			if (previous_params) output_stream << ", ";
+			output_stream << "periodicity = '";
+			
+			if (periodic_x_) output_stream << "x";
+			if (periodic_y_) output_stream << "y";
+			if (periodic_z_) output_stream << "z";
+			output_stream << "'";
 			
 			previous_params = true;
 		}
@@ -3717,7 +3762,7 @@ const std::vector<const EidosFunctionSignature*> *SLiMSim::ZeroGenerationFunctio
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSex, nullptr, kEidosValueMaskNULL, "SLiM"))
 										->AddString_S("chromosomeType")->AddNumeric_OS("xDominanceCoeff", gStaticEidosValue_Float1));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMOptions, nullptr, kEidosValueMaskNULL, "SLiM"))
-										->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("dimensionality", gStaticEidosValue_StringEmpty)->AddInt_OS("mutationRuns", gStaticEidosValue_Integer0)->AddLogical_OS("preventIncidentalSelfing", gStaticEidosValue_LogicalF));
+										->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("dimensionality", gStaticEidosValue_StringEmpty)->AddString_OS("periodicity", gStaticEidosValue_StringEmpty)->AddInt_OS("mutationRuns", gStaticEidosValue_Integer0)->AddLogical_OS("preventIncidentalSelfing", gStaticEidosValue_LogicalF));
 	}
 	
 	return &sim_0_signatures_;
@@ -3939,6 +3984,36 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 				case 2:		return static_dimensionality_string_xy;
 				case 3:		return static_dimensionality_string_xyz;
 			}
+		}
+		case gID_periodicity:
+		{
+			static EidosValue_SP static_periodicity_string_x;
+			static EidosValue_SP static_periodicity_string_y;
+			static EidosValue_SP static_periodicity_string_z;
+			static EidosValue_SP static_periodicity_string_xy;
+			static EidosValue_SP static_periodicity_string_xz;
+			static EidosValue_SP static_periodicity_string_yz;
+			static EidosValue_SP static_periodicity_string_xyz;
+			
+			if (!static_periodicity_string_x)
+			{
+				static_periodicity_string_x = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_x));
+				static_periodicity_string_y = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_y));
+				static_periodicity_string_z = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_z));
+				static_periodicity_string_xy = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xy"));
+				static_periodicity_string_xz = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xz"));
+				static_periodicity_string_yz = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("yz"));
+				static_periodicity_string_xyz = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xyz"));
+			}
+			
+			if (periodic_x_ && periodic_y_ && periodic_z_)	return static_periodicity_string_xyz;
+			else if (periodic_y_ && periodic_z_)			return static_periodicity_string_yz;
+			else if (periodic_x_ && periodic_z_)			return static_periodicity_string_xz;
+			else if (periodic_x_ && periodic_y_)			return static_periodicity_string_xy;
+			else if (periodic_z_)							return static_periodicity_string_z;
+			else if (periodic_y_)							return static_periodicity_string_y;
+			else if (periodic_x_)							return static_periodicity_string_x;
+			else											return gStaticEidosValue_StringEmpty;
 		}
 		case gID_genomicElementTypes:
 		{
@@ -5055,6 +5130,7 @@ const std::vector<const EidosPropertySignature *> *SLiMSim_Class::Properties(voi
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_chromosome));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_chromosomeType));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_dimensionality));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_periodicity));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_genomicElementTypes));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_inSLiMgui));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_interactionTypes));
@@ -5079,6 +5155,7 @@ const EidosPropertySignature *SLiMSim_Class::SignatureForProperty(EidosGlobalStr
 	static EidosPropertySignature *chromosomeSig = nullptr;
 	static EidosPropertySignature *chromosomeTypeSig = nullptr;
 	static EidosPropertySignature *dimensionalitySig = nullptr;
+	static EidosPropertySignature *periodicitySig = nullptr;
 	static EidosPropertySignature *genomicElementTypesSig = nullptr;
 	static EidosPropertySignature *inSLiMguiSig = nullptr;
 	static EidosPropertySignature *interactionTypesSig = nullptr;
@@ -5097,6 +5174,7 @@ const EidosPropertySignature *SLiMSim_Class::SignatureForProperty(EidosGlobalStr
 		chromosomeSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosome,			gID_chromosome,				true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Chromosome_Class));
 		chromosomeTypeSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosomeType,		gID_chromosomeType,			true,	kEidosValueMaskString | kEidosValueMaskSingleton));
 		dimensionalitySig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_dimensionality,		gID_dimensionality,			true,	kEidosValueMaskString | kEidosValueMaskSingleton));
+		periodicitySig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_periodicity,			gID_periodicity,			true,	kEidosValueMaskString | kEidosValueMaskSingleton));
 		genomicElementTypesSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElementTypes,	gID_genomicElementTypes,	true,	kEidosValueMaskObject, gSLiM_GenomicElementType_Class));
 		inSLiMguiSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_inSLiMgui,			gID_inSLiMgui,				true,	kEidosValueMaskLogical | kEidosValueMaskSingleton));
 		interactionTypesSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_interactionTypes,	gID_interactionTypes,		true,	kEidosValueMaskObject, gSLiM_InteractionType_Class));
@@ -5117,6 +5195,7 @@ const EidosPropertySignature *SLiMSim_Class::SignatureForProperty(EidosGlobalStr
 		case gID_chromosome:			return chromosomeSig;
 		case gID_chromosomeType:		return chromosomeTypeSig;
 		case gID_dimensionality:		return dimensionalitySig;
+		case gID_periodicity:			return periodicitySig;
 		case gID_genomicElementTypes:	return genomicElementTypesSig;
 		case gID_inSLiMgui:				return inSLiMguiSig;
 		case gID_interactionTypes:		return interactionTypesSig;

@@ -22,6 +22,9 @@ development head:
 	extended recipe 13.5 to show the new haplotype display options
 	make so the chromosome view can display a subset (but more than one) of the mutation types defined
 	make so displaying a subset of mutation types works when in haplotype display mode too
+	periodic boundary conditions: added periodicity parameter for initializeSLiMOptions(), periodicity property on SLiMSim, pointPeriodic() method on Subpopulation
+		note policy change: new parameter inserted in initializeSLiMOptions()
+	add recipe 14.12, demonstrating periodic spatial boundaries
 
 
 2.5 (build 1204; Eidos version 1.5):

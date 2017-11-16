@@ -92,6 +92,9 @@ struct _InteractionsData
 	
 	slim_popsize_t individual_count_ = 0;	// the number of individuals managed; this will be equal to the size of the corresponding subpopulation
 	slim_popsize_t first_male_index_ = 0;	// from the subpopulation's value; needed for sex-segregation handling
+	slim_popsize_t kd_node_count_ = 0;		// the number of entries in the k-d tree; may be a multiple of individual_count_ due to periodicity
+	
+	double bounds_x1_, bounds_y1_, bounds_z1_;	// copied from the Subpopulation; the zero-bound in each dimension is guaranteed to be zero *if* the dimension is periodic
 	
 	double *positions_ = nullptr;			// individual_count_ * SLIM_MAX_DIMENSIONALITY entries, holding coordinate positions
 	double *distances_ = nullptr;			// individual_count_ ^ 2 entries, holding distances between pairs of individuals
@@ -130,10 +133,15 @@ class InteractionType : public SLiMEidosDictionary
 	IFType if_type_;							// the interaction function (IF) to use
 	double if_param1_, if_param2_;				// the parameters for that IF (not all of which may be used)
 	
+	bool periodic_x_ = false;					// true if this spatial coordinate is periodic, from SLiMSim
+	bool periodic_y_ = false;					// these are in terms of the InteractionType's spatiality, not the simulation's dimensionality!
+	bool periodic_z_ = false;
+	
 	std::map<slim_objectid_t, InteractionsData> data_;		// cached data for the interaction, for each subpopulation
 	
 	void CalculateAllInteractions(Subpopulation *p_subpop);
 	double CalculateDistance(double *p_position1, double *p_position2);
+	double CalculateDistanceWithPeriodicity(double *p_position1, double *p_position2, InteractionsData &p_subpop_data);
 	double CalculateStrengthNoCallbacks(double p_distance);
 	double CalculateStrengthWithCallbacks(double p_distance, Individual *p_receiver, Individual *p_exerter, Subpopulation *p_subpop, std::vector<SLiMEidosBlock*> &p_interaction_callbacks);
 	void EnsureDistancesPresent(InteractionsData &p_subpop_data);
