@@ -2410,7 +2410,7 @@
 	
 	// Make the tooltip window, configure it, and display it
 	if (!playSpeedToolTipWindow)
-		playSpeedToolTipWindow = [SLiMToolTipWindow new];
+		playSpeedToolTipWindow = [SLiMPlaySliderToolTipWindow new];
 	
 	[playSpeedToolTipWindow setLabel:fpsString];
 	[playSpeedToolTipWindow setTipPoint:tipPoint];
@@ -4280,6 +4280,9 @@
 				std::advance(mutTypeIter, rowIndex);
 				MutationType *mutationType = mutTypeIter->second;
 				
+				/*
+				// Show the script for type "s" muttypes in a tooltip.  Now that we can display distribution plots, we don't do this.
+				 
 				if (mutationType->dfe_type_ == DFEType::kScript)
 				{
 					const char *dfe_string = mutationType->dfe_strings_[0].c_str();
@@ -4292,11 +4295,69 @@
 					
 					return ns_dfe_string;
 				}
+				else
+				 */
+				{
+					// If we're already showing the tooltip for this muttype, short-circuit; sometimes we get called twice with no exit
+					if (mutTypeToolTipWindow && ([mutTypeToolTipWindow mutType] == mutationType))
+						return nil;
+					
+					//NSLog(@"show DFE tooltip view here for mut ID %d!", mutationType->mutation_type_id_);
+					
+					// Make the tooltip window, configure it, and display it
+					if (!mutTypeToolTipWindow)
+						mutTypeToolTipWindow = [SLiMMutationTypeDFEToolTipWindow new];
+					
+					NSPoint tipPoint = NSMakePoint(mouseLocation.x + 0, mouseLocation.y + 65);
+					
+					tipPoint = [[mutTypeTableView superview] convertPoint:tipPoint toView:nil];
+					NSRect tipRect = NSMakeRect(tipPoint.x, tipPoint.y, 0, 0);
+					tipPoint = [[mutTypeTableView window] convertRectToScreen:tipRect].origin;
+					
+					[mutTypeToolTipWindow setMutType:mutationType];		// questionable for it to have a pointer to the mutation type, but I can't think of a way to crash it... it displays once and then never again...
+					[mutTypeToolTipWindow setTipPoint:tipPoint];
+					[mutTypeToolTipWindow orderFront:nil];
+					
+					// Wire it to a tracking area so it gets taken down when the mouse moves; see mouseExited: below
+					NSTrackingArea *trackingArea = [[NSTrackingArea alloc] initWithRect:*rect
+																				options:(NSTrackingMouseEnteredAndExited | NSTrackingActiveAlways)
+																				  owner:self
+																			   userInfo:@{@"mut_id" : [NSNumber numberWithInteger:mutationType->mutation_type_id_]}];
+					
+					[mutTypeTableView addTrackingArea:trackingArea];
+					[trackingArea release];
+				}
 			}
 		}
 	}
 	
 	return nil;
+}
+
+// Used to take down a custom tooltip window that we may have shown above, displaying a mutation type's DFE
+- (void)mouseExited:(NSEvent *)event
+{
+	if (!mutTypeToolTipWindow)
+		return;
+	
+	NSTrackingArea *trackingArea = [event trackingArea];
+	NSDictionary *userInfo = [trackingArea userInfo];
+	NSObject *mut_id_object = [userInfo objectForKey:@"mut_id"];
+	
+	if (!mut_id_object)
+		return;
+	
+	slim_objectid_t mut_id = (slim_objectid_t)[(NSNumber *)mut_id_object integerValue];
+	
+	if (mut_id != [mutTypeToolTipWindow mutType]->mutation_type_id_)
+		return;
+	
+	//NSLog(@"   take down DFE tooltip view here for mut ID %d!", mut_id);
+	
+	[mutTypeTableView removeTrackingArea:trackingArea];
+	
+	[mutTypeToolTipWindow orderOut:nil];
+	[mutTypeToolTipWindow setMutType:nullptr];
 }
 
 

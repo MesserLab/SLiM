@@ -25,6 +25,7 @@ development head:
 	periodic boundary conditions: added periodicity parameter for initializeSLiMOptions(), periodicity property on SLiMSim, pointPeriodic() method on Subpopulation
 		note policy change: new parameter inserted in initializeSLiMOptions()
 	add recipe 14.12, demonstrating periodic spatial boundaries
+	add display of mutation type DFEs as tooltips in the info drawer
 
 
 2.5 (build 1204; Eidos version 1.5):

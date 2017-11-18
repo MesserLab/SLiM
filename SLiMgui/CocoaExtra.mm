@@ -21,6 +21,9 @@
 #import "CocoaExtra.h"
 #import "AppDelegate.h"
 
+#include "eidos_rng.h"
+#import "mutation_type.h"
+
 
 @implementation SLiMTableView
 
@@ -518,7 +521,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 @end
 
 
-@implementation SLiMToolTipView
+@implementation SLiMPlaySliderToolTipView
 
 - (void)drawRect:(NSRect)dirtyRect
 {
@@ -528,7 +531,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 		labelAttrs = [@{NSFontAttributeName : [NSFont fontWithName:@"Times New Roman" size:10], NSForegroundColorAttributeName : [NSColor blackColor]} retain];
 	
 	NSRect bounds = [self bounds];
-	SLiMToolTipWindow *tooltipWindow = (SLiMToolTipWindow *)[self window];
+	SLiMPlaySliderToolTipWindow *tooltipWindow = (SLiMPlaySliderToolTipWindow *)[self window];
 	NSAttributedString *attrLabel = [[NSAttributedString alloc] initWithString:[tooltipWindow label] attributes:labelAttrs];
 	NSSize labelStringSize = [attrLabel size];
 	NSSize labelSize = NSMakeSize(round(labelStringSize.width + 8.0), round(labelStringSize.height + 1.0));
@@ -538,7 +541,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 	//[[NSColor blackColor] set];
 	//NSFrameRect(bounds);
 	
-	// Debugging code: frame and fill our label rect without using NSBezierPath
+	// Frame and fill our label rect
 	[[NSColor colorWithCalibratedHue:0.15 saturation:0.2 brightness:1.0 alpha:1.0] set];
 	NSRectFill(labelRect);
 	
@@ -556,7 +559,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 
 @end
 
-@implementation SLiMToolTipWindow
+@implementation SLiMPlaySliderToolTipWindow
 
 // makes a new marker with no label and no tip point, not shown
 + (instancetype)new
@@ -574,7 +577,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 		[self setOpaque:NO];
 		[self setBackgroundColor:[NSColor clearColor]];
 		
-		SLiMToolTipView *view = [[SLiMToolTipView alloc] initWithFrame:contentRect];
+		SLiMPlaySliderToolTipView *view = [[SLiMPlaySliderToolTipView alloc] initWithFrame:contentRect];
 		
 		[self setContentView:view];
 		[view release];
@@ -593,6 +596,247 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 		[label retain];
 		[_label release];
 		_label = label;
+		
+		[[self contentView] setNeedsDisplay:YES];
+	}
+}
+
+- (void)setTipPoint:(NSPoint)tipPoint
+{
+	if (!NSEqualPoints(_tipPoint, tipPoint))
+	{
+		NSPoint origin = [self frame].origin;
+		
+		origin.x += (tipPoint.x - _tipPoint.x);
+		origin.y += (tipPoint.y - _tipPoint.y);
+		
+		_tipPoint = tipPoint;
+		
+		[self setFrameOrigin:origin];
+	}
+}
+
+@end
+
+
+@implementation SLiMMutationTypeDFEToolTipView
+
+- (void)drawRect:(NSRect)dirtyRect
+{
+	static NSDictionary *labelAttrs = nil;
+	static NSDictionary *questionMarkAttrs = nil;
+	
+	if (!labelAttrs)
+	{
+		labelAttrs = [@{NSFontAttributeName : [NSFont fontWithName:@"Times New Roman" size:9], NSForegroundColorAttributeName : [NSColor blackColor]} retain];
+		questionMarkAttrs = [@{NSFontAttributeName : [NSFont fontWithName:@"Times New Roman" size:18], NSForegroundColorAttributeName : [NSColor blackColor]} retain];
+	}
+	
+	NSRect bounds = [self bounds];
+	SLiMMutationTypeDFEToolTipWindow *tooltipWindow = (SLiMMutationTypeDFEToolTipWindow *)[self window];
+	
+	// Frame and fill our label rect
+	[[NSColor colorWithCalibratedHue:0.0 saturation:0.0 brightness:0.95 alpha:1.0] set];
+	NSRectFill(bounds);
+	
+	[[NSColor colorWithCalibratedHue:0.15 saturation:0.0 brightness:0.75 alpha:1.0] set];
+	NSFrameRect(bounds);
+	
+	NSRect graphRect = NSMakeRect(bounds.origin.x + 6, bounds.origin.x + 14, bounds.size.width - 12, bounds.size.height - 20);
+	
+	[[NSColor colorWithCalibratedHue:0.15 saturation:0.0 brightness:0.2 alpha:1.0] set];
+	NSRectFill(NSMakeRect(graphRect.origin.x, graphRect.origin.y, graphRect.size.width, 1));
+	
+	NSRectFill(NSMakeRect(graphRect.origin.x, graphRect.origin.y - 3, 1, 3));
+	NSRectFill(NSMakeRect(graphRect.origin.x + (graphRect.size.width - 1) * 0.125, graphRect.origin.y - 1, 1, 1));
+	NSRectFill(NSMakeRect(graphRect.origin.x + (graphRect.size.width - 1) * 0.25, graphRect.origin.y - 1, 1, 1));
+	NSRectFill(NSMakeRect(graphRect.origin.x + (graphRect.size.width - 1) * 0.375, graphRect.origin.y - 1, 1, 1));
+	NSRectFill(NSMakeRect(graphRect.origin.x + (graphRect.size.width - 1) * 0.5, graphRect.origin.y - 3, 1, 3));
+	NSRectFill(NSMakeRect(graphRect.origin.x + (graphRect.size.width - 1) * 0.625, graphRect.origin.y - 1, 1, 1));
+	NSRectFill(NSMakeRect(graphRect.origin.x + (graphRect.size.width - 1) * 0.75, graphRect.origin.y - 1, 1, 1));
+	NSRectFill(NSMakeRect(graphRect.origin.x + (graphRect.size.width - 1) * 0.875, graphRect.origin.y - 1, 1, 1));
+	NSRectFill(NSMakeRect(graphRect.origin.x + graphRect.size.width - 1, graphRect.origin.y - 3, 1, 3));
+	
+	// Draw all the values we will plot; we need our own private RNG so we don't screw up the simulation's.
+	// Drawing selection coefficients could raise, if they are type "s" and there is an error in the script,
+	// so we run the sampling inside a try/catch block; if we get a raise, we just show a "?" in the plot.
+	MutationType *mut_type = [tooltipWindow mutType];
+	
+	if (!mut_type)
+		return;
+	
+	gsl_rng *save_rng = gEidos_rng;				// should be nullptr anyway, but being safe...
+	static gsl_rng *local_rng = nullptr;
+	std::vector<double> draws;
+	bool draw_positive = false, draw_negative = false, draw_zero = false;
+	const int sample_size = (mut_type->dfe_type_ == DFEType::kScript) ? 100000 : 1000000;	// large enough to make curves pretty smooth, small enough to be reasonably fast
+	
+	draws.reserve(sample_size);
+	
+	if (!local_rng)
+		local_rng = gsl_rng_alloc(gsl_rng_taus2);
+	
+	gEidos_rng = local_rng;
+	gsl_rng_set(local_rng, 10);		// arbitrary seed, but the same seed every time
+	//clock_t start = clock();
+	
+	try
+	{
+		for (int sample_count = 0; sample_count < sample_size; ++sample_count)
+		{
+			double draw = mut_type->DrawSelectionCoefficient();
+			
+			draws.push_back(draw);
+			
+			if (draw < 0.0)			draw_negative = true;
+			else if (draw > 0.0)	draw_positive = true;
+			else					draw_zero = true;
+		}
+	}
+	catch (...)
+	{
+		draws.clear();
+		draw_negative = true;
+		draw_positive = true;
+	}
+	
+	//NSLog(@"Draws took %f seconds", (clock() - start) / (double)CLOCKS_PER_SEC);
+	
+	gEidos_rng = save_rng;
+	
+	// Decide on the axis limits and draw the axis labels
+	double axis_min = -1.0, axis_max = 1.0;
+	
+	if (draw_negative && !draw_positive)
+	{
+		axis_min = -1.0;
+		axis_max = 0.0;
+	}
+	else if (draw_positive && !draw_negative)
+	{
+		axis_min = 0.0;
+		axis_max = 1.0;
+	}
+	
+	NSString *axis_min_label = (axis_min == 0.0 ? @"0" : @"−1");
+	NSString *axis_half_label = (axis_min == 0.0 ? @"0.5" : (axis_max == 0.0 ? @"−0.5" : @"0"));
+	NSString *axis_max_label = (axis_max == 0.0 ? @"0" : @"1");
+	NSSize min_label_size = [axis_min_label sizeWithAttributes:labelAttrs];
+	NSSize half_label_size = [axis_half_label sizeWithAttributes:labelAttrs];
+	NSSize max_label_size = [axis_max_label sizeWithAttributes:labelAttrs];
+	double min_label_halfwidth = round(min_label_size.width / 2.0);
+	double half_label_halfwidth = round(half_label_size.width / 2.0);
+	double max_label_halfwidth = round(max_label_size.width / 2.0);
+	
+	[axis_min_label drawAtPoint:NSMakePoint(bounds.origin.x + 7 - min_label_halfwidth, bounds.origin.y + 1) withAttributes:labelAttrs];
+	[axis_half_label drawAtPoint:NSMakePoint(bounds.origin.x + 38.5 - half_label_halfwidth, bounds.origin.y + 1) withAttributes:labelAttrs];
+	[axis_max_label drawAtPoint:NSMakePoint(bounds.origin.x + 70 - max_label_halfwidth, bounds.origin.y + 1) withAttributes:labelAttrs];
+	
+	if (draws.size())
+	{
+		NSRect interiorRect = NSMakeRect(graphRect.origin.x, graphRect.origin.y + 2, graphRect.size.width, graphRect.size.height - 2);
+		
+		// Tabulate the distribution from the samples we took; the math here is a bit subtle, because when we are doing a -1 to +1 axis
+		// we want those values to fall at bin centers, but when we're doing 0 to +1 or -1 to 0 we want 0 to fall at the bin edge.
+		int half_bin_count = (int)round(interiorRect.size.width);
+		int bin_count = half_bin_count * 2;								// 2x bins to look nice on Retina displays
+		int32_t *bins = (int32_t *)calloc(bin_count, sizeof(int32_t));
+		
+		for (int sample_count = 0; sample_count < sample_size; ++sample_count)
+		{
+			double sel_coeff = draws[sample_count];
+			int bin_index;
+			
+			if ((axis_min == -1.0) && (axis_max == 1.0))
+				bin_index = (int)floor(((sel_coeff + 1.0) / 2.0) * (bin_count - 1) + 0.5);
+			else if ((axis_min == -1.0) && (axis_max == 0.0))
+				bin_index = (int)ceil((sel_coeff + 1.0) * (bin_count - 1 - 0.5) + 0.5);		// 0.0 maps to bin_count - 1, -1.0 maps to the center of bin 0
+			else // if ((axis_min == 0.0) && (axis_max == 1.0))
+				bin_index = (int)floor(sel_coeff * (bin_count - 1 + 0.5));					// 0.0 maps to 0, 1.0 maps to the center of bin_count - 1
+			
+			if ((bin_index >= 0) && (bin_index < bin_count))
+				bins[bin_index]++;
+		}
+		
+		// If we only have samples equal to zero, replicate the center column for symmetry
+		if (!draw_positive && !draw_negative)
+		{
+			int32_t zero_count = std::max(bins[half_bin_count - 1], bins[half_bin_count]);	// whichever way it rounds...
+			
+			bins[half_bin_count - 1] = zero_count;
+			bins[half_bin_count] = zero_count;
+		}
+		
+		// Find the maximum bin count
+		int32_t max_bin = 0;
+		
+		for (int bin_index = 0; bin_index < bin_count; ++bin_index)
+			max_bin = std::max(max_bin, bins[bin_index]);
+		
+		// Plot the bins
+		[[NSColor colorWithCalibratedHue:0.15 saturation:0.0 brightness:0.0 alpha:1.0] set];
+		
+		for (int bin_index = 0; bin_index < bin_count; ++bin_index)
+		{
+			if (bins[bin_index] > 0)
+				NSRectFill(NSMakeRect(interiorRect.origin.x + bin_index * 0.5, interiorRect.origin.y, 0.5, interiorRect.size.height * (bins[bin_index] / (double)max_bin)));
+		}
+		
+		free(bins);
+	}
+	else
+	{
+		// We had an exception while drawing values, so we just show a question mark
+		NSString *questionMark = @"?";
+		NSSize q_size = [questionMark sizeWithAttributes:questionMarkAttrs];
+		double q_halfwidth = round(q_size.width / 2.0);
+		
+		[questionMark drawAtPoint:NSMakePoint(bounds.origin.x + bounds.size.width / 2.0 - q_halfwidth, bounds.origin.y + 22) withAttributes:questionMarkAttrs];
+	}
+}
+
+- (BOOL)isOpaque
+{
+	return YES;
+}
+
+@end
+
+@implementation SLiMMutationTypeDFEToolTipWindow
+
+// makes a new marker with no label and no tip point, not shown
++ (instancetype)new
+{
+	return [[[self class] alloc] initWithContentRect:NSMakeRect(0, 0, 77, 50) styleMask:NSBorderlessWindowMask backing:NSBackingStoreBuffered defer:YES];
+}
+
+- (instancetype)initWithContentRect:(NSRect)contentRect styleMask:(NSUInteger)aStyle backing:(NSBackingStoreType)bufferingType defer:(BOOL)flag
+{
+	if (self = [super initWithContentRect:contentRect styleMask:aStyle backing:bufferingType defer:flag])
+	{
+		[self setFloatingPanel:YES];
+		[self setBecomesKeyOnlyIfNeeded:YES];
+		[self setHasShadow:NO];
+		[self setOpaque:NO];
+		[self setBackgroundColor:[NSColor clearColor]];
+		
+		SLiMMutationTypeDFEToolTipView *view = [[SLiMMutationTypeDFEToolTipView alloc] initWithFrame:contentRect];
+		
+		[self setContentView:view];
+		[view release];
+		
+		_tipPoint = NSMakePoint(contentRect.origin.x, contentRect.origin.y);
+		_mutType = nullptr;
+	}
+	
+	return self;
+}
+
+- (void)setMutType:(MutationType *)mutType
+{
+	if (_mutType != mutType)
+	{
+		_mutType = mutType;
 		
 		[[self contentView] setNeedsDisplay:YES];
 	}

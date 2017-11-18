@@ -55,7 +55,7 @@
 	NSDate *continuousPlayStartDate;
 	uint64_t continuousPlayGenerationsCompleted;
 	int partialUpdateCount;
-	SLiMToolTipWindow *playSpeedToolTipWindow;
+	SLiMPlaySliderToolTipWindow *playSpeedToolTipWindow;
 	
 	// profiling-related variables
 	NSDate *profileEndDate;
@@ -178,6 +178,8 @@
 	
 	// Misc
 	bool observingKeyPaths;
+	
+	SLiMMutationTypeDFEToolTipWindow *mutTypeToolTipWindow;
 }
 
 + (NSColor *)blackContrastingColorForIndex:(int)index;

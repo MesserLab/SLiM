@@ -22,6 +22,7 @@
 
 
 @class SLiMWindowController;
+class MutationType;
 
 // An NSTableView subclass that avoids becoming first responder; annoying that this is necessary, sigh...
 @interface SLiMTableView : NSTableView
@@ -60,16 +61,30 @@ void RGBForSelectionCoeff(double selectionCoeff, float *colorRed, float *colorGr
 @end
 
 // Classes to show a custom tooltip view; this code is derived from SLiMSelectionView / SLiMSelectionMarker
-@interface SLiMToolTipView : NSView
+// This is not a general-purpose class really; it is specifically for labeling the Play Speed slider
+@interface SLiMPlaySliderToolTipView : NSView
 @end
 
-@interface SLiMToolTipWindow : NSPanel
+@interface SLiMPlaySliderToolTipWindow : NSPanel
 @property (nonatomic, retain) NSString *label;
 @property (nonatomic) NSPoint tipPoint;
 
 + (instancetype)new;	// makes a new marker, not shown; set it up with a label and tip point and then call orderFront:
 
 @end
+
+// Classes to show a custom tooltip view displaying a graph of a mutation type's DFE in the muttype table view
+@interface SLiMMutationTypeDFEToolTipView : NSView
+@end
+
+@interface SLiMMutationTypeDFEToolTipWindow : NSPanel
+@property (nonatomic, assign) MutationType *mutType;
+@property (nonatomic) NSPoint tipPoint;
+
++ (instancetype)new;	// makes a new marker, not shown; set it up with a mutType and tip point and then call orderFront:
+
+@end
+
 
 // A category to help us position windows visibly
 @interface NSScreen (SLiMWindowFrames)
