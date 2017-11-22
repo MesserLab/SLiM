@@ -148,6 +148,7 @@ std::vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(
 		
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dnorm",			Eidos_ExecuteFunction_dnorm,			kEidosValueMaskFloat))->AddFloat("x")->AddNumeric_O("mean", gStaticEidosValue_Float0)->AddNumeric_O("sd", gStaticEidosValue_Float1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rbinom",			Eidos_ExecuteFunction_rbinom,		kEidosValueMaskInt))->AddInt_S(gEidosStr_n)->AddInt("size")->AddFloat("prob"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rdunif",			Eidos_ExecuteFunction_rdunif,		kEidosValueMaskInt))->AddInt_S(gEidosStr_n)->AddInt_O("min", gStaticEidosValue_Integer0)->AddInt_O("max", gStaticEidosValue_Integer1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rexp",				Eidos_ExecuteFunction_rexp,			kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("mu", gStaticEidosValue_Float1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rgamma",			Eidos_ExecuteFunction_rgamma,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric("mean")->AddNumeric("shape"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rlnorm",			Eidos_ExecuteFunction_rlnorm,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("meanlog", gStaticEidosValue_Float0)->AddNumeric_O("sdlog", gStaticEidosValue_Float1));
@@ -4181,6 +4182,75 @@ EidosValue_SP Eidos_ExecuteFunction_rbinom(const EidosValue_SP *const p_argument
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rbinom): function rbinom() requires probability in [0.0, 1.0] (" << probability << " supplied)." << EidosTerminate(nullptr);
 			
 			int_result->PushInt(gsl_ran_binomial(gEidos_rng, probability, size));
+		}
+	}
+	
+	return result_SP;
+}
+
+//	(integer)rdunif(integer$ n, [integer min = 0], [integer max = 1])
+EidosValue_SP Eidos_ExecuteFunction_rdunif(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *arg_min = p_arguments[1].get();
+	EidosValue *arg_max = p_arguments[2].get();
+	int64_t num_draws = arg0_value->IntAtIndex(0, nullptr);
+	int arg_min_count = arg_min->Count();
+	int arg_max_count = arg_max->Count();
+	bool min_singleton = (arg_min_count == 1);
+	bool max_singleton = (arg_max_count == 1);
+	
+	if (num_draws < 0)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rdunif): function rdunif() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << EidosTerminate(nullptr);
+	if (!min_singleton && (arg_min_count != num_draws))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rdunif): function rdunif() requires min to be of length 1 or n." << EidosTerminate(nullptr);
+	if (!max_singleton && (arg_max_count != num_draws))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rdunif): function rdunif() requires max to be of length 1 or n." << EidosTerminate(nullptr);
+	
+	int64_t min_value0 = (arg_min_count ? arg_min->IntAtIndex(0, nullptr) : 0);
+	int64_t max_value0 = (arg_max_count ? arg_max->IntAtIndex(0, nullptr) : 1);
+	
+	if (min_singleton && max_singleton)
+	{
+		int64_t count0 = (max_value0 - min_value0) + 1;
+		
+		if (count0 < 1)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rdunif): function rdunif() requires min <= max." << EidosTerminate(nullptr);
+		if (count0 > INT32_MAX)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rdunif): function rdunif() cannot generate draws across a range greater than " << INT32_MAX << "." << EidosTerminate(nullptr);
+		
+		if (num_draws == 1)
+		{
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton((int64_t)Eidos_RandomInt(gEidos_rng, (uint32_t)count0) + min_value0));
+		}
+		else
+		{
+			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->Reserve((int)num_draws);
+			result_SP = EidosValue_SP(int_result);
+			
+			for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+				int_result->PushInt((int64_t)Eidos_RandomInt(gEidos_rng, (uint32_t)count0) + min_value0);
+		}
+	}
+	else
+	{
+		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->Reserve((int)num_draws);
+		result_SP = EidosValue_SP(int_result);
+		
+		for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+		{
+			int64_t min_value = (min_singleton ? min_value0 : arg_min->IntAtIndex(draw_index, nullptr));
+			int64_t max_value = (max_singleton ? max_value0 : arg_max->IntAtIndex(draw_index, nullptr));
+			int64_t count = (max_value - min_value) + 1;
+			
+			if (count < 1)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rdunif): function rdunif() requires min <= max." << EidosTerminate(nullptr);
+			if (count > INT32_MAX)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rdunif): function rdunif() cannot generate draws across a range greater than " << INT32_MAX << "." << EidosTerminate(nullptr);
+			
+			int_result->PushInt((int64_t)Eidos_RandomInt(gEidos_rng, (uint32_t)count) + min_value);
 		}
 	}
 	

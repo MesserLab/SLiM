@@ -26,6 +26,7 @@ development head:
 		note policy change: new parameter inserted in initializeSLiMOptions()
 	add recipe 14.12, demonstrating periodic spatial boundaries
 	add display of mutation type DFEs as tooltips in the info drawer
+	add rdunif(), a function for generating draws from a discrete uniform distribution
 
 
 2.5 (build 1204; Eidos version 1.5):

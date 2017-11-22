@@ -3817,6 +3817,27 @@ void _RunFunctionSummaryStatsTests(void)
 	EidosAssertScriptRaise("rbinom(2, -1, c(0.5,0.5));", 0, "requires size >= 0");
 	EidosAssertScriptRaise("rbinom(2, c(10,10), -0.1);", 0, "in [0.0, 1.0]");
 	
+	// rdunif()
+	EidosAssertScriptSuccess("rdunif(0);", gStaticEidosValue_Integer_ZeroVec);
+	EidosAssertScriptSuccess("rdunif(0, integer(0), integer(0));", gStaticEidosValue_Integer_ZeroVec);
+	EidosAssertScriptSuccess("rdunif(1, 0, 0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0}));
+	EidosAssertScriptSuccess("rdunif(3, 0, 0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 0, 0}));
+	EidosAssertScriptSuccess("rdunif(1, 1, 1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1}));
+	EidosAssertScriptSuccess("rdunif(3, 1, 1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 1, 1}));
+	EidosAssertScriptSuccess("setSeed(0); identical(rdunif(1), 0);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("setSeed(0); identical(rdunif(5), c(0,1,1,0,0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("setSeed(0); identical(rdunif(5, 10, 11), c(10,11,11,10,10));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("setSeed(0); identical(rdunif(5, 10, 15), c(11,15,13,10,11));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("setSeed(0); identical(rdunif(5, -10, 15), c(-6,14,4,-9,-5));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("setSeed(0); identical(rdunif(5, 1000000, 2000000), c(1186956,1951254,1545558,1074642,1229270));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("setSeed(0); identical(rdunif(5, 1000000000, 2000000000), c(1200698027,1585657199,1080129202,1246121879,1561536154));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("rdunif(5, 10000000000, 20000000000);", 0, "cannot generate draws across");
+	EidosAssertScriptRaise("rdunif(-1);", 0, "requires n to be");
+	EidosAssertScriptRaise("rdunif(1, 0, -1);", 0, "requires min <= max");
+	EidosAssertScriptRaise("rdunif(2, 0, c(7, -1));", 0, "requires min <= max");
+	EidosAssertScriptRaise("rdunif(2, c(-10, 10, 1), 100);", 0, "requires min");
+	EidosAssertScriptRaise("rdunif(2, -10, c(1, 10, 1));", 0, "requires max");
+	
 	// rexp()
 	EidosAssertScriptSuccess("rexp(0);", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess("rexp(0, float(0));", gStaticEidosValue_Float_ZeroVec);

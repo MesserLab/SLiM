@@ -2,8 +2,8 @@
 {\fonttbl\f0\fswiss\fcharset0 Optima-Regular;\f1\fnil\fcharset0 Menlo-Regular;\f2\froman\fcharset0 TimesNewRomanPSMT;
 \f3\fnil\fcharset0 Menlo-Italic;\f4\fnil\fcharset0 AppleSymbols;\f5\fswiss\fcharset0 Helvetica;
 \f6\fnil\fcharset0 Menlo-Bold;\f7\ftech\fcharset77 Symbol;}
-{\colortbl;\red255\green255\blue255;}
-{\*\expandedcolortbl;;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;}
+{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;}
 {\*\listtable{\list\listtemplateid1\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat0\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid1\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid1}
 {\list\listtemplateid2\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid101\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid2}
 {\list\listtemplateid3\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat0\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid201\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid3}}
@@ -1066,7 +1066,32 @@
 \f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (float)rexp(integer$
+\f1\fs18 \cf0 (integer)rdunif(integer$\'a0n, [integer\'a0min\'a0=\'a00], [integer\'a0max
+\f2 \'a0
+\f1 =\'a01])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+Returns a vector of 
+\f1\fs18 n
+\f0\fs20  
+\b random draws from a discrete uniform distribution
+\b0  from 
+\f1\fs18 min
+\f0\fs20  to 
+\f1\fs18 max
+\f0\fs20 , inclusive.  The 
+\f1\fs18 min
+\f0\fs20  and 
+\f1\fs18 max
+\f0\fs20  parameters may either be singletons, specifying a single value to be used for all of the draws, or they may be vectors of length 
+\f1\fs18 n
+\f0\fs20 , specifying a value for each draw.  See 
+\f1\fs18 runif()
+\f0\fs20  for draws from a continuous uniform distribution.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (float)rexp(integer$
 \f2 \'a0
 \f1 n, [numeric\'a0mu\'a0=\'a01])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
@@ -1216,12 +1241,13 @@
 \f1\fs18 \cf0 (float)runif(integer$\'a0n, [numeric\'a0min\'a0=\'a00], [numeric\'a0max
 \f2 \'a0
 \f1 =\'a01])\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 Returns a vector of 
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+Returns a vector of 
 \f1\fs18 n
 \f0\fs20  
-\b random draws from a uniform distribution
+\b random draws from a continuous uniform distribution
 \b0  from 
 \f1\fs18 min
 \f0\fs20  to 
@@ -1232,11 +1258,12 @@
 \f1\fs18 max
 \f0\fs20  parameters may either be singletons, specifying a single value to be used for all of the draws, or they may be vectors of length 
 \f1\fs18 n
-\f0\fs20 , specifying a value for each draw.
-\f2 \
+\f0\fs20 , specifying a value for each draw.  See 
+\f1\fs18 rdunif()
+\f0\fs20  for draws from a discrete uniform distribution.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (float)rweibull(integer$
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (float)rweibull(integer$
 \f2 \'a0
 \f1 n, numeric\'a0lambda, numeric\'a0k)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
