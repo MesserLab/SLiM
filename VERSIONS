@@ -27,6 +27,7 @@ development head:
 	add recipe 14.12, demonstrating periodic spatial boundaries
 	add display of mutation type DFEs as tooltips in the info drawer
 	add rdunif(), a function for generating draws from a discrete uniform distribution
+	add tips in SLiMgui for the chromosome haplotype display mode, script prettyprinting, and DFE visualization in the mutation type table
 
 
 2.5 (build 1204; Eidos version 1.5):

@@ -1,0 +1,73 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf830
+{\fonttbl\f0\fswiss\fcharset0 Optima-Regular;\f1\fswiss\fcharset0 Helvetica;\f2\fnil\fcharset0 Menlo-Regular;
+}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww9360\viewh13000\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\b\fs32 \cf0 MutationType DFE visualization
+\b0\fs26 \
+\
+Mutation types in SLiM define a distribution of fitness effects, of DFE, from which new mutations of that type are drawn.  This can be a fixed selection coefficient, or a predefined distribution such as a gamma or exponential distribution customized by specified parameters, or even an Eidos script snippet that generates selection coefficients dynamically.  It would be nice to have a way to see the DFE for a given mutation type, to make sure that it has been configured correctly.  SLiMgui provides a way to do this.  First open the drawer on the SLiMgui window by clicking the drawer button:\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\qc\partightenfactor0
+
+\f1\fs24 \cf0 {{\NeXTGraphic Pasted Graphic.tiff \width720 \height720
+}¬}\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\qc\partightenfactor0
+
+\f0\fs26 \cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+The drawer that opens shows several tables with supplemental information about the simulation that is running.  The top table shows a list of the mutation types have been defined; for a hypothetical model, it might look like:\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\qc\partightenfactor0
+
+\f1\fs24 \cf0 {{\NeXTGraphic constrictorTemp_880540.jpg \width4820 \height2100
+}¬}
+\f0\fs26 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+If you hover the mouse cursor over the 
+\f2\fs24 m2
+\f0\fs26  line without moving, a small plot appears in a tooltip over the table, showing the DFE for 
+\f2\fs24 m2
+\f0\fs26 :\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\qc\partightenfactor0
+
+\f1\fs24 \cf0 {{\NeXTGraphic constrictorTemp_889172.jpg \width4820 \height2540
+}¬}\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\qc\partightenfactor0
+
+\f0\fs26 \cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+The gamma distribution used by 
+\f2\fs24 m3
+\f0\fs26  can similarly be seen by hovering the cursor over that line:\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\qc\partightenfactor0
+
+\f1\fs24 \cf0 {{\NeXTGraphic constrictorTemp_905211.jpg \width4820 \height2760
+}¬}\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\qc\partightenfactor0
+
+\f0\fs26 \cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+Note that the range of the 
+\i x
+\i0 -axis changes to fit the DFE.  Mutation type 
+\f2\fs24 m4
+\f0\fs26  has a script-based DFE that calls 
+\f2\fs24 rbinom()
+\f0\fs26  to draw a selection from a discrete distribution; that can be visualized in the same way:\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\qc\partightenfactor0
+
+\f1\fs24 \cf0 {{\NeXTGraphic constrictorTemp_595368.jpg \width4820 \height3000
+}¬}\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\qc\partightenfactor0
+
+\f0\fs26 \cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+If there is an error in the script for the DFE, such that SLiMgui can't execute it, a question mark will be displayed in place of the DFE plot.}
