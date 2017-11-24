@@ -7680,7 +7680,7 @@ EidosValue_SP Eidos_ExecuteFunction_doCall(const EidosValue_SP *const p_argument
 	}
 	else if (function_signature->body_script_)
 	{
-		p_interpreter.DispatchUserDefinedFunction(*function_signature, arguments, argument_count);
+		result_SP = p_interpreter.DispatchUserDefinedFunction(*function_signature, arguments, argument_count);
 	}
 	else
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_doCall): unbound function " << function_name << "." << EidosTerminate(nullptr);
