@@ -32,6 +32,7 @@ development head:
 	add recipe 13.16 showing how to implement transposable elements
 	fix static analyzer issues, including minor bug fixes for _InitializePopulationFromBinaryFile() and a leak in haplotype plotting
 	fix a bug in doCall() that would fail to get the return value from user-defined functions
+	fix type-interpreter crashes with malformed function declarations
 
 
 2.5 (build 1204; Eidos version 1.5):

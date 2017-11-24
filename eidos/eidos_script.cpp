@@ -1802,9 +1802,13 @@ EidosASTNode *EidosScript::Parse_FunctionDecl(void)
 		return_type = Parse_ReturnTypeSpec();
 		node->AddChild(return_type);
 		
-		identifier = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
-		node->AddChild(identifier);
-		Match(EidosTokenType::kTokenIdentifier, "function declaration");
+		// If we're doing a fault-tolerant parse and the next token is not an identifier, avoid putting garbage into the tree
+		if (!parse_make_bad_nodes_ || (current_token_->token_type_ == EidosTokenType::kTokenIdentifier))
+		{
+			identifier = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
+			node->AddChild(identifier);
+			Match(EidosTokenType::kTokenIdentifier, "function declaration");
+		}
 		
 		param_list = Parse_ParamList();
 		node->AddChild(param_list);

@@ -935,6 +935,12 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_FunctionDecl(const EidosAS
 		const EidosASTNode *param_list_node = p_node->children_[2];
 		const EidosASTNode *body_node = p_node->children_[3];
 		
+		// If we don't have enough of the function declaration to build a signature, don't do anything
+		if ((return_type_node->token_->token_type_ == EidosTokenType::kTokenEOF) ||
+			(function_name_node->token_->token_type_ == EidosTokenType::kTokenEOF) ||
+			(param_list_node->token_->token_type_ == EidosTokenType::kTokenEOF))
+			return result_type;
+		
 		// Build a signature object for this function
 		EidosTypeSpecifier &return_type = return_type_node->typespec_;
 		const std::string &function_name = function_name_node->token_->token_string_;
@@ -1023,57 +1029,60 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_FunctionDecl(const EidosAS
 		// different from EidosInterpreter; it is as if the declared function is getting called as it is declared, in a way.
 		// This custom type scope for the function lasts only to the end of the declared function, and then we want to forget
 		// the custom scope and go back to the type table we were using before, as long as the declaration is complete.
-		if (body_node->hit_eof_in_tolerant_parse_)
+		if (body_node->token_->token_type_ != EidosTokenType::kTokenEOF)
 		{
-			// The EOF was hit while parsing the function body, so we're supposed to leave the type table reflecting the scope
-			// inside the function.  To do this, we don't create a sub-type-interpreter, we just repurpose our type table.
-			global_symbols_->RemoveAllSymbols();
-			
-			gEidosConstantsSymbolTable->AddSymbolsToTypeTable(global_symbols_);
-			
-			for (EidosASTNode *param_node : param_nodes)
+			if (body_node->hit_eof_in_tolerant_parse_)
 			{
-				const std::vector<EidosASTNode *> &param_children = param_node->children_;
-				int param_children_count = (int)param_children.size();
+				// The EOF was hit while parsing the function body, so we're supposed to leave the type table reflecting the scope
+				// inside the function.  To do this, we don't create a sub-type-interpreter, we just repurpose our type table.
+				global_symbols_->RemoveAllSymbols();
 				
-				if ((param_children_count == 2) || (param_children_count == 3))
+				gEidosConstantsSymbolTable->AddSymbolsToTypeTable(global_symbols_);
+				
+				for (EidosASTNode *param_node : param_nodes)
 				{
-					EidosTypeSpecifier &param_type = param_children[0]->typespec_;
-					const std::string &param_name = param_children[1]->token_->token_string_;
+					const std::vector<EidosASTNode *> &param_children = param_node->children_;
+					int param_children_count = (int)param_children.size();
 					
-					global_symbols_->SetTypeForSymbol(Eidos_GlobalStringIDForString(param_name), param_type);
+					if ((param_children_count == 2) || (param_children_count == 3))
+					{
+						EidosTypeSpecifier &param_type = param_children[0]->typespec_;
+						const std::string &param_name = param_children[1]->token_->token_string_;
+						
+						global_symbols_->SetTypeForSymbol(Eidos_GlobalStringIDForString(param_name), param_type);
+					}
 				}
+				
+				TypeEvaluateNode(body_node);	// result not used
 			}
-			
-			TypeEvaluateNode(body_node);	// result not used
-		}
-		else
-		{
-			// The EOF was not hit while parsing the function body, so we're supposed to leave the type table alone in the end.
-			// We do this by creating a separate type table that we just use temporarily, inside the function body.  We could
-			// almost skip type-interpreting the function body entirely, except that it might define a constant.
-			EidosTypeTable typeTable;
-			EidosCallTypeTable callTypeTable;
-			
-			gEidosConstantsSymbolTable->AddSymbolsToTypeTable(&typeTable);
-			
-			for (EidosASTNode *param_node : param_nodes)
+			else
 			{
-				const std::vector<EidosASTNode *> &param_children = param_node->children_;
-				int param_children_count = (int)param_children.size();
+				// The EOF was not hit while parsing the function body, so we're supposed to leave the type table alone in the end.
+				// We do this by creating a separate type table that we just use temporarily, inside the function body.  We could
+				// almost skip type-interpreting the function body entirely, except that it might define a constant.
+				EidosTypeTable typeTable;
+				EidosCallTypeTable callTypeTable;
 				
-				if ((param_children_count == 2) || (param_children_count == 3))
+				gEidosConstantsSymbolTable->AddSymbolsToTypeTable(&typeTable);
+				
+				for (EidosASTNode *param_node : param_nodes)
 				{
-					EidosTypeSpecifier &param_type = param_children[0]->typespec_;
-					const std::string &param_name = param_children[1]->token_->token_string_;
+					const std::vector<EidosASTNode *> &param_children = param_node->children_;
+					int param_children_count = (int)param_children.size();
 					
-					typeTable.SetTypeForSymbol(Eidos_GlobalStringIDForString(param_name), param_type);
+					if ((param_children_count == 2) || (param_children_count == 3))
+					{
+						EidosTypeSpecifier &param_type = param_children[0]->typespec_;
+						const std::string &param_name = param_children[1]->token_->token_string_;
+						
+						typeTable.SetTypeForSymbol(Eidos_GlobalStringIDForString(param_name), param_type);
+					}
 				}
+				
+				EidosTypeInterpreter typeInterpreter(body_node, typeTable, function_map_, callTypeTable);
+				
+				typeInterpreter.TypeEvaluateNode(body_node);	// result not used
 			}
-			
-			EidosTypeInterpreter typeInterpreter(body_node, typeTable, function_map_, callTypeTable);
-			
-			typeInterpreter.TypeEvaluateNode(body_node);	// result not used
 		}
 	}
 	
