@@ -57,7 +57,8 @@ reassuring the Clang analyzer that a precondition is met:
 		assert(p_argument_count >= 5);
 	#endif
 
-
+count total lines of code in the project (excluding the gsl code):
+	( find ./core/ ./eidos/ ./eidostool/ ./EidosScribe ./SLiMgui '(' -name '*.mm' -or -name '*.h' -or -name '*.cpp' ')' -print0 | xargs -0 cat ) | wc -l
 
 
 
