@@ -2,15 +2,13 @@ These recipes are all taken directly from SLiM's manual:
 
 Haller, B.C., and Messer, P.W. (2016). SLiM: An Evolutionary Simulation Framework.
 
-This distribution corresponds to the 19 September 2016 revision of that manual (but these recipes may not need to be updated for minor manual revisions, so don't be alarmed if you have a more recent revision of the manual).
-
 SLiM's manual contains full explanations of each recipe, in the corresponding section; please refer to it for further information.  These recipes are provided as separate files for convenience, particularly since copy-paste from the PDF manual often works poorly (but note that SLiMgui now allows you to open these recipes directly from the File menu, also, via the Open Recipe submenu).
 
 --------------------------------------------------------------
 
 These recipes were all created by Ben Haller, except recipe 5.4, created by Aaron Sams.
 
-All recipes are copyright (c) 2016 Philipp Messer.  All rights reserved.
+All recipes are copyright (c) 2016-2017 Philipp Messer.  All rights reserved.
 They are products of the Messer Lab, http://messerlab.org/slim/
 
 All of these recipes are a part of SLiM.
