@@ -58,6 +58,10 @@ void SLiM_WarmUp(void)
 std::ostringstream gSLiMOut;
 
 
+#pragma mark -
+#pragma mark Types and max values
+#pragma mark -
+
 // Functions for casting from Eidos ints (int64_t) to SLiM int types safely
 void SLiM_RaiseGenerationRangeError(int64_t p_long_value)
 {
@@ -178,6 +182,10 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
 }
 
 
+#pragma mark -
+#pragma mark Shared SLiM types and enumerations
+#pragma mark -
+
 // Verbosity, from the command-line option -l[ong]
 bool SLiM_verbose_output = false;
 
@@ -207,6 +215,11 @@ std::ostream& operator<<(std::ostream& p_out, IndividualSex p_sex)
 	
 	return p_out;
 }
+
+
+#pragma mark -
+#pragma mark Global strings and IDs
+#pragma mark -
 
 // initialize...() functions defined by SLiMSim
 const std::string gStr_initializeGenomicElement = "initializeGenomicElement";

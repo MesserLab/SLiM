@@ -28,6 +28,10 @@
 #include <vector>
 
 
+#pragma mark -
+#pragma mark SLiMEidosDictionary
+#pragma mark -
+
 SLiMEidosDictionary::SLiMEidosDictionary(__attribute__((unused)) const SLiMEidosDictionary &p_original)
 {
 	// Note we do NOT copy hash_symbols_ from p_original; I don't think we need to.  I think, in fact,
@@ -44,6 +48,7 @@ SLiMEidosDictionary::SLiMEidosDictionary(void)
 //
 #pragma mark -
 #pragma mark Eidos support
+#pragma mark -
 
 const EidosObjectClass *SLiMEidosDictionary::Class(void) const
 {
@@ -118,6 +123,7 @@ EidosValue_SP SLiMEidosDictionary::ExecuteMethod_setValue(EidosGlobalStringID p_
 //
 #pragma mark -
 #pragma mark SLiMEidosDictionary_Class
+#pragma mark -
 
 EidosObjectClass *gSLiM_SLiMEidosDictionary_Class = new SLiMEidosDictionary_Class();
 

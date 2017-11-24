@@ -26,7 +26,9 @@
 //
 //	SLiMEidosScript
 //
+#pragma mark -
 #pragma mark SLiMEidosScript
+#pragma mark -
 
 SLiMEidosScript::SLiMEidosScript(const std::string &p_script_string) : EidosScript(p_script_string)
 {
@@ -445,6 +447,7 @@ slim_objectid_t SLiMEidosScript::ExtractIDFromStringWithPrefix(const std::string
 //
 #pragma mark -
 #pragma mark SLiMEidosBlock
+#pragma mark -
 
 SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_node),
 	self_symbol_(gID_self, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMEidosBlock_Class))),
@@ -818,6 +821,7 @@ void SLiMEidosBlock::ScanTreeForIdentifiersUsed(void)
 //
 #pragma mark -
 #pragma mark Eidos support
+#pragma mark -
 
 const EidosObjectClass *SLiMEidosBlock::Class(void) const
 {
@@ -938,6 +942,7 @@ EidosValue_SP SLiMEidosBlock::ExecuteInstanceMethod(EidosGlobalStringID p_method
 //
 #pragma mark -
 #pragma mark SLiMEidosBlock_Class
+#pragma mark -
 
 class SLiMEidosBlock_Class : public EidosObjectClass
 {
@@ -1057,6 +1062,7 @@ EidosValue_SP SLiMEidosBlock_Class::ExecuteClassMethod(EidosGlobalStringID p_met
 //
 #pragma mark -
 #pragma mark SLiMTypeTable
+#pragma mark -
 
 SLiMTypeTable::SLiMTypeTable(void) : EidosTypeTable()
 {
@@ -1155,6 +1161,7 @@ EidosTypeSpecifier SLiMTypeTable::GetTypeForSymbol(EidosGlobalStringID p_symbol_
 //
 #pragma mark -
 #pragma mark SLiMTypeInterpreter
+#pragma mark -
 
 SLiMTypeInterpreter::SLiMTypeInterpreter(const EidosScript &p_script, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, EidosCallTypeTable &p_call_types, bool p_defines_only)
 	: EidosTypeInterpreter(p_script, p_symbols, p_functions, p_call_types, p_defines_only)

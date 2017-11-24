@@ -50,6 +50,7 @@ void SLiM_WarmUp(void);
 //
 #pragma mark -
 #pragma mark Output handling
+#pragma mark -
 
 // Output from SLiM can work in one of two ways.  If gEidosTerminateThrows == 0, ordinary output goes to cout,
 // and error output goes to cerr.  The other mode has gEidosTerminateThrows == 1.  In that mode, we use a global
@@ -68,6 +69,7 @@ extern std::ostringstream gSLiMOut;
 //
 #pragma mark -
 #pragma mark Types and max values
+#pragma mark -
 
 // This is the standard setup for SLiM: 32 bit ints for most values.  This is recommended.  This gives a maximum of
 // 1 billion for quantities such as object IDs, generations, population sizes, and chromosome positions.  This is
@@ -211,6 +213,7 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
 //
 #pragma mark -
 #pragma mark Debugging support
+#pragma mark -
 
 // Debugging #defines that can be turned on
 #define DEBUG_MUTATIONS				0		// turn on logging of mutation construction and destruction
@@ -246,6 +249,7 @@ extern bool SLiM_verbose_output;
 //
 #pragma mark -
 #pragma mark Shared SLiM types and enumerations
+#pragma mark -
 
 // This enumeration represents the type of chromosome represented by a genome: autosome, X, or Y.  Note that this is somewhat
 // separate from the sex of the individual; one can model sexual individuals but model only an autosome, in which case the sex
@@ -278,6 +282,7 @@ std::ostream& operator<<(std::ostream& p_out, IndividualSex p_sex);
 //
 #pragma mark -
 #pragma mark Global strings and IDs
+#pragma mark -
 
 //
 //	Additional global std::string objects.  See script_globals.h for details.

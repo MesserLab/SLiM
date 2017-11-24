@@ -34,6 +34,10 @@
 #include <map>
 
 
+#pragma mark -
+#pragma mark _SpatialMap
+#pragma mark -
+
 _SpatialMap::_SpatialMap(std::string p_spatiality_string, int p_spatiality, int64_t *p_grid_sizes, bool p_interpolate, double p_min_value, double p_max_value, int p_num_colors) :
 	spatiality_string_(p_spatiality_string), spatiality_(p_spatiality), interpolate_(p_interpolate), min_value_(p_min_value), max_value_(p_max_value), n_colors_(p_num_colors)
 {
@@ -271,6 +275,10 @@ void _SpatialMap::ColorForValue(double p_value, float *p_rgb_ptr)
 	p_rgb_ptr[2] = (float)(blue1 * color_1_weight + blue2 * color_2_weight);
 }
 
+
+#pragma mark -
+#pragma mark Subpopulation
+#pragma mark -
 
 // given the subpop size and sex ratio currently set for the child generation, make new genomes to fit
 void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
@@ -2109,6 +2117,7 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 //
 #pragma mark -
 #pragma mark Eidos support
+#pragma mark -
 
 const EidosObjectClass *Subpopulation::Class(void) const
 {
@@ -3335,6 +3344,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 //
 #pragma mark -
 #pragma mark Subpopulation_Class
+#pragma mark -
 
 class Subpopulation_Class : public SLiMEidosDictionary_Class
 {

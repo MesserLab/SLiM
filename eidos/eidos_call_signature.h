@@ -27,6 +27,10 @@
 #include <iostream>
 
 
+#pragma mark -
+#pragma mark EidosCallSignature
+#pragma mark -
+
 // EidosCallSignature is used to represent the return type and argument types of a function or method, for shared runtime type checking.
 // This is an abstract base class; clients should use one of the subclasses below.
 class EidosCallSignature
@@ -174,6 +178,10 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosCallSignature &p_
 bool CompareEidosCallSignatures(const EidosCallSignature *p_i, const EidosCallSignature *p_j);
 
 
+#pragma mark -
+#pragma mark EidosFunctionSignature
+#pragma mark -
+
 class EidosFunctionSignature : public EidosCallSignature
 {
 public:
@@ -202,6 +210,11 @@ public:
 	virtual std::string CallDelegate(void) const;
 };
 
+
+#pragma mark -
+#pragma mark EidosMethodSignature
+#pragma mark -
+
 class EidosMethodSignature : public EidosCallSignature
 {
 public:
@@ -218,6 +231,11 @@ public:
 	virtual std::string CallType(void) const;
 };
 
+
+#pragma mark -
+#pragma mark EidosInstanceMethodSignature
+#pragma mark -
+
 class EidosInstanceMethodSignature : public EidosMethodSignature
 {
 public:
@@ -231,6 +249,11 @@ public:
 	
 	virtual std::string CallPrefix(void) const;
 };
+
+
+#pragma mark -
+#pragma mark EidosClassMethodSignature
+#pragma mark -
 
 class EidosClassMethodSignature : public EidosMethodSignature
 {

@@ -59,7 +59,9 @@ void EidosTestElement::FreeThunks(void)
 //
 //	EidosTestElement
 //
+#pragma mark -
 #pragma mark EidosTestElement
+#pragma mark -
 
 EidosTestElement::EidosTestElement(int64_t p_value) : yolk_(p_value)
 {
@@ -156,6 +158,7 @@ EidosValue_SP EidosTestElement::ExecuteMethod_squareTest(EidosGlobalStringID p_m
 //
 #pragma mark -
 #pragma mark EidosTestElement_Class
+#pragma mark -
 
 class EidosTestElement_Class : public EidosObjectClass
 {

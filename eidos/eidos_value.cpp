@@ -157,6 +157,11 @@ std::string StringForEidosValueMask(const EidosValueMask p_mask, const EidosObje
 	return out_string;
 }
 
+
+#pragma mark -
+#pragma mark Comparing EidosValues
+#pragma mark -
+
 // returns -1 if value1[index1] < value2[index2], 0 if ==, 1 if >, with full type promotion
 int CompareEidosValues(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token)
 {
@@ -294,6 +299,7 @@ EidosCompareFunctionPtr Eidos_GetCompareFunctionForTypes(EidosValueType p_type1,
 //
 #pragma mark -
 #pragma mark EidosValue
+#pragma mark -
 
 #ifdef EIDOS_TRACK_VALUE_ALLOCATION
 int EidosValue::valueTrackingCount;
@@ -369,6 +375,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosValue &p_value)
 //
 #pragma mark -
 #pragma mark EidosValue_NULL
+#pragma mark -
 
 EidosValue_NULL::~EidosValue_NULL(void)
 {
@@ -450,6 +457,7 @@ void EidosValue_NULL::Sort(bool p_ascending)
 //
 #pragma mark -
 #pragma mark EidosValue_Logical
+#pragma mark -
 
 EidosValue_Logical::EidosValue_Logical(void) : EidosValue(EidosValueType::kValueLogical, false)
 {
@@ -676,6 +684,7 @@ void EidosValue_Logical_const::Sort(bool p_ascending)
 //
 #pragma mark -
 #pragma mark EidosValue_String
+#pragma mark -
 
 EidosValue_String::~EidosValue_String(void)
 {
@@ -949,6 +958,7 @@ void EidosValue_String_singleton::Sort(bool p_ascending)
 //
 #pragma mark -
 #pragma mark EidosValue_Int
+#pragma mark -
 
 EidosValue_Int::~EidosValue_Int(void)
 {
@@ -1210,6 +1220,7 @@ void EidosValue_Int_singleton::Sort(bool p_ascending)
 //
 #pragma mark -
 #pragma mark EidosValue_Float
+#pragma mark -
 
 EidosValue_Float::~EidosValue_Float(void)
 {
@@ -1533,6 +1544,7 @@ void EidosValue_Float_singleton::Sort(bool p_ascending)
 //
 #pragma mark -
 #pragma mark EidosValue_Object
+#pragma mark -
 
 // See comment on EidosValue_Object::EidosValue_Object() below
 std::vector<EidosValue_Object *> gEidosValue_Object_Mutation_Registry;
@@ -2536,6 +2548,7 @@ EidosValue_SP EidosValue_Object_singleton::ExecuteMethodCall(EidosGlobalStringID
 //
 #pragma mark -
 #pragma mark EidosObjectElement
+#pragma mark -
 
 EidosObjectElement::EidosObjectElement(void)
 {
@@ -2735,7 +2748,6 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosObjectElement &p_
 //
 //	EidosObjectElementInternal
 //
-#pragma mark -
 #pragma mark EidosObjectElementInternal
 
 EidosObjectElementInternal::EidosObjectElementInternal(void)
@@ -2782,6 +2794,7 @@ EidosObjectElement *EidosObjectElementInternal::Release(void)
 //
 #pragma mark -
 #pragma mark EidosObjectClass
+#pragma mark -
 
 EidosObjectClass::EidosObjectClass(void)
 {

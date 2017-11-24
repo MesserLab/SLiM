@@ -51,6 +51,10 @@ enum class SLiMEidosBlockType {
 };
 
 
+#pragma mark -
+#pragma mark SLiMEidosScript
+#pragma mark -
+
 class SLiMEidosScript : public EidosScript
 {
 public:
@@ -85,6 +89,10 @@ public:
 	}
 };
 
+
+#pragma mark -
+#pragma mark SLiMEidosBlock
+#pragma mark -
 
 extern EidosObjectClass *gSLiM_SLiMEidosBlock_Class;
 
@@ -190,6 +198,10 @@ public:
 };
 
 
+#pragma mark -
+#pragma mark SLiMTypeTable
+#pragma mark -
+
 class SLiMTypeTable : public EidosTypeTable
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
@@ -207,6 +219,10 @@ public:
 	virtual EidosTypeSpecifier GetTypeForSymbol(EidosGlobalStringID p_symbol_name) const;
 };
 
+
+#pragma mark -
+#pragma mark SLiMTypeInterpreter
+#pragma mark -
 
 class SLiMTypeInterpreter : public EidosTypeInterpreter
 {

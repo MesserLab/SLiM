@@ -8257,18 +8257,6 @@ EidosValue_SP Eidos_ExecuteFunction_version(__attribute__((unused)) const EidosV
 
 // ************************************************************************************
 //
-//	undocumented functions
-//
-#pragma mark -
-#pragma mark Undocumented functions
-#pragma mark -
-
-
-
-
-
-// ************************************************************************************
-//
 //	object instantiation
 //
 #pragma mark -

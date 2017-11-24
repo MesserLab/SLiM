@@ -44,6 +44,10 @@ std::ostream& operator<<(std::ostream& p_out, IFType p_if_type)
 }
 
 
+#pragma mark -
+#pragma mark InteractionType
+#pragma mark -
+
 InteractionType::InteractionType(slim_objectid_t p_interaction_type_id, std::string p_spatiality_string, bool p_reciprocal, double p_max_distance, IndividualSex p_receiver_sex, IndividualSex p_exerter_sex) :
 	interaction_type_id_(p_interaction_type_id), spatiality_string_(p_spatiality_string), reciprocal_(p_reciprocal), max_distance_(p_max_distance), max_distance_sq_(p_max_distance * p_max_distance), receiver_sex_(p_receiver_sex), exerter_sex_(p_exerter_sex), if_type_(IFType::kFixed), if_param1_(1.0), if_param2_(0.0),
 	self_symbol_(Eidos_GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('i', p_interaction_type_id)),
@@ -1512,6 +1516,7 @@ void InteractionType::InitializeStrengths(InteractionsData &p_subpop_data)
 
 #pragma mark -
 #pragma mark k-d tree construction
+#pragma mark -
 
 // This k-d tree code is patterned after the C code at RosettaCode.org : https://rosettacode.org/wiki/K-d_tree#C
 // It uses a Quickselect-style algorithm to select medians to produce a balanced tree
@@ -1913,6 +1918,7 @@ void InteractionType::EnsureKDTreePresent(InteractionsData &p_subpop_data)
 
 #pragma mark -
 #pragma mark k-d tree consistency checking
+#pragma mark -
 
 // The general strategy is: the _pX() functions check that they are indeed a median node for all of the
 // nodes underneath the given node, for the coordinate of the given polarity.  They do this by calling
@@ -2079,6 +2085,7 @@ void InteractionType::CheckKDTree3_p2_r(SLiM_kdNode *t, double split, bool isLef
 
 #pragma mark -
 #pragma mark k-d tree neighbor searches
+#pragma mark -
 
 inline double dist_sq1(SLiM_kdNode *a, double *b)
 {
@@ -2641,6 +2648,7 @@ void InteractionType::FindNeighbors(Subpopulation *p_subpop, InteractionsData &p
 
 #pragma mark -
 #pragma mark k-d tree total strength calculation
+#pragma mark -
 
 // the functions below can work with the globals here to execute callbacks; it would be slightly faster to replicate all the code
 // and eliminate the if (!gSLiM_Recursive_callbacks), but that is only hit when we find a neighbor with an uncalculated strength
@@ -3078,6 +3086,7 @@ double InteractionType::TotalNeighborStrength(Subpopulation *p_subpop, Interacti
 
 #pragma mark -
 #pragma mark k-d tree neighbor strength fetching
+#pragma mark -
 
 // fetch all neighbor strengths in 1D
 void InteractionType::FillNeighborStrengthsA_1(SLiM_kdNode *root, double *nd, double *p_focal_strengths, std::vector<double> &p_result_vec)
@@ -3486,6 +3495,7 @@ void InteractionType::FillNeighborStrengths(Subpopulation *p_subpop, Interaction
 //
 #pragma mark -
 #pragma mark Eidos support
+#pragma mark -
 
 const EidosObjectClass *InteractionType::Class(void) const
 {
@@ -4639,6 +4649,7 @@ EidosValue_SP InteractionType::ExecuteMethod_unevaluate(EidosGlobalStringID p_me
 //
 #pragma mark -
 #pragma mark InteractionType_Class
+#pragma mark -
 
 class InteractionType_Class : public SLiMEidosDictionary_Class
 {
@@ -4805,6 +4816,7 @@ EidosValue_SP InteractionType_Class::ExecuteClassMethod(EidosGlobalStringID p_me
 //
 #pragma mark -
 #pragma mark InteractionType_Class
+#pragma mark -
 
 _InteractionsData::_InteractionsData(_InteractionsData&& p_source)
 {

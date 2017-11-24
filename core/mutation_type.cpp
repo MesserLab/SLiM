@@ -48,6 +48,10 @@ std::ostream& operator<<(std::ostream& p_out, DFEType p_dfe_type)
 }
 
 
+#pragma mark -
+#pragma mark MutationType
+#pragma mark -
+
 #ifdef SLIMGUI
 MutationType::MutationType(SLiMSim &p_sim, slim_objectid_t p_mutation_type_id, double p_dominance_coeff, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, std::vector<std::string> p_dfe_strings, int p_mutation_type_index) : mutation_type_index_(p_mutation_type_index),
 #else
@@ -241,6 +245,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const MutationType &p_mutati
 //
 #pragma mark -
 #pragma mark Eidos support
+#pragma mark -
 
 const EidosObjectClass *MutationType::Class(void) const
 {
@@ -550,6 +555,7 @@ EidosValue_SP MutationType::ExecuteMethod_setDistribution(EidosGlobalStringID p_
 //
 #pragma mark -
 #pragma mark MutationType_Class
+#pragma mark -
 
 class MutationType_Class : public SLiMEidosDictionary_Class
 {

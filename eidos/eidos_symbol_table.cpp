@@ -33,7 +33,9 @@
 //
 //	EidosSymbolTable
 //
+#pragma mark -
 #pragma mark EidosSymbolTable
+#pragma mark -
 
 EidosSymbolTable::EidosSymbolTable(EidosSymbolTableType p_table_type, EidosSymbolTable *p_parent_table, bool p_start_with_hash)
 {

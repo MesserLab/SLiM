@@ -50,6 +50,10 @@ class Population;
 extern EidosObjectClass *gSLiM_Subpopulation_Class;
 
 
+#pragma mark -
+#pragma mark _SpatialMap
+#pragma mark -
+
 // This is a structure for keeping a "spatial map", a 1D, 2D, or 3D grid of values for points in space that can be defined
 // and then queried by the user.  These are used only in spatial simulations.  Besides being a sort of N-dimensional data
 // structure to fill the void made by the lack of an array type in Eidos, it also manages interpolation, rescaling to fit
@@ -84,6 +88,10 @@ typedef struct _SpatialMap SpatialMap;
 typedef std::pair<std::string, SpatialMap *> SpatialMapPair;
 typedef std::map<std::string, SpatialMap *> SpatialMapMap;
 
+
+#pragma mark -
+#pragma mark Subpopulation
+#pragma mark -
 
 class Subpopulation : public SLiMEidosDictionary
 {

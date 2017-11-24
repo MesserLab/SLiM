@@ -60,6 +60,10 @@ bool eidos_do_memory_checks = true;
 EidosSymbolTable *gEidosConstantsSymbolTable = nullptr;
 
 
+#pragma mark -
+#pragma mark Profiling support
+#pragma mark -
+
 #if ((defined(SLIMGUI) && (SLIMPROFILING == 1)) || defined(EIDOS_GUI))
 // PROFILING
 
@@ -144,6 +148,10 @@ void Eidos_PrepareForProfiling(void)
 
 #endif
 
+
+#pragma mark -
+#pragma mark Warm-up and command line processing
+#pragma mark -
 
 bool Eidos_GoodSymbolForDefine(std::string &p_symbol_name);
 EidosValue_SP Eidos_ValueForCommandLineExpression(std::string &p_value_expression);
@@ -410,6 +418,10 @@ std::string gEidosContextCitation;
 
 std::vector<EidosObjectClass *> gEidosContextClasses;
 
+
+#pragma mark -
+#pragma mark Termination handling
+#pragma mark -
 
 // the part of the input file that caused an error; used to highlight the token or text that caused the error
 int gEidosCharacterStartOfError = -1, gEidosCharacterEndOfError = -1;
@@ -780,6 +792,10 @@ std::string Eidos_GetUntrimmedRaiseMessage(void)
 }
 
 
+#pragma mark -
+#pragma mark Memory usage monitoring
+#pragma mark -
+
 //
 //	The code below was obtained from http://nadeausoftware.com/articles/2012/07/c_c_tip_how_get_process_resident_set_size_physical_memory_use.  It may or may not work.
 //	On Windows, it requires linking with Microsoft's psapi.lib.  That is left as an exercise for the reader.  Nadeau says "On other OSes, the default libraries are sufficient."
@@ -901,6 +917,127 @@ size_t Eidos_GetCurrentRSS(void)
 #endif
 }
 
+size_t Eidos_GetMaxRSS(void)
+{
+	static bool beenHere = false;
+	static size_t max_rss = 0;
+	
+	if (!beenHere)
+	{
+#if 0
+		// Find our RSS limit by launching a subshell to run "ulimit -m"
+		std::string limit_string = Eidos_Exec("ulimit -m");
+		
+		std::string unlimited("unlimited");
+		
+		if (std::mismatch(unlimited.begin(), unlimited.end(), limit_string.begin()).first == unlimited.end())
+		{
+			// "unlimited" is a prefix of foobar, so use 0 to represent that
+			max_rss = 0;
+		}
+		else
+		{
+			errno = 0;
+			
+			const char *c_str = limit_string.c_str();
+			char *last_used_char = nullptr;
+			
+			max_rss = strtoq(c_str, &last_used_char, 10);
+			
+			if (errno || (last_used_char == c_str))
+			{
+				// If an error occurs, assume we are unlimited
+				max_rss = 0;
+			}
+			else
+			{
+				// This value is in 1024-byte units, so multiply to get a limit in bytes
+				max_rss *= 1024L;
+			}
+		}
+#else
+		// Find our RSS limit using getrlimit() – easier and safer
+		struct rlimit rlim;
+		
+		if (getrlimit(RLIMIT_RSS, &rlim) == 0)
+		{
+			// This value is in bytes, no scaling needed
+			max_rss = (uint64_t)rlim.rlim_max;
+			
+			// If the claim is that we have more than 1024 TB at our disposal, then we will consider ourselves unlimited :->
+			if (max_rss > 1024L * 1024L * 1024L * 1024L * 1024L)
+			max_rss = 0;
+		}
+		else
+		{
+			// If an error occurs, assume we are unlimited
+			max_rss = 0;
+		}
+#endif
+		
+		beenHere = true;
+	}
+	
+	return max_rss;
+}
+
+void Eidos_CheckRSSAgainstMax(std::string p_message1, std::string p_message2)
+{
+	static bool beenHere = false;
+	static size_t max_rss = 0;
+	
+	if (!beenHere)
+	{
+		// The first time we are called, we get the memory limit and sanity-check it
+		max_rss = Eidos_GetMaxRSS();
+		
+#if 0
+		// Impose a 20 MB limit, for testing
+		max_rss = 20*1024*1024;
+#warning Turn this off!
+#endif
+		
+		if (max_rss != 0)
+		{
+			size_t current_rss = Eidos_GetCurrentRSS();
+			
+			// If we are already within 10 MB of overrunning our supposed limit, disable checking; assume that
+			// either Eidos_GetMaxRSS() or Eidos_GetCurrentRSS() is not telling us the truth.
+			if (current_rss + 10L*1024L*1024L > max_rss)
+			max_rss = 0;
+		}
+		
+		// Switch off our memory check flag if we are not going to enforce a limit anyway;
+		// this allows the caller to skip calling us when possible, for speed
+		if (max_rss == 0)
+		eidos_do_memory_checks = false;
+		
+		beenHere = true;
+	}
+	
+	if (eidos_do_memory_checks && (max_rss != 0))
+	{
+		size_t current_rss = Eidos_GetCurrentRSS();
+		
+		// If we are within 10 MB of overrunning our limit, then terminate with a message before
+		// the system does it for us.  10 MB gives us a little headroom, so that we detect this
+		// condition before the system does.
+		if (current_rss + 10L*1024L*1024L > max_rss)
+		{
+			// We output our warning to std::cerr, because we may get killed by the OS for exceeding our memory limit before other streams would get flushed
+			std::cerr << "WARNING (" << p_message1 << "): memory usage of " << (current_rss / (1024.0 * 1024.0)) << " MB is dangerously close to the limit of " << (max_rss / (1024.0 * 1024.0)) << " MB reported by the operating system.  This SLiM process may soon be killed by the operating system for exceeding the memory limit.  You might raise the per-process memory limit, or modify your model to decrease memory usage.  You can turn off this memory check with the '-x' command-line option.  " << p_message2 << std::endl;
+			std::cerr.flush();
+			
+			// We want to issue only one warning, so turn off warnings now
+			eidos_do_memory_checks = false;
+		}
+	}
+}
+
+
+#pragma mark -
+#pragma mark Utility functions
+#pragma mark -
 
 // resolve a leading ~ in a filesystem path to the user's home directory
 std::string Eidos_ResolvedPath(const std::string p_path)
@@ -1408,123 +1545,10 @@ std::string Eidos_Exec(const char *p_cmd)
 	return result;
 }
 
-size_t Eidos_GetMaxRSS(void)
-{
-	static bool beenHere = false;
-	static size_t max_rss = 0;
-	
-	if (!beenHere)
-	{
-#if 0
-		// Find our RSS limit by launching a subshell to run "ulimit -m"
-		std::string limit_string = Eidos_Exec("ulimit -m");
-		
-		std::string unlimited("unlimited");
-		
-		if (std::mismatch(unlimited.begin(), unlimited.end(), limit_string.begin()).first == unlimited.end())
-		{
-			// "unlimited" is a prefix of foobar, so use 0 to represent that
-			max_rss = 0;
-		}
-		else
-		{
-			errno = 0;
-			
-			const char *c_str = limit_string.c_str();
-			char *last_used_char = nullptr;
-			
-			max_rss = strtoq(c_str, &last_used_char, 10);
-			
-			if (errno || (last_used_char == c_str))
-			{
-				// If an error occurs, assume we are unlimited
-				max_rss = 0;
-			}
-			else
-			{
-				// This value is in 1024-byte units, so multiply to get a limit in bytes
-				max_rss *= 1024L;
-			}
-		}
-#else
-		// Find our RSS limit using getrlimit() – easier and safer
-		struct rlimit rlim;
-		
-		if (getrlimit(RLIMIT_RSS, &rlim) == 0)
-		{
-			// This value is in bytes, no scaling needed
-			max_rss = (uint64_t)rlim.rlim_max;
-			
-			// If the claim is that we have more than 1024 TB at our disposal, then we will consider ourselves unlimited :->
-			if (max_rss > 1024L * 1024L * 1024L * 1024L * 1024L)
-				max_rss = 0;
-		}
-		else
-		{
-			// If an error occurs, assume we are unlimited
-			max_rss = 0;
-		}
-#endif
-		
-		beenHere = true;
-	}
-	
-	return max_rss;
-}
 
-void Eidos_CheckRSSAgainstMax(std::string p_message1, std::string p_message2)
-{
-	static bool beenHere = false;
-	static size_t max_rss = 0;
-	
-	if (!beenHere)
-	{
-		// The first time we are called, we get the memory limit and sanity-check it
-		max_rss = Eidos_GetMaxRSS();
-		
-#if 0
-		// Impose a 20 MB limit, for testing
-		max_rss = 20*1024*1024;
-#warning Turn this off!
-#endif
-		
-		if (max_rss != 0)
-		{
-			size_t current_rss = Eidos_GetCurrentRSS();
-			
-			// If we are already within 10 MB of overrunning our supposed limit, disable checking; assume that
-			// either Eidos_GetMaxRSS() or Eidos_GetCurrentRSS() is not telling us the truth.
-			if (current_rss + 10L*1024L*1024L > max_rss)
-				max_rss = 0;
-		}
-		
-		// Switch off our memory check flag if we are not going to enforce a limit anyway;
-		// this allows the caller to skip calling us when possible, for speed
-		if (max_rss == 0)
-			eidos_do_memory_checks = false;
-		
-		beenHere = true;
-	}
-	
-	if (eidos_do_memory_checks && (max_rss != 0))
-	{
-		size_t current_rss = Eidos_GetCurrentRSS();
-		
-		// If we are within 10 MB of overrunning our limit, then terminate with a message before
-		// the system does it for us.  10 MB gives us a little headroom, so that we detect this
-		// condition before the system does.
-		if (current_rss + 10L*1024L*1024L > max_rss)
-		{
-			// We output our warning to std::cerr, because we may get killed by the OS for exceeding our memory limit before other streams would get flushed
-			std::cerr << "WARNING (" << p_message1 << "): memory usage of " << (current_rss / (1024.0 * 1024.0)) << " MB is dangerously close to the limit of " << (max_rss / (1024.0 * 1024.0)) << " MB reported by the operating system.  This SLiM process may soon be killed by the operating system for exceeding the memory limit.  You might raise the per-process memory limit, or modify your model to decrease memory usage.  You can turn off this memory check with the '-x' command-line option.  " << p_message2 << std::endl;
-			std::cerr.flush();
-			
-			// We want to issue only one warning, so turn off warnings now
-			eidos_do_memory_checks = false;
-		}
-	}
-}
-
+#pragma mark -
+#pragma mark Global strings & IDs
+#pragma mark -
 
 //	Global std::string objects.
 const std::string gEidosStr_empty_string = "";
@@ -1740,6 +1764,10 @@ void Eidos_FreeGlobalStrings(void)
 	gIDToString_Thunk.clear();
 }
 
+
+#pragma mark -
+#pragma mark Named/specified color support
+#pragma mark -
 
 // *******************************************************************************************************************
 //

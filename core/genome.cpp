@@ -34,6 +34,10 @@
 #include <utility>
 
 
+#pragma mark -
+#pragma mark Genome
+#pragma mark -
+
 #ifdef DEBUG
 bool Genome::s_log_copy_and_assign_ = true;
 #endif
@@ -501,6 +505,7 @@ void Genome::assert_identical_to_runs(MutationRun_SP *p_mutruns, int32_t p_mutru
 //
 #pragma mark -
 #pragma mark Eidos support
+#pragma mark -
 
 void Genome::GenerateCachedEidosValue(void)
 {
@@ -1312,6 +1317,7 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 //
 #pragma mark -
 #pragma mark Genome_Class
+#pragma mark -
 
 class Genome_Class : public EidosObjectClass
 {

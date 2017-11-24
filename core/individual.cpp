@@ -29,6 +29,10 @@
 #include <vector>
 
 
+#pragma mark -
+#pragma mark Individual
+#pragma mark -
+
 #ifdef DEBUG
 bool Individual::s_log_copy_and_assign_ = true;
 #endif
@@ -140,6 +144,7 @@ double Individual::RelatednessToIndividual(Individual &p_ind)
 //
 #pragma mark -
 #pragma mark Eidos support
+#pragma mark -
 
 void Individual::GenerateCachedEidosValue(void)
 {
@@ -1118,6 +1123,7 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 //
 #pragma mark -
 #pragma mark Individual_Class
+#pragma mark -
 
 class Individual_Class : public SLiMEidosDictionary_Class
 {

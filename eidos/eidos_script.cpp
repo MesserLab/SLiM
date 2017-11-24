@@ -69,7 +69,9 @@ static size_t Eidos_utf8_utf16width(const unsigned char *string, size_t len)
 //
 //	Script
 //
-#pragma mark Script
+#pragma mark -
+#pragma mark EidosScript
+#pragma mark -
 
 EidosScript::EidosScript(const std::string &p_script_string) :
 	script_string_(p_script_string)

@@ -37,6 +37,10 @@
 #include <utility>
 
 
+#pragma mark -
+#pragma mark SLiMSim
+#pragma mark -
+
 SLiMSim::SLiMSim(std::istream &p_infile) : population_(*this), self_symbol_(gID_sim, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMSim_Class))), x_experiments_enabled_(false)
 {
 	// set up the symbol table we will use for all of our constants
@@ -2853,6 +2857,7 @@ void SLiMSim::_CheckMutationStackPolicy(void)
 //
 #pragma mark -
 #pragma mark Eidos support
+#pragma mark -
 
 EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
@@ -5089,6 +5094,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_simulationFinished(EidosGlobalStringID p_me
 //
 #pragma mark -
 #pragma mark SLiMSim_Class
+#pragma mark -
 
 class SLiMSim_Class : public SLiMEidosDictionary_Class
 {

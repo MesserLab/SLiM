@@ -102,7 +102,9 @@ bool TypeCheckAssignmentOfEidosValueIntoEidosValue(const EidosValue &p_base_valu
 //
 //	EidosInterpreter
 //
+#pragma mark -
 #pragma mark EidosInterpreter
+#pragma mark -
 
 EidosInterpreter::EidosInterpreter(const EidosScript &p_script, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context)
 	: root_node_(p_script.AST()), global_symbols_(&p_symbols), function_map_(p_functions), eidos_context_(p_eidos_context)

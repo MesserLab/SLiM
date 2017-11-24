@@ -151,24 +151,6 @@ std::string StringForEidosValueType(const EidosValueType p_type);
 std::ostream &operator<<(std::ostream &p_outstream, const EidosValueType p_type);
 
 
-// Comparing values is a bit complex, because we want it to be as fast as possible, but there are issues involved,
-// particularly type promotion; you can compare a string to integer, or less extremely, a float to an integer, and
-// the appropriate promotion of values needs to happen.  The first function here handles the general case; the
-// other functions allow optimization in bottlenecks.  Even more optimization is possible using type-specific
-// methods.  Returns -1 if value1[index1] < value2[index2], 0 if ==, 1 if value1[index1] > value2[index2].
-int CompareEidosValues(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token);
-
-int CompareEidosValues_Object(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token);
-int CompareEidosValues_String(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token);
-int CompareEidosValues_Float(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token);
-int CompareEidosValues_Int(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token);
-int CompareEidosValues_Logical(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token);
-
-typedef int (*EidosCompareFunctionPtr)(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token);
-
-EidosCompareFunctionPtr Eidos_GetCompareFunctionForTypes(EidosValueType p_type1, EidosValueType p_type2, const EidosToken *p_blame_token);
-
-
 // EidosValueMask is a uint32_t used as a bit mask to identify permitted types for EidosValue objects (arguments, returns)
 // Note that these mask values must correspond to the values in EidosValueType directly; (1 << (int)type) == mask must be true.
 typedef uint32_t EidosValueMask;
@@ -200,6 +182,32 @@ typedef struct {
 	const EidosObjectClass *object_class;		// if kEidosValueMaskObject is included in type_mask, this can specify a class (or can be nullptr)
 } EidosTypeSpecifier;
 
+
+#pragma mark -
+#pragma mark Comparing EidosValues
+#pragma mark -
+
+// Comparing values is a bit complex, because we want it to be as fast as possible, but there are issues involved,
+// particularly type promotion; you can compare a string to integer, or less extremely, a float to an integer, and
+// the appropriate promotion of values needs to happen.  The first function here handles the general case; the
+// other functions allow optimization in bottlenecks.  Even more optimization is possible using type-specific
+// methods.  Returns -1 if value1[index1] < value2[index2], 0 if ==, 1 if value1[index1] > value2[index2].
+int CompareEidosValues(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token);
+
+int CompareEidosValues_Object(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token);
+int CompareEidosValues_String(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token);
+int CompareEidosValues_Float(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token);
+int CompareEidosValues_Int(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token);
+int CompareEidosValues_Logical(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token);
+
+typedef int (*EidosCompareFunctionPtr)(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token);
+
+EidosCompareFunctionPtr Eidos_GetCompareFunctionForTypes(EidosValueType p_type1, EidosValueType p_type2, const EidosToken *p_blame_token);
+
+
+#pragma mark -
+#pragma mark EidosValue
+#pragma mark -
 
 //	*********************************************************************************************************
 //
@@ -310,6 +318,10 @@ inline __attribute__((always_inline)) void Eidos_intrusive_ptr_release(const Eid
 }
 
 
+#pragma mark -
+#pragma mark EidosValue_NULL
+#pragma mark -
+
 //	*********************************************************************************************************
 //
 //	EidosValue_NULL and EidosValue_NULL_const represent NULL values in Eidos.  EidosValue_NULL_const
@@ -341,6 +353,10 @@ public:
 	virtual void Sort(bool p_ascending);
 };
 
+
+#pragma mark -
+#pragma mark EidosValue_Logical
+#pragma mark -
 
 //	*********************************************************************************************************
 //
@@ -415,6 +431,10 @@ public:
 	virtual void Sort(bool p_ascending);
 };
 
+
+#pragma mark -
+#pragma mark EidosValue_String
+#pragma mark -
 
 //	*********************************************************************************************************
 //
@@ -529,6 +549,10 @@ public:
 };
 
 
+#pragma mark -
+#pragma mark EidosValue_Int
+#pragma mark -
+
 //	*********************************************************************************************************
 //
 //	EidosValue_Int represents integer (C++ int64_t) values in Eidos.  The subclass
@@ -638,6 +662,10 @@ public:
 };
 
 
+#pragma mark -
+#pragma mark EidosValue_Float
+#pragma mark -
+
 //	*********************************************************************************************************
 //
 //	EidosValue_Float represents floating-point (C++ double) values in Eidos.  The subclass
@@ -745,6 +773,10 @@ public:
 	virtual void Sort(bool p_ascending);
 };
 
+
+#pragma mark -
+#pragma mark EidosValue_Object
+#pragma mark -
 
 //	*********************************************************************************************************
 //
@@ -879,6 +911,10 @@ public:
 };
 
 
+#pragma mark -
+#pragma mark EidosObjectElement
+#pragma mark -
+
 //	*********************************************************************************************************
 //
 // This is the value type of which EidosValue_Object is a vector, just as double is the value type of which
@@ -961,6 +997,10 @@ public:
 	virtual EidosObjectElement *Release(void);
 };
 
+
+#pragma mark -
+#pragma mark EidosObjectClass
+#pragma mark -
 
 //	*********************************************************************************************************
 //

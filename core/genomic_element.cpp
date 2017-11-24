@@ -29,6 +29,10 @@
 #include <vector>
 
 
+#pragma mark -
+#pragma mark GenomicElement
+#pragma mark -
+
 bool GenomicElement::s_log_copy_and_assign_ = true;
 
 
@@ -94,6 +98,7 @@ bool GenomicElement::LogGenomicElementCopyAndAssign(bool p_log)
 //
 #pragma mark -
 #pragma mark Eidos support
+#pragma mark -
 
 const EidosObjectClass *GenomicElement::Class(void) const
 {
@@ -193,6 +198,7 @@ EidosValue_SP GenomicElement::ExecuteMethod_setGenomicElementType(EidosGlobalStr
 //
 #pragma mark -
 #pragma mark GenomicElement_Class
+#pragma mark -
 
 class GenomicElement_Class : public EidosObjectClass
 {

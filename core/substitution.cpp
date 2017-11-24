@@ -29,6 +29,10 @@
 #include <vector>
 
 
+#pragma mark -
+#pragma mark Substitution
+#pragma mark -
+
 Substitution::Substitution(Mutation &p_mutation, slim_generation_t p_fixation_generation) :
 mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position_), selection_coeff_(p_mutation.selection_coeff_), subpop_index_(p_mutation.subpop_index_), generation_(p_mutation.generation_), fixation_generation_(p_fixation_generation), mutation_id_(p_mutation.mutation_id_), tag_value_(p_mutation.tag_value_)
 {
@@ -45,6 +49,7 @@ void Substitution::PrintForSLiMOutput(std::ostream &p_out) const
 //
 #pragma mark -
 #pragma mark Eidos support
+#pragma mark -
 
 const EidosObjectClass *Substitution::Class(void) const
 {
@@ -160,6 +165,7 @@ EidosValue_SP Substitution::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 //
 #pragma mark -
 #pragma mark Substitution_Class
+#pragma mark -
 
 class Substitution_Class : public EidosObjectClass
 {

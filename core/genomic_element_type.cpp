@@ -29,6 +29,10 @@
 #include <string>
 
 
+#pragma mark -
+#pragma mark GenomicElementType
+#pragma mark -
+
 GenomicElementType::GenomicElementType(slim_objectid_t p_genomic_element_type_id, std::vector<MutationType*> p_mutation_type_ptrs, std::vector<double> p_mutation_fractions) :
 	genomic_element_type_id_(p_genomic_element_type_id), mutation_type_ptrs_(p_mutation_type_ptrs), mutation_fractions_(p_mutation_fractions),
 	self_symbol_(Eidos_GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('g', p_genomic_element_type_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_GenomicElementType_Class)))
@@ -148,6 +152,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const GenomicElementType &p_
 //
 #pragma mark -
 #pragma mark Eidos support
+#pragma mark -
 
 const EidosObjectClass *GenomicElementType::Class(void) const
 {
@@ -295,6 +300,7 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationFractions(EidosGlobal
 //
 #pragma mark -
 #pragma mark GenomicElementType_Class
+#pragma mark -
 
 class GenomicElementType_Class : public SLiMEidosDictionary_Class
 {

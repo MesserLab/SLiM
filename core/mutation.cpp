@@ -159,6 +159,10 @@ void SLiM_ZeroRefcountBlock(__attribute__((unused)) MutationRun &p_mutation_regi
 }
 
 
+#pragma mark -
+#pragma mark Mutation
+#pragma mark -
+
 // A global counter used to assign all Mutation objects a unique ID
 slim_mutationid_t gSLiM_next_mutation_id = 0;
 
@@ -209,6 +213,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const Mutation &p_mutation)
 //
 #pragma mark -
 #pragma mark Eidos support
+#pragma mark -
 
 const EidosObjectClass *Mutation::Class(void) const
 {
@@ -401,6 +406,7 @@ EidosValue_SP Mutation::ExecuteMethod_setMutationType(EidosGlobalStringID p_meth
 //
 #pragma mark -
 #pragma mark Mutation_Class
+#pragma mark -
 
 class Mutation_Class : public SLiMEidosDictionary_Class
 {

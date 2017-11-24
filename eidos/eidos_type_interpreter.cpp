@@ -33,7 +33,9 @@
 //
 //	EidosTypeInterpreter
 //
+#pragma mark -
 #pragma mark EidosTypeInterpreter
+#pragma mark -
 
 EidosTypeInterpreter::EidosTypeInterpreter(const EidosScript &p_script, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, EidosCallTypeTable &p_call_types, bool p_defines_only)
 : root_node_(p_script.AST()), global_symbols_(&p_symbols), function_map_(p_functions), call_type_map_(p_call_types), defines_only_(p_defines_only)

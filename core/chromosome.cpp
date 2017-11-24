@@ -49,6 +49,10 @@ inline GESubrange::GESubrange(GenomicElement *p_genomic_element_ptr, slim_positi
 }
 
 
+#pragma mark -
+#pragma mark Chromosome
+#pragma mark -
+
 Chromosome::Chromosome(void) :
 
 	single_mutation_map_(true),
@@ -660,6 +664,7 @@ void Chromosome::DrawBreakpoints_Detailed(IndividualSex p_sex, const int p_num_b
 //
 #pragma mark -
 #pragma mark Eidos support
+#pragma mark -
 
 const EidosObjectClass *Chromosome::Class(void) const
 {
@@ -1035,6 +1040,7 @@ EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID
 //
 #pragma mark -
 #pragma mark Chromosome_Class
+#pragma mark -
 
 class Chromosome_Class : public EidosObjectClass
 {
