@@ -43,8 +43,11 @@ NSString *SLiMTipsDirectoryName = @"Tips";
 {
 	if ([[NSUserDefaults standardUserDefaults] boolForKey:SLiMDefaultsShowTipsPanelKey])
 	{
-		TipsWindowController *controller = [[[TipsWindowController alloc] init] autorelease];
-	
+		static TipsWindowController *controller = nil;
+		
+		if (!controller)
+			[[[TipsWindowController alloc] init] autorelease];
+		
 		[controller showTipsPanel];
 	}
 }
@@ -81,6 +84,7 @@ NSString *SLiMTipsDirectoryName = @"Tips";
 
 - (void)dealloc
 {
+	[self setTipsWindow:nil];
 	[tipsFilenames release];
 	
 	[super dealloc];

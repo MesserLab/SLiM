@@ -63,6 +63,8 @@ _SpatialMap::_SpatialMap(std::string p_spatiality_string, int p_spatiality, int6
 			grid_size_[2] = p_grid_sizes[2];
 			values_size = grid_size_[0] * grid_size_[1] * grid_size_[2];
 			break;
+		default:
+			EIDOS_TERMINATION << "ERROR (_SpatialMap::_SpatialMap): (internal error) unsupported spatiality." << EidosTerminate();
 	}
 	
 	values_ = (double *)malloc(values_size * sizeof(double));
@@ -3173,6 +3175,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p
 					double z = (point->FloatAtIndex(0, nullptr) - bounds_z0_) / (bounds_z1_ - bounds_z0_);
 					point_vec[0] = SLiMClampCoordinate(z);
 				}
+				else
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): (internal error) unrecognized spatiality." << EidosTerminate();
 				break;
 			}
 			case 2:
@@ -3201,6 +3205,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p
 					double z = (point->FloatAtIndex(1, nullptr) - bounds_z0_) / (bounds_z1_ - bounds_z0_);
 					point_vec[1] = SLiMClampCoordinate(z);
 				}
+				else
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): (internal error) unrecognized spatiality." << EidosTerminate();
 				break;
 			}
 			case 3:
@@ -3216,6 +3222,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p
 					double z = (point->FloatAtIndex(2, nullptr) - bounds_z0_) / (bounds_z1_ - bounds_z0_);
 					point_vec[2] = SLiMClampCoordinate(z);
 				}
+				else
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): (internal error) unrecognized spatiality." << EidosTerminate();
 				break;
 			}
 		}

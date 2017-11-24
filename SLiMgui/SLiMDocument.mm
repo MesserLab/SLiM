@@ -75,6 +75,8 @@
 	[documentScriptString release];
 	documentScriptString = nil;
 	
+	[self setRecipeName:nil];
+	
 	[super dealloc];
 }
 

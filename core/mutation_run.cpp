@@ -77,6 +77,12 @@ void MutationRun::_RemoveFixedMutations(void)
 		break;
 	}
 	
+#ifdef __clang_analyzer__
+	// the static analyzer doesn't understand the way the loop above drops through to the loop below
+	// this assert is not always true, but it is true whenever (genome_iter != genome_max) at this point
+	assert(genome_backfill_iter);
+#endif
+	
 	while (genome_iter != genome_max)
 	{
 		MutationIndex mutation_index = *genome_iter;

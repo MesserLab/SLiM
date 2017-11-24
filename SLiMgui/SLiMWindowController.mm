@@ -611,7 +611,7 @@
 		reloadingSubpopTableview = YES;
 		[subpopTableView reloadData];
 		
-		if (invalid)
+		if (invalid || !sim)
 		{
 			[subpopTableView deselectAll:nil];
 		}
@@ -2021,17 +2021,20 @@
 		// spent running the simulation itself!  Moral of the story, KVO is wicked slow.
 		BOOL reachedEnd = reachedSimulationEnd;
 		
-		do
+		if (!reachedEnd)
 		{
-			@autoreleasepool {
-				reachedEnd = ![self runSimOneGeneration];
+			do
+			{
+				@autoreleasepool {
+					reachedEnd = ![self runSimOneGeneration];
+				}
+				
+				continuousPlayGenerationsCompleted++;
 			}
+			while (!reachedEnd && (-[startDate timeIntervalSinceNow] < 0.02));
 			
-			continuousPlayGenerationsCompleted++;
+			[self setReachedSimulationEnd:reachedEnd];
 		}
-		while (!reachedEnd && (-[startDate timeIntervalSinceNow] < 0.02));
-		
-		[self setReachedSimulationEnd:reachedEnd];
 		
 		if (!reachedSimulationEnd)
 		{
@@ -4300,7 +4303,7 @@
 				{
 					// If we're already showing the tooltip for this muttype, short-circuit; sometimes we get called twice with no exit
 					if (mutTypeToolTipWindow && ([mutTypeToolTipWindow mutType] == mutationType))
-						return nil;
+						return (id _Nonnull)nil;	// get rid of the static analyzer warning
 					
 					//NSLog(@"show DFE tooltip view here for mut ID %d!", mutationType->mutation_type_id_);
 					
@@ -4331,7 +4334,7 @@
 		}
 	}
 	
-	return nil;
+	return (id _Nonnull)nil;	// get rid of the static analyzer warning
 }
 
 // Used to take down a custom tooltip window that we may have shown above, displaying a mutation type's DFE

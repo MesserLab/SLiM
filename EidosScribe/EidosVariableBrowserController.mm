@@ -305,7 +305,7 @@ NSString *EidosVariableBrowserWillShowNotification = @"EidosVariableBrowserWillS
 		return [wrapperArray objectAtIndex:index];
 	}
 	
-	return nil;
+	return (id _Nonnull)nil;	// get rid of the static analyzer warning
 }
 
 - (BOOL)outlineView:(NSOutlineView *)outlineView isItemExpandable:(id)item

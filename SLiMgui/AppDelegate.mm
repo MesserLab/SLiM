@@ -77,6 +77,13 @@ typedef enum SLiMLaunchAction
 															  }];
 }
 
+- (void)dealloc
+{
+	[self setOpenRecipesMenu:nil];
+	
+	[super dealloc];
+}
+
 - (void)applicationWillFinishLaunching:(NSNotification *)aNotification
 {
 	// Warm up our back ends before anything else happens

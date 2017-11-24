@@ -1095,6 +1095,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 
 double InteractionType::CalculateDistance(double *p_position1, double *p_position2)
 {
+#ifndef __clang_analyzer__
 	if (spatiality_ == 1)
 	{
 		return fabs(p_position1[0] - p_position2[0]);
@@ -1116,6 +1117,9 @@ double InteractionType::CalculateDistance(double *p_position1, double *p_positio
 	}
 	else
 		EIDOS_TERMINATION << "ERROR (InteractionType::CalculateDistance): calculation of distances requires that the interaction be spatial." << EidosTerminate();
+#else
+	return 0.0;
+#endif
 }
 
 // Calculate a distance including effects of periodicity.  This can always be called instead of
@@ -2089,13 +2093,18 @@ void InteractionType::CheckKDTree3_p2_r(SLiM_kdNode *t, double split, bool isLef
 
 inline double dist_sq1(SLiM_kdNode *a, double *b)
 {
+#ifndef __clang_analyzer__
 	double t = a->x[0] - b[0];
 	
 	return t * t;
+#else
+	return 0.0;
+#endif
 }
 
 inline double dist_sq2(SLiM_kdNode *a, double *b)
 {
+#ifndef __clang_analyzer__
 	double t, d;
 	
 	t = a->x[0] - b[0];
@@ -2105,10 +2114,14 @@ inline double dist_sq2(SLiM_kdNode *a, double *b)
 	d += t * t;
 	
 	return d;
+#else
+	return 0.0;
+#endif
 }
 
 inline double dist_sq3(SLiM_kdNode *a, double *b)
 {
+#ifndef __clang_analyzer__
 	double t, d;
 	
 	t = a->x[0] - b[0];
@@ -2121,13 +2134,20 @@ inline double dist_sq3(SLiM_kdNode *a, double *b)
 	d += t * t;
 	
 	return d;
+#else
+	return 0.0;
+#endif
 }
 
 // find the one best neighbor in 1D
 void InteractionType::FindNeighbors1_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SLiM_kdNode **best, double *best_dist)
 {
 	double d = dist_sq1(root, nd);
+#ifndef __clang_analyzer__
 	double dx = root->x[0] - nd[0];
+#else
+	double dx = 0.0;
+#endif
 	double dx2 = dx * dx;
 	
 	if ((!*best || d < *best_dist) && (root->individual_index_ != p_focal_individual_index)) {
@@ -2161,7 +2181,11 @@ void InteractionType::FindNeighbors1_1(SLiM_kdNode *root, double *nd, slim_popsi
 void InteractionType::FindNeighbors1_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SLiM_kdNode **best, double *best_dist, int p_phase)
 {
 	double d = dist_sq2(root, nd);
+#ifndef __clang_analyzer__
 	double dx = root->x[p_phase] - nd[p_phase];
+#else
+	double dx = 0.0;
+#endif
 	double dx2 = dx * dx;
 	
 	if ((!*best || d < *best_dist) && (root->individual_index_ != p_focal_individual_index)) {
@@ -2197,7 +2221,11 @@ void InteractionType::FindNeighbors1_2(SLiM_kdNode *root, double *nd, slim_popsi
 void InteractionType::FindNeighbors1_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SLiM_kdNode **best, double *best_dist, int p_phase)
 {
 	double d = dist_sq3(root, nd);
+#ifndef __clang_analyzer__
 	double dx = root->x[p_phase] - nd[p_phase];
+#else
+	double dx = 0.0;
+#endif
 	double dx2 = dx * dx;
 	
 	if ((!*best || d < *best_dist) && (root->individual_index_ != p_focal_individual_index)) {
@@ -2233,7 +2261,11 @@ void InteractionType::FindNeighbors1_3(SLiM_kdNode *root, double *nd, slim_popsi
 void InteractionType::FindNeighborsA_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, std::vector<EidosObjectElement *> &p_result_vec, std::vector<Individual> &p_individuals)
 {
 	double d = dist_sq1(root, nd);
+#ifndef __clang_analyzer__
 	double dx = root->x[0] - nd[0];
+#else
+	double dx = 0.0;
+#endif
 	double dx2 = dx * dx;
 	
 	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
@@ -2265,7 +2297,11 @@ void InteractionType::FindNeighborsA_1(SLiM_kdNode *root, double *nd, slim_popsi
 void InteractionType::FindNeighborsA_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, std::vector<EidosObjectElement *> &p_result_vec, std::vector<Individual> &p_individuals, int p_phase)
 {
 	double d = dist_sq2(root, nd);
+#ifndef __clang_analyzer__
 	double dx = root->x[p_phase] - nd[p_phase];
+#else
+	double dx = 0.0;
+#endif
 	double dx2 = dx * dx;
 	
 	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
@@ -2299,7 +2335,11 @@ void InteractionType::FindNeighborsA_2(SLiM_kdNode *root, double *nd, slim_popsi
 void InteractionType::FindNeighborsA_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, std::vector<EidosObjectElement *> &p_result_vec, std::vector<Individual> &p_individuals, int p_phase)
 {
 	double d = dist_sq3(root, nd);
+#ifndef __clang_analyzer__
 	double dx = root->x[p_phase] - nd[p_phase];
+#else
+	double dx = 0.0;
+#endif
 	double dx2 = dx * dx;
 	
 	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
@@ -2340,7 +2380,11 @@ void InteractionType::FindNeighborsN_1(SLiM_kdNode *root, double *nd, slim_popsi
 	if (!root) return;
 	
 	double d = dist_sq1(root, nd);
+#ifndef __clang_analyzer__
 	double dx = root->x[0] - nd[0];
+#else
+	double dx = 0.0;
+#endif
 	double dx2 = dx * dx;
 	
 	if (root->individual_index_ != p_focal_individual_index)
@@ -2412,7 +2456,11 @@ void InteractionType::FindNeighborsN_2(SLiM_kdNode *root, double *nd, slim_popsi
 	if (!root) return;
 	
 	double d = dist_sq2(root, nd);
+#ifndef __clang_analyzer__
 	double dx = root->x[p_phase] - nd[p_phase];
+#else
+	double dx = 0.0;
+#endif
 	double dx2 = dx * dx;
 	
 	if (root->individual_index_ != p_focal_individual_index)
@@ -2486,7 +2534,11 @@ void InteractionType::FindNeighborsN_3(SLiM_kdNode *root, double *nd, slim_popsi
 	if (!root) return;
 	
 	double d = dist_sq3(root, nd);
+#ifndef __clang_analyzer__
 	double dx = root->x[p_phase] - nd[p_phase];
+#else
+	double dx = 0.0;
+#endif
 	double dx2 = dx * dx;
 	
 	if (root->individual_index_ != p_focal_individual_index)
@@ -3810,6 +3862,16 @@ EidosValue_SP InteractionType::ExecuteMethod_distanceToPoint(EidosGlobalStringID
 	
 	for (int point_index = 0; point_index < spatiality_; ++point_index)
 		point_data[point_index] = point->FloatAtIndex(point_index, nullptr);
+	
+#ifdef __clang_analyzer__
+	// The static analyzer does not understand some things, so we tell it here
+	point_data[0] = 0;
+	point_data[1] = 0;
+	point_data[2] = 0;
+	assert((spatiality_ >= 1) || !periodic_x_);
+	assert((spatiality_ >= 2) || !periodic_y_);
+	assert((spatiality_ >= 3) || !periodic_z_);
+#endif
 	
 	// individuals is guaranteed to be of length >= 1; let's get the info on it
 	Individual *ind_first = (Individual *)individuals->ObjectElementAtIndex(0, nullptr);

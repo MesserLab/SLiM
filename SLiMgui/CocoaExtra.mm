@@ -490,6 +490,13 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 	
 	return self;
 }
+	
+- (void)dealloc
+{
+	[self setLabel:nil];
+	
+	[super dealloc];
+}
 
 - (void)setLabel:(NSString *)label
 {
@@ -589,6 +596,13 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 	return self;
 }
 
+- (void)dealloc
+{
+	[self setLabel:nil];
+	
+	[super dealloc];
+}
+
 - (void)setLabel:(NSString *)label
 {
 	if (![_label isEqualToString:label])
@@ -668,7 +682,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 	gsl_rng *save_rng = gEidos_rng;				// should be nullptr anyway, but being safe...
 	static gsl_rng *local_rng = nullptr;
 	std::vector<double> draws;
-	bool draw_positive = false, draw_negative = false, draw_zero = false;
+	bool draw_positive = false, draw_negative = false;
 	const int sample_size = (mut_type->dfe_type_ == DFEType::kScript) ? 100000 : 1000000;	// large enough to make curves pretty smooth, small enough to be reasonably fast
 	
 	draws.reserve(sample_size);
@@ -690,7 +704,6 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 			
 			if (draw < 0.0)			draw_negative = true;
 			else if (draw > 0.0)	draw_positive = true;
-			else					draw_zero = true;
 		}
 	}
 	catch (...)

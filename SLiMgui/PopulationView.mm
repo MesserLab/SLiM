@@ -67,6 +67,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 - (void)dealloc
 {
 	//NSLog(@"[PopulationView dealloc]");
+	[self setDisplayOptionsSheet:nil];
 	
 	[super dealloc];
 }

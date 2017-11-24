@@ -336,6 +336,9 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 	Population &pop = sim->population_;
 	int subpopCount = (int)pop.size();
 	
+	if (subpopCount == 0)
+		return;
+	
 	double width = 0.58, length = 0.58;		// allows for the radii of the vertices at max subpop size
 	double area = width * length;
 	double k = sqrt(area / subpopCount);

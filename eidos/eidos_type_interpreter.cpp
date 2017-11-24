@@ -1013,6 +1013,10 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_FunctionDecl(const EidosAS
 			
 			function_map_.insert(EidosFunctionMapPair(sig->call_name_, sig));
 		}
+		else
+		{
+			delete sig;
+		}
 		
 		// Our other job is to type-interpret inside the body node of the declared function, with the correct scoping set up so
 		// that the parameters of the function are defined inside the body, outer variables are not in scope, etc.  This is

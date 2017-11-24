@@ -5192,7 +5192,10 @@ EidosValue_SP EidosInterpreter::Evaluate_FunctionDecl(const EidosASTNode *p_node
 			
 			// Check param_name; it needs to not be used by another parameter
 			if (std::find(used_param_names.begin(), used_param_names.end(), param_name) != used_param_names.end())
+			{
+				delete sig;
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_FunctionDecl): invalid name for parameter '" << param_name << "'; this name was already used for a previous parameter in this declaration." << EidosTerminate(p_node->token_);
+			}
 			
 			if (param_children_count == 2)
 			{
@@ -5214,7 +5217,10 @@ EidosValue_SP EidosInterpreter::Evaluate_FunctionDecl(const EidosASTNode *p_node
 					if (std::find(gEidosConstantNames.begin(), gEidosConstantNames.end(), default_string) != gEidosConstantNames.end())
 						default_value = FastEvaluateNode(default_node);
 					else
+					{
+						delete sig;
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_FunctionDecl): invalid default value for parameter '" << param_name << "'; a default value must be a numeric constant, a string constant, or a built-in Eidos constant (T, F, NULL, PI, E, INF, or NAN)." << EidosTerminate(p_node->token_);
+					}
 				}
 				else
 				{
@@ -5252,7 +5258,10 @@ EidosValue_SP EidosInterpreter::Evaluate_FunctionDecl(const EidosASTNode *p_node
 		const EidosFunctionSignature *prior_sig = signature_iter->second;
 		
 		if (prior_sig->internal_function_ || !prior_sig->delegate_name_.empty() || !prior_sig->user_defined_)
+		{
+			delete sig;
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_FunctionDecl): cannot replace built-in function " << function_name << "()." << EidosTerminate(p_node->token_);
+		}
 	}
 	
 	// Add the user-defined function to our function map (possibly replacing a previous version)

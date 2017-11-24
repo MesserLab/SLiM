@@ -265,7 +265,7 @@ public:
 // gEidosTerminateThrows.  Either way, this call does not return, so it is marked as noreturn as a hint
 // to the compiler.  Also, since this is always an error case, it is marked as cold as a hint to branch
 // prediction and optimization; all code paths that lead to this will be considered cold.
-void operator<<(std::ostream& p_out, const EidosTerminate &p_terminator) __attribute__((__noreturn__)) __attribute__((cold));
+void operator<<(std::ostream& p_out, const EidosTerminate &p_terminator) __attribute__((__noreturn__)) __attribute__((cold)) __attribute__((analyzer_noreturn));
 
 // Get the message from the last raise out of gEidosTermination, optionally with newlines trimmed from the ends
 std::string Eidos_GetTrimmedRaiseMessage(void);

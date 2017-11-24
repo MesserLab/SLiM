@@ -711,6 +711,8 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		
 		[outputTextView setPromptRangeEnd:originalPromptEnd];
 		isContinuationPrompt = NO;
+		
+		[promptString1 release];
 	}
 }
 

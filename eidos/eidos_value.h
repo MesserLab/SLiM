@@ -268,7 +268,7 @@ public:
 	// This is much faster than using dynamic_cast to achieve the same effect, and much safer than using static_cast + non-virtual function.
 	// Note that these methods are conventionally used in Eidos by immediately dereferencing to create a reference to the vector; this
 	// should be safe, since these methods should always raise rather than returning nullptr.
-	void RaiseForUnimplementedVectorCall(void) const __attribute__((__noreturn__));
+	void RaiseForUnimplementedVectorCall(void) const __attribute__((__noreturn__)) __attribute__((analyzer_noreturn));
 	virtual const std::vector<eidos_logical_t> *LogicalVector(void) const { RaiseForUnimplementedVectorCall(); }
 	virtual std::vector<eidos_logical_t> *LogicalVector_Mutable(void) { RaiseForUnimplementedVectorCall(); }
 	virtual const std::vector<std::string> *StringVector(void) const { RaiseForUnimplementedVectorCall(); }

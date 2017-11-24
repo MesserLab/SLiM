@@ -192,8 +192,8 @@ int SLiMSim::FormatOfPopulationFile(const char *p_file)
 		// Determine the file format
 		if (file_size >= 4)
 		{
-			char file_chars[4];
-			int32_t file_endianness_tag;
+			char file_chars[4] = {0, 0, 0, 0};
+			int32_t file_endianness_tag = 0;
 			
 			infile.seekg(0, std::ios_base::beg);
 			infile.read(&file_chars[0], 4);
@@ -655,6 +655,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 	return file_generation;
 }
 
+#ifndef __clang_analyzer__
 slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_file, EidosInterpreter *p_interpreter)
 {
 	std::size_t file_size = 0;
@@ -672,7 +673,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	file_size = infile.tellg();
 	
 	// Read in the entire file; we assume we have enough memory, for now
-	std::unique_ptr<char> raii_buf(new char[file_size]);
+	std::unique_ptr<char[]> raii_buf(new char[file_size]);
 	char *buf = raii_buf.get();
 	
 	if (!buf)
@@ -831,6 +832,9 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		sex_flag = *(int32_t *)p;
 		p += sizeof(sex_flag);
 		
+		if (sex_flag != population_.sim_.sex_enabled_)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): sex vs. hermaphroditism mismatch between file and simulation." << EidosTerminate();
+		
 		subpop_sex_ratio = *(double *)p;
 		p += sizeof(subpop_sex_ratio);
 		
@@ -869,7 +873,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	}
 	
 	// Mutations section
-	std::unique_ptr<MutationIndex> raii_mutations(new MutationIndex[mutation_map_size]);
+	std::unique_ptr<MutationIndex[]> raii_mutations(new MutationIndex[mutation_map_size]);
 	MutationIndex *mutations = raii_mutations.get();
 	
 	if (!mutations)
@@ -937,6 +941,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		p += sizeof(generation);
 		
 		prevalence = *(slim_refcount_t *)p;
+		(void)prevalence;	// we don't use the frequency when reading the pop data back in; let the static analyzer know that's OK
 		p += sizeof(prevalence);
 		
 		// look up the mutation type from its index
@@ -983,7 +988,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	// Genomes section
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	bool use_16_bit = (mutation_map_size <= UINT16_MAX - 1);	// 0xFFFF is reserved as the start of our various tags
-	std::unique_ptr<MutationIndex> raii_genomebuf(new MutationIndex[mutation_map_size]);	// allowing us to use emplace_back_bulk() for speed
+	std::unique_ptr<MutationIndex[]> raii_genomebuf(new MutationIndex[mutation_map_size]);	// allowing us to use emplace_back_bulk() for speed
 	MutationIndex *genomebuf = raii_genomebuf.get();
 	
 	while (true)
@@ -1143,6 +1148,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	{
 		section_end_tag = *(int32_t *)p;
 		p += sizeof(section_end_tag);
+		(void)p;	// dead store above is deliberate
 		
 		if (section_end_tag != (int32_t)0xFFFF0000)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): missing section end after genomes." << EidosTerminate();
@@ -1199,6 +1205,13 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	
 	return file_generation;
 }
+#else
+// the static analyzer has a lot of trouble understanding this method
+slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_file, EidosInterpreter *p_interpreter)
+{
+	return 0;
+}
+#endif
 
 void SLiMSim::ValidateScriptBlockCaches(void)
 {
@@ -1442,7 +1455,7 @@ void SLiMSim::OptimizeScriptBlock(SLiMEidosBlock *p_script_block)
 						double mean_value = 0.0, sd_value = 1.0;
 						
 						// resolve named arguments
-						if (x_node && (x_node->token_->token_type_ == EidosTokenType::kTokenAssign) && (x_node->children_.size() == 2))
+						if ((x_node->token_->token_type_ == EidosTokenType::kTokenAssign) && (x_node->children_.size() == 2))
 						{
 							const EidosASTNode *name_node = x_node->children_[0];
 							const EidosASTNode *value_node = x_node->children_[1];
@@ -3733,6 +3746,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 			if (previous_params) output_stream << ", ";
 			output_stream << "preventIncidentalSelfing = " << (prevent_incidental_selfing_ ? "T" : "F");
 			previous_params = true;
+			(void)previous_params;	// dead store above is deliberate
 		}
 		
 		output_stream << ");" << std::endl;

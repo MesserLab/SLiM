@@ -30,6 +30,7 @@ development head:
 	add tips in SLiMgui for the chromosome haplotype display mode, script prettyprinting, and DFE visualization in the mutation type table
 	add recipe 13.15 showing how to implement microsatellites
 	add recipe 13.16 showing how to implement transposable elements
+	fix static analyzer issues, including minor bug fixes for _InitializePopulationFromBinaryFile() and a leak in haplotype plotting
 
 
 2.5 (build 1204; Eidos version 1.5):

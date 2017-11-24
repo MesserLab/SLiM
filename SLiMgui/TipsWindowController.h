@@ -32,10 +32,10 @@ extern NSString *SLiMDefaultsTipsIndexKey;
 }
 
 @property (nonatomic, retain) IBOutlet NSPanel *tipsWindow;
-@property (nonatomic, retain) IBOutlet NSTextView *tipsTextView;
-@property (nonatomic, retain) IBOutlet NSTextField *tipsNumberTextField;
-@property (nonatomic, retain) IBOutlet NSButton *suppressPanelCheckbox;
-@property (nonatomic, retain) IBOutlet NSButton *nextButton;
+@property (nonatomic, assign) IBOutlet NSTextView *tipsTextView;
+@property (nonatomic, assign) IBOutlet NSTextField *tipsNumberTextField;
+@property (nonatomic, assign) IBOutlet NSButton *suppressPanelCheckbox;
+@property (nonatomic, assign) IBOutlet NSButton *nextButton;
 
 + (void)showTipsWindowOnLaunch;
 

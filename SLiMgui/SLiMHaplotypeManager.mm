@@ -226,6 +226,8 @@ BidiIter random_unique(BidiIter begin, BidiIter end, size_t num_random)
 		displayList = nullptr;
 	}
 	
+	[self setTitleString:nil];
+	
 	[super dealloc];
 }
 
@@ -725,7 +727,7 @@ static float *glArrayColors = nil;
 		height = genome_count;
 	
 	// Make a new bitmap rep.  This is laid out as 0xAABBGGRR, if addressed using a uint32_t pointer.
-	NSBitmapImageRep *imageRep = [[NSBitmapImageRep alloc] initWithBitmapDataPlanes:NULL
+	NSBitmapImageRep *imageRep = [[[NSBitmapImageRep alloc] initWithBitmapDataPlanes:NULL
 																		 pixelsWide:width
 																		 pixelsHigh:height
 																	  bitsPerSample:8
@@ -734,7 +736,7 @@ static float *glArrayColors = nil;
 																		   isPlanar:NO
 																	 colorSpaceName:@"NSDeviceRGBColorSpace"
 																		bytesPerRow:0
-																	   bitsPerPixel:32];
+																	   bitsPerPixel:32] autorelease];
 	
 	unsigned char *plotBase = [imageRep bitmapData];
 	NSInteger plotRowbytes = [imageRep bytesPerRow];

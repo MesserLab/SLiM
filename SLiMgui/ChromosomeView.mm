@@ -163,6 +163,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 - (void)dealloc
 {
 	[self setReferenceChromosomeView:nil];
+	[self setProxyGLView:nil];
 	
 	[self unbind:@"enabled"];
 	

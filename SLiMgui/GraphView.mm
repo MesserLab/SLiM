@@ -873,6 +873,7 @@
 		if (addedItems)
 			[menu addItem:[NSMenuItem separatorItem]];
 		addedItems = NO;
+		(void)addedItems;	// dead store above is deliberate
 		
 		// Allow a subclass to introduce menu items here, above the copy/export menu items, which belong at the bottom; we are responsible for adding a separator afterwards if needed
 		NSInteger preSubclassItemCount = [menu numberOfItems];

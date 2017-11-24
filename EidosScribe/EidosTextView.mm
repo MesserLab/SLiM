@@ -165,6 +165,9 @@
 					break;
 			}
 			
+			if (!click_token)
+				return;
+			
 			// OK, this token contains the character that was double-clicked.  We could have the actual token
 			// (incrementToken), we could be in a string, or we could be in a comment.  We stay in the domain
 			// that we start in; if in a string, for example, only delimiters within strings affect our scan.
@@ -933,75 +936,86 @@
 								break;
 						}
 						
-						// OK, this token contains the character that was double-clicked.  We could have the actual token
-						// (incrementToken), we could be in a string, or we could be in a comment.  We stay in the domain
-						// that we start in; if in a string, for example, only delimiters within strings affect our scan.
-						EidosTokenType click_token_type = click_token->token_type_;
-						const EidosToken *scan_token = click_token;
-						int scan_token_index = click_token_index;
-						NSInteger scanPosition = proposedCharacterIndex;
-						int balanceCount = 0;
-						
-						while (YES)
+						if (click_token)
 						{
-							EidosTokenType scan_token_type = scan_token->token_type_;
-							BOOL isCandidate;
+							// OK, this token contains the character that was double-clicked.  We could have the actual token
+							// (incrementToken), we could be in a string, or we could be in a comment.  We stay in the domain
+							// that we start in; if in a string, for example, only delimiters within strings affect our scan.
+							EidosTokenType click_token_type = click_token->token_type_;
+							const EidosToken *scan_token = click_token;
+							int scan_token_index = click_token_index;
+							NSInteger scanPosition = proposedCharacterIndex;
+							int balanceCount = 0;
 							
-							if (click_token_type == EidosTokenType::kTokenComment)
-								isCandidate = (scan_token_type == EidosTokenType::kTokenComment);
-							else if (click_token_type == EidosTokenType::kTokenCommentLong)
-								isCandidate = (scan_token_type == EidosTokenType::kTokenCommentLong);
-							else if (click_token_type == EidosTokenType::kTokenString)
-								isCandidate = (scan_token_type == EidosTokenType::kTokenString);
-							else
-								isCandidate = ((scan_token_type == token1) || (scan_token_type == token2));
-							
-							if (isCandidate)
+							while (YES)
 							{
-								uch = [scriptString characterAtIndex:scanPosition];
+								EidosTokenType scan_token_type = scan_token->token_type_;
+								BOOL isCandidate;
 								
-								if (uch == incrementChar)
-									balanceCount++;
-								else if (uch == decrementChar)
-									balanceCount--;
+								if (click_token_type == EidosTokenType::kTokenComment)
+									isCandidate = (scan_token_type == EidosTokenType::kTokenComment);
+								else if (click_token_type == EidosTokenType::kTokenCommentLong)
+									isCandidate = (scan_token_type == EidosTokenType::kTokenCommentLong);
+								else if (click_token_type == EidosTokenType::kTokenString)
+									isCandidate = (scan_token_type == EidosTokenType::kTokenString);
+								else
+									isCandidate = ((scan_token_type == token1) || (scan_token_type == token2));
 								
-								// If balanceCount is now zero, all opens have been balanced by closes, and we have found our matching delimiter
-								if (balanceCount == 0)
+								if (isCandidate)
 								{
-									inEligibleDoubleClick = false;	// clear this to avoid potential confusion if we get called again later
+									uch = [scriptString characterAtIndex:scanPosition];
 									
-									if (forward)
-										return NSMakeRange(proposedCharacterIndex, scanPosition - proposedCharacterIndex + 1);
-									else
-										return NSMakeRange(scanPosition, proposedCharacterIndex - scanPosition + 1);
+									if (uch == incrementChar)
+										balanceCount++;
+									else if (uch == decrementChar)
+										balanceCount--;
+									
+									// If balanceCount is now zero, all opens have been balanced by closes, and we have found our matching delimiter
+									if (balanceCount == 0)
+									{
+										inEligibleDoubleClick = false;	// clear this to avoid potential confusion if we get called again later
+										
+										if (forward)
+											return NSMakeRange(proposedCharacterIndex, scanPosition - proposedCharacterIndex + 1);
+										else
+											return NSMakeRange(scanPosition, proposedCharacterIndex - scanPosition + 1);
+									}
 								}
-							}
-							
-							// Advance, forward or backward, to the next character; if we reached the end without balancing, beep
-							scanPosition += (forward ? 1 : -1);
-							if ((scanPosition == stringLength) || (scanPosition == -1))
-							{
-								NSBeep();
-								inEligibleDoubleClick = false;
-								return NSMakeRange(proposedCharacterIndex, 1);
-							}
-							
-							// Make sure we're in the right token
-							while ((scan_token->token_UTF16_start_ > scanPosition) || (scan_token->token_UTF16_end_ < scanPosition))
-							{
-								scan_token_index += (forward ? 1 : -1);
 								
-								if ((scan_token_index < 0) || (scan_token_index == token_count))
+								// Advance, forward or backward, to the next character; if we reached the end without balancing, beep
+								scanPosition += (forward ? 1 : -1);
+								if ((scanPosition == stringLength) || (scanPosition == -1))
 								{
-									NSLog(@"ran out of tokens!");
 									NSBeep();
 									inEligibleDoubleClick = false;
 									return NSMakeRange(proposedCharacterIndex, 1);
 								}
 								
-								scan_token = &tokens[scan_token_index];
+								// Make sure we're in the right token
+								while ((scan_token->token_UTF16_start_ > scanPosition) || (scan_token->token_UTF16_end_ < scanPosition))
+								{
+									scan_token_index += (forward ? 1 : -1);
+									
+									if ((scan_token_index < 0) || (scan_token_index == token_count))
+									{
+										NSLog(@"ran out of tokens!");
+										NSBeep();
+										inEligibleDoubleClick = false;
+										return NSMakeRange(proposedCharacterIndex, 1);
+									}
+									
+									scan_token = &tokens[scan_token_index];
+								}
 							}
 						}
+						else
+						{
+							inEligibleDoubleClick = false;
+						}
+					}
+					else
+					{
+						inEligibleDoubleClick = false;
 					}
 				}
 				else

@@ -35,6 +35,7 @@
 #include "eidos_object_pool.h"
 
 #include <string.h>
+#include <assert.h>
 
 
 class MutationRun;
@@ -209,7 +210,7 @@ public:
 	
 #ifdef SLIM_MUTRUN_CHECK_LOCKING
 	
-	void LockingViolation(void) const __attribute__((__noreturn__)) __attribute__((cold));
+	void LockingViolation(void) const __attribute__((__noreturn__)) __attribute__((cold)) __attribute__((analyzer_noreturn));
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
 	// Added (nonneutral_mutations_count_ != -1) with the addition of the nonneutral caches; modifying a unique run should not occur after it has cached

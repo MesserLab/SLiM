@@ -1604,6 +1604,11 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
 {
 #pragma unused (p_method_id, p_target, p_arguments, p_argument_count, p_interpreter)
+	
+#ifdef __clang_analyzer__
+	assert(((p_method_id == gID_addNewDrawnMutation) && (p_argument_count == 4)) || ((p_method_id == gID_addNewMutation) && (p_argument_count == 5)));
+#endif
+	
 	EidosValue *arg0_value = p_arguments[0].get();
 	EidosValue *arg1_value = p_arguments[1].get();
 	EidosValue *arg2_value = p_arguments[2].get();

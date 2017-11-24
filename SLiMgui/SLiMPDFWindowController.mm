@@ -34,6 +34,9 @@
 
 - (void)dealloc
 {
+	pdfView = nil;
+	[self setDisplayPDFDocument:nil];
+	
 	[super dealloc];
 }
 

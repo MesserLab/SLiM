@@ -3267,6 +3267,7 @@ void Population::UniqueMutationRuns(void)
 		EIDOS_TERMINATION << "ERROR (Population::UniqueMutationRuns): (internal error) bookkeeping error in mutation run uniquing." << EidosTerminate();
 }
 
+#ifndef __clang_analyzer__
 void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 {
 	// clear out all of the child genomes since they also need to be resized; might as well do it up front
@@ -3409,6 +3410,12 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 	if (mutruns_buf)
 		free(mutruns_buf);
 }
+#else
+// the static analyzer has a lot of trouble understanding this method
+void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
+{
+}
+#endif
 
 // define a hash function for std::pair<MutationRun *, MutationRun *> so we can use it in std::unordered_map below
 // see https://stackoverflow.com/questions/32685540/c-unordered-map-with-pair-as-key-not-compiling
@@ -3427,6 +3434,7 @@ struct slim_pair_hash {
 	}
 };
 
+#ifndef __clang_analyzer__
 void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 {
 	// clear out all of the child genomes since they also need to be resized; might as well do it up front
@@ -3569,6 +3577,12 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 	if (mutruns_buf)
 		free(mutruns_buf);
 }
+#else
+// the static analyzer has a lot of trouble understanding this method
+void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
+{
+}
+#endif
 
 // Tally mutations and remove fixed/lost mutations
 void Population::MaintainRegistry(void)

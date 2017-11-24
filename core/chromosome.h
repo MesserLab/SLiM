@@ -186,8 +186,8 @@ public:
 #endif
 	
 	// internal methods for throwing errors from inline functions when assumptions about the configuration of maps are violated
-	void MutationMapConfigError(void) const __attribute__((__noreturn__)) __attribute__((cold));
-	void RecombinationMapConfigError(void) const __attribute__((__noreturn__)) __attribute__((cold));
+	void MutationMapConfigError(void) const __attribute__((__noreturn__)) __attribute__((cold)) __attribute__((analyzer_noreturn));
+	void RecombinationMapConfigError(void) const __attribute__((__noreturn__)) __attribute__((cold)) __attribute__((analyzer_noreturn));
 	
 	
 	//

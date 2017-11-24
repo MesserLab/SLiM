@@ -70,9 +70,9 @@
 
 @property (nonatomic, retain) IBOutlet NSWindow *helpWindow;
 
-@property (nonatomic, retain) IBOutlet NSSearchField *searchField;
-@property (nonatomic, retain) IBOutlet NSOutlineView *topicOutlineView;
-@property (nonatomic, retain) IBOutlet NSTextView *descriptionTextView;
+@property (nonatomic, assign) IBOutlet NSSearchField *searchField;
+@property (nonatomic, assign) IBOutlet NSOutlineView *topicOutlineView;
+@property (nonatomic, assign) IBOutlet NSTextView *descriptionTextView;
 
 - (IBAction)searchTypeChanged:(id)sender;
 - (IBAction)searchFieldChanged:(id)sender;
@@ -116,6 +116,13 @@
 	}
 	
 	return self;
+}
+	
+- (void)dealloc
+{
+	[self setHelpWindow:nil];
+	
+	[super dealloc];
 }
 
 // So, we have a little problem involving a private NSString subclass called NSTaggedPointerString:
@@ -189,13 +196,10 @@
 
 // This is a helper method for addTopicsFromRTFFile:... that finds the right parent dictionary to insert a given section index under.
 // This method makes a lot of assumptions about the layout of the RTF file, such as that section number proceeds in sorted order.
-- (NSMutableDictionary *)parentDictForSection:(NSString *)sectionString title:(NSString *)title currentTopicDicts:(NSMutableDictionary *)topics topDict:(NSMutableDictionary *)topLevelDict
+- (NSMutableDictionary *)parentDictForSection:(NSString *)sectionString currentTopicDicts:(NSMutableDictionary *)topics topDict:(NSMutableDictionary *)topLevelDict
 {
 	NSArray *sectionComponents = [sectionString componentsSeparatedByString:@"."];
 	NSUInteger sectionCount = [sectionComponents count];
-	
-	if ([title hasSuffix:@" functions"])
-		title = [title substringToIndex:[title length] - [@" functions" length]];
 	
 	if (sectionCount <= 1)
 	{
@@ -233,7 +237,7 @@
 		title = [title substringToIndex:[title length] - [@" functions" length]];
 	
 	NSString *numberedTitle = [NSString stringWithFormat:@"%@. %@", [sectionComponents lastObject], title];
-	NSMutableDictionary *parentTopicDict = [self parentDictForSection:sectionString title:title currentTopicDicts:topics topDict:topLevelDict];
+	NSMutableDictionary *parentTopicDict = [self parentDictForSection:sectionString currentTopicDicts:topics topDict:topLevelDict];
 	
 	[parentTopicDict setObject:newTopicDict forKey:[self guardAgainstNSTaggedPointerString:numberedTitle]];
 	[topics setObject:newTopicDict forKey:[self guardAgainstNSTaggedPointerString:sectionString]];
@@ -368,7 +372,7 @@
 				// This line plays two roles: it is both a header (with a period-separated section index at the beginning) and a
 				// topic item starter like function/method/property lines, with item content following it immediately.  First we
 				// use the header-line section string to find the right parent section to place it.
-				currentTopicDict = [self parentDictForSection:sectionString title:titleString currentTopicDicts:topics topDict:topLevelDict];
+				currentTopicDict = [self parentDictForSection:sectionString currentTopicDicts:topics topDict:topLevelDict];
 				
 				// Then we extract the item name and create a new item under the parent dict.
 				NSTextCheckingResult *itemMatch = [topicGenericItemRegex firstMatchInString:line options:(NSMatchingOptions)0 range:lineRange];
@@ -971,7 +975,7 @@
 	if ([itemValue isKindOfClass:[NSDictionary class]])
 		return [[[itemValue allKeys] sortedArrayUsingSelector:@selector(localizedStandardCompare:)] objectAtIndex:index];
 	
-	return nil;
+	return (id _Nonnull)nil;	// get rid of the static analyzer warning
 }
 
 - (BOOL)outlineView:(NSOutlineView *)outlineView isItemExpandable:(id)item
