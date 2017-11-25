@@ -259,17 +259,9 @@ public:
 		mutation_count_ = 0;
 	}
 	
-	inline bool contains_mutation(MutationIndex p_mutation_index) {
-		// This function does not assume that mutations are in sorted order, because we want to be able to use it with the mutation registry
-		const MutationIndex *position = begin_pointer_const();
-		const MutationIndex *end_position = end_pointer_const();
-		
-		for (; position != end_position; ++position)
-			if (*position == p_mutation_index)
-				return true;
-		
-		return false;
-	}
+	bool contains_mutation(MutationIndex p_mutation_index);
+	
+	bool contains_mutation_with_type_and_position(MutationType *p_mut_type, slim_position_t p_position, slim_position_t p_last_position);
 	
 	inline void pop_back(void)
 	{

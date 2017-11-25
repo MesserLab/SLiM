@@ -665,101 +665,9 @@ EidosValue_SP Genome::ExecuteMethod_containsMarkerMutation(EidosGlobalStringID p
 	if (marker_position > last_position)
 		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_containsMarkerMutation): containsMarkerMutation() position " << marker_position << " is past the end of the chromosome." << EidosTerminate();
 	
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	MutationRun *mutrun = mutruns_[marker_position / mutrun_length_].get();
-	int mut_count = mutrun->size();
-	const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
-	int mut_index;
+	bool contained = contains_mutation_with_type_and_position(mutation_type_ptr, marker_position, last_position);
 	
-	if (marker_position == 0)
-	{
-		// The marker is supposed to be at position 0.  This is a very common case, so we special-case it
-		// to avoid an inefficient binary search.  Instead, we just look at the beginning.
-		if (mut_count == 0)
-			return gStaticEidosValue_LogicalF;
-		
-		if ((mut_block_ptr + mut_ptr[0])->position_ > 0)
-			return gStaticEidosValue_LogicalF;
-		
-		if ((mut_block_ptr + mut_ptr[0])->mutation_type_ptr_ == mutation_type_ptr)
-			return gStaticEidosValue_LogicalT;
-		
-		mut_index = 0;	// drop through to forward scan
-	}
-	else if (marker_position == last_position)
-	{
-		// The marker is supposed to be at the very end of the chromosome.  This is also a common case,
-		// so we special-case it by starting at the last mutation in the genome.
-		if (mut_count == 0)
-			return gStaticEidosValue_LogicalF;
-		
-		mut_index = mut_count - 1;
-		
-		if ((mut_block_ptr + mut_ptr[mut_index])->position_ < last_position)
-			return gStaticEidosValue_LogicalF;
-		
-		if ((mut_block_ptr + mut_ptr[mut_index])->mutation_type_ptr_ == mutation_type_ptr)
-			return gStaticEidosValue_LogicalT;
-		
-		// drop through to backward scan
-	}
-	else
-	{
-		// Find the requested position by binary search
-		slim_position_t mut_pos;
-		
-		{
-			int L = 0, R = mut_count - 1;
-			
-			do
-			{
-				if (L > R)
-					return gStaticEidosValue_LogicalF;
-				
-				mut_index = (L + R) / 2;	// overflow-safe because base positions have a max of 1000000000L
-				mut_pos = (mut_block_ptr + mut_ptr[mut_index])->position_;
-				
-				if (mut_pos < marker_position)
-				{
-					L = mut_index + 1;
-					continue;
-				}
-				if (mut_pos > marker_position)
-				{
-					R = mut_index - 1;
-					continue;
-				}
-				
-				// mut_pos == marker_position
-				break;
-			}
-			while (true);
-		}
-		
-		// The mutation at mut_index is at marker_position, but it may not be the only such
-		// We check it first, then we check before it scanning backwards, and check after it scanning forwards
-		if ((mut_block_ptr + mut_ptr[mut_index])->mutation_type_ptr_ == mutation_type_ptr)
-			return gStaticEidosValue_LogicalT;
-	}
-	
-	// backward & forward scan are shared by both code paths
-	{
-		slim_position_t back_scan = mut_index;
-		
-		while ((back_scan > 0) && ((mut_block_ptr + mut_ptr[--back_scan])->position_ == marker_position))
-			if ((mut_block_ptr + mut_ptr[back_scan])->mutation_type_ptr_ == mutation_type_ptr)
-				return gStaticEidosValue_LogicalT;
-	}
-	
-	{
-		slim_position_t forward_scan = mut_index;
-		
-		while ((forward_scan < mut_count - 1) && ((mut_block_ptr + mut_ptr[++forward_scan])->position_ == marker_position))
-			if ((mut_block_ptr + mut_ptr[forward_scan])->mutation_type_ptr_ == mutation_type_ptr)
-				return gStaticEidosValue_LogicalT;
-	}
-	
-	return gStaticEidosValue_LogicalF;
+	return (contained ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 }
 
 //	*********************	- (logical)containsMutations(object<Mutation> mutations)
@@ -778,15 +686,9 @@ EidosValue_SP Genome::ExecuteMethod_containsMutations(EidosGlobalStringID p_meth
 	{
 		Mutation *mut = (Mutation *)(arg0_value->ObjectElementAtIndex(0, nullptr));
 		MutationIndex mut_block_index = mut->BlockIndex();
-		MutationRun *mutrun = mutruns_[mut->position_ / mutrun_length_].get();
-		int mut_count = mutrun->size();
-		const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
+		bool contained = contains_mutation(mut_block_index);
 		
-		for (int mut_index = 0; mut_index < mut_count; ++mut_index)
-			if (mut_ptr[mut_index] == mut_block_index)
-				return gStaticEidosValue_LogicalT;
-		
-		return gStaticEidosValue_LogicalF;
+		return (contained ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 	}
 	else
 	{
@@ -797,16 +699,9 @@ EidosValue_SP Genome::ExecuteMethod_containsMutations(EidosGlobalStringID p_meth
 		{
 			Mutation *mut = (Mutation *)(arg0_value->ObjectElementAtIndex(value_index, nullptr));
 			MutationIndex mut_block_index = mut->BlockIndex();
-			MutationRun *mutrun = mutruns_[mut->position_ / mutrun_length_].get();
-			int mut_count = mutrun->size();
-			const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
-			bool contains_mut = false;
+			bool contained = contains_mutation(mut_block_index);
 			
-			for (int mut_index = 0; mut_index < mut_count; ++mut_index)
-				if (mut_ptr[mut_index] == mut_block_index)
-					contains_mut = true;
-			
-			logical_result_vec.emplace_back(contains_mut);
+			logical_result_vec.emplace_back(contained);
 		}
 		
 		return EidosValue_SP(logical_result);
@@ -1576,10 +1471,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 					{
 						target_genome->insert_sorted_mutation_if_unique(mut_to_add->BlockIndex());
 						
-						// I think this is not needed; how would the user ever get a Mutation that was not already in the registry?
-						//if (!registry.contains_mutation(new_mutation))
-						//	registry.emplace_back(new_mutation);
-						
+						// No need to add the mutation to the registry; how would the user ever get a Mutation that was not already in it?
 						// Similarly, no need to check and set pure_neutral_ and all_pure_neutral_DFE_; the mutation is already in the system
 					}
 				}

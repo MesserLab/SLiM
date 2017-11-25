@@ -52,6 +52,187 @@ void MutationRun::LockingViolation(void) const
 }
 #endif
 
+#if 0
+// linear search
+bool MutationRun::contains_mutation(MutationIndex p_mutation_index)
+{
+	const MutationIndex *position = begin_pointer_const();
+	const MutationIndex *end_position = end_pointer_const();
+	
+	for (; position != end_position; ++position)
+		if (*position == p_mutation_index)
+			return true;
+	
+	return false;
+}
+#else
+// binary search
+bool MutationRun::contains_mutation(MutationIndex p_mutation_index)
+{
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Mutation *mutation = gSLiM_Mutation_Block + p_mutation_index;
+	slim_position_t position = mutation->position_;
+	int mut_count = size();
+	const MutationIndex *mut_ptr = begin_pointer_const();
+	int mut_index;
+	
+	{
+		// Find the requested position by binary search
+		slim_position_t mut_pos;
+		
+		{
+			int L = 0, R = mut_count - 1;
+			
+			do
+			{
+				if (L > R)
+					return false;
+				
+				mut_index = (L + R) / 2;	// overflow-safe because base positions have a max of 1000000000L
+				mut_pos = (mut_block_ptr + mut_ptr[mut_index])->position_;
+				
+				if (mut_pos < position)
+				{
+					L = mut_index + 1;
+					continue;
+				}
+				if (mut_pos > position)
+				{
+					R = mut_index - 1;
+					continue;
+				}
+				
+				// mut_pos == p_position
+				break;
+			}
+			while (true);
+		}
+		
+		// The mutation at mut_index is at p_position, but it may not be the only such
+		// We check it first, then we check before it scanning backwards, and check after it scanning forwards
+		if (mut_ptr[mut_index] == p_mutation_index)
+			return true;
+	}
+	
+	// backward & forward scan are shared by both code paths
+	{
+		slim_position_t back_scan = mut_index;
+		
+		while ((back_scan > 0) && ((mut_block_ptr + mut_ptr[--back_scan])->position_ == position))
+			if (mut_ptr[back_scan] == p_mutation_index)
+				return true;
+	}
+	
+	{
+		slim_position_t forward_scan = mut_index;
+		
+		while ((forward_scan < mut_count - 1) && ((mut_block_ptr + mut_ptr[++forward_scan])->position_ == position))
+			if (mut_ptr[forward_scan] == p_mutation_index)
+				return true;
+	}
+	
+	return false;
+}
+#endif
+
+bool MutationRun::contains_mutation_with_type_and_position(MutationType *p_mut_type, slim_position_t p_position, slim_position_t p_last_position)
+{
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	int mut_count = size();
+	const MutationIndex *mut_ptr = begin_pointer_const();
+	int mut_index;
+	
+	if (p_position == 0)
+	{
+		// The marker is supposed to be at position 0.  This is a very common case, so we special-case it
+		// to avoid an inefficient binary search.  Instead, we just look at the beginning.
+		if (mut_count == 0)
+			return false;
+		
+		if ((mut_block_ptr + mut_ptr[0])->position_ > 0)
+			return false;
+		
+		if ((mut_block_ptr + mut_ptr[0])->mutation_type_ptr_ == p_mut_type)
+			return true;
+		
+		mut_index = 0;	// drop through to forward scan
+	}
+	else if (p_position == p_last_position)
+	{
+		// The marker is supposed to be at the very end of the chromosome.  This is also a common case,
+		// so we special-case it by starting at the last mutation in the genome.
+		if (mut_count == 0)
+			return false;
+		
+		mut_index = mut_count - 1;
+		
+		if ((mut_block_ptr + mut_ptr[mut_index])->position_ < p_last_position)
+			return false;
+		
+		if ((mut_block_ptr + mut_ptr[mut_index])->mutation_type_ptr_ == p_mut_type)
+			return true;
+		
+		// drop through to backward scan
+	}
+	else
+	{
+		// Find the requested position by binary search
+		slim_position_t mut_pos;
+		
+		{
+			int L = 0, R = mut_count - 1;
+			
+			do
+			{
+				if (L > R)
+					return false;
+				
+				mut_index = (L + R) / 2;	// overflow-safe because base positions have a max of 1000000000L
+				mut_pos = (mut_block_ptr + mut_ptr[mut_index])->position_;
+				
+				if (mut_pos < p_position)
+				{
+					L = mut_index + 1;
+					continue;
+				}
+				if (mut_pos > p_position)
+				{
+					R = mut_index - 1;
+					continue;
+				}
+				
+				// mut_pos == p_position
+				break;
+			}
+			while (true);
+		}
+		
+		// The mutation at mut_index is at p_position, but it may not be the only such
+		// We check it first, then we check before it scanning backwards, and check after it scanning forwards
+		if ((mut_block_ptr + mut_ptr[mut_index])->mutation_type_ptr_ == p_mut_type)
+			return true;
+	}
+	
+	// backward & forward scan are shared by both code paths
+	{
+		slim_position_t back_scan = mut_index;
+		
+		while ((back_scan > 0) && ((mut_block_ptr + mut_ptr[--back_scan])->position_ == p_position))
+			if ((mut_block_ptr + mut_ptr[back_scan])->mutation_type_ptr_ == p_mut_type)
+				return true;
+	}
+	
+	{
+		slim_position_t forward_scan = mut_index;
+		
+		while ((forward_scan < mut_count - 1) && ((mut_block_ptr + mut_ptr[++forward_scan])->position_ == p_position))
+			if ((mut_block_ptr + mut_ptr[forward_scan])->mutation_type_ptr_ == p_mut_type)
+				return true;
+	}
+	
+	return false;
+}
+
 void MutationRun::_RemoveFixedMutations(void)
 {
 	// Mutations that have fixed, and are thus targeted for removal, have already had their refcount set to -1.

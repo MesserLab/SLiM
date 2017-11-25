@@ -2836,27 +2836,53 @@ void SLiMSim::SimulationFinished(void)
 void SLiMSim::_CheckMutationStackPolicy(void)
 {
 	// Check mutation stacking policy for consistency.  This is called periodically during the simulation.
-	std::vector<int64_t> checked_groups;
+	
+	// First do a fast check for the standard case, that each mutation type is in its own stacking group
+	// with an index equal to its mutation_type_id_.  Unless the user has configured stacking groups this
+	// will verify the setup very quickly.
+	bool stacking_nonstandard = false;
 	
 	for (auto muttype_iter : mutation_types_)
 	{
 		MutationType *muttype = muttype_iter.second;
-		int64_t stack_group = muttype->stack_group_;
 		
-		if (std::find(checked_groups.begin(), checked_groups.end(), stack_group) == checked_groups.end())
+		if (muttype->stack_group_ != muttype->mutation_type_id_)
 		{
-			// This stacking group has not been checked yet
-			MutationStackPolicy stack_policy = muttype->stack_policy_;
+			stacking_nonstandard = true;
+			break;
+		}
+	}
+	
+	if (stacking_nonstandard)
+	{
+		// If there are N mutation types that participate in M stacking groups, the runtime of the code below
+		// is approximately O(N*M), so it can take quite a long time with many distinct stacking groups.  It
+		// could perhaps be made faster by first putting the mutation types into a data structure that sorted
+		// them by stacking group; a std::map, or just sorting them by stacking group in a vector.  However,
+		// I have yet to encounter a model that triggers this case badly (now that the nucleotide model has
+		// been fixed to use a single mutation stacking group).
+		std::vector<int64_t> checked_groups;
+		
+		for (auto muttype_iter : mutation_types_)
+		{
+			MutationType *muttype = muttype_iter.second;
+			int64_t stack_group = muttype->stack_group_;
 			
-			for (auto muttype_iter2 : mutation_types_)
+			if (std::find(checked_groups.begin(), checked_groups.end(), stack_group) == checked_groups.end())
 			{
-				MutationType *muttype2 = muttype_iter2.second;
+				// This stacking group has not been checked yet
+				MutationStackPolicy stack_policy = muttype->stack_policy_;
 				
-				if ((muttype2->stack_group_ == stack_group) && (muttype2->stack_policy_ != stack_policy))
-					EIDOS_TERMINATION << "ERROR (SLiMSim::_CheckMutationStackPolicy): inconsistent mutationStackPolicy values within one mutationStackGroup." << EidosTerminate();
+				for (auto muttype_iter2 : mutation_types_)
+				{
+					MutationType *muttype2 = muttype_iter2.second;
+					
+					if ((muttype2->stack_group_ == stack_group) && (muttype2->stack_policy_ != stack_policy))
+						EIDOS_TERMINATION << "ERROR (SLiMSim::_CheckMutationStackPolicy): inconsistent mutationStackPolicy values within one mutationStackGroup." << EidosTerminate();
+				}
+				
+				checked_groups.push_back(stack_group);
 			}
-			
-			checked_groups.push_back(stack_group);
 		}
 	}
 	

@@ -16,9 +16,9 @@ initialize() {
 		geType = initializeGenomicElementType(locus, mt, c(1,1,1,1));
 		initializeGenomicElement(geType, locus, locus);
 		
-		// We do not want mutations at this locus to stack or fix
+		// We do not want mutations to stack or fix
 		mt.mutationStackPolicy = "l";
-		mt.mutationStackGroup = locus;
+		mt.mutationStackGroup = -1;
 		mt.convertToSubstitution = F;
 		
 		// Each mutation type knows the nucleotide it represents
@@ -37,28 +37,17 @@ initialize() {
 	
 	// The initial population is fixed for a single wild-type
 	// nucleotide fixed at each locus in the chromosome
-	g = p1.genomes;
+	geTypes = sim.chromosome.genomicElements.genomicElementType;
+	mutTypes = apply(geTypes, "sample(applyValue.mutationTypes, 1, weights=applyValue.mutationFractions);");
+	p1.genomes.addNewDrawnMutation(mutTypes, 0:(C-1));
 	
 	cat("Initial nucleotide sequence:");
-	
-	for (locus in 0:(C-1))
-	{
-		// This chooses and sets a random nucleotide for the locus, drawn
-		// according to the weights used in the genomic element type
-		geType = sim.chromosome.genomicElements[locus].genomicElementType;
-		mutTypes = geType.mutationTypes;
-		weights = geType.mutationFractions;
-		mutType = sample(mutTypes, 1, weights=weights);
-		mut = g.addNewDrawnMutation(mutType, locus);
-		
-		cat(" " + mut.mutationType.getValue("nucleotide"));
-	}
-	
-	cat("\n\n");
+	cat(" " + paste(mutTypes.getValue("nucleotide")) + "\n\n");
 }
 
-late() {
+2: late() {
 	// optionally, we can unique new mutations onto existing mutations
+	// this runs only in 2: - it is assumed the gen. 1 setup is uniqued
 	allMuts = sim.mutations;
 	newMuts = allMuts[allMuts.originGeneration == sim.generation];
 	oldMuts = allMuts[allMuts.originGeneration != sim.generation];

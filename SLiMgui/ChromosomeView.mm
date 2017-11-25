@@ -1427,6 +1427,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		
 		// Then loop through the declared mutation types
 		std::map<slim_objectid_t,MutationType*> &mut_types = controller->sim->mutation_types_;
+		bool draw_muttypes_sequentially = (mut_types.size() <= 20);	// with a lot of mutation types, the algorithm below becomes very inefficient
 		
 		for (auto mutationTypeIter = mut_types.begin(); mutationTypeIter != mut_types.end(); ++mutationTypeIter)
 		{
@@ -1434,64 +1435,67 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 			
 			if (mut_type->mutation_type_displayed_)
 			{
-				bool mut_type_fixed_color = !mut_type->color_.empty();
-				
-				// We optimize fixed-DFE mutation types only, and those using a fixed color set by the user
-				if ((mut_type->dfe_type_ == DFEType::kFixed) || mut_type_fixed_color)
+				if (draw_muttypes_sequentially)
 				{
-					slim_selcoeff_t mut_type_selcoeff = (slim_selcoeff_t)mut_type->dfe_parameters_[0];
+					bool mut_type_fixed_color = !mut_type->color_.empty();
 					
-					bzero(heightBuffer, displayPixelWidth * sizeof(int16_t));
-					
-					// Scan through the mutation list for mutations of this type with the right selcoeff
-					for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+					// We optimize fixed-DFE mutation types only, and those using a fixed color set by the user
+					if ((mut_type->dfe_type_ == DFEType::kFixed) || mut_type_fixed_color)
 					{
-						const Mutation *mutation = mut_block_ptr + mutations[mutIndex];
+						slim_selcoeff_t mut_type_selcoeff = (slim_selcoeff_t)mut_type->dfe_parameters_[0];
 						
-						if ((mutation->mutation_type_ptr_ == mut_type) && (mut_type_fixed_color || (mutation->selection_coeff_ == mut_type_selcoeff)))
+						bzero(heightBuffer, displayPixelWidth * sizeof(int16_t));
+						
+						// Scan through the mutation list for mutations of this type with the right selcoeff
+						for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
 						{
-							slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// includes only refs from the selected subpopulations
-							slim_position_t mutationPosition = mutation->position_;
-							//NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
-							//int xPos = (int)(mutationTickRect.origin.x - interiorRect.origin.x);
-							int xPos = LEFT_OFFSET_OF_BASE(mutationPosition, interiorRect, displayedRange);
-							int16_t height = (int16_t)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
+							const Mutation *mutation = mut_block_ptr + mutations[mutIndex];
 							
-							if ((xPos >= 0) && (xPos < displayPixelWidth))
-								if (height > heightBuffer[xPos])
-									heightBuffer[xPos] = height;
-							
-							// tally this mutation as handled
-							//mutation->gui_scratch_reference_count_ = 1;
-							mutationsPlotted[mutIndex] = true;
-							--remainingMutations;
+							if ((mutation->mutation_type_ptr_ == mut_type) && (mut_type_fixed_color || (mutation->selection_coeff_ == mut_type_selcoeff)))
+							{
+								slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// includes only refs from the selected subpopulations
+								slim_position_t mutationPosition = mutation->position_;
+								//NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
+								//int xPos = (int)(mutationTickRect.origin.x - interiorRect.origin.x);
+								int xPos = LEFT_OFFSET_OF_BASE(mutationPosition, interiorRect, displayedRange);
+								int16_t height = (int16_t)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
+								
+								if ((xPos >= 0) && (xPos < displayPixelWidth))
+									if (height > heightBuffer[xPos])
+										heightBuffer[xPos] = height;
+								
+								// tally this mutation as handled
+								//mutation->gui_scratch_reference_count_ = 1;
+								mutationsPlotted[mutIndex] = true;
+								--remainingMutations;
+							}
 						}
-					}
-					
-					// Now draw all of the mutations we found, by looping through our radix bins
-					if (mut_type_fixed_color)
-					{
-						colorRed = mut_type->color_red_;
-						colorGreen = mut_type->color_green_;
-						colorBlue = mut_type->color_blue_;
-					}
-					else
-					{
-						RGBForSelectionCoeff(mut_type_selcoeff, &colorRed, &colorGreen, &colorBlue, scalingFactor);
-					}
-					
-					for (int binIndex = 0; binIndex < displayPixelWidth; ++binIndex)
-					{
-						int height = heightBuffer[binIndex];
 						
-						if (height)
+						// Now draw all of the mutations we found, by looping through our radix bins
+						if (mut_type_fixed_color)
 						{
-							NSRect mutationTickRect = NSMakeRect(interiorRect.origin.x + binIndex, interiorRect.origin.y, 1, height);
+							colorRed = mut_type->color_red_;
+							colorGreen = mut_type->color_green_;
+							colorBlue = mut_type->color_blue_;
+						}
+						else
+						{
+							RGBForSelectionCoeff(mut_type_selcoeff, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+						}
+						
+						for (int binIndex = 0; binIndex < displayPixelWidth; ++binIndex)
+						{
+							int height = heightBuffer[binIndex];
 							
-							SLIM_GL_DEFCOORDS(mutationTickRect);
-							SLIM_GL_PUSHRECT();
-							SLIM_GL_PUSHRECT_COLORS();
-							SLIM_GL_CHECKBUFFERS();
+							if (height)
+							{
+								NSRect mutationTickRect = NSMakeRect(interiorRect.origin.x + binIndex, interiorRect.origin.y, 1, height);
+								
+								SLIM_GL_DEFCOORDS(mutationTickRect);
+								SLIM_GL_PUSHRECT();
+								SLIM_GL_PUSHRECT_COLORS();
+								SLIM_GL_CHECKBUFFERS();
+							}
 						}
 					}
 				}
