@@ -2070,6 +2070,30 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	
 	[self setNeedsDisplay:YES];
 }
+	
+- (IBAction)filterNonNeutral:(id)sender
+{
+	SLiMWindowController *controller = (SLiMWindowController *)[[self window] windowController];
+	SLiMSim *sim = controller->sim;
+	
+	if (sim)
+	{
+		display_muttypes_.clear();
+		
+		std::map<slim_objectid_t,MutationType*> &muttypes = sim->mutation_types_;
+		
+		for (auto muttype_iter : muttypes)
+		{
+			MutationType *muttype = muttype_iter.second;
+			slim_objectid_t muttype_id = muttype->mutation_type_id_;
+			
+			if ((muttype->dfe_type_ != DFEType::kFixed) || (muttype->dfe_parameters_[0] != 0.0))
+				display_muttypes_.push_back(muttype_id);
+		}
+		
+		[self setNeedsDisplay:YES];
+	}
+}
 
 - (NSMenu *)menuForEvent:(NSEvent *)theEvent
 {
@@ -2118,19 +2142,28 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 				
 				all_muttypes.insert(all_muttypes.end(), display_muttypes_.begin(), display_muttypes_.end());
 				
-				std::sort(all_muttypes.begin(), all_muttypes.end());
-				all_muttypes.resize(std::distance(all_muttypes.begin(), std::unique(all_muttypes.begin(), all_muttypes.end())));
-				
-				// Then add menu items for each of those muttypes
-				for (slim_objectid_t muttype_id : all_muttypes)
+				// Avoid building a huge menu, which will hang the app
+				if (all_muttypes.size() <= 500)
 				{
-					menuItem = [menu addItemWithTitle:[NSString stringWithFormat:@"Display m%d", (int)muttype_id] action:@selector(filterMutations:) keyEquivalent:@""];
-					[menuItem setTag:muttype_id];
-					[menuItem setTarget:self];
+					std::sort(all_muttypes.begin(), all_muttypes.end());
+					all_muttypes.resize(std::distance(all_muttypes.begin(), std::unique(all_muttypes.begin(), all_muttypes.end())));
 					
-					if (std::find(display_muttypes_.begin(), display_muttypes_.end(), muttype_id) != display_muttypes_.end())
-						[menuItem setState:NSOnState];
+					// Then add menu items for each of those muttypes
+					for (slim_objectid_t muttype_id : all_muttypes)
+					{
+						menuItem = [menu addItemWithTitle:[NSString stringWithFormat:@"Display m%d", (int)muttype_id] action:@selector(filterMutations:) keyEquivalent:@""];
+						[menuItem setTag:muttype_id];
+						[menuItem setTarget:self];
+						
+						if (std::find(display_muttypes_.begin(), display_muttypes_.end(), muttype_id) != display_muttypes_.end())
+							[menuItem setState:NSOnState];
+					}
 				}
+				
+				[menu addItem:[NSMenuItem separatorItem]];
+				
+				menuItem = [menu addItemWithTitle:@"Select Non-Neutral MutationTypes" action:@selector(filterNonNeutral:) keyEquivalent:@""];
+				[menuItem setTarget:self];
 				
 				return [menu autorelease];
 			}

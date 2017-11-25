@@ -36,6 +36,7 @@ development head:
 	fix a refcounting bug that would bite users running more than one simulations at the same time in SLiMgui
 	switch to shared_ptr for call signatures, to fix a leak with user-defined functions
 	improve recipe 13.12 (modeling nucleotides) and optimize SLiM to make it run faster
+	add the ability to automatically select only non-neutral mutation types for display in the chromosome view
 
 
 2.5 (build 1204; Eidos version 1.5):
