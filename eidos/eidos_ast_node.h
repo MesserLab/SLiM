@@ -26,6 +26,7 @@
 
 #include "eidos_token.h"
 #include "eidos_value.h"
+#include "eidos_call_signature.h"
 
 
 class EidosASTNode;
@@ -52,7 +53,7 @@ public:
 	std::vector<EidosASTNode *> children_;								// OWNED POINTERS
 	
 	mutable EidosValue_SP cached_value_;								// an optional pre-cached EidosValue representing the node
-	mutable const EidosFunctionSignature *cached_signature_ = nullptr;	// NOT OWNED: a cached pointer to the function signature corresponding to the token
+	mutable EidosFunctionSignature_SP cached_signature_ = nullptr;		// a cached pointer to the function signature corresponding to the token
 	mutable EidosEvaluationMethod cached_evaluator_ = nullptr;			// a pre-cached pointer to method to evaluate this node; shorthand for EvaluateNode()
 	mutable EidosGlobalStringID cached_stringID_ = gEidosID_none;		// a pre-cached identifier for the token string, for fast property/method lookup
 	

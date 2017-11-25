@@ -33,7 +33,6 @@
 
 
 class EidosValue;
-class EidosFunctionSignature;
 class EidosASTNode;
 
 

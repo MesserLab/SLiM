@@ -355,7 +355,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Call(const EidosASTNode *p
 		
 		// OK, we have <identifier>(...); that's a well-formed function call
 		const std::string *function_name = &(call_identifier_token->token_string_);
-		const EidosFunctionSignature *function_signature = call_name_node->cached_signature_;
+		const EidosFunctionSignature *function_signature = call_name_node->cached_signature_.get();
 		
 		// If the function call is a built-in Eidos function, we might already have a pointer to its signature cached; if not, we'll have to look it up
 		if (!function_signature)
@@ -364,7 +364,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Call(const EidosASTNode *p
 			auto signature_iter = function_map_.find(*function_name);
 			
 			if (signature_iter != function_map_.end())
-				function_signature = signature_iter->second;
+				function_signature = signature_iter->second.get();
 		}
 		
 		if (function_signature)
@@ -1003,7 +1003,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_FunctionDecl(const EidosAS
 		
 		if (signature_iter != function_map_.end())
 		{
-			const EidosFunctionSignature *prior_sig = signature_iter->second;
+			const EidosFunctionSignature *prior_sig = signature_iter->second.get();
 			
 			if (prior_sig->internal_function_ || !prior_sig->delegate_name_.empty() || !prior_sig->user_defined_)
 				can_redefine = false;
@@ -1017,7 +1017,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_FunctionDecl(const EidosAS
 			if (found_iter != function_map_.end())
 				function_map_.erase(found_iter);
 			
-			function_map_.insert(EidosFunctionMapPair(sig->call_name_, sig));
+			function_map_.insert(EidosFunctionMapPair(sig->call_name_, EidosFunctionSignature_SP(sig)));
 		}
 		else
 		{

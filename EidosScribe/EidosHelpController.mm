@@ -265,7 +265,7 @@
 // that string for topic headings, function/method/property signature lines, etc., and creates a hierarchy of help topics from the results.  This process
 // assumes that the RTF doc file is laid out in a standard way that fits the regex patterns used here; it is designed to work directly with content copied
 // and pasted out of our Word documentation files into RTF in TextEdit.
-- (void)addTopicsFromRTFFile:(NSString *)rtfFile underHeading:(NSString *)topLevelHeading functions:(const std::vector<const EidosFunctionSignature *> *)functionList methods:(const std::vector<const EidosMethodSignature*> *)methodList properties:(const std::vector<const EidosPropertySignature*> *)propertyList
+- (void)addTopicsFromRTFFile:(NSString *)rtfFile underHeading:(NSString *)topLevelHeading functions:(const std::vector<EidosFunctionSignature_SP> *)functionList methods:(const std::vector<const EidosMethodSignature*> *)methodList properties:(const std::vector<const EidosPropertySignature*> *)propertyList
 {
 	NSString *topicFilePath = [[NSBundle mainBundle] pathForResource:rtfFile ofType:@"rtf"];
 	NSData *topicFileData = [NSData dataWithContentsOfFile:topicFilePath];
@@ -410,7 +410,7 @@
 				for (auto signature_iter = functionList->begin(); signature_iter != functionList->end(); signature_iter++)
 					if ((*signature_iter)->call_name_.compare(function_name) == 0)
 					{
-						function_signature = *signature_iter;
+						function_signature = signature_iter->get();
 						break;
 					}
 				
@@ -546,9 +546,9 @@
 	}
 }
 
-- (void)checkDocumentationOfFunctions:(const std::vector<const EidosFunctionSignature*> *)functions
+- (void)checkDocumentationOfFunctions:(const std::vector<EidosFunctionSignature_SP> *)functions
 {
-	for (const EidosFunctionSignature *functionSignature : *functions)
+	for (EidosFunctionSignature_SP functionSignature : *functions)
 	{
 		NSString *functionNameString = [NSString stringWithUTF8String:functionSignature->call_name_.c_str()];
 		

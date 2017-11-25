@@ -1072,7 +1072,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		
 		// OK, we have <identifier>(...); that's a well-formed function call
 		const std::string *function_name = &(call_identifier_token->token_string_);
-		const EidosFunctionSignature *function_signature = call_name_node->cached_signature_;
+		const EidosFunctionSignature *function_signature = call_name_node->cached_signature_.get();
 		
 		// If the function call is a built-in Eidos function, we might already have a pointer to its signature cached; if not, we'll have to look it up
 		if (!function_signature)
@@ -1083,7 +1083,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 			if (signature_iter == function_map_.end())
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): unrecognized function name " << *function_name << "." << EidosTerminate(call_identifier_token);
 			
-			function_signature = signature_iter->second;
+			function_signature = signature_iter->second.get();
 		}
 		
 		// If an error occurs inside a function or method call, we want to highlight the call
@@ -4707,7 +4707,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 			
 			if (call_name_node->token_->token_type_ == EidosTokenType::kTokenIdentifier)
 			{
-				const EidosFunctionSignature *signature = call_name_node->cached_signature_;
+				const EidosFunctionSignature *signature = call_name_node->cached_signature_.get();
 				
 				if (signature && (signature->internal_function_ == Eidos_ExecuteFunction_seqAlong))
 				{
@@ -5255,7 +5255,7 @@ EidosValue_SP EidosInterpreter::Evaluate_FunctionDecl(const EidosASTNode *p_node
 	
 	if (signature_iter != function_map_.end())
 	{
-		const EidosFunctionSignature *prior_sig = signature_iter->second;
+		const EidosFunctionSignature *prior_sig = signature_iter->second.get();
 		
 		if (prior_sig->internal_function_ || !prior_sig->delegate_name_.empty() || !prior_sig->user_defined_)
 		{
@@ -5270,7 +5270,7 @@ EidosValue_SP EidosInterpreter::Evaluate_FunctionDecl(const EidosASTNode *p_node
 	if (found_iter != function_map_.end())
 		function_map_.erase(found_iter);
 	
-	function_map_.insert(EidosFunctionMapPair(sig->call_name_, sig));
+	function_map_.insert(EidosFunctionMapPair(sig->call_name_, EidosFunctionSignature_SP(sig)));
 	
 	// Always return NULL
 	EidosValue_SP result_SP = gStaticEidosValueNULLInvisible;

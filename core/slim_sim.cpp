@@ -3757,10 +3757,10 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 	return gStaticEidosValueNULLInvisible;
 }
 
-const std::vector<const EidosFunctionSignature*> *SLiMSim::ZeroGenerationFunctionSignatures(void)
+const std::vector<EidosFunctionSignature_SP> *SLiMSim::ZeroGenerationFunctionSignatures(void)
 {
 	// Allocate our own EidosFunctionSignature objects
-	static std::vector<const EidosFunctionSignature*> sim_0_signatures_;
+	static std::vector<EidosFunctionSignature_SP> sim_0_signatures_;
 	
 	if (!sim_0_signatures_.size())
 	{
@@ -3789,22 +3789,22 @@ const std::vector<const EidosFunctionSignature*> *SLiMSim::ZeroGenerationFunctio
 
 void SLiMSim::AddZeroGenerationFunctionsToMap(EidosFunctionMap &p_map)
 {
-	const std::vector<const EidosFunctionSignature*> *signatures = ZeroGenerationFunctionSignatures();
+	const std::vector<EidosFunctionSignature_SP> *signatures = ZeroGenerationFunctionSignatures();
 	
 	if (signatures)
 	{
-		for (const EidosFunctionSignature *signature : *signatures)
+		for (EidosFunctionSignature_SP signature : *signatures)
 			p_map.insert(EidosFunctionMapPair(signature->call_name_, signature));
 	}
 }
 
 void SLiMSim::RemoveZeroGenerationFunctionsFromMap(EidosFunctionMap &p_map)
 {
-	const std::vector<const EidosFunctionSignature*> *signatures = ZeroGenerationFunctionSignatures();
+	const std::vector<EidosFunctionSignature_SP> *signatures = ZeroGenerationFunctionSignatures();
 	
 	if (signatures)
 	{
-		for (const EidosFunctionSignature *signature : *signatures)
+		for (EidosFunctionSignature_SP signature : *signatures)
 			p_map.erase(signature->call_name_);
 	}
 }

@@ -319,7 +319,7 @@ public:
 	
 	EidosSymbolTable *SymbolsFromBaseSymbols(EidosSymbolTable *p_base_symbols);				// derive a symbol table, adding our own symbols if needed
 	
-	static const std::vector<const EidosFunctionSignature*> *ZeroGenerationFunctionSignatures(void);		// all zero-gen functions
+	static const std::vector<EidosFunctionSignature_SP> *ZeroGenerationFunctionSignatures(void);		// all zero-gen functions
 	static void AddZeroGenerationFunctionsToMap(EidosFunctionMap &p_map);
 	static void RemoveZeroGenerationFunctionsFromMap(EidosFunctionMap &p_map);
 	

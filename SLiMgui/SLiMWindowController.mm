@@ -1584,7 +1584,7 @@
 		
 		for (auto functionPairIter = function_map.begin(); functionPairIter != function_map.end(); ++functionPairIter)
 		{
-			const EidosFunctionSignature *signature = functionPairIter->second;
+			const EidosFunctionSignature *signature = functionPairIter->second.get();
 			
 			if (signature->body_script_ && signature->user_defined_)
 			{
@@ -1877,7 +1877,7 @@
 	
 	for (auto functionPairIter = function_map.begin(); functionPairIter != function_map.end(); ++functionPairIter)
 	{
-		const EidosFunctionSignature *signature = functionPairIter->second;
+		const EidosFunctionSignature *signature = functionPairIter->second.get();
 		
 		if (signature->body_script_ && signature->user_defined_)
 			signature->body_script_->AST()->ZeroProfileTotals();

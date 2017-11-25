@@ -59,7 +59,6 @@ class EidosValue_Object_vector;
 
 class EidosObjectPool;
 class EidosPropertySignature;
-class EidosFunctionSignature;
 class EidosMethodSignature;
 class EidosInterpreter;
 class EidosToken;

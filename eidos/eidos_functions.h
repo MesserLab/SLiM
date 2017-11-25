@@ -38,10 +38,6 @@ EidosValue_SP UniqueEidosValue(const EidosValue *p_value, bool p_force_new_vecto
 EidosValue_SP Eidos_ExecuteLambdaInternal(const EidosValue_SP *const p_arguments, EidosInterpreter &p_interpreter, bool p_execute_in_outer_scope);
 
 
-// Prototype for a function handler that is internal to Eidos.
-typedef EidosValue_SP (*EidosInternalFunctionPtr)(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
-
-
 #pragma mark -
 #pragma mark Math functions
 #pragma mark -

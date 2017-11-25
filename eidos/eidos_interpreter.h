@@ -50,8 +50,8 @@ typedef EidosObjectElement EidosContext;
 
 // typedefs used to set up our map table of EidosFunctionSignature objects; std::map is used instead of
 // std::unordered_map mostly for convenience, speed should not matter much since signatures get cached anyway
-typedef std::pair<std::string, const EidosFunctionSignature*> EidosFunctionMapPair;
-typedef std::map<std::string, const EidosFunctionSignature*> EidosFunctionMap;
+typedef std::pair<std::string, EidosFunctionSignature_SP> EidosFunctionMapPair;
+typedef std::map<std::string, EidosFunctionSignature_SP> EidosFunctionMap;
 
 // utility functions
 bool TypeCheckAssignmentOfEidosValueIntoEidosValue(const EidosValue &p_base_value, const EidosValue &p_destination_value);	// codifies what promotions can occur in assignment
@@ -67,7 +67,7 @@ private:
 	const EidosASTNode *root_node_;				// not owned
 	EidosSymbolTable *global_symbols_;			// NOT OWNED: whoever creates us must give us a reference to a symbol table, which we use
 	
-	EidosFunctionMap &function_map_;			// NOT OWNED: a map table of EidosFunctionSignature objects, keyed by function name
+	EidosFunctionMap &function_map_;			// a map table of EidosFunctionSignature objects, keyed by function name
 	
 	// flags to handle next/break statements in do...while, while, and for loops
 	bool next_statement_hit_ = false;
@@ -159,7 +159,7 @@ public:
 	EidosValue_SP Evaluate_FunctionDecl(const EidosASTNode *p_node);
 	
 	// Function dispatch/execution; these are implemented in eidos_functions.cpp
-	static std::vector<const EidosFunctionSignature *> &BuiltInFunctions(void);
+	static std::vector<EidosFunctionSignature_SP> &BuiltInFunctions(void);
 	static inline __attribute__((always_inline)) const EidosFunctionMap *BuiltInFunctionMap(void) { return s_built_in_function_map_; }
 	static void CacheBuiltInFunctionMap(void);	// must be called by Eidos_WarmUp() before BuiltInFunctionMap() is called
 	

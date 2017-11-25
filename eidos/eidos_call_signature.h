@@ -21,10 +21,14 @@
 #ifndef __Eidos__eidos_function_signature__
 #define __Eidos__eidos_function_signature__
 
-#include "eidos_interpreter.h"
 #include "eidos_value.h"
 
 #include <iostream>
+#include <memory>
+
+
+// Prototype for a function handler that is internal to Eidos.
+typedef EidosValue_SP (*EidosInternalFunctionPtr)(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 
 
 #pragma mark -
@@ -209,6 +213,10 @@ public:
 	virtual std::string CallPrefix(void) const;
 	virtual std::string CallDelegate(void) const;
 };
+
+// Function signatures are kept under shared_ptr since user-defined functions make their lifetime complicated
+typedef std::shared_ptr<const EidosFunctionSignature> EidosFunctionSignature_SP;
+bool CompareEidosFunctionSignature_SPs(EidosFunctionSignature_SP p_i, EidosFunctionSignature_SP p_j);
 
 
 #pragma mark -

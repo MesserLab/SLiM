@@ -501,6 +501,11 @@ std::string EidosFunctionSignature::CallDelegate(void) const
 	return "";
 }
 
+bool CompareEidosFunctionSignature_SPs(EidosFunctionSignature_SP p_i, EidosFunctionSignature_SP p_j)
+{
+	return (p_i->call_name_ < p_j->call_name_);
+}
+
 
 //
 //	EidosMethodSignature

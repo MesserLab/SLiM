@@ -81,13 +81,13 @@ std::string EidosStringFormat(const std::string& format, Args ... args)
 //
 
 // We allocate all of our function signatures once and keep them forever, for faster EidosInterpreter startup
-std::vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(void)
+std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 {
-	static std::vector<const EidosFunctionSignature *> *signatures = nullptr;
+	static std::vector<EidosFunctionSignature_SP> *signatures = nullptr;
 	
 	if (!signatures)
 	{
-		signatures = new std::vector<const EidosFunctionSignature *>;
+		signatures = new std::vector<EidosFunctionSignature_SP>;
 		
 		// ************************************************************************************
 		//
@@ -302,7 +302,7 @@ std::vector<const EidosFunctionSignature *> &EidosInterpreter::BuiltInFunctions(
 		
 		
 		// alphabetize, mostly to be nice to the auto-completion feature
-		std::sort(signatures->begin(), signatures->end(), CompareEidosCallSignatures);
+		std::sort(signatures->begin(), signatures->end(), CompareEidosFunctionSignature_SPs);
 	}
 	
 	return *signatures;
@@ -316,7 +316,7 @@ void EidosInterpreter::CacheBuiltInFunctionMap(void)
 	
 	if (!s_built_in_function_map_)
 	{
-		std::vector<const EidosFunctionSignature *> &built_in_functions = EidosInterpreter::BuiltInFunctions();
+		std::vector<EidosFunctionSignature_SP> &built_in_functions = EidosInterpreter::BuiltInFunctions();
 		
 		s_built_in_function_map_ = new EidosFunctionMap;
 		
@@ -7659,7 +7659,7 @@ EidosValue_SP Eidos_ExecuteFunction_doCall(const EidosValue_SP *const p_argument
 	if (signature_iter == function_map.end())
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_doCall): unrecognized function name " << function_name << "." << EidosTerminate(nullptr);
 	
-	const EidosFunctionSignature *function_signature = signature_iter->second;
+	const EidosFunctionSignature *function_signature = signature_iter->second.get();
 	
 	// Check the function's arguments
 	function_signature->CheckArguments(arguments, argument_count);
@@ -7888,7 +7888,7 @@ EidosValue_SP Eidos_ExecuteFunction_functionSignature(const EidosValue_SP *const
 	
 	for (auto functionPairIter = function_map.begin(); functionPairIter != function_map.end(); ++functionPairIter)
 	{
-		const EidosFunctionSignature *iter_signature = functionPairIter->second;
+		const EidosFunctionSignature *iter_signature = functionPairIter->second.get();
 		
 		if (function_name_specified && (iter_signature->call_name_.compare(match_string) != 0))
 			continue;

@@ -1520,7 +1520,7 @@
 	// Look for a matching function signature for the call name.
 	for (const auto& function_iter : *functionMapPtr)
 	{
-		const EidosFunctionSignature *sig = function_iter.second;
+		const EidosFunctionSignature *sig = function_iter.second.get();
 		const std::string &sig_call_name = sig->call_name_;
 		
 		if (sig_call_name.compare(call_name) == 0)
@@ -1646,7 +1646,7 @@
 	{
 		for (const auto& function_iter : *functionMap)
 		{
-			const EidosFunctionSignature *sig = function_iter.second;
+			const EidosFunctionSignature *sig = function_iter.second.get();
 			NSString *functionName = [NSString stringWithUTF8String:sig->call_name_.c_str()];
 			
 			// Exclude internal functions such as _Test()
@@ -1798,7 +1798,7 @@
 		// The root identifier is a call, so it should be a function call; try to look it up
 		for (const auto& function_iter : *functionMap)
 		{
-			const EidosFunctionSignature *sig = function_iter.second;
+			const EidosFunctionSignature *sig = function_iter.second.get();
 			
 			if (sig->call_name_.compare(identifier_name) == 0)
 			{
