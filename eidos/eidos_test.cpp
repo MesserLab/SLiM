@@ -435,8 +435,7 @@ void RunEidosTests(void)
 	std::cout << std::endl;
 	
 	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += Eidos_FastRandomPoisson_NONZERO
-(1.0, exp(-1.0));
+		total += Eidos_FastRandomPoisson_NONZERO(1.0, exp(-1.0));
 	
 	std::cout << "Eidos_FastRandomPoisson(1.0): mean = " << (total / 1000000) << ", expected ~1.58" << std::endl;
 	
@@ -454,8 +453,7 @@ void RunEidosTests(void)
 	std::cout << "gsl_ran_poisson(1.0): mean = " << (total / 1000000) << ", expected ~1.58" << std::endl << std::endl;
 	
 	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += Eidos_FastRandomPoisson_NONZERO
-(0.001, exp(-0.001));
+		total += Eidos_FastRandomPoisson_NONZERO(0.001, exp(-0.001));
 	
 	std::cout << "Eidos_FastRandomPoisson(0.001): mean = " << (total / 1000000) << ", expected ~1.0005" << std::endl;
 	
@@ -473,8 +471,7 @@ void RunEidosTests(void)
 	//	std::cout << "gsl_ran_poisson(0.001): mean = " << (total / 1000000) << ", expected ~1.0005" << std::endl;
 	
 	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += Eidos_FastRandomPoisson_NONZERO
-(0.00001, exp(-0.00001));
+		total += Eidos_FastRandomPoisson_NONZERO(0.00001, exp(-0.00001));
 	
 	std::cout << std::endl << "Eidos_FastRandomPoisson(0.00001): mean = " << (total / 1000000) << ", expected ~1.00001" << std::endl;
 	
@@ -492,8 +489,7 @@ void RunEidosTests(void)
 	//	std::cout << "gsl_ran_poisson(0.00001): mean = " << (total / 1000000) << ", expected ~1.00001" << std::endl;
 	
 	for (total = 0.0, i = 0; i < 100000; i++)
-		total += Eidos_FastRandomPoisson_NONZERO
-(100, exp(-100));
+		total += Eidos_FastRandomPoisson_NONZERO(100, exp(-100));
 	
 	std::cout << std::endl << "Eidos_FastRandomPoisson(100): mean = " << (total / 100000) << ", expected ~100" << std::endl;
 	

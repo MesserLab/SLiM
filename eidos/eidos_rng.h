@@ -194,8 +194,7 @@ static inline __attribute__((always_inline)) unsigned int Eidos_FastRandomPoisso
 }
 
 // This version specifies that the count is guaranteed not to be zero; zero has been ruled out by a previous test
-static inline __attribute__((always_inline)) unsigned int Eidos_FastRandomPoisson_NONZERO
-(double p_mu, double p_exp_neg_mu)
+static inline __attribute__((always_inline)) unsigned int Eidos_FastRandomPoisson_NONZERO(double p_mu, double p_exp_neg_mu)
 {
 	// Defer to the GSL for large values of mu; see comments above.
 	if (p_mu > 250)

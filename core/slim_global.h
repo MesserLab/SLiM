@@ -77,13 +77,7 @@ extern std::ostringstream gSLiMOut;
 // a large amount of headroom, so that we are not at risk of simple calculations with these quantities overflowing.
 // Raising these limits to int64_t is reasonable if you need to run a larger simulation.  Lowering them to int16_t
 // is not recommended, and will likely buy you very little, because most of the memory usage in typical simulations
-// is in the arrays of pointers kept by Genome objects.  There are, for typical simulations, many pointers to a given
-// mutation on average, so the memory used by a Mutation object is insignificant compared to all those 64-bit
-// pointers pointing to that single Mutation object.  This means that the only thing that will really reduce SLiM's
-// memory footprint significantly is to compile it with 32-bit pointers instead of 64-bit pointers; but that will
-// limit you to 4GB of working memory, which is not that much, and SLiM has no checks on its memory usage, so you
-// will likely experience random crashes due to running out of memory if you try that.  So, long story short, SLiM's
-// memory usage is what it is, and is about as good as it could reasonably be.
+// is in the arrays of mutation indices kept by Genome objects.
 
 typedef int32_t	slim_generation_t;		// generation numbers, generation durations
 typedef int32_t	slim_position_t;		// chromosome positions, lengths in base pairs

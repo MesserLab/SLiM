@@ -42,7 +42,7 @@ class MutationRun;
 
 typedef Eidos_intrusive_ptr<MutationRun>	MutationRun_SP;
 
-// MutationRun has an internal buffer that it can use to hold mutation pointers.  This makes every Genome object a bit bigger;
+// MutationRun has an internal buffer that it can use to hold mutation pointers.  This makes every MutationRun object a bit bigger;
 // with 64-bit pointers, a buffer big enough to hold four pointers is 32 bytes, ouch.  But avoiding the malloc overhead is
 // worth it, for simulations with few mutations; and for simulations with many mutations, the 32-byte overhead is background noise.
 #define SLIM_MUTRUN_BUFFER_SIZE		4

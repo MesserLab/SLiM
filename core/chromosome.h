@@ -322,21 +322,17 @@ inline __attribute__((always_inline)) void Chromosome::DrawMutationAndBreakpoint
 		else if (u <= probability_both_0_OR_mut_0_break_non0_H_)
 		{
 			*p_mut_count = 0;
-			*p_break_count = Eidos_FastRandomPoisson_NONZERO
-(overall_recombination_rate_H_, exp_neg_overall_recombination_rate_H_);
+			*p_break_count = Eidos_FastRandomPoisson_NONZERO(overall_recombination_rate_H_, exp_neg_overall_recombination_rate_H_);
 		}
 		else if (u <= probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_H_)
 		{
-			*p_mut_count = Eidos_FastRandomPoisson_NONZERO
-(overall_mutation_rate_H_, exp_neg_overall_mutation_rate_H_);
+			*p_mut_count = Eidos_FastRandomPoisson_NONZERO(overall_mutation_rate_H_, exp_neg_overall_mutation_rate_H_);
 			*p_break_count = 0;
 		}
 		else
 		{
-			*p_mut_count = Eidos_FastRandomPoisson_NONZERO
-(overall_mutation_rate_H_, exp_neg_overall_mutation_rate_H_);
-			*p_break_count = Eidos_FastRandomPoisson_NONZERO
-(overall_recombination_rate_H_, exp_neg_overall_recombination_rate_H_);
+			*p_mut_count = Eidos_FastRandomPoisson_NONZERO(overall_mutation_rate_H_, exp_neg_overall_mutation_rate_H_);
+			*p_break_count = Eidos_FastRandomPoisson_NONZERO(overall_recombination_rate_H_, exp_neg_overall_recombination_rate_H_);
 		}
 	}
 	else
@@ -355,21 +351,17 @@ inline __attribute__((always_inline)) void Chromosome::DrawMutationAndBreakpoint
 			else if (u <= probability_both_0_OR_mut_0_break_non0_M_)
 			{
 				*p_mut_count = 0;
-				*p_break_count = Eidos_FastRandomPoisson_NONZERO
-(overall_recombination_rate_M_, exp_neg_overall_recombination_rate_M_);
+				*p_break_count = Eidos_FastRandomPoisson_NONZERO(overall_recombination_rate_M_, exp_neg_overall_recombination_rate_M_);
 			}
 			else if (u <= probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_M_)
 			{
-				*p_mut_count = Eidos_FastRandomPoisson_NONZERO
-(overall_mutation_rate_M_, exp_neg_overall_mutation_rate_M_);
+				*p_mut_count = Eidos_FastRandomPoisson_NONZERO(overall_mutation_rate_M_, exp_neg_overall_mutation_rate_M_);
 				*p_break_count = 0;
 			}
 			else
 			{
-				*p_mut_count = Eidos_FastRandomPoisson_NONZERO
-(overall_mutation_rate_M_, exp_neg_overall_mutation_rate_M_);
-				*p_break_count = Eidos_FastRandomPoisson_NONZERO
-(overall_recombination_rate_M_, exp_neg_overall_recombination_rate_M_);
+				*p_mut_count = Eidos_FastRandomPoisson_NONZERO(overall_mutation_rate_M_, exp_neg_overall_mutation_rate_M_);
+				*p_break_count = Eidos_FastRandomPoisson_NONZERO(overall_recombination_rate_M_, exp_neg_overall_recombination_rate_M_);
 			}
 		}
 		else if (p_sex == IndividualSex::kFemale)
@@ -382,21 +374,17 @@ inline __attribute__((always_inline)) void Chromosome::DrawMutationAndBreakpoint
 			else if (u <= probability_both_0_OR_mut_0_break_non0_F_)
 			{
 				*p_mut_count = 0;
-				*p_break_count = Eidos_FastRandomPoisson_NONZERO
-(overall_recombination_rate_F_, exp_neg_overall_recombination_rate_F_);
+				*p_break_count = Eidos_FastRandomPoisson_NONZERO(overall_recombination_rate_F_, exp_neg_overall_recombination_rate_F_);
 			}
 			else if (u <= probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_F_)
 			{
-				*p_mut_count = Eidos_FastRandomPoisson_NONZERO
-(overall_mutation_rate_F_, exp_neg_overall_mutation_rate_F_);
+				*p_mut_count = Eidos_FastRandomPoisson_NONZERO(overall_mutation_rate_F_, exp_neg_overall_mutation_rate_F_);
 				*p_break_count = 0;
 			}
 			else
 			{
-				*p_mut_count = Eidos_FastRandomPoisson_NONZERO
-(overall_mutation_rate_F_, exp_neg_overall_mutation_rate_F_);
-				*p_break_count = Eidos_FastRandomPoisson_NONZERO
-(overall_recombination_rate_F_, exp_neg_overall_recombination_rate_F_);
+				*p_mut_count = Eidos_FastRandomPoisson_NONZERO(overall_mutation_rate_F_, exp_neg_overall_mutation_rate_F_);
+				*p_break_count = Eidos_FastRandomPoisson_NONZERO(overall_recombination_rate_F_, exp_neg_overall_recombination_rate_F_);
 			}
 		}
 		else

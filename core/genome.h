@@ -54,9 +54,8 @@ extern EidosObjectClass *gSLiM_Genome_Class;
 // often during reproduction), but long enough that they contain enough mutations to make all this machinery worthwhile; if they
 // are usually empty then we're actually doing more work than we were before!
 
-// Each genome knows the number of runs and the run length, but it is the same for every genome in a given simulation; we do not
-// vary it or adjust it dynamically, although possibly there would be benefits to doing that in some cases.  For now it is constant
-// within a simulation, allowing the code to make some assumptions for simplicity.
+// Each genome knows the number of runs and the run length, but it is the same for every genome in a given simulation.  The whole
+// simulation can be scaled up or down by splitting or joining mutation runs; this is done by the mutation-run experiment code.
 
 // The array of runs is malloced; since this is two mallocs per individual, this should not be unacceptable overhead, and it avoids
 // hard-coding of a maximum number of runs, wasting memory on unused pointers, etc.  For null genomes the runs pointer is nullptr,
