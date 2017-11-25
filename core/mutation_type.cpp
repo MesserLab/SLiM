@@ -207,6 +207,7 @@ double MutationType::DrawSelectionCoefficient(void) const
 	}
 }
 
+// This is unused except by debugging code and in the debugger itself
 std::ostream &operator<<(std::ostream &p_outstream, const MutationType &p_mutation_type)
 {
 	p_outstream << "MutationType{dominance_coeff_ " << p_mutation_type.dominance_coeff_ << ", dfe_type_ '" << p_mutation_type.dfe_type_ << "', dfe_parameters_ <";

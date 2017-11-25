@@ -97,6 +97,7 @@ MutationType *GenomicElementType::DrawMutationType(void) const
 	return mutation_type_ptrs_[gsl_ran_discrete(gEidos_rng, lookup_mutation_type_)];
 }
 
+// This is unused except by debugging code and in the debugger itself
 std::ostream &operator<<(std::ostream &p_outstream, const GenomicElementType &p_genomic_element_type)
 {
 	p_outstream << "GenomicElementType{mutation_types_ ";

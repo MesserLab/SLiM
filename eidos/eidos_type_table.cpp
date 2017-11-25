@@ -141,7 +141,7 @@ EidosTypeSpecifier EidosTypeTable::GetTypeForSymbol(EidosGlobalStringID p_symbol
 	return EidosTypeSpecifier{kEidosValueMaskNone, nullptr};
 }
 
-
+// This is unused except by debugging code and in the debugger itself
 std::ostream &operator<<(std::ostream &p_outstream, const EidosTypeTable &p_symbols)
 {
 	std::vector<std::string> symbol_names = p_symbols.AllSymbols();

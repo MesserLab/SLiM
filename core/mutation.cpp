@@ -202,6 +202,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 		gSLiM_next_mutation_id = mutation_id_ + 1;
 }
 
+// This is unused except by debugging code and in the debugger itself
 std::ostream &operator<<(std::ostream &p_outstream, const Mutation &p_mutation)
 {
 	p_outstream << "Mutation{mutation_type_ " << p_mutation.mutation_type_ptr_->mutation_type_id_ << ", position_ " << p_mutation.position_ << ", selection_coeff_ " << p_mutation.selection_coeff_ << ", subpop_index_ " << p_mutation.subpop_index_ << ", generation_ " << p_mutation.generation_;

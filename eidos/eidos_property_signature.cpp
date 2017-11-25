@@ -183,6 +183,7 @@ EidosPropertySignature *EidosPropertySignature::DeclareAcceleratedSet(void)
 	return this;
 }
 
+// This is unused except by debugging code and in the debugger itself
 std::ostream &operator<<(std::ostream &p_outstream, const EidosPropertySignature &p_signature)
 {
 	p_outstream << p_signature.property_name_ << " " << p_signature.PropertySymbol() << " (";
