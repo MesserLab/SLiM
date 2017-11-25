@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 3/3/15.
-//  Copyright (c) 2015-2016 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2017 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
