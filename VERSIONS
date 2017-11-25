@@ -33,6 +33,7 @@ development head:
 	fix static analyzer issues, including minor bug fixes for _InitializePopulationFromBinaryFile() and a leak in haplotype plotting
 	fix a bug in doCall() that would fail to get the return value from user-defined functions
 	fix type-interpreter crashes with malformed function declarations
+	fix a refcounting bug that would bite users running more than one simulations at the same time in SLiMgui
 
 
 2.5 (build 1204; Eidos version 1.5):

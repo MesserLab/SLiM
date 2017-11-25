@@ -120,9 +120,11 @@ void SLiM_IncreaseMutationBlockCapacity(void)
 
 void SLiM_ZeroRefcountBlock(__attribute__((unused)) MutationRun &p_mutation_registry)
 {
-#if 0
+#ifdef SLIMGUI
 	// This version zeros out refcounts just for the mutations currently in use in the registry.
 	// It is thus minimal, but probably quite a bit slower than just zeroing out the whole thing.
+	// BCH 11/25/2017: This code path needs to be used in SLiMgui to avoid modifying the refcounts
+	// for mutations in other simulations sharing the mutation block.
 	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
 	const MutationIndex *registry_iter = p_mutation_registry.begin_pointer_const();
 	const MutationIndex *registry_iter_end = p_mutation_registry.end_pointer_const();
