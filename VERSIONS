@@ -38,6 +38,7 @@ development head:
 	improve recipe 13.12 (modeling nucleotides) and optimize SLiM to make it run faster
 	add the ability to automatically select only non-neutral mutation types for display in the chromosome view
 	fix a bug (never released) in pure neutral tracking with addNewMutation(), and optimize pure neutral tracking some more
+	add ability to change the number of bins in the frequency spectrum plot
 
 
 2.5 (build 1204; Eidos version 1.5):

@@ -35,8 +35,6 @@
 {
 }
 
-@property (nonatomic) int histogramBinCount;
-
 @end
 
 

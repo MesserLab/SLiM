@@ -29,6 +29,7 @@
 	if (self = [super initWithFrame:frameRect withController:controller])
 	{
 		[self setHistogramBinCount:10];
+		//[self setAllowXAxisBinRescale:YES];	// not supported yet
 		
 		[self setXAxisMax:100];
 		[self setXAxisMajorTickInterval:20];

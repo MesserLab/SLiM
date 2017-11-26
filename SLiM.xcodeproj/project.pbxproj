@@ -44,6 +44,7 @@
 		982556BB1BA8EF960054CB3F /* eidos_test_element.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 989790D81AF3D0E100C6B14C /* eidos_test_element.cpp */; };
 		982556BC1BA8EF990054CB3F /* eidos_test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 985724A71AD4551C0047C223 /* eidos_test.cpp */; };
 		982663541A3BABD300A0CBBF /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 982663531A3BABD300A0CBBF /* main.cpp */; };
+		982A9DDE1FCA9FF0007BA3DF /* GraphBarRescaleSheet.xib in Resources */ = {isa = PBXBuildFile; fileRef = 982A9DDC1FCA9FF0007BA3DF /* GraphBarRescaleSheet.xib */; };
 		98321F911B406417007337A3 /* eidos_rng.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6B61A3CE35E000AD4FC /* eidos_rng.cpp */; };
 		98321F941B406B67007337A3 /* eidos_global.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98321F921B406B67007337A3 /* eidos_global.cpp */; };
 		98321F951B406B67007337A3 /* eidos_global.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98321F921B406B67007337A3 /* eidos_global.cpp */; };
@@ -576,6 +577,7 @@
 		982556AB1BA8E77C0054CB3F /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		982663501A3BABD300A0CBBF /* slim */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = slim; sourceTree = BUILT_PRODUCTS_DIR; };
 		982663531A3BABD300A0CBBF /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		982A9DDD1FCA9FF0007BA3DF /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/GraphBarRescaleSheet.xib; sourceTree = "<group>"; };
 		98321F921B406B67007337A3 /* eidos_global.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_global.cpp; sourceTree = "<group>"; };
 		98321F931B406B67007337A3 /* eidos_global.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_global.h; sourceTree = "<group>"; };
 		98453F3E1A75A12700C058CB /* dump_output_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = dump_output_H.pdf; sourceTree = "<group>"; };
@@ -1201,6 +1203,7 @@
 				980DD51C1AB0B01F00D5B7B8 /* GraphView_MutationFrequencyTrajectory.mm */,
 				986926DA1AA1429D0000E138 /* GraphWindow.xib */,
 				980DD5181AAE42F900D5B7B8 /* GraphAxisRescaleSheet.xib */,
+				982A9DDC1FCA9FF0007BA3DF /* GraphBarRescaleSheet.xib */,
 			);
 			name = Graphing;
 			sourceTree = "<group>";
@@ -1717,6 +1720,7 @@
 				98453F5C1A76004300C058CB /* show_mutations_H.pdf in Resources */,
 				98DE4C191B713F10004FDF5F /* ScriptMod_ChangeSubpopSize.xib in Resources */,
 				98453F401A75A12700C058CB /* dump_output_H.pdf in Resources */,
+				982A9DDE1FCA9FF0007BA3DF /* GraphBarRescaleSheet.xib in Resources */,
 				98453F5A1A76004300C058CB /* show_genomicelements_H.pdf in Resources */,
 				9825566F1BA4FAD00054CB3F /* SLiMHelpFunctions.rtf in Resources */,
 				98453F631A76041200C058CB /* edit_submenu.pdf in Resources */,
@@ -2348,6 +2352,14 @@
 				982556681BA451D00054CB3F /* Base */,
 			);
 			name = EidosHelpWindow.xib;
+			sourceTree = "<group>";
+		};
+		982A9DDC1FCA9FF0007BA3DF /* GraphBarRescaleSheet.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				982A9DDD1FCA9FF0007BA3DF /* Base */,
+			);
+			name = GraphBarRescaleSheet.xib;
 			sourceTree = "<group>";
 		};
 		985301F01B7262E5001520DF /* ScriptMod_ChangeCloning.xib */ = {

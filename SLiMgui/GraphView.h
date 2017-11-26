@@ -47,6 +47,10 @@
 	IBOutlet NSTextField *rescaleSheetMajorIntervalTextfield;
 	IBOutlet NSTextField *rescaleSheetMinorModulusTextfield;
 	IBOutlet NSTextField *rescaleSheetTickPrecisionTextfield;
+	
+	// GraphBarRescaleSheet outlets
+	IBOutlet NSWindow *rescaleBarsSheet;
+	IBOutlet NSTextField *rescaleBarsSheetCountTextfield;
 }
 
 @property (nonatomic, assign) SLiMWindowController *slimWindowController;
@@ -135,6 +139,10 @@
 - (void)controllerSelectionChanged;		// called by SLiMWindowController when the selection changes, to let the GraphView respond
 - (void)controllerGenerationFinished;	// called by SLiMWindowController when a simulation generation ends, to allow per-generation data gathering; redrawing should not be done here
 - (void)updateAfterTick;				// by default, calls setNeedsDisplay:YES; can also perform other updating work
+
+// Additional properties that conceptually belong to PrefabAdditions below
+@property (nonatomic) int histogramBinCount;		// provided for barplots
+@property (nonatomic) BOOL allowXAxisBinRescale;	// if YES, the GraphView will provide a context menu item and run a panel to set the bar count
 
 @end
 

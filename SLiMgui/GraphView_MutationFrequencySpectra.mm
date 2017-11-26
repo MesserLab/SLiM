@@ -29,6 +29,7 @@
 	if (self = [super initWithFrame:frameRect withController:controller])
 	{
 		[self setHistogramBinCount:10];
+		[self setAllowXAxisBinRescale:YES];
 		
 		[self setXAxisMajorTickInterval:0.2];
 		[self setXAxisMinorTickInterval:0.1];
@@ -146,7 +147,7 @@
 	double *spectrum = [self mutationFrequencySpectrumWithController:controller mutationTypeCount:mutationTypeCount];
 	
 	// plot our histogram bars
-	[self drawGroupedBarplotInInteriorRect:interiorRect withController:controller buffer:spectrum subBinCount:mutationTypeCount mainBinCount:binCount firstBinValue:0.0 mainBinWidth:0.10];
+	[self drawGroupedBarplotInInteriorRect:interiorRect withController:controller buffer:spectrum subBinCount:mutationTypeCount mainBinCount:binCount firstBinValue:0.0 mainBinWidth:(1.0 / binCount)];
 	
 	// if we have a limited selection range, overdraw a note about that
 	ChromosomeView *chromosome = controller->chromosomeOverview;

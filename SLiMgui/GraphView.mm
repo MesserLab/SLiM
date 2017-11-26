@@ -716,6 +716,55 @@
 	}
 }
 
+- (IBAction)rescaleBarSheetOK:(id)sender
+{
+	SLiMWindowController *controller = [self slimWindowController];
+	NSWindow *window = [controller window];
+	
+	// Give our textfields a chance to validate
+	if (![rescaleBarsSheet makeFirstResponder:nil])
+		return;
+	
+	[window endSheet:rescaleBarsSheet returnCode:NSAlertFirstButtonReturn];
+}
+
+- (IBAction)rescaleBarSheetCancel:(id)sender
+{
+	SLiMWindowController *controller = [self slimWindowController];
+	NSWindow *window = [controller window];
+	
+	[window endSheet:rescaleBarsSheet returnCode:NSAlertSecondButtonReturn];
+}
+
+- (IBAction)userRescaleXBars:(id)sender
+{
+	if ([self allowXAxisBinRescale])
+	{
+		SLiMWindowController *controller = [self slimWindowController];
+		NSWindow *window = [controller window];
+		
+		[[NSBundle mainBundle] loadNibNamed:@"GraphBarRescaleSheet" owner:self topLevelObjects:NULL];
+		[rescaleBarsSheet retain];
+		
+		[rescaleBarsSheetCountTextfield setIntValue:[self histogramBinCount]];
+		
+		[window beginSheet:rescaleBarsSheet completionHandler:^(NSModalResponse returnCode) {
+			if (returnCode == NSAlertFirstButtonReturn)
+			{
+				int newBinCount = [rescaleBarsSheetCountTextfield intValue];
+				
+				[self setHistogramBinCount:newBinCount];
+				
+				[self invalidateDrawingCache];
+				[self setNeedsDisplay:YES];
+			}
+			
+			[rescaleBarsSheet autorelease];
+			rescaleBarsSheet = nil;
+		}];
+	}
+}
+
 - (IBAction)copy:(id)sender
 {
 	NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
@@ -855,6 +904,13 @@
 		if ([self showXAxis] && [self showXAxisTicks] && [self allowXAxisUserRescale])
 		{
 			NSMenuItem *menuItem = [menu addItemWithTitle:@"Change X Axis Scale..." action:@selector(userRescaleXAxis:) keyEquivalent:@""];
+			
+			[menuItem setTarget:self];
+			addedItems = YES;
+		}
+		if ([self histogramBinCount] && [self allowXAxisBinRescale])
+		{
+			NSMenuItem *menuItem = [menu addItemWithTitle:@"Change X Bar Count..." action:@selector(userRescaleXBars:) keyEquivalent:@""];
 			
 			[menuItem setTarget:self];
 			addedItems = YES;
@@ -1019,12 +1075,39 @@
 
 - (void)drawGroupedBarplotInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller buffer:(double *)buffer subBinCount:(int)subBinCount mainBinCount:(int)mainBinCount firstBinValue:(double)firstBinValue mainBinWidth:(double)mainBinWidth
 {
+	// Decide on a display style; if we have lots of width, then we draw bars with a fill color, spaced out nicely,
+	// but if we are cramped for space then we draw solid black bars.  Note the latter style does not really
+	// work with sub-bins; not much we can do about that, since we don't have the room to draw...
+	int interiorWidth = (int)interiorRect.size.width;
+	int totalBarCount = subBinCount * mainBinCount;
+	int drawStyle = 0;
+	
+	if (totalBarCount * 7 + 1 <= interiorWidth)				// room for space, space, space, frame, fill, fill, frame...
+		drawStyle = 0;
+	else if (totalBarCount * 5 + 1 <= interiorWidth)		// room for space, frame, fill, fill, frame...
+		drawStyle = 1;
+	else if (totalBarCount * 2 + 1 <= interiorWidth)		// room for frame, fill, [frame]...
+		drawStyle = 2;
+	else
+	{
+		[[NSColor blackColor] set];
+		drawStyle = 3;
+	}
+	
 	for (int mainBinIndex = 0; mainBinIndex < mainBinCount; ++mainBinIndex)
 	{
 		double binMinValue = mainBinIndex * mainBinWidth + firstBinValue;
 		double binMaxValue = (mainBinIndex + 1) * mainBinWidth + firstBinValue;
-		double barLeft = [self roundPlotToDeviceX:binMinValue withInteriorRect:interiorRect] + 1.5;
-		double barRight = [self roundPlotToDeviceX:binMaxValue withInteriorRect:interiorRect] - 1.5;
+		double barLeft = [self roundPlotToDeviceX:binMinValue withInteriorRect:interiorRect];
+		double barRight = [self roundPlotToDeviceX:binMaxValue withInteriorRect:interiorRect];
+		
+		switch (drawStyle)
+		{
+			case 0: barLeft += 1.5; barRight -= 1.5; break;
+			case 1: barLeft += 0.5; barRight -= 0.5; break;
+			case 2: barLeft -= 0.5; barRight += 0.5; break;
+			case 3: barLeft -= 0.5; barRight += 0.5; break;
+		}
 		
 		for (int subBinIndex = 0; subBinIndex < subBinCount; ++subBinIndex)
 		{
@@ -1048,12 +1131,20 @@
 					barRect.size.width = subbarRight - subbarLeft;
 				}
 				
-				// fill and fill
-				[[SLiMWindowController blackContrastingColorForIndex:subBinIndex] set];
-				NSRectFill(barRect);
-				
-				[[NSColor blackColor] set];
-				NSFrameRect(barRect);
+				// fill and frame
+				if (drawStyle == 3)
+				{
+					NSRectFill(barRect);
+					NSFrameRect(barRect);
+				}
+				else
+				{
+					[[SLiMWindowController blackContrastingColorForIndex:subBinIndex] set];
+					NSRectFill(barRect);
+					
+					[[NSColor blackColor] set];
+					NSFrameRect(barRect);
+				}
 			}
 		}
 	}
