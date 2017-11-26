@@ -50,27 +50,36 @@ initialize() {
 	// this runs only in 2: - it is assumed the gen. 1 setup is uniqued
 	allMuts = sim.mutations;
 	newMuts = allMuts[allMuts.originGeneration == sim.generation];
-	oldMuts = allMuts[allMuts.originGeneration != sim.generation];
 	
-	for (newMut in newMuts)
+	if (size(newMuts))
 	{
-		newMutLocus = newMut.position;
-		newMutType = newMut.mutationType;
-		oldLocus = oldMuts[oldMuts.position == newMutLocus];
-		oldMatched = oldLocus[oldLocus.mutationType == newMutType];
+		genomes = sim.subpopulations.genomes;
+		oldMuts = allMuts[allMuts.originGeneration != sim.generation];
+		oldMutsPositions = oldMuts.position;
+		newMutsPositions = newMuts.position;
+		uniquePositions = unique(newMutsPositions, preserveOrder=F);
+		overlappingMuts = (size(newMutsPositions) != size(uniquePositions));
 		
-		if (size(oldMatched) == 1)
+		for (newMut in newMuts)
 		{
-			// We found a match; this nucleotide already exists, substitute
-			genomes = sim.subpopulations.genomes;
-			containing = genomes[genomes.containsMutations(newMut)];
-			containing.removeMutations(newMut);
-			containing.addMutations(oldMatched);
-		}
-		else
-		{
-			// First instance; it is now the standard reference mutation
-			oldMuts = c(oldMuts, newMut);
+			newMutLocus = newMut.position;
+			newMutType = newMut.mutationType;
+			oldLocus = oldMuts[oldMutsPositions == newMutLocus];
+			oldMatched = oldLocus[oldLocus.mutationType == newMutType];
+			
+			if (size(oldMatched) == 1)
+			{
+				// We found a match; this nucleotide already exists, substitute
+				containing = genomes[genomes.containsMutations(newMut)];
+				containing.removeMutations(newMut);
+				containing.addMutations(oldMatched);
+			}
+			else if (overlappingMuts)
+			{
+				// First instance; it is now the standard reference mutation
+				oldMuts = c(oldMuts, newMut);
+				oldMutsPositions = c(oldMutsPositions, newMutLocus);
+			}
 		}
 	}
 }
