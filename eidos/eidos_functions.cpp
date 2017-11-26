@@ -402,27 +402,39 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
 		{
 			EidosValue *arg_value = p_arguments[arg_index].get();
-			int arg_value_count = arg_value->Count();
 			
-			if (arg_value_count == 1)
+			if (arg_value == gStaticEidosValue_LogicalF)
 			{
-				result_vec->emplace_back(arg_value->LogicalAtIndex(0, nullptr));
+				result_vec->emplace_back(false);
 			}
-			else if (arg_value_count)
+			else if (gStaticEidosValue_LogicalT)
 			{
-				if (arg_value->Type() == EidosValueType::kValueLogical)
+				result_vec->emplace_back(true);
+			}
+			else
+			{
+				int arg_value_count = arg_value->Count();
+				
+				if (arg_value_count == 1)
 				{
-					// Speed up logical arguments, which are probably common since our result is logical
-					const std::vector<eidos_logical_t> &arg_vec = *arg_value->LogicalVector();
-					
-					for (int value_index = 0; value_index < arg_value_count; ++value_index)
-						result_vec->emplace_back(arg_vec[value_index]);
+					result_vec->emplace_back(arg_value->LogicalAtIndex(0, nullptr));
 				}
-				else
+				else if (arg_value_count)
 				{
-					// CODE COVERAGE: This is dead code
-					for (int value_index = 0; value_index < arg_value_count; ++value_index)
-						result_vec->emplace_back(arg_value->LogicalAtIndex(value_index, nullptr));
+					if (arg_value->Type() == EidosValueType::kValueLogical)
+					{
+						// Speed up logical arguments, which are probably common since our result is logical
+						const std::vector<eidos_logical_t> &arg_vec = *arg_value->LogicalVector();
+						
+						for (int value_index = 0; value_index < arg_value_count; ++value_index)
+							result_vec->emplace_back(arg_vec[value_index]);
+					}
+					else
+					{
+						// CODE COVERAGE: This is dead code
+						for (int value_index = 0; value_index < arg_value_count; ++value_index)
+							result_vec->emplace_back(arg_value->LogicalAtIndex(value_index, nullptr));
+					}
 				}
 			}
 		}
