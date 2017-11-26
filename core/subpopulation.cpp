@@ -589,27 +589,36 @@ Subpopulation::~Subpopulation(void)
 
 void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callbacks, std::vector<SLiMEidosBlock*> &p_global_fitness_callbacks)
 {
+	const std::map<slim_objectid_t,MutationType*> &mut_types = population_.sim_.MutationTypes();
+	
 	// The FitnessOfParent...() methods called by this method rely upon cached fitness values
 	// kept inside the Mutation objects.  Those caches may need to be validated before we can
 	// calculate fitness values.  We check for that condition and repair it first.
-	const std::map<slim_objectid_t,MutationType*> &mut_types = population_.sim_.MutationTypes();
-	bool needs_recache = false;
-	
-	for (auto &mut_type_iter : mut_types)
+	// BCH 26 Nov. 2017: Note that dominance_coeff_changed_ is really pointless in this design;
+	// we could use just any_dominance_coeff_changed_ by itself, I think.  I have retained the
+	// dominance_coeff_changed_ flag for now out of sheer inertia; maybe it will prove useful.
+	if (population_.sim_.any_dominance_coeff_changed_)
 	{
-		MutationType *mut_type = mut_type_iter.second;
+		bool needs_recache = false;
 		
-		if (mut_type->dominance_coeff_changed_)
+		for (auto &mut_type_iter : mut_types)
 		{
-			needs_recache = true;
-			mut_type->dominance_coeff_changed_ = false;
+			MutationType *mut_type = mut_type_iter.second;
 			
-			// don't break, because we want to clear all changed flags
+			if (mut_type->dominance_coeff_changed_)
+			{
+				needs_recache = true;
+				mut_type->dominance_coeff_changed_ = false;
+				
+				// don't break, because we want to clear all changed flags
+			}
 		}
+		
+		if (needs_recache)
+			population_.ValidateMutationFitnessCaches();	// note one subpop triggers it, but the recaching occurs for the whole sim
+		
+		population_.sim_.any_dominance_coeff_changed_ = false;
 	}
-	
-	if (needs_recache)
-		population_.ValidateMutationFitnessCaches();
 	
 	// This function calculates the population mean fitness as a side effect
 	double totalFitness = 0.0;
@@ -655,73 +664,118 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 	// they are not allowed, as a matter of policy, to alter the operation of non-global fitness callbacks.
 	bool skip_chromosomal_fitness = true;
 	
-	// first set a flag on all mut types indicating whether they are pure neutral according to their DFE
-	for (auto &mut_type_iter : mut_types)
-		mut_type_iter.second->is_pure_neutral_now_ = mut_type_iter.second->all_pure_neutral_DFE_;
-	
-	// then go through the fitness callback list and set the pure neutral flag for mut types neutralized by an active callback
-	for (SLiMEidosBlock *fitness_callback : p_fitness_callbacks)
+	// Looping through all of the mutation types and setting flags can be very expensive, so as a first pass we check
+	// whether it is even conceivable that we will be able to have skip_chromosomal_fitness == true.  If the simulation
+	// is not pure neutral and we have no fitness callback that could change that, it is a no-go without checking the
+	// mutation types at all.
+	if (!population_.sim_.pure_neutral_)
 	{
-		if (fitness_callback->active_)
+		skip_chromosomal_fitness = false;	// we're not pure neutral, so we have to prove that it is possible
+		
+		for (SLiMEidosBlock *fitness_callback : p_fitness_callbacks)
 		{
-			const EidosASTNode *compound_statement_node = fitness_callback->compound_statement_node_;
-			
-			if (compound_statement_node->cached_value_)
+			if (fitness_callback->active_)
 			{
-				// The script is a constant expression such as "{ return 1.1; }"
-				EidosValue *result = compound_statement_node->cached_value_.get();
+				const EidosASTNode *compound_statement_node = fitness_callback->compound_statement_node_;
 				
-				if ((result->Type() == EidosValueType::kValueFloat) || (result->Count() == 1))
+				if (compound_statement_node->cached_value_)
 				{
-					if (result->FloatAtIndex(0, nullptr) == 1.0)
+					// The script is a constant expression such as "{ return 1.1; }"
+					EidosValue *result = compound_statement_node->cached_value_.get();
+					
+					if ((result->Type() == EidosValueType::kValueFloat) || (result->Count() == 1))
 					{
-						// the callback returns 1.0, so it makes the mutation types to which it applies become neutral
-						slim_objectid_t mutation_type_id = fitness_callback->mutation_type_id_;
-						
-						if (mutation_type_id == -1)
+						if (result->FloatAtIndex(0, nullptr) == 1.0)
 						{
-							for (auto &mut_type_iter : mut_types)
-								mut_type_iter.second->is_pure_neutral_now_ = true;
+							// we have a fitness callback that is neutral-making, so it could conceivably work;
+							// change our minds but keep checking
+							skip_chromosomal_fitness = true;
+							continue;
 						}
-						else
-						{
-							auto found_muttype_pair = mut_types.find(mutation_type_id);
-							
-							if (found_muttype_pair != mut_types.end())
-								found_muttype_pair->second->is_pure_neutral_now_ = true;
-						}
-						
-						continue;
 					}
 				}
-			}
-			
-			// if we reach this point, we have an active callback that is not neutral-making, so we fail and we're done
-			skip_chromosomal_fitness = false;
-			break;
-		}
-	}
-	
-	// finally, tabulate the pure-neutral flags of all the mut types into an overall flag for whether we can skip
-	if (skip_chromosomal_fitness)
-	{
-		for (auto &mut_type_iter : mut_types)
-		{
-			if (!mut_type_iter.second->is_pure_neutral_now_)
-			{
+				
+				// if we reach this point, we have an active callback that is not neutral-making, so we fail and we're done
 				skip_chromosomal_fitness = false;
 				break;
 			}
 		}
 	}
-	else
+	
+	// At this point it appears conceivable that we could skip, but we don't yet know.  We need to do a more thorough
+	// check, actually tracking precisely which mutation types are neutral and non-neutral, and which are made neutral
+	// by fitness() callbacks.  Note this block is the only place where is_pure_neutral_now_ is valid or used!!!
+	if (skip_chromosomal_fitness)
 	{
-		// At this point, there is an active callback that is not neutral-making, so we really can't reliably depend
-		// upon is_pure_neutral_now_; that rogue callback could make other callbacks active/inactive, etc.  So we go
-		// through and clear the is_pure_neutral_now_ flags to avoid any confusion.  This is actually redundant as
-		// the code presently stands, but it avoids leaving the flag in a bad state and causing future bugs.
+		// first set a flag on all mut types indicating whether they are pure neutral according to their DFE
 		for (auto &mut_type_iter : mut_types)
-			mut_type_iter.second->is_pure_neutral_now_ = false;
+			mut_type_iter.second->is_pure_neutral_now_ = mut_type_iter.second->all_pure_neutral_DFE_;
+		
+		// then go through the fitness callback list and set the pure neutral flag for mut types neutralized by an active callback
+		for (SLiMEidosBlock *fitness_callback : p_fitness_callbacks)
+		{
+			if (fitness_callback->active_)
+			{
+				const EidosASTNode *compound_statement_node = fitness_callback->compound_statement_node_;
+				
+				if (compound_statement_node->cached_value_)
+				{
+					// The script is a constant expression such as "{ return 1.1; }"
+					EidosValue *result = compound_statement_node->cached_value_.get();
+					
+					if ((result->Type() == EidosValueType::kValueFloat) || (result->Count() == 1))
+					{
+						if (result->FloatAtIndex(0, nullptr) == 1.0)
+						{
+							// the callback returns 1.0, so it makes the mutation types to which it applies become neutral
+							slim_objectid_t mutation_type_id = fitness_callback->mutation_type_id_;
+							
+							if (mutation_type_id == -1)
+							{
+								for (auto &mut_type_iter : mut_types)
+									mut_type_iter.second->is_pure_neutral_now_ = true;
+							}
+							else
+							{
+								auto found_muttype_pair = mut_types.find(mutation_type_id);
+								
+								if (found_muttype_pair != mut_types.end())
+									found_muttype_pair->second->is_pure_neutral_now_ = true;
+							}
+							
+							continue;
+						}
+					}
+				}
+				
+				// if we reach this point, we have an active callback that is not neutral-making, so we fail and we're done
+				skip_chromosomal_fitness = false;
+				break;
+			}
+		}
+		
+		// finally, tabulate the pure-neutral flags of all the mut types into an overall flag for whether we can skip
+		if (skip_chromosomal_fitness)
+		{
+			for (auto &mut_type_iter : mut_types)
+			{
+				if (!mut_type_iter.second->is_pure_neutral_now_)
+				{
+					skip_chromosomal_fitness = false;
+					break;
+				}
+			}
+		}
+		else
+		{
+			// At this point, there is an active callback that is not neutral-making, so we really can't reliably depend
+			// upon is_pure_neutral_now_; that rogue callback could make other callbacks active/inactive, etc.  So in
+			// principle we should now go through and clear the is_pure_neutral_now_ flags to avoid any confusion.  But
+			// we are the only ones to use is_pure_neutral_now_, and we're done using it, so we can skip that work.
+			
+			//for (auto &mut_type_iter : mut_types)
+			//	mut_type_iter.second->is_pure_neutral_now_ = false;
+		}
 	}
 	
 	// Figure out global callbacks; these are callbacks with NULL supplied for the mut-type id, which means that they are called

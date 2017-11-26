@@ -1674,9 +1674,14 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 				new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_generation);
 				
 				// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
-				// No need to worry about all_pure_neutral_DFE_ here, though, since the selcoeff was drawn from the muttype's DFE
 				if (selection_coeff != 0.0)
+				{
 					sim.pure_neutral_ = false;
+					
+					// Fix all_pure_neutral_DFE_ if the selcoeff was not drawn from the muttype's DFE
+					if (p_method_id == gID_addNewMutation)
+						mutation_type_ptr->all_pure_neutral_DFE_ = false;
+				}
 				
 				// add to the registry, return value, genome, etc.
 				pop.mutation_registry_.emplace_back(new_mut_index);

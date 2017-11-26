@@ -396,6 +396,10 @@ EidosValue_SP Mutation::ExecuteMethod_setMutationType(EidosGlobalStringID p_meth
 	// We take just the mutation type pointer; if the user wants a new selection coefficient, they can do that themselves
 	mutation_type_ptr_ = mutation_type_ptr;
 	
+	// If we are non-neutral, make sure the mutation type knows it is now also non-neutral; I think this is unnecessary but being safe...
+	if (selection_coeff_ != 0.0)
+		mutation_type_ptr_->all_pure_neutral_DFE_ = false;
+	
 	// cache values used by the fitness calculation code for speed; see header
 	cached_one_plus_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + selection_coeff_);
 	cached_one_plus_dom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->dominance_coeff_ * selection_coeff_);

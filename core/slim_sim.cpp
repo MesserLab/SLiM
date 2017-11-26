@@ -3023,6 +3023,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElementType(const
 			SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
 			
 			sim.pure_neutral_ = false;
+			// the mutation type's all_pure_neutral_DFE_ flag is presumably already set
 		}
 	}
 	

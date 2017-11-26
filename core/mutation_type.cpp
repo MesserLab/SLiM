@@ -65,8 +65,9 @@ MutationType::MutationType(SLiMSim &p_sim, slim_objectid_t p_mutation_type_id, d
 	// intentionally no bounds checks for DFE parameters; the count of DFE parameters is checked prior to construction
 	// intentionally no bounds check for dominance_coeff_
 	
-	// determine whether this mutation type is initially pure neutral; note that this flag
-	// will be cleared if any mutation of this type has its selection coefficient changed
+	// determine whether this mutation type is initially pure neutral; note that this flag will be
+	// cleared if any mutation of this type has its selection coefficient changed
+	// note also that we do not set SLiMSim.pure_neutral_ here; we wait until this muttype is used
 	all_pure_neutral_DFE_ = ((dfe_type_ == DFEType::kFixed) && (dfe_parameters_[0] == 0.0));
 	
 	// The fact that we have been created means that stacking policy has changed and needs to be checked
@@ -404,6 +405,7 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 			// Changing the dominance coefficient means that the cached fitness effects of all mutations using this type
 			// become invalid.  We set a flag here to indicate that values that depend on us need to be recached.
 			dominance_coeff_changed_ = true;
+			sim_.any_dominance_coeff_changed_ = true;
 			
 			return;
 		}

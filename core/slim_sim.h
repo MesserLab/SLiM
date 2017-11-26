@@ -230,6 +230,9 @@ public:
 	int32_t nonneutral_change_counter_ = 0;
 	int32_t last_nonneutral_regime_ = 0;		// see mutation_run.h; 1 = no fitness callbacks, 2 = only constant-effect neutral callbacks, 3 = arbitrary callbacks
 	
+	// this flag is set if dominance_coeff_changed_ is set on any mutation type, as a signal that recaching needs to occur in Subpopulation::UpdateFitness()
+	bool any_dominance_coeff_changed_ = false;
+	
 	// warning flags; used to issue warnings only once per run of the simulation
 	bool warned_early_mutation_add_ = false;
 	bool warned_early_mutation_remove_ = false;
