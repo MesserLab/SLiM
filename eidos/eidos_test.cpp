@@ -4000,6 +4000,9 @@ void _RunFunctionVectorConstructionTests(void)
 	EidosAssertScriptRaise("integer(NULL);", 0, "cannot be type NULL");
 	EidosAssertScriptRaise("integer(integer(0));", 0, "must be a singleton");
 	
+	EidosAssertScriptSuccess("integer(10, 0, 1, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 0, 0, 1, 0, 0, 0, 0, 0, 0}));
+	EidosAssertScriptSuccess("integer(10, 1, 0, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 1, 1, 0, 1, 1, 1, 1, 1, 1}));
+	EidosAssertScriptSuccess("integer(10, 8, -3, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{8, 8, 8, -3, 8, 8, 8, 8, 8, 8}));
 	EidosAssertScriptSuccess("integer(10, 0, 1, c(3, 7, 1));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 1, 0, 1, 0, 0, 0, 1, 0, 0}));
 	EidosAssertScriptSuccess("integer(10, 1, 0, c(3, 7, 1));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 0, 1, 0, 1, 1, 1, 0, 1, 1}));
 	EidosAssertScriptSuccess("integer(10, 8, -3, c(3, 7, 1));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{8, -3, 8, -3, 8, 8, 8, -3, 8, 8}));
