@@ -41,6 +41,8 @@
 #include <sys/stat.h>
 
 #include "time.h"
+#include "string.h"
+
 
 // BCH 20 October 2016: continuing to try to fix problems with gcc 5.4.0 on Linux without breaking other
 // builds.  We will switch to including <cmath> and using the std:: namespace math functions, since on
@@ -419,8 +421,13 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 				{
 					const eidos_logical_t *arg_data = arg_value->LogicalVector()->data();
 					
-					for (int value_index = 0; value_index < arg_value_count; ++value_index)
-						result->set_logical_no_check(arg_data[value_index], result_set_index++);
+					// Unlike the integer and float cases below, memcpy() is much faster for logical values
+					// on OS X 10.12.6, Xcode 8.3; about 1.5 times faster, in fact.  So it is a win here.
+					
+					//for (int value_index = 0; value_index < arg_value_count; ++value_index)
+					//	result->set_logical_no_check(arg_data[value_index], result_set_index++);
+					memcpy(result->data() + result_set_index, arg_data, arg_value_count * sizeof(eidos_logical_t));
+					result_set_index += arg_value_count;
 				}
 			}
 		}
@@ -449,8 +456,14 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 					// Speed up integer arguments, which are probably common since our result is integer
 					const int64_t *arg_data = arg_value->IntVector()->data();
 					
+					// Annoyingly, memcpy() is actually *slower* here on OS X 10.12.6, Xcode 8.3; a test of the
+					// memcpy() version runs in ~53.3 seconds versus ~48.4 seconds for the loop.  So the Clang
+					// optimizer is smarter than the built-in memcpy() implementation, I guess.
+					
 					for (int value_index = 0; value_index < arg_value_count; ++value_index)
 						result->set_int_no_check(arg_data[value_index], result_set_index++);
+					//memcpy(result->data() + result_set_index, arg_data, arg_value_count * sizeof(int64_t));
+					//result_set_index += arg_value_count;
 				}
 				else
 				{
@@ -484,8 +497,14 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 					// Speed up float arguments, which are probably common since our result is float
 					const double *arg_data = arg_value->FloatVector()->data();
 					
+					// Annoyingly, memcpy() is actually *slower* here on OS X 10.12.6, Xcode 8.3; a test of the
+					// memcpy() version runs in ~53.3 seconds versus ~48.4 seconds for the loop.  So the Clang
+					// optimizer is smarter than the built-in memcpy() implementation, I guess.
+					
 					for (int value_index = 0; value_index < arg_value_count; ++value_index)
 						result->set_float_no_check(arg_data[value_index], result_set_index++);
+					//memcpy(result->data() + result_set_index, arg_data, arg_value_count * sizeof(double));
+					//result_set_index += arg_value_count;
 				}
 				else
 				{
@@ -550,6 +569,10 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 			{
 				EidosObjectElement * const *arg_data = arg_value->ObjectElementVector()->data();
 				
+				// Given the lack of win for memcpy() for integer and float above, I'm not even going to bother checking it for
+				// EidosObjectElement*, since there would also be the complexity of retain/release and DeclareClass() to deal with...
+				
+				// When retain/release of EidosObjectElement is enabled, we go through the accessors so the copied pointers get retained
 				for (int value_index = 0; value_index < arg_value_count; ++value_index)
 					result->set_object_element_no_check(arg_data[value_index], result_set_index++);
 			}
