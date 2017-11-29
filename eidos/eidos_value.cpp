@@ -357,6 +357,16 @@ void EidosValue::RaiseForUnimplementedVectorCall(void) const
 	EIDOS_TERMINATION << "ERROR (EidosValue::RaiseForUnimplementedVectorCall): (internal error) direct vector access attempted on an EidosValue type that does not support it." << EidosTerminate(nullptr);
 }
 
+void EidosValue::RaiseForCapacityViolation(void) const
+{
+	EIDOS_TERMINATION << "ERROR (EidosValue::RaiseForCapacityViolation): (internal error) access violated the current capacity of an EidosValue." << EidosTerminate(nullptr);
+}
+
+void EidosValue::RaiseForRangeViolation(void) const
+{
+	EIDOS_TERMINATION << "ERROR (EidosValue::RaiseForCapacityViolation): (internal error) access violated the current size of an EidosValue." << EidosTerminate(nullptr);
+}
+
 EidosValue_SP EidosValue::VectorBasedCopy(void) const
 {
 	return CopyValues();
@@ -465,22 +475,39 @@ EidosValue_Logical::EidosValue_Logical(void) : EidosValue(EidosValueType::kValue
 
 EidosValue_Logical::EidosValue_Logical(const std::vector<eidos_logical_t> &p_logicalvec) : EidosValue(EidosValueType::kValueLogical, false)
 {
-	values_ = p_logicalvec;
+	size_t count = p_logicalvec.size();
+	const eidos_logical_t *values = p_logicalvec.data();
+	
+	resize_no_initialize(count);
+	
+	for (size_t index = 0; index < count; ++index)
+		set_logical_no_check(values[index], index);
 }
 
 EidosValue_Logical::EidosValue_Logical(eidos_logical_t p_logical1) : EidosValue(EidosValueType::kValueLogical, false)	// protected
 {
-	values_.emplace_back(p_logical1);
+	push_logical(p_logical1);
 }
 
 EidosValue_Logical::EidosValue_Logical(std::initializer_list<eidos_logical_t> p_init_list) : EidosValue(EidosValueType::kValueLogical, false)
 {
+	reserve(p_init_list.size());
+	
 	for (auto init_item = p_init_list.begin(); init_item != p_init_list.end(); init_item++)
-		values_.emplace_back(*init_item);
+		push_logical_no_check(*init_item);
+}
+
+EidosValue_Logical::EidosValue_Logical(const eidos_logical_t *p_values, size_t p_count) : EidosValue(EidosValueType::kValueLogical, false)
+{
+	resize_no_initialize(p_count);
+	
+	for (size_t index = 0; index < p_count; ++index)
+		set_logical_no_check(p_values[index], index);
 }
 
 EidosValue_Logical::~EidosValue_Logical(void)
 {
+	free(values_);
 }
 
 const std::string &EidosValue_Logical::ElementType(void) const
@@ -490,12 +517,12 @@ const std::string &EidosValue_Logical::ElementType(void) const
 
 int EidosValue_Logical::Count_Virtual(void) const
 {
-	return (int)values_.size();
+	return (int)count_;
 }
 
 void EidosValue_Logical::Print(std::ostream &p_ostream) const
 {
-	if (values_.size() == 0)
+	if (size() == 0)
 	{
 		p_ostream << "logical(0)";
 	}
@@ -503,8 +530,10 @@ void EidosValue_Logical::Print(std::ostream &p_ostream) const
 	{
 		bool first = true;
 		
-		for (eidos_logical_t value : values_)
+		for (size_t index = 0; index < count_; ++index)
 		{
+			eidos_logical_t value = values_[index];
+			
 			if (first)
 				first = false;
 			else
@@ -515,15 +544,9 @@ void EidosValue_Logical::Print(std::ostream &p_ostream) const
 	}
 }
 
-EidosValue_Logical *EidosValue_Logical::Reserve(int p_reserved_size)
-{
-	values_.reserve(p_reserved_size);
-	return this;
-}
-
 eidos_logical_t EidosValue_Logical::LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
-	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
+	if ((p_idx < 0) || (p_idx >= (int)size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Logical::LogicalAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
 	
 	return values_[p_idx];
@@ -531,7 +554,7 @@ eidos_logical_t EidosValue_Logical::LogicalAtIndex(int p_idx, const EidosToken *
 
 std::string EidosValue_Logical::StringAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
-	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
+	if ((p_idx < 0) || (p_idx >= (int)size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Logical::StringAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
 	
 	return (values_[p_idx] ? gEidosStr_T : gEidosStr_F);
@@ -539,7 +562,7 @@ std::string EidosValue_Logical::StringAtIndex(int p_idx, const EidosToken *p_bla
 
 int64_t EidosValue_Logical::IntAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
-	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
+	if ((p_idx < 0) || (p_idx >= (int)size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Logical::IntAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
 	
 	return (values_[p_idx] ? 1 : 0);
@@ -547,28 +570,15 @@ int64_t EidosValue_Logical::IntAtIndex(int p_idx, const EidosToken *p_blame_toke
 
 double EidosValue_Logical::FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
-	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
+	if ((p_idx < 0) || (p_idx >= (int)size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Logical::FloatAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
 	
 	return (values_[p_idx] ? 1.0 : 0.0);
 }
 
-void EidosValue_Logical::PushLogical(eidos_logical_t p_logical)
-{
-	values_.emplace_back(p_logical);
-}
-
-void EidosValue_Logical::SetLogicalAtIndex(const int p_idx, eidos_logical_t p_logical, const EidosToken *p_blame_token)
-{
-	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
-		EIDOS_TERMINATION << "ERROR (EidosValue_Logical::SetLogicalAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
-	
-	values_[p_idx] = p_logical;
-}
-
 EidosValue_SP EidosValue_Logical::GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const
 {
-	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
+	if ((p_idx < 0) || (p_idx >= (int)size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Logical::GetValueAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
 	
 	return (values_[p_idx] ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
@@ -576,7 +586,7 @@ EidosValue_SP EidosValue_Logical::GetValueAtIndex(const int p_idx, const EidosTo
 
 void EidosValue_Logical::SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token)
 {
-	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
+	if ((p_idx < 0) || (p_idx >= (int)size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Logical::SetValueAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
 	
 	values_[p_idx] = p_value.LogicalAtIndex(0, p_blame_token);
@@ -584,7 +594,7 @@ void EidosValue_Logical::SetValueAtIndex(const int p_idx, const EidosValue &p_va
 
 EidosValue_SP EidosValue_Logical::CopyValues(void) const
 {
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical(values_));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical(values_, count_));
 }
 
 EidosValue_SP EidosValue_Logical::NewMatchingType(void) const
@@ -595,7 +605,7 @@ EidosValue_SP EidosValue_Logical::NewMatchingType(void) const
 void EidosValue_Logical::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
 {
 	if (p_source_script_value.Type() == EidosValueType::kValueLogical)
-		values_.emplace_back(p_source_script_value.LogicalAtIndex(p_idx, p_blame_token));
+		push_logical(p_source_script_value.LogicalAtIndex(p_idx, p_blame_token));
 	else
 		EIDOS_TERMINATION << "ERROR (EidosValue_Logical::PushValueFromIndexOfEidosValue): type mismatch." << EidosTerminate(p_blame_token);
 }
@@ -603,9 +613,56 @@ void EidosValue_Logical::PushValueFromIndexOfEidosValue(int p_idx, const EidosVa
 void EidosValue_Logical::Sort(bool p_ascending)
 {
 	if (p_ascending)
-		std::sort(values_.begin(), values_.end());
+		std::sort(values_, values_ + count_);
 	else
-		std::sort(values_.begin(), values_.end(), std::greater<eidos_logical_t>());
+		std::sort(values_, values_ + count_, std::greater<eidos_logical_t>());
+}
+
+EidosValue_Logical *EidosValue_Logical::reserve(size_t p_reserved_size)
+{
+	if (p_reserved_size > capacity_)
+	{
+		values_ = (eidos_logical_t *)realloc(values_, p_reserved_size * sizeof(eidos_logical_t));
+		capacity_ = p_reserved_size;
+	}
+	
+	return this;
+}
+
+EidosValue_Logical *EidosValue_Logical::resize_no_initialize(size_t p_new_size)
+{
+	reserve(p_new_size);	// might set a capacity greater than p_new_size; no guarantees
+	count_ = p_new_size;	// regardless of the capacity set, set the size to exactly p_new_size
+	
+	return this;
+}
+
+void EidosValue_Logical::expand(void)
+{
+	if (capacity_ == 0)
+		reserve(16);		// if no reserve() call was made, start out with a bit of room
+	else
+		reserve(capacity_ << 1);
+}
+
+void EidosValue_Logical::erase_index(size_t p_index)
+{
+	if (p_index >= count_)
+		RaiseForRangeViolation();
+	
+	if (p_index == count_ - 1)
+		--count_;
+	else
+	{
+		eidos_logical_t *element_ptr = values_ + p_index;
+		eidos_logical_t *next_element_ptr = values_ + p_index + 1;
+		eidos_logical_t *past_end_element_ptr = values_ + count_;
+		size_t element_copy_count = past_end_element_ptr - next_element_ptr;
+		
+		memmove(element_ptr, next_element_ptr, element_copy_count * sizeof(eidos_logical_t));
+		
+		--count_;
+	}
 }
 
 // EidosValue_Logical_const
@@ -639,25 +696,7 @@ EidosValue_Logical_const::~EidosValue_Logical_const(void)
 
 EidosValue_SP EidosValue_Logical_const::VectorBasedCopy(void) const
 {
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical(values_));	// same as EidosValue_Logical::, but let's not rely on that
-}
-
-EidosValue_Logical *EidosValue_Logical_const::Reserve(int p_reserved_size)
-{
-#pragma unused(p_reserved_size)
-	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::Reserve): (internal error) EidosValue_Logical_const is not modifiable." << EidosTerminate(nullptr);
-}
-
-void EidosValue_Logical_const::PushLogical(eidos_logical_t p_logical)
-{
-#pragma unused(p_logical)
-	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::PushLogical): (internal error) EidosValue_Logical_const is not modifiable." << EidosTerminate(nullptr);
-}
-
-void EidosValue_Logical_const::SetLogicalAtIndex(const int p_idx, eidos_logical_t p_logical, const EidosToken *p_blame_token)
-{
-#pragma unused(p_idx, p_logical)
-	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::SetLogicalAtIndex): (internal error) EidosValue_Logical_const is not modifiable." << EidosTerminate(p_blame_token);
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical(values_, count_));	// same as EidosValue_Logical::, but let's not rely on that
 }
 
 void EidosValue_Logical_const::SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token)
@@ -984,43 +1023,66 @@ EidosValue_Int_vector::EidosValue_Int_vector(void) : EidosValue_Int(false)
 
 EidosValue_Int_vector::EidosValue_Int_vector(const std::vector<int16_t> &p_intvec) : EidosValue_Int(false)
 {
-	values_.reserve(p_intvec.size());
+	size_t count = p_intvec.size();
+	const int16_t *values = p_intvec.data();
 	
-	for (auto intval : p_intvec)
-		values_.emplace_back(intval);
+	resize_no_initialize(p_intvec.size());
+	
+	for (size_t index = 0; index < count; ++index)
+		set_int_no_check(values[index], index);
 }
 
 EidosValue_Int_vector::EidosValue_Int_vector(const std::vector<int32_t> &p_intvec) : EidosValue_Int(false)
 {
-	values_.reserve(p_intvec.size());
+	size_t count = p_intvec.size();
+	const int32_t *values = p_intvec.data();
 	
-	for (auto intval : p_intvec)
-		values_.emplace_back(intval);
+	resize_no_initialize(p_intvec.size());
+	
+	for (size_t index = 0; index < count; ++index)
+		set_int_no_check(values[index], index);
 }
 
 EidosValue_Int_vector::EidosValue_Int_vector(const std::vector<int64_t> &p_intvec) : EidosValue_Int(false)
 {
-	values_ = p_intvec;
+	size_t count = p_intvec.size();
+	const int64_t *values = p_intvec.data();
+	
+	resize_no_initialize(count);
+	
+	for (size_t index = 0; index < count; ++index)
+		set_int_no_check(values[index], index);
 }
 
 EidosValue_Int_vector::EidosValue_Int_vector(std::initializer_list<int64_t> p_init_list) : EidosValue_Int(false)
 {
+	reserve(p_init_list.size());
+	
 	for (auto init_item = p_init_list.begin(); init_item != p_init_list.end(); init_item++)
-		values_.emplace_back(*init_item);
+		push_int_no_check(*init_item);
+}
+
+EidosValue_Int_vector::EidosValue_Int_vector(const int64_t *p_values, size_t p_count) : EidosValue_Int(false)
+{
+	resize_no_initialize(p_count);
+	
+	for (size_t index = 0; index < p_count; ++index)
+		set_int_no_check(p_values[index], index);
 }
 
 EidosValue_Int_vector::~EidosValue_Int_vector(void)
 {
+	free(values_);
 }
 
 int EidosValue_Int_vector::Count_Virtual(void) const
 {
-	return (int)values_.size();
+	return (int)count_;
 }
 
 void EidosValue_Int_vector::Print(std::ostream &p_ostream) const
 {
-	if (values_.size() == 0)
+	if (size() == 0)
 	{
 		p_ostream << "integer(0)";
 	}
@@ -1028,8 +1090,10 @@ void EidosValue_Int_vector::Print(std::ostream &p_ostream) const
 	{
 		bool first = true;
 		
-		for (int64_t value : values_)
+		for (size_t index = 0; index < count_; ++index)
 		{
+			int64_t value = values_[index];
+			
 			if (first)
 				first = false;
 			else
@@ -1042,7 +1106,7 @@ void EidosValue_Int_vector::Print(std::ostream &p_ostream) const
 
 eidos_logical_t EidosValue_Int_vector::LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
-	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
+	if ((p_idx < 0) || (p_idx >= (int)size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Int_vector::LogicalAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
 	
 	return (values_[p_idx] == 0 ? false : true);
@@ -1050,7 +1114,7 @@ eidos_logical_t EidosValue_Int_vector::LogicalAtIndex(int p_idx, const EidosToke
 
 std::string EidosValue_Int_vector::StringAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
-	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
+	if ((p_idx < 0) || (p_idx >= (int)size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Int_vector::StringAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
 	
 	// with C++11, could use std::to_string(values_[p_idx])
@@ -1063,7 +1127,7 @@ std::string EidosValue_Int_vector::StringAtIndex(int p_idx, const EidosToken *p_
 
 int64_t EidosValue_Int_vector::IntAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
-	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
+	if ((p_idx < 0) || (p_idx >= (int)size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Int_vector::IntAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
 	
 	return values_[p_idx];
@@ -1071,7 +1135,7 @@ int64_t EidosValue_Int_vector::IntAtIndex(int p_idx, const EidosToken *p_blame_t
 
 double EidosValue_Int_vector::FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
-	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
+	if ((p_idx < 0) || (p_idx >= (int)size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Int_vector::FloatAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
 	
 	return values_[p_idx];
@@ -1079,7 +1143,7 @@ double EidosValue_Int_vector::FloatAtIndex(int p_idx, const EidosToken *p_blame_
 
 EidosValue_SP EidosValue_Int_vector::GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const
 {
-	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
+	if ((p_idx < 0) || (p_idx >= (int)size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Int_vector::GetValueAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(values_[p_idx]));
@@ -1087,7 +1151,7 @@ EidosValue_SP EidosValue_Int_vector::GetValueAtIndex(const int p_idx, const Eido
 
 void EidosValue_Int_vector::SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token)
 {
-	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
+	if ((p_idx < 0) || (p_idx >= (int)size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Int_vector::SetValueAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
 	
 	values_[p_idx] = p_value.IntAtIndex(0, p_blame_token);
@@ -1095,13 +1159,13 @@ void EidosValue_Int_vector::SetValueAtIndex(const int p_idx, const EidosValue &p
 
 EidosValue_SP EidosValue_Int_vector::CopyValues(void) const
 {
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(values_));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(values_, count_));
 }
 
 void EidosValue_Int_vector::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
 {
 	if (p_source_script_value.Type() == EidosValueType::kValueInt)
-		values_.emplace_back(p_source_script_value.IntAtIndex(p_idx, p_blame_token));
+		push_int(p_source_script_value.IntAtIndex(p_idx, p_blame_token));
 	else
 		EIDOS_TERMINATION << "ERROR (EidosValue_Int_vector::PushValueFromIndexOfEidosValue): type mismatch." << EidosTerminate(p_blame_token);
 }
@@ -1109,9 +1173,56 @@ void EidosValue_Int_vector::PushValueFromIndexOfEidosValue(int p_idx, const Eido
 void EidosValue_Int_vector::Sort(bool p_ascending)
 {
 	if (p_ascending)
-		std::sort(values_.begin(), values_.end());
+		std::sort(values_, values_ + count_);
 	else
-		std::sort(values_.begin(), values_.end(), std::greater<int64_t>());
+		std::sort(values_, values_ + count_, std::greater<int64_t>());
+}
+
+EidosValue_Int_vector *EidosValue_Int_vector::reserve(size_t p_reserved_size)
+{
+	if (p_reserved_size > capacity_)
+	{
+		values_ = (int64_t *)realloc(values_, p_reserved_size * sizeof(int64_t));
+		capacity_ = p_reserved_size;
+	}
+	
+	return this;
+}
+
+EidosValue_Int_vector *EidosValue_Int_vector::resize_no_initialize(size_t p_new_size)
+{
+	reserve(p_new_size);	// might set a capacity greater than p_new_size; no guarantees
+	count_ = p_new_size;	// regardless of the capacity set, set the size to exactly p_new_size
+	
+	return this;
+}
+
+void EidosValue_Int_vector::expand(void)
+{
+	if (capacity_ == 0)
+		reserve(16);		// if no reserve() call was made, start out with a bit of room
+	else
+		reserve(capacity_ << 1);
+}
+
+void EidosValue_Int_vector::erase_index(size_t p_index)
+{
+	if (p_index >= count_)
+		RaiseForRangeViolation();
+	
+	if (p_index == count_ - 1)
+		--count_;
+	else
+	{
+		int64_t *element_ptr = values_ + p_index;
+		int64_t *next_element_ptr = values_ + p_index + 1;
+		int64_t *past_end_element_ptr = values_ + count_;
+		size_t element_copy_count = past_end_element_ptr - next_element_ptr;
+		
+		memmove(element_ptr, next_element_ptr, element_copy_count * sizeof(int64_t));
+		
+		--count_;
+	}
 }
 
 
@@ -1189,9 +1300,10 @@ EidosValue_SP EidosValue_Int_singleton::CopyValues(void) const
 
 EidosValue_SP EidosValue_Int_singleton::VectorBasedCopy(void) const
 {
+	// We intentionally don't reserve a size of 1 here, on the assumption that further values are likely to be added
 	EidosValue_Int_vector_SP new_vec = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 	
-	new_vec->PushInt(value_);
+	new_vec->push_int(value_);
 	
 	return new_vec;
 }
@@ -1246,33 +1358,44 @@ EidosValue_Float_vector::EidosValue_Float_vector(void) : EidosValue_Float(false)
 
 EidosValue_Float_vector::EidosValue_Float_vector(const std::vector<double> &p_doublevec) : EidosValue_Float(false)
 {
-	values_ = p_doublevec;
-}
-
-EidosValue_Float_vector::EidosValue_Float_vector(double *p_doublebuf, int p_buffer_length) : EidosValue_Float(false)
-{
-	for (int index = 0; index < p_buffer_length; index++)
-		values_.emplace_back(p_doublebuf[index]);
+	size_t count = p_doublevec.size();
+	const double *values = p_doublevec.data();
+	
+	resize_no_initialize(count);
+	
+	for (size_t index = 0; index < count; ++index)
+		set_float_no_check(values[index], index);
 }
 
 EidosValue_Float_vector::EidosValue_Float_vector(std::initializer_list<double> p_init_list) : EidosValue_Float(false)
 {
+	reserve(p_init_list.size());
+	
 	for (auto init_item = p_init_list.begin(); init_item != p_init_list.end(); init_item++)
-		values_.emplace_back(*init_item);
+		push_float_no_check(*init_item);
+}
+
+EidosValue_Float_vector::EidosValue_Float_vector(const double *p_values, size_t p_count) : EidosValue_Float(false)
+{
+	resize_no_initialize(p_count);
+	
+	for (size_t index = 0; index < p_count; ++index)
+		set_float_no_check(p_values[index], index);
 }
 
 EidosValue_Float_vector::~EidosValue_Float_vector(void)
 {
+	free(values_);
 }
 
 int EidosValue_Float_vector::Count_Virtual(void) const
 {
-	return (int)values_.size();
+	return (int)count_;
 }
 
 void EidosValue_Float_vector::Print(std::ostream &p_ostream) const
 {
-	if (values_.size() == 0)
+	if (size() == 0)
 	{
 		p_ostream << "float(0)";
 	}
@@ -1280,8 +1403,10 @@ void EidosValue_Float_vector::Print(std::ostream &p_ostream) const
 	{
 		bool first = true;
 		
-		for (double value : values_)
+		for (size_t index = 0; index < count_; ++index)
 		{
+			double value = values_[index];
+			
 			if (first)
 				first = false;
 			else
@@ -1305,7 +1430,7 @@ void EidosValue_Float_vector::Print(std::ostream &p_ostream) const
 
 eidos_logical_t EidosValue_Float_vector::LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
-	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
+	if ((p_idx < 0) || (p_idx >= (int)size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::LogicalAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
 	
 	double value = values_[p_idx];
@@ -1318,7 +1443,7 @@ eidos_logical_t EidosValue_Float_vector::LogicalAtIndex(int p_idx, const EidosTo
 
 std::string EidosValue_Float_vector::StringAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
-	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
+	if ((p_idx < 0) || (p_idx >= (int)size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::StringAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
 	
 	// with C++11, could use std::to_string(values_[p_idx])
@@ -1343,7 +1468,7 @@ std::string EidosValue_Float_vector::StringAtIndex(int p_idx, const EidosToken *
 
 int64_t EidosValue_Float_vector::IntAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
-	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
+	if ((p_idx < 0) || (p_idx >= (int)size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::IntAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
 	
 	double value = values_[p_idx];
@@ -1362,7 +1487,7 @@ int64_t EidosValue_Float_vector::IntAtIndex(int p_idx, const EidosToken *p_blame
 
 double EidosValue_Float_vector::FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
-	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
+	if ((p_idx < 0) || (p_idx >= (int)size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::FloatAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
 	
 	return values_[p_idx];
@@ -1370,7 +1495,7 @@ double EidosValue_Float_vector::FloatAtIndex(int p_idx, const EidosToken *p_blam
 
 EidosValue_SP EidosValue_Float_vector::GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const
 {
-	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
+	if ((p_idx < 0) || (p_idx >= (int)size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::GetValueAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(values_[p_idx]));
@@ -1378,7 +1503,7 @@ EidosValue_SP EidosValue_Float_vector::GetValueAtIndex(const int p_idx, const Ei
 
 void EidosValue_Float_vector::SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token)
 {
-	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
+	if ((p_idx < 0) || (p_idx >= (int)size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::SetValueAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
 	
 	values_[p_idx] = p_value.FloatAtIndex(0, p_blame_token);
@@ -1386,13 +1511,13 @@ void EidosValue_Float_vector::SetValueAtIndex(const int p_idx, const EidosValue 
 
 EidosValue_SP EidosValue_Float_vector::CopyValues(void) const
 {
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(values_));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(values_, count_));
 }
 
 void EidosValue_Float_vector::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
 {
 	if (p_source_script_value.Type() == EidosValueType::kValueFloat)
-		values_.emplace_back(p_source_script_value.FloatAtIndex(p_idx, p_blame_token));
+		push_float(p_source_script_value.FloatAtIndex(p_idx, p_blame_token));
 	else
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::PushValueFromIndexOfEidosValue): type mismatch." << EidosTerminate(p_blame_token);
 }
@@ -1400,10 +1525,58 @@ void EidosValue_Float_vector::PushValueFromIndexOfEidosValue(int p_idx, const Ei
 void EidosValue_Float_vector::Sort(bool p_ascending)
 {
 	if (p_ascending)
-		std::sort(values_.begin(), values_.end());
+		std::sort(values_, values_ + count_);
 	else
-		std::sort(values_.begin(), values_.end(), std::greater<double>());
+		std::sort(values_, values_ + count_, std::greater<double>());
 }
+
+EidosValue_Float_vector *EidosValue_Float_vector::reserve(size_t p_reserved_size)
+{
+	if (p_reserved_size > capacity_)
+	{
+		values_ = (double *)realloc(values_, p_reserved_size * sizeof(double));
+		capacity_ = p_reserved_size;
+	}
+	
+	return this;
+}
+
+EidosValue_Float_vector *EidosValue_Float_vector::resize_no_initialize(size_t p_new_size)
+{
+	reserve(p_new_size);	// might set a capacity greater than p_new_size; no guarantees
+	count_ = p_new_size;	// regardless of the capacity set, set the size to exactly p_new_size
+	
+	return this;
+}
+
+void EidosValue_Float_vector::expand(void)
+{
+	if (capacity_ == 0)
+		reserve(16);		// if no reserve() call was made, start out with a bit of room
+	else
+		reserve(capacity_ << 1);
+}
+
+void EidosValue_Float_vector::erase_index(size_t p_index)
+{
+	if (p_index >= count_)
+		RaiseForRangeViolation();
+	
+	if (p_index == count_ - 1)
+		--count_;
+	else
+	{
+		double *element_ptr = values_ + p_index;
+		double *next_element_ptr = values_ + p_index + 1;
+		double *past_end_element_ptr = values_ + count_;
+		size_t element_copy_count = past_end_element_ptr - next_element_ptr;
+		
+		memmove(element_ptr, next_element_ptr, element_copy_count * sizeof(double));
+		
+		--count_;
+	}
+}
+
 
 
 // EidosValue_Float_singleton
@@ -1513,9 +1686,10 @@ EidosValue_SP EidosValue_Float_singleton::CopyValues(void) const
 
 EidosValue_SP EidosValue_Float_singleton::VectorBasedCopy(void) const
 {
+	// We intentionally don't reserve a size of 1 here, on the assumption that further values are likely to be added
 	EidosValue_Float_vector_SP new_vec = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 	
-	new_vec->PushFloat(value_);
+	new_vec->push_float(value_);
 	
 	return new_vec;
 }
@@ -1550,6 +1724,9 @@ void EidosValue_Float_singleton::Sort(bool p_ascending)
 std::vector<EidosValue_Object *> gEidosValue_Object_Mutation_Registry;
 
 EidosValue_Object::EidosValue_Object(bool p_singleton, const EidosObjectClass *p_class) : EidosValue(EidosValueType::kValueObject, p_singleton), class_(p_class)
+#ifdef EIDOS_OBJECT_RETAIN_RELEASE
+, class_needs_retain_release_(p_class == gEidos_UndefinedClassObject ? true : p_class->NeedsRetainRelease())
+#endif
 {
 	// BCH 7 May 2017: OK, so, this is a hack of breathtaking disgustingness.  Here is the problem.  In SLiM we
 	// need to reallocate the block in which all Mutation objects live, which invalidates all their pointers.
@@ -1581,7 +1758,7 @@ EidosValue_Object::~EidosValue_Object(void)
 // Provided to SLiM for the Mutation-pointer hack; see EidosValue_Object::EidosValue_Object() for comments
 void EidosValue_Object_vector::PatchPointersByAdding(std::uintptr_t p_pointer_difference)
 {
-	size_t value_count = values_.size();
+	size_t value_count = size();
 	
 	for (size_t i = 0; i < value_count; ++i)
 	{
@@ -1595,7 +1772,7 @@ void EidosValue_Object_vector::PatchPointersByAdding(std::uintptr_t p_pointer_di
 // Provided to SLiM for the Mutation-pointer hack; see EidosValue_Object::EidosValue_Object() for comments
 void EidosValue_Object_vector::PatchPointersBySubtracting(std::uintptr_t p_pointer_difference)
 {
-	size_t value_count = values_.size();
+	size_t value_count = size();
 	
 	for (size_t i = 0; i < value_count; ++i)
 	{
@@ -1624,6 +1801,11 @@ void EidosValue_Object_singleton::PatchPointersBySubtracting(std::uintptr_t p_po
 	value_ = reinterpret_cast<EidosObjectElement *>(new_element_ptr);
 }
 
+void EidosValue_Object::RaiseForClassMismatch(void) const
+{
+	EIDOS_TERMINATION << "ERROR (EidosValue::RaiseForClassMismatch): the type of an object cannot be changed." << EidosTerminate(nullptr);
+}
+
 const std::string &EidosValue_Object::ElementType(void) const
 {
 	return Class()->ElementType();
@@ -1646,15 +1828,13 @@ void EidosValue_Object::Sort(bool p_ascending)
 
 EidosValue_Object_vector::EidosValue_Object_vector(const EidosValue_Object_vector &p_original) : EidosValue_Object(false, p_original.Class())
 {
-	for (auto value : p_original.values_)
-	{
-#if DEBUG
-		if (value->Class() != class_)
-			EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::EidosValue_Object_vector): class mismatch." << EidosTerminate(nullptr);
-#endif
-		
-		values_.emplace_back(value->Retain());
-	}
+	size_t count = p_original.size();
+	EidosObjectElement * const *values = p_original.data();
+	
+	resize_no_initialize(count);
+	
+	for (size_t index = 0; index < count; ++index)
+		set_object_element_no_check(values[index], index);
 }
 
 EidosValue_Object_vector::EidosValue_Object_vector(const EidosObjectClass *p_class) : EidosValue_Object(false, p_class)
@@ -1663,49 +1843,49 @@ EidosValue_Object_vector::EidosValue_Object_vector(const EidosObjectClass *p_cla
 
 EidosValue_Object_vector::EidosValue_Object_vector(const std::vector<EidosObjectElement *> &p_elementvec, const EidosObjectClass *p_class) : EidosValue_Object(false, p_class)
 {
-	values_ = p_elementvec;
+	size_t count = p_elementvec.size();
+	EidosObjectElement * const *values = p_elementvec.data();
 	
-	for (auto value : values_)
-	{
-#if DEBUG
-		if (value->Class() != class_)
-			EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::EidosValue_Object_vector): class mismatch." << EidosTerminate(nullptr);
-#endif
-		
-		value->Retain();
-	}
+	resize_no_initialize(count);
+	
+	for (size_t index = 0; index < count; ++index)
+		set_object_element_no_check(values[index], index);
 }
 
 EidosValue_Object_vector::EidosValue_Object_vector(std::initializer_list<EidosObjectElement *> p_init_list, const EidosObjectClass *p_class) : EidosValue_Object(false, p_class)
 {
+	reserve(p_init_list.size());
+	
 	for (auto init_item = p_init_list.begin(); init_item != p_init_list.end(); init_item++)
-	{
-#if DEBUG
-		if ((*init_item)->Class() != class_)
-			EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::EidosValue_Object_vector): class mismatch." << EidosTerminate(nullptr);
-#endif
-		
-		values_.emplace_back((*init_item)->Retain());
-	}
+		push_object_element_no_check(*init_item);
 }
 
 EidosValue_Object_vector::~EidosValue_Object_vector(void)
 {
-	if (values_.size() != 0)
+#ifdef EIDOS_OBJECT_RETAIN_RELEASE
+	if (class_needs_retain_release_)
 	{
-		for (auto value : values_)
-			value->Release();
+		for (size_t index = 0; index < count_; ++index)
+		{
+			EidosObjectElement *value = values_[index];
+			
+			if (value)
+				value->Release();
+		}
 	}
+#endif
+	
+	free(values_);
 }
 
 int EidosValue_Object_vector::Count_Virtual(void) const
 {
-	return (int)values_.size();
+	return (int)size();
 }
 
 void EidosValue_Object_vector::Print(std::ostream &p_ostream) const
 {
-	if (values_.size() == 0)
+	if (size() == 0)
 	{
 		p_ostream << "object()<" << class_->ElementType() << ">";
 	}
@@ -1713,8 +1893,10 @@ void EidosValue_Object_vector::Print(std::ostream &p_ostream) const
 	{
 		bool first = true;
 		
-		for (EidosObjectElement *value : values_)
+		for (size_t index = 0; index < count_; ++index)
 		{
+			EidosObjectElement *value = values_[index];
+			
 			if (first)
 				first = false;
 			else
@@ -1727,30 +1909,15 @@ void EidosValue_Object_vector::Print(std::ostream &p_ostream) const
 
 EidosObjectElement *EidosValue_Object_vector::ObjectElementAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
-	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
+	if ((p_idx < 0) || (p_idx >= (int)size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::ObjectElementAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
 	
 	return values_[p_idx];
 }
 
-void EidosValue_Object_vector::PushObjectElement(EidosObjectElement *p_element)
-{
-	const EidosObjectClass *element_class = p_element->Class();
-	
-	if (class_ != element_class)
-	{
-		if (class_ == gEidos_UndefinedClassObject)
-			class_ = element_class;
-		else
-			EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::PushObjectElement): the type of an object cannot be changed." << EidosTerminate(nullptr);
-	}
-	
-	values_.emplace_back(p_element->Retain());
-}
-
 EidosValue_SP EidosValue_Object_vector::GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const
 {
-	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
+	if ((p_idx < 0) || (p_idx >= (int)size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::GetValueAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(values_[p_idx], Class()));
@@ -1758,24 +1925,22 @@ EidosValue_SP EidosValue_Object_vector::GetValueAtIndex(const int p_idx, const E
 
 void EidosValue_Object_vector::SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token)
 {
-	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
+	if ((p_idx < 0) || (p_idx >= (int)size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SetValueAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
-	
-	// can't change the type of element object we collect
-	const EidosObjectClass *element_class = ((EidosValue_Object &)p_value).Class();
-	
-	if (class_ != element_class)
-	{
-		if (class_ == gEidos_UndefinedClassObject)
-			class_ = element_class;
-		else
-			EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SetValueAtIndex): the type of an object cannot be changed." << EidosTerminate(p_blame_token);
-	}
 	
 	EidosObjectElement *new_value = p_value.ObjectElementAtIndex(0, p_blame_token);
 	
-	new_value->Retain();
-	values_[p_idx]->Release();
+	DeclareClassFromElement(new_value);
+	
+#ifdef EIDOS_OBJECT_RETAIN_RELEASE
+	if (class_needs_retain_release_)
+	{
+		new_value->Retain();
+		if (values_[p_idx])
+			values_[p_idx]->Release();
+	}
+#endif
+	
 	values_[p_idx] = new_value;
 }
 
@@ -1787,19 +1952,7 @@ EidosValue_SP EidosValue_Object_vector::CopyValues(void) const
 void EidosValue_Object_vector::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
 {
 	if (p_source_script_value.Type() == EidosValueType::kValueObject)
-	{
-		const EidosObjectClass *element_class = ((EidosValue_Object &)p_source_script_value).Class();
-		
-		if (class_ != element_class)
-		{
-			if (class_ == gEidos_UndefinedClassObject)
-				class_ = element_class;
-			else
-				EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::PushValueFromIndexOfEidosValue): the type of an object cannot be changed." << EidosTerminate(p_blame_token);
-		}
-		
-		values_.emplace_back(p_source_script_value.ObjectElementAtIndex(p_idx, p_blame_token)->Retain());
-	}
+		push_object_element(p_source_script_value.ObjectElementAtIndex(p_idx, p_blame_token));
 	else
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::PushValueFromIndexOfEidosValue): type mismatch." << EidosTerminate(p_blame_token);
 }
@@ -1830,7 +1983,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 	// blame token; all errors will be attributed to that function automatically.
 	
 	// length 0 is already sorted
-	if (values_.size() == 0)
+	if (size() == 0)
 		return;
 	
 	// figure out what type the property returns
@@ -1851,8 +2004,9 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 			// make a vector of pairs: first is the value returned for the sorting property, second is the object element
 			std::vector<std::pair<eidos_logical_t, EidosObjectElement*>> sortable_pairs;
 			
-			for (auto value : values_)
+			for (size_t value_index = 0; value_index < count_; value_index++)
 			{
+				EidosObjectElement *value = values_[value_index];
 				EidosValue_SP temp_result = value->GetProperty(property_string_id);
 				
 				if (temp_result->Count() != 1)
@@ -1870,10 +2024,10 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 				std::sort(sortable_pairs.begin(), sortable_pairs.end(), CompareLogicalObjectSortPairsDescending);
 			
 			// read out our new element vector
-			values_.clear();
+			resize_no_initialize(0);
 			
 			for (auto sorted_pair : sortable_pairs)
-				values_.emplace_back(sorted_pair.second);
+				push_object_element_no_check(sorted_pair.second);
 			
 			break;
 		}
@@ -1883,8 +2037,9 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 			// make a vector of pairs: first is the value returned for the sorting property, second is the object element
 			std::vector<std::pair<int64_t, EidosObjectElement*>> sortable_pairs;
 			
-			for (auto value : values_)
+			for (size_t value_index = 0; value_index < count_; value_index++)
 			{
+				EidosObjectElement *value = values_[value_index];
 				EidosValue_SP temp_result = value->GetProperty(property_string_id);
 				
 				if (temp_result->Count() != 1)
@@ -1902,10 +2057,10 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 				std::sort(sortable_pairs.begin(), sortable_pairs.end(), CompareIntObjectSortPairsDescending);
 			
 			// read out our new element vector
-			values_.clear();
+			resize_no_initialize(0);
 			
 			for (auto sorted_pair : sortable_pairs)
-				values_.emplace_back(sorted_pair.second);
+				push_object_element_no_check(sorted_pair.second);
 			
 			break;
 		}
@@ -1915,8 +2070,9 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 			// make a vector of pairs: first is the value returned for the sorting property, second is the object element
 			std::vector<std::pair<double, EidosObjectElement*>> sortable_pairs;
 			
-			for (auto value : values_)
+			for (size_t value_index = 0; value_index < count_; value_index++)
 			{
+				EidosObjectElement *value = values_[value_index];
 				EidosValue_SP temp_result = value->GetProperty(property_string_id);
 				
 				if (temp_result->Count() != 1)
@@ -1934,10 +2090,10 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 				std::sort(sortable_pairs.begin(), sortable_pairs.end(), CompareFloatObjectSortPairsDescending);
 			
 			// read out our new element vector
-			values_.clear();
+			resize_no_initialize(0);
 			
 			for (auto sorted_pair : sortable_pairs)
-				values_.emplace_back(sorted_pair.second);
+				push_object_element_no_check(sorted_pair.second);
 			
 			break;
 		}
@@ -1947,8 +2103,9 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 			// make a vector of pairs: first is the value returned for the sorting property, second is the object element
 			std::vector<std::pair<std::string, EidosObjectElement*>> sortable_pairs;
 			
-			for (auto value : values_)
+			for (size_t value_index = 0; value_index < count_; value_index++)
 			{
+				EidosObjectElement *value = values_[value_index];
 				EidosValue_SP temp_result = value->GetProperty(property_string_id);
 				
 				if (temp_result->Count() != 1)
@@ -1966,10 +2123,10 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 				std::sort(sortable_pairs.begin(), sortable_pairs.end(), CompareStringObjectSortPairsDescending);
 			
 			// read out our new element vector
-			values_.clear();
+			resize_no_initialize(0);
 			
 			for (auto sorted_pair : sortable_pairs)
-				values_.emplace_back(sorted_pair.second);
+				push_object_element_no_check(sorted_pair.second);
 			
 			break;
 		}
@@ -1978,7 +2135,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 
 EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringID p_property_id) const
 {
-	auto values_size = values_.size();
+	size_t values_size = (size_t)size();
 	const EidosPropertySignature *signature = class_->SignatureForProperty(p_property_id);
 	
 	if (!signature)
@@ -2029,29 +2186,28 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 		{
 			case kEidosValueMaskLogical:
 			{
-				EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve((int)values_size);
-				std::vector<eidos_logical_t> &logical_result_vec = *logical_result->LogicalVector_Mutable();
+				EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(values_size);
 				
-				for (auto value : values_)
-					logical_result_vec.emplace_back(value->GetProperty_Accelerated_Logical(p_property_id));
+				for (size_t value_index = 0; value_index < values_size; ++value_index)
+					logical_result->set_logical_no_check(values_[value_index]->GetProperty_Accelerated_Logical(p_property_id), value_index);
 				
 				return EidosValue_SP(logical_result);
 			}
 			case kEidosValueMaskInt:
 			{
-				EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->Reserve((int)values_size);
+				EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(values_size);
 				
-				for (auto value : values_)
-					int_result->PushInt(value->GetProperty_Accelerated_Int(p_property_id));
+				for (size_t value_index = 0; value_index < values_size; ++value_index)
+					int_result->set_int_no_check(values_[value_index]->GetProperty_Accelerated_Int(p_property_id), value_index);
 				
 				return EidosValue_SP(int_result);
 			}
 			case kEidosValueMaskFloat:
 			{
-				EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve((int)values_size);
+				EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(values_size);
 				
-				for (auto value : values_)
-					float_result->PushFloat(value->GetProperty_Accelerated_Float(p_property_id));
+				for (size_t value_index = 0; value_index < values_size; ++value_index)
+					float_result->set_float_no_check(values_[value_index]->GetProperty_Accelerated_Float(p_property_id), value_index);
 				
 				return EidosValue_SP(float_result);
 			}
@@ -2059,8 +2215,8 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 			{
 				EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve((int)values_size);
 				
-				for (auto value : values_)
-					string_result->PushString(value->GetProperty_Accelerated_String(p_property_id));
+				for (size_t value_index = 0; value_index < values_size; ++value_index)
+					string_result->PushString(values_[value_index]->GetProperty_Accelerated_String(p_property_id));
 				
 				return EidosValue_SP(string_result);
 			}
@@ -2070,10 +2226,10 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 				
 				if (value_class)
 				{
-					EidosValue_Object_vector *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(value_class))->Reserve((int)values_size);
+					EidosValue_Object_vector *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(value_class))->resize_no_initialize((int)values_size);
 					
-					for (auto value : values_)
-						object_result->PushObjectElement(value->GetProperty_Accelerated_ObjectElement(p_property_id));
+					for (size_t value_index = 0; value_index < values_size; ++value_index)
+						object_result->set_object_element_no_check(values_[value_index]->GetProperty_Accelerated_ObjectElement(p_property_id), value_index);
 					
 					return EidosValue_SP(object_result);
 				}
@@ -2092,8 +2248,9 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 		if (values_size < 10)
 		{
 			// with small objects, we check every value
-			for (auto value : values_)
+			for (size_t value_index = 0; value_index < values_size; ++value_index)
 			{
+				EidosObjectElement *value = values_[value_index];
 				EidosValue_SP temp_result = value->GetProperty(p_property_id);
 				
 				signature->CheckResultValue(*temp_result);
@@ -2105,8 +2262,9 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 			// with large objects, we just spot-check the first value, for speed
 			bool checked_multivalued = false;
 			
-			for (auto value : values_)
+			for (size_t value_index = 0; value_index < values_size; ++value_index)
 			{
+				EidosObjectElement *value = values_[value_index];
 				EidosValue_SP temp_result = value->GetProperty(p_property_id);
 				
 				if (!checked_multivalued)
@@ -2137,6 +2295,7 @@ void EidosValue_Object_vector::SetPropertyOfElements(EidosGlobalStringID p_prope
 	
 	// We have to check the count ourselves; the signature does not do that for us
 	int p_value_count = p_value.Count();
+	size_t values_size = (size_t)size();
 	
 	if (p_value_count == 1)
 	{
@@ -2153,35 +2312,35 @@ void EidosValue_Object_vector::SetPropertyOfElements(EidosGlobalStringID p_prope
 				{
 					eidos_logical_t set_value = p_value.LogicalAtIndex(0, nullptr);
 					
-					for (auto value : values_)
-						value->SetProperty_Accelerated_Logical(p_property_id, set_value);
+					for (size_t value_index = 0; value_index < values_size; ++value_index)
+						values_[value_index]->SetProperty_Accelerated_Logical(p_property_id, set_value);
 					
 					break;
 				}
 				case kEidosValueMaskInt:		// p_value could be integer or logical
 				{
 					int64_t set_value = p_value.IntAtIndex(0, nullptr);
-						
-						for (auto value : values_)
-							value->SetProperty_Accelerated_Int(p_property_id, set_value);
-						
+					
+					for (size_t value_index = 0; value_index < values_size; ++value_index)
+						values_[value_index]->SetProperty_Accelerated_Int(p_property_id, set_value);
+					
 					break;
 				}
 				case kEidosValueMaskFloat:		// p_value could be float, integer, or logical
 				{
 					double set_value = p_value.FloatAtIndex(0, nullptr);
-						
-						for (auto value : values_)
-							value->SetProperty_Accelerated_Float(p_property_id, set_value);
-						
+					
+					for (size_t value_index = 0; value_index < values_size; ++value_index)
+						values_[value_index]->SetProperty_Accelerated_Float(p_property_id, set_value);
+					
 					break;
 				}
 				case kEidosValueMaskString:		// p_value must be string
 				{
 					const std::string &set_value = p_value.StringAtIndex(0, nullptr);
 					
-					for (auto value : values_)
-						value->SetProperty_Accelerated_String(p_property_id, set_value);
+					for (size_t value_index = 0; value_index < values_size; ++value_index)
+						values_[value_index]->SetProperty_Accelerated_String(p_property_id, set_value);
 					
 					break;
 				}
@@ -2189,8 +2348,8 @@ void EidosValue_Object_vector::SetPropertyOfElements(EidosGlobalStringID p_prope
 				{
 					const EidosObjectElement *set_value = p_value.ObjectElementAtIndex(0, nullptr);
 					
-					for (auto value : values_)
-						value->SetProperty_Accelerated_ObjectElement(p_property_id, set_value);
+					for (size_t value_index = 0; value_index < values_size; ++value_index)
+						values_[value_index]->SetProperty_Accelerated_ObjectElement(p_property_id, set_value);
 					
 					break;
 				}
@@ -2201,8 +2360,8 @@ void EidosValue_Object_vector::SetPropertyOfElements(EidosGlobalStringID p_prope
 		}
 		else
 		{
-			for (auto value : values_)
-				value->SetProperty(p_property_id, p_value);
+			for (size_t value_index = 0; value_index < values_size; ++value_index)
+				values_[value_index]->SetProperty(p_property_id, p_value);
 		}
 	}
 	else if (p_value_count == Count())
@@ -2219,11 +2378,10 @@ void EidosValue_Object_vector::SetPropertyOfElements(EidosGlobalStringID p_prope
 				{
 					case kEidosValueMaskLogical:	// p_value must be logical
 					{
-						const std::vector<eidos_logical_t> *value_vec = p_value.LogicalVector();
-						const eidos_logical_t *value_ptr = value_vec->data();
+						const eidos_logical_t *value_ptr = p_value.LogicalVector()->data();
 						
-						for (auto value : values_)
-							value->SetProperty_Accelerated_Logical(p_property_id, *(value_ptr++));
+						for (size_t value_index = 0; value_index < values_size; ++value_index)
+							values_[value_index]->SetProperty_Accelerated_Logical(p_property_id, *(value_ptr++));
 						
 						return;
 					}
@@ -2233,21 +2391,19 @@ void EidosValue_Object_vector::SetPropertyOfElements(EidosGlobalStringID p_prope
 						
 						if (set_value_type == EidosValueType::kValueInt)
 						{
-							const std::vector<int64_t> *value_vec = p_value.IntVector();
-							const int64_t *value_ptr = value_vec->data();
+							const int64_t *value_ptr = p_value.IntVector()->data();
 							
-							for (auto value : values_)
-								value->SetProperty_Accelerated_Int(p_property_id, *(value_ptr++));
+							for (size_t value_index = 0; value_index < values_size; ++value_index)
+								values_[value_index]->SetProperty_Accelerated_Int(p_property_id, *(value_ptr++));
 							
 							return;
 						}
 						else if (set_value_type == EidosValueType::kValueLogical)
 						{
-							const std::vector<eidos_logical_t> *value_vec = p_value.LogicalVector();
-							const eidos_logical_t *value_ptr = value_vec->data();
+							const eidos_logical_t *value_ptr = p_value.LogicalVector()->data();
 							
-							for (auto value : values_)
-								value->SetProperty_Accelerated_Int(p_property_id, *(value_ptr++) ? 1 : 0);
+							for (size_t value_index = 0; value_index < values_size; ++value_index)
+								values_[value_index]->SetProperty_Accelerated_Int(p_property_id, *(value_ptr++) ? 1 : 0);
 							
 							return;
 						}
@@ -2260,31 +2416,28 @@ void EidosValue_Object_vector::SetPropertyOfElements(EidosGlobalStringID p_prope
 						
 						if (set_value_type == EidosValueType::kValueFloat)
 						{
-							const std::vector<double> *value_vec = p_value.FloatVector();
-							const double *value_ptr = value_vec->data();
+							const double *value_ptr = p_value.FloatVector()->data();
 							
-							for (auto value : values_)
-								value->SetProperty_Accelerated_Float(p_property_id, *(value_ptr++));
+							for (size_t value_index = 0; value_index < values_size; ++value_index)
+								values_[value_index]->SetProperty_Accelerated_Float(p_property_id, *(value_ptr++));
 							
 							return;
 						}
 						else if (set_value_type == EidosValueType::kValueInt)
 						{
-							const std::vector<int64_t> *value_vec = p_value.IntVector();
-							const int64_t *value_ptr = value_vec->data();
+							const int64_t *value_ptr = p_value.IntVector()->data();
 							
-							for (auto value : values_)
-								value->SetProperty_Accelerated_Float(p_property_id, *(value_ptr++));
+							for (size_t value_index = 0; value_index < values_size; ++value_index)
+								values_[value_index]->SetProperty_Accelerated_Float(p_property_id, *(value_ptr++));
 							
 							return;
 						}
 						else if (set_value_type == EidosValueType::kValueLogical)
 						{
-							const std::vector<eidos_logical_t> *value_vec = p_value.LogicalVector();
-							const eidos_logical_t *value_ptr = value_vec->data();
+							const eidos_logical_t *value_ptr = p_value.LogicalVector()->data();
 							
-							for (auto value : values_)
-								value->SetProperty_Accelerated_Float(p_property_id, *(value_ptr++) ? 1.0 : 0.0);
+							for (size_t value_index = 0; value_index < values_size; ++value_index)
+								values_[value_index]->SetProperty_Accelerated_Float(p_property_id, *(value_ptr++) ? 1.0 : 0.0);
 							
 							return;
 						}
@@ -2296,18 +2449,18 @@ void EidosValue_Object_vector::SetPropertyOfElements(EidosGlobalStringID p_prope
 						const std::vector<std::string> *value_vec = p_value.StringVector();
 						const std::string *value_ptr = value_vec->data();
 						
-						for (auto value : values_)
-							value->SetProperty_Accelerated_String(p_property_id, *(value_ptr++));
+						for (size_t value_index = 0; value_index < values_size; ++value_index)
+							values_[value_index]->SetProperty_Accelerated_String(p_property_id, *(value_ptr++));
 						
 						return;
 					}
 					case kEidosValueMaskObject:		// p_value must be object, and must match in class
 					{
-						const std::vector<EidosObjectElement *> *value_vec = p_value.ObjectElementVector();
-						const EidosObjectElement *const *value_ptr = value_vec->data();
+						const EidosValue_Object_vector *value_vec = p_value.ObjectElementVector();
+						EidosObjectElement * const *value_ptr = value_vec->data();
 						
-						for (auto value : values_)
-							value->SetProperty_Accelerated_ObjectElement(p_property_id, *(value_ptr++));
+						for (size_t value_index = 0; value_index < values_size; ++value_index)
+							values_[value_index]->SetProperty_Accelerated_ObjectElement(p_property_id, *(value_ptr++));
 						
 						return;
 					}
@@ -2336,7 +2489,7 @@ void EidosValue_Object_vector::SetPropertyOfElements(EidosGlobalStringID p_prope
 EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_method_id, const EidosMethodSignature *p_method_signature, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 	// This is an instance method, so it gets dispatched to all of our elements
-	auto values_size = values_.size();
+	auto values_size = size();
 	
 	if (values_size == 0)
 	{
@@ -2380,8 +2533,9 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 		if (values_size < 10)
 		{
 			// with small objects, we check every value
-			for (auto value : values_)
+			for (size_t value_index = 0; value_index < values_size; ++value_index)
 			{
+				EidosObjectElement *value = values_[value_index];
 				EidosValue_SP temp_result = value->ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 				
 				p_method_signature->CheckReturn(*temp_result);
@@ -2393,8 +2547,9 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 			// with large objects, we just spot-check the first value, for speed
 			bool checked_multivalued = false;
 			
-			for (auto value : values_)
+			for (size_t value_index = 0; value_index < values_size; ++value_index)
 			{
+				EidosObjectElement *value = values_[value_index];
 				EidosValue_SP temp_result = value->ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 				
 				if (!checked_multivalued)
@@ -2414,6 +2569,84 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 	}
 }
 
+EidosValue_Object_vector *EidosValue_Object_vector::reserve(size_t p_reserved_size)
+{
+	if (p_reserved_size > capacity_)
+	{
+		values_ = (EidosObjectElement **)realloc(values_, p_reserved_size * sizeof(EidosObjectElement *));
+		capacity_ = p_reserved_size;
+	}
+	
+	return this;
+}
+
+EidosValue_Object_vector *EidosValue_Object_vector::resize_no_initialize(size_t p_new_size)
+{
+	reserve(p_new_size);	// might set a capacity greater than p_new_size; no guarantees
+	
+#ifdef EIDOS_OBJECT_RETAIN_RELEASE
+	// deal with retain/release
+	if (class_needs_retain_release_)
+	{
+		if (p_new_size < count_)
+		{
+			// shrinking; need to release the elements made redundant
+			for (size_t element_index = p_new_size; element_index < count_; ++element_index)
+			{
+				EidosObjectElement *value = values_[element_index];
+				
+				if (value)
+					value->Release();
+			}
+		}
+		else if (p_new_size > count_)
+		{
+			// expanding; need to zero out the new slots, despite our name (but only with class_needs_retain_release_!)
+			for (size_t element_index = count_; element_index < p_new_size; ++element_index)
+				values_[element_index] = nullptr;
+		}
+	}
+#endif
+	
+	count_ = p_new_size;	// regardless of the capacity set, set the size to exactly p_new_size
+	
+	return this;
+}
+
+void EidosValue_Object_vector::expand(void)
+{
+	if (capacity_ == 0)
+		reserve(16);		// if no reserve() call was made, start out with a bit of room
+	else
+		reserve(capacity_ << 1);
+}
+
+void EidosValue_Object_vector::erase_index(size_t p_index)
+{
+	if (p_index >= count_)
+		RaiseForRangeViolation();
+	
+#ifdef EIDOS_OBJECT_RETAIN_RELEASE
+	if (class_needs_retain_release_)
+		if (values_[p_index])
+			values_[p_index]->Release();
+#endif
+	
+	if (p_index == count_ - 1)
+		--count_;
+	else
+	{
+		EidosObjectElement **element_ptr = values_ + p_index;
+		EidosObjectElement **next_element_ptr = values_ + p_index + 1;
+		EidosObjectElement **past_end_element_ptr = values_ + count_;
+		size_t element_copy_count = past_end_element_ptr - next_element_ptr;
+		
+		memmove(element_ptr, next_element_ptr, element_copy_count * sizeof(EidosObjectElement *));
+		
+		--count_;
+	}
+}
+
 
 // EidosValue_Object_singleton
 #pragma mark EidosValue_Object_singleton
@@ -2423,18 +2656,22 @@ EidosValue_Object_singleton::EidosValue_Object_singleton(EidosObjectElement *p_e
 	// we want to allow nullptr as a momentary placeholder, although in general a value should exist
 	if (p_element1)
 	{
-#if DEBUG
-		if (p_element1->Class() != class_)
-			EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::EidosValue_Object_vector): class mismatch." << EidosTerminate(nullptr);
-#endif
+		DeclareClassFromElement(p_element1);
 		
-		p_element1->Retain();
+#ifdef EIDOS_OBJECT_RETAIN_RELEASE
+		if (class_needs_retain_release_)
+			p_element1->Retain();
+#endif
 	}
 }
 
 EidosValue_Object_singleton::~EidosValue_Object_singleton(void)
 {
-	value_->Release();
+#ifdef EIDOS_OBJECT_RETAIN_RELEASE
+	if (class_needs_retain_release_)
+		if (value_)
+			value_->Release();
+#endif
 }
 
 int EidosValue_Object_singleton::Count_Virtual(void) const
@@ -2465,13 +2702,17 @@ EidosValue_SP EidosValue_Object_singleton::GetValueAtIndex(const int p_idx, cons
 
 void EidosValue_Object_singleton::SetValue(EidosObjectElement *p_element)
 {
-#if DEBUG
-	if (p_element->Class() != class_)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton::SetValue): class mismatch." << EidosTerminate(nullptr);
+	DeclareClassFromElement(p_element);
+	
+#ifdef EIDOS_OBJECT_RETAIN_RELEASE
+	if (class_needs_retain_release_)
+	{
+		p_element->Retain();
+		if (value_)
+			value_->Release();		// we might have been initialized with nullptr with the aim of setting a value here
+	}
 #endif
 	
-	p_element->Retain();
-	if (value_) value_->Release();		// we might have been initialized with nullptr with the aim of setting a value here
 	value_ = p_element;
 }
 
@@ -2482,9 +2723,10 @@ EidosValue_SP EidosValue_Object_singleton::CopyValues(void) const
 
 EidosValue_SP EidosValue_Object_singleton::VectorBasedCopy(void) const
 {
+	// We intentionally don't reserve a size of 1 here, on the assumption that further values are likely to be added
 	EidosValue_Object_vector_SP new_vec = EidosValue_Object_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(Class()));
 	
-	new_vec->PushObjectElement(value_);
+	new_vec->push_object_element(value_);
 	
 	return new_vec;
 }
@@ -2563,17 +2805,17 @@ void EidosObjectElement::Print(std::ostream &p_ostream) const
 	p_ostream << Class()->ElementType();
 }
 
+#ifdef EIDOS_OBJECT_RETAIN_RELEASE
 EidosObjectElement *EidosObjectElement::Retain(void)
 {
-	// no-op; our lifetime is controlled externally
-	return this;
+	EIDOS_TERMINATION << "ERROR (EidosObjectElement::Retain for " << Class()->ElementType() << "): (internal error) call to Retain() for non-shared class." << EidosTerminate(nullptr);
 }
 
 EidosObjectElement *EidosObjectElement::Release(void)
 {
-	// no-op; our lifetime is controlled externally
-	return this;
+	EIDOS_TERMINATION << "ERROR (EidosObjectElement::Release for " << Class()->ElementType() << "): (internal error) call to Release() for non-shared class." << EidosTerminate(nullptr);
 }
+#endif
 
 EidosValue_SP EidosObjectElement::GetProperty(EidosGlobalStringID p_property_id)
 {
@@ -2752,21 +2994,22 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosObjectElement &p_
 
 EidosObjectElementInternal::EidosObjectElementInternal(void)
 {
-//	std::cerr << "EidosObjectElementInternal::EidosObjectElementInternal allocated " << this << " with refcount == 1" << endl;
+//	std::cerr << "EidosObjectElementInternal::EidosObjectElementInternal allocated " << this << " with refcount == 1" << std::endl;
 //	Eidos_PrintStacktrace(stderr, 10);
 }
 
 EidosObjectElementInternal::~EidosObjectElementInternal(void)
 {
-//	std::cerr << "EidosObjectElementInternal::~EidosObjectElementInternal deallocated " << this << endl;
+//	std::cerr << "EidosObjectElementInternal::~EidosObjectElementInternal deallocated " << this << std::endl;
 //	Eidos_PrintStacktrace(stderr, 10);
 }
 
+#ifdef EIDOS_OBJECT_RETAIN_RELEASE
 EidosObjectElement *EidosObjectElementInternal::Retain(void)
 {
 	refcount_++;
 	
-//	std::cerr << "EidosObjectElementInternal::Retain for " << this << ", new refcount == " << refcount_ << endl;
+//	std::cerr << "EidosObjectElementInternal::Retain for " << this << ", new refcount == " << refcount_ << std::endl;
 //	Eidos_PrintStacktrace(stderr, 10);
 	
 	return this;
@@ -2776,7 +3019,7 @@ EidosObjectElement *EidosObjectElementInternal::Release(void)
 {
 	refcount_--;
 	
-//	std::cerr << "EidosObjectElementInternal::Release for " << this << ", new refcount == " << refcount_ << endl;
+//	std::cerr << "EidosObjectElementInternal::Release for " << this << ", new refcount == " << refcount_ << std::endl;
 //	Eidos_PrintStacktrace(stderr, 10);
 	
 	if (refcount_ == 0)
@@ -2787,6 +3030,7 @@ EidosObjectElement *EidosObjectElementInternal::Release(void)
 	
 	return this;
 }
+#endif
 
 
 //
@@ -2803,6 +3047,13 @@ EidosObjectClass::EidosObjectClass(void)
 EidosObjectClass::~EidosObjectClass(void)
 {
 }
+
+#ifdef EIDOS_OBJECT_RETAIN_RELEASE
+bool EidosObjectClass::NeedsRetainRelease(void) const
+{
+	return false;
+}
+#endif
 
 const std::string &EidosObjectClass::ElementType(void) const
 {

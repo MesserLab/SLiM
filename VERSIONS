@@ -39,6 +39,9 @@ development head:
 	add the ability to automatically select only non-neutral mutation types for display in the chromosome view
 	fix a bug (never released) in pure neutral tracking with addNewMutation(), and optimize pure neutral tracking some more
 	add ability to change the number of bins in the frequency spectrum plot
+	optimize EidosValue internals by using malloced buffers instead of std::vector, avoiding zero-initialization and capacity-checking
+	fix a bug (never released) in ConcatenateEidosValues() with logical vectors that would cause incorrect results in some post-2.5 GitHub versions
+	fix a bug (never released) in the new integer() two-value filling code added post-2.5
 
 
 2.5 (build 1204; Eidos version 1.5):

@@ -683,7 +683,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto genomic_element_iter = this->begin(); genomic_element_iter != this->end(); genomic_element_iter++)
-				vec->PushObjectElement(&(*genomic_element_iter));		// operator * can be overloaded by the iterator
+				vec->push_object_element(&(*genomic_element_iter));		// operator * can be overloaded by the iterator
 			
 			return result_SP;
 		}

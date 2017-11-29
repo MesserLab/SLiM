@@ -2209,13 +2209,13 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 					cached_child_genomes_value_ = EidosValue_SP(vec);
 					
 					for (auto genome_iter = child_genomes_.begin(); genome_iter != child_genomes_.end(); genome_iter++)
-						vec->PushObjectElement(&(*genome_iter));		// operator * can be overloaded by the iterator
+						vec->push_object_element(&(*genome_iter));		// operator * can be overloaded by the iterator
 				}
 				/*
 				else
 				{
 					// check that the cache is correct
-					EidosValue_Object_vector *vec = (EidosValue_Object_vector *)cached_child_genomes_value_.get();
+					EidosValue_Object_vector *vec = cached_child_genomes_value_->ObjectElementVector_Mutable();
 					const std::vector<EidosObjectElement *> *vec_direct = vec->ObjectElementVector();
 					int vec_size = (int)vec_direct->size();
 					
@@ -2240,13 +2240,13 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 					cached_parent_genomes_value_ = EidosValue_SP(vec);
 					
 					for (auto genome_iter = parent_genomes_.begin(); genome_iter != parent_genomes_.end(); genome_iter++)
-						vec->PushObjectElement(&(*genome_iter));		// operator * can be overloaded by the iterator
+						vec->push_object_element(&(*genome_iter));		// operator * can be overloaded by the iterator
 				}
 				/*
 				else
 				{
 					// check that the cache is correct
-					EidosValue_Object_vector *vec = (EidosValue_Object_vector *)cached_parent_genomes_value_.get();
+					EidosValue_Object_vector *vec = cached_parent_genomes_value_->ObjectElementVector_Mutable();
 					const std::vector<EidosObjectElement *> *vec_direct = vec->ObjectElementVector();
 					int vec_size = (int)vec_direct->size();
 					
@@ -2283,7 +2283,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 					cached_child_individuals_value_ = EidosValue_SP(vec);
 					
 					for (slim_popsize_t individual_index = 0; individual_index < subpop_size; individual_index++)
-						vec->PushObjectElement(&child_individuals_[individual_index]);
+						vec->push_object_element(&child_individuals_[individual_index]);
 				}
 				
 				return cached_child_individuals_value_;
@@ -2305,7 +2305,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 					cached_parent_individuals_value_ = EidosValue_SP(vec);
 					
 					for (slim_popsize_t individual_index = 0; individual_index < subpop_size; individual_index++)
-						vec->PushObjectElement(&parent_individuals_[individual_index]);
+						vec->push_object_element(&parent_individuals_[individual_index]);
 				}
 				
 				return cached_parent_individuals_value_;
@@ -2317,7 +2317,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto migrant_pair = migrant_fractions_.begin(); migrant_pair != migrant_fractions_.end(); ++migrant_pair)
-				vec->PushInt(migrant_pair->first);
+				vec->push_int(migrant_pair->first);
 			
 			return result_SP;
 		}
@@ -2327,7 +2327,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto migrant_pair = migrant_fractions_.begin(); migrant_pair != migrant_fractions_.end(); ++migrant_pair)
-				vec->PushFloat(migrant_pair->second);
+				vec->push_float(migrant_pair->second);
 			
 			return result_SP;
 		}
@@ -2986,7 +2986,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 	}
 	else
 	{
-		EidosValue_Float_vector *float_return = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(index_count);
+		EidosValue_Float_vector *float_return = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(index_count);
 		EidosValue_SP result_SP = EidosValue_SP(float_return);
 		
 		for (slim_popsize_t value_index = 0; value_index < index_count; value_index++)
@@ -3003,7 +3003,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 			
 			double fitness = cached_parental_fitness_[index];
 			
-			float_return->PushFloat(fitness);
+			float_return->set_float_no_check(fitness, value_index);
 		}
 		
 		return result_SP;

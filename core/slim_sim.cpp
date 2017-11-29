@@ -4067,7 +4067,7 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto ge_type = genomic_element_types_.begin(); ge_type != genomic_element_types_.end(); ++ge_type)
-				vec->PushObjectElement(ge_type->second);
+				vec->push_object_element(ge_type->second);
 			
 			return result_SP;
 		}
@@ -4085,7 +4085,7 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto int_type = interaction_types_.begin(); int_type != interaction_types_.end(); ++int_type)
-				vec->PushObjectElement(int_type->second);
+				vec->push_object_element(int_type->second);
 			
 			return result_SP;
 		}
@@ -4094,11 +4094,11 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 			MutationRun &mutation_registry = population_.mutation_registry_;
 			int mutation_count = mutation_registry.size();
-			EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->Reserve(mutation_count);
+			EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->resize_no_initialize(mutation_count);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (int mut_index = 0; mut_index < mutation_count; ++mut_index)
-				vec->PushObjectElement(mut_block_ptr + mutation_registry[mut_index]);
+				vec->set_object_element_no_check(mut_block_ptr + mutation_registry[mut_index], mut_index);
 			
 			return result_SP;
 		}
@@ -4108,7 +4108,7 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto mutation_type = mutation_types_.begin(); mutation_type != mutation_types_.end(); ++mutation_type)
-				vec->PushObjectElement(mutation_type->second);
+				vec->push_object_element(mutation_type->second);
 			
 			return result_SP;
 		}
@@ -4120,7 +4120,7 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 			
 			for (auto script_block = script_blocks.begin(); script_block != script_blocks.end(); ++script_block)
 				if ((*script_block)->type_ != SLiMEidosBlockType::SLiMEidosUserDefinedFunction)		// exclude function blocks; not user-visible
-					vec->PushObjectElement(*script_block);
+					vec->push_object_element(*script_block);
 			
 			return result_SP;
 		}
@@ -4132,7 +4132,7 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto pop = population_.begin(); pop != population_.end(); ++pop)
-				vec->PushObjectElement(pop->second);
+				vec->push_object_element(pop->second);
 			
 			return result_SP;
 		}
@@ -4142,7 +4142,7 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto sub_iter = population_.substitutions_.begin(); sub_iter != population_.substitutions_.end(); ++sub_iter)
-				vec->PushObjectElement(*sub_iter);
+				vec->push_object_element(*sub_iter);
 			
 			return result_SP;
 		}
@@ -4436,22 +4436,26 @@ EidosValue_SP SLiMSim::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 		{
 			if (p_method_id == gID_mutationFrequencies)
 			{
+				float_result->resize_no_initialize(arg1_count);
+				
 				for (int value_index = 0; value_index < arg1_count; ++value_index)
 				{
 					Mutation *mut = (Mutation *)(arg1_value->ObjectElementAtIndex(value_index, nullptr));
 					MutationIndex mut_index = mut->BlockIndex();
 					
-					float_result->PushFloat(*(refcount_block_ptr + mut_index) * denominator);
+					float_result->set_float_no_check(*(refcount_block_ptr + mut_index) * denominator, value_index);
 				}
 			}
 			else // p_method_id == gID_mutationCounts
 			{
+				int_result->resize_no_initialize(arg1_count);
+				
 				for (int value_index = 0; value_index < arg1_count; ++value_index)
 				{
 					Mutation *mut = (Mutation *)(arg1_value->ObjectElementAtIndex(value_index, nullptr));
 					MutationIndex mut_index = mut->BlockIndex();
 					
-					int_result->PushInt(*(refcount_block_ptr + mut_index));
+					int_result->set_int_no_check(*(refcount_block_ptr + mut_index), value_index);
 				}
 			}
 		}
@@ -4459,17 +4463,23 @@ EidosValue_SP SLiMSim::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 	else
 	{
 		// no mutation vector was given, so return all frequencies from the registry
-		MutationIndex *registry_iter_end = population_.mutation_registry_.end_pointer();
+		MutationRun &registry = population_.mutation_registry_;
+		const MutationIndex *registry_iter_begin = registry.begin_pointer_const();
+		int registry_size = registry.size();
 		
 		if (p_method_id == gID_mutationFrequencies)
 		{
-			for (const MutationIndex *registry_iter = population_.mutation_registry_.begin_pointer_const(); registry_iter != registry_iter_end; ++registry_iter)
-				float_result->PushFloat(*(refcount_block_ptr + *registry_iter) * denominator);
+			float_result->resize_no_initialize(registry_size);
+			
+			for (int registry_index = 0; registry_index < registry_size; registry_index++)
+				float_result->set_float_no_check(*(refcount_block_ptr + *(registry_iter_begin + registry_index)) * denominator, registry_index);
 		}
 		else // p_method_id == gID_mutationCounts
 		{
-			for (const MutationIndex *registry_iter = population_.mutation_registry_.begin_pointer_const(); registry_iter != registry_iter_end; ++registry_iter)
-				int_result->PushInt(*(refcount_block_ptr + *registry_iter));
+			int_result->resize_no_initialize(registry_size);
+			
+			for (int registry_index = 0; registry_index < registry_size; registry_index++)
+				int_result->set_int_no_check(*(refcount_block_ptr + *(registry_iter_begin + registry_index)), registry_index);
 		}
 	}
 	
@@ -4511,17 +4521,19 @@ EidosValue_SP SLiMSim::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_metho
 	}
 	else
 	{
-		EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->Reserve(match_count);
+		EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->resize_no_initialize(match_count);
 		EidosValue_SP result_SP = EidosValue_SP(vec);
 		
 		if (match_count != 0)
 		{
+			int set_index = 0;
+			
 			for (mut_index = 0; mut_index < mutation_count; ++mut_index)
 			{
 				MutationIndex mut = mutation_registry[mut_index];
 				
 				if ((mut_block_ptr + mut)->mutation_type_ptr_ == mutation_type_ptr)
-					vec->PushObjectElement(mut_block_ptr + mut);
+					vec->set_object_element_no_check(mut_block_ptr + mut, set_index++);
 			}
 		}
 		
@@ -5088,7 +5100,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID p
 					script_block_types_cached_ = false;
 					scripts_changed_ = true;
 					
-					vec->PushObjectElement(block);
+					vec->push_object_element(block);
 				}
 				else
 				{
@@ -5096,7 +5108,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID p
 					
 					AddScriptBlock(new_script_block, &p_interpreter, nullptr);		// takes ownership from us
 					
-					vec->PushObjectElement(new_script_block);
+					vec->push_object_element(new_script_block);
 				}
 			}
 			

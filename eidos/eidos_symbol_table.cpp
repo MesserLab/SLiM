@@ -174,6 +174,35 @@ bool EidosSymbolTable::ContainsSymbol(EidosGlobalStringID p_symbol_name) const
 	return false;
 }
 
+bool EidosSymbolTable::ContainsSymbol_IsConstant(EidosGlobalStringID p_symbol_name, bool *p_is_const) const
+{
+	if (using_internal_symbols_)
+	{
+		// We can compare global string IDs; since all symbol names should be uniqued, this should be safe
+		for (int symbol_index = (int)internal_symbol_count_ - 1; symbol_index >= 0; --symbol_index)
+			if (internal_symbols_[symbol_index].symbol_name_ == p_symbol_name)
+			{
+				*p_is_const = (table_type_ != EidosSymbolTableType::kVariablesTable);
+				return true;
+			}
+	}
+	else
+	{
+		if (hash_symbols_.find(p_symbol_name) != hash_symbols_.end())
+		{
+			*p_is_const = (table_type_ != EidosSymbolTableType::kVariablesTable);
+			return true;
+		}
+	}
+	
+	// We didn't get a hit, so try our chained table
+	if (chain_symbol_table_)
+		return chain_symbol_table_->ContainsSymbol_IsConstant(p_symbol_name, p_is_const);
+	
+	*p_is_const = false;
+	return false;
+}
+
 bool EidosSymbolTable::SymbolDefinedAnywhere(EidosGlobalStringID p_symbol_name) const
 {
 	if (using_internal_symbols_)

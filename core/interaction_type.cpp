@@ -2258,7 +2258,7 @@ void InteractionType::FindNeighbors1_3(SLiM_kdNode *root, double *nd, slim_popsi
 }
 
 // find all neighbors in 1D
-void InteractionType::FindNeighborsA_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, std::vector<EidosObjectElement *> &p_result_vec, std::vector<Individual> &p_individuals)
+void InteractionType::FindNeighborsA_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, EidosValue_Object_vector &p_result_vec, std::vector<Individual> &p_individuals)
 {
 	double d = dist_sq1(root, nd);
 #ifndef __clang_analyzer__
@@ -2269,7 +2269,7 @@ void InteractionType::FindNeighborsA_1(SLiM_kdNode *root, double *nd, slim_popsi
 	double dx2 = dx * dx;
 	
 	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
-		p_result_vec.push_back(&(p_individuals[root->individual_index_]));
+		p_result_vec.push_object_element(&(p_individuals[root->individual_index_]));
 	
 	if (dx > 0)
 	{
@@ -2294,7 +2294,7 @@ void InteractionType::FindNeighborsA_1(SLiM_kdNode *root, double *nd, slim_popsi
 }
 
 // find all neighbors in 2D
-void InteractionType::FindNeighborsA_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, std::vector<EidosObjectElement *> &p_result_vec, std::vector<Individual> &p_individuals, int p_phase)
+void InteractionType::FindNeighborsA_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, EidosValue_Object_vector &p_result_vec, std::vector<Individual> &p_individuals, int p_phase)
 {
 	double d = dist_sq2(root, nd);
 #ifndef __clang_analyzer__
@@ -2305,7 +2305,7 @@ void InteractionType::FindNeighborsA_2(SLiM_kdNode *root, double *nd, slim_popsi
 	double dx2 = dx * dx;
 	
 	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
-		p_result_vec.push_back(&(p_individuals[root->individual_index_]));
+		p_result_vec.push_object_element(&(p_individuals[root->individual_index_]));
 	
 	if (++p_phase >= 2) p_phase = 0;
 	
@@ -2332,7 +2332,7 @@ void InteractionType::FindNeighborsA_2(SLiM_kdNode *root, double *nd, slim_popsi
 }
 
 // find all neighbors in 3D
-void InteractionType::FindNeighborsA_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, std::vector<EidosObjectElement *> &p_result_vec, std::vector<Individual> &p_individuals, int p_phase)
+void InteractionType::FindNeighborsA_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, EidosValue_Object_vector &p_result_vec, std::vector<Individual> &p_individuals, int p_phase)
 {
 	double d = dist_sq3(root, nd);
 #ifndef __clang_analyzer__
@@ -2343,7 +2343,7 @@ void InteractionType::FindNeighborsA_3(SLiM_kdNode *root, double *nd, slim_popsi
 	double dx2 = dx * dx;
 	
 	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
-		p_result_vec.push_back(&(p_individuals[root->individual_index_]));
+		p_result_vec.push_object_element(&(p_individuals[root->individual_index_]));
 	
 	if (++p_phase >= 3) p_phase = 0;
 	
@@ -2606,7 +2606,7 @@ void InteractionType::FindNeighborsN_3(SLiM_kdNode *root, double *nd, slim_popsi
 	FindNeighborsN_3(dx > 0 ? root->right : root->left, nd, p_focal_individual_index, p_count, best, best_dist, p_phase);
 }
 
-void InteractionType::FindNeighbors(Subpopulation *p_subpop, InteractionsData &p_subpop_data, double *p_point, int p_count, std::vector<EidosObjectElement *> &p_result_vec, Individual *p_excluded_individual)
+void InteractionType::FindNeighbors(Subpopulation *p_subpop, InteractionsData &p_subpop_data, double *p_point, int p_count, EidosValue_Object_vector &p_result_vec, Individual *p_excluded_individual)
 {
 	if (spatiality_ == 0)
 	{
@@ -2649,7 +2649,7 @@ void InteractionType::FindNeighbors(Subpopulation *p_subpop, InteractionsData &p
 			{
 				Individual *best_individual = &(p_subpop->parent_individuals_[best->individual_index_]);
 				
-				p_result_vec.emplace_back(best_individual);
+				p_result_vec.push_object_element(best_individual);
 			}
 		}
 		else if (p_count >= p_subpop_data.individual_count_ - 1)	// -1 because the focal individual is excluded
@@ -2689,7 +2689,7 @@ void InteractionType::FindNeighbors(Subpopulation *p_subpop, InteractionsData &p
 				
 				Individual *best_individual = &(p_subpop->parent_individuals_[best_rec->individual_index_]);
 				
-				p_result_vec.emplace_back(best_individual);
+				p_result_vec.push_object_element(best_individual);
 			}
 			
 			free(best);
@@ -3141,7 +3141,7 @@ double InteractionType::TotalNeighborStrength(Subpopulation *p_subpop, Interacti
 #pragma mark -
 
 // fetch all neighbor strengths in 1D
-void InteractionType::FillNeighborStrengthsA_1(SLiM_kdNode *root, double *nd, double *p_focal_strengths, std::vector<double> &p_result_vec)
+void InteractionType::FillNeighborStrengthsA_1(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_result_vec)
 {
 	double dx = root->x[0] - nd[0];
 	double distance = fabs(dx);
@@ -3188,7 +3188,7 @@ void InteractionType::FillNeighborStrengthsA_1(SLiM_kdNode *root, double *nd, do
 	}
 }
 
-void InteractionType::FillNeighborStrengthsA_1_reciprocal(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, int subpop_size, std::vector<double> &p_result_vec)
+void InteractionType::FillNeighborStrengthsA_1_reciprocal(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, int subpop_size, double *p_result_vec)
 {
 	double dx = root->x[0] - nd[0];
 	double distance = fabs(dx);
@@ -3237,7 +3237,7 @@ void InteractionType::FillNeighborStrengthsA_1_reciprocal(SLiM_kdNode *root, dou
 }
 
 // fetch all neighbor strengths in 2D
-void InteractionType::FillNeighborStrengthsA_2(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_focal_distances, std::vector<double> &p_result_vec, int p_phase)
+void InteractionType::FillNeighborStrengthsA_2(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_focal_distances, double *p_result_vec, int p_phase)
 {
 	slim_popsize_t root_individual_index = root->individual_index_;
 	double distance = p_focal_distances[root_individual_index];
@@ -3292,7 +3292,7 @@ void InteractionType::FillNeighborStrengthsA_2(SLiM_kdNode *root, double *nd, do
 	}
 }
 
-void InteractionType::FillNeighborStrengthsA_2_reciprocal(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, std::vector<double> &p_result_vec, int p_phase)
+void InteractionType::FillNeighborStrengthsA_2_reciprocal(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, double *p_result_vec, int p_phase)
 {
 	slim_popsize_t root_individual_index = root->individual_index_;
 	double distance = p_focal_distances[root_individual_index];
@@ -3350,7 +3350,7 @@ void InteractionType::FillNeighborStrengthsA_2_reciprocal(SLiM_kdNode *root, dou
 }
 
 // fetch all neighbor strengths in 3D
-void InteractionType::FillNeighborStrengthsA_3(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_focal_distances, std::vector<double> &p_result_vec, int p_phase)
+void InteractionType::FillNeighborStrengthsA_3(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_focal_distances, double *p_result_vec, int p_phase)
 {
 	slim_popsize_t root_individual_index = root->individual_index_;
 	double distance = p_focal_distances[root_individual_index];
@@ -3405,7 +3405,7 @@ void InteractionType::FillNeighborStrengthsA_3(SLiM_kdNode *root, double *nd, do
 	}
 }
 
-void InteractionType::FillNeighborStrengthsA_3_reciprocal(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, std::vector<double> &p_result_vec, int p_phase)
+void InteractionType::FillNeighborStrengthsA_3_reciprocal(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, double *p_result_vec, int p_phase)
 {
 	slim_popsize_t root_individual_index = root->individual_index_;
 	double distance = p_focal_distances[root_individual_index];
@@ -3462,7 +3462,7 @@ void InteractionType::FillNeighborStrengthsA_3_reciprocal(SLiM_kdNode *root, dou
 	}
 }
 
-void InteractionType::FillNeighborStrengths(Subpopulation *p_subpop, InteractionsData &p_subpop_data, double *p_point, Individual *p_excluded_individual, std::vector<double> &p_result_vec)
+void InteractionType::FillNeighborStrengths(Subpopulation *p_subpop, InteractionsData &p_subpop_data, double *p_point, Individual *p_excluded_individual, double *p_result_vec)
 {
 	if (spatiality_ == 0)
 	{
@@ -3724,7 +3724,7 @@ EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_meth
 	if (individuals2->Type() == EidosValueType::kValueNULL)
 	{
 		// NULL means return distances from individuals1 (which must be singleton) to all individuals in the subpopulation
-		EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(subpop1_size);
+		EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(subpop1_size);
 		
 		if (!reciprocal_)
 		{
@@ -3741,7 +3741,7 @@ EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_meth
 						ind1_distances[ind2_index] = distance;
 					}
 					
-					result_vec->PushFloat(distance);
+					result_vec->set_float_no_check(distance, ind2_index);
 				}
 			}
 			else
@@ -3756,7 +3756,7 @@ EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_meth
 						ind1_distances[ind2_index] = distance;
 					}
 					
-					result_vec->PushFloat(distance);
+					result_vec->set_float_no_check(distance, ind2_index);
 				}
 			}
 		}
@@ -3777,7 +3777,7 @@ EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_meth
 						*(mirror_ind1_distances) = distance;
 					}
 					
-					result_vec->PushFloat(distance);
+					result_vec->set_float_no_check(distance, ind2_index);
 				}
 			}
 			else
@@ -3794,7 +3794,7 @@ EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_meth
 						*(mirror_ind1_distances) = distance;
 					}
 					
-					result_vec->PushFloat(distance);
+					result_vec->set_float_no_check(distance, ind2_index);
 				}
 			}
 		}
@@ -3804,7 +3804,7 @@ EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_meth
 	else
 	{
 		// Otherwise, individuals1 is singleton, and individuals2 is any length, so we loop over individuals2
-		EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(count2);
+		EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(count2);
 		
 		for (int ind2_index = 0; ind2_index < count2; ++ind2_index)
 		{
@@ -3831,7 +3831,7 @@ EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_meth
 					*(mirror_ind1_distances + ind2_index_in_subpop * subpop1_size) = distance;
 			}
 			
-			result_vec->PushFloat(distance);
+			result_vec->set_float_no_check(distance, ind2_index);
 		}
 		
 		return EidosValue_SP(result_vec);
@@ -3895,7 +3895,7 @@ EidosValue_SP InteractionType::ExecuteMethod_distanceToPoint(EidosGlobalStringID
 			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distanceToPoint): distanceToPoint() requires that coordinates for periodic spatial dimensions fall inside spatial bounaries; use pointPeriodic() to ensure this if necessary." << EidosTerminate();
 	}
 	
-	EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(count);
+	EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(count);
 	
 	if (periodicity_enabled)
 	{
@@ -3908,7 +3908,7 @@ EidosValue_SP InteractionType::ExecuteMethod_distanceToPoint(EidosGlobalStringID
 			
 			double *ind_position = position_data + ind->index_ * SLIM_MAX_DIMENSIONALITY;
 			
-			result_vec->PushFloat(CalculateDistanceWithPeriodicity(ind_position, point_data, subpop_data));
+			result_vec->set_float_no_check(CalculateDistanceWithPeriodicity(ind_position, point_data, subpop_data), ind_index);
 		}
 	}
 	else
@@ -3922,7 +3922,7 @@ EidosValue_SP InteractionType::ExecuteMethod_distanceToPoint(EidosGlobalStringID
 			
 			double *ind_position = position_data + ind->index_ * SLIM_MAX_DIMENSIONALITY;
 			
-			result_vec->PushFloat(CalculateDistance(ind_position, point_data));
+			result_vec->set_float_no_check(CalculateDistance(ind_position, point_data), ind_index);
 		}
 	}
 	
@@ -3961,16 +3961,19 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 	InteractionsData &subpop_data = subpop_data_iter->second;
 	std::vector<SLiMEidosBlock*> &callbacks = subpop_data.evaluation_interaction_callbacks_;
 	bool no_callbacks = (callbacks.size() == 0);
-	std::vector<EidosObjectElement *> neighbors;
+	EidosValue_Object_vector neighbors(gSLiM_Individual_Class);
 	
 	if (spatiality_ == 0)
 	{
 		EnsureStrengthsPresent(subpop_data);
 		
 		// For non-spatial interactions, just use the subpop's vector of individuals
-		neighbors.reserve(subpop_size);
-		for (Individual &subpop_individual : subpop->parent_individuals_)
-			neighbors.emplace_back(&subpop_individual);
+		std::vector<Individual> &parents = subpop->parent_individuals_;
+		
+		neighbors.resize_no_initialize(subpop_size);
+		
+		for (int parent_index = 0; parent_index < subpop_size; ++parent_index)
+			neighbors.set_object_element_no_check(&parents[parent_index], parent_index);
 	}
 	else
 	{
@@ -3986,6 +3989,8 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 	}
 	
 	// Total the interaction strengths with all neighbors; this has the side effect of caching all relevant strengths
+	EidosObjectElement * const *neighbor_data = neighbors.data();
+	int neighbor_count = (int)neighbors.size();
 	double total_interaction_strength = 0.0;
 	std::vector<double> cached_strength;
 	
@@ -3996,8 +4001,9 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 		double *ind1_strengths = subpop_data.strengths_ + ind_index * subpop_size;
 		double *mirror_ind1_strengths = subpop_data.strengths_ + ind_index;			// used when reciprocality is enabled
 		
-		for (EidosObjectElement *neighbor : neighbors)
+		for (int neighbor_index = 0; neighbor_index < neighbor_count; ++neighbor_index)
 		{
+			EidosObjectElement *neighbor = neighbor_data[neighbor_index];
 			Individual *ind2 = (Individual *)neighbor;
 			
 			slim_popsize_t ind2_index_in_subpop = ind2->index_;
@@ -4029,8 +4035,9 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 		double *position_data = subpop_data.positions_;
 		double *ind1_position = position_data + ind_index * SLIM_MAX_DIMENSIONALITY;
 		
-		for (EidosObjectElement *neighbor : neighbors)
+		for (int neighbor_index = 0; neighbor_index < neighbor_count; ++neighbor_index)
 		{
+			EidosObjectElement *neighbor = neighbor_data[neighbor_index];
 			Individual *ind2 = (Individual *)neighbor;
 			
 			slim_popsize_t ind2_index_in_subpop = ind2->index_;
@@ -4087,8 +4094,9 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 	
 	if (total_interaction_strength > 0.0)
 	{
-		result_vec->Reserve((int)count);
-		std::vector<EidosObjectElement *> *result_direct = result_vec->ObjectElementVector_Mutable();
+		result_vec->resize_no_initialize((int)count);
+		
+		EidosValue_Object_vector *result_direct = result_vec->ObjectElementVector_Mutable();
 		
 		if (count > 50)		// the empirically determined crossover point in performance
 		{
@@ -4099,7 +4107,7 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 			{
 				int hit_index = (int)gsl_ran_discrete(gEidos_rng, gsl_lookup);
 				
-				result_direct->push_back(neighbors[hit_index]);
+				result_direct->set_object_element_no_check(neighbor_data[hit_index], draw_index);
 			}
 			
 			gsl_ran_discrete_free(gsl_lookup);
@@ -4126,7 +4134,7 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 				if (hit_index >= neighbors_size)
 					hit_index = neighbors_size - 1;
 				
-				result_direct->push_back(neighbors[hit_index]);
+				result_direct->set_object_element_no_check(neighbor_data[hit_index], draw_index);
 			}
 		}
 	}
@@ -4210,10 +4218,9 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighbors(EidosGlobalStringI
 	
 	EnsureKDTreePresent(subpop_data);
 	
-	EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class))->Reserve((int)count);
-	std::vector<EidosObjectElement *> *result_direct = result_vec->ObjectElementVector_Mutable();
+	EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class))->reserve((int)count);
 	
-	FindNeighbors(subpop, subpop_data, ind_position, (int)count, *result_direct, individual);
+	FindNeighbors(subpop, subpop_data, ind_position, (int)count, *result_vec, individual);
 	
 	return EidosValue_SP(result_vec);
 }
@@ -4264,10 +4271,9 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighborsOfPoint(EidosGlobal
 	
 	EnsureKDTreePresent(subpop_data);
 	
-	EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class))->Reserve((int)count);
-	std::vector<EidosObjectElement *> *result_direct = result_vec->ObjectElementVector_Mutable();
+	EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class))->reserve((int)count);
 	
-	FindNeighbors(subpop, subpop_data, point_array, (int)count, *result_direct, nullptr);
+	FindNeighbors(subpop, subpop_data, point_array, (int)count, *result_vec, nullptr);
 	
 	return EidosValue_SP(result_vec);
 }
@@ -4394,7 +4400,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 		if (individuals2->Type() == EidosValueType::kValueNULL)
 		{
 			// NULL means return strengths from individuals1 (which must be singleton) to all individuals in the subpopulation
-			EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(subpop1_size);
+			EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(subpop1_size);
 			
 			if (std::isinf(max_distance_))
 			{
@@ -4432,7 +4438,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 							ind1_strengths[ind2_index] = strength;
 						}
 						
-						result_vec->PushFloat(strength);
+						result_vec->set_float_no_check(strength, ind2_index);
 					}
 				}
 				else
@@ -4469,7 +4475,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 							*(mirror_ind1_strengths) = strength;
 						}
 						
-						result_vec->PushFloat(strength);
+						result_vec->set_float_no_check(strength, ind2_index);
 					}
 				}
 			}
@@ -4485,13 +4491,14 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 				// is not large, so I'm not too worried.  The big goal is to make it so that simulations involving large
 				// spatial areas with large numbers of individuals and highly localized interactions perform as well as
 				// possible, and this k-d tree case ensures that.
-				std::vector<double> &result_cpp_vec = *result_vec->FloatVector_Mutable();
+				result_vec->resize_no_initialize(subpop1_size);	// this does *not* value-initialize, so we need to zero-fill
 				
-				result_cpp_vec.resize(subpop1_size);	// this value-initializes, so it zero-fills
+				double *result_data = result_vec->data();
+				
+				bzero(result_data, subpop1_size * sizeof(double));
 				
 				EnsureKDTreePresent(subpop_data);
-				
-				FillNeighborStrengths(subpop1, subpop_data, ind1_position, ind1, result_cpp_vec);
+				FillNeighborStrengths(subpop1, subpop_data, ind1_position, ind1, result_data);
 			}
 			
 			return EidosValue_SP(result_vec);
@@ -4499,7 +4506,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 		else
 		{
 			// Otherwise, individuals1 is singleton, and individuals2 is any length, so we loop over individuals2
-			EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(count2);
+			EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(count2);
 			
 			for (int ind2_index = 0; ind2_index < count2; ++ind2_index)
 			{
@@ -4543,7 +4550,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 						*(mirror_ind1_strengths + ind2_index_in_subpop * subpop1_size) = strength;
 				}
 				
-				result_vec->PushFloat(strength);
+				result_vec->set_float_no_check(strength, ind2_index);
 			}
 			
 			return EidosValue_SP(result_vec);
@@ -4561,7 +4568,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 		if (individuals2->Type() == EidosValueType::kValueNULL)
 		{
 			// NULL means return strengths from individuals1 (which must be singleton) to all individuals in the subpopulation
-			EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(subpop1_size);
+			EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(subpop1_size);
 			
 			if (!reciprocal_)
 			{
@@ -4579,7 +4586,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 						ind1_strengths[ind2_index] = strength;
 					}
 					
-					result_vec->PushFloat(strength);
+					result_vec->set_float_no_check(strength, ind2_index);
 				}
 			}
 			else
@@ -4599,7 +4606,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 						*(mirror_ind1_strengths) = strength;
 					}
 					
-					result_vec->PushFloat(strength);
+					result_vec->set_float_no_check(strength, ind2_index);
 				}
 			}
 			
@@ -4608,7 +4615,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 		else
 		{
 			// Otherwise, individuals1 is singleton, and individuals2 is any length, so we loop over individuals2
-			EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(count2);
+			EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(count2);
 			
 			for (int ind2_index = 0; ind2_index < count2; ++ind2_index)
 			{
@@ -4633,7 +4640,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 						*(mirror_ind1_strengths + ind2_index_in_subpop * subpop1_size) = strength;
 				}
 				
-				result_vec->PushFloat(strength);
+				result_vec->set_float_no_check(strength, ind2_index);
 			}
 			
 			return EidosValue_SP(result_vec);
@@ -4672,7 +4679,7 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 	EnsureKDTreePresent(subpop_data);
 	
 	// Loop over the requested individuals and get the totals
-	EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(count);
+	EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(count);
 	
 	for (int ind_index = 0; ind_index < count; ++ind_index)
 	{
@@ -4688,7 +4695,7 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 		// use the k-d tree to find neighbors, and total their strengths
 		double total_strength = TotalNeighborStrength(subpop, subpop_data, ind_position, individual);
 		
-		result_vec->PushFloat(total_strength);
+		result_vec->set_float_no_check(total_strength, ind_index);
 	}
 	
 	return EidosValue_SP(result_vec);

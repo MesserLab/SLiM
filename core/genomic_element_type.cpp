@@ -183,7 +183,7 @@ EidosValue_SP GenomicElementType::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto mut_type = mutation_type_ptrs_.begin(); mut_type != mutation_type_ptrs_.end(); ++mut_type)
-				vec->PushObjectElement(*mut_type);
+				vec->push_object_element(*mut_type);
 			
 			return result_SP;
 		}

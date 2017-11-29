@@ -160,6 +160,7 @@ public:
 	// Test for containing a value for a symbol; ContainsSymbol() searches through the chain of symbol tables that are in scope, whereas
 	// SymbolDefinedAnywhere() looks through all parent tables regardless of scope.
 	bool ContainsSymbol(EidosGlobalStringID p_symbol_name) const;
+	bool ContainsSymbol_IsConstant(EidosGlobalStringID p_symbol_name, bool *p_is_const) const;
 	bool SymbolDefinedAnywhere(EidosGlobalStringID p_symbol_name) const;
 	
 	// Set as a variable (raises if already defined as a constant); the NoCopy version is *not* what you want, almost certainly (see it for comments)

@@ -168,6 +168,10 @@ public:
 	
 	EidosTestElement_Class(void);
 	
+#ifdef EIDOS_OBJECT_RETAIN_RELEASE
+	virtual bool NeedsRetainRelease(void) const;
+#endif
+	
 	virtual const std::string &ElementType(void) const;
 	
 	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
@@ -184,6 +188,13 @@ EidosObjectClass *gEidosTestElement_Class = new EidosTestElement_Class();
 EidosTestElement_Class::EidosTestElement_Class(void)
 {
 }
+
+#ifdef EIDOS_OBJECT_RETAIN_RELEASE
+bool EidosTestElement_Class::NeedsRetainRelease(void) const
+{
+	return true;
+}
+#endif
 
 const std::string &EidosTestElement_Class::ElementType(void) const
 {

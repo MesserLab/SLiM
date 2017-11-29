@@ -1770,57 +1770,67 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 	}
 	
 	// Read out the final values of breakpoint vectors that changed
-	// We really want to use EidosValue_Int_vector's IntVector() method to get the values; if the dynamic_cast
-	// fails, we presumably have an EidosValue_Int_singleton and must get its value with IntAtIndex.
 	bool breakpoints_changed = false;
 	
 	if (crossovers_changed)
 	{
-		p_crossovers.clear();
+		int count = local_crossovers_ptr->Count();
 		
-		EidosValue_Int_vector *new_crossover_vector = dynamic_cast<EidosValue_Int_vector *>(local_crossovers_ptr.get());
+		p_crossovers.resize(count);		// zero-fills only new entries at the margin, so is minimally wasteful
 		
-		if (new_crossover_vector)
-		{
-			for (int64_t value : *new_crossover_vector->IntVector())
-				p_crossovers.push_back((slim_position_t)value);
-		}
+		if (count == 1)
+			p_crossovers[0] = (slim_position_t)local_crossovers_ptr->IntAtIndex(0, nullptr);
 		else
-			p_crossovers.push_back((slim_position_t)local_crossovers_ptr->IntAtIndex(0, nullptr));
+		{
+			const EidosValue_Int_vector *new_crossover_vector = local_crossovers_ptr->IntVector();
+			const int64_t *new_crossover_data = new_crossover_vector->data();
+			slim_position_t *p_crossovers_data = p_crossovers.data();
+			
+			for (int value_index = 0; value_index < count; ++value_index)
+				p_crossovers_data[value_index] = (slim_position_t)new_crossover_data[value_index];
+		}
 		
 		breakpoints_changed = true;
 	}
 	
 	if (gcstarts_changed)
 	{
-		p_gc_starts.clear();
+		int count = local_gcstarts_ptr->Count();
 		
-		EidosValue_Int_vector *new_gcstarts_vector = dynamic_cast<EidosValue_Int_vector *>(local_gcstarts_ptr.get());
+		p_gc_starts.resize(count);		// zero-fills only new entries at the margin, so is minimally wasteful
 		
-		if (new_gcstarts_vector)
-		{
-			for (int64_t value : *new_gcstarts_vector->IntVector())
-				p_gc_starts.push_back((slim_position_t)value);
-		}
+		if (count == 1)
+			p_gc_starts[0] = (slim_position_t)local_gcstarts_ptr->IntAtIndex(0, nullptr);
 		else
-			p_gc_starts.push_back((slim_position_t)local_gcstarts_ptr->IntAtIndex(0, nullptr));
+		{
+			const EidosValue_Int_vector *new_gcstarts_vector = local_gcstarts_ptr->IntVector();
+			const int64_t *new_gcstarts_data = new_gcstarts_vector->data();
+			slim_position_t *p_gc_starts_data = p_gc_starts.data();
+			
+			for (int value_index = 0; value_index < count; ++value_index)
+				p_gc_starts_data[value_index] = (slim_position_t)new_gcstarts_data[value_index];
+		}
 		
 		breakpoints_changed = true;
 	}
 	
 	if (gcends_changed)
 	{
-		p_gc_ends.clear();
+		int count = local_gcends_ptr->Count();
 		
-		EidosValue_Int_vector *new_gcends_vector = dynamic_cast<EidosValue_Int_vector *>(local_gcends_ptr.get());
+		p_gc_ends.resize(count);		// zero-fills only new entries at the margin, so is minimally wasteful
 		
-		if (new_gcends_vector)
-		{
-			for (int64_t value : *new_gcends_vector->IntVector())
-				p_gc_ends.push_back((slim_position_t)value);
-		}
+		if (count == 1)
+			p_gc_ends[0] = (slim_position_t)local_gcends_ptr->IntAtIndex(0, nullptr);
 		else
-			p_gc_ends.push_back((slim_position_t)local_gcends_ptr->IntAtIndex(0, nullptr));
+		{
+			const EidosValue_Int_vector *new_gcends_vector = local_gcends_ptr->IntVector();
+			const int64_t *new_gcends_data = new_gcends_vector->data();
+			slim_position_t *p_gc_ends_data = p_gc_ends.data();
+			
+			for (int value_index = 0; value_index < count; ++value_index)
+				p_gc_ends_data[value_index] = (slim_position_t)new_gcends_data[value_index];
+		}
 		
 		breakpoints_changed = true;
 	}

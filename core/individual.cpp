@@ -255,10 +255,10 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			
 			if (genome1 && genome2)
 			{
-				EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Genome_Class))->Reserve(2);
+				EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Genome_Class))->resize_no_initialize(2);
 				
-				vec->PushObjectElement(genome1);
-				vec->PushObjectElement(genome2);
+				vec->set_object_element_no_check(genome1, 0);
+				vec->set_object_element_no_check(genome2, 1);
 				
 				return EidosValue_SP(vec);
 			}
@@ -296,21 +296,21 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_pedigreeParentIDs:
 		{
-			EidosValue_Int_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->Reserve(2);
+			EidosValue_Int_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(2);
 			
-			vec->PushInt(pedigree_p1_);
-			vec->PushInt(pedigree_p2_);
+			vec->set_int_no_check(pedigree_p1_, 0);
+			vec->set_int_no_check(pedigree_p2_, 1);
 			
 			return EidosValue_SP(vec);
 		}
 		case gID_pedigreeGrandparentIDs:
 		{
-			EidosValue_Int_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->Reserve(4);
+			EidosValue_Int_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(4);
 			
-			vec->PushInt(pedigree_g1_);
-			vec->PushInt(pedigree_g2_);
-			vec->PushInt(pedigree_g2_);
-			vec->PushInt(pedigree_g2_);
+			vec->set_int_no_check(pedigree_g1_, 0);
+			vec->set_int_no_check(pedigree_g2_, 1);
+			vec->set_int_no_check(pedigree_g2_, 2);
+			vec->set_int_no_check(pedigree_g2_, 3);
 			
 			return EidosValue_SP(vec);
 		}
@@ -347,9 +347,9 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 				
 				if ((genome1_size == 0) && (genome2_size == 0))
 					return result_SP;
-
-				vec->Reserve(genome1_size + genome2_size);
-
+				
+				vec->reserve(genome1_size + genome2_size);
+				
 				Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 				int mutrun_count = (genome1_size ? g1.mutrun_count_ : g2.mutrun_count_);
 				
@@ -374,7 +374,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 						{
 							if (pos1 < pos2)
 							{
-								vec->PushObjectElement(mut_block_ptr + g1_mut);
+								vec->push_object_element_no_check(mut_block_ptr + g1_mut);
 								
 								// Move to the next mutation in g1
 								if (++g1_index >= g1_size)
@@ -384,7 +384,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 							}
 							else if (pos1 > pos2)
 							{
-								vec->PushObjectElement(mut_block_ptr + g2_mut);
+								vec->push_object_element_no_check(mut_block_ptr + g2_mut);
 								
 								// Move to the next mutation in g2
 								if (++g2_index >= g2_size)
@@ -401,7 +401,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 								
 								while (pos1 == focal_pos)
 								{
-									vec->PushObjectElement(mut_block_ptr + g1_mut);
+									vec->push_object_element_no_check(mut_block_ptr + g1_mut);
 									
 									// Move to the next mutation in g1
 									if (++g1_index >= g1_size)
@@ -426,7 +426,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 									
 									// If the check indicates that g2_mut is not in g1, we copy it over
 									if (check_index == last_index_plus_one)
-										vec->PushObjectElement(mut_block_ptr + g2_mut);
+										vec->push_object_element_no_check(mut_block_ptr + g2_mut);
 									
 									// Move to the next mutation in g2
 									if (++g2_index >= g2_size)
@@ -448,9 +448,9 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 					
 					// Finish off any tail ends, which must be unique and sorted already
 					while (g1_index < g1_size)
-						vec->PushObjectElement(mut_block_ptr + (*mutrun1)[g1_index++]);
+						vec->push_object_element_no_check(mut_block_ptr + (*mutrun1)[g1_index++]);
 					while (g2_index < g2_size)
-						vec->PushObjectElement(mut_block_ptr + (*mutrun2)[g2_index++]);
+						vec->push_object_element_no_check(mut_block_ptr + (*mutrun2)[g2_index++]);
 				}
 			
 				return result_SP;
@@ -687,15 +687,14 @@ EidosValue_SP Individual::ExecuteMethod_containsMutations(EidosGlobalStringID p_
 		}
 		else
 		{
-			EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve(arg0_count);
-			std::vector<eidos_logical_t> &logical_result_vec = *logical_result->LogicalVector_Mutable();
+			EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(arg0_count);
 			
 			for (int value_index = 0; value_index < arg0_count; ++value_index)
 			{
 				MutationIndex mut = ((Mutation *)(arg0_value->ObjectElementAtIndex(value_index, nullptr)))->BlockIndex();
 				bool contains_mut = ((!genome1->IsNull() && genome1->contains_mutation(mut)) || (!genome2->IsNull() && genome2->contains_mutation(mut)));
 				
-				logical_result_vec.emplace_back(contains_mut);
+				logical_result->set_logical_no_check(contains_mut, value_index);
 			}
 			
 			return EidosValue_SP(logical_result);
@@ -780,14 +779,14 @@ EidosValue_SP Individual::ExecuteMethod_relatedness(EidosGlobalStringID p_method
 	}
 	else
 	{
-		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->Reserve(arg0_count);
+		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(arg0_count);
 		
 		for (int value_index = 0; value_index < arg0_count; ++value_index)
 		{
 			Individual *ind = (Individual *)(arg0_value->ObjectElementAtIndex(value_index, nullptr));
 			double relatedness = RelatednessToIndividual(*ind);
 			
-			float_result->PushFloat(relatedness);
+			float_result->set_float_no_check(relatedness, value_index);
 		}
 		
 		return EidosValue_SP(float_result);
@@ -925,7 +924,7 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 			return result_SP;
 		
 		if (genome1_size + genome2_size < 100)	// an arbitrary limit, but we don't want to make something *too* unnecessarily big...
-			vec->Reserve(genome1_size + genome2_size);
+			vec->reserve(genome1_size + genome2_size);
 		
 		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 		int mutrun_count = (genome1_size ? g1.mutrun_count_ : g2.mutrun_count_);
@@ -970,7 +969,7 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 						// Now we have mutations of the right type, so we can start working with them by position
 						if (pos1 < pos2)
 						{
-							vec->PushObjectElement(mut_block_ptr + g1_mut);
+							vec->push_object_element_no_check(mut_block_ptr + g1_mut);
 							
 							// Move to the next mutation in g1
 						loopback1:
@@ -985,7 +984,7 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 						}
 						else if (pos1 > pos2)
 						{
-							vec->PushObjectElement(mut_block_ptr + g2_mut);
+							vec->push_object_element_no_check(mut_block_ptr + g2_mut);
 							
 							// Move to the next mutation in g2
 						loopback2:
@@ -1007,7 +1006,7 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 							
 							while (pos1 == focal_pos)
 							{
-								vec->PushObjectElement(mut_block_ptr + g1_mut);
+								vec->push_object_element_no_check(mut_block_ptr + g1_mut);
 								
 								// Move to the next mutation in g1
 							loopback3:
@@ -1036,7 +1035,7 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 								
 								// If the check indicates that g2_mut is not in g1, we copy it over
 								if (check_index == last_index_plus_one)
-									vec->PushObjectElement(mut_block_ptr + g2_mut);
+									vec->push_object_element_no_check(mut_block_ptr + g2_mut);
 								
 								// Move to the next mutation in g2
 							loopback4:
@@ -1067,14 +1066,14 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 				MutationIndex mut = (*mutrun1)[g1_index++];
 				
 				if ((mut_block_ptr + mut)->mutation_type_ptr_ == mutation_type_ptr)
-					vec->PushObjectElement(mut_block_ptr + mut);
+					vec->push_object_element_no_check(mut_block_ptr + mut);
 			}
 			while (g2_index < g2_size)
 			{
 				MutationIndex mut = (*mutrun2)[g2_index++];
 				
 				if ((mut_block_ptr + mut)->mutation_type_ptr_ == mutation_type_ptr)
-					vec->PushObjectElement(mut_block_ptr + mut);
+					vec->push_object_element_no_check(mut_block_ptr + mut);
 			}
 		}
 		

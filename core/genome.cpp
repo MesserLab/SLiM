@@ -557,8 +557,9 @@ EidosValue_SP Genome::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 			int mut_count = mutation_count();
-			EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->Reserve(mut_count);
+			EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->resize_no_initialize(mut_count);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
+			int set_index = 0;
 			
 			for (int run_index = 0; run_index < mutrun_count_; ++run_index)
 			{
@@ -567,7 +568,7 @@ EidosValue_SP Genome::GetProperty(EidosGlobalStringID p_property_id)
 				const MutationIndex *mut_end_ptr = mutrun->end_pointer_const();
 				
 				for (const MutationIndex *mut_ptr = mut_start_ptr; mut_ptr < mut_end_ptr; ++mut_ptr)
-					vec->PushObjectElement(mut_block_ptr + *mut_ptr);
+					vec->set_object_element_no_check(mut_block_ptr + *mut_ptr, set_index++);
 			}
 			
 			return result_SP;
@@ -692,8 +693,7 @@ EidosValue_SP Genome::ExecuteMethod_containsMutations(EidosGlobalStringID p_meth
 	}
 	else
 	{
-		EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->Reserve(arg0_count);
-		std::vector<eidos_logical_t> &logical_result_vec = *logical_result->LogicalVector_Mutable();
+		EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(arg0_count);
 		
 		for (int value_index = 0; value_index < arg0_count; ++value_index)
 		{
@@ -701,7 +701,7 @@ EidosValue_SP Genome::ExecuteMethod_containsMutations(EidosGlobalStringID p_meth
 			MutationIndex mut_block_index = mut->BlockIndex();
 			bool contained = contains_mutation(mut_block_index);
 			
-			logical_result_vec.emplace_back(contained);
+			logical_result->set_logical_no_check(contained, value_index);
 		}
 		
 		return EidosValue_SP(logical_result);
@@ -783,11 +783,13 @@ EidosValue_SP Genome::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_method
 	}
 	else
 	{
-		EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->Reserve(match_count);
+		EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->resize_no_initialize(match_count);
 		EidosValue_SP result_SP = EidosValue_SP(vec);
 		
 		if (match_count != 0)
 		{
+			int set_index = 0;
+			
 			for (int run_index = 0; run_index < mutrun_count_; ++run_index)
 			{
 				MutationRun *mutrun = mutruns_[run_index].get();
@@ -799,7 +801,7 @@ EidosValue_SP Genome::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_method
 					Mutation *mut = (mut_block_ptr + mut_ptr[mut_index]);
 					
 					if (mut->mutation_type_ptr_ == mutation_type_ptr)
-						vec->PushObjectElement(mut);
+						vec->set_object_element_no_check(mut, set_index++);
 				}
 			}
 		}
@@ -836,7 +838,7 @@ EidosValue_SP Genome::ExecuteMethod_positionsOfMutationsOfType(EidosGlobalString
 			Mutation *mutation = mut_block_ptr + mut_ptr[mut_index];
 			
 			if (mutation->mutation_type_ptr_ == mutation_type_ptr)
-				int_result->PushInt(mutation->position_);
+				int_result->push_int(mutation->position_);
 		}
 	}
 	
@@ -1685,7 +1687,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 				
 				// add to the registry, return value, genome, etc.
 				pop.mutation_registry_.emplace_back(new_mut_index);
-				retval->PushObjectElement(gSLiM_Mutation_Block + new_mut_index);
+				retval->push_object_element(gSLiM_Mutation_Block + new_mut_index);
 				mutations_to_add.emplace_back(new_mut_index);
 			}
 		}

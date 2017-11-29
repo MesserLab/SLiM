@@ -976,6 +976,47 @@ void _RunLiteralsIdentifiersAndTokenizationTests(void)
 	EidosAssertScriptRaise("NAN = 5;", 4, "is a constant");
 	EidosAssertScriptRaise("E = 5;", 2, "is a constant");
 	EidosAssertScriptRaise("PI = 5;", 3, "is a constant");
+	
+	// try harder to overwrite a constant
+	EidosAssertScriptRaise("T = F;", 2, "is a constant");
+	EidosAssertScriptRaise("T[0] = F;", 5, "is a constant");
+	EidosAssertScriptRaise("T[0][0] = F;", 8, "is a constant");
+	EidosAssertScriptRaise("T = !T;", 2, "is a constant");
+	EidosAssertScriptRaise("for (T in c(F, F)) 5;", 5, "is a constant");
+	
+	EidosAssertScriptRaise("PI = 3;", 3, "is a constant");
+	EidosAssertScriptRaise("PI = 3.0;", 3, "is a constant");
+	EidosAssertScriptRaise("PI[0] = 3;", 6, "is a constant");
+	EidosAssertScriptRaise("PI[0] = 3.0;", 6, "is a constant");
+	EidosAssertScriptRaise("PI[0][0] = 3;", 9, "is a constant");
+	EidosAssertScriptRaise("PI[0][0] = 3.0;", 9, "is a constant");
+	EidosAssertScriptRaise("PI = PI + 1;", 3, "is a constant");
+	EidosAssertScriptRaise("PI = PI + 1.0;", 3, "is a constant");
+	EidosAssertScriptRaise("PI = PI - 1;", 3, "is a constant");
+	EidosAssertScriptRaise("PI = PI - 1.0;", 3, "is a constant");
+	EidosAssertScriptRaise("PI = PI * 2;", 3, "is a constant");
+	EidosAssertScriptRaise("PI = PI * 2.0;", 3, "is a constant");
+	EidosAssertScriptRaise("PI = PI / 2;", 3, "is a constant");
+	EidosAssertScriptRaise("PI = PI / 2.0;", 3, "is a constant");
+	EidosAssertScriptRaise("for (PI in c(3, 4)) 5;", 5, "is a constant");
+	EidosAssertScriptRaise("for (PI in c(3.0, 4.0)) 5;", 5, "is a constant");
+	
+	EidosAssertScriptRaise("defineConstant('Q', 7); Q = 3;", 26, "is a constant");
+	EidosAssertScriptRaise("defineConstant('Q', 7); Q = 3.0;", 26, "is a constant");
+	EidosAssertScriptRaise("defineConstant('Q', 7); Q[0] = 3;", 29, "is a constant");
+	EidosAssertScriptRaise("defineConstant('Q', 7); Q[0] = 3.0;", 29, "is a constant");
+	EidosAssertScriptRaise("defineConstant('Q', 7); Q[0][0] = 3;", 32, "is a constant");
+	EidosAssertScriptRaise("defineConstant('Q', 7); Q[0][0] = 3.0;", 32, "is a constant");
+	EidosAssertScriptRaise("defineConstant('Q', 7); Q = Q + 1;", 26, "is a constant");
+	EidosAssertScriptRaise("defineConstant('Q', 7); Q = Q + 1.0;", 26, "is a constant");
+	EidosAssertScriptRaise("defineConstant('Q', 7); Q = Q - 1;", 26, "is a constant");
+	EidosAssertScriptRaise("defineConstant('Q', 7); Q = Q - 1.0;", 26, "is a constant");
+	EidosAssertScriptRaise("defineConstant('Q', 7); Q = Q * 2;", 26, "is a constant");
+	EidosAssertScriptRaise("defineConstant('Q', 7); Q = Q * 2.0;", 26, "is a constant");
+	EidosAssertScriptRaise("defineConstant('Q', 7); Q = Q / 2;", 26, "is a constant");
+	EidosAssertScriptRaise("defineConstant('Q', 7); Q = Q / 2.0;", 26, "is a constant");
+	EidosAssertScriptRaise("defineConstant('Q', 7); for (Q in c(3, 4)) 5;", 29, "is a constant");
+	EidosAssertScriptRaise("defineConstant('Q', 7); for (Q in c(3.0, 4.0)) 5;", 29, "is a constant");
 }
 
 #pragma mark symbol table
@@ -1526,7 +1567,7 @@ void _RunOperatorAssignTests(void)
 {
 	// operator =
 	EidosAssertScriptRaise("E = 7;", 2, "cannot be redefined because it is a constant");
-	EidosAssertScriptRaise("E = E + 7;", 2, "cannot assign into a constant");
+	EidosAssertScriptRaise("E = E + 7;", 2, "cannot be redefined because it is a constant");
 	
 	// operator = (especially in conjunction with operator [])
 	EidosAssertScriptSuccess("x = 5; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
