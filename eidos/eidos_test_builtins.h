@@ -678,6 +678,23 @@ for (iter in 1:100)
 }
 
 
+// (integer)integer(integer$ length, [integer$ fill1 = 0], [integer$ fill2 = 1], [Ni fill2Indices = NULL])
+function (integer)integer_func(integer$ length, integer$ fill1, integer$ fill2, i fill2Indices)
+{
+	x = rep(fill1, length);
+	x[fill2Indices] = fill2;
+	return x;
+}
+
+for (iter in 1:1000)
+{
+	indices = sample(0:999, rdunif(1, 0, 100));
+	xbuiltin = integer(1000, 5, 8, indices);
+	xuserdef = integer_func(1000, 5, 8, indices);
+	if (!identical(xbuiltin, xuserdef)) stop('Mismatch in test of integer()');
+}
+
+
 // The functions above are the ones that seemed simple and worthwhile to test by replication.
 // Since we're in a groove, let's test some other Eidos functions, not by replication since
 // it is more difficult in these cases, but by testing them against each other.
@@ -748,6 +765,66 @@ if (!identical(table[match(x, table)], x)) stop('Mismatch in test of match(i) vs
 table = -1000.0:1000.0;		// float
 x = sample(table, 10000, T);
 if (!identical(table[match(x, table)], x)) stop('Mismatch in test of match(f) vs. operator []');
+
+// (float)ceil(float x)
+// (float)floor(float x)
+// (float)trunc(float x)
+// (float)round(float x)
+x = runif(10000, -100000.0, 100000.0);
+x = x[trunc(x) != x];				// eliminate numbers with no fractional part
+x = x[trunc(x * 2.0) != x * 2.0];	// eliminate numbers with a fractional part of 0.5
+if (any(ceil(x) != floor(x) + 1)) stop('Mismatch in test of floor() vs. ceil()');
+x = abs(x);
+if (any(round(x) != ifelse(x - trunc(x) < 0.5, floor(x), ceil(x)))) stop('Mismatch in test of round() vs. trunc()');
+
+
+// Test random distributions against expect means; these tests aim for a fail rate of less than about 1 in 10,000
+// That expected failure rate is based upon trial and error with the current Eidos, so it assumes that the present code
+// is correct; it would be nice to use the theoretical variance formulas here.  But if the mean is close to the
+// expected mean, the logic in Eidos is almost certainly correct, so any bug would probably be in the GSL – unlikely.
+
+setSeed(asInteger(clock() * 100000));
+m = mean(rbinom(100000, 5, 0.3));	// expectation is np, 5 * 0.3
+if (abs(m - (5 * 0.3)) > 0.02) stop('Mismatch in expectation vs. realization of rbinom() - could be random chance (but very unlikely), rerun test');
+
+setSeed(asInteger(clock() * 100000));
+x = rdunif(210000, -10, 10);
+x = apply(-10:10, "sum(x == applyValue);");
+if (any(abs(x - 10000) > 500)) stop('Mismatch in expectation vs. realization of rdunif() - could be random chance (but very unlikely), rerun test');
+
+setSeed(asInteger(clock() * 100000));
+x = sample(-10:10, 210000, replace=T);
+x = apply(-10:10, "sum(x == applyValue);");
+if (any(abs(x - 10000) > 500)) stop('Mismatch in expectation vs. realization of sample() - could be random chance (but very unlikely), rerun test');
+
+setSeed(asInteger(clock() * 100000));
+x = round(runif(210000, -10.4999, 10.4999));
+x = apply(-10:10, "sum(x == applyValue);");
+if (any(abs(x - 10000) > 500)) stop('Mismatch in expectation vs. realization of runif() - could be random chance (but very unlikely), rerun test');
+
+setSeed(asInteger(clock() * 100000));
+m = mean(rexp(100000, 5));	// expectation is 5
+if (abs(m - 5) > 0.07) stop('Mismatch in expectation vs. realization of rexp() - could be random chance (but very unlikely), rerun test');
+
+setSeed(asInteger(clock() * 100000));
+m = mean(rgamma(10000, 5, 0.3));	// expectation is 5
+if (abs(m - 5) > 0.4) stop('Mismatch in expectation vs. realization of rgamma() - could be random chance (but very unlikely), rerun test');
+
+setSeed(asInteger(clock() * 100000));
+m = mean(log(rlnorm(10000, 5, 0.3)));	// expectation is 5
+if (abs(m - 5) > 0.02) stop('Mismatch in expectation vs. realization of rlnorm() - could be random chance (but very unlikely), rerun test');
+
+setSeed(asInteger(clock() * 100000));
+m = mean(rnorm(10000, 5, 0.3));	// expectation is 5
+if (abs(m - 5) > 0.02) stop('Mismatch in expectation vs. realization of rnorm() - could be random chance (but very unlikely), rerun test');
+
+setSeed(asInteger(clock() * 100000));
+m = mean(rpois(10000, 5));	// expectation is 5
+if (abs(m - 5) > 0.09) stop('Mismatch in expectation vs. realization of rpois() - could be random chance (but very unlikely), rerun test');
+
+setSeed(asInteger(clock() * 100000));
+m = mean(rweibull(10000, 5, 0.5));	// expectation is lambda * Gamma(1 + 1/k), and for positive integers Gamma(x) = (x-1)!, so here it is 5 * 2
+if (abs(m - (5 * 2)) > 1.0) stop('Mismatch in expectation vs. realization of rweibull() - could be random chance (but very unlikely), rerun test');
 
 
 // At the end we return T to indicate to the test harness that all tests passed.  If any of the
