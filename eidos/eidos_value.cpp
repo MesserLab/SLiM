@@ -27,6 +27,7 @@
 #include <functional>
 #include <cmath>
 #include "errno.h"
+#include "string.h"
 
 
 // The global object pool for EidosValue, initialized in Eidos_WarmUp()

@@ -38,7 +38,7 @@
 
 SHELL = /bin/sh
 CC = g++
-CFLAGS = -O3 -Wno-deprecated-register
+CFLAGS = -O3 -Wno-deprecated-register -Wno-attributes
 INCLUDES = -iquote./eidos -iquote./gsl -iquote./gsl/rng -iquote./gsl/randist -iquote./gsl/sys -iquote./gsl/specfunc -iquote./gsl/cdf -iquote./gsl/complex
 ALL_CFLAGS = $(CFLAGS) $(INCLUDES) -std=c++11
 
