@@ -1861,6 +1861,14 @@ EidosValue_Object_vector::EidosValue_Object_vector(std::initializer_list<EidosOb
 		push_object_element_no_check(*init_item);
 }
 
+EidosValue_Object_vector::EidosValue_Object_vector(EidosObjectElement **p_values, size_t p_count, const EidosObjectClass *p_class) : EidosValue_Object(false, p_class)
+{
+	resize_no_initialize(p_count);
+	
+	for (size_t index = 0; index < p_count; ++index)
+		set_object_element_no_check(p_values[index], index);
+}
+
 EidosValue_Object_vector::~EidosValue_Object_vector(void)
 {
 #ifdef EIDOS_OBJECT_RETAIN_RELEASE

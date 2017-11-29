@@ -957,7 +957,7 @@ public:
 	explicit EidosValue_Object_vector(const std::vector<EidosObjectElement *> &p_elementvec, const EidosObjectClass *p_class);
 	//explicit EidosValue_Object_vector(EidosObjectElement *p_element1);		// disabled to encourage use of EidosValue_Object_singleton for this case
 	explicit EidosValue_Object_vector(std::initializer_list<EidosObjectElement *> p_init_list, const EidosObjectClass *p_class);
-	explicit EidosValue_Object_vector(const EidosObjectElement *p_values, size_t p_count);
+	explicit EidosValue_Object_vector(EidosObjectElement **p_values, size_t p_count, const EidosObjectClass *p_class);
 	virtual ~EidosValue_Object_vector(void);
 	
 	virtual int Count_Virtual(void) const;
