@@ -752,7 +752,7 @@ EidosValue_SP Genome::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_method
 	SLiMSim &sim = subpop_->population_.sim_;
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg0_value, 0, sim, "mutationsOfType()");
 	
-	// Count the number of mutations of the given type, so we can reserve the right vector size
+	// Count the number of mutations of the given type, so we can reserve the right vector size : FIXME is this pre-scan really worth it?? BCH 11/29/2017
 	// To avoid having to scan the genome twice for the simplest case of a single mutation, we cache the first mutation found
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	int match_count = 0;
