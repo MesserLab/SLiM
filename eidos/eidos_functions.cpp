@@ -5732,7 +5732,7 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const EidosValue_SP *const p_argument
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 					logical_result->set_logical_no_check(logical_vec[value_index] ? true_vec[value_index] : false_vec[value_index], value_index);
 				
-				return std::move(logical_result_SP);
+				return logical_result_SP;
 			}
 			if (arg1_type == EidosValueType::kValueInt)
 			{
@@ -5744,7 +5744,7 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const EidosValue_SP *const p_argument
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 					int_result->set_int_no_check(logical_vec[value_index] ? true_data[value_index] : false_data[value_index], value_index);
 				
-				return std::move(int_result_SP);
+				return int_result_SP;
 			}
 			if (arg1_type == EidosValueType::kValueFloat)
 			{
@@ -5756,7 +5756,7 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const EidosValue_SP *const p_argument
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 					float_result->set_float_no_check(logical_vec[value_index] ? true_data[value_index] : false_data[value_index], value_index);
 				
-				return std::move(float_result_SP);
+				return float_result_SP;
 			}
 			if (arg1_type == EidosValueType::kValueString)
 			{
@@ -5768,7 +5768,7 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const EidosValue_SP *const p_argument
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 					string_result->PushString(logical_vec[value_index] ? true_vec[value_index] : false_vec[value_index]);
 				
-				return std::move(string_result_SP);
+				return string_result_SP;
 			}
 			if (arg1_type == EidosValueType::kValueObject)
 			{
@@ -5786,7 +5786,7 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const EidosValue_SP *const p_argument
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 					object_result->set_object_element_no_check(logical_vec[value_index] ? true_vec[value_index] : false_vec[value_index], value_index);
 				
-				return std::move(object_result_SP);
+				return object_result_SP;
 			}
 		}
 		
@@ -5818,7 +5818,7 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const EidosValue_SP *const p_argument
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 					logical_result->set_logical_no_check(logical_vec[value_index] ? true_value : false_value, value_index);
 				
-				return std::move(logical_result_SP);
+				return logical_result_SP;
 			}
 			if (arg1_type == EidosValueType::kValueInt)
 			{
@@ -5830,7 +5830,7 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const EidosValue_SP *const p_argument
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 					int_result->set_int_no_check(logical_vec[value_index] ? true_value : false_value, value_index);
 				
-				return std::move(int_result_SP);
+				return int_result_SP;
 			}
 			if (arg1_type == EidosValueType::kValueFloat)
 			{
@@ -5842,7 +5842,7 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const EidosValue_SP *const p_argument
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 					float_result->set_float_no_check(logical_vec[value_index] ? true_value : false_value, value_index);
 				
-				return std::move(float_result_SP);
+				return float_result_SP;
 			}
 			if (arg1_type == EidosValueType::kValueString)
 			{
@@ -5854,7 +5854,7 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const EidosValue_SP *const p_argument
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 					string_result->PushString(logical_vec[value_index] ? true_value : false_value);
 				
-				return std::move(string_result_SP);
+				return string_result_SP;
 			}
 			if (arg1_type == EidosValueType::kValueObject)
 			{
@@ -5872,7 +5872,7 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const EidosValue_SP *const p_argument
 				for (int value_index = 0; value_index < arg0_count; ++value_index)
 					object_result->set_object_element_no_check(logical_vec[value_index] ? true_value : false_value, value_index);
 				
-				return std::move(object_result_SP);
+				return object_result_SP;
 			}
 		}
 		
