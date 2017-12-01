@@ -42,6 +42,7 @@ development head:
 	optimize EidosValue internals by using malloced buffers instead of std::vector, avoiding zero-initialization and capacity-checking
 	fix a bug (never released) in ConcatenateEidosValues() with logical vectors that would cause incorrect results in some post-2.5 GitHub versions
 	fix a bug (never released) in the new integer() two-value filling code added post-2.5
+	optimize method dispatch in Eidos to gather results more efficiently, with benefits for script-intensive models
 
 
 2.5 (build 1204; Eidos version 1.5):

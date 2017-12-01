@@ -576,6 +576,7 @@ public:
 	virtual int Count_Virtual(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
+	inline __attribute__((always_inline)) const std::string &StringValue(void) const { return value_; }
 	//inline __attribute__((always_inline)) std::string &StringValue_Mutable(void) { delete cached_script_; cached_script_ = nullptr; return value_; }			// very dangerous; do not use
 	inline __attribute__((always_inline)) void SetValue(const std::string &p_string) { delete cached_script_; cached_script_ = nullptr; value_ = p_string; }	// very dangerous; used only in Evaluate_For()
 	
@@ -719,6 +720,7 @@ public:
 	virtual int Count_Virtual(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
+	inline __attribute__((always_inline)) int64_t IntValue(void) const { return value_; }
 	inline __attribute__((always_inline)) int64_t &IntValue_Mutable(void) { return value_; }	// very dangerous; used only in Evaluate_Assign()
 	inline __attribute__((always_inline)) void SetValue(int64_t p_int) { value_ = p_int; }		// very dangerous; used only in Evaluate_For()
 	
@@ -856,6 +858,7 @@ public:
 	virtual int Count_Virtual(void) const;
 	virtual void Print(std::ostream &p_ostream) const;
 	
+	inline __attribute__((always_inline)) double FloatValue(void) const { return value_; }
 	inline __attribute__((always_inline)) double &FloatValue_Mutable(void) { return value_; }	// very dangerous; used only in Evaluate_Assign()
 	inline __attribute__((always_inline)) void SetValue(double p_float) { value_ = p_float; }	// very dangerous; used only in Evaluate_For()
 	
@@ -1018,7 +1021,8 @@ public:
 	
 	virtual EidosObjectElement *ObjectElementAtIndex(int p_idx, const EidosToken *p_blame_token) const;
 	
-	//inline __attribute__((always_inline)) EidosObjectElement * &ObjectElementValue_Mutable(void) { return value_; }	// very dangerous; do not use
+	inline __attribute__((always_inline)) EidosObjectElement *ObjectElementValue(void) const { return value_; }
+	//inline __attribute__((always_inline)) EidosObjectElement * &ObjectElementValue_Mutable(void) { return value_; }		// very dangerous; do not use
 	void SetValue(EidosObjectElement *p_element);																		// very dangerous; used only in Evaluate_For()
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const;
