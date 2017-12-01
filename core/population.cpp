@@ -3296,8 +3296,8 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 			{
 				int32_t old_mutrun_count = genome.mutrun_count_;
 				int32_t old_mutrun_length = genome.mutrun_length_;
-				int32_t new_mutrun_count = old_mutrun_count * 2;
-				int32_t new_mutrun_length = old_mutrun_length / 2;
+				int32_t new_mutrun_count = old_mutrun_count << 1;
+				int32_t new_mutrun_length = old_mutrun_length >> 1;
 				
 				genome.clear_to_nullptr();
 				if (genome.mutruns_ != genome.run_buffer_)
@@ -3342,8 +3342,8 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 			{
 				int32_t old_mutrun_count = genome.mutrun_count_;
 				int32_t old_mutrun_length = genome.mutrun_length_;
-				int32_t new_mutrun_count = old_mutrun_count * 2;
-				int32_t new_mutrun_length = old_mutrun_length / 2;
+				int32_t new_mutrun_count = old_mutrun_count << 1;
+				int32_t new_mutrun_length = old_mutrun_length >> 1;
 				
 				// for every mutation run, fill up mutrun_buf with entries
 				mutruns_buf_index = 0;
@@ -3463,8 +3463,8 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 			{
 				int32_t old_mutrun_count = genome.mutrun_count_;
 				int32_t old_mutrun_length = genome.mutrun_length_;
-				int32_t new_mutrun_count = old_mutrun_count / 2;
-				int32_t new_mutrun_length = old_mutrun_length * 2;
+				int32_t new_mutrun_count = old_mutrun_count >> 1;
+				int32_t new_mutrun_length = old_mutrun_length << 1;
 				
 				genome.clear_to_nullptr();
 				if (genome.mutruns_ != genome.run_buffer_)
@@ -3509,8 +3509,8 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 			{
 				int32_t old_mutrun_count = genome.mutrun_count_;
 				int32_t old_mutrun_length = genome.mutrun_length_;
-				int32_t new_mutrun_count = old_mutrun_count / 2;
-				int32_t new_mutrun_length = old_mutrun_length * 2;
+				int32_t new_mutrun_count = old_mutrun_count >> 1;
+				int32_t new_mutrun_length = old_mutrun_length << 1;
 				
 				// for every mutation run, fill up mutrun_buf with entries
 				mutruns_buf_index = 0;

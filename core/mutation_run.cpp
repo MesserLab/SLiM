@@ -88,7 +88,7 @@ bool MutationRun::contains_mutation(MutationIndex p_mutation_index)
 				if (L > R)
 					return false;
 				
-				mut_index = (L + R) / 2;	// overflow-safe because base positions have a max of 1000000000L
+				mut_index = (L + R) >> 1;	// overflow-safe because base positions have a max of 1000000000L
 				mut_pos = (mut_block_ptr + mut_ptr[mut_index])->position_;
 				
 				if (mut_pos < position)
@@ -187,7 +187,7 @@ bool MutationRun::contains_mutation_with_type_and_position(MutationType *p_mut_t
 				if (L > R)
 					return false;
 				
-				mut_index = (L + R) / 2;	// overflow-safe because base positions have a max of 1000000000L
+				mut_index = (L + R) >> 1;	// overflow-safe because base positions have a max of 1000000000L
 				mut_pos = (mut_block_ptr + mut_ptr[mut_index])->position_;
 				
 				if (mut_pos < p_position)
