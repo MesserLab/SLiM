@@ -1314,7 +1314,12 @@ Returns a vector of
 
 \f0\fs20 \cf0 Returns the 
 \b concatenation
-\b0  of all of its parameters into a single vector.  The parameters will be promoted to the highest type represented among them, and that type will be the return type.  
+\b0  of all of its parameters into a single vector\cf2 \expnd0\expndtw0\kerning0
+, stripped of all matrix/array dimensions (see 
+\f1\fs18 rbind()
+\f0\fs20  and 
+\f1\fs18 cbind()
+\f0\fs20  for concatenation that does not strip this information)\cf0 \kerning1\expnd0\expndtw0 .  The parameters will be promoted to the highest type represented among them, and that type will be the return type.  
 \f1\fs18 NULL
 \f0\fs20  values are ignored; they have no effect on the result.
 \f2 \
@@ -1595,8 +1600,11 @@ If a value is supplied for
 \f1\fs18 size(x) - 1
 \f0\fs20 , with a step of 
 \f1\fs18 1
-\f0\fs20 .  This is a convenience function for easily obtaining a set of indices to address or iterate through a vector.
-\f2 \
+\f0\fs20 .  This is a convenience function for easily obtaining a set of indices to address or iterate through a vector.\cf2 \expnd0\expndtw0\kerning0
+  Any matrix/array dimension information is ignored; the index sequence is suitable for indexing into 
+\f1\fs18 x
+\f0\fs20  as a vector.
+\f2 \cf0 \kerning1\expnd0\expndtw0 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (string)string(integer$
@@ -2003,7 +2011,8 @@ For example,
 \f1\fs18 x
 \f0\fs20  and 
 \f1\fs18 y
-\f0\fs20  have exactly the same type and size, and all of their corresponding elements are exactly the same, this will return 
+\f0\fs20  have exactly the same type and size, and all of their corresponding elements are exactly the same, \cf2 \expnd0\expndtw0\kerning0
+and (for matrices and arrays) their dimensions are identical, \cf0 \kerning1\expnd0\expndtw0 this will return 
 \f1\fs18 T
 \f0\fs20 , otherwise it will return 
 \f1\fs18 F
@@ -2089,7 +2098,20 @@ For example,
 \f1\fs18 falseValues
 \f0\fs20 ) has a length of 
 \f1\fs18 1
-\f0\fs20 , that single value is used repeatedly, recycling the vector.\
+\f0\fs20 , that single value is used repeatedly, recycling the vector.\cf2 \expnd0\expndtw0\kerning0
+  If 
+\f1\fs18 test
+\f0\fs20 , 
+\f1\fs18 trueValues
+\f0\fs20 , and/or 
+\f1\fs18 falseValues
+\f0\fs20  are matrices or arrays, that will be ignored by 
+\f1\fs18 ifelse()
+\f0\fs20  
+\i \cf2 except
+\i0 \cf2  that the result will be of the same dimensionality as 
+\f1\fs18 test
+\f0\fs20 .\cf0 \kerning1\expnd0\expndtw0 \
 This is quite similar to a function in R of the same name; note, however, that Eidos evaluates all arguments to functions calls immediately, so 
 \f1\fs18 trueValues
 \f0\fs20  and 
@@ -2862,7 +2884,261 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f2\fs20 .\
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 3.7.  Filesystem access functions\
+\f0\b\fs22 \cf0 3.7.  Matrix and array functions\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\b0\fs18 \cf0 (*)array(*\'a0data, integer\'a0dim)
+\f2 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
+Creates a new array
+\b0  from the data specified by 
+\f1\fs18 data
+\f0\fs20 , with the dimension sizes specified by 
+\f1\fs18 dim
+\f0\fs20 .  The first dimension size in 
+\f1\fs18 dim
+\f0\fs20  is the number of rows, and the second is the number of columns; further entries specify the sizes of higher-order dimensions.  As many dimensions may be specified as desired, but with a minimum of two dimensions.  An array with two dimensions is a matrix (by definition); note that 
+\f1\fs18 matrix()
+\f0\fs20  may provide a more convenient way to make a new matrix.  Each dimension must be of size 
+\f1\fs18 1
+\f0\fs20  or greater; 
+\f1\fs18 0
+\f0\fs20 -size dimensions are not allowed.\
+The elements of 
+\f1\fs18 data
+\f0\fs20  are used to populate the new array; the size of 
+\f1\fs18 data
+\f0\fs20  must therefore be equal to the size of the new array, which is the product of all the values in 
+\f1\fs18 dim
+\f0\fs20 .  The new array will be filled in dimension order: one element in each row until a column is filled, then on to the next column in the same manner until all columns are filled, and then onward into the higher-order dimensions in the same manner.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (*)cbind(...)
+\f2 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
+Combines vectors or matrices by column
+\b0  to produce a single matrix.  The parameters must be vectors (which are interpreted by 
+\f1\fs18 cbind()
+\f0\fs20  as if they were one-column matrices) or matrices.  They must be of the same type, of the same class if they are of type 
+\f1\fs18 object
+\f0\fs20 , and have the same number of rows.  If these conditions are met, the result is a single matrix with the parameters joined together, left to right.  Parameters may instead be 
+\f1\fs18 NULL
+\f0\fs20 , in which case they are ignored; or if all parameters are 
+\f1\fs18 NULL
+\f0\fs20 , the result is 
+\f1\fs18 NULL
+\f0\fs20 .  A sequence of vectors, matrices, and 
+\f1\fs18 NULL
+\f0\fs20 s may thus be concatenated with the 
+\f1\fs18 NULL
+\f0\fs20  values removed, analogous to 
+\f1\fs18 c()
+\f0\fs20 .  Calling 
+\f1\fs18 cbind(x)
+\f0\fs20  is an easy way to create a one-column matrix from a vector.\
+To combine vectors or matrices by row instead, see 
+\f1\fs18 rbind()
+\f0\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (integer)dim(*\'a0x)
+\f2 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
+Returns the dimensions
+\b0  of matrix or array 
+\f1\fs18 x
+\f0\fs20 .  The first dimension value is the number of rows, the second is the number of columns, and further values indicate the sizes of higher-order dimensions, identically to how dimensions are supplied to 
+\f1\fs18 array()
+\f0\fs20 .  
+\f1\fs18 NULL
+\f0\fs20  is returned if 
+\f1\fs18 x
+\f0\fs20  is not a matrix or array.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (*)matrix(*\'a0data, [Ni$\'a0nrow\'a0=\'a0NULL], [Ni$\'a0ncol\'a0=\'a0NULL], [logical$\'a0byrow\'a0=\'a0F])
+\f2 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
+Creates a new matrix
+\b0  from the data specified by 
+\f1\fs18 data
+\f0\fs20 .  By default this creates a one-column matrix.  If non-
+\f1\fs18 NULL
+\f0\fs20  values are supplied for 
+\f1\fs18 nrow
+\f0\fs20  and/or 
+\f1\fs18 ncol
+\f0\fs20 , a matrix will be made with the requested number of rows and/or columns if possible; if the length of 
+\f1\fs18 data
+\f0\fs20  is not compatible with the requested dimensions, an error will result.  By default, values from data will populate the matrix by columns, filling each column sequentially before moving on to the next column; if 
+\f1\fs18 byrow
+\f0\fs20  is 
+\f1\fs18 T
+\f0\fs20  the matrix will be populated by rows instead.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (*)matrixMult(*\'a0x, *\'a0y)
+\f2 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
+Returns the result of matrix multiplication
+\b0  of 
+\f1\fs18 x
+\f0\fs20  with 
+\f1\fs18 y
+\f0\fs20 .  In Eidos (as in R), with two matrices 
+\f1\fs18 A
+\f0\fs20  and 
+\f1\fs18 B
+\f0\fs20  the simple product 
+\f1\fs18 A\'a0*\'a0B
+\f0\fs20  multiplies the corresponding elements of the matrices; in other words, if 
+\f1\fs18 X
+\f0\fs20  is the result of 
+\f1\fs18 A\'a0*\'a0B
+\f0\fs20 , then 
+\f1\fs18 X
+\f0\i\fs13\fsmilli6667 \cf2 \sub ij
+\i0\fs20 \cf2 \nosupersub \'a0=\'a0
+\f1\fs18 A
+\f0\i\fs13\fsmilli6667 \cf2 \sub ij
+\i0\fs20 \cf2 \nosupersub \'a0* 
+\f1\fs18 B
+\f0\i\fs13\fsmilli6667 \cf2 \sub ij
+\i0\fs20 \cf2 \nosupersub .  This is parallel to the definition of other operators; A\'a0+\'a0B adds the corresponding elements of the matrices (
+\f1\fs18 X
+\f0\i\fs13\fsmilli6667 \cf2 \sub ij
+\i0\fs20 \cf2 \nosupersub \'a0=\'a0
+\f1\fs18 A
+\f0\i\fs13\fsmilli6667 \cf2 \sub ij
+\i0\fs20 \cf2 \nosupersub \'a0+\'a0
+\f1\fs18 B
+\f0\i\fs13\fsmilli6667 \cf2 \sub ij
+\i0\fs20 \cf2 \nosupersub ), etc.  In R, true matrix multiplication is achieved with a special operator, 
+\f1\fs18 %*%
+\f0\fs20 ; in Eidos, the 
+\f1\fs18 matrixMult()
+\f0\fs20  function is used instead.\
+Both 
+\f1\fs18 x
+\f0\fs20  and 
+\f1\fs18 y
+\f0\fs20  must be matrices, and must be conformable according to the standard definition of matrix multiplication (i.e., if 
+\f1\fs18 x
+\f0\fs20  is an 
+\i \cf2 n
+\i0 \cf2 \'a0\'d7\'a0
+\i \cf2 m
+\i0 \cf2  matrix then 
+\f1\fs18 y
+\f0\fs20  must be a 
+\i \cf2 m
+\i0 \cf2 \'a0\'d7\'a0
+\i \cf2 p
+\i0 \cf2  matrix, and the result will be a 
+\i \cf2 n
+\i0 \cf2 \'a0\'d7\'a0
+\i \cf2 p
+\i0 \cf2  matrix).  Vectors will not be promoted to matrices by this function, even if such promotion would lead to a conformable matrix.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (integer$)nrow(*\'a0x)
+\f2 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
+Returns the number of rows
+\b0  in matrix or array 
+\f1\fs18 x
+\f0\fs20 .  For vector 
+\f1\fs18 x
+\f0\fs20 , 
+\f1\fs18 nrow()
+\f0\fs20  returns 
+\f1\fs18 NULL
+\f0\fs20 ; 
+\f1\fs18 size()
+\f0\fs20  should be used.  An equivalent of R\'92s 
+\f1\fs18 NROW()
+\f0\fs20  function, which treats vectors as 
+\f1\fs18 1
+\f0\fs20 -column matrices, is not provided but would be trivial to implement as a user-defined function.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (integer$)ncol(*\'a0x)
+\f2 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
+Returns the number of columns
+\b0  in matrix or array 
+\f1\fs18 x
+\f0\fs20 .  For vector 
+\f1\fs18 x
+\f0\fs20 , 
+\f1\fs18 ncol()
+\f0\fs20  returns 
+\f1\fs18 NULL
+\f0\fs20 ; 
+\f1\fs18 size()
+\f0\fs20  should be used.  An equivalent of R\'92s 
+\f1\fs18 NCOL()
+\f0\fs20  function, which treats vectors as 
+\f1\fs18 1
+\f0\fs20 -column matrices, is not provided but would be trivial to implement as a user-defined function.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (*)rbind(...)
+\f2 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
+Combines vectors or matrices by row
+\b0  to produce a single matrix.  The parameters must be vectors (which are interpreted by 
+\f1\fs18 rbind()
+\f0\fs20  as if they were one-row matrices) or matrices.  They must be of the same type, of the same class if they are of type 
+\f1\fs18 object
+\f0\fs20 , and have the same number of columns.  If these conditions are met, the result is a single matrix with the parameters joined together, top to bottom.  Parameters may instead be 
+\f1\fs18 NULL
+\f0\fs20 , in which case they are ignored; or if all parameters are 
+\f1\fs18 NULL
+\f0\fs20 , the result is 
+\f1\fs18 NULL
+\f0\fs20 .  A sequence of vectors, matrices, and 
+\f1\fs18 NULL
+\f0\fs20 s may thus be concatenated with the 
+\f1\fs18 NULL
+\f0\fs20  values removed, analogous to 
+\f1\fs18 c()
+\f0\fs20 .  Calling 
+\f1\fs18 rbind(x)
+\f0\fs20  is an easy way to create a one-row matrix from a vector.\
+To combine vectors or matrices by column instead, see 
+\f1\fs18 cbind()
+\f0\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (*)t(*\'a0x)
+\f2 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
+Returns the transpose
+\b0  of 
+\f1\fs18 x
+\f0\fs20 , which must be a matrix.  This is the matrix reflected across its diagonal; or alternatively, the matrix with its columns written out instead as rows in the same order.\
+\pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
+
+\b\fs22 \cf0 \kerning1\expnd0\expndtw0 3.8.  Filesystem access functions\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\b0\fs18 \cf0 (logical$)createDirectory(string$\'a0path)
@@ -3041,7 +3317,7 @@ Note that newline characters will be added at the ends of the lines in
 \f2\fs20 .\
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 3.8.  Color manipulation functions\
+\f0\b\fs22 \cf0 3.9.  Color manipulation functions\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\b0\fs18 \cf0 (float)color2rgb(string$\'a0color)
@@ -3113,7 +3389,7 @@ Note that newline characters will be added at the ends of the lines in
 \f2 \
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 3.9.  Miscellaneous functions\
+\f0\b\fs22 \cf0 3.10.  Miscellaneous functions\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\b0\fs18 \cf0 (*)apply(*\'a0x, string$\'a0lambdaSource)\
@@ -3232,9 +3508,39 @@ The
 \f1\fs18 lambdaSource
 \f0\fs20  each time.
 \f2 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0 \cf2 \expnd0\expndtw0\kerning0
+Beginning in Eidos 1.6 (SLiM 2.6), 
+\f1\fs18 apply()
+\f0\fs20  will sometimes return a matrix or array instead of a vector.  This occurs in two cases.  First, if each iteration of 
+\f1\fs18 lambdaSource
+\f0\fs20  results in a singleton with no 
+\f1\fs18 NULL
+\f0\fs20  values, the result of 
+\f1\fs18 apply()
+\f0\fs20  will have the same dimensions as 
+\f1\fs18 x
+\f0\fs20 ; if 
+\f1\fs18 x
+\f0\fs20  is a matrix or array, the result will match its dimensions.  This mirrors the behavior of unary operators and functions in Eidos.  Second, if each iteration of 
+\f1\fs18 lambdaSource
+\f0\fs20  results in a value of the same consistent non-singleton length with no 
+\f1\fs18 NULL
+\f0\fs20  values, the result of 
+\f1\fs18 apply()
+\f0\fs20  will be a matrix with one column for each value of 
+\f1\fs18 x
+\f0\fs20 .  This mirrors the behavior of 
+\f1\fs18 cbind()
+\f0\fs20 .  The hope is of course that these behaviors will be useful, but if not, the plain vector behavior of 
+\f1\fs18 apply()
+\f0\fs20  prior to Eidos 1.6 can be recovered by simply passing its return value through 
+\f1\fs18 c()
+\f0\fs20  to strip the dimension information from it.  In future versions of Eidos the option of choosing an output style may be provided.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (void)beep([Ns$\'a0soundName\'a0=\'a0NULL])\
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (void)beep([Ns$\'a0soundName\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf0 Plays a sound or beeps.

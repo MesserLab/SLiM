@@ -191,7 +191,24 @@ void Eidos_WarmUp(void)
 		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Object_vector));
 		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Object_singleton));
 		
-		//std::cout << "maxEidosValueSize == " << maxEidosValueSize << std::endl;
+//		std::cout << "sizeof(EidosValue) ==                  " << sizeof(EidosValue) << std::endl;
+//		std::cout << "sizeof(EidosValue_NULL) ==             " << sizeof(EidosValue_NULL) << std::endl;
+//		std::cout << "sizeof(EidosValue_Logical) ==          " << sizeof(EidosValue_Logical) << std::endl;
+//		std::cout << "sizeof(EidosValue_Logical_const) ==    " << sizeof(EidosValue_Logical_const) << std::endl;
+//		std::cout << "sizeof(EidosValue_String) ==           " << sizeof(EidosValue_String) << std::endl;
+//		std::cout << "sizeof(EidosValue_String_vector) ==    " << sizeof(EidosValue_String_vector) << std::endl;
+//		std::cout << "sizeof(EidosValue_String_singleton) == " << sizeof(EidosValue_String_singleton) << std::endl;
+//		std::cout << "sizeof(EidosValue_Int) ==              " << sizeof(EidosValue_Int) << std::endl;
+//		std::cout << "sizeof(EidosValue_Int_vector) ==       " << sizeof(EidosValue_Int_vector) << std::endl;
+//		std::cout << "sizeof(EidosValue_Int_singleton) ==    " << sizeof(EidosValue_Int_singleton) << std::endl;
+//		std::cout << "sizeof(EidosValue_Float) ==            " << sizeof(EidosValue_Float) << std::endl;
+//		std::cout << "sizeof(EidosValue_Float_vector) ==     " << sizeof(EidosValue_Float_vector) << std::endl;
+//		std::cout << "sizeof(EidosValue_Float_singleton) ==  " << sizeof(EidosValue_Float_singleton) << std::endl;
+//		std::cout << "sizeof(EidosValue_Object) ==           " << sizeof(EidosValue_Object) << std::endl;
+//		std::cout << "sizeof(EidosValue_Object_vector) ==    " << sizeof(EidosValue_Object_vector) << std::endl;
+//		std::cout << "sizeof(EidosValue_Object_singleton) == " << sizeof(EidosValue_Object_singleton) << std::endl;
+//		std::cout << "maxEidosValueSize ==                   " << maxEidosValueSize << std::endl;
+		
 		gEidosValuePool = new EidosObjectPool(maxEidosValueSize);
 		
 		// Make the shared EidosASTNode pool

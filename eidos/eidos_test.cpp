@@ -117,6 +117,10 @@ void EidosAssertScriptSuccess(const std::string &p_script_string, EidosValue_SP 
 	{
 		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : unexpected return length (" << result->Count() << ", expected " << p_correct_result->Count() << ")" << std::endl;
 	}
+	//else if (result->DimensionCount() != 1)
+	//{
+	//	std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : matrix or array returned, which is not tested; use identical()" << std::endl;
+	//}
 	else
 	{
 		for (int value_index = 0; value_index < result->Count(); ++value_index)
@@ -240,6 +244,7 @@ static void _RunKeywordNextTests(void);
 static void _RunKeywordBreakTests(void);
 static void _RunKeywordReturnTests(void);
 static void _RunFunctionMathTests(void);
+static void _RunFunctionMatrixArrayTests(void);
 static void _RunFunctionSummaryStatsTests(void);
 static void _RunFunctionVectorConstructionTests(void);
 static void _RunFunctionValueInspectionManipulationTests(void);
@@ -296,6 +301,7 @@ void RunEidosTests(void)
 	_RunKeywordBreakTests();
 	_RunKeywordReturnTests();
 	_RunFunctionMathTests();
+	_RunFunctionMatrixArrayTests();
 	_RunFunctionSummaryStatsTests();
 	_RunFunctionVectorConstructionTests();
 	_RunFunctionValueInspectionManipulationTests();
@@ -1301,6 +1307,300 @@ void _RunOperatorPlusTests(void)
 	EidosAssertScriptRaise("c(0, 0, 5e18, 0) + 5e18;", 17, "overflow with the binary");
 	EidosAssertScriptRaise("c(0, 0, 5e18, 0) + c(0, 0, 5e18, 0);", 17, "overflow with the binary");
 #endif
+	
+	// operator +: test with mixed singletons, vectors, matrices, and arrays; the dimensionality code is shared across all operand types, so testing it with integer should suffice
+	// this is the only place where we test the binary operators with matrices and arrays so comprehensively; the same machinery is used for all, so it should suffice
+	EidosAssertScriptSuccess("identical(1 + integer(0), integer(0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1 + 2, 3);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1 + 1:3, 2:4);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1 + matrix(2), matrix(3));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1 + array(2,c(1,1,1)), array(3, c(1,1,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1 + matrix(1:3,nrow=1), matrix(2:4, nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1 + matrix(1:3,ncol=1), matrix(2:4, ncol=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1 + matrix(1:6,ncol=2), matrix(2:7, ncol=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1 + array(1:3,c(3,1,1)), array(2:4, c(3,1,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1 + array(1:3,c(1,3,1)), array(2:4, c(1,3,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1 + array(1:3,c(1,1,3)), array(2:4, c(1,1,3)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1 + array(1:6,c(3,2,1)), array(2:7, c(3,2,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1 + array(1:6,c(3,1,2)), array(2:7, c(3,1,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1 + array(1:6,c(2,3,1)), array(2:7, c(2,3,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1 + array(1:6,c(1,3,2)), array(2:7, c(1,3,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1 + array(1:6,c(2,1,3)), array(2:7, c(2,1,3)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1 + array(1:6,c(1,2,3)), array(2:7, c(1,2,3)));", gStaticEidosValue_LogicalT);
+	
+	EidosAssertScriptRaise("identical(1:3 + integer(0), integer(0));", 14, "requires that either");
+	EidosAssertScriptSuccess("identical(1:3 + 2, 3:5);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1:3 + 1:3, (1:3)*2);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1:3 + matrix(2), 3:5);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1:3 + array(2,c(1,1,1)), 3:5);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1:3 + matrix(1:3,nrow=1), matrix((1:3)*2, nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1:3 + matrix(1:3,ncol=1), matrix((1:3)*2, ncol=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1:6 + matrix(1:6,ncol=2), matrix((1:6)*2, ncol=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1:3 + array(1:3,c(3,1,1)), array((1:3)*2, c(3,1,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1:3 + array(1:3,c(1,3,1)), array((1:3)*2, c(1,3,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1:3 + array(1:3,c(1,1,3)), array((1:3)*2, c(1,1,3)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1:6 + array(1:6,c(3,2,1)), array((1:6)*2, c(3,2,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1:6 + array(1:6,c(3,1,2)), array((1:6)*2, c(3,1,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1:6 + array(1:6,c(2,3,1)), array((1:6)*2, c(2,3,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1:6 + array(1:6,c(1,3,2)), array((1:6)*2, c(1,3,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1:6 + array(1:6,c(2,1,3)), array((1:6)*2, c(2,1,3)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1:6 + array(1:6,c(1,2,3)), array((1:6)*2, c(1,2,3)));", gStaticEidosValue_LogicalT);
+	
+	EidosAssertScriptSuccess("identical(matrix(1) + integer(0), integer(0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(1) + 2, matrix(3));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(1) + 1:3, 2:4);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(1) + matrix(2), matrix(3));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(matrix(1) + array(2,c(1,1,1)), array(3, c(1,1,1)));", 20, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1) + matrix(1:3,nrow=1), matrix(2:4, nrow=1));", 20, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1) + matrix(1:3,ncol=1), matrix(2:4, ncol=1));", 20, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1) + matrix(1:6,ncol=2), matrix(2:7, ncol=2));", 20, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1) + array(1:3,c(3,1,1)), array(2:4, c(3,1,1)));", 20, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1) + array(1:3,c(1,3,1)), array(2:4, c(1,3,1)));", 20, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1) + array(1:3,c(1,1,3)), array(2:4, c(1,1,3)));", 20, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1) + array(1:6,c(3,2,1)), array(2:7, c(3,2,1)));", 20, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1) + array(1:6,c(3,1,2)), array(2:7, c(3,1,2)));", 20, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1) + array(1:6,c(2,3,1)), array(2:7, c(2,3,1)));", 20, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1) + array(1:6,c(1,3,2)), array(2:7, c(1,3,2)));", 20, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1) + array(1:6,c(2,1,3)), array(2:7, c(2,1,3)));", 20, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1) + array(1:6,c(1,2,3)), array(2:7, c(1,2,3)));", 20, "non-conformable");
+	
+	EidosAssertScriptSuccess("identical(array(1,c(1,1,1)) + integer(0), integer(0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(array(1,c(1,1,1)) + 2, array(3, c(1,1,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(array(1,c(1,1,1)) + 1:3, 2:4);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(array(1,c(1,1,1)) + matrix(2), matrix(3));", 28, "non-conformable");
+	EidosAssertScriptSuccess("identical(array(1,c(1,1,1)) + array(2,c(1,1,1)), array(3, c(1,1,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(array(1,c(1,1,1)) + matrix(1:3,nrow=1), matrix(2:4, nrow=1));", 28, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1,c(1,1,1)) + matrix(1:3,ncol=1), matrix(2:4, ncol=1));", 28, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1,c(1,1,1)) + matrix(1:6,ncol=2), matrix(2:7, ncol=2));", 28, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1,c(1,1,1)) + array(1:3,c(3,1,1)), array(2:4, c(3,1,1)));", 28, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1,c(1,1,1)) + array(1:3,c(1,3,1)), array(2:4, c(1,3,1)));", 28, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1,c(1,1,1)) + array(1:3,c(1,1,3)), array(2:4, c(1,1,3)));", 28, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1,c(1,1,1)) + array(1:6,c(3,2,1)), array(2:7, c(3,2,1)));", 28, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1,c(1,1,1)) + array(1:6,c(3,1,2)), array(2:7, c(3,1,2)));", 28, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1,c(1,1,1)) + array(1:6,c(2,3,1)), array(2:7, c(2,3,1)));", 28, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1,c(1,1,1)) + array(1:6,c(1,3,2)), array(2:7, c(1,3,2)));", 28, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1,c(1,1,1)) + array(1:6,c(2,1,3)), array(2:7, c(2,1,3)));", 28, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1,c(1,1,1)) + array(1:6,c(1,2,3)), array(2:7, c(1,2,3)));", 28, "non-conformable");
+	
+	EidosAssertScriptRaise("identical(matrix(1:3,nrow=1) + integer(0), integer(0));", 29, "requires that either");
+	EidosAssertScriptSuccess("identical(matrix(1:3,nrow=1) + 2, matrix(3:5, nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(1:3,nrow=1) + 1:3, matrix((1:3)*2, nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(matrix(1:3,nrow=1) + matrix(2), matrix(3));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:3,nrow=1) + array(2,c(1,1,1)), array(3, c(1,1,1)));", 29, "non-conformable");
+	EidosAssertScriptSuccess("identical(matrix(1:3,nrow=1) + matrix(1:3,nrow=1), matrix((1:3)*2, nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(matrix(1:3,nrow=1) + matrix(1:3,ncol=1), matrix(2:4, ncol=1));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:3,nrow=1) + matrix(1:6,ncol=2), matrix(2:7, ncol=2));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:3,nrow=1) + array(1:3,c(3,1,1)), array(2:4, c(3,1,1)));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:3,nrow=1) + array(1:3,c(1,3,1)), array(2:4, c(1,3,1)));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:3,nrow=1) + array(1:3,c(1,1,3)), array(2:4, c(1,1,3)));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:3,nrow=1) + array(1:6,c(3,2,1)), array(2:7, c(3,2,1)));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:3,nrow=1) + array(1:6,c(3,1,2)), array(2:7, c(3,1,2)));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:3,nrow=1) + array(1:6,c(2,3,1)), array(2:7, c(2,3,1)));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:3,nrow=1) + array(1:6,c(1,3,2)), array(2:7, c(1,3,2)));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:3,nrow=1) + array(1:6,c(2,1,3)), array(2:7, c(2,1,3)));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:3,nrow=1) + array(1:6,c(1,2,3)), array(2:7, c(1,2,3)));", 29, "non-conformable");
+	
+	EidosAssertScriptRaise("identical(matrix(1:3,ncol=1) + integer(0), integer(0));", 29, "requires that either");
+	EidosAssertScriptSuccess("identical(matrix(1:3,ncol=1) + 2, matrix(3:5, ncol=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(1:3,ncol=1) + 1:3, matrix((1:3)*2, ncol=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(matrix(1:3,ncol=1) + matrix(2), matrix(3));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:3,ncol=1) + array(2,c(1,1,1)), array(3, c(1,1,1)));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:3,ncol=1) + matrix(1:3,nrow=1), matrix(2:4, nrow=1));", 29, "non-conformable");
+	EidosAssertScriptSuccess("identical(matrix(1:3,ncol=1) + matrix(1:3,ncol=1), matrix((1:3)*2, ncol=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(matrix(1:3,ncol=1) + matrix(1:6,ncol=2), matrix(2:7, ncol=2));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:3,ncol=1) + array(1:3,c(3,1,1)), array(2:4, c(3,1,1)));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:3,ncol=1) + array(1:3,c(1,3,1)), array(2:4, c(1,3,1)));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:3,ncol=1) + array(1:3,c(1,1,3)), array(2:4, c(1,1,3)));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:3,ncol=1) + array(1:6,c(3,2,1)), array(2:7, c(3,2,1)));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:3,ncol=1) + array(1:6,c(3,1,2)), array(2:7, c(3,1,2)));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:3,ncol=1) + array(1:6,c(2,3,1)), array(2:7, c(2,3,1)));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:3,ncol=1) + array(1:6,c(1,3,2)), array(2:7, c(1,3,2)));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:3,ncol=1) + array(1:6,c(2,1,3)), array(2:7, c(2,1,3)));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:3,ncol=1) + array(1:6,c(1,2,3)), array(2:7, c(1,2,3)));", 29, "non-conformable");
+	
+	EidosAssertScriptRaise("identical(matrix(1:6,ncol=2) + integer(0), integer(0));", 29, "requires that either");
+	EidosAssertScriptSuccess("identical(matrix(1:6,ncol=2) + 2, matrix(3:8, ncol=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(1:6,ncol=2) + 1:6, matrix((1:6)*2, ncol=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(matrix(1:6,ncol=2) + matrix(2), matrix(3));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:6,ncol=2) + array(2,c(1,1,1)), array(3, c(1,1,1)));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:6,ncol=2) + matrix(1:6,nrow=1), matrix(2:4, nrow=1));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:6,ncol=2) + matrix(1:6,ncol=1), matrix(2:4, ncol=1));", 29, "non-conformable");
+	EidosAssertScriptSuccess("identical(matrix(1:6,ncol=2) + matrix(1:6,ncol=2), matrix((1:6)*2, ncol=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(matrix(1:6,ncol=2) + array(1:3,c(3,1,1)), array(2:4, c(3,1,1)));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:6,ncol=2) + array(1:3,c(1,3,1)), array(2:4, c(1,3,1)));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:6,ncol=2) + array(1:3,c(1,1,3)), array(2:4, c(1,1,3)));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:6,ncol=2) + array(1:6,c(3,2,1)), array(2:7, c(3,2,1)));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:6,ncol=2) + array(1:6,c(3,1,2)), array(2:7, c(3,1,2)));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:6,ncol=2) + array(1:6,c(2,3,1)), array(2:7, c(2,3,1)));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:6,ncol=2) + array(1:6,c(1,3,2)), array(2:7, c(1,3,2)));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:6,ncol=2) + array(1:6,c(2,1,3)), array(2:7, c(2,1,3)));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:6,ncol=2) + array(1:6,c(1,2,3)), array(2:7, c(1,2,3)));", 29, "non-conformable");
+	
+	EidosAssertScriptRaise("identical(array(1:6,c(3,2,1)) + integer(0), integer(0));", 30, "requires that either");
+	EidosAssertScriptSuccess("identical(array(1:6,c(3,2,1)) + 2, array(3:8, c(3,2,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(array(1:6,c(3,2,1)) + 1:6, array((1:6)*2, c(3,2,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(array(1:6,c(3,2,1)) + matrix(2), matrix(3));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(3,2,1)) + array(2,c(1,1,1)), array(3, c(1,1,1)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(3,2,1)) + matrix(1:6,nrow=1), matrix(2:4, nrow=1));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(3,2,1)) + matrix(1:6,ncol=1), matrix(2:4, ncol=1));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(3,2,1)) + matrix(1:6,ncol=2), matrix((1:6)*2, ncol=2));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(3,2,1)) + array(1:3,c(3,1,1)), array(2:4, c(3,1,1)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(3,2,1)) + array(1:3,c(1,3,1)), array(2:4, c(1,3,1)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(3,2,1)) + array(1:3,c(1,1,3)), array(2:4, c(1,1,3)));", 30, "non-conformable");
+	EidosAssertScriptSuccess("identical(array(1:6,c(3,2,1)) + array(1:6,c(3,2,1)), array((1:6)*2, c(3,2,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(array(1:6,c(3,2,1)) + array(1:6,c(3,1,2)), array(2:7, c(3,1,2)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(3,2,1)) + array(1:6,c(2,3,1)), array(2:7, c(2,3,1)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(3,2,1)) + array(1:6,c(1,3,2)), array(2:7, c(1,3,2)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(3,2,1)) + array(1:6,c(2,1,3)), array(2:7, c(2,1,3)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(3,2,1)) + array(1:6,c(1,2,3)), array(2:7, c(1,2,3)));", 30, "non-conformable");
+	
+	// operator +: identical to the previous tests, but with the order of the operands switched; should behave identically,
+	// except that the error positions change, unfortunately.  Xcode search-replace to generate this from the above:
+	// identical\(([A-Za-z0-9:(),=]+) \+ ([A-Za-z0-9:(),=]+), 
+	// identical\($2 + $1, 
+	EidosAssertScriptSuccess("identical(integer(0) + 1, integer(0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(2 + 1, 3);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1:3 + 1, 2:4);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(2) + 1, matrix(3));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(array(2,c(1,1,1)) + 1, array(3, c(1,1,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(1:3,nrow=1) + 1, matrix(2:4, nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(1:3,ncol=1) + 1, matrix(2:4, ncol=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(1:6,ncol=2) + 1, matrix(2:7, ncol=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(array(1:3,c(3,1,1)) + 1, array(2:4, c(3,1,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(array(1:3,c(1,3,1)) + 1, array(2:4, c(1,3,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(array(1:3,c(1,1,3)) + 1, array(2:4, c(1,1,3)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(array(1:6,c(3,2,1)) + 1, array(2:7, c(3,2,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(array(1:6,c(3,1,2)) + 1, array(2:7, c(3,1,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(array(1:6,c(2,3,1)) + 1, array(2:7, c(2,3,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(array(1:6,c(1,3,2)) + 1, array(2:7, c(1,3,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(array(1:6,c(2,1,3)) + 1, array(2:7, c(2,1,3)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(array(1:6,c(1,2,3)) + 1, array(2:7, c(1,2,3)));", gStaticEidosValue_LogicalT);
+	
+	EidosAssertScriptRaise("identical(integer(0) + 1:3, integer(0));", 21, "requires that either");
+	EidosAssertScriptSuccess("identical(2 + 1:3, 3:5);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1:3 + 1:3, (1:3)*2);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(2) + 1:3, 3:5);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(array(2,c(1,1,1)) + 1:3, 3:5);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(1:3,nrow=1) + 1:3, matrix((1:3)*2, nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(1:3,ncol=1) + 1:3, matrix((1:3)*2, ncol=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(1:6,ncol=2) + 1:6, matrix((1:6)*2, ncol=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(array(1:3,c(3,1,1)) + 1:3, array((1:3)*2, c(3,1,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(array(1:3,c(1,3,1)) + 1:3, array((1:3)*2, c(1,3,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(array(1:3,c(1,1,3)) + 1:3, array((1:3)*2, c(1,1,3)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(array(1:6,c(3,2,1)) + 1:6, array((1:6)*2, c(3,2,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(array(1:6,c(3,1,2)) + 1:6, array((1:6)*2, c(3,1,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(array(1:6,c(2,3,1)) + 1:6, array((1:6)*2, c(2,3,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(array(1:6,c(1,3,2)) + 1:6, array((1:6)*2, c(1,3,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(array(1:6,c(2,1,3)) + 1:6, array((1:6)*2, c(2,1,3)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(array(1:6,c(1,2,3)) + 1:6, array((1:6)*2, c(1,2,3)));", gStaticEidosValue_LogicalT);
+	
+	EidosAssertScriptSuccess("identical(integer(0) + matrix(1), integer(0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(2 + matrix(1), matrix(3));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1:3 + matrix(1), 2:4);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(2) + matrix(1), matrix(3));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(array(2,c(1,1,1)) + matrix(1), array(3, c(1,1,1)));", 28, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:3,nrow=1) + matrix(1), matrix(2:4, nrow=1));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:3,ncol=1) + matrix(1), matrix(2:4, ncol=1));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:6,ncol=2) + matrix(1), matrix(2:7, ncol=2));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:3,c(3,1,1)) + matrix(1), array(2:4, c(3,1,1)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:3,c(1,3,1)) + matrix(1), array(2:4, c(1,3,1)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:3,c(1,1,3)) + matrix(1), array(2:4, c(1,1,3)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(3,2,1)) + matrix(1), array(2:7, c(3,2,1)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(3,1,2)) + matrix(1), array(2:7, c(3,1,2)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(2,3,1)) + matrix(1), array(2:7, c(2,3,1)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(1,3,2)) + matrix(1), array(2:7, c(1,3,2)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(2,1,3)) + matrix(1), array(2:7, c(2,1,3)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(1,2,3)) + matrix(1), array(2:7, c(1,2,3)));", 30, "non-conformable");
+	
+	EidosAssertScriptSuccess("identical(integer(0) + array(1,c(1,1,1)), integer(0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(2 + array(1,c(1,1,1)), array(3, c(1,1,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1:3 + array(1,c(1,1,1)), 2:4);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(matrix(2) + array(1,c(1,1,1)), matrix(3));", 20, "non-conformable");
+	EidosAssertScriptSuccess("identical(array(2,c(1,1,1)) + array(1,c(1,1,1)), array(3, c(1,1,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(matrix(1:3,nrow=1) + array(1,c(1,1,1)), matrix(2:4, nrow=1));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:3,ncol=1) + array(1,c(1,1,1)), matrix(2:4, ncol=1));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:6,ncol=2) + array(1,c(1,1,1)), matrix(2:7, ncol=2));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:3,c(3,1,1)) + array(1,c(1,1,1)), array(2:4, c(3,1,1)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:3,c(1,3,1)) + array(1,c(1,1,1)), array(2:4, c(1,3,1)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:3,c(1,1,3)) + array(1,c(1,1,1)), array(2:4, c(1,1,3)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(3,2,1)) + array(1,c(1,1,1)), array(2:7, c(3,2,1)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(3,1,2)) + array(1,c(1,1,1)), array(2:7, c(3,1,2)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(2,3,1)) + array(1,c(1,1,1)), array(2:7, c(2,3,1)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(1,3,2)) + array(1,c(1,1,1)), array(2:7, c(1,3,2)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(2,1,3)) + array(1,c(1,1,1)), array(2:7, c(2,1,3)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(1,2,3)) + array(1,c(1,1,1)), array(2:7, c(1,2,3)));", 30, "non-conformable");
+	
+	EidosAssertScriptRaise("identical(integer(0) + matrix(1:3,nrow=1), integer(0));", 21, "requires that either");
+	EidosAssertScriptSuccess("identical(2 + matrix(1:3,nrow=1), matrix(3:5, nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1:3 + matrix(1:3,nrow=1), matrix((1:3)*2, nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(matrix(2) + matrix(1:3,nrow=1), matrix(3));", 20, "non-conformable");
+	EidosAssertScriptRaise("identical(array(2,c(1,1,1)) + matrix(1:3,nrow=1), array(3, c(1,1,1)));", 28, "non-conformable");
+	EidosAssertScriptSuccess("identical(matrix(1:3,nrow=1) + matrix(1:3,nrow=1), matrix((1:3)*2, nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(matrix(1:3,ncol=1) + matrix(1:3,nrow=1), matrix(2:4, ncol=1));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:6,ncol=2) + matrix(1:3,nrow=1), matrix(2:7, ncol=2));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:3,c(3,1,1)) + matrix(1:3,nrow=1), array(2:4, c(3,1,1)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:3,c(1,3,1)) + matrix(1:3,nrow=1), array(2:4, c(1,3,1)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:3,c(1,1,3)) + matrix(1:3,nrow=1), array(2:4, c(1,1,3)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(3,2,1)) + matrix(1:3,nrow=1), array(2:7, c(3,2,1)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(3,1,2)) + matrix(1:3,nrow=1), array(2:7, c(3,1,2)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(2,3,1)) + matrix(1:3,nrow=1), array(2:7, c(2,3,1)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(1,3,2)) + matrix(1:3,nrow=1), array(2:7, c(1,3,2)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(2,1,3)) + matrix(1:3,nrow=1), array(2:7, c(2,1,3)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(1,2,3)) + matrix(1:3,nrow=1), array(2:7, c(1,2,3)));", 30, "non-conformable");
+	
+	EidosAssertScriptRaise("identical(integer(0) + matrix(1:3,ncol=1), integer(0));", 21, "requires that either");
+	EidosAssertScriptSuccess("identical(2 + matrix(1:3,ncol=1), matrix(3:5, ncol=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1:3 + matrix(1:3,ncol=1), matrix((1:3)*2, ncol=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(matrix(2) + matrix(1:3,ncol=1), matrix(3));", 20, "non-conformable");
+	EidosAssertScriptRaise("identical(array(2,c(1,1,1)) + matrix(1:3,ncol=1), array(3, c(1,1,1)));", 28, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:3,nrow=1) + matrix(1:3,ncol=1), matrix(2:4, nrow=1));", 29, "non-conformable");
+	EidosAssertScriptSuccess("identical(matrix(1:3,ncol=1) + matrix(1:3,ncol=1), matrix((1:3)*2, ncol=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(matrix(1:6,ncol=2) + matrix(1:3,ncol=1), matrix(2:7, ncol=2));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:3,c(3,1,1)) + matrix(1:3,ncol=1), array(2:4, c(3,1,1)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:3,c(1,3,1)) + matrix(1:3,ncol=1), array(2:4, c(1,3,1)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:3,c(1,1,3)) + matrix(1:3,ncol=1), array(2:4, c(1,1,3)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(3,2,1)) + matrix(1:3,ncol=1), array(2:7, c(3,2,1)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(3,1,2)) + matrix(1:3,ncol=1), array(2:7, c(3,1,2)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(2,3,1)) + matrix(1:3,ncol=1), array(2:7, c(2,3,1)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(1,3,2)) + matrix(1:3,ncol=1), array(2:7, c(1,3,2)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(2,1,3)) + matrix(1:3,ncol=1), array(2:7, c(2,1,3)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(1,2,3)) + matrix(1:3,ncol=1), array(2:7, c(1,2,3)));", 30, "non-conformable");
+	
+	EidosAssertScriptRaise("identical(integer(0) + matrix(1:6,ncol=2), integer(0));", 21, "requires that either");
+	EidosAssertScriptSuccess("identical(2 + matrix(1:6,ncol=2), matrix(3:8, ncol=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1:6 + matrix(1:6,ncol=2), matrix((1:6)*2, ncol=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(matrix(2) + matrix(1:6,ncol=2), matrix(3));", 20, "non-conformable");
+	EidosAssertScriptRaise("identical(array(2,c(1,1,1)) + matrix(1:6,ncol=2), array(3, c(1,1,1)));", 28, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:6,nrow=1) + matrix(1:6,ncol=2), matrix(2:4, nrow=1));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:6,ncol=1) + matrix(1:6,ncol=2), matrix(2:4, ncol=1));", 29, "non-conformable");
+	EidosAssertScriptSuccess("identical(matrix(1:6,ncol=2) + matrix(1:6,ncol=2), matrix((1:6)*2, ncol=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(array(1:3,c(3,1,1)) + matrix(1:6,ncol=2), array(2:4, c(3,1,1)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:3,c(1,3,1)) + matrix(1:6,ncol=2), array(2:4, c(1,3,1)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:3,c(1,1,3)) + matrix(1:6,ncol=2), array(2:4, c(1,1,3)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(3,2,1)) + matrix(1:6,ncol=2), array(2:7, c(3,2,1)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(3,1,2)) + matrix(1:6,ncol=2), array(2:7, c(3,1,2)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(2,3,1)) + matrix(1:6,ncol=2), array(2:7, c(2,3,1)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(1,3,2)) + matrix(1:6,ncol=2), array(2:7, c(1,3,2)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(2,1,3)) + matrix(1:6,ncol=2), array(2:7, c(2,1,3)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(1,2,3)) + matrix(1:6,ncol=2), array(2:7, c(1,2,3)));", 30, "non-conformable");
+	
+	EidosAssertScriptRaise("identical(integer(0) + array(1:6,c(3,2,1)), integer(0));", 21, "requires that either");
+	EidosAssertScriptSuccess("identical(2 + array(1:6,c(3,2,1)), array(3:8, c(3,2,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1:6 + array(1:6,c(3,2,1)), array((1:6)*2, c(3,2,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(matrix(2) + array(1:6,c(3,2,1)), matrix(3));", 20, "non-conformable");
+	EidosAssertScriptRaise("identical(array(2,c(1,1,1)) + array(1:6,c(3,2,1)), array(3, c(1,1,1)));", 28, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:6,nrow=1) + array(1:6,c(3,2,1)), matrix(2:4, nrow=1));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:6,ncol=1) + array(1:6,c(3,2,1)), matrix(2:4, ncol=1));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:6,ncol=2) + array(1:6,c(3,2,1)), matrix((1:6)*2, ncol=2));", 29, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:3,c(3,1,1)) + array(1:6,c(3,2,1)), array(2:4, c(3,1,1)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:3,c(1,3,1)) + array(1:6,c(3,2,1)), array(2:4, c(1,3,1)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:3,c(1,1,3)) + array(1:6,c(3,2,1)), array(2:4, c(1,1,3)));", 30, "non-conformable");
+	EidosAssertScriptSuccess("identical(array(1:6,c(3,2,1)) + array(1:6,c(3,2,1)), array((1:6)*2, c(3,2,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(array(1:6,c(3,1,2)) + array(1:6,c(3,2,1)), array(2:7, c(3,1,2)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(2,3,1)) + array(1:6,c(3,2,1)), array(2:7, c(2,3,1)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(1,3,2)) + array(1:6,c(3,2,1)), array(2:7, c(1,3,2)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(2,1,3)) + array(1:6,c(3,2,1)), array(2:7, c(2,1,3)));", 30, "non-conformable");
+	EidosAssertScriptRaise("identical(array(1:6,c(1,2,3)) + array(1:6,c(3,2,1)), array(2:7, c(1,2,3)));", 30, "non-conformable");
 }
 
 #pragma mark operator −
@@ -1358,6 +1658,21 @@ void _RunOperatorMinusTests(void)
 	EidosAssertScriptRaise("c(0, 0, -5e18, 0) - 5e18;", 18, "overflow with the binary");
 	EidosAssertScriptRaise("c(0, 0, -5e18, 0) - c(0, 0, 5e18, 0);", 18, "overflow with the binary");
 #endif
+	
+	// operator -: test with mixed singletons, vectors, matrices, and arrays; the dimensionality code is shared across all operand types, so testing it with integer should suffice
+	EidosAssertScriptSuccess("identical(-matrix(2), matrix(-2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(-matrix(1:3), matrix(-1:-3));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(-array(2, c(1,1,1)), array(-2, c(1,1,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(-array(1:6, c(3,1,2)), array(-1:-6, c(3,1,2)));", gStaticEidosValue_LogicalT);
+	
+	EidosAssertScriptSuccess("identical(1-matrix(2), matrix(-1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1-matrix(1:3), matrix(0:-2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1:3-matrix(2), -1:1);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(4:6-matrix(1:3), matrix(c(3,3,3)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(5)-matrix(2), matrix(3));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(matrix(1:3)-matrix(2), matrix(3));", 21, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:3,nrow=1)-matrix(1:3,ncol=1), matrix(3));", 28, "non-conformable");
+	EidosAssertScriptSuccess("identical(matrix(7:9)-matrix(1:3), matrix(c(6,6,6)));", gStaticEidosValue_LogicalT);
 }
 
 #pragma mark operator *
@@ -1410,6 +1725,16 @@ void _RunOperatorMultTests(void)
 	EidosAssertScriptRaise("c(0, 0, 2, 0) * c(0, 0, 5e18, 0);", 14, "multiplication overflow");
 	EidosAssertScriptRaise("c(0, 0, 5e18, 0) * c(0, 0, 2, 0);", 17, "multiplication overflow");
 #endif
+	
+	// operator *: test with mixed singletons, vectors, matrices, and arrays; the dimensionality code is shared across all operand types, so testing it with integer should suffice
+	EidosAssertScriptSuccess("identical(5 * matrix(2), matrix(10));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(5 * matrix(1:3), matrix(c(5,10,15)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1:3 * matrix(2), c(2,4,6));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(4:6 * matrix(1:3), matrix(c(4,10,18)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(5) * matrix(2), matrix(10));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(matrix(1:3) * matrix(2), matrix(c(2,4,6)));", 22, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(4:6,nrow=1) * matrix(1:3,ncol=1), matrix(c(4,10,18)));", 29, "non-conformable");
+	EidosAssertScriptSuccess("identical(matrix(6:8) * matrix(1:3), matrix(c(6,14,24)));", gStaticEidosValue_LogicalT);
 }
 
 #pragma mark operator /
@@ -1451,6 +1776,16 @@ void _RunOperatorDivTests(void)
 	EidosAssertScriptRaise("/T;", 0, "unexpected token");
     EidosAssertScriptSuccess("3/4/5;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(0.15)));
 	EidosAssertScriptSuccess("6/0;", gStaticEidosValue_FloatINF);
+	
+	// operator /: test with mixed singletons, vectors, matrices, and arrays; the dimensionality code is shared across all operand types, so testing it with integer should suffice
+	EidosAssertScriptSuccess("identical(5 / matrix(2), matrix(2.5));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(12 / matrix(1:3), matrix(c(12.0,6,4)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1:3 / matrix(2), c(0.5,1,1.5));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(4:6 / matrix(1:3), matrix(c(4,2.5,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(5) / matrix(2), matrix(2.5));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(matrix(1:3) / matrix(2), matrix(c(0.5,1,1.5)));", 22, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(4:6,nrow=1) / matrix(1:3,ncol=1), matrix(c(4,2.5,2)));", 29, "non-conformable");
+	EidosAssertScriptSuccess("identical(matrix(7:9) / matrix(1:3), matrix(c(7.0,4,3)));", gStaticEidosValue_LogicalT);
 }
 
 #pragma mark operator %
@@ -1491,16 +1826,26 @@ void _RunOperatorModTests(void)
 	EidosAssertScriptRaise("%'foo';", 0, "unexpected token");
 	EidosAssertScriptRaise("%T;", 0, "unexpected token");
     EidosAssertScriptSuccess("3%4%5;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(3)));
+	
+	// operator %: test with mixed singletons, vectors, matrices, and arrays; the dimensionality code is shared across all operand types, so testing it with integer should suffice
+	EidosAssertScriptSuccess("identical(5 % matrix(2), matrix(1.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(5 % matrix(1:3), matrix(c(0.0,1,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(1:3 % matrix(2), c(1.0,0,1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(4:6 % matrix(1:3), matrix(c(0.0,1,0)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(5) % matrix(2), matrix(1.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(matrix(1:3) % matrix(2), matrix(c(1.0,0,1)));", 22, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(4:6,nrow=1) % matrix(1:3,ncol=1), matrix(c(0.0,1,0)));", 29, "non-conformable");
+	EidosAssertScriptSuccess("identical(matrix(6:8) % matrix(1:3), matrix(c(0.0,1,2)));", gStaticEidosValue_LogicalT);
 }
 
 #pragma mark operator []
 void _RunOperatorSubsetTests(void)
 {
 	// operator []
-	EidosAssertScriptRaise("x = 1:5; x[NULL];", 10, "is not supported by");
+	EidosAssertScriptSuccess("x = 1:5; x[NULL];", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3, 4, 5}));
 	EidosAssertScriptSuccess("x = 1:5; NULL[x];", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("x = 1:5; NULL[NULL];", gStaticEidosValueNULL);
-	EidosAssertScriptRaise("x = 1:5; x[];", 11, "unexpected token");
+	EidosAssertScriptSuccess("x = 1:5; x[];", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3, 4, 5}));
 	EidosAssertScriptSuccess("x = 1:5; x[integer(0)];", gStaticEidosValue_Integer_ZeroVec);
 	EidosAssertScriptSuccess("x = 1:5; x[2];", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
 	EidosAssertScriptSuccess("x = 1:5; x[2:3];", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3, 4}));
@@ -1560,6 +1905,89 @@ void _RunOperatorSubsetTests(void)
 	EidosAssertScriptRaise("x = 5; x[1.0];", 8, "out of range");
 	EidosAssertScriptRaise("x = 5; x[-1.0];", 8, "out of range");
 	EidosAssertScriptSuccess("x = 5; x[float(0)];", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{}));
+	
+	EidosAssertScriptRaise("x = 5:9; x[matrix(0)];", 10, "matrix or array index operand is not supported");
+	EidosAssertScriptRaise("x = 5:9; x[matrix(0:2)];", 10, "matrix or array index operand is not supported");
+	EidosAssertScriptRaise("x = 5:9; x[matrix(T)];", 10, "matrix or array index operand is not supported");
+	EidosAssertScriptRaise("x = 5:9; x[matrix(c(T,T,F,T,F))];", 10, "matrix or array index operand is not supported");
+	
+	// matrix/array subsets, without dropping
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); identical(x[], 1:6);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); identical(x[,], matrix(1:6, nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); identical(x[NULL,NULL], matrix(1:6, nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); identical(x[0,], matrix(c(1,3,5), nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); identical(x[1,], matrix(c(2,4,6), nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); identical(x[1,NULL], matrix(c(2,4,6), nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); identical(x[0:1,], matrix(1:6, nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); identical(x[NULL,], matrix(1:6, nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); identical(x[,0], matrix(1:2, ncol=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); identical(x[,1], matrix(3:4, ncol=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); identical(x[,2], matrix(5:6, ncol=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); identical(x[,0:1], matrix(1:4, ncol=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); identical(x[,1:2], matrix(3:6, ncol=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); identical(x[,c(0,2)], matrix(c(1,2,5,6), ncol=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); identical(x[NULL,c(0,2)], matrix(c(1,2,5,6), ncol=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); identical(x[0,1], matrix(3));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); identical(x[1,2], matrix(6));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); identical(x[0,c(T,F,T)], matrix(c(1,5), nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); identical(x[c(F,T),c(F,F,T)], matrix(6));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); identical(x[c(F,F),c(F,F,F)], integer(0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); identical(x[c(F,F),c(F,T,T)], integer(0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); identical(x[c(T,T),c(T,T,F)], matrix(1:4, ncol=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); identical(x[c(0,0,1,0),], matrix(c(1,3,5,1,3,5,2,4,6,1,3,5), ncol=3, byrow=T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); identical(x[c(0,0,1,0),c(1,2,1)], matrix(c(3,5,3,3,5,3,4,6,4,3,5,3), ncol=3, byrow=T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); identical(x[,c(1,2,1)], matrix(c(3,4,5,6,3,4), nrow=2));", gStaticEidosValue_LogicalT);
+	
+	EidosAssertScriptRaise("x = matrix(1:6, nrow=2); x[c(T),c(T,T,F)];", 26, "match the corresponding dimension");
+	EidosAssertScriptRaise("x = matrix(1:6, nrow=2); x[c(T,T,T),c(T,T,F)];", 26, "match the corresponding dimension");
+	EidosAssertScriptRaise("x = matrix(1:6, nrow=2); x[c(T,T),c(T,T)];", 26, "match the corresponding dimension");
+	EidosAssertScriptRaise("x = matrix(1:6, nrow=2); x[c(T,T),c(T,T,F,T)];", 26, "match the corresponding dimension");
+	EidosAssertScriptRaise("x = matrix(1:6, nrow=2); x[-1,];", 26, "out-of-range index");
+	EidosAssertScriptRaise("x = matrix(1:6, nrow=2); x[2,];", 26, "out-of-range index");
+	EidosAssertScriptRaise("x = matrix(1:6, nrow=2); x[,-1];", 26, "out-of-range index");
+	EidosAssertScriptRaise("x = matrix(1:6, nrow=2); x[,3];", 26, "out-of-range index");
+	EidosAssertScriptRaise("x = matrix(1:6, nrow=2); x[0,0,0];", 26, "too many subset arguments");
+	
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); identical(x[], 1:12);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); identical(x[,,], array(1:12, c(2,3,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); identical(x[NULL,NULL,NULL], array(1:12, c(2,3,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); identical(x[0,,], array(c(1,3,5,7,9,11), c(1,3,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); identical(x[1,,], array(c(2,4,6,8,10,12), c(1,3,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); identical(x[1,NULL,NULL], array(c(2,4,6,8,10,12), c(1,3,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); identical(x[0:1,,], array(1:12, c(2,3,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); identical(x[NULL,,], array(1:12, c(2,3,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); identical(x[,0,], array(c(1,2,7,8), c(2,1,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); identical(x[,1,], array(c(3,4,9,10), c(2,1,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); identical(x[,2,], array(c(5,6,11,12), c(2,1,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); identical(x[,c(0,2),], array(c(1,2,5,6,7,8,11,12), c(2,2,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); identical(x[,,0], array(1:6, c(2,3,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); identical(x[NULL,NULL,1], array(7:12, c(2,3,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); identical(x[1,2,0], array(6, c(1,1,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); identical(x[0,1,1], array(9, c(1,1,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); identical(x[1,1:2,], array(c(4,6,10,12), c(1,2,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); identical(x[0,c(T,F,T),], array(c(1,5,7,11), c(1,2,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); identical(x[c(T,F),c(T,F,T),], array(c(1,5,7,11), c(1,2,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); identical(x[c(T,F),c(T,F,T),c(F,T)], array(c(7,11), c(1,2,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); identical(x[c(T,F),c(F,F,T),c(F,T)], array(11, c(1,1,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); identical(x[c(F,F),c(F,F,F),c(F,T)], integer(0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); identical(x[c(F,F),c(T,F,T),c(F,T)], integer(0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); identical(x[c(0,0,1,0),,], array(c(1,1,2,1,3,3,4,3,5,5,6,5,7,7,8,7,9,9,10,9,11,11,12,11), c(4,3,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); identical(x[c(0,0,1,0),c(2,1),0], array(c(5,5,6,5,3,3,4,3), c(4,2,1)));", gStaticEidosValue_LogicalT);
+	
+	EidosAssertScriptRaise("x = array(1:12, c(2,3,2)); x[c(T), c(T,T,T), c(T,T)];", 28, "match the corresponding dimension");
+	EidosAssertScriptRaise("x = array(1:12, c(2,3,2)); x[c(T,T,T), c(T,T,T), c(T,T)];", 28, "match the corresponding dimension");
+	EidosAssertScriptRaise("x = array(1:12, c(2,3,2)); x[c(T,T), c(T,T), c(T,T)];", 28, "match the corresponding dimension");
+	EidosAssertScriptRaise("x = array(1:12, c(2,3,2)); x[c(T,T), c(T,T,T,T), c(T,T)];", 28, "match the corresponding dimension");
+	EidosAssertScriptRaise("x = array(1:12, c(2,3,2)); x[c(T,T), c(T,T,T), c(T)];", 28, "match the corresponding dimension");
+	EidosAssertScriptRaise("x = array(1:12, c(2,3,2)); x[c(T,T), c(T,T,T), c(T,T,T)];", 28, "match the corresponding dimension");
+	EidosAssertScriptRaise("x = array(1:12, c(2,3,2)); x[-1, 0, 0];", 28, "out-of-range index");
+	EidosAssertScriptRaise("x = array(1:12, c(2,3,2)); x[2, 0, 0];", 28, "out-of-range index");
+	EidosAssertScriptRaise("x = array(1:12, c(2,3,2)); x[0, -1, 0];", 28, "out-of-range index");
+	EidosAssertScriptRaise("x = array(1:12, c(2,3,2)); x[0, 3, 0];", 28, "out-of-range index");
+	EidosAssertScriptRaise("x = array(1:12, c(2,3,2)); x[0, 0, -1];", 28, "out-of-range index");
+	EidosAssertScriptRaise("x = array(1:12, c(2,3,2)); x[0, 0, 2];", 28, "out-of-range index");
+	EidosAssertScriptRaise("x = array(1:12, c(2,3,2)); x[0, 0];", 28, "too few subset arguments");
+	EidosAssertScriptRaise("x = array(1:12, c(2,3,2)); x[0, 0, 0, 0];", 28, "too many subset arguments");
 }
 
 #pragma mark operator = with []
@@ -1581,8 +2009,8 @@ void _RunOperatorAssignTests(void)
 	EidosAssertScriptSuccess("x = 1:5; x[1:3*2 - 2] = 11:13; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{11, 2, 12, 4, 13}));
 	EidosAssertScriptSuccess("x = 1:5; x[1:3*2 - 2][0:1] = 11:12; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{11, 2, 12, 4, 5}));
 	EidosAssertScriptRaise("x = 1:5; x[1:3*2 - 2][0:1] = 11:13; x;", 27, "assignment to a subscript requires");
-	EidosAssertScriptRaise("x = 1:5; x[NULL] = NULL; x;", 10, "is not supported by");
-	EidosAssertScriptRaise("x = 1:5; x[NULL] = 10; x;", 10, "is not supported by");
+	EidosAssertScriptRaise("x = 1:5; x[NULL] = NULL; x;", 17, "assignment to a subscript requires an rvalue that is");
+	EidosAssertScriptSuccess("x = 1:5; x[NULL] = 10; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{10, 10, 10, 10, 10}));	// assigns 10 to all indices, legal in Eidos 1.6 and later
 	EidosAssertScriptRaise("x = 1:5; x[3] = NULL; x;", 14, "assignment to a subscript requires");
 	EidosAssertScriptRaise("x = 1:5; x[integer(0)] = NULL; x;", 23, "type mismatch");
 	EidosAssertScriptSuccess("x = 1:5; x[integer(0)] = 10; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3, 4, 5})); // assigns 10 to no indices, perfectly legal
@@ -1604,19 +2032,101 @@ void _RunOperatorAssignTests(void)
 	EidosAssertScriptSuccess("x = 1:5; x[c(2.0,3)] = c(9, 5); x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 9, 5, 5}));
 	EidosAssertScriptRaise("x = 1:5; x[c(7.0,8)] = 7; x;", 10, "out-of-range index");
 	
+	EidosAssertScriptRaise("x = 5:9; x[matrix(0)] = 3;", 10, "matrix or array index operand is not supported");
+	EidosAssertScriptRaise("x = 5:9; x[matrix(0:2)] = 3;", 10, "matrix or array index operand is not supported");
+	EidosAssertScriptRaise("x = 5:9; x[matrix(T)] = 3;", 10, "matrix or array index operand is not supported");
+	EidosAssertScriptRaise("x = 5:9; x[matrix(c(T,T,F,T,F))] = 3;", 10, "matrix or array index operand is not supported");
+	EidosAssertScriptSuccess("x = 1; x[] = 2; identical(x, 2);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = 1; x[NULL] = 2; identical(x, 2);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = 1:5; x[] = 2; identical(x, rep(2,5));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = 1:5; x[NULL] = 2; identical(x, rep(2,5));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(5); x[] = 3; identical(x, matrix(3));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(5); x[NULL] = 3; identical(x, matrix(3));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(5); x[0] = 3; identical(x, matrix(3));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(5:9); x[] = 3; identical(x, matrix(c(3,3,3,3,3)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(5:9); x[NULL] = 3; identical(x, matrix(c(3,3,3,3,3)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(5:9); x[0] = 3; identical(x, matrix(c(3,6,7,8,9)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(5); x[T] = 3; identical(x, matrix(3));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(5:9); x[c(T,F,T,T,F)] = 3; identical(x, matrix(c(3,6,3,3,9)));", gStaticEidosValue_LogicalT);
+	
+	// operator = (especially in conjunction with matrix/array-style subsetting with operator [])
+	EidosAssertScriptSuccess("NULL[logical(0)] = NULL;", gStaticEidosValueNULLInvisible);			// technically legal, as no assignment is done
+	EidosAssertScriptRaise("NULL[logical(0),] = NULL;", 4, "too many subset arguments");
+	EidosAssertScriptRaise("NULL[logical(0),logical(0)] = NULL;", 4, "too many subset arguments");
+	EidosAssertScriptRaise("NULL[,] = NULL;", 4, "too many subset arguments");
+	EidosAssertScriptSuccess("x = NULL; x[logical(0)] = NULL;", gStaticEidosValueNULLInvisible);	// technically legal, as no assignment is done
+	EidosAssertScriptRaise("x = NULL; x[logical(0),] = NULL;", 11, "too many subset arguments");
+	EidosAssertScriptRaise("x = NULL; x[logical(0),logical(0)] = NULL;", 11, "too many subset arguments");
+	EidosAssertScriptRaise("x = NULL; x[,] = NULL;", 11, "too many subset arguments");
+	EidosAssertScriptRaise("x = 1; x[,] = 2; x;", 8, "too many subset arguments");
+	EidosAssertScriptRaise("x = 1; x[0,0] = 2; x;", 8, "too many subset arguments");
+	EidosAssertScriptRaise("x = 1:5; x[,] = 2; x;", 10, "too many subset arguments");
+	EidosAssertScriptRaise("x = 1:5; x[0,0] = 2; x;", 10, "too many subset arguments");
+	EidosAssertScriptSuccess("x = matrix(1:5); x[,] = 2; identical(x, matrix(rep(2,5)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:5); x[NULL,NULL] = 2; identical(x, matrix(rep(2,5)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:5); x[0,0] = 2; identical(x, matrix(c(2,2,3,4,5)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:5); x[3,0] = 2; identical(x, matrix(c(1,2,3,2,5)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:5); x[1:3,0] = 7; identical(x, matrix(c(1,7,7,7,5)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:5); x[c(1,3),0] = 7; identical(x, matrix(c(1,7,3,7,5)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:5); x[c(1,3),0] = 6:7; identical(x, matrix(c(1,6,3,7,5)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:5); x[c(T,F,F,T,F),0] = 7; identical(x, matrix(c(7,2,3,7,5)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:5); x[c(T,F,F,T,F),0] = 6:7; identical(x, matrix(c(6,2,3,7,5)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("x = matrix(1:5); x[-1,0] = 2;", 18, "out-of-range index");
+	EidosAssertScriptRaise("x = matrix(1:5); x[5,0] = 2;", 18, "out-of-range index");
+	EidosAssertScriptRaise("x = matrix(1:5); x[0,-1] = 2;", 18, "out-of-range index");
+	EidosAssertScriptRaise("x = matrix(1:5); x[0,1] = 2;", 18, "out-of-range index");
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); x[1,1] = 2; identical(x, matrix(c(1,2,3,2,5,6), nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); x[0:1,1] = 7; identical(x, matrix(c(1,2,7,7,5,6), nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); x[1, c(T,F,T)] = 7; identical(x, matrix(c(1,7,3,4,5,7), nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); x[0:1, c(T,F,T)] = 7; identical(x, matrix(c(7,7,3,4,7,7), nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); x[c(T,T), c(T,F,T)] = 6:9; identical(x, matrix(c(6,7,3,4,8,9), nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("x = matrix(1:6, nrow=2); x[-1,0] = 2;", 26, "out-of-range index");
+	EidosAssertScriptRaise("x = matrix(1:6, nrow=2); x[2,0] = 2;", 26, "out-of-range index");
+	EidosAssertScriptRaise("x = matrix(1:6, nrow=2); x[0,-1] = 2;", 26, "out-of-range index");
+	EidosAssertScriptRaise("x = matrix(1:6, nrow=2); x[0,3] = 2;", 26, "out-of-range index");
+	EidosAssertScriptRaise("x = matrix(1:6, nrow=2); x[c(T,F,T),0] = 2;", 26, "size() of a logical");
+	EidosAssertScriptRaise("x = matrix(1:6, nrow=2); x[T,0] = 2;", 26, "size() of a logical");
+	EidosAssertScriptRaise("x = matrix(1:6, nrow=2); x[0:4][,0] = 2;", 31, "chaining of matrix/array-style subsets");
+	EidosAssertScriptRaise("x = matrix(1:6, nrow=2); x[0,1:2][,0] = 2;", 33, "chaining of matrix/array-style subsets");
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); x[0,1:2][1] = 2; identical(x, c(1,2,3,4,2,6));", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); x[0,1:2][1] = 2; identical(x, matrix(c(1,2,3,4,2,6), nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("x=_Test(9); y=_Test(7); z=matrix(c(x,y,x,y), nrow=2); z._yolk[,1]=6.5;", 61, "subset of a property");
+	EidosAssertScriptRaise("x=_Test(9); y=_Test(7); z=matrix(c(x,y,x,y), nrow=2); z[,1]._yolk[1]=6.5;", 68, "subset of a property");
+	EidosAssertScriptSuccess("x=_Test(9); y=_Test(7); z=matrix(c(x,y,x,y), nrow=2); z[,1]._yolk=6; identical(z._yolk, c(6,6,6,6));", gStaticEidosValue_LogicalT);
+	
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); x[,,] = 2; identical(x, array(rep(2,12), c(2,3,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); x[1,0,1] = -1; identical(x, array(c(1,2,3,4,5,6,7,-1,9,10,11,12), c(2,3,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); x[1,c(T,F,T),1] = 7; identical(x, array(c(1,2,3,4,5,6,7,7,9,10,11,7), c(2,3,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); x[1,c(T,F,T),1] = -1:-2; identical(x, array(c(1,2,3,4,5,6,7,-1,9,10,11,-2), c(2,3,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); x[0:1,c(T,F,T),1] = 15; identical(x, array(c(1,2,3,4,5,6,15,15,9,10,15,15), c(2,3,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); x[0:1,c(T,F,T),1] = 15:18; identical(x, array(c(1,2,3,4,5,6,15,16,9,10,17,18), c(2,3,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("x = array(1:12, c(2,3,2)); x[0:1,c(T,F,T),1] = 15:17; identical(x, array(c(1,2,3,4,5,6,15,16,9,10,17,18), c(2,3,2)));", 45, ".size() matching the .size");
+	EidosAssertScriptRaise("x = array(1:12, c(2,3,2)); x[0:1,c(T,F,T),1] = 15:19; identical(x, array(c(1,2,3,4,5,6,15,16,9,10,17,18), c(2,3,2)));", 45, ".size() matching the .size");
+	EidosAssertScriptRaise("x = array(1:12, c(2,3,2)); x[-1,0,0] = 2;", 28, "out-of-range index");
+	EidosAssertScriptRaise("x = array(1:12, c(2,3,2)); x[2,0,0] = 2;", 28, "out-of-range index");
+	EidosAssertScriptRaise("x = array(1:12, c(2,3,2)); x[0,-1,0] = 2;", 28, "out-of-range index");
+	EidosAssertScriptRaise("x = array(1:12, c(2,3,2)); x[0,3,0] = 2;", 28, "out-of-range index");
+	EidosAssertScriptRaise("x = array(1:12, c(2,3,2)); x[0,0,-1] = 2;", 28, "out-of-range index");
+	EidosAssertScriptRaise("x = array(1:12, c(2,3,2)); x[0,0,2] = 2;", 28, "out-of-range index");
+	EidosAssertScriptRaise("x = array(1:12, c(2,3,2)); x[c(T,F,T),0,0] = 2;", 28, "size() of a logical");
+	EidosAssertScriptRaise("x = array(1:12, c(2,3,2)); x[T,0,0] = 2;", 28, "size() of a logical");
+	EidosAssertScriptRaise("x = array(1:12, c(2,3,2)); x[0:4][,0,] = 2;", 33, "chaining of matrix/array-style subsets");
+	EidosAssertScriptRaise("x = array(1:12, c(2,3,2)); x[0,1:2,][,0,] = 2;", 36, "chaining of matrix/array-style subsets");
+	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); x[0,1:2,][1:2] = 2; identical(x, array(c(1,2,3,4,2,6,7,8,2,10,11,12), c(2,3,2)));", gStaticEidosValue_LogicalT);
+	
 	// operator = (especially in conjunction with operator .)
 	EidosAssertScriptSuccess("x=_Test(9); x._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(9)));
 	EidosAssertScriptRaise("x=_Test(NULL);", 2, "cannot be type NULL");
 	EidosAssertScriptRaise("x=_Test(9); x._yolk = NULL;", 20, "value cannot be type");
 	EidosAssertScriptSuccess("x=_Test(9); y=_Test(7); z=c(x,y,x,y); z._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{9, 7, 9, 7}));
 	EidosAssertScriptSuccess("x=_Test(9); y=_Test(7); z=c(x,y,x,y); z[3]._yolk=2; z._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{9, 2, 9, 2}));
-	EidosAssertScriptSuccess("x=_Test(9); y=_Test(7); z=c(x,y,x,y); z._yolk[3]=2; z._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{9, 2, 9, 2}));
+	EidosAssertScriptRaise("x=_Test(9); y=_Test(7); z=c(x,y,x,y); z._yolk[3]=2; z._yolk;", 48, "not an lvalue");				// used to be legal, now a policy error
 	EidosAssertScriptSuccess("x=_Test(9); y=_Test(7); z=c(x,y,x,y); z[c(1,0)]._yolk=c(2, 5); z._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{5, 2, 5, 2}));
-	EidosAssertScriptSuccess("x=_Test(9); y=_Test(7); z=c(x,y,x,y); z._yolk[c(1,0)]=c(3, 6); z._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{6, 3, 6, 3}));
+	EidosAssertScriptRaise("x=_Test(9); y=_Test(7); z=c(x,y,x,y); z._yolk[c(1,0)]=c(3, 6); z._yolk;", 53, "not an lvalue");	// used to be legal, now a policy error
 	EidosAssertScriptRaise("x=_Test(9); y=_Test(7); z=c(x,y,x,y); z[3]._yolk=6.5; z._yolk;", 48, "value cannot be type");
-	EidosAssertScriptRaise("x=_Test(9); y=_Test(7); z=c(x,y,x,y); z._yolk[3]=6.5; z._yolk;", 48, "value cannot be type");
+	EidosAssertScriptRaise("x=_Test(9); y=_Test(7); z=c(x,y,x,y); z._yolk[3]=6.5; z._yolk;", 48, "not an lvalue");			// used to be a type error, now a policy error
 	EidosAssertScriptRaise("x=_Test(9); y=_Test(7); z=c(x,y,x,y); z[2:3]._yolk=6.5; z._yolk;", 50, "value cannot be type");
-	EidosAssertScriptRaise("x=_Test(9); y=_Test(7); z=c(x,y,x,y); z._yolk[2:3]=6.5; z._yolk;", 50, "value cannot be type");
+	EidosAssertScriptRaise("x=_Test(9); y=_Test(7); z=c(x,y,x,y); z._yolk[2:3]=6.5; z._yolk;", 50, "not an lvalue");			// used to be a type error, now a policy error
 	EidosAssertScriptRaise("x=_Test(9); y=_Test(7); z=c(x,y,x,y); z[2]=6.5; z._yolk;", 42, "type mismatch");
 	EidosAssertScriptRaise("x = 1:5; x.foo[5] = 7;", 10, "operand type integer is not supported");
 	
@@ -1809,6 +2319,23 @@ void _RunOperatorGtTests(void)
 	EidosAssertScriptSuccess("c('foo', 'bar') > c('foo', 'baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false}));
 	
 	EidosAssertScriptRaise("c(5,6) > c(5,6,7);", 7, "operator requires that either");
+	
+	// operator >: test with mixed singletons, vectors, matrices, and arrays; the dimensionality code is shared across all operand types, so testing it with integer should suffice
+	EidosAssertScriptSuccess("identical(4 > 5, F);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(5 > 5, F);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(6 > 5, T);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(4 > matrix(5), matrix(F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(5 > matrix(5), matrix(F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(6 > matrix(5), matrix(T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(2 > matrix(1:3), matrix(c(T,F,F)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical((1:3) > matrix(2), c(F,F,T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical((1:3) > matrix(3:1), matrix(c(F,F,T)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(4) > matrix(5), matrix(F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(5) > matrix(5), matrix(F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(6) > matrix(5), matrix(T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(matrix(1:3) > matrix(2), matrix(c(F,F,T)));", 22, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:3,nrow=1) > matrix(3:1,ncol=1), matrix(c(F,F,T)));", 29, "non-conformable");
+	EidosAssertScriptSuccess("identical(matrix(1:3) > matrix(3:1), matrix(c(F,F,T)));", gStaticEidosValue_LogicalT);
 }
 
 #pragma mark operator <
@@ -1887,6 +2414,23 @@ void _RunOperatorLtTests(void)
 	EidosAssertScriptSuccess("c('foo', 'bar') < c('foo', 'baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
 	
 	EidosAssertScriptRaise("c(5,6) < c(5,6,7);", 7, "operator requires that either");
+	
+	// operator <: test with mixed singletons, vectors, matrices, and arrays; the dimensionality code is shared across all operand types, so testing it with integer should suffice
+	EidosAssertScriptSuccess("identical(4 < 5, T);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(5 < 5, F);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(6 < 5, F);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(4 < matrix(5), matrix(T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(5 < matrix(5), matrix(F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(6 < matrix(5), matrix(F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(2 < matrix(1:3), matrix(c(F,F,T)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical((1:3) < matrix(2), c(T,F,F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical((1:3) < matrix(3:1), matrix(c(T,F,F)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(4) < matrix(5), matrix(T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(5) < matrix(5), matrix(F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(6) < matrix(5), matrix(F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(matrix(1:3) < matrix(2), matrix(c(T,F,F)));", 22, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:3,nrow=1) < matrix(3:1,ncol=1), matrix(c(T,F,F)));", 29, "non-conformable");
+	EidosAssertScriptSuccess("identical(matrix(1:3) < matrix(3:1), matrix(c(T,F,F)));", gStaticEidosValue_LogicalT);
 }
 
 #pragma mark operator >=
@@ -1965,6 +2509,23 @@ void _RunOperatorGtEqTests(void)
 	EidosAssertScriptSuccess("c('foo', 'bar') >= c('foo', 'baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
 	
 	EidosAssertScriptRaise("c(5,6) >= c(5,6,7);", 7, "operator requires that either");
+	
+	// operator >=: test with mixed singletons, vectors, matrices, and arrays; the dimensionality code is shared across all operand types, so testing it with integer should suffice
+	EidosAssertScriptSuccess("identical(4 >= 5, F);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(5 >= 5, T);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(6 >= 5, T);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(4 >= matrix(5), matrix(F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(5 >= matrix(5), matrix(T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(6 >= matrix(5), matrix(T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(2 >= matrix(1:3), matrix(c(T,T,F)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical((1:3) >= matrix(2), c(F,T,T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical((1:3) >= matrix(3:1), matrix(c(F,T,T)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(4) >= matrix(5), matrix(F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(5) >= matrix(5), matrix(T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(6) >= matrix(5), matrix(T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(matrix(1:3) >= matrix(2), matrix(c(F,T,T)));", 22, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:3,nrow=1) >= matrix(3:1,ncol=1), matrix(c(F,T,T)));", 29, "non-conformable");
+	EidosAssertScriptSuccess("identical(matrix(1:3) >= matrix(3:1), matrix(c(F,T,T)));", gStaticEidosValue_LogicalT);
 }
 
 #pragma mark operator <=
@@ -2043,6 +2604,23 @@ void _RunOperatorLtEqTests(void)
 	EidosAssertScriptSuccess("c('foo', 'bar') <= c('foo', 'baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
 	
 	EidosAssertScriptRaise("c(5,6) <= c(5,6,7);", 7, "operator requires that either");
+	
+	// operator <=: test with mixed singletons, vectors, matrices, and arrays; the dimensionality code is shared across all operand types, so testing it with integer should suffice
+	EidosAssertScriptSuccess("identical(4 <= 5, T);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(5 <= 5, T);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(6 <= 5, F);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(4 <= matrix(5), matrix(T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(5 <= matrix(5), matrix(T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(6 <= matrix(5), matrix(F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(2 <= matrix(1:3), matrix(c(F,T,T)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical((1:3) <= matrix(2), c(T,T,F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical((1:3) <= matrix(3:1), matrix(c(T,T,F)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(4) <= matrix(5), matrix(T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(5) <= matrix(5), matrix(T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(6) <= matrix(5), matrix(F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(matrix(1:3) <= matrix(2), matrix(c(T,T,F)));", 22, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(1:3,nrow=1) <= matrix(3:1,ncol=1), matrix(c(T,T,F)));", 29, "non-conformable");
+	EidosAssertScriptSuccess("identical(matrix(1:3) <= matrix(3:1), matrix(c(T,T,F)));", gStaticEidosValue_LogicalT);
 }
 
 #pragma mark operator ==
@@ -2124,6 +2702,19 @@ void _RunOperatorEqTests(void)
 	EidosAssertScriptSuccess("x = _Test(9); c(x, _Test(9)) == c(x, x);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
 	
 	EidosAssertScriptRaise("c(5,6) == c(5,6,7);", 7, "operator requires that either");
+	
+	// operator ==: test with mixed singletons, vectors, matrices, and arrays; the dimensionality code is shared across all operand types, so testing it with integer should suffice
+	EidosAssertScriptSuccess("identical(5 == 5, T);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(5 == matrix(2), matrix(F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(5 == matrix(5), matrix(T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(2 == matrix(1:3), matrix(c(F,T,F)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical((1:3) == matrix(2), c(F,T,F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical((1:3) == matrix(3:1), matrix(c(F,T,F)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(5) == matrix(2), matrix(F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(5) == matrix(5), matrix(T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(matrix(1:3) == matrix(2), matrix(c(1.0,4,9)));", 22, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(2:4,nrow=1) == matrix(1:3,ncol=1), matrix(c(2.0,9,64)));", 29, "non-conformable");
+	EidosAssertScriptSuccess("identical(matrix(1:3) == matrix(3:1), matrix(c(F,T,F)));", gStaticEidosValue_LogicalT);
 }
 
 #pragma mark operator !=
@@ -2205,6 +2796,19 @@ void _RunOperatorNotEqTests(void)
 	EidosAssertScriptSuccess("x = _Test(9); c(x, _Test(9)) != c(x, x);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
 	
 	EidosAssertScriptRaise("c(5,6) != c(5,6,7);", 7, "operator requires that either");
+	
+	// operator !=: test with mixed singletons, vectors, matrices, and arrays; the dimensionality code is shared across all operand types, so testing it with integer should suffice
+	EidosAssertScriptSuccess("identical(5 != 5, F);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(5 != matrix(2), matrix(T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(5 != matrix(5), matrix(F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(2 != matrix(1:3), matrix(c(T,F,T)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical((1:3) != matrix(2), c(T,F,T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical((1:3) != matrix(3:1), matrix(c(T,F,T)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(5) != matrix(2), matrix(T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(5) != matrix(5), matrix(F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(matrix(1:3) != matrix(2), matrix(c(1.0,4,9)));", 22, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(2:4,nrow=1) != matrix(1:3,ncol=1), matrix(c(2.0,9,64)));", 29, "non-conformable");
+	EidosAssertScriptSuccess("identical(matrix(1:3) != matrix(3:1), matrix(c(T,F,T)));", gStaticEidosValue_LogicalT);
 }
 
 #pragma mark operator :
@@ -2253,6 +2857,13 @@ void _RunOperatorRangeTests(void)
 	EidosAssertScriptRaise("NAN:1.5;", 3, "must not be NAN");
 	EidosAssertScriptRaise("1:10000010;", 1, "more than 10000000 entries");
 	EidosAssertScriptRaise("10000010:1;", 8, "more than 10000000 entries");
+	
+	EidosAssertScriptRaise("matrix(5):9;", 9, "must not be matrices or arrays");
+	EidosAssertScriptRaise("1:matrix(5);", 1, "must not be matrices or arrays");
+	EidosAssertScriptRaise("matrix(3):matrix(5);", 9, "must not be matrices or arrays");
+	EidosAssertScriptRaise("matrix(5:8):9;", 11, "must have size() == 1");
+	EidosAssertScriptRaise("1:matrix(5:8);", 1, "must have size() == 1");
+	EidosAssertScriptRaise("matrix(1:3):matrix(5:7);", 11, "must have size() == 1");
 }
 
 #pragma mark operator ^
@@ -2298,6 +2909,16 @@ void _RunOperatorExpTests(void)
 	EidosAssertScriptRaise("^T;", 0, "unexpected token");
 	EidosAssertScriptSuccess("4^(3^2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(262144)));		// right-associative!
 	EidosAssertScriptSuccess("4^3^2;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(262144)));		// right-associative!
+	
+	// operator ^: test with mixed singletons, vectors, matrices, and arrays; the dimensionality code is shared across all operand types, so testing it with integer should suffice
+	EidosAssertScriptSuccess("identical(5 ^ matrix(2), matrix(25.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(2 ^ matrix(1:3), matrix(c(2.0,4,8)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical((1:3) ^ matrix(2), c(1.0,4,9));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical((2:4) ^ matrix(1:3), matrix(c(2.0,9,64)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(5) ^ matrix(2), matrix(25.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(matrix(1:3) ^ matrix(2), matrix(c(1.0,4,9)));", 22, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(2:4,nrow=1) ^ matrix(1:3,ncol=1), matrix(c(2.0,9,64)));", 29, "non-conformable");
+	EidosAssertScriptSuccess("identical(matrix(2:4) ^ matrix(1:3), matrix(c(2.0,9,64)));", gStaticEidosValue_LogicalT);
 }
 
 #pragma mark operator &
@@ -2383,6 +3004,37 @@ void _RunOperatorLogicalAndTests(void)
 	EidosAssertScriptSuccess("'foo' & c(T,F,T,F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, true, false}));
 	EidosAssertScriptSuccess("c('foo','','foo','') & c(T,T,F,F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, false, false}));
 	EidosAssertScriptSuccess("c(T,F,T,F) & c('','','foo','foo');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false, true, false}));
+	
+	// operator &: test with mixed singletons, vectors, matrices, and arrays; the dimensionality code is shared across all operand types, so testing it with logical should suffice
+	EidosAssertScriptSuccess("identical(T & T, T);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(T & F, F);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(T & matrix(T), matrix(T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(T & F & matrix(T), matrix(F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(T & matrix(T) & F, matrix(F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(T & matrix(T) & matrix(T) & T, matrix(T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(T & matrix(T) & matrix(F) & T, matrix(F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(T & matrix(T) & matrix(F) & c(T,F,T), c(F,F,F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(T & matrix(T) & matrix(T) & c(T,F,T), c(T,F,T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(c(T,F,T) & T & matrix(T) & matrix(F), c(F,F,F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(c(T,F,T) & T & matrix(T) & matrix(T), c(T,F,T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(c(T,F,T) & T & matrix(c(T,T,F)) & matrix(F), c(T,F,F));", 19, "non-conformable");
+	EidosAssertScriptSuccess("identical(c(T,F,T) & T & matrix(c(T,T,F)) & matrix(c(T,F,T)), matrix(c(T,F,F)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(T) & T, matrix(T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(T) & T & F, matrix(F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(T) & matrix(T) & T & T, matrix(T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(T) & matrix(F) & T & T, matrix(F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(matrix(T) & matrix(c(T,F)) & T & T, matrix(F));", 20, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(c(T,F)) & matrix(F) & T & T, matrix(F));", 25, "non-conformable");
+	EidosAssertScriptSuccess("identical(matrix(c(T,T)) & matrix(c(T,T)) & T & T, matrix(c(T,T)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(c(T,T)) & matrix(c(T,F)) & T & T, matrix(c(T,F)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(c(T,T,T)) & matrix(c(T,F,F)) & c(T,F,T) & T, matrix(c(T,F,F)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(c(F,T,T)) & matrix(c(T,T,F)) & c(F,T,T) & T, matrix(c(F,T,F)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(T) & T & matrix(F) & c(T,F,T), c(F,F,F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(T) & T & matrix(T) & c(T,F,T), c(T,F,T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(T) & c(T,F,T) & T & matrix(F), c(F,F,F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(T) & c(T,F,T) & T & matrix(T), c(T,F,T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(T) & matrix(T), matrix(T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(F) & matrix(F), matrix(F));", gStaticEidosValue_LogicalT);
 }
 
 #pragma mark operator |
@@ -2468,6 +3120,37 @@ void _RunOperatorLogicalOrTests(void)
 	EidosAssertScriptSuccess("'foo' | c(T,F,T,F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, true, true}));
 	EidosAssertScriptSuccess("c('foo','','foo','') | c(T,T,F,F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, true, false}));
 	EidosAssertScriptSuccess("c(T,F,T,F) | c('','','foo','foo');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, true, true}));
+	
+	// operator |: test with mixed singletons, vectors, matrices, and arrays; the dimensionality code is shared across all operand types, so testing it with logical should suffice
+	EidosAssertScriptSuccess("identical(T | F, T);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(F | F, F);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(T | matrix(F), matrix(T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(F | F | matrix(T), matrix(T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(F | matrix(F) | F, matrix(F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(F | matrix(F) | matrix(T) | F, matrix(T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(F | matrix(F) | matrix(F) | T, matrix(T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(F | matrix(T) | matrix(F) | c(T,F,T), c(T,T,T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(F | matrix(F) | matrix(F) | c(T,F,T), c(T,F,T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(c(T,F,T) | T | matrix(F) | matrix(F), c(T,T,T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(c(T,F,T) | F | matrix(T) | matrix(F), c(T,T,T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(c(T,F,T) | F | matrix(c(T,T,F)) | matrix(F), c(T,T,F));", 19, "non-conformable");
+	EidosAssertScriptSuccess("identical(c(T,F,T) | F | matrix(c(T,F,F)) | matrix(c(T,F,T)), matrix(c(T,F,T)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(T) | F, matrix(T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(F) | F | F, matrix(F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(F) | matrix(F) | T | F, matrix(T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(T) | matrix(F) | F | F, matrix(T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(matrix(T) | matrix(c(T,F)) | T | T, matrix(F));", 20, "non-conformable");
+	EidosAssertScriptRaise("identical(matrix(c(T,F)) | matrix(F) | T | T, matrix(F));", 25, "non-conformable");
+	EidosAssertScriptSuccess("identical(matrix(c(T,F)) | matrix(c(F,F)) | F | F, matrix(c(T,F)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(c(F,T)) | matrix(c(F,F)) | F | T, matrix(c(T,T)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(c(F,T,F)) | matrix(c(T,F,F)) | c(F,F,F) | F, matrix(c(T,T,F)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(c(F,T,T)) | matrix(c(F,T,F)) | c(F,F,F) | T, matrix(c(T,T,T)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(T) | F | matrix(F) | c(T,F,T), c(T,T,T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(F) | F | matrix(F) | c(T,F,T), c(T,F,T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(F) | c(T,F,T) | T | matrix(F), c(T,T,T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(F) | c(T,F,F) | F | matrix(F), c(T,F,F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(T) | matrix(T), matrix(T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(F) | matrix(F), matrix(F));", gStaticEidosValue_LogicalT);
 }
 
 #pragma mark operator !
@@ -2497,6 +3180,21 @@ void _RunOperatorLogicalNotTests(void)
 	EidosAssertScriptSuccess("!c(0,INF,0,1.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, true, false}));
 	EidosAssertScriptSuccess("!c('','foo','','bar');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, true, false}));
 	EidosAssertScriptRaise("!_Test(5);", 0, "is not supported by");
+	
+	// operator |: test with matrices and arrays; the dimensionality code is shared across all operand types, so testing it with logical should suffice
+	EidosAssertScriptSuccess("identical(!T, F);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(!F, T);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(!c(T,F,T), c(F,T,F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(!c(F,T,F), c(T,F,T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(!matrix(T), matrix(F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(!matrix(F), matrix(T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(!matrix(c(T,F,T)), matrix(c(F,T,F)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(!matrix(c(F,T,F)), matrix(c(T,F,T)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(!array(T, c(1,1,1)), array(F, c(1,1,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(!array(F, c(1,1,1)), array(T, c(1,1,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(!array(c(T,F,T), c(3,1,1)), array(c(F,T,F), c(3,1,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(!array(c(F,T,F), c(1,3,1)), array(c(T,F,T), c(1,3,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(!array(c(T,F,T), c(1,1,3)), array(c(F,T,F), c(1,1,3)));", gStaticEidosValue_LogicalT);
 }
 
 #pragma mark operator ?
@@ -2544,6 +3242,9 @@ void _RunKeywordIfTests(void)
 	EidosAssertScriptSuccess("if ((6 == (6:9))[1]) 23;", gStaticEidosValueNULL);
 	EidosAssertScriptRaise("if (_Test(6)) 23;", 0, "cannot be converted");
 	EidosAssertScriptRaise("if (NULL) 23;", 0, "condition for if statement has size()");
+	EidosAssertScriptSuccess("if (matrix(1)) 23;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(23)));
+	EidosAssertScriptSuccess("if (matrix(0)) 23;", gStaticEidosValueNULL);
+	EidosAssertScriptRaise("if (matrix(1:3)) 23;", 0, "condition for if statement has size()");
 	
 	// if-else
 	EidosAssertScriptSuccess("if (T) 23; else 42;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(23)));
@@ -2557,6 +3258,9 @@ void _RunKeywordIfTests(void)
 	EidosAssertScriptSuccess("if ((6 == (6:9))[1]) 23; else 42;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(42)));
 	EidosAssertScriptRaise("if (_Test(6)) 23; else 42;", 0, "cannot be converted");
 	EidosAssertScriptRaise("if (NULL) 23; else 42;", 0, "condition for if statement has size()");
+	EidosAssertScriptSuccess("if (matrix(1)) 23; else 42;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(23)));
+	EidosAssertScriptSuccess("if (matrix(0)) 23; else 42;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(42)));
+	EidosAssertScriptRaise("if (matrix(1:3)) 23; else 42;", 0, "condition for if statement has size()");
 }
 
 #pragma mark do
@@ -2631,6 +3335,15 @@ void _RunKeywordForInTests(void)
 	EidosAssertScriptSuccess("i=10; b=13; for (i in seqAlong(integer(0))) b=i; i;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(10)));
 	EidosAssertScriptSuccess("i=10; b=13; for (i in integer(0)) b=i; b;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(13)));
 	EidosAssertScriptSuccess("i=10; b=13; for (i in seqAlong(integer(0))) b=i; b;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(13)));
+	
+	EidosAssertScriptRaise("for (i in matrix(5):9) i;", 19, "must not be matrices or arrays");
+	EidosAssertScriptRaise("for (i in 1:matrix(5)) i;", 11, "must not be matrices or arrays");
+	EidosAssertScriptRaise("for (i in matrix(3):matrix(5)) i;", 19, "must not be matrices or arrays");
+	EidosAssertScriptRaise("for (i in matrix(5:8):9) i;", 21, "must have size() == 1");
+	EidosAssertScriptRaise("for (i in 1:matrix(5:8)) i;", 11, "must have size() == 1");
+	EidosAssertScriptRaise("for (i in matrix(1:3):matrix(5:7)) i;", 21, "must have size() == 1");
+	EidosAssertScriptSuccess("x = 0; for (i in seqAlong(matrix(1))) x=x+i; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(0)));
+	EidosAssertScriptSuccess("x = 0; for (i in seqAlong(matrix(1:3))) x=x+i; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
 }
 
 #pragma mark next
@@ -2721,6 +3434,15 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptRaise("abs(-9223372036854775807 - 1);", 0, "most negative integer");
 	EidosAssertScriptRaise("abs(c(17, -9223372036854775807 - 1));", 0, "most negative integer");
 	
+	EidosAssertScriptSuccess("identical(abs(matrix(5)), matrix(5));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(abs(matrix(-5)), matrix(5));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(abs(matrix(5:7)), matrix(5:7));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(abs(matrix(-5:-7)), matrix(5:7));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(abs(array(5, c(1,1,1))), array(5, c(1,1,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(abs(array(-5, c(1,1,1))), array(5, c(1,1,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(abs(array(5:7, c(3,1,1))), array(5:7, c(3,1,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(abs(array(-5:-7, c(1,3,1))), array(5:7, c(1,3,1)));", gStaticEidosValue_LogicalT);
+	
 	// acos()
 	EidosAssertScriptSuccess("abs(acos(0) - PI/2) < 0.000001;", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("abs(acos(1) - 0) < 0.000001;", gStaticEidosValue_LogicalT);
@@ -2736,6 +3458,9 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptSuccess("acos(integer(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess("acos(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("acos(string(0));", 0, "cannot be type");
+	
+	EidosAssertScriptSuccess("identical(acos(matrix(0.5)), matrix(acos(0.5)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(acos(matrix(c(0.1, 0.2, 0.3))), matrix(acos(c(0.1, 0.2, 0.3))));", gStaticEidosValue_LogicalT);
 	
 	// asin()
 	EidosAssertScriptSuccess("abs(asin(0) - 0) < 0.000001;", gStaticEidosValue_LogicalT);
@@ -2753,6 +3478,9 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptSuccess("asin(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("asin(string(0));", 0, "cannot be type");
 	
+	EidosAssertScriptSuccess("identical(asin(matrix(0.5)), matrix(asin(0.5)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(asin(matrix(c(0.1, 0.2, 0.3))), matrix(asin(c(0.1, 0.2, 0.3))));", gStaticEidosValue_LogicalT);
+	
 	// atan()
 	EidosAssertScriptSuccess("abs(atan(0) - 0) < 0.000001;", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("abs(atan(1) - PI/4) < 0.000001;", gStaticEidosValue_LogicalT);
@@ -2768,6 +3496,9 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptSuccess("atan(integer(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess("atan(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("atan(string(0));", 0, "cannot be type");
+	
+	EidosAssertScriptSuccess("identical(atan(matrix(0.5)), matrix(atan(0.5)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(atan(matrix(c(0.1, 0.2, 0.3))), matrix(atan(c(0.1, 0.2, 0.3))));", gStaticEidosValue_LogicalT);
 	
 	// atan2()
 	EidosAssertScriptSuccess("abs(atan2(0, 1) - 0) < 0.000001;", gStaticEidosValue_LogicalT);
@@ -2790,6 +3521,13 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptRaise("atan2(string(0), string(0));", 0, "cannot be type");
 	EidosAssertScriptRaise("atan2(0.0, c(0.0, 1.0));", 0, "requires arguments of equal length");		// argument count mismatch
 	
+	EidosAssertScriptSuccess("identical(atan2(matrix(0.5), matrix(0.25)), matrix(atan2(0.5, 0.25)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(atan2(matrix(0.5), 0.25), matrix(atan2(0.5, 0.25)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(atan2(0.5, matrix(0.25)), matrix(atan2(0.5, 0.25)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(atan2(matrix(c(0.1, 0.2, 0.3)), matrix(c(0.3, 0.2, 0.1))), matrix(atan2(c(0.1, 0.2, 0.3), c(0.3, 0.2, 0.1))));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(atan2(matrix(c(0.1, 0.2, 0.3)), c(0.3, 0.2, 0.1)), matrix(atan2(c(0.1, 0.2, 0.3), c(0.3, 0.2, 0.1))));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(atan2(c(0.1, 0.2, 0.3), matrix(c(0.3, 0.2, 0.1))), matrix(atan2(c(0.1, 0.2, 0.3), c(0.3, 0.2, 0.1))));", gStaticEidosValue_LogicalT);
+	
 	// ceil()
 	EidosAssertScriptSuccess("ceil(5.1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(6.0)));
 	EidosAssertScriptSuccess("ceil(-5.1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-5.0)));
@@ -2804,6 +3542,12 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptSuccess("ceil(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("ceil(string(0));", 0, "cannot be type");
 	
+	EidosAssertScriptSuccess("identical(ceil(matrix(0.3)), matrix(ceil(0.3)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(ceil(matrix(0.6)), matrix(ceil(0.6)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(ceil(matrix(-0.3)), matrix(ceil(-0.3)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(ceil(matrix(-0.6)), matrix(ceil(-0.6)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(ceil(matrix(c(0.1, 5.7, -0.3))), matrix(ceil(c(0.1, 5.7, -0.3))));", gStaticEidosValue_LogicalT);
+	
 	// cos()
 	EidosAssertScriptSuccess("abs(cos(0) - 1) < 0.000001;", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("abs(cos(0.0) - 1) < 0.000001;", gStaticEidosValue_LogicalT);
@@ -2817,6 +3561,9 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptSuccess("cos(integer(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess("cos(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("cos(string(0));", 0, "cannot be type");
+	
+	EidosAssertScriptSuccess("identical(cos(matrix(0.5)), matrix(cos(0.5)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(cos(matrix(c(0.1, 0.2, 0.3))), matrix(cos(c(0.1, 0.2, 0.3))));", gStaticEidosValue_LogicalT);
 	
 	// cumProduct()
 	EidosAssertScriptSuccess("cumProduct(5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
@@ -2840,6 +3587,9 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptRaise("cumProduct(c(922337203685477581, 10));", 0, "multiplication overflow");
 #endif
 	
+	EidosAssertScriptSuccess("identical(cumProduct(matrix(0.5)), matrix(cumProduct(0.5)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(cumProduct(matrix(c(0.1, 0.2, 0.3))), matrix(cumProduct(c(0.1, 0.2, 0.3))));", gStaticEidosValue_LogicalT);
+	
 	// cumSum()
 	EidosAssertScriptSuccess("cumSum(5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
 	EidosAssertScriptSuccess("cumSum(-5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-5)));
@@ -2862,6 +3612,9 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptRaise("cumSum(c(9223372036854775807, 1, 1));", 0, "addition overflow");
 #endif
 	
+	EidosAssertScriptSuccess("identical(cumSum(matrix(0.5)), matrix(cumSum(0.5)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(cumSum(matrix(c(0.1, 0.2, 0.3))), matrix(cumSum(c(0.1, 0.2, 0.3))));", gStaticEidosValue_LogicalT);
+	
 	// exp()
 	EidosAssertScriptSuccess("abs(exp(0) - 1) < 0.000001;", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("abs(exp(0.0) - 1) < 0.000001;", gStaticEidosValue_LogicalT);
@@ -2876,6 +3629,9 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptSuccess("exp(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("exp(string(0));", 0, "cannot be type");
 	
+	EidosAssertScriptSuccess("identical(exp(matrix(0.5)), matrix(exp(0.5)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(exp(matrix(c(0.1, 0.2, 0.3))), matrix(exp(c(0.1, 0.2, 0.3))));", gStaticEidosValue_LogicalT);
+	
 	// floor()
 	EidosAssertScriptSuccess("floor(5.1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(5.0)));
 	EidosAssertScriptSuccess("floor(-5.1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-6.0)));
@@ -2889,6 +3645,12 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptRaise("floor(integer(0));", 0, "cannot be type");
 	EidosAssertScriptSuccess("floor(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("floor(string(0));", 0, "cannot be type");
+	
+	EidosAssertScriptSuccess("identical(floor(matrix(0.3)), matrix(floor(0.3)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(floor(matrix(0.6)), matrix(floor(0.6)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(floor(matrix(-0.3)), matrix(floor(-0.3)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(floor(matrix(-0.6)), matrix(floor(-0.6)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(floor(matrix(c(0.1, 5.7, -0.3))), matrix(floor(c(0.1, 5.7, -0.3))));", gStaticEidosValue_LogicalT);
 	
 	// integerDiv()
 	EidosAssertScriptSuccess("integerDiv(6, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(2)));
@@ -2919,6 +3681,15 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptRaise("integerDiv(9:10, 0);", 0, "division by 0");
 	EidosAssertScriptRaise("integerDiv(9:10, 1:3);", 0, "requires that either");
 	
+	EidosAssertScriptSuccess("identical(integerDiv(5, matrix(2)), matrix(2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(integerDiv(12, matrix(1:3)), matrix(c(12,6,4)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(integerDiv(1:3, matrix(2)), c(0,1,1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(integerDiv(4:6, matrix(1:3)), matrix(c(4,2,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(integerDiv(matrix(5), matrix(2)), matrix(2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(integerDiv(matrix(1:3), matrix(2)), matrix(c(0,1,1)));", 10, "non-conformable");
+	EidosAssertScriptRaise("identical(integerDiv(matrix(4:6,nrow=1), matrix(1:3,ncol=1)), matrix(c(4,2,2)));", 10, "non-conformable");
+	EidosAssertScriptSuccess("identical(integerDiv(matrix(7:9), matrix(1:3)), matrix(c(7,4,3)));", gStaticEidosValue_LogicalT);
+	
 	// integerMod()
 	EidosAssertScriptSuccess("integerMod(6, 3);", gStaticEidosValue_Integer0);
 	EidosAssertScriptSuccess("integerMod(7, 3);", gStaticEidosValue_Integer1);
@@ -2948,6 +3719,15 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptRaise("integerMod(9:10, 0);", 0, "modulo by 0");
 	EidosAssertScriptRaise("integerMod(9:10, 1:3);", 0, "requires that either");
 	
+	EidosAssertScriptSuccess("identical(integerMod(5, matrix(2)), matrix(1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(integerMod(5, matrix(1:3)), matrix(c(0,1,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(integerMod(1:3, matrix(2)), c(1,0,1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(integerMod(4:6, matrix(1:3)), matrix(c(0,1,0)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(integerMod(matrix(5), matrix(2)), matrix(1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(integerMod(matrix(1:3), matrix(2)), matrix(c(1,0,1)));", 10, "non-conformable");
+	EidosAssertScriptRaise("identical(integerMod(matrix(4:6,nrow=1), matrix(1:3,ncol=1)), matrix(c(0,1,0)));", 10, "non-conformable");
+	EidosAssertScriptSuccess("identical(integerMod(matrix(6:8), matrix(1:3)), matrix(c(0,1,2)));", gStaticEidosValue_LogicalT);
+	
 	// isFinite()
 	EidosAssertScriptSuccess("isFinite(0.0);", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("isFinite(0.05);", gStaticEidosValue_LogicalT);
@@ -2963,6 +3743,11 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptRaise("isFinite(integer(0));", 0, "cannot be type");
 	EidosAssertScriptSuccess("isFinite(float(0));", gStaticEidosValue_Logical_ZeroVec);
 	EidosAssertScriptRaise("isFinite(string(0));", 0, "cannot be type");
+	
+	EidosAssertScriptSuccess("identical(isFinite(5.0), T);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(isFinite(c(5.0, INF, NAN)), c(T,F,F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(isFinite(matrix(5.0)), matrix(T));",gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(isFinite(matrix(c(5.0, INF, NAN))), matrix(c(T,F,F)));", gStaticEidosValue_LogicalT);
 	
 	// isInfinite()
 	EidosAssertScriptSuccess("isInfinite(0.0);", gStaticEidosValue_LogicalF);
@@ -2980,6 +3765,11 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptSuccess("isInfinite(float(0));", gStaticEidosValue_Logical_ZeroVec);
 	EidosAssertScriptRaise("isInfinite(string(0));", 0, "cannot be type");
 	
+	EidosAssertScriptSuccess("identical(isInfinite(5.0), F);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(isInfinite(c(5.0, INF, NAN)), c(F,T,F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(isInfinite(matrix(5.0)), matrix(F));",gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(isInfinite(matrix(c(5.0, INF, NAN))), matrix(c(F,T,F)));", gStaticEidosValue_LogicalT);
+	
 	// isNAN()
 	EidosAssertScriptSuccess("isNAN(0.0);", gStaticEidosValue_LogicalF);
 	EidosAssertScriptSuccess("isNAN(0.05);", gStaticEidosValue_LogicalF);
@@ -2996,6 +3786,11 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptSuccess("isNAN(float(0));", gStaticEidosValue_Logical_ZeroVec);
 	EidosAssertScriptRaise("isNAN(string(0));", 0, "cannot be type");
 	
+	EidosAssertScriptSuccess("identical(isNAN(5.0), F);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(isNAN(c(5.0, INF, NAN)), c(F,F,T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(isNAN(matrix(5.0)), matrix(F));",gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(isNAN(matrix(c(5.0, INF, NAN))), matrix(c(F,F,T)));", gStaticEidosValue_LogicalT);
+	
 	// log()
 	EidosAssertScriptSuccess("abs(log(1) - 0) < 0.000001;", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("abs(log(E) - 1) < 0.000001;", gStaticEidosValue_LogicalT);
@@ -3009,6 +3804,9 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptSuccess("log(integer(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess("log(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("log(string(0));", 0, "cannot be type");
+	
+	EidosAssertScriptSuccess("identical(log(matrix(0.5)), matrix(log(0.5)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(log(matrix(c(0.1, 0.2, 0.3))), matrix(log(c(0.1, 0.2, 0.3))));", gStaticEidosValue_LogicalT);
 	
 	// log10()
 	EidosAssertScriptSuccess("abs(log10(1) - 0) < 0.000001;", gStaticEidosValue_LogicalT);
@@ -3024,6 +3822,9 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptSuccess("log10(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("log10(string(0));", 0, "cannot be type");
 	
+	EidosAssertScriptSuccess("identical(log10(matrix(0.5)), matrix(log10(0.5)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(log10(matrix(c(0.1, 0.2, 0.3))), matrix(log10(c(0.1, 0.2, 0.3))));", gStaticEidosValue_LogicalT);
+	
 	// log2()
 	EidosAssertScriptSuccess("abs(log2(1) - 0) < 0.000001;", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("abs(log2(2) - 1) < 0.000001;", gStaticEidosValue_LogicalT);
@@ -3037,6 +3838,9 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptSuccess("log2(integer(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess("log2(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("log2(string(0));", 0, "cannot be type");
+	
+	EidosAssertScriptSuccess("identical(log2(matrix(0.5)), matrix(log2(0.5)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(log2(matrix(c(0.1, 0.2, 0.3))), matrix(log2(c(0.1, 0.2, 0.3))));", gStaticEidosValue_LogicalT);
 	
 	// product()
 	EidosAssertScriptSuccess("product(5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
@@ -3056,6 +3860,10 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptSuccess("product(integer(0));", gStaticEidosValue_Integer1);	// product of no elements is 1 (as in R)
 	EidosAssertScriptSuccess("product(float(0));", gStaticEidosValue_Float1);
 	EidosAssertScriptRaise("product(string(0));", 0, "cannot be type");
+	
+	EidosAssertScriptSuccess("product(matrix(5));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
+	EidosAssertScriptSuccess("product(matrix(c(5, -5)));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-25)));
+	EidosAssertScriptSuccess("product(array(c(5, -5, 3), c(1,3,1)));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-75)));
 	
 	// setUnion()
 	EidosAssertScriptSuccess("setUnion(NULL, NULL);", gStaticEidosValueNULL);
@@ -3542,6 +4350,12 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptSuccess("round(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("round(string(0));", 0, "cannot be type");
 	
+	EidosAssertScriptSuccess("identical(round(matrix(0.3)), matrix(round(0.3)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(round(matrix(0.6)), matrix(round(0.6)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(round(matrix(-0.3)), matrix(round(-0.3)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(round(matrix(-0.6)), matrix(round(-0.6)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(round(matrix(c(0.1, 5.7, -0.3))), matrix(round(c(0.1, 5.7, -0.3))));", gStaticEidosValue_LogicalT);
+	
 	// sin()
 	EidosAssertScriptSuccess("abs(sin(0) - 0) < 0.000001;", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("abs(sin(0.0) - 0) < 0.000001;", gStaticEidosValue_LogicalT);
@@ -3555,6 +4369,9 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptSuccess("sin(integer(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess("sin(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("sin(string(0));", 0, "cannot be type");
+	
+	EidosAssertScriptSuccess("identical(sin(matrix(0.5)), matrix(sin(0.5)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sin(matrix(c(0.1, 0.2, 0.3))), matrix(sin(c(0.1, 0.2, 0.3))));", gStaticEidosValue_LogicalT);
 	
 	// sqrt()
 	EidosAssertScriptSuccess("sqrt(64);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(8)));
@@ -3571,6 +4388,9 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptSuccess("sqrt(integer(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess("sqrt(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("sqrt(string(0));", 0, "cannot be type");
+	
+	EidosAssertScriptSuccess("identical(sqrt(matrix(0.5)), matrix(sqrt(0.5)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sqrt(matrix(c(0.1, 0.2, 0.3))), matrix(sqrt(c(0.1, 0.2, 0.3))));", gStaticEidosValue_LogicalT);
 	
 	// sum()
 	EidosAssertScriptSuccess("sum(5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
@@ -3593,6 +4413,10 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptSuccess("sum(float(0));", gStaticEidosValue_Float0);
 	EidosAssertScriptRaise("sum(string(0));", 0, "cannot be type");
 	
+	EidosAssertScriptSuccess("sum(matrix(5));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
+	EidosAssertScriptSuccess("sum(matrix(c(5, -5)));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(0)));
+	EidosAssertScriptSuccess("sum(array(c(5, -5, 3), c(1,3,1)));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
+	
 	// sumExact()
 	EidosAssertScriptSuccess("sumExact(5.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(5.5)));
 	EidosAssertScriptSuccess("sumExact(-5.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-5.5)));
@@ -3606,6 +4430,10 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptSuccess("v = c(1, 1.0e100, 1, -1.0e100); v = rep(v, 10000); sumExact(v);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(20000)));
 	EidosAssertScriptSuccess("v = c(-1, 1.0e100, -1, -1.0e100); v = rep(v, 10000); sumExact(v);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-20000)));
 	EidosAssertScriptSuccess("v = c(-1, 1.0e100, 1, -1.0e100); v = rep(v, 10000); sumExact(v);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(0)));
+	
+	EidosAssertScriptSuccess("sumExact(matrix(5.0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(5.0)));
+	EidosAssertScriptSuccess("sumExact(matrix(c(5.0, -5)));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(0.0)));
+	EidosAssertScriptSuccess("sumExact(array(c(5.0, -5, 3), c(1,3,1)));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(3.0)));
 	
 	// tan()
 	EidosAssertScriptSuccess("abs(tan(0) - 0) < 0.000001;", gStaticEidosValue_LogicalT);
@@ -3621,6 +4449,9 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptSuccess("tan(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("tan(string(0));", 0, "cannot be type");
 	
+	EidosAssertScriptSuccess("identical(tan(matrix(0.5)), matrix(tan(0.5)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(tan(matrix(c(0.1, 0.2, 0.3))), matrix(tan(c(0.1, 0.2, 0.3))));", gStaticEidosValue_LogicalT);
+	
 	// trunc()
 	EidosAssertScriptSuccess("trunc(5.1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(5.0)));
 	EidosAssertScriptSuccess("trunc(-5.1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-5.0)));
@@ -3634,6 +4465,12 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptRaise("trunc(integer(0));", 0, "cannot be type");
 	EidosAssertScriptSuccess("trunc(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("trunc(string(0));", 0, "cannot be type");
+	
+	EidosAssertScriptSuccess("identical(trunc(matrix(0.3)), matrix(trunc(0.3)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(trunc(matrix(0.6)), matrix(trunc(0.6)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(trunc(matrix(-0.3)), matrix(trunc(-0.3)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(trunc(matrix(-0.6)), matrix(trunc(-0.6)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(trunc(matrix(c(0.1, 5.7, -0.3))), matrix(trunc(c(0.1, 5.7, -0.3))));", gStaticEidosValue_LogicalT);
 }
 
 #pragma mark summary statistics
@@ -3740,6 +4577,29 @@ void _RunFunctionSummaryStatsTests(void)
 	EidosAssertScriptSuccess("pmax('baz', c('bar','baz','xyzzy','bar'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"baz", "baz", "xyzzy", "baz"}));
 	EidosAssertScriptSuccess("pmax(c('foo','bar','xyzzy',''), 'baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foo", "baz", "xyzzy", "baz"}));
 	
+	EidosAssertScriptSuccess("identical(pmax(5, 3:7), c(5,5,5,6,7));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(pmax(3:7, 5), c(5,5,5,6,7));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(pmax(matrix(5), 3:7), c(5,5,5,6,7));", 10, "the singleton is a vector");
+	EidosAssertScriptRaise("identical(pmax(3:7, matrix(5)), c(5,5,5,6,7));", 10, "the singleton is a vector");
+	EidosAssertScriptRaise("identical(pmax(array(5, c(1,1,1)), 3:7), c(5,5,5,6,7));", 10, "the singleton is a vector");
+	EidosAssertScriptRaise("identical(pmax(3:7, array(5, c(1,1,1))), c(5,5,5,6,7));", 10, "the singleton is a vector");
+	EidosAssertScriptSuccess("identical(pmax(5, matrix(3:7)), matrix(c(5,5,5,6,7)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(pmax(matrix(3:7), 5), matrix(c(5,5,5,6,7)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(pmax(5, array(3:7, c(1,5,1))), array(c(5,5,5,6,7), c(1,5,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(pmax(array(3:7, c(1,5,1)), 5), array(c(5,5,5,6,7), c(1,5,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(pmax(1:5, matrix(3:7)), matrix(c(5,5,5,6,7)));", 10, "same vector/matrix/array dimensions");
+	EidosAssertScriptRaise("identical(pmax(matrix(3:7), 1:5), matrix(c(5,5,5,6,7)));", 10, "same vector/matrix/array dimensions");
+	EidosAssertScriptRaise("identical(pmax(1:5, array(3:7, c(1,5,1))), array(c(5,5,5,6,7), c(1,5,1)));", 10, "same vector/matrix/array dimensions");
+	EidosAssertScriptRaise("identical(pmax(array(3:7, c(1,5,1)), 1:5), array(c(5,5,5,6,7), c(1,5,1)));", 10, "same vector/matrix/array dimensions");
+	EidosAssertScriptRaise("identical(pmax(matrix(5), matrix(3:7)), matrix(c(5,5,5,6,7)));", 10, "the singleton is a vector");
+	EidosAssertScriptRaise("identical(pmax(matrix(3:7), matrix(5)), matrix(c(5,5,5,6,7)));", 10, "the singleton is a vector");
+	EidosAssertScriptRaise("identical(pmax(matrix(5), array(3:7, c(1,5,1))), array(c(5,5,5,6,7), c(1,5,1)));", 10, "the singleton is a vector");
+	EidosAssertScriptRaise("identical(pmax(array(3:7, c(1,5,1)), matrix(5)), array(c(5,5,5,6,7), c(1,5,1)));", 10, "the singleton is a vector");
+	EidosAssertScriptRaise("identical(pmax(matrix(5:1, nrow=1), matrix(1:5, ncol=1)), matrix(c(5,4,3,4,5)));", 10, "same vector/matrix/array dimensions");
+	EidosAssertScriptSuccess("identical(pmax(matrix(5:1, nrow=1), matrix(1:5, nrow=1)), matrix(c(5,4,3,4,5), nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(pmax(matrix(1:5), array(3:7, c(1,5,1))), array(c(5,5,5,6,7), c(1,5,1)));", 10, "same vector/matrix/array dimensions");
+	EidosAssertScriptSuccess("identical(pmax(array(5:1, c(1,5,1)), array(1:5, c(1,5,1))), array(c(5,4,3,4,5), c(1,5,1)));", gStaticEidosValue_LogicalT);
+	
 	// pmin()
 	EidosAssertScriptRaise("pmin(c(T,T), logical(0));", 0, "of equal length");
 	EidosAssertScriptRaise("pmin(logical(0), c(F,F));", 0, "of equal length");
@@ -3779,6 +4639,29 @@ void _RunFunctionSummaryStatsTests(void)
 	EidosAssertScriptSuccess("pmin(c(1.,-INF,7.,INF, NAN, NAN), 5.);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{1, -std::numeric_limits<double>::infinity(), 5, 5, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()}));
 	EidosAssertScriptSuccess("pmin('baz', c('bar','baz','xyzzy','bar'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"bar", "baz", "baz", "bar"}));
 	EidosAssertScriptSuccess("pmin(c('foo','bar','xyzzy',''), 'baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"baz", "bar", "baz", ""}));
+	
+	EidosAssertScriptSuccess("identical(pmin(5, 3:7), c(3,4,5,5,5));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(pmin(3:7, 5), c(3,4,5,5,5));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(pmin(matrix(5), 3:7), c(3,4,5,5,5));", 10, "the singleton is a vector");
+	EidosAssertScriptRaise("identical(pmin(3:7, matrix(5)), c(3,4,5,5,5));", 10, "the singleton is a vector");
+	EidosAssertScriptRaise("identical(pmin(array(5, c(1,1,1)), 3:7), c(3,4,5,5,5));", 10, "the singleton is a vector");
+	EidosAssertScriptRaise("identical(pmin(3:7, array(5, c(1,1,1))), c(3,4,5,5,5));", 10, "the singleton is a vector");
+	EidosAssertScriptSuccess("identical(pmin(5, matrix(3:7)), matrix(c(3,4,5,5,5)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(pmin(matrix(3:7), 5), matrix(c(3,4,5,5,5)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(pmin(5, array(3:7, c(1,5,1))), array(c(3,4,5,5,5), c(1,5,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(pmin(array(3:7, c(1,5,1)), 5), array(c(3,4,5,5,5), c(1,5,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(pmin(1:5, matrix(3:7)), matrix(c(3,4,5,5,5)));", 10, "same vector/matrix/array dimensions");
+	EidosAssertScriptRaise("identical(pmin(matrix(3:7), 1:5), matrix(c(3,4,5,5,5)));", 10, "same vector/matrix/array dimensions");
+	EidosAssertScriptRaise("identical(pmin(1:5, array(3:7, c(1,5,1))), array(c(3,4,5,5,5), c(1,5,1)));", 10, "same vector/matrix/array dimensions");
+	EidosAssertScriptRaise("identical(pmin(array(3:7, c(1,5,1)), 1:5), array(c(3,4,5,5,5), c(1,5,1)));", 10, "same vector/matrix/array dimensions");
+	EidosAssertScriptRaise("identical(pmin(matrix(5), matrix(3:7)), matrix(c(3,4,5,5,5)));", 10, "the singleton is a vector");
+	EidosAssertScriptRaise("identical(pmin(matrix(3:7), matrix(5)), matrix(c(3,4,5,5,5)));", 10, "the singleton is a vector");
+	EidosAssertScriptRaise("identical(pmin(matrix(5), array(3:7, c(1,5,1))), array(c(3,4,5,5,5), c(1,5,1)));", 10, "the singleton is a vector");
+	EidosAssertScriptRaise("identical(pmin(array(3:7, c(1,5,1)), matrix(5)), array(c(3,4,5,5,5), c(1,5,1)));", 10, "the singleton is a vector");
+	EidosAssertScriptRaise("identical(pmin(matrix(5:1, nrow=1), matrix(1:5, ncol=1)), matrix(c(1,2,3,2,1)));", 10, "same vector/matrix/array dimensions");
+	EidosAssertScriptSuccess("identical(pmin(matrix(5:1, nrow=1), matrix(1:5, nrow=1)), matrix(c(1,2,3,2,1), nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(pmin(matrix(1:5), array(3:7, c(1,5,1))), array(c(3,4,5,5,5), c(1,5,1)));", 10, "same vector/matrix/array dimensions");
+	EidosAssertScriptSuccess("identical(pmin(array(5:1, c(1,5,1)), array(1:5, c(1,5,1))), array(c(1,2,3,2,1), c(1,5,1)));", gStaticEidosValue_LogicalT);
 	
 	// range()
 	EidosAssertScriptRaise("range(T);", 0, "cannot be type");
@@ -4235,6 +5118,8 @@ void _RunFunctionVectorConstructionTests(void)
 	EidosAssertScriptSuccess("seqAlong(5:9);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 1, 2, 3, 4}));
 	EidosAssertScriptSuccess("seqAlong(5.1:9.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 1, 2, 3, 4}));
 	EidosAssertScriptSuccess("seqAlong(c('foo', 'bar', 'baz'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 1, 2}));
+	EidosAssertScriptSuccess("seqAlong(matrix(5));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0}));
+	EidosAssertScriptSuccess("seqAlong(matrix(5:9));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 1, 2, 3, 4}));
 	
 	// string()
 	EidosAssertScriptSuccess("string(0);", gStaticEidosValue_String_ZeroVec);
@@ -4460,6 +5345,61 @@ void _RunFunctionValueInspectionManipulationTests(void)
 	EidosAssertScriptSuccess("x = _Test(3); y = _Test(7); identical(c(x, y, x, x), c(x, y, x, x));", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("x = _Test(3); y = _Test(7); identical(c(x, y, x, x), c(x, y, y, x));", gStaticEidosValue_LogicalF);
 	
+	EidosAssertScriptSuccess("identical(matrix(F), matrix(F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(F), matrix(F, byrow=T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(c(F,T,F,F)), matrix(c(F,T,F,F)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(c(F,T,F,F)), matrix(c(F,T,F,F), byrow=T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(c(F,T,F,F), byrow=T), matrix(c(F,T,F,F)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(c(F,T,F,F), byrow=T), matrix(c(F,T,F,F), byrow=T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(c(F,T,F,F), nrow=1), matrix(c(F,T,F,F), nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(c(F,T,F,F), ncol=1), matrix(c(F,T,F,F), ncol=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(c(F,T,F,F), nrow=2), matrix(c(F,T,F,F), nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(c(F,T,F,F), ncol=2), matrix(c(F,T,F,F), ncol=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(c(F,T,F,F), ncol=2), matrix(c(F,T,F,F), nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(c(F,T,F,F), nrow=2), matrix(c(F,T,F,F), ncol=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(c(F,T,F,F), nrow=2, byrow=T), matrix(c(F,T,F,F), nrow=2));", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("identical(matrix(c(F,T,F,F), nrow=2), matrix(c(F,T,F,F), nrow=2, byrow=T));", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("identical(matrix(c(F,T,F,F), nrow=2, byrow=T), matrix(c(F,T,F,F), nrow=2, byrow=T));", gStaticEidosValue_LogicalT);
+ 	EidosAssertScriptSuccess("identical(F, matrix(F));", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("identical(F, matrix(F, byrow=T));", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("identical(matrix(F), F);", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("identical(matrix(F, byrow=T), F);", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("identical(c(F,T,F,F), matrix(c(F,T,F,F)));", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("identical(c(F,T,F,F), matrix(c(F,T,F,F), nrow=1));", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("identical(c(F,T,F,F), matrix(c(F,T,F,F), ncol=1));", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("identical(matrix(c(F,T,F,F)), c(F,T,F,F));", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("identical(matrix(c(F,T,F,F), nrow=1), c(F,T,F,F));", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("identical(matrix(c(F,T,F,F), ncol=1), c(F,T,F,F));", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("identical(matrix(c(F,T,F,F), nrow=1), matrix(c(F,T,F,F), ncol=1));", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("identical(matrix(c(F,T,F,F), ncol=1), matrix(c(F,T,F,F), nrow=1));", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("identical(matrix(6), matrix(6));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(6), matrix(6, byrow=T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(c(6,8,6,6)), matrix(c(6,8,6,6)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(c(6,8,6,6)), matrix(c(6,8,6,6), byrow=T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(c(6,8,6,6), byrow=T), matrix(c(6,8,6,6)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(c(6,8,6,6), byrow=T), matrix(c(6,8,6,6), byrow=T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(c(6,8,6,6), nrow=1), matrix(c(6,8,6,6), nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(c(6,8,6,6), ncol=1), matrix(c(6,8,6,6), ncol=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(c(6,8,6,6), nrow=2), matrix(c(6,8,6,6), nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(c(6,8,6,6), ncol=2), matrix(c(6,8,6,6), ncol=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(c(6,8,6,6), ncol=2), matrix(c(6,8,6,6), nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(c(6,8,6,6), nrow=2), matrix(c(6,8,6,6), ncol=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(c(6,8,6,6), nrow=2, byrow=T), matrix(c(6,8,6,6), nrow=2));", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("identical(matrix(c(6,8,6,6), nrow=2), matrix(c(6,8,6,6), nrow=2, byrow=T));", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("identical(matrix(c(6,8,6,6), nrow=2, byrow=T), matrix(c(6,8,6,6), nrow=2, byrow=T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(6, matrix(6));", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("identical(6, matrix(6, byrow=T));", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("identical(matrix(6), 6);", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("identical(matrix(6, byrow=T), 6);", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("identical(c(6,8,6,6), matrix(c(6,8,6,6)));", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("identical(c(6,8,6,6), matrix(c(6,8,6,6), nrow=1));", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("identical(c(6,8,6,6), matrix(c(6,8,6,6), ncol=1));", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("identical(matrix(c(6,8,6,6)), c(6,8,6,6));", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("identical(matrix(c(6,8,6,6), nrow=1), c(6,8,6,6));", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("identical(matrix(c(6,8,6,6), ncol=1), c(6,8,6,6));", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("identical(matrix(c(6,8,6,6), nrow=1), matrix(c(6,8,6,6), ncol=1));", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("identical(matrix(c(6,8,6,6), ncol=1), matrix(c(6,8,6,6), nrow=1));", gStaticEidosValue_LogicalF);
+	
 	// ifelse()
 	EidosAssertScriptRaise("ifelse(NULL, integer(0), integer(0));", 0, "cannot be type");
 	EidosAssertScriptRaise("ifelse(logical(0), NULL, integer(0));", 0, "to be the same type");
@@ -4563,6 +5503,20 @@ void _RunFunctionValueInspectionManipulationTests(void)
 	EidosAssertScriptSuccess("ifelse(c(T,F), c(_Test(5),_Test(6)), c(_Test(2),_Test(3)))._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{5, 3}));
 	EidosAssertScriptSuccess("ifelse(c(T,F,F,T,F,T), c(_Test(1), _Test(2), _Test(3), _Test(4), _Test(5), _Test(6)), c(_Test(-6), _Test(-5), _Test(-4), _Test(-3), _Test(-2), _Test(-1)))._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, -5, -4, 4, -2, 6}));
 	
+	EidosAssertScriptSuccess("identical(ifelse(matrix(T), 5, 2), matrix(5));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(ifelse(matrix(F), 5, 2), matrix(2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(ifelse(matrix(c(T,T), nrow=1), 5, 2), matrix(c(5,5), nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(ifelse(matrix(c(F,F), ncol=1), 5, 2), matrix(c(2,2), ncol=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(ifelse(array(c(T,F), c(1,2,1)), 5, 2), array(c(5,2), c(1,2,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(ifelse(matrix(c(T,T), nrow=1), 5:6, 2), matrix(c(5,6), nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(ifelse(matrix(c(T,T), ncol=1), 5, 2:3), matrix(c(5,5), ncol=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(ifelse(array(c(F,F), c(2,1,1)), 5:6, 2), array(c(2,2), c(2,1,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(ifelse(array(c(F,F), c(1,1,2)), 5, 2:3), array(c(2,3), c(1,1,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(ifelse(matrix(c(T,T), nrow=1), 5:6, 2:3), matrix(c(5,6), nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(ifelse(matrix(c(F,F), ncol=1), 5:6, 2:3), matrix(c(2,3), ncol=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(ifelse(array(c(T,F), c(1,2,1)), 5:6, 2:3), array(c(5,3), c(1,2,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(ifelse(matrix(c(T,F,F,T,F,T), nrow=2), 1:6, -6:-1), matrix(c(1,-5,-4,4,-2,6), nrow=2));", gStaticEidosValue_LogicalT);
+	
 	// match()
 	EidosAssertScriptSuccess("match(NULL, NULL);", gStaticEidosValue_Integer_ZeroVec);
 	EidosAssertScriptRaise("match(NULL, F);", 0, "to be the same type");
@@ -4645,6 +5599,9 @@ void _RunFunctionValueInspectionManipulationTests(void)
 	EidosAssertScriptSuccess("nchar('abcde');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
 	EidosAssertScriptSuccess("nchar('abc\tde');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(6)));
 	EidosAssertScriptSuccess("nchar(c('', 'abcde', '', 'wumpus'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 5, 0, 6}));
+	
+	EidosAssertScriptSuccess("identical(nchar(matrix('abc\tde')), matrix(nchar('abc\tde')));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(nchar(matrix(c('', 'abcde', '', 'wumpus'), nrow=2)), matrix(nchar(c('', 'abcde', '', 'wumpus')), nrow=2));", gStaticEidosValue_LogicalT);
 	
 	// order()
 	EidosAssertScriptSuccess("order(integer(0));", gStaticEidosValue_Integer_ZeroVec);
@@ -4767,10 +5724,30 @@ void _RunFunctionValueInspectionManipulationTests(void)
 	// str() – can't test the actual output, but we can make sure it executes...
 	EidosAssertScriptSuccess("str(NULL);", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("str(logical(0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("str(T);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("str(c(T,F,F,T));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("str(matrix(T));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("str(matrix(c(T,F,F,T)));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("str(integer(0));", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("str(5);", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("str(c(5.5, 8.7));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("str(5:8);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("str(matrix(5));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("str(matrix(5:8));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("str(float(0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("str(5.9);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("str(5.9:8);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("str(matrix(5.9));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("str(matrix(5.9:8));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("str(string(0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("str('foo');", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("str(c('foo', 'bar', 'baz'));", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("str(rep(_Test(7), 4));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("str(matrix('foo'));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("str(matrix(c('foo', 'bar', 'baz')));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("str(object());", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("str(_Test(7));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("str(c(_Test(7), _Test(8), _Test(9)));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("str(matrix(_Test(7)));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("str(matrix(c(_Test(7), _Test(8), _Test(9))));", gStaticEidosValueNULL);
 	
 	// strsplit()
 	EidosAssertScriptRaise("strsplit(NULL);", 0, "cannot be type");
@@ -4915,6 +5892,7 @@ void _RunFunctionValueTestingCoercionTests(void)
 	EidosAssertScriptSuccess("asFloat(c(T,F,T,F));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{1,0,1,0}));
 	EidosAssertScriptSuccess("asFloat(c('1','2','3'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{1,2,3}));
 	EidosAssertScriptRaise("asFloat('foo');", 0, "could not be represented");
+	EidosAssertScriptSuccess("identical(asFloat(matrix(c('1','2','3'))), matrix(1.0:3.0));", gStaticEidosValue_LogicalT);
 	
 	// asInteger()
 	EidosAssertScriptSuccess("asInteger(-1:3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{-1,0,1,2,3}));
@@ -4922,6 +5900,7 @@ void _RunFunctionValueTestingCoercionTests(void)
 	EidosAssertScriptSuccess("asInteger(c(T,F,T,F));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1,0,1,0}));
 	EidosAssertScriptSuccess("asInteger(c('1','2','3'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1,2,3}));
 	EidosAssertScriptRaise("asInteger('foo');", 0, "could not be represented");
+	EidosAssertScriptSuccess("identical(asInteger(matrix(c('1','2','3'))), matrix(1:3));", gStaticEidosValue_LogicalT);
 	
 	// asInteger() overflow tests; these may be somewhat platform-dependent but I doubt it will bite us
 	EidosAssertScriptRaise("asInteger(asFloat(9223372036854775807));", 0, "too large to be converted");																// the double representation is larger than INT64_MAX
@@ -4944,6 +5923,7 @@ void _RunFunctionValueTestingCoercionTests(void)
 	EidosAssertScriptSuccess("asLogical(-1.0:3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true,false,true,true,true}));
 	EidosAssertScriptSuccess("asLogical(c(T,F,T,F));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true,false,true,false}));
 	EidosAssertScriptSuccess("asLogical(c('foo','bar',''));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true,true,false}));
+	EidosAssertScriptSuccess("identical(asLogical(matrix(-1:3)), matrix(c(T,F,T,T,T)));", gStaticEidosValue_LogicalT);
 	
 	// asString()
 	EidosAssertScriptSuccess("asString(-1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"-1"}));
@@ -4952,6 +5932,7 @@ void _RunFunctionValueTestingCoercionTests(void)
 	EidosAssertScriptSuccess("asString(-1.0:3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"-1","0","1","2","3"}));
 	EidosAssertScriptSuccess("asString(c(T,F,T,F));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"T","F","T","F"}));
 	EidosAssertScriptSuccess("asString(c('1','2','3'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"1","2","3"}));
+	EidosAssertScriptSuccess("identical(asString(matrix(-1:3)), matrix(c('-1','0','1','2','3')));", gStaticEidosValue_LogicalT);
 	
 	// elementType()
 	EidosAssertScriptSuccess("elementType(NULL);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("NULL")));
@@ -5028,6 +6009,201 @@ void _RunFunctionValueTestingCoercionTests(void)
 	EidosAssertScriptSuccess("type('foo');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("string")));
 	EidosAssertScriptSuccess("type(_Test(7));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("object")));
 	EidosAssertScriptSuccess("type(object());", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("object")));
+}
+
+#pragma mark matrix and array
+void _RunFunctionMatrixArrayTests(void)
+{
+	// array()
+	EidosAssertScriptRaise("array(5, integer(0));", 0, "at least a matrix");
+	EidosAssertScriptRaise("array(5, 1);", 0, "at least a matrix");
+	EidosAssertScriptRaise("array(5, c(1,2));", 0, "product of the proposed dimensions");
+	EidosAssertScriptSuccess("identical(array(5, c(1,1)), matrix(5));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(array(1:6, c(2,3)), matrix(1:6, nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(array(1:6, c(3,2)), matrix(1:6, nrow=3));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("size(array(1:12, c(3,2,2))) == 12;", gStaticEidosValue_LogicalT);		// FIXME not sure how to test higher-dimensional arrays right now...
+	
+	// cbind()
+	EidosAssertScriptRaise("cbind(5, 5.5);", 0, "be the same type");
+	EidosAssertScriptRaise("cbind(5, array(5, c(1,1,1)));", 0, "all arguments be vectors or matrices");
+	EidosAssertScriptRaise("cbind(matrix(1:4, nrow=2), matrix(1:4, nrow=4));", 0, "number of row");
+	EidosAssertScriptSuccess("identical(cbind(5), matrix(5));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(cbind(1:5), matrix(1:5, ncol=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(cbind(1:5, 6:10), matrix(1:10, ncol=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(cbind(1:5, 6:10, NULL, integer(0), 11:15), matrix(1:15, ncol=3));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(cbind(matrix(1:6, nrow=2), matrix(7:12, nrow=2)), matrix(1:12, nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(cbind(matrix(1:6, ncol=2), matrix(7:12, ncol=2)), matrix(1:12, nrow=3));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(cbind(matrix(1:6, nrow=1), matrix(7:12, nrow=1)), matrix(1:12, nrow=1));", gStaticEidosValue_LogicalT);
+	
+	// dim()
+	EidosAssertScriptSuccess("dim(NULL);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("dim(T);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("dim(1);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("dim(1.5);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("dim('foo');", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("dim(c(T, F));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("dim(c(1, 2));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("dim(c(1.5, 2.0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("dim(c('foo', 'bar'));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("dim(matrix(3));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 1}));
+	EidosAssertScriptSuccess("dim(matrix(1:6, nrow=2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 3}));
+	EidosAssertScriptSuccess("dim(matrix(1:6, nrow=2, byrow=T));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 3}));
+	EidosAssertScriptSuccess("dim(matrix(1:6, ncol=2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3, 2}));
+	EidosAssertScriptSuccess("dim(matrix(1:6, ncol=2, byrow=T));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3, 2}));
+	EidosAssertScriptSuccess("dim(array(1:24, c(2,3,4)));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 3, 4}));
+	EidosAssertScriptSuccess("dim(array(1:48, c(2,3,4,2)));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 3, 4, 2}));
+	EidosAssertScriptSuccess("dim(matrix(3.0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 1}));
+	EidosAssertScriptSuccess("dim(matrix(1.0:6, nrow=2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 3}));
+	EidosAssertScriptSuccess("dim(matrix(1.0:6, nrow=2, byrow=T));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 3}));
+	EidosAssertScriptSuccess("dim(matrix(1.0:6, ncol=2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3, 2}));
+	EidosAssertScriptSuccess("dim(matrix(1.0:6, ncol=2, byrow=T));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3, 2}));
+	EidosAssertScriptSuccess("dim(array(1.0:24, c(2,3,4)));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 3, 4}));
+	EidosAssertScriptSuccess("dim(array(1.0:48, c(2,3,4,2)));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 3, 4, 2}));
+	
+	// drop()
+	EidosAssertScriptSuccess("drop(NULL);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("identical(drop(integer(0)), integer(0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(drop(5), 5);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(drop(5:9), 5:9);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(drop(matrix(5)), 5);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(drop(matrix(5:9)), 5:9);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(drop(matrix(1:6, ncol=1)), 1:6);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(drop(matrix(1:6, nrow=1)), 1:6);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(drop(matrix(1:6, nrow=2)), matrix(1:6, nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(drop(array(5, c(1,1,1))), 5);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(drop(array(1:6, c(6,1,1))), 1:6);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(drop(array(1:6, c(1,6,1))), 1:6);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(drop(array(1:6, c(1,1,6))), 1:6);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(drop(array(1:6, c(2,3,1))), matrix(1:6, nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(drop(array(1:6, c(1,2,3))), matrix(1:6, nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(drop(array(1:6, c(2,1,3))), matrix(1:6, nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(drop(array(1:12, c(12,1,1))), 1:12);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(drop(array(1:12, c(2,3,2))), array(1:12, c(2,3,2)));", gStaticEidosValue_LogicalT);
+	
+	// matrix()
+	EidosAssertScriptSuccess("matrix(3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3}));
+	EidosAssertScriptSuccess("matrix(3, nrow=1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3}));
+	EidosAssertScriptSuccess("matrix(3, ncol=1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3}));
+	EidosAssertScriptSuccess("matrix(3, nrow=1, ncol=1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3}));
+	EidosAssertScriptSuccess("matrix(1:6, nrow=1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3, 4, 5, 6}));
+	EidosAssertScriptSuccess("matrix(1:6, ncol=1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3, 4, 5, 6}));
+	EidosAssertScriptSuccess("matrix(1:6, ncol=2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3, 4, 5, 6}));
+	EidosAssertScriptSuccess("matrix(1:6, ncol=2, byrow=T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 3, 5, 2, 4, 6}));
+	EidosAssertScriptSuccess("matrix(1:6, ncol=3, byrow=T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 4, 2, 5, 3, 6}));
+	EidosAssertScriptRaise("matrix(1:5, ncol=2);", 0, "not a multiple of the supplied column count");
+	EidosAssertScriptRaise("matrix(1:5, nrow=2);", 0, "not a multiple of the supplied row count");
+	EidosAssertScriptRaise("matrix(1:5, nrow=2, ncol=2);", 0, "length equal to the product");
+	EidosAssertScriptSuccess("identical(matrix(1:6, ncol=2), matrix(c(1, 4, 2, 5, 3, 6), ncol=2, byrow=T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(1:6, ncol=3), matrix(c(1, 3, 5, 2, 4, 6), ncol=3, byrow=T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("matrix(3.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3}));
+	EidosAssertScriptSuccess("matrix(3.0, nrow=1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3}));
+	EidosAssertScriptSuccess("matrix(3.0, ncol=1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3}));
+	EidosAssertScriptSuccess("matrix(3.0, nrow=1, ncol=1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3}));
+	EidosAssertScriptSuccess("matrix(1.0:6, nrow=1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{1, 2, 3, 4, 5, 6}));
+	EidosAssertScriptSuccess("matrix(1.0:6, ncol=1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{1, 2, 3, 4, 5, 6}));
+	EidosAssertScriptSuccess("matrix(1.0:6, ncol=2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{1, 2, 3, 4, 5, 6}));
+	EidosAssertScriptSuccess("matrix(1.0:6, ncol=2, byrow=T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{1, 3, 5, 2, 4, 6}));
+	EidosAssertScriptSuccess("matrix(1.0:6, ncol=3, byrow=T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{1, 4, 2, 5, 3, 6}));
+	EidosAssertScriptRaise("matrix(1.0:5, ncol=2);", 0, "not a multiple of the supplied column count");
+	EidosAssertScriptRaise("matrix(1.0:5, nrow=2);", 0, "not a multiple of the supplied row count");
+	EidosAssertScriptRaise("matrix(1.0:5, nrow=2, ncol=2);", 0, "length equal to the product");
+	EidosAssertScriptSuccess("identical(matrix(1.0:6, ncol=2), matrix(c(1.0, 4, 2, 5, 3, 6), ncol=2, byrow=T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(matrix(1.0:6, ncol=3), matrix(c(1.0, 3, 5, 2, 4, 6), ncol=3, byrow=T));", gStaticEidosValue_LogicalT);
+	
+	// matrixMult()
+	EidosAssertScriptRaise("matrixMult(matrix(5), 5);", 0, "is not a matrix");
+	EidosAssertScriptRaise("matrixMult(5, matrix(5));", 0, "is not a matrix");
+	EidosAssertScriptRaise("matrixMult(matrix(5), matrix(5.5));", 0, "are the same type");
+	EidosAssertScriptRaise("matrixMult(matrix('foo'), matrix('bar'));", 0, "type integer or float");
+	EidosAssertScriptRaise("matrixMult(matrix(1:5), matrix(1:5));", 0, "not conformable");
+	EidosAssertScriptSuccess("A = matrix(2); B = matrix(5); identical(matrixMult(A, B), matrix(10));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("A = matrix(2); B = matrix(1:5, nrow=1); identical(matrixMult(A, B), matrix(c(2,4,6,8,10), nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("A = matrix(1:5, ncol=1); B = matrix(2); identical(matrixMult(A, B), matrix(c(2,4,6,8,10), ncol=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("A = matrix(1:5, ncol=1); B = matrix(1:5, nrow=1); identical(matrixMult(A, B), matrix(c(1:5, (1:5)*2, (1:5)*3, (1:5)*4, (1:5)*5), ncol=5));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("A = matrix(1:5, nrow=1); B = matrix(1:5, ncol=1); identical(matrixMult(A, B), matrix(55));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("A = matrix(1:6, nrow=2); B = matrix(1:6, ncol=2); identical(matrixMult(A, B), matrix(c(22, 28, 49, 64), nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("A = matrix(1:6, ncol=2); B = matrix(1:6, nrow=2); identical(matrixMult(A, B), matrix(c(9, 12, 15, 19, 26, 33, 29, 40, 51), nrow=3));", gStaticEidosValue_LogicalT);
+	
+	// ncol()
+	EidosAssertScriptSuccess("ncol(NULL);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("ncol(T);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("ncol(1);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("ncol(1.5);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("ncol('foo');", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("ncol(c(T, F));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("ncol(c(1, 2));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("ncol(c(1.5, 2.0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("ncol(c('foo', 'bar'));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("ncol(matrix(3));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1}));
+	EidosAssertScriptSuccess("ncol(matrix(1:6, nrow=2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3}));
+	EidosAssertScriptSuccess("ncol(matrix(1:6, nrow=2, byrow=T));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3}));
+	EidosAssertScriptSuccess("ncol(matrix(1:6, ncol=2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2}));
+	EidosAssertScriptSuccess("ncol(matrix(1:6, ncol=2, byrow=T));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2}));
+	EidosAssertScriptSuccess("ncol(array(1:24, c(2,3,4)));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3}));
+	EidosAssertScriptSuccess("ncol(array(1:48, c(2,3,4,2)));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3}));
+	EidosAssertScriptSuccess("ncol(matrix(3.0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1}));
+	EidosAssertScriptSuccess("ncol(matrix(1.0:6, nrow=2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3}));
+	EidosAssertScriptSuccess("ncol(matrix(1.0:6, nrow=2, byrow=T));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3}));
+	EidosAssertScriptSuccess("ncol(matrix(1.0:6, ncol=2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2}));
+	EidosAssertScriptSuccess("ncol(matrix(1.0:6, ncol=2, byrow=T));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2}));
+	EidosAssertScriptSuccess("ncol(array(1.0:24, c(2,3,4)));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3}));
+	EidosAssertScriptSuccess("ncol(array(1.0:48, c(2,3,4,2)));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3}));
+	
+	// nrow()
+	EidosAssertScriptSuccess("nrow(NULL);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("nrow(T);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("nrow(1);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("nrow(1.5);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("nrow('foo');", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("nrow(c(T, F));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("nrow(c(1, 2));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("nrow(c(1.5, 2.0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("nrow(c('foo', 'bar'));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("nrow(matrix(3));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1}));
+	EidosAssertScriptSuccess("nrow(matrix(1:6, nrow=2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2}));
+	EidosAssertScriptSuccess("nrow(matrix(1:6, nrow=2, byrow=T));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2}));
+	EidosAssertScriptSuccess("nrow(matrix(1:6, ncol=2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3}));
+	EidosAssertScriptSuccess("nrow(matrix(1:6, ncol=2, byrow=T));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3}));
+	EidosAssertScriptSuccess("nrow(array(1:24, c(2,3,4)));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2}));
+	EidosAssertScriptSuccess("nrow(array(1:48, c(2,3,4,2)));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2}));
+	EidosAssertScriptSuccess("nrow(matrix(3.0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1}));
+	EidosAssertScriptSuccess("nrow(matrix(1.0:6, nrow=2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2}));
+	EidosAssertScriptSuccess("nrow(matrix(1.0:6, nrow=2, byrow=T));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2}));
+	EidosAssertScriptSuccess("nrow(matrix(1.0:6, ncol=2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3}));
+	EidosAssertScriptSuccess("nrow(matrix(1.0:6, ncol=2, byrow=T));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3}));
+	EidosAssertScriptSuccess("nrow(array(1.0:24, c(2,3,4)));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2}));
+	EidosAssertScriptSuccess("nrow(array(1.0:48, c(2,3,4,2)));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2}));
+	
+	// rbind()
+	EidosAssertScriptRaise("rbind(5, 5.5);", 0, "be the same type");
+	EidosAssertScriptRaise("rbind(5, array(5, c(1,1,1)));", 0, "all arguments be vectors or matrices");
+	EidosAssertScriptRaise("rbind(matrix(1:4, nrow=2), matrix(1:4, nrow=4));", 0, "number of columns");
+	EidosAssertScriptSuccess("identical(rbind(5), matrix(5));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(rbind(1:5), matrix(1:5, nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(rbind(1:5, 6:10), matrix(1:10, nrow=2, byrow=T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(rbind(1:5, 6:10, NULL, integer(0), 11:15), matrix(1:15, nrow=3, byrow=T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(rbind(matrix(1:6, nrow=2), matrix(7:12, nrow=2)), matrix(c(1,2,7,8,3,4,9,10,5,6,11,12), nrow=4));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(rbind(matrix(1:6, ncol=2), matrix(7:12, ncol=2)), matrix(c(1,2,3,7,8,9,4,5,6,10,11,12), ncol=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(rbind(matrix(1:6, ncol=1), matrix(7:12, ncol=1)), matrix(1:12, ncol=1));", gStaticEidosValue_LogicalT);
+	
+	// t()
+	EidosAssertScriptRaise("t(NULL);", 0, "is not a matrix");
+	EidosAssertScriptRaise("t(T);", 0, "is not a matrix");
+	EidosAssertScriptRaise("t(1);", 0, "is not a matrix");
+	EidosAssertScriptRaise("t(1.5);", 0, "is not a matrix");
+	EidosAssertScriptRaise("t('foo');", 0, "is not a matrix");
+	EidosAssertScriptSuccess("identical(t(matrix(3)), matrix(3));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(t(matrix(1:6, nrow=2)), matrix(1:6, ncol=2, byrow=T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(t(matrix(1:6, nrow=2, byrow=T)), matrix(1:6, ncol=2, byrow=F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(t(matrix(1:6, ncol=2)), matrix(1:6, nrow=2, byrow=T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(t(matrix(1:6, ncol=2, byrow=T)), matrix(1:6, nrow=2, byrow=F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(t(matrix(3.0)), matrix(3.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(t(matrix(1.0:6, nrow=2)), matrix(1.0:6, ncol=2, byrow=T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(t(matrix(1.0:6, nrow=2, byrow=T)), matrix(1.0:6, ncol=2, byrow=F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(t(matrix(1.0:6, ncol=2)), matrix(1.0:6, nrow=2, byrow=T));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(t(matrix(1.0:6, ncol=2, byrow=T)), matrix(1.0:6, nrow=2, byrow=F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("t(array(1:24, c(2,3,4)));", 0, "is not a matrix");
+	EidosAssertScriptRaise("t(array(1:48, c(2,3,4,2)));", 0, "is not a matrix");
 }
 
 #pragma mark filesystem access
@@ -5177,6 +6353,14 @@ void _RunFunctionMiscTests(void)
 	EidosAssertScriptRaise("x=2; y='syntax Error;'; apply(x, y);", 24, "unexpected token '@Error'");
 	EidosAssertScriptRaise("x=2; y='syntax Error;'; apply(x, y[T]);", 24, "unexpected token '@Error'");
 	EidosAssertScriptSuccess("x=2; y='x;'; apply(x, y[T]);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(2)));
+	
+	EidosAssertScriptSuccess("identical(apply(1:6, 'applyValue+1;'), 2:7);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(apply(matrix(1:6, nrow=1), 'applyValue+1;'), matrix(2:7, nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(apply(matrix(1:6, ncol=1), 'applyValue+1;'), matrix(2:7, ncol=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(apply(matrix(1:6, ncol=2), 'applyValue+1;'), matrix(2:7, ncol=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(apply(matrix(1:6, ncol=2), 'c(applyValue, applyValue+1);'), matrix(c(1,2,2,3,3,4,4,5,5,6,6,7), nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(apply(array(1:6, c(2,1,3)), 'applyValue+1;'), array(2:7, c(2,1,3)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(apply(array(1:6, c(2,1,3)), 'c(applyValue, applyValue+1);'), matrix(c(1,2,2,3,3,4,4,5,5,6,6,7), nrow=2));", gStaticEidosValue_LogicalT);
 	
 	// beep() – this is commented out by default since it would confuse people if the Eidos self-test beeped...
 	//EidosAssertScriptSuccess("beep();", gStaticEidosValueNULL);
@@ -5391,18 +6575,24 @@ void _RunMethodTests(void)
 {
 	// methodSignature()
 	EidosAssertScriptSuccess("_Test(7).methodSignature();", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("_Test(7).methodSignature('method');", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("_Test(7).methodSignature('methodSignature');", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("matrix(_Test(7)).methodSignature('methodSignature');", gStaticEidosValueNULL);
 	
 	// propertySignature()
 	EidosAssertScriptSuccess("_Test(7).propertySignature();", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("_Test(7).propertySignature('yolk');", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("_Test(7).propertySignature('_yolk');", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("matrix(_Test(7)).propertySignature('_yolk');", gStaticEidosValueNULL);
 	
 	// size()
 	EidosAssertScriptSuccess("_Test(7).size();", gStaticEidosValue_Integer1);
 	EidosAssertScriptSuccess("rep(_Test(7), 5).size();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
+	EidosAssertScriptSuccess("matrix(rep(_Test(7), 5)).size();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
 	
 	// str()
 	EidosAssertScriptSuccess("_Test(7).str();", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("c(_Test(7), _Test(8), _Test(9)).str();", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("matrix(_Test(7)).str();", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("matrix(c(_Test(7), _Test(8), _Test(9))).str();", gStaticEidosValueNULL);
 }
 
 #pragma mark code examples

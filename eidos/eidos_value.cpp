@@ -307,7 +307,7 @@ int EidosValue::valueTrackingCount;
 std::vector<EidosValue *> EidosValue::valueTrackingVector;
 #endif
 
-EidosValue::EidosValue(EidosValueType p_value_type, bool p_singleton) : intrusive_ref_count_(0), invisible_(false), cached_type_(p_value_type), is_singleton_(p_singleton)
+EidosValue::EidosValue(EidosValueType p_value_type, bool p_singleton) : intrusive_ref_count_(0), invisible_(false), cached_type_(p_value_type), is_singleton_(p_singleton), dim_(nullptr)
 {
 #ifdef EIDOS_TRACK_VALUE_ALLOCATION
 	valueTrackingCount++;
@@ -321,6 +321,8 @@ EidosValue::~EidosValue(void)
 	valueTrackingVector.erase(std::remove(valueTrackingVector.begin(), valueTrackingVector.end(), this), valueTrackingVector.end());
 	valueTrackingCount--;
 #endif
+	
+	free(dim_);
 }
 
 eidos_logical_t EidosValue::LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const
@@ -373,11 +375,278 @@ EidosValue_SP EidosValue::VectorBasedCopy(void) const
 	return CopyValues();
 }
 
+bool EidosValue::MatchingDimensions(const EidosValue *p_value1, const EidosValue *p_value2)
+{
+	int x_dimcount = p_value1->DimensionCount();
+	int y_dimcount = p_value2->DimensionCount();
+	
+	if (x_dimcount != y_dimcount)
+		return false;
+	
+	const int64_t *x_dims = p_value1->Dimensions();
+	const int64_t *y_dims = p_value2->Dimensions();
+	
+	if ((x_dims && !y_dims) || (!x_dims && y_dims))		// should never happen
+		return false;
+	
+	if (x_dims && y_dims)
+	{
+		for (int dim_index = 0; dim_index < x_dimcount; ++dim_index)
+			if (x_dims[dim_index] != y_dims[dim_index])
+				return false;
+	}
+	
+	return true;
+}
+
+void EidosValue::_CopyDimensionsFromValue(const EidosValue *p_value)
+{
+	int64_t *source_dims = p_value->dim_;
+	
+	// First check that the source's dimensions will work for us; we assume they work for the source, so rather than
+	// multiplying them out we can just compare total sizes.  We only need to check this if the source is an array.
+	if (source_dims)
+	{
+		int count = Count();
+		int source_count = p_value->Count();
+		
+		if (count != source_count)
+			EIDOS_TERMINATION << "ERROR (EidosValue::CopyDimensions): mismatch between vector length and requested dimensions." << EidosTerminate(nullptr);
+		
+		// OK, the source's dimensions work; assume that we need to throw out our existing dimensions (virtually
+		// always true, since this is generally called on new EidosValues), and malloc and copy a new dim_ buffer.
+		free(dim_);
+		dim_ = nullptr;
+		
+		int64_t dim_count = *source_dims;
+		
+		dim_ = (int64_t *)malloc((dim_count + 1) * sizeof(int64_t));
+		memcpy(dim_, source_dims, (dim_count + 1) * sizeof(int64_t));
+	}
+	else
+	{
+		// The source has no dimensions, so we just need to throw out any dimensions we have.
+		free(dim_);
+		dim_ = nullptr;
+	}
+}
+
+void EidosValue::SetDimensions(int64_t p_dim_count, const int64_t *p_dim_buffer)
+{
+	if ((p_dim_count == 1) && !p_dim_buffer)
+	{
+		// Make the value a plain vector; throw out any dimensions we have.
+		free(dim_);
+		dim_ = nullptr;
+	}
+	else if ((p_dim_count >= 2) && p_dim_buffer)
+	{
+		// A matrix or array is requested; first check that our size fits the request
+		int64_t dim_product = 1;
+		
+		for (int dim_index = 0; dim_index < p_dim_count; ++dim_index)
+		{
+			int64_t dim = p_dim_buffer[dim_index];
+			
+			if (dim <= 0)
+				EIDOS_TERMINATION << "ERROR (EidosValue::SetDimensions): dimension <= 0 requested, which is not allowed." << EidosTerminate(nullptr);
+			
+			int64_t old_product = dim_product;
+			
+			dim_product *= dim;
+			if (dim_product / dim != old_product)
+				EIDOS_TERMINATION << "ERROR (EidosValue::SetDimensions): dimension overflow; product of dimensions exceeds maximum capacity." << EidosTerminate(nullptr);
+		}
+		
+		int count = Count();
+		
+		if (dim_product != count)
+			EIDOS_TERMINATION << "ERROR (EidosValue::SetDimensions): mismatch between vector length and requested dimensions." << EidosTerminate(nullptr);
+		
+		// OK, the size works and the individual dimensions check out, so make our dim_ buffer
+		dim_ = (int64_t *)malloc((p_dim_count + 1) * sizeof(int64_t));
+		dim_[0] = p_dim_count;
+		memcpy(dim_ + 1, p_dim_buffer, p_dim_count * sizeof(int64_t));
+	}
+	else
+		EIDOS_TERMINATION << "ERROR (EidosValue::SetDimensions): nonsensical requested dimensions." << EidosTerminate(nullptr);
+}
+
 std::ostream &operator<<(std::ostream &p_outstream, const EidosValue &p_value)
 {
 	p_value.Print(p_outstream);		// get dynamic dispatch
 	
 	return p_outstream;
+}
+
+void EidosValue::PrintMatrixFromIndex(int64_t p_ncol, int64_t p_nrow, int64_t p_start_index, std::ostream &p_ostream) const
+{
+	int64_t element_count = p_ncol * p_nrow;
+	
+	// assemble all of the value strings, for printing with alignment
+	std::vector<std::string> element_strings;
+	
+	for (int64_t element_index = 0; element_index < element_count; ++element_index)
+	{
+		std::ostringstream oss;
+		
+		PrintValueAtIndex((int)(element_index + p_start_index), oss);
+		element_strings.emplace_back(oss.str());
+	}
+	
+	// find the widest element, including column headers
+	int max_element_width = 0;
+	
+	for (int64_t element_index = 0; element_index < element_count; ++element_index)
+		max_element_width = std::max(max_element_width, (int)element_strings[element_index].length());
+	
+	max_element_width = std::max(max_element_width, (p_ncol == 1) ? 4 : ((int)floor(log10(p_ncol - 1)) + 4));
+	
+	int max_rowcol_width = (p_nrow == 1) ? 4 : ((int)floor(log10(p_nrow - 1)) + 4);
+	
+	// print the upper left corner padding
+	for (int pad_index = 0; pad_index < max_rowcol_width; pad_index++)
+		p_ostream << ' ';
+	
+	// print the column headers
+	for (int col_index = 0; col_index < p_ncol; ++col_index)
+	{
+		// pad before column header
+		{
+			int element_width = (col_index == 0) ? 4 : ((int)floor(log10(col_index)) + 4);
+			int padding = (max_element_width - element_width) + 1;
+			
+			for (int pad_index = 0; pad_index < padding; pad_index++)
+				p_ostream << ' ';
+		}
+		
+		// column header
+		p_ostream << "[," << col_index << "]";
+	}
+	
+	// print each row
+	for (int row_index = 0; row_index < p_nrow; ++row_index)
+	{
+		p_ostream << std::endl;
+		
+		// pad before row index
+		{
+			int element_width = (row_index == 0) ? 4 : ((int)floor(log10(row_index)) + 4);
+			int padding = (max_rowcol_width - element_width);
+			
+			for (int pad_index = 0; pad_index < padding; pad_index++)
+				p_ostream << ' ';
+		}
+		
+		// row index
+		p_ostream << '[' << row_index << ",]";
+		
+		// row contents
+		for (int col_index = 0; col_index < p_ncol; ++col_index)
+		{
+			std::string &element_string = element_strings[row_index + col_index * p_nrow];
+			int element_width = (int)element_string.length();
+			int padding = (max_element_width - element_width) + 1;
+			
+			for (int pad_index = 0; pad_index < padding; pad_index++)
+				p_ostream << ' ';
+			
+			p_ostream << element_string;
+		}
+	}
+}
+
+void EidosValue::Print(std::ostream &p_ostream) const
+{
+	int count = Count();
+	
+	if (count == 0)
+	{
+		// standard format for zero-length vectors
+		EidosValueType type = Type();
+		
+		switch (type)
+		{
+			case EidosValueType::kValueNULL:	p_ostream << gEidosStr_NULL; break;
+			case EidosValueType::kValueLogical:
+			case EidosValueType::kValueInt:
+			case EidosValueType::kValueFloat:
+			case EidosValueType::kValueString:	p_ostream << ElementType() << "(0)"; break;
+			case EidosValueType::kValueObject:	p_ostream << "object()<" << ElementType() << ">"; break;
+		}
+	}
+	else if (!dim_)
+	{
+		// print vectors by just spewing out individual values
+		for (int value_index = 0; value_index < count; ++value_index)
+		{
+			if (value_index > 0)
+				p_ostream << ' ';
+			
+			PrintValueAtIndex(value_index, p_ostream);
+		}
+	}
+	else if (dim_[0] == 2)
+	{
+		PrintMatrixFromIndex(dim_[2], dim_[1], 0, p_ostream);
+	}
+	else if (dim_[0] > 2)
+	{
+		// print arrays by looping over dimensions
+		int64_t dim_count = dim_[0];
+		int64_t matrix_skip = dim_[1] * dim_[2];	// number of elements in each nxm matrix slice
+		int64_t array_dim_count = dim_count - 2;	// this many additional dimensions of nxm matrix slices
+		int64_t *array_dim_indices = (int64_t *)calloc(array_dim_count, sizeof(int64_t));
+		int64_t *array_dim_skip = (int64_t *)calloc(array_dim_count, sizeof(int64_t));
+		
+		array_dim_skip[0] = matrix_skip;
+		for (int array_dim_index = 1; array_dim_index < array_dim_count; ++array_dim_index)
+			array_dim_skip[array_dim_index] = array_dim_skip[array_dim_index - 1] * dim_[array_dim_index + 2];
+		
+		do
+		{
+			// print an index line before the matrix
+			p_ostream << ", ";
+			
+			for (int idx = 0; idx < array_dim_count; ++idx)
+				p_ostream << ", " << array_dim_indices[idx];
+			
+			p_ostream << std::endl << std::endl;
+			
+			// print out the matrix for this slice
+			int slice_offset = 0;
+			
+			for (int idx = 0; idx < array_dim_count; ++idx)
+				slice_offset += array_dim_skip[idx] * array_dim_indices[idx];
+			
+			PrintMatrixFromIndex(dim_[2], dim_[1], slice_offset, p_ostream);
+			p_ostream << std::endl;
+			
+			// increment dim_indices; this is counting up in a weird mixed-base system
+			int count_index;
+			
+			for (count_index = 0; count_index < array_dim_count; ++count_index)
+			{
+				if (++(array_dim_indices[count_index]) == dim_[count_index + 3])
+					array_dim_indices[count_index] = 0;		// carry
+				else
+					break;
+			}
+			
+			if (count_index == array_dim_count)
+				break;
+			
+			p_ostream << std::endl;
+		}
+		while (true);
+		
+		free(array_dim_indices);
+		free(array_dim_skip);
+	}
+	else
+	{
+		EIDOS_TERMINATION << "ERROR (EidosValue::Print): (internal error) illegal dimension count " << dim_[0] << "." << EidosTerminate(nullptr);
+	}
 }
 
 
@@ -420,8 +689,9 @@ int EidosValue_NULL::Count_Virtual(void) const
 	return 0;
 }
 
-void EidosValue_NULL::Print(std::ostream &p_ostream) const
+void EidosValue_NULL::PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const
 {
+#pragma unused(p_idx)
 	p_ostream << gEidosStr_NULL;
 }
 
@@ -521,28 +791,11 @@ int EidosValue_Logical::Count_Virtual(void) const
 	return (int)count_;
 }
 
-void EidosValue_Logical::Print(std::ostream &p_ostream) const
+void EidosValue_Logical::PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const
 {
-	if (size() == 0)
-	{
-		p_ostream << "logical(0)";
-	}
-	else
-	{
-		bool first = true;
-		
-		for (size_t index = 0; index < count_; ++index)
-		{
-			eidos_logical_t value = values_[index];
-			
-			if (first)
-				first = false;
-			else
-				p_ostream << ' ';
-			
-			p_ostream << (value ? gEidosStr_T : gEidosStr_F);
-		}
-	}
+	eidos_logical_t value = values_[p_idx];
+	
+	p_ostream << (value ? gEidosStr_T : gEidosStr_F);
 }
 
 eidos_logical_t EidosValue_Logical::LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const
@@ -595,7 +848,7 @@ void EidosValue_Logical::SetValueAtIndex(const int p_idx, const EidosValue &p_va
 
 EidosValue_SP EidosValue_Logical::CopyValues(void) const
 {
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical(values_, count_));
+	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Logical(values_, count_))->CopyDimensionsFromValue(this));
 }
 
 EidosValue_SP EidosValue_Logical::NewMatchingType(void) const
@@ -697,7 +950,7 @@ EidosValue_Logical_const::~EidosValue_Logical_const(void)
 
 EidosValue_SP EidosValue_Logical_const::VectorBasedCopy(void) const
 {
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical(values_, count_));	// same as EidosValue_Logical::, but let's not rely on that
+	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Logical(values_, count_))->CopyDimensionsFromValue(this));	// same as EidosValue_Logical::, but let's not rely on that
 }
 
 void EidosValue_Logical_const::SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token)
@@ -716,6 +969,14 @@ void EidosValue_Logical_const::Sort(bool p_ascending)
 {
 #pragma unused(p_ascending)
 	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::Sort): (internal error) EidosValue_Logical_const is not modifiable." << EidosTerminate(nullptr);
+}
+
+void EidosValue_Logical_const::_CopyDimensionsFromValue(const EidosValue *p_value)
+{
+	if (p_value->DimensionCount() != 1)
+	{
+		EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::_CopyDimensionsFromValue): (internal error) EidosValue_Logical_const is not modifiable." << EidosTerminate(nullptr);
+	}
 }
 
 
@@ -738,6 +999,24 @@ const std::string &EidosValue_String::ElementType(void) const
 EidosValue_SP EidosValue_String::NewMatchingType(void) const
 {
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector());
+}
+
+void EidosValue_String::PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const
+{
+	const std::string &value = StringAtIndex(p_idx, nullptr);
+	
+	// Emit a quoted string.  Note that we do not attempt to escape characters so that the emitted string
+	// is a legal string for input into Eidos that would reproduce the original string, at present.
+	if (value.find('"') != std::string::npos)
+	{
+		// contains ", so let's use '
+		p_ostream << '\'' << value << '\'';
+	}
+	else
+	{
+		// does not contain ", so let's use that; double quotes are the default/standard
+		p_ostream << '"' << value << '"';
+	}
 }
 
 
@@ -766,39 +1045,6 @@ EidosValue_String_vector::~EidosValue_String_vector(void)
 int EidosValue_String_vector::Count_Virtual(void) const
 {
 	return (int)values_.size();
-}
-
-void EidosValue_String_vector::Print(std::ostream &p_ostream) const
-{
-	if (values_.size() == 0)
-	{
-		p_ostream << "string(0)";
-	}
-	else
-	{
-		bool first = true;
-		
-		for (const std::string &value : values_)
-		{
-			if (first)
-				first = false;
-			else
-				p_ostream << ' ';
-			
-			// Emit a quoted string.  Note that we do not attempt to escape characters so that the emitted string is a
-			// legal string for input into Eidos that would reproduce the original string, at present.
-			if (value.find('"') != std::string::npos)
-			{
-				// contains ", so let's use '
-				p_ostream << '\'' << value << '\'';
-			}
-			else
-			{
-				// does not contain ", so let's use that; double quotes are the default/standard
-				p_ostream << '"' << value << '"';
-			}
-		}
-	}
 }
 
 eidos_logical_t EidosValue_String_vector::LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const
@@ -859,7 +1105,7 @@ void EidosValue_String_vector::SetValueAtIndex(const int p_idx, const EidosValue
 
 EidosValue_SP EidosValue_String_vector::CopyValues(void) const
 {
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector(values_));
+	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector(values_))->CopyDimensionsFromValue(this));
 }
 
 void EidosValue_String_vector::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
@@ -894,22 +1140,6 @@ EidosValue_String_singleton::~EidosValue_String_singleton(void)
 int EidosValue_String_singleton::Count_Virtual(void) const
 {
 	return 1;
-}
-
-void EidosValue_String_singleton::Print(std::ostream &p_ostream) const
-{
-	// Emit a quoted string.  Note that we do not attempt to escape characters so that the emitted string is a
-	// legal string for input into Eidos that would reproduce the original string, at present.
-	if (value_.find('"') != std::string::npos)
-	{
-		// contains ", so let's use '
-		p_ostream << '\'' << value_ << '\'';
-	}
-	else
-	{
-		// does not contain ", so let's use that; double quotes are the default/standard
-		p_ostream << '"' << value_ << '"';
-	}
 }
 
 eidos_logical_t EidosValue_String_singleton::LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const
@@ -962,7 +1192,7 @@ EidosValue_SP EidosValue_String_singleton::GetValueAtIndex(const int p_idx, cons
 
 EidosValue_SP EidosValue_String_singleton::CopyValues(void) const
 {
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(value_));
+	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(value_))->CopyDimensionsFromValue(this));
 }
 
 EidosValue_SP EidosValue_String_singleton::VectorBasedCopy(void) const
@@ -970,6 +1200,7 @@ EidosValue_SP EidosValue_String_singleton::VectorBasedCopy(void) const
 	EidosValue_String_vector_SP new_vec = EidosValue_String_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector());
 	
 	new_vec->PushString(value_);
+	new_vec->CopyDimensionsFromValue(this);
 	
 	return new_vec;
 }
@@ -1012,6 +1243,13 @@ const std::string &EidosValue_Int::ElementType(void) const
 EidosValue_SP EidosValue_Int::NewMatchingType(void) const
 {
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
+}
+
+void EidosValue_Int::PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const
+{
+	int64_t value = IntAtIndex(p_idx, nullptr);
+	
+	p_ostream << value;
 }
 
 
@@ -1081,30 +1319,6 @@ int EidosValue_Int_vector::Count_Virtual(void) const
 	return (int)count_;
 }
 
-void EidosValue_Int_vector::Print(std::ostream &p_ostream) const
-{
-	if (size() == 0)
-	{
-		p_ostream << "integer(0)";
-	}
-	else
-	{
-		bool first = true;
-		
-		for (size_t index = 0; index < count_; ++index)
-		{
-			int64_t value = values_[index];
-			
-			if (first)
-				first = false;
-			else
-				p_ostream << ' ';
-			
-			p_ostream << value;
-		}
-	}
-}
-
 eidos_logical_t EidosValue_Int_vector::LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)size()))
@@ -1160,7 +1374,7 @@ void EidosValue_Int_vector::SetValueAtIndex(const int p_idx, const EidosValue &p
 
 EidosValue_SP EidosValue_Int_vector::CopyValues(void) const
 {
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(values_, count_));
+	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(values_, count_))->CopyDimensionsFromValue(this));
 }
 
 void EidosValue_Int_vector::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
@@ -1244,11 +1458,6 @@ int EidosValue_Int_singleton::Count_Virtual(void) const
 	return 1;
 }
 
-void EidosValue_Int_singleton::Print(std::ostream &p_ostream) const
-{
-	p_ostream << value_;
-}
-
 eidos_logical_t EidosValue_Int_singleton::LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
@@ -1296,7 +1505,7 @@ EidosValue_SP EidosValue_Int_singleton::GetValueAtIndex(const int p_idx, const E
 
 EidosValue_SP EidosValue_Int_singleton::CopyValues(void) const
 {
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(value_));
+	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(value_))->CopyDimensionsFromValue(this));
 }
 
 EidosValue_SP EidosValue_Int_singleton::VectorBasedCopy(void) const
@@ -1305,6 +1514,7 @@ EidosValue_SP EidosValue_Int_singleton::VectorBasedCopy(void) const
 	EidosValue_Int_vector_SP new_vec = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 	
 	new_vec->push_int(value_);
+	new_vec->CopyDimensionsFromValue(this);
 	
 	return new_vec;
 }
@@ -1347,6 +1557,24 @@ const std::string &EidosValue_Float::ElementType(void) const
 EidosValue_SP EidosValue_Float::NewMatchingType(void) const
 {
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
+}
+
+void EidosValue_Float::PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const
+{
+	double value = FloatAtIndex(p_idx, nullptr);
+	
+	// Customize our output a bit to look like Eidos, not C++
+	if (std::isinf(value))
+	{
+		if (std::signbit(value))
+			p_ostream << gEidosStr_MINUS_INF;
+		else
+			p_ostream << gEidosStr_INF;
+	}
+	else if (std::isnan(value))
+		p_ostream << gEidosStr_NAN;
+	else
+		p_ostream << value;
 }
 
 
@@ -1392,41 +1620,6 @@ EidosValue_Float_vector::~EidosValue_Float_vector(void)
 int EidosValue_Float_vector::Count_Virtual(void) const
 {
 	return (int)count_;
-}
-
-void EidosValue_Float_vector::Print(std::ostream &p_ostream) const
-{
-	if (size() == 0)
-	{
-		p_ostream << "float(0)";
-	}
-	else
-	{
-		bool first = true;
-		
-		for (size_t index = 0; index < count_; ++index)
-		{
-			double value = values_[index];
-			
-			if (first)
-				first = false;
-			else
-				p_ostream << ' ';
-			
-			// Customize our output a bit to look like Eidos, not C++
-			if (std::isinf(value))
-			{
-				if (std::signbit(value))
-					p_ostream << gEidosStr_MINUS_INF;
-				else
-					p_ostream << gEidosStr_INF;
-			}
-			else if (std::isnan(value))
-				p_ostream << gEidosStr_NAN;
-			else
-				p_ostream << value;
-		}
-	}
 }
 
 eidos_logical_t EidosValue_Float_vector::LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const
@@ -1512,7 +1705,7 @@ void EidosValue_Float_vector::SetValueAtIndex(const int p_idx, const EidosValue 
 
 EidosValue_SP EidosValue_Float_vector::CopyValues(void) const
 {
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(values_, count_));
+	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(values_, count_))->CopyDimensionsFromValue(this));
 }
 
 void EidosValue_Float_vector::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
@@ -1596,22 +1789,6 @@ int EidosValue_Float_singleton::Count_Virtual(void) const
 	return 1;
 }
 
-void EidosValue_Float_singleton::Print(std::ostream &p_ostream) const
-{
-	// Customize our output a bit to look like Eidos, not C++
-	if (std::isinf(value_))
-	{
-		if (std::signbit(value_))
-			p_ostream << gEidosStr_MINUS_INF;
-		else
-			p_ostream << gEidosStr_INF;
-	}
-	else if (std::isnan(value_))
-		p_ostream << gEidosStr_NAN;
-	else
-		p_ostream << value_;
-}
-
 eidos_logical_t EidosValue_Float_singleton::LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
@@ -1682,7 +1859,7 @@ EidosValue_SP EidosValue_Float_singleton::GetValueAtIndex(const int p_idx, const
 
 EidosValue_SP EidosValue_Float_singleton::CopyValues(void) const
 {
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(value_));
+	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(value_))->CopyDimensionsFromValue(this));
 }
 
 EidosValue_SP EidosValue_Float_singleton::VectorBasedCopy(void) const
@@ -1691,6 +1868,7 @@ EidosValue_SP EidosValue_Float_singleton::VectorBasedCopy(void) const
 	EidosValue_Float_vector_SP new_vec = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 	
 	new_vec->push_float(value_);
+	new_vec->CopyDimensionsFromValue(this);
 	
 	return new_vec;
 }
@@ -1823,6 +2001,13 @@ void EidosValue_Object::Sort(bool p_ascending)
 	EIDOS_TERMINATION << "ERROR (EidosValue_Object::Sort): Sort() is not defined for type object." << EidosTerminate(nullptr);
 }
 
+void EidosValue_Object::PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const
+{
+	EidosObjectElement *value = ObjectElementAtIndex(p_idx, nullptr);
+	
+	p_ostream << *value;
+}
+
 
 // EidosValue_Object_vector
 #pragma mark EidosValue_Object_vector
@@ -1892,30 +2077,6 @@ int EidosValue_Object_vector::Count_Virtual(void) const
 	return (int)size();
 }
 
-void EidosValue_Object_vector::Print(std::ostream &p_ostream) const
-{
-	if (size() == 0)
-	{
-		p_ostream << "object()<" << class_->ElementType() << ">";
-	}
-	else
-	{
-		bool first = true;
-		
-		for (size_t index = 0; index < count_; ++index)
-		{
-			EidosObjectElement *value = values_[index];
-			
-			if (first)
-				first = false;
-			else
-				p_ostream << ' ';
-			
-			p_ostream << *value;
-		}
-	}
-}
-
 EidosObjectElement *EidosValue_Object_vector::ObjectElementAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)size()))
@@ -1955,7 +2116,7 @@ void EidosValue_Object_vector::SetValueAtIndex(const int p_idx, const EidosValue
 
 EidosValue_SP EidosValue_Object_vector::CopyValues(void) const
 {
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(*this));
+	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(*this))->CopyDimensionsFromValue(this));
 }
 
 void EidosValue_Object_vector::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
@@ -2940,11 +3101,6 @@ int EidosValue_Object_singleton::Count_Virtual(void) const
 	return 1;
 }
 
-void EidosValue_Object_singleton::Print(std::ostream &p_ostream) const
-{
-	p_ostream << *value_;
-}
-
 EidosObjectElement *EidosValue_Object_singleton::ObjectElementAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
@@ -2979,7 +3135,7 @@ void EidosValue_Object_singleton::SetValue(EidosObjectElement *p_element)
 
 EidosValue_SP EidosValue_Object_singleton::CopyValues(void) const
 {
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(value_, Class()));
+	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(value_, Class()))->CopyDimensionsFromValue(this));
 }
 
 EidosValue_SP EidosValue_Object_singleton::VectorBasedCopy(void) const
@@ -2988,6 +3144,7 @@ EidosValue_SP EidosValue_Object_singleton::VectorBasedCopy(void) const
 	EidosValue_Object_vector_SP new_vec = EidosValue_Object_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(Class()));
 	
 	new_vec->push_object_element(value_);
+	new_vec->CopyDimensionsFromValue(this);
 	
 	return new_vec;
 }
@@ -3203,25 +3360,61 @@ EidosValue_SP EidosObjectElement::ExecuteMethod_str(EidosGlobalStringID p_method
 		
 		if (property_value)
 		{
-			int property_count = property_value->Count();
 			EidosValueType property_type = property_value->Type();
+			int property_count = property_value->Count();
+			int property_dimcount = property_value->DimensionCount();
+			const int64_t *property_dims = property_value->Dimensions();
 			
-			output_stream << "\t" << property_name << " " << property_sig->PropertySymbol() << " (" << property_type;
+			output_stream << "\t" << property_name << " " << property_sig->PropertySymbol() << " ";
 			
-			if (property_type == EidosValueType::kValueObject)
-				output_stream << "<" << property_value->ElementType() << ">) ";
-			else
-				output_stream << ") ";
-			
-			if (property_count <= 2)
-				output_stream << *property_value << std::endl;
+			if (property_count == 0)
+			{
+				// zero-length vectors get printed according to the standard code in EidosValue
+				property_value->Print(output_stream);
+			}
 			else
 			{
-				EidosValue_SP first_value = property_value->GetValueAtIndex(0, nullptr);
-				EidosValue_SP second_value = property_value->GetValueAtIndex(1, nullptr);
+				// start with the type, and then the class for object-type values
+				output_stream << property_type;
 				
-				output_stream << *first_value << " " << *second_value << " ... (" << property_count << " values)" << std::endl;
+				if (property_type == EidosValueType::kValueObject)
+					output_stream << "<" << property_value->ElementType() << ">";
+				
+				// then print the ranges for each dimension
+				output_stream << " [";
+				
+				if (property_dimcount == 1)
+					output_stream << "0:" << (property_count - 1) << "] ";
+				else
+				{
+					for (int dim_index = 0; dim_index < property_dimcount; ++dim_index)
+					{
+						if (dim_index > 0)
+							output_stream << ", ";
+						output_stream << "0:" << (property_dims[dim_index] - 1);
+					}
+					
+					output_stream << "] ";
+				}
+				
+				// finally, print up to two values, if available, followed by an ellipsis if not all values were printed
+				int output_count = std::min(2, property_count);
+				
+				for (int output_index = 0; output_index < output_count; ++output_index)
+				{
+					EidosValue_SP value = property_value->GetValueAtIndex(output_index, nullptr);
+					
+					if (output_index > 0)
+						output_stream << gEidosStr_space_string;
+					
+					output_stream << *value;
+				}
+				
+				if (property_count > output_count)
+					output_stream << " ...";
 			}
+			
+			output_stream << std::endl;
 		}
 		else
 		{

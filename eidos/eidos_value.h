@@ -243,6 +243,11 @@ protected:
 	uint8_t invisible_;										// as in R; if true, the value will not normally be printed to the console
 	uint8_t is_singleton_;									// allows Count() and IsSingleton() to be inline; cached at construction
 	
+	int64_t *dim_;											// nullptr for vectors; points to a malloced, OWNED array of dimensions for matrices and arrays
+															//    when allocated, the first value in the buffer is a count of the dimensions that follow
+	virtual void _CopyDimensionsFromValue(const EidosValue *p_value);											// do not call directly; called by CopyDimensionsFromValue()
+	void PrintMatrixFromIndex(int64_t p_ncol, int64_t p_nrow, int64_t p_start_index, std::ostream &p_ostream) const;
+	
 public:
 	
 	EidosValue(const EidosValue &p_original) = delete;		// no copy-construct
@@ -259,7 +264,8 @@ public:
 	
 	virtual const std::string &ElementType(void) const = 0;	// the type of the elements contained by the vector
 	virtual int Count_Virtual(void) const = 0;				// the number of values in the vector
-	virtual void Print(std::ostream &p_ostream) const = 0;	// standard printing
+	void Print(std::ostream &p_ostream) const;				// standard printing; same as operator<<
+	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const = 0;
 	
 	// getter only; invisible objects must be made through construction or InvisibleCopy()
 	inline __attribute__((always_inline)) bool Invisible(void) const							{ return invisible_; }
@@ -300,6 +306,52 @@ public:
 	virtual EidosValue_Float_vector *FloatVector_Mutable(void) { RaiseForUnimplementedVectorCall(); }
 	virtual const EidosValue_Object_vector *ObjectElementVector(void) const { RaiseForUnimplementedVectorCall(); }
 	virtual EidosValue_Object_vector *ObjectElementVector_Mutable(void) { RaiseForUnimplementedVectorCall(); }
+	
+	// Dimension support, for matrices and arrays
+	inline __attribute__((always_inline)) bool IsArray(void) const { return !!dim_; }							// true if we have a dimensions buffer – any array, including a matrix
+	inline __attribute__((always_inline)) int DimensionCount(void) const { return (!dim_) ? 1 : (int)*dim_; }	// 1 for vectors, 2 for matrices, 2...n for arrays (1 not allowed for arrays)
+	inline __attribute__((always_inline)) const int64_t *Dimensions(void) const { return (!dim_) ? nullptr : dim_ + 1; }	// nullptr or a pointer into the dim_ buffer
+	
+	inline __attribute__((always_inline)) EidosValue *CopyDimensionsFromValue(const EidosValue *p_value)		// copy dimensions from another value; checks for validity, can raise
+	{
+		if (p_value)
+			_CopyDimensionsFromValue(p_value);
+		return this;
+	}
+	
+	void SetDimensions(int64_t p_dim_count, const int64_t *p_dim_buffer);										// can be 1/nullptr to make the value a vector; 0 is not allowed
+	
+	static bool MatchingDimensions(const EidosValue *p_value1, const EidosValue *p_value2);						// true if dimensionalities are identical; works for vectors as well as matrices/arrays
+	static inline __attribute__((always_inline)) EidosValue *BinaryOperationDimensionSource(EidosValue *p_value1, EidosValue *p_value2)	// chooses which value's dimensionality will carry through a binary op
+	{
+		int dim1 = p_value1->DimensionCount();
+		int dim2 = p_value2->DimensionCount();
+		
+		if ((dim1 == 1) && (dim2 == 1))
+			return nullptr;							// neither is a matrix/array, so it doesn't matter; avoid the EidosValue_SP overhead
+		
+		int count1 = p_value1->Count();
+		int count2 = p_value2->Count();
+		
+		if (dim1 != 1)
+		{
+			// p_value1 is a matrix/array, p_value2 is not; prefer the matrix, except that we won't promote a non-singleton vector to be a matrix
+			if ((count1 == 1) && (count2 != 1))
+				return p_value2;
+			return p_value1;
+		}
+		else if (dim2 != 1)
+		{
+			// p_value2 is a matrix/array, p_value1 is not; prefer the matrix, except that we won't promote a non-singleton vector to be a matrix
+			if ((count2 == 1) && (count1 != 1))
+				return p_value1;
+			return p_value2;
+		}
+		else
+		{
+			return p_value1;							// both are a matrix/array, so it doesn't matter (either they are conformable, or there's an error anyway)
+		}
+	}
 	
 	// Eidos_intrusive_ptr support; we use Eidos_intrusive_ptr as a fast smart pointer to EidosValue.
 	inline __attribute__((always_inline)) uint32_t UseCount() const { return intrusive_ref_count_; }
@@ -363,7 +415,7 @@ public:
 	
 	virtual const std::string &ElementType(void) const;
 	virtual int Count_Virtual(void) const;
-	virtual void Print(std::ostream &p_ostream) const;
+	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const;
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const;
 	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token);
@@ -414,7 +466,7 @@ public:
 	
 	virtual const std::string &ElementType(void) const;
 	virtual int Count_Virtual(void) const;
-	virtual void Print(std::ostream &p_ostream) const;
+	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const;
 	
 	virtual const EidosValue_Logical *LogicalVector(void) const { return this; }
 	virtual EidosValue_Logical *LogicalVector_Mutable(void) { return this; }
@@ -461,6 +513,8 @@ public:
 
 class EidosValue_Logical_const : public EidosValue_Logical
 {
+protected:
+	virtual void _CopyDimensionsFromValue(const EidosValue *p_value);
 public:
 	EidosValue_Logical_const(const EidosValue_Logical_const &p_original) = delete;	// no copy-construct
 	EidosValue_Logical_const(void) = delete;										// no default constructor
@@ -505,7 +559,7 @@ public:
 	
 	virtual const std::string &ElementType(void) const;
 	virtual int Count_Virtual(void) const = 0;
-	virtual void Print(std::ostream &p_ostream) const = 0;
+	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const;
 	
 	virtual eidos_logical_t LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
 	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
@@ -540,7 +594,6 @@ public:
 	virtual ~EidosValue_String_vector(void);
 	
 	virtual int Count_Virtual(void) const;
-	virtual void Print(std::ostream &p_ostream) const;
 	
 	virtual const std::vector<std::string> *StringVector(void) const { return &values_; }
 	virtual std::vector<std::string> *StringVector_Mutable(void) { return &values_; }
@@ -574,7 +627,6 @@ public:
 	virtual ~EidosValue_String_singleton(void);
 	
 	virtual int Count_Virtual(void) const;
-	virtual void Print(std::ostream &p_ostream) const;
 	
 	inline __attribute__((always_inline)) const std::string &StringValue(void) const { return value_; }
 	//inline __attribute__((always_inline)) std::string &StringValue_Mutable(void) { delete cached_script_; cached_script_ = nullptr; return value_; }			// very dangerous; do not use
@@ -625,7 +677,7 @@ public:
 	
 	virtual const std::string &ElementType(void) const;
 	virtual int Count_Virtual(void) const = 0;
-	virtual void Print(std::ostream &p_ostream) const = 0;
+	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const;
 	
 	virtual eidos_logical_t LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
 	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
@@ -661,7 +713,6 @@ public:
 	virtual ~EidosValue_Int_vector(void);
 	
 	virtual int Count_Virtual(void) const;
-	virtual void Print(std::ostream &p_ostream) const;
 	
 	virtual const EidosValue_Int_vector *IntVector(void) const { return this; }
 	virtual EidosValue_Int_vector *IntVector_Mutable(void) { return this; }
@@ -718,7 +769,6 @@ public:
 	virtual ~EidosValue_Int_singleton(void);
 	
 	virtual int Count_Virtual(void) const;
-	virtual void Print(std::ostream &p_ostream) const;
 	
 	inline __attribute__((always_inline)) int64_t IntValue(void) const { return value_; }
 	inline __attribute__((always_inline)) int64_t &IntValue_Mutable(void) { return value_; }	// very dangerous; used only in Evaluate_Assign()
@@ -765,7 +815,7 @@ public:
 	
 	virtual const std::string &ElementType(void) const;
 	virtual int Count_Virtual(void) const = 0;
-	virtual void Print(std::ostream &p_ostream) const = 0;
+	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const;
 	
 	virtual eidos_logical_t LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
 	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
@@ -799,7 +849,6 @@ public:
 	virtual ~EidosValue_Float_vector(void);
 	
 	virtual int Count_Virtual(void) const;
-	virtual void Print(std::ostream &p_ostream) const;
 	
 	virtual const EidosValue_Float_vector *FloatVector(void) const { return this; }
 	virtual EidosValue_Float_vector *FloatVector_Mutable(void) { return this; }
@@ -856,7 +905,6 @@ public:
 	virtual ~EidosValue_Float_singleton(void);
 	
 	virtual int Count_Virtual(void) const;
-	virtual void Print(std::ostream &p_ostream) const;
 	
 	inline __attribute__((always_inline)) double FloatValue(void) const { return value_; }
 	inline __attribute__((always_inline)) double &FloatValue_Mutable(void) { return value_; }	// very dangerous; used only in Evaluate_Assign()
@@ -922,7 +970,7 @@ public:
 	virtual const std::string &ElementType(void) const;
 	inline __attribute__((always_inline)) const EidosObjectClass *Class(void) const { return class_; }
 	virtual int Count_Virtual(void) const = 0;
-	virtual void Print(std::ostream &p_ostream) const = 0;
+	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const;
 	
 	virtual EidosObjectElement *ObjectElementAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
 	
@@ -964,7 +1012,6 @@ public:
 	virtual ~EidosValue_Object_vector(void);
 	
 	virtual int Count_Virtual(void) const;
-	virtual void Print(std::ostream &p_ostream) const;
 	
 	virtual EidosObjectElement *ObjectElementAtIndex(int p_idx, const EidosToken *p_blame_token) const;
 	
@@ -1017,7 +1064,6 @@ public:
 	virtual ~EidosValue_Object_singleton(void);
 	
 	virtual int Count_Virtual(void) const;
-	virtual void Print(std::ostream &p_ostream) const;
 	
 	virtual EidosObjectElement *ObjectElementAtIndex(int p_idx, const EidosToken *p_blame_token) const;
 	

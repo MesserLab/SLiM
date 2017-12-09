@@ -176,6 +176,23 @@ EidosValue_SP Eidos_ExecuteFunction_type(const EidosValue_SP *const p_arguments,
 
 
 #pragma mark -
+#pragma mark Matrix and array functions
+#pragma mark -
+
+//	matrix and array functions
+EidosValue_SP Eidos_ExecuteFunction_array(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+EidosValue_SP Eidos_ExecuteFunction_cbind(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+EidosValue_SP Eidos_ExecuteFunction_dim(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+EidosValue_SP Eidos_ExecuteFunction_drop(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+EidosValue_SP Eidos_ExecuteFunction_matrix(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+EidosValue_SP Eidos_ExecuteFunction_matrixMult(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+EidosValue_SP Eidos_ExecuteFunction_ncol(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+EidosValue_SP Eidos_ExecuteFunction_nrow(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+EidosValue_SP Eidos_ExecuteFunction_rbind(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+EidosValue_SP Eidos_ExecuteFunction_t(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+
+
+#pragma mark -
 #pragma mark Filesystem access functions
 #pragma mark -
 

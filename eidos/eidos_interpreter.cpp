@@ -44,6 +44,7 @@
 #define EIDOS_ASSERT_CHILD_COUNT_GTEQ(method_name, min_count)		if (p_node->children_.size() < min_count) EIDOS_TERMINATION << "ERROR (" << method_name << "): (internal error) expected " << min_count << "+ child(ren)." << EidosTerminate(p_node->token_);
 #define EIDOS_ASSERT_CHILD_RANGE(method_name, lower, upper)			if ((p_node->children_.size() < lower) || (p_node->children_.size() > upper)) EIDOS_TERMINATION << "ERROR (" << method_name << "): (internal error) expected " << lower << " to " << upper << " children." << EidosTerminate(p_node->token_);
 #define EIDOS_ASSERT_CHILD_COUNT_X(node, node_type, method_name, count, blame_token)		if (node->children_.size() != count) EIDOS_TERMINATION << "ERROR (" << method_name << "): (internal error) expected " << count << " child(ren) for " << node_type << " node." << EidosTerminate(blame_token);
+#define EIDOS_ASSERT_CHILD_COUNT_GTEQ_X(node, node_type, method_name, min_count, blame_token)		if (node->children_.size() < min_count) EIDOS_TERMINATION << "ERROR (" << method_name << "): (internal error) expected " << min_count << "+ child(ren) for " << node_type << " node." << EidosTerminate(blame_token);
 
 #else
 
@@ -55,6 +56,7 @@
 #define EIDOS_ASSERT_CHILD_COUNT_GTEQ(method_name, min_count)
 #define EIDOS_ASSERT_CHILD_RANGE(method_name, lower, upper)
 #define EIDOS_ASSERT_CHILD_COUNT_X(node, node_type, method_name, count, blame_token)
+#define EIDOS_ASSERT_CHILD_COUNT_GTEQ_X(node, node_type, method_name, min_count, blame_token)
 
 #endif
 
@@ -322,7 +324,7 @@ EidosValue_SP EidosInterpreter::EvaluateInterpreterBlock(bool p_print_output)
 // representations kept by external classes in the Context).  In other words, assignment relies upon the fact that a temporary object
 // constructed by Evaluate_Node() refers to the same underlying element objects as the original source of the elements does, and thus
 // assigning into the temporary also assigns into the original.
-void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue_SP *p_base_value_ptr, EidosGlobalStringID *p_property_string_id_ptr, std::vector<int> *p_indices_ptr, const EidosASTNode *p_parent_node)
+void EidosInterpreter::_ProcessSubsetAssignment(EidosValue_SP *p_base_value_ptr, EidosGlobalStringID *p_property_string_id_ptr, std::vector<int> *p_indices_ptr, const EidosASTNode *p_parent_node)
 {
 	// The left operand is the thing we're subscripting.  If it is an identifier or a dot operator, then we are the deepest (i.e. first)
 	// subscript operation, and we can resolve the symbol host, set up a vector of indices, and return.  If it is a subscript, we recurse.
@@ -333,84 +335,276 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue_SP *p_base_value_p
 	{
 		case EidosTokenType::kTokenLBracket:
 		{
-			EIDOS_ASSERT_CHILD_COUNT_X(p_parent_node, "'['", "EidosInterpreter::_ProcessSubscriptAssignment", 2, parent_token);
+			// Note that the logic here is very parallel to that of EidosInterpreter::Evaluate_Subset()
+			EIDOS_ASSERT_CHILD_COUNT_GTEQ_X(p_parent_node, "'['", "EidosInterpreter::_ProcessSubsetAssignment", 2, parent_token);
 			
 			EidosASTNode *left_operand = p_parent_node->children_[0];
-			EidosASTNode *right_operand = p_parent_node->children_[1];
 			
 			std::vector<int> base_indices;
 			
 			// Recurse to find the symbol host and property name that we are ultimately subscripting off of
-			_ProcessSubscriptAssignment(p_base_value_ptr, p_property_string_id_ptr, &base_indices, left_operand);
+			_ProcessSubsetAssignment(p_base_value_ptr, p_property_string_id_ptr, &base_indices, left_operand);
 			
-			// Find out which indices we're supposed to use within our base vector
-			EidosValue_SP second_child_value = FastEvaluateNode(right_operand);
-			EidosValueType second_child_type = second_child_value->Type();
+			int base_indices_count = (int)base_indices.size();
+			EidosValue_SP first_child_value = *p_base_value_ptr;
+			int first_child_dim_count = first_child_value->DimensionCount();
 			
-			if ((second_child_type != EidosValueType::kValueInt) && (second_child_type != EidosValueType::kValueFloat) && (second_child_type != EidosValueType::kValueLogical))
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): index operand type " << second_child_type << " is not supported by the '[]' operator." << EidosTerminate(parent_token);
+			// organize our subset arguments
+			int child_count = (int)p_parent_node->children_.size();
+			std::vector <EidosValue_SP> subset_indices;
 			
-			int second_child_count = second_child_value->Count();
-			
-			if (second_child_type == EidosValueType::kValueLogical)
+			for (int child_index = 1; child_index < child_count; ++child_index)
 			{
-				// A logical vector must exactly match in length; if it does, it selects corresponding indices from base_indices
-				if (second_child_count != (int)base_indices.size())
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): the '[]' operator requires that the size() of a logical index operand must match the size() of the indexed operand." << EidosTerminate(parent_token);
+				const EidosASTNode *subset_index_node = p_parent_node->children_[child_index];
+				EidosTokenType subset_index_token_type = subset_index_node->token_->token_type_;
 				
-				for (int value_idx = 0; value_idx < second_child_count; value_idx++)
+				if ((subset_index_token_type == EidosTokenType::kTokenComma) || (subset_index_token_type == EidosTokenType::kTokenRBracket))
 				{
-					eidos_logical_t logical_value = second_child_value->LogicalAtIndex(value_idx, parent_token);
+					// We have a placeholder node indicating a skipped expression, so we save NULL as the value
+					subset_indices.push_back(gStaticEidosValueNULL);
+				}
+				else
+				{
+					// We have an expression node, so we evaluate it, check the value, and save it
+					EidosValue_SP child_value = FastEvaluateNode(subset_index_node);
+					EidosValueType child_type = child_value->Type();
 					
-					if (logical_value)
-						p_indices_ptr->emplace_back(base_indices[value_idx]);
+					if ((child_type != EidosValueType::kValueInt) && (child_type != EidosValueType::kValueFloat) && (child_type != EidosValueType::kValueLogical) && (child_type != EidosValueType::kValueNULL))
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): index operand type " << child_type << " is not supported by the '[]' operator." << EidosTerminate(parent_token);
+					if (child_value->DimensionCount() != 1)
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): a matrix or array index operand is not supported by the '[]' operator." << EidosTerminate(parent_token);
+					
+					subset_indices.emplace_back(child_value);
 				}
 			}
-			else
+			
+			int subset_index_count = (int)subset_indices.size();
+			
+			if ((subset_index_count != first_child_dim_count) && (subset_index_count != 1))
 			{
-				// A numeric vector can be of any length; each number selects the index at that index in base_indices
-				int base_indices_count =  (int)base_indices.size();
+				// We have the wrong number of subset arguments for our dimensionality, so this is an error
+				if (subset_index_count > first_child_dim_count)
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): too many subset arguments for the indexed operand's dimensionality." << EidosTerminate(parent_token);
+				else // (subset_index_count < first_child_dim_count)
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): too few subset arguments for the indexed operand's dimensionality." << EidosTerminate(parent_token);
+			}
+			// 	else if (first_child_type == EidosValueType::kValueNULL)	: Evaluate_Subset() returns NULL for subsets of NULL, we let them fall through; assigning into an empty subset of NULL is legal
+			else if ((subset_index_count == 1) && (subset_indices[0] == gStaticEidosValueNULL))
+			{
+				// We have a single subset argument of NULL, so we have x[] or x[NULL]; just return all legal indices
+				for (int value_idx = 0; value_idx < base_indices_count; value_idx++)
+					p_indices_ptr->emplace_back(base_indices[value_idx]);
+			}
+			else if (subset_index_count == 1)
+			{
+				// OK, we have a simple vector-style subset that is not NULL; handle it as we did in Eidos 1.5 and earlier
+				EidosValue_SP second_child_value = subset_indices[0];
+				EidosValueType second_child_type = second_child_value->Type();
 				
-				if (second_child_type == EidosValueType::kValueInt)
+				if ((second_child_type != EidosValueType::kValueInt) && (second_child_type != EidosValueType::kValueFloat) && (second_child_type != EidosValueType::kValueLogical))
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): index operand type " << second_child_type << " is not supported by the '[]' operator." << EidosTerminate(parent_token);
+				if (second_child_value->DimensionCount() != 1)
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): a matrix or array index operand is not supported by the '[]' operator." << EidosTerminate(parent_token);
+				
+				int second_child_count = second_child_value->Count();
+				
+				if (second_child_type == EidosValueType::kValueLogical)
 				{
-					if (second_child_count == 1)
+					// A logical vector must exactly match in length; if it does, it selects corresponding indices from base_indices
+					if (second_child_count != base_indices_count)
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): the '[]' operator requires that the size() of a logical index operand must match the size() of the indexed operand." << EidosTerminate(parent_token);
+					
+					for (int value_idx = 0; value_idx < second_child_count; value_idx++)
 					{
-						int64_t index_value = second_child_value->IntAtIndex(0, parent_token);
+						eidos_logical_t logical_value = second_child_value->LogicalAtIndex(value_idx, parent_token);
 						
-						if ((index_value < 0) || (index_value >= base_indices_count))
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(parent_token);
-						else
-							p_indices_ptr->emplace_back(base_indices[index_value]);
+						if (logical_value)
+							p_indices_ptr->emplace_back(base_indices[value_idx]);
 					}
-					else if (second_child_count)
+				}
+				else
+				{
+					// A numeric vector can be of any length; each number selects the index at that index in base_indices
+					if (second_child_type == EidosValueType::kValueInt)
 					{
-						// fast vector access for the non-singleton case
-						const int64_t *second_child_data = second_child_value->IntVector()->data();
-						
-						for (int value_idx = 0; value_idx < second_child_count; value_idx++)
+						if (second_child_count == 1)
 						{
-							int64_t index_value = second_child_data[value_idx];
+							int64_t index_value = second_child_value->IntAtIndex(0, parent_token);
 							
 							if ((index_value < 0) || (index_value >= base_indices_count))
-								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(parent_token);
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(parent_token);
+							else
+								p_indices_ptr->emplace_back(base_indices[index_value]);
+						}
+						else if (second_child_count)
+						{
+							// fast vector access for the non-singleton case
+							const int64_t *second_child_data = second_child_value->IntVector()->data();
+							
+							for (int value_idx = 0; value_idx < second_child_count; value_idx++)
+							{
+								int64_t index_value = second_child_data[value_idx];
+								
+								if ((index_value < 0) || (index_value >= base_indices_count))
+									EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(parent_token);
+								else
+									p_indices_ptr->emplace_back(base_indices[index_value]);
+							}
+						}
+					}
+					else // (second_child_type == EidosValueType::kValueFloat))
+					{
+						// We do not optimize the float case with direct vector access, because IntAtIndex() has complex behavior
+						// for EidosValue_Float that we want to get here; subsetting with float vectors is slow, don't do it.
+						for (int value_idx = 0; value_idx < second_child_count; value_idx++)
+						{
+							int64_t index_value = second_child_value->IntAtIndex(value_idx, parent_token);
+							
+							if ((index_value < 0) || (index_value >= base_indices_count))
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(parent_token);
 							else
 								p_indices_ptr->emplace_back(base_indices[index_value]);
 						}
 					}
 				}
-				else // (second_child_type == EidosValueType::kValueFloat))
+			}
+			else
+			{
+				// We have a new matrix/array-style subset, like x[1,], x[,1], x[,], etc.; this is Eidos 1.6 and later
+				// Handle each subset value in turn, determining which subset of each dimension will be carried forward
+				// We tabulate the status of each dimension, and then put it all together at the end as a result value
+				
+				// First, however, we have to check that the user is not attempting something like x[1,][,3] = rvalue.
+				// That is not allowed at present, because the [1,] changes the dimensions of the value, and we have
+				// no obvious way of tracking that.  It would be nice if it worked, since it makes sense in principle,
+				// but it isn't worth building a whole complex code architecture around.  So here we check the left-hand
+				// side that provided us with the host that we're subsetting, and if it is itself a subset operation
+				// then it's an error.  A similar problem exists for property access, like x.foo[1,] = rvalue, because
+				// the property access erases the dimensions of x, and so a matrix/array-style subscript makes no sense;
+				// that might get caught somewhere else, but to make sure we're not heading into a situation that will
+				// cause us to produce incorrect output, we check for it here as well.
 				{
-					// We do not optimize the float case with direct vector access, because IntAtIndex() has complex behavior
-					// for EidosValue_Float that we want to get here; subsetting with float vectors is slow, don't do it.
-					for (int value_idx = 0; value_idx < second_child_count; value_idx++)
+					EidosToken *left_token = left_operand->token_;
+					EidosTokenType left_token_type = left_token->token_type_;
+					
+					if (left_token_type == EidosTokenType::kTokenLBracket)
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): chaining of matrix/array-style subsets in assignments is not currently supported (although it is permitted by the Eidos language definition)." << EidosTerminate(parent_token);
+					if (left_token_type == EidosTokenType::kTokenDot)
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): cannot assign into a subset of a property; not an lvalue." << EidosTerminate(parent_token);
+				}
+				
+				// OK, we are subsetting directly off of an identifier, given the check above.  This means we can ignore
+				// base_indices and p_property_string_id_ptr, and just work directly with first_child_value; it is what
+				// we are subsetting off of.
+				
+				const int64_t *first_child_dim = first_child_value->Dimensions();
+				std::vector<std::vector<int64_t>> inclusion_indices;	// the chosen indices for each dimension
+				std::vector<int> inclusion_counts;						// the number of chosen indices for each dimension
+				bool empty_dimension = false;
+				
+				for (int subset_index = 0; subset_index < subset_index_count; ++subset_index)
+				{
+					EidosValue_SP subset_value = subset_indices[subset_index];
+					EidosValueType subset_type = subset_value->Type();
+					int subset_count = subset_value->Count();
+					int dim_size = (int)first_child_dim[subset_index];
+					std::vector<int64_t> indices;
+					
+					if (subset_type == EidosValueType::kValueNULL)
 					{
-						int64_t index_value = second_child_value->IntAtIndex(value_idx, parent_token);
-						
-						if ((index_value < 0) || (index_value >= base_indices_count))
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(parent_token);
-						else
-							p_indices_ptr->emplace_back(base_indices[index_value]);
+						// We skipped over this dimension or had NULL, so every valid index in the dimension is included
+						for (int dim_index = 0; dim_index < dim_size; ++dim_index)
+							indices.push_back(dim_index);
 					}
+					else if (subset_type == EidosValueType::kValueLogical)
+					{
+						// We have a logical subset, which must equal the dimension size and gets translated directly into inclusion_indices
+						if (subset_count != dim_size)
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): the '[]' operator requires that the size() of a logical index operand must match the corresponding dimension of the indexed operand." << EidosTerminate(parent_token);
+						
+						const eidos_logical_t *logical_index_data = subset_value->LogicalVector()->data();
+						
+						for (int dim_index = 0; dim_index < dim_size; dim_index++)
+							if (logical_index_data[dim_index])
+								indices.push_back(dim_index);
+					}
+					else
+					{
+						// We have a float or integer subset, which selects indices within inclusion_indices
+						for (int index_index = 0; index_index < subset_count; index_index++)
+						{
+							int64_t index_value = subset_value->IntAtIndex(index_index, parent_token);
+							
+							if ((index_value < 0) || (index_value >= dim_size))
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(parent_token);
+							else
+								indices.push_back(index_value);
+						}
+					}
+					
+					if (indices.size() == 0)
+					{
+						empty_dimension = true;
+						break;
+					}
+					
+					inclusion_counts.push_back((int)indices.size());
+					inclusion_indices.emplace_back(indices);
+				}
+				
+				if (empty_dimension)
+				{
+					// If there was a dimension where no index was included, no indices are included, so we do nothing
+				}
+				else
+				{
+					// We have tabulated the subsets; now tabulate the included values into p_indices_ptr.  To do this, we count up
+					// in the base system established by inclusion_counts, and add the referenced index at each step along the way.
+					std::vector<int> generating_counter(subset_index_count, 0);
+					
+					do
+					{
+						// add the value referenced by generating_counter in inclusion_indices
+						int64_t referenced_index = 0;
+						int64_t dim_skip = 1;
+						
+						for (int counter_index = 0; counter_index < subset_index_count; ++counter_index)
+						{
+							int counter_value = generating_counter[counter_index];
+							int64_t inclusion_index_value = inclusion_indices[counter_index][counter_value];
+							
+							referenced_index += inclusion_index_value * dim_skip;
+							
+							dim_skip *= first_child_dim[counter_index];
+						}
+						
+						p_indices_ptr->emplace_back(referenced_index);
+						
+						// increment generating_counter in the base system of inclusion_counts
+						int generating_counter_index = 0;
+						
+						do
+						{
+							if (++generating_counter[generating_counter_index] == inclusion_counts[generating_counter_index])
+							{
+								generating_counter[generating_counter_index] = 0;
+								generating_counter_index++;		// carry
+							}
+							else
+								break;
+						}
+						while (generating_counter_index < subset_index_count);
+						
+						// if we carried out off the top, we are done adding included values
+						if (generating_counter_index == subset_index_count)
+							break;
+					}
+					while (true);
+					
+					// At this point, Evaluate_Subset() sets the dimensionality of the result.  We are just returning a set of indices,
+					// so we don't do that.  If we ever wanted to actually get into allowing x[1,][,3] = rvalue; and such things, at
+					// this point we would compute the dimensionality of the result and pass it upward to the caller through another
+					// modifiable parameter, I suppose, so that the caller would know what sort of thing they were chaining off of.
 				}
 			}
 			
@@ -418,7 +612,7 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue_SP *p_base_value_p
 		}
 		case EidosTokenType::kTokenDot:
 		{
-			EIDOS_ASSERT_CHILD_COUNT_X(p_parent_node, "'.'", "EidosInterpreter::_ProcessSubscriptAssignment", 2, parent_token);
+			EIDOS_ASSERT_CHILD_COUNT_X(p_parent_node, "'.'", "EidosInterpreter::_ProcessSubsetAssignment", 2, parent_token);
 			
 			EidosASTNode *left_operand = p_parent_node->children_[0];
 			EidosASTNode *right_operand = p_parent_node->children_[1];
@@ -427,10 +621,10 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue_SP *p_base_value_p
 			EidosValueType first_child_type = first_child_value->Type();
 			
 			if (first_child_type != EidosValueType::kValueObject)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): operand type " << first_child_type << " is not supported by the '.' operator (not an object)." << EidosTerminate(parent_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): operand type " << first_child_type << " is not supported by the '.' operator (not an object)." << EidosTerminate(parent_token);
 			
 			if (right_operand->token_->token_type_ != EidosTokenType::kTokenIdentifier)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): the '.' operator for x.y requires operand y to be an identifier." << EidosTerminate(parent_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): the '.' operator for x.y requires operand y to be an identifier." << EidosTerminate(parent_token);
 			
 			*p_base_value_ptr = first_child_value;
 			*p_property_string_id_ptr = Eidos_GlobalStringIDForString(right_operand->token_->token_string_);
@@ -444,7 +638,7 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue_SP *p_base_value_p
 		}
 		case EidosTokenType::kTokenIdentifier:
 		{
-			EIDOS_ASSERT_CHILD_COUNT_X(p_parent_node, "identifier", "EidosInterpreter::_ProcessSubscriptAssignment", 0, parent_token);
+			EIDOS_ASSERT_CHILD_COUNT_X(p_parent_node, "identifier", "EidosInterpreter::_ProcessSubsetAssignment", 0, parent_token);
 			
 			EidosValue_SP identifier_value_SP = global_symbols_->GetValueOrRaiseForASTNode(p_parent_node);
 			EidosValue *identifier_value = identifier_value_SP.get();
@@ -473,7 +667,7 @@ void EidosInterpreter::_ProcessSubscriptAssignment(EidosValue_SP *p_base_value_p
 			break;
 		}
 		default:
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubscriptAssignment): (internal error) unexpected node token type " << token_type << "; lvalue required." << EidosTerminate(parent_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): (internal error) unexpected node token type " << token_type << "; lvalue required." << EidosTerminate(parent_token);
 			break;
 	}
 }
@@ -498,13 +692,13 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue_SP p_rvalue, const Eidos
 	{
 		case EidosTokenType::kTokenLBracket:
 		{
-			EIDOS_ASSERT_CHILD_COUNT_X(p_lvalue_node, "'['", "EidosInterpreter::_AssignRValueToLValue", 2, nullptr);
+			EIDOS_ASSERT_CHILD_COUNT_GTEQ_X(p_lvalue_node, "'['", "EidosInterpreter::_AssignRValueToLValue", 2, nullptr);
 			
 			EidosValue_SP base_value;
 			EidosGlobalStringID property_string_id = gEidosID_none;
 			std::vector<int> indices;
 			
-			_ProcessSubscriptAssignment(&base_value, &property_string_id, &indices, p_lvalue_node);
+			_ProcessSubsetAssignment(&base_value, &property_string_id, &indices, p_lvalue_node);
 			
 			int index_count = (int)indices.size();
 			int rvalue_count = p_rvalue->Count();
@@ -525,6 +719,19 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue_SP p_rvalue, const Eidos
 					// we have a multiplex assignment of one value to (maybe) more than one index in a property of a symbol host: x.foo[5:10] = 10
 					// here we use the guarantee that the member operator returns one result per element, and that elements following sharing semantics,
 					// to rearrange this assignment from host.property[indices] = rvalue to host[indices].property = rvalue; this must be equivalent!
+					
+					// BCH 12/8/2017: We used to allow assignments of the form host.property[indices] = rvalue.  I have decided to change Eidos policy
+					// to disallow that form of assignment.  Conceptually, it sort of doesn't make sense, because it implies fetching the property
+					// values and assigning into a subset of those fetched values; but the fetched values are not an lvalue at that point.  We did it
+					// anyway through a semantic rearrangement, but I now think that was a bad idea.  The conceptual problem became more stark with the
+					// addition of matrices and arrays; if host is a matrix/array, host[i,j,...] is too, and so assigning into a host with that form of
+					// subset makes conceptual sense, and host[i,j,...].property = rvalue makes sense as well – fetch the indexed values and assign
+					// into their property.  But host.property[i,j,...] = rvalue does not make sense, because host.property is always a vector, and
+					// cannot be subset in that way!  So the underlying contradiction in the old policy is exposed.  Time for it to change.
+					
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): cannot assign into a subset of a property; not an lvalue." << EidosTerminate(nullptr);
+					
+					/*
 					for (int value_idx = 0; value_idx < index_count; value_idx++)
 					{
 						EidosValue_SP temp_lvalue = base_value->GetValueAtIndex(indices[value_idx], nullptr);
@@ -533,7 +740,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue_SP p_rvalue, const Eidos
 							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): (internal error) dot operator used with non-object value." << EidosTerminate(nullptr);
 						
 						static_cast<EidosValue_Object *>(temp_lvalue.get())->SetPropertyOfElements(property_string_id, *p_rvalue);
-					}
+					}*/
 				}
 			}
 			else if (index_count == rvalue_count)
@@ -555,6 +762,12 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue_SP p_rvalue, const Eidos
 				{
 					// we have a one-to-one assignment of values to indices in a property of a symbol host: x.foo[5:10] = 5:10
 					// as above, we rearrange this assignment from host.property[indices1] = rvalue[indices2] to host[indices1].property = rvalue[indices2]
+					
+					// BCH 12/8/2017: As above, this form of assignment is no longer legal in Eidos.  See the longer comment above.
+					
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): cannot assign into a subset of a property; not an lvalue." << EidosTerminate(nullptr);
+					
+					/*
 					for (int value_idx = 0; value_idx < index_count; value_idx++)
 					{
 						EidosValue_SP temp_lvalue = base_value->GetValueAtIndex(indices[value_idx], nullptr);
@@ -564,7 +777,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue_SP p_rvalue, const Eidos
 							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): (internal error) dot operator used with non-object value." << EidosTerminate(nullptr);
 						
 						static_cast<EidosValue_Object *>(temp_lvalue.get())->SetPropertyOfElements(property_string_id, *temp_rvalue);
-					}
+					}*/
 				}
 			}
 			else
@@ -710,6 +923,9 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 	
 	if ((first_child_count != 1) || (second_child_count != 1))
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): operands of the ':' operator must have size() == 1." << EidosTerminate(operator_token);
+	
+	if ((p_first_child_value.DimensionCount() != 1) || (p_second_child_value.DimensionCount() != 1))
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): operands of the ':' operator must not be matrices or arrays." << EidosTerminate(operator_token);
 	
 	// OK, we've got good operands; calculate the result.  If both operands are int, the result is int, otherwise float.
 	bool underflow = false;
@@ -1260,29 +1476,79 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 
 EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 {
+	// Note that the logic here is very parallel to that of EidosInterpreter::_ProcessSubsetAssignment()
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Subset()");
-	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_Subset", 2);
-
+	EIDOS_ASSERT_CHILD_COUNT_GTEQ("EidosInterpreter::Evaluate_Subset", 2);
+	
 	EidosToken *operator_token = p_node->token_;
 	EidosValue_SP result_SP;
 	
 	EidosValue_SP first_child_value = FastEvaluateNode(p_node->children_[0]);
 	EidosValueType first_child_type = first_child_value->Type();
+	int first_child_dim_count = first_child_value->DimensionCount();
 	
-	if (first_child_type == EidosValueType::kValueNULL)
+	// organize our subset arguments
+	int child_count = (int)p_node->children_.size();
+	std::vector <EidosValue_SP> subset_indices;
+	
+	for (int child_index = 1; child_index < child_count; ++child_index)
 	{
-		// Any subscript of NULL returns NULL
+		const EidosASTNode *subset_index_node = p_node->children_[child_index];
+		EidosTokenType subset_index_token_type = subset_index_node->token_->token_type_;
+		
+		if ((subset_index_token_type == EidosTokenType::kTokenComma) || (subset_index_token_type == EidosTokenType::kTokenRBracket))
+		{
+			// We have a placeholder node indicating a skipped expression, so we save NULL as the value
+			subset_indices.push_back(gStaticEidosValueNULL);
+		}
+		else
+		{
+			// We have an expression node, so we evaluate it, check the value, and save it
+			EidosValue_SP child_value = FastEvaluateNode(subset_index_node);
+			EidosValueType child_type = child_value->Type();
+			
+			if ((child_type != EidosValueType::kValueInt) && (child_type != EidosValueType::kValueFloat) && (child_type != EidosValueType::kValueLogical) && (child_type != EidosValueType::kValueNULL))
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): index operand type " << child_type << " is not supported by the '[]' operator." << EidosTerminate(operator_token);
+			if (child_value->DimensionCount() != 1)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): a matrix or array index operand is not supported by the '[]' operator." << EidosTerminate(operator_token);
+			
+			subset_indices.emplace_back(child_value);
+		}
+	}
+	
+	int subset_index_count = (int)subset_indices.size();
+	
+	if ((subset_index_count != first_child_dim_count) && (subset_index_count != 1))
+	{
+		// We have the wrong number of subset arguments for our dimensionality, so this is an error
+		if (subset_index_count > first_child_dim_count)
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): too many subset arguments for the indexed operand's dimensionality." << EidosTerminate(operator_token);
+		else // (subset_index_count < first_child_dim_count)
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): too few subset arguments for the indexed operand's dimensionality." << EidosTerminate(operator_token);
+	}
+	else if (first_child_type == EidosValueType::kValueNULL)
+	{
+		// Any subscript of NULL returns NULL; however, we evaluated the expression nodes above first, for side effects and to check for errors
 		result_SP = gStaticEidosValueNULL;
 	}
-	else
+	else if ((subset_index_count == 1) && (subset_indices[0] == gStaticEidosValueNULL))
 	{
-		EidosValue_SP second_child_value = FastEvaluateNode(p_node->children_[1]);
+		// We have a single subset argument of null, so we have x[] or x[NULL]; just return x, but as a vector, not a matrix/array
+		if (first_child_dim_count == 1)
+			result_SP = first_child_value;
+		else
+		{
+			result_SP = first_child_value->CopyValues();
+			
+			result_SP->SetDimensions(1, nullptr);
+		}
+	}
+	else if (subset_index_count == 1)
+	{
+		// OK, we have a simple vector-style subset that is not NULL; handle it as we did in Eidos 1.5 and earlier
+		EidosValue_SP second_child_value = subset_indices[0];
 		EidosValueType second_child_type = second_child_value->Type();
 		
-		if ((second_child_type != EidosValueType::kValueInt) && (second_child_type != EidosValueType::kValueFloat) && (second_child_type != EidosValueType::kValueLogical))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): index operand type " << second_child_type << " is not supported by the '[]' operator." << EidosTerminate(operator_token);
-		
-		// OK, we can definitely do this subset
 		int first_child_count = first_child_value->Count();
 		int second_child_count = second_child_value->Count();
 		
@@ -1611,6 +1877,129 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 			}
 		}
 	}
+	else
+	{
+		// We have a new matrix/array-style subset, like x[1,], x[,1], x[,], etc.; this is Eidos 1.6 and later
+		// Handle each subset value in turn, determining which subset of each dimension will be carried forward
+		// We tabulate the status of each dimension, and then put it all together at the end as a result value
+		const int64_t *first_child_dim = first_child_value->Dimensions();
+		std::vector<std::vector<int64_t>> inclusion_indices;	// the chosen indices for each dimension
+		std::vector<int> inclusion_counts;						// the number of chosen indices for each dimension
+		bool empty_dimension = false;
+		
+		for (int subset_index = 0; subset_index < subset_index_count; ++subset_index)
+		{
+			EidosValue_SP subset_value = subset_indices[subset_index];
+			EidosValueType subset_type = subset_value->Type();
+			int subset_count = subset_value->Count();
+			int dim_size = (int)first_child_dim[subset_index];
+			std::vector<int64_t> indices;
+			
+			if (subset_type == EidosValueType::kValueNULL)
+			{
+				// We skipped over this dimension or had NULL, so every valid index in the dimension is included
+				for (int dim_index = 0; dim_index < dim_size; ++dim_index)
+					indices.push_back(dim_index);
+			}
+			else if (subset_type == EidosValueType::kValueLogical)
+			{
+				// We have a logical subset, which must equal the dimension size and gets translated directly into inclusion_indices
+				if (subset_count != dim_size)
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): the '[]' operator requires that the size() of a logical index operand must match the corresponding dimension of the indexed operand." << EidosTerminate(operator_token);
+				
+				const eidos_logical_t *logical_index_data = subset_value->LogicalVector()->data();
+				
+				for (int dim_index = 0; dim_index < dim_size; dim_index++)
+					if (logical_index_data[dim_index])
+						indices.push_back(dim_index);
+			}
+			else
+			{
+				// We have a float or integer subset, which selects indices within inclusion_indices
+				for (int index_index = 0; index_index < subset_count; index_index++)
+				{
+					int64_t index_value = subset_value->IntAtIndex(index_index, operator_token);
+					
+					if ((index_value < 0) || (index_value >= dim_size))
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(operator_token);
+					else
+						indices.push_back(index_value);
+				}
+			}
+			
+			if (indices.size() == 0)
+			{
+				empty_dimension = true;
+				break;
+			}
+			
+			inclusion_counts.push_back((int)indices.size());
+			inclusion_indices.emplace_back(indices);
+		}
+		
+		if (empty_dimension)
+		{
+			// If there was a dimension where no index was included, the result is an empty vector of the right type
+			result_SP = first_child_value->NewMatchingType();
+		}
+		else
+		{
+			// We have tabulated the subsets; now copy the included values into the result.  To do this, we count up in the base
+			// system established by inclusion_counts, and add the referenced value at each step along the way.
+			result_SP = first_child_value->NewMatchingType();
+			
+			std::vector<int> generating_counter(subset_index_count, 0);
+			
+			do
+			{
+				// add the value referenced by generating_counter in inclusion_indices
+				int64_t referenced_index = 0;
+				int64_t dim_skip = 1;
+				
+				for (int counter_index = 0; counter_index < subset_index_count; ++counter_index)
+				{
+					int counter_value = generating_counter[counter_index];
+					int64_t inclusion_index_value = inclusion_indices[counter_index][counter_value];
+					
+					referenced_index += inclusion_index_value * dim_skip;
+					
+					dim_skip *= first_child_dim[counter_index];
+				}
+				
+				result_SP->PushValueFromIndexOfEidosValue((int)referenced_index, *(first_child_value.get()), operator_token);
+				
+				// increment generating_counter in the base system of inclusion_counts
+				int generating_counter_index = 0;
+				
+				do
+				{
+					if (++generating_counter[generating_counter_index] == inclusion_counts[generating_counter_index])
+					{
+						generating_counter[generating_counter_index] = 0;
+						generating_counter_index++;		// carry
+					}
+					else
+						break;
+				}
+				while (generating_counter_index < subset_index_count);
+				
+				// if we carried out off the top, we are done adding included values
+				if (generating_counter_index == subset_index_count)
+					break;
+			}
+			while (true);
+			
+			// Finally, set the dimensionality of the result, considering dropped dimensions.  This basically follows the structure
+			// of the indexed operand's dimensions, but (a) resizes to match the size of inclusion_indices for the given dimension,
+			// and (b) omits any dimension that has a count of exactly 1, since those dimensions are dropped.
+			int64_t *dim = (int64_t *)malloc(subset_index_count * sizeof(int64_t));
+			
+			for (int subset_index = 0; subset_index < subset_index_count; ++subset_index)
+				dim[subset_index] = inclusion_counts[subset_index];
+			
+			result_SP->SetDimensions(subset_index_count, dim);
+		}
+	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Subset()");
 	return result_SP;
@@ -1620,7 +2009,7 @@ EidosValue_SP EidosInterpreter::Evaluate_MemberRef(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_MemberRef()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_MemberRef", 2);
-
+	
 	EidosToken *operator_token = p_node->token_;
 	EidosValue_SP result_SP;
 	
@@ -1684,6 +2073,14 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 		
 		int first_child_count = first_child_value->Count();
 		int second_child_count = second_child_value->Count();
+		
+		// matrices/arrays must be conformable, and we need to decide here which operand's dimensionality will be used for the result
+		int first_child_dimcount = first_child_value->DimensionCount();
+		int second_child_dimcount = second_child_value->DimensionCount();
+		EidosValue_SP result_dim_source(EidosValue::BinaryOperationDimensionSource(first_child_value.get(), second_child_value.get()));
+		
+		if ((first_child_dimcount > 1) && (second_child_dimcount > 1) && !EidosValue::MatchingDimensions(first_child_value.get(), second_child_value.get()))
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): non-conformable array operands to binary '+' operator." << EidosTerminate(operator_token);
 		
 		if ((first_child_type == EidosValueType::kValueString) || (second_child_type == EidosValueType::kValueString))
 		{
@@ -1930,6 +2327,9 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): the '+' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
 			}
 		}
+		
+		// Copy dimensions from whichever operand we chose at the beginning
+		result_SP->CopyDimensionsFromValue(result_dim_source.get());
 	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Plus()");
@@ -2013,6 +2413,8 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 				result_SP = std::move(float_result_SP);
 			}
 		}
+		
+		result_SP->CopyDimensionsFromValue(first_child_value.get());
 	}
 	else
 	{
@@ -2024,6 +2426,14 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): operand type " << second_child_type << " is not supported by the '-' operator." << EidosTerminate(operator_token);
 		
 		int second_child_count = second_child_value->Count();
+		
+		// matrices/arrays must be conformable, and we need to decide here which operand's dimensionality will be used for the result
+		int first_child_dimcount = first_child_value->DimensionCount();
+		int second_child_dimcount = second_child_value->DimensionCount();
+		EidosValue_SP result_dim_source(EidosValue::BinaryOperationDimensionSource(first_child_value.get(), second_child_value.get()));
+		
+		if ((first_child_dimcount > 1) && (second_child_dimcount > 1) && !EidosValue::MatchingDimensions(first_child_value.get(), second_child_value.get()))
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): non-conformable array operands to binary '-' operator." << EidosTerminate(operator_token);
 		
 		if ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueInt))
 		{
@@ -2217,6 +2627,9 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): the '-' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
 			}
 		}
+		
+		// Copy dimensions from whichever operand we chose at the beginning
+		result_SP->CopyDimensionsFromValue(result_dim_source.get());
 	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Minus()");
@@ -2243,6 +2656,14 @@ EidosValue_SP EidosInterpreter::Evaluate_Mod(const EidosASTNode *p_node)
 	
 	int first_child_count = first_child_value->Count();
 	int second_child_count = second_child_value->Count();
+	
+	// matrices/arrays must be conformable, and we need to decide here which operand's dimensionality will be used for the result
+	int first_child_dimcount = first_child_value->DimensionCount();
+	int second_child_dimcount = second_child_value->DimensionCount();
+	EidosValue_SP result_dim_source(EidosValue::BinaryOperationDimensionSource(first_child_value.get(), second_child_value.get()));
+	
+	if ((first_child_dimcount > 1) && (second_child_dimcount > 1) && !EidosValue::MatchingDimensions(first_child_value.get(), second_child_value.get()))
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mod): non-conformable array operands to the '%' operator." << EidosTerminate(operator_token);
 	
 	EidosValue_SP result_SP;
 	
@@ -2348,6 +2769,9 @@ EidosValue_SP EidosInterpreter::Evaluate_Mod(const EidosASTNode *p_node)
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mod): the '%' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
 	}
 	
+	// Copy dimensions from whichever operand we chose at the beginning
+	result_SP->CopyDimensionsFromValue(result_dim_source.get());
+	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Mod()");
 	return result_SP;
 }
@@ -2372,6 +2796,14 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 	
 	int first_child_count = first_child_value->Count();
 	int second_child_count = second_child_value->Count();
+	
+	// matrices/arrays must be conformable, and we need to decide here which operand's dimensionality will be used for the result
+	int first_child_dimcount = first_child_value->DimensionCount();
+	int second_child_dimcount = second_child_value->DimensionCount();
+	EidosValue_SP result_dim_source(EidosValue::BinaryOperationDimensionSource(first_child_value.get(), second_child_value.get()));
+	
+	if ((first_child_dimcount > 1) && (second_child_dimcount > 1) && !EidosValue::MatchingDimensions(first_child_value.get(), second_child_value.get()))
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): non-conformable array operands to the '*' operator." << EidosTerminate(operator_token);
 	
 	EidosValue_SP result_SP;
 	
@@ -2538,6 +2970,9 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): the '*' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
 	}
 	
+	// Copy dimensions from whichever operand we chose at the beginning
+	result_SP->CopyDimensionsFromValue(result_dim_source.get());
+	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Mult()");
 	return result_SP;
 }
@@ -2562,6 +2997,14 @@ EidosValue_SP EidosInterpreter::Evaluate_Div(const EidosASTNode *p_node)
 	
 	int first_child_count = first_child_value->Count();
 	int second_child_count = second_child_value->Count();
+	
+	// matrices/arrays must be conformable, and we need to decide here which operand's dimensionality will be used for the result
+	int first_child_dimcount = first_child_value->DimensionCount();
+	int second_child_dimcount = second_child_value->DimensionCount();
+	EidosValue_SP result_dim_source(EidosValue::BinaryOperationDimensionSource(first_child_value.get(), second_child_value.get()));
+	
+	if ((first_child_dimcount > 1) && (second_child_dimcount > 1) && !EidosValue::MatchingDimensions(first_child_value.get(), second_child_value.get()))
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mod): non-conformable array operands to the '%' operator." << EidosTerminate(operator_token);
 	
 	EidosValue_SP result_SP;
 	
@@ -2667,6 +3110,9 @@ EidosValue_SP EidosInterpreter::Evaluate_Div(const EidosASTNode *p_node)
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Div): the '/' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
 	}
 	
+	// Copy dimensions from whichever operand we chose at the beginning
+	result_SP->CopyDimensionsFromValue(result_dim_source.get());
+	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Div()");
 	return result_SP;
 }
@@ -2731,6 +3177,14 @@ EidosValue_SP EidosInterpreter::Evaluate_Exp(const EidosASTNode *p_node)
 	
 	int first_child_count = first_child_value->Count();
 	int second_child_count = second_child_value->Count();
+	
+	// matrices/arrays must be conformable, and we need to decide here which operand's dimensionality will be used for the result
+	int first_child_dimcount = first_child_value->DimensionCount();
+	int second_child_dimcount = second_child_value->DimensionCount();
+	EidosValue_SP result_dim_source(EidosValue::BinaryOperationDimensionSource(first_child_value.get(), second_child_value.get()));
+	
+	if ((first_child_dimcount > 1) && (second_child_dimcount > 1) && !EidosValue::MatchingDimensions(first_child_value.get(), second_child_value.get()))
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): non-conformable array operands to the '*' operator." << EidosTerminate(operator_token);
 	
 	// Exponentiation always produces a float result; the user can cast back to integer if they really want
 	EidosValue_SP result_SP;
@@ -2833,6 +3287,9 @@ EidosValue_SP EidosInterpreter::Evaluate_Exp(const EidosASTNode *p_node)
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Exp): the '^' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
 	}
 	
+	// Copy dimensions from whichever operand we chose at the beginning
+	result_SP->CopyDimensionsFromValue(result_dim_source.get());
+	
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Exp()");
 	return result_SP;
 }
@@ -2849,6 +3306,19 @@ EidosValue_SP EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 	eidos_logical_t logical_result = false;
 	int result_count = 0;
 	bool first_child = true;
+	
+	// Dimensionality with & and | is different from the binary operators, since & and | can have any number of children.  Basically we want
+	// that (1) a simple T or F can always be included, but never determines the dimensionality of the result, (2) if more than one matrix or
+	// array is included, all such must be conformable, even singletons, (3) singleton matrices/arrays may be mixed with non-singleton vectors,
+	// in which case the result is a non-singleton vector, *not* a matrix/array, and (4) in all other cases dimensionality is determined by any
+	// matrix/array operand.  These rules are consistent with the binary operator rules, just extended to an arbitrary number of arguments.
+	// To implement these rules, we keep track of two new pieces of state.  One, result_dim_source, keeps track of the value that will be used
+	// as the source of the result's dimensionality; it is set to the first matrix/array argument seen, but if a non-singleton vector is seen
+	// and result_dim_source is set to a singleton matrix/array, it gets upgraded to the non-singleton vector since that has priority.  Two,
+	// first_array_operand forever keeps the first matrix/array operand seen, to check conformability against any later matrix/array operands.
+	// Between these two mechanisms, I believe the intended rules are fully implemented.
+	EidosValue_SP result_dim_source;
+	EidosValue_SP first_array_operand;
 	
 	for (EidosASTNode *child_node : p_node->children_)
 	{
@@ -2900,6 +3370,29 @@ EidosValue_SP EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_And): operand type " << child_type << " is not supported by the '&' operator." << EidosTerminate(operator_token);
 			
 			int child_count = child_result->Count();
+			int child_dimcount = child_result->DimensionCount();
+			
+			// handle dimensionality issues first; see the comment at top regarding the policies we enforce here
+			if (child_dimcount > 1)
+			{
+				// we are an array operand; if we're the first, track that, otherwise check conformability against the first
+				if (!first_array_operand)
+					first_array_operand = child_result;
+				else if (!EidosValue::MatchingDimensions(first_array_operand.get(), child_result.get()))
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_And): non-conformable array operands to the '&' operator." << EidosTerminate(operator_token);
+				
+				// if there is no dimensionality source yet, we qualify; otherwise, if we are a non-singleton array, and the current
+				// dimensionality source is a (non-singleton) vector, we represent an upgrade; if we're a singleton, though, we don't
+				if (!result_dim_source || ((child_count != 1) && (result_dim_source->DimensionCount() == 1)))
+					result_dim_source = child_result;
+			}
+			else if (child_count != 1)
+			{
+				// we are a non-singleton vector operand; no updating of first_array_operand and no conformability check,
+				// but we could be the dimensionality source if there is none, or if it is currently a singleton array
+				if (!result_dim_source || (result_dim_source->Count() == 1))
+					result_dim_source = child_result;
+			}
 			
 			if (first_child)
 			{
@@ -2999,9 +3492,24 @@ EidosValue_SP EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 		}
 	}
 	
-	// if we avoided allocating a result, use a static logical value
-	if (!result_SP)
-		result_SP = (logical_result ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+	if (result_dim_source)
+	{
+		// if we avoided allocating a result, make a singleton now, because we need to apply dimensionality to it; this
+		// occurs when matrix/array singletons were mixed into the operands and a non-singleton vector was not present
+		if (!result_SP)
+		{
+			result_SP = EidosValue_Logical_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(1));
+			result_SP->set_logical_no_check(logical_result, 0);
+		}
+		
+		result_SP->CopyDimensionsFromValue(result_dim_source.get());
+	}
+	else
+	{
+		// if we avoided allocating a result, use a static logical value
+		if (!result_SP)
+			result_SP = (logical_result ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_And()");
 	return result_SP;
@@ -3019,6 +3527,19 @@ EidosValue_SP EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 	eidos_logical_t logical_result = false;
 	int result_count = 0;
 	bool first_child = true;
+	
+	// Dimensionality with & and | is different from the binary operators, since & and | can have any number of children.  Basically we want
+	// that (1) a simple T or F can always be included, but never determines the dimensionality of the result, (2) if more than one matrix or
+	// array is included, all such must be conformable, even singletons, (3) singleton matrices/arrays may be mixed with non-singleton vectors,
+	// in which case the result is a non-singleton vector, *not* a matrix/array, and (4) in all other cases dimensionality is determined by any
+	// matrix/array operand.  These rules are consistent with the binary operator rules, just extended to an arbitrary number of arguments.
+	// To implement these rules, we keep track of two new pieces of state.  One, result_dim_source, keeps track of the value that will be used
+	// as the source of the result's dimensionality; it is set to the first matrix/array argument seen, but if a non-singleton vector is seen
+	// and result_dim_source is set to a singleton matrix/array, it gets upgraded to the non-singleton vector since that has priority.  Two,
+	// first_array_operand forever keeps the first matrix/array operand seen, to check conformability against any later matrix/array operands.
+	// Between these two mechanisms, I believe the intended rules are fully implemented.
+	EidosValue_SP result_dim_source;
+	EidosValue_SP first_array_operand;
 	
 	for (EidosASTNode *child_node : p_node->children_)
 	{
@@ -3070,6 +3591,29 @@ EidosValue_SP EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Or): operand type " << child_type << " is not supported by the '|' operator." << EidosTerminate(operator_token);
 			
 			int child_count = child_result->Count();
+			int child_dimcount = child_result->DimensionCount();
+			
+			// handle dimensionality issues first; see the comment at top regarding the policies we enforce here
+			if (child_dimcount > 1)
+			{
+				// we are an array operand; if we're the first, track that, otherwise check conformability against the first
+				if (!first_array_operand)
+					first_array_operand = child_result;
+				else if (!EidosValue::MatchingDimensions(first_array_operand.get(), child_result.get()))
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_And): non-conformable array operands to the '&' operator." << EidosTerminate(operator_token);
+				
+				// if there is no dimensionality source yet, we qualify; otherwise, if we are a non-singleton array, and the current
+				// dimensionality source is a (non-singleton) vector, we represent an upgrade; if we're a singleton, though, we don't
+				if (!result_dim_source || ((child_count != 1) && (result_dim_source->DimensionCount() == 1)))
+					result_dim_source = child_result;
+			}
+			else if (child_count != 1)
+			{
+				// we are a non-singleton vector operand; no updating of first_array_operand and no conformability check,
+				// but we could be the dimensionality source if there is none, or if it is currently a singleton array
+				if (!result_dim_source || (result_dim_source->Count() == 1))
+					result_dim_source = child_result;
+			}
 			
 			if (first_child)
 			{
@@ -3171,9 +3715,24 @@ EidosValue_SP EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 		}
 	}
 	
-	// if we avoided allocating a result, use a static logical value
-	if (!result_SP)
-		result_SP = (logical_result ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+	if (result_dim_source)
+	{
+		// if we avoided allocating a result, make a singleton now, because we need to apply dimensionality to it; this
+		// occurs when matrix/array singletons were mixed into the operands and a non-singleton vector was not present
+		if (!result_SP)
+		{
+			result_SP = EidosValue_Logical_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(1));
+			result_SP->set_logical_no_check(logical_result, 0);
+		}
+		
+		result_SP->CopyDimensionsFromValue(result_dim_source.get());
+	}
+	else
+	{
+		// if we avoided allocating a result, use a static logical value
+		if (!result_SP)
+			result_SP = (logical_result ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Or()");
 	return result_SP;
@@ -3206,10 +3765,11 @@ EidosValue_SP EidosInterpreter::Evaluate_Not(const EidosASTNode *p_node)
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Not): operand type " << first_child_type << " is not supported by the '!' operator." << EidosTerminate(operator_token);
 		
 		int first_child_count = first_child_value->Count();
+		int first_child_dimcount = first_child_value->DimensionCount();
 		
-		if (first_child_count == 1)
+		if ((first_child_count == 1) && (first_child_dimcount == 1))
 		{
-			// If we're generating a singleton result, use cached static logical values
+			// If we're generating a singleton non-array result, use cached static logical values
 			result_SP = (first_child_value->LogicalAtIndex(0, operator_token) ? gStaticEidosValue_LogicalF : gStaticEidosValue_LogicalT);
 		}
 		else
@@ -3246,6 +3806,8 @@ EidosValue_SP EidosInterpreter::Evaluate_Not(const EidosASTNode *p_node)
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					result->set_logical_no_check(!first_child_value->LogicalAtIndex(value_index, operator_token), value_index);
 			}
+			
+			result_SP->CopyDimensionsFromValue(first_child_value.get());
 		}
 	}
 	
@@ -3532,6 +4094,14 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 		int second_child_count = second_child_value->Count();
 		EidosCompareFunctionPtr compareFunc = Eidos_GetCompareFunctionForTypes(first_child_type, second_child_type, operator_token);
 		
+		// matrices/arrays must be conformable, and we need to decide here which operand's dimensionality will be used for the result
+		int first_child_dimcount = first_child_value->DimensionCount();
+		int second_child_dimcount = second_child_value->DimensionCount();
+		EidosValue_SP result_dim_source(EidosValue::BinaryOperationDimensionSource(first_child_value.get(), second_child_value.get()));
+		
+		if ((first_child_dimcount > 1) && (second_child_dimcount > 1) && !EidosValue::MatchingDimensions(first_child_value.get(), second_child_value.get()))
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Eq): non-conformable array operands to the '==' operator." << EidosTerminate(operator_token);
+		
 		if (first_child_count == second_child_count)
 		{
 			if (first_child_count == 1)
@@ -3539,7 +4109,10 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 				// special-case the 1-to-1 comparison to return a statically allocated logical value, for speed
 				int compare_result = compareFunc(*first_child_value, 0, *second_child_value, 0, operator_token);
 				
-				result_SP = (compare_result == 0) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+				if (!result_dim_source)
+					result_SP = (compare_result == 0) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+				else
+					result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{(compare_result == 0)});	// so we can modify it
 			}
 			else
 			{
@@ -3669,6 +4242,9 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 		{
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Eq): the '==' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
 		}
+		
+		// Copy dimensions from whichever operand we chose at the beginning
+		result_SP->CopyDimensionsFromValue(result_dim_source.get());
 	}
 	else
 	{
@@ -3703,6 +4279,14 @@ EidosValue_SP EidosInterpreter::Evaluate_Lt(const EidosASTNode *p_node)
 		int second_child_count = second_child_value->Count();
 		EidosCompareFunctionPtr compareFunc = Eidos_GetCompareFunctionForTypes(first_child_type, second_child_type, operator_token);
 		
+		// matrices/arrays must be conformable, and we need to decide here which operand's dimensionality will be used for the result
+		int first_child_dimcount = first_child_value->DimensionCount();
+		int second_child_dimcount = second_child_value->DimensionCount();
+		EidosValue_SP result_dim_source(EidosValue::BinaryOperationDimensionSource(first_child_value.get(), second_child_value.get()));
+		
+		if ((first_child_dimcount > 1) && (second_child_dimcount > 1) && !EidosValue::MatchingDimensions(first_child_value.get(), second_child_value.get()))
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Eq): non-conformable array operands to the '==' operator." << EidosTerminate(operator_token);
+		
 		if (first_child_count == second_child_count)
 		{
 			if (first_child_count == 1)
@@ -3710,7 +4294,10 @@ EidosValue_SP EidosInterpreter::Evaluate_Lt(const EidosASTNode *p_node)
 				// special-case the 1-to-1 comparison to return a statically allocated logical value, for speed
 				int compare_result = compareFunc(*first_child_value, 0, *second_child_value, 0, operator_token);
 				
-				result_SP = (compare_result == -1) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+				if (!result_dim_source)
+					result_SP = (compare_result == -1) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+				else
+					result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{(compare_result == -1)});	// so we can modify it
 			}
 			else
 			{
@@ -3759,6 +4346,9 @@ EidosValue_SP EidosInterpreter::Evaluate_Lt(const EidosASTNode *p_node)
 		{
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Lt): the '<' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
 		}
+		
+		// Copy dimensions from whichever operand we chose at the beginning
+		result_SP->CopyDimensionsFromValue(result_dim_source.get());
 	}
 	else
 	{
@@ -3794,6 +4384,14 @@ EidosValue_SP EidosInterpreter::Evaluate_LtEq(const EidosASTNode *p_node)
 		int second_child_count = second_child_value->Count();
 		EidosCompareFunctionPtr compareFunc = Eidos_GetCompareFunctionForTypes(first_child_type, second_child_type, operator_token);
 		
+		// matrices/arrays must be conformable, and we need to decide here which operand's dimensionality will be used for the result
+		int first_child_dimcount = first_child_value->DimensionCount();
+		int second_child_dimcount = second_child_value->DimensionCount();
+		EidosValue_SP result_dim_source(EidosValue::BinaryOperationDimensionSource(first_child_value.get(), second_child_value.get()));
+		
+		if ((first_child_dimcount > 1) && (second_child_dimcount > 1) && !EidosValue::MatchingDimensions(first_child_value.get(), second_child_value.get()))
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Eq): non-conformable array operands to the '==' operator." << EidosTerminate(operator_token);
+		
 		if (first_child_count == second_child_count)
 		{
 			if (first_child_count == 1)
@@ -3801,7 +4399,10 @@ EidosValue_SP EidosInterpreter::Evaluate_LtEq(const EidosASTNode *p_node)
 				// special-case the 1-to-1 comparison to return a statically allocated logical value, for speed
 				int compare_result = compareFunc(*first_child_value, 0, *second_child_value, 0, operator_token);
 				
-				result_SP = (compare_result != 1) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+				if (!result_dim_source)
+					result_SP = (compare_result != 1) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+				else
+					result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{(compare_result != 1)});	// so we can modify it
 			}
 			else
 			{
@@ -3850,6 +4451,9 @@ EidosValue_SP EidosInterpreter::Evaluate_LtEq(const EidosASTNode *p_node)
 		{
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_LtEq): the '<=' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
 		}
+		
+		// Copy dimensions from whichever operand we chose at the beginning
+		result_SP->CopyDimensionsFromValue(result_dim_source.get());
 	}
 	else
 	{
@@ -3885,6 +4489,14 @@ EidosValue_SP EidosInterpreter::Evaluate_Gt(const EidosASTNode *p_node)
 		int second_child_count = second_child_value->Count();
 		EidosCompareFunctionPtr compareFunc = Eidos_GetCompareFunctionForTypes(first_child_type, second_child_type, operator_token);
 		
+		// matrices/arrays must be conformable, and we need to decide here which operand's dimensionality will be used for the result
+		int first_child_dimcount = first_child_value->DimensionCount();
+		int second_child_dimcount = second_child_value->DimensionCount();
+		EidosValue_SP result_dim_source(EidosValue::BinaryOperationDimensionSource(first_child_value.get(), second_child_value.get()));
+		
+		if ((first_child_dimcount > 1) && (second_child_dimcount > 1) && !EidosValue::MatchingDimensions(first_child_value.get(), second_child_value.get()))
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Eq): non-conformable array operands to the '==' operator." << EidosTerminate(operator_token);
+		
 		if (first_child_count == second_child_count)
 		{
 			if (first_child_count == 1)
@@ -3892,7 +4504,10 @@ EidosValue_SP EidosInterpreter::Evaluate_Gt(const EidosASTNode *p_node)
 				// special-case the 1-to-1 comparison to return a statically allocated logical value, for speed
 				int compare_result = compareFunc(*first_child_value, 0, *second_child_value, 0, operator_token);
 				
-				result_SP = (compare_result == 1) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+				if (!result_dim_source)
+					result_SP = (compare_result == 1) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+				else
+					result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{(compare_result == 1)});	// so we can modify it
 			}
 			else
 			{
@@ -3941,6 +4556,9 @@ EidosValue_SP EidosInterpreter::Evaluate_Gt(const EidosASTNode *p_node)
 		{
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Gt): the '>' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
 		}
+		
+		// Copy dimensions from whichever operand we chose at the beginning
+		result_SP->CopyDimensionsFromValue(result_dim_source.get());
 	}
 	else
 	{
@@ -3976,6 +4594,14 @@ EidosValue_SP EidosInterpreter::Evaluate_GtEq(const EidosASTNode *p_node)
 		int second_child_count = second_child_value->Count();
 		EidosCompareFunctionPtr compareFunc = Eidos_GetCompareFunctionForTypes(first_child_type, second_child_type, operator_token);
 		
+		// matrices/arrays must be conformable, and we need to decide here which operand's dimensionality will be used for the result
+		int first_child_dimcount = first_child_value->DimensionCount();
+		int second_child_dimcount = second_child_value->DimensionCount();
+		EidosValue_SP result_dim_source(EidosValue::BinaryOperationDimensionSource(first_child_value.get(), second_child_value.get()));
+		
+		if ((first_child_dimcount > 1) && (second_child_dimcount > 1) && !EidosValue::MatchingDimensions(first_child_value.get(), second_child_value.get()))
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Eq): non-conformable array operands to the '==' operator." << EidosTerminate(operator_token);
+		
 		if (first_child_count == second_child_count)
 		{
 			if (first_child_count == 1)
@@ -3983,7 +4609,10 @@ EidosValue_SP EidosInterpreter::Evaluate_GtEq(const EidosASTNode *p_node)
 				// special-case the 1-to-1 comparison to return a statically allocated logical value, for speed
 				int compare_result = compareFunc(*first_child_value, 0, *second_child_value, 0, operator_token);
 				
-				result_SP = (compare_result != -1) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+				if (!result_dim_source)
+					result_SP = (compare_result != -1) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+				else
+					result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{(compare_result != -1)});	// so we can modify it
 			}
 			else
 			{
@@ -4032,6 +4661,9 @@ EidosValue_SP EidosInterpreter::Evaluate_GtEq(const EidosASTNode *p_node)
 		{
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_GtEq): the '>=' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
 		}
+		
+		// Copy dimensions from whichever operand we chose at the beginning
+		result_SP->CopyDimensionsFromValue(result_dim_source.get());
 	}
 	else
 	{
@@ -4064,6 +4696,14 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 		int second_child_count = second_child_value->Count();
 		EidosCompareFunctionPtr compareFunc = Eidos_GetCompareFunctionForTypes(first_child_type, second_child_type, operator_token);
 		
+		// matrices/arrays must be conformable, and we need to decide here which operand's dimensionality will be used for the result
+		int first_child_dimcount = first_child_value->DimensionCount();
+		int second_child_dimcount = second_child_value->DimensionCount();
+		EidosValue_SP result_dim_source(EidosValue::BinaryOperationDimensionSource(first_child_value.get(), second_child_value.get()));
+		
+		if ((first_child_dimcount > 1) && (second_child_dimcount > 1) && !EidosValue::MatchingDimensions(first_child_value.get(), second_child_value.get()))
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Eq): non-conformable array operands to the '==' operator." << EidosTerminate(operator_token);
+		
 		if (first_child_count == second_child_count)
 		{
 			if (first_child_count == 1)
@@ -4071,7 +4711,10 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 				// special-case the 1-to-1 comparison to return a statically allocated logical value, for speed
 				int compare_result = compareFunc(*first_child_value, 0, *second_child_value, 0, operator_token);
 				
-				result_SP = (compare_result != 0) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+				if (!result_dim_source)
+					result_SP = (compare_result != 0) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+				else
+					result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{(compare_result != 0)});	// so we can modify it
 			}
 			else
 			{
@@ -4201,6 +4844,9 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 		{
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_NotEq): the '!=' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
 		}
+		
+		// Copy dimensions from whichever operand we chose at the beginning
+		result_SP->CopyDimensionsFromValue(result_dim_source.get());
 	}
 	else
 	{
@@ -4670,7 +5316,8 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				EidosValue_SP range_end_value_SP = FastEvaluateNode(range_node->children_[1]);
 				EidosValue *range_end_value = range_end_value_SP.get();
 				
-				if ((range_start_value->Type() == EidosValueType::kValueInt) && (range_start_value->Count() == 1) && (range_end_value->Type() == EidosValueType::kValueInt) && (range_end_value->Count() == 1))
+				if ((range_start_value->Type() == EidosValueType::kValueInt) && (range_start_value->Count() == 1) && (range_start_value->DimensionCount() == 1) &&
+					(range_end_value->Type() == EidosValueType::kValueInt) && (range_end_value->Count() == 1) && (range_end_value->DimensionCount() == 1))
 				{
 					// OK, we have a simple integer:integer range, so this should be very straightforward
 					simpleIntegerRange = true;

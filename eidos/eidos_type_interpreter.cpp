@@ -432,7 +432,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Subset(const EidosASTNode 
 	{
 		result_type = TypeEvaluateNode(p_node->children_[0]);
 		
-		// No need to evaluate the subset index argument, it cannot define new variables
+		// No need to evaluate the subset index argument(s), since they cannot define new variables
 	}
 	
 	return result_type;

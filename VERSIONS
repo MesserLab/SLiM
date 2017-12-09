@@ -43,6 +43,10 @@ development head:
 	fix a bug (never released) in ConcatenateEidosValues() with logical vectors that would cause incorrect results in some post-2.5 GitHub versions
 	fix a bug (never released) in the new integer() two-value filling code added post-2.5
 	optimize method dispatch in Eidos to gather results more efficiently, with benefits for script-intensive models
+	add support for matrices and arrays in Eidos; new functions matrix(), array(), nrow(), ncol(), dim(), t(), cbind(), rbind(), matrixMult(), drop()
+	changed the output format from str() and x.str() to be more R-like
+	changed apply() to return a matrix or array in some cases; could break backward compatibility in rare cases
+	policy change: assignment into a subset of a property is no longer legal in Eidos (e.g. x.foo[1:3] = rvalue), because it is conceptually flawed (not an lvalue)
 
 
 2.5 (build 1204; Eidos version 1.5):

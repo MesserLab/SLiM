@@ -60,7 +60,8 @@ reassuring the Clang analyzer that a precondition is met:
 count total lines of code in the project (excluding the gsl code):
 	( find ./core/ ./eidos/ ./eidostool/ ./EidosScribe ./SLiMgui '(' -name '*.mm' -or -name '*.h' -or -name '*.cpp' ')' -print0 | xargs -0 cat ) | wc -l
 
-
+a useful LaTeX equation editor:
+	https://www.codecogs.com/latex/eqneditor.php
 
 
 

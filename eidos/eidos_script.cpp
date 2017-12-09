@@ -1550,7 +1550,42 @@ EidosASTNode *EidosScript::Parse_PostfixExpr(void)
 				
 				Consume();
 				
-				node->AddChild(Parse_Expr());
+				// in Eidos 1.6 and later, we allow comma-separated sequences of subset expressions; we make dummy nodes for missing expressions
+				// at the top of this loop, we are always expecting a subset expression, and need to make a dummy node if one is not present
+				do
+				{
+					if (current_token_type_ == EidosTokenType::kTokenRBracket)
+					{
+						EidosASTNode *missing_expr_node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
+						
+						node->AddChild(missing_expr_node);		// add a node representing the skipped expression; we use the ']' token for it
+						
+						break;
+					}
+					else if (current_token_type_ == EidosTokenType::kTokenComma)
+					{
+						EidosASTNode *missing_expr_node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
+						
+						node->AddChild(missing_expr_node);		// add a node representing the skipped expression; we use the ',' token for it
+						
+						Match(EidosTokenType::kTokenComma, "postfix subset expression");
+					}
+					else
+					{
+						node->AddChild(Parse_Expr());
+						
+						// after a subset expression, we need to either finish the subset node, or get back to expecting an expression
+						if (current_token_type_ == EidosTokenType::kTokenComma)
+							Match(EidosTokenType::kTokenComma, "postfix subset expression");
+						else if (current_token_type_ == EidosTokenType::kTokenRBracket)
+							break;
+						else if (!parse_make_bad_nodes_)
+							EIDOS_TERMINATION << "ERROR (EidosScript::Parse_PostfixExpr): unexpected token '" << *current_token_ << "'." << EidosTerminate(current_token_);
+					}
+				}
+				while (current_token_type_ != EidosTokenType::kTokenEOF);
+				
+				// now we have reached our end bracket and can close up
 				
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 				// PROFILING

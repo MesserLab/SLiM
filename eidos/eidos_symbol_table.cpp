@@ -379,7 +379,7 @@ void EidosSymbolTable::SetValueForSymbolNoCopy(EidosGlobalStringID p_symbol_name
 	// If a few cases, however, we want to play funny games and prevent that copy from occurring so that we can munge
 	// values directly inside a value we just set in the symbol table.  Evaluate_For() is the worst offender in this
 	// because it wants to set up an index variable once and then munge its value directly each time through the loop,
-	// for speed.  _ProcessSubscriptAssignment() also does it in one case, where it needs to change a singleton into a
+	// for speed.  _ProcessSubsetAssignment() also does it in one case, where it needs to change a singleton into a
 	// vector value so that it can do a subscripted assignment.  For that special purpose, this function is provided.
 	// DO NOT USE THIS UNLESS YOU KNOW WHAT YOU'RE DOING!  It can lead to seriously weird behavior if used incorrectly.
 	if (p_value->Invisible())
