@@ -815,6 +815,15 @@ m = mean(log(rlnorm(10000, 5, 0.3)));	// expectation is 5
 if (abs(m - 5) > 0.02) stop('Mismatch in expectation vs. realization of rlnorm() - could be random chance (but very unlikely), rerun test');
 
 setSeed(asInteger(clock() * 100000));
+x = rmvnorm(100000, c(-1, 5), matrix(c(1, 0.2, 0.2, 2), nrow=2));
+m1 = mean(x[,0]);
+m2 = mean(x[,1]);
+cov = mean((x[,0] - m1) * (x[,1] - m2));
+if (abs(m1 - -1.0) > 0.05) stop('Mismatch in expectation vs. realization of rmvnorm() - could be random chance (but very unlikely), rerun test');
+if (abs(m2 - 5.0) > 0.07) stop('Mismatch in expectation vs. realization of rmvnorm() - could be random chance (but very unlikely), rerun test');
+if (abs(cov - 0.2) > 0.03) stop('Mismatch in expectation vs. realization of rmvnorm() - could be random chance (but very unlikely), rerun test');
+
+setSeed(asInteger(clock() * 100000));
 m = mean(rnorm(10000, 5, 0.3));	// expectation is 5
 if (abs(m - 5) > 0.02) stop('Mismatch in expectation vs. realization of rnorm() - could be random chance (but very unlikely), rerun test');
 

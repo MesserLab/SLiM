@@ -4796,6 +4796,16 @@ void _RunFunctionSummaryStatsTests(void)
 	EidosAssertScriptRaise("rlnorm(2, c(-10, 10, 1), 100.0);", 0, "requires meanlog to be");
 	EidosAssertScriptRaise("rlnorm(2, 10.0, c(0.1, 10, 1));", 0, "requires sdlog to be");
 	
+	// rmvnorm()
+	EidosAssertScriptRaise("rmvnorm(0, c(0,2), matrix(c(10,3), nrow=2));", 0, "requires n to be");
+	EidosAssertScriptRaise("rmvnorm(5, matrix(c(0,0)), matrix(c(10,3,3,2), nrow=2));", 0, "plain vector of length k");
+	EidosAssertScriptRaise("rmvnorm(5, c(0,0), c(10,3,3,2));", 0, "sigma to be a matrix");
+	EidosAssertScriptRaise("rmvnorm(5, 0, matrix(c(10,3,3,2), nrow=2));", 0, "k must be >= 2");
+	EidosAssertScriptRaise("rmvnorm(5, c(0,2), matrix(c(10,3), nrow=2));", 0, "sigma to be a k x k matrix");
+	EidosAssertScriptRaise("rmvnorm(5, c(0,2), matrix(c(10,3,3,2), nrow=1)); NULL;", 0, "sigma to be a k x k matrix");
+	EidosAssertScriptRaise("rmvnorm(5, c(0,2), matrix(c(0,0,0,0), nrow=2));", 0, "positive-definite");
+	EidosAssertScriptSuccess("x = rmvnorm(5, c(0,2), matrix(c(10,3,3,2), nrow=2)); identical(dim(x), c(5,2));", gStaticEidosValue_LogicalT);
+	
 	// rnorm()
 	EidosAssertScriptSuccess("rnorm(0);", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess("rnorm(0, float(0), float(0));", gStaticEidosValue_Float_ZeroVec);

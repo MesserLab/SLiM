@@ -1192,7 +1192,55 @@ Returns a vector of
 \f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (float)rnorm(integer$
+\f1\fs18 \cf2 \expnd0\expndtw0\kerning0
+(float)rmvnorm(integer$\'a0n, numeric\'a0mu, numeric\'a0sigma)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 Returns a matrix of 
+\f1\fs18 n
+\f0\fs20  
+\b random draws from a 
+\i k
+\i0 -dimensional multivariate normal distribution
+\b0  with a length 
+\i k
+\i0  mean vector 
+\f1\fs18 mu
+\f0\fs20  and a 
+\i k
+\i0  \'d7 
+\i k
+\i0  variance-covariance matrix 
+\f1\fs18 sigma
+\f0\fs20 .  The 
+\f1\fs18 mu
+\f0\fs20  and 
+\f1\fs18 sigma
+\f0\fs20  parameters are used for all 
+\f1\fs18 n
+\f0\fs20  draws.  The draws are returned as a matrix with 
+\f1\fs18 n
+\f0\fs20  rows (one row per draw) and 
+\i k
+\i0  columns (one column per dimension).  The number of dimensions 
+\i k
+\i0  must be at least two; for 
+\i k
+\i0 =1, use 
+\f1\fs18 rnorm()
+\f0\fs20 .\
+Cholesky decomposition of the variance-covariance matrix 
+\f1\fs18 sigma
+\f0\fs20  is involved as an internal step, and this requires that 
+\f1\fs18 sigma
+\f0\fs20  be positive-definite; if it is not, an error will result.  When more than one draw is needed, it is much more efficient to call 
+\f1\fs18 rmvnorm()
+\f0\fs20  once to generate all of the draws, since the Cholesky decomposition of 
+\f1\fs18 sigma
+\f0\fs20  can then be done just once.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (float)rnorm(integer$
 \f2 \'a0
 \f1 n, [numeric\'a0mean\'a0=\'a00], [numeric\'a0sd\'a0=\'a01])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0

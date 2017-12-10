@@ -43,6 +43,9 @@
 #include "time.h"
 #include "string.h"
 
+#include "gsl_linalg.h"
+#include "gsl_errno.h"
+
 
 // BCH 20 October 2016: continuing to try to fix problems with gcc 5.4.0 on Linux without breaking other
 // builds.  We will switch to including <cmath> and using the std:: namespace math functions, since on
@@ -154,6 +157,7 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rexp",				Eidos_ExecuteFunction_rexp,			kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("mu", gStaticEidosValue_Float1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rgamma",			Eidos_ExecuteFunction_rgamma,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric("mean")->AddNumeric("shape"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rlnorm",			Eidos_ExecuteFunction_rlnorm,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("meanlog", gStaticEidosValue_Float0)->AddNumeric_O("sdlog", gStaticEidosValue_Float1));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rmvnorm",			Eidos_ExecuteFunction_rmvnorm,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric("mu")->AddNumeric("sigma"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rnorm",				Eidos_ExecuteFunction_rnorm,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("mean", gStaticEidosValue_Float0)->AddNumeric_O("sd", gStaticEidosValue_Float1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rpois",				Eidos_ExecuteFunction_rpois,		kEidosValueMaskInt))->AddInt_S(gEidosStr_n)->AddNumeric("lambda"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("runif",				Eidos_ExecuteFunction_runif,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("min", gStaticEidosValue_Float0)->AddNumeric_O("max", gStaticEidosValue_Float1));
@@ -4601,6 +4605,102 @@ EidosValue_SP Eidos_ExecuteFunction_rlnorm(const EidosValue_SP *const p_argument
 			float_result->set_float_no_check(gsl_ran_lognormal(gEidos_rng, meanlog, sdlog), draw_index);
 		}
 	}
+	
+	return result_SP;
+}
+
+// (float)rmvnorm(integer$ n, numeric mu, numeric sigma)
+EidosValue_SP Eidos_ExecuteFunction_rmvnorm(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *arg_n = p_arguments[0].get();
+	EidosValue *arg_mu = p_arguments[1].get();
+	EidosValue *arg_sigma = p_arguments[2].get();
+	int64_t num_draws = arg_n->IntAtIndex(0, nullptr);
+	int mu_count = arg_mu->Count();
+	int mu_dimcount = arg_mu->DimensionCount();
+	int sigma_dimcount = arg_sigma->DimensionCount();
+	const int64_t *sigma_dims = arg_sigma->Dimensions();
+	int d = mu_count;
+	
+	if (num_draws < 1)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rmvnorm): function rmvnorm() requires n to be greater than or equal to 1 (" << num_draws << " supplied)." << EidosTerminate(nullptr);
+	
+	if ((mu_dimcount != 1) || (mu_count < 2))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rmvnorm): function rmvnorm() requires mu to be a plain vector of length k, where k is the number of dimensions for the multivariate Gaussian function (k must be >= 2)." << EidosTerminate(nullptr);
+	if (sigma_dimcount != 2)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rmvnorm): function rmvnorm() requires sigma to be a matrix." << EidosTerminate(nullptr);
+	if ((sigma_dims[0] != d) || (sigma_dims[1] != d))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rmvnorm): function rmvnorm() requires sigma to be a k x k matrix, where k is the number of dimensions for the multivariate Gaussian function (k must be >= 2)." << EidosTerminate(nullptr);
+	
+	// Set up the GSL vectors
+	gsl_vector *gsl_mu = gsl_vector_calloc(d);
+	gsl_matrix *gsl_Sigma = gsl_matrix_calloc(d, d);
+	gsl_matrix *gsl_L = gsl_matrix_calloc(d, d);
+	gsl_vector *gsl_result = gsl_vector_calloc(d);
+	
+	for (int dim_index = 0; dim_index < d; ++dim_index)
+		gsl_vector_set(gsl_mu, dim_index, arg_mu->FloatAtIndex(dim_index, nullptr));
+	
+	for (int row_index = 0; row_index < d; ++row_index)
+		for (int col_index = 0; col_index < d; ++col_index)
+			gsl_matrix_set(gsl_Sigma, row_index, col_index, arg_sigma->FloatAtIndex(row_index + col_index * d, nullptr));
+	
+	gsl_matrix_memcpy(gsl_L, gsl_Sigma);
+	
+	// Disable the GSL's default error handler, which calls abort().  Normally we run with that handler,
+	// which is perhaps a bit risky, but we want to check for all error cases and avert them before we
+	// ever call into the GSL; having the GSL raise when it encounters an error condition is kind of OK
+	// because it should never ever happen.  But the GSL calls we will make in this function could hit
+	// errors unpredictably, if for example it turns out that Sigma is not positive-definite.  So for
+	// this stretch of code we disable the default handler and check for errors returned from the GSL.
+	gsl_error_handler_t *old_handler = gsl_set_error_handler_off();
+	int gsl_err;
+	
+	// Do the draws, which involves a preliminary step of doing a Cholesky decomposition
+	gsl_err = gsl_linalg_cholesky_decomp1(gsl_L);
+	
+	if (gsl_err)
+	{
+		gsl_set_error_handler(old_handler);
+		
+		if (gsl_err == GSL_EDOM)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rmvnorm): function rmvnorm() requires that sigma, the variance-covariance matrix, be positive-definite." << EidosTerminate(nullptr);
+		else
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rmvnorm): (internal error) an unknown error with code " << gsl_err << " occurred inside the GNU Scientific Library's gsl_linalg_cholesky_decomp1() function." << EidosTerminate(nullptr);
+	}
+	
+	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize((int)(num_draws * d));
+	result_SP = EidosValue_SP(float_result);
+	
+	for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+	{
+		gsl_err = gsl_ran_multivariate_gaussian(gEidos_rng, gsl_mu, gsl_L, gsl_result);
+		
+		if (gsl_err)
+		{
+			gsl_set_error_handler(old_handler);
+			
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rmvnorm): (internal error) an unknown error with code " << gsl_err << " occurred inside the GNU Scientific Library's gsl_ran_multivariate_gaussian() function." << EidosTerminate(nullptr);
+		}
+		
+		for (int dim_index = 0; dim_index < d; ++dim_index)
+			float_result->set_float_no_check(gsl_vector_get(gsl_result, dim_index), draw_index + dim_index * num_draws);
+	}
+	
+	// Clean up GSL stuff
+	gsl_vector_free(gsl_mu);
+	gsl_matrix_free(gsl_Sigma);
+	gsl_matrix_free(gsl_L);
+	gsl_vector_free(gsl_result);
+	
+	gsl_set_error_handler(old_handler);
+	
+	// Set the dimensions of the result; we want one row per draw
+	int64_t dim[2] = {num_draws, d};
+	
+	float_result->SetDimensions(2, dim);
 	
 	return result_SP;
 }
