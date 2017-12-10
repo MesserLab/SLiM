@@ -47,6 +47,7 @@ development head:
 	changed the output format from str() and x.str() to be more R-like
 	changed apply() to return a matrix or array in some cases; could break backward compatibility in rare cases
 	policy change: assignment into a subset of a property is no longer legal in Eidos (e.g. x.foo[1:3] = rvalue), because it is conceptually flawed (not an lvalue)
+	update the GSL code in Eidos to GSL version 2.4 and pulled in gsl_ran_multivariate_gaussian(), gsl_linalg_cholesky_decomp1(), and dependencies (no user-visible impact)
 
 
 2.5 (build 1204; Eidos version 1.5):

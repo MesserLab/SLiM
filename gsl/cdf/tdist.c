@@ -36,7 +36,7 @@
  * 247. June 1982.
  */
 
-//#include <config.h>
+#include "config.h"
 #include "gsl_cdf.h"
 #include "gsl_sf_gamma.h"
 #include "gsl_math.h"

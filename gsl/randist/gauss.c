@@ -18,7 +18,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-//#include <config.h>
+#include "config.h"
 #include <math.h>
 #include "gsl_math.h"
 #include "gsl_rng.h"

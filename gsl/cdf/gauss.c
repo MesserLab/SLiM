@@ -41,7 +41,7 @@
  *  
  */
 
-//#include <config.h>
+#include "config.h"
 #include <math.h>
 #include "gsl_math.h"
 #include "gsl_cdf.h"
