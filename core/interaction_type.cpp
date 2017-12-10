@@ -3682,10 +3682,10 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
+	EidosValue *individuals1_value = p_arguments[0].get();
+	EidosValue *individuals2_value = p_arguments[1].get();
 	
-	EidosValue *individuals1 = arg0_value, *individuals2 = arg1_value;
+	EidosValue *individuals1 = individuals1_value, *individuals2 = individuals2_value;
 	int count1 = individuals1->Count(), count2 = individuals2->Count();
 	
 	if (spatiality_ == 0)
@@ -3843,10 +3843,10 @@ EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_meth
 EidosValue_SP InteractionType::ExecuteMethod_distanceToPoint(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
+	EidosValue *individuals1_value = p_arguments[0].get();
+	EidosValue *point_value = p_arguments[1].get();
 	
-	EidosValue *individuals = arg0_value, *point = arg1_value;
+	EidosValue *individuals = individuals1_value, *point = point_value;
 	int count = individuals->Count(), point_count = point->Count();
 	
 	if (spatiality_ == 0)
@@ -3934,11 +3934,11 @@ EidosValue_SP InteractionType::ExecuteMethod_distanceToPoint(EidosGlobalStringID
 EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
+	EidosValue *individual_value = p_arguments[0].get();
+	EidosValue *count_value = p_arguments[1].get();
 	
 	// Check the individual and subpop
-	Individual *individual = (Individual *)arg0_value->ObjectElementAtIndex(0, nullptr);
+	Individual *individual = (Individual *)individual_value->ObjectElementAtIndex(0, nullptr);
 	Subpopulation *subpop = &(individual->subpopulation_);
 	slim_objectid_t subpop_id = subpop->subpopulation_id_;
 	slim_popsize_t subpop_size = subpop->parent_subpop_size_;
@@ -3949,7 +3949,7 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires that the interaction has been evaluated for the subpopulation first." << EidosTerminate();
 	
 	// Check the count
-	int64_t count = arg1_value->IntAtIndex(0, nullptr);
+	int64_t count = count_value->IntAtIndex(0, nullptr);
 	
 	if (count < 0)
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires count > 0." << EidosTerminate();
@@ -4147,16 +4147,16 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 EidosValue_SP InteractionType::ExecuteMethod_evaluate(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
+	EidosValue *subpops_value = p_arguments[0].get();
+	EidosValue *immediate_value = p_arguments[1].get();
 	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
 	
 	if (sim.GenerationStage() == SLiMGenerationStage::kStage2GenerateOffspring)
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_evaluate): evaluate() may not be called during offspring generation." << EidosTerminate();
 	
-	bool immediate = arg1_value->LogicalAtIndex(0, nullptr);
+	bool immediate = immediate_value->LogicalAtIndex(0, nullptr);
 	
-	if (arg0_value->Type() == EidosValueType::kValueNULL)
+	if (subpops_value->Type() == EidosValueType::kValueNULL)
 	{
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : sim.ThePopulation())
 			EvaluateSubpopulation(subpop_pair.second, immediate);
@@ -4164,13 +4164,13 @@ EidosValue_SP InteractionType::ExecuteMethod_evaluate(EidosGlobalStringID p_meth
 	else
 	{
 		// requested subpops, so get them
-		int requested_subpop_count = arg0_value->Count();
+		int requested_subpop_count = subpops_value->Count();
 		std::vector<Subpopulation*> subpops_to_evaluate;
 		
 		if (requested_subpop_count)
 		{
 			for (int requested_subpop_index = 0; requested_subpop_index < requested_subpop_count; ++requested_subpop_index)
-				EvaluateSubpopulation((Subpopulation *)(arg0_value->ObjectElementAtIndex(requested_subpop_index, nullptr)), immediate);
+				EvaluateSubpopulation((Subpopulation *)(subpops_value->ObjectElementAtIndex(requested_subpop_index, nullptr)), immediate);
 		}
 	}
 	
@@ -4182,14 +4182,14 @@ EidosValue_SP InteractionType::ExecuteMethod_evaluate(EidosGlobalStringID p_meth
 EidosValue_SP InteractionType::ExecuteMethod_nearestNeighbors(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
+	EidosValue *individual_value = p_arguments[0].get();
+	EidosValue *count_value = p_arguments[1].get();
 	
 	if (spatiality_ == 0)
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighbors): nearestNeighbors() requires that the interaction be spatial." << EidosTerminate();
 	
 	// Check the individual and subpop
-	Individual *individual = (Individual *)arg0_value->ObjectElementAtIndex(0, nullptr);
+	Individual *individual = (Individual *)individual_value->ObjectElementAtIndex(0, nullptr);
 	Subpopulation *subpop = &(individual->subpopulation_);
 	slim_objectid_t subpop_id = subpop->subpopulation_id_;
 	slim_popsize_t subpop_size = subpop->parent_subpop_size_;
@@ -4200,7 +4200,7 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighbors(EidosGlobalStringI
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighbors): nearestNeighbors() requires that the interaction has been evaluated for the subpopulation first." << EidosTerminate();
 	
 	// Check the count
-	int64_t count = arg1_value->IntAtIndex(0, nullptr);
+	int64_t count = count_value->IntAtIndex(0, nullptr);
 	
 	if (count < 0)
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighbors): nearestNeighbors() requires count > 0." << EidosTerminate();
@@ -4230,15 +4230,15 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighbors(EidosGlobalStringI
 EidosValue_SP InteractionType::ExecuteMethod_nearestNeighborsOfPoint(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
-	EidosValue *arg2_value = p_arguments[2].get();
+	EidosValue *subpop_value = p_arguments[0].get();
+	EidosValue *point_value = p_arguments[1].get();
+	EidosValue *count_value = p_arguments[2].get();
 	
 	if (spatiality_ == 0)
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighborsOfPoint): nearestNeighborsOfPoint() requires that the interaction be spatial." << EidosTerminate();
 	
 	// Check the subpop
-	Subpopulation *subpop = (Subpopulation *)arg0_value->ObjectElementAtIndex(0, nullptr);
+	Subpopulation *subpop = (Subpopulation *)subpop_value->ObjectElementAtIndex(0, nullptr);
 	slim_objectid_t subpop_id = subpop->subpopulation_id_;
 	slim_popsize_t subpop_size = subpop->parent_subpop_size_;
 	auto subpop_data_iter = data_.find(subpop_id);
@@ -4247,16 +4247,16 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighborsOfPoint(EidosGlobal
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighborsOfPoint): nearestNeighborsOfPoint() requires that the interaction has been evaluated for the subpopulation first." << EidosTerminate();
 	
 	// Check the point
-	if (arg1_value->Count() < spatiality_)
+	if (point_value->Count() < spatiality_)
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighborsOfPoint): nearestNeighborsOfPoint() requires a point vector with at least as many elements as the InteractionType spatiality." << EidosTerminate();
 	
 	double point_array[3];
 	
 	for (int point_index = 0; point_index < spatiality_; ++point_index)
-		point_array[point_index] = arg1_value->FloatAtIndex(point_index, nullptr);
+		point_array[point_index] = point_value->FloatAtIndex(point_index, nullptr);
 	
 	// Check the count
-	int64_t count = arg2_value->IntAtIndex(0, nullptr);
+	int64_t count = count_value->IntAtIndex(0, nullptr);
 	
 	if (count < 0)
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighborsOfPoint): nearestNeighborsOfPoint() requires count > 0." << EidosTerminate();
@@ -4283,9 +4283,9 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighborsOfPoint(EidosGlobal
 EidosValue_SP InteractionType::ExecuteMethod_setInteractionFunction(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *functionType_value = p_arguments[0].get();
 	
-	std::string if_type_string = arg0_value->StringAtIndex(0, nullptr);
+	std::string if_type_string = functionType_value->StringAtIndex(0, nullptr);
 	IFType if_type;
 	int expected_if_param_count = 0;
 	std::vector<double> if_parameters;
@@ -4351,10 +4351,10 @@ EidosValue_SP InteractionType::ExecuteMethod_setInteractionFunction(EidosGlobalS
 EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
+	EidosValue *individuals1_value = p_arguments[0].get();
+	EidosValue *individuals2_value = p_arguments[1].get();
 	
-	EidosValue *individuals1 = arg0_value, *individuals2 = arg1_value;
+	EidosValue *individuals1 = individuals1_value, *individuals2 = individuals2_value;
 	int count1 = individuals1->Count(), count2 = individuals2->Count();
 	
 	if ((count1 != 1) && (count2 != 1))
@@ -4653,12 +4653,12 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *individuals_value = p_arguments[0].get();
 	
 	if (spatiality_ == 0)
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_totalOfNeighborStrengths): totalOfNeighborStrengths() requires that the interaction be spatial." << EidosTerminate();
 	
-	EidosValue *individuals = arg0_value;
+	EidosValue *individuals = individuals_value;
 	int count = individuals->Count();
 	
 	if (count == 0)

@@ -666,7 +666,7 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 EidosValue_SP Individual::ExecuteMethod_containsMutations(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *mutations_value = p_arguments[0].get();
 	
 	Genome *genome1, *genome2;
 	
@@ -674,11 +674,11 @@ EidosValue_SP Individual::ExecuteMethod_containsMutations(EidosGlobalStringID p_
 	
 	if (genome1 && genome2)
 	{
-		int arg0_count = arg0_value->Count();
+		int mutations_count = mutations_value->Count();
 		
-		if (arg0_count == 1)
+		if (mutations_count == 1)
 		{
-			MutationIndex mut = ((Mutation *)(arg0_value->ObjectElementAtIndex(0, nullptr)))->BlockIndex();
+			MutationIndex mut = ((Mutation *)(mutations_value->ObjectElementAtIndex(0, nullptr)))->BlockIndex();
 			
 			if ((!genome1->IsNull() && genome1->contains_mutation(mut)) || (!genome2->IsNull() && genome2->contains_mutation(mut)))
 				return gStaticEidosValue_LogicalT;
@@ -687,11 +687,11 @@ EidosValue_SP Individual::ExecuteMethod_containsMutations(EidosGlobalStringID p_
 		}
 		else
 		{
-			EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(arg0_count);
+			EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(mutations_count);
 			
-			for (int value_index = 0; value_index < arg0_count; ++value_index)
+			for (int value_index = 0; value_index < mutations_count; ++value_index)
 			{
-				MutationIndex mut = ((Mutation *)(arg0_value->ObjectElementAtIndex(value_index, nullptr)))->BlockIndex();
+				MutationIndex mut = ((Mutation *)(mutations_value->ObjectElementAtIndex(value_index, nullptr)))->BlockIndex();
 				bool contains_mut = ((!genome1->IsNull() && genome1->contains_mutation(mut)) || (!genome2->IsNull() && genome2->contains_mutation(mut)));
 				
 				logical_result->set_logical_no_check(contains_mut, value_index);
@@ -709,7 +709,7 @@ EidosValue_SP Individual::ExecuteMethod_containsMutations(EidosGlobalStringID p_
 EidosValue_SP Individual::ExecuteMethod_countOfMutationsOfType(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *mutType_value = p_arguments[0].get();
 	
 	Genome *genome1, *genome2;
 	
@@ -718,7 +718,7 @@ EidosValue_SP Individual::ExecuteMethod_countOfMutationsOfType(EidosGlobalString
 	if (genome1 && genome2)
 	{
 		SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
-		MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg0_value, 0, sim, "countOfMutationsOfType()");
+		MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, sim, "countOfMutationsOfType()");
 		
 		// Count the number of mutations of the given type
 		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
@@ -766,24 +766,24 @@ EidosValue_SP Individual::ExecuteMethod_countOfMutationsOfType(EidosGlobalString
 EidosValue_SP Individual::ExecuteMethod_relatedness(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *individuals_value = p_arguments[0].get();
 	
-	int arg0_count = arg0_value->Count();
+	int individuals_count = individuals_value->Count();
 	
-	if (arg0_count == 1)
+	if (individuals_count == 1)
 	{
-		Individual *ind = (Individual *)(arg0_value->ObjectElementAtIndex(0, nullptr));
+		Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex(0, nullptr));
 		double relatedness = RelatednessToIndividual(*ind);
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(relatedness));
 	}
 	else
 	{
-		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(arg0_count);
+		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(individuals_count);
 		
-		for (int value_index = 0; value_index < arg0_count; ++value_index)
+		for (int value_index = 0; value_index < individuals_count; ++value_index)
 		{
-			Individual *ind = (Individual *)(arg0_value->ObjectElementAtIndex(value_index, nullptr));
+			Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex(value_index, nullptr));
 			double relatedness = RelatednessToIndividual(*ind);
 			
 			float_result->set_float_no_check(relatedness, value_index);
@@ -800,11 +800,11 @@ EidosValue_SP Individual::ExecuteMethod_relatedness(EidosGlobalStringID p_method
 EidosValue_SP Individual::ExecuteMethod_setSpatialPosition(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *position_value = p_arguments[0].get();
 	SLiMSim &sim = subpopulation_.population_.sim_;
 	
 	int dimensionality = sim.SpatialDimensionality();
-	int value_count = arg0_value->Count();
+	int value_count = position_value->Count();
 	
 	if (dimensionality == 0)
 		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_setSpatialPosition): setSpatialPosition() cannot be called in non-spatial simulations." << EidosTerminate();
@@ -815,16 +815,16 @@ EidosValue_SP Individual::ExecuteMethod_setSpatialPosition(EidosGlobalStringID p
 	switch (dimensionality)
 	{
 		case 1:
-			spatial_x_ = arg0_value->FloatAtIndex(0, nullptr);
+			spatial_x_ = position_value->FloatAtIndex(0, nullptr);
 			break;
 		case 2:
-			spatial_x_ = arg0_value->FloatAtIndex(0, nullptr);
-			spatial_y_ = arg0_value->FloatAtIndex(1, nullptr);
+			spatial_x_ = position_value->FloatAtIndex(0, nullptr);
+			spatial_y_ = position_value->FloatAtIndex(1, nullptr);
 			break;
 		case 3:
-			spatial_x_ = arg0_value->FloatAtIndex(0, nullptr);
-			spatial_y_ = arg0_value->FloatAtIndex(1, nullptr);
-			spatial_z_ = arg0_value->FloatAtIndex(2, nullptr);
+			spatial_x_ = position_value->FloatAtIndex(0, nullptr);
+			spatial_y_ = position_value->FloatAtIndex(1, nullptr);
+			spatial_z_ = position_value->FloatAtIndex(2, nullptr);
 			break;
 	}
 	
@@ -836,7 +836,7 @@ EidosValue_SP Individual::ExecuteMethod_setSpatialPosition(EidosGlobalStringID p
 EidosValue_SP Individual::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *mutType_value = p_arguments[0].get();
 	
 	Genome *genome1, *genome2;
 	
@@ -845,7 +845,7 @@ EidosValue_SP Individual::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID
 	if (genome1 && genome2)
 	{
 		SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
-		MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg0_value, 0, sim, "sumOfMutationsOfType()");
+		MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, sim, "sumOfMutationsOfType()");
 		
 		// Count the number of mutations of the given type
 		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
@@ -901,10 +901,10 @@ EidosValue_SP Individual::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID
 EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *mutType_value = p_arguments[0].get();
 	
 	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
-	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg0_value, 0, sim, "uniqueMutationsOfType()");
+	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, sim, "uniqueMutationsOfType()");
 	
 	// This code is adapted from uniqueMutations and follows its logic closely
 	Genome *genome1, *genome2;

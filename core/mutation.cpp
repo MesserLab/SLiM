@@ -345,9 +345,9 @@ EidosValue_SP Mutation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, c
 EidosValue_SP Mutation::ExecuteMethod_setSelectionCoeff(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *selectionCoeff_value = p_arguments[0].get();
 	
-	double value = arg0_value->FloatAtIndex(0, nullptr);
+	double value = selectionCoeff_value->FloatAtIndex(0, nullptr);
 	slim_selcoeff_t old_coeff = selection_coeff_;
 	
 	selection_coeff_ = static_cast<slim_selcoeff_t>(value);
@@ -388,10 +388,10 @@ EidosValue_SP Mutation::ExecuteMethod_setSelectionCoeff(EidosGlobalStringID p_me
 EidosValue_SP Mutation::ExecuteMethod_setMutationType(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *mutType_value = p_arguments[0].get();
 	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
 	
-	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg0_value, 0, sim, "setMutationType()");
+	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, sim, "setMutationType()");
 	
 	// We take just the mutation type pointer; if the user wants a new selection coefficient, they can do that themselves
 	mutation_type_ptr_ = mutation_type_ptr;

@@ -70,9 +70,9 @@ EidosValue_SP SLiMEidosDictionary::ExecuteInstanceMethod(EidosGlobalStringID p_m
 EidosValue_SP SLiMEidosDictionary::ExecuteMethod_getValue(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *key_value = p_arguments[0].get();
 	
-	std::string key = arg0_value->StringAtIndex(0, nullptr);
+	std::string key = key_value->StringAtIndex(0, nullptr);
 	
 	if (!hash_symbols_)
 		return gStaticEidosValueNULL;
@@ -94,9 +94,9 @@ EidosValue_SP SLiMEidosDictionary::ExecuteMethod_getValue(EidosGlobalStringID p_
 EidosValue_SP SLiMEidosDictionary::ExecuteMethod_setValue(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *key_value = p_arguments[0].get();
 	
-	std::string key = arg0_value->StringAtIndex(0, nullptr);
+	std::string key = key_value->StringAtIndex(0, nullptr);
 	EidosValue_SP value = p_arguments[1];
 	EidosValueType value_type = value->Type();
 	

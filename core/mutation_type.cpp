@@ -464,9 +464,9 @@ EidosValue_SP MutationType::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 EidosValue_SP MutationType::ExecuteMethod_setDistribution(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *distributionType_value = p_arguments[0].get();
 	
-	std::string dfe_type_string = arg0_value->StringAtIndex(0, nullptr);
+	std::string dfe_type_string = distributionType_value->StringAtIndex(0, nullptr);
 	DFEType dfe_type;
 	int expected_dfe_param_count = 0;
 	std::vector<double> dfe_parameters;

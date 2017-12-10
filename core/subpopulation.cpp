@@ -2441,11 +2441,11 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 EidosValue_SP Subpopulation::ExecuteMethod_setMigrationRates(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
+	EidosValue *sourceSubpops_value = p_arguments[0].get();
+	EidosValue *rates_value = p_arguments[1].get();
 	
-	int source_subpops_count = arg0_value->Count();
-	int rates_count = arg1_value->Count();
+	int source_subpops_count = sourceSubpops_value->Count();
+	int rates_count = rates_value->Count();
 	std::vector<slim_objectid_t> subpops_seen;
 	
 	if (source_subpops_count != rates_count)
@@ -2454,7 +2454,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setMigrationRates(EidosGlobalStringID
 	for (int value_index = 0; value_index < source_subpops_count; ++value_index)
 	{
 		SLiMSim &sim = population_.sim_;
-		EidosObjectElement *source_subpop = SLiM_ExtractSubpopulationFromEidosValue_io(arg0_value, value_index, sim, "setMigrationRates()");
+		EidosObjectElement *source_subpop = SLiM_ExtractSubpopulationFromEidosValue_io(sourceSubpops_value, value_index, sim, "setMigrationRates()");
 		slim_objectid_t source_subpop_id = ((Subpopulation *)(source_subpop))->subpopulation_id_;
 		
 		if (source_subpop_id == subpopulation_id_)
@@ -2462,7 +2462,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setMigrationRates(EidosGlobalStringID
 		if (std::find(subpops_seen.begin(), subpops_seen.end(), source_subpop_id) != subpops_seen.end())
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setMigrationRates): setMigrationRates() two rates set for subpopulation p" << source_subpop_id << "." << EidosTerminate();
 		
-		double migrant_fraction = arg1_value->FloatAtIndex(value_index, nullptr);
+		double migrant_fraction = rates_value->FloatAtIndex(value_index, nullptr);
 		
 		population_.SetMigration(*this, source_subpop_id, migrant_fraction);
 		subpops_seen.emplace_back(source_subpop_id);
@@ -2476,12 +2476,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_setMigrationRates(EidosGlobalStringID
 EidosValue_SP Subpopulation::ExecuteMethod_pointInBounds(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *point_value = p_arguments[0].get();
 	
 	SLiMSim &sim = population_.sim_;
 	
 	int dimensionality = sim.SpatialDimensionality();
-	int value_count = arg0_value->Count();
+	int value_count = point_value->Count();
 	
 	if (dimensionality == 0)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointInBounds): pointInBounds() cannot be called in non-spatial simulations." << EidosTerminate();
@@ -2492,22 +2492,22 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointInBounds(EidosGlobalStringID p_m
 	{
 		case 1:
 		{
-			double x = arg0_value->FloatAtIndex(0, nullptr);
+			double x = point_value->FloatAtIndex(0, nullptr);
 			return ((x >= bounds_x0_) && (x <= bounds_x1_))
 			? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
 		}
 		case 2:
 		{
-			double x = arg0_value->FloatAtIndex(0, nullptr);
-			double y = arg0_value->FloatAtIndex(1, nullptr);
+			double x = point_value->FloatAtIndex(0, nullptr);
+			double y = point_value->FloatAtIndex(1, nullptr);
 			return ((x >= bounds_x0_) && (x <= bounds_x1_) && (y >= bounds_y0_) && (y <= bounds_y1_))
 			? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
 		}
 		case 3:
 		{
-			double x = arg0_value->FloatAtIndex(0, nullptr);
-			double y = arg0_value->FloatAtIndex(1, nullptr);
-			double z = arg0_value->FloatAtIndex(2, nullptr);
+			double x = point_value->FloatAtIndex(0, nullptr);
+			double y = point_value->FloatAtIndex(1, nullptr);
+			double z = point_value->FloatAtIndex(2, nullptr);
 			return ((x >= bounds_x0_) && (x <= bounds_x1_) && (y >= bounds_y0_) && (y <= bounds_y1_) && (z >= bounds_z0_) && (z <= bounds_z1_))
 			? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
 		}
@@ -2521,12 +2521,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointInBounds(EidosGlobalStringID p_m
 EidosValue_SP Subpopulation::ExecuteMethod_pointReflected(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *point_value = p_arguments[0].get();
 	
 	SLiMSim &sim = population_.sim_;
 	
 	int dimensionality = sim.SpatialDimensionality();
-	int value_count = arg0_value->Count();
+	int value_count = point_value->Count();
 	
 	if (dimensionality == 0)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointReflected): pointReflected() cannot be called in non-spatial simulations." << EidosTerminate();
@@ -2537,7 +2537,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointReflected(EidosGlobalStringID p_
 	{
 		case 1:
 		{
-			double x = arg0_value->FloatAtIndex(0, nullptr);
+			double x = point_value->FloatAtIndex(0, nullptr);
 			
 			while (true)
 			{
@@ -2550,8 +2550,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointReflected(EidosGlobalStringID p_
 		}
 		case 2:
 		{
-			double x = arg0_value->FloatAtIndex(0, nullptr);
-			double y = arg0_value->FloatAtIndex(1, nullptr);
+			double x = point_value->FloatAtIndex(0, nullptr);
+			double y = point_value->FloatAtIndex(1, nullptr);
 			
 			while (true)
 			{
@@ -2571,9 +2571,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointReflected(EidosGlobalStringID p_
 		}
 		case 3:
 		{
-			double x = arg0_value->FloatAtIndex(0, nullptr);
-			double y = arg0_value->FloatAtIndex(1, nullptr);
-			double z = arg0_value->FloatAtIndex(2, nullptr);
+			double x = point_value->FloatAtIndex(0, nullptr);
+			double y = point_value->FloatAtIndex(1, nullptr);
+			double z = point_value->FloatAtIndex(2, nullptr);
 			
 			while (true)
 			{
@@ -2608,12 +2608,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointReflected(EidosGlobalStringID p_
 EidosValue_SP Subpopulation::ExecuteMethod_pointStopped(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *point_value = p_arguments[0].get();
 	
 	SLiMSim &sim = population_.sim_;
 	
 	int dimensionality = sim.SpatialDimensionality();
-	int value_count = arg0_value->Count();
+	int value_count = point_value->Count();
 	
 	if (dimensionality == 0)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointStopped): pointStopped() cannot be called in non-spatial simulations." << EidosTerminate();
@@ -2624,22 +2624,22 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointStopped(EidosGlobalStringID p_me
 	{
 		case 1:
 		{
-			double x = std::max(bounds_x0_, std::min(bounds_x1_, arg0_value->FloatAtIndex(0, nullptr)));
+			double x = std::max(bounds_x0_, std::min(bounds_x1_, point_value->FloatAtIndex(0, nullptr)));
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(x));
 		}
 		case 2:
 		{
-			double x = std::max(bounds_x0_, std::min(bounds_x1_, arg0_value->FloatAtIndex(0, nullptr)));
-			double y = std::max(bounds_y0_, std::min(bounds_y1_, arg0_value->FloatAtIndex(1, nullptr)));
+			double x = std::max(bounds_x0_, std::min(bounds_x1_, point_value->FloatAtIndex(0, nullptr)));
+			double y = std::max(bounds_y0_, std::min(bounds_y1_, point_value->FloatAtIndex(1, nullptr)));
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{x, y});
 		}
 		case 3:
 		{
-			double x = std::max(bounds_x0_, std::min(bounds_x1_, arg0_value->FloatAtIndex(0, nullptr)));
-			double y = std::max(bounds_y0_, std::min(bounds_y1_, arg0_value->FloatAtIndex(1, nullptr)));
-			double z = std::max(bounds_z0_, std::min(bounds_z1_, arg0_value->FloatAtIndex(2, nullptr)));
+			double x = std::max(bounds_x0_, std::min(bounds_x1_, point_value->FloatAtIndex(0, nullptr)));
+			double y = std::max(bounds_y0_, std::min(bounds_y1_, point_value->FloatAtIndex(1, nullptr)));
+			double z = std::max(bounds_z0_, std::min(bounds_z1_, point_value->FloatAtIndex(2, nullptr)));
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{x, y, z});
 		}
@@ -2653,12 +2653,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointStopped(EidosGlobalStringID p_me
 EidosValue_SP Subpopulation::ExecuteMethod_pointPeriodic(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *point_value = p_arguments[0].get();
 	
 	SLiMSim &sim = population_.sim_;
 	
 	int dimensionality = sim.SpatialDimensionality();
-	int value_count = arg0_value->Count();
+	int value_count = point_value->Count();
 	
 	if (dimensionality == 0)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointPeriodic): pointPeriodic() cannot be called in non-spatial simulations." << EidosTerminate();
@@ -2681,7 +2681,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointPeriodic(EidosGlobalStringID p_m
 	{
 		case 1:
 		{
-			double x = arg0_value->FloatAtIndex(0, nullptr);
+			double x = point_value->FloatAtIndex(0, nullptr);
 			
 			if (periodic_x)
 			{
@@ -2693,8 +2693,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointPeriodic(EidosGlobalStringID p_m
 		}
 		case 2:
 		{
-			double x = arg0_value->FloatAtIndex(0, nullptr);
-			double y = arg0_value->FloatAtIndex(1, nullptr);
+			double x = point_value->FloatAtIndex(0, nullptr);
+			double y = point_value->FloatAtIndex(1, nullptr);
 			
 			if (periodic_x)
 			{
@@ -2711,9 +2711,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointPeriodic(EidosGlobalStringID p_m
 		}
 		case 3:
 		{
-			double x = arg0_value->FloatAtIndex(0, nullptr);
-			double y = arg0_value->FloatAtIndex(1, nullptr);
-			double z = arg0_value->FloatAtIndex(2, nullptr);
+			double x = point_value->FloatAtIndex(0, nullptr);
+			double y = point_value->FloatAtIndex(1, nullptr);
+			double z = point_value->FloatAtIndex(2, nullptr);
 			
 			if (periodic_x)
 			{
@@ -2784,9 +2784,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_me
 EidosValue_SP Subpopulation::ExecuteMethod_setCloningRate(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *rate_value = p_arguments[0].get();
 	
-	int value_count = arg0_value->Count();
+	int value_count = rate_value->Count();
 	
 	if (sex_enabled_)
 	{
@@ -2794,8 +2794,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_setCloningRate(EidosGlobalStringID p_
 		if ((value_count < 1) || (value_count > 2))
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setCloningRate): setCloningRate() requires a rate vector containing either one or two values, in sexual simulations." << EidosTerminate();
 		
-		double female_cloning_fraction = arg0_value->FloatAtIndex(0, nullptr);
-		double male_cloning_fraction = (value_count == 2) ? arg0_value->FloatAtIndex(1, nullptr) : female_cloning_fraction;
+		double female_cloning_fraction = rate_value->FloatAtIndex(0, nullptr);
+		double male_cloning_fraction = (value_count == 2) ? rate_value->FloatAtIndex(1, nullptr) : female_cloning_fraction;
 		
 		if (female_cloning_fraction < 0.0 || female_cloning_fraction > 1.0)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setCloningRate): setCloningRate() requires cloning fractions within [0,1] (" << female_cloning_fraction << " supplied)." << EidosTerminate();
@@ -2811,7 +2811,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setCloningRate(EidosGlobalStringID p_
 		if (value_count != 1)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setCloningRate): setCloningRate() requires a rate vector containing exactly one value, in asexual simulations.." << EidosTerminate();
 		
-		double cloning_fraction = arg0_value->FloatAtIndex(0, nullptr);
+		double cloning_fraction = rate_value->FloatAtIndex(0, nullptr);
 		
 		if (cloning_fraction < 0.0 || cloning_fraction > 1.0)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setCloningRate): setCloningRate() requires cloning fractions within [0,1] (" << cloning_fraction << " supplied)." << EidosTerminate();
@@ -2828,9 +2828,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_setCloningRate(EidosGlobalStringID p_
 EidosValue_SP Subpopulation::ExecuteMethod_setSelfingRate(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *rate_value = p_arguments[0].get();
 	
-	double selfing_fraction = arg0_value->FloatAtIndex(0, nullptr);
+	double selfing_fraction = rate_value->FloatAtIndex(0, nullptr);
 	
 	if ((selfing_fraction != 0.0) && sex_enabled_)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSelfingRate): setSelfingRate() is limited to the hermaphroditic case, and cannot be called in sexual simulations." << EidosTerminate();
@@ -2848,7 +2848,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSelfingRate(EidosGlobalStringID p_
 EidosValue_SP Subpopulation::ExecuteMethod_setSexRatio(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *sexRatio_value = p_arguments[0].get();
 	
 	// SetSexRatio() can only be called when the child generation has not yet been generated.  It sets the sex ratio on the child generation,
 	// and then that sex ratio takes effect when the children are generated from the parents in EvolveSubpopulation().
@@ -2859,7 +2859,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSexRatio(EidosGlobalStringID p_met
 	if (!sex_enabled_)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSexRatio): setSexRatio() is limited to the sexual case, and cannot be called in asexual simulations." << EidosTerminate();
 	
-	double sex_ratio = arg0_value->FloatAtIndex(0, nullptr);
+	double sex_ratio = sexRatio_value->FloatAtIndex(0, nullptr);
 	
 	if (sex_ratio < 0.0 || sex_ratio > 1.0)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSexRatio): setSexRatio() requires a sex ratio within [0,1] (" << sex_ratio << " supplied)." << EidosTerminate();
@@ -2876,12 +2876,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSexRatio(EidosGlobalStringID p_met
 EidosValue_SP Subpopulation::ExecuteMethod_setSpatialBounds(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *position_value = p_arguments[0].get();
 	
 	SLiMSim &sim = population_.sim_;
 	
 	int dimensionality = sim.SpatialDimensionality();
-	int value_count = arg0_value->Count();
+	int value_count = position_value->Count();
 	
 	if (dimensionality == 0)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSpatialBounds): setSpatialBounds() cannot be called in non-spatial simulations." << EidosTerminate();
@@ -2897,7 +2897,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSpatialBounds(EidosGlobalStringID 
 	switch (dimensionality)
 	{
 		case 1:
-			bounds_x0_ = arg0_value->FloatAtIndex(0, nullptr);	bounds_x1_ = arg0_value->FloatAtIndex(1, nullptr);
+			bounds_x0_ = position_value->FloatAtIndex(0, nullptr);	bounds_x1_ = position_value->FloatAtIndex(1, nullptr);
 			
 			if (bounds_x1_ <= bounds_x0_)
 				bad_bounds = true;
@@ -2906,8 +2906,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSpatialBounds(EidosGlobalStringID 
 			
 			break;
 		case 2:
-			bounds_x0_ = arg0_value->FloatAtIndex(0, nullptr);	bounds_x1_ = arg0_value->FloatAtIndex(2, nullptr);
-			bounds_y0_ = arg0_value->FloatAtIndex(1, nullptr);	bounds_y1_ = arg0_value->FloatAtIndex(3, nullptr);
+			bounds_x0_ = position_value->FloatAtIndex(0, nullptr);	bounds_x1_ = position_value->FloatAtIndex(2, nullptr);
+			bounds_y0_ = position_value->FloatAtIndex(1, nullptr);	bounds_y1_ = position_value->FloatAtIndex(3, nullptr);
 			
 			if ((bounds_x1_ <= bounds_x0_) || (bounds_y1_ <= bounds_y0_))
 				bad_bounds = true;
@@ -2916,9 +2916,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSpatialBounds(EidosGlobalStringID 
 			
 			break;
 		case 3:
-			bounds_x0_ = arg0_value->FloatAtIndex(0, nullptr);	bounds_x1_ = arg0_value->FloatAtIndex(3, nullptr);
-			bounds_y0_ = arg0_value->FloatAtIndex(1, nullptr);	bounds_y1_ = arg0_value->FloatAtIndex(4, nullptr);
-			bounds_z0_ = arg0_value->FloatAtIndex(2, nullptr);	bounds_z1_ = arg0_value->FloatAtIndex(5, nullptr);
+			bounds_x0_ = position_value->FloatAtIndex(0, nullptr);	bounds_x1_ = position_value->FloatAtIndex(3, nullptr);
+			bounds_y0_ = position_value->FloatAtIndex(1, nullptr);	bounds_y1_ = position_value->FloatAtIndex(4, nullptr);
+			bounds_z0_ = position_value->FloatAtIndex(2, nullptr);	bounds_z1_ = position_value->FloatAtIndex(5, nullptr);
 			
 			if ((bounds_x1_ <= bounds_x0_) || (bounds_y1_ <= bounds_y0_) || (bounds_z1_ <= bounds_z0_))
 				bad_bounds = true;
@@ -2944,9 +2944,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSpatialBounds(EidosGlobalStringID 
 EidosValue_SP Subpopulation::ExecuteMethod_setSubpopulationSize(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *size_value = p_arguments[0].get();
 	
-	slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
+	slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(size_value->IntAtIndex(0, nullptr));
 	
 	population_.SetSize(*this, subpop_size);
 	
@@ -2958,15 +2958,15 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSubpopulationSize(EidosGlobalStrin
 EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *indices_value = p_arguments[0].get();
 	
 	if (child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may only be called when the parental generation is active (before or during offspring generation)." << EidosTerminate();
 	if (cached_fitness_size_ == 0)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may not be called while fitness values are being calculated, or before the first time they are calculated." << EidosTerminate();
 	
-	bool do_all_indices = (arg0_value->Type() == EidosValueType::kValueNULL);
-	slim_popsize_t index_count = (do_all_indices ? parent_subpop_size_ : SLiMCastToPopsizeTypeOrRaise(arg0_value->Count()));
+	bool do_all_indices = (indices_value->Type() == EidosValueType::kValueNULL);
+	slim_popsize_t index_count = (do_all_indices ? parent_subpop_size_ : SLiMCastToPopsizeTypeOrRaise(indices_value->Count()));
 	
 	if (index_count == 1)
 	{
@@ -2974,7 +2974,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 		
 		if (!do_all_indices)
 		{
-			index = SLiMCastToPopsizeTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
+			index = SLiMCastToPopsizeTypeOrRaise(indices_value->IntAtIndex(0, nullptr));
 			
 			if (index >= cached_fitness_size_)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() index " << index << " out of range." << EidosTerminate();
@@ -2995,7 +2995,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 			
 			if (!do_all_indices)
 			{
-				index = SLiMCastToPopsizeTypeOrRaise(arg0_value->IntAtIndex(value_index, nullptr));
+				index = SLiMCastToPopsizeTypeOrRaise(indices_value->IntAtIndex(value_index, nullptr));
 				
 				if (index >= cached_fitness_size_)
 					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() index " << index << " out of range." << EidosTerminate();
@@ -3015,21 +3015,17 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
-	EidosValue *arg2_value = p_arguments[2].get();
-	EidosValue *arg3_value = p_arguments[3].get();
-	EidosValue *arg4_value = p_arguments[4].get();
-	EidosValue *arg5_value = p_arguments[5].get();
-	EidosValue *arg6_value = p_arguments[6].get();
+	EidosValue *name_value = p_arguments[0].get();
+	EidosValue *spatiality_value = p_arguments[1].get();
+	EidosValue *grid_size = p_arguments[2].get();
+	EidosValue *values = p_arguments[3].get();
+	EidosValue *interpolate_value = p_arguments[4].get();
+	EidosValue *value_range = p_arguments[5].get();
+	EidosValue *colors = p_arguments[6].get();
 	
-	std::string map_name = arg0_value->StringAtIndex(0, nullptr);
-	std::string spatiality_string = arg1_value->StringAtIndex(0, nullptr);
-	EidosValue *grid_size = arg2_value;
-	EidosValue *values = arg3_value;
-	bool interpolate = arg4_value->LogicalAtIndex(0, nullptr);
-	EidosValue *value_range = arg5_value;
-	EidosValue *colors = arg6_value;
+	std::string map_name = name_value->StringAtIndex(0, nullptr);
+	std::string spatiality_string = spatiality_value->StringAtIndex(0, nullptr);
+	bool interpolate = interpolate_value->LogicalAtIndex(0, nullptr);
 	
 	if (map_name.length() == 0)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() map name must not be zero-length." << EidosTerminate();
@@ -3138,11 +3134,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID 
 EidosValue_SP Subpopulation::ExecuteMethod_spatialMapColor(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
+	EidosValue *name_value = p_arguments[0].get();
+	EidosValue *value_value = p_arguments[1].get();
 	
-	std::string map_name = arg0_value->StringAtIndex(0, nullptr);
-	EidosValue *values = arg1_value;
+	std::string map_name = name_value->StringAtIndex(0, nullptr);
+	EidosValue *values = value_value;
 	
 	if (map_name.length() == 0)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapColor): spatialMapColor() map name must not be zero-length." << EidosTerminate();
@@ -3185,11 +3181,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapColor(EidosGlobalStringID p
 EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
+	EidosValue *name_value = p_arguments[0].get();
+	EidosValue *point_value = p_arguments[1].get();
 	
-	std::string map_name = arg0_value->StringAtIndex(0, nullptr);
-	EidosValue *point = arg1_value;
+	std::string map_name = name_value->StringAtIndex(0, nullptr);
+	EidosValue *point = point_value;
 	
 	if (map_name.length() == 0)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): spatialMapValue() map name must not be zero-length." << EidosTerminate();
@@ -3301,12 +3297,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p
 EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
-	EidosValue *arg2_value = p_arguments[2].get();
-	EidosValue *arg3_value = p_arguments[3].get();
-	EidosValue *arg4_value = p_arguments[4].get();
-	EidosValue *arg5_value = ((p_argument_count >= 6) ? p_arguments[5].get() : nullptr);	// conditional because we handle multiple methods with different args
+	EidosValue *sampleSize_value = p_arguments[0].get();
+	EidosValue *replace_value = p_arguments[1].get();
+	EidosValue *requestedSex_value = p_arguments[2].get();
+	EidosValue *outputMultiallelics_arg = ((p_method_id == gID_outputVCFSample) ? p_arguments[3].get() : nullptr);
+	EidosValue *filePath_arg = ((p_method_id == gID_outputVCFSample) ? p_arguments[4].get() : p_arguments[3].get());
+	EidosValue *append_arg = ((p_method_id == gID_outputVCFSample) ? p_arguments[5].get() : p_arguments[4].get());
 	
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 	SLiMSim &sim = population_.sim_;
@@ -3317,13 +3313,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 		sim.warned_early_output_ = true;
 	}
 	
-	slim_popsize_t sample_size = SLiMCastToPopsizeTypeOrRaise(arg0_value->IntAtIndex(0, nullptr));
+	slim_popsize_t sample_size = SLiMCastToPopsizeTypeOrRaise(sampleSize_value->IntAtIndex(0, nullptr));
 	
-	bool replace = arg1_value->LogicalAtIndex(0, nullptr);
+	bool replace = replace_value->LogicalAtIndex(0, nullptr);
 	
 	IndividualSex requested_sex;
 	
-	std::string sex_string = arg2_value->StringAtIndex(0, nullptr);
+	std::string sex_string = requestedSex_value->StringAtIndex(0, nullptr);
 	
 	if (sex_string.compare("M") == 0)
 		requested_sex = IndividualSex::kMale;
@@ -3340,18 +3336,16 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 	bool output_multiallelics = true;
 	
 	if (p_method_id == gID_outputVCFSample)
-		output_multiallelics = arg3_value->LogicalAtIndex(0, nullptr);
+		output_multiallelics = outputMultiallelics_arg->LogicalAtIndex(0, nullptr);
 	
 	// Figure out the right output stream
 	std::ofstream outfile;
 	bool has_file = false;
 	std::string outfile_path;
-	EidosValue *file_arg = ((p_method_id == gID_outputVCFSample) ? arg4_value : arg3_value);
-	EidosValue *append_arg = ((p_method_id == gID_outputVCFSample) ? arg5_value : arg4_value);
 	
-	if (file_arg->Type() != EidosValueType::kValueNULL)
+	if (filePath_arg->Type() != EidosValueType::kValueNULL)
 	{
-		outfile_path = Eidos_ResolvedPath(file_arg->StringAtIndex(0, nullptr));
+		outfile_path = Eidos_ResolvedPath(filePath_arg->StringAtIndex(0, nullptr));
 		bool append = append_arg->LogicalAtIndex(0, nullptr);
 		
 		outfile.open(outfile_path.c_str(), append ? (std::ios_base::app | std::ios_base::out) : std::ios_base::out);

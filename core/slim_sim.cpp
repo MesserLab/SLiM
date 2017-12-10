@@ -2925,14 +2925,14 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElement(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_function_name, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
-	EidosValue *arg2_value = p_arguments[2].get();
+	EidosValue *genomicElementType_value = p_arguments[0].get();
+	EidosValue *start_value = p_arguments[1].get();
+	EidosValue *end_value = p_arguments[2].get();
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 	
-	GenomicElementType *genomic_element_type_ptr = SLiM_ExtractGenomicElementTypeFromEidosValue_io(arg0_value, 0, *this, "initializeGenomicElement()");
-	slim_position_t start_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));
-	slim_position_t end_position = SLiMCastToPositionTypeOrRaise(arg2_value->IntAtIndex(0, nullptr));
+	GenomicElementType *genomic_element_type_ptr = SLiM_ExtractGenomicElementTypeFromEidosValue_io(genomicElementType_value, 0, *this, "initializeGenomicElement()");
+	slim_position_t start_position = SLiMCastToPositionTypeOrRaise(start_value->IntAtIndex(0, nullptr));
+	slim_position_t end_position = SLiMCastToPositionTypeOrRaise(end_value->IntAtIndex(0, nullptr));
 	
 	if (end_position < start_position)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElement): initializeGenomicElement() end position " << end_position << " is less than start position " << start_position << "." << EidosTerminate();
@@ -2984,18 +2984,18 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElement(const std
 EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElementType(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_function_name, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
-	EidosValue *arg2_value = p_arguments[2].get();
+	EidosValue *id_value = p_arguments[0].get();
+	EidosValue *mutationTypes_value = p_arguments[1].get();
+	EidosValue *proportions_value = p_arguments[2].get();
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 	
-	slim_objectid_t map_identifier = SLiM_ExtractObjectIDFromEidosValue_is(arg0_value, 0, 'g');
+	slim_objectid_t map_identifier = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 'g');
 	
 	if (genomic_element_types_.count(map_identifier) > 0) 
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElementType): initializeGenomicElementType() genomic element type g" << map_identifier << " already defined." << EidosTerminate();
 	
-	int mut_type_id_count = arg1_value->Count();
-	int proportion_count = arg2_value->Count();
+	int mut_type_id_count = mutationTypes_value->Count();
+	int proportion_count = proportions_value->Count();
 	
 	if (mut_type_id_count != proportion_count)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElementType): initializeGenomicElementType() requires the sizes of mutationTypes and proportions to be equal." << EidosTerminate();
@@ -3005,8 +3005,8 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElementType(const
 	
 	for (int mut_type_index = 0; mut_type_index < mut_type_id_count; ++mut_type_index)
 	{
-		MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg1_value, mut_type_index, *this, "initializeGenomicElementType()");
-		double proportion = arg2_value->FloatAtIndex(mut_type_index, nullptr);
+		MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutationTypes_value, mut_type_index, *this, "initializeGenomicElementType()");
+		double proportion = proportions_value->FloatAtIndex(mut_type_index, nullptr);
 		
 		if (proportion < 0)		// == 0 is allowed but must be fixed before the simulation executes; see InitializeDraws()
 			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElementType): initializeGenomicElementType() proportions must be greater than or equal to zero (" << proportion << " supplied)." << EidosTerminate();
@@ -3057,7 +3057,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElementType(const
 			
 			output_stream << ((mut_type_id_count > 1) ? ", c(" : ", ");
 			for (int mut_type_index = 0; mut_type_index < mut_type_id_count; ++mut_type_index)
-				output_stream << (mut_type_index > 0 ? ", " : "") << arg2_value->FloatAtIndex(mut_type_index, nullptr);
+				output_stream << (mut_type_index > 0 ? ", " : "") << proportions_value->FloatAtIndex(mut_type_index, nullptr);
 			output_stream << ((mut_type_id_count > 1) ? ")" : "");
 			
 			output_stream << ");" << std::endl;
@@ -3073,18 +3073,18 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElementType(const
 EidosValue_SP SLiMSim::ExecuteContextFunction_initializeInteractionType(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_function_name, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
-	EidosValue *arg2_value = p_arguments[2].get();
-	EidosValue *arg3_value = p_arguments[3].get();
-	EidosValue *arg4_value = p_arguments[4].get();
+	EidosValue *id_value = p_arguments[0].get();
+	EidosValue *spatiality_value = p_arguments[1].get();
+	EidosValue *reciprocal_value = p_arguments[2].get();
+	EidosValue *maxDistance_value = p_arguments[3].get();
+	EidosValue *sexSegregation_value = p_arguments[4].get();
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 	
-	slim_objectid_t map_identifier = SLiM_ExtractObjectIDFromEidosValue_is(arg0_value, 0, 'i');
-	std::string spatiality_string = arg1_value->StringAtIndex(0, nullptr);
-	bool reciprocal = arg2_value->LogicalAtIndex(0, nullptr);
-	double max_distance = arg3_value->FloatAtIndex(0, nullptr);
-	std::string sex_string = arg4_value->StringAtIndex(0, nullptr);
+	slim_objectid_t map_identifier = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 'i');
+	std::string spatiality_string = spatiality_value->StringAtIndex(0, nullptr);
+	bool reciprocal = reciprocal_value->LogicalAtIndex(0, nullptr);
+	double max_distance = maxDistance_value->FloatAtIndex(0, nullptr);
+	std::string sex_string = sexSegregation_value->StringAtIndex(0, nullptr);
 	int required_dimensionality;
 	IndividualSex receiver_sex = IndividualSex::kUnspecified, exerter_sex = IndividualSex::kUnspecified;
 	
@@ -3163,14 +3163,14 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeInteractionType(const st
 EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationType(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_function_name, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
-	EidosValue *arg2_value = p_arguments[2].get();
+	EidosValue *id_value = p_arguments[0].get();
+	EidosValue *dominanceCoeff_value = p_arguments[1].get();
+	EidosValue *distributionType_value = p_arguments[2].get();
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 	
-	slim_objectid_t map_identifier = SLiM_ExtractObjectIDFromEidosValue_is(arg0_value, 0, 'm');
-	double dominance_coeff = arg1_value->FloatAtIndex(0, nullptr);
-	std::string dfe_type_string = arg2_value->StringAtIndex(0, nullptr);
+	slim_objectid_t map_identifier = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 'm');
+	double dominance_coeff = dominanceCoeff_value->FloatAtIndex(0, nullptr);
+	std::string dfe_type_string = distributionType_value->StringAtIndex(0, nullptr);
 	DFEType dfe_type;
 	int expected_dfe_param_count = 0;
 	std::vector<double> dfe_parameters;
@@ -3293,16 +3293,16 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationType(const std::
 EidosValue_SP SLiMSim::ExecuteContextFunction_initializeRecombinationRate(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_function_name, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
-	EidosValue *arg2_value = p_arguments[2].get();
+	EidosValue *rates_value = p_arguments[0].get();
+	EidosValue *ends_value = p_arguments[1].get();
+	EidosValue *sex_value = p_arguments[2].get();
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 	
-	int rate_count = arg0_value->Count();
+	int rate_count = rates_value->Count();
 	
 	// Figure out what sex we are being given a map for
 	IndividualSex requested_sex;
-	std::string sex_string = arg2_value->StringAtIndex(0, nullptr);
+	std::string sex_string = sex_value->StringAtIndex(0, nullptr);
 	
 	if (sex_string.compare("M") == 0)
 		requested_sex = IndividualSex::kMale;
@@ -3331,12 +3331,12 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeRecombinationRate(const 
 	std::vector<double> &rates = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_.recombination_rates_H_ : 
 								  ((requested_sex == IndividualSex::kMale) ? chromosome_.recombination_rates_M_ : chromosome_.recombination_rates_F_));
 	
-	if (arg1_value->Type() == EidosValueType::kValueNULL)
+	if (ends_value->Type() == EidosValueType::kValueNULL)
 	{
 		if (rate_count != 1)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requires rates to be a singleton if ends is not supplied." << EidosTerminate();
 		
-		double recombination_rate = arg0_value->FloatAtIndex(0, nullptr);
+		double recombination_rate = rates_value->FloatAtIndex(0, nullptr);
 		
 		// check values
 		if (recombination_rate < 0.0)		// intentionally no upper bound
@@ -3351,7 +3351,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeRecombinationRate(const 
 	}
 	else
 	{
-		int end_count = arg1_value->Count();
+		int end_count = ends_value->Count();
 		
 		if ((end_count != rate_count) || (end_count == 0))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requires ends and rates to be of equal and nonzero size." << EidosTerminate();
@@ -3359,11 +3359,11 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeRecombinationRate(const 
 		// check values
 		for (int value_index = 0; value_index < end_count; ++value_index)
 		{
-			double recombination_rate = arg0_value->FloatAtIndex(value_index, nullptr);
-			slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(value_index, nullptr));
+			double recombination_rate = rates_value->FloatAtIndex(value_index, nullptr);
+			slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex(value_index, nullptr));
 			
 			if (value_index > 0)
-				if (recombination_end_position <= arg1_value->IntAtIndex(value_index - 1, nullptr))
+				if (recombination_end_position <= ends_value->IntAtIndex(value_index - 1, nullptr))
 					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requires ends to be in strictly ascending order." << EidosTerminate();
 			
 			if (recombination_rate < 0.0)		// intentionally no upper bound
@@ -3376,8 +3376,8 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeRecombinationRate(const 
 		
 		for (int interval_index = 0; interval_index < end_count; ++interval_index)
 		{
-			double recombination_rate = arg0_value->FloatAtIndex(interval_index, nullptr);
-			slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(interval_index, nullptr));
+			double recombination_rate = rates_value->FloatAtIndex(interval_index, nullptr);
+			slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex(interval_index, nullptr));
 			
 			rates.emplace_back(recombination_rate);
 			positions.emplace_back(recombination_end_position);
@@ -3425,15 +3425,15 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeRecombinationRate(const 
 EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGeneConversion(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_function_name, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
+	EidosValue *conversionFraction_value = p_arguments[0].get();
+	EidosValue *meanLength_value = p_arguments[1].get();
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	if (num_gene_conversions_ > 0)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGeneConversion): initializeGeneConversion() may be called only once." << EidosTerminate();
 	
-	double gene_conversion_fraction = arg0_value->FloatAtIndex(0, nullptr);
-	double gene_conversion_avg_length = arg1_value->FloatAtIndex(0, nullptr);
+	double gene_conversion_fraction = conversionFraction_value->FloatAtIndex(0, nullptr);
+	double gene_conversion_avg_length = meanLength_value->FloatAtIndex(0, nullptr);
 	
 	if ((gene_conversion_fraction < 0.0) || (gene_conversion_fraction > 1.0))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGeneConversion): initializeGeneConversion() conversionFraction must be between 0.0 and 1.0 inclusive (" << gene_conversion_fraction << " supplied)." << EidosTerminate();
@@ -3456,16 +3456,16 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGeneConversion(const std
 EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationRate(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_function_name, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
-	EidosValue *arg2_value = p_arguments[2].get();
+	EidosValue *rates_value = p_arguments[0].get();
+	EidosValue *ends_value = p_arguments[1].get();
+	EidosValue *sex_value = p_arguments[2].get();
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 	
-	int rate_count = arg0_value->Count();
+	int rate_count = rates_value->Count();
 	
 	// Figure out what sex we are being given a map for
 	IndividualSex requested_sex;
-	std::string sex_string = arg2_value->StringAtIndex(0, nullptr);
+	std::string sex_string = sex_value->StringAtIndex(0, nullptr);
 	
 	if (sex_string.compare("M") == 0)
 		requested_sex = IndividualSex::kMale;
@@ -3494,12 +3494,12 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationRate(const std::
 	std::vector<double> &rates = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_.mutation_rates_H_ : 
 								  ((requested_sex == IndividualSex::kMale) ? chromosome_.mutation_rates_M_ : chromosome_.mutation_rates_F_));
 	
-	if (arg1_value->Type() == EidosValueType::kValueNULL)
+	if (ends_value->Type() == EidosValueType::kValueNULL)
 	{
 		if (rate_count != 1)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requires rates to be a singleton if ends is not supplied." << EidosTerminate();
 		
-		double mutation_rate = arg0_value->FloatAtIndex(0, nullptr);
+		double mutation_rate = rates_value->FloatAtIndex(0, nullptr);
 		
 		// check values
 		if (mutation_rate < 0.0)		// intentionally no upper bound
@@ -3514,7 +3514,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationRate(const std::
 	}
 	else
 	{
-		int end_count = arg1_value->Count();
+		int end_count = ends_value->Count();
 		
 		if ((end_count != rate_count) || (end_count == 0))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requires ends and rates to be of equal and nonzero size." << EidosTerminate();
@@ -3522,11 +3522,11 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationRate(const std::
 		// check values
 		for (int value_index = 0; value_index < end_count; ++value_index)
 		{
-			double mutation_rate = arg0_value->FloatAtIndex(value_index, nullptr);
-			slim_position_t mutation_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(value_index, nullptr));
+			double mutation_rate = rates_value->FloatAtIndex(value_index, nullptr);
+			slim_position_t mutation_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex(value_index, nullptr));
 			
 			if (value_index > 0)
-				if (mutation_end_position <= arg1_value->IntAtIndex(value_index - 1, nullptr))
+				if (mutation_end_position <= ends_value->IntAtIndex(value_index - 1, nullptr))
 					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requires ends to be in strictly ascending order." << EidosTerminate();
 			
 			if (mutation_rate < 0.0)		// intentionally no upper bound
@@ -3539,8 +3539,8 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationRate(const std::
 		
 		for (int interval_index = 0; interval_index < end_count; ++interval_index)
 		{
-			double mutation_rate = arg0_value->FloatAtIndex(interval_index, nullptr);
-			slim_position_t mutation_end_position = SLiMCastToPositionTypeOrRaise(arg1_value->IntAtIndex(interval_index, nullptr));
+			double mutation_rate = rates_value->FloatAtIndex(interval_index, nullptr);
+			slim_position_t mutation_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex(interval_index, nullptr));
 			
 			rates.emplace_back(mutation_rate);
 			positions.emplace_back(mutation_end_position);
@@ -3588,14 +3588,14 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationRate(const std::
 EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSex(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_function_name, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
+	EidosValue *chromosomeType_value = p_arguments[0].get();
+	EidosValue *xDominanceCoeff_value = p_arguments[1].get();
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	if (num_sex_declarations_ > 0)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSex): initializeSex() may be called only once." << EidosTerminate();
 	
-	std::string chromosome_type = arg0_value->StringAtIndex(0, nullptr);
+	std::string chromosome_type = chromosomeType_value->StringAtIndex(0, nullptr);
 	
 	if (chromosome_type.compare(gStr_A) == 0)
 		modeled_chromosome_type_ = GenomeType::kAutosome;
@@ -3606,10 +3606,10 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSex(const std::string &p
 	else
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSex): initializeSex() requires a chromosomeType of \"A\", \"X\", or \"Y\" (\"" << chromosome_type << "\" supplied)." << EidosTerminate();
 	
-	if (arg1_value->FloatAtIndex(0, nullptr) != 1.0)
+	if (xDominanceCoeff_value->FloatAtIndex(0, nullptr) != 1.0)
 	{
 		if (modeled_chromosome_type_ == GenomeType::kXChromosome)
-			x_chromosome_dominance_coeff_ = arg1_value->FloatAtIndex(0, nullptr);		// intentionally no bounds check
+			x_chromosome_dominance_coeff_ = xDominanceCoeff_value->FloatAtIndex(0, nullptr);		// intentionally no bounds check
 		else
 			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSex): initializeSex() xDominanceCoeff may be supplied only for chromosomeType \"X\"." << EidosTerminate();
 	}
@@ -4275,14 +4275,14 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 EidosValue_SP SLiMSim::ExecuteMethod_addSubpop(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
-	EidosValue *arg2_value = p_arguments[2].get();
+	EidosValue *subpopID_value = p_arguments[0].get();
+	EidosValue *size_value = p_arguments[1].get();
+	EidosValue *sexRatio_value = p_arguments[2].get();
 	
-	slim_objectid_t subpop_id = SLiM_ExtractObjectIDFromEidosValue_is(arg0_value, 0, 'p');
-	slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));
+	slim_objectid_t subpop_id = SLiM_ExtractObjectIDFromEidosValue_is(subpopID_value, 0, 'p');
+	slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(size_value->IntAtIndex(0, nullptr));
 	
-	double sex_ratio = arg2_value->FloatAtIndex(0, nullptr);
+	double sex_ratio = sexRatio_value->FloatAtIndex(0, nullptr);
 	
 	if ((sex_ratio != 0.5) && !sex_enabled_)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_addSubpop): addSubpop() sex ratio supplied in non-sexual simulation." << EidosTerminate();
@@ -4306,17 +4306,17 @@ EidosValue_SP SLiMSim::ExecuteMethod_addSubpop(EidosGlobalStringID p_method_id, 
 EidosValue_SP SLiMSim::ExecuteMethod_addSubpopSplit(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
-	EidosValue *arg2_value = p_arguments[2].get();
-	EidosValue *arg3_value = p_arguments[3].get();
+	EidosValue *subpopID_value = p_arguments[0].get();
+	EidosValue *size_value = p_arguments[1].get();
+	EidosValue *sourceSubpop_value = p_arguments[2].get();
+	EidosValue *sexRatio_value = p_arguments[3].get();
 	
-	slim_objectid_t subpop_id = SLiM_ExtractObjectIDFromEidosValue_is(arg0_value, 0, 'p');
-	slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(arg1_value->IntAtIndex(0, nullptr));
+	slim_objectid_t subpop_id = SLiM_ExtractObjectIDFromEidosValue_is(subpopID_value, 0, 'p');
+	slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(size_value->IntAtIndex(0, nullptr));
 	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
-	Subpopulation *source_subpop = SLiM_ExtractSubpopulationFromEidosValue_io(arg2_value, 0, sim, "addSubpopSplit()");
+	Subpopulation *source_subpop = SLiM_ExtractSubpopulationFromEidosValue_io(sourceSubpop_value, 0, sim, "addSubpopSplit()");
 	
-	double sex_ratio = arg3_value->FloatAtIndex(0, nullptr);
+	double sex_ratio = sexRatio_value->FloatAtIndex(0, nullptr);
 	
 	if ((sex_ratio != 0.5) && !sex_enabled_)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_addSubpopSplit): addSubpopSplit() sex ratio supplied in non-sexual simulation." << EidosTerminate();
@@ -4340,14 +4340,14 @@ EidosValue_SP SLiMSim::ExecuteMethod_addSubpopSplit(EidosGlobalStringID p_method
 EidosValue_SP SLiMSim::ExecuteMethod_deregisterScriptBlock(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *scriptBlocks_value = p_arguments[0].get();
 	
-	int block_count = arg0_value->Count();
+	int block_count = scriptBlocks_value->Count();
 	
 	// We just schedule the blocks for deregistration; we do not deregister them immediately, because that would leave stale pointers lying around
 	for (int block_index = 0; block_index < block_count; ++block_index)
 	{
-		SLiMEidosBlock *block = SLiM_ExtractSLiMEidosBlockFromEidosValue_io(arg0_value, block_index, *this, "deregisterScriptBlock()");
+		SLiMEidosBlock *block = SLiM_ExtractSLiMEidosBlockFromEidosValue_io(scriptBlocks_value, block_index, *this, "deregisterScriptBlock()");
 		
 		if (block->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
 		{
@@ -4383,13 +4383,13 @@ EidosValue_SP SLiMSim::ExecuteMethod_deregisterScriptBlock(EidosGlobalStringID p
 EidosValue_SP SLiMSim::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
+	EidosValue *subpops_value = p_arguments[0].get();
+	EidosValue *mutations_value = p_arguments[1].get();
 	
 	slim_refcount_t total_genome_count = 0;
 	
 	// tally across the requested subpops
-	if (arg0_value->Type() == EidosValueType::kValueNULL)
+	if (subpops_value->Type() == EidosValueType::kValueNULL)
 	{
 		// tally across the whole population
 		total_genome_count = population_.TallyMutationReferences(nullptr, false);
@@ -4397,13 +4397,13 @@ EidosValue_SP SLiMSim::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 	else
 	{
 		// requested subpops, so get them
-		int requested_subpop_count = arg0_value->Count();
+		int requested_subpop_count = subpops_value->Count();
 		std::vector<Subpopulation*> subpops_to_tally;
 		
 		if (requested_subpop_count)
 		{
 			for (int requested_subpop_index = 0; requested_subpop_index < requested_subpop_count; ++requested_subpop_index)
-				subpops_to_tally.emplace_back((Subpopulation *)(arg0_value->ObjectElementAtIndex(requested_subpop_index, nullptr)));
+				subpops_to_tally.emplace_back((Subpopulation *)(subpops_value->ObjectElementAtIndex(requested_subpop_index, nullptr)));
 		}
 		
 		total_genome_count = population_.TallyMutationReferences(&subpops_to_tally, false);
@@ -4427,20 +4427,20 @@ EidosValue_SP SLiMSim::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 		result_SP = EidosValue_SP(int_result);
 	}
 	
-	if (arg1_value->Type() != EidosValueType::kValueNULL)
+	if (mutations_value->Type() != EidosValueType::kValueNULL)
 	{
 		// a vector of mutations was given, so loop through them and take their tallies
-		int arg1_count = arg1_value->Count();
+		int mutations_count = mutations_value->Count();
 		
-		if (arg1_count)
+		if (mutations_count)
 		{
 			if (p_method_id == gID_mutationFrequencies)
 			{
-				float_result->resize_no_initialize(arg1_count);
+				float_result->resize_no_initialize(mutations_count);
 				
-				for (int value_index = 0; value_index < arg1_count; ++value_index)
+				for (int value_index = 0; value_index < mutations_count; ++value_index)
 				{
-					Mutation *mut = (Mutation *)(arg1_value->ObjectElementAtIndex(value_index, nullptr));
+					Mutation *mut = (Mutation *)(mutations_value->ObjectElementAtIndex(value_index, nullptr));
 					MutationIndex mut_index = mut->BlockIndex();
 					
 					float_result->set_float_no_check(*(refcount_block_ptr + mut_index) * denominator, value_index);
@@ -4448,11 +4448,11 @@ EidosValue_SP SLiMSim::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 			}
 			else // p_method_id == gID_mutationCounts
 			{
-				int_result->resize_no_initialize(arg1_count);
+				int_result->resize_no_initialize(mutations_count);
 				
-				for (int value_index = 0; value_index < arg1_count; ++value_index)
+				for (int value_index = 0; value_index < mutations_count; ++value_index)
 				{
-					Mutation *mut = (Mutation *)(arg1_value->ObjectElementAtIndex(value_index, nullptr));
+					Mutation *mut = (Mutation *)(mutations_value->ObjectElementAtIndex(value_index, nullptr));
 					MutationIndex mut_index = mut->BlockIndex();
 					
 					int_result->set_int_no_check(*(refcount_block_ptr + mut_index), value_index);
@@ -4491,9 +4491,9 @@ EidosValue_SP SLiMSim::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 EidosValue_SP SLiMSim::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *mutType_value = p_arguments[0].get();
 	
-	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg0_value, 0, *this, "mutationsOfType()");
+	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, *this, "mutationsOfType()");
 	
 	// Count the number of mutations of the given type, so we can reserve the right vector size
 	// To avoid having to scan the registry twice for the simplest case of a single mutation, we cache the first mutation found
@@ -4546,9 +4546,9 @@ EidosValue_SP SLiMSim::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_metho
 EidosValue_SP SLiMSim::ExecuteMethod_countOfMutationsOfType(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *mutType_value = p_arguments[0].get();
 	
-	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg0_value, 0, *this, "countOfMutationsOfType()");
+	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, *this, "countOfMutationsOfType()");
 	
 	// Count the number of mutations of the given type
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
@@ -4568,8 +4568,8 @@ EidosValue_SP SLiMSim::ExecuteMethod_countOfMutationsOfType(EidosGlobalStringID 
 EidosValue_SP SLiMSim::ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
+	EidosValue *filePath_value = p_arguments[0].get();
+	EidosValue *append_value = p_arguments[1].get();
 	
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 	
@@ -4583,10 +4583,10 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_
 	bool has_file = false;
 	std::string outfile_path;
 	
-	if (arg0_value->Type() != EidosValueType::kValueNULL)
+	if (filePath_value->Type() != EidosValueType::kValueNULL)
 	{
-		outfile_path = Eidos_ResolvedPath(arg0_value->StringAtIndex(0, nullptr));
-		bool append = arg1_value->LogicalAtIndex(0, nullptr);
+		outfile_path = Eidos_ResolvedPath(filePath_value->StringAtIndex(0, nullptr));
+		bool append = append_value->LogicalAtIndex(0, nullptr);
 		
 		outfile.open(outfile_path.c_str(), append ? (std::ios_base::app | std::ios_base::out) : std::ios_base::out);
 		has_file = true;
@@ -4641,10 +4641,10 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_
 EidosValue_SP SLiMSim::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
-	EidosValue *arg2_value = p_arguments[2].get();
-	EidosValue *arg3_value = p_arguments[3].get();
+	EidosValue *filePath_value = p_arguments[0].get();
+	EidosValue *binary_value = p_arguments[1].get();
+	EidosValue *append_value = p_arguments[2].get();
+	EidosValue *spatialPositions_value = p_arguments[3].get();
 	
 	if ((GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!warned_early_output_))
 	{
@@ -4652,10 +4652,10 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 		warned_early_output_ = true;
 	}
 	
-	bool use_binary = arg1_value->LogicalAtIndex(0, nullptr);
-	bool output_spatial_positions = arg3_value->LogicalAtIndex(0, nullptr);
+	bool use_binary = binary_value->LogicalAtIndex(0, nullptr);
+	bool output_spatial_positions = spatialPositions_value->LogicalAtIndex(0, nullptr);
 	
-	if (arg0_value->Type() == EidosValueType::kValueNULL)
+	if (filePath_value->Type() == EidosValueType::kValueNULL)
 	{
 		if (use_binary)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_outputFull): outputFull() cannot output in binary format to the standard output stream; specify a file for output." << EidosTerminate();
@@ -4667,8 +4667,8 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 	}
 	else
 	{
-		std::string outfile_path = Eidos_ResolvedPath(arg0_value->StringAtIndex(0, nullptr));
-		bool append = arg2_value->LogicalAtIndex(0, nullptr);
+		std::string outfile_path = Eidos_ResolvedPath(filePath_value->StringAtIndex(0, nullptr));
+		bool append = append_value->LogicalAtIndex(0, nullptr);
 		std::ofstream outfile;
 		
 		if (use_binary && append)
@@ -4713,9 +4713,9 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 EidosValue_SP SLiMSim::ExecuteMethod_outputMutations(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
-	EidosValue *arg2_value = p_arguments[2].get();
+	EidosValue *mutations_value = p_arguments[0].get();
+	EidosValue *filePath_value = p_arguments[1].get();
+	EidosValue *append_value = p_arguments[2].get();
 	
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 	
@@ -4728,10 +4728,10 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 	std::ofstream outfile;
 	bool has_file = false;
 	
-	if (arg1_value->Type() != EidosValueType::kValueNULL)
+	if (filePath_value->Type() != EidosValueType::kValueNULL)
 	{
-		std::string outfile_path = Eidos_ResolvedPath(arg1_value->StringAtIndex(0, nullptr));
-		bool append = arg2_value->LogicalAtIndex(0, nullptr);
+		std::string outfile_path = Eidos_ResolvedPath(filePath_value->StringAtIndex(0, nullptr));
+		bool append = append_value->LogicalAtIndex(0, nullptr);
 		
 		outfile.open(outfile_path.c_str(), append ? (std::ios_base::app | std::ios_base::out) : std::ios_base::out);
 		has_file = true;
@@ -4743,7 +4743,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 	std::ostream &out = *(has_file ? (std::ostream *)&outfile : (std::ostream *)&output_stream);
 	
 	// Extract all of the Mutation objects in mutations; would be nice if there was a simpler way to do this
-	EidosValue_Object *mutations_object = (EidosValue_Object *)arg0_value;
+	EidosValue_Object *mutations_object = (EidosValue_Object *)mutations_value;
 	int mutations_count = mutations_object->Count();
 	std::vector<Mutation *> mutations;
 	
@@ -4803,7 +4803,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 EidosValue_SP SLiMSim::ExecuteMethod_readFromPopulationFile(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *filePath_value = p_arguments[0].get();
 	
 	if ((GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!warned_early_read_))
 	{
@@ -4811,7 +4811,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_readFromPopulationFile(EidosGlobalStringID 
 		warned_early_read_ = true;
 	}
 	
-	std::string file_path = Eidos_ResolvedPath(arg0_value->StringAtIndex(0, nullptr));
+	std::string file_path = Eidos_ResolvedPath(filePath_value->StringAtIndex(0, nullptr));
 	
 	// first we clear out all variables of type Subpopulation etc. from the symbol table; they will all be invalid momentarily
 	// note that we do this not only in our constants table, but in the user's variables as well; we can leave no stone unturned
@@ -4828,12 +4828,12 @@ EidosValue_SP SLiMSim::ExecuteMethod_readFromPopulationFile(EidosGlobalStringID 
 EidosValue_SP SLiMSim::ExecuteMethod_recalculateFitness(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
+	EidosValue *generation_value = p_arguments[0].get();
 	
 	// Trigger a fitness recalculation.  This is suggested after making a change that would modify fitness values, such as altering
 	// a selection coefficient or dominance coefficient, changing the mutation type for a mutation, etc.  It will have the side
 	// effect of calling fitness() callbacks, so this is quite a heavyweight operation.
-	slim_generation_t gen = (arg0_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(arg0_value->IntAtIndex(0, nullptr)) : generation_;
+	slim_generation_t gen = (generation_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(generation_value->IntAtIndex(0, nullptr)) : generation_;
 	
 	population_.RecalculateFitness(gen);
 	
@@ -4846,18 +4846,18 @@ EidosValue_SP SLiMSim::ExecuteMethod_recalculateFitness(EidosGlobalStringID p_me
 EidosValue_SP SLiMSim::ExecuteMethod_registerEarlyLateEvent(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
-	EidosValue *arg2_value = p_arguments[2].get();
-	EidosValue *arg3_value = p_arguments[3].get();
+	EidosValue *id_value = p_arguments[0].get();
+	EidosValue *source_value = p_arguments[1].get();
+	EidosValue *start_value = p_arguments[2].get();
+	EidosValue *end_value = p_arguments[3].get();
 	
-	slim_objectid_t script_id = -1;		// used if the arg0 is NULL, to indicate an anonymous block
-	std::string script_string = arg1_value->StringAtIndex(0, nullptr);
-	slim_generation_t start_generation = ((arg2_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(arg2_value->IntAtIndex(0, nullptr)) : 1);
-	slim_generation_t end_generation = ((arg3_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(arg3_value->IntAtIndex(0, nullptr)) : SLIM_MAX_GENERATION);
+	slim_objectid_t script_id = -1;		// used if the id is NULL, to indicate an anonymous block
+	std::string script_string = source_value->StringAtIndex(0, nullptr);
+	slim_generation_t start_generation = ((start_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(start_value->IntAtIndex(0, nullptr)) : 1);
+	slim_generation_t end_generation = ((end_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(end_value->IntAtIndex(0, nullptr)) : SLIM_MAX_GENERATION);
 	
-	if (arg0_value->Type() != EidosValueType::kValueNULL)
-		script_id = SLiM_ExtractObjectIDFromEidosValue_is(arg0_value, 0, 's');
+	if (id_value->Type() != EidosValueType::kValueNULL)
+		script_id = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 's');
 	
 	if (start_generation > end_generation)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerEarlyLateEvent): register" << ((p_method_id == gID_registerEarlyEvent) ? "Early" : "Late") << "Event() requires start <= end." << EidosTerminate();
@@ -4874,28 +4874,28 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerEarlyLateEvent(EidosGlobalStringID 
 EidosValue_SP SLiMSim::ExecuteMethod_registerFitnessCallback(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
-	EidosValue *arg2_value = p_arguments[2].get();
-	EidosValue *arg3_value = p_arguments[3].get();
-	EidosValue *arg4_value = p_arguments[4].get();
-	EidosValue *arg5_value = p_arguments[5].get();
+	EidosValue *id_value = p_arguments[0].get();
+	EidosValue *source_value = p_arguments[1].get();
+	EidosValue *mutType_value = p_arguments[2].get();
+	EidosValue *subpop_value = p_arguments[3].get();
+	EidosValue *start_value = p_arguments[4].get();
+	EidosValue *end_value = p_arguments[5].get();
 	
-	slim_objectid_t script_id = -1;		// used if arg0 is NULL, to indicate an anonymous block
-	std::string script_string = arg1_value->StringAtIndex(0, nullptr);
-	slim_objectid_t mut_type_id = -2;	// used if arg2 is NULL, to indicate a global fitness() callback
-	slim_objectid_t subpop_id = -1;		// used if arg3 is NULL, to indicate applicability to all subpops
-	slim_generation_t start_generation = ((arg4_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(arg4_value->IntAtIndex(0, nullptr)) : 1);
-	slim_generation_t end_generation = ((arg5_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(arg5_value->IntAtIndex(0, nullptr)) : SLIM_MAX_GENERATION);
+	slim_objectid_t script_id = -1;		// used if id_value is NULL, to indicate an anonymous block
+	std::string script_string = source_value->StringAtIndex(0, nullptr);
+	slim_objectid_t mut_type_id = -2;	// used if mutType_value is NULL, to indicate a global fitness() callback
+	slim_objectid_t subpop_id = -1;		// used if subpop_value is NULL, to indicate applicability to all subpops
+	slim_generation_t start_generation = ((start_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(start_value->IntAtIndex(0, nullptr)) : 1);
+	slim_generation_t end_generation = ((end_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(end_value->IntAtIndex(0, nullptr)) : SLIM_MAX_GENERATION);
 	
-	if (arg0_value->Type() != EidosValueType::kValueNULL)
-		script_id = SLiM_ExtractObjectIDFromEidosValue_is(arg0_value, 0, 's');
+	if (id_value->Type() != EidosValueType::kValueNULL)
+		script_id = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 's');
 	
-	if (arg2_value->Type() != EidosValueType::kValueNULL)
-		mut_type_id = (arg2_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg2_value->IntAtIndex(0, nullptr)) : ((MutationType *)arg2_value->ObjectElementAtIndex(0, nullptr))->mutation_type_id_;
+	if (mutType_value->Type() != EidosValueType::kValueNULL)
+		mut_type_id = (mutType_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(mutType_value->IntAtIndex(0, nullptr)) : ((MutationType *)mutType_value->ObjectElementAtIndex(0, nullptr))->mutation_type_id_;
 	
-	if (arg3_value->Type() != EidosValueType::kValueNULL)
-		subpop_id = (arg3_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg3_value->IntAtIndex(0, nullptr)) : ((Subpopulation *)arg3_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
+	if (subpop_value->Type() != EidosValueType::kValueNULL)
+		subpop_id = (subpop_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(subpop_value->IntAtIndex(0, nullptr)) : ((Subpopulation *)subpop_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
 	
 	if (start_generation > end_generation)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerFitnessCallback): registerFitnessCallback() requires start <= end." << EidosTerminate();
@@ -4917,25 +4917,25 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerFitnessCallback(EidosGlobalStringID
 EidosValue_SP SLiMSim::ExecuteMethod_registerInteractionCallback(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
-	EidosValue *arg2_value = p_arguments[2].get();
-	EidosValue *arg3_value = p_arguments[3].get();
-	EidosValue *arg4_value = p_arguments[4].get();
-	EidosValue *arg5_value = p_arguments[5].get();
+	EidosValue *id_value = p_arguments[0].get();
+	EidosValue *source_value = p_arguments[1].get();
+	EidosValue *intType_value = p_arguments[2].get();
+	EidosValue *subpop_value = p_arguments[3].get();
+	EidosValue *start_value = p_arguments[4].get();
+	EidosValue *end_value = p_arguments[5].get();
 	
-	slim_objectid_t script_id = -1;		// used if the arg0 is NULL, to indicate an anonymous block
-	std::string script_string = arg1_value->StringAtIndex(0, nullptr);
-	slim_objectid_t int_type_id = (arg2_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg2_value->IntAtIndex(0, nullptr)) : ((InteractionType *)arg2_value->ObjectElementAtIndex(0, nullptr))->interaction_type_id_;
+	slim_objectid_t script_id = -1;		// used if the id is NULL, to indicate an anonymous block
+	std::string script_string = source_value->StringAtIndex(0, nullptr);
+	slim_objectid_t int_type_id = (intType_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(intType_value->IntAtIndex(0, nullptr)) : ((InteractionType *)intType_value->ObjectElementAtIndex(0, nullptr))->interaction_type_id_;
 	slim_objectid_t subpop_id = -1;
-	slim_generation_t start_generation = ((arg4_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(arg4_value->IntAtIndex(0, nullptr)) : 1);
-	slim_generation_t end_generation = ((arg5_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(arg5_value->IntAtIndex(0, nullptr)) : SLIM_MAX_GENERATION);
+	slim_generation_t start_generation = ((start_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(start_value->IntAtIndex(0, nullptr)) : 1);
+	slim_generation_t end_generation = ((end_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(end_value->IntAtIndex(0, nullptr)) : SLIM_MAX_GENERATION);
 	
-	if (arg0_value->Type() != EidosValueType::kValueNULL)
-		script_id = SLiM_ExtractObjectIDFromEidosValue_is(arg0_value, 0, 's');
+	if (id_value->Type() != EidosValueType::kValueNULL)
+		script_id = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 's');
 	
-	if (arg3_value->Type() != EidosValueType::kValueNULL)
-		subpop_id = (arg3_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg3_value->IntAtIndex(0, nullptr)) : ((Subpopulation *)arg3_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
+	if (subpop_value->Type() != EidosValueType::kValueNULL)
+		subpop_id = (subpop_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(subpop_value->IntAtIndex(0, nullptr)) : ((Subpopulation *)subpop_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
 	
 	if (start_generation > end_generation)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerInteractionCallback): registerInteractionCallback() requires start <= end." << EidosTerminate();
@@ -4957,23 +4957,23 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerInteractionCallback(EidosGlobalStri
 EidosValue_SP SLiMSim::ExecuteMethod_registerMateModifyRecCallback(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
-	EidosValue *arg2_value = p_arguments[2].get();
-	EidosValue *arg3_value = p_arguments[3].get();
-	EidosValue *arg4_value = p_arguments[4].get();
+	EidosValue *id_value = p_arguments[0].get();
+	EidosValue *source_value = p_arguments[1].get();
+	EidosValue *subpop_value = p_arguments[2].get();
+	EidosValue *start_value = p_arguments[3].get();
+	EidosValue *end_value = p_arguments[4].get();
 	
-	slim_objectid_t script_id = -1;		// used if the arg0 is NULL, to indicate an anonymous block
-	std::string script_string = arg1_value->StringAtIndex(0, nullptr);
+	slim_objectid_t script_id = -1;		// used if the id is NULL, to indicate an anonymous block
+	std::string script_string = source_value->StringAtIndex(0, nullptr);
 	slim_objectid_t subpop_id = -1;
-	slim_generation_t start_generation = ((arg3_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(arg3_value->IntAtIndex(0, nullptr)) : 1);
-	slim_generation_t end_generation = ((arg4_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(arg4_value->IntAtIndex(0, nullptr)) : SLIM_MAX_GENERATION);
+	slim_generation_t start_generation = ((start_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(start_value->IntAtIndex(0, nullptr)) : 1);
+	slim_generation_t end_generation = ((end_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(end_value->IntAtIndex(0, nullptr)) : SLIM_MAX_GENERATION);
 	
-	if (arg0_value->Type() != EidosValueType::kValueNULL)
-		script_id = SLiM_ExtractObjectIDFromEidosValue_is(arg0_value, 0, 's');
+	if (id_value->Type() != EidosValueType::kValueNULL)
+		script_id = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 's');
 	
-	if (arg2_value->Type() != EidosValueType::kValueNULL)
-		subpop_id = (arg2_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(arg2_value->IntAtIndex(0, nullptr)) : ((Subpopulation *)arg2_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
+	if (subpop_value->Type() != EidosValueType::kValueNULL)
+		subpop_id = (subpop_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(subpop_value->IntAtIndex(0, nullptr)) : ((Subpopulation *)subpop_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
 	
 	if (start_generation > end_generation)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerMateModifyRecCallback): " << Eidos_StringForGlobalStringID(p_method_id) << " requires start <= end." << EidosTerminate();
@@ -4998,16 +4998,12 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerMateModifyRecCallback(EidosGlobalSt
 EidosValue_SP SLiMSim::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
-	EidosValue *arg2_value = p_arguments[2].get();
-	EidosValue *arg3_value = p_arguments[3].get();
+	EidosValue *block_value = (EidosValue_Object *)p_arguments[0].get();
+	EidosValue *start_value = p_arguments[1].get();
+	EidosValue *end_value = p_arguments[2].get();
+	EidosValue *generations_value = p_arguments[3].get();
 	
-	EidosValue_Object *block_value = (EidosValue_Object *)arg0_value;
 	SLiMEidosBlock *block = (SLiMEidosBlock *)block_value->ObjectElementAtIndex(0, nullptr);
-	EidosValue *start_value = arg1_value;
-	EidosValue *end_value = arg2_value;
-	EidosValue *generations_value = arg3_value;
 	bool start_null = (start_value->Type() == EidosValueType::kValueNULL);
 	bool end_null = (end_value->Type() == EidosValueType::kValueNULL);
 	bool generations_null = (generations_value->Type() == EidosValueType::kValueNULL);

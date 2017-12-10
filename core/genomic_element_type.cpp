@@ -253,11 +253,11 @@ EidosValue_SP GenomicElementType::ExecuteInstanceMethod(EidosGlobalStringID p_me
 EidosValue_SP GenomicElementType::ExecuteMethod_setMutationFractions(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *arg0_value = p_arguments[0].get();
-	EidosValue *arg1_value = p_arguments[1].get();
+	EidosValue *mutationTypes_value = p_arguments[0].get();
+	EidosValue *proportions_value = p_arguments[1].get();
 	
-	int mut_type_id_count = arg0_value->Count();
-	int proportion_count = arg1_value->Count();
+	int mut_type_id_count = mutationTypes_value->Count();
+	int proportion_count = proportions_value->Count();
 	
 	if (mut_type_id_count != proportion_count)
 		EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteMethod_setMutationFractions): setMutationFractions() requires the sizes of mutationTypes and proportions to be equal." << EidosTerminate();
@@ -268,8 +268,8 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationFractions(EidosGlobal
 	for (int mut_type_index = 0; mut_type_index < mut_type_id_count; ++mut_type_index)
 	{ 
 		SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
-		MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg0_value, mut_type_index, sim, "setMutationFractions()");
-		double proportion = arg1_value->FloatAtIndex(mut_type_index, nullptr);
+		MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutationTypes_value, mut_type_index, sim, "setMutationFractions()");
+		double proportion = proportions_value->FloatAtIndex(mut_type_index, nullptr);
 		
 		if (proportion < 0)		// == 0 is allowed but must be fixed before the simulation executes; see InitializeDraws()
 			EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteMethod_setMutationFractions): setMutationFractions() proportions must be greater than or equal to zero (" << proportion << " supplied)." << EidosTerminate();
