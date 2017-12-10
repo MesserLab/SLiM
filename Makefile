@@ -39,7 +39,7 @@
 SHELL = /bin/sh
 CC = g++
 CFLAGS = -O3 -Wno-deprecated-register -Wno-attributes
-INCLUDES = -iquote./eidos -iquote./gsl -iquote./gsl/rng -iquote./gsl/randist -iquote./gsl/sys -iquote./gsl/specfunc -iquote./gsl/cdf -iquote./gsl/complex
+INCLUDES = -iquote./eidos -iquote./gsl -iquote./gsl/blas -iquote./gsl/block  -iquote./gsl/cblas -iquote./gsl/cdf -iquote./gsl/complex -iquote./gsl/err -iquote./gsl/linalg -iquote./gsl/matrix -iquote./gsl/randist -iquote./gsl/rng -iquote./gsl/specfunc -iquote./gsl/sys -iquote./gsl/vector
 ALL_CFLAGS = $(CFLAGS) $(INCLUDES) -std=c++11
 
 all: slim eidos FORCE
