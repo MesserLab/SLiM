@@ -429,7 +429,8 @@ void Eidos_DefineConstantsFromCommandLine(std::vector<std::string> p_constants)
 
 
 // Information on the Context within which Eidos is running (if any).
-std::string gEidosContextVersion;
+double gEidosContextVersion = 0.0;
+std::string gEidosContextVersionString;
 std::string gEidosContextLicense;
 std::string gEidosContextCitation;
 

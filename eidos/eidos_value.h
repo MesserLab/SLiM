@@ -267,8 +267,9 @@ public:
 	void Print(std::ostream &p_ostream) const;				// standard printing; same as operator<<
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const = 0;
 	
-	// getter only; invisible objects must be made through construction or InvisibleCopy()
+	// object invisibility; note invisibility should only be changed on uniquely owned objects, to avoid side effects
 	inline __attribute__((always_inline)) bool Invisible(void) const							{ return invisible_; }
+	inline __attribute__((always_inline)) void SetInvisible(bool p_invisible)					{ invisible_ = p_invisible; }
 	
 	// basic subscript access; abstract here since we want to force subclasses to define this
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const = 0;

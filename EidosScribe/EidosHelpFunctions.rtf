@@ -4121,8 +4121,15 @@ Arbitrary command strings involving multiple commands, pipes, redirection, etc.,
 \f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (void)version(void)\
+\f1\fs18 \cf0 (float)version(void)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\b\fs20 \cf0 Prints Eidos\'92s version 
-\b0 to Eidos\'92s output stream.}
+\f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
+Prints Eidos\'92s version 
+\b0 to Eidos\'92s output stream.  If Eidos is attached to a Context that provides a version number, that is also printed.  The Eidos version number, and the Context version number if available, are returned as an invisible 
+\f1\fs18 float
+\f0\fs20  vector to make it possible for script to test the code version it is running against.  (In this 
+\f1\fs18 float
+\f0\fs20  return, a version like 2.4.2 would be returned as 
+\f1\fs18 2.42
+\f0\fs20 ; this would not scale well to subversions greater than nine, so that will be avoided in our versioning).}

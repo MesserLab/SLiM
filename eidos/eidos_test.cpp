@@ -6571,7 +6571,7 @@ void _RunFunctionMiscTests(void)
 	EidosAssertScriptSuccess("abs(ttest(1:50.0, mu=30.0) - 0.0321796) < 0.001;", gStaticEidosValue_LogicalT);		// R gives 0.03387
 	
 	// version()
-	EidosAssertScriptSuccess("version();", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("type(version()) == 'float';", gStaticEidosValue_LogicalT);
 	EidosAssertScriptRaise("version(NULL);", 0, "too many arguments supplied");
 	EidosAssertScriptRaise("version(T);", 0, "too many arguments supplied");
 	EidosAssertScriptRaise("version(3);", 0, "too many arguments supplied");

@@ -285,7 +285,7 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("system",			Eidos_ExecuteFunction_system,		kEidosValueMaskString))->AddString_S("command")->AddString_O("args", gStaticEidosValue_StringEmpty)->AddString_O("input", gStaticEidosValue_StringEmpty)->AddLogical_OS("stderr", gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("time",				Eidos_ExecuteFunction_time,			kEidosValueMaskString | kEidosValueMaskSingleton)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("ttest",				Eidos_ExecuteFunction_ttest,		kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddFloat("x")->AddFloat_ON("y", gStaticEidosValueNULL)->AddFloat_OSN("mu", gStaticEidosValueNULL));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("version",			Eidos_ExecuteFunction_version,		kEidosValueMaskNULL)));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("version",			Eidos_ExecuteFunction_version,		kEidosValueMaskFloat)));
 		
 		
 		// ************************************************************************************
@@ -9529,10 +9529,19 @@ EidosValue_SP Eidos_ExecuteFunction_version(__attribute__((unused)) const EidosV
 	
 	output_stream << "Eidos version 1.5" << std::endl;	// EIDOS VERSION
 	
-	if (gEidosContextVersion.length())
-		output_stream << gEidosContextVersion << std::endl;
+	if (gEidosContextVersionString.length())
+		output_stream << gEidosContextVersionString << std::endl;
 	
-	result_SP = gStaticEidosValueNULLInvisible;
+	// Return the versions as floats
+	EidosValue_Float_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->reserve(2);
+	result_SP = EidosValue_SP(result);
+	
+	result->push_float_no_check(1.5);	// EIDOS VERSION 1.5
+	
+	if (gEidosContextVersion != 0.0)
+		result->push_float_no_check(gEidosContextVersion);
+	
+	result->SetInvisible(true);
 	
 	return result_SP;
 }
