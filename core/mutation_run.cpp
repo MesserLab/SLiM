@@ -366,7 +366,7 @@ bool MutationRun::_EnforceStackPolicyForAddition(slim_position_t p_position, Mut
 		return true;
 	}
 	else
-		EIDOS_TERMINATION << "ERROR (Genome::_EnforceStackPolicyForAddition): (internal error) invalid policy." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (MutationRun::_EnforceStackPolicyForAddition): (internal error) invalid policy." << EidosTerminate();
 }
 
 void MutationRun::split_run(MutationRun **p_first_half, MutationRun **p_second_half, int32_t p_split_first_position)
@@ -470,11 +470,11 @@ void MutationRun::cache_nonneutral_mutations_REGIME_3()
 void MutationRun::check_nonneutral_mutation_cache()
 {
 	if (!nonneutral_mutations_)
-		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache_REGIME_1): (internal error) cache not allocated." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache): (internal error) cache not allocated." << EidosTerminate();
 	if (nonneutral_mutations_count_ == -1)
-		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache_REGIME_1): (internal error) unvalidated cache." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache): (internal error) unvalidated cache." << EidosTerminate();
 	if (nonneutral_mutations_count_ > nonneutral_mutation_capacity_)
-		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache_REGIME_1): (internal error) cache size exceeds cache capacity." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache): (internal error) cache size exceeds cache capacity." << EidosTerminate();
 	
 	// Check for correctness in regime 1.  Now that we have three regimes, this isn't really worth maintaining;
 	// it really just replicates the above logic exactly, so it is not a very effective cross-check.

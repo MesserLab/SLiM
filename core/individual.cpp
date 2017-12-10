@@ -807,10 +807,10 @@ EidosValue_SP Individual::ExecuteMethod_setSpatialPosition(EidosGlobalStringID p
 	int value_count = arg0_value->Count();
 	
 	if (dimensionality == 0)
-		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_setSpatialPosition): setPosition() cannot be called in non-spatial simulations." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_setSpatialPosition): setSpatialPosition() cannot be called in non-spatial simulations." << EidosTerminate();
 	
 	if (value_count < dimensionality)
-		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_setSpatialPosition): setPosition() requires at least as many coordinates as the spatial dimensionality of the simulation." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_setSpatialPosition): setSpatialPosition() requires at least as many coordinates as the spatial dimensionality of the simulation." << EidosTerminate();
 	
 	switch (dimensionality)
 	{

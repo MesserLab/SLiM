@@ -1178,7 +1178,7 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 				if (g1_null && g2_null)
 				{
 					// Both genomes are null; we should have eliminated the possibility of this with the check above
-					EIDOS_TERMINATION << "ERROR (Population::PrintSample_VCF): (internal error) no non-null genome to output for individual." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Population::PrintGenomes_VCF): (internal error) no non-null genome to output for individual." << EidosTerminate();
 				}
 				else if (g1_null)
 				{

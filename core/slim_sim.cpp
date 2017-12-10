@@ -269,7 +269,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 	std::ifstream infile(p_file);
 	
 	if (!infile.is_open())
-		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): could not open initialization file." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): could not open initialization file." << EidosTerminate();
 	
 	// Parse the first line, to get the generation
 	{
@@ -302,7 +302,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			file_version = (int64_t)EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
 			
 			if ((file_version != 1) && (file_version != 2) && (file_version != 3))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): unrecognized version." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): unrecognized version." << EidosTerminate();
 			
 			continue;
 		}
@@ -349,7 +349,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		EidosSymbolTableEntry &symbol_entry = new_subpop->SymbolTableEntry();
 		
 		if (p_interpreter && p_interpreter->SymbolTable().ContainsSymbol(symbol_entry.first))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): new subpopulation symbol " << Eidos_StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): new subpopulation symbol " << Eidos_StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate();
 		
 		simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 	}
@@ -410,12 +410,12 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		auto found_muttype_pair = mutation_types_.find(mutation_type_id);
 		
 		if (found_muttype_pair == mutation_types_.end()) 
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " has not been defined." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " has not been defined." << EidosTerminate();
 		
 		MutationType *mutation_type_ptr = found_muttype_pair->second;
 		
 		if (fabs(mutation_type_ptr->dominance_coeff_ - dominance_coeff) > 0.001)	// a reasonable tolerance to allow for I/O roundoff
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << EidosTerminate();
 		
 		// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
 		MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
@@ -457,19 +457,19 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			const char *individual_index_string = sub.substr(pos + 1, std::string::npos).c_str();
 			
 			if (individual_index_string[0] != 'i')
-				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): reference to individual is malformed." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): reference to individual is malformed." << EidosTerminate();
 			
 			int64_t individual_index = EidosInterpreter::NonnegativeIntegerForString(individual_index_string + 1, nullptr);
 			
 			auto subpop_pair = population_.find(subpop_id);
 			
 			if (subpop_pair == population_.end())
-				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): referenced subpopulation p" << subpop_id << " not defined." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): referenced subpopulation p" << subpop_id << " not defined." << EidosTerminate();
 			
 			Subpopulation &subpop = *subpop_pair->second;
 			
 			if (individual_index >= subpop.parent_subpop_size_)
-				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): referenced individual i" << individual_index << " is out of range." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): referenced individual i" << individual_index << " is out of range." << EidosTerminate();
 			
 			Individual &individual = subpop.parent_individuals_[individual_index];
 			
@@ -500,7 +500,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			}
 			
 			if (iss >> sub)
-				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): output spatial dimensionality does not match that of the simulation." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): output spatial dimensionality does not match that of the simulation." << EidosTerminate();
 		}
 	}
 	
@@ -524,7 +524,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		auto subpop_pair = population_.find(subpop_id);
 		
 		if (subpop_pair == population_.end())
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): referenced subpopulation p" << subpop_id << " not defined." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): referenced subpopulation p" << subpop_id << " not defined." << EidosTerminate();
 		
 		Subpopulation &subpop = *subpop_pair->second;
 		
@@ -532,7 +532,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		int64_t genome_index_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
 		
 		if ((genome_index_long < 0) || (genome_index_long > SLIM_MAX_SUBPOP_SIZE * 2))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): genome index out of permitted range." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): genome index out of permitted range." << EidosTerminate();
 		slim_popsize_t genome_index = static_cast<slim_popsize_t>(genome_index_long);	// range-check is above since we need to check against SLIM_MAX_SUBPOP_SIZE * 2
 		
 		Genome &genome = subpop.parent_genomes_[genome_index];
@@ -545,25 +545,25 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			{
 				// Let's do a little error-checking against what has already been instantiated for us...
 				if ((sub.compare(gStr_A) == 0) && genome.Type() != GenomeType::kAutosome)
-					EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): genome is specified as A (autosome), but the instantiated genome does not match." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): genome is specified as A (autosome), but the instantiated genome does not match." << EidosTerminate();
 				if ((sub.compare(gStr_X) == 0) && genome.Type() != GenomeType::kXChromosome)
-					EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): genome is specified as X (X-chromosome), but the instantiated genome does not match." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): genome is specified as X (X-chromosome), but the instantiated genome does not match." << EidosTerminate();
 				if ((sub.compare(gStr_Y) == 0) && genome.Type() != GenomeType::kYChromosome)
-					EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): genome is specified as Y (Y-chromosome), but the instantiated genome does not match." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): genome is specified as Y (Y-chromosome), but the instantiated genome does not match." << EidosTerminate();
 				
 				if (iss >> sub)
 				{
 					if (sub == "<null>")
 					{
 						if (!genome.IsNull())
-							EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): genome is specified as null, but the instantiated genome is non-null." << EidosTerminate();
+							EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): genome is specified as null, but the instantiated genome is non-null." << EidosTerminate();
 						
 						continue;	// this line is over
 					}
 					else
 					{
 						if (genome.IsNull())
-							EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): genome is specified as non-null, but the instantiated genome is null." << EidosTerminate();
+							EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): genome is specified as non-null, but the instantiated genome is null." << EidosTerminate();
 						
 						// drop through, and sub will be interpreted as a mutation id below
 					}
@@ -584,7 +584,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 				auto found_mut_pair = mutations.find(polymorphism_id);
 				
 				if (found_mut_pair == mutations.end()) 
-					EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromTextFile): polymorphism " << polymorphism_id << " has not been defined." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): polymorphism " << polymorphism_id << " has not been defined." << EidosTerminate();
 				
 				MutationIndex mutation = found_mut_pair->second;
 				int mutrun_index = (mut_block_ptr + mutation)->position_ / mutrun_length_;
@@ -666,7 +666,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	std::ifstream infile(p_file, std::ios::in | std::ios::binary);
 	
 	if (!infile.is_open() || infile.eof())
-		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): could not open initialization file." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): could not open initialization file." << EidosTerminate();
 	
 	// Determine the file length
 	infile.seekg(0, std::ios_base::end);
@@ -677,7 +677,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	char *buf = raii_buf.get();
 	
 	if (!buf)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): could not allocate input buffer." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): could not allocate input buffer." << EidosTerminate();
 	
 	char *buf_end = buf + file_size;
 	char *p = buf;
@@ -696,7 +696,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		int32_t endianness_tag, version_tag;
 		
 		if (p + sizeof(endianness_tag) + sizeof(version_tag) > buf_end)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unexpected EOF while reading header." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): unexpected EOF while reading header." << EidosTerminate();
 		
 		endianness_tag = *(int32_t *)p;
 		p += sizeof(endianness_tag);
@@ -705,9 +705,9 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		p += sizeof(version_tag);
 		
 		if (endianness_tag != 0x12345678)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): endianness mismatch." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): endianness mismatch." << EidosTerminate();
 		if ((version_tag != 1) && (version_tag != 2) && (version_tag != 3))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unrecognized version." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): unrecognized version." << EidosTerminate();
 		
 		file_version = version_tag;
 	}
@@ -723,7 +723,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			header_length += sizeof(slim_mutationid_t_size) + sizeof(slim_polymorphismid_t_size);
 		
 		if (p + header_length > buf_end)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unexpected EOF while reading header." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): unexpected EOF while reading header." << EidosTerminate();
 		
 		double_size = *(int32_t *)p;
 		p += sizeof(double_size);
@@ -782,9 +782,9 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		p += sizeof(section_end_tag);
 		
 		if (double_size != sizeof(double))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): sizeof(double) mismatch." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): sizeof(double) mismatch." << EidosTerminate();
 		if (double_test != 1234567890.0987654321)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): double format mismatch." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): double format mismatch." << EidosTerminate();
 		if ((slim_generation_t_size != sizeof(slim_generation_t)) ||
 			(slim_position_t_size != sizeof(slim_position_t)) ||
 			(slim_objectid_t_size != sizeof(slim_objectid_t)) ||
@@ -793,13 +793,13 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			(slim_selcoeff_t_size != sizeof(slim_selcoeff_t)) ||
 			(slim_mutationid_t_size != sizeof(slim_mutationid_t)) ||
 			(slim_polymorphismid_t_size != sizeof(slim_polymorphismid_t)))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): SLiM datatype size mismatch." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): SLiM datatype size mismatch." << EidosTerminate();
 		if ((spatial_output_count < 0) || (spatial_output_count > 3))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): spatial output count out of range." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): spatial output count out of range." << EidosTerminate();
 		if ((spatial_output_count > 0) && (spatial_output_count != spatial_dimensionality_))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): output spatial dimensionality does not match that of the simulation." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): output spatial dimensionality does not match that of the simulation." << EidosTerminate();
 		if (section_end_tag != (int32_t)0xFFFF0000)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): missing section end after header." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): missing section end after header." << EidosTerminate();
 	}
 	
 	// Populations section
@@ -833,7 +833,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		p += sizeof(sex_flag);
 		
 		if (sex_flag != population_.sim_.sex_enabled_)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): sex vs. hermaphroditism mismatch between file and simulation." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): sex vs. hermaphroditism mismatch between file and simulation." << EidosTerminate();
 		
 		subpop_sex_ratio = *(double *)p;
 		p += sizeof(subpop_sex_ratio);
@@ -845,27 +845,27 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		EidosSymbolTableEntry &symbol_entry = new_subpop->SymbolTableEntry();
 		
 		if (p_interpreter && p_interpreter->SymbolTable().ContainsSymbol(symbol_entry.first))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): new subpopulation symbol " << Eidos_StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): new subpopulation symbol " << Eidos_StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate();
 		
 		simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 	}
 	
 	if (p + sizeof(section_end_tag) > buf_end)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unexpected EOF after subpopulations." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): unexpected EOF after subpopulations." << EidosTerminate();
 	else
 	{
 		section_end_tag = *(int32_t *)p;
 		p += sizeof(section_end_tag);
 		
 		if (section_end_tag != (int32_t)0xFFFF0000)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): missing section end after subpopulations." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): missing section end after subpopulations." << EidosTerminate();
 	}
 	
 	// Read in the size of the mutation map, so we can allocate a vector rather than utilizing std::map
 	int32_t mutation_map_size;
 	
 	if (p + sizeof(mutation_map_size) > buf_end)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unexpected EOF at mutation map size." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): unexpected EOF at mutation map size." << EidosTerminate();
 	else
 	{
 		mutation_map_size = *(int32_t *)p;
@@ -877,7 +877,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	MutationIndex *mutations = raii_mutations.get();
 	
 	if (!mutations)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): could not allocate mutations buffer." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): could not allocate mutations buffer." << EidosTerminate();
 	
 	while (true)
 	{
@@ -948,12 +948,12 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		auto found_muttype_pair = mutation_types_.find(mutation_type_id);
 		
 		if (found_muttype_pair == mutation_types_.end()) 
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has not been defined." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has not been defined." << EidosTerminate();
 		
 		MutationType *mutation_type_ptr = found_muttype_pair->second;
 		
 		if (mutation_type_ptr->dominance_coeff_ != dominance_coeff)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << EidosTerminate();
 		
 		// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
 		MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
@@ -975,14 +975,14 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	population_.cached_tally_genome_count_ = 0;
 	
 	if (p + sizeof(section_end_tag) > buf_end)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unexpected EOF after mutations." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): unexpected EOF after mutations." << EidosTerminate();
 	else
 	{
 		section_end_tag = *(int32_t *)p;
 		p += sizeof(section_end_tag);
 		
 		if (section_end_tag != (int32_t)0xFFFF0000)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): missing section end after mutations." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): missing section end after mutations." << EidosTerminate();
 	}
 	
 	// Genomes section
@@ -1021,7 +1021,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		auto subpop_pair = population_.find(subpop_id);
 		
 		if (subpop_pair == population_.end())
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): referenced subpopulation p" << subpop_id << " not defined." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): referenced subpopulation p" << subpop_id << " not defined." << EidosTerminate();
 		
 		Subpopulation &subpop = *subpop_pair->second;
 		
@@ -1057,24 +1057,24 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		
 		// Look up the genome
 		if ((genome_index < 0) || (genome_index > SLIM_MAX_SUBPOP_SIZE * 2))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): genome index out of permitted range." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): genome index out of permitted range." << EidosTerminate();
 		
 		Genome &genome = subpop.parent_genomes_[genome_index];
 		
 		// Error-check the genome type
 		if (genome_type != (int32_t)genome.Type())
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): genome type does not match the instantiated genome." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): genome type does not match the instantiated genome." << EidosTerminate();
 		
 		// Check the null genome state
 		if (total_mutations == (int32_t)0xFFFF1000)
 		{
 			if (!genome.IsNull())
-				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): genome is specified as null, but the instantiated genome is non-null." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): genome is specified as null, but the instantiated genome is non-null." << EidosTerminate();
 		}
 		else
 		{
 			if (genome.IsNull())
-				EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): genome is specified as non-null, but the instantiated genome is null." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): genome is specified as non-null, but the instantiated genome is null." << EidosTerminate();
 			
 			// Read in the mutation list
 			int32_t mutcount = 0;
@@ -1085,7 +1085,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 				uint16_t mutation_id;
 				
 				if (p + sizeof(mutation_id) * total_mutations > buf_end)
-					EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unexpected EOF while reading genome." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): unexpected EOF while reading genome." << EidosTerminate();
 				
 				for (; mutcount < total_mutations; ++mutcount)
 				{
@@ -1094,7 +1094,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 					
 					// Add mutation to genome
 					if ((mutation_id < 0) || (mutation_id >= mutation_map_size)) 
-						EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): mutation " << mutation_id << " has not been defined." << EidosTerminate();
+						EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): mutation " << mutation_id << " has not been defined." << EidosTerminate();
 					
 					genomebuf[mutcount] = mutations[mutation_id];
 				}
@@ -1105,7 +1105,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 				int32_t mutation_id;
 				
 				if (p + sizeof(mutation_id) * total_mutations > buf_end)
-					EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unexpected EOF while reading genome." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): unexpected EOF while reading genome." << EidosTerminate();
 				
 				for (; mutcount < total_mutations; ++mutcount)
 				{
@@ -1114,7 +1114,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 					
 					// Add mutation to genome
 					if ((mutation_id < 0) || (mutation_id >= mutation_map_size)) 
-						EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): mutation " << mutation_id << " has not been defined." << EidosTerminate();
+						EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): mutation " << mutation_id << " has not been defined." << EidosTerminate();
 					
 					genomebuf[mutcount] = mutations[mutation_id];
 				}
@@ -1143,7 +1143,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	}
 	
 	if (p + sizeof(section_end_tag) > buf_end)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): unexpected EOF after genomes." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): unexpected EOF after genomes." << EidosTerminate();
 	else
 	{
 		section_end_tag = *(int32_t *)p;
@@ -1151,7 +1151,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		(void)p;	// dead store above is deliberate
 		
 		if (section_end_tag != (int32_t)0xFFFF0000)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromBinaryFile): missing section end after genomes." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): missing section end after genomes." << EidosTerminate();
 	}
 	
 	// It's a little unclear how we ought to clean up after ourselves, and this is a continuing source of bugs.  We could be loading

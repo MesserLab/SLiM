@@ -4685,7 +4685,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 							slim_polymorphismid_t polymorphism_id = FindMutationInPolymorphismMap(polymorphisms, mut_block_ptr + mut_ptr[mut_index]);
 							
 							if (polymorphism_id == -1)
-								EIDOS_TERMINATION << "ERROR (Population::PrintAll): (internal error) polymorphism not found." << EidosTerminate();
+								EIDOS_TERMINATION << "ERROR (Population::PrintAllBinary): (internal error) polymorphism not found." << EidosTerminate();
 							
 							if (polymorphism_id <= UINT16_MAX - 1)
 							{
@@ -4716,7 +4716,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 							slim_polymorphismid_t polymorphism_id = FindMutationInPolymorphismMap(polymorphisms, mut_block_ptr + mut_ptr[mut_index]);
 							
 							if (polymorphism_id == -1)
-								EIDOS_TERMINATION << "ERROR (Population::PrintAll): (internal error) polymorphism not found." << EidosTerminate();
+								EIDOS_TERMINATION << "ERROR (Population::PrintAllBinary): (internal error) polymorphism not found." << EidosTerminate();
 							
 							p_out.write(reinterpret_cast<char *>(&polymorphism_id), sizeof polymorphism_id);
 						}

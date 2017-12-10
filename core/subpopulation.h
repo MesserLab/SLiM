@@ -231,7 +231,7 @@ inline __attribute__((always_inline)) slim_popsize_t Subpopulation::DrawParentUs
 {
 #if DEBUG
 	if (sex_enabled_)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::DrawParentUsingFitness): called on a population for which sex is enabled." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::DrawParentUsingFitness): (internal error) called on a population for which sex is enabled." << EidosTerminate();
 #endif
 	
 	if (lookup_parent_)
@@ -244,7 +244,7 @@ inline __attribute__((always_inline)) slim_popsize_t Subpopulation::DrawParentEq
 {
 #if DEBUG
 	if (sex_enabled_)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::DrawParentEqualProbability): called on a population for which sex is enabled." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::DrawParentEqualProbability): (internal error) called on a population for which sex is enabled." << EidosTerminate();
 #endif
 	
 	return static_cast<slim_popsize_t>(Eidos_RandomInt(gEidos_rng, parent_subpop_size_));
@@ -255,7 +255,7 @@ inline __attribute__((always_inline)) slim_popsize_t Subpopulation::DrawFemalePa
 {
 #if DEBUG
 	if (!sex_enabled_)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::DrawFemaleParentUsingFitness): called on a population for which sex is not enabled." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::DrawFemaleParentUsingFitness): (internal error) called on a population for which sex is not enabled." << EidosTerminate();
 #endif
 	
 	if (lookup_female_parent_)
@@ -269,7 +269,7 @@ inline __attribute__((always_inline)) slim_popsize_t Subpopulation::DrawFemalePa
 {
 #if DEBUG
 	if (!sex_enabled_)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::DrawFemaleParentEqualProbability): called on a population for which sex is not enabled." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::DrawFemaleParentEqualProbability): (internal error) called on a population for which sex is not enabled." << EidosTerminate();
 #endif
 	
 	return static_cast<slim_popsize_t>(Eidos_RandomInt(gEidos_rng, parent_first_male_index_));
@@ -280,7 +280,7 @@ inline __attribute__((always_inline)) slim_popsize_t Subpopulation::DrawMalePare
 {
 #if DEBUG
 	if (!sex_enabled_)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::DrawMaleParentUsingFitness): called on a population for which sex is not enabled." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::DrawMaleParentUsingFitness): (internal error) called on a population for which sex is not enabled." << EidosTerminate();
 #endif
 	
 	if (lookup_male_parent_)
@@ -294,7 +294,7 @@ inline __attribute__((always_inline)) slim_popsize_t Subpopulation::DrawMalePare
 {
 #if DEBUG
 	if (!sex_enabled_)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::DrawMaleParentEqualProbability): called on a population for which sex is not enabled." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::DrawMaleParentEqualProbability): (internal error) called on a population for which sex is not enabled." << EidosTerminate();
 #endif
 	
 	return static_cast<slim_popsize_t>(Eidos_RandomInt(gEidos_rng, parent_subpop_size_ - parent_first_male_index_) + parent_first_male_index_);

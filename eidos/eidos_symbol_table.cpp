@@ -285,7 +285,7 @@ EidosValue_SP EidosSymbolTable::_GetValue_IsConst(EidosGlobalStringID p_symbol_n
 	if (chain_symbol_table_)
 		return chain_symbol_table_->_GetValue_IsConst(p_symbol_name, p_symbol_token, p_is_const);	// the chain sets p_is_const
 	
-	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_GetValue): undefined identifier " << Eidos_StringForGlobalStringID(p_symbol_name) << "." << EidosTerminate(p_symbol_token);
+	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_GetValue_IsConst): undefined identifier " << Eidos_StringForGlobalStringID(p_symbol_name) << "." << EidosTerminate(p_symbol_token);
 }
 
 void EidosSymbolTable::_SwitchToHash(void)
@@ -383,7 +383,7 @@ void EidosSymbolTable::SetValueForSymbolNoCopy(EidosGlobalStringID p_symbol_name
 	// vector value so that it can do a subscripted assignment.  For that special purpose, this function is provided.
 	// DO NOT USE THIS UNLESS YOU KNOW WHAT YOU'RE DOING!  It can lead to seriously weird behavior if used incorrectly.
 	if (p_value->Invisible())
-		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbol): (internal) no copy requested with invisible value." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbolNoCopy): (internal) no copy requested with invisible value." << EidosTerminate(nullptr);
 	
 	if (using_internal_symbols_)
 	{
@@ -399,7 +399,7 @@ void EidosSymbolTable::SetValueForSymbolNoCopy(EidosGlobalStringID p_symbol_name
 			// The symbol is not already defined in this table.  Before we can define it, we need to check that it is not defined in a chained table.
 			// At present, we assume that if it is defined in a chained table it is a constant, which is true for now.
 			if (chain_symbol_table_ && chain_symbol_table_->ContainsSymbol(p_symbol_name))
-				EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbol): identifier '" << Eidos_StringForGlobalStringID(p_symbol_name) << "' cannot be redefined because it is a constant." << EidosTerminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbolNoCopy): identifier '" << Eidos_StringForGlobalStringID(p_symbol_name) << "' cannot be redefined because it is a constant." << EidosTerminate(nullptr);
 			
 			if (internal_symbol_count_ < EIDOS_SYMBOL_TABLE_BASE_SIZE)
 			{
@@ -432,7 +432,7 @@ void EidosSymbolTable::SetValueForSymbolNoCopy(EidosGlobalStringID p_symbol_name
 		// The symbol is not already defined in this table.  Before we can define it, we need to check that it is not defined in a chained table.
 		// At present, we assume that if it is defined in a chained table it is a constant, which is true for now.
 		if (chain_symbol_table_ && chain_symbol_table_->ContainsSymbol(p_symbol_name))
-			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbol): identifier '" << Eidos_StringForGlobalStringID(p_symbol_name) << "' cannot be redefined because it is a constant." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbolNoCopy): identifier '" << Eidos_StringForGlobalStringID(p_symbol_name) << "' cannot be redefined because it is a constant." << EidosTerminate(nullptr);
 		
 		hash_symbols_.insert(std::pair<EidosGlobalStringID, EidosValue_SP>(p_symbol_name, std::move(p_value)));
 	}

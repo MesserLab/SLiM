@@ -173,7 +173,7 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
 			if (found_block->block_id_ == block_id)
 				return found_block;
 		
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_deregisterScriptBlock): " << p_method_name << " SLiMEidosBlock s" << block_id << " not defined." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiM_ExtractSLiMEidosBlockFromEidosValue_io): " << p_method_name << " SLiMEidosBlock s" << block_id << " not defined." << EidosTerminate();
 	}
 	else
 	{

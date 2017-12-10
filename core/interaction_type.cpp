@@ -1407,7 +1407,7 @@ void InteractionType::InitializeDistances(InteractionsData &p_subpop_data)
 void InteractionType::EnsureStrengthsPresent(InteractionsData &p_subpop_data)
 {
 	if (!p_subpop_data.evaluated_)
-		EIDOS_TERMINATION << "ERROR (InteractionType::EnsureDistancesPresent): (internal error) the interaction has not been evaluated." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::EnsureStrengthsPresent): (internal error) the interaction has not been evaluated." << EidosTerminate();
 	
 	if (!p_subpop_data.distances_ && spatiality_)
 		EnsureDistancesPresent(p_subpop_data);

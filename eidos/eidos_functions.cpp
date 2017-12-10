@@ -3940,12 +3940,12 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const EidosValue_SP *const p_arguments,
 		 ((arg0_count == 1) && (arg1_count == 1))))								// dims must match if both are singleton
 	{
 		if (!EidosValue::MatchingDimensions(arg0_value, arg1_value))
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_pmax): function pmin() requires arguments x and y to be of the same vector/matrix/array dimensions, unless either x or y (but not both) is a singleton ." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_pmin): function pmin() requires arguments x and y to be of the same vector/matrix/array dimensions, unless either x or y (but not both) is a singleton ." << EidosTerminate(nullptr);
 	}
 	else if (((arg0_count == 1) && (arg0_value->DimensionCount() != 1)) ||		// if just one is singleton, it must be a vector
 			 ((arg1_count == 1) && (arg1_value->DimensionCount() != 1)))		// if just one is singleton, it must be a vector
 	{
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_pmax): function pmin() requires that if arguments x and y involve a singleton-to-non-singleton comparison, the singleton is a vector (not a matrix or array)." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_pmin): function pmin() requires that if arguments x and y involve a singleton-to-non-singleton comparison, the singleton is a vector (not a matrix or array)." << EidosTerminate(nullptr);
 	}
 	
 	if (arg0_type == EidosValueType::kValueNULL)
@@ -4083,7 +4083,7 @@ EidosValue_SP Eidos_ExecuteFunction_range(const EidosValue_SP *const p_arguments
 		EidosValueType arg_type = arg_value->Type();
 		
 		if (arg_type != arg0_type)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_min): function min() requires all arguments to be the same type." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_range): function range() requires all arguments to be the same type." << EidosTerminate(nullptr);
 		
 		if (first_nonempty_argument == -1)
 		{
@@ -6089,7 +6089,7 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const EidosValue_SP *const p_argument
 				const EidosObjectClass *arg2_class = ((EidosValue_Object *)arg2_value)->Class();
 				
 				if (arg1_class != arg2_class)
-					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ifelse): objects of different types cannot be mixed." << EidosTerminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ifelse): objects of different types cannot be mixed in function ifelse()." << EidosTerminate(nullptr);
 				
 				EidosObjectElement * const *true_vec = arg1_value->ObjectElementVector()->data();
 				EidosObjectElement * const *false_vec = arg2_value->ObjectElementVector()->data();
@@ -6178,7 +6178,7 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const EidosValue_SP *const p_argument
 				const EidosObjectClass *arg2_class = ((EidosValue_Object *)arg2_value)->Class();
 				
 				if (arg1_class != arg2_class)
-					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ifelse): objects of different types cannot be mixed." << EidosTerminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ifelse): objects of different types cannot be mixed in function ifelse()." << EidosTerminate(nullptr);
 				
 				EidosObjectElement *true_value = arg1_value->ObjectElementAtIndex(0, nullptr);
 				EidosObjectElement *false_value = arg2_value->ObjectElementAtIndex(0, nullptr);
@@ -8110,7 +8110,7 @@ EidosValue_SP Eidos_ExecuteFunction_t(const EidosValue_SP *const p_arguments, __
 	EidosValue *x_value = p_arguments[0].get();
 	
 	if (x_value->DimensionCount() != 2)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_t): function t() x is not a matrix." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_t): in function t() x is not a matrix." << EidosTerminate(nullptr);
 	
 	const int64_t *source_dim = x_value->Dimensions();
 	int64_t source_rows = source_dim[0];
@@ -8399,7 +8399,7 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const EidosValue_SP *const p_a
 	std::string file_path_template = "/tmp/" + filename;		// the /tmp directory is standard on OS X and Linux; probably on all Un*x systems
 	
 	if ((filename.find("~") != std::string::npos) || (filename.find("/") != std::string::npos))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_writeTempFile): prefix and suffix may not contain '~' or '/'; they may specify only a filename." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_writeTempFile): in function writeTempFile(), prefix and suffix may not contain '~' or '/'; they may specify only a filename." << EidosTerminate(nullptr);
 	
 	// the third argument is the file contents to write
 	EidosValue *contents_value = p_arguments[2].get();
@@ -8483,7 +8483,7 @@ EidosValue_SP Eidos_ExecuteFunction_hsv2rgb(const EidosValue_SP *const p_argumen
 	int arg0_count = arg0_value->Count();
 	
 	if (arg0_count != 3)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_hsv2rgb): hsv must contain exactly three elements." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_hsv2rgb): in function hsv2rgb(), hsv must contain exactly three elements." << EidosTerminate(nullptr);
 	
 	double h = arg0_value->FloatAtIndex(0, nullptr);
 	double s = arg0_value->FloatAtIndex(1, nullptr);
@@ -8524,7 +8524,7 @@ EidosValue_SP Eidos_ExecuteFunction_rgb2hsv(const EidosValue_SP *const p_argumen
 	int arg0_count = arg0_value->Count();
 	
 	if (arg0_count != 3)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgb2hsv): rgb must contain exactly three elements." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgb2hsv): in function rgb2hsv(), rgb must contain exactly three elements." << EidosTerminate(nullptr);
 	
 	double r = arg0_value->FloatAtIndex(0, nullptr);
 	double g = arg0_value->FloatAtIndex(1, nullptr);
@@ -8574,7 +8574,7 @@ EidosValue_SP Eidos_ExecuteFunction_rgb2color(const EidosValue_SP *const p_argum
 	int arg0_count = arg0_value->Count();
 	
 	if (arg0_count != 3)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgb2color): rgb must contain exactly three elements." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgb2color): in function rgb2color(), rgb must contain exactly three elements." << EidosTerminate(nullptr);
 	
 	double r = arg0_value->FloatAtIndex(0, nullptr);
 	double g = arg0_value->FloatAtIndex(1, nullptr);
@@ -8913,7 +8913,7 @@ EidosValue_SP Eidos_ExecuteFunction_doCall(const EidosValue_SP *const p_argument
 	auto signature_iter = function_map.find(function_name);
 	
 	if (signature_iter == function_map.end())
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_doCall): unrecognized function name " << function_name << "." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_doCall): unrecognized function name " << function_name << " in function doCall()." << EidosTerminate(nullptr);
 	
 	const EidosFunctionSignature *function_signature = signature_iter->second.get();
 	
@@ -8932,14 +8932,14 @@ EidosValue_SP Eidos_ExecuteFunction_doCall(const EidosValue_SP *const p_argument
 		if (context)
 			result_SP = context->ContextDefinedFunctionDispatch(function_name, arguments, argument_count, p_interpreter);
 		else
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_doCall): function " << function_name << " is defined by the Context, but the Context is not defined." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_doCall): (internal error) function " << function_name << " is defined by the Context, but the Context is not defined." << EidosTerminate(nullptr);
 	}
 	else if (function_signature->body_script_)
 	{
 		result_SP = p_interpreter.DispatchUserDefinedFunction(*function_signature, arguments, argument_count);
 	}
 	else
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_doCall): unbound function " << function_name << "." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_doCall): (internal error) unbound function " << function_name << "." << EidosTerminate(nullptr);
 	
 	// Check the return value against the signature
 	function_signature->CheckReturn(*result_SP);

@@ -136,9 +136,9 @@ public:
 	{
 #ifdef DEBUG
 		if (p_run_index < 0)
-			EIDOS_TERMINATION << "ERROR (Genome::WillModifyRun): (internal error) attempt to modify a negative-index run." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Genome::WillCreateRun): (internal error) attempt to create a negative-index run." << EidosTerminate();
 		if (p_run_index >= mutrun_count_)
-			EIDOS_TERMINATION << "ERROR (Genome::WillModifyRun): (internal error) attempt to modify an out-of-index run." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Genome::WillCreateRun): (internal error) attempt to create an out-of-index run." << EidosTerminate();
 #endif
 		
 		MutationRun *new_run = MutationRun::NewMutationRun();	// take from shared pool of used objects

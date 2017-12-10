@@ -3004,7 +3004,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Div(const EidosASTNode *p_node)
 	EidosValue_SP result_dim_source(EidosValue::BinaryOperationDimensionSource(first_child_value.get(), second_child_value.get()));
 	
 	if ((first_child_dimcount > 1) && (second_child_dimcount > 1) && !EidosValue::MatchingDimensions(first_child_value.get(), second_child_value.get()))
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mod): non-conformable array operands to the '%' operator." << EidosTerminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Div): non-conformable array operands to the '/' operator." << EidosTerminate(operator_token);
 	
 	EidosValue_SP result_SP;
 	
@@ -3184,7 +3184,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Exp(const EidosASTNode *p_node)
 	EidosValue_SP result_dim_source(EidosValue::BinaryOperationDimensionSource(first_child_value.get(), second_child_value.get()));
 	
 	if ((first_child_dimcount > 1) && (second_child_dimcount > 1) && !EidosValue::MatchingDimensions(first_child_value.get(), second_child_value.get()))
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): non-conformable array operands to the '*' operator." << EidosTerminate(operator_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Exp): non-conformable array operands to the '^' operator." << EidosTerminate(operator_token);
 	
 	// Exponentiation always produces a float result; the user can cast back to integer if they really want
 	EidosValue_SP result_SP;
@@ -3600,7 +3600,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 				if (!first_array_operand)
 					first_array_operand = child_result;
 				else if (!EidosValue::MatchingDimensions(first_array_operand.get(), child_result.get()))
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_And): non-conformable array operands to the '&' operator." << EidosTerminate(operator_token);
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Or): non-conformable array operands to the '|' operator." << EidosTerminate(operator_token);
 				
 				// if there is no dimensionality source yet, we qualify; otherwise, if we are a non-singleton array, and the current
 				// dimensionality source is a (non-singleton) vector, we represent an upgrade; if we're a singleton, though, we don't
@@ -4285,7 +4285,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Lt(const EidosASTNode *p_node)
 		EidosValue_SP result_dim_source(EidosValue::BinaryOperationDimensionSource(first_child_value.get(), second_child_value.get()));
 		
 		if ((first_child_dimcount > 1) && (second_child_dimcount > 1) && !EidosValue::MatchingDimensions(first_child_value.get(), second_child_value.get()))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Eq): non-conformable array operands to the '==' operator." << EidosTerminate(operator_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Lt): non-conformable array operands to the '<' operator." << EidosTerminate(operator_token);
 		
 		if (first_child_count == second_child_count)
 		{
@@ -4390,7 +4390,7 @@ EidosValue_SP EidosInterpreter::Evaluate_LtEq(const EidosASTNode *p_node)
 		EidosValue_SP result_dim_source(EidosValue::BinaryOperationDimensionSource(first_child_value.get(), second_child_value.get()));
 		
 		if ((first_child_dimcount > 1) && (second_child_dimcount > 1) && !EidosValue::MatchingDimensions(first_child_value.get(), second_child_value.get()))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Eq): non-conformable array operands to the '==' operator." << EidosTerminate(operator_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_LtEq): non-conformable array operands to the '<=' operator." << EidosTerminate(operator_token);
 		
 		if (first_child_count == second_child_count)
 		{
@@ -4495,7 +4495,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Gt(const EidosASTNode *p_node)
 		EidosValue_SP result_dim_source(EidosValue::BinaryOperationDimensionSource(first_child_value.get(), second_child_value.get()));
 		
 		if ((first_child_dimcount > 1) && (second_child_dimcount > 1) && !EidosValue::MatchingDimensions(first_child_value.get(), second_child_value.get()))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Eq): non-conformable array operands to the '==' operator." << EidosTerminate(operator_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Gt): non-conformable array operands to the '>' operator." << EidosTerminate(operator_token);
 		
 		if (first_child_count == second_child_count)
 		{
@@ -4600,7 +4600,7 @@ EidosValue_SP EidosInterpreter::Evaluate_GtEq(const EidosASTNode *p_node)
 		EidosValue_SP result_dim_source(EidosValue::BinaryOperationDimensionSource(first_child_value.get(), second_child_value.get()));
 		
 		if ((first_child_dimcount > 1) && (second_child_dimcount > 1) && !EidosValue::MatchingDimensions(first_child_value.get(), second_child_value.get()))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Eq): non-conformable array operands to the '==' operator." << EidosTerminate(operator_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_GtEq): non-conformable array operands to the '>=' operator." << EidosTerminate(operator_token);
 		
 		if (first_child_count == second_child_count)
 		{
@@ -4702,7 +4702,7 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 		EidosValue_SP result_dim_source(EidosValue::BinaryOperationDimensionSource(first_child_value.get(), second_child_value.get()));
 		
 		if ((first_child_dimcount > 1) && (second_child_dimcount > 1) && !EidosValue::MatchingDimensions(first_child_value.get(), second_child_value.get()))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Eq): non-conformable array operands to the '==' operator." << EidosTerminate(operator_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_NotEq): non-conformable array operands to the '!=' operator." << EidosTerminate(operator_token);
 		
 		if (first_child_count == second_child_count)
 		{
@@ -4872,7 +4872,7 @@ int64_t EidosInterpreter::NonnegativeIntegerForString(const std::string &p_numbe
 	
 	if ((p_number_string.find('.') != std::string::npos) || (p_number_string.find('-') != std::string::npos))
 	{
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::IntegerForString): \"" << p_number_string << "\" could not be represented as an integer (decimal or negative exponent)." << EidosTerminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::NonnegativeIntegerForString): \"" << p_number_string << "\" could not be represented as an integer (decimal or negative exponent)." << EidosTerminate(p_blame_token);
 		return 0;
 	}
 	else if ((p_number_string.find('e') != std::string::npos) || (p_number_string.find('E') != std::string::npos))	// has an exponent
@@ -4880,11 +4880,11 @@ int64_t EidosInterpreter::NonnegativeIntegerForString(const std::string &p_numbe
 		double converted_value = strtod(c_str, &last_used_char);
 		
 		if (errno || (last_used_char == c_str))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::IntegerForString): \"" << p_number_string << "\" could not be represented as an integer (strtod conversion error)." << EidosTerminate(p_blame_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NonnegativeIntegerForString): \"" << p_number_string << "\" could not be represented as an integer (strtod conversion error)." << EidosTerminate(p_blame_token);
 		
 		// nwellnhof on stackoverflow points out that the >= here is correct even though it looks wrong, because reasons...
 		if ((converted_value < INT64_MIN) || (converted_value >= INT64_MAX))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::IntegerForString): \"" << p_number_string << "\" could not be represented as an integer (out of range)." << EidosTerminate(p_blame_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NonnegativeIntegerForString): \"" << p_number_string << "\" could not be represented as an integer (out of range)." << EidosTerminate(p_blame_token);
 		
 		return static_cast<int64_t>(converted_value);
 	}
@@ -4893,7 +4893,7 @@ int64_t EidosInterpreter::NonnegativeIntegerForString(const std::string &p_numbe
 		int64_t converted_value = strtoq(c_str, &last_used_char, 10);
 		
 		if (errno || (last_used_char == c_str))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::IntegerForString): \"" << p_number_string << "\" could not be represented as an integer (strtoq conversion error)." << EidosTerminate(p_blame_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NonnegativeIntegerForString): \"" << p_number_string << "\" could not be represented as an integer (strtoq conversion error)." << EidosTerminate(p_blame_token);
 		
 		return converted_value;
 	}

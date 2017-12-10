@@ -3070,7 +3070,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID 
 	}
 	
 	if (values->Count() != map_size)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): size of the values vector (" << values->Count() << ") does not match the product of the sizes in gridSize (" << map_size << ")." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() size of the values vector (" << values->Count() << ") does not match the product of the sizes in gridSize (" << map_size << ")." << EidosTerminate();
 	
 	bool range_is_null = (value_range->Type() == EidosValueType::kValueNULL);
 	bool colors_is_null = (colors->Type() == EidosValueType::kValueNULL);
@@ -3080,21 +3080,21 @@ EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID 
 	if (!range_is_null || !colors_is_null)
 	{
 		if (range_is_null || colors_is_null)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): valueRange and colors must either both be supplied, or neither supplied." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() valueRange and colors must either both be supplied, or neither supplied." << EidosTerminate();
 		
 		if (value_range->Count() != 2)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): valueRange must be exactly length 2 (giving the min and max value permitted)." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() valueRange must be exactly length 2 (giving the min and max value permitted)." << EidosTerminate();
 		
 		range_min = value_range->FloatAtIndex(0, nullptr);
 		range_max = value_range->FloatAtIndex(1, nullptr);
 		
 		if (!std::isfinite(range_min) || !std::isfinite(range_max) || (range_min >= range_max))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): valueRange must be finite, and min < max is required." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() valueRange must be finite, and min < max is required." << EidosTerminate();
 		
 		color_count = colors->Count();
 		
 		if (color_count < 2)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): colors must be of length >= 2." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() colors must be of length >= 2." << EidosTerminate();
 	}
 	
 	// OK, everything seems to check out, so we can make our SpatialMap struct and populate it

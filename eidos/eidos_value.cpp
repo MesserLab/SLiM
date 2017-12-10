@@ -367,7 +367,7 @@ void EidosValue::RaiseForCapacityViolation(void) const
 
 void EidosValue::RaiseForRangeViolation(void) const
 {
-	EIDOS_TERMINATION << "ERROR (EidosValue::RaiseForCapacityViolation): (internal error) access violated the current size of an EidosValue." << EidosTerminate(nullptr);
+	EIDOS_TERMINATION << "ERROR (EidosValue::RaiseForRangeViolation): (internal error) access violated the current size of an EidosValue." << EidosTerminate(nullptr);
 }
 
 EidosValue_SP EidosValue::VectorBasedCopy(void) const
@@ -411,7 +411,7 @@ void EidosValue::_CopyDimensionsFromValue(const EidosValue *p_value)
 		int source_count = p_value->Count();
 		
 		if (count != source_count)
-			EIDOS_TERMINATION << "ERROR (EidosValue::CopyDimensions): mismatch between vector length and requested dimensions." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosValue::_CopyDimensionsFromValue): mismatch between vector length and requested dimensions." << EidosTerminate(nullptr);
 		
 		// OK, the source's dimensions work; assume that we need to throw out our existing dimensions (virtually
 		// always true, since this is generally called on new EidosValues), and malloc and copy a new dim_ buffer.
@@ -1169,7 +1169,7 @@ int64_t EidosValue_String_singleton::IntAtIndex(int p_idx, const EidosToken *p_b
 	
 	// nwellnhof on stackoverflow points out that the >= here is correct even though it looks wrong, because reasons...
 	if ((converted_value < INT64_MIN) || (converted_value >= INT64_MAX))
-		EIDOS_TERMINATION << "ERROR (EidosValue_String_vector::IntAtIndex): \"" << value_ << "\" could not be represented as an integer (out of range)." << EidosTerminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosValue_String_singleton::IntAtIndex): \"" << value_ << "\" could not be represented as an integer (out of range)." << EidosTerminate(p_blame_token);
 	
 	return static_cast<int64_t>(converted_value);
 }
@@ -1982,7 +1982,7 @@ void EidosValue_Object_singleton::PatchPointersBySubtracting(std::uintptr_t p_po
 
 void EidosValue_Object::RaiseForClassMismatch(void) const
 {
-	EIDOS_TERMINATION << "ERROR (EidosValue::RaiseForClassMismatch): the type of an object cannot be changed." << EidosTerminate(nullptr);
+	EIDOS_TERMINATION << "ERROR (EidosValue_Object::RaiseForClassMismatch): the type of an object cannot be changed." << EidosTerminate(nullptr);
 }
 
 const std::string &EidosValue_Object::ElementType(void) const

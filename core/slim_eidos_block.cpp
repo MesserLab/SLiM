@@ -719,9 +719,9 @@ void SLiMEidosBlock::TokenizeAndParse(void)
 		root_node_ = script_->AST();
 		
 		if (root_node_->children_.size() != 1)
-			EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): script blocks must be compound statements." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::TokenizeAndParse): script blocks must be compound statements." << EidosTerminate();
 		if (root_node_->children_[0]->token_->token_type_ != EidosTokenType::kTokenLBrace)
-			EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): script blocks must be compound statements." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::TokenizeAndParse): script blocks must be compound statements." << EidosTerminate();
 		
 		compound_statement_node_ = root_node_->children_[0];
 		

@@ -63,7 +63,7 @@ void SLiM_CreateMutationBlock(void)
 void SLiM_IncreaseMutationBlockCapacity(void)
 {
 	if (!gSLiM_Mutation_Block)
-		EIDOS_TERMINATION << "ERROR (SLiM_NewMutationFromBlock_realloc): (internal error) called before SLiM_CreateMutationBlock()." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiM_IncreaseMutationBlockCapacity): (internal error) called before SLiM_CreateMutationBlock()." << EidosTerminate();
 	
 	// We need to expand the size of our Mutation block.  This has the consequence of invalidating
 	// every Mutation * in the program.  In general that is fine; we are careful to only keep
