@@ -811,7 +811,7 @@ EidosASTNode *EidosScript::Parse_Statement(void)
 		{
 			// If we are doing a fault-tolerant parse, we need to guarantee that we don't get stuck in an infinite loop.
 			// Various functions, such as Parse_InterpreterBlock() and Parse_CompoundStatement(), call this function
-			// inside a loop and expect it to always advance the current token.  If the cases above, that is guaranteed;
+			// inside a loop and expect it to always advance the current token.  In the cases above, that is guaranteed;
 			// the current token is some special token that will be matched.  In this case, however, it is not guaranteed;
 			// a bad token like ',' will fail to be processed, we will get a bad node, and we will not advance.  In this
 			// circumstance, we Consume() one token and return the bad token.  This method thus guarantees that it advances.
@@ -1579,8 +1579,15 @@ EidosASTNode *EidosScript::Parse_PostfixExpr(void)
 							Match(EidosTokenType::kTokenComma, "postfix subset expression");
 						else if (current_token_type_ == EidosTokenType::kTokenRBracket)
 							break;
-						else if (!parse_make_bad_nodes_)
-							EIDOS_TERMINATION << "ERROR (EidosScript::Parse_PostfixExpr): unexpected token '" << *current_token_ << "'." << EidosTerminate(current_token_);
+						else
+						{
+							// If we're not fault-tolerant, we have an error.  If we are, we have to break out, because
+							// we can't assume that the Parse_Expr() call above ends up consuming any tokens at all
+							if (!parse_make_bad_nodes_)
+								EIDOS_TERMINATION << "ERROR (EidosScript::Parse_PostfixExpr): unexpected token '" << *current_token_ << "'." << EidosTerminate(current_token_);
+							else
+								break;
+						}
 					}
 				}
 				while (current_token_type_ != EidosTokenType::kTokenEOF);
