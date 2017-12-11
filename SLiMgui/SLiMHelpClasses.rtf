@@ -1781,18 +1781,19 @@ Returns a vector containing distances between individuals in
 \f0\fs20 , for example, then 
 \f2\fs18 point[0]
 \f0\fs20  is assumed to be an 
-\i \cf2 x
-\i0 \cf2  value, and 
+\i x
+\i0  value, and 
 \f2\fs18 point[1]
 \f0\fs20  is assumed to be a 
-\i \cf2 z
-\i0 \cf2  value.  Be careful; this means that in general it is not safe to pass an individual\'92s 
+\i z
+\i0  value.  Be careful; this means that in general it is not safe to pass an individual\'92s 
 \f2\fs18 spatialPosition
 \f0\fs20  property for 
 \f2\fs18 point
 \f0\fs20 , for example (although it is safe if the spatiality of the interaction matches the dimensionality of the simulation).  A coordinate for a periodic spatial dimension must be within the spatial bounds for that dimension, since coordinates outside of periodic bounds are meaningless (
 \f2\fs18 pointPeriodic()
 \f0\fs20  may be used to ensure this); coordinates for non-periodic spatial dimensions are not restricted.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 Importantly, distances are calculated according to the spatiality of the 
 \f2\fs18 InteractionType
 \f0\fs20  (as declared in 
@@ -4004,18 +4005,17 @@ Note that new script blocks can also be created and scheduled using the
 \f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(void)defineSpatialMap(string$\'a0name, string$\'a0spatiality, integer
+\f2\fs18 \cf0 \'96\'a0(void)defineSpatialMap(string$\'a0name, string$\'a0spatiality, Ni
 \f3 \'a0
 \f2 gridSize, float\'a0values, [logical$\'a0interpolate\'a0=\'a0F], [Nf\'a0valueRange\'a0=\'a0NULL], [Ns\'a0colors\'a0=\'a0NULL])\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 Defines a spatial map for the subpopulation.  The map will henceforth be identified by 
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+Defines a spatial map for the subpopulation.  The map will henceforth be identified by 
 \f2\fs18 name
-\f3\fs20 .
-\f0   The map uses the spatial dimensions referenced by spatiality, which must be a subset of the dimensions defined for the simulation in 
+\f0\fs20 .  The map uses the spatial dimensions referenced by spatiality, which must be a subset of the dimensions defined for the simulation in 
 \f2\fs18 initializeSLiMOptions()
-\f3\fs20 .
-\f0   Spatiality 
+\f0\fs20 .  Spatiality 
 \f2\fs18 "x"
 \f0\fs20  is permitted for dimensionality 
 \f2\fs18 "x"
@@ -4043,10 +4043,13 @@ Note that new script blocks can also be created and scheduled using the
 \f2\fs18 "xyz"
 \f0\fs20  for dimensionality 
 \f2\fs18 "xyz"
-\f3\fs20 .
-\f0   The spatial map is defined by a grid of values of a size specified by 
+\f0\fs20 .  The spatial map is defined by a grid of values of a size specified by 
 \f2\fs18 gridSize
-\f0\fs20 , which must have one value per spatial dimension; for a spatiality of 
+\f0\fs20 , which must have one value per spatial dimension (or 
+\f2\fs18 gridSize
+\f0\fs20  may be 
+\f2\fs18 NULL
+\f0\fs20 ; see below); for a spatiality of 
 \f2\fs18 "xz"
 \f0\fs20 , for example, 
 \f2\fs18 gridSize
@@ -4056,7 +4059,9 @@ Note that new script blocks can also be created and scheduled using the
 \i x
 \i0  and 
 \i z
-\i0  dimensions.  The parameter values then gives the values of the grid; it must be of length equal to the product of the 
+\i0  dimensions.  The parameter 
+\f2\fs18 values
+\f0\fs20  then gives the values of the grid; it must be of length equal to the product of the 
 \f2\fs18 gridSize
 \f0\fs20  elements, and specifies values varying first in the 
 \i x
@@ -4064,11 +4069,77 @@ Note that new script blocks can also be created and scheduled using the
 \i y
 \i0 , then in 
 \i z
-\f3\i0 .\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-
-\f0 \cf2 \expnd0\expndtw0\kerning0
-If 
+\i0 .\
+Beginning in SLiM 2.6, the 
+\f2\fs18 values
+\f0\fs20  parameter may be a matrix/array with the number of dimensions appropriate for the declared spatiality of the map; for example, a map with spatiality 
+\f2\fs18 "xy"
+\f0\fs20  would require a (two-dimensional) matrix, whereas a map with spatiality of 
+\f2\fs18 "xyz"
+\f0\fs20  would require a three-dimensional array.  (See the Eidos manual for discussion of matrices and arrays.)  If a matrix/array argument is supplied for 
+\f2\fs18 values
+\f0\fs20 , 
+\f2\fs18 gridSize
+\f0\fs20  must either be 
+\f2\fs18 NULL
+\f0\fs20 , or (for backward compatibility) may match the dimensions of 
+\f2\fs18 values
+\f0\fs20  as they would be given by 
+\f2\fs18 dim(values)
+\f0\fs20 .  The data in 
+\f2\fs18 values
+\f0\fs20  is interpreted just as is described above for the vector case: varying first in 
+\i x
+\i0 , then in 
+\i y
+\i0 , then in 
+\i z
+\i0 .  BEWARE: since the values in Eidos matrices and arrays are stored in column-first order (following the convention established by R), this means that for a map with spatiality 
+\f2\fs18 "xy"
+\f0\fs20  each column of the 
+\f2\fs18 values
+\f0\fs20  matrix will provide map data as 
+\i x
+\i0  varies and 
+\i y
+\i0  remains constant.  This will be confusing if you think of matrix columns as being \'93
+\i x
+\i0 \'94 and matrix rows as being \'93
+\i y
+\i0 \'94, so try not to think that way; the opposite is true.  This behavior is actually simple, self-consistent, and backward-compatible; if you before created a spatial map with a vector 
+\f2\fs18 values
+\f0\fs20  before and a 
+\f2\fs18 gridSize
+\f0\fs20  of 
+\f2\fs18 c(x, y)
+\f0\fs20  specifying the dimensions of that vector, you can now supply 
+\f2\fs18 matrix(values, nrow=x)
+\f0\fs20  for 
+\f2\fs18 values
+\f0\fs20  to get exactly the same spatial map, and you can still supply the same value of 
+\f2\fs18 c(x, y)
+\f0\fs20  for 
+\f2\fs18 gridSize
+\f0\fs20  if you wish (or you may supply 
+\f2\fs18 NULL
+\f0\fs20 ).  If, however, you are looking at a matrix as printed in the Eidos console, and want that matrix to be used as a spatial map in SLiM in the same orientation, you should use the transpose of the matrix, as supplied by the 
+\f2\fs18 t()
+\f0\fs20  function.  Actually, since matrices are printed in the console with each successive row having a 
+\i larger
+\i0  index, whereas in Cartesian (
+\i x
+\i0 , 
+\i y
+\i0 ) coordinates 
+\i y
+\i0 -values increase as you go 
+\i upward
+\i0 , you may also wish to reverse the order of rows in your matrix prior to transposing (or the order of columns after transposing), with an expression such as 
+\f2\fs18 t(map[(nrow(map)-1):0,])
+\f0\fs20 , in order to make the spatial map display in SLiMgui as you expect (since SLiMgui displays everything in Cartesian coordinates).  Apologies if this is confusing; it would be nice if matrix notation, programming languages, and Descartes all agreed on such things, but they do not, so be very careful that your spatial maps are oriented as you wish them to be!\
+Moving on to the other parameters of 
+\f2\fs18 defineSpatialMap()
+\f0\fs20 : if 
 \f2\fs18 interpolate
 \f0\fs20  is 
 \f2\fs18 F
@@ -4080,7 +4151,7 @@ If
 \f2\fs18 setSpatialBoundary()
 \f0\fs20 , and the value grid is then stretched across the spatial extent of the subpopulation in such a manner as to produce equal spacing between the values along each dimension.  The setting of 
 \f2\fs18 interpolation
-\f0\fs20  only affects how values between these grid points are calculated: by nearest-neighbor, or by linear interpolation.  Interpolation of spatial maps with periodic boundaries is not handled specially; to ensure that the edges of a periodic spatial map join smoothly, simply ensure that the grid values at the edges of the map are identical, since they will be coincident after periodic wrapping.\cf0 \kerning1\expnd0\expndtw0 \
+\f0\fs20  only affects how values between these grid points are calculated: by nearest-neighbor, or by linear interpolation.  Interpolation of spatial maps with periodic boundaries is not handled specially; to ensure that the edges of a periodic spatial map join smoothly, simply ensure that the grid values at the edges of the map are identical, since they will be coincident after periodic wrapping.\
 The 
 \f2\fs18 valueRange
 \f0\fs20  and 
@@ -4116,11 +4187,10 @@ Note that at present, SLiMgui will only display spatial maps of spatiality
 \f2\fs18 spatialMapColor()
 \f0\fs20  method will return translated color strings for any spatial map, however, even if SLiMgui is unable to display the spatial map.  If there are multiple spatial maps with color-mapping parameters defined, SLiMgui will choose just one for display; it will prefer an 
 \f2\fs18 "xy"
-\f0\fs20  map if one is available, but beyond that heuristic its choice will be arbitrary.
-\f3 \
+\f0\fs20  map if one is available, but beyond that heuristic its choice will be arbitrary.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96
 \f3 \'a0
 \f2 (+)getValue(string$\'a0key)
 \f3 \

@@ -50,6 +50,7 @@ development head:
 	update the GSL code in Eidos to GSL version 2.4 and pulled in gsl_ran_multivariate_gaussian(), gsl_linalg_cholesky_decomp1(), and dependencies (no user-visible impact)
 	add rmvnorm() for drawing from a multivariate distribution
 	make version() return version numbers to the caller
+	extend defineSpatialMap() to allow the map values to be specified as a matrix/array
 
 
 2.5 (build 1204; Eidos version 1.5):

@@ -2063,6 +2063,33 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.spatialMapValue('m', float(0)); stop(); }", 1, 250, "could not find map", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.spatialMapValue('m', 0.0); stop(); }", 1, 250, "could not find map", __LINE__);
 	
+	// a few tests supplying a matrix/array spatial map instead of a vector; no need to test spatialMapValue() etc. with these,
+	// since it all funnels into the same map definition code anyway, so we just need to be sure the pre-funnel code is good...
+	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xy', c(2,2), matrix(1.0:4, nrow=2)); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xy', NULL, matrix(1.0:4, nrow=2)); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xy', c(3,3), matrix(1.0:9, nrow=3)); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xy', NULL, matrix(1.0:9, nrow=3)); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xy', c(2,3), matrix(1.0:6, nrow=2)); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xy', NULL, matrix(1.0:6, nrow=2)); stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xy', c(6), matrix(1.0:6, nrow=2)); stop(); }", 1, 488, "gridSize must match the spatiality", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xy', c(3,2), matrix(1.0:6, nrow=2)); stop(); }", 1, 488, "gridSize does not match dimensions", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xy', c(2,2), matrix(1.0:6, nrow=2)); stop(); }", 1, 488, "gridSize does not match dimensions", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xy', c(3,3), matrix(1.0:6, nrow=2)); stop(); }", 1, 488, "gridSize does not match dimensions", __LINE__);
+	
+	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xz', c(2,2), matrix(1.0:4, nrow=2)); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xz', NULL, matrix(1.0:4, nrow=2)); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xz', c(3,3), matrix(1.0:9, nrow=3)); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xz', NULL, matrix(1.0:9, nrow=3)); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xz', c(2,3), matrix(1.0:6, nrow=2)); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xz', NULL, matrix(1.0:6, nrow=2)); stop(); }", __LINE__);
+	
+	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xyz', c(2,2,2), array(1.0:8, c(2,2,2))); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xyz', NULL, array(1.0:8, c(2,2,2))); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xyz', c(3,3,3), array(1.0:27, c(3,3,3))); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xyz', NULL, array(1.0:27, c(3,3,3))); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xyz', c(2,3,2), array(1.0:12, c(2,3,2))); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xyz', NULL, array(1.0:12, c(2,3,2))); stop(); }", __LINE__);
+	
 	// 1D sim with 1D x map
 	SLiMAssertScriptRaise(gen1_setup_i1x + "1 { p1.defineSpatialMap('map', '', integer(0), float(0)); stop(); }", 1, 424, "spatiality \"\" must be", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1x + "1 { p1.defineSpatialMap('map', 'xy', 2, c(0.0, 1.0)); stop(); }", 1, 424, "spatial dimensions beyond those set", __LINE__);

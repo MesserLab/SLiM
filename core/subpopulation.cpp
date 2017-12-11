@@ -3010,14 +3010,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 	}
 }
 
-//	*********************	– (void)defineSpatialMap(string$ name, string$ spatiality, int gridSize, float values, [logical$ interpolate = F], [Nf valueRange = NULL], [Ns colors = NULL])
+//	*********************	– (void)defineSpatialMap(string$ name, string$ spatiality, Ni gridSize, float values, [logical$ interpolate = F], [Nf valueRange = NULL], [Ns colors = NULL])
 //
 EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
 	EidosValue *name_value = p_arguments[0].get();
 	EidosValue *spatiality_value = p_arguments[1].get();
-	EidosValue *grid_size = p_arguments[2].get();
+	EidosValue *gridSize_value = p_arguments[2].get();
 	EidosValue *values = p_arguments[3].get();
 	EidosValue *interpolate_value = p_arguments[4].get();
 	EidosValue *value_range = p_arguments[5].get();
@@ -3048,25 +3048,51 @@ EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID 
 	if (required_dimensionality > spatial_dimensionality)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() spatiality cannot utilize spatial dimensions beyond those set in initializeSLiMOptions()." << EidosTerminate();
 	
-	if (grid_size->Count() != map_spatiality)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() gridSize must match the spatiality defined for the map." << EidosTerminate();
+	int values_dimcount = values->DimensionCount();
+	const int64_t *values_dim = values->Dimensions();
+	
+	if ((values_dimcount != 1) && (values_dimcount != map_spatiality))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() the dimensionality of the supplied matrix/array does not match the spatiality defined for the map." << EidosTerminate();
 	
 	int64_t map_size = 1;
 	int64_t dimension_sizes[3];
 	
-	for (int dimension_index = 0; dimension_index < map_spatiality; ++dimension_index)
+	if (gridSize_value->Type() != EidosValueType::kValueNULL)
 	{
-		int64_t dimension_size = grid_size->IntAtIndex(dimension_index, nullptr);
+		// A gridSize argument was supplied, so it must match the spatiality of the map and the size of the data in values
+		if (gridSize_value->Count() != map_spatiality)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() gridSize must match the spatiality defined for the map." << EidosTerminate();
 		
-		if (dimension_size < 2)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() all elements of gridSize must be of length >= 2." << EidosTerminate();
+		for (int dimension_index = 0; dimension_index < map_spatiality; ++dimension_index)
+		{
+			int64_t dimension_size = gridSize_value->IntAtIndex(dimension_index, nullptr);
+			
+			if (dimension_size < 2)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() all elements of gridSize must be of length >= 2." << EidosTerminate();
+			if ((values_dimcount != 1) && (dimension_size != values_dim[dimension_index]))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() supplied gridSize does not match dimensions of matrix/array value; either supply a matching gridSize or supply NULL for gridSize." << EidosTerminate();
+			
+			dimension_sizes[dimension_index] = dimension_size;
+			map_size *= dimension_size;
+		}
 		
-		dimension_sizes[dimension_index] = dimension_size;
-		map_size *= dimension_size;
+		if (values->Count() != map_size)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() size of the values vector (" << values->Count() << ") does not match the product of the sizes in gridSize (" << map_size << ")." << EidosTerminate();
 	}
-	
-	if (values->Count() != map_size)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() size of the values vector (" << values->Count() << ") does not match the product of the sizes in gridSize (" << map_size << ")." << EidosTerminate();
+	else
+	{
+		// No gridSize was supplied, so values must be a matrix/array that matches the spatiality of the map
+		for (int dimension_index = 0; dimension_index < map_spatiality; ++dimension_index)
+		{
+			int64_t dimension_size = values_dim[dimension_index];
+			
+			if (dimension_size < 2)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() all dimensions of value must be of size >= 2." << EidosTerminate();
+			
+			dimension_sizes[dimension_index] = dimension_size;
+			map_size *= dimension_size;
+		}
+	}
 	
 	bool range_is_null = (value_range->Type() == EidosValueType::kValueNULL);
 	bool colors_is_null = (colors->Type() == EidosValueType::kValueNULL);
@@ -3578,7 +3604,7 @@ const EidosMethodSignature *Subpopulation_Class::SignatureForMethod(EidosGlobalS
 		setSpatialBoundsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSpatialBounds, kEidosValueMaskNULL))->AddFloat("bounds");
 		setSubpopulationSizeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSubpopulationSize, kEidosValueMaskNULL))->AddInt_S("size");
 		cachedFitnessSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_cachedFitness, kEidosValueMaskFloat))->AddInt_N("indices");
-		defineSpatialMapSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_defineSpatialMap, kEidosValueMaskNULL))->AddString_S("name")->AddString_S("spatiality")->AddInt("gridSize")->AddFloat("values")->AddLogical_OS("interpolate", gStaticEidosValue_LogicalF)->AddFloat_ON("valueRange", gStaticEidosValueNULL)->AddString_ON("colors", gStaticEidosValueNULL);
+		defineSpatialMapSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_defineSpatialMap, kEidosValueMaskNULL))->AddString_S("name")->AddString_S("spatiality")->AddInt_N("gridSize")->AddFloat("values")->AddLogical_OS("interpolate", gStaticEidosValue_LogicalF)->AddFloat_ON("valueRange", gStaticEidosValueNULL)->AddString_ON("colors", gStaticEidosValueNULL);
 		spatialMapColorSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_spatialMapColor, kEidosValueMaskString))->AddString_S("name")->AddFloat("value");
 		spatialMapValueSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_spatialMapValue, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddString_S("name")->AddFloat("point");
 		outputMSSampleSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMSSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF);
