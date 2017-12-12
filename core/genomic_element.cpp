@@ -77,9 +77,12 @@ GenomicElement& GenomicElement::operator= (const GenomicElement& p_original)
 		SLIM_ERRSTREAM << "************************************************" << std::endl;
 	}
 	
-	genomic_element_type_ptr_ = p_original.genomic_element_type_ptr_;
-	start_position_ = p_original.start_position_;
-	end_position_ = p_original.end_position_;
+	if (&p_original != this)
+	{
+		genomic_element_type_ptr_ = p_original.genomic_element_type_ptr_;
+		start_position_ = p_original.start_position_;
+		end_position_ = p_original.end_position_;
+	}
 	
 	return *this;
 }

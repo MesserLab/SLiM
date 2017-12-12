@@ -334,14 +334,14 @@ public:
 		int count1 = p_value1->Count();
 		int count2 = p_value2->Count();
 		
-		if (dim1 != 1)
+		if (dim2 == 1)
 		{
 			// p_value1 is a matrix/array, p_value2 is not; prefer the matrix, except that we won't promote a non-singleton vector to be a matrix
 			if ((count1 == 1) && (count2 != 1))
 				return p_value2;
 			return p_value1;
 		}
-		else if (dim2 != 1)
+		else if (dim1 == 1)
 		{
 			// p_value2 is a matrix/array, p_value1 is not; prefer the matrix, except that we won't promote a non-singleton vector to be a matrix
 			if ((count2 == 1) && (count1 != 1))

@@ -3670,8 +3670,15 @@ void Population::AssessMutationRuns(void)
 		std::cout << "***** Generation " << gen << ":" << std::endl;
 		std::cout << "   Mutation count: " << mutation_registry_.size() << std::endl;
 		std::cout << "   Genome count: " << total_genome_count << " (divided into " << mutrun_count << " mutation runs of length " << mutrun_length << ")" << std::endl;
-		std::cout << "   Mutation run unshared: " << total_mutrun_count << " (containing " << (mutation_total / (double)total_mutrun_count) << " mutations on average)" << std::endl;
-		std::cout << "   Mutation run actual: " << total_shared_mutrun_count << " (mean use count " << (use_count_total / (double)total_shared_mutrun_count) << ")" << std::endl;
+		
+		std::cout << "   Mutation run unshared: " << total_mutrun_count;
+		if (total_mutrun_count) std::cout << " (containing " << (mutation_total / (double)total_mutrun_count) << " mutations on average)";
+		std::cout << std::endl;
+		
+		std::cout << "   Mutation run actual: " << total_shared_mutrun_count;
+		if (total_shared_mutrun_count) std::cout << " (mean use count " << (use_count_total / (double)total_shared_mutrun_count) << ")";
+		std::cout << std::endl;
+		
 		std::cout << "*****" << std::endl;
 	}
 }
