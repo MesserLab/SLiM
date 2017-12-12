@@ -2343,6 +2343,10 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 		EidosObjectElement *value = values_[0];
 		EidosValue_SP result = value->GetProperty(p_property_id);
 		
+		// Access of singleton properties retains the matrix/array structure of the target
+		if (signature->value_mask_ & kEidosValueMaskSingleton)
+			result->CopyDimensionsFromValue(this);
+		
 		signature->CheckResultValue(*result);
 		return result;
 	}
@@ -2351,6 +2355,7 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 		// Accelerated property access is enabled for this property, so we will switch on the type of the property, and
 		// assemble the result value directly from the C++ type values we get from the accelerated access methods...
 		EidosValueMask sig_mask = (signature->value_mask_ & kEidosValueMaskFlagStrip);
+		EidosValue_SP result;
 		
 		switch (sig_mask)
 		{
@@ -2361,7 +2366,8 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 				for (size_t value_index = 0; value_index < values_size; ++value_index)
 					logical_result->set_logical_no_check(values_[value_index]->GetProperty_Accelerated_Logical(p_property_id), value_index);
 				
-				return EidosValue_SP(logical_result);
+				result = EidosValue_SP(logical_result);
+				break;
 			}
 			case kEidosValueMaskInt:
 			{
@@ -2370,7 +2376,8 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 				for (size_t value_index = 0; value_index < values_size; ++value_index)
 					int_result->set_int_no_check(values_[value_index]->GetProperty_Accelerated_Int(p_property_id), value_index);
 				
-				return EidosValue_SP(int_result);
+				result = EidosValue_SP(int_result);
+				break;
 			}
 			case kEidosValueMaskFloat:
 			{
@@ -2379,7 +2386,8 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 				for (size_t value_index = 0; value_index < values_size; ++value_index)
 					float_result->set_float_no_check(values_[value_index]->GetProperty_Accelerated_Float(p_property_id), value_index);
 				
-				return EidosValue_SP(float_result);
+				result = EidosValue_SP(float_result);
+				break;
 			}
 			case kEidosValueMaskString:
 			{
@@ -2388,7 +2396,8 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 				for (size_t value_index = 0; value_index < values_size; ++value_index)
 					string_result->PushString(values_[value_index]->GetProperty_Accelerated_String(p_property_id));
 				
-				return EidosValue_SP(string_result);
+				result = EidosValue_SP(string_result);
+				break;
 			}
 			case kEidosValueMaskObject:
 			{
@@ -2401,7 +2410,8 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 					for (size_t value_index = 0; value_index < values_size; ++value_index)
 						object_result->set_object_element_no_check(values_[value_index]->GetProperty_Accelerated_ObjectElement(p_property_id), value_index);
 					
-					return EidosValue_SP(object_result);
+					result = EidosValue_SP(object_result);
+					break;
 				}
 				else
 					EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::GetPropertyOfElements): (internal error) missing object element class for accelerated property access." << EidosTerminate(nullptr);
@@ -2409,6 +2419,12 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 			default:
 				EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::GetPropertyOfElements): (internal error) unsupported value type for accelerated property access." << EidosTerminate(nullptr);
 		}
+		
+		// Access of singleton properties retains the matrix/array structure of the target
+		if (signature->value_mask_ & kEidosValueMaskSingleton)
+			result->CopyDimensionsFromValue(this);
+		
+		return result;
 	}
 	else
 	{
@@ -2449,6 +2465,10 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 		
 		// concatenate the results using ConcatenateEidosValues()
 		EidosValue_SP result = ConcatenateEidosValues(results.data(), (int)results.size(), true);
+		
+		// Access of singleton properties retains the matrix/array structure of the target
+		if (signature->value_mask_ & kEidosValueMaskSingleton)
+			result->CopyDimensionsFromValue(this);
 		
 		return result;
 	}
@@ -3169,6 +3189,10 @@ EidosValue_SP EidosValue_Object_singleton::GetPropertyOfElements(EidosGlobalStri
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton::GetPropertyOfElements): property " << Eidos_StringForGlobalStringID(p_property_id) << " is not defined for object element type " << ElementType() << "." << EidosTerminate(nullptr);
 	
 	EidosValue_SP result = value_->GetProperty(p_property_id);
+	
+	// Access of singleton properties retains the matrix/array structure of the target
+	if (signature->value_mask_ & kEidosValueMaskSingleton)
+		result->CopyDimensionsFromValue(this);
 	
 	signature->CheckResultValue(*result);
 	

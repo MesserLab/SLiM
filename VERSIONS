@@ -53,6 +53,7 @@ development head:
 	extend defineSpatialMap() to allow the map values to be specified as a matrix/array
 	internal policy change: properties are no longer allowed to return NULL or be set to NULL, and must raise instead if they cannot provide a value
 	policy change: Chromosome properties that used to return NULL when inapplicable now raise (mutation rate map and recombination rate map properties)
+	change property semantics: singleton properties accessed on a matrix/array now mirror the dimensional structure of the target, like a unary operator
 
 
 2.5 (build 1204; Eidos version 1.5):

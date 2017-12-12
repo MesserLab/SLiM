@@ -2092,7 +2092,13 @@ void _RunOperatorAssignTests(void)
 	EidosAssertScriptSuccess("x = matrix(1:6, nrow=2); x[0,1:2][1] = 2; identical(x, matrix(c(1,2,3,4,2,6), nrow=2));", gStaticEidosValue_LogicalT);
 	EidosAssertScriptRaise("x=_Test(9); y=_Test(7); z=matrix(c(x,y,x,y), nrow=2); z._yolk[,1]=6.5;", 61, "subset of a property");
 	EidosAssertScriptRaise("x=_Test(9); y=_Test(7); z=matrix(c(x,y,x,y), nrow=2); z[,1]._yolk[1]=6.5;", 68, "subset of a property");
-	EidosAssertScriptSuccess("x=_Test(9); y=_Test(7); z=matrix(c(x,y,x,y), nrow=2); z[,1]._yolk=6; identical(z._yolk, c(6,6,6,6));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x=_Test(9); z=matrix(x); identical(z._yolk, matrix(9));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x=_Test(9); z=array(x, c(1,1,1,1)); identical(z._yolk, array(9, c(1,1,1,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x=_Test(9); z=matrix(x); z[0]._yolk = 6; identical(z._yolk, matrix(6));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x=_Test(9); z=array(x, c(1,1,1,1)); z[0]._yolk = 6; identical(z._yolk, array(6, c(1,1,1,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x=_Test(9); z=matrix(x); z[0,0]._yolk = 6; identical(z._yolk, matrix(6));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x=_Test(9); z=array(x, c(1,1,1,1)); z[0,0,0,0]._yolk = 6; identical(z._yolk, array(6, c(1,1,1,1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x=_Test(9); y=_Test(7); z=matrix(c(x,y,x,y), nrow=2); z[,1]._yolk=6; identical(z._yolk, matrix(c(6,6,6,6), nrow=2));", gStaticEidosValue_LogicalT);
 	
 	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); x[,,] = 2; identical(x, array(rep(2,12), c(2,3,2)));", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("x = array(1:12, c(2,3,2)); x[1,0,1] = -1; identical(x, array(c(1,2,3,4,5,6,7,-1,9,10,11,12), c(2,3,2)));", gStaticEidosValue_LogicalT);
