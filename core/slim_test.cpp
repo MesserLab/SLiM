@@ -275,7 +275,7 @@ static std::string gen1_setup_sex_p1(gen1_setup_sex + "1 { sim.addSubpop('p1', 1
 static std::string gen1_setup_p1p2p3(gen1_setup + "1 { sim.addSubpop('p1', 10); sim.addSubpop('p2', 10); sim.addSubpop('p3', 10); } ");
 
 
-void RunSLiMTests(void)
+int RunSLiMTests(void)
 {
 	// Test SLiM.  The goal here is not really to test that the core code of SLiM is working properly – that simulations
 	// work as they are intended to.  Such testing is beyond the scope of what we can do here.  Instead, the goal here
@@ -316,6 +316,9 @@ void RunSLiMTests(void)
 	// Clear out the SLiM output stream post-test
 	gSLiMOut.clear();
 	gSLiMOut.str("");
+	
+	// return a standard Unix result code indicating success (0) or failure (1);
+	return (gSLiMTestFailureCount > 0) ? 1 : 0;
 }
 
 #pragma mark basic tests

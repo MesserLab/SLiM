@@ -68,8 +68,10 @@ int main(int argc, const char * argv[])
 		{
 			gEidosTerminateThrows = true;
 			Eidos_WarmUp();
-			RunEidosTests();
-			exit(0);
+			
+			int test_result = RunEidosTests();
+			
+			exit(test_result);
 		}
 		
 		// -usage or -u: print usage information

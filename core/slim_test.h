@@ -23,7 +23,7 @@
 #include <stdio.h>
 
 
-void RunSLiMTests(void);
+int RunSLiMTests(void);
 
 
 #endif /* defined(__SLiM__slim_test__) */

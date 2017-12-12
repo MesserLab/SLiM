@@ -6,8 +6,12 @@ language: cpp
 # skip the install step, we have no dependencies
 install: true
 
-# build using make
-script: make all
+# build using make, then run Eidos and SLiM tests
+script:
+  - make all
+  - ./bin/eidos -testEidos
+  - ./bin/slim -testEidos
+  - ./bin/slim -testSLiM
 
 # use gcc; this probably doesn't matter since we call make anyway
 # it would be nice to try different gcc versions, but that is presently quite complex
@@ -32,7 +36,3 @@ notifications:
     on_success: always
     on_failure: always
 
-# run Eidos and SLiM tests after a build succeeds
-after_success:
-  - ./bin/slim -testEidos
-  - ./bin/slim -testSLiM

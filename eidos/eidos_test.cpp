@@ -257,7 +257,7 @@ static void _RunCodeExampleTests(void);
 static void _RunUserDefinedFunctionTests(void);
 
 
-void RunEidosTests(void)
+int RunEidosTests(void)
 {
 	// Reset error counts
 	gEidosTestSuccessCount = 0;
@@ -931,6 +931,9 @@ void RunEidosTests(void)
 	
 	// If we ran tests, the random number seed has been set; let's set it back to a good seed value
 	Eidos_InitializeRNGFromSeed(Eidos_GenerateSeedFromPIDAndTime());
+	
+	// return a standard Unix result code indicating success (0) or failure (1);
+	return (gEidosTestFailureCount > 0) ? 1 : 0;
 }
 
 #pragma mark literals & identifiers

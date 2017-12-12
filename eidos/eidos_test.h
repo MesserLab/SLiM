@@ -29,7 +29,7 @@
 #include <string>
 
 
-void RunEidosTests(void);
+int RunEidosTests(void);
 
 
 // Can turn on escape sequences to color test output; at present we turn these on for the command-line
