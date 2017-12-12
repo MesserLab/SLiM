@@ -4312,8 +4312,13 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions) 
 		p_out << std::endl;
 		
 #if DO_MEMORY_CHECKS
-		if (eidos_do_memory_checks && ((++mem_check_counter) % mem_check_mod == 0))
-			Eidos_CheckRSSAgainstMax("Population::PrintAll", "(Out of memory while outputting population list.)");
+		if (eidos_do_memory_checks)
+		{
+			mem_check_counter++;
+			
+			if (mem_check_counter % mem_check_mod == 0)
+				Eidos_CheckRSSAgainstMax("Population::PrintAll", "(Out of memory while outputting population list.)");
+		}
 #endif
 	}
 	
@@ -4342,8 +4347,13 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions) 
 			}
 			
 #if DO_MEMORY_CHECKS
-			if (eidos_do_memory_checks && ((++mem_check_counter) % mem_check_mod == 0))
-				Eidos_CheckRSSAgainstMax("Population::PrintAll", "(Out of memory while assembling polymorphisms.)");
+			if (eidos_do_memory_checks)
+			{
+				mem_check_counter++;
+				
+				if (mem_check_counter % mem_check_mod == 0)
+					Eidos_CheckRSSAgainstMax("Population::PrintAll", "(Out of memory while assembling polymorphisms.)");
+			}
 #endif
 		}
 	}
@@ -4356,8 +4366,13 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions) 
 		polymorphism_pair.second.Print(p_out);							// NOTE this added mutation_id_, BCH 11 June 2016
 		
 #if DO_MEMORY_CHECKS
-		if (eidos_do_memory_checks && ((++mem_check_counter) % mem_check_mod == 0))
-			Eidos_CheckRSSAgainstMax("Population::PrintAll", "(Out of memory while printing polymorphisms.)");
+		if (eidos_do_memory_checks)
+		{
+			mem_check_counter++;
+			
+			if (mem_check_counter % mem_check_mod == 0)
+				Eidos_CheckRSSAgainstMax("Population::PrintAll", "(Out of memory while printing polymorphisms.)");
+		}
 #endif
 	}
 	
@@ -4399,8 +4414,13 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions) 
 			p_out << std::endl;
 			
 #if DO_MEMORY_CHECKS
-			if (eidos_do_memory_checks && ((++mem_check_counter) % mem_check_mod == 0))
-				Eidos_CheckRSSAgainstMax("Population::PrintAll", "(Out of memory while printing individuals.)");
+			if (eidos_do_memory_checks)
+			{
+				mem_check_counter++;
+				
+				if (mem_check_counter % mem_check_mod == 0)
+					Eidos_CheckRSSAgainstMax("Population::PrintAll", "(Out of memory while printing individuals.)");
+			}
 #endif
 		}
 	}
@@ -4449,8 +4469,13 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions) 
 			p_out << std::endl;
 			
 #if DO_MEMORY_CHECKS
-			if (eidos_do_memory_checks && ((++mem_check_counter) % mem_check_mod == 0))
-				Eidos_CheckRSSAgainstMax("Population::PrintAll", "(Out of memory while printing genomes.)");
+			if (eidos_do_memory_checks)
+			{
+				mem_check_counter++;
+				
+				if (mem_check_counter % mem_check_mod == 0)
+					Eidos_CheckRSSAgainstMax("Population::PrintAll", "(Out of memory while printing genomes.)");
+			}
 #endif
 		}
 	}

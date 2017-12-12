@@ -1065,13 +1065,38 @@ std::string Eidos_ResolvedPath(const std::string p_path)
 	// if there is a leading '~', replace it with the user's home directory; not sure if this works on Windows...
 	if ((path.length() > 0) && (path[0] == '~'))
 	{
-		const char *homedir;
+		long bufsize = bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
 		
-		if ((homedir = getenv("HOME")) == NULL)
-			homedir = getpwuid(getuid())->pw_dir;
-		
-		if (strlen(homedir))
-			path.replace(0, 1, homedir);
+		if (bufsize == -1)
+		{
+			// non-reentrant code when we can't get a buffer size
+			const char *homedir;
+			
+			if ((homedir = getenv("HOME")) == NULL)
+				homedir = getpwuid(getuid())->pw_dir;
+			
+			if (strlen(homedir))
+				path.replace(0, 1, homedir);
+		}
+		else
+		{
+			// reentrant version using getpwuid_r
+			char buffer[bufsize];
+			struct passwd pwd, *result = NULL;
+			int retval = getpwuid_r(getuid(), &pwd, buffer, bufsize, &result);
+			
+			if (retval || !result)
+			{
+				std::cerr << "Eidos_ResolvedPath(): Could not resolve ~ in path due to failure of getpwuid_r";
+			}
+			else
+			{
+				const char *homedir = pwd.pw_dir;
+				
+				if (strlen(homedir))
+					path.replace(0, 1, homedir);
+			}
+		}
 	}
 	
 	return path;

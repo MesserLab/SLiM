@@ -1099,12 +1099,12 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 	
 	{
 		time_t rawtime;
-		struct tm *timeinfo;
+		struct tm timeinfo;
 		char buffer[25];	// should never be more than 10, in fact, plus a null
 		
 		time(&rawtime);
-		timeinfo = localtime(&rawtime);
-		strftime(buffer, 25, "%Y%m%d", timeinfo);
+		localtime_r(&rawtime, &timeinfo);
+		strftime(buffer, 25, "%Y%m%d", &timeinfo);
 		
 		p_out << "##fileDate=" << std::string(buffer) << std::endl;
 	}

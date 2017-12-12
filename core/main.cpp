@@ -315,14 +315,19 @@ int main(int argc, char *argv[])
 			}
 			
 #if DO_MEMORY_CHECKS
-			if (eidos_do_memory_checks && ((++mem_check_counter) % mem_check_mod == 0))
+			if (eidos_do_memory_checks)
 			{
-				// Check memory usage at the end of the generation, so we can print a decent error message
-				std::ostringstream message;
+				mem_check_counter++;
 				
-				message << "(Limit exceeded at end of generation " << sim->Generation() << ".)" << std::endl;
-				
-				Eidos_CheckRSSAgainstMax("main()", message.str());
+				if (mem_check_counter % mem_check_mod == 0)
+				{
+					// Check memory usage at the end of the generation, so we can print a decent error message
+					std::ostringstream message;
+					
+					message << "(Limit exceeded at end of generation " << sim->Generation() << ".)" << std::endl;
+					
+					Eidos_CheckRSSAgainstMax("main()", message.str());
+				}
 			}
 #endif
 		}

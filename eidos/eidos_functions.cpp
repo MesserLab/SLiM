@@ -8229,7 +8229,6 @@ EidosValue_SP Eidos_ExecuteFunction_filesAtPath(const EidosValue_SP *const p_arg
 	// this code modified from GNU: http://www.gnu.org/software/libc/manual/html_node/Simple-Directory-Lister.html#Simple-Directory-Lister
 	// I'm not sure if it works on Windows... sigh...
 	DIR *dp;
-	struct dirent *ep;
 	
 	dp = opendir(path.c_str());
 	
@@ -8238,8 +8237,23 @@ EidosValue_SP Eidos_ExecuteFunction_filesAtPath(const EidosValue_SP *const p_arg
 		EidosValue_String_vector *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector();
 		result_SP = EidosValue_SP(string_result);
 		
-		while ((ep = readdir(dp)))
+		struct dirent *ep;
+		struct dirent ep_storage;
+		
+		while (true)
 		{
+			int retval = readdir_r(dp, &ep_storage, &ep);
+			
+			if (retval != 0)
+			{
+				p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_filesAtPath): function filesAtPath() encountered error code " << retval << " while iterating through path " << path << "." << std::endl;
+				result_SP = gStaticEidosValueNULL;
+				break;
+			}
+			
+			if (!ep)
+				break;
+			
 			std::string filename = ep->d_name;
 			
 			if (fullPaths)
@@ -8866,12 +8880,12 @@ EidosValue_SP Eidos_ExecuteFunction_date(__attribute__((unused)) const EidosValu
 	EidosValue_SP result_SP(nullptr);
 	
 	time_t rawtime;
-	struct tm *timeinfo;
+	struct tm timeinfo;
 	char buffer[25];	// should never be more than 10, in fact, plus a null
 	
 	time(&rawtime);
-	timeinfo = localtime(&rawtime);
-	strftime(buffer, 25, "%d-%m-%Y", timeinfo);
+	localtime_r(&rawtime, &timeinfo);
+	strftime(buffer, 25, "%d-%m-%Y", &timeinfo);
 	
 	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(std::string(buffer)));
 	
@@ -9433,12 +9447,12 @@ EidosValue_SP Eidos_ExecuteFunction_time(__attribute__((unused)) const EidosValu
 	EidosValue_SP result_SP(nullptr);
 	
 	time_t rawtime;
-	struct tm *timeinfo;
+	struct tm timeinfo;
 	char buffer[20];		// should never be more than 8, in fact, plus a null
 	
 	time(&rawtime);
-	timeinfo = localtime(&rawtime);
-	strftime(buffer, 20, "%H:%M:%S", timeinfo);
+	localtime_r(&rawtime, &timeinfo);
+	strftime(buffer, 20, "%H:%M:%S", &timeinfo);
 	
 	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(std::string(buffer)));
 	

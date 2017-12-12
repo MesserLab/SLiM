@@ -4625,8 +4625,13 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_
 		subs[i]->PrintForSLiMOutput(out);
 		
 #if DO_MEMORY_CHECKS
-		if (eidos_do_memory_checks && ((++mem_check_counter) % mem_check_mod == 0))
-			Eidos_CheckRSSAgainstMax("SLiMSim::ExecuteMethod_outputFixedMutations", "(outputFixedMutations(): Out of memory while outputting substitution objects.)");
+		if (eidos_do_memory_checks)
+		{
+			mem_check_counter++;
+			
+			if (mem_check_counter % mem_check_mod == 0)
+				Eidos_CheckRSSAgainstMax("SLiMSim::ExecuteMethod_outputFixedMutations", "(outputFixedMutations(): Out of memory while outputting substitution objects.)");
+		}
 #endif
 	}
 	

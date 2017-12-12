@@ -118,17 +118,29 @@ bool MutationRun::contains_mutation(MutationIndex p_mutation_index)
 	{
 		slim_position_t back_scan = mut_index;
 		
-		while ((back_scan > 0) && ((mut_block_ptr + mut_ptr[--back_scan])->position_ == position))
-			if (mut_ptr[back_scan] == p_mutation_index)
+		while (back_scan > 0)
+		{
+			const MutationIndex scan_mut_index = mut_ptr[--back_scan];
+			
+			if ((mut_block_ptr + scan_mut_index)->position_ != position)
+				break;
+			if (scan_mut_index == p_mutation_index)
 				return true;
+		}
 	}
 	
 	{
 		slim_position_t forward_scan = mut_index;
 		
-		while ((forward_scan < mut_count - 1) && ((mut_block_ptr + mut_ptr[++forward_scan])->position_ == position))
-			if (mut_ptr[forward_scan] == p_mutation_index)
+		while (forward_scan < mut_count - 1)
+		{
+			const MutationIndex scan_mut_index = mut_ptr[++forward_scan];
+			
+			if ((mut_block_ptr + scan_mut_index)->position_ != position)
+				break;
+			if (scan_mut_index == p_mutation_index)
 				return true;
+		}
 	}
 	
 	return false;
@@ -217,17 +229,29 @@ bool MutationRun::contains_mutation_with_type_and_position(MutationType *p_mut_t
 	{
 		slim_position_t back_scan = mut_index;
 		
-		while ((back_scan > 0) && ((mut_block_ptr + mut_ptr[--back_scan])->position_ == p_position))
-			if ((mut_block_ptr + mut_ptr[back_scan])->mutation_type_ptr_ == p_mut_type)
+		while (back_scan > 0)
+		{
+			const MutationIndex scan_mut_index = mut_ptr[--back_scan];
+			
+			if ((mut_block_ptr + scan_mut_index)->position_ != p_position)
+				break;
+			if ((mut_block_ptr + scan_mut_index)->mutation_type_ptr_ == p_mut_type)
 				return true;
+		}
 	}
 	
 	{
 		slim_position_t forward_scan = mut_index;
 		
-		while ((forward_scan < mut_count - 1) && ((mut_block_ptr + mut_ptr[++forward_scan])->position_ == p_position))
-			if ((mut_block_ptr + mut_ptr[forward_scan])->mutation_type_ptr_ == p_mut_type)
+		while (forward_scan < mut_count - 1)
+		{
+			const MutationIndex scan_mut_index = mut_ptr[++forward_scan];
+			
+			if ((mut_block_ptr + scan_mut_index)->position_ != p_position)
+				break;
+			if ((mut_block_ptr + scan_mut_index)->mutation_type_ptr_ == p_mut_type)
 				return true;
+		}
 	}
 	
 	return false;
