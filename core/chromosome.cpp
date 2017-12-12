@@ -695,64 +695,118 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		}
 			
 		case gID_mutationEndPositions:
-			if (!single_mutation_map_) return gStaticEidosValueNULL;
+		{
+			if (!single_mutation_map_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationEndPositions is not defined since sex-specific mutation rate maps have been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(mutation_end_positions_H_));
+		}
 		case gID_mutationEndPositionsM:
-			if (single_mutation_map_) return gStaticEidosValueNULL;
+		{
+			if (single_mutation_map_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationEndPositionsM is not defined since sex-specific mutation rate maps have not been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(mutation_end_positions_M_));
+		}
 		case gID_mutationEndPositionsF:
-			if (single_mutation_map_) return gStaticEidosValueNULL;
+		{
+			if (single_mutation_map_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationEndPositionsF is not defined since sex-specific mutation rate maps have not been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(mutation_end_positions_F_));
+		}
 			
 		case gID_mutationRates:
-			if (!single_mutation_map_) return gStaticEidosValueNULL;
+		{
+			if (!single_mutation_map_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationRates is not defined since sex-specific mutation rate maps have been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(mutation_rates_H_));
+		}
 		case gID_mutationRatesM:
-			if (single_mutation_map_) return gStaticEidosValueNULL;
+		{
+			if (single_mutation_map_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationRatesM is not defined since sex-specific mutation rate maps have not been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(mutation_rates_M_));
+		}
 		case gID_mutationRatesF:
-			if (single_mutation_map_) return gStaticEidosValueNULL;
+		{
+			if (single_mutation_map_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationRatesF is not defined since sex-specific mutation rate maps have not been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(mutation_rates_F_));
+		}
 			
 		case gID_overallMutationRate:
-			if (!single_mutation_map_) return gStaticEidosValueNULL;
+		{
+			if (!single_mutation_map_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallMutationRate is not defined since sex-specific mutation rate maps have been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_mutation_rate_H_));
+		}
 		case gID_overallMutationRateM:
-			if (single_mutation_map_) return gStaticEidosValueNULL;
+		{
+			if (single_mutation_map_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallMutationRateM is not defined since sex-specific mutation rate maps have not been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_mutation_rate_M_));
+		}
 		case gID_overallMutationRateF:
-			if (single_mutation_map_) return gStaticEidosValueNULL;
+		{
+			if (single_mutation_map_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallMutationRateF is not defined since sex-specific mutation rate maps have not been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_mutation_rate_F_));
-		
+		}
+			
 		case gID_overallRecombinationRate:
-			if (!single_recombination_map_) return gStaticEidosValueNULL;
+		{
+			if (!single_recombination_map_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallRecombinationRate is not defined since sex-specific recombination rate maps have been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_recombination_rate_H_));
+		}
 		case gID_overallRecombinationRateM:
-			if (single_recombination_map_) return gStaticEidosValueNULL;
+		{
+			if (single_recombination_map_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallRecombinationRateM is not defined since sex-specific recombination rate maps have not been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_recombination_rate_M_));
+		}
 		case gID_overallRecombinationRateF:
-			if (single_recombination_map_) return gStaticEidosValueNULL;
+		{
+			if (single_recombination_map_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallRecombinationRateF is not defined since sex-specific recombination rate maps have not been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_recombination_rate_F_));
-		
+		}
+			
 		case gID_recombinationEndPositions:
-			if (!single_recombination_map_) return gStaticEidosValueNULL;
+		{
+			if (!single_recombination_map_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property recombinationEndPositions is not defined since sex-specific recombination rate maps have been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(recombination_end_positions_H_));
+		}
 		case gID_recombinationEndPositionsM:
-			if (single_recombination_map_) return gStaticEidosValueNULL;
+		{
+			if (single_recombination_map_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property recombinationEndPositionsM is not defined since sex-specific recombination rate maps have not been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(recombination_end_positions_M_));
+		}
 		case gID_recombinationEndPositionsF:
-			if (single_recombination_map_) return gStaticEidosValueNULL;
+		{
+			if (single_recombination_map_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property recombinationEndPositionsF is not defined since sex-specific recombination rate maps have not been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(recombination_end_positions_F_));
-		
+		}
+			
 		case gID_recombinationRates:
-			if (!single_recombination_map_) return gStaticEidosValueNULL;
+		{
+			if (!single_recombination_map_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property recombinationRates is not defined since sex-specific recombination rate maps have been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(recombination_rates_H_));
+		}
 		case gID_recombinationRatesM:
-			if (single_recombination_map_) return gStaticEidosValueNULL;
+		{
+			if (single_recombination_map_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property recombinationRatesM is not defined since sex-specific recombination rate maps have not been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(recombination_rates_M_));
+		}
 		case gID_recombinationRatesF:
-			if (single_recombination_map_) return gStaticEidosValueNULL;
+		{
+			if (single_recombination_map_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property recombinationRatesF is not defined since sex-specific recombination rate maps have not been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(recombination_rates_F_));
+		}
 			
 			// variables
 		case gID_colorSubstitution:

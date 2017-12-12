@@ -3356,6 +3356,9 @@ EidosValue_SP EidosObjectElement::ExecuteMethod_str(EidosGlobalStringID p_method
 		try {
 			property_value = GetProperty(property_id);
 		} catch (...) {
+			// throw away the raise message
+			gEidosTermination.clear();
+			gEidosTermination.str(gEidosStr_empty_string);
 		}
 		
 		if (property_value)

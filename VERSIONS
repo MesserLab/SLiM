@@ -51,6 +51,8 @@ development head:
 	add rmvnorm() for drawing from a multivariate distribution
 	make version() return version numbers to the caller
 	extend defineSpatialMap() to allow the map values to be specified as a matrix/array
+	internal policy change: properties are no longer allowed to return NULL or be set to NULL, and must raise instead if they cannot provide a value
+	policy change: Chromosome properties that used to return NULL when inapplicable now raise (mutation rate map and recombination rate map properties)
 
 
 2.5 (build 1204; Eidos version 1.5):

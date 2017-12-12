@@ -28,6 +28,8 @@ EidosPropertySignature::EidosPropertySignature(const std::string &p_property_nam
 {
 	if (!read_only_ && !(value_mask_ & kEidosValueMaskSingleton))
 		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::EidosPropertySignature): (internal error) read-write property " << property_name_ << " must produce a singleton value according to Eidos semantics." << EidosTerminate(nullptr);
+	if (value_mask_ & kEidosValueMaskNULL)
+		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::EidosPropertySignature): (internal error) properties are not allowed to return NULL." << EidosTerminate(nullptr);
 }
 
 EidosPropertySignature::EidosPropertySignature(const std::string &p_property_name, EidosGlobalStringID p_property_id, bool p_read_only, EidosValueMask p_value_mask, const EidosObjectClass *p_value_class)
@@ -35,6 +37,8 @@ EidosPropertySignature::EidosPropertySignature(const std::string &p_property_nam
 {
 	if (!read_only_ && !(value_mask_ & kEidosValueMaskSingleton))
 		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::EidosPropertySignature): (internal error) read-write property " << property_name_ << " must produce a singleton value according to Eidos semantics." << EidosTerminate(nullptr);
+	if (value_mask_ & kEidosValueMaskNULL)
+		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::EidosPropertySignature): (internal error) properties are not allowed to return NULL." << EidosTerminate(nullptr);
 }
 
 EidosPropertySignature::~EidosPropertySignature(void)
@@ -52,7 +56,12 @@ void EidosPropertySignature::CheckAssignedValue(const EidosValue &p_value) const
 			// BCH 30 January 2017: setting NULL into a property used to be allowed here without declaration (as it is
 			// when getting the value of a property), but I think that was just a bug.  I'm modifying this to throw an
 			// exception unless NULL is explicitly declared as acceptable in the signature.
-			value_type_ok = !!(retmask & kEidosValueMaskNULL);
+			
+			// BCH 11 December 2017: note that NULL can no longer be declared in a property signature, so setting
+			// a property to NULL will always raise now; this is official Eidos semantics now, strict no-no, so
+			// rather than checking retmask we just set value_type_ok to false unconditionally now.
+			//value_type_ok = !!(retmask & kEidosValueMaskNULL);
+			value_type_ok = false;
 			break;
 		case EidosValueType::kValueLogical:	value_type_ok = !!(retmask & (kEidosValueMaskLogical | kEidosValueMaskInt | kEidosValueMaskFloat)); break;		// can give logical to an int or float property
 		case EidosValueType::kValueInt:		value_type_ok = !!(retmask & (kEidosValueMaskInt | kEidosValueMaskFloat)); break;							// can give int to a float property
@@ -95,8 +104,12 @@ void EidosPropertySignature::CheckResultValue(const EidosValue &p_value) const
 			// the code here will throw an error.  This should probably never happen, since if someone tries to accelerate
 			// a property that can return NULL they will immediately realize the error of their ways, as they will find it
 			// to be impossible to implement.  :->  Still, for clarity and possible debugging value, I'm adding a check.
-			if (accelerated_get_ && !(retmask & kEidosValueMaskNULL))
-				EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckResultValue): (internal error) NULL returned for accelerated property " << property_name_ << "." << EidosTerminate(nullptr);
+			
+			// BCH 11 December 2017: note that NULL can no longer be declared in a property signature, and is no longer
+			// ever allowed as a value for a property, so the above comments are obsolete.  This is now official Eidos
+			// semantics, to allow guaranteed one-to-one matching of objects and their singleton properties: NULL is not
+			// allowed as a property value, getting or setting, ever.
+			EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckResultValue): (internal error) NULL returned for property " << property_name_ << "." << EidosTerminate(nullptr);
 			return;
 		case EidosValueType::kValueLogical:	value_type_ok = !!(retmask & kEidosValueMaskLogical);	break;
 		case EidosValueType::kValueInt:		value_type_ok = !!(retmask & kEidosValueMaskInt);		break;

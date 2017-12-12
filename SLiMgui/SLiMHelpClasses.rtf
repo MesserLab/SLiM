@@ -66,214 +66,182 @@
 \f2\fs18 \cf0 mutationEndPositions => (integer)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 The end positions for mutation rate regions along the chromosome.  Each mutation rate region is assumed to start at the position following the end of the previous mutation rate region; in other words, the regions are assumed to be contiguous.  When using sex-specific mutation rate maps, this property will be 
-\f2\fs18 NULL
-\f0\fs20 ; see 
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+The end positions for mutation rate regions along the chromosome.  Each mutation rate region is assumed to start at the position following the end of the previous mutation rate region; in other words, the regions are assumed to be contiguous.  When using sex-specific mutation rate maps, this property will unavailable; see 
 \f2\fs18 mutationEndPositionsF
 \f0\fs20  and 
 \f2\fs18 mutationEndPositionsM
-\f3\fs20 .\
+\f0\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 mutationEndPositionsF => (integer)\
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 mutationEndPositionsF => (integer)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 The end positions for mutation rate regions for females, when using sex-specific mutation rate maps; 
-\f2\fs18 NULL
-\f0\fs20  otherwise.  See 
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+The end positions for mutation rate regions for females, when using sex-specific mutation rate maps; unavailable otherwise.  See 
 \f2\fs18 mutationEndPositions
-\f0\fs20  for further explanation.
-\f3 \
+\f0\fs20  for further explanation.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 mutationEndPositionsM => (integer)\
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 mutationEndPositionsM => (integer)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 The end positions for mutation rate regions for males, when using sex-specific mutation rate maps; 
-\f2\fs18 NULL
-\f0\fs20  otherwise.  See 
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+The end positions for mutation rate regions for males, when using sex-specific mutation rate maps; unavailable otherwise.  See 
 \f2\fs18 mutationEndPositions
-\f0\fs20  for further explanation.
-\f3 \
+\f0\fs20  for further explanation.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 mutationRates => (float)\
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 mutationRates => (float)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 The mutation rate for each of the mutation rate regions specified by 
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+The mutation rate for each of the mutation rate regions specified by 
 \f2\fs18 mutationEndPositions
-\f3\fs20 .
-\f0   When using sex-specific mutation rate maps, this property will be 
-\f2\fs18 NULL
-\f0\fs20 ; see 
+\f0\fs20 .  When using sex-specific mutation rate maps, this property will be unavailable; see 
 \f2\fs18 mutationRatesF
 \f0\fs20  and 
 \f2\fs18 mutationRatesM
-\f3\fs20 .\
+\f0\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 mutationRatesF => (float)\
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 mutationRatesF => (float)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 The mutation rate for each of the mutation rate regions specified by 
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+The mutation rate for each of the mutation rate regions specified by 
 \f2\fs18 mutationEndPositionsF
-\f0\fs20 , when using sex-specific mutation rate maps; 
-\f2\fs18 NULL
-\f0\fs20  otherwise.
-\f3 \
+\f0\fs20 , when using sex-specific mutation rate maps; unavailable otherwise.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 mutationRatesM => (float)\
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 mutationRatesM => (float)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 The mutation rate for each of the mutation rate regions specified by 
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+The mutation rate for each of the mutation rate regions specified by 
 \f2\fs18 mutationEndPositionsM
-\f0\fs20 , when using sex-specific mutation rate maps; 
-\f2\fs18 NULL
-\f0\fs20  otherwise.
-\f3 \
+\f0\fs20 , when using sex-specific mutation rate maps; unavailable otherwise.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 overallMutationRate => (float$)\
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 overallMutationRate => (float$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 The overall mutation rate across the whole chromosome determining the overall number of mutation events that will occur anywhere in the chromosome, as calculated from the individual mutation ranges and rates as well as the coverage of the chromosome by genomic elements (since mutations are only generated within genomic elements, regardless of the mutation rate map).  When using sex-specific mutation rate maps, this property will be 
-\f2\fs18 NULL
-\f0\fs20 ; see 
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+The overall mutation rate across the whole chromosome determining the overall number of mutation events that will occur anywhere in the chromosome, as calculated from the individual mutation ranges and rates as well as the coverage of the chromosome by genomic elements (since mutations are only generated within genomic elements, regardless of the mutation rate map).  When using sex-specific mutation rate maps, this property will unavailable; see 
 \f2\fs18 overallMutationRateF
 \f0\fs20  and 
 \f2\fs18 overallMutationRateM
-\f3\fs20 .\
+\f0\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 overallMutationRateF => (float$)\
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 overallMutationRateF => (float$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 The overall mutation rate for females, when using sex-specific mutation rate maps; 
-\f2\fs18 NULL
-\f0\fs20  otherwise.  See 
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+The overall mutation rate for females, when using sex-specific mutation rate maps; unavailable otherwise.  See 
 \f2\fs18 overallMutationRate
-\f0\fs20  for further explanation.
-\f3 \
+\f0\fs20  for further explanation.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 overallMutationRateM => (float$)\
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 overallMutationRateM => (float$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 The overall mutation rate for males, when using sex-specific mutation rate maps; 
-\f2\fs18 NULL
-\f0\fs20  otherwise.  See 
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+The overall mutation rate for males, when using sex-specific mutation rate maps; unavailable otherwise.  See 
 \f2\fs18 overallMutationRate
-\f0\fs20  for further explanation.
-\f3 \
+\f0\fs20  for further explanation.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 overallRecombinationRate => (float$)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 overallRecombinationRate => (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 The overall recombination rate across the whole chromosome determining the overall number of recombination events that will occur anywhere in the chromosome, as calculated from the individual recombination ranges and rates.  When using sex-specific recombination maps, this property will be 
-\f2\fs18 NULL
-\f0\fs20 ; see 
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+The overall recombination rate across the whole chromosome determining the overall number of recombination events that will occur anywhere in the chromosome, as calculated from the individual recombination ranges and rates.  When using sex-specific recombination maps, this property will unavailable; see 
 \f2\fs18 overallRecombinationRateF
 \f0\fs20  and 
 \f2\fs18 overallRecombinationRateM
-\f3\fs20 .\
+\f0\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 overallRecombinationRateF => (float$)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 overallRecombinationRateF => (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 The overall recombination rate for females, when using sex-specific recombination maps; 
-\f2\fs18 NULL
-\f0\fs20  otherwise.  See 
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+The overall recombination rate for females, when using sex-specific recombination maps; unavailable otherwise.  See 
 \f2\fs18 overallRecombinationRate
-\f0\fs20  for further explanation.
-\f3 \
+\f0\fs20  for further explanation.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 overallRecombinationRateM => (float$)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 overallRecombinationRateM => (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 The overall recombination rate for males, when using sex-specific recombination maps; 
-\f2\fs18 NULL
-\f0\fs20  otherwise.  See 
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+The overall recombination rate for males, when using sex-specific recombination maps; unavailable otherwise.  See 
 \f2\fs18 overallRecombinationRate
-\f0\fs20  for further explanation.
-\f3 \
+\f0\fs20  for further explanation.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 recombinationEndPositions => (integer)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 recombinationEndPositions => (integer)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 The end positions for recombination regions along the chromosome.  Each recombination region is assumed to start at the position following the end of the previous recombination region; in other words, the regions are assumed to be contiguous.  When using sex-specific recombination maps, this property will be 
-\f2\fs18 NULL
-\f0\fs20 ; see 
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+The end positions for recombination regions along the chromosome.  Each recombination region is assumed to start at the position following the end of the previous recombination region; in other words, the regions are assumed to be contiguous.  When using sex-specific recombination maps, this property will unavailable; see 
 \f2\fs18 recombinationEndPositionsF
 \f0\fs20  and 
 \f2\fs18 recombinationEndPositionsM
-\f3\fs20 .\
+\f0\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 recombinationEndPositionsF => (integer)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 recombinationEndPositionsF => (integer)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 The end positions for recombination regions for females, when using sex-specific recombination maps; 
-\f2\fs18 NULL
-\f0\fs20  otherwise.  See 
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+The end positions for recombination regions for females, when using sex-specific recombination maps; unavailable otherwise.  See 
 \f2\fs18 recombinationEndPositions
-\f0\fs20  for further explanation.
-\f3 \
+\f0\fs20  for further explanation.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 recombinationEndPositionsM => (integer)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 recombinationEndPositionsM => (integer)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 The end positions for recombination regions for males, when using sex-specific recombination maps; 
-\f2\fs18 NULL
-\f0\fs20  otherwise.  See 
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+The end positions for recombination regions for males, when using sex-specific recombination maps; unavailable otherwise.  See 
 \f2\fs18 recombinationEndPositions
-\f0\fs20  for further explanation.
-\f3 \
+\f0\fs20  for further explanation.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 recombinationRates => (float)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 recombinationRates => (float)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 The recombination rate for each of the recombination regions specified by 
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+The recombination rate for each of the recombination regions specified by 
 \f2\fs18 recombinationEndPositions
-\f3\fs20 .
-\f0   When using sex-specific recombination maps, this property will be 
-\f2\fs18 NULL
-\f0\fs20 ; see 
+\f0\fs20 .  When using sex-specific recombination maps, this property will unavailable; see 
 \f2\fs18 recombinationRatesF
 \f0\fs20  and 
 \f2\fs18 recombinationRatesM
-\f3\fs20 .\
+\f0\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 recombinationRatesF => (float)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 recombinationRatesF => (float)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 The recombination rate for each of the recombination regions specified by 
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+The recombination rate for each of the recombination regions specified by 
 \f2\fs18 recombinationEndPositionsF
-\f0\fs20 , when using sex-specific recombination maps; 
-\f2\fs18 NULL
-\f0\fs20  otherwise.
-\f3 \
+\f0\fs20 , when using sex-specific recombination maps; unavailable otherwise.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 recombinationRatesM => (float)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 recombinationRatesM => (float)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 The recombination rate for each of the recombination regions specified by 
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+The recombination rate for each of the recombination regions specified by 
 \f2\fs18 recombinationEndPositionsM
-\f0\fs20 , when using sex-specific recombination maps; 
-\f2\fs18 NULL
-\f0\fs20  otherwise.
-\f3 \
+\f0\fs20 , when using sex-specific recombination maps; unavailable otherwise.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 tag <\'96> (integer$)\
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 tag <\'96> (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 A user-defined 
