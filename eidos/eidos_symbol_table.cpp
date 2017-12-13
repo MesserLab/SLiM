@@ -37,10 +37,9 @@
 #pragma mark EidosSymbolTable
 #pragma mark -
 
-EidosSymbolTable::EidosSymbolTable(EidosSymbolTableType p_table_type, EidosSymbolTable *p_parent_table, bool p_start_with_hash)
+EidosSymbolTable::EidosSymbolTable(EidosSymbolTableType p_table_type, EidosSymbolTable *p_parent_table, bool p_start_with_hash) : table_type_(p_table_type)
 {
 	// Set up the symbol table itself
-	table_type_ = p_table_type;
 	using_internal_symbols_ = !p_start_with_hash;
 	internal_symbol_count_ = 0;
 	

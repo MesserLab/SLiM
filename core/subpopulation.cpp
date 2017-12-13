@@ -233,7 +233,7 @@ void _SpatialMap::ColorForValue(double p_value, double *p_rgb_ptr)
 	if (color_index_2 >= n_colors_) color_index_2 = n_colors_ - 1;
 	
 	double color_2_weight = color_index - color_index_1;
-	double color_1_weight = 1.0f - color_2_weight;
+	double color_1_weight = 1.0F - color_2_weight;
 	
 	double red1 = red_components_[color_index_1];
 	double green1 = green_components_[color_index_1];
@@ -263,7 +263,7 @@ void _SpatialMap::ColorForValue(double p_value, float *p_rgb_ptr)
 	if (color_index_2 >= n_colors_) color_index_2 = n_colors_ - 1;
 	
 	double color_2_weight = color_index - color_index_1;
-	double color_1_weight = 1.0f - color_2_weight;
+	double color_1_weight = 1.0F - color_2_weight;
 	
 	double red1 = red_components_[color_index_1];
 	double green1 = green_components_[color_index_1];
@@ -1330,7 +1330,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_
 				{
 					slim_selcoeff_t selection_coeff = (mut_block_ptr + *genome_iter)->selection_coeff_;
 					
-					if (selection_coeff != 0.0f)
+					if (selection_coeff != 0.0F)
 					{
 						w *= (1.0 + x_chromosome_dominance_coeff_ * selection_coeff);
 						
@@ -1824,7 +1824,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 					}
 					else
 					{
-						if (selection_coeff != 0.0f)
+						if (selection_coeff != 0.0F)
 						{
 							w *= (1.0 + x_chromosome_dominance_coeff_ * selection_coeff);
 							
@@ -3204,6 +3204,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapColor(EidosGlobalStringID p
 
 //	*********************	– (float$)spatialMapValue(string$ name, float point)
 //
+#define SLiMClampCoordinate(x) ((x < 0.0) ? 0.0 : ((x > 1.0) ? 1.0 : x))
+
 EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
@@ -3229,8 +3231,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p
 		// We need to use the correct spatial bounds for each coordinate, which depends upon our exact spatiality
 		// There is doubtless a way to make this code smarter, but brute force is sometimes best...
 		double point_vec[3];
-		
-#define SLiMClampCoordinate(x) ((x < 0.0) ? 0.0 : ((x > 1.0) ? 1.0 : x))
 		
 		switch (map->spatiality_)
 		{
@@ -3304,8 +3304,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p
 			}
 		}
 		
-#undef SLiMClampCoordinate
-		
 		double map_value = map->ValueAtPoint(point_vec);
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(map_value));
@@ -3315,6 +3313,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p
 	
 	return gStaticEidosValueNULLInvisible;
 }
+
+#undef SLiMClampCoordinate
 
 //	*********************	– (void)outputMSSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"], [Ns$ filePath = NULL], [logical$ append=F])
 //	*********************	– (void)outputSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"], [Ns$ filePath = NULL], [logical$ append=F])

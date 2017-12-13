@@ -909,7 +909,7 @@ static float *glArrayColors = nil;
 					
 					if (seen_marker == 0)
 					{
-						bzero(mutation_seen, mutationIndexCount);
+						EIDOS_BZERO(mutation_seen, mutationIndexCount);
 						
 						seen_marker = 1;
 					}
@@ -1011,7 +1011,7 @@ static float *glArrayColors = nil;
 					
 					if (seen_marker == 0)
 					{
-						bzero(mutation_seen, mutationIndexCount);
+						EIDOS_BZERO(mutation_seen, mutationIndexCount);
 						
 						seen_marker = 1;
 					}
@@ -1103,7 +1103,7 @@ static float *glArrayColors = nil;
 					
 					if (seen_marker == 0)
 					{
-						bzero(mutation_seen, mutationIndexCount);
+						EIDOS_BZERO(mutation_seen, mutationIndexCount);
 						
 						seen_marker = 1;
 					}
@@ -1211,7 +1211,7 @@ static float *glArrayColors = nil;
 					
 					if (seen_marker == 0)
 					{
-						bzero(mutation_seen, mutationIndexCount);
+						EIDOS_BZERO(mutation_seen, mutationIndexCount);
 						
 						seen_marker = 1;
 					}

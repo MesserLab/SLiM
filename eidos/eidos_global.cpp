@@ -317,6 +317,8 @@ EidosValue_SP Eidos_ValueForCommandLineExpression(std::string &p_value_expressio
 	}
 	catch (...)
 	{
+		// This should not be hit, since we checked the arguments already, but best to be safe...
+		EIDOS_TERMINATION << "ERROR (Eidos_ValueForCommandLineExpression): command-line expression '" << p_value_expression << "' could not be evaluated." << EidosTerminate(nullptr);
 	}
 	
 	return value;
@@ -984,7 +986,7 @@ size_t Eidos_GetMaxRSS(void)
 			
 			// If the claim is that we have more than 1024 TB at our disposal, then we will consider ourselves unlimited :->
 			if (max_rss > 1024L * 1024L * 1024L * 1024L * 1024L)
-			max_rss = 0;
+				max_rss = 0;
 		}
 		else
 		{
@@ -1022,13 +1024,13 @@ void Eidos_CheckRSSAgainstMax(std::string p_message1, std::string p_message2)
 			// If we are already within 10 MB of overrunning our supposed limit, disable checking; assume that
 			// either Eidos_GetMaxRSS() or Eidos_GetCurrentRSS() is not telling us the truth.
 			if (current_rss + 10L*1024L*1024L > max_rss)
-			max_rss = 0;
+				max_rss = 0;
 		}
 		
 		// Switch off our memory check flag if we are not going to enforce a limit anyway;
 		// this allows the caller to skip calling us when possible, for speed
 		if (max_rss == 0)
-		eidos_do_memory_checks = false;
+			eidos_do_memory_checks = false;
 		
 		beenHere = true;
 	}
@@ -1065,7 +1067,7 @@ std::string Eidos_ResolvedPath(const std::string p_path)
 	// if there is a leading '~', replace it with the user's home directory; not sure if this works on Windows...
 	if ((path.length() > 0) && (path[0] == '~'))
 	{
-		long bufsize = bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
+		long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
 		
 		if (bufsize == -1)
 		{
@@ -1575,18 +1577,18 @@ double Eidos_ExactSum(const double *p_double_vec, int64_t p_vec_length)
 }
 
 // run a Un*x command; thanks to http://stackoverflow.com/questions/478898/how-to-execute-a-command-and-get-output-of-command-within-c-using-posix
-std::string Eidos_Exec(const char *p_cmd)
+/*std::string Eidos_Exec(const char *p_cmd)
 {
 	char buffer[128];
 	std::string result = "";
-	std::shared_ptr<FILE> pipe(popen(p_cmd, "r"), pclose);
-	if (!pipe) throw std::runtime_error("popen() failed!");
-	while (!feof(pipe.get())) {
-		if (fgets(buffer, 128, pipe.get()) != NULL)
+	std::shared_ptr<FILE> command_pipe(popen(p_cmd, "r"), pclose);
+	if (!command_pipe) throw std::runtime_error("popen() failed!");
+	while (!feof(command_pipe.get())) {
+		if (fgets(buffer, 128, command_pipe.get()) != NULL)
 			result += buffer;
 	}
 	return result;
-}
+}*/
 
 
 #pragma mark -
@@ -2491,9 +2493,9 @@ void Eidos_GetColorComponents(const std::string &p_color_name, float *p_red_comp
 			unsigned long g = stoul(p_color_name.substr(3, 2), nullptr, 16);
 			unsigned long b = stoul(p_color_name.substr(5, 2), nullptr, 16);
 			
-			*p_red_component = r / 255.0f;
-			*p_green_component = g / 255.0f;
-			*p_blue_component = b / 255.0f;
+			*p_red_component = r / 255.0F;
+			*p_green_component = g / 255.0F;
+			*p_blue_component = b / 255.0F;
 			return;
 		}
 		catch (...)
@@ -2507,9 +2509,9 @@ void Eidos_GetColorComponents(const std::string &p_color_name, float *p_red_comp
 		{
 			if (p_color_name == color_table->name)
 			{
-				*p_red_component = color_table->red / 255.0f;
-				*p_green_component = color_table->green / 255.0f;
-				*p_blue_component = color_table->blue / 255.0f;
+				*p_red_component = color_table->red / 255.0F;
+				*p_green_component = color_table->green / 255.0F;
+				*p_blue_component = color_table->blue / 255.0F;
 				return;
 			}
 		}

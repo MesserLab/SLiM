@@ -171,15 +171,15 @@ public:
 				  GenomeType p_modeled_chromosome_type, double p_x_chromosome_dominance_coeff);		// SEX ONLY: construct with a sex ratio (fraction male), chromosome type (AXY), and X dominance coeff
 	~Subpopulation(void);																			// destructor
 	
-	inline slim_popsize_t DrawParentUsingFitness(void) const;										// draw an individual from the subpopulation based upon fitness
-	inline slim_popsize_t DrawParentEqualProbability(void) const;									// draw an individual from the subpopulation with equal probabilities
-	inline slim_popsize_t DrawFemaleParentUsingFitness(void) const;									// draw a female from the subpopulation based upon fitness; SEX ONLY
-	inline slim_popsize_t DrawFemaleParentEqualProbability(void) const;								// draw a female from the subpopulation  with equal probabilities; SEX ONLY
-	inline slim_popsize_t DrawMaleParentUsingFitness(void) const;									// draw a male from the subpopulation based upon fitness; SEX ONLY
-	inline slim_popsize_t DrawMaleParentEqualProbability(void) const;								// draw a male from the subpopulation  with equal probabilities; SEX ONLY
+	slim_popsize_t DrawParentUsingFitness(void) const;										// draw an individual from the subpopulation based upon fitness
+	slim_popsize_t DrawParentEqualProbability(void) const;									// draw an individual from the subpopulation with equal probabilities
+	slim_popsize_t DrawFemaleParentUsingFitness(void) const;									// draw a female from the subpopulation based upon fitness; SEX ONLY
+	slim_popsize_t DrawFemaleParentEqualProbability(void) const;								// draw a female from the subpopulation  with equal probabilities; SEX ONLY
+	slim_popsize_t DrawMaleParentUsingFitness(void) const;									// draw a male from the subpopulation based upon fitness; SEX ONLY
+	slim_popsize_t DrawMaleParentEqualProbability(void) const;								// draw a male from the subpopulation  with equal probabilities; SEX ONLY
 	
 	void GenerateChildrenToFit(const bool p_parents_also);											// given the subpop size and sex ratio currently set for the child generation, make new genomes to fit
-	inline IndividualSex SexOfIndividual(slim_popsize_t p_individual_index);						// return the sex of the individual at the given index; uses child_generation_valid
+	IndividualSex SexOfIndividual(slim_popsize_t p_individual_index);						// return the sex of the individual at the given index; uses child_generation_valid
 	void UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callbacks, std::vector<SLiMEidosBlock*> &p_global_fitness_callbacks);							// update the fitness lookup table based upon current mutations
 	
 	// calculate the fitness of a given individual; the x dominance coeff is used only if the X is modeled

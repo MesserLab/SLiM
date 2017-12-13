@@ -1209,7 +1209,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 				{
 					slim_selcoeff_t mut_type_selcoeff = (slim_selcoeff_t)mut_type->dfe_parameters_[0];
 					
-					bzero(heightBuffer, displayPixelWidth * sizeof(int16_t));
+					EIDOS_BZERO(heightBuffer, displayPixelWidth * sizeof(int16_t));
 					
 					// Scan through the mutation list for mutations of this type with the right selcoeff
 					for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
@@ -1306,7 +1306,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 				// OK, we have a lot of mutations left to draw.  Here we will again use the radix sort trick, to keep track of only the tallest bar in each column
 				MutationIndex *mutationBuffer = (MutationIndex *)calloc(displayPixelWidth, sizeof(MutationIndex));
 				
-				bzero(heightBuffer, displayPixelWidth * sizeof(int16_t));
+				EIDOS_BZERO(heightBuffer, displayPixelWidth * sizeof(int16_t));
 				
 				// Find the tallest bar in each column
 				for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
@@ -1444,7 +1444,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 					{
 						slim_selcoeff_t mut_type_selcoeff = (slim_selcoeff_t)mut_type->dfe_parameters_[0];
 						
-						bzero(heightBuffer, displayPixelWidth * sizeof(int16_t));
+						EIDOS_BZERO(heightBuffer, displayPixelWidth * sizeof(int16_t));
 						
 						// Scan through the mutation list for mutations of this type with the right selcoeff
 						for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
@@ -1549,7 +1549,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 				// OK, we have a lot of mutations left to draw.  Here we will again use the radix sort trick, to keep track of only the tallest bar in each column
 				MutationIndex *mutationBuffer = (MutationIndex *)calloc(displayPixelWidth,  sizeof(MutationIndex));
 				
-				bzero(heightBuffer, displayPixelWidth * sizeof(int16_t));
+				EIDOS_BZERO(heightBuffer, displayPixelWidth * sizeof(int16_t));
 				
 				// Find the tallest bar in each column
 				for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)

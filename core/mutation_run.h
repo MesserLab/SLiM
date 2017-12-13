@@ -73,11 +73,11 @@ class MutationRun
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	
-protected:
+private:
 
 	mutable uint32_t intrusive_ref_count_;						// used by Eidos_intrusive_ptr
 
-protected:
+private:
 	
 	int32_t mutation_count_ = 0;								// the number of entries presently in mutations_
 	int32_t mutation_capacity_ = SLIM_MUTRUN_BUFFER_SIZE;		// the capacity of mutations_; we start by using our internal buffer

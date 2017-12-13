@@ -281,6 +281,10 @@ std::string Eidos_GetUntrimmedRaiseMessage(void);
 #pragma mark Utility functions
 #pragma mark -
 
+// bzero() is deprecated, but memset() is not a perfect substitute, so this is a macro to use instead
+// see https://stackoverflow.com/a/17097978/2752221 for some justification
+#define EIDOS_BZERO(s, n) memset((s), 0, (n))
+
 // Resolve a leading ~ in a filesystem path to the user's home directory
 std::string Eidos_ResolvedPath(const std::string p_path);
 
@@ -295,7 +299,8 @@ double Eidos_TTest_OneSample(const double *p_set1, int p_count1, double p_mu, do
 double Eidos_ExactSum(const double *p_double_vec, int64_t p_vec_length);
 
 // Run a Unix command
-std::string Eidos_Exec(const char *p_cmd);
+// BCH 13 December 2017: no longer used, commenting this out
+//std::string Eidos_Exec(const char *p_cmd);
 
 
 // *******************************************************************************************************************

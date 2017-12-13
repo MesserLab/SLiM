@@ -169,7 +169,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 				while (ind_index < subpop_size)
 				{
 					ind_positions[0] = individual->spatial_x_;
-					++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+					++ind_index; ++individual; ind_positions += SLIM_MAX_DIMENSIONALITY;
 				}
 			}
 			else
@@ -185,7 +185,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 						out_of_bounds_seen = true;
 					
 					ind_positions[0] = coord;
-					++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+					++ind_index; ++individual; ind_positions += SLIM_MAX_DIMENSIONALITY;
 				}
 			}
 		}
@@ -200,7 +200,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 				while (ind_index < subpop_size)
 				{
 					ind_positions[0] = individual->spatial_y_;
-					++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+					++ind_index; ++individual; ind_positions += SLIM_MAX_DIMENSIONALITY;
 				}
 			}
 			else
@@ -216,7 +216,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 						out_of_bounds_seen = true;
 					
 					ind_positions[0] = coord;
-					++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+					++ind_index; ++individual; ind_positions += SLIM_MAX_DIMENSIONALITY;
 				}
 			}
 		}
@@ -231,7 +231,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 				while (ind_index < subpop_size)
 				{
 					ind_positions[0] = individual->spatial_z_;
-					++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+					++ind_index; ++individual; ind_positions += SLIM_MAX_DIMENSIONALITY;
 				}
 			}
 			else
@@ -247,7 +247,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 						out_of_bounds_seen = true;
 					
 					ind_positions[0] = coord;
-					++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+					++ind_index; ++individual; ind_positions += SLIM_MAX_DIMENSIONALITY;
 				}
 			}
 		}
@@ -264,7 +264,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 				{
 					ind_positions[0] = individual->spatial_x_;
 					ind_positions[1] = individual->spatial_y_;
-					++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+					++ind_index; ++individual; ind_positions += SLIM_MAX_DIMENSIONALITY;
 				}
 			}
 			else
@@ -284,7 +284,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 					
 					ind_positions[0] = coord1;
 					ind_positions[1] = coord2;
-					++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+					++ind_index; ++individual; ind_positions += SLIM_MAX_DIMENSIONALITY;
 				}
 			}
 		}
@@ -301,7 +301,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 				{
 					ind_positions[0] = individual->spatial_x_;
 					ind_positions[1] = individual->spatial_z_;
-					++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+					++ind_index; ++individual; ind_positions += SLIM_MAX_DIMENSIONALITY;
 				}
 			}
 			else
@@ -321,7 +321,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 					
 					ind_positions[0] = coord1;
 					ind_positions[1] = coord2;
-					++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+					++ind_index; ++individual; ind_positions += SLIM_MAX_DIMENSIONALITY;
 				}
 			}
 		}
@@ -338,7 +338,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 				{
 					ind_positions[0] = individual->spatial_y_;
 					ind_positions[1] = individual->spatial_z_;
-					++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+					++ind_index; ++individual; ind_positions += SLIM_MAX_DIMENSIONALITY;
 				}
 			}
 			else
@@ -358,7 +358,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 					
 					ind_positions[0] = coord1;
 					ind_positions[1] = coord2;
-					++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+					++ind_index; ++individual; ind_positions += SLIM_MAX_DIMENSIONALITY;
 				}
 			}
 		}
@@ -377,7 +377,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 					ind_positions[0] = individual->spatial_x_;
 					ind_positions[1] = individual->spatial_y_;
 					ind_positions[2] = individual->spatial_z_;
-					++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+					++ind_index; ++individual; ind_positions += SLIM_MAX_DIMENSIONALITY;
 				}
 			}
 			else
@@ -401,7 +401,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 					ind_positions[0] = coord1;
 					ind_positions[1] = coord2;
 					ind_positions[2] = coord3;
-					++ind_index, ++individual, ind_positions += SLIM_MAX_DIMENSIONALITY;
+					++ind_index; ++individual; ind_positions += SLIM_MAX_DIMENSIONALITY;
 				}
 			}
 		}
@@ -556,7 +556,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 								*exerting_strength = CalculateStrengthWithCallbacks(NAN, receiving_individual, exerting_individual, p_subpop, callbacks);
 						}
 						
-						exerting_index++, exerting_strength++, exerting_individual++;
+						exerting_index++; exerting_strength++; exerting_individual++;
 					}
 				}
 				else
@@ -577,11 +577,11 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 								*exerting_strength = CalculateStrengthWithCallbacks(NAN, receiving_individual, exerting_individual, p_subpop, callbacks);
 						}
 						
-						exerting_index++, exerting_strength++, exerting_individual++;
+						exerting_index++; exerting_strength++; exerting_individual++;
 					}
 				}
 				
-				receiving_index++, receiving_strength += subpop_size, receiving_individual++;
+				receiving_index++; receiving_strength += subpop_size; receiving_individual++;
 			}
 		}
 		else
@@ -617,7 +617,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 							*mirror_exerting_strength = strength;
 						}
 						
-						exerting_index++, exerting_strength++, exerting_individual++, mirror_exerting_strength += subpop_size;
+						exerting_index++; exerting_strength++; exerting_individual++; mirror_exerting_strength += subpop_size;
 					}
 				}
 				else
@@ -641,11 +641,11 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 						*exerting_strength = strength;
 						*mirror_exerting_strength = strength;
 						
-						exerting_index++, exerting_strength++, exerting_individual++, mirror_exerting_strength += subpop_size;
+						exerting_index++; exerting_strength++; exerting_individual++; mirror_exerting_strength += subpop_size;
 					}
 				}
 				
-				receiving_index++, receiving_strength += subpop_size, receiving_individual++, mirror_receiving_strength++;
+				receiving_index++; receiving_strength += subpop_size; receiving_individual++; mirror_receiving_strength++;
 			}
 		}
 	}
@@ -695,7 +695,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 								*exerting_strength = 0.0;
 						}
 						
-						exerting_index++, exerting_position += SLIM_MAX_DIMENSIONALITY, exerting_distance++, exerting_strength++, exerting_individual++;
+						exerting_index++; exerting_position += SLIM_MAX_DIMENSIONALITY; exerting_distance++; exerting_strength++; exerting_individual++;
 					}
 				}
 				else
@@ -726,11 +726,11 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 								*exerting_strength = 0.0;
 						}
 						
-						exerting_index++, exerting_position += SLIM_MAX_DIMENSIONALITY, exerting_distance++, exerting_strength++, exerting_individual++;
+						exerting_index++; exerting_position += SLIM_MAX_DIMENSIONALITY; exerting_distance++; exerting_strength++; exerting_individual++;
 					}
 				}
 				
-				receiving_index++, receiving_position += SLIM_MAX_DIMENSIONALITY, receiving_distance += subpop_size, receiving_strength += subpop_size, receiving_individual++;
+				receiving_index++; receiving_position += SLIM_MAX_DIMENSIONALITY; receiving_distance += subpop_size; receiving_strength += subpop_size; receiving_individual++;
 			}
 		}
 		else
@@ -782,8 +782,8 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 							*mirror_exerting_strength = strength;
 						}
 						
-						exerting_index++, exerting_position += SLIM_MAX_DIMENSIONALITY, exerting_distance++, exerting_strength++, exerting_individual++;
-						mirror_exerting_distance += subpop_size, mirror_exerting_strength += subpop_size;
+						exerting_index++; exerting_position += SLIM_MAX_DIMENSIONALITY; exerting_distance++; exerting_strength++; exerting_individual++;
+						mirror_exerting_distance += subpop_size; mirror_exerting_strength += subpop_size;
 					}
 				}
 				else
@@ -819,13 +819,13 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 							*mirror_exerting_strength = strength;
 						}
 						
-						exerting_index++, exerting_position += SLIM_MAX_DIMENSIONALITY, exerting_distance++, exerting_strength++, exerting_individual++;
-						mirror_exerting_distance += subpop_size, mirror_exerting_strength += subpop_size;
+						exerting_index++; exerting_position += SLIM_MAX_DIMENSIONALITY; exerting_distance++; exerting_strength++; exerting_individual++;
+						mirror_exerting_distance += subpop_size; mirror_exerting_strength += subpop_size;
 					}
 				}
 				
-				receiving_index++, receiving_position += SLIM_MAX_DIMENSIONALITY, receiving_distance += subpop_size, receiving_strength += subpop_size, receiving_individual++;
-				mirror_receiving_distance++, mirror_receiving_strength++;
+				receiving_index++; receiving_position += SLIM_MAX_DIMENSIONALITY; receiving_distance += subpop_size; receiving_strength += subpop_size; receiving_individual++;
+				mirror_receiving_distance++; mirror_receiving_strength++;
 			}
 		}
 	}
@@ -897,7 +897,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 								*exerting_strength = 0.0;
 						}
 						
-						exerting_index++, exerting_position += SLIM_MAX_DIMENSIONALITY, exerting_distance++, exerting_strength++, exerting_individual++;
+						exerting_index++; exerting_position += SLIM_MAX_DIMENSIONALITY; exerting_distance++; exerting_strength++; exerting_individual++;
 					}
 				}
 				else
@@ -948,11 +948,11 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 								*exerting_strength = 0.0;
 						}
 						
-						exerting_index++, exerting_position += SLIM_MAX_DIMENSIONALITY, exerting_distance++, exerting_strength++, exerting_individual++;
+						exerting_index++; exerting_position += SLIM_MAX_DIMENSIONALITY; exerting_distance++; exerting_strength++; exerting_individual++;
 					}
 				}
 				
-				receiving_index++, receiving_position += SLIM_MAX_DIMENSIONALITY, receiving_distance += subpop_size, receiving_strength += subpop_size, receiving_individual++;
+				receiving_index++; receiving_position += SLIM_MAX_DIMENSIONALITY; receiving_distance += subpop_size; receiving_strength += subpop_size; receiving_individual++;
 			}
 		}
 		else
@@ -1024,8 +1024,8 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 							*mirror_exerting_strength = strength;
 						}
 						
-						exerting_index++, exerting_position += SLIM_MAX_DIMENSIONALITY, exerting_distance++, exerting_strength++, exerting_individual++;
-						mirror_exerting_distance += subpop_size, mirror_exerting_strength += subpop_size;
+						exerting_index++; exerting_position += SLIM_MAX_DIMENSIONALITY; exerting_distance++; exerting_strength++; exerting_individual++;
+						mirror_exerting_distance += subpop_size; mirror_exerting_strength += subpop_size;
 					}
 				}
 				else
@@ -1081,13 +1081,13 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 							*mirror_exerting_strength = strength;
 						}
 						
-						exerting_index++, exerting_position += SLIM_MAX_DIMENSIONALITY, exerting_distance++, exerting_strength++, exerting_individual++;
-						mirror_exerting_distance += subpop_size, mirror_exerting_strength += subpop_size;
+						exerting_index++; exerting_position += SLIM_MAX_DIMENSIONALITY; exerting_distance++; exerting_strength++; exerting_individual++;
+						mirror_exerting_distance += subpop_size; mirror_exerting_strength += subpop_size;
 					}
 				}
 				
-				receiving_index++, receiving_position += SLIM_MAX_DIMENSIONALITY, receiving_distance += subpop_size, receiving_strength += subpop_size, receiving_individual++;
-				mirror_receiving_distance++, mirror_receiving_strength++;
+				receiving_index++; receiving_position += SLIM_MAX_DIMENSIONALITY; receiving_distance += subpop_size; receiving_strength += subpop_size; receiving_individual++;
+				mirror_receiving_distance++; mirror_receiving_strength++;
 			}
 		}
 	}
@@ -1451,7 +1451,7 @@ void InteractionType::InitializeStrengths(InteractionsData &p_subpop_data)
 				while (exerting_index < subpop_size)
 				{
 					*exerting_strength = 0.0;
-					exerting_index++, exerting_strength++;
+					exerting_index++; exerting_strength++;
 				}
 			}
 			else
@@ -1463,12 +1463,12 @@ void InteractionType::InitializeStrengths(InteractionsData &p_subpop_data)
 					while (exerting_index < first_male_index)
 					{
 						*exerting_strength = 0.0;
-						exerting_index++, exerting_strength++;
+						exerting_index++; exerting_strength++;
 					}
 					while (exerting_index < subpop_size)
 					{
 						*exerting_strength = NAN;
-						exerting_index++, exerting_strength++;
+						exerting_index++; exerting_strength++;
 					}
 				}
 				else if (exerter_sex_ == IndividualSex::kFemale)
@@ -1477,12 +1477,12 @@ void InteractionType::InitializeStrengths(InteractionsData &p_subpop_data)
 					while (exerting_index < first_male_index)
 					{
 						*exerting_strength = NAN;
-						exerting_index++, exerting_strength++;
+						exerting_index++; exerting_strength++;
 					}
 					while (exerting_index < subpop_size)
 					{
 						*exerting_strength = 0.0;
-						exerting_index++, exerting_strength++;
+						exerting_index++; exerting_strength++;
 					}
 				}
 				else if (exerter_sex_ == IndividualSex::kUnspecified)
@@ -1491,12 +1491,12 @@ void InteractionType::InitializeStrengths(InteractionsData &p_subpop_data)
 					while (exerting_index < subpop_size)
 					{
 						*exerting_strength = NAN;
-						exerting_index++, exerting_strength++;
+						exerting_index++; exerting_strength++;
 					}
 				}
 			}
 			
-			receiving_index++, receiving_strength += subpop_size;
+			receiving_index++; receiving_strength += subpop_size;
 		}
 	}
 	else
@@ -4165,13 +4165,9 @@ EidosValue_SP InteractionType::ExecuteMethod_evaluate(EidosGlobalStringID p_meth
 	{
 		// requested subpops, so get them
 		int requested_subpop_count = subpops_value->Count();
-		std::vector<Subpopulation*> subpops_to_evaluate;
 		
-		if (requested_subpop_count)
-		{
-			for (int requested_subpop_index = 0; requested_subpop_index < requested_subpop_count; ++requested_subpop_index)
-				EvaluateSubpopulation((Subpopulation *)(subpops_value->ObjectElementAtIndex(requested_subpop_index, nullptr)), immediate);
-		}
+		for (int requested_subpop_index = 0; requested_subpop_index < requested_subpop_count; ++requested_subpop_index)
+			EvaluateSubpopulation((Subpopulation *)(subpops_value->ObjectElementAtIndex(requested_subpop_index, nullptr)), immediate);
 	}
 	
 	return gStaticEidosValueNULLInvisible;
@@ -4495,7 +4491,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 				
 				double *result_data = result_vec->data();
 				
-				bzero(result_data, subpop1_size * sizeof(double));
+				EIDOS_BZERO(result_data, subpop1_size * sizeof(double));
 				
 				EnsureKDTreePresent(subpop_data);
 				FillNeighborStrengths(subpop1, subpop_data, ind1_position, ind1, result_data);

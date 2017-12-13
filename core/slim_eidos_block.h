@@ -61,7 +61,7 @@ public:
 	SLiMEidosScript(const SLiMEidosScript&) = delete;							// no copying
 	SLiMEidosScript& operator=(const SLiMEidosScript&) = delete;				// no copying
 	SLiMEidosScript(void) = delete;												// no null construction
-	SLiMEidosScript(const std::string &p_script_string);
+	explicit SLiMEidosScript(const std::string &p_script_string);
 	
 	virtual ~SLiMEidosScript(void);												// destructor
 	
@@ -170,9 +170,9 @@ public:
 	
 	SLiMEidosBlock(const SLiMEidosBlock&) = delete;					// no copying
 	SLiMEidosBlock& operator=(const SLiMEidosBlock&) = delete;		// no copying
-	SLiMEidosBlock(void) = delete;										// no default constructor
+	SLiMEidosBlock(void) = delete;									// no default constructor
 	
-	SLiMEidosBlock(EidosASTNode *p_root_node);						// initialize from a SLiMEidosBlock root node from the input file
+	explicit SLiMEidosBlock(EidosASTNode *p_root_node);				// initialize from a SLiMEidosBlock root node from the input file
 	SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, SLiMEidosBlockType p_type, slim_generation_t p_start, slim_generation_t p_end);		// initialize from a programmatic script
 	~SLiMEidosBlock(void);												// destructor
 	
@@ -194,7 +194,6 @@ public:
 	
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id);
 	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value);
-	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 };
 
 

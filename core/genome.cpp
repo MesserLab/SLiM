@@ -49,11 +49,8 @@ std::map<MutationRun*, MutationRun*> Genome::s_bulk_operation_runs_;
 
 
 // default constructor; gives a non-null genome of type GenomeType::kAutosome
-Genome::Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length) : subpop_(p_subpop)
+Genome::Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length) : subpop_(p_subpop), mutrun_count_(p_mutrun_count), mutrun_length_(p_mutrun_length)
 {
-	mutrun_count_ = p_mutrun_count;
-	mutrun_length_ = p_mutrun_length;
-	
 	if (mutrun_count_ <= SLIM_GENOME_MUTRUN_BUFSIZE)
 		mutruns_ = run_buffer_;
 	else
@@ -64,11 +61,8 @@ Genome::Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length)
 }
 
 // this constructor allows the caller to supply a custom mutation run, which is good for setting up shared runs across genomes
-Genome::Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length, MutationRun *p_run) : subpop_(p_subpop)
+Genome::Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length, MutationRun *p_run) : subpop_(p_subpop), mutrun_count_(p_mutrun_count), mutrun_length_(p_mutrun_length)
 {
-	mutrun_count_ = p_mutrun_count;
-	mutrun_length_ = p_mutrun_length;
-	
 	if (mutrun_count_ <= SLIM_GENOME_MUTRUN_BUFSIZE)
 		mutruns_ = run_buffer_;
 	else

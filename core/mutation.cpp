@@ -154,9 +154,9 @@ void SLiM_ZeroRefcountBlock(__attribute__((unused)) MutationRun &p_mutation_regi
 	while (registry_iter != registry_iter_end)
 		*(refcount_block_ptr + (*registry_iter++)) = 0;
 #else
-	// Zero out the whole thing with bzero(), without worrying about which bits are in use.
+	// Zero out the whole thing with EIDOS_BZERO(), without worrying about which bits are in use.
 	// This hits more memory, but avoids having to read the registry, and should write whole cache lines.
-	bzero(gSLiM_Mutation_Refcounts, (gSLiM_Mutation_Block_LastUsedIndex + 1) * sizeof(slim_refcount_t));
+	EIDOS_BZERO(gSLiM_Mutation_Refcounts, (gSLiM_Mutation_Block_LastUsedIndex + 1) * sizeof(slim_refcount_t));
 #endif
 }
 

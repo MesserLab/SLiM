@@ -3788,13 +3788,13 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const EidosValue_SP *const p_arguments,
 	
 	// Since we want this operation to be *parallel*, we are stricter about dimensionality than most binary operations; we require the same
 	// dimensionality unless we have a vector singleton vs. (any) non-singleton pairing, in which case the non-singleton's dimensions are used
-	if ((((x_count != 1) && (y_count != 1)) ||							// dims must match if both are non-singleton
-		 ((x_count == 1) && (y_count == 1))))								// dims must match if both are singleton
+	if (((x_count != 1) && (y_count != 1)) ||							// dims must match if both are non-singleton
+		 ((x_count == 1) && (y_count == 1)))							// dims must match if both are singleton
 	{
 		if (!EidosValue::MatchingDimensions(x_value, y_value))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_pmax): function pmax() requires arguments x and y to be of the same vector/matrix/array dimensions, unless either x or y (but not both) is a singleton ." << EidosTerminate(nullptr);
 	}
-	else if (((x_count == 1) && (x_value->DimensionCount() != 1)) ||		// if just one is singleton, it must be a vector
+	else if (((x_count == 1) && (x_value->DimensionCount() != 1)) ||	// if just one is singleton, it must be a vector
 			 ((y_count == 1) && (y_value->DimensionCount() != 1)))		// if just one is singleton, it must be a vector
 	{
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_pmax): function pmax() requires that if arguments x and y involve a singleton-to-non-singleton comparison, the singleton is a vector (not a matrix or array)." << EidosTerminate(nullptr);
@@ -3936,13 +3936,13 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const EidosValue_SP *const p_arguments,
 	
 	// Since we want this operation to be *parallel*, we are stricter about dimensionality than most binary operations; we require the same
 	// dimensionality unless we have a vector singleton vs. (any) non-singleton pairing, in which the non-singleton's dimensions are used
-	if ((((x_count != 1) && (y_count != 1)) ||							// dims must match if both are non-singleton
-		 ((x_count == 1) && (y_count == 1))))								// dims must match if both are singleton
+	if (((x_count != 1) && (y_count != 1)) ||							// dims must match if both are non-singleton
+		 ((x_count == 1) && (y_count == 1)))							// dims must match if both are singleton
 	{
 		if (!EidosValue::MatchingDimensions(x_value, y_value))
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_pmin): function pmin() requires arguments x and y to be of the same vector/matrix/array dimensions, unless either x or y (but not both) is a singleton ." << EidosTerminate(nullptr);
 	}
-	else if (((x_count == 1) && (x_value->DimensionCount() != 1)) ||		// if just one is singleton, it must be a vector
+	else if (((x_count == 1) && (x_value->DimensionCount() != 1)) ||	// if just one is singleton, it must be a vector
 			 ((y_count == 1) && (y_value->DimensionCount() != 1)))		// if just one is singleton, it must be a vector
 	{
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_pmin): function pmin() requires that if arguments x and y involve a singleton-to-non-singleton comparison, the singleton is a vector (not a matrix or array)." << EidosTerminate(nullptr);
@@ -8551,8 +8551,8 @@ EidosValue_SP Eidos_ExecuteFunction_rgb2hsv(const EidosValue_SP *const p_argumen
 	if (b < 0.0) b = 0.0;
 	if (b > 1.0) b = 1.0;
 	
-	double c_max = (r > g) ? ((r > b) ? r : b) : ((g > b) ? g : b);
-	double c_min = (r < g) ? ((r < b) ? r : b) : ((g < b) ? g : b);
+	double c_max = std::max(r, std::max(g, b));
+	double c_min = std::min(r, std::min(g, b));
 	double delta = c_max - c_min;
 	double h, s, v;
 	
@@ -9418,11 +9418,11 @@ EidosValue_SP Eidos_ExecuteFunction_system(const EidosValue_SP *const p_argument
 	
 	char buffer[128];
 	std::string result = "";
-	std::shared_ptr<FILE> pipe(popen(command_string.c_str(), "r"), pclose);
-	if (!pipe)
+	std::shared_ptr<FILE> command_pipe(popen(command_string.c_str(), "r"), pclose);
+	if (!command_pipe)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_system): (internal error) popen() failed!" << EidosTerminate(nullptr);
-	while (!feof(pipe.get())) {
-		if (fgets(buffer, 128, pipe.get()) != NULL)
+	while (!feof(command_pipe.get())) {
+		if (fgets(buffer, 128, command_pipe.get()) != NULL)
 			result += buffer;
 	}
 	

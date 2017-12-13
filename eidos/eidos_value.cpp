@@ -271,23 +271,23 @@ EidosCompareFunctionPtr Eidos_GetCompareFunctionForTypes(EidosValueType p_type1,
 	
 	// comparing one object to another is legal, but objects cannot be compared to other types
 	if ((p_type1 == EidosValueType::kValueObject) && (p_type2 == EidosValueType::kValueObject))
-		return CompareEidosValues_Object;
+		return &CompareEidosValues_Object;
 	
 	// string is the highest type, so we promote to string if either operand is a string
 	if ((p_type1 == EidosValueType::kValueString) || (p_type2 == EidosValueType::kValueString))
-		return CompareEidosValues_String;
+		return &CompareEidosValues_String;
 	
 	// float is the next highest type, so we promote to float if either operand is a float
 	if ((p_type1 == EidosValueType::kValueFloat) || (p_type2 == EidosValueType::kValueFloat))
-		return CompareEidosValues_Float;
+		return &CompareEidosValues_Float;
 	
 	// int is the next highest type, so we promote to int if either operand is a int
 	if ((p_type1 == EidosValueType::kValueInt) || (p_type2 == EidosValueType::kValueInt))
-		return CompareEidosValues_Int;
+		return &CompareEidosValues_Int;
 	
 	// logical is the next highest type, so we promote to logical if either operand is a logical
 	if ((p_type1 == EidosValueType::kValueLogical) || (p_type2 == EidosValueType::kValueLogical))
-		return CompareEidosValues_Logical;
+		return &CompareEidosValues_Logical;
 	
 	// that's the end of the road; we should never reach this point
 	EIDOS_TERMINATION << "ERROR (Eidos_GetCompareFunctionForTypes): (internal error) comparison involving type " << p_type1 << " and type " << p_type2 << " is undefined." << EidosTerminate(p_blame_token);
@@ -358,6 +358,11 @@ EidosObjectElement *EidosValue::ObjectElementAtIndex(int p_idx, const EidosToken
 void EidosValue::RaiseForUnimplementedVectorCall(void) const
 {
 	EIDOS_TERMINATION << "ERROR (EidosValue::RaiseForUnimplementedVectorCall): (internal error) direct vector access attempted on an EidosValue type that does not support it." << EidosTerminate(nullptr);
+}
+
+void EidosValue::RaiseForUnsupportedConversionCall(const EidosToken *p_blame_token) const
+{
+	EIDOS_TERMINATION << "ERROR (EidosValue::RaiseForUnsupportedConversionCall): an EidosValue cannot be converted to the requested type." << EidosTerminate(p_blame_token);
 }
 
 void EidosValue::RaiseForCapacityViolation(void) const
@@ -1027,9 +1032,8 @@ EidosValue_String_vector::EidosValue_String_vector(void) : EidosValue_String(fal
 {
 }
 
-EidosValue_String_vector::EidosValue_String_vector(const std::vector<std::string> &p_stringvec) : EidosValue_String(false)
+EidosValue_String_vector::EidosValue_String_vector(const std::vector<std::string> &p_stringvec) : EidosValue_String(false), values_(p_stringvec)
 {
-	values_ = p_stringvec;
 }
 
 EidosValue_String_vector::EidosValue_String_vector(std::initializer_list<const std::string> p_init_list) : EidosValue_String(false)

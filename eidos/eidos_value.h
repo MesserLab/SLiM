@@ -276,11 +276,11 @@ public:
 	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) = 0;
 	
 	// fetching individual values; these convert type if necessary, and (base class behavior) raise if impossible
-	virtual eidos_logical_t LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const;
-	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const;
-	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const;
-	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const;
-	virtual EidosObjectElement *ObjectElementAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual eidos_logical_t LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
+	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
+	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
+	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
+	virtual EidosObjectElement *ObjectElementAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
 	
 	// methods to allow type-agnostic manipulation of EidosValues
 	virtual EidosValue_SP VectorBasedCopy(void) const;				// just calls CopyValues() by default, but guarantees a mutable copy
@@ -294,6 +294,7 @@ public:
 	// Note that these methods are conventionally used in Eidos by immediately dereferencing to create a reference to the vector; this
 	// should be safe, since these methods should always raise rather than returning nullptr.
 	void RaiseForUnimplementedVectorCall(void) const __attribute__((__noreturn__)) __attribute__((analyzer_noreturn));
+	void RaiseForUnsupportedConversionCall(const EidosToken *p_blame_token) const __attribute__((__noreturn__)) __attribute__((analyzer_noreturn));
 	void RaiseForCapacityViolation(void) const __attribute__((__noreturn__)) __attribute__((analyzer_noreturn));
 	void RaiseForRangeViolation(void) const __attribute__((__noreturn__)) __attribute__((analyzer_noreturn));
 	
@@ -421,6 +422,12 @@ public:
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const;
 	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token);
 
+	virtual eidos_logical_t LogicalAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const { RaiseForUnsupportedConversionCall(p_blame_token); };
+	virtual std::string StringAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const { RaiseForUnsupportedConversionCall(p_blame_token); };
+	virtual int64_t IntAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const { RaiseForUnsupportedConversionCall(p_blame_token); };
+	virtual double FloatAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const { RaiseForUnsupportedConversionCall(p_blame_token); };
+	virtual EidosObjectElement *ObjectElementAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const { RaiseForUnsupportedConversionCall(p_blame_token); };
+	
 	virtual EidosValue_SP CopyValues(void) const;
 	virtual EidosValue_SP NewMatchingType(void) const;
 	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token);
@@ -476,6 +483,7 @@ public:
 	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const;
 	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const;
 	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual EidosObjectElement *ObjectElementAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const { RaiseForUnsupportedConversionCall(p_blame_token); };
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const;
 	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token);
@@ -494,8 +502,11 @@ public:
 	inline __attribute__((always_inline)) eidos_logical_t *data(void) { return values_; }
 	inline __attribute__((always_inline)) const eidos_logical_t *data(void) const { return values_; }
 	inline __attribute__((always_inline)) size_t size(void) const { return count_; }
-	inline __attribute__((always_inline)) void set_size(size_t p_new_size) { if (count_ > capacity_) RaiseForCapacityViolation(); count_ = p_new_size; }
-	inline __attribute__((always_inline)) void push_logical(eidos_logical_t p_logical) { if (count_ == capacity_) expand(); values_[count_++] = p_logical; }
+	inline __attribute__((always_inline)) void push_logical(eidos_logical_t p_logical)
+	{
+		if (count_ == capacity_) expand();
+		values_[count_++] = p_logical;
+	}
 	inline __attribute__((always_inline)) void push_logical_no_check(eidos_logical_t p_logical) {
 #if DEBUG
 		// do checks only in DEBUG mode, for speed; the user should never be able to trigger these errors
@@ -550,7 +561,7 @@ public:
 class EidosValue_String : public EidosValue
 {
 protected:
-	EidosValue_String(bool p_singleton) : EidosValue(EidosValueType::kValueString, p_singleton) {}
+	explicit EidosValue_String(bool p_singleton) : EidosValue(EidosValueType::kValueString, p_singleton) {}
 	
 public:
 	EidosValue_String(const EidosValue_String &p_original) = delete;		// no copy-construct
@@ -561,11 +572,6 @@ public:
 	virtual const std::string &ElementType(void) const;
 	virtual int Count_Virtual(void) const = 0;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const;
-	
-	virtual eidos_logical_t LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
-	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
-	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
-	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const = 0;
 	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) = 0;
@@ -605,6 +611,7 @@ public:
 	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const;
 	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const;
 	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual EidosObjectElement *ObjectElementAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const { RaiseForUnsupportedConversionCall(p_blame_token); };
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const;
 	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token);
@@ -637,6 +644,7 @@ public:
 	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const;
 	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const;
 	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual EidosObjectElement *ObjectElementAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const { RaiseForUnsupportedConversionCall(p_blame_token); };
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const;
 	virtual EidosValue_SP CopyValues(void) const;
@@ -668,7 +676,7 @@ public:
 class EidosValue_Int : public EidosValue
 {
 protected:
-	EidosValue_Int(bool p_singleton) : EidosValue(EidosValueType::kValueInt, p_singleton) {}
+	explicit EidosValue_Int(bool p_singleton) : EidosValue(EidosValueType::kValueInt, p_singleton) {}
 	
 public:
 	EidosValue_Int(const EidosValue_Int &p_original) = delete;			// no copy-construct
@@ -679,11 +687,6 @@ public:
 	virtual const std::string &ElementType(void) const;
 	virtual int Count_Virtual(void) const = 0;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const;
-	
-	virtual eidos_logical_t LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
-	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
-	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
-	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const = 0;
 	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) = 0;
@@ -722,6 +725,7 @@ public:
 	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const;
 	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const;
 	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual EidosObjectElement *ObjectElementAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const { RaiseForUnsupportedConversionCall(p_blame_token); };
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const;
 	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token);
@@ -739,8 +743,11 @@ public:
 	inline __attribute__((always_inline)) int64_t *data(void) { return values_; }
 	inline __attribute__((always_inline)) const int64_t *data(void) const { return values_; }
 	inline __attribute__((always_inline)) size_t size(void) const { return count_; }
-	inline __attribute__((always_inline)) void set_size(size_t p_new_size) { if (count_ > capacity_) RaiseForCapacityViolation(); count_ = p_new_size; }
-	inline __attribute__((always_inline)) void push_int(int64_t p_int) { if (count_ == capacity_) expand(); values_[count_++] = p_int; }
+	inline __attribute__((always_inline)) void push_int(int64_t p_int)
+	{
+		if (count_ == capacity_) expand();
+		values_[count_++] = p_int;
+	}
 	inline __attribute__((always_inline)) void push_int_no_check(int64_t p_int) {
 #if DEBUG
 		// do checks only in DEBUG mode, for speed; the user should never be able to trigger these errors
@@ -779,6 +786,7 @@ public:
 	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const;
 	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const;
 	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual EidosObjectElement *ObjectElementAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const { RaiseForUnsupportedConversionCall(p_blame_token); };
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const;
 	virtual EidosValue_SP CopyValues(void) const;
@@ -806,7 +814,7 @@ public:
 class EidosValue_Float : public EidosValue
 {
 protected:
-	EidosValue_Float(bool p_singleton) : EidosValue(EidosValueType::kValueFloat, p_singleton) {}
+	explicit EidosValue_Float(bool p_singleton) : EidosValue(EidosValueType::kValueFloat, p_singleton) {}
 	
 public:
 	EidosValue_Float(const EidosValue_Float &p_original) = delete;			// no copy-construct
@@ -817,11 +825,6 @@ public:
 	virtual const std::string &ElementType(void) const;
 	virtual int Count_Virtual(void) const = 0;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const;
-	
-	virtual eidos_logical_t LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
-	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
-	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
-	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const = 0;
 	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) = 0;
@@ -858,6 +861,7 @@ public:
 	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const;
 	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const;
 	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual EidosObjectElement *ObjectElementAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const { RaiseForUnsupportedConversionCall(p_blame_token); };
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const;
 	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token);
@@ -875,8 +879,11 @@ public:
 	inline __attribute__((always_inline)) double *data(void) { return values_; }
 	inline __attribute__((always_inline)) const double *data(void) const { return values_; }
 	inline __attribute__((always_inline)) size_t size(void) const { return count_; }
-	inline __attribute__((always_inline)) void set_size(size_t p_new_size) { if (count_ > capacity_) RaiseForCapacityViolation(); count_ = p_new_size; }
-	inline __attribute__((always_inline)) void push_float(double p_float) { if (count_ == capacity_) expand(); values_[count_++] = p_float; }
+	inline __attribute__((always_inline)) void push_float(double p_float)
+	{
+		if (count_ == capacity_) expand();
+		values_[count_++] = p_float;
+	}
 	inline __attribute__((always_inline)) void push_float_no_check(double p_float) {
 #if DEBUG
 		// do checks only in DEBUG mode, for speed; the user should never be able to trigger these errors
@@ -915,6 +922,7 @@ public:
 	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const;
 	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const;
 	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const;
+	virtual EidosObjectElement *ObjectElementAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const { RaiseForUnsupportedConversionCall(p_blame_token); };
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const;
 	virtual EidosValue_SP CopyValues(void) const;
@@ -966,14 +974,12 @@ public:
 	virtual ~EidosValue_Object(void);
 	
 	void RaiseForClassMismatch(void) const;
-	inline __attribute__((always_inline)) void DeclareClassFromElement(const EidosObjectElement *p_element, bool p_undeclared_is_error = false);
+	void DeclareClassFromElement(const EidosObjectElement *p_element, bool p_undeclared_is_error = false);
 	
 	virtual const std::string &ElementType(void) const;
 	inline __attribute__((always_inline)) const EidosObjectClass *Class(void) const { return class_; }
 	virtual int Count_Virtual(void) const = 0;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const;
-	
-	virtual EidosObjectElement *ObjectElementAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const = 0;
 	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) = 0;
@@ -1014,6 +1020,10 @@ public:
 	
 	virtual int Count_Virtual(void) const;
 	
+	virtual eidos_logical_t LogicalAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const { RaiseForUnsupportedConversionCall(p_blame_token); };
+	virtual std::string StringAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const { RaiseForUnsupportedConversionCall(p_blame_token); };
+	virtual int64_t IntAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const { RaiseForUnsupportedConversionCall(p_blame_token); };
+	virtual double FloatAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const { RaiseForUnsupportedConversionCall(p_blame_token); };
 	virtual EidosObjectElement *ObjectElementAtIndex(int p_idx, const EidosToken *p_blame_token) const;
 	
 	virtual const EidosValue_Object_vector *ObjectElementVector(void) const { return this; }
@@ -1046,10 +1056,9 @@ public:
 	//inline __attribute__((always_inline)) EidosObjectElement **data(void) { return values_; }		// the accessors below should be used to modify, since they handle Retain()/Release()
 	inline __attribute__((always_inline)) EidosObjectElement * const *data(void) const { return values_; }
 	inline __attribute__((always_inline)) size_t size(void) const { return count_; }
-	inline __attribute__((always_inline)) void set_size(size_t p_new_size) { if (count_ > capacity_) RaiseForCapacityViolation(); count_ = p_new_size; }
-	inline __attribute__((always_inline)) void push_object_element(EidosObjectElement *p_object);
-	inline __attribute__((always_inline)) void push_object_element_no_check(EidosObjectElement *p_object);
-	inline __attribute__((always_inline)) void set_object_element_no_check(EidosObjectElement *p_object, size_t p_index);
+	void push_object_element(EidosObjectElement *p_object);
+	void push_object_element_no_check(EidosObjectElement *p_object);
+	void set_object_element_no_check(EidosObjectElement *p_object, size_t p_index);
 };
 
 class EidosValue_Object_singleton : public EidosValue_Object
@@ -1066,6 +1075,10 @@ public:
 	
 	virtual int Count_Virtual(void) const;
 	
+	virtual eidos_logical_t LogicalAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const { RaiseForUnsupportedConversionCall(p_blame_token); };
+	virtual std::string StringAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const { RaiseForUnsupportedConversionCall(p_blame_token); };
+	virtual int64_t IntAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const { RaiseForUnsupportedConversionCall(p_blame_token); };
+	virtual double FloatAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const { RaiseForUnsupportedConversionCall(p_blame_token); };
 	virtual EidosObjectElement *ObjectElementAtIndex(int p_idx, const EidosToken *p_blame_token) const;
 	
 	inline __attribute__((always_inline)) EidosObjectElement *ObjectElementValue(void) const { return value_; }
@@ -1169,7 +1182,9 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosObjectElement &p_
 class EidosObjectElementInternal : public EidosObjectElement
 {
 private:
+#ifdef EIDOS_OBJECT_RETAIN_RELEASE
 	uint32_t refcount_ = 1;				// start life with a refcount of 1; the allocator does not need to call Retain()
+#endif
 	
 public:
 	EidosObjectElementInternal(const EidosObjectElementInternal &p_original) = delete;		// no copy-construct

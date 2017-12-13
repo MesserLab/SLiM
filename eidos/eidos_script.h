@@ -77,7 +77,7 @@ public:
 	EidosScript(const EidosScript&) = delete;								// no copying
 	EidosScript& operator=(const EidosScript&) = delete;					// no copying
 	EidosScript(void) = delete;												// no null construction
-	EidosScript(const std::string &p_script_string);
+	explicit EidosScript(const std::string &p_script_string);
 	
 	virtual ~EidosScript(void);												// destructor
 	

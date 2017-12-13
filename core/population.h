@@ -101,7 +101,7 @@ public:
 	Population(const Population&) = delete;					// no copying
 	Population& operator=(const Population&) = delete;		// no copying
 	Population(void) = delete;								// no default constructor
-	Population(SLiMSim &p_sim);								// our constructor: we must have a reference to our simulation
+	explicit Population(SLiMSim &p_sim);					// our constructor: we must have a reference to our simulation
 	~Population(void);										// destructor
 	
 	// add new empty subpopulation p_subpop_id of size p_subpop_size

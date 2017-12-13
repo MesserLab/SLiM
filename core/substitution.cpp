@@ -154,11 +154,6 @@ void Substitution::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 	}
 }
 
-EidosValue_SP Substitution::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
-{
-	return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
-}
-
 
 //
 //	Substitution_Class
@@ -179,10 +174,6 @@ public:
 	
 	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
 	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
-	
-	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
-	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
-	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 };
 
 EidosObjectClass *gSLiM_Substitution_Class = new Substitution_Class();
@@ -260,28 +251,6 @@ const EidosPropertySignature *Substitution_Class::SignatureForProperty(EidosGlob
 	}
 }
 
-const std::vector<const EidosMethodSignature *> *Substitution_Class::Methods(void) const
-{
-	static std::vector<const EidosMethodSignature *> *methods = nullptr;
-	
-	if (!methods)
-	{
-		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
-		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
-	}
-	
-	return methods;
-}
-
-const EidosMethodSignature *Substitution_Class::SignatureForMethod(EidosGlobalStringID p_method_id) const
-{
-	return EidosObjectClass::SignatureForMethod(p_method_id);
-}
-
-EidosValue_SP Substitution_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
-{
-	return EidosObjectClass::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
-}
 
 
 

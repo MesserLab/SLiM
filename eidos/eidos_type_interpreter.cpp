@@ -177,7 +177,7 @@ EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(std
 		// in EidosInterpreter.  TypeEvaluateNode() is safe to call with nullptr.
 		EidosInternalFunctionPtr function_ptr = p_function_signature->internal_function_;
 		
-		if ((function_ptr == Eidos_ExecuteFunction_defineConstant) && (argument_count == 2))
+		if ((function_ptr == &Eidos_ExecuteFunction_defineConstant) && (argument_count == 2))
 		{
 			// We know that defineConstant() has the side effect of adding a new symbol, and we want to reflect that in
 			// our type table so that defined constants are always available.
@@ -194,36 +194,36 @@ EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(std
 				}
 			}
 		}
-		else if ((argument_count >= 1) && ((function_ptr == Eidos_ExecuteFunction_rep) ||
-										   (function_ptr == Eidos_ExecuteFunction_repEach) ||
-										   (function_ptr == Eidos_ExecuteFunction_rev) ||
-										   (function_ptr == Eidos_ExecuteFunction_sample) ||
-										   (function_ptr == Eidos_ExecuteFunction_sortBy) ||
-										   (function_ptr == Eidos_ExecuteFunction_unique) ||
-										   (function_ptr == Eidos_ExecuteFunction_setUnion) ||
-										   (function_ptr == Eidos_ExecuteFunction_setIntersection) ||
-										   (function_ptr == Eidos_ExecuteFunction_setDifference) ||
-										   (function_ptr == Eidos_ExecuteFunction_setSymmetricDifference) ||
-										   (function_ptr == Eidos_ExecuteFunction_array) ||
-										   (function_ptr == Eidos_ExecuteFunction_cbind) ||
-										   (function_ptr == Eidos_ExecuteFunction_matrix) ||
-										   (function_ptr == Eidos_ExecuteFunction_matrixMult) ||
-										   (function_ptr == Eidos_ExecuteFunction_rbind) ||
-										   (function_ptr == Eidos_ExecuteFunction_t)))
+		else if ((argument_count >= 1) && ((function_ptr == &Eidos_ExecuteFunction_rep) ||
+										   (function_ptr == &Eidos_ExecuteFunction_repEach) ||
+										   (function_ptr == &Eidos_ExecuteFunction_rev) ||
+										   (function_ptr == &Eidos_ExecuteFunction_sample) ||
+										   (function_ptr == &Eidos_ExecuteFunction_sortBy) ||
+										   (function_ptr == &Eidos_ExecuteFunction_unique) ||
+										   (function_ptr == &Eidos_ExecuteFunction_setUnion) ||
+										   (function_ptr == &Eidos_ExecuteFunction_setIntersection) ||
+										   (function_ptr == &Eidos_ExecuteFunction_setDifference) ||
+										   (function_ptr == &Eidos_ExecuteFunction_setSymmetricDifference) ||
+										   (function_ptr == &Eidos_ExecuteFunction_array) ||
+										   (function_ptr == &Eidos_ExecuteFunction_cbind) ||
+										   (function_ptr == &Eidos_ExecuteFunction_matrix) ||
+										   (function_ptr == &Eidos_ExecuteFunction_matrixMult) ||
+										   (function_ptr == &Eidos_ExecuteFunction_rbind) ||
+										   (function_ptr == &Eidos_ExecuteFunction_t)))
 		{
 			// These functions are all defined as returning *, but in fact return the same type/class as their first argument.
 			EidosTypeSpecifier argument_type = TypeEvaluateNode(p_arguments[0]);
 			
 			result_type = argument_type;
 		}
-		else if ((function_ptr == Eidos_ExecuteFunction_ifelse) && (argument_count >= 2))
+		else if ((function_ptr == &Eidos_ExecuteFunction_ifelse) && (argument_count >= 2))
 		{
 			// These functions are all defined as returning *, but in fact return the same type/class as their second argument.
 			EidosTypeSpecifier argument_type = TypeEvaluateNode(p_arguments[1]);
 			
 			result_type = argument_type;
 		}
-		else if ((function_ptr == Eidos_ExecuteFunction_c) && (argument_count >= 1))
+		else if ((function_ptr == &Eidos_ExecuteFunction_c) && (argument_count >= 1))
 		{
 			// The c() function returns the highest type it is passed (in the sense of promotion order).  This is not
 			// important to us, except that if any argument is an object type, we assume the return will mirror that.

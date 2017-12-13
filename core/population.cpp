@@ -322,7 +322,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 					weights_modified = true;
 				}
 				
-				bzero(current_weights, sizeof(double) * weights_length);
+				EIDOS_BZERO(current_weights, sizeof(double) * weights_length);
 				current_weights[chosen_mate->IndexInSubpopulation()] = 1.0;
 				
 				weights_reflect_chosen_mate = true;
@@ -871,8 +871,20 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 				
 				for (int sex_index = 0; sex_index < number_of_sexes; ++sex_index)
 				{
-					slim_popsize_t total_children_of_sex = sex_enabled ? ((sex_index == 0) ? total_female_children : total_male_children) : total_children;
-					IndividualSex child_sex = sex_enabled ? ((sex_index == 0) ? IndividualSex::kFemale : IndividualSex::kMale) : IndividualSex::kHermaphrodite;
+					slim_popsize_t total_children_of_sex;
+					IndividualSex child_sex;
+					
+					if (sex_enabled)
+					{
+						total_children_of_sex = ((sex_index == 0) ? total_female_children : total_male_children);
+						child_sex = ((sex_index == 0) ? IndividualSex::kFemale : IndividualSex::kMale);
+					}
+					else
+					{
+						total_children_of_sex = total_children;
+						child_sex = IndividualSex::kHermaphrodite;
+					}
+					
 					slim_popsize_t migrants_to_generate = total_children_of_sex;
 					
 					if (migrants_to_generate > 0)
@@ -1182,8 +1194,19 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 			
 			for (int sex_index = 0; sex_index < number_of_sexes; ++sex_index)
 			{
-				slim_popsize_t total_children_of_sex = sex_enabled ? ((sex_index == 0) ? total_female_children : total_male_children) : total_children;
-				IndividualSex child_sex = sex_enabled ? ((sex_index == 0) ? IndividualSex::kFemale : IndividualSex::kMale) : IndividualSex::kHermaphrodite;
+				slim_popsize_t total_children_of_sex;
+				IndividualSex child_sex;
+				
+				if (sex_enabled)
+				{
+					total_children_of_sex = ((sex_index == 0) ? total_female_children : total_male_children);
+					child_sex = ((sex_index == 0) ? IndividualSex::kFemale : IndividualSex::kMale);
+				}
+				else
+				{
+					total_children_of_sex = total_children;
+					child_sex = IndividualSex::kHermaphrodite;
+				}
 				
 				// draw the number of individuals from the migrant source subpops, and from ourselves, for the current sex
 				if (migrant_source_count == 0)
@@ -1470,8 +1493,19 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 		
 		for (int sex_index = 0; sex_index < number_of_sexes; ++sex_index)
 		{
-			slim_popsize_t total_children_of_sex = sex_enabled ? ((sex_index == 0) ? total_female_children : total_male_children) : total_children;
-			IndividualSex child_sex = sex_enabled ? ((sex_index == 0) ? IndividualSex::kFemale : IndividualSex::kMale) : IndividualSex::kHermaphrodite;
+			slim_popsize_t total_children_of_sex;
+			IndividualSex child_sex;
+			
+			if (sex_enabled)
+			{
+				total_children_of_sex = ((sex_index == 0) ? total_female_children : total_male_children);
+				child_sex = ((sex_index == 0) ? IndividualSex::kFemale : IndividualSex::kMale);
+			}
+			else
+			{
+				total_children_of_sex = total_children;
+				child_sex = IndividualSex::kHermaphrodite;
+			}
 			
 			// draw the number of individuals from the migrant source subpops, and from ourselves, for the current sex
 			if (migrant_source_count == 0)
@@ -1910,12 +1944,12 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 				if (parent1_genome_type == GenomeType::kYChromosome && parent2_genome_type == GenomeType::kXChromosome)
 				{
 					// we're doing inheritance from the male (YX) to get an X chromosome; we need to ensure that we take the X
-					use_only_strand_1 = true, do_swap = true;	// use strand 2
+					use_only_strand_1 = true; do_swap = true;	// use strand 2
 				}
 				else if (parent1_genome_type == GenomeType::kXChromosome && parent2_genome_type == GenomeType::kYChromosome)
 				{
 					// we're doing inheritance from the male (XY) to get an X chromosome; we need to ensure that we take the X
-					use_only_strand_1 = true, do_swap = false;	// use strand 1
+					use_only_strand_1 = true; do_swap = false;	// use strand 1
 				}
 				// else: we're doing inheritance from the female (XX) to get an X chromosome; we treat this just like the autosomal case
 			}
@@ -1928,12 +1962,12 @@ void Population::DoCrossoverMutation(Subpopulation *p_subpop, Subpopulation *p_s
 			if (parent1_genome_type == GenomeType::kYChromosome && parent2_genome_type == GenomeType::kXChromosome)
 			{
 				// we're doing inheritance from the male (YX) to get a Y chromosome; we need to ensure that we take the Y
-				use_only_strand_1 = true, do_swap = false;	// use strand 1
+				use_only_strand_1 = true; do_swap = false;	// use strand 1
 			}
 			else if (parent1_genome_type == GenomeType::kXChromosome && parent2_genome_type == GenomeType::kYChromosome)
 			{
 				// we're doing inheritance from the male (XY) to get an X chromosome; we need to ensure that we take the Y
-				use_only_strand_1 = true, do_swap = true;	// use strand 2
+				use_only_strand_1 = true; do_swap = true;	// use strand 2
 			}
 			else
 			{

@@ -1030,7 +1030,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		{
 			// do another buffer length check
 			if (p + spatial_output_count * sizeof(double) + sizeof(total_mutations) > buf_end)
-			break;
+				break;
 			
 			int individual_index = genome_index / 2;
 			Individual &individual = subpop.parent_individuals_[individual_index];

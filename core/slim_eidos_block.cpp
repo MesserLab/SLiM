@@ -931,11 +931,6 @@ void SLiMEidosBlock::SetProperty(EidosGlobalStringID p_property_id, const EidosV
 	}
 }
 
-EidosValue_SP SLiMEidosBlock::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
-{
-	return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
-}
-
 
 //
 //	SLiMEidosBlock_Class
@@ -956,10 +951,6 @@ public:
 	
 	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
 	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
-	
-	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
-	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
-	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 };
 
 EidosObjectClass *gSLiM_SLiMEidosBlock_Class = new SLiMEidosBlock_Class();
@@ -1031,29 +1022,6 @@ const EidosPropertySignature *SLiMEidosBlock_Class::SignatureForProperty(EidosGl
 		default:
 			return EidosObjectClass::SignatureForProperty(p_property_id);
 	}
-}
-
-const std::vector<const EidosMethodSignature *> *SLiMEidosBlock_Class::Methods(void) const
-{
-	static std::vector<const EidosMethodSignature *> *methods = nullptr;
-	
-	if (!methods)
-	{
-		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
-		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
-	}
-	
-	return methods;
-}
-
-const EidosMethodSignature *SLiMEidosBlock_Class::SignatureForMethod(EidosGlobalStringID p_method_id) const
-{
-	return EidosObjectClass::SignatureForMethod(p_method_id);
-}
-
-EidosValue_SP SLiMEidosBlock_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
-{
-	return EidosObjectClass::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
 }
 
 
@@ -1136,16 +1104,15 @@ EidosTypeSpecifier SLiMTypeTable::GetTypeForSymbol(EidosGlobalStringID p_symbol_
 						return symbol_type;
 				}
 				
-				if (first_ch == 'p')
-					return EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class};
-				if (first_ch == 'g')
-					return EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class};
-				if (first_ch == 'm')
-					return EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_MutationType_Class};
-				if (first_ch == 's')
-					return EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class};
-				if (first_ch == 'i')
-					return EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_InteractionType_Class};
+				switch(first_ch)
+				{
+					case 'p': return EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class};
+					case 'g': return EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class};
+					case 'm': return EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_MutationType_Class};
+					case 's': return EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class};
+					case 'i': return EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_InteractionType_Class};
+					default: break;	// never hit, given the if above
+				}
 			}
 		}
 		

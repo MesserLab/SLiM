@@ -302,7 +302,12 @@ public:
 	inline GenomeType ModeledChromosomeType(void) const								{ return modeled_chromosome_type_; }
 	inline double XDominanceCoefficient(void) const									{ return x_chromosome_dominance_coeff_; }
 	inline int SpatialDimensionality(void) const									{ return spatial_dimensionality_; }
-	inline void SpatialPeriodicity(bool *p_x, bool *p_y, bool *p_z) const			{ if (p_x) *p_x = periodic_x_; if (p_y) *p_y = periodic_y_; if (p_z) *p_z = periodic_z_; }
+	inline void SpatialPeriodicity(bool *p_x, bool *p_y, bool *p_z) const
+	{
+		if (p_x) *p_x = periodic_x_;
+		if (p_y) *p_y = periodic_y_;
+		if (p_z) *p_z = periodic_z_;
+	}
 	
 	//
 	// Eidos support
