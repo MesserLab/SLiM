@@ -55,6 +55,7 @@ development head:
 	policy change: Chromosome properties that used to return NULL when inapplicable now raise (mutation rate map and recombination rate map properties)
 	change property semantics: singleton properties accessed on a matrix/array now mirror the dimensional structure of the target, like a unary operator
 	rename apply() to sapply() to match R, add a simplify= parameter to govern the result's dimensionality
+	add new apply() function to apply a lambda to margins of a matrix or array, as in R
 
 
 2.5 (build 1204; Eidos version 1.5):

@@ -222,6 +222,7 @@ EidosValue_SP Eidos_ExecuteFunction_color2rgb(const EidosValue_SP *const p_argum
 #pragma mark -
 
 //	miscellaneous functions
+EidosValue_SP Eidos_ExecuteFunction_apply(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_sapply(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_beep(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_citation(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);

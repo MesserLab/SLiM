@@ -355,6 +355,8 @@ public:
 		}
 	}
 	
+	EidosValue_SP Subset(std::vector<std::vector<int64_t>> &p_inclusion_indices, bool p_drop, const EidosToken *p_blame_token);
+	
 	// Eidos_intrusive_ptr support; we use Eidos_intrusive_ptr as a fast smart pointer to EidosValue.
 	inline __attribute__((always_inline)) uint32_t UseCount() const { return intrusive_ref_count_; }
 	inline __attribute__((always_inline)) void StackAllocated() { intrusive_ref_count_++; }			// used with stack-allocated EidosValues that have to be put under Eidos_intrusive_ptr
@@ -625,7 +627,7 @@ class EidosValue_String_singleton : public EidosValue_String
 {
 protected:
 	std::string value_;
-	EidosScript *cached_script_ = nullptr;	// cached by executeLambda() and sapply() to avoid multiple tokenize/parse overhead
+	EidosScript *cached_script_ = nullptr;	// cached by executeLambda(), apply(), and sapply() to avoid multiple tokenize/parse overhead
 	
 public:
 	EidosValue_String_singleton(const EidosValue_String_singleton &p_original) = delete;	// no copy-construct

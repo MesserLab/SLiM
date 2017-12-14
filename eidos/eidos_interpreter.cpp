@@ -1122,7 +1122,15 @@ int EidosInterpreter::_ProcessArgumentList(const EidosASTNode *p_node, const Eid
 					EidosValueMask arg_mask = p_call_signature->arg_masks_[sig_arg_index];
 					
 					if (!(arg_mask & kEidosValueMaskOptional))
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument " << named_arg_name_node->token_->token_string_ << " skipped over required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << EidosTerminate(nullptr);
+					{
+						const std::string &named_arg = named_arg_name_node->token_->token_string_;
+						
+						// We have special error-handling for apply() because sapply() used to be named apply() and we want to steer users to the new call
+						if ((p_call_signature->call_name_ == "apply") && ((named_arg == "lambdaSource") || (named_arg == "simplify")))
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument " << named_arg << " skipped over required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << std::endl << "NOTE: The apply() function was renamed sapply() in Eidos 1.6, and a new function named apply() has been added; you may need to change this call to be a call to sapply() instead." << EidosTerminate(nullptr);
+						
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument " << named_arg << " skipped over required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << EidosTerminate(nullptr);
+					}
 					
 					EidosValue_SP default_value = p_call_signature->arg_defaults_[sig_arg_index];
 					
@@ -1168,7 +1176,13 @@ int EidosInterpreter::_ProcessArgumentList(const EidosASTNode *p_node, const Eid
 		EidosValueMask arg_mask = p_call_signature->arg_masks_[sig_arg_index];
 		
 		if (!(arg_mask & kEidosValueMaskOptional))
+		{
+			// We have special error-handling for apply() because sapply() used to be named apply() and we want to steer users to the new call
+			if ((p_call_signature->call_name_ == "apply") && (p_call_signature->arg_names_[sig_arg_index] == "lambdaSource"))
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): missing required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << std::endl << "NOTE: The apply() function was renamed sapply() in Eidos 1.6, and a new function named apply() has been added; you may need to change this call to be a call to sapply() instead." << EidosTerminate(nullptr);
+			
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): missing required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << EidosTerminate(nullptr);
+		}
 		
 		EidosValue_SP default_value = p_call_signature->arg_defaults_[sig_arg_index];
 		
@@ -1884,7 +1898,6 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 		// We tabulate the status of each dimension, and then put it all together at the end as a result value
 		const int64_t *first_child_dim = first_child_value->Dimensions();
 		std::vector<std::vector<int64_t>> inclusion_indices;	// the chosen indices for each dimension
-		std::vector<int> inclusion_counts;						// the number of chosen indices for each dimension
 		bool empty_dimension = false;
 		
 		for (int subset_index = 0; subset_index < subset_index_count; ++subset_index)
@@ -1933,7 +1946,6 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 				break;
 			}
 			
-			inclusion_counts.push_back((int)indices.size());
 			inclusion_indices.emplace_back(indices);
 		}
 		
@@ -1944,60 +1956,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 		}
 		else
 		{
-			// We have tabulated the subsets; now copy the included values into the result.  To do this, we count up in the base
-			// system established by inclusion_counts, and add the referenced value at each step along the way.
-			result_SP = first_child_value->NewMatchingType();
-			
-			std::vector<int> generating_counter(subset_index_count, 0);
-			
-			do
-			{
-				// add the value referenced by generating_counter in inclusion_indices
-				int64_t referenced_index = 0;
-				int64_t dim_skip = 1;
-				
-				for (int counter_index = 0; counter_index < subset_index_count; ++counter_index)
-				{
-					int counter_value = generating_counter[counter_index];
-					int64_t inclusion_index_value = inclusion_indices[counter_index][counter_value];
-					
-					referenced_index += inclusion_index_value * dim_skip;
-					
-					dim_skip *= first_child_dim[counter_index];
-				}
-				
-				result_SP->PushValueFromIndexOfEidosValue((int)referenced_index, *(first_child_value.get()), operator_token);
-				
-				// increment generating_counter in the base system of inclusion_counts
-				int generating_counter_index = 0;
-				
-				do
-				{
-					if (++generating_counter[generating_counter_index] == inclusion_counts[generating_counter_index])
-					{
-						generating_counter[generating_counter_index] = 0;
-						generating_counter_index++;		// carry
-					}
-					else
-						break;
-				}
-				while (generating_counter_index < subset_index_count);
-				
-				// if we carried out off the top, we are done adding included values
-				if (generating_counter_index == subset_index_count)
-					break;
-			}
-			while (true);
-			
-			// Finally, set the dimensionality of the result, considering dropped dimensions.  This basically follows the structure
-			// of the indexed operand's dimensions, but (a) resizes to match the size of inclusion_indices for the given dimension,
-			// and (b) omits any dimension that has a count of exactly 1, since those dimensions are dropped.
-			int64_t *dim = (int64_t *)malloc(subset_index_count * sizeof(int64_t));
-			
-			for (int subset_index = 0; subset_index < subset_index_count; ++subset_index)
-				dim[subset_index] = inclusion_counts[subset_index];
-			
-			result_SP->SetDimensions(subset_index_count, dim);
+			result_SP = first_child_value->Subset(inclusion_indices, false, operator_token);
 		}
 	}
 	

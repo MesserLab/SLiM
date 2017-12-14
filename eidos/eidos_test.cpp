@@ -6355,6 +6355,85 @@ void _RunColorManipulationTests(void)
 #pragma mark miscellaneous
 void _RunFunctionMiscTests(void)
 {
+	// apply()
+	EidosAssertScriptRaise("x=integer(0); apply(x, 0, 'applyValue^2;');", 14, "matrix or array");
+	EidosAssertScriptRaise("x=5; apply(x, 0, 'applyValue^2;');", 5, "matrix or array");
+	EidosAssertScriptRaise("x=5:9; apply(x, 0, 'applyValue^2;');", 7, "matrix or array");
+	EidosAssertScriptRaise("x=matrix(1:6, nrow=2); apply(x, -1, 'applyValue^2;');", 23, "out of range");
+	EidosAssertScriptRaise("x=matrix(1:6, nrow=2); apply(x, 2, 'applyValue^2;');", 23, "out of range");
+	EidosAssertScriptRaise("x=matrix(1:6, nrow=2); apply(x, c(0,0), 'applyValue^2;');", 23, "already specified");
+	EidosAssertScriptRaise("x=matrix(1:6, nrow=2); apply(x, integer(0), 'applyValue^2;');", 23, "requires that margins be specified");
+	
+	EidosAssertScriptSuccess("x=matrix(1:6, nrow=2); identical(apply(x, 0, 'sum(applyValue);'), c(9,12));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x=matrix(1:6, nrow=2); identical(apply(x, 1, 'sum(applyValue);'), c(3,7,11));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x=matrix(1:6, nrow=2); identical(apply(x, c(0,1), 'sum(applyValue);'), matrix(1:6, nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x=matrix(1:6, nrow=2); identical(apply(x, c(1,0), 'sum(applyValue);'), t(matrix(1:6, nrow=2)));", gStaticEidosValue_LogicalT);
+	
+	EidosAssertScriptSuccess("x=matrix(1:6, nrow=2); identical(apply(x, 0, 'applyValue^2;'), matrix(c(1.0,9,25,4,16,36), nrow=3));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x=matrix(1:6, nrow=2); identical(apply(x, 1, 'applyValue^2;'), matrix(c(1.0,4,9,16,25,36), nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x=matrix(1:6, nrow=2); identical(apply(x, c(0,1), 'applyValue^2;'), matrix(c(1.0,4,9,16,25,36), nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x=matrix(1:6, nrow=2); identical(apply(x, c(1,0), 'applyValue^2;'), t(matrix(c(1.0,4,9,16,25,36), nrow=2)));", gStaticEidosValue_LogicalT);
+	
+	EidosAssertScriptSuccess("x=matrix(1:6, nrow=2); identical(apply(x, 0, 'c(applyValue, applyValue^2);'), matrix(c(1.0,3,5,1,9,25,2,4,6,4,16,36), ncol=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x=matrix(1:6, nrow=2); identical(apply(x, 1, 'c(applyValue, applyValue^2);'), matrix(c(1.0,2,1,4,3,4,9,16,5,6,25,36), ncol=3));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x=matrix(1:6, nrow=2); identical(apply(x, c(0,1), 'c(applyValue, applyValue^2);'), array(c(1.0,1,2,4,3,9,4,16,5,25,6,36), c(2,2,3)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x=matrix(1:6, nrow=2); identical(apply(x, c(1,0), 'c(applyValue, applyValue^2);'), array(c(1.0,1,3,9,5,25,2,4,4,16,6,36), c(2,3,2)));", gStaticEidosValue_LogicalT);
+	
+	EidosAssertScriptSuccess("x=matrix(1:6, nrow=2); identical(apply(x, 0, 'if (applyValue[0] % 2) sum(applyValue);'), 9);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x=matrix(1:6, nrow=2); identical(apply(x, 1, 'if (applyValue[0] % 3) sum(applyValue);'), c(3,11));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x=matrix(1:6, nrow=2); identical(apply(x, c(0,1), 'if (applyValue[0] % 2) sum(applyValue);'), c(1,3,5));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x=matrix(1:6, nrow=2); identical(apply(x, c(1,0), 'if (applyValue[0] % 2) sum(applyValue);'), c(1,3,5));", gStaticEidosValue_LogicalT);
+	
+	EidosAssertScriptSuccess("x=matrix(1:6, nrow=2); identical(apply(x, 0, 'if (applyValue[0] % 2) applyValue^2;'), c(1.0,9,25));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x=matrix(1:6, nrow=2); identical(apply(x, 1, 'if (applyValue[0] % 3) applyValue^2;'), c(1.0,4,25,36));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x=matrix(1:6, nrow=2); identical(apply(x, c(0,1), 'if (applyValue[0] % 2) applyValue^2;'), c(1.0,9,25));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x=matrix(1:6, nrow=2); identical(apply(x, c(1,0), 'if (applyValue[0] % 2) applyValue^2;'), c(1.0,9,25));", gStaticEidosValue_LogicalT);
+	
+	EidosAssertScriptSuccess("x=matrix(1:6, nrow=2); identical(apply(x, 0, 'if (applyValue[0] % 2) c(applyValue, applyValue^2);'), c(1.0,3,5,1,9,25));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x=matrix(1:6, nrow=2); identical(apply(x, 1, 'if (applyValue[0] % 3) c(applyValue, applyValue^2);'), c(1.0,2,1,4,5,6,25,36));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x=matrix(1:6, nrow=2); identical(apply(x, c(0,1), 'if (applyValue[0] % 2) c(applyValue, applyValue^2);'), c(1.0,1,3,9,5,25));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x=matrix(1:6, nrow=2); identical(apply(x, c(1,0), 'if (applyValue[0] % 2) c(applyValue, applyValue^2);'), c(1.0,1,3,9,5,25));", gStaticEidosValue_LogicalT);
+	
+	EidosAssertScriptSuccess("y = array(1:12, c(2,3,2)); identical(apply(y, 0, 'sum(applyValue);'), c(36,42));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("y = array(1:12, c(2,3,2)); identical(apply(y, 1, 'sum(applyValue);'), c(18,26,34));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("y = array(1:12, c(2,3,2)); identical(apply(y, 2, 'sum(applyValue);'), c(21,57));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("y = array(1:12, c(2,3,2)); identical(apply(y, c(0,1), 'sum(applyValue);'), matrix(c(8,10,12,14,16,18), nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("y = array(1:12, c(2,3,2)); identical(apply(y, c(1,2), 'sum(applyValue);'), matrix(c(3,7,11,15,19,23), nrow=3));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("y = array(1:12, c(2,3,2)); identical(apply(y, c(0,2), 'sum(applyValue);'), matrix(c(9,12,27,30), nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("y = array(1:12, c(2,3,2)); identical(apply(y, c(0,1,2), 'sum(applyValue);'), array(1:12, c(2,3,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("y = array(1:12, c(2,3,2)); identical(apply(y, c(2,1,0), 'sum(applyValue);'), array(c(1,7,3,9,5,11,2,8,4,10,6,12), c(2,3,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("y = array(1:12, c(2,3,2)); identical(apply(y, c(2,0,1), 'sum(applyValue);'), array(c(1,7,2,8,3,9,4,10,5,11,6,12), c(2,2,3)));", gStaticEidosValue_LogicalT);
+	
+	EidosAssertScriptSuccess("y = array(1:12, c(2,3,2)); identical(apply(y, 0, 'applyValue^2;'), matrix(c(1.0,9,25,49,81,121,4,16,36,64,100,144), ncol=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("y = array(1:12, c(2,3,2)); identical(apply(y, 1, 'applyValue^2;'), matrix(c(1.0,4,49,64,9,16,81,100,25,36,121,144), ncol=3));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("y = array(1:12, c(2,3,2)); identical(apply(y, 2, 'applyValue^2;'), matrix(c(1.0,4,9,16,25,36,49,64,81,100,121,144), ncol=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("y = array(1:12, c(2,3,2)); identical(apply(y, c(0,1), 'applyValue^2;'), array(c(1.0,49,4,64,9,81,16,100,25,121,36,144), c(2,2,3)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("y = array(1:12, c(2,3,2)); identical(apply(y, c(1,2), 'applyValue^2;'), array(c(1.0,4,9,16,25,36,49,64,81,100,121,144), c(2,3,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("y = array(1:12, c(2,3,2)); identical(apply(y, c(0,2), 'applyValue^2;'), array(c(1.0,9,25,4,16,36,49,81,121,64,100,144), c(3,2,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("y = array(1:12, c(2,3,2)); identical(apply(y, c(0,1,2), 'applyValue^2;'), array((1.0:12)^2, c(2,3,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("y = array(1:12, c(2,3,2)); identical(apply(y, c(2,1,0), 'applyValue^2;'), array(c(1.0,49,9,81,25,121,4,64,16,100,36,144), c(2,3,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("y = array(1:12, c(2,3,2)); identical(apply(y, c(2,0,1), 'applyValue^2;'), array(c(1.0,49,4,64,9,81,16,100,25,121,36,144), c(2,2,3)));", gStaticEidosValue_LogicalT);
+	
+	EidosAssertScriptSuccess("z = array(1:24, c(2,3,2,2)); identical(apply(z, 0, 'sum(applyValue);'), c(144,156));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("z = array(1:24, c(2,3,2,2)); identical(apply(z, 1, 'sum(applyValue);'), c(84,100,116));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("z = array(1:24, c(2,3,2,2)); identical(apply(z, 2, 'sum(applyValue);'), c(114,186));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("z = array(1:24, c(2,3,2,2)); identical(apply(z, 3, 'sum(applyValue);'), c(78,222));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("z = array(1:24, c(2,3,2,2)); identical(apply(z, c(0,1), 'sum(applyValue);'), matrix(c(40,44,48,52,56,60), nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("z = array(1:24, c(2,3,2,2)); identical(apply(z, c(0,2), 'sum(applyValue);'), matrix(c(54,60,90,96), nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("z = array(1:24, c(2,3,2,2)); identical(apply(z, c(0,3), 'sum(applyValue);'), matrix(c(36,42,108,114), nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("z = array(1:24, c(2,3,2,2)); identical(apply(z, c(1,0), 'sum(applyValue);'), matrix(c(40,48,56,44,52,60), nrow=3));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("z = array(1:24, c(2,3,2,2)); identical(apply(z, c(1,2), 'sum(applyValue);'), matrix(c(30,38,46,54,62,70), nrow=3));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("z = array(1:24, c(2,3,2,2)); identical(apply(z, c(1,3), 'sum(applyValue);'), matrix(c(18,26,34,66,74,82), nrow=3));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("z = array(1:24, c(2,3,2,2)); identical(apply(z, c(2,0), 'sum(applyValue);'), matrix(c(54,90,60,96), nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("z = array(1:24, c(2,3,2,2)); identical(apply(z, c(2,1), 'sum(applyValue);'), matrix(c(30,54,38,62,46,70), nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("z = array(1:24, c(2,3,2,2)); identical(apply(z, c(2,3), 'sum(applyValue);'), matrix(c(21,57,93,129), nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("z = array(1:24, c(2,3,2,2)); identical(apply(z, c(3,0), 'sum(applyValue);'), matrix(c(36,108,42,114), nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("z = array(1:24, c(2,3,2,2)); identical(apply(z, c(3,1), 'sum(applyValue);'), matrix(c(18,66,26,74,34,82), nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("z = array(1:24, c(2,3,2,2)); identical(apply(z, c(3,2), 'sum(applyValue);'), matrix(c(21,93,57,129), nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("z = array(1:24, c(2,3,2,2)); identical(apply(z, c(0,1,2), 'sum(applyValue);'), array(c(14,16,18,20,22,24,26,28,30,32,34,36), c(2,3,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("z = array(1:24, c(2,3,2,2)); identical(apply(z, c(3,1,0), 'sum(applyValue);'), array(c(8,32,12,36,16,40,10,34,14,38,18,42), c(2,3,2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("z = array(1:24, c(2,3,2,2)); identical(apply(z, c(2,3,0,1), 'sum(applyValue);'), array(c(1,7,13,19,2,8,14,20,3,9,15,21,4,10,16,22,5,11,17,23,6,12,18,24), c(2,2,2,3)));", gStaticEidosValue_LogicalT);
+	
 	// sapply()
 	EidosAssertScriptSuccess("x=integer(0); sapply(x, 'applyValue^2;');", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("x=1:5; sapply(x, 'applyValue^2;');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{1, 4, 9, 16, 25}));

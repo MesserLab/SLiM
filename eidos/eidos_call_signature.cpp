@@ -328,7 +328,13 @@ void EidosCallSignature::CheckArguments(const EidosValue_SP *const p_arguments, 
 			}
 			
 			if (!type_ok)
+			{
+				// We have special error-handling for apply() because sapply() used to be named apply() and we want to steer users to the new call
+				if ((call_name_ == "apply") && (arg_type == EidosValueType::kValueString))
+					EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " (" << arg_names_[arg_index] << ") cannot be type " << arg_type << " for " << CallType() << " " << call_name_ << "()." << std::endl << "NOTE: The apply() function was renamed sapply() in Eidos 1.6, and a new function named apply() has been added; you may need to change this call to be a call to sapply() instead." << EidosTerminate(nullptr);
+				
 				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " (" << arg_names_[arg_index] << ") cannot be type " << arg_type << " for " << CallType() << " " << call_name_ << "()." << EidosTerminate(nullptr);
+			}
 			
 			// if NULL is explicitly permitted by the signature, we skip the singleton check
 			if (requires_singleton && (argument->Count() != 1) && (arg_type != EidosValueType::kValueNULL))

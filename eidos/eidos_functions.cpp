@@ -265,6 +265,7 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		//	miscellaneous functions
 		//
 		
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_apply,		Eidos_ExecuteFunction_apply,		kEidosValueMaskAny))->AddAny("x")->AddInt("margin")->AddString_S("lambdaSource"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_sapply,	Eidos_ExecuteFunction_sapply,		kEidosValueMaskAny))->AddAny("x")->AddString_S("lambdaSource")->AddString_OS("simplify", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("vector"))));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("beep",				Eidos_ExecuteFunction_beep,			kEidosValueMaskNULL))->AddString_OSN("soundName", gStaticEidosValueNULL));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("citation",			Eidos_ExecuteFunction_citation,		kEidosValueMaskNULL)));
@@ -8632,6 +8633,274 @@ EidosValue_SP Eidos_ExecuteFunction_color2rgb(const EidosValue_SP *const p_argum
 #pragma mark -
 
 
+//	(*)apply(* x, integer margin, string$ lambdaSource)
+EidosValue_SP Eidos_ExecuteFunction_apply(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *x_value = p_arguments[0].get();
+	int x_dimcount = x_value->DimensionCount();
+	const int64_t *x_dim = x_value->Dimensions();
+	
+	if (x_dimcount < 2)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_apply): function apply() requires parameter x to be a matrix or array." << std::endl << "NOTE: The apply() function was renamed sapply() in Eidos 1.6, and a new function named apply() has been added; you may need to change this call to be a call to sapply() instead." << EidosTerminate(nullptr);
+	
+	// Determine the margins requested and check their validity
+	EidosValue *margin_value = p_arguments[1].get();
+	int margin_count = margin_value->Count();
+	std::vector<int> margins;
+	std::vector<int64_t> margin_sizes;
+	
+	if (margin_count <= 0)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_apply): function apply() requires that margins be specified." << EidosTerminate(nullptr);
+	
+	for (int margin_index = 0; margin_index < margin_count; ++margin_index)
+	{
+		int64_t margin = margin_value->IntAtIndex(margin_index, nullptr);
+		
+		if ((margin < 0) || (margin >= x_dimcount))
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_apply): specified margin " << margin << " is out of range in function apply(); margin indices are zero-based, and thus must be from 0 to size(dim(x)) - 1." << EidosTerminate(nullptr);
+		
+		for (int margin_index_2 = 0; margin_index_2 < margin_index; ++margin_index_2)
+		{
+			int64_t margin_2 = margin_value->IntAtIndex(margin_index_2, nullptr);
+			
+			if (margin_2 == margin)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_apply): specified margin " << margin << " was already specified to function apply(); a given margin may be specified only once." << EidosTerminate(nullptr);
+		}
+		
+		margins.push_back((int)margin);
+		margin_sizes.push_back(x_dim[margin]);
+	}
+	
+	// Get the lambda string and cache its script
+	EidosValue *lambda_value = p_arguments[2].get();
+	EidosValue_String_singleton *lambda_value_singleton = dynamic_cast<EidosValue_String_singleton *>(p_arguments[2].get());
+	EidosScript *script = (lambda_value_singleton ? lambda_value_singleton->CachedScript() : nullptr);
+	
+	// Errors in lambdas should be reported for the lambda script, not for the calling script,
+	// if possible.  In the GUI this does not work well, however; there, errors should be
+	// reported as occurring in the call to sapply().  Here we save off the current
+	// error context and set up the error context for reporting errors inside the lambda,
+	// in case that is possible; see how exceptions are handled below.
+	int error_start_save = gEidosCharacterStartOfError;
+	int error_end_save = gEidosCharacterEndOfError;
+	int error_start_save_UTF16 = gEidosCharacterStartOfErrorUTF16;
+	int error_end_save_UTF16 = gEidosCharacterEndOfErrorUTF16;
+	EidosScript *current_script_save = gEidosCurrentScript;
+	bool executing_runtime_script_save = gEidosExecutingRuntimeScript;
+	
+	// We try to do tokenization and parsing once per script, by caching the script inside the EidosValue_String_singleton instance
+	if (!script)
+	{
+		script = new EidosScript(lambda_value->StringAtIndex(0, nullptr));
+		
+		gEidosCharacterStartOfError = -1;
+		gEidosCharacterEndOfError = -1;
+		gEidosCharacterStartOfErrorUTF16 = -1;
+		gEidosCharacterEndOfErrorUTF16 = -1;
+		gEidosCurrentScript = script;
+		gEidosExecutingRuntimeScript = true;
+		
+		try
+		{
+			script->Tokenize();
+			script->ParseInterpreterBlockToAST(false);
+		}
+		catch (...)
+		{
+			if (gEidosTerminateThrows)
+			{
+				gEidosCharacterStartOfError = error_start_save;
+				gEidosCharacterEndOfError = error_end_save;
+				gEidosCharacterStartOfErrorUTF16 = error_start_save_UTF16;
+				gEidosCharacterEndOfErrorUTF16 = error_end_save_UTF16;
+				gEidosCurrentScript = current_script_save;
+				gEidosExecutingRuntimeScript = executing_runtime_script_save;
+			}
+			
+			delete script;
+			
+			throw;
+		}
+		
+		if (lambda_value_singleton)
+			lambda_value_singleton->SetCachedScript(script);
+	}
+	
+	std::vector<EidosValue_SP> results;
+	
+	gEidosCharacterStartOfError = -1;
+	gEidosCharacterEndOfError = -1;
+	gEidosCharacterStartOfErrorUTF16 = -1;
+	gEidosCharacterEndOfErrorUTF16 = -1;
+	gEidosCurrentScript = script;
+	gEidosExecutingRuntimeScript = true;
+	
+	try
+	{
+		EidosSymbolTable &symbols = p_interpreter.SymbolTable();									// use our own symbol table
+		EidosFunctionMap &function_map = p_interpreter.FunctionMap();								// use our own function map
+		EidosInterpreter interpreter(*script, symbols, function_map, p_interpreter.Context());
+		bool consistent_return_length = true;	// consistent across all values, including NULLs?
+		int return_length = -1;					// what the consistent length is
+		
+		// Set up inclusion_indices and inclusion_counts vectors as a skeleton for each marginal subset below
+		std::vector<std::vector<int64_t>> inclusion_indices;	// the chosen indices for each dimension
+		std::vector<int> inclusion_counts;						// the number of chosen indices for each dimension
+		
+		for (int subset_index = 0; subset_index < x_dimcount; ++subset_index)
+		{
+			int dim_size = (int)x_dim[subset_index];
+			std::vector<int64_t> indices;
+			
+			for (int dim_index = 0; dim_index < dim_size; ++dim_index)
+				indices.push_back(dim_index);
+			
+			inclusion_counts.push_back((int)indices.size());
+			inclusion_indices.emplace_back(indices);
+		}
+		
+		for (int margin_index = 0; margin_index < margin_count; ++margin_index)
+			inclusion_counts[margins[margin_index]] = 1;
+		
+		// Iterate through each index for the marginal dimensions, in order
+		std::vector<int64_t> margin_counter(margin_count, 0);
+		
+		do
+		{
+			// margin_counter has values for each margin; generate a slice through x with them
+			for (int margin_index = 0; margin_index < margin_count; ++margin_index)
+			{
+				int margin_dim = margins[margin_index];
+				
+				inclusion_indices[margin_dim].clear();
+				inclusion_indices[margin_dim].push_back(margin_counter[margin_index]);
+			}
+			
+			EidosValue_SP apply_value = x_value->Subset(inclusion_indices, true, nullptr);
+			
+			// Set the iterator variable "applyValue" to the value
+			symbols.SetValueForSymbolNoCopy(gEidosID_applyValue, std::move(apply_value));
+			
+			// Get the result.  BEWARE!  This calls causes re-entry into the Eidos interpreter, which is not usually
+			// possible since Eidos does not support multithreaded usage.  This is therefore a key failure point for
+			// bugs that would otherwise not manifest.
+			EidosValue_SP &&return_value_SP = interpreter.EvaluateInterpreterBlock(false);
+			
+			if (consistent_return_length)
+			{
+				int length = return_value_SP->Count();
+				
+				if (return_length == -1)
+					return_length = length;
+				else if (length != return_length)
+					consistent_return_length = false;
+			}
+			
+			results.emplace_back(return_value_SP);
+			
+			// increment margin_counter in the base system of margin_sizes
+			int margin_counter_index = 0;
+			
+			do
+			{
+				if (++margin_counter[margin_counter_index] == margin_sizes[margin_counter_index])
+				{
+					margin_counter[margin_counter_index] = 0;
+					margin_counter_index++;		// carry
+				}
+				else
+					break;
+			}
+			while (margin_counter_index < margin_count);
+			
+			// if we carried out off the top, we are done iterating across all margins
+			if (margin_counter_index == margin_count)
+				break;
+		}
+		while (true);
+		
+		// We do not want a leftover applyValue symbol in the symbol table, so we remove it now
+		symbols.RemoveValueForSymbol(gEidosID_applyValue);
+		
+		// Assemble all the individual results together, just as c() does
+		p_interpreter.ExecutionOutputStream() << interpreter.ExecutionOutput();
+		result_SP = ConcatenateEidosValues(results.data(), (int)results.size(), true);
+		
+		// Set the dimensions of the result.  If the returns from the lambda were not consistent in their
+		// length and dimensions, we just return the plain vector without dimensions; we can't do anything
+		// with it.  With returns of a consistent length n, (1) if n == 1, the return value will be a vector
+		// if only one margin was used, or a matrix/array of dimension dim(x)[margin] if more than one
+		// margin was used, (2) if n > 1, the return value will be an array of dimension c(n, dim(x)[margin]),
+		// or (3) if n == 0, the return value will be a length zero vector of the appropriate type.  I think
+		// we follow R's policy more or less exactly; that is my intent.
+		if (consistent_return_length && (return_length > 0))
+		{
+			if (return_length == 1)
+			{
+				if (margin_count == 1)
+				{
+					// do nothing and return a plain vector
+				}
+				else
+				{
+					// dimensions of dim(x)[margin]; in other words, the sizes of the marginal dimensions of x, in the specified order of the margins
+					result_SP->SetDimensions(margin_count, margin_sizes.data());
+				}
+			}
+			else // return_length > 1)
+			{
+				// dimensions of c(n, dim(x)[margin]); in other words, n rows, and the marginal dim sizes after that
+				int64_t *dims = (int64_t *)malloc((margin_count + 1) * sizeof(int64_t));
+				
+				dims[0] = return_length;
+				
+				for (int dim_index = 0; dim_index < margin_count; ++dim_index)
+					dims[dim_index + 1] = margin_sizes[dim_index];
+				
+				result_SP->SetDimensions(margin_count + 1, dims);
+				
+				free(dims);
+			}
+		}
+	}
+	catch (...)
+	{
+		// If exceptions throw, then we want to set up the error information to highlight the
+		// sapply() that failed, since we can't highlight the actual error.  (If exceptions
+		// don't throw, this catch block will never be hit; exit() will already have been called
+		// and the error will have been reported from the context of the lambda script string.)
+		if (gEidosTerminateThrows)
+		{
+			gEidosCharacterStartOfError = error_start_save;
+			gEidosCharacterEndOfError = error_end_save;
+			gEidosCharacterStartOfErrorUTF16 = error_start_save_UTF16;
+			gEidosCharacterEndOfErrorUTF16 = error_end_save_UTF16;
+			gEidosCurrentScript = current_script_save;
+			gEidosExecutingRuntimeScript = executing_runtime_script_save;
+		}
+		
+		if (!lambda_value_singleton)
+			delete script;
+		
+		throw;
+	}
+	
+	// Restore the normal error context in the event that no exception occurring within the lambda
+	gEidosCharacterStartOfError = error_start_save;
+	gEidosCharacterEndOfError = error_end_save;
+	gEidosCharacterStartOfErrorUTF16 = error_start_save_UTF16;
+	gEidosCharacterEndOfErrorUTF16 = error_end_save_UTF16;
+	gEidosCurrentScript = current_script_save;
+	gEidosExecutingRuntimeScript = executing_runtime_script_save;
+	
+	if (!lambda_value_singleton)
+		delete script;
+	
+	return result_SP;
+}
+
 //	(*)sapply(* x, string$ lambdaSource, [string$ simplify = "vector"])
 EidosValue_SP Eidos_ExecuteFunction_sapply(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
 {
@@ -8957,8 +9226,8 @@ EidosValue_SP Eidos_ExecuteFunction_doCall(const EidosValue_SP *const p_argument
 	// Check the function's arguments
 	function_signature->CheckArguments(arguments, argument_count);
 	
-	// BEWARE!  Since the function called here could be a function, like executeLambda() or sapply(), that
-	// causes re-entrancy into the Eidos engine, this call is rather dangerous.  See the comments on those
+	// BEWARE!  Since the function called here could be a function, like executeLambda() or apply() or sapply(),
+	// that causes re-entrancy into the Eidos engine, this call is rather dangerous.  See the comments on those
 	// functions for further details.
 	if (function_signature->internal_function_)
 		result_SP = function_signature->internal_function_(arguments, argument_count, p_interpreter);

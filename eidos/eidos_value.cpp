@@ -477,6 +477,101 @@ void EidosValue::SetDimensions(int64_t p_dim_count, const int64_t *p_dim_buffer)
 		EIDOS_TERMINATION << "ERROR (EidosValue::SetDimensions): nonsensical requested dimensions." << EidosTerminate(nullptr);
 }
 
+EidosValue_SP EidosValue::Subset(std::vector<std::vector<int64_t>> &p_inclusion_indices, bool p_drop, const EidosToken *p_blame_token)
+{
+	EidosValue_SP result_SP;
+	
+	int dimcount = DimensionCount();
+	const int64_t *dims = Dimensions();
+	std::vector<int> inclusion_counts;
+	bool empty_dimension = false;
+	
+	if ((int)p_inclusion_indices.size() != dimcount)
+		EIDOS_TERMINATION << "ERROR (EidosValue::Subset): (internal error) size of p_inclusion_indices does not match dimension count of value." << EidosTerminate(nullptr);
+	
+	for (int dim_index = 0; dim_index < dimcount; ++dim_index)
+	{
+		int dim_size = (int)p_inclusion_indices[dim_index].size();
+		
+		if (dim_size == 0)
+			empty_dimension = true;
+		
+		inclusion_counts.push_back(dim_size);
+	}
+	
+	if (empty_dimension)
+	{
+		// If there was a dimension where no index was included, the result is an empty vector of the right type
+		result_SP = NewMatchingType();
+	}
+	else
+	{
+		// We have tabulated the subsets; now copy the included values into the result.  To do this, we count up in the base
+		// system established by inclusion_counts, and add the referenced value at each step along the way.
+		result_SP = NewMatchingType();
+		
+		std::vector<int> generating_counter(dimcount, 0);
+		
+		do
+		{
+			// add the value referenced by generating_counter in inclusion_indices
+			int64_t referenced_index = 0;
+			int64_t dim_skip = 1;
+			
+			for (int counter_index = 0; counter_index < dimcount; ++counter_index)
+			{
+				int counter_value = generating_counter[counter_index];
+				int64_t inclusion_index_value = p_inclusion_indices[counter_index][counter_value];
+				
+				referenced_index += inclusion_index_value * dim_skip;
+				
+				dim_skip *= dims[counter_index];
+			}
+			
+			result_SP->PushValueFromIndexOfEidosValue((int)referenced_index, *this, p_blame_token);
+			
+			// increment generating_counter in the base system of inclusion_counts
+			int generating_counter_index = 0;
+			
+			do
+			{
+				if (++generating_counter[generating_counter_index] == inclusion_counts[generating_counter_index])
+				{
+					generating_counter[generating_counter_index] = 0;
+					generating_counter_index++;		// carry
+				}
+				else
+					break;
+			}
+			while (generating_counter_index < dimcount);
+			
+			// if we carried out off the top, we are done adding included values
+			if (generating_counter_index == dimcount)
+				break;
+		}
+		while (true);
+		
+		// Finally, set the dimensionality of the result, considering dropped dimensions.  This basically follows the structure
+		// of the indexed operand's dimensions, but (a) resizes to match the size of p_inclusion_indices for the given dimension,
+		// and (b) omits any dimension that has a count of exactly 1, if dropping is requested.
+		int64_t *dim = (int64_t *)malloc(dimcount * sizeof(int64_t));
+		int final_dim_count = 0;
+		
+		for (int subset_index = 0; subset_index < dimcount; ++subset_index)
+		{
+			int dim_size = inclusion_counts[subset_index];
+			
+			if (!p_drop || (dim_size > 1))
+				dim[final_dim_count++] = dim_size;
+		}
+		
+		if (final_dim_count > 1)
+			result_SP->SetDimensions(final_dim_count, dim);
+	}
+	
+	return result_SP;
+}
+
 std::ostream &operator<<(std::ostream &p_outstream, const EidosValue &p_value)
 {
 	p_value.Print(p_outstream);		// get dynamic dispatch
