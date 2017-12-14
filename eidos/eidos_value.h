@@ -625,7 +625,7 @@ class EidosValue_String_singleton : public EidosValue_String
 {
 protected:
 	std::string value_;
-	EidosScript *cached_script_ = nullptr;	// cached by executeLambda() and apply() to avoid multiple tokenize/parse overhead
+	EidosScript *cached_script_ = nullptr;	// cached by executeLambda() and sapply() to avoid multiple tokenize/parse overhead
 	
 public:
 	EidosValue_String_singleton(const EidosValue_String_singleton &p_original) = delete;	// no copy-construct

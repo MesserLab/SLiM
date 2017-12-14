@@ -413,7 +413,7 @@ void Eidos_FreeGlobalStrings(void);
 extern const std::string gEidosStr_empty_string;
 extern const std::string gEidosStr_space_string;
 
-extern const std::string gEidosStr_apply;
+extern const std::string gEidosStr_sapply;
 extern const std::string gEidosStr_doCall;
 extern const std::string gEidosStr_executeLambda;
 extern const std::string gEidosStr__executeLambda_OUTER;

@@ -1600,7 +1600,7 @@ const std::string gEidosStr_empty_string = "";
 const std::string gEidosStr_space_string = " ";
 
 // mostly function names used in multiple places
-const std::string gEidosStr_apply = "apply";
+const std::string gEidosStr_sapply = "sapply";
 const std::string gEidosStr_doCall = "doCall";
 const std::string gEidosStr_executeLambda = "executeLambda";
 const std::string gEidosStr__executeLambda_OUTER = "_executeLambda_OUTER";

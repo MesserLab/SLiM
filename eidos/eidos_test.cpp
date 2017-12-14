@@ -6355,31 +6355,103 @@ void _RunColorManipulationTests(void)
 #pragma mark miscellaneous
 void _RunFunctionMiscTests(void)
 {
-	// apply()
-	EidosAssertScriptSuccess("x=integer(0); apply(x, 'applyValue^2;');", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("x=1:5; apply(x, 'applyValue^2;');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{1, 4, 9, 16, 25}));
-	EidosAssertScriptSuccess("x=1:5; apply(x, 'product(1:applyValue);');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 6, 24, 120}));
-	EidosAssertScriptSuccess("x=1:3; apply(x, \"rep(''+applyValue, applyValue);\");", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"1", "2", "2", "3", "3", "3"}));
-	EidosAssertScriptSuccess("x=1:5; apply(x, \"paste(rep(''+applyValue, applyValue), '');\");", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"1", "22", "333", "4444", "55555"}));
-	EidosAssertScriptSuccess("x=1:10; apply(x, 'if (applyValue % 2) applyValue;');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 3, 5, 7, 9}));
-	EidosAssertScriptSuccess("x=1:5; apply(x, 'y=applyValue;'); y;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
-	EidosAssertScriptSuccess("x=1:5; apply(x, 'y=applyValue; y;');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3, 4, 5}));
-	EidosAssertScriptSuccess("x=2; for (i in 1:2) x=apply(x, 'applyValue^2;'); x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(16.0)));
-	EidosAssertScriptRaise("x=2; apply(x, 'semanticError;');", 5, "undefined identifier semanticError");
-	EidosAssertScriptRaise("x=2; y='semanticError;'; apply(x, y);", 25, "undefined identifier semanticError");
-	EidosAssertScriptRaise("x=2; y='semanticError;'; apply(x, y[T]);", 25, "undefined identifier semanticError");
-	EidosAssertScriptRaise("x=2; apply(x, 'syntax Error;');", 5, "unexpected token '@Error'");
-	EidosAssertScriptRaise("x=2; y='syntax Error;'; apply(x, y);", 24, "unexpected token '@Error'");
-	EidosAssertScriptRaise("x=2; y='syntax Error;'; apply(x, y[T]);", 24, "unexpected token '@Error'");
-	EidosAssertScriptSuccess("x=2; y='x;'; apply(x, y[T]);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(2)));
+	// sapply()
+	EidosAssertScriptSuccess("x=integer(0); sapply(x, 'applyValue^2;');", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("x=1:5; sapply(x, 'applyValue^2;');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{1, 4, 9, 16, 25}));
+	EidosAssertScriptSuccess("x=1:5; sapply(x, 'product(1:applyValue);');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 6, 24, 120}));
+	EidosAssertScriptSuccess("x=1:3; sapply(x, \"rep(''+applyValue, applyValue);\");", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"1", "2", "2", "3", "3", "3"}));
+	EidosAssertScriptSuccess("x=1:5; sapply(x, \"paste(rep(''+applyValue, applyValue), '');\");", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"1", "22", "333", "4444", "55555"}));
+	EidosAssertScriptSuccess("x=1:10; sapply(x, 'if (applyValue % 2) applyValue;');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 3, 5, 7, 9}));
+	EidosAssertScriptSuccess("x=1:5; sapply(x, 'y=applyValue;'); y;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
+	EidosAssertScriptSuccess("x=1:5; sapply(x, 'y=applyValue; y;');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3, 4, 5}));
+	EidosAssertScriptSuccess("x=2; for (i in 1:2) x=sapply(x, 'applyValue^2;'); x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(16.0)));
+	EidosAssertScriptRaise("x=2; sapply(x, 'semanticError;');", 5, "undefined identifier semanticError");
+	EidosAssertScriptRaise("x=2; y='semanticError;'; sapply(x, y);", 25, "undefined identifier semanticError");
+	EidosAssertScriptRaise("x=2; y='semanticError;'; sapply(x, y[T]);", 25, "undefined identifier semanticError");
+	EidosAssertScriptRaise("x=2; sapply(x, 'syntax Error;');", 5, "unexpected token '@Error'");
+	EidosAssertScriptRaise("x=2; y='syntax Error;'; sapply(x, y);", 24, "unexpected token '@Error'");
+	EidosAssertScriptRaise("x=2; y='syntax Error;'; sapply(x, y[T]);", 24, "unexpected token '@Error'");
+	EidosAssertScriptSuccess("x=2; y='x;'; sapply(x, y[T]);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(2)));
 	
-	EidosAssertScriptSuccess("identical(apply(1:6, 'applyValue+1;'), 2:7);", gStaticEidosValue_LogicalT);
-	EidosAssertScriptSuccess("identical(apply(matrix(1:6, nrow=1), 'applyValue+1;'), matrix(2:7, nrow=1));", gStaticEidosValue_LogicalT);
-	EidosAssertScriptSuccess("identical(apply(matrix(1:6, ncol=1), 'applyValue+1;'), matrix(2:7, ncol=1));", gStaticEidosValue_LogicalT);
-	EidosAssertScriptSuccess("identical(apply(matrix(1:6, ncol=2), 'applyValue+1;'), matrix(2:7, ncol=2));", gStaticEidosValue_LogicalT);
-	EidosAssertScriptSuccess("identical(apply(matrix(1:6, ncol=2), 'c(applyValue, applyValue+1);'), matrix(c(1,2,2,3,3,4,4,5,5,6,6,7), nrow=2));", gStaticEidosValue_LogicalT);
-	EidosAssertScriptSuccess("identical(apply(array(1:6, c(2,1,3)), 'applyValue+1;'), array(2:7, c(2,1,3)));", gStaticEidosValue_LogicalT);
-	EidosAssertScriptSuccess("identical(apply(array(1:6, c(2,1,3)), 'c(applyValue, applyValue+1);'), matrix(c(1,2,2,3,3,4,4,5,5,6,6,7), nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(1:6, 'integer(0);'), integer(0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(1:6, 'integer(0);', simplify='vector'), integer(0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(1:6, 'integer(0);', simplify='matrix'), integer(0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(sapply(1:6, 'integer(0);', simplify='match'), 2:7);", 10, "not all singletons");
+	
+	EidosAssertScriptSuccess("identical(sapply(1:6, 'applyValue+1;'), 2:7);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(1:6, 'applyValue+1;', simplify='vector'), 2:7);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(1:6, 'applyValue+1;', simplify='matrix'), matrix(2:7, nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(1:6, 'applyValue+1;', simplify='match'), 2:7);", gStaticEidosValue_LogicalT);
+	
+	EidosAssertScriptSuccess("identical(sapply(matrix(1:6, nrow=1), 'applyValue+1;'), 2:7);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(matrix(1:6, nrow=1), 'applyValue+1;', simplify='vector'), 2:7);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(matrix(1:6, nrow=1), 'applyValue+1;', simplify='matrix'), matrix(2:7, nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(matrix(1:6, nrow=1), 'applyValue+1;', simplify='match'), matrix(2:7, nrow=1));", gStaticEidosValue_LogicalT);
+	
+	EidosAssertScriptSuccess("identical(sapply(matrix(1:6, ncol=1), 'applyValue+1;'), 2:7);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(matrix(1:6, ncol=1), 'applyValue+1;', simplify='vector'), 2:7);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(matrix(1:6, ncol=1), 'applyValue+1;', simplify='matrix'), matrix(2:7, nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(matrix(1:6, ncol=1), 'applyValue+1;', simplify='match'), matrix(2:7, ncol=1));", gStaticEidosValue_LogicalT);
+	
+	EidosAssertScriptSuccess("identical(sapply(matrix(1:6, ncol=2), 'applyValue+1;'), 2:7);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(matrix(1:6, ncol=2), 'applyValue+1;', simplify='vector'), 2:7);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(matrix(1:6, ncol=2), 'applyValue+1;', simplify='matrix'), matrix(2:7, nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(matrix(1:6, ncol=2), 'applyValue+1;', simplify='match'), matrix(2:7, ncol=2));", gStaticEidosValue_LogicalT);
+	
+	EidosAssertScriptSuccess("identical(sapply(matrix(1:6, ncol=2), 'c(applyValue, applyValue+1);'), c(1,2,2,3,3,4,4,5,5,6,6,7));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(matrix(1:6, ncol=2), 'c(applyValue, applyValue+1);', simplify='vector'), c(1,2,2,3,3,4,4,5,5,6,6,7));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(matrix(1:6, ncol=2), 'c(applyValue, applyValue+1);', simplify='matrix'), matrix(c(1,2,2,3,3,4,4,5,5,6,6,7), nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(sapply(matrix(1:6, ncol=2), 'c(applyValue, applyValue+1);', simplify='match'), c(1,2,2,3,3,4,4,5,5,6,6,7));", 10, "not all singletons");
+	
+	EidosAssertScriptSuccess("identical(sapply(array(1:6, c(2,1,3)), 'applyValue+1;'), 2:7);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(array(1:6, c(2,1,3)), 'applyValue+1;', simplify='vector'), 2:7);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(array(1:6, c(2,1,3)), 'applyValue+1;', simplify='matrix'), matrix(2:7, nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(array(1:6, c(2,1,3)), 'applyValue+1;', simplify='match'), array(2:7, c(2,1,3)));", gStaticEidosValue_LogicalT);
+	
+	EidosAssertScriptSuccess("identical(sapply(array(1:6, c(2,1,3)), 'c(applyValue, applyValue+1);'), c(1,2,2,3,3,4,4,5,5,6,6,7));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(array(1:6, c(2,1,3)), 'c(applyValue, applyValue+1);', simplify='vector'), c(1,2,2,3,3,4,4,5,5,6,6,7));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(array(1:6, c(2,1,3)), 'c(applyValue, applyValue+1);', simplify='matrix'), matrix(c(1,2,2,3,3,4,4,5,5,6,6,7), nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(sapply(array(1:6, c(2,1,3)), 'c(applyValue, applyValue+1);', simplify='match'), c(1,2,2,3,3,4,4,5,5,6,6,7));", 10, "not all singletons");
+	
+	EidosAssertScriptSuccess("identical(sapply(1:6, 'if (applyValue % 2) applyValue+1;'), c(2,4,6));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(1:6, 'if (applyValue % 2) applyValue+1;', simplify='vector'), c(2,4,6));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(1:6, 'if (applyValue % 2) applyValue+1;', simplify='matrix'), matrix(c(2,4,6), nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(sapply(1:6, 'if (applyValue % 2) applyValue+1;', simplify='match'), 2,4,6);", 10, "included NULL");
+	
+	EidosAssertScriptSuccess("identical(sapply(matrix(1:6, nrow=1), 'if (applyValue % 2) applyValue+1;'), c(2,4,6));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(matrix(1:6, nrow=1), 'if (applyValue % 2) applyValue+1;', simplify='vector'), c(2,4,6));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(matrix(1:6, nrow=1), 'if (applyValue % 2) applyValue+1;', simplify='matrix'), matrix(c(2,4,6), nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(sapply(matrix(1:6, nrow=1), 'if (applyValue % 2) applyValue+1;', simplify='match'), matrix(c(2,4,6), nrow=1));", 10, "included NULL");
+	
+	EidosAssertScriptSuccess("identical(sapply(matrix(1:6, ncol=1), 'if (applyValue % 2) applyValue+1;'), c(2,4,6));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(matrix(1:6, ncol=1), 'if (applyValue % 2) applyValue+1;', simplify='vector'), c(2,4,6));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(matrix(1:6, ncol=1), 'if (applyValue % 2) applyValue+1;', simplify='matrix'), matrix(c(2,4,6), nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(sapply(matrix(1:6, ncol=1), 'if (applyValue % 2) applyValue+1;', simplify='match'), matrix(c(2,4,6), ncol=1));", 10, "included NULL");
+	
+	EidosAssertScriptSuccess("identical(sapply(matrix(1:6, ncol=2), 'if (applyValue % 2) applyValue+1;'), c(2,4,6));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(matrix(1:6, ncol=2), 'if (applyValue % 2) applyValue+1;', simplify='vector'), c(2,4,6));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(matrix(1:6, ncol=2), 'if (applyValue % 2) applyValue+1;', simplify='matrix'), matrix(c(2,4,6), nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(sapply(matrix(1:6, ncol=2), 'if (applyValue % 2) applyValue+1;', simplify='match'), matrix(c(2,4,6), ncol=2));", 10, "included NULL");
+	
+	EidosAssertScriptSuccess("identical(sapply(matrix(1:6, ncol=2), 'if (applyValue % 2) c(applyValue, applyValue+2);'), c(1,3,3,5,5,7));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(matrix(1:6, ncol=2), 'if (applyValue % 2) c(applyValue, applyValue+2);', simplify='vector'), c(1,3,3,5,5,7));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(matrix(1:6, ncol=2), 'if (applyValue % 2) c(applyValue, applyValue+2);', simplify='matrix'), matrix(c(1,3,3,5,5,7), nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(sapply(matrix(1:6, ncol=2), 'if (applyValue % 2) c(applyValue, applyValue+2);', simplify='match'), c(1,3,3,5,5,7));", 10, "included NULL");
+	
+	EidosAssertScriptSuccess("identical(sapply(array(1:6, c(2,1,3)), 'if (applyValue % 2) applyValue+1;'), c(2,4,6));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(array(1:6, c(2,1,3)), 'if (applyValue % 2) applyValue+1;', simplify='vector'), c(2,4,6));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(array(1:6, c(2,1,3)), 'if (applyValue % 2) applyValue+1;', simplify='matrix'), matrix(c(2,4,6), nrow=1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(sapply(array(1:6, c(2,1,3)), 'if (applyValue % 2) applyValue+1;', simplify='match'), array(c(2,4,6), c(2,1,3)));", 10, "included NULL");
+	
+	EidosAssertScriptSuccess("identical(sapply(array(1:6, c(2,1,3)), 'if (applyValue % 2) c(applyValue, applyValue+2);'), c(1,3,3,5,5,7));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(array(1:6, c(2,1,3)), 'if (applyValue % 2) c(applyValue, applyValue+2);', simplify='vector'), c(1,3,3,5,5,7));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(array(1:6, c(2,1,3)), 'if (applyValue % 2) c(applyValue, applyValue+2);', simplify='matrix'), matrix(c(1,3,3,5,5,7), nrow=2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(sapply(array(1:6, c(2,1,3)), 'if (applyValue % 2) c(applyValue, applyValue+2);', simplify='match'), c(1,3,3,5,5,7));", 10, "included NULL");
+	
+	EidosAssertScriptSuccess("identical(sapply(array(1:6, c(2,1,3)), 'if (applyValue % 2) c(applyValue, applyValue+2); else applyValue;'), c(1,3,2,3,5,4,5,7,6));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(sapply(array(1:6, c(2,1,3)), 'if (applyValue % 2) c(applyValue, applyValue+2); else applyValue;', simplify='vector'), c(1,3,2,3,5,4,5,7,6));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("identical(sapply(array(1:6, c(2,1,3)), 'if (applyValue % 2) c(applyValue, applyValue+2); else applyValue;', simplify='matrix'), matrix(c(1,3,2,3,5,4,5,7,6), nrow=2));", 10, "not of a consistent length");
+	EidosAssertScriptRaise("identical(sapply(array(1:6, c(2,1,3)), 'if (applyValue % 2) c(applyValue, applyValue+2); else applyValue;', simplify='match'), c(1,3,2,3,5,4,5,7,6));", 10, "not all singletons");
 	
 	// beep() – this is commented out by default since it would confuse people if the Eidos self-test beeped...
 	//EidosAssertScriptSuccess("beep();", gStaticEidosValueNULL);

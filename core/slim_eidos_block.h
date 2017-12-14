@@ -127,7 +127,7 @@ public:
 	slim_usertag_t tag_value_;									// a user-defined tag value
 	
 	// Flags indicating what identifiers this script block uses; identifiers that are not used do not need to be added.
-	bool contains_wildcard_ = false;			// "apply", "executeLambda", "_executeLambda_OUTER", "ls", "rm"; all other contains_ flags will be T if this is T
+	bool contains_wildcard_ = false;			// "sapply", "executeLambda", "_executeLambda_OUTER", "ls", "rm"; all other contains_ flags will be T if this is T
 	bool contains_self_ = false;				// "self"
 	bool contains_mut_ = false;					// "mut" (fitness callback parameter)
 	bool contains_relFitness_ = false;			// "relFitness" (fitness callback parameter)

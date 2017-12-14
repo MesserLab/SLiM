@@ -265,7 +265,7 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		//	miscellaneous functions
 		//
 		
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_apply,		Eidos_ExecuteFunction_apply,		kEidosValueMaskAny))->AddAny("x")->AddString_S("lambdaSource"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_sapply,	Eidos_ExecuteFunction_sapply,		kEidosValueMaskAny))->AddAny("x")->AddString_S("lambdaSource")->AddString_OS("simplify", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("vector"))));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("beep",				Eidos_ExecuteFunction_beep,			kEidosValueMaskNULL))->AddString_OSN("soundName", gStaticEidosValueNULL));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("citation",			Eidos_ExecuteFunction_citation,		kEidosValueMaskNULL)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("clock",				Eidos_ExecuteFunction_clock,		kEidosValueMaskFloat | kEidosValueMaskSingleton)));
@@ -8632,8 +8632,8 @@ EidosValue_SP Eidos_ExecuteFunction_color2rgb(const EidosValue_SP *const p_argum
 #pragma mark -
 
 
-//	(*)apply(* x, string$ lambdaSource)
-EidosValue_SP Eidos_ExecuteFunction_apply(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+//	(*)sapply(* x, string$ lambdaSource, [string$ simplify = "vector"])
+EidosValue_SP Eidos_ExecuteFunction_sapply(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -8645,14 +8645,25 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const EidosValue_SP *const p_arguments
 	if (x_count == 0)
 		return gStaticEidosValueNULLInvisible;
 	
+	// Determine the simplification mode requested
+	EidosValue *simplify_value = p_arguments[2].get();
+	const std::string &simplify_string = simplify_value->StringAtIndex(0, nullptr);
+	int simplify;
+	
+	if (simplify_string == "vector")		simplify = 0;
+	else if (simplify_string == "matrix")	simplify = 1;
+	else if (simplify_string == "match")	simplify = 2;
+	else
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sapply): unrecognized simplify option \"" << simplify_string << "\" in function sapply()." << EidosTerminate(nullptr);
+	
+	// Get the lambda string and cache its script
 	EidosValue *lambda_value = p_arguments[1].get();
 	EidosValue_String_singleton *lambda_value_singleton = dynamic_cast<EidosValue_String_singleton *>(p_arguments[1].get());
 	EidosScript *script = (lambda_value_singleton ? lambda_value_singleton->CachedScript() : nullptr);
-	std::vector<EidosValue_SP> results;
 	
 	// Errors in lambdas should be reported for the lambda script, not for the calling script,
 	// if possible.  In the GUI this does not work well, however; there, errors should be
-	// reported as occurring in the call to apply().  Here we save off the current
+	// reported as occurring in the call to sapply().  Here we save off the current
 	// error context and set up the error context for reporting errors inside the lambda,
 	// in case that is possible; see how exceptions are handled below.
 	int error_start_save = gEidosCharacterStartOfError;
@@ -8701,6 +8712,8 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const EidosValue_SP *const p_arguments
 	}
 	
 	// Execute inside try/catch so we can handle errors well
+	std::vector<EidosValue_SP> results;
+	
 	gEidosCharacterStartOfError = -1;
 	gEidosCharacterEndOfError = -1;
 	gEidosCharacterStartOfErrorUTF16 = -1;
@@ -8713,8 +8726,9 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const EidosValue_SP *const p_arguments
 		EidosSymbolTable &symbols = p_interpreter.SymbolTable();									// use our own symbol table
 		EidosFunctionMap &function_map = p_interpreter.FunctionMap();								// use our own function map
 		EidosInterpreter interpreter(*script, symbols, function_map, p_interpreter.Context());
-		bool consistent_return_length = true;
-		int return_length = 0;					// unused; replaced in the first iteration below
+		bool null_included = false;				// has a NULL been seen among the return values
+		bool consistent_return_length = true;	// consistent except for any NULLs returned
+		int return_length = -1;					// what the consistent length is
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
 		{
@@ -8728,11 +8742,15 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const EidosValue_SP *const p_arguments
 			// bugs that would otherwise not manifest.
 			EidosValue_SP &&return_value_SP = interpreter.EvaluateInterpreterBlock(false);
 			
-			if (consistent_return_length)
+			if (return_value_SP->Type() == EidosValueType::kValueNULL)
+			{
+				null_included = true;
+			}
+			else if (consistent_return_length)
 			{
 				int length = return_value_SP->Count();
 				
-				if (value_index == 0)
+				if (return_length == -1)
 					return_length = length;
 				else if (length != return_length)
 					consistent_return_length = false;
@@ -8748,35 +8766,40 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const EidosValue_SP *const p_arguments
 		p_interpreter.ExecutionOutputStream() << interpreter.ExecutionOutput();
 		result_SP = ConcatenateEidosValues(results.data(), (int)results.size(), true);
 		
-		// Finally, we restructure the results.  If the length of the results was inconsistent, we just return the results
-		// vector as-is.  If every return was a singleton, however, we match the dimensionality of argument x; and if every
-		// return was longer than a single (but all the same), we return a matrix with one column per return value.  This
-		// will be our behavior for 2.6, I think.  In a later release I am considering making this more flexible by adding
-		// a "simplify" parameter, as with sapply() in R; this behavior would be the default value for that option, "match",
-		// meaning match the dimensionality of x when possible.  Other options would be "vector" (never simplify, just
-		// return the raw vector of results), "matrix" (always make a matrix with one column per return), and "array" (make
-		// an array out of returned matrices/arrays, of one higher dimensionality with one slice per return).  But for now,
-		// we just always do "match", since it seems likely to be the most typically desired behavior.
-		if (consistent_return_length && (return_length > 0))
+		// Finally, we restructure the results:
+		//
+		//	simplify == 0 ("vector") returns a plain vector, which is what we have already
+		//	simplify == 1 ("matrix") returns a matrix with one column per return value
+		//	simplify == 2 ("match") returns a matrix/array exactly matching the dimensions of x
+		if (simplify == 1)
 		{
-			if (return_length == 1)
+			// A zero-length result is allowed and is returned verbatim
+			if (result_SP->Count() > 0)
 			{
-				// match the dimensionality of x
-				result_SP->CopyDimensionsFromValue(x_value);
-			}
-			else if (return_length > 1)
-			{
-				// one matrix column per return value; no need to reorder values to achieve this
-				int64_t dim[2] = {return_length, x_count};
+				if (!consistent_return_length)
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sapply): simplify = \"matrix\" was requested in function sapply(), but return values from lambdaSource were not of a consistent length." << EidosTerminate(nullptr);
+				
+				// one matrix column per return value, omitting NULLs; no need to reorder values to achieve this
+				int64_t dim[2] = {return_length, result_SP->Count() / return_length};
 				
 				result_SP->SetDimensions(2, dim);
 			}
+		}
+		else if (simplify == 2)
+		{
+			if (null_included)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sapply): simplify = \"match\" was requested in function sapply(), but return values included NULL." << EidosTerminate(nullptr);
+			if (!consistent_return_length || (return_length != 1))
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sapply): simplify = \"match\" was requested in function sapply(), but return values from lambdaSource were not all singletons." << EidosTerminate(nullptr);
+			
+			// match the dimensionality of x
+			result_SP->CopyDimensionsFromValue(x_value);
 		}
 	}
 	catch (...)
 	{
 		// If exceptions throw, then we want to set up the error information to highlight the
-		// apply() that failed, since we can't highlight the actual error.  (If exceptions
+		// sapply() that failed, since we can't highlight the actual error.  (If exceptions
 		// don't throw, this catch block will never be hit; exit() will already have been called
 		// and the error will have been reported from the context of the lambda script string.)
 		if (gEidosTerminateThrows)
@@ -8934,7 +8957,7 @@ EidosValue_SP Eidos_ExecuteFunction_doCall(const EidosValue_SP *const p_argument
 	// Check the function's arguments
 	function_signature->CheckArguments(arguments, argument_count);
 	
-	// BEWARE!  Since the function called here could be a function, like executeLambda() or apply(), that
+	// BEWARE!  Since the function called here could be a function, like executeLambda() or sapply(), that
 	// causes re-entrancy into the Eidos engine, this call is rather dangerous.  See the comments on those
 	// functions for further details.
 	if (function_signature->internal_function_)

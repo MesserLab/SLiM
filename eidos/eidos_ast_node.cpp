@@ -247,7 +247,7 @@ void EidosASTNode::_OptimizeForScan(const std::string &p_for_index_identifier, u
 			{
 				const std::string &function_name = function_name_node->token_->token_string_;
 				
-				if ((function_name.compare(gEidosStr_apply) == 0) || (function_name.compare(gEidosStr_executeLambda) == 0) || (function_name.compare(gEidosStr__executeLambda_OUTER) == 0) || (function_name.compare(gEidosStr_doCall) == 0) || (function_name.compare(gEidosStr_rm) == 0))
+				if ((function_name.compare(gEidosStr_sapply) == 0) || (function_name.compare(gEidosStr_executeLambda) == 0) || (function_name.compare(gEidosStr__executeLambda_OUTER) == 0) || (function_name.compare(gEidosStr_doCall) == 0) || (function_name.compare(gEidosStr_rm) == 0))
 				{
 					*p_references = true;
 					*p_assigns = true;
@@ -272,7 +272,7 @@ void EidosASTNode::_OptimizeFor(void) const
 	if ((token_type == EidosTokenType::kTokenFor) && (children_.size() == 3))
 	{
 		// This node is a for loop node.  We want to determine whether any node under this node:
-		//	1. is unpredictable (executeLambda, _executeLambda_OUTER, apply, rm, ls)
+		//	1. is unpredictable (executeLambda, _executeLambda_OUTER, sapply, rm, ls)
 		//	2. references our index variable
 		//	3. assigns to our index variable
 		EidosASTNode *identifier_child = children_[0];

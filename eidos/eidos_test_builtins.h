@@ -18,7 +18,7 @@ R"V0G0N(
 // (numeric)abs(numeric x)
 function (numeric)abs_func(numeric x)
 {
-	apply(x, 'if (applyValue < 0) -applyValue; else applyValue;');
+	sapply(x, 'if (applyValue < 0) -applyValue; else applyValue;');
 }
 
 x = sample(-1000:1000, 10000, T);	// integer
@@ -65,7 +65,7 @@ for (iter in 1:10000)
 // (numeric)cumProduct(numeric x)
 function (numeric)cumProduct_func(numeric x)
 {
-	apply(seqAlong(x), 'product(x[0:applyValue]);');
+	sapply(seqAlong(x), 'product(x[0:applyValue]);');
 }
 
 for (iter in 1:100)
@@ -88,7 +88,7 @@ for (iter in 1:100)
 // (numeric)cumSum(numeric x)
 function (numeric)cumSum_func(numeric x)
 {
-	apply(seqAlong(x), 'sum(x[0:applyValue]);');
+	sapply(seqAlong(x), 'sum(x[0:applyValue]);');
 }
 
 for (iter in 1:100)
@@ -128,7 +128,7 @@ if (any(abs(xbuiltin / xuserdef - 1.0) > 1e-10)) stop('Mismatch in test of exp(f
 // (*)ifelse(logical test, * trueValues, * falseValues)
 function (*)ifelse_func(l test, * tvals, * fvals)
 {
-	return apply(seqAlong(test), "test[applyValue] ? tvals[applyValue] else fvals[applyValue];");
+	return sapply(seqAlong(test), "test[applyValue] ? tvals[applyValue] else fvals[applyValue];");
 }
 
 for (iter in 1:10000)
@@ -254,7 +254,7 @@ function (numeric$)product_func(numeric x)
 {
 	p = 1;
 	
-	apply(x, 'p = p * applyValue;');
+	sapply(x, 'p = p * applyValue;');
 	
 	return p;
 }
@@ -525,7 +525,7 @@ function (numeric$)sum_func(numeric x)
 {
 	s = 0;
 	
-	apply(x, 's = s + applyValue;');
+	sapply(x, 's = s + applyValue;');
 	
 	return s;
 }
@@ -552,7 +552,7 @@ function (f$)sumExact_func(f x)
 {
 	s = 0;
 	
-	apply(x, 's = s + applyValue;');	// no attempt to sum exactly, just using tolerance limits below
+	sapply(x, 's = s + applyValue;');	// no attempt to sum exactly, just using tolerance limits below
 	
 	return s;
 }
@@ -618,7 +618,7 @@ for (iter in 1:100)
 // (integer)which(logical x)
 function (i)which_func(l x)
 {
-	w = apply(seqAlong(x), 'x[applyValue] ? applyValue else NULL;');
+	w = sapply(seqAlong(x), 'x[applyValue] ? applyValue else NULL;');
 	
 	return isNULL(w) ? integer(0) else w;
 }
@@ -789,17 +789,17 @@ if (abs(m - (5 * 0.3)) > 0.02) stop('Mismatch in expectation vs. realization of 
 
 setSeed(asInteger(clock() * 100000));
 x = rdunif(210000, -10, 10);
-x = apply(-10:10, "sum(x == applyValue);");
+x = sapply(-10:10, "sum(x == applyValue);");
 if (any(abs(x - 10000) > 500)) stop('Mismatch in expectation vs. realization of rdunif() - could be random chance (but very unlikely), rerun test');
 
 setSeed(asInteger(clock() * 100000));
 x = sample(-10:10, 210000, replace=T);
-x = apply(-10:10, "sum(x == applyValue);");
+x = sapply(-10:10, "sum(x == applyValue);");
 if (any(abs(x - 10000) > 500)) stop('Mismatch in expectation vs. realization of sample() - could be random chance (but very unlikely), rerun test');
 
 setSeed(asInteger(clock() * 100000));
 x = round(runif(210000, -10.4999, 10.4999));
-x = apply(-10:10, "sum(x == applyValue);");
+x = sapply(-10:10, "sum(x == applyValue);");
 if (any(abs(x - 10000) > 500)) stop('Mismatch in expectation vs. realization of runif() - could be random chance (but very unlikely), rerun test');
 
 setSeed(asInteger(clock() * 100000));
