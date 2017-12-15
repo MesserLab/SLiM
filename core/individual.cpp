@@ -897,8 +897,8 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 	if ((genome1_size == 0) && (genome2_size == 0))
 		return result_SP;
 	
-	if (genome1_size + genome2_size < 100)	// an arbitrary limit, but we don't want to make something *too* unnecessarily big...
-		vec->reserve(genome1_size + genome2_size);
+	if (genome1_size + genome2_size < 100)			// an arbitrary limit, but we don't want to make something *too* unnecessarily big...
+		vec->reserve(genome1_size + genome2_size);	// since we do not always reserve, we have to use push_object_element() below to check
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	int mutrun_count = (genome1_size ? g1.mutrun_count_ : g2.mutrun_count_);
@@ -943,7 +943,7 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 					// Now we have mutations of the right type, so we can start working with them by position
 					if (pos1 < pos2)
 					{
-						vec->push_object_element_no_check(mut_block_ptr + g1_mut);
+						vec->push_object_element(mut_block_ptr + g1_mut);
 						
 						// Move to the next mutation in g1
 					loopback1:
@@ -958,7 +958,7 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 					}
 					else if (pos1 > pos2)
 					{
-						vec->push_object_element_no_check(mut_block_ptr + g2_mut);
+						vec->push_object_element(mut_block_ptr + g2_mut);
 						
 						// Move to the next mutation in g2
 					loopback2:
@@ -980,7 +980,7 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 						
 						while (pos1 == focal_pos)
 						{
-							vec->push_object_element_no_check(mut_block_ptr + g1_mut);
+							vec->push_object_element(mut_block_ptr + g1_mut);
 							
 							// Move to the next mutation in g1
 						loopback3:
@@ -1009,7 +1009,7 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 							
 							// If the check indicates that g2_mut is not in g1, we copy it over
 							if (check_index == last_index_plus_one)
-								vec->push_object_element_no_check(mut_block_ptr + g2_mut);
+								vec->push_object_element(mut_block_ptr + g2_mut);
 							
 							// Move to the next mutation in g2
 						loopback4:
@@ -1040,14 +1040,14 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 			MutationIndex mut = (*mutrun1)[g1_index++];
 			
 			if ((mut_block_ptr + mut)->mutation_type_ptr_ == mutation_type_ptr)
-				vec->push_object_element_no_check(mut_block_ptr + mut);
+				vec->push_object_element(mut_block_ptr + mut);
 		}
 		while (g2_index < g2_size)
 		{
 			MutationIndex mut = (*mutrun2)[g2_index++];
 			
 			if ((mut_block_ptr + mut)->mutation_type_ptr_ == mutation_type_ptr)
-				vec->push_object_element_no_check(mut_block_ptr + mut);
+				vec->push_object_element(mut_block_ptr + mut);
 		}
 	}
 	
