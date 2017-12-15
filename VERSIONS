@@ -57,6 +57,7 @@ development head:
 	rename apply() to sapply() to match R, add a simplify= parameter to govern the result's dimensionality
 	add new apply() function to apply a lambda to margins of a matrix or array, as in R
 	fix recipes to use sapply() instead of apply(), following the new function names, and to run in more reasonable time (for testing of them)
+	rescale the color scheme for recombination and mutation rate maps in SLiMgui to handle a wider range(1e-6 to 1e-9), and make the mutation rate display with a more purple hue (compared to blue for recombination rate)
 
 
 2.5 (build 1204; Eidos version 1.5):

@@ -577,7 +577,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	}
 }
 
-- (void)_glDrawRateMapIntervalsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange ends:(std::vector<slim_position_t> &)ends rates:(std::vector<double> &)rates
+- (void)_glDrawRateMapIntervalsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange ends:(std::vector<slim_position_t> &)ends rates:(std::vector<double> &)rates hue:(double)hue
 {
 	int recombinationIntervalCount = (int)ends.size();
 	slim_position_t intervalStartPosition = 0;
@@ -606,37 +606,31 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		if (!NSIsEmptyRect(intervalRect))
 		{
 			// color according to how "hot" the region is
-			double brightness = 0.0;
-			double saturation = 1.0;
-			
-			if (intervalRate > 0.0)
-			{
-				if (intervalRate > 1.0e-8)
-				{
-					if (intervalRate < 5.0e-8)
-					{
-						brightness = 0.5 + 0.5 * ((intervalRate - 1.0e-8) / 4.0e-8);
-					}
-					else
-					{
-						brightness = 1.0;
-						
-						if (intervalRate < 1.0e-7)
-							saturation = 1.0 - ((intervalRate - 5.0e-8) * 2.0e7);
-						else
-							saturation = 0.0;
-					}
-				}
-				else
-				{
-					brightness = 0.5;
-				}
-			}
-			NSColor *intervalColor = [NSColor colorWithCalibratedHue:0.65 saturation:saturation brightness:brightness alpha:1.0];
-			
 			double r, g, b, a;
 			
-			[intervalColor getRed:&r green:&g blue:&b alpha:&a];
+			if (intervalRate == 0.0)
+			{
+				// a recombination or mutation rate of 0.0 comes out as black, whereas the lowest brightness below is 0.5; we want to distinguish this
+				r = g = b = 0.0;
+				a = 1.0;
+			}
+			else
+			{
+				// the formula below scales 1e-6 to 1.0 and 1e-9 to 0.0; values outside that range clip, but we want there to be
+				// reasonable contrast within the range of values commonly used, so we don't want to make the range too wide
+				double lightness, brightness = 1.0, saturation = 1.0;
+				
+				lightness = (log10(intervalRate) + 9.0) / 3.0;
+				lightness = std::max(lightness, 0.0);
+				lightness = std::min(lightness, 1.0);
+				
+				if (lightness >= 0.5)	saturation = 1.0 - ((lightness - 0.5) * 2.0);	// goes from 1.0 at lightness 0.5 to 0.0 at lightness 1.0
+				else					brightness = 0.5 + lightness;					// goes from 1.0 at lightness 0.5 to 0.5 at lightness 0.0
+				
+				NSColor *intervalColor = [NSColor colorWithCalibratedHue:(CGFloat)hue saturation:saturation brightness:brightness alpha:1.0];
+				
+				[intervalColor getRed:&r green:&g blue:&b alpha:&a];
+			}
 			
 			float colorRed = (float)r, colorGreen = (float)g, colorBlue = (float)b, colorAlpha = (float)a;
 			
@@ -690,7 +684,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	
 	if (chromosome.single_recombination_map_)
 	{
-		[self _glDrawRateMapIntervalsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange ends:chromosome.recombination_end_positions_H_ rates:chromosome.recombination_rates_H_];
+		[self _glDrawRateMapIntervalsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange ends:chromosome.recombination_end_positions_H_ rates:chromosome.recombination_rates_H_ hue:0.65];
 	}
 	else
 	{
@@ -702,8 +696,8 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		topInteriorRect.origin.y += remainingHeight;
 		bottomInteriorRect.size.height = remainingHeight;
 		
-		[self _glDrawRateMapIntervalsInInteriorRect:topInteriorRect withController:controller displayedRange:displayedRange ends:chromosome.recombination_end_positions_M_ rates:chromosome.recombination_rates_M_];
-		[self _glDrawRateMapIntervalsInInteriorRect:bottomInteriorRect withController:controller displayedRange:displayedRange ends:chromosome.recombination_end_positions_F_ rates:chromosome.recombination_rates_F_];
+		[self _glDrawRateMapIntervalsInInteriorRect:topInteriorRect withController:controller displayedRange:displayedRange ends:chromosome.recombination_end_positions_M_ rates:chromosome.recombination_rates_M_ hue:0.65];
+		[self _glDrawRateMapIntervalsInInteriorRect:bottomInteriorRect withController:controller displayedRange:displayedRange ends:chromosome.recombination_end_positions_F_ rates:chromosome.recombination_rates_F_ hue:0.65];
 	}
 }
 
@@ -738,7 +732,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	
 	if (chromosome.single_mutation_map_)
 	{
-		[self _glDrawRateMapIntervalsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange ends:chromosome.mutation_end_positions_H_ rates:chromosome.mutation_rates_H_];
+		[self _glDrawRateMapIntervalsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange ends:chromosome.mutation_end_positions_H_ rates:chromosome.mutation_rates_H_ hue:0.75];
 	}
 	else
 	{
@@ -750,8 +744,8 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		topInteriorRect.origin.y += remainingHeight;
 		bottomInteriorRect.size.height = remainingHeight;
 		
-		[self _glDrawRateMapIntervalsInInteriorRect:topInteriorRect withController:controller displayedRange:displayedRange ends:chromosome.mutation_end_positions_M_ rates:chromosome.mutation_rates_M_];
-		[self _glDrawRateMapIntervalsInInteriorRect:bottomInteriorRect withController:controller displayedRange:displayedRange ends:chromosome.mutation_end_positions_F_ rates:chromosome.mutation_rates_F_];
+		[self _glDrawRateMapIntervalsInInteriorRect:topInteriorRect withController:controller displayedRange:displayedRange ends:chromosome.mutation_end_positions_M_ rates:chromosome.mutation_rates_M_ hue:0.75];
+		[self _glDrawRateMapIntervalsInInteriorRect:bottomInteriorRect withController:controller displayedRange:displayedRange ends:chromosome.mutation_end_positions_F_ rates:chromosome.mutation_rates_F_ hue:0.75];
 	}
 }
 
