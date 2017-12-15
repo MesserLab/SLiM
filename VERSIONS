@@ -8,6 +8,9 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 
 development head:
+
+
+2.6 (build 1292; Eidos version 1.6):
 	make addNewMutation() and addNewDrawnMutation() vectorized, for much higher performance when adding many mutations in bulk; note policy change that requested mutations are returned whether added or not
 	add positionsOfMutationsOfType() method to Genome for speed of models that need that
 	extend the integer() function to be able to construct vectors of 0 and 1 at specified positions (sort of the opposite of which())
@@ -59,7 +62,6 @@ development head:
 	fix recipes to use sapply() instead of apply(), following the new function names, and to run in more reasonable time (for testing of them)
 	rescale the color scheme for recombination and mutation rate maps in SLiMgui to handle a wider range(1e-6 to 1e-9), and make the mutation rate display with a more purple hue (compared to blue for recombination rate)
 	add recipe 13.17 showing a two-trait QTL-based phenotypic model with pleiotropy and nutational correlation, plus live R-based plotting
-
 
 2.5 (build 1204; Eidos version 1.5):
 	add a check for completeness of the help information compared to class definitions, and add doc for a few missing items
