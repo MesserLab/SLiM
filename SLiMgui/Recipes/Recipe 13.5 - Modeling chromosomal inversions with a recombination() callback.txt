@@ -20,7 +20,7 @@ initialize() {
 	
 	// assess the prevalence of the inversion
 	pScr = "sum(applyValue.genomes.containsMarkerMutation(m2, 25000));";
-	p = apply(p1.individuals, pScr);
+	p = sapply(p1.individuals, pScr);
 	p__ = sum(p == 0);
 	pI_ = sum(p == 1);
 	pII = sum(p == 2);

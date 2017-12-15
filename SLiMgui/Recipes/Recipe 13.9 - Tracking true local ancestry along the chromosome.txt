@@ -46,7 +46,7 @@ initialize() {
 		catn("Fraction with p1 ancestry: " + p1TotalFraction);
 		
 		p1Counts = integer(L);
-		apply(p3g, "p1Counts = p1Counts + integer(L, 0, 1, applyValue.positionsOfMutationsOfType(m2));");
+		sapply(p3g, "p1Counts = p1Counts + integer(L, 0, 1, applyValue.positionsOfMutationsOfType(m2));");
 		maxCount = p3g.size();
 		p1Fractions = p1Counts / maxCount;
 		catn("Fraction with p1 ancestry, by position:");

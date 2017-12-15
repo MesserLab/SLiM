@@ -20,7 +20,7 @@ initialize() {
 	p1.setSpatialBounds(c(0.0, 0.0, 540.0, 217.0));
 	
 	mapLines = rev(readFile("~/Desktop/world_map_540x217.txt"));
-	mapLines = apply(mapLines, "strsplit(applyValue, '') == '#';");
+	mapLines = sapply(mapLines, "strsplit(applyValue, '') == '#';");
 	mapValues = asFloat(mapLines);
 	
 	p1.defineSpatialMap("world", "xy", c(540, 217), mapValues,

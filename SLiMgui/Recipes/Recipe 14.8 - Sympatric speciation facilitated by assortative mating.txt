@@ -48,7 +48,7 @@ mateChoice() {
 	// spatial mate choice
 	return i2.strength(individual);
 }
-1:99999 late() {
+1:5001 late() {
 	if (sim.generation == 1)
 		cat("  gen    mean      sd\n");
 	

@@ -70,6 +70,6 @@ mateChoice() {
 	// spatial mate choice
 	return i2.strength(individual);
 }
-100000 late() {
+10000 late() {
 	sim.simulationFinished();
 }

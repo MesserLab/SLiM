@@ -39,7 +39,7 @@ fitness(NULL) {    // phenotypic competition
 	totalStrength = sum(i1.strength(individual));
 	return 1.0 - totalStrength / p1.individualCount;
 }
-1:99999 late() {
+1:2001 late() {
 	if (sim.generation == 1)
 		cat("  gen    mean      sd\n");
 	

@@ -38,7 +38,7 @@ initialize() {
 	// The initial population is fixed for a single wild-type
 	// nucleotide fixed at each locus in the chromosome
 	geTypes = sim.chromosome.genomicElements.genomicElementType;
-	mutTypes = apply(geTypes, "sample(applyValue.mutationTypes, 1, weights=applyValue.mutationFractions);");
+	mutTypes = sapply(geTypes, "sample(applyValue.mutationTypes, 1, weights=applyValue.mutationFractions);");
 	p1.genomes.addNewDrawnMutation(mutTypes, 0:(C-1));
 	
 	cat("Initial nucleotide sequence:");

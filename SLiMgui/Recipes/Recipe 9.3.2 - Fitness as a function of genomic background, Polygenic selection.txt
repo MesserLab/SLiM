@@ -11,7 +11,10 @@ initialize() {
 	initializeRecombinationRate(1e-8);
 }
 1 { sim.addSubpop("p1", 500); }
-10000 { sim.simulationFinished(); }
+1:10000 {
+	if (sim.mutationsOfType(m2).size() > 100)
+		sim.simulationFinished();
+}
 fitness(m2) {
 	count = sum(c(genome1,genome2).countOfMutationsOfType(m2));
 	if ((count > 2) & homozygous)

@@ -28,4 +28,4 @@ modifyChild() {
 	child.setSpatialPosition(p1.pointPeriodic(pos));
 	return T;
 }
-200000 late() { sim.outputFixedMutations(); }
+1000 late() { sim.outputFixedMutations(); }
