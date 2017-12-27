@@ -3272,6 +3272,11 @@ void _RunNonWFTests(void)
 	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_p1 + "1 { p1.setSelfingRate(0.5); } ", 1, 301, "not available in nonWF models", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_sex_p1 + "1 { p1.sexRatio; } ", 1, 321, "not available in nonWF models", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_sex_p1 + "1 { p1.setSexRatio(0.5); } ", 1, 321, "not available in nonWF models", __LINE__);
+	
+	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_p1 + "1 { sim.addSubpopSplit(2, 100, p1); } ", 1, 302, "not available in nonWF models", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_p1 + "1 { p1.immigrantSubpopFractions; } ", 1, 301, "not available in nonWF models", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_p1 + "1 { p1.immigrantSubpopIDs; } ", 1, 301, "not available in nonWF models", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_p1 + "1 { p1.setMigrationRates(2, 0.1); } ", 1, 301, "not available in nonWF models", __LINE__);
 }
 
 

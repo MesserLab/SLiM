@@ -2313,6 +2313,9 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_immigrantSubpopIDs:
 		{
+			if (population_.sim_.ModelType() == SLiMModelType::kModelTypeNonWF)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property immigrantSubpopIDs is not available in nonWF models." << EidosTerminate();
+			
 			EidosValue_Int_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector();
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
@@ -2323,6 +2326,9 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_immigrantSubpopFractions:
 		{
+			if (population_.sim_.ModelType() == SLiMModelType::kModelTypeNonWF)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property immigrantSubpopFractions is not available in nonWF models." << EidosTerminate();
+			
 			EidosValue_Float_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector();
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
@@ -2445,6 +2451,9 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 EidosValue_SP Subpopulation::ExecuteMethod_setMigrationRates(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeNonWF)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setMigrationRates): method -setMigrationRates() is not available in nonWF models." << EidosTerminate();
+	
 	EidosValue *sourceSubpops_value = p_arguments[0].get();
 	EidosValue *rates_value = p_arguments[1].get();
 	

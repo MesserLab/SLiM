@@ -4371,6 +4371,9 @@ EidosValue_SP SLiMSim::ExecuteMethod_addSubpop(EidosGlobalStringID p_method_id, 
 EidosValue_SP SLiMSim::ExecuteMethod_addSubpopSplit(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	if (ModelType() == SLiMModelType::kModelTypeNonWF)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_addSubpopSplit): method -addSubpopSplit() is not available in nonWF models." << EidosTerminate();
+	
 	EidosValue *subpopID_value = p_arguments[0].get();
 	EidosValue *size_value = p_arguments[1].get();
 	EidosValue *sourceSubpop_value = p_arguments[2].get();
