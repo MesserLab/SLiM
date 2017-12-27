@@ -12,6 +12,7 @@ development head (nonWF branch):
 	disable setSubpopulationSize(), setCloningRate(), setSelfingRate(), setSexRatio(), .cloningRate, .selfingRate, .sexRatio in nonWF models
 	disable addSubpopSplit(), setMigrationRates(), .immigrantSubpopFractions, .immigrantSubpopIDs in nonWF models
 	make definition of mateChoice() callbacks illegal in nonWF mode, including by registerMateChoiceCallback()
+	add age property to Individual, for WF models
 
 
 2.6 (build 1292; Eidos version 1.6):

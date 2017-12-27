@@ -1062,9 +1062,18 @@ The optional parameter
 \i\b0 \cf0 5.6.1  
 \f1\fs18 Individual
 \f0\fs22  properties\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\i0\fs18 \cf0 age => (integer$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+The age of the individual, measured in generation \'93ticks\'94.  A newly generated offspring individual will have an age of 
+\f2\fs18 0
+\f0\fs20  in the same generation in which is was created.  The age of every individual is incremented by one at the same point that the generation counter is incremented.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\i0\fs18 \cf0 color <\'96> (string$)\
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 color <\'96> (string$)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 The color used to display the individual in SLiMgui.  Outside of SLiMgui, this property still exists, but is not used by SLiM.  Colors may be specified by name, or with hexadecimal RGB values of the form 
@@ -4644,10 +4653,10 @@ Looks up the spatial map indicated by
 \f0\fs20  must be of length 
 \f2\fs18 2
 \f0\fs20 , specifying the 
-\i \cf2 x
-\i0 \cf2  and 
-\i \cf2 z
-\i0 \cf2  coordinates of the point to be evaluated.  Interpolation will automatically be used if it was enabled for the spatial map.  Point coordinates are clamped into the range defined by the spatial boundaries, even if the spatial boundaries are periodic; use 
+\i x
+\i0  and 
+\i z
+\i0  coordinates of the point to be evaluated.  Interpolation will automatically be used if it was enabled for the spatial map.  Point coordinates are clamped into the range defined by the spatial boundaries, even if the spatial boundaries are periodic; use 
 \f2\fs18 pointPeriodic()
 \f0\fs20  to wrap the point coordinates first if desired.  See the documentation for 
 \f2\fs18 defineSpatialMap()

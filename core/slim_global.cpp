@@ -315,6 +315,7 @@ const std::string gStr_sexRatio = "sexRatio";
 const std::string gStr_spatialBounds = "spatialBounds";
 const std::string gStr_individualCount = "individualCount";
 const std::string gStr_fixationGeneration = "fixationGeneration";
+const std::string gStr_age = "age";
 const std::string gStr_pedigreeID = "pedigreeID";
 const std::string gStr_pedigreeParentIDs = "pedigreeParentIDs";
 const std::string gStr_pedigreeGrandparentIDs = "pedigreeGrandparentIDs";
@@ -593,6 +594,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_spatialBounds, gID_spatialBounds);
 		Eidos_RegisterStringForGlobalID(gStr_individualCount, gID_individualCount);
 		Eidos_RegisterStringForGlobalID(gStr_fixationGeneration, gID_fixationGeneration);
+		Eidos_RegisterStringForGlobalID(gStr_age, gID_age);
 		Eidos_RegisterStringForGlobalID(gStr_pedigreeID, gID_pedigreeID);
 		Eidos_RegisterStringForGlobalID(gStr_pedigreeParentIDs, gID_pedigreeParentIDs);
 		Eidos_RegisterStringForGlobalID(gStr_pedigreeGrandparentIDs, gID_pedigreeGrandparentIDs);

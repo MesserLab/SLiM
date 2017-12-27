@@ -3280,6 +3280,9 @@ void _RunNonWFTests(void)
 	
 	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_p1 + "1 mateChoice() { return T; } ", 1, 296, "may not be defined in nonWF models", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(NULL, '{ return T; } '); } ", 1, 302, "not available in nonWF models", __LINE__);
+	
+	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('WF'); } " + gen1_setup_p1 + "1 { p1.individuals.age; } ", 1, 310, "not available in WF models", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_p1 + "1 { p1.individuals.age; stop(); } ", __LINE__);
 }
 
 

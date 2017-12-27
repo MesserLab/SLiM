@@ -1756,7 +1756,7 @@ void SLiMSim::RunInitializeCallbacks(void)
 		((chromosome_.recombination_rates_M_.size() != 0) && (chromosome_.recombination_rates_F_.size() == 0)))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): Both sex-specific recombination rates must be defined, not just one (but one may be defined as zero)." << EidosTerminate();
 	
-	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeNonWF)
+	if (ModelType() == SLiMModelType::kModelTypeNonWF)
 	{
 		std::vector<SLiMEidosBlock*> &script_blocks = AllScriptBlocks();
 		
