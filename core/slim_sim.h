@@ -296,7 +296,8 @@ public:
 	// accessors
 	inline EidosSymbolTable &SymbolTable(void) const								{ return *simulation_constants_; }
 	inline EidosFunctionMap &FunctionMap(void)										{ return simulation_functions_; }
-
+	
+	inline SLiMModelType ModelType(void) const										{ return model_type_; }
 	inline slim_generation_t Generation(void) const									{ return generation_; }
 	inline SLiMGenerationStage GenerationStage(void) const							{ return generation_stage_; }
 	inline Chromosome &TheChromosome(void)											{ return chromosome_; }

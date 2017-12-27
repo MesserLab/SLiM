@@ -258,6 +258,7 @@ static void _RunInteractionTypeTests(void);
 static void _RunSubstitutionTests(void);
 static void _RunSLiMEidosBlockTests(void);
 static void _RunContinuousSpaceTests(void);
+static void _RunNonWFTests(void);
 
 
 // Test function shared strings
@@ -298,10 +299,12 @@ int RunSLiMTests(void)
 	_RunGenomeTests();
 	_RunSubpopulationTests();
 	_RunIndividualTests();
-	_RunInteractionTypeTests();
 	_RunSubstitutionTests();
 	_RunSLiMEidosBlockTests();
 	_RunContinuousSpaceTests();
+	_RunNonWFTests();
+	
+	_RunInteractionTypeTests();		// many tests, time-consuming, so do this last
 	
 	// ************************************************************************************
 	//
@@ -3258,6 +3261,18 @@ void _RunContinuousSpaceTests(void)
 	// Tests of the basic functionality of properties and methods remain in the class tests, however.
 }
 
+#pragma mark nonWF model tests
+void _RunNonWFTests(void)
+{
+	// Test properties and methods that should be disabled in nonWF mode
+	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_p1 + "1 { p1.setSubpopulationSize(500); } ", 1, 301, "not available in nonWF models", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_p1 + "1 { p1.cloningRate; } ", 1, 301, "not available in nonWF models", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_p1 + "1 { p1.setCloningRate(0.5); } ", 1, 301, "not available in nonWF models", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_p1 + "1 { p1.selfingRate; } ", 1, 301, "not available in nonWF models", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_p1 + "1 { p1.setSelfingRate(0.5); } ", 1, 301, "not available in nonWF models", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_sex_p1 + "1 { p1.sexRatio; } ", 1, 321, "not available in nonWF models", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_sex_p1 + "1 { p1.setSexRatio(0.5); } ", 1, 321, "not available in nonWF models", __LINE__);
+}
 
 
 

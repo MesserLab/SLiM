@@ -2331,15 +2331,30 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			
 			return result_SP;
 		}
-		case gID_selfingRate:			// ACCELERATED
+		case gID_selfingRate:
+		{
+			if (population_.sim_.ModelType() == SLiMModelType::kModelTypeNonWF)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property selfingRate is not available in nonWF models." << EidosTerminate();
+			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(selfing_fraction_));
+		}
 		case gID_cloningRate:
+		{
+			if (population_.sim_.ModelType() == SLiMModelType::kModelTypeNonWF)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property cloningRate is not available in nonWF models." << EidosTerminate();
+			
 			if (sex_enabled_)
 				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{female_clone_fraction_, male_clone_fraction_});
 			else
 				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(female_clone_fraction_));
-		case gID_sexRatio:				// ACCELERATED
+		}
+		case gID_sexRatio:
+		{
+			if (population_.sim_.ModelType() == SLiMModelType::kModelTypeNonWF)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property sexRatio is not available in nonWF models." << EidosTerminate();
+			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(child_generation_valid_ ? child_sex_ratio_ : parent_sex_ratio_));
+		}
 		case gID_spatialBounds:
 		{
 			SLiMSim &sim = population_.sim_;
@@ -2376,17 +2391,6 @@ int64_t Subpopulation::GetProperty_Accelerated_Int(EidosGlobalStringID p_propert
 		case gID_tag:				return tag_value_;
 			
 		default:					return EidosObjectElement::GetProperty_Accelerated_Int(p_property_id);
-	}
-}
-
-double Subpopulation::GetProperty_Accelerated_Float(EidosGlobalStringID p_property_id)
-{
-	switch (p_property_id)
-	{
-		case gID_selfingRate:		return selfing_fraction_;
-		case gID_sexRatio:			return (child_generation_valid_ ? child_sex_ratio_ : parent_sex_ratio_);
-			
-		default:					return EidosObjectElement::GetProperty_Accelerated_Float(p_property_id);
 	}
 }
 
@@ -2784,6 +2788,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_me
 EidosValue_SP Subpopulation::ExecuteMethod_setCloningRate(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeNonWF)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setCloningRate): method -setCloningRate() is not available in nonWF models." << EidosTerminate();
+	
 	EidosValue *rate_value = p_arguments[0].get();
 	
 	int value_count = rate_value->Count();
@@ -2828,6 +2835,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_setCloningRate(EidosGlobalStringID p_
 EidosValue_SP Subpopulation::ExecuteMethod_setSelfingRate(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeNonWF)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSelfingRate): method -setSelfingRate() is not available in nonWF models." << EidosTerminate();
+	
 	EidosValue *rate_value = p_arguments[0].get();
 	
 	double selfing_fraction = rate_value->FloatAtIndex(0, nullptr);
@@ -2848,6 +2858,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSelfingRate(EidosGlobalStringID p_
 EidosValue_SP Subpopulation::ExecuteMethod_setSexRatio(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeNonWF)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSexRatio): method -setSexRatio() is not available in nonWF models." << EidosTerminate();
+	
 	EidosValue *sexRatio_value = p_arguments[0].get();
 	
 	// SetSexRatio() can only be called when the child generation has not yet been generated.  It sets the sex ratio on the child generation,
@@ -2944,6 +2957,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSpatialBounds(EidosGlobalStringID 
 EidosValue_SP Subpopulation::ExecuteMethod_setSubpopulationSize(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeNonWF)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSubpopulationSize): method -setSubpopulationSize() is not available in nonWF models." << EidosTerminate();
+	
 	EidosValue *size_value = p_arguments[0].get();
 	
 	slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(size_value->IntAtIndex(0, nullptr));
@@ -3507,9 +3523,9 @@ const EidosPropertySignature *Subpopulation_Class::SignatureForProperty(EidosGlo
 		individualsSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_individuals,					gID_individuals,				true,	kEidosValueMaskObject, gSLiM_Individual_Class));
 		immigrantSubpopIDsSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_immigrantSubpopIDs,			gID_immigrantSubpopIDs,			true,	kEidosValueMaskInt));
 		immigrantSubpopFractionsSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_immigrantSubpopFractions,	gID_immigrantSubpopFractions,	true,	kEidosValueMaskFloat));
-		selfingRateSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_selfingRate,					gID_selfingRate,				true,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
+		selfingRateSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_selfingRate,					gID_selfingRate,				true,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
 		cloningRateSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_cloningRate,					gID_cloningRate,				true,	kEidosValueMaskFloat));
-		sexRatioSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_sexRatio,					gID_sexRatio,					true,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
+		sexRatioSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_sexRatio,					gID_sexRatio,					true,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
 		spatialBoundsSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_spatialBounds,				gID_spatialBounds,				true,	kEidosValueMaskFloat));
 		sizeSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_individualCount,				gID_individualCount,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
 		tagSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,							gID_tag,						false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();

@@ -9,6 +9,7 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 development head (nonWF branch):
 	add initializeSLiMModelType() function to choose SLiM's model type (WF or nonWF, at present), and modelType property on SLiMSim to access it
+	disable setSubpopulationSize(), setCloningRate(), setSelfingRate(), setSexRatio(), .cloningRate, .selfingRate, .sexRatio in nonWF models
 
 
 2.6 (build 1292; Eidos version 1.6):
