@@ -477,14 +477,38 @@ Note that by default, all mutations of a given mutation type will be converted i
 \f2\fs20  chosen for simulation.  There is no way to disable sex once it has been enabled; if you don\'92t want to have sex, don\'92t call this function.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f0\fs18 \cf0 (void)initializeSLiMOptions([logical$\'a0keepPedigrees\'a0=\'a0F], [string$\'a0dimensionality\'a0=\'a0""], [string$\'a0periodicity\'a0=\'a0""], [integer$\'a0mutationRuns\'a0=\'a00], [logical$\'a0preventIncidentalSelfing\'a0=\'a0F])
+\f0\fs18 \cf0 (void)initializeSLiMModelType(string$\'a0modelType)
 \f1 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf0 Configure options for the simulation.  If 
-\f0\fs18 initializeSLiMOptions()
-\f2\fs20  is called at all then it must be called before any other initialization function, so that SLiM knows from the outset which optional features are enabled and which are not.\
+\f2\fs20 \cf2 \expnd0\expndtw0\kerning0
+Configure the type of SLiM model used for the simulation.  At present, one of two model types may be selected.  If 
+\f0\fs18 modelType
+\f2\fs20  is 
+\f0\fs18 "WF"
+\f2\fs20 , SLiM will use a Wright-Fisher (WF) model; this is the model type that has always been supported by SLiM, and is the model type used if 
+\f0\fs18 initializeSLiMModelType()
+\f2\fs20  is not called.  If 
+\f0\fs18 modelType
+\f2\fs20  is 
+\f0\fs18 "nonWF"
+\f2\fs20 , SLiM will use a non-Wright-Fisher (nonWF) model instead; this is a new model type supported by SLiM 3.0 and above.\
 If 
+\f0\fs18 initializeSLiMModelType()
+\f2\fs20  is called at all then it must be called before any other initialization function, so that SLiM knows from the outset which features are enabled and which are not.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f0\fs18 \cf0 \kerning1\expnd0\expndtw0 (void)initializeSLiMOptions([logical$\'a0keepPedigrees\'a0=\'a0F], [string$\'a0dimensionality\'a0=\'a0""], [string$\'a0periodicity\'a0=\'a0""], [integer$\'a0mutationRuns\'a0=\'a00], [logical$\'a0preventIncidentalSelfing\'a0=\'a0F])
+\f1 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 \expnd0\expndtw0\kerning0
+Configure options for the simulation.  If 
+\f0\fs18 initializeSLiMOptions()
+\f2\fs20  is called at all then it must be called before any other initialization function (except 
+\f0\fs18 initializeSLiMModelType()
+\f2\fs20 ), so that SLiM knows from the outset which optional features are enabled and which are not.\
+\cf0 \kerning1\expnd0\expndtw0 If 
 \f0\fs18 keepPedigrees
 \f2\fs20  is 
 \f0\fs18 T
@@ -532,6 +556,7 @@ If
 \f2\fs20  and 
 \f0\fs18 interaction()
 \f2\fs20  callbacks.  And third, it enables the use of any other properties and methods related to continuous space, such as setting the spatial boundaries of subpopulations, which would otherwise raise an error.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 If 
 \f0\fs18 periodicity
@@ -556,6 +581,7 @@ If
 \f2\fs20  method of 
 \f0\fs18 Subpopulation
 \f2\fs20  is typically used in conjunction with this option, to actually implement the periodic boundary condition for the specified dimensions.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 If 
 \f0\fs18 mutationRuns
 \f2\fs20  is not 

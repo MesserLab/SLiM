@@ -294,6 +294,7 @@ extern const std::string gStr_initializeMutationRate;
 extern const std::string gStr_initializeRecombinationRate;
 extern const std::string gStr_initializeSex;
 extern const std::string gStr_initializeSLiMOptions;
+extern const std::string gStr_initializeSLiMModelType;
 extern const std::string gStr_initializeInteractionType;
 
 extern const std::string gStr_getValue;
@@ -352,6 +353,7 @@ extern const std::string gStr_chromosomeType;
 extern const std::string gStr_genomicElementTypes;
 extern const std::string gStr_inSLiMgui;
 extern const std::string gStr_interactionTypes;
+extern const std::string gStr_modelType;
 extern const std::string gStr_scriptBlocks;
 extern const std::string gStr_sexEnabled;
 extern const std::string gStr_subpopulations;
@@ -531,6 +533,7 @@ enum _SLiMGlobalStringID : int {
 	gID_initializeRecombinationRate,
 	gID_initializeSex,
 	gID_initializeSLiMOptions,
+	gID_initializeSLiMModelType,
 	gID_initializeInteractionType,
 	
 	gID_getValue,
@@ -589,6 +592,7 @@ enum _SLiMGlobalStringID : int {
 	gID_genomicElementTypes,
 	gID_inSLiMgui,
 	gID_interactionTypes,
+	gID_modelType,
 	gID_scriptBlocks,
 	gID_sexEnabled,
 	gID_subpopulations,

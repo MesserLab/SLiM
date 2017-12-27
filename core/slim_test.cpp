@@ -523,6 +523,14 @@ void _RunInitTests(void)
 	SLiMAssertScriptStop("initialize() { initializeSex('X', 10000); stop(); }", __LINE__);															// legal: no maximum value for dominance coeff
 	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeSex('A'); stop(); }", 1, 35, "may be called only once", __LINE__);
 	
+	// Test (void)initializeSLiMModelType(string$ modelType)
+	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType(); stop(); }", 1, 15, "missing required argument modelType", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMModelType('WF'); stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMModelType('nonWF'); stop(); }", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('foo'); stop(); }", 1, 15, "legal values", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(); initializeSLiMModelType('WF'); stop(); }", 1, 40, "must be called before", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationRate(0.0); initializeSLiMModelType('WF'); stop(); }", 1, 44, "must be called before", __LINE__);
+	
 	// Test (void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""], [string$ periodicity = ""], [integer$ mutationRuns = 0], [logical$ preventIncidentalSelfing = F])
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(F); stop(); }", __LINE__);
@@ -573,7 +581,7 @@ void _RunInitTests(void)
 	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(dimensionality='xyz', periodicity='foo'); stop(); }", 1, 15, "legal non-empty values", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(dimensionality='xyz', periodicity='xzy'); stop(); }", 1, 15, "legal non-empty values", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(); initializeSLiMOptions(); stop(); }", 1, 40, "may be called only once", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeMutationRate(0.0); initializeSLiMOptions(); stop(); }", 1, 44, "must be called before all other initialization functions", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationRate(0.0); initializeSLiMOptions(); stop(); }", 1, 44, "must be called before", __LINE__);
 	
 	// Test (object<InteractionType>$)initializeInteractionType(is$ id, string$ spatiality, [logical$ reciprocal = F], [numeric$ maxDistance = INF], [string$ sexSegregation = "**"])
 	SLiMAssertScriptRaise("initialize() { initializeInteractionType(-1, ''); stop(); }", 1, 15, "identifier value is out of range", __LINE__);
@@ -655,6 +663,13 @@ void _RunSLiMSimTests(void)
 	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.generation = 7; } " + gen2_stop, __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.genomicElementTypes == g1) stop(); } ", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 { sim.genomicElementTypes = g1; } ", 1, 240, "read-only property", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.modelType == 'WF') stop(); } ", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex + "1 { if (sim.modelType == 'WF') stop(); } ", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMModelType('WF'); } " + gen1_setup + "1 { if (sim.modelType == 'WF') stop(); } ", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMModelType('WF'); } " + gen1_setup_sex + "1 { if (sim.modelType == 'WF') stop(); } ", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup + "1 { if (sim.modelType == 'nonWF') stop(); } ", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_sex + "1 { if (sim.modelType == 'nonWF') stop(); } ", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.modelType = 'foo'; } ", 1, 230, "read-only property", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.mutationTypes == m1) stop(); } ", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 { sim.mutationTypes = m1; } ", 1, 234, "read-only property", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.mutations; } ", __LINE__);

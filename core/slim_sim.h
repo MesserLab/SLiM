@@ -51,6 +51,12 @@ class EidosInterpreter;
 
 extern EidosObjectClass *gSLiM_SLiMSim_Class;
 
+enum class SLiMModelType
+{
+	kModelTypeWF = 0,	// a Wright-Fisher model: the original model type supported by SLiM
+	kModelTypeNonWF		// a non-Wright-Fisher model: a new model type that is more general
+};
+
 enum class SLiMGenerationStage
 {
 	kStage0PreGeneration = 0,
@@ -119,6 +125,8 @@ public:
 private:
 #endif
 	
+	SLiMModelType model_type_ = SLiMModelType::kModelTypeWF;						// the overall model type: WF or nonWF, at present; affects many other things!
+	
 	EidosSymbolTable *simulation_constants_ = nullptr;								// A symbol table of constants defined by SLiM (p1, g1, m1, s1, etc.)
 	EidosFunctionMap simulation_functions_;											// A map of all defined functions in the simulation
 	
@@ -160,6 +168,7 @@ private:
 	int num_gene_conversions_;
 	int num_sex_declarations_;	// SEX ONLY; used to check for sex vs. non-sex errors in the file, so the #SEX tag must come before any reliance on SEX ONLY features
 	int num_options_declarations_;
+	int num_modeltype_declarations_;
 	
 	slim_position_t last_genomic_element_position_ = -1;	// used to check new genomic elements for consistency
 	
@@ -324,6 +333,7 @@ public:
 	EidosValue_SP ExecuteContextFunction_initializeMutationRate(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeSex(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeSLiMOptions(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteContextFunction_initializeSLiMModelType(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	
 	EidosSymbolTable *SymbolsFromBaseSymbols(EidosSymbolTable *p_base_symbols);				// derive a symbol table, adding our own symbols if needed
 	

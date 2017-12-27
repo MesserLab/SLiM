@@ -1696,6 +1696,7 @@ void SLiMSim::RunInitializeCallbacks(void)
 	num_gene_conversions_ = 0;
 	num_sex_declarations_ = 0;
 	num_options_declarations_ = 0;
+	num_modeltype_declarations_ = 0;
 	
 	if (DEBUG_INPUT)
 		SLIM_OUTSTREAM << "// RunInitializeCallbacks():" << std::endl;
@@ -2915,6 +2916,7 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 	else if (p_function_name.compare(gStr_initializeMutationRate) == 0)			return ExecuteContextFunction_initializeMutationRate(p_function_name, p_arguments, p_argument_count, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeSex) == 0)					return ExecuteContextFunction_initializeSex(p_function_name, p_arguments, p_argument_count, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeSLiMOptions) == 0)			return ExecuteContextFunction_initializeSLiMOptions(p_function_name, p_arguments, p_argument_count, p_interpreter);
+	else if (p_function_name.compare(gStr_initializeSLiMModelType) == 0)		return ExecuteContextFunction_initializeSLiMModelType(p_function_name, p_arguments, p_argument_count, p_interpreter);
 	
 	EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): the function " << p_function_name << "() is not implemented by SLiMSim." << EidosTerminate();
 	return gStaticEidosValueNULLInvisible;
@@ -3634,7 +3636,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSex(const std::string &p
 //
 EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
-#pragma unused (p_function_name, p_arguments, p_argument_count, p_interpreter)
+#pragma unused (p_function_name, p_argument_count, p_interpreter)
 	EidosValue *arg_keepPedigrees_value = p_arguments[0].get();
 	EidosValue *arg_dimensionality_value = p_arguments[1].get();
 	EidosValue *arg_periodicity_value = p_arguments[2].get();
@@ -3646,7 +3648,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMOptions): initializeSLiMOptions() may be called only once." << EidosTerminate();
 	
 	if ((num_interaction_types_ > 0) || (num_mutation_types_ > 0) || (num_mutation_rates_ > 0) || (num_genomic_element_types_ > 0) || (num_genomic_elements_ > 0) || (num_recombination_rates_ > 0) || (num_gene_conversions_ > 0) || (num_sex_declarations_ > 0))
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMOptions): initializeSLiMOptions() must be called before all other initialization functions." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMOptions): initializeSLiMOptions() must be called before all other initialization functions except initializeSLiMModelType()." << EidosTerminate();
 	
 	{
 		// [logical$ keepPedigrees = F]
@@ -3784,6 +3786,50 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 	return gStaticEidosValueNULLInvisible;
 }
 
+//	*********************	(void)initializeSLiMModelType(string$ modelType)
+//
+EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMModelType(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_function_name, p_argument_count, p_interpreter)
+	EidosValue *arg_modelType_value = p_arguments[0].get();
+	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
+	
+	if (num_modeltype_declarations_ > 0)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMModelType): initializeSLiMModelType() may be called only once." << EidosTerminate();
+	
+	if ((num_interaction_types_ > 0) || (num_mutation_types_ > 0) || (num_mutation_rates_ > 0) || (num_genomic_element_types_ > 0) || (num_genomic_elements_ > 0) || (num_recombination_rates_ > 0) || (num_gene_conversions_ > 0) || (num_sex_declarations_ > 0) || (num_options_declarations_ > 0))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMModelType): initializeSLiMModelType() must be called before all other initialization functions." << EidosTerminate();
+	
+	{
+		// string$ modelType
+		std::string model_type = arg_modelType_value->StringAtIndex(0, nullptr);
+		
+		if (model_type == "WF")
+			model_type_ = SLiMModelType::kModelTypeWF;
+		else if (model_type == "nonWF")
+			model_type_ = SLiMModelType::kModelTypeNonWF;
+		else
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMModelType): in initializeSLiMModelType(), legal values for parameter modelType are only 'WF' or 'nonWF'." << EidosTerminate();
+	}
+	
+	if (DEBUG_INPUT)
+	{
+		output_stream << "initializeSLiMModelType(";
+		
+		// modelType
+		output_stream << "modelType = ";
+		
+		if (model_type_ == SLiMModelType::kModelTypeWF) output_stream << "'WF'";
+		else if (model_type_ == SLiMModelType::kModelTypeNonWF) output_stream << "'nonWF'";
+		
+		output_stream << ");" << std::endl;
+	}
+	
+	num_modeltype_declarations_++;
+	
+	return gStaticEidosValueNULLInvisible;
+}
+
 const std::vector<EidosFunctionSignature_SP> *SLiMSim::ZeroGenerationFunctionSignatures(void)
 {
 	// Allocate our own EidosFunctionSignature objects
@@ -3809,6 +3855,8 @@ const std::vector<EidosFunctionSignature_SP> *SLiMSim::ZeroGenerationFunctionSig
 										->AddString_S("chromosomeType")->AddNumeric_OS("xDominanceCoeff", gStaticEidosValue_Float1));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMOptions, nullptr, kEidosValueMaskNULL, "SLiM"))
 										->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("dimensionality", gStaticEidosValue_StringEmpty)->AddString_OS("periodicity", gStaticEidosValue_StringEmpty)->AddInt_OS("mutationRuns", gStaticEidosValue_Integer0)->AddLogical_OS("preventIncidentalSelfing", gStaticEidosValue_LogicalF));
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMModelType, nullptr, kEidosValueMaskNULL, "SLiM"))
+									   ->AddString_S("modelType"));
 	}
 	
 	return &sim_0_signatures_;
@@ -4088,6 +4136,23 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 				vec->push_object_element(int_type->second);
 			
 			return result_SP;
+		}
+		case gID_modelType:
+		{
+			static EidosValue_SP static_model_type_string_WF;
+			static EidosValue_SP static_model_type_string_nonWF;
+			
+			if (!static_model_type_string_WF)
+			{
+				static_model_type_string_WF = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("WF"));
+				static_model_type_string_nonWF = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("nonWF"));
+			}
+			
+			switch (model_type_)
+			{
+				case SLiMModelType::kModelTypeWF:		return static_model_type_string_WF;
+				case SLiMModelType::kModelTypeNonWF:	return static_model_type_string_nonWF;
+			}
 		}
 		case gID_mutations:
 		{
@@ -5194,6 +5259,7 @@ const std::vector<const EidosPropertySignature *> *SLiMSim_Class::Properties(voi
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_genomicElementTypes));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_inSLiMgui));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_interactionTypes));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_modelType));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutations));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutationTypes));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_scriptBlocks));
@@ -5219,6 +5285,7 @@ const EidosPropertySignature *SLiMSim_Class::SignatureForProperty(EidosGlobalStr
 	static EidosPropertySignature *genomicElementTypesSig = nullptr;
 	static EidosPropertySignature *inSLiMguiSig = nullptr;
 	static EidosPropertySignature *interactionTypesSig = nullptr;
+	static EidosPropertySignature *modelTypeSig = nullptr;
 	static EidosPropertySignature *mutationsSig = nullptr;
 	static EidosPropertySignature *mutationTypesSig = nullptr;
 	static EidosPropertySignature *scriptBlocksSig = nullptr;
@@ -5238,6 +5305,7 @@ const EidosPropertySignature *SLiMSim_Class::SignatureForProperty(EidosGlobalStr
 		genomicElementTypesSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElementTypes,	gID_genomicElementTypes,	true,	kEidosValueMaskObject, gSLiM_GenomicElementType_Class));
 		inSLiMguiSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_inSLiMgui,			gID_inSLiMgui,				true,	kEidosValueMaskLogical | kEidosValueMaskSingleton));
 		interactionTypesSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_interactionTypes,	gID_interactionTypes,		true,	kEidosValueMaskObject, gSLiM_InteractionType_Class));
+		modelTypeSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_modelType,			gID_modelType,				true,	kEidosValueMaskString | kEidosValueMaskSingleton));
 		mutationsSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutations,			gID_mutations,				true,	kEidosValueMaskObject, gSLiM_Mutation_Class));
 		mutationTypesSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationTypes,		gID_mutationTypes,			true,	kEidosValueMaskObject, gSLiM_MutationType_Class));
 		scriptBlocksSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_scriptBlocks,		gID_scriptBlocks,			true,	kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class));
@@ -5259,6 +5327,7 @@ const EidosPropertySignature *SLiMSim_Class::SignatureForProperty(EidosGlobalStr
 		case gID_genomicElementTypes:	return genomicElementTypesSig;
 		case gID_inSLiMgui:				return inSLiMguiSig;
 		case gID_interactionTypes:		return interactionTypesSig;
+		case gID_modelType:				return modelTypeSig;
 		case gID_mutations:				return mutationsSig;
 		case gID_mutationTypes:			return mutationTypesSig;
 		case gID_scriptBlocks:			return scriptBlocksSig;

@@ -2858,7 +2858,20 @@ The mutation stacking policy applies only within the given mutation type\'92s st
 \f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 mutationTypes => (object<MutationType>)\
+\f2\fs18 \cf0 modelType => (string$)\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+The type of model being simulated, as specified in 
+\f2\fs18 initializeSLiMModelType()
+\f0\fs20 .  This will be 
+\f2\fs18 "WF"
+\f0\fs20  for WF models (Wright-Fisher models, the default), or 
+\f2\fs18 "nonWF"
+\f0\fs20  for nonWF models (non-Wright-Fisher models).\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 mutationTypes => (object<MutationType>)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 The 
@@ -4631,10 +4644,10 @@ Looks up the spatial map indicated by
 \f0\fs20  must be of length 
 \f2\fs18 2
 \f0\fs20 , specifying the 
-\i x
-\i0  and 
-\i z
-\i0  coordinates of the point to be evaluated.  Interpolation will automatically be used if it was enabled for the spatial map.  Point coordinates are clamped into the range defined by the spatial boundaries, even if the spatial boundaries are periodic; use 
+\i \cf2 x
+\i0 \cf2  and 
+\i \cf2 z
+\i0 \cf2  coordinates of the point to be evaluated.  Interpolation will automatically be used if it was enabled for the spatial map.  Point coordinates are clamped into the range defined by the spatial boundaries, even if the spatial boundaries are periodic; use 
 \f2\fs18 pointPeriodic()
 \f0\fs20  to wrap the point coordinates first if desired.  See the documentation for 
 \f2\fs18 defineSpatialMap()

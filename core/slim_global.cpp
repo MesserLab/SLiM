@@ -230,6 +230,7 @@ const std::string gStr_initializeMutationRate = "initializeMutationRate";
 const std::string gStr_initializeRecombinationRate = "initializeRecombinationRate";
 const std::string gStr_initializeSex = "initializeSex";
 const std::string gStr_initializeSLiMOptions = "initializeSLiMOptions";
+const std::string gStr_initializeSLiMModelType = "initializeSLiMModelType";
 const std::string gStr_initializeInteractionType = "initializeInteractionType";
 
 // SLiMEidosDictionary
@@ -290,6 +291,7 @@ const std::string gStr_chromosomeType = "chromosomeType";
 const std::string gStr_genomicElementTypes = "genomicElementTypes";
 const std::string gStr_inSLiMgui = "inSLiMgui";
 const std::string gStr_interactionTypes = "interactionTypes";
+const std::string gStr_modelType = "modelType";
 const std::string gStr_scriptBlocks = "scriptBlocks";
 const std::string gStr_sexEnabled = "sexEnabled";
 const std::string gStr_subpopulations = "subpopulations";
@@ -508,6 +510,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_initializeRecombinationRate, gID_initializeRecombinationRate);
 		Eidos_RegisterStringForGlobalID(gStr_initializeSex, gID_initializeSex);
 		Eidos_RegisterStringForGlobalID(gStr_initializeSLiMOptions, gID_initializeSLiMOptions);
+		Eidos_RegisterStringForGlobalID(gStr_initializeSLiMModelType, gID_initializeSLiMModelType);
 		Eidos_RegisterStringForGlobalID(gStr_initializeInteractionType, gID_initializeInteractionType);
 		
 		Eidos_RegisterStringForGlobalID(gStr_getValue, gID_getValue);
@@ -566,6 +569,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_genomicElementTypes, gID_genomicElementTypes);
 		Eidos_RegisterStringForGlobalID(gStr_inSLiMgui, gID_inSLiMgui);
 		Eidos_RegisterStringForGlobalID(gStr_interactionTypes, gID_interactionTypes);
+		Eidos_RegisterStringForGlobalID(gStr_modelType, gID_modelType);
 		Eidos_RegisterStringForGlobalID(gStr_scriptBlocks, gID_scriptBlocks);
 		Eidos_RegisterStringForGlobalID(gStr_sexEnabled, gID_sexEnabled);
 		Eidos_RegisterStringForGlobalID(gStr_subpopulations, gID_subpopulations);
