@@ -1756,6 +1756,15 @@ void SLiMSim::RunInitializeCallbacks(void)
 		((chromosome_.recombination_rates_M_.size() != 0) && (chromosome_.recombination_rates_F_.size() == 0)))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): Both sex-specific recombination rates must be defined, not just one (but one may be defined as zero)." << EidosTerminate();
 	
+	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeNonWF)
+	{
+		std::vector<SLiMEidosBlock*> &script_blocks = AllScriptBlocks();
+		
+		for (auto script_block : script_blocks)
+			if (script_block->type_ == SLiMEidosBlockType::SLiMEidosMateChoiceCallback)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): mateChoice() callbacks may not be defined in nonWF models." << EidosTerminate(script_block->identifier_token_);
+	}
+	
 	CheckMutationStackPolicy();
 	
 	time_start_ = FirstGeneration();	// SLIM_MAX_GENERATION if it can't find a first block
@@ -5030,6 +5039,10 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerInteractionCallback(EidosGlobalStri
 EidosValue_SP SLiMSim::ExecuteMethod_registerMateModifyRecCallback(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	if (p_method_id == gID_registerMateChoiceCallback)
+		if (ModelType() == SLiMModelType::kModelTypeNonWF)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerMateModifyRecCallback): method -registerMateChoiceCallback() is not available in nonWF models." << EidosTerminate();
+	
 	EidosValue *id_value = p_arguments[0].get();
 	EidosValue *source_value = p_arguments[1].get();
 	EidosValue *subpop_value = p_arguments[2].get();

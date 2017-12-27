@@ -3277,6 +3277,9 @@ void _RunNonWFTests(void)
 	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_p1 + "1 { p1.immigrantSubpopFractions; } ", 1, 301, "not available in nonWF models", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_p1 + "1 { p1.immigrantSubpopIDs; } ", 1, 301, "not available in nonWF models", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_p1 + "1 { p1.setMigrationRates(2, 0.1); } ", 1, 301, "not available in nonWF models", __LINE__);
+	
+	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_p1 + "1 mateChoice() { return T; } ", 1, 296, "may not be defined in nonWF models", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(NULL, '{ return T; } '); } ", 1, 302, "not available in nonWF models", __LINE__);
 }
 
 
