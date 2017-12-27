@@ -25,10 +25,11 @@ os:
   - linux
   - osx
 
-# test only the master branch for now
+# test only the master and nonWF branches for now
 branches:
   only:
     - master
+    - nonWF
 
 # notify me by email after all builds
 notifications:
