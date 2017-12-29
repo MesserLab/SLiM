@@ -2435,6 +2435,12 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 		case gID_setSexRatio:			return ExecuteMethod_setSexRatio(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_setSpatialBounds:		return ExecuteMethod_setSpatialBounds(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_setSubpopulationSize:	return ExecuteMethod_setSubpopulationSize(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_addCloned:				return ExecuteMethod_addCloned(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_addCrossed:			return ExecuteMethod_addCrossed(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_addEmpty:				return ExecuteMethod_addEmpty(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_addSelfed:				return ExecuteMethod_addSelfed(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_moveMigrants:			return ExecuteMethod_moveMigrants(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_removeSubpopulation:	return ExecuteMethod_removeSubpopulation(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_cachedFitness:			return ExecuteMethod_cachedFitness(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_defineSpatialMap:		return ExecuteMethod_defineSpatialMap(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_spatialMapColor:		return ExecuteMethod_spatialMapColor(p_method_id, p_arguments, p_argument_count, p_interpreter);
@@ -2444,6 +2450,71 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 		case gID_outputSample:			return ExecuteMethod_outputXSample(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		default:						return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 	}
+}
+
+//	*********************	- (void)addCloned()
+//
+EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): method -addCloned() is not available in WF models." << EidosTerminate();
+	
+#warning implement me!
+	
+	return gStaticEidosValueNULLInvisible;
+}
+
+//	*********************	- (void)addCrossed()
+//
+EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): method -addCrossed() is not available in WF models." << EidosTerminate();
+	
+#warning implement me!
+	
+	return gStaticEidosValueNULLInvisible;
+}
+
+//	*********************	- (void)addEmpty()
+//
+EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): method -addEmpty() is not available in WF models." << EidosTerminate();
+	
+#warning implement me!
+	
+	return gStaticEidosValueNULLInvisible;
+}
+
+//	*********************	- (void)addSelfed()
+//
+EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): method -addSelfed() is not available in WF models." << EidosTerminate();
+	
+#warning implement me!
+	
+	return gStaticEidosValueNULLInvisible;
+}
+
+//	*********************	- (void)moveMigrants(object<Individual> migrants)
+//
+EidosValue_SP Subpopulation::ExecuteMethod_moveMigrants(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_moveMigrants): method -moveMigrants() is not available in WF models." << EidosTerminate();
+	
+#warning implement me!
+	
+	return gStaticEidosValueNULLInvisible;
 }
 
 //	*********************	- (void)setMigrationRates(object sourceSubpops, numeric rates)
@@ -2974,6 +3045,20 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSubpopulationSize(EidosGlobalStrin
 	slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(size_value->IntAtIndex(0, nullptr));
 	
 	population_.SetSize(*this, subpop_size);
+	
+	return gStaticEidosValueNULLInvisible;
+}
+
+//	*********************	- (void)removeSubpopulation()
+//
+EidosValue_SP Subpopulation::ExecuteMethod_removeSubpopulation(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_removeSubpopulation): method -removeSubpopulation() is not available in WF models." << EidosTerminate();
+	
+	// For now this is equivalent to setSubpopulationSize(0), but it will diverge soon...
+	population_.SetSize(*this, 0);
 	
 	return gStaticEidosValueNULLInvisible;
 }
@@ -3580,6 +3665,12 @@ const std::vector<const EidosMethodSignature *> *Subpopulation_Class::Methods(vo
 		methods->emplace_back(SignatureForMethodOrRaise(gID_setSexRatio));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_setSpatialBounds));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_setSubpopulationSize));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_addCloned));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_addCrossed));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_addEmpty));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_addSelfed));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_moveMigrants));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_removeSubpopulation));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_cachedFitness));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_defineSpatialMap));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_spatialMapColor));
@@ -3607,6 +3698,12 @@ const EidosMethodSignature *Subpopulation_Class::SignatureForMethod(EidosGlobalS
 	static EidosInstanceMethodSignature *setSexRatioSig = nullptr;
 	static EidosInstanceMethodSignature *setSpatialBoundsSig = nullptr;
 	static EidosInstanceMethodSignature *setSubpopulationSizeSig = nullptr;
+	static EidosInstanceMethodSignature *addClonedSig = nullptr;
+	static EidosInstanceMethodSignature *addCrossedSig = nullptr;
+	static EidosInstanceMethodSignature *addEmptySig = nullptr;
+	static EidosInstanceMethodSignature *addSelfedSig = nullptr;
+	static EidosInstanceMethodSignature *moveMigrantsSig = nullptr;
+	static EidosInstanceMethodSignature *removeSubpopulationSig = nullptr;
 	static EidosInstanceMethodSignature *cachedFitnessSig = nullptr;
 	static EidosInstanceMethodSignature *defineSpatialMapSig = nullptr;
 	static EidosInstanceMethodSignature *spatialMapColorSig = nullptr;
@@ -3628,6 +3725,12 @@ const EidosMethodSignature *Subpopulation_Class::SignatureForMethod(EidosGlobalS
 		setSexRatioSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSexRatio, kEidosValueMaskNULL))->AddFloat_S("sexRatio");
 		setSpatialBoundsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSpatialBounds, kEidosValueMaskNULL))->AddFloat("bounds");
 		setSubpopulationSizeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSubpopulationSize, kEidosValueMaskNULL))->AddInt_S("size");
+		addClonedSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addCloned, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddObject_S("parent", gSLiM_Individual_Class);
+		addCrossedSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addCrossed, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddObject_S("parent1", gSLiM_Individual_Class)->AddObject_S("parent2", gSLiM_Individual_Class);
+		addEmptySig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addEmpty, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class));
+		addSelfedSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSelfed, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddObject_S("parent", gSLiM_Individual_Class);
+		moveMigrantsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_moveMigrants, kEidosValueMaskNULL))->AddObject("migrants", gSLiM_Individual_Class);
+		removeSubpopulationSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_removeSubpopulation, kEidosValueMaskNULL));
 		cachedFitnessSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_cachedFitness, kEidosValueMaskFloat))->AddInt_N("indices");
 		defineSpatialMapSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_defineSpatialMap, kEidosValueMaskNULL))->AddString_S("name")->AddString_S("spatiality")->AddInt_N("gridSize")->AddFloat("values")->AddLogical_OS("interpolate", gStaticEidosValue_LogicalF)->AddFloat_ON("valueRange", gStaticEidosValueNULL)->AddString_ON("colors", gStaticEidosValueNULL);
 		spatialMapColorSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_spatialMapColor, kEidosValueMaskString))->AddString_S("name")->AddFloat("value");
@@ -3651,6 +3754,12 @@ const EidosMethodSignature *Subpopulation_Class::SignatureForMethod(EidosGlobalS
 		case gID_setSexRatio:			return setSexRatioSig;
 		case gID_setSpatialBounds:		return setSpatialBoundsSig;
 		case gID_setSubpopulationSize:	return setSubpopulationSizeSig;
+		case gID_addCloned:				return addClonedSig;
+		case gID_addCrossed:			return addCrossedSig;
+		case gID_addEmpty:				return addEmptySig;
+		case gID_addSelfed:				return addSelfedSig;
+		case gID_moveMigrants:			return moveMigrantsSig;
+		case gID_removeSubpopulation:	return removeSubpopulationSig;
 		case gID_cachedFitness:			return cachedFitnessSig;
 		case gID_defineSpatialMap:		return defineSpatialMapSig;
 		case gID_spatialMapColor:		return spatialMapColorSig;

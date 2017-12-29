@@ -3982,9 +3982,136 @@ Note that new script blocks can also be created and scheduled using the
 \i\fs22 \cf0 5.12.2  
 \f1\fs18 Subpopulation
 \f0\fs22  methods\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\i0\fs18 \cf2 \expnd0\expndtw0\kerning0
+\'96\'a0(No<Individual>$)addCloned(object<Individual>$\'a0parent)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 Generates a new offspring individual from the given parent by clonal reproduction, queues it for addition to the target subpopulation, and returns it.  The new offspring will not be visible as a member of the target subpopulation until the end of the offspring generation life cycle stage.  The subpopulation of 
+\f2\fs18 parent
+\f0\fs20  will be used to locate applicable 
+\f2\fs18 recombination()
+\f0\fs20  and 
+\f2\fs18 modifyChild()
+\f0\fs20  callbacks governing the generation of the offspring individual.\
+Note that this method is only for use in nonWF models.  See 
+\f2\fs18 addCrossed()
+\f0\fs20  for further general notes on the addition of new offspring individuals.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf2 \'96\'a0(No<Individual>$)addCrossed(object<Individual>$\'a0parent1, object<Individual>$\'a0parent2)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 Generates a new offspring individual from the given parents by biparental sexual reproduction, queues it for addition to the target subpopulation, and returns it.  The new offspring will not be visible as a member of the target subpopulation until the end of the offspring generation life cycle stage.  Attempting to use a newly generated offspring individual as a mate, or to reference it as a member of the target subpopulation in any other way, will result in an error.  In most models the returned individual is not used, but it is provided for maximal generality and flexibility.\
+The new offspring individual is generated from 
+\f2\fs18 parent1
+\f0\fs20  and 
+\f2\fs18 parent2
+\f0\fs20  by crossing them.  In sexual models 
+\f2\fs18 parent1
+\f0\fs20  must be female and 
+\f2\fs18 parent2
+\f0\fs20  must be male; in hermaphroditic models, 
+\f2\fs18 parent1
+\f0\fs20  and 
+\f2\fs18 parent2
+\f0\fs20  are unrestricted.  If 
+\f2\fs18 parent1
+\f0\fs20  and 
+\f2\fs18 parent2
+\f0\fs20  are the same individual in a hermaphroditic model, that parent self-fertilizes, or \'93selfs\'94, to generate the offspring sexually (note this is not the same as clonal reproduction).  Such selfing is considered \'93incidental\'94 by 
+\f2\fs18 addCrossed()
+\f0\fs20 , however; if the 
+\f2\fs18 preventIncidentalSelfing
+\f0\fs20  flag of 
+\f2\fs18 initializeSLiMOptions()
+\f0\fs20  is 
+\f2\fs18 T
+\f0\fs20 , supplying the same individual for 
+\f2\fs18 parent1
+\f0\fs20  and 
+\f2\fs18 parent2
+\f0\fs20  is an error (you must check for and prevent incidental selfing if you set that flag in a nonWF model).  If non-incidental selfing is desired, 
+\f2\fs18 addSelfed()
+\f0\fs20  should be used instead.\
+Note that any defined, active, and applicable 
+\f2\fs18 recombination()
+\f0\fs20  and 
+\f2\fs18 modifyChild()
+\f0\fs20  callbacks will be called as a side effect of calling this method, before this method even returns.  For 
+\f2\fs18 recombination()
+\f0\fs20  callbacks, the subpopulation of the parent that is generating a given gamete is used; for 
+\f2\fs18 modifyChild()
+\f0\fs20  callbacks the situation is more complex.  In most biparental mating events, 
+\f2\fs18 parent1
+\f0\fs20  and 
+\f2\fs18 parent2
+\f0\fs20  will belong to the same subpopulation, and 
+\f2\fs18 modifyChild()
+\f0\fs20  callbacks for that subpopulation will be used, just as in WF models.  In certain models (such as models of pollen flow and broadcast spawning), however, biparental mating may occur between parents that are not from the same subpopulation; that is legal in nonWF models, and in that case, 
+\f2\fs18 modifyChild()
+\f0\fs20  callbacks for the subpopulation of 
+\f2\fs18 parent1
+\f0\fs20  are used (since that is the maternal parent).\
+If the 
+\f2\fs18 modifyChild()
+\f0\fs20  callback process results in rejection of the proposed child (see section 19.4), a new offspring individual will not be generated, and this method will return 
+\f2\fs18 NULL
+\f0\fs20 .  To force the generation of an offspring individual from a given pair of parents, you could loop until 
+\f2\fs18 addCrossed()
+\f0\fs20  succeeds, but note that if your 
+\f2\fs18 modifyChild()
+\f0\fs20  callback rejects all proposed children from those particular parents, your model will then hang, so care must be taken with this approach.  Usually, nonWF models do not force generation of offspring in this manner; rejection of a proposed offspring by a 
+\f2\fs18 modifyChild()
+\f0\fs20  callback typically represents a phenomenon such as post-mating reproductive isolation or lethal genetic incompatibilities that would reduce the expected litter size, so the default behavior is typically desirable.\
+Note that this method is only for use in nonWF models, in which offspring generation is managed manually by the model script; in such models, 
+\f2\fs18 addCrossed()
+\f0\fs20  must be called only from 
+\f2\fs18 reproduce()
+\f0\fs20  callbacks, and may not be called at any other time.  In WF models, offspring generation is managed automatically by the SLiM core.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf2 \'96\'a0(No<Individual>$)addEmpty(void)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 Generates a new offspring individual with empty genomes (i.e., containing no mutations), queues it for addition to the target subpopulation, and returns it.  The new offspring will not be visible as a member of the target subpopulation until the end of the offspring generation life cycle stage.  No 
+\f2\fs18 recombination()
+\f0\fs20  callbacks will be called.  The target subpopulation will be used to locate applicable 
+\f2\fs18 modifyChild()
+\f0\fs20  callbacks governing the generation of the offspring individual (unlike the other 
+\f2\fs18 addX()
+\f0\fs20  methods, because there is no parental individual to reference).  The offspring is considered to have no parents for the purposes of pedigree tracking.\
+Note that this method is only for use in nonWF models.  See 
+\f2\fs18 addCrossed()
+\f0\fs20  for further general notes on the addition of new offspring individuals.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf2 \'96\'a0(No<Individual>$)addSelfed(object<Individual>$\'a0parent)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 Generates a new offspring individual from the given parent by selfing, queues it for addition to the target subpopulation, and returns it.  The new offspring will not be visible as a member of the target subpopulation until the end of the offspring generation life cycle stage.  The subpopulation of 
+\f2\fs18 parent
+\f0\fs20  will be used to locate applicable 
+\f2\fs18 recombination()
+\f0\fs20  and 
+\f2\fs18 modifyChild()
+\f0\fs20  callbacks governing the generation of the offspring individual.\
+Since selfing requires that 
+\f2\fs18 parent
+\f0\fs20  act as a source of both a male and a female gamete, this method may be called only in hermaphroditic models; calling it in sexual models will result in an error.  This method represents a non-incidental selfing event, so the 
+\f2\fs18 preventIncidentalSelfing
+\f0\fs20  flag of 
+\f2\fs18 initializeSLiMOptions()
+\f0\fs20  has no effect on this method (in contrast to the behavior of 
+\f2\fs18 addCrossed()
+\f0\fs20 , where selfing is assumed to be incidental).\
+Note that this method is only for use in nonWF models.  See 
+\f2\fs18 addCrossed()
+\f0\fs20  for further general notes on the addition of new offspring individuals.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\i0\fs18 \cf0 \'96\'a0(float)cachedFitness(Ni\'a0indices)\
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(float)cachedFitness(Ni\'a0indices)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 The fitness values calculated for the individuals at the indices given are returned.  If 
@@ -4200,7 +4327,21 @@ Note that at present, SLiMgui will only display spatial maps of spatiality
 \f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(void)outputMSSample(integer$\'a0sampleSize, [logical$\'a0replace\'a0=\'a0T], [string$\'a0requestedSex\'a0=\'a0"*"], [Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F])
+\f2\fs18 \cf2 \expnd0\expndtw0\kerning0
+\'96\'a0(void)moveMigrants(object<Individual>\'a0migrants)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 Immediately moves the individuals in 
+\f2\fs18 migrants
+\f0\fs20  to the target subpopulation (removing them from their previous subpopulation).  Individuals in 
+\f2\fs18 migrants
+\f0\fs20  that are already in the target subpopulation are unaffected.\
+Note that this method is only for use in nonWF models, in which migration is managed manually by the model script.  In WF models, migration is managed automatically by the SLiM core based upon the migration rates set for each subpopulation with 
+\f2\fs18 setMigrationRates()
+\f0\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(void)outputMSSample(integer$\'a0sampleSize, [logical$\'a0replace\'a0=\'a0T], [string$\'a0requestedSex\'a0=\'a0"*"], [Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F])
 \f3 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -4467,7 +4608,22 @@ Returns a revised version of
 \f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(void)setCloningRate(numeric\'a0rate)
+\f2\fs18 \cf0 \'96\'a0(void)removeSubpopulation(void)
+\f3 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+Removes this subpopulation from the model.  The subpopulation is immediately removed from the list of active subpopulations, and the symbol representing the subpopulation is undefined.  The subpopulation object itself remains unchanged until children are next generated (at which point it is deallocated), but it is no longer part of the simulation and should not be used.\
+Note that this method is only for use in nonWF models, in which there is a distinction between a subpopulation being empty and a subpopulation being removed from the simulation; an empty subpopulation may be re-colonized by migrants, whereas as a removed subpopulation no longer exists at all.  WF models do not make this distinction; when a subpopulation is empty it is automatically removed.  WF models should therefore call 
+\f2\fs18 setSubpopulationSize(0)
+\f0\fs20  instead of this method; 
+\f2\fs18 setSubpopulationSize()
+\f0\fs20  is the standard way for WF models to change the subpopulation size, including to a size of 
+\f2\fs18 0
+\f0\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(void)setCloningRate(numeric\'a0rate)
 \f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 

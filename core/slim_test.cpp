@@ -275,6 +275,9 @@ static std::string gen1_setup_p1(gen1_setup + "1 { sim.addSubpop('p1', 10); } ")
 static std::string gen1_setup_sex_p1(gen1_setup_sex + "1 { sim.addSubpop('p1', 10); } ");
 static std::string gen1_setup_p1p2p3(gen1_setup + "1 { sim.addSubpop('p1', 10); sim.addSubpop('p2', 10); sim.addSubpop('p3', 10); } ");
 
+static std::string WF_prefix("initialize() { initializeSLiMModelType('WF'); } ");
+static std::string nonWF_prefix("initialize() { initializeSLiMModelType('nonWF'); } ");
+
 
 int RunSLiMTests(void)
 {
@@ -668,10 +671,10 @@ void _RunSLiMSimTests(void)
 	SLiMAssertScriptRaise(gen1_setup + "1 { sim.genomicElementTypes = g1; } ", 1, 240, "read-only property", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.modelType == 'WF') stop(); } ", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { if (sim.modelType == 'WF') stop(); } ", __LINE__);
-	SLiMAssertScriptStop("initialize() { initializeSLiMModelType('WF'); } " + gen1_setup + "1 { if (sim.modelType == 'WF') stop(); } ", __LINE__);
-	SLiMAssertScriptStop("initialize() { initializeSLiMModelType('WF'); } " + gen1_setup_sex + "1 { if (sim.modelType == 'WF') stop(); } ", __LINE__);
-	SLiMAssertScriptStop("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup + "1 { if (sim.modelType == 'nonWF') stop(); } ", __LINE__);
-	SLiMAssertScriptStop("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_sex + "1 { if (sim.modelType == 'nonWF') stop(); } ", __LINE__);
+	SLiMAssertScriptStop(WF_prefix + gen1_setup + "1 { if (sim.modelType == 'WF') stop(); } ", __LINE__);
+	SLiMAssertScriptStop(WF_prefix + gen1_setup_sex + "1 { if (sim.modelType == 'WF') stop(); } ", __LINE__);
+	SLiMAssertScriptStop(nonWF_prefix + gen1_setup + "1 { if (sim.modelType == 'nonWF') stop(); } ", __LINE__);
+	SLiMAssertScriptStop(nonWF_prefix + gen1_setup_sex + "1 { if (sim.modelType == 'nonWF') stop(); } ", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 { sim.modelType = 'foo'; } ", 1, 230, "read-only property", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.mutationTypes == m1) stop(); } ", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 { sim.mutationTypes = m1; } ", 1, 234, "read-only property", __LINE__);
@@ -3265,24 +3268,33 @@ void _RunContinuousSpaceTests(void)
 void _RunNonWFTests(void)
 {
 	// Test properties and methods that should be disabled in nonWF mode
-	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_p1 + "1 { p1.setSubpopulationSize(500); } ", 1, 301, "not available in nonWF models", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_p1 + "1 { p1.cloningRate; } ", 1, 301, "not available in nonWF models", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_p1 + "1 { p1.setCloningRate(0.5); } ", 1, 301, "not available in nonWF models", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_p1 + "1 { p1.selfingRate; } ", 1, 301, "not available in nonWF models", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_p1 + "1 { p1.setSelfingRate(0.5); } ", 1, 301, "not available in nonWF models", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_sex_p1 + "1 { p1.sexRatio; } ", 1, 321, "not available in nonWF models", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_sex_p1 + "1 { p1.setSexRatio(0.5); } ", 1, 321, "not available in nonWF models", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "1 { p1.setSubpopulationSize(500); } ", 1, 301, "not available in nonWF models", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "1 { p1.cloningRate; } ", 1, 301, "not available in nonWF models", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "1 { p1.setCloningRate(0.5); } ", 1, 301, "not available in nonWF models", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "1 { p1.selfingRate; } ", 1, 301, "not available in nonWF models", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "1 { p1.setSelfingRate(0.5); } ", 1, 301, "not available in nonWF models", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_sex_p1 + "1 { p1.sexRatio; } ", 1, 321, "not available in nonWF models", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_sex_p1 + "1 { p1.setSexRatio(0.5); } ", 1, 321, "not available in nonWF models", __LINE__);
 	
-	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_p1 + "1 { sim.addSubpopSplit(2, 100, p1); } ", 1, 302, "not available in nonWF models", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_p1 + "1 { p1.immigrantSubpopFractions; } ", 1, 301, "not available in nonWF models", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_p1 + "1 { p1.immigrantSubpopIDs; } ", 1, 301, "not available in nonWF models", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_p1 + "1 { p1.setMigrationRates(2, 0.1); } ", 1, 301, "not available in nonWF models", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "1 { sim.addSubpopSplit(2, 100, p1); } ", 1, 302, "not available in nonWF models", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "1 { p1.immigrantSubpopFractions; } ", 1, 301, "not available in nonWF models", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "1 { p1.immigrantSubpopIDs; } ", 1, 301, "not available in nonWF models", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "1 { p1.setMigrationRates(2, 0.1); } ", 1, 301, "not available in nonWF models", __LINE__);
 	
-	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_p1 + "1 mateChoice() { return T; } ", 1, 296, "may not be defined in nonWF models", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(NULL, '{ return T; } '); } ", 1, 302, "not available in nonWF models", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "1 mateChoice() { return T; } ", 1, 296, "may not be defined in nonWF models", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(NULL, '{ return T; } '); } ", 1, 302, "not available in nonWF models", __LINE__);
 	
-	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('WF'); } " + gen1_setup_p1 + "1 { p1.individuals.age; } ", 1, 310, "not available in WF models", __LINE__);
-	SLiMAssertScriptStop("initialize() { initializeSLiMModelType('nonWF'); } " + gen1_setup_p1 + "1 { p1.individuals.age; stop(); } ", __LINE__);
+	// Individual.age
+	SLiMAssertScriptRaise(WF_prefix + gen1_setup_p1 + "1 { p1.individuals.age; } ", 1, 310, "not available in WF models", __LINE__);
+	SLiMAssertScriptStop(nonWF_prefix + gen1_setup_p1 + "1 { p1.individuals.age; stop(); } ", __LINE__);
+	
+	// Subpopulation - (void)removeSubpopulation()
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.removeSubpopulation(); stop(); }", 1, 250, "not available in WF models", __LINE__);
+	SLiMAssertScriptStop(nonWF_prefix + gen1_setup_p1 + "1 { p1.removeSubpopulation(); stop(); }", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "1 { p1.removeSubpopulation(); if (p1.individualCount == 10) stop(); }", 1, 328, "undefined identifier", __LINE__);		// the symbol is undefined immediately
+	SLiMAssertScriptStop(nonWF_prefix + gen1_setup_p1 + "1 { px=p1; p1.removeSubpopulation(); if (px.individualCount == 10) stop(); }", __LINE__);									// does not take visible effect until child generation
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "1 { p1.removeSubpopulation(); } 2 { if (p1.individualCount == 0) stop(); }", 1, 334, "undefined identifier", __LINE__);
+	
 }
 
 
