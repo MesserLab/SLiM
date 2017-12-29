@@ -3284,17 +3284,26 @@ void _RunNonWFTests(void)
 	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "1 mateChoice() { return T; } ", 1, 296, "may not be defined in nonWF models", __LINE__);
 	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(NULL, '{ return T; } '); } ", 1, 302, "not available in nonWF models", __LINE__);
 	
-	// Individual.age
+	// Test properties and methods that should be disabled in WF mode
 	SLiMAssertScriptRaise(WF_prefix + gen1_setup_p1 + "1 { p1.individuals.age; } ", 1, 310, "not available in WF models", __LINE__);
+	
+	SLiMAssertScriptRaise(WF_prefix + gen1_setup_p1 + "1 { p1.removeSubpopulation(); stop(); }", 1, 298, "not available in WF models", __LINE__);
+	SLiMAssertScriptRaise(WF_prefix + gen1_setup_p1 + "1 { p1.moveMigrants(p1.individuals); stop(); }", 1, 298, "not available in WF models", __LINE__);
+	SLiMAssertScriptRaise(WF_prefix + gen1_setup_p1 + "1 { p1.addCloned(p1.individuals[0]); stop(); }", 1, 298, "not available in WF models", __LINE__);
+	SLiMAssertScriptRaise(WF_prefix + gen1_setup_p1 + "1 { p1.addCrossed(p1.individuals[0], p1.individuals[1]); stop(); }", 1, 298, "not available in WF models", __LINE__);
+	SLiMAssertScriptRaise(WF_prefix + gen1_setup_p1 + "1 { p1.addEmpty(); stop(); }", 1, 298, "not available in WF models", __LINE__);
+	SLiMAssertScriptRaise(WF_prefix + gen1_setup_p1 + "1 { p1.addSelfed(p1.individuals[0]); stop(); }", 1, 298, "not available in WF models", __LINE__);
+	
+	SLiMAssertScriptRaise(WF_prefix + gen1_setup_p1 + "1 reproduction() { return NULL; } ", 1, 293, "may not be defined in WF models", __LINE__);
+	
+	// Individual.age
 	SLiMAssertScriptStop(nonWF_prefix + gen1_setup_p1 + "1 { p1.individuals.age; stop(); } ", __LINE__);
 	
 	// Subpopulation - (void)removeSubpopulation()
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.removeSubpopulation(); stop(); }", 1, 250, "not available in WF models", __LINE__);
 	SLiMAssertScriptStop(nonWF_prefix + gen1_setup_p1 + "1 { p1.removeSubpopulation(); stop(); }", __LINE__);
 	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "1 { p1.removeSubpopulation(); if (p1.individualCount == 10) stop(); }", 1, 328, "undefined identifier", __LINE__);		// the symbol is undefined immediately
 	SLiMAssertScriptStop(nonWF_prefix + gen1_setup_p1 + "1 { px=p1; p1.removeSubpopulation(); if (px.individualCount == 10) stop(); }", __LINE__);									// does not take visible effect until child generation
 	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "1 { p1.removeSubpopulation(); } 2 { if (p1.individualCount == 0) stop(); }", 1, 334, "undefined identifier", __LINE__);
-	
 }
 
 

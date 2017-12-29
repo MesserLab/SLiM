@@ -46,6 +46,7 @@ enum class SLiMEidosBlockType {
 	SLiMEidosMateChoiceCallback,
 	SLiMEidosModifyChildCallback,
 	SLiMEidosRecombinationCallback,
+	SLiMEidosReproductionCallback,
 	
 	SLiMEidosUserDefinedFunction,
 };
@@ -131,10 +132,10 @@ public:
 	bool contains_self_ = false;				// "self"
 	bool contains_mut_ = false;					// "mut" (fitness callback parameter)
 	bool contains_relFitness_ = false;			// "relFitness" (fitness callback parameter)
-	bool contains_individual_ = false;			// "individual" (fitness/mateChoice/recombination callback parameter)
-	bool contains_genome1_ = false;				// "genome1" (fitness/mateChoice/recombination callback parameter)
-	bool contains_genome2_ = false;				// "genome2" (fitness/mateChoice/recombination callback parameter)
-	bool contains_subpop_ = false;				// "subpop" (fitness/interaction/mateChoice/modifyChild/recombination callback parameter)
+	bool contains_individual_ = false;			// "individual" (fitness/mateChoice/recombination/reproduction callback parameter)
+	bool contains_genome1_ = false;				// "genome1" (fitness/mateChoice/recombination/reproduction callback parameter)
+	bool contains_genome2_ = false;				// "genome2" (fitness/mateChoice/recombination/reproduction callback parameter)
+	bool contains_subpop_ = false;				// "subpop" (fitness/interaction/mateChoice/modifyChild/recombination/reproduction callback parameter)
 	bool contains_homozygous_ = false;			// "homozygous" (fitness callback parameter)
 	bool contains_sourceSubpop_ = false;		// "sourceSubpop" (mateChoice/modifyChild callback parameter)
 	bool contains_weights_ = false;				// "weights" (mateChoice callback parameter)

@@ -428,6 +428,7 @@ extern const std::string gStr_registerInteractionCallback;
 extern const std::string gStr_registerMateChoiceCallback;
 extern const std::string gStr_registerModifyChildCallback;
 extern const std::string gStr_registerRecombinationCallback;
+extern const std::string gStr_registerReproductionCallback;
 extern const std::string gStr_rescheduleScriptBlock;
 extern const std::string gStr_simulationFinished;
 extern const std::string gStr_setMigrationRates;
@@ -529,6 +530,7 @@ extern const std::string gStr_interaction;
 extern const std::string gStr_mateChoice;
 extern const std::string gStr_modifyChild;
 extern const std::string gStr_recombination;
+extern const std::string gStr_reproduction;
 
 
 enum _SLiMGlobalStringID : int {
@@ -674,6 +676,7 @@ enum _SLiMGlobalStringID : int {
 	gID_registerMateChoiceCallback,
 	gID_registerModifyChildCallback,
 	gID_registerRecombinationCallback,
+	gID_registerReproductionCallback,
 	gID_rescheduleScriptBlock,
 	gID_simulationFinished,
 	gID_setMigrationRates,
@@ -774,6 +777,7 @@ enum _SLiMGlobalStringID : int {
 	gID_mateChoice,
 	gID_modifyChild,
 	gID_recombination,
+	gID_reproduction,
 };
 
 

@@ -3313,6 +3313,8 @@
 		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
 	if (token_string.compare("recombination") == 0)
 		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
+	if (token_string.compare("reproduction") == 0)
+		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
 	*/
 	
 	int len = (int)token_string.length();
@@ -3349,6 +3351,7 @@
 	if ([clickedText isEqualToString:@"mateChoice"])	return @"mateChoice() callbacks";
 	if ([clickedText isEqualToString:@"modifyChild"])	return @"modifyChild() callbacks";
 	if ([clickedText isEqualToString:@"recombination"])	return @"recombination() callbacks";
+	if ([clickedText isEqualToString:@"reproduction"])	return @"reproduction() callbacks";
 	
 	return nil;
 }
@@ -3530,6 +3533,7 @@
 							else if (child_string.compare(gStr_mateChoice) == 0)	block_type = SLiMEidosBlockType::SLiMEidosMateChoiceCallback;
 							else if (child_string.compare(gStr_modifyChild) == 0)	block_type = SLiMEidosBlockType::SLiMEidosModifyChildCallback;
 							else if (child_string.compare(gStr_recombination) == 0)	block_type = SLiMEidosBlockType::SLiMEidosRecombinationCallback;
+							else if (child_string.compare(gStr_reproduction) == 0)	block_type = SLiMEidosBlockType::SLiMEidosReproductionCallback;
 							
 							// Check for an sX designation on a script block and, if found, add a symbol for it
 							else if ((block_child == script_block_node->children_[0]) && (child_string.length() >= 2))
@@ -3655,6 +3659,12 @@
 									(*typeTable)->SetTypeForSymbol(gID_gcStarts,		EidosTypeSpecifier{kEidosValueMaskInt, nullptr});
 									(*typeTable)->SetTypeForSymbol(gID_gcEnds,			EidosTypeSpecifier{kEidosValueMaskInt, nullptr});
 									break;
+								case SLiMEidosBlockType::SLiMEidosReproductionCallback:
+									(*typeTable)->SetTypeForSymbol(gID_individual,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
+									(*typeTable)->SetTypeForSymbol(gID_genome1,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
+									(*typeTable)->SetTypeForSymbol(gID_genome2,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
+									(*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
+									break;
 								case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:
 								{
 									// Similar to the local variables that are defined for callbacks above, here we need to define the parameters to the
@@ -3720,9 +3730,9 @@
 		// have a compound statement (meaning its starting brace has not yet been typed), or if we're completing outside of any
 		// existing script block.  In these sorts of cases, we want to return completions for the outer level of a SLiM script.
 		// This means that standard Eidos language keywords like "while", "next", etc. are not legal, but SLiM script block
-		// keywords like "early", "late", "fitness", "interaction", "mateChoice", "modifyChild", and "recombination" are.
+		// keywords like "early", "late", "fitness", "interaction", "mateChoice", "modifyChild", "recombination", and "reproduction" are.
 		[keywords removeAllObjects];
-		[keywords addObjectsFromArray:@[@"initialize() {\n\n}\n", @"early() {\n\n}\n", @"late() {\n\n}\n", @"fitness() {\n\n}\n", @"interaction() {\n\n}\n", @"mateChoice() {\n\n}\n", @"modifyChild() {\n\n}\n", @"recombination() {\n\n}\n", @"function (void)name(void) {\n\n}\n"]];
+		[keywords addObjectsFromArray:@[@"initialize() {\n\n}\n", @"early() {\n\n}\n", @"late() {\n\n}\n", @"fitness() {\n\n}\n", @"interaction() {\n\n}\n", @"mateChoice() {\n\n}\n", @"modifyChild() {\n\n}\n", @"recombination() {\n\n}\n", @"reproduction() {\n\n}\n", @"function (void)name(void) {\n\n}\n"]];
 		
 		// At the outer level, functions are also not legal
 		(*functionMap)->clear();
@@ -3911,6 +3921,15 @@
 			
 			if (!callbackSig)
 				callbackSig = (new EidosFunctionSignature("recombination", nullptr, kEidosValueMaskNULL))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
+			
+			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig size:11.0];
+		}
+		else if ([signatureString hasPrefix:@"reproduction()"])
+		{
+			static EidosCallSignature *callbackSig = nullptr;
+			
+			if (!callbackSig)
+				callbackSig = (new EidosFunctionSignature("reproduction", nullptr, kEidosValueMaskNULL))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
 			
 			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig size:11.0];
 		}
@@ -4230,6 +4249,7 @@
 						case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		return @"mateChoice()";
 						case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		return @"modifyChild()";
 						case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	return @"recombination()";
+						case SLiMEidosBlockType::SLiMEidosReproductionCallback:		return @"reproduction()";
 						case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:
 						{
 							EidosASTNode *function_decl_node = scriptBlock->root_node_->children_[0];

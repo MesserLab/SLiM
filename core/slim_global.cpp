@@ -367,6 +367,7 @@ const std::string gStr_registerInteractionCallback = "registerInteractionCallbac
 const std::string gStr_registerMateChoiceCallback = "registerMateChoiceCallback";
 const std::string gStr_registerModifyChildCallback = "registerModifyChildCallback";
 const std::string gStr_registerRecombinationCallback = "registerRecombinationCallback";
+const std::string gStr_registerReproductionCallback = "registerReproductionCallback";
 const std::string gStr_rescheduleScriptBlock = "rescheduleScriptBlock";
 const std::string gStr_simulationFinished = "simulationFinished";
 const std::string gStr_setMigrationRates = "setMigrationRates";
@@ -471,6 +472,7 @@ const std::string gStr_interaction = "interaction";
 const std::string gStr_mateChoice = "mateChoice";
 const std::string gStr_modifyChild = "modifyChild";
 const std::string gStr_recombination = "recombination";
+const std::string gStr_reproduction = "reproduction";
 
 
 void SLiM_ConfigureContext(void)
@@ -649,6 +651,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_registerMateChoiceCallback, gID_registerMateChoiceCallback);
 		Eidos_RegisterStringForGlobalID(gStr_registerModifyChildCallback, gID_registerModifyChildCallback);
 		Eidos_RegisterStringForGlobalID(gStr_registerRecombinationCallback, gID_registerRecombinationCallback);
+		Eidos_RegisterStringForGlobalID(gStr_registerReproductionCallback, gID_registerReproductionCallback);
 		Eidos_RegisterStringForGlobalID(gStr_rescheduleScriptBlock, gID_rescheduleScriptBlock);
 		Eidos_RegisterStringForGlobalID(gStr_simulationFinished, gID_simulationFinished);
 		Eidos_RegisterStringForGlobalID(gStr_setMigrationRates, gID_setMigrationRates);
@@ -747,6 +750,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_mateChoice, gID_mateChoice);
 		Eidos_RegisterStringForGlobalID(gStr_modifyChild, gID_modifyChild);
 		Eidos_RegisterStringForGlobalID(gStr_recombination, gID_recombination);
+		Eidos_RegisterStringForGlobalID(gStr_reproduction, gID_reproduction);
 	}
 }
 

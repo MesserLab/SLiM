@@ -1227,6 +1227,7 @@ void SLiMSim::ValidateScriptBlockCaches(void)
 		cached_matechoice_callbacks_.clear();
 		cached_modifychild_callbacks_.clear();
 		cached_recombination_callbacks_.clear();
+		cached_reproduction_callbacks_.clear();
 		cached_userdef_functions_.clear();
 		
 		std::vector<SLiMEidosBlock*> &script_blocks = AllScriptBlocks();
@@ -1263,6 +1264,7 @@ void SLiMSim::ValidateScriptBlockCaches(void)
 				case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		cached_matechoice_callbacks_.push_back(script_block);		break;
 				case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		cached_modifychild_callbacks_.push_back(script_block);		break;
 				case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	cached_recombination_callbacks_.push_back(script_block);	break;
+				case SLiMEidosBlockType::SLiMEidosReproductionCallback:		cached_reproduction_callbacks_.push_back(script_block);		break;
 				case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:		cached_userdef_functions_.push_back(script_block);			break;
 			}
 		}
@@ -1289,6 +1291,7 @@ std::vector<SLiMEidosBlock*> SLiMSim::ScriptBlocksMatching(slim_generation_t p_g
 		case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		block_list = &cached_matechoice_callbacks_;				break;
 		case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		block_list = &cached_modifychild_callbacks_;			break;
 		case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	block_list = &cached_recombination_callbacks_;			break;
+		case SLiMEidosBlockType::SLiMEidosReproductionCallback:		block_list = &cached_reproduction_callbacks_;			break;
 		case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:		block_list = &cached_userdef_functions_;				break;
 	}
 	
@@ -1763,6 +1766,14 @@ void SLiMSim::RunInitializeCallbacks(void)
 		for (auto script_block : script_blocks)
 			if (script_block->type_ == SLiMEidosBlockType::SLiMEidosMateChoiceCallback)
 				EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): mateChoice() callbacks may not be defined in nonWF models." << EidosTerminate(script_block->identifier_token_);
+	}
+	if (ModelType() == SLiMModelType::kModelTypeWF)
+	{
+		std::vector<SLiMEidosBlock*> &script_blocks = AllScriptBlocks();
+		
+		for (auto script_block : script_blocks)
+			if (script_block->type_ == SLiMEidosBlockType::SLiMEidosReproductionCallback)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): reproduction() callbacks may not be defined in WF models." << EidosTerminate(script_block->identifier_token_);
 	}
 	
 	CheckMutationStackPolicy();
@@ -4337,7 +4348,8 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 		case gID_registerInteractionCallback:	return ExecuteMethod_registerInteractionCallback(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_registerMateChoiceCallback:
 		case gID_registerModifyChildCallback:
-		case gID_registerRecombinationCallback:	return ExecuteMethod_registerMateModifyRecCallback(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_registerRecombinationCallback:
+		case gID_registerReproductionCallback:	return ExecuteMethod_registerMateModifyRecRepCallback(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_rescheduleScriptBlock:			return ExecuteMethod_rescheduleScriptBlock(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_simulationFinished:			return ExecuteMethod_simulationFinished(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		default:								return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
@@ -5035,13 +5047,17 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerInteractionCallback(EidosGlobalStri
 //	*********************	– (object<SLiMEidosBlock>$)registerMateChoiceCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
 //	*********************	– (object<SLiMEidosBlock>$)registerModifyChildCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
 //	*********************	– (object<SLiMEidosBlock>$)registerRecombinationCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
+//	*********************	– (object<SLiMEidosBlock>$)registerReproductionCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
 //
-EidosValue_SP SLiMSim::ExecuteMethod_registerMateModifyRecCallback(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP SLiMSim::ExecuteMethod_registerMateModifyRecRepCallback(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
 	if (p_method_id == gID_registerMateChoiceCallback)
 		if (ModelType() == SLiMModelType::kModelTypeNonWF)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerMateModifyRecCallback): method -registerMateChoiceCallback() is not available in nonWF models." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerMateModifyRecRepCallback): method -registerMateChoiceCallback() is not available in nonWF models." << EidosTerminate();
+	if (p_method_id == gID_registerReproductionCallback)
+		if (ModelType() == SLiMModelType::kModelTypeWF)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerMateModifyRecRepCallback): method -registerReproductionCallback() is not available in WF models." << EidosTerminate();
 	
 	EidosValue *id_value = p_arguments[0].get();
 	EidosValue *source_value = p_arguments[1].get();
@@ -5062,13 +5078,14 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerMateModifyRecCallback(EidosGlobalSt
 		subpop_id = (subpop_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(subpop_value->IntAtIndex(0, nullptr)) : ((Subpopulation *)subpop_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
 	
 	if (start_generation > end_generation)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerMateModifyRecCallback): " << Eidos_StringForGlobalStringID(p_method_id) << " requires start <= end." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerMateModifyRecRepCallback): " << Eidos_StringForGlobalStringID(p_method_id) << " requires start <= end." << EidosTerminate();
 	
 	SLiMEidosBlockType block_type;
 	
 	if (p_method_id == gID_registerMateChoiceCallback)				block_type = SLiMEidosBlockType::SLiMEidosMateChoiceCallback;
 	else if (p_method_id == gID_registerModifyChildCallback)		block_type = SLiMEidosBlockType::SLiMEidosModifyChildCallback;
-	else /* (p_method_id == gID_registerRecombinationCallback) */	block_type = SLiMEidosBlockType::SLiMEidosRecombinationCallback;
+	else if (p_method_id == gID_registerRecombinationCallback)		block_type = SLiMEidosBlockType::SLiMEidosRecombinationCallback;
+	else /* (p_method_id == gID_registerReproductionCallback) */	block_type = SLiMEidosBlockType::SLiMEidosReproductionCallback;
 	
 	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, block_type, start_generation, end_generation);
 	
@@ -5386,6 +5403,7 @@ const std::vector<const EidosMethodSignature *> *SLiMSim_Class::Methods(void) co
 		methods->emplace_back(SignatureForMethodOrRaise(gID_registerMateChoiceCallback));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_registerModifyChildCallback));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_registerRecombinationCallback));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_registerReproductionCallback));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_rescheduleScriptBlock));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_simulationFinished));
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
@@ -5416,6 +5434,7 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 	static EidosInstanceMethodSignature *registerMateChoiceCallbackSig = nullptr;
 	static EidosInstanceMethodSignature *registerModifyChildCallbackSig = nullptr;
 	static EidosInstanceMethodSignature *registerRecombinationCallbackSig = nullptr;
+	static EidosInstanceMethodSignature *registerReproductionCallbackSig = nullptr;
 	static EidosInstanceMethodSignature *rescheduleScriptBlockSig = nullptr;
 	static EidosInstanceMethodSignature *simulationFinishedSig = nullptr;
 	
@@ -5440,6 +5459,7 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 		registerMateChoiceCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerMateChoiceCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL);
 		registerModifyChildCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerModifyChildCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL);
 		registerRecombinationCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerRecombinationCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL);
+		registerReproductionCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerReproductionCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL);
 		rescheduleScriptBlockSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_rescheduleScriptBlock, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddObject_S("block", gSLiM_SLiMEidosBlock_Class)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL)->AddInt_ON("generations", gStaticEidosValueNULL);
 		simulationFinishedSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_simulationFinished, kEidosValueMaskNULL));
 	}
@@ -5466,6 +5486,7 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 		case gID_registerMateChoiceCallback:			return registerMateChoiceCallbackSig;
 		case gID_registerModifyChildCallback:			return registerModifyChildCallbackSig;
 		case gID_registerRecombinationCallback:			return registerRecombinationCallbackSig;
+		case gID_registerReproductionCallback:			return registerReproductionCallbackSig;
 		case gID_rescheduleScriptBlock:					return rescheduleScriptBlockSig;
 		case gID_simulationFinished:					return simulationFinishedSig;
 			
