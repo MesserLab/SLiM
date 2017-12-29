@@ -385,7 +385,7 @@ const std::string gStr_addCloned = "addCloned";
 const std::string gStr_addCrossed = "addCrossed";
 const std::string gStr_addEmpty = "addEmpty";
 const std::string gStr_addSelfed = "addSelfed";
-const std::string gStr_moveMigrants = "moveMigrants";
+const std::string gStr_takeMigrants = "takeMigrants";
 const std::string gStr_removeSubpopulation = "removeSubpopulation";
 const std::string gStr_cachedFitness = "cachedFitness";
 const std::string gStr_defineSpatialMap = "defineSpatialMap";
@@ -669,7 +669,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_addCrossed, gID_addCrossed);
 		Eidos_RegisterStringForGlobalID(gStr_addEmpty, gID_addEmpty);
 		Eidos_RegisterStringForGlobalID(gStr_addSelfed, gID_addSelfed);
-		Eidos_RegisterStringForGlobalID(gStr_moveMigrants, gID_moveMigrants);
+		Eidos_RegisterStringForGlobalID(gStr_takeMigrants, gID_takeMigrants);
 		Eidos_RegisterStringForGlobalID(gStr_removeSubpopulation, gID_removeSubpopulation);
 		Eidos_RegisterStringForGlobalID(gStr_cachedFitness, gID_cachedFitness);
 		Eidos_RegisterStringForGlobalID(gStr_defineSpatialMap, gID_defineSpatialMap);

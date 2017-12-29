@@ -219,7 +219,7 @@ public:
 	EidosValue_SP ExecuteMethod_addCrossed(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_addEmpty(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_addSelfed(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteMethod_moveMigrants(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_takeMigrants(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_removeSubpopulation(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_cachedFitness(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_defineSpatialMap(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);

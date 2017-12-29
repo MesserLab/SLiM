@@ -446,7 +446,7 @@ extern const std::string gStr_addCloned;
 extern const std::string gStr_addCrossed;
 extern const std::string gStr_addEmpty;
 extern const std::string gStr_addSelfed;
-extern const std::string gStr_moveMigrants;
+extern const std::string gStr_takeMigrants;
 extern const std::string gStr_removeSubpopulation;
 extern const std::string gStr_cachedFitness;
 extern const std::string gStr_defineSpatialMap;
@@ -694,7 +694,7 @@ enum _SLiMGlobalStringID : int {
 	gID_addCrossed,
 	gID_addEmpty,
 	gID_addSelfed,
-	gID_moveMigrants,
+	gID_takeMigrants,
 	gID_removeSubpopulation,
 	gID_cachedFitness,
 	gID_defineSpatialMap,

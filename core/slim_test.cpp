@@ -3288,7 +3288,7 @@ void _RunNonWFTests(void)
 	SLiMAssertScriptRaise(WF_prefix + gen1_setup_p1 + "1 { p1.individuals.age; } ", 1, 310, "not available in WF models", __LINE__);
 	
 	SLiMAssertScriptRaise(WF_prefix + gen1_setup_p1 + "1 { p1.removeSubpopulation(); stop(); }", 1, 298, "not available in WF models", __LINE__);
-	SLiMAssertScriptRaise(WF_prefix + gen1_setup_p1 + "1 { p1.moveMigrants(p1.individuals); stop(); }", 1, 298, "not available in WF models", __LINE__);
+	SLiMAssertScriptRaise(WF_prefix + gen1_setup_p1 + "1 { p1.takeMigrants(p1.individuals); stop(); }", 1, 298, "not available in WF models", __LINE__);
 	SLiMAssertScriptRaise(WF_prefix + gen1_setup_p1 + "1 { p1.addCloned(p1.individuals[0]); stop(); }", 1, 298, "not available in WF models", __LINE__);
 	SLiMAssertScriptRaise(WF_prefix + gen1_setup_p1 + "1 { p1.addCrossed(p1.individuals[0], p1.individuals[1]); stop(); }", 1, 298, "not available in WF models", __LINE__);
 	SLiMAssertScriptRaise(WF_prefix + gen1_setup_p1 + "1 { p1.addEmpty(); stop(); }", 1, 298, "not available in WF models", __LINE__);

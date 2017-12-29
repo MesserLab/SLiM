@@ -13,7 +13,7 @@ development head (nonWF branch):
 	disable addSubpopSplit(), setMigrationRates(), .immigrantSubpopFractions, .immigrantSubpopIDs in nonWF models
 	make definition of mateChoice() callbacks illegal in nonWF mode, including by registerMateChoiceCallback()
 	add age property to Individual, for nonWF models
-	add removeSubpopulation(), moveMigrants(), addCloned(), addSelfed(), addCrossed(), addEmpty() methods for use in nonWF models
+	add removeSubpopulation(), takeMigrants(), addCloned(), addSelfed(), addCrossed(), addEmpty() methods for use in nonWF models
 	add support for reproduction() callbacks, including adding registerReproductionCallback()
 
 

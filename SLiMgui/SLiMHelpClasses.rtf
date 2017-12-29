@@ -4368,21 +4368,7 @@ Note that at present, SLiMgui will only display spatial maps of spatiality
 \f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf2 \expnd0\expndtw0\kerning0
-\'96\'a0(void)moveMigrants(object<Individual>\'a0migrants)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f0\fs20 \cf2 Immediately moves the individuals in 
-\f2\fs18 migrants
-\f0\fs20  to the target subpopulation (removing them from their previous subpopulation).  Individuals in 
-\f2\fs18 migrants
-\f0\fs20  that are already in the target subpopulation are unaffected.\
-Note that this method is only for use in nonWF models, in which migration is managed manually by the model script.  In WF models, migration is managed automatically by the SLiM core based upon the migration rates set for each subpopulation with 
-\f2\fs18 setMigrationRates()
-\f0\fs20 .\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(void)outputMSSample(integer$\'a0sampleSize, [logical$\'a0replace\'a0=\'a0T], [string$\'a0requestedSex\'a0=\'a0"*"], [Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F])
+\f2\fs18 \cf0 \'96\'a0(void)outputMSSample(integer$\'a0sampleSize, [logical$\'a0replace\'a0=\'a0T], [string$\'a0requestedSex\'a0=\'a0"*"], [Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F])
 \f3 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -4857,7 +4843,20 @@ Looks up the spatial map indicated by
 \f2\fs18 pointPeriodic()
 \f0\fs20  to wrap the point coordinates first if desired.  See the documentation for 
 \f2\fs18 defineSpatialMap()
-\f0\fs20  for information regarding the details of value mapping.
+\f0\fs20  for information regarding the details of value mapping.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf2 \'96\'a0(void)takeMigrants(object<Individual>\'a0migrants)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 Immediately moves the individuals in 
+\f2\fs18 migrants
+\f0\fs20  to the target subpopulation (removing them from their previous subpopulation).  Individuals in 
+\f2\fs18 migrants
+\f0\fs20  that are already in the target subpopulation are unaffected.\
+Note that this method is only for use in nonWF models, in which migration is managed manually by the model script.  In WF models, migration is managed automatically by the SLiM core based upon the migration rates set for each subpopulation with 
+\f2\fs18 setMigrationRates()
+\f0\fs20 .
 \f3 \cf0 \kerning1\expnd0\expndtw0 \
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 

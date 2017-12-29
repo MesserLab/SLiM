@@ -2439,7 +2439,7 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 		case gID_addCrossed:			return ExecuteMethod_addCrossed(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_addEmpty:				return ExecuteMethod_addEmpty(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_addSelfed:				return ExecuteMethod_addSelfed(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_moveMigrants:			return ExecuteMethod_moveMigrants(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_takeMigrants:			return ExecuteMethod_takeMigrants(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_removeSubpopulation:	return ExecuteMethod_removeSubpopulation(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_cachedFitness:			return ExecuteMethod_cachedFitness(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_defineSpatialMap:		return ExecuteMethod_defineSpatialMap(p_method_id, p_arguments, p_argument_count, p_interpreter);
@@ -2504,13 +2504,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	return gStaticEidosValueNULLInvisible;
 }
 
-//	*********************	- (void)moveMigrants(object<Individual> migrants)
+//	*********************	- (void)takeMigrants(object<Individual> migrants)
 //
-EidosValue_SP Subpopulation::ExecuteMethod_moveMigrants(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
 	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_moveMigrants): method -moveMigrants() is not available in WF models." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_takeMigrants): method -takeMigrants() is not available in WF models." << EidosTerminate();
 	
 #warning implement me!
 	
@@ -3669,7 +3669,7 @@ const std::vector<const EidosMethodSignature *> *Subpopulation_Class::Methods(vo
 		methods->emplace_back(SignatureForMethodOrRaise(gID_addCrossed));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_addEmpty));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_addSelfed));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_moveMigrants));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_takeMigrants));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_removeSubpopulation));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_cachedFitness));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_defineSpatialMap));
@@ -3702,7 +3702,7 @@ const EidosMethodSignature *Subpopulation_Class::SignatureForMethod(EidosGlobalS
 	static EidosInstanceMethodSignature *addCrossedSig = nullptr;
 	static EidosInstanceMethodSignature *addEmptySig = nullptr;
 	static EidosInstanceMethodSignature *addSelfedSig = nullptr;
-	static EidosInstanceMethodSignature *moveMigrantsSig = nullptr;
+	static EidosInstanceMethodSignature *takeMigrantsSig = nullptr;
 	static EidosInstanceMethodSignature *removeSubpopulationSig = nullptr;
 	static EidosInstanceMethodSignature *cachedFitnessSig = nullptr;
 	static EidosInstanceMethodSignature *defineSpatialMapSig = nullptr;
@@ -3729,7 +3729,7 @@ const EidosMethodSignature *Subpopulation_Class::SignatureForMethod(EidosGlobalS
 		addCrossedSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addCrossed, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddObject_S("parent1", gSLiM_Individual_Class)->AddObject_S("parent2", gSLiM_Individual_Class);
 		addEmptySig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addEmpty, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class));
 		addSelfedSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSelfed, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddObject_S("parent", gSLiM_Individual_Class);
-		moveMigrantsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_moveMigrants, kEidosValueMaskNULL))->AddObject("migrants", gSLiM_Individual_Class);
+		takeMigrantsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_takeMigrants, kEidosValueMaskNULL))->AddObject("migrants", gSLiM_Individual_Class);
 		removeSubpopulationSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_removeSubpopulation, kEidosValueMaskNULL));
 		cachedFitnessSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_cachedFitness, kEidosValueMaskFloat))->AddInt_N("indices");
 		defineSpatialMapSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_defineSpatialMap, kEidosValueMaskNULL))->AddString_S("name")->AddString_S("spatiality")->AddInt_N("gridSize")->AddFloat("values")->AddLogical_OS("interpolate", gStaticEidosValue_LogicalF)->AddFloat_ON("valueRange", gStaticEidosValueNULL)->AddString_ON("colors", gStaticEidosValueNULL);
@@ -3758,7 +3758,7 @@ const EidosMethodSignature *Subpopulation_Class::SignatureForMethod(EidosGlobalS
 		case gID_addCrossed:			return addCrossedSig;
 		case gID_addEmpty:				return addEmptySig;
 		case gID_addSelfed:				return addSelfedSig;
-		case gID_moveMigrants:			return moveMigrantsSig;
+		case gID_takeMigrants:			return takeMigrantsSig;
 		case gID_removeSubpopulation:	return removeSubpopulationSig;
 		case gID_cachedFitness:			return cachedFitnessSig;
 		case gID_defineSpatialMap:		return defineSpatialMapSig;
