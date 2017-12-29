@@ -4041,7 +4041,7 @@ Note that this method is only for use in nonWF models.  See
 \f0\fs20  for further general notes on the addition of new offspring individuals.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf2 \'96\'a0(No<Individual>$)addCrossed(object<Individual>$\'a0parent1, object<Individual>$\'a0parent2)\
+\f2\fs18 \cf2 \'96\'a0(No<Individual>$)addCrossed(object<Individual>$\'a0parent1, object<Individual>$\'a0parent2, [Nfs$\'a0sex\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf2 Generates a new offspring individual from the given parents by biparental sexual reproduction, queues it for addition to the target subpopulation, and returns it.  The new offspring will not be visible as a member of the target subpopulation until the end of the offspring generation life cycle stage.  Attempting to use a newly generated offspring individual as a mate, or to reference it as a member of the target subpopulation in any other way, will result in an error.  In most models the returned individual is not used, but it is provided for maximal generality and flexibility.\
@@ -4076,7 +4076,34 @@ The new offspring individual is generated from
 \f0\fs20  is an error (you must check for and prevent incidental selfing if you set that flag in a nonWF model).  If non-incidental selfing is desired, 
 \f2\fs18 addSelfed()
 \f0\fs20  should be used instead.\
-Note that any defined, active, and applicable 
+\cf2 The 
+\f2\fs18 sex
+\f0\fs20  parameter specifies the sex of the offspring.  A value of 
+\f2\fs18 NULL
+\f0\fs20  means \'93make the default choice\'94; in non-sexual models it is the only legal value for 
+\f2\fs18 sex
+\f0\fs20 , and does nothing, whereas in sexual models it causes male or female to be chosen with equal probability.  A value of 
+\f2\fs18 "M"
+\f0\fs20  or 
+\f2\fs18 "F"
+\f0\fs20  for 
+\f2\fs18 sex
+\f0\fs20  specifies that the offspring should be male or female, respectively.  Finally, a 
+\f2\fs18 float
+\f0\fs20  value from 
+\f2\fs18 0.0
+\f0\fs20  to 
+\f2\fs18 1.0
+\f0\fs20  for 
+\f2\fs18 sex
+\f0\fs20  provides the probability that the offspring will be male; a value of 
+\f2\fs18 0.0
+\f0\fs20  will produce a female, a value of 
+\f2\fs18 1.0
+\f0\fs20  will produce a male, and for intermediate values SLiM will draw the sex of the offspring randomly according to the specified probability.  Unless you wish the bias the sex ratio of offspring, the default value of 
+\f2\fs18 NULL
+\f0\fs20  should generally be used.\
+\cf2 Note that any defined, active, and applicable 
 \f2\fs18 recombination()
 \f0\fs20  and 
 \f2\fs18 modifyChild()
@@ -4113,7 +4140,7 @@ Note that this method is only for use in nonWF models, in which offspring genera
 \f0\fs20  callbacks, and may not be called at any other time.  In WF models, offspring generation is managed automatically by the SLiM core.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf2 \'96\'a0(No<Individual>$)addEmpty(void)\
+\f2\fs18 \cf2 \'96\'a0(No<Individual>$)addEmpty([Nfs$\'a0sex\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf2 Generates a new offspring individual with empty genomes (i.e., containing no mutations), queues it for addition to the target subpopulation, and returns it.  The new offspring will not be visible as a member of the target subpopulation until the end of the offspring generation life cycle stage.  No 
@@ -4122,7 +4149,11 @@ Note that this method is only for use in nonWF models, in which offspring genera
 \f2\fs18 modifyChild()
 \f0\fs20  callbacks governing the generation of the offspring individual (unlike the other 
 \f2\fs18 addX()
-\f0\fs20  methods, because there is no parental individual to reference).  The offspring is considered to have no parents for the purposes of pedigree tracking.\
+\f0\fs20  methods, because there is no parental individual to reference).  The offspring is considered to have no parents for the purposes of pedigree tracking.\cf2   The 
+\f2\fs18 sex
+\f0\fs20  parameter is treated as in 
+\f2\fs18 addCrossed()
+\f0\fs20 .\cf2 \
 Note that this method is only for use in nonWF models.  See 
 \f2\fs18 addCrossed()
 \f0\fs20  for further general notes on the addition of new offspring individuals.\
