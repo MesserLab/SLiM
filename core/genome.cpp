@@ -1412,10 +1412,18 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 	
 	sim.CheckMutationStackPolicy();
 	
-	if ((sim.GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim.warned_early_mutation_add_))
+	if (!sim.warned_early_mutation_add_)
 	{
-		p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addMutations): addMutations() should probably not be called from an early() event; the added mutation(s) will not influence fitness values during offspring generation." << std::endl;
-		sim.warned_early_mutation_add_ = true;
+		if ((sim.ModelType() == SLiMModelType::kModelTypeWF) && (sim.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts))
+		{
+			p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addMutations): addMutations() should probably not be called from an early() event in a WF model; the added mutation(s) will not influence fitness values during offspring generation." << std::endl;
+			sim.warned_early_mutation_add_ = true;
+		}
+		if ((sim.ModelType() == SLiMModelType::kModelTypeNonWF) && (sim.GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
+		{
+			p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addMutations): addMutations() should probably not be called from a late() event in a nonWF model; the added mutation(s) will not influence fitness values until the partway through the next generation." << std::endl;
+			sim.warned_early_mutation_add_ = true;
+		}
 	}
 	
 	// Construct a vector of mutations to add that is sorted by position
@@ -1517,10 +1525,18 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	
 	sim.CheckMutationStackPolicy();
 	
-	if ((sim.GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim.warned_early_mutation_add_))
+	if (!sim.warned_early_mutation_add_)
 	{
-		p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " should probably not be called from an early() event; the added mutation will not influence fitness values during offspring generation." << std::endl;
-		sim.warned_early_mutation_add_ = true;
+		if ((sim.ModelType() == SLiMModelType::kModelTypeWF) && (sim.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts))
+		{
+			p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " should probably not be called from an early() event in a WF model; the added mutation will not influence fitness values during offspring generation." << std::endl;
+			sim.warned_early_mutation_add_ = true;
+		}
+		if ((sim.ModelType() == SLiMModelType::kModelTypeNonWF) && (sim.GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
+		{
+			p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " should probably not be called from a late() event in a nonWF model; the added mutation will not influence fitness values until the partway through the next generation." << std::endl;
+			sim.warned_early_mutation_add_ = true;
+		}
 	}
 	
 	// position, originGeneration, and originSubpop can now be either singletons or vectors of matching length or NULL; check them all
@@ -1823,10 +1839,18 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 	int mutrun_length = genome_0->mutrun_length_;
 	SLiMSim &sim = genome_0->subpop_->population_.sim_;
 	
-	if ((sim.GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim.warned_early_mutation_remove_))
+	if (!sim.warned_early_mutation_remove_)
 	{
-		p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_removeMutations): removeMutations() should probably not be called from an early() event; the removed mutation(s) will still influence fitness values during offspring generation." << std::endl;
-		sim.warned_early_mutation_remove_ = true;
+		if ((sim.ModelType() == SLiMModelType::kModelTypeWF) && (sim.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts))
+		{
+			p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_removeMutations): removeMutations() should probably not be called from an early() event in a WF model; the removed mutation(s) will still influence fitness values during offspring generation." << std::endl;
+			sim.warned_early_mutation_remove_ = true;
+		}
+		if ((sim.ModelType() == SLiMModelType::kModelTypeNonWF) && (sim.GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
+		{
+			p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_removeMutations): removeMutations() should probably not be called from an late() event in a nonWF model; the removed mutation(s) will still influence fitness values until the partway through the next generation." << std::endl;
+			sim.warned_early_mutation_remove_ = true;
+		}
 	}
 	
 	Population &pop = sim.ThePopulation();

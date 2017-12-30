@@ -267,6 +267,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 	std::map<slim_polymorphismid_t,MutationIndex> mutations;
 	std::string line, sub; 
 	std::ifstream infile(p_file);
+	int age_output_count = 0;
 	
 	if (!infile.is_open())
 		EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): could not open initialization file." << EidosTerminate();
@@ -301,6 +302,13 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			
 			file_version = (int64_t)EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
 			
+			// version 4 is the same as version 3 but with an age value for each individual
+			if (file_version == 4)
+			{
+				age_output_count = 1;
+				file_version = 3;
+			}
+			
 			if ((file_version != 1) && (file_version != 2) && (file_version != 3))
 				EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): unrecognized version." << EidosTerminate();
 			
@@ -310,6 +318,11 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		if (line.find("Populations") != std::string::npos)
 			break;
 	}
+	
+	if (age_output_count && (ModelType() == SLiMModelType::kModelTypeWF))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): age information is present but the simulation is using a WF model." << EidosTerminate();
+	if (!age_output_count && (ModelType() == SLiMModelType::kModelTypeNonWF))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): age information is not present but the simulation is using a nonWF model; age information must be included." << EidosTerminate();
 	
 	// Now we are in the Populations section; read and instantiate each population until we hit the Mutations section
 	while (!infile.eof())
@@ -481,26 +494,44 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			;					// pX:Y – genome 1 identifier, which we do not presently need to parse [already fetched]
 			iss >> sub;			// pX:Y – genome 2 identifier, which we do not presently need to parse
 			
-			if (spatial_dimensionality_ >= 1)
-			{
-				if (iss >> sub)		// spatial position x
-					individual.spatial_x_ = EidosInterpreter::FloatForString(sub, nullptr);
-			}
+			// Parse the optional fields at the end of each individual line.  This is a bit tricky.
+			// First we read all of the fields in, then we decide how to use them.
+			std::vector<std::string> opt_params;
+			int opt_param_count;
 			
-			if (spatial_dimensionality_ >= 2)
-			{
-				if (iss >> sub)		// spatial position y
-					individual.spatial_y_ = EidosInterpreter::FloatForString(sub, nullptr);
-			}
+			while (iss >> sub)
+				opt_params.push_back(sub);
 			
-			if (spatial_dimensionality_ >= 3)
-			{
-				if (iss >> sub)		// spatial position z
-					individual.spatial_z_ = EidosInterpreter::FloatForString(sub, nullptr);
-			}
+			opt_param_count = (int)opt_params.size();
 			
-			if (iss >> sub)
-				EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): output spatial dimensionality does not match that of the simulation." << EidosTerminate();
+			if (opt_param_count == 0)
+			{
+				// no optional info present, which might be an error; should never occur unless someone has hand-constructed a bad input file
+				if (age_output_count)
+					EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): output file format does not contain age information, which is required." << EidosTerminate();
+			}
+			else if (opt_param_count == age_output_count)
+			{
+				// only age information is present
+				individual.age_ = (slim_generation_t)EidosInterpreter::NonnegativeIntegerForString(opt_params[0], nullptr);		// age
+			}
+			else if (opt_param_count == spatial_dimensionality_ + age_output_count)
+			{
+				// age information is present, in addition to the correct number of spatial positions
+				if (spatial_dimensionality_ >= 1)
+					individual.spatial_x_ = EidosInterpreter::FloatForString(opt_params[0], nullptr);							// spatial position x
+				if (spatial_dimensionality_ >= 2)
+					individual.spatial_y_ = EidosInterpreter::FloatForString(opt_params[1], nullptr);							// spatial position y
+				if (spatial_dimensionality_ >= 3)
+					individual.spatial_z_ = EidosInterpreter::FloatForString(opt_params[2], nullptr);							// spatial position z
+				
+				if (age_output_count)
+					individual.age_ = (slim_generation_t)EidosInterpreter::NonnegativeIntegerForString(opt_params[spatial_dimensionality_], nullptr);		// age
+			}
+			else
+			{
+				EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): output file format does not match that expected by the simulation (spatial dimension or age information is incorrect or missing)." << EidosTerminate();
+			}
 		}
 	}
 	
@@ -661,6 +692,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	std::size_t file_size = 0;
 	slim_generation_t file_generation;
 	int32_t spatial_output_count;
+	int age_output_count = 0;
 	
 	// Read file into buf
 	std::ifstream infile(p_file, std::ios::in | std::ios::binary);
@@ -706,6 +738,14 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		
 		if (endianness_tag != 0x12345678)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): endianness mismatch." << EidosTerminate();
+		
+		// version 4 is the same as version 3 but with an age value for each individual
+		if (version_tag == 4)
+		{
+			age_output_count = 1;
+			version_tag = 3;
+		}
+		
 		if ((version_tag != 1) && (version_tag != 2) && (version_tag != 3))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): unrecognized version." << EidosTerminate();
 		
@@ -798,6 +838,10 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): spatial output count out of range." << EidosTerminate();
 		if ((spatial_output_count > 0) && (spatial_output_count != spatial_dimensionality_))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): output spatial dimensionality does not match that of the simulation." << EidosTerminate();
+		if (age_output_count && (ModelType() == SLiMModelType::kModelTypeWF))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): age information is present but the simulation is using a WF model." << EidosTerminate();
+		if (!age_output_count && (ModelType() == SLiMModelType::kModelTypeNonWF))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): age information is not present but the simulation is using a nonWF model; age information must be included." << EidosTerminate();
 		if (section_end_tag != (int32_t)0xFFFF0000)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): missing section end after header." << EidosTerminate();
 	}
@@ -1050,6 +1094,20 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 				individual.spatial_z_ = *(double *)p;
 				p += sizeof(double);
 			}
+		}
+		
+		// Read in individual age information.  Added in version 4.
+		if (age_output_count && ((genome_index % 2) == 0))
+		{
+			// do another buffer length check
+			if (p + sizeof(slim_generation_t) + sizeof(total_mutations) > buf_end)
+				break;
+			
+			int individual_index = genome_index / 2;
+			Individual &individual = subpop.parent_individuals_[individual_index];
+			
+			individual.age_ = *(slim_generation_t *)p;
+			p += sizeof(slim_generation_t);
 		}
 		
 		total_mutations = *(int32_t *)p;
@@ -2420,7 +2478,7 @@ bool SLiMSim::_RunOneGeneration(void)
 			SLIM_PROFILE_BLOCK_START();
 #endif
 			
-			generation_stage_ = SLiMGenerationStage::kStage1ExecuteEarlyScripts;
+			generation_stage_ = SLiMGenerationStage::kWFStage1ExecuteEarlyScripts;
 			
 			std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1, -1);
 			
@@ -2464,7 +2522,7 @@ bool SLiMSim::_RunOneGeneration(void)
 			
 			CheckMutationStackPolicy();
 			
-			generation_stage_ = SLiMGenerationStage::kStage2GenerateOffspring;
+			generation_stage_ = SLiMGenerationStage::kWFStage2GenerateOffspring;
 			
 			std::vector<SLiMEidosBlock*> mate_choice_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosMateChoiceCallback, -1, -1, -1);
 			std::vector<SLiMEidosBlock*> modify_child_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosModifyChildCallback, -1, -1, -1);
@@ -2580,7 +2638,7 @@ bool SLiMSim::_RunOneGeneration(void)
 			SLIM_PROFILE_BLOCK_START();
 #endif
 			
-			generation_stage_ = SLiMGenerationStage::kStage3RemoveFixedMutations;
+			generation_stage_ = SLiMGenerationStage::kWFStage3RemoveFixedMutations;
 			
 			population_.ClearParentalGenomes();		// added 30 November 2016 so MutationRun refcounts reflect their usage count in the simulation
 			
@@ -2620,7 +2678,7 @@ bool SLiMSim::_RunOneGeneration(void)
 			SLIM_PROFILE_BLOCK_START();
 #endif
 			
-			generation_stage_ = SLiMGenerationStage::kStage4SwapGenerations;
+			generation_stage_ = SLiMGenerationStage::kWFStage4SwapGenerations;
 			
 			population_.SwapGenerations();
 			
@@ -2641,7 +2699,7 @@ bool SLiMSim::_RunOneGeneration(void)
 			SLIM_PROFILE_BLOCK_START();
 #endif
 			
-			generation_stage_ = SLiMGenerationStage::kStage5ExecuteLateScripts;
+			generation_stage_ = SLiMGenerationStage::kWFStage5ExecuteLateScripts;
 			
 			std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1, -1);
 			
@@ -2683,7 +2741,7 @@ bool SLiMSim::_RunOneGeneration(void)
 			SLIM_PROFILE_BLOCK_START();
 #endif
 			
-			generation_stage_ = SLiMGenerationStage::kStage6CalculateFitness;
+			generation_stage_ = SLiMGenerationStage::kWFStage6CalculateFitness;
 			
 			population_.RecalculateFitness(generation_);	// used to be generation_ + 1; removing that 18 Feb 2016 BCH
 			
@@ -2712,7 +2770,7 @@ bool SLiMSim::_RunOneGeneration(void)
 		// Stage 7: Advance the generation counter and do end-generation tasks
 		//
 		{
-			generation_stage_ = SLiMGenerationStage::kStage7AdvanceGenerationCounter;
+			generation_stage_ = SLiMGenerationStage::kWFStage7AdvanceGenerationCounter;
 			
 #ifdef SLIMGUI
 			// re-tally for SLiMgui; this should avoid doing any new work if no mutations have been added or removed since the last tally
@@ -4662,10 +4720,13 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_
 	
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 	
-	if ((GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!warned_early_output_))
+	if (!warned_early_output_)
 	{
-		output_stream << "#WARNING (SLiMSim::ExecuteMethod_outputFixedMutations): outputFixedMutations() should probably not be called from an early() event; the output will reflect state at the beginning of the generation, not the end." << std::endl;
-		warned_early_output_ = true;
+		if ((ModelType() == SLiMModelType::kModelTypeWF) && (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts))
+		{
+			output_stream << "#WARNING (SLiMSim::ExecuteMethod_outputFixedMutations): outputFixedMutations() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the generation, not the end." << std::endl;
+			warned_early_output_ = true;
+		}
 	}
 	
 	std::ofstream outfile;
@@ -4730,7 +4791,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_
 	return gStaticEidosValueNULLInvisible;
 }
 			
-//	*********************	– (void)outputFull([Ns$ filePath = NULL], [logical$ binary = F], [logical$ append=F], [logical$ spatialPositions = T])
+//	*********************	– (void)outputFull([Ns$ filePath = NULL], [logical$ binary = F], [logical$ append=F], [logical$ spatialPositions = T], [logical$ ages = T])
 //
 EidosValue_SP SLiMSim::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
@@ -4739,15 +4800,20 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 	EidosValue *binary_value = p_arguments[1].get();
 	EidosValue *append_value = p_arguments[2].get();
 	EidosValue *spatialPositions_value = p_arguments[3].get();
+	EidosValue *ages_value = p_arguments[4].get();
 	
-	if ((GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!warned_early_output_))
+	if (!warned_early_output_)
 	{
-		p_interpreter.ExecutionOutputStream() << "#WARNING (SLiMSim::ExecuteMethod_outputFull): outputFull() should probably not be called from an early() event; the output will reflect state at the beginning of the generation, not the end." << std::endl;
-		warned_early_output_ = true;
+		if ((ModelType() == SLiMModelType::kModelTypeWF) && (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts))
+		{
+			p_interpreter.ExecutionOutputStream() << "#WARNING (SLiMSim::ExecuteMethod_outputFull): outputFull() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the generation, not the end." << std::endl;
+			warned_early_output_ = true;
+		}
 	}
 	
 	bool use_binary = binary_value->LogicalAtIndex(0, nullptr);
 	bool output_spatial_positions = spatialPositions_value->LogicalAtIndex(0, nullptr);
+	bool output_ages = ages_value->LogicalAtIndex(0, nullptr);
 	
 	if (filePath_value->Type() == EidosValueType::kValueNULL)
 	{
@@ -4757,7 +4823,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 		std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 		
 		output_stream << "#OUT: " << generation_ << " A" << std::endl;
-		population_.PrintAll(output_stream, output_spatial_positions);
+		population_.PrintAll(output_stream, output_spatial_positions, output_ages);
 	}
 	else
 	{
@@ -4777,7 +4843,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 		{
 			if (use_binary)
 			{
-				population_.PrintAllBinary(outfile, output_spatial_positions);
+				population_.PrintAllBinary(outfile, output_spatial_positions, output_ages);
 			}
 			else
 			{
@@ -4788,7 +4854,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 				//					outfile << input_parameters[i] << endl;
 				
 				outfile << "#OUT: " << generation_ << " A " << outfile_path << std::endl;
-				population_.PrintAll(outfile, output_spatial_positions);
+				population_.PrintAll(outfile, output_spatial_positions, output_ages);
 			}
 			
 			outfile.close(); 
@@ -4813,10 +4879,13 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 	
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 	
-	if ((GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!warned_early_output_))
+	if (!warned_early_output_)
 	{
-		output_stream << "#WARNING (SLiMSim::ExecuteMethod_outputMutations): outputMutations() should probably not be called from an early() event; the output will reflect state at the beginning of the generation, not the end." << std::endl;
-		warned_early_output_ = true;
+		if ((ModelType() == SLiMModelType::kModelTypeWF) && (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts))
+		{
+			output_stream << "#WARNING (SLiMSim::ExecuteMethod_outputMutations): outputMutations() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the generation, not the end." << std::endl;
+			warned_early_output_ = true;
+		}
 	}
 	
 	std::ofstream outfile;
@@ -4899,10 +4968,18 @@ EidosValue_SP SLiMSim::ExecuteMethod_readFromPopulationFile(EidosGlobalStringID 
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
 	EidosValue *filePath_value = p_arguments[0].get();
 	
-	if ((GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!warned_early_read_))
+	if (!warned_early_read_)
 	{
-		p_interpreter.ExecutionOutputStream() << "#WARNING (SLiMSim::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() should probably not be called from an early() event; fitness values will not be recalculated prior to offspring generation unless recalculateFitness() is called." << std::endl;
-		warned_early_read_ = true;
+		if ((ModelType() == SLiMModelType::kModelTypeWF) && (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts))
+		{
+			p_interpreter.ExecutionOutputStream() << "#WARNING (SLiMSim::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() should probably not be called from an early() event in a WF model; fitness values will not be recalculated prior to offspring generation unless recalculateFitness() is called." << std::endl;
+			warned_early_read_ = true;
+		}
+		if ((ModelType() == SLiMModelType::kModelTypeNonWF) && (GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
+		{
+			p_interpreter.ExecutionOutputStream() << "#WARNING (SLiMSim::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() should probably not be called from a late() event in a nonWF model; fitness values will not be recalculated prior to offspring generation unless recalculateFitness() is called." << std::endl;
+			warned_early_read_ = true;
+		}
 	}
 	
 	std::string file_path = Eidos_ResolvedPath(filePath_value->StringAtIndex(0, nullptr));
@@ -5448,7 +5525,7 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 		mutationCountsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationCounts, kEidosValueMaskInt))->AddObject_N("subpops", gSLiM_Subpopulation_Class)->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL);
 		mutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
 		outputFixedMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFixedMutations, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF);
-		outputFullSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFull, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("binary", gStaticEidosValue_LogicalF)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("spatialPositions", gStaticEidosValue_LogicalT);
+		outputFullSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFull, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("binary", gStaticEidosValue_LogicalF)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("spatialPositions", gStaticEidosValue_LogicalT)->AddLogical_OS("ages", gStaticEidosValue_LogicalT);
 		outputMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF);
 		readFromPopulationFileSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_readFromPopulationFile, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddString_S("filePath");
 		recalculateFitnessSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_recalculateFitness, kEidosValueMaskNULL))->AddInt_OSN("generation", gStaticEidosValueNULL);

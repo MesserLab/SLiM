@@ -788,8 +788,12 @@ void _RunSLiMSimTests(void)
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 late() { sim.outputFull(NULL); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 late() { sim.outputFull(spatialPositions=T); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 late() { sim.outputFull(spatialPositions=F); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 late() { sim.outputFull(ages=T); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 late() { sim.outputFull(ages=F); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup_i1x + "1 late() { sim.outputFull(spatialPositions=T); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup_i1x + "1 late() { sim.outputFull(spatialPositions=F); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_i1x + "1 late() { sim.outputFull(ages=T); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_i1x + "1 late() { sim.outputFull(ages=F); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 late() { sim.outputFull(NULL, T); }", 1, 308, "cannot output in binary format", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 late() { sim.outputFull('/tmp/slimOutputFullTest.txt'); }", __LINE__);								// legal, output to file path; this test might work only on Un*x systems
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 late() { sim.outputFull('/tmp/slimOutputFullTest.slimbinary', T); }", __LINE__);						// legal, output to file path; this test might work only on Un*x systems
@@ -808,7 +812,7 @@ void _RunSLiMSimTests(void)
 	// Test - (void)readFromPopulationFile(string$ filePath)
 	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.readFromPopulationFile('/tmp/slimOutputFullTest.txt'); }", __LINE__);												// legal, read from file path; depends on the outputFull() test above
 	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.readFromPopulationFile('/tmp/slimOutputFullTest.slimbinary'); }", __LINE__);										// legal, read from file path; depends on the outputFull() test above
-	SLiMAssertScriptRaise(gen1_setup + "1 { sim.readFromPopulationFile('/tmp/slimOutputFullTest_POSITIONS.txt'); }", 1, 220, "output spatial dimensionality does not match", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.readFromPopulationFile('/tmp/slimOutputFullTest_POSITIONS.txt'); }", 1, 220, "spatial dimension or age information", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 { sim.readFromPopulationFile('/tmp/slimOutputFullTest_POSITIONS.slimbinary'); }", 1, 220, "output spatial dimensionality does not match", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup_i1x + "1 { sim.readFromPopulationFile('/tmp/slimOutputFullTest_POSITIONS.txt'); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup_i1x + "1 { sim.readFromPopulationFile('/tmp/slimOutputFullTest_POSITIONS.slimbinary'); }", __LINE__);

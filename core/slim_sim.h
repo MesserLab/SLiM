@@ -60,13 +60,24 @@ enum class SLiMModelType
 enum class SLiMGenerationStage
 {
 	kStage0PreGeneration = 0,
-	kStage1ExecuteEarlyScripts,
-	kStage2GenerateOffspring,
-	kStage3RemoveFixedMutations,
-	kStage4SwapGenerations,
-	kStage5ExecuteLateScripts,
-	kStage6CalculateFitness,
-	kStage7AdvanceGenerationCounter
+	
+	// stages for WF models
+	kWFStage1ExecuteEarlyScripts = 1,
+	kWFStage2GenerateOffspring,
+	kWFStage3RemoveFixedMutations,
+	kWFStage4SwapGenerations,
+	kWFStage5ExecuteLateScripts,
+	kWFStage6CalculateFitness,
+	kWFStage7AdvanceGenerationCounter,
+	
+	// stages for nonWF models
+	kNonWFStage1GenerateOffspring = 101,
+	kNonWFStage2ExecuteEarlyScripts,
+	kNonWFStage3CalculateFitness,
+	kNonWFStage4SurvivalSelection,
+	kNonWFStage5RemoveFixedMutations,
+	kNonWFStage6ExecuteLateScripts,
+	kNonWFStage7AdvanceGenerationCounter,
 };
 
 

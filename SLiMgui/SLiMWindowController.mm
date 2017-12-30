@@ -1339,6 +1339,7 @@
 	//
 	if (elapsedWallClockTimeInSLiM > 0.0)
 	{
+		bool isWF = (sim->ModelType() == SLiMModelType::kModelTypeWF);
 		double elapsedStage0Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[0]);
 		double elapsedStage1Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[1]);
 		double elapsedStage2Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[2]);
@@ -1371,22 +1372,22 @@
 		[content eidosAppendString:@" : initialize() callback execution\n" attributes:optima13_d];
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage1Time, percentStage1] attributes:menlo11_d];
-		[content eidosAppendString:@" : stage 1 – early() event execution\n" attributes:optima13_d];
+		[content eidosAppendString:(isWF ? @" : stage 1 – early() event execution\n" : @" : stage 1 – offspring generation\n") attributes:optima13_d];
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage2Time, percentStage2] attributes:menlo11_d];
-		[content eidosAppendString:@" : stage 2 – offspring generation\n" attributes:optima13_d];
+		[content eidosAppendString:(isWF ? @" : stage 2 – offspring generation\n" : @" : stage 2 – early() event execution\n") attributes:optima13_d];
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage3Time, percentStage3] attributes:menlo11_d];
-		[content eidosAppendString:@" : stage 3 – bookkeeping (fixed mutation removal, etc.)\n" attributes:optima13_d];
+		[content eidosAppendString:(isWF ? @" : stage 3 – bookkeeping (fixed mutation removal, etc.)\n" : @" : stage 3 – fitness calculation\n") attributes:optima13_d];
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage4Time, percentStage4] attributes:menlo11_d];
-		[content eidosAppendString:@" : stage 4 – generation swap\n" attributes:optima13_d];
+		[content eidosAppendString:(isWF ? @" : stage 4 – generation swap\n" : @" : stage 4 – viability/survival selection\n") attributes:optima13_d];
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage5Time, percentStage5] attributes:menlo11_d];
-		[content eidosAppendString:@" : stage 5 – late() event execution\n" attributes:optima13_d];
+		[content eidosAppendString:(isWF ? @" : stage 5 – late() event execution\n" : @" : stage 5 – bookkeeping (fixed mutation removal, etc.)\n") attributes:optima13_d];
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage6Time, percentStage6] attributes:menlo11_d];
-		[content eidosAppendString:@" : stage 6 – fitness calculation\n" attributes:optima13_d];
+		[content eidosAppendString:(isWF ? @" : stage 6 – fitness calculation\n" : @" : stage 6 – late() event execution\n") attributes:optima13_d];
 	}
 	
 	//
@@ -1846,13 +1847,13 @@
 	sim->CollectSLiMguiMutationProfileInfo();
 	
 	// zero out profile counts for generation stages
-	sim->profile_stage_totals_[(int)(SLiMGenerationStage::kStage0PreGeneration)] = 0;
-	sim->profile_stage_totals_[(int)(SLiMGenerationStage::kStage1ExecuteEarlyScripts)] = 0;
-	sim->profile_stage_totals_[(int)(SLiMGenerationStage::kStage2GenerateOffspring)] = 0;
-	sim->profile_stage_totals_[(int)(SLiMGenerationStage::kStage3RemoveFixedMutations)] = 0;
-	sim->profile_stage_totals_[(int)(SLiMGenerationStage::kStage4SwapGenerations)] = 0;
-	sim->profile_stage_totals_[(int)(SLiMGenerationStage::kStage5ExecuteLateScripts)] = 0;
-	sim->profile_stage_totals_[(int)(SLiMGenerationStage::kStage6CalculateFitness)] = 0;
+	sim->profile_stage_totals_[0] = 0;
+	sim->profile_stage_totals_[1] = 0;
+	sim->profile_stage_totals_[2] = 0;
+	sim->profile_stage_totals_[3] = 0;
+	sim->profile_stage_totals_[4] = 0;
+	sim->profile_stage_totals_[5] = 0;
+	sim->profile_stage_totals_[6] = 0;
 	
 	// zero out profile counts for callback types (note SLiMEidosUserDefinedFunction is excluded; that is not a category we profile)
 	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosEventEarly)] = 0;
@@ -2618,7 +2619,7 @@
 	{
 		// dump the population
 		SLIM_OUTSTREAM << "#OUT: " << sim->generation_ << " A" << std::endl;
-		sim->population_.PrintAll(SLIM_OUTSTREAM, true);	// output spatial positions if available
+		sim->population_.PrintAll(SLIM_OUTSTREAM, true, true);	// output spatial positions and ages if available
 		
 		// dump fixed substitutions also; so the dump in SLiMgui is like outputFull() + outputFixedMutations()
 		SLIM_OUTSTREAM << std::endl;
@@ -2866,7 +2867,7 @@
 //				outstring << input_parameters[i] << std::endl;
 			
 			outstring << "#OUT: " << sim->generation_ << " A " << std::endl;
-			sim->population_.PrintAll(outstring, true);	// include spatial positions if available
+			sim->population_.PrintAll(outstring, true, true);	// include spatial positions and ages if available
 			
 			NSString *populationDump = [NSString stringWithUTF8String:outstring.str().c_str()];
 			

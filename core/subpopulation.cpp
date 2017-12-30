@@ -3443,10 +3443,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 	SLiMSim &sim = population_.sim_;
 	
-	if ((sim.GenerationStage() == SLiMGenerationStage::kStage1ExecuteEarlyScripts) && (!sim.warned_early_output_))
+	if (!sim.warned_early_output_)
 	{
-		output_stream << "#WARNING (Subpopulation::ExecuteMethod_outputXSample): " << Eidos_StringForGlobalStringID(p_method_id) << "() should probably not be called from an early() event; the output will reflect state at the beginning of the generation, not the end." << std::endl;
-		sim.warned_early_output_ = true;
+		if ((sim.ModelType() == SLiMModelType::kModelTypeWF) && (sim.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts))
+		{
+			output_stream << "#WARNING (Subpopulation::ExecuteMethod_outputXSample): " << Eidos_StringForGlobalStringID(p_method_id) << "() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the generation, not the end." << std::endl;
+			sim.warned_early_output_ = true;
+		}
 	}
 	
 	slim_popsize_t sample_size = SLiMCastToPopsizeTypeOrRaise(sampleSize_value->IntAtIndex(0, nullptr));

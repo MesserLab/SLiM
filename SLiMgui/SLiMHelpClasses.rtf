@@ -3220,7 +3220,8 @@ Output is generally done in a
 \f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(void)outputFull([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0binary\'a0=\'a0F], [logical$\'a0append\'a0=\'a0F], [logical$\'a0spatialPositions\'a0=\'a0T])
+\f2\fs18 \cf0 \'96\'a0(void)outputFull([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0binary\'a0=\'a0F], [logical$\'a0append\'a0=\'a0F], [logical$\'a0spatialPositions\'a0=\'a0T]\cf2 \expnd0\expndtw0\kerning0
+, [logical$\'a0ages\'a0=\'a0T]\cf0 \kerning1\expnd0\expndtw0 )
 \f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -3271,8 +3272,21 @@ Beginning with SLiM 2.3, the
 \f2\fs18 spatialPositions
 \f0\fs20  parameter will be ignored.  Positional information may be output for all output destinations \'96 the Eidos output stream, a text file, or a binary file.
 \f3 \
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0 Output is generally done in a 
+\f0 \cf2 \expnd0\expndtw0\kerning0
+Beginning with SLiM 3.0, the 
+\f2\fs18 ages
+\f0\fs20  parameter may be used to control the output of the ages of individuals in nonWF simulations.  If 
+\f2\fs18 ages
+\f0\fs20  is 
+\f2\fs18 F
+\f0\fs20 , the output will not contain ages, preserving backward compatibility with the output format of SLiM 2.1 and later.  If 
+\f2\fs18 ages
+\f0\fs20  is 
+\f2\fs18 T
+\f0\fs20 , ages will be output for nonWF models.  In WF simulations, the ages parameter will be ignored.\
+\cf0 \kerning1\expnd0\expndtw0 Output is generally done in a 
 \f2\fs18 late()
 \f0\fs20  event, so that the output reflects the state of the simulation at the end of a generation.
 \f3 \
@@ -3377,16 +3391,29 @@ As of SLiM 2.3, this method will read and restore the spatial positions of indiv
 \f0\fs20  objects loaded from the file.\
 If the file being read was written by a version of SLiM prior to 2.3, then for backward compatibility fitness values will be calculated immediately for any new subpopulations created by this call, which will trigger the calling of any activated and applicable 
 \f2\fs18 fitness()
-\f0\fs20  callbacks.  When reading files written by SLiM 2.3 or later, fitness values are not calculated as a side effect of this call (because the simulation will often need to evaluate interactions or modify other state prior to doing so).  Furthermore, in SLiM 2.3 and later calling 
+\f0\fs20  callbacks.  When reading files written by SLiM 2.3 or later, fitness values are not calculated as a side effect of this call (because the simulation will often need to evaluate interactions or modify other state prior to doing so).\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
+In SLiM 2.3 and later when using the WF model, calling 
 \f2\fs18 readFromPopulationFile()
 \f0\fs20  from any context other than a 
 \f2\fs18 late()
 \f0\fs20  event causes a warning; calling from a 
 \f2\fs18 late()
-\f0\fs20  event is almost always correct, so that fitness values can be automatically recalculated by SLiM at the usual time in the generation life cycle without the need to force their recalculation (see chapter 17, and comments on 
+\f0\fs20  event is almost always correct in WF models, so that fitness values can be automatically recalculated by SLiM at the usual time in the generation cycle without the need to force their recalculation (see chapter 18, and comments on 
 \f2\fs18 recalculateFitness()
-\f0\fs20  below).\
-As of SLiM 2.1, this method changes the generation counter to the generation read from the file.  If you do not want the generation counter to be changed, you can change it back after reading, by setting 
+\f0\fs20 ).\
+In SLiM 3.0 when using the nonWF model, calling 
+\f2\fs18 readFromPopulationFile()
+\f0\fs20  from any context other than an 
+\f2\fs18 early()
+\f0\fs20  event causes a warning; calling from an 
+\f2\fs18 early()
+\f0\fs20  event is almost always correct in nonWF models, so that fitness values can be automatically recalculated by SLiM at the usual time in the generation cycle without the need to force their recalculation (see chapter 19, and comments on 
+\f2\fs18 recalculateFitness()
+\f0\fs20 ).\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf0 \kerning1\expnd0\expndtw0 As of SLiM 2.1, this method changes the generation counter to the generation read from the file.  If you do not want the generation counter to be changed, you can change it back after reading, by setting 
 \f2\fs18 sim.generation
 \f0\fs20  to whatever value you wish.  Note that restoring a saved past state and running forward again will not yield the same simulation results, because the random number generator\'92s state will not be the same; to ensure reproducibility from a given time point, 
 \f2\fs18 setSeed()
@@ -3396,14 +3423,19 @@ As of SLiM 2.1, this method changes the generation counter to the generation rea
 As of SLiM 2.3, this method will read and restore the spatial positions of individuals if that information is present in the output file and the simulation has enabled continuous space (see 
 \f2\fs18 outputFull()
 \f0\fs20  for details).  If spatial positions are present in the output file but the simulation has not enabled continuous space (or the number of spatial dimensions does not match), an error will result.  If the simulation has enabled continuous space but spatial positions are not present in the output file, the spatial positions of the individuals read will be undefined, but an error is not raised.\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
+As of SLiM 3.0, this method will read and restore the ages of individuals if that information is present in the output file and the simulation is based upon the nonWF model.  If ages are present but the simulation uses a WF model, an error will result; the WF model does not use age information.  If ages are not present but the simulation uses a nonWF model, an error will also result; the nonWF model requires age information.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(void)recalculateFitness([Ni$\'a0generation\'a0=\'a0NULL])\
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(void)recalculateFitness([Ni$\'a0generation\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Force an immediate recalculation of fitness values for all individuals in all subpopulations.  Normally fitness values are calculated at the end of each generation, and those values are cached and used throughout the following generation.  If simulation parameters are changed in script in a way that affects fitness calculations, and if you wish those changes to take effect immediately rather than taking effect at the end of the current generation, you may call 
 \f2\fs18 recalculateFitness()
 \f0\fs20  to force an immediate recalculation and recache.\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 The optional parameter 
 \f2\fs18 generation
 \f0\fs20  provides the generation for which 
@@ -3416,7 +3448,7 @@ The optional parameter
 \f2\fs18 recalculateFitness()
 \f0\fs20  in an 
 \f2\fs18 early()
-\f0\fs20  event, you may wish this to be 
+\f0\fs20  event in a WF model, you may wish this to be 
 \f2\fs18 sim.generation - 1
 \f0\fs20  in order to utilize the 
 \f2\fs18 fitness()
@@ -3430,8 +3462,13 @@ The optional parameter
 \f2\fs18 sim.generation
 \f0\fs20  inside 
 \f2\fs18 fitness()
-\f0\fs20  callbacks will report the true generation number, so if your callbacks consult that parameter in order to create generation-specific fitness effects you will need to handle the discrepancy somehow.\
-After this call, the fitness values used for all purposes in SLiM will be the newly calculated values.  Calling this method will trigger the calling of any enabled and applicable 
+\f0\fs20  callbacks will report the true generation number, so if your callbacks consult that parameter in order to create generation-specific fitness effects you will need to handle the discrepancy somehow.  (Similar considerations apply for nonWF models that call 
+\f2\fs18 recalculateFitness()
+\f0\fs20  in a 
+\f2\fs18 late()
+\f0\fs20  event, which is also not advisable in general.)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf0 \kerning1\expnd0\expndtw0 After this call, the fitness values used for all purposes in SLiM will be the newly calculated values.  Calling this method will trigger the calling of any enabled and applicable 
 \f2\fs18 fitness()
 \f0\fs20  callbacks, so this is quite a heavyweight operation; you should think carefully about what side effects might result (which is why fitness recalculation does not just occur automatically after changes that might affect fitness values).
 \f3 \

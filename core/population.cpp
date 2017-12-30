@@ -4305,7 +4305,7 @@ void Population::CheckMutationRegistry(void)
 }
 
 // print all mutations and all genomes to a stream
-void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions) const
+void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, bool p_output_ages) const
 {
 	// This method is written to be able to print the population whether child_generation_valid is true or false.
 	// This is a little tricky, so be careful when modifying this code!
@@ -4323,9 +4323,15 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions) 
 	// was requested, then we output the number of spatial dimensions we're configured for (which might be zero).
 	int spatial_output_count = (p_output_spatial_positions ? sim_.SpatialDimensionality() : 0);
 	
+	// Figure out age output.  If it was not requested, don't do it; if it was requested, do it if we use a nonWF model.
+	int age_output_count = (p_output_ages && (sim_.ModelType() == SLiMModelType::kModelTypeNonWF)) ? 1 : 0;
+	
 	// Starting in SLiM 2.3, we output a version indicator at the top of the file so we can decode different versions, etc.
 	// We use the same version numbers used in PrintAllBinary(), for simplicity.
-	p_out << "Version: 3" << std::endl;
+	if (age_output_count)
+		p_out << "Version: 4" << std::endl;		// version 4 indicates that ages are included in the output
+	else
+		p_out << "Version: 3" << std::endl;
 	
 	// Output populations first
 	p_out << "Populations:" << std::endl;
@@ -4445,6 +4451,14 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions) 
 					p_out << " " << individual.spatial_z_;
 			}
 			
+			// output ages if requested
+			if (age_output_count)
+			{
+				Individual &individual = (child_generation_valid_ ? subpop->child_individuals_[i] : subpop->parent_individuals_[i]);
+				
+				p_out << " " << individual.age_;
+			}
+			
 			p_out << std::endl;
 			
 #if DO_MEMORY_CHECKS
@@ -4516,7 +4530,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions) 
 }
 
 // print all mutations and all genomes to a stream in binary, for maximum reading speed
-void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_positions) const
+void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_positions, bool p_output_ages) const
 {
 	// This function is written to be able to print the population whether child_generation_valid is true or false.
 	// This is a little tricky, so be careful when modifying this code!
@@ -4524,6 +4538,9 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 	// Figure out spatial position output.  If it was not requested, then we don't do it, and that's fine.  If it
 	// was requested, then we output the number of spatial dimensions we're configured for (which might be zero).
 	int32_t spatial_output_count = (int32_t)(p_output_spatial_positions ? sim_.SpatialDimensionality() : 0);
+	
+	// Figure out age output.  If it was not requested, don't do it; if it was requested, do it if we use a nonWF model.
+	int age_output_count = (p_output_ages && (sim_.ModelType() == SLiMModelType::kModelTypeNonWF)) ? 1 : 0;
 	
 	int32_t section_end_tag = 0xFFFF0000;
 	
@@ -4535,9 +4552,9 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		p_out.write(reinterpret_cast<char *>(&endianness_tag), sizeof endianness_tag);
 		
 		// Write a format version tag
-		int32_t version_tag = 3;																					// version 2 started with SLiM 2.1
-																													// version 3 started with SLiM 2.3
-		
+		int32_t version_tag = (age_output_count ? 4 : 3);							// version 2 started with SLiM 2.1
+																					// version 3 started with SLiM 2.3
+																					// version 4 started with SLiM 3.0, only when individual age is output
 		p_out.write(reinterpret_cast<char *>(&version_tag), sizeof version_tag);
 		
 		// Write the size of a double
@@ -4716,6 +4733,15 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 					p_out.write(reinterpret_cast<char *>(&individual.spatial_y_), sizeof individual.spatial_y_);
 				if (spatial_output_count >= 3)
 					p_out.write(reinterpret_cast<char *>(&individual.spatial_z_), sizeof individual.spatial_z_);
+			}
+			
+			// Output individual age information before the mutation list.  Added in version 4.
+			if (age_output_count && ((i % 2) == 0))
+			{
+				int individual_index = i / 2;
+				Individual &individual = (child_generation_valid_ ? subpop->child_individuals_[individual_index] : subpop->parent_individuals_[individual_index]);
+				
+				p_out.write(reinterpret_cast<char *>(&individual.age_), sizeof individual.age_);
 			}
 			
 			// Write out the mutation list
