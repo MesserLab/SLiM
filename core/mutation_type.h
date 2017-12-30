@@ -92,7 +92,7 @@ public:
 	std::vector<double> dfe_parameters_;		// DFE parameters, of type double (originally float or integer type)
 	std::vector<std::string> dfe_strings_;		// DFE parameters, of type std::string (originally string type)
 	
-	bool convert_to_substitution_;				// if true (the default), mutations of this type are converted to substitutions
+	bool convert_to_substitution_;				// if true (the default in WF models), mutations of this type are converted to substitutions
 	MutationStackPolicy stack_policy_;			// the mutation stacking policy; see above (kStack is the default)
 	int64_t stack_group_;						// the mutation stacking group this mutation type is in (== mutation_type_id_ is default)
 	

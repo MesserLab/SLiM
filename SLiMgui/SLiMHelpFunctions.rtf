@@ -341,7 +341,8 @@ If the optional
 \f2\fs20 , in which case the ellipsis should supply a 
 \f0\fs18 string$
 \f2\fs20  Eidos script parameter.  The global symbol for the new mutation type is immediately available; the return value also provides the new object.\
-Note that by default, all mutations of a given mutation type will be converted into 
+\cf2 \expnd0\expndtw0\kerning0
+Note that by default in WF models, all mutations of a given mutation type will be converted into 
 \f0\fs18 Substitution
 \f2\fs20  objects when they reach fixation, for efficiency reasons.  If you need to disable this conversion, to keep mutations of a given type active in the simulation even after they have fixed, you can do so by setting the 
 \f0\fs18 convertToSubstitution
@@ -349,11 +350,20 @@ Note that by default, all mutations of a given mutation type will be converted i
 \f0\fs18 MutationType
 \f2\fs20  to 
 \f0\fs18 T
-\f2\fs20 .
-\f1 \
+\f2\fs20 .  In contrast, by default in nonWF models mutations will not be converted into 
+\f0\fs18 Substitution
+\f2\fs20  objects when they reach fixation; 
+\f0\fs18 convertToSubstitution
+\f2\fs20  is 
+\f0\fs18 F
+\f2\fs20  by default in nonWF models.  To enable conversion in nonWF models for neutral mutation types with no indirect fitness effects, you should therefore set 
+\f0\fs18 convertToSubstitution
+\f2\fs20  to 
+\f0\fs18 T
+\f2\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f0\fs18 \cf0 (void)initializeRecombinationRate(numeric\'a0rates, [Ni\'a0ends\'a0=\'a0NULL], [string$\'a0sex\'a0=\'a0"*"])
+\f0\fs18 \cf0 \kerning1\expnd0\expndtw0 (void)initializeRecombinationRate(numeric\'a0rates, [Ni\'a0ends\'a0=\'a0NULL], [string$\'a0sex\'a0=\'a0"*"])
 \f1 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -508,6 +518,7 @@ Configure options for the simulation.  If
 \f2\fs20  is called at all then it must be called before any other initialization function (except 
 \f0\fs18 initializeSLiMModelType()
 \f2\fs20 ), so that SLiM knows from the outset which optional features are enabled and which are not.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 If 
 \f0\fs18 keepPedigrees
 \f2\fs20  is 

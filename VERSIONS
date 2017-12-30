@@ -15,6 +15,7 @@ development head (nonWF branch):
 	add age property to Individual, for nonWF models
 	add removeSubpopulation(), takeMigrants(), addCloned(), addSelfed(), addCrossed(), addEmpty() methods for use in nonWF models
 	add support for reproduction() callbacks, including adding registerReproductionCallback()
+	make convertToSubstitution default to F in nonWF models, since all non-neutral mutation types influence fitness and thus survival
 
 
 2.6 (build 1292; Eidos version 1.6):
