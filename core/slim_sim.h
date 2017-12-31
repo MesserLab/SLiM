@@ -120,7 +120,7 @@ public:
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
 	eidos_profile_t profile_stage_totals_[7];										// profiling clocks; index 0 is initialize(), the rest follow SLiMGenerationStage
-	eidos_profile_t profile_callback_totals_[9];									// profiling clocks; these follow SLiMEidosBlockType, except no SLiMEidosUserDefinedFunction
+	eidos_profile_t profile_callback_totals_[10];									// profiling clocks; these follow SLiMEidosBlockType, except no SLiMEidosUserDefinedFunction
 #if SLIM_USE_NONNEUTRAL_CACHES
 	std::vector<int32_t> profile_mutcount_history_;									// a record of the mutation run count used in each generation
 	std::vector<int32_t> profile_nonneutral_regime_history_;						// a record of the nonneutral regime used in each generation
@@ -282,6 +282,13 @@ public:
 	void RunInitializeCallbacks(void);												// run initialize() callbacks and check for complete initialization
 	bool RunOneGeneration(void);													// run one generation and advance the generation count; returns false if finished
 	bool _RunOneGeneration(void);													// does the work of RunOneGeneration(), with no try/catch
+#ifdef SLIM_WF_ONLY
+	bool _RunOneGenerationWF(void);													// called by _RunOneGeneration() to run a generation (WF models)
+#endif
+#ifdef SLIM_NONWF_ONLY
+	bool _RunOneGenerationNonWF(void);												// called by _RunOneGeneration() to run a generation (nonWF models)
+#endif
+	
 	slim_generation_t FirstGeneration(void);										// derived from the first gen in which an Eidos block is registered
 	slim_generation_t EstimatedLastGeneration(void);								// derived from the last generation in which an Eidos block is registered
 	void SimulationFinished(void);
@@ -363,8 +370,12 @@ public:
 	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value);
 	
 	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteMethod_addSubpop(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	
+#ifdef SLIM_WF_ONLY
 	EidosValue_SP ExecuteMethod_addSubpopSplit(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+#endif	// SLIM_WF_ONLY
+	
+	EidosValue_SP ExecuteMethod_addSubpop(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_deregisterScriptBlock(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_mutationsOfType(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);

@@ -282,6 +282,7 @@ void _SpatialMap::ColorForValue(double p_value, float *p_rgb_ptr)
 #pragma mark Subpopulation
 #pragma mark -
 
+#ifdef SLIM_WF_ONLY
 // given the subpop size and sex ratio currently set for the child generation, make new genomes to fit
 void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 {
@@ -504,11 +505,19 @@ void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
 	Individual::LogIndividualCopyAndAssign(old_log);
 #endif
 }
+#endif	// SLIM_WF_ONLY
 
-Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size) : population_(p_population), subpopulation_id_(p_subpopulation_id), parent_subpop_size_(p_subpop_size), child_subpop_size_(p_subpop_size),
+Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size) : population_(p_population), subpopulation_id_(p_subpopulation_id), parent_subpop_size_(p_subpop_size),
+#ifdef SLIM_WF_ONLY
+	child_subpop_size_(p_subpop_size),
+#endif	// SLIM_WF_ONLY
 	self_symbol_(Eidos_GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Subpopulation_Class)))
 {
-	GenerateChildrenToFit(true);
+#ifdef SLIM_WF_ONLY
+	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+		GenerateChildrenToFit(true);
+#endif	// SLIM_WF_ONLY
+#warning implement me!
 	
 	// Set up to draw random individuals, based initially on equal fitnesses
 	cached_parental_fitness_ = (double *)realloc(cached_parental_fitness_, sizeof(double) * parent_subpop_size_);
@@ -520,15 +529,26 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 	for (slim_popsize_t i = 0; i < parent_subpop_size_; i++)
 		*(fitness_buffer_ptr++) = 1.0;
 	
-	lookup_parent_ = gsl_ran_discrete_preproc(parent_subpop_size_, cached_parental_fitness_);
+#ifdef SLIM_WF_ONLY
+	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+		lookup_parent_ = gsl_ran_discrete_preproc(parent_subpop_size_, cached_parental_fitness_);
+#endif	// SLIM_WF_ONLY
 }
 
 // SEX ONLY
 Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, double p_sex_ratio, GenomeType p_modeled_chromosome_type, double p_x_chromosome_dominance_coeff) :
-population_(p_population), subpopulation_id_(p_subpopulation_id), sex_enabled_(true), parent_subpop_size_(p_subpop_size), child_subpop_size_(p_subpop_size), parent_sex_ratio_(p_sex_ratio), child_sex_ratio_(p_sex_ratio), modeled_chromosome_type_(p_modeled_chromosome_type), x_chromosome_dominance_coeff_(p_x_chromosome_dominance_coeff),
+	population_(p_population), subpopulation_id_(p_subpopulation_id), sex_enabled_(true), parent_subpop_size_(p_subpop_size),
+#ifdef SLIM_WF_ONLY
+	parent_sex_ratio_(p_sex_ratio), child_subpop_size_(p_subpop_size), child_sex_ratio_(p_sex_ratio),
+#endif	// SLIM_WF_ONLY
+	modeled_chromosome_type_(p_modeled_chromosome_type), x_chromosome_dominance_coeff_(p_x_chromosome_dominance_coeff),
 	self_symbol_(Eidos_GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Subpopulation_Class)))
 {
-	GenerateChildrenToFit(true);
+#ifdef SLIM_WF_ONLY
+	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+		GenerateChildrenToFit(true);
+#endif	// SLIM_WF_ONLY
+#warning implement me!
 	
 	// Set up to draw random females, based initially on equal fitnesses
 	cached_parental_fitness_ = (double *)realloc(cached_parental_fitness_, sizeof(double) * parent_subpop_size_);
@@ -554,8 +574,13 @@ population_(p_population), subpopulation_id_(p_subpopulation_id), sex_enabled_(t
 		*(male_buffer_ptr++) = 1.0;
 	}
 	
-	lookup_female_parent_ = gsl_ran_discrete_preproc(parent_first_male_index_, cached_parental_fitness_);
-	lookup_male_parent_ = gsl_ran_discrete_preproc(num_males, cached_parental_fitness_ + parent_first_male_index_);
+#ifdef SLIM_WF_ONLY
+	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+	{
+		lookup_female_parent_ = gsl_ran_discrete_preproc(parent_first_male_index_, cached_parental_fitness_);
+		lookup_male_parent_ = gsl_ran_discrete_preproc(num_males, cached_parental_fitness_ + parent_first_male_index_);
+	}
+#endif	// SLIM_WF_ONLY
 }
 
 
@@ -563,6 +588,7 @@ Subpopulation::~Subpopulation(void)
 {
 	//std::cout << "Subpopulation::~Subpopulation" << std::endl;
 	
+#ifdef SLIM_WF_ONLY
 	if (lookup_parent_)
 		gsl_ran_discrete_free(lookup_parent_);
 	
@@ -571,6 +597,7 @@ Subpopulation::~Subpopulation(void)
 	
 	if (lookup_male_parent_)
 		gsl_ran_discrete_free(lookup_male_parent_);
+#endif	// SLIM_WF_ONLY
 	
 	if (cached_parental_fitness_)
 		free(cached_parental_fitness_);
@@ -803,6 +830,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		// SEX ONLY
 		double totalMaleFitness = 0.0, totalFemaleFitness = 0.0;
 		
+#ifdef SLIM_WF_ONLY
 		if (lookup_female_parent_)
 		{
 			gsl_ran_discrete_free(lookup_female_parent_);
@@ -814,6 +842,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 			gsl_ran_discrete_free(lookup_male_parent_);
 			lookup_male_parent_ = nullptr;
 		}
+#endif	// SLIM_WF_ONLY
 		
 		// Set up to draw random females
 		if (pure_neutral)
@@ -871,8 +900,11 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 			EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of females is <= 0.0." << EidosTerminate(nullptr);
 		
 		// in pure neutral models we don't set up the discrete preproc
-		if (!pure_neutral)
-			lookup_female_parent_ = gsl_ran_discrete_preproc(parent_first_male_index_, cached_parental_fitness_);
+#ifdef SLIM_WF_ONLY
+		if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+			if (!pure_neutral)
+				lookup_female_parent_ = gsl_ran_discrete_preproc(parent_first_male_index_, cached_parental_fitness_);
+#endif	// SLIM_WF_ONLY
 		
 		// Set up to draw random males
 		slim_popsize_t num_males = parent_subpop_size_ - parent_first_male_index_;
@@ -938,18 +970,23 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 			EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of males is <= 0.0." << EidosTerminate(nullptr);
 		
 		// in pure neutral models we don't set up the discrete preproc
-		if (!pure_neutral)
-			lookup_male_parent_ = gsl_ran_discrete_preproc(num_males, cached_parental_fitness_ + parent_first_male_index_);
+#ifdef SLIM_WF_ONLY
+		if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+			if (!pure_neutral)
+				lookup_male_parent_ = gsl_ran_discrete_preproc(num_males, cached_parental_fitness_ + parent_first_male_index_);
+#endif	// SLIM_WF_ONLY
 	}
 	else
 	{
 		double *fitness_buffer_ptr = cached_parental_fitness_;
 		
+#ifdef SLIM_WF_ONLY
 		if (lookup_parent_)
 		{
 			gsl_ran_discrete_free(lookup_parent_);
 			lookup_parent_ = nullptr;
 		}
+#endif	// SLIM_WF_ONLY
 		
 		if (pure_neutral)
 		{
@@ -1003,8 +1040,11 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 			EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of all individuals is <= 0.0." << EidosTerminate(nullptr);
 		
 		// in pure neutral models we don't set up the discrete preproc
-		if (!pure_neutral)
-			lookup_parent_ = gsl_ran_discrete_preproc(parent_subpop_size_, cached_parental_fitness_);
+#ifdef SLIM_WF_ONLY
+		if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+			if (!pure_neutral)
+				lookup_parent_ = gsl_ran_discrete_preproc(parent_subpop_size_, cached_parental_fitness_);
+#endif	// SLIM_WF_ONLY
 	}
 	
 	cached_fitness_size_ = parent_subpop_size_;
@@ -2130,6 +2170,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 	}
 }
 
+#ifdef SLIM_WF_ONLY
 void Subpopulation::SwapChildAndParentGenomes(void)
 {
 	bool will_need_new_children = false;
@@ -2166,6 +2207,7 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 	if (will_need_new_children)
 		GenerateChildrenToFit(false);	// false means generate only new children, not new parents
 }
+#endif	// SLIM_WF_ONLY
 
 
 //
@@ -2198,9 +2240,10 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			return cached_value_subpop_id_;
 		}
 		case gID_firstMaleIndex:	// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(child_generation_valid_ ? child_first_male_index_ : parent_first_male_index_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(CurrentFirstMaleIndex()));
 		case gID_genomes:
 		{
+#ifdef SLIM_WF_ONLY
 			if (child_generation_valid_)
 			{
 				if (!cached_child_genomes_value_)
@@ -2233,6 +2276,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 				return cached_child_genomes_value_;
 			}
 			else
+#endif	// SLIM_WF_ONLY
 			{
 				if (!cached_parent_genomes_value_)
 				{
@@ -2266,6 +2310,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_individuals:
 		{
+#ifdef SLIM_WF_ONLY
 			if (child_generation_valid_)
 			{
 				slim_popsize_t subpop_size = child_subpop_size_;
@@ -2289,6 +2334,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 				return cached_child_individuals_value_;
 			}
 			else
+#endif	// SLIM_WF_ONLY
 			{
 				slim_popsize_t subpop_size = parent_subpop_size_;
 				
@@ -2311,6 +2357,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 				return cached_parent_individuals_value_;
 			}
 		}
+#ifdef SLIM_WF_ONLY
 		case gID_immigrantSubpopIDs:
 		{
 			if (population_.sim_.ModelType() == SLiMModelType::kModelTypeNonWF)
@@ -2361,6 +2408,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(child_generation_valid_ ? child_sex_ratio_ : parent_sex_ratio_));
 		}
+#endif	// SLIM_WF_ONLY
 		case gID_spatialBounds:
 		{
 			SLiMSim &sim = population_.sim_;
@@ -2375,7 +2423,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			}
 		}
 		case gID_individualCount:		// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(child_generation_valid_ ? child_subpop_size_ : parent_subpop_size_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(CurrentSubpopSize()));
 			
 			// variables
 		case gID_tag:					// ACCELERATED
@@ -2392,8 +2440,8 @@ int64_t Subpopulation::GetProperty_Accelerated_Int(EidosGlobalStringID p_propert
 	switch (p_property_id)
 	{
 		case gID_id:				return subpopulation_id_;
-		case gID_firstMaleIndex:	return (child_generation_valid_ ? child_first_male_index_ : parent_first_male_index_);
-		case gID_individualCount:	return (child_generation_valid_ ? child_subpop_size_ : parent_subpop_size_);
+		case gID_firstMaleIndex:	return CurrentFirstMaleIndex();
+		case gID_individualCount:	return CurrentSubpopSize();
 		case gID_tag:				return tag_value_;
 			
 		default:					return EidosObjectElement::GetProperty_Accelerated_Int(p_property_id);
@@ -2424,23 +2472,29 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 {
 	switch (p_method_id)
 	{
+#ifdef SLIM_WF_ONLY
 		case gID_setMigrationRates:		return ExecuteMethod_setMigrationRates(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_setCloningRate:		return ExecuteMethod_setCloningRate(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_setSelfingRate:		return ExecuteMethod_setSelfingRate(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_setSexRatio:			return ExecuteMethod_setSexRatio(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_setSubpopulationSize:	return ExecuteMethod_setSubpopulationSize(p_method_id, p_arguments, p_argument_count, p_interpreter);
+#endif	// SLIM_WF_ONLY
+			
+#ifdef SLIM_NONWF_ONLY
+		case gID_addCloned:				return ExecuteMethod_addCloned(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_addCrossed:			return ExecuteMethod_addCrossed(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_addEmpty:				return ExecuteMethod_addEmpty(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_addSelfed:				return ExecuteMethod_addSelfed(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_removeSubpopulation:	return ExecuteMethod_removeSubpopulation(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_takeMigrants:			return ExecuteMethod_takeMigrants(p_method_id, p_arguments, p_argument_count, p_interpreter);
+#endif  // SLIM_NONWF_ONLY
+
 		case gID_pointInBounds:			return ExecuteMethod_pointInBounds(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_pointReflected:		return ExecuteMethod_pointReflected(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_pointStopped:			return ExecuteMethod_pointStopped(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_pointPeriodic:			return ExecuteMethod_pointPeriodic(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_pointUniform:			return ExecuteMethod_pointUniform(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_setCloningRate:		return ExecuteMethod_setCloningRate(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_setSelfingRate:		return ExecuteMethod_setSelfingRate(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_setSexRatio:			return ExecuteMethod_setSexRatio(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_setSpatialBounds:		return ExecuteMethod_setSpatialBounds(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_setSubpopulationSize:	return ExecuteMethod_setSubpopulationSize(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_addCloned:				return ExecuteMethod_addCloned(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_addCrossed:			return ExecuteMethod_addCrossed(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_addEmpty:				return ExecuteMethod_addEmpty(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_addSelfed:				return ExecuteMethod_addSelfed(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_takeMigrants:			return ExecuteMethod_takeMigrants(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_removeSubpopulation:	return ExecuteMethod_removeSubpopulation(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_cachedFitness:			return ExecuteMethod_cachedFitness(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_defineSpatialMap:		return ExecuteMethod_defineSpatialMap(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_spatialMapColor:		return ExecuteMethod_spatialMapColor(p_method_id, p_arguments, p_argument_count, p_interpreter);
@@ -2452,6 +2506,7 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 	}
 }
 
+#ifdef SLIM_NONWF_ONLY
 //	*********************	– (No<Individual>$)addCloned(object<Individual>$ parent)
 //
 EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
@@ -2464,7 +2519,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	
 	return gStaticEidosValueNULLInvisible;
 }
+#endif  // SLIM_NONWF_ONLY
 
+#ifdef SLIM_NONWF_ONLY
 //	*********************	– (No<Individual>$)addCrossed(object<Individual>$ parent1, object<Individual>$ parent2, [Nfs$ sex = NULL])
 //
 EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
@@ -2477,7 +2534,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	
 	return gStaticEidosValueNULLInvisible;
 }
+#endif  // SLIM_NONWF_ONLY
 
+#ifdef SLIM_NONWF_ONLY
 //	*********************	– (No<Individual>$)addEmpty([Nfs$ sex = NULL])
 //
 EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
@@ -2490,7 +2549,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	
 	return gStaticEidosValueNULLInvisible;
 }
+#endif  // SLIM_NONWF_ONLY
 
+#ifdef SLIM_NONWF_ONLY
 //	*********************	– (No<Individual>$)addSelfed(object<Individual>$ parent)
 //
 EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
@@ -2503,7 +2564,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	
 	return gStaticEidosValueNULLInvisible;
 }
+#endif  // SLIM_NONWF_ONLY
 
+#ifdef SLIM_NONWF_ONLY
 //	*********************	- (void)takeMigrants(object<Individual> migrants)
 //
 EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
@@ -2516,7 +2579,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 	
 	return gStaticEidosValueNULLInvisible;
 }
+#endif  // SLIM_NONWF_ONLY
 
+#ifdef SLIM_WF_ONLY
 //	*********************	- (void)setMigrationRates(object sourceSubpops, numeric rates)
 //
 EidosValue_SP Subpopulation::ExecuteMethod_setMigrationRates(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
@@ -2554,6 +2619,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setMigrationRates(EidosGlobalStringID
 	
 	return gStaticEidosValueNULLInvisible;
 }
+#endif	// SLIM_WF_ONLY
 
 //	*********************	– (logical$)pointInBounds(float point)
 //
@@ -2863,6 +2929,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_me
 	return gStaticEidosValueNULLInvisible;
 }			
 
+#ifdef SLIM_WF_ONLY
 //	*********************	- (void)setCloningRate(numeric rate)
 //
 EidosValue_SP Subpopulation::ExecuteMethod_setCloningRate(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
@@ -2909,7 +2976,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_setCloningRate(EidosGlobalStringID p_
 	
 	return gStaticEidosValueNULLInvisible;
 }			
+#endif	// SLIM_WF_ONLY
 
+#ifdef SLIM_WF_ONLY
 //	*********************	- (void)setSelfingRate(numeric$ rate)
 //
 EidosValue_SP Subpopulation::ExecuteMethod_setSelfingRate(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
@@ -2932,7 +3001,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSelfingRate(EidosGlobalStringID p_
 	
 	return gStaticEidosValueNULLInvisible;
 }			
+#endif	// SLIM_WF_ONLY
 
+#ifdef SLIM_WF_ONLY
 //	*********************	- (void)setSexRatio(float$ sexRatio)
 //
 EidosValue_SP Subpopulation::ExecuteMethod_setSexRatio(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
@@ -2963,6 +3034,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSexRatio(EidosGlobalStringID p_met
 	
 	return gStaticEidosValueNULLInvisible;
 }
+#endif	// SLIM_WF_ONLY
 
 //	*********************	– (void)setSpatialBounds(float position)
 //
@@ -3032,6 +3104,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSpatialBounds(EidosGlobalStringID 
 	return gStaticEidosValueNULLInvisible;
 }			
 
+#ifdef SLIM_WF_ONLY
 //	*********************	- (void)setSubpopulationSize(integer$ size)
 //
 EidosValue_SP Subpopulation::ExecuteMethod_setSubpopulationSize(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
@@ -3048,7 +3121,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSubpopulationSize(EidosGlobalStrin
 	
 	return gStaticEidosValueNULLInvisible;
 }
+#endif	// SLIM_WF_ONLY
 
+#ifdef SLIM_NONWF_ONLY
 //	*********************	- (void)removeSubpopulation()
 //
 EidosValue_SP Subpopulation::ExecuteMethod_removeSubpopulation(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
@@ -3057,11 +3132,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_removeSubpopulation(EidosGlobalString
 	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_removeSubpopulation): method -removeSubpopulation() is not available in WF models." << EidosTerminate();
 	
-	// For now this is equivalent to setSubpopulationSize(0), but it will diverge soon...
-	population_.SetSize(*this, 0);
+	population_.RemoveSubpopulation(*this);
 	
 	return gStaticEidosValueNULLInvisible;
 }
+#endif  // SLIM_NONWF_ONLY
 
 //	*********************	- (float)cachedFitness(Ni indices)
 //
@@ -3070,8 +3145,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
 	EidosValue *indices_value = p_arguments[0].get();
 	
+#ifdef SLIM_WF_ONLY
 	if (child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may only be called when the parental generation is active (before or during offspring generation)." << EidosTerminate();
+#endif	// SLIM_WF_ONLY
 	if (cached_fitness_size_ == 0)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may not be called while fitness values are being calculated, or before the first time they are calculated." << EidosTerminate();
 	

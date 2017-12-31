@@ -328,6 +328,7 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 	return score;
 }
 
+#ifdef SLIM_WF_ONLY
 // This is a simple implementation of the algorithm of Fruchterman and Reingold 1991;
 // there are better algorithms out there, but this one is simple...
 - (void)optimizeSubpopPositionsWithController:(SLiMWindowController *)controller
@@ -531,6 +532,7 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 	free(best_x);
 	free(best_y);
 }
+#endif	// SLIM_WF_ONLY
 
 - (void)drawGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller
 {
@@ -591,8 +593,10 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 		}
 		
 		// if position optimization is on, we do that to optimize the positions of the subpops
-		if (_optimizePositions && (subpopCount > 2))
+#ifdef SLIM_WF_ONLY
+		if ((sim->ModelType() == SLiMModelType::kModelTypeWF) && _optimizePositions && (subpopCount > 2))
 			[self optimizeSubpopPositionsWithController:controller];
+#endif	// SLIM_WF_ONLY
 		
 		// then do some sizing, to figure out the maximum extent of our subpops
 		NSRect boundingBox = NSZeroRect;
@@ -637,25 +641,30 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 		}
 		
 		// in the multipop case, we need to draw migration arrows, too
-		for (auto destSubpopIter = pop.begin(); destSubpopIter != pop.end(); ++destSubpopIter)
+#ifdef SLIM_WF_ONLY
+		if (sim->ModelType() == SLiMModelType::kModelTypeWF)
 		{
-			Subpopulation *destSubpop = (*destSubpopIter).second;
-			std::map<slim_objectid_t,double> &destMigrants = destSubpop->migrant_fractions_;
-			
-			for (auto sourceSubpopIter = destMigrants.begin(); sourceSubpopIter != destMigrants.end(); ++sourceSubpopIter)
+			for (auto destSubpopIter = pop.begin(); destSubpopIter != pop.end(); ++destSubpopIter)
 			{
-				slim_objectid_t sourceSubpopID = (*sourceSubpopIter).first;
-				auto sourceSubpopPair = pop.find(sourceSubpopID);
+				Subpopulation *destSubpop = (*destSubpopIter).second;
+				std::map<slim_objectid_t,double> &destMigrants = destSubpop->migrant_fractions_;
 				
-				if (sourceSubpopPair != pop.end())
+				for (auto sourceSubpopIter = destMigrants.begin(); sourceSubpopIter != destMigrants.end(); ++sourceSubpopIter)
 				{
-					Subpopulation *sourceSubpop = sourceSubpopPair->second;
-					double migrantFraction = (*sourceSubpopIter).second;
+					slim_objectid_t sourceSubpopID = (*sourceSubpopIter).first;
+					auto sourceSubpopPair = pop.find(sourceSubpopID);
 					
-					[self drawArrowFromSubpop:sourceSubpop toSubpop:destSubpop migrantFraction:migrantFraction];
+					if (sourceSubpopPair != pop.end())
+					{
+						Subpopulation *sourceSubpop = sourceSubpopPair->second;
+						double migrantFraction = (*sourceSubpopIter).second;
+						
+						[self drawArrowFromSubpop:sourceSubpop toSubpop:destSubpop migrantFraction:migrantFraction];
+					}
 				}
 			}
 		}
+#endif	// SLIM_WF_ONLY
 	}
 	
 	// We're done with our transformed coordinate system

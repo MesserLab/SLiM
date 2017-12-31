@@ -91,7 +91,9 @@ public:
 	// accessors for them seems excessively complicated / slow, and friending the whole class is too invasive.
 	// Basically I think of the Individual class as just being a struct-like bag in some aspects.
 	
+#ifdef SLIM_NONWF_ONLY
 	slim_generation_t age_;				// the age of the individual, in generations; used only in nonWF models
+#endif  // SLIM_NONWF_ONLY
 	
 	slim_popsize_t index_;				// the individual index in that subpop (0-based, and not multiplied by 2)
 	Subpopulation &subpopulation_;		// the subpop to which we refer; we get deleted when our subpop gets destructed

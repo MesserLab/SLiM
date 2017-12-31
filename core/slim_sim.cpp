@@ -510,11 +510,13 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 				if (age_output_count)
 					EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): output file format does not contain age information, which is required." << EidosTerminate();
 			}
+#ifdef SLIM_NONWF_ONLY
 			else if (opt_param_count == age_output_count)
 			{
 				// only age information is present
 				individual.age_ = (slim_generation_t)EidosInterpreter::NonnegativeIntegerForString(opt_params[0], nullptr);		// age
 			}
+#endif  // SLIM_NONWF_ONLY
 			else if (opt_param_count == spatial_dimensionality_ + age_output_count)
 			{
 				// age information is present, in addition to the correct number of spatial positions
@@ -525,8 +527,10 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 				if (spatial_dimensionality_ >= 3)
 					individual.spatial_z_ = EidosInterpreter::FloatForString(opt_params[2], nullptr);							// spatial position z
 				
+#ifdef SLIM_NONWF_ONLY
 				if (age_output_count)
 					individual.age_ = (slim_generation_t)EidosInterpreter::NonnegativeIntegerForString(opt_params[spatial_dimensionality_], nullptr);		// age
+#endif  // SLIM_NONWF_ONLY
 			}
 			else
 			{
@@ -654,7 +658,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 	
 	// Re-tally mutation references so we have accurate frequency counts for our new mutations
 	population_.UniqueMutationRuns();
-	population_.MaintainRegistry();
+	population_.TallyMutationReferences(nullptr, true);
 	
 	if (file_version <= 2)
 	{
@@ -1096,6 +1100,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			}
 		}
 		
+#ifdef SLIM_NONWF_ONLY
 		// Read in individual age information.  Added in version 4.
 		if (age_output_count && ((genome_index % 2) == 0))
 		{
@@ -1109,6 +1114,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			individual.age_ = *(slim_generation_t *)p;
 			p += sizeof(slim_generation_t);
 		}
+#endif  // SLIM_NONWF_ONLY
 		
 		total_mutations = *(int32_t *)p;
 		p += sizeof(total_mutations);
@@ -1232,7 +1238,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	
 	// Re-tally mutation references so we have accurate frequency counts for our new mutations
 	population_.UniqueMutationRuns();
-	population_.MaintainRegistry();
+	population_.TallyMutationReferences(nullptr, true);
 	
 	if (file_version <= 2)
 	{
@@ -2437,6 +2443,8 @@ bool SLiMSim::_RunOneGeneration(void)
 	
 	if (generation_ == 0)
 	{
+		// The zero generation is handled here by shared code, since it is the same for WF and nonWF models
+		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_START();
@@ -2456,354 +2464,380 @@ bool SLiMSim::_RunOneGeneration(void)
 	}
 	else
 	{
+		// Non-zero generations are handled by separate functions for WF and nonWF models
+		
+#if defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY)
+		if (model_type_ == SLiMModelType::kModelTypeWF)
+			return _RunOneGenerationWF();
+		else
+			return _RunOneGenerationNonWF();
+#elif defined(SLIM_WF_ONLY)
+		return _RunOneGenerationWF();
+#elif defined(SLIM_NONWF_ONLY)
+		return _RunOneGenerationNonWF();
+#endif
+	}
+}
+
+#ifdef SLIM_WF_ONLY
+bool SLiMSim::_RunOneGenerationWF(void)
+{
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+	// PROFILING
+#if SLIM_USE_NONNEUTRAL_CACHES
+	if (gEidosProfilingClientCount)
+		CollectSLiMguiMutationProfileInfo();
+#endif
+#endif
+	
+	// make a clock if we're running experiments
+	clock_t x_clock0 = (x_experiments_enabled_ ? clock() : 0);
+	
+	
+	// ******************************************************************
+	//
+	// Stage 1: Execute early() script events for the current generation
+	//
+	{
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
-#if SLIM_USE_NONNEUTRAL_CACHES
-		if (gEidosProfilingClientCount)
-			CollectSLiMguiMutationProfileInfo();
-#endif
+		SLIM_PROFILE_BLOCK_START();
 #endif
 		
-		// make a clock if we're running experiments
-		clock_t x_clock0 = (x_experiments_enabled_ ? clock() : 0);
+		generation_stage_ = SLiMGenerationStage::kWFStage1ExecuteEarlyScripts;
 		
+		std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1, -1);
 		
-		// ******************************************************************
-		//
-		// Stage 1: Execute early() script events for the current generation
-		//
+		for (auto script_block : early_blocks)
 		{
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
-			// PROFILING
-			SLIM_PROFILE_BLOCK_START();
-#endif
-			
-			generation_stage_ = SLiMGenerationStage::kWFStage1ExecuteEarlyScripts;
-			
-			std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1, -1);
-			
-			for (auto script_block : early_blocks)
+			if (script_block->active_)
 			{
-				if (script_block->active_)
-				{
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
-					// PROFILING
-					SLIM_PROFILE_BLOCK_START_NESTED();
+				// PROFILING
+				SLIM_PROFILE_BLOCK_START_NESTED();
 #endif
-					
-					population_.ExecuteScript(script_block, generation_, chromosome_);
-					
+				
+				population_.ExecuteScript(script_block, generation_, chromosome_);
+				
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
-					// PROFILING
-					SLIM_PROFILE_BLOCK_END_NESTED(profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosEventEarly)]);
+				// PROFILING
+				SLIM_PROFILE_BLOCK_END_NESTED(profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosEventEarly)]);
 #endif
-				}
 			}
-			
-			// the stage is done, so deregister script blocks as requested
-			DeregisterScheduledScriptBlocks();
-			
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
-			// PROFILING
-			SLIM_PROFILE_BLOCK_END(profile_stage_totals_[1]);
-#endif
 		}
 		
+		// the stage is done, so deregister script blocks as requested
+		DeregisterScheduledScriptBlocks();
 		
-		// ******************************************************************
-		//
-		// Stage 2: Generate offspring: evolve all subpopulations
-		//
-		{
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
-			// PROFILING
-			SLIM_PROFILE_BLOCK_START();
+		// PROFILING
+		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[1]);
 #endif
+	}
+	
+	
+	// ******************************************************************
+	//
+	// Stage 2: Generate offspring: evolve all subpopulations
+	//
+	{
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		SLIM_PROFILE_BLOCK_START();
+#endif
+		
+		CheckMutationStackPolicy();
+		
+		generation_stage_ = SLiMGenerationStage::kWFStage2GenerateOffspring;
+		
+		std::vector<SLiMEidosBlock*> mate_choice_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosMateChoiceCallback, -1, -1, -1);
+		std::vector<SLiMEidosBlock*> modify_child_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosModifyChildCallback, -1, -1, -1);
+		std::vector<SLiMEidosBlock*> recombination_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosRecombinationCallback, -1, -1, -1);
+		bool mate_choice_callbacks_present = mate_choice_callbacks.size();
+		bool modify_child_callbacks_present = modify_child_callbacks.size();
+		bool recombination_callbacks_present = recombination_callbacks.size();
+		bool no_active_callbacks = true;
+		
+		// if there are no active callbacks of any type, we can pretend there are no callbacks at all
+		// if there is a callback of any type, however, then inactive callbacks could become active
+		if (mate_choice_callbacks_present || modify_child_callbacks_present || recombination_callbacks_present)
+		{
+			for (SLiMEidosBlock *callback : mate_choice_callbacks)
+				if (callback->active_)
+				{
+					no_active_callbacks = false;
+					break;
+				}
 			
-			CheckMutationStackPolicy();
-			
-			generation_stage_ = SLiMGenerationStage::kWFStage2GenerateOffspring;
-			
-			std::vector<SLiMEidosBlock*> mate_choice_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosMateChoiceCallback, -1, -1, -1);
-			std::vector<SLiMEidosBlock*> modify_child_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosModifyChildCallback, -1, -1, -1);
-			std::vector<SLiMEidosBlock*> recombination_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosRecombinationCallback, -1, -1, -1);
-			bool mate_choice_callbacks_present = mate_choice_callbacks.size();
-			bool modify_child_callbacks_present = modify_child_callbacks.size();
-			bool recombination_callbacks_present = recombination_callbacks.size();
-			bool no_active_callbacks = true;
-			
-			// if there are no active callbacks of any type, we can pretend there are no callbacks at all
-			// if there is a callback of any type, however, then inactive callbacks could become active
-			if (mate_choice_callbacks_present || modify_child_callbacks_present || recombination_callbacks_present)
-			{
-				for (SLiMEidosBlock *callback : mate_choice_callbacks)
+			if (no_active_callbacks)
+				for (SLiMEidosBlock *callback : modify_child_callbacks)
 					if (callback->active_)
 					{
 						no_active_callbacks = false;
 						break;
 					}
-				
-				if (no_active_callbacks)
-					for (SLiMEidosBlock *callback : modify_child_callbacks)
-						if (callback->active_)
-						{
-							no_active_callbacks = false;
-							break;
-						}
-				
-				if (no_active_callbacks)
-					for (SLiMEidosBlock *callback : recombination_callbacks)
-						if (callback->active_)
-						{
-							no_active_callbacks = false;
-							break;
-						}
-			}
 			
 			if (no_active_callbacks)
+				for (SLiMEidosBlock *callback : recombination_callbacks)
+					if (callback->active_)
+					{
+						no_active_callbacks = false;
+						break;
+					}
+		}
+		
+		if (no_active_callbacks)
+		{
+			for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+				population_.EvolveSubpopulation(*subpop_pair.second, chromosome_, generation_, false, false, false);
+		}
+		else
+		{
+			// cache a list of callbacks registered for each subpop
+			for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
 			{
-				for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
-					population_.EvolveSubpopulation(*subpop_pair.second, chromosome_, generation_, false, false, false);
-			}
-			else
-			{
-				// cache a list of callbacks registered for each subpop
-				for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+				slim_objectid_t subpop_id = subpop_pair.first;
+				Subpopulation *subpop = subpop_pair.second;
+				
+				// Get mateChoice() callbacks that apply to this subpopulation
+				subpop->registered_mate_choice_callbacks_.clear();
+				
+				for (SLiMEidosBlock *callback : mate_choice_callbacks)
 				{
-					slim_objectid_t subpop_id = subpop_pair.first;
-					Subpopulation *subpop = subpop_pair.second;
+					slim_objectid_t callback_subpop_id = callback->subpopulation_id_;
 					
-					// Get mateChoice() callbacks that apply to this subpopulation
-					subpop->registered_mate_choice_callbacks_.clear();
-					
-					for (SLiMEidosBlock *callback : mate_choice_callbacks)
-					{
-						slim_objectid_t callback_subpop_id = callback->subpopulation_id_;
-						
-						if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
-							subpop->registered_mate_choice_callbacks_.emplace_back(callback);
-					}
-					
-					// Get modifyChild() callbacks that apply to this subpopulation
-					subpop->registered_modify_child_callbacks_.clear();
-					
-					for (SLiMEidosBlock *callback : modify_child_callbacks)
-					{
-						slim_objectid_t callback_subpop_id = callback->subpopulation_id_;
-						
-						if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
-							subpop->registered_modify_child_callbacks_.emplace_back(callback);
-					}
-					
-					// Get recombination() callbacks that apply to this subpopulation
-					subpop->registered_recombination_callbacks_.clear();
-					
-					for (SLiMEidosBlock *callback : recombination_callbacks)
-					{
-						slim_objectid_t callback_subpop_id = callback->subpopulation_id_;
-						
-						if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
-							subpop->registered_recombination_callbacks_.emplace_back(callback);
-					}
+					if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
+						subpop->registered_mate_choice_callbacks_.emplace_back(callback);
 				}
 				
-				// then evolve each subpop
-				for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
-					population_.EvolveSubpopulation(*subpop_pair.second, chromosome_, generation_, mate_choice_callbacks_present, modify_child_callbacks_present, recombination_callbacks_present);
-			}
-			
-			// then switch to the child generation; we don't want to do this until all callbacks have executed for all subpops
-			for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
-				subpop_pair.second->child_generation_valid_ = true;
-			
-			population_.child_generation_valid_ = true;
-			
-			// the stage is done, so deregister script blocks as requested
-			DeregisterScheduledScriptBlocks();
-			
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
-			// PROFILING
-			SLIM_PROFILE_BLOCK_END(profile_stage_totals_[2]);
-#endif
-		}
-		
-		
-		// ******************************************************************
-		//
-		// Stage 3: Remove fixed mutations and associated tasks
-		//
-		{
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
-			// PROFILING
-			SLIM_PROFILE_BLOCK_START();
-#endif
-			
-			generation_stage_ = SLiMGenerationStage::kWFStage3RemoveFixedMutations;
-			
-			population_.ClearParentalGenomes();		// added 30 November 2016 so MutationRun refcounts reflect their usage count in the simulation
-			
-			population_.MaintainRegistry();
-			
-			// Every hundredth generation we unique mutation runs to optimize memory usage and efficiency.  The number 100 was
-			// picked out of a hat – often enough to perhaps be useful in keeping SLiM slim, but infrequent enough that if it
-			// is a time sink it won't impact the simulation too much.  This call is really quite fast, though – on the order
-			// of 0.015 seconds for a pop of 10000 with a 1e5 chromosome and lots of mutations.  So although doing this every
-			// generation would seem like overkill – very few duplicates would be found per call – every 100 should be fine.
-			// Anyway, if we start seeing this call in performance analysis, we should probably revisit this; the benefit is
-			// likely to be pretty small for most simulations, so if the cost is significant then it may be a lose.
-			if (generation_ % 100 == 0)
-				population_.UniqueMutationRuns();
-			
-			// Invalidate interactions, now that the generation they were valid for is disappearing
-			for (auto int_type = interaction_types_.begin(); int_type != interaction_types_.end(); ++int_type)
-				int_type->second->Invalidate();
-			
-			// Deregister any interaction() callbacks that have been scheduled for deregistration, since it is now safe to do so
-			DeregisterScheduledInteractionBlocks();
-			
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
-			// PROFILING
-			SLIM_PROFILE_BLOCK_END(profile_stage_totals_[3]);
-#endif
-		}
-		
-		
-		// ******************************************************************
-		//
-		// Stage 4: Swap generations
-		//
-		{
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
-			// PROFILING
-			SLIM_PROFILE_BLOCK_START();
-#endif
-			
-			generation_stage_ = SLiMGenerationStage::kWFStage4SwapGenerations;
-			
-			population_.SwapGenerations();
-			
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
-			// PROFILING
-			SLIM_PROFILE_BLOCK_END(profile_stage_totals_[4]);
-#endif
-		}
-		
-		
-		// ******************************************************************
-		//
-		// Stage 5: Execute late() script events for the current generation
-		//
-		{
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
-			// PROFILING
-			SLIM_PROFILE_BLOCK_START();
-#endif
-			
-			generation_stage_ = SLiMGenerationStage::kWFStage5ExecuteLateScripts;
-			
-			std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1, -1);
-			
-			for (auto script_block : late_blocks)
-			{
-				if (script_block->active_)
+				// Get modifyChild() callbacks that apply to this subpopulation
+				subpop->registered_modify_child_callbacks_.clear();
+				
+				for (SLiMEidosBlock *callback : modify_child_callbacks)
 				{
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
-					// PROFILING
-					SLIM_PROFILE_BLOCK_START_NESTED();
-#endif
+					slim_objectid_t callback_subpop_id = callback->subpopulation_id_;
 					
-					population_.ExecuteScript(script_block, generation_, chromosome_);
+					if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
+						subpop->registered_modify_child_callbacks_.emplace_back(callback);
+				}
+				
+				// Get recombination() callbacks that apply to this subpopulation
+				subpop->registered_recombination_callbacks_.clear();
+				
+				for (SLiMEidosBlock *callback : recombination_callbacks)
+				{
+					slim_objectid_t callback_subpop_id = callback->subpopulation_id_;
 					
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
-					// PROFILING
-					SLIM_PROFILE_BLOCK_END_NESTED(profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosEventLate)]);
-#endif
+					if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
+						subpop->registered_recombination_callbacks_.emplace_back(callback);
 				}
 			}
 			
-			// the stage is done, so deregister script blocks as requested
-			DeregisterScheduledScriptBlocks();
-			
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
-			// PROFILING
-			SLIM_PROFILE_BLOCK_END(profile_stage_totals_[5]);
-#endif
+			// then evolve each subpop
+			for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+				population_.EvolveSubpopulation(*subpop_pair.second, chromosome_, generation_, mate_choice_callbacks_present, modify_child_callbacks_present, recombination_callbacks_present);
 		}
 		
+		// then switch to the child generation; we don't want to do this until all callbacks have executed for all subpops
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+			subpop_pair.second->child_generation_valid_ = true;
 		
-		// ******************************************************************
-		//
-		// Stage 6: Calculate fitness values for the new parental generation
-		//
+		population_.child_generation_valid_ = true;
+		
+		// the stage is done, so deregister script blocks as requested
+		DeregisterScheduledScriptBlocks();
+		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[2]);
+#endif
+	}
+	
+	
+	// ******************************************************************
+	//
+	// Stage 3: Remove fixed mutations and associated tasks
+	//
+	{
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		SLIM_PROFILE_BLOCK_START();
+#endif
+		
+		generation_stage_ = SLiMGenerationStage::kWFStage3RemoveFixedMutations;
+		
+		population_.ClearParentalGenomes();		// added 30 November 2016 so MutationRun refcounts reflect their usage count in the simulation
+		
+		population_.MaintainRegistry();
+		
+		// Every hundredth generation we unique mutation runs to optimize memory usage and efficiency.  The number 100 was
+		// picked out of a hat – often enough to perhaps be useful in keeping SLiM slim, but infrequent enough that if it
+		// is a time sink it won't impact the simulation too much.  This call is really quite fast, though – on the order
+		// of 0.015 seconds for a pop of 10000 with a 1e5 chromosome and lots of mutations.  So although doing this every
+		// generation would seem like overkill – very few duplicates would be found per call – every 100 should be fine.
+		// Anyway, if we start seeing this call in performance analysis, we should probably revisit this; the benefit is
+		// likely to be pretty small for most simulations, so if the cost is significant then it may be a lose.
+		if (generation_ % 100 == 0)
+			population_.UniqueMutationRuns();
+		
+		// Invalidate interactions, now that the generation they were valid for is disappearing
+		for (auto int_type = interaction_types_.begin(); int_type != interaction_types_.end(); ++int_type)
+			int_type->second->Invalidate();
+		
+		// Deregister any interaction() callbacks that have been scheduled for deregistration, since it is now safe to do so
+		DeregisterScheduledInteractionBlocks();
+		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[3]);
+#endif
+	}
+	
+	
+	// ******************************************************************
+	//
+	// Stage 4: Swap generations
+	//
+	{
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		SLIM_PROFILE_BLOCK_START();
+#endif
+		
+		generation_stage_ = SLiMGenerationStage::kWFStage4SwapGenerations;
+		
+		population_.SwapGenerations();
+		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[4]);
+#endif
+	}
+	
+	
+	// ******************************************************************
+	//
+	// Stage 5: Execute late() script events for the current generation
+	//
+	{
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		SLIM_PROFILE_BLOCK_START();
+#endif
+		
+		generation_stage_ = SLiMGenerationStage::kWFStage5ExecuteLateScripts;
+		
+		std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1, -1);
+		
+		for (auto script_block : late_blocks)
 		{
+			if (script_block->active_)
+			{
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
-			// PROFILING
-			SLIM_PROFILE_BLOCK_START();
+				// PROFILING
+				SLIM_PROFILE_BLOCK_START_NESTED();
 #endif
-			
-			generation_stage_ = SLiMGenerationStage::kWFStage6CalculateFitness;
-			
-			population_.RecalculateFitness(generation_);	// used to be generation_ + 1; removing that 18 Feb 2016 BCH
-			
-			// the stage is done, so deregister script blocks as requested
-			DeregisterScheduledScriptBlocks();
-			
-			// Maintain our mutation run experiments; we want this overhead to appear within the stage 6 profile
-			if (x_experiments_enabled_)
-				MaintainMutationRunExperiments((clock() - x_clock0) / (double)CLOCKS_PER_SEC);
-			
+				
+				population_.ExecuteScript(script_block, generation_, chromosome_);
+				
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
-			// PROFILING
-			SLIM_PROFILE_BLOCK_END(profile_stage_totals_[6]);
+				// PROFILING
+				SLIM_PROFILE_BLOCK_END_NESTED(profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosEventLate)]);
 #endif
-			
-#ifdef SLIMGUI
-			// Let SLiMgui survey the population for mean fitness and such, if it is our target
-			// We do this outside of profiling and mutation run experiments, since SLiMgui overhead should not affect those
-			population_.SurveyPopulation();
-#endif
+			}
 		}
 		
+		// the stage is done, so deregister script blocks as requested
+		DeregisterScheduledScriptBlocks();
 		
-		// ******************************************************************
-		//
-		// Stage 7: Advance the generation counter and do end-generation tasks
-		//
-		{
-			generation_stage_ = SLiMGenerationStage::kWFStage7AdvanceGenerationCounter;
-			
-#ifdef SLIMGUI
-			// re-tally for SLiMgui; this should avoid doing any new work if no mutations have been added or removed since the last tally
-			// it is needed, though, so that if the user added/removed mutations in a late() event SLiMgui displays correctly
-			// NOTE that this means tallies may be different in SLiMgui than in slim!  I *think* this will never be visible to the
-			// user's model, because if they ask for mutation counts/frequences a call to TallyMutationReferences() will be made at that
-			// point anyway to synchronize; but in slim's code itself, not in Eidos, the tallies can definitely differ!  Beware!
-			population_.TallyMutationReferences(nullptr, false);
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[5]);
 #endif
-			
-			cached_value_generation_.reset();
-			generation_++;
-			
-			// Zero out error-reporting info so raises elsewhere don't get attributed to this script
-			gEidosCurrentScript = nullptr;
-			gEidosExecutingRuntimeScript = false;
-			
-			// Decide whether the simulation is over.  We need to call EstimatedLastGeneration() every time; we can't
-			// cache it, because it can change based upon changes in script registration / deregistration.
-			bool result;
-			
-			if (sim_declared_finished_)
-				result = false;
-			else
-				result = (generation_ <= EstimatedLastGeneration());
-			
-			if (!result)
-				SimulationFinished();
-			
-			return result;
-		}
+	}
+	
+	
+	// ******************************************************************
+	//
+	// Stage 6: Calculate fitness values for the new parental generation
+	//
+	{
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		SLIM_PROFILE_BLOCK_START();
+#endif
+		
+		generation_stage_ = SLiMGenerationStage::kWFStage6CalculateFitness;
+		
+		population_.RecalculateFitness(generation_);	// used to be generation_ + 1; removing that 18 Feb 2016 BCH
+		
+		// the stage is done, so deregister script blocks as requested
+		DeregisterScheduledScriptBlocks();
+		
+		// Maintain our mutation run experiments; we want this overhead to appear within the stage 6 profile
+		if (x_experiments_enabled_)
+			MaintainMutationRunExperiments((clock() - x_clock0) / (double)CLOCKS_PER_SEC);
+		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[6]);
+#endif
+		
+#ifdef SLIMGUI
+		// Let SLiMgui survey the population for mean fitness and such, if it is our target
+		// We do this outside of profiling and mutation run experiments, since SLiMgui overhead should not affect those
+		population_.SurveyPopulation();
+#endif
+	}
+	
+	
+	// ******************************************************************
+	//
+	// Stage 7: Advance the generation counter and do end-generation tasks
+	//
+	{
+		generation_stage_ = SLiMGenerationStage::kWFStage7AdvanceGenerationCounter;
+		
+#ifdef SLIMGUI
+		// re-tally for SLiMgui; this should avoid doing any new work if no mutations have been added or removed since the last tally
+		// it is needed, though, so that if the user added/removed mutations in a late() event SLiMgui displays correctly
+		// NOTE that this means tallies may be different in SLiMgui than in slim!  I *think* this will never be visible to the
+		// user's model, because if they ask for mutation counts/frequences a call to TallyMutationReferences() will be made at that
+		// point anyway to synchronize; but in slim's code itself, not in Eidos, the tallies can definitely differ!  Beware!
+		population_.TallyMutationReferences(nullptr, false);
+#endif
+		
+		cached_value_generation_.reset();
+		generation_++;
+		
+		// Zero out error-reporting info so raises elsewhere don't get attributed to this script
+		gEidosCurrentScript = nullptr;
+		gEidosExecutingRuntimeScript = false;
+		
+		// Decide whether the simulation is over.  We need to call EstimatedLastGeneration() every time; we can't
+		// cache it, because it can change based upon changes in script registration / deregistration.
+		bool result;
+		
+		if (sim_declared_finished_)
+			result = false;
+		else
+			result = (generation_ <= EstimatedLastGeneration());
+		
+		if (!result)
+			SimulationFinished();
+		
+		return result;
 	}
 }
+#endif	// SLIM_WF_ONLY
+
+#ifdef SLIM_NONWF_ONLY
+bool SLiMSim::_RunOneGenerationNonWF(void)
+{
+#warning implement me!
+	return true;
+}
+#endif  // SLIM_NONWF_ONLY
 
 // This function is called by both SLiM and SLiMgui to run a generation.  In SLiM, it simply calls _RunOneGeneration(),
 // with no exception handling; in that scenario exceptions should not be thrown, since EidosTerminate() will log an
@@ -4388,8 +4422,11 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 {
 	switch (p_method_id)
 	{
-		case gID_addSubpop:						return ExecuteMethod_addSubpop(p_method_id, p_arguments, p_argument_count, p_interpreter);
+#ifdef SLIM_WF_ONLY
 		case gID_addSubpopSplit:				return ExecuteMethod_addSubpopSplit(p_method_id, p_arguments, p_argument_count, p_interpreter);
+#endif	// SLIM_WF_ONLY
+			
+		case gID_addSubpop:						return ExecuteMethod_addSubpop(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_deregisterScriptBlock:			return ExecuteMethod_deregisterScriptBlock(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_mutationFrequencies:
 		case gID_mutationCounts:				return ExecuteMethod_mutationFreqsCounts(p_method_id, p_arguments, p_argument_count, p_interpreter);
@@ -4445,6 +4482,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_addSubpop(EidosGlobalStringID p_method_id, 
 	return symbol_entry.second;
 }
 
+#ifdef SLIM_WF_ONLY
 //	*********************	– (object<Subpopulation>$)addSubpopSplit(is$ subpopID, integer$ size, io<Subpopulation>$ sourceSubpop, [float$ sexRatio = 0.5])
 //
 EidosValue_SP SLiMSim::ExecuteMethod_addSubpopSplit(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
@@ -4469,7 +4507,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_addSubpopSplit(EidosGlobalStringID p_method
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_addSubpopSplit): addSubpopSplit() sex ratio supplied in non-sexual simulation." << EidosTerminate();
 	
 	// construct the subpop; we always pass the sex ratio, but AddSubpopulation will not use it if sex is not enabled, for simplicity
-	Subpopulation *new_subpop = population_.AddSubpopulation(subpop_id, *source_subpop, subpop_size, sex_ratio);
+	Subpopulation *new_subpop = population_.AddSubpopulationSplit(subpop_id, *source_subpop, subpop_size, sex_ratio);
 	
 	// define a new Eidos variable to refer to the new subpopulation
 	EidosSymbolTableEntry &symbol_entry = new_subpop->SymbolTableEntry();
@@ -4481,6 +4519,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_addSubpopSplit(EidosGlobalStringID p_method
 	
 	return symbol_entry.second;
 }
+#endif	// SLIM_WF_ONLY
 
 //	*********************	- (void)deregisterScriptBlock(io<SLiMEidosBlock> scriptBlocks)
 //
