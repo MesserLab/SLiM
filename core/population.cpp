@@ -200,8 +200,8 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 			migrant_index = p_source_subpop.DrawParentUsingFitness();
 		}
 		
-		subpop.parent_genomes_[2 * parent_index].copy_from_genome(p_source_subpop.parent_genomes_[2 * migrant_index]);
-		subpop.parent_genomes_[2 * parent_index + 1].copy_from_genome(p_source_subpop.parent_genomes_[2 * migrant_index + 1]);
+		subpop.parent_genomes_[2 * parent_index]->copy_from_genome(*p_source_subpop.parent_genomes_[2 * migrant_index]);
+		subpop.parent_genomes_[2 * parent_index + 1]->copy_from_genome(*p_source_subpop.parent_genomes_[2 * migrant_index + 1]);
 	}
 	
 	// UpdateFitness() is not called here - all fitnesses are kept as equal.  This is because the parents were drawn from the source subpopulation according
@@ -241,7 +241,7 @@ void Population::SetSize(Subpopulation &p_subpop, slim_popsize_t p_subpop_size)
 	{
 		// After we change the subpop size, we need to generate new children genomes to fit the new requirements
 		p_subpop.child_subpop_size_ = p_subpop_size;
-		p_subpop.GenerateChildrenToFit(false);	// false means generate only new children, not new parents
+		p_subpop.GenerateIndividualsToFitWF(true, true);		// make child generation, placeholders
 	}
 }
 #endif	// SLIM_WF_ONLY
@@ -350,7 +350,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 				}
 				
 				EIDOS_BZERO(current_weights, sizeof(double) * weights_length);
-				current_weights[chosen_mate->IndexInSubpopulation()] = 1.0;
+				current_weights[chosen_mate->index_] = 1.0;
 				
 				weights_reflect_chosen_mate = true;
 			}
@@ -371,19 +371,19 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 				// referred to by the values may change, but the values themselves will not change).
 				if (mate_choice_callback->contains_individual_)
 				{
-					Individual *parent1 = &(p_source_subpop->parent_individuals_[p_parent1_index]);
+					Individual *parent1 = p_source_subpop->parent_individuals_[p_parent1_index];
 					callback_symbols.InitializeConstantSymbolEntry(gID_individual, parent1->CachedEidosValue());
 				}
 				
 				if (mate_choice_callback->contains_genome1_)
 				{
-					Genome *parent1_genome1 = &(p_source_subpop->parent_genomes_[p_parent1_index * 2]);
+					Genome *parent1_genome1 = p_source_subpop->parent_genomes_[p_parent1_index * 2];
 					callback_symbols.InitializeConstantSymbolEntry(gID_genome1, parent1_genome1->CachedEidosValue());
 				}
 				
 				if (mate_choice_callback->contains_genome2_)
 				{
-					Genome *parent1_genome2 = &(p_source_subpop->parent_genomes_[p_parent1_index * 2 + 1]);
+					Genome *parent1_genome2 = p_source_subpop->parent_genomes_[p_parent1_index * 2 + 1];
 					callback_symbols.InitializeConstantSymbolEntry(gID_genome2, parent1_genome2->CachedEidosValue());
 				}
 				
@@ -500,7 +500,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 	// If we have a specific chosen mate, then we don't need to draw, but we do need to check the sex of the proposed mate
 	if (chosen_mate)
 	{
-		slim_popsize_t drawn_parent = chosen_mate->IndexInSubpopulation();
+		slim_popsize_t drawn_parent = chosen_mate->index_;
 		
 		if (weights_modified)
 			free(current_weights);
@@ -690,19 +690,19 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_
 			
 			if (modify_child_callback->contains_parent1_)
 			{
-				Individual *parent1 = &(p_source_subpop->parent_individuals_[p_parent1_index]);
+				Individual *parent1 = p_source_subpop->parent_individuals_[p_parent1_index];
 				callback_symbols.InitializeConstantSymbolEntry(gID_parent1, parent1->CachedEidosValue());
 			}
 			
 			if (modify_child_callback->contains_parent1Genome1_)
 			{
-				Genome *parent1_genome1 = &(p_source_subpop->parent_genomes_[p_parent1_index * 2]);
+				Genome *parent1_genome1 = p_source_subpop->parent_genomes_[p_parent1_index * 2];
 				callback_symbols.InitializeConstantSymbolEntry(gID_parent1Genome1, parent1_genome1->CachedEidosValue());
 			}
 			
 			if (modify_child_callback->contains_parent1Genome2_)
 			{
-				Genome *parent1_genome2 = &(p_source_subpop->parent_genomes_[p_parent1_index * 2 + 1]);
+				Genome *parent1_genome2 = p_source_subpop->parent_genomes_[p_parent1_index * 2 + 1];
 				callback_symbols.InitializeConstantSymbolEntry(gID_parent1Genome2, parent1_genome2->CachedEidosValue());
 			}
 			
@@ -714,19 +714,19 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_
 			
 			if (modify_child_callback->contains_parent2_)
 			{
-				Individual *parent2 = &(p_source_subpop->parent_individuals_[p_parent2_index]);
+				Individual *parent2 = p_source_subpop->parent_individuals_[p_parent2_index];
 				callback_symbols.InitializeConstantSymbolEntry(gID_parent2, parent2->CachedEidosValue());
 			}
 			
 			if (modify_child_callback->contains_parent2Genome1_)
 			{
-				Genome *parent2_genome1 = &(p_source_subpop->parent_genomes_[p_parent2_index * 2]);
+				Genome *parent2_genome1 = p_source_subpop->parent_genomes_[p_parent2_index * 2];
 				callback_symbols.InitializeConstantSymbolEntry(gID_parent2Genome1, parent2_genome1->CachedEidosValue());
 			}
 			
 			if (modify_child_callback->contains_parent2Genome2_)
 			{
-				Genome *parent2_genome2 = &(p_source_subpop->parent_genomes_[p_parent2_index * 2 + 1]);
+				Genome *parent2_genome2 = p_source_subpop->parent_genomes_[p_parent2_index * 2 + 1];
 				callback_symbols.InitializeConstantSymbolEntry(gID_parent2Genome2, parent2_genome2->CachedEidosValue());
 			}
 			
@@ -1053,11 +1053,11 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 						
 						parent2 = parent1;
 						
-						DoClonalMutation(&source_subpop, p_subpop.child_genomes_[2 * child_index], subpop_id, 2 * parent1, p_chromosome, p_generation, child_sex);
-						DoClonalMutation(&source_subpop, p_subpop.child_genomes_[2 * child_index + 1], subpop_id, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
+						DoClonalMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_index], subpop_id, 2 * parent1, p_chromosome, p_generation, child_sex);
+						DoClonalMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_index + 1], subpop_id, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
 						
 						if (pedigrees_enabled)
-							p_subpop.child_individuals_[child_index].TrackPedigreeWithParents(source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent1]);
+							p_subpop.child_individuals_[child_index]->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent1]);
 					}
 					else
 					{
@@ -1112,18 +1112,18 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 						}
 						
 						// recombination, gene-conversion, mutation
-						DoCrossoverMutation(&source_subpop, p_subpop.child_genomes_[2 * child_index], subpop_id, parent1, p_chromosome, p_generation, child_sex, parent1_sex, recombination_callbacks);
-						DoCrossoverMutation(&source_subpop, p_subpop.child_genomes_[2 * child_index + 1], subpop_id, parent2, p_chromosome, p_generation, child_sex, parent2_sex, recombination_callbacks);
+						DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_index], subpop_id, parent1, p_chromosome, p_generation, child_sex, parent1_sex, recombination_callbacks);
+						DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_index + 1], subpop_id, parent2, p_chromosome, p_generation, child_sex, parent2_sex, recombination_callbacks);
 						
 						if (pedigrees_enabled)
-							p_subpop.child_individuals_[child_index].TrackPedigreeWithParents(source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2]);
+							p_subpop.child_individuals_[child_index]->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 					}
 					
 					if (modify_child_callbacks)
 					{
-						Individual *child = &(p_subpop.child_individuals_[child_index]);
-						Genome *child_genome1 = &(p_subpop.child_genomes_[child_index * 2]);
-						Genome *child_genome2 = &(p_subpop.child_genomes_[child_index * 2 + 1]);
+						Individual *child = p_subpop.child_individuals_[child_index];
+						Genome *child_genome1 = p_subpop.child_genomes_[child_index * 2];
+						Genome *child_genome2 = p_subpop.child_genomes_[child_index * 2 + 1];
 						
 						if (!ApplyModifyChildCallbacks(child, child_genome1, child_genome2, child_sex, parent1, parent2, selfed, cloned, &p_subpop, &source_subpop, *modify_child_callbacks))
 						{
@@ -1173,17 +1173,17 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 					}
 					
 					// recombination, gene-conversion, mutation
-					DoCrossoverMutation(&source_subpop, p_subpop.child_genomes_[2 * child_count], subpop_id, parent1, p_chromosome, p_generation, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, recombination_callbacks);
-					DoCrossoverMutation(&source_subpop, p_subpop.child_genomes_[2 * child_count + 1], subpop_id, parent2, p_chromosome, p_generation, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, recombination_callbacks);
+					DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], subpop_id, parent1, p_chromosome, p_generation, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, recombination_callbacks);
+					DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count + 1], subpop_id, parent2, p_chromosome, p_generation, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, recombination_callbacks);
 					
 					if (pedigrees_enabled)
-						p_subpop.child_individuals_[child_count].TrackPedigreeWithParents(source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2]);
+						p_subpop.child_individuals_[child_count]->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 					
 					if (modify_child_callbacks)
 					{
-						Individual *child = &(p_subpop.child_individuals_[child_count]);
-						Genome *child_genome1 = &(p_subpop.child_genomes_[child_count * 2]);
-						Genome *child_genome2 = &(p_subpop.child_genomes_[child_count * 2 + 1]);
+						Individual *child = p_subpop.child_individuals_[child_count];
+						Genome *child_genome1 = p_subpop.child_genomes_[child_count * 2];
+						Genome *child_genome2 = p_subpop.child_genomes_[child_count * 2 + 1];
 						
 						if (!ApplyModifyChildCallbacks(child, child_genome1, child_genome2, IndividualSex::kHermaphrodite, parent1, parent2, false, false, &p_subpop, &source_subpop, *modify_child_callbacks))
 						{
@@ -1419,11 +1419,11 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 					
 					parent2 = parent1;
 					
-					DoClonalMutation(source_subpop, p_subpop.child_genomes_[2 * child_index], subpop_id, 2 * parent1, p_chromosome, p_generation, child_sex);
-					DoClonalMutation(source_subpop, p_subpop.child_genomes_[2 * child_index + 1], subpop_id, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
+					DoClonalMutation(source_subpop, *p_subpop.child_genomes_[2 * child_index], subpop_id, 2 * parent1, p_chromosome, p_generation, child_sex);
+					DoClonalMutation(source_subpop, *p_subpop.child_genomes_[2 * child_index + 1], subpop_id, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
 					
 					if (pedigrees_enabled)
-						p_subpop.child_individuals_[child_index].TrackPedigreeWithParents(source_subpop->parent_individuals_[parent1], source_subpop->parent_individuals_[parent1]);
+						p_subpop.child_individuals_[child_index]->TrackPedigreeWithParents(*source_subpop->parent_individuals_[parent1], *source_subpop->parent_individuals_[parent1]);
 				}
 				else
 				{
@@ -1478,18 +1478,18 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 					}
 					
 					// recombination, gene-conversion, mutation
-					DoCrossoverMutation(source_subpop, p_subpop.child_genomes_[2 * child_index], subpop_id, parent1, p_chromosome, p_generation, child_sex, parent1_sex, recombination_callbacks);
-					DoCrossoverMutation(source_subpop, p_subpop.child_genomes_[2 * child_index + 1], subpop_id, parent2, p_chromosome, p_generation, child_sex, parent2_sex, recombination_callbacks);
+					DoCrossoverMutation(source_subpop, *p_subpop.child_genomes_[2 * child_index], subpop_id, parent1, p_chromosome, p_generation, child_sex, parent1_sex, recombination_callbacks);
+					DoCrossoverMutation(source_subpop, *p_subpop.child_genomes_[2 * child_index + 1], subpop_id, parent2, p_chromosome, p_generation, child_sex, parent2_sex, recombination_callbacks);
 					
 					if (pedigrees_enabled)
-						p_subpop.child_individuals_[child_index].TrackPedigreeWithParents(source_subpop->parent_individuals_[parent1], source_subpop->parent_individuals_[parent2]);
+						p_subpop.child_individuals_[child_index]->TrackPedigreeWithParents(*source_subpop->parent_individuals_[parent1], *source_subpop->parent_individuals_[parent2]);
 				}
 				
 				if (modify_child_callbacks)
 				{
-					Individual *child = &(p_subpop.child_individuals_[child_index]);
-					Genome *child_genome1 = &(p_subpop.child_genomes_[child_index * 2]);
-					Genome *child_genome2 = &(p_subpop.child_genomes_[child_index * 2 + 1]);
+					Individual *child = p_subpop.child_individuals_[child_index];
+					Genome *child_genome1 = p_subpop.child_genomes_[child_index * 2];
+					Genome *child_genome2 = p_subpop.child_genomes_[child_index * 2 + 1];
 					
 					if (!ApplyModifyChildCallbacks(child, child_genome1, child_genome2, child_sex, parent1, parent2, selfed, cloned, &p_subpop, source_subpop, *modify_child_callbacks))
 					{
@@ -1592,11 +1592,11 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 								slim_popsize_t parent2 = source_subpop.DrawMaleParentUsingFitness();
 								
 								// recombination, gene-conversion, mutation
-								DoCrossoverMutation(&source_subpop, p_subpop.child_genomes_[2 * child_count], subpop_id, parent1, p_chromosome, p_generation, child_sex, IndividualSex::kFemale, nullptr);
-								DoCrossoverMutation(&source_subpop, p_subpop.child_genomes_[2 * child_count + 1], subpop_id, parent2, p_chromosome, p_generation, child_sex, IndividualSex::kMale, nullptr);
+								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], subpop_id, parent1, p_chromosome, p_generation, child_sex, IndividualSex::kFemale, nullptr);
+								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count + 1], subpop_id, parent2, p_chromosome, p_generation, child_sex, IndividualSex::kMale, nullptr);
 								
 								if (pedigrees_enabled)
-									p_subpop.child_individuals_[child_count].TrackPedigreeWithParents(source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2]);
+									p_subpop.child_individuals_[child_count]->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 								
 								migrant_count++;
 								child_count++;
@@ -1614,11 +1614,11 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 								while (prevent_incidental_selfing && (parent2 == parent1));
 								
 								// recombination, gene-conversion, mutation
-								DoCrossoverMutation(&source_subpop, p_subpop.child_genomes_[2 * child_count], subpop_id, parent1, p_chromosome, p_generation, child_sex, IndividualSex::kHermaphrodite, nullptr);
-								DoCrossoverMutation(&source_subpop, p_subpop.child_genomes_[2 * child_count + 1], subpop_id, parent2, p_chromosome, p_generation, child_sex, IndividualSex::kHermaphrodite, nullptr);
+								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], subpop_id, parent1, p_chromosome, p_generation, child_sex, IndividualSex::kHermaphrodite, nullptr);
+								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count + 1], subpop_id, parent2, p_chromosome, p_generation, child_sex, IndividualSex::kHermaphrodite, nullptr);
 								
 								if (pedigrees_enabled)
-									p_subpop.child_individuals_[child_count].TrackPedigreeWithParents(source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2]);
+									p_subpop.child_individuals_[child_count]->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 								
 								migrant_count++;
 								child_count++;
@@ -1644,11 +1644,11 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 								
 								--number_to_clone;
 								
-								DoClonalMutation(&source_subpop, p_subpop.child_genomes_[2 * child_count], subpop_id, 2 * parent1, p_chromosome, p_generation, child_sex);
-								DoClonalMutation(&source_subpop, p_subpop.child_genomes_[2 * child_count + 1], subpop_id, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
+								DoClonalMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], subpop_id, 2 * parent1, p_chromosome, p_generation, child_sex);
+								DoClonalMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count + 1], subpop_id, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
 								
 								if (pedigrees_enabled)
-									p_subpop.child_individuals_[child_count].TrackPedigreeWithParents(source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent1]);
+									p_subpop.child_individuals_[child_count]->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent1]);
 							}
 							else
 							{
@@ -1689,11 +1689,11 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 								}
 								
 								// recombination, gene-conversion, mutation
-								DoCrossoverMutation(&source_subpop, p_subpop.child_genomes_[2 * child_count], subpop_id, parent1, p_chromosome, p_generation, child_sex, parent1_sex, nullptr);
-								DoCrossoverMutation(&source_subpop, p_subpop.child_genomes_[2 * child_count + 1], subpop_id, parent2, p_chromosome, p_generation, child_sex, parent2_sex, nullptr);
+								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], subpop_id, parent1, p_chromosome, p_generation, child_sex, parent1_sex, nullptr);
+								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count + 1], subpop_id, parent2, p_chromosome, p_generation, child_sex, parent2_sex, nullptr);
 								
 								if (pedigrees_enabled)
-									p_subpop.child_individuals_[child_count].TrackPedigreeWithParents(source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2]);
+									p_subpop.child_individuals_[child_count]->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 							}
 							
 							// change counters
@@ -1738,7 +1738,7 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 			// referred to by the values may change, but the values themselves will not change).
 			if (recombination_callback->contains_individual_)
 			{
-				Individual *individual = &(p_source_subpop->parent_individuals_[p_parent_index]);
+				Individual *individual = p_source_subpop->parent_individuals_[p_parent_index];
 				callback_symbols.InitializeConstantSymbolEntry(gID_individual, individual->CachedEidosValue());
 			}
 			if (recombination_callback->contains_genome1_)
@@ -1938,9 +1938,9 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 	bool do_swap = true;				// if true, we are to swap the parental strands at the beginning, either 50% of the time (if use_only_strand_1 is false), or always (if use_only_strand_1 is true – in other words, we are directed to use only strand 2)
 	
 	GenomeType child_genome_type = p_child_genome.Type();
-	Genome *parent_genome_1 = &(p_source_subpop->parent_genomes_[parent_genome_1_index]);
+	Genome *parent_genome_1 = p_source_subpop->parent_genomes_[parent_genome_1_index];
 	GenomeType parent1_genome_type = parent_genome_1->Type();
-	Genome *parent_genome_2 = &(p_source_subpop->parent_genomes_[parent_genome_2_index]);
+	Genome *parent_genome_2 = p_source_subpop->parent_genomes_[parent_genome_2_index];
 	GenomeType parent2_genome_type = parent_genome_2->Type();
 	
 	if (child_genome_type == GenomeType::kAutosome)
@@ -2706,7 +2706,7 @@ void Population::DoClonalMutation(Subpopulation *p_source_subpop, Genome &p_chil
 #endif
 	
 	GenomeType child_genome_type = p_child_genome.Type();
-	Genome *parent_genome = &(p_source_subpop->parent_genomes_[p_parent_genome_index]);
+	Genome *parent_genome = p_source_subpop->parent_genomes_[p_parent_genome_index];
 	GenomeType parent_genome_type = parent_genome->Type();
 	
 	if (child_genome_type != parent_genome_type)
@@ -2732,7 +2732,7 @@ void Population::DoClonalMutation(Subpopulation *p_source_subpop, Genome &p_chil
 	if (num_mutations == 0)
 	{
 		// no mutations, so the child genome is just a copy of the parental genome
-		p_child_genome.copy_from_genome(p_source_subpop->parent_genomes_[p_parent_genome_index]);
+		p_child_genome.copy_from_genome(*p_source_subpop->parent_genomes_[p_parent_genome_index]);
 	}
 	else
 	{
@@ -3207,10 +3207,10 @@ void Population::ClearParentalGenomes(void)
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
-		std::vector<Genome> &subpop_genomes = subpop->parent_genomes_;
+		std::vector<Genome *> &subpop_genomes = subpop->parent_genomes_;
 		
 		for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
-			subpop_genomes[i].clear_to_nullptr();
+			subpop_genomes[i]->clear_to_nullptr();
 	}
 	
 	// We have to clear out removed subpops, too, for as long as they stick around
@@ -3218,18 +3218,18 @@ void Population::ClearParentalGenomes(void)
 	{
 		{
 			slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
-			std::vector<Genome> &subpop_genomes = subpop->parent_genomes_;
+			std::vector<Genome *> &subpop_genomes = subpop->parent_genomes_;
 			
 			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
-				subpop_genomes[i].clear_to_nullptr();
+				subpop_genomes[i]->clear_to_nullptr();
 		}
 		
 		{
 			slim_popsize_t subpop_genome_count = 2 * subpop->child_subpop_size_;
-			std::vector<Genome> &subpop_genomes = subpop->child_genomes_;
+			std::vector<Genome *> &subpop_genomes = subpop->child_genomes_;
 			
 			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
-				subpop_genomes[i].clear_to_nullptr();
+				subpop_genomes[i]->clear_to_nullptr();
 		}
 	}
 }
@@ -3250,11 +3250,11 @@ void Population::UniqueMutationRuns(void)
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
-		std::vector<Genome> &subpop_genomes = subpop->CurrentGenomes();
+		std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
 		
 		for (slim_popsize_t genome_index = 0; genome_index < subpop_genome_count; genome_index++)
 		{
-			Genome &genome = subpop_genomes[genome_index];
+			Genome &genome = *subpop_genomes[genome_index];
 			int32_t mutrun_count = genome.mutrun_count_;
 			
 			for (int mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
@@ -3355,12 +3355,12 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 		{
 			Subpopulation *subpop = subpop_pair.second;
 			slim_popsize_t subpop_genome_count = 2 * subpop->child_subpop_size_;
-			std::vector<Genome> &subpop_genomes = subpop->child_genomes_;
+			std::vector<Genome *> &subpop_genomes = subpop->child_genomes_;
 			
 			// for every genome
 			for (slim_popsize_t genome_index = 0; genome_index < subpop_genome_count; genome_index++)
 			{
-				Genome &genome = subpop_genomes[genome_index];
+				Genome &genome = *subpop_genomes[genome_index];
 				
 				if (!genome.IsNull())
 				{
@@ -3403,12 +3403,12 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
-		std::vector<Genome> &subpop_genomes = subpop->parent_genomes_;
+		std::vector<Genome *> &subpop_genomes = subpop->parent_genomes_;
 		
 		// for every genome
 		for (slim_popsize_t genome_index = 0; genome_index < subpop_genome_count; genome_index++)
 		{
-			Genome &genome = subpop_genomes[genome_index];
+			Genome &genome = *subpop_genomes[genome_index];
 			
 			if (!genome.IsNull())
 			{
@@ -3527,12 +3527,12 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 		{
 			Subpopulation *subpop = subpop_pair.second;
 			slim_popsize_t subpop_genome_count = 2 * subpop->child_subpop_size_;
-			std::vector<Genome> &subpop_genomes = subpop->child_genomes_;
+			std::vector<Genome *> &subpop_genomes = subpop->child_genomes_;
 			
 			// for every genome
 			for (slim_popsize_t genome_index = 0; genome_index < subpop_genome_count; genome_index++)
 			{
-				Genome &genome = subpop_genomes[genome_index];
+				Genome &genome = *subpop_genomes[genome_index];
 				
 				if (!genome.IsNull())
 				{
@@ -3575,12 +3575,12 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
-		std::vector<Genome> &subpop_genomes = subpop->parent_genomes_;
+		std::vector<Genome *> &subpop_genomes = subpop->parent_genomes_;
 		
 		// for every genome
 		for (slim_popsize_t genome_index = 0; genome_index < subpop_genome_count; genome_index++)
 		{
-			Genome &genome = subpop_genomes[genome_index];
+			Genome &genome = *subpop_genomes[genome_index];
 			
 			if (!genome.IsNull())
 			{
@@ -3719,11 +3719,11 @@ void Population::AssessMutationRuns(void)
 		{
 			Subpopulation *subpop = subpop_pair.second;
 			slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
-			std::vector<Genome> &subpop_genomes = subpop->CurrentGenomes();
+			std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
 			
 			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
 			{
-				Genome &genome = subpop_genomes[i];
+				Genome &genome = *subpop_genomes[i];
 				
 				if (!genome.IsNull())
 				{
@@ -3837,11 +3837,11 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 			// Particularly for SLiMgui, we need to be able to tally mutation references after the generations have been swapped, i.e.
 			// when the parental generation is active and the child generation is invalid.
 			slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
-			std::vector<Genome> &subpop_genomes = subpop->CurrentGenomes();
+			std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
 			
 			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)							// child genomes
 			{
-				Genome &genome = subpop_genomes[i];
+				Genome &genome = *subpop_genomes[i];
 				
 				if (!genome.IsNull())
 				{
@@ -3910,15 +3910,15 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 				Subpopulation *subpop = subpop_pair.second;
 				
 				slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
-				std::vector<Genome> &subpop_genomes = subpop->CurrentGenomes();
+				std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
 				
 				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)							// child genomes
 				{
-					Genome &genome = subpop_genomes[i];
+					Genome &genome = *subpop_genomes[i];
 					
 					if (!genome.IsNull())
 					{
-						subpop_genomes[i].TallyGenomeReferences(&tally_mutrun_ref_count, &total_mutrun_count, operation_id);
+						subpop_genomes[i]->TallyGenomeReferences(&tally_mutrun_ref_count, &total_mutrun_count, operation_id);
 						total_genome_count++;
 					}
 				}
@@ -4016,7 +4016,7 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 				// Particularly for SLiMgui, we need to be able to tally mutation references after the generations have been swapped, i.e.
 				// when the parental generation is active and the child generation is invalid.
 				slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
-				std::vector<Genome> &subpop_genomes = subpop->CurrentGenomes();
+				std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
 				
 #ifdef SLIMGUI
 				// When running under SLiMgui, we need to tally up mutation references within the selected subpops, too; note
@@ -4026,7 +4026,7 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 				{
 					for (slim_popsize_t i = 0; i < subpop_genome_count; i++)							// child genomes
 					{
-						Genome &genome = subpop_genomes[i];
+						Genome &genome = *subpop_genomes[i];
 						
 						if (!genome.IsNull())
 						{
@@ -4060,7 +4060,7 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 				{
 					for (slim_popsize_t i = 0; i < subpop_genome_count; i++)							// child genomes
 					{
-						Genome &genome = subpop_genomes[i];
+						Genome &genome = *subpop_genomes[i];
 						
 						if (!genome.IsNull())
 						{
@@ -4155,11 +4155,11 @@ slim_refcount_t Population::TallyMutationReferences_FAST(void)
 		// Particularly for SLiMgui, we need to be able to tally mutation references after the generations have been swapped, i.e.
 		// when the parental generation is active and the child generation is invalid.
 		slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
-		std::vector<Genome> &subpop_genomes = subpop->CurrentGenomes();
+		std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
 		
 		for (slim_popsize_t i = 0; i < subpop_genome_count; i++)							// child genomes
 		{
-			Genome &genome = subpop_genomes[i];
+			Genome &genome = *subpop_genomes[i];
 			
 			if (!genome.IsNull())
 			{
@@ -4276,12 +4276,12 @@ void Population::RemoveAllFixedMutations(void)
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)		// subpopulations
 		{
-			std::vector<Genome> &subpop_genomes = subpop_pair.second->CurrentGenomes();
+			std::vector<Genome *> &subpop_genomes = subpop_pair.second->CurrentGenomes();
 			slim_popsize_t subpop_genome_count = subpop_pair.second->CurrentGenomeCount();
 			
 			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)	// child genomes
 			{
-				Genome *genome = &(subpop_genomes[i]);
+				Genome *genome = subpop_genomes[i];
 				
 				if (!genome->IsNull())
 				{
@@ -4350,11 +4350,11 @@ void Population::CheckMutationRegistry(void)
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
-		std::vector<Genome> &subpop_genomes = subpop->CurrentGenomes();
+		std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
 		
 		for (slim_popsize_t i = 0; i < subpop_genome_count; i++)							// child genomes
 		{
-			Genome &genome = subpop_genomes[i];
+			Genome &genome = *subpop_genomes[i];
 			int mutrun_count = genome.mutrun_count_;
 			
 			for (int run_index = 0; run_index < mutrun_count; ++run_index)
@@ -4451,7 +4451,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 		
 		for (slim_popsize_t i = 0; i < 2 * subpop_size; i++)				// go through all children
 		{
-			Genome &genome = subpop->CurrentGenomes()[i];
+			Genome &genome = *(subpop->CurrentGenomes()[i]);
 			int mutrun_count = genome.mutrun_count_;
 			
 			for (int run_index = 0; run_index < mutrun_count; ++run_index)
@@ -4519,7 +4519,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 			// output spatial position if requested
 			if (spatial_output_count)
 			{
-				Individual &individual = subpop->CurrentIndividuals()[i];
+				Individual &individual = *(subpop->CurrentIndividuals()[i]);
 				
 				if (spatial_output_count >= 1)
 					p_out << " " << individual.spatial_x_;
@@ -4533,7 +4533,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 			// output ages if requested
 			if (age_output_count)
 			{
-				Individual &individual = subpop->CurrentIndividuals()[i];
+				Individual &individual = *(subpop->CurrentIndividuals()[i]);
 				
 				p_out << " " << individual.age_;
 			}
@@ -4564,7 +4564,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 		
 		for (slim_popsize_t i = 0; i < 2 * subpop_size; i++)							// go through all children
 		{
-			Genome &genome = subpop->CurrentGenomes()[i];
+			Genome &genome = *(subpop->CurrentGenomes()[i]);
 			
 			p_out << "p" << subpop_id << ":" << i << " " << genome.Type();
 			
@@ -4733,7 +4733,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		
 		for (slim_popsize_t i = 0; i < 2 * subpop_size; i++)				// go through all children
 		{
-			Genome &genome = subpop->CurrentGenomes()[i];
+			Genome &genome = *(subpop->CurrentGenomes()[i]);
 			int mutrun_count = genome.mutrun_count_;
 			
 			for (int run_index = 0; run_index < mutrun_count; ++run_index)
@@ -4803,7 +4803,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		
 		for (slim_popsize_t i = 0; i < 2 * subpop_size; i++)							// go through all children
 		{
-			Genome &genome = subpop->CurrentGenomes()[i];
+			Genome &genome = *(subpop->CurrentGenomes()[i]);
 			
 			// Write out the genome header; start with the genome type to guarantee that the first 32 bits are != section_end_tag
 			int32_t genome_type = (int32_t)(genome.Type());
@@ -4816,7 +4816,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			if (spatial_output_count && ((i % 2) == 0))
 			{
 				int individual_index = i / 2;
-				Individual &individual = subpop->CurrentIndividuals()[individual_index];
+				Individual &individual = *(subpop->CurrentIndividuals()[individual_index]);
 				
 				if (spatial_output_count >= 1)
 					p_out.write(reinterpret_cast<char *>(&individual.spatial_x_), sizeof individual.spatial_x_);
@@ -4831,7 +4831,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			if (age_output_count && ((i % 2) == 0))
 			{
 				int individual_index = i / 2;
-				Individual &individual = subpop->CurrentIndividuals()[individual_index];
+				Individual &individual = *(subpop->CurrentIndividuals()[individual_index]);
 				
 				p_out.write(reinterpret_cast<char *>(&individual.age_), sizeof individual.age_);
 			}
@@ -4922,7 +4922,7 @@ void Population::PrintSample_SLiM(std::ostream &p_out, Subpopulation &p_subpop, 
 {
 	// This function is written to be able to print the population whether child_generation_valid is true or false.
 	
-	std::vector<Genome> &subpop_genomes = p_subpop.CurrentGenomes();
+	std::vector<Genome *> &subpop_genomes = p_subpop.CurrentGenomes();
 	slim_popsize_t subpop_size = p_subpop.CurrentSubpopSize();
 	
 	if (p_requested_sex == IndividualSex::kFemale && p_subpop.modeled_chromosome_type_ == GenomeType::kYChromosome)
@@ -4956,9 +4956,9 @@ void Population::PrintSample_SLiM(std::ostream &p_out, Subpopulation &p_subpop, 
 				candidates[candidate_index] = candidates.back();
 				candidates.pop_back();
 			}
-		} while (subpop_genomes[genome_index].IsNull() || (p_subpop.sex_enabled_ && p_requested_sex != IndividualSex::kUnspecified && p_subpop.SexOfIndividual(genome_index / 2) != p_requested_sex));
+		} while (subpop_genomes[genome_index]->IsNull() || (p_subpop.sex_enabled_ && p_requested_sex != IndividualSex::kUnspecified && p_subpop.SexOfIndividual(genome_index / 2) != p_requested_sex));
 		
-		sample.push_back(&subpop_genomes[genome_index]);
+		sample.push_back(subpop_genomes[genome_index]);
 	}
 	
 	// print the sample using Genome's static member function
@@ -4970,7 +4970,7 @@ void Population::PrintSample_MS(std::ostream &p_out, Subpopulation &p_subpop, sl
 {
 	// This function is written to be able to print the population whether child_generation_valid is true or false.
 	
-	std::vector<Genome> &subpop_genomes = p_subpop.CurrentGenomes();
+	std::vector<Genome *> &subpop_genomes = p_subpop.CurrentGenomes();
 	slim_popsize_t subpop_size = p_subpop.CurrentSubpopSize();
 	
 	if (p_requested_sex == IndividualSex::kFemale && p_subpop.modeled_chromosome_type_ == GenomeType::kYChromosome)
@@ -5004,9 +5004,9 @@ void Population::PrintSample_MS(std::ostream &p_out, Subpopulation &p_subpop, sl
 				candidates[candidate_index] = candidates.back();
 				candidates.pop_back();
 			}
-		} while (subpop_genomes[genome_index].IsNull() || (p_subpop.sex_enabled_ && p_requested_sex != IndividualSex::kUnspecified && p_subpop.SexOfIndividual(genome_index / 2) != p_requested_sex));
+		} while (subpop_genomes[genome_index]->IsNull() || (p_subpop.sex_enabled_ && p_requested_sex != IndividualSex::kUnspecified && p_subpop.SexOfIndividual(genome_index / 2) != p_requested_sex));
 		
-		sample.push_back(&subpop_genomes[genome_index]);
+		sample.push_back(subpop_genomes[genome_index]);
 	}
 	
 	// print the sample using Genome's static member function
@@ -5018,7 +5018,7 @@ void Population::PrintSample_VCF(std::ostream &p_out, Subpopulation &p_subpop, s
 {
 	// This function is written to be able to print the population whether child_generation_valid is true or false.
 	
-	std::vector<Genome> &subpop_genomes = p_subpop.CurrentGenomes();
+	std::vector<Genome *> &subpop_genomes = p_subpop.CurrentGenomes();
 	slim_popsize_t subpop_size = p_subpop.CurrentSubpopSize();
 	
 	if (p_requested_sex == IndividualSex::kFemale && p_subpop.modeled_chromosome_type_ == GenomeType::kYChromosome)
@@ -5042,7 +5042,7 @@ void Population::PrintSample_VCF(std::ostream &p_out, Subpopulation &p_subpop, s
 		
 		// Scan for an individual of the requested sex
 		do {
-			// select a random genome (not a random individual) by selecting a random candidate entry
+			// select a random individual by selecting a random candidate entry
 			if (candidates.size() == 0)
 				EIDOS_TERMINATION << "ERROR (Population::PrintSample_VCF): not enough eligible individuals for sampling without replacement." << EidosTerminate();
 			
@@ -5060,8 +5060,8 @@ void Population::PrintSample_VCF(std::ostream &p_out, Subpopulation &p_subpop, s
 		genome1 = individual_index * 2;
 		genome2 = genome1 + 1;
 		
-		sample.push_back(&subpop_genomes[genome1]);
-		sample.push_back(&subpop_genomes[genome2]);
+		sample.push_back(subpop_genomes[genome1]);
+		sample.push_back(subpop_genomes[genome2]);
 	}
 	
 	// print the sample using Genome's static member function

@@ -196,7 +196,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 			
 			if (gSLiM_Individual_custom_colors)
 			{
-				Individual &individual = subpop->parent_individuals_[individualArrayIndex];
+				Individual &individual = *subpop->parent_individuals_[individualArrayIndex];
 				
 				if (!individual.color_.empty())
 				{
@@ -1030,7 +1030,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	for (individualArrayIndex = 0; individualArrayIndex < subpopSize; ++individualArrayIndex)
 	{
 		// Figure out the rect to draw in; note we now use individualArrayIndex here, because the hit-testing code doesn't have an easy way to calculate the displayed individual index...
-		Individual &individual = subpop->parent_individuals_[individualArrayIndex];
+		Individual &individual = *subpop->parent_individuals_[individualArrayIndex];
 		float position_x, position_y;
 		
 		if (dimensionality == 1)
@@ -1102,7 +1102,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	for (individualArrayIndex = 0; individualArrayIndex < subpopSize; ++individualArrayIndex)
 	{
 		// Figure out the rect to draw in; note we now use individualArrayIndex here, because the hit-testing code doesn't have an easy way to calculate the displayed individual index...
-		Individual &individual = subpop->parent_individuals_[individualArrayIndex];
+		Individual &individual = *subpop->parent_individuals_[individualArrayIndex];
 		float position_x, position_y;
 		
 		if (dimensionality == 1)

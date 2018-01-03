@@ -284,228 +284,273 @@ void _SpatialMap::ColorForValue(double p_value, float *p_rgb_ptr)
 
 #ifdef SLIM_WF_ONLY
 // given the subpop size and sex ratio currently set for the child generation, make new genomes to fit
-void Subpopulation::GenerateChildrenToFit(const bool p_parents_also)
+void Subpopulation::GenerateIndividualsToFitWF(bool p_make_child_generation, bool p_placeholders)
 {
-#ifdef DEBUG
-	bool old_log = Genome::LogGenomeCopyAndAssign(false);
-#endif
-	Chromosome &chromosome = population_.sim_.TheChromosome();
+	SLiMSim &sim = population_.sim_;
+	bool pedigrees_enabled = (!p_placeholders) && sim.PedigreesEnabled();
+	Chromosome &chromosome = sim.TheChromosome();
 	int32_t mutrun_count = chromosome.mutrun_count_;
 	int32_t mutrun_length = chromosome.mutrun_length_;
 	
-	// throw out whatever used to be there
-	child_genomes_.clear();
-	cached_child_genomes_value_.reset();
-	
-	if (p_parents_also)
+	if (p_make_child_generation)
 	{
-		parent_genomes_.clear();
+		cached_child_genomes_value_.reset();
+		cached_child_individuals_value_.reset();
+	}
+	else
+	{
 		cached_parent_genomes_value_.reset();
+		cached_parent_individuals_value_.reset();
 	}
 	
-	// make new stuff
-	if (sex_enabled_)
+	std::vector<Individual *> &individuals = (p_make_child_generation ? child_individuals_ : parent_individuals_);
+	std::vector<Genome *> &genomes = (p_make_child_generation ? child_genomes_ : parent_genomes_);
+	slim_popsize_t &subpop_size = (p_make_child_generation ? child_subpop_size_ : parent_subpop_size_);
+	
+	// First, make the number of Individual objects match, and make the corresponding Genome changes
+	int old_individual_count = (int)individuals.size();
+	int new_individual_count = subpop_size;
+	
+	if (new_individual_count > old_individual_count)
 	{
-		// Figure out the first male index from the sex ratio, and exit if we end up with all one sex
-		slim_popsize_t total_males = static_cast<slim_popsize_t>(lround(child_sex_ratio_ * child_subpop_size_));	// round in favor of males, arbitrarily
-		
-		child_first_male_index_ = child_subpop_size_ - total_males;
-		
-		if (child_first_male_index_ <= 0)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFit): child sex ratio of " << child_sex_ratio_ << " produced no females." << EidosTerminate();
-		else if (child_first_male_index_ >= child_subpop_size_)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFit): child sex ratio of " << child_sex_ratio_ << " produced no males." << EidosTerminate();
-		
-		if (p_parents_also)
+		// This is the only place where we allocate new genomes and individuals, at the moment.  We allocate them out of
+		// shared memory pools, in an effort to keep them close together in memory so as to reap the benefits of locality
+		// in memory accesses.  This really does matter; when I switched from using vector<Genome> to vector<Genome *>,
+		// some models got as much as 50% slower, and adding these object pools gained back almost all of that loss.
+		if (!genome_pool_)
 		{
-			total_males = static_cast<slim_popsize_t>(lround(parent_sex_ratio_ * parent_subpop_size_));	// round in favor of males, arbitrarily
+			size_t capacity = lround(pow(2.0, ceil(log2(new_individual_count * 2 * 2))));	// parent/child, diploid
 			
-			parent_first_male_index_ = parent_subpop_size_ - total_males;
+			if (capacity < 1024)
+				capacity = 1024;
 			
-			if (parent_first_male_index_ <= 0)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFit): parent sex ratio of " << parent_sex_ratio_ << " produced no females." << EidosTerminate();
-			else if (parent_first_male_index_ >= parent_subpop_size_)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFit): parent sex ratio of " << parent_sex_ratio_ << " produced no males." << EidosTerminate();
+			//std::cout << "sizeof(Genome) == " << sizeof(Genome) << std::endl;
+			
+			genome_pool_ = new EidosObjectPool(sizeof(Genome), capacity);
+		}
+		if (!individual_pool_)
+		{
+			size_t capacity = lround(pow(2.0, ceil(log2(new_individual_count * 2))));		// parent/child
+			
+			if (capacity < 1024)
+				capacity = 1024;
+			
+			//std::cout << "sizeof(Individual) == " << sizeof(Individual) << std::endl;
+			
+			individual_pool_ = new EidosObjectPool(sizeof(Individual), capacity);
 		}
 		
-		switch (modeled_chromosome_type_)
+		// We also have to make space for the pointers to the genomes and individuals
+		genomes.reserve(new_individual_count * 2);
+		individuals.reserve(new_individual_count);
+		
+		for (int new_index = old_individual_count; new_index < new_individual_count; ++new_index)
 		{
-			case GenomeType::kAutosome:
+			// allocate the standard way
+			//Genome *genome1 = new Genome(this, mutrun_count, mutrun_length, GenomeType::kAutosome, true);
+			//Genome *genome2 = new Genome(this, mutrun_count, mutrun_length, GenomeType::kAutosome, true);
+			//Individual *individual = new Individual(*this, new_index, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, IndividualSex::kHermaphrodite, -1);
+			
+			// allocate out of our object pools
+			Genome *genome1 = new (genome_pool_->AllocateChunk()) Genome(this, mutrun_count, mutrun_length, GenomeType::kAutosome, true);
+			Genome *genome2 = new (genome_pool_->AllocateChunk()) Genome(this, mutrun_count, mutrun_length, GenomeType::kAutosome, true);
+			Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, new_index, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, IndividualSex::kHermaphrodite, -1);
+			
+			genomes.push_back(genome1);
+			genomes.push_back(genome2);
+			individuals.push_back(individual);
+		}
+	}
+	else if (new_individual_count < old_individual_count)
+	{
+		for (int old_index = new_individual_count; old_index < old_individual_count; ++old_index)
+		{
+			Genome *genome1 = genomes[old_index * 2];
+			Genome *genome2 = genomes[old_index * 2 + 1];
+			Individual *individual = individuals[old_index];
+			
+			// delete the standard way
+			//delete genome1;
+			//delete genome2;
+			//delete individual;
+			
+			// delete back into our object pools
+			genome1->~Genome();
+			genome_pool_->DisposeChunk(const_cast<Genome *>(genome1));
+			
+			genome2->~Genome();
+			genome_pool_->DisposeChunk(const_cast<Genome *>(genome2));
+			
+			individual->~Individual();
+			individual_pool_->DisposeChunk(const_cast<Individual *>(individual));
+		}
+		
+		genomes.resize(new_individual_count * 2);
+		individuals.resize(new_individual_count);
+	}
+	
+	// Next, fix the type of each genome, and clear them all, and fix individual sex if necessary
+	if (sex_enabled_)
+	{
+		double &sex_ratio = (p_make_child_generation ? child_sex_ratio_ : parent_sex_ratio_);
+		slim_popsize_t &first_male_index = (p_make_child_generation ? child_first_male_index_ : parent_first_male_index_);
+		
+		slim_popsize_t total_males = static_cast<slim_popsize_t>(lround(sex_ratio * new_individual_count));	// round in favor of males, arbitrarily
+		
+		first_male_index = new_individual_count - total_males;
+		
+		if (first_male_index <= 0)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFit): sex ratio of " << sex_ratio << " produced no females." << EidosTerminate();
+		else if (first_male_index >= subpop_size)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFit): sex ratio of " << sex_ratio << " produced no males." << EidosTerminate();
+		
+		// since we're now guaranteed to have at least one male and one female, we're guaranteed to use the new empty run somewhere, so no leak
+		MutationRun *shared_empty_run = MutationRun::NewMutationRun();
+		
+		for (int index = 0; index < new_individual_count; ++index)
+		{
+			Genome *genome1 = genomes[index * 2];
+			Genome *genome2 = genomes[index * 2 + 1];
+			Individual *individual = individuals[index];
+			bool is_female = (index < first_male_index);
+			
+			individual->sex_ = (is_female ? IndividualSex::kFemale : IndividualSex::kMale);
+			
+			switch (modeled_chromosome_type_)
 			{
-				// set up genomes of type GenomeType::kAutosome with a shared empty MutationRun for efficiency
+				case GenomeType::kAutosome:
 				{
-					child_genomes_.reserve(2 * child_subpop_size_);
-					
-					MutationRun *shared_empty_run = MutationRun::NewMutationRun();
-					Genome aut_model = Genome(this, mutrun_count, mutrun_length, GenomeType::kAutosome, false, shared_empty_run);
-					
-					for (slim_popsize_t i = 0; i < child_subpop_size_; ++i)
-					{
-						child_genomes_.emplace_back(aut_model);
-						child_genomes_.emplace_back(aut_model);
-					}
+					genome1->ReinitializeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
+					genome2->ReinitializeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
+					break;
 				}
-				
-				if (p_parents_also)
+				case GenomeType::kXChromosome:
 				{
-					parent_genomes_.reserve(2 * parent_subpop_size_);
+					genome1->ReinitializeToMutrun(GenomeType::kXChromosome, mutrun_count, mutrun_length, shared_empty_run);
 					
-					MutationRun *shared_empty_run_parental = MutationRun::NewMutationRun();
-					Genome aut_model_parental = Genome(this, mutrun_count, mutrun_length, GenomeType::kAutosome, false, shared_empty_run_parental);
+					if (is_female)	genome2->ReinitializeToMutrun(GenomeType::kXChromosome, mutrun_count, mutrun_length, shared_empty_run);
+					else			genome2->ReinitializeToMutrun(GenomeType::kYChromosome, 0, 0, nullptr);									// leave as a null genome
 					
-					for (slim_popsize_t i = 0; i < parent_subpop_size_; ++i)
-					{
-						parent_genomes_.emplace_back(aut_model_parental);
-						parent_genomes_.emplace_back(aut_model_parental);
-					}
+					break;
 				}
-				break;
-			}
-			case GenomeType::kXChromosome:
-			case GenomeType::kYChromosome:
-			{
-				// if we are not modeling a given chromosome type, then instances of it are null – they will log and exit if used
+				case GenomeType::kYChromosome:
 				{
-					child_genomes_.reserve(2 * child_subpop_size_);
+					genome1->ReinitializeToMutrun(GenomeType::kXChromosome, 0, 0, nullptr);													// leave as a null genome
 					
-					MutationRun *shared_empty_run = MutationRun::NewMutationRun();
-					Genome x_model = Genome(this, mutrun_count, mutrun_length, GenomeType::kXChromosome, modeled_chromosome_type_ != GenomeType::kXChromosome, shared_empty_run);
-					Genome y_model = Genome(this, mutrun_count, mutrun_length, GenomeType::kYChromosome, modeled_chromosome_type_ != GenomeType::kYChromosome, shared_empty_run);
+					if (is_female)	genome2->ReinitializeToMutrun(GenomeType::kXChromosome, 0, 0, nullptr);									// leave as a null genome
+					else			genome2->ReinitializeToMutrun(GenomeType::kYChromosome, mutrun_count, mutrun_length, shared_empty_run);
 					
-					// females get two Xs
-					for (slim_popsize_t i = 0; i < child_first_male_index_; ++i)
-					{
-						child_genomes_.emplace_back(x_model);
-						child_genomes_.emplace_back(x_model);
-					}
-					
-					// males get an X and a Y
-					for (slim_popsize_t i = child_first_male_index_; i < child_subpop_size_; ++i)
-					{
-						child_genomes_.emplace_back(x_model);
-						child_genomes_.emplace_back(y_model);
-					}
+					break;
 				}
-				
-				if (p_parents_also)
-				{
-					parent_genomes_.reserve(2 * parent_subpop_size_);
-					
-					MutationRun *shared_empty_run_parental = MutationRun::NewMutationRun();
-					Genome x_model_parental = Genome(this, mutrun_count, mutrun_length, GenomeType::kXChromosome, modeled_chromosome_type_ != GenomeType::kXChromosome, shared_empty_run_parental);
-					Genome y_model_parental = Genome(this, mutrun_count, mutrun_length, GenomeType::kYChromosome, modeled_chromosome_type_ != GenomeType::kYChromosome, shared_empty_run_parental);
-					
-					// females get two Xs
-					for (slim_popsize_t i = 0; i < parent_first_male_index_; ++i)
-					{
-						parent_genomes_.emplace_back(x_model_parental);
-						parent_genomes_.emplace_back(x_model_parental);
-					}
-					
-					// males get an X and a Y
-					for (slim_popsize_t i = parent_first_male_index_; i < parent_subpop_size_; ++i)
-					{
-						parent_genomes_.emplace_back(x_model_parental);
-						parent_genomes_.emplace_back(y_model_parental);
-					}
-				}
-				break;
 			}
 		}
 	}
 	else
 	{
-		// set up genomes of type GenomeType::kAutosome with a shared empty MutationRun for efficiency
+		if (new_individual_count > 0)
 		{
-			child_genomes_.reserve(2 * child_subpop_size_);
-			
 			MutationRun *shared_empty_run = MutationRun::NewMutationRun();
-			Genome aut_model = Genome(this, mutrun_count, mutrun_length, GenomeType::kAutosome, false, shared_empty_run);
 			
-			for (slim_popsize_t i = 0; i < child_subpop_size_; ++i)
+			for (int index = 0; index < new_individual_count; ++index)
 			{
-				child_genomes_.emplace_back(aut_model);
-				child_genomes_.emplace_back(aut_model);
-			}
-		}
-		
-		if (p_parents_also)
-		{
-			parent_genomes_.reserve(2 * parent_subpop_size_);
-			
-			MutationRun *shared_empty_run_parental = MutationRun::NewMutationRun();
-			Genome aut_model_parental = Genome(this, mutrun_count, mutrun_length, GenomeType::kAutosome, false, shared_empty_run_parental);
-			
-			for (slim_popsize_t i = 0; i < parent_subpop_size_; ++i)
-			{
-				parent_genomes_.emplace_back(aut_model_parental);
-				parent_genomes_.emplace_back(aut_model_parental);
+				Genome *genome1 = genomes[index * 2];
+				Genome *genome2 = genomes[index * 2 + 1];
+				//Individual *individual = individuals[index];
+				
+				genome1->ReinitializeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
+				genome2->ReinitializeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
 			}
 		}
 	}
-	
-#ifdef DEBUG
-	Genome::LogGenomeCopyAndAssign(old_log);
-#endif
-	
-	// This is also our cue to make sure that the individuals_ vectors are sufficiently large.  We just expand both to have as many individuals
-	// as would be needed to hold either the child or the parental generation, and we only expand, never shrink.  Since SLiM does not actually
-	// use these vectors for simulation dynamics, they do not need to be accurately sized, just sufficiently large.  By the way, if you're
-	// wondering why we need separate individuals for the child and parental generations at all, it is because in modifyChild() callbacks and
-	// similar situations, we need to be accessing tag values and genomes and such for the individuals in both generations at the same time.
-	// They two generations therefore need to keep separate state, just as with Genome objects and other such state.
-	slim_popsize_t max_subpop_size = std::max(child_subpop_size_, parent_subpop_size_);
-	slim_popsize_t parent_individuals_size = (slim_popsize_t)parent_individuals_.size();
-	slim_popsize_t child_individuals_size = (slim_popsize_t)child_individuals_.size();
-	
-#ifdef DEBUG
-	old_log = Individual::LogIndividualCopyAndAssign(false);
-#endif
-	
-	// BCH 7 November 2016: If we are going to resize a vector containing individuals, we have
-	// to be quite careful, because the vector can resize, changing the addresses of all of the
-	// Individual objects, which means that any cached pointers are invalid!  This is not an issue
-	// with most SLiM objects since we don't store them in vectors, we allocate them.  We also
-	// have to be careful with Genomes, which are also kept in vectors.
-	if (parent_individuals_size < max_subpop_size)
-	{
-		// Clear any EidosValue cache of our individuals that we have made for the individuals property
-		cached_parent_individuals_value_.reset();
-		
-		// Clear any cached EidosValue self-references inside the Individual objects themselves
-		for (Individual &parent_ind : parent_individuals_)
-			parent_ind.ClearCachedEidosValue();
-		
-		do
-		{
-			parent_individuals_.emplace_back(Individual(*this, parent_individuals_size));
-			parent_individuals_size++;
-		}
-		while (parent_individuals_size < max_subpop_size);
-	}
-	
-	if (child_individuals_size < max_subpop_size)
-	{
-		// Clear any EidosValue cache of our individuals that we have made for the individuals property
-		cached_child_individuals_value_.reset();
-		
-		// Clear any cached EidosValue self-references inside the Individual objects themselves
-		for (Individual &child_ind : child_individuals_)
-			child_ind.ClearCachedEidosValue();
-		
-		do
-		{
-			child_individuals_.emplace_back(Individual(*this, child_individuals_size));
-			child_individuals_size++;
-		}
-		while (child_individuals_size < max_subpop_size);
-	}
-	
-#ifdef DEBUG
-	Individual::LogIndividualCopyAndAssign(old_log);
-#endif
 }
 #endif	// SLIM_WF_ONLY
+
+void Subpopulation::CheckIndividualIntegrity(void)
+{
+#if defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY)
+	SLiMModelType model_type = population_.sim_.ModelType();
+#endif
+	
+	if ((int)parent_individuals_.size() != parent_subpop_size_)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between parent_subpop_size_ and parent_individuals_.size()." << EidosTerminate();
+	if ((int)parent_genomes_.size() != parent_subpop_size_ * 2)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between parent_subpop_size_ and parent_genomes_.size()." << EidosTerminate();
+	
+	for (int ind_index = 0; ind_index < parent_subpop_size_; ++ind_index)
+	{
+		Individual *individual = parent_individuals_[ind_index];
+		Genome *genome1 = parent_genomes_[ind_index * 2];
+		Genome *genome2 = parent_genomes_[ind_index * 2 + 1];
+		bool invalid_age = false;
+		
+		if (!individual)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) null pointer for individual." << EidosTerminate();
+		if (!genome1 || !genome2)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) null pointer for genome." << EidosTerminate();
+		
+		if ((individual->genome1_ != genome1) || (individual->genome2_ != genome2))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between parent_genomes_ and individual->genomeX_." << EidosTerminate();
+		
+		if (individual->index_ != ind_index)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between individual->index_ and ind_index." << EidosTerminate();
+	
+		if (&(individual->subpopulation_) != this)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between individual->subpopulation_ and subpopulation." << EidosTerminate();
+		
+		if ((genome1->subpop_ != this) || (genome2->subpop_ != this))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between genome->subpop_ and subpopulation." << EidosTerminate();
+		
+#if defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY)
+		if (model_type == SLiMModelType::kModelTypeWF)
+		{
+			if (individual->age_ != -1)
+				invalid_age = true;
+		}
+		else
+		{
+			if (individual->age_ < 0)
+				invalid_age = true;
+		}
+#endif
+		
+		if (invalid_age)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) invalid value for individual->age_." << EidosTerminate();
+		
+		if (sex_enabled_)
+		{
+			bool is_female = (ind_index < parent_first_male_index_);
+			GenomeType genome1_type, genome2_type;
+			bool genome1_null = false, genome2_null = false;
+			
+			if ((is_female && (individual->sex_ != IndividualSex::kFemale)) ||
+				(!is_female && (individual->sex_ != IndividualSex::kMale)))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between individual->sex_ and parent_first_male_index_." << EidosTerminate();
+			
+			switch (modeled_chromosome_type_)
+			{
+				case GenomeType::kAutosome:		genome1_type = GenomeType::kAutosome; genome2_type = GenomeType::kAutosome; break;
+				case GenomeType::kXChromosome:	genome1_type = GenomeType::kXChromosome; genome2_type = (is_female ? GenomeType::kXChromosome : GenomeType::kYChromosome); genome2_null = !is_female; break;
+				case GenomeType::kYChromosome:	genome1_type = GenomeType::kXChromosome; genome2_type = (is_female ? GenomeType::kXChromosome : GenomeType::kYChromosome); genome1_null = true; genome2_null = is_female; break;
+			}
+			
+			if ((genome1->IsNull() != genome1_null) || (genome2->IsNull() != genome2_null))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between expected and actual null genome status in sexual simulation." << EidosTerminate();
+			if ((genome1->Type() != genome1_type) || (genome2->Type() != genome2_type))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between expected and actual genome type in sexual simulation." << EidosTerminate();
+		}
+		else
+		{
+			if (individual->sex_ != IndividualSex::kHermaphrodite)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) non-hermaphrodite individual in non-sexual simulation." << EidosTerminate();
+			
+			if (genome1->IsNull() || genome2->IsNull())
+				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) null genome in individual in non-sexual simulation." << EidosTerminate();
+			
+			if ((genome1->Type() != GenomeType::kAutosome) || (genome2->Type() != GenomeType::kAutosome))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) non-autosome genome in individual in non-sexual simulation." << EidosTerminate();
+		}
+	}
+}
 
 Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size) : population_(p_population), subpopulation_id_(p_subpopulation_id), parent_subpop_size_(p_subpop_size),
 #ifdef SLIM_WF_ONLY
@@ -515,7 +560,10 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 {
 #ifdef SLIM_WF_ONLY
 	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
-		GenerateChildrenToFit(true);
+	{
+		GenerateIndividualsToFitWF(false, false);	// make parent generation, not placeholders
+		GenerateIndividualsToFitWF(true, true);		// make child generation, placeholders
+	}
 #endif	// SLIM_WF_ONLY
 #warning implement me!
 	
@@ -546,7 +594,10 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 {
 #ifdef SLIM_WF_ONLY
 	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
-		GenerateChildrenToFit(true);
+	{
+		GenerateIndividualsToFitWF(false, false);	// make parent generation, not placeholders
+		GenerateIndividualsToFitWF(true, true);		// make child generation, placeholders
+	}
 #endif	// SLIM_WF_ONLY
 #warning implement me!
 	
@@ -604,6 +655,61 @@ Subpopulation::~Subpopulation(void)
 	
 	if (cached_male_fitness_)
 		free(cached_male_fitness_);
+	
+	if ((false))
+	{
+		// dispose of genomes and individuals the old way
+		for (Genome *genome : parent_genomes_)
+			delete genome;
+		
+		for (Individual *individual : parent_individuals_)
+			delete individual;
+	}
+	else
+	{
+		// dispose of genomes and individuals with our object pools
+		for (Genome *genome : parent_genomes_)
+		{
+			genome->~Genome();
+			genome_pool_->DisposeChunk(const_cast<Genome *>(genome));
+		}
+		
+		for (Individual *individual : parent_individuals_)
+		{
+			individual->~Individual();
+			individual_pool_->DisposeChunk(const_cast<Individual *>(individual));
+		}
+	}
+	
+#ifdef SLIM_WF_ONLY
+	if ((false))
+	{
+		// dispose of genomes and individuals the old way
+		for (Genome *genome : child_genomes_)
+			delete genome;
+		
+		for (Individual *individual : child_individuals_)
+			delete individual;
+	}
+	else
+	{
+		// dispose of genomes and individuals with our object pools
+		for (Genome *genome : child_genomes_)
+		{
+			genome->~Genome();
+			genome_pool_->DisposeChunk(const_cast<Genome *>(genome));
+		}
+		
+		for (Individual *individual : child_individuals_)
+		{
+			individual->~Individual();
+			individual_pool_->DisposeChunk(const_cast<Individual *>(individual));
+		}
+	}
+#endif	// SLIM_WF_ONLY
+	
+	delete genome_pool_;
+	delete individual_pool_;
 	
 	for (const SpatialMapPair &map_pair : spatial_maps_)
 	{
@@ -1184,9 +1290,9 @@ double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &
 #endif
 	
 	double computed_fitness = 1.0;
-	Individual *individual = &(parent_individuals_[p_individual_index]);
-	Genome *genome1 = &(parent_genomes_[p_individual_index * 2]);
-	Genome *genome2 = &(parent_genomes_[p_individual_index * 2 + 1]);
+	Individual *individual = parent_individuals_[p_individual_index];
+	Genome *genome1 = parent_genomes_[p_individual_index * 2];
+	Genome *genome2 = parent_genomes_[p_individual_index * 2 + 1];
 	SLiMSim &sim = population_.sim_;
 	
 	for (SLiMEidosBlock *fitness_callback : p_fitness_callbacks)
@@ -1331,8 +1437,8 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_
 #endif
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	Genome *genome1 = &(parent_genomes_[p_individual_index * 2]);
-	Genome *genome2 = &(parent_genomes_[p_individual_index * 2 + 1]);
+	Genome *genome1 = parent_genomes_[p_individual_index * 2];
+	Genome *genome2 = parent_genomes_[p_individual_index * 2 + 1];
 	bool genome1_null = genome1->IsNull();
 	bool genome2_null = genome2->IsNull();
 	
@@ -1554,9 +1660,9 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 #endif
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	Individual *individual = &(parent_individuals_[p_individual_index]);
-	Genome *genome1 = &(parent_genomes_[p_individual_index * 2]);
-	Genome *genome2 = &(parent_genomes_[p_individual_index * 2 + 1]);
+	Individual *individual = parent_individuals_[p_individual_index];
+	Genome *genome1 = parent_genomes_[p_individual_index * 2];
+	Genome *genome2 = parent_genomes_[p_individual_index * 2 + 1];
 	bool genome1_null = genome1->IsNull();
 	bool genome2_null = genome2->IsNull();
 	
@@ -1814,9 +1920,9 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 #endif
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	Individual *individual = &(parent_individuals_[p_individual_index]);
-	Genome *genome1 = &(parent_genomes_[p_individual_index * 2]);
-	Genome *genome2 = &(parent_genomes_[p_individual_index * 2 + 1]);
+	Individual *individual = parent_individuals_[p_individual_index];
+	Genome *genome1 = parent_genomes_[p_individual_index * 2];
+	Genome *genome2 = parent_genomes_[p_individual_index * 2 + 1];
 	bool genome1_null = genome1->IsNull();
 	bool genome2_null = genome2->IsNull();
 	
@@ -2189,10 +2295,10 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 	cached_child_individuals_value_.swap(cached_parent_individuals_value_);
 	
 	// Clear out any dictionary values and color values stored in what are now the child individuals
-	for (Individual &child : child_individuals_)
+	for (Individual *child : child_individuals_)
 	{
-		child.RemoveAllKeys();
-		child.ClearColor();
+		child->RemoveAllKeys();
+		child->ClearColor();
 	}
 	
 	// The parents now have the values that used to belong to the children.
@@ -2205,7 +2311,7 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 	
 	// The parental genomes, which have now been swapped into the child genome vactor, no longer fit the bill.  We need to throw them out and generate new genome vectors.
 	if (will_need_new_children)
-		GenerateChildrenToFit(false);	// false means generate only new children, not new parents
+		GenerateIndividualsToFitWF(true, true);		// make child generation, placeholders
 }
 #endif	// SLIM_WF_ONLY
 
@@ -2252,7 +2358,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 					cached_child_genomes_value_ = EidosValue_SP(vec);
 					
 					for (auto genome_iter = child_genomes_.begin(); genome_iter != child_genomes_.end(); genome_iter++)
-						vec->push_object_element(&(*genome_iter));		// operator * can be overloaded by the iterator
+						vec->push_object_element(*genome_iter);
 				}
 				/*
 				else
@@ -2284,7 +2390,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 					cached_parent_genomes_value_ = EidosValue_SP(vec);
 					
 					for (auto genome_iter = parent_genomes_.begin(); genome_iter != parent_genomes_.end(); genome_iter++)
-						vec->push_object_element(&(*genome_iter));		// operator * can be overloaded by the iterator
+						vec->push_object_element(*genome_iter);
 				}
 				/*
 				else
@@ -2315,11 +2421,9 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			{
 				slim_popsize_t subpop_size = child_subpop_size_;
 				
-				// Check for an outdated cache and detach from it
-				// BCH 7 November 2016: This probably never occurs any more; we reset() in
-				// GenerateChildrenToFit() now, pre-emptively.  See the comment there.
+				// Check for an outdated cache; this should never happen, so we flag it as an error
 				if (cached_child_individuals_value_ && (cached_child_individuals_value_->Count() != subpop_size))
-					cached_child_individuals_value_.reset();
+					EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): (internal error) cached_child_individuals_value_ out of date." << EidosTerminate();
 				
 				// Build and return an EidosValue_Object_vector with the current set of individuals in it
 				if (!cached_child_individuals_value_)
@@ -2328,7 +2432,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 					cached_child_individuals_value_ = EidosValue_SP(vec);
 					
 					for (slim_popsize_t individual_index = 0; individual_index < subpop_size; individual_index++)
-						vec->push_object_element(&child_individuals_[individual_index]);
+						vec->push_object_element(child_individuals_[individual_index]);
 				}
 				
 				return cached_child_individuals_value_;
@@ -2338,11 +2442,9 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			{
 				slim_popsize_t subpop_size = parent_subpop_size_;
 				
-				// Check for an outdated cache and detach from it
-				// BCH 7 November 2016: This probably never occurs any more; we reset() in
-				// GenerateChildrenToFit() now, pre-emptively.  See the comment there.
+				// Check for an outdated cache; this should never happen, so we flag it as an error
 				if (cached_parent_individuals_value_ && (cached_parent_individuals_value_->Count() != subpop_size))
-					cached_parent_individuals_value_.reset();
+					EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): (internal error) cached_parent_individuals_value_ out of date." << EidosTerminate();
 				
 				// Build and return an EidosValue_Object_vector with the current set of individuals in it
 				if (!cached_parent_individuals_value_)
@@ -2351,7 +2453,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 					cached_parent_individuals_value_ = EidosValue_SP(vec);
 					
 					for (slim_popsize_t individual_index = 0; individual_index < subpop_size; individual_index++)
-						vec->push_object_element(&parent_individuals_[individual_index]);
+						vec->push_object_element(parent_individuals_[individual_index]);
 				}
 				
 				return cached_parent_individuals_value_;
@@ -3030,7 +3132,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSexRatio(EidosGlobalStringID p_met
 	
 	// After we change the subpop sex ratio, we need to generate new children genomes to fit the new requirements
 	child_sex_ratio_ = sex_ratio;
-	GenerateChildrenToFit(false);	// false means generate only new children, not new parents
+	GenerateIndividualsToFitWF(true, true);		// make child generation, placeholders
 	
 	return gStaticEidosValueNULLInvisible;
 }

@@ -38,10 +38,6 @@
 #pragma mark Genome
 #pragma mark -
 
-#ifdef DEBUG
-bool Genome::s_log_copy_and_assign_ = true;
-#endif
-
 // Static class variables in support of Genome's bulk operation optimization; see Genome::WillModifyRunForBulkOperation()
 int64_t Genome::s_bulk_operation_id_ = 0;
 int Genome::s_bulk_operation_mutrun_index_ = -1;
@@ -332,90 +328,6 @@ void Genome::TallyGenomeMutationReferences(int64_t p_operation_id)
 	}
 }
 
-
-//
-//	Methods to enforce limited copying
-//
-
-Genome::Genome(const Genome &p_original)
-{
-#ifdef DEBUG
-	if (s_log_copy_and_assign_)
-	{
-		SLIM_ERRSTREAM << "********* Genome::Genome(Genome&) called!" << std::endl;
-		Eidos_PrintStacktrace(stderr);
-		SLIM_ERRSTREAM << "************************************************" << std::endl;
-	}
-#endif
-	
-	mutrun_count_ = p_original.mutrun_count_;
-	mutrun_length_ = p_original.mutrun_length_;
-	
-	if (mutrun_count_ == 0)
-	{
-		// p_original is a null genome, so make ourselves null too
-		mutruns_ = nullptr;
-	}
-	else
-	{
-		// copy all mutation runs; these are shared-pointer copies
-		if (mutrun_count_ <= SLIM_GENOME_MUTRUN_BUFSIZE)
-			mutruns_ = run_buffer_;
-		else
-			mutruns_ = new MutationRun_SP[mutrun_count_];
-		
-		for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-			mutruns_[run_index] = p_original.mutruns_[run_index];
-	}
-	
-	// and copy other state
-	genome_type_ = p_original.genome_type_;
-	
-	// We copy this because we only use this constructor within a single subpopulation, never to
-	// construct a genome destined for a new subpopulation that is identical to an existing
-	// subpopulation.  This constructor is only for internal copying!
-	subpop_ = p_original.subpop_;
-}
-
-Genome& Genome::operator= (const Genome& p_original)
-{
-#ifdef DEBUG
-	if (s_log_copy_and_assign_)
-	{
-		SLIM_ERRSTREAM << "********* Genome::operator=(Genome&) called!" << std::endl;
-		Eidos_PrintStacktrace(stderr);
-		SLIM_ERRSTREAM << "************************************************" << std::endl;
-	}
-#endif
-	
-	if (this != &p_original)
-	{
-		if (p_original.mutrun_count_ == 0)
-		{
-			// p_original is a null genome, so make ourselves null too
-			MakeNull();
-		}
-		else
-		{
-			// copy all mutation runs; these are shared-pointer copies
-			if ((mutrun_count_ != p_original.mutrun_count_) || (mutrun_length_ != p_original.mutrun_length_))
-				EIDOS_TERMINATION << "ERROR (Genome::operator=): (internal error) assignment from genome with different count/length." << EidosTerminate();
-			
-			for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-				mutruns_[run_index] = p_original.mutruns_[run_index];
-		}
-		
-		// and copy other state
-		genome_type_ = p_original.genome_type_;
-		
-		// DO NOT copy the subpop pointer!  That is not part of the genetic state of the genome,
-		// it's a back-pointer to the Subpopulation that owns this genome, and never changes!
-		// subpop_ = p_original.subpop_;
-	}
-	
-	return *this;
-}
-
 void Genome::MakeNull(void)
 {
 	if (mutrun_count_)
@@ -432,16 +344,44 @@ void Genome::MakeNull(void)
 	}
 }
 
-#ifdef DEBUG
-bool Genome::LogGenomeCopyAndAssign(bool p_log)
+void Genome::ReinitializeToMutrun(GenomeType p_genome_type, int32_t p_mutrun_count, int32_t p_mutrun_length, MutationRun *p_run)
 {
-	bool old_value = s_log_copy_and_assign_;
+	genome_type_ = p_genome_type;
 	
-	s_log_copy_and_assign_ = p_log;
-	
-	return old_value;
+	if (p_run)
+	{
+		if (mutrun_count_ == 0)
+		{
+			// was a null genome, needs to become not null
+			mutrun_count_ = p_mutrun_count;
+			mutrun_length_ = p_mutrun_length;
+			
+			if (mutrun_count_ <= SLIM_GENOME_MUTRUN_BUFSIZE)
+				mutruns_ = run_buffer_;
+			else
+				mutruns_ = new MutationRun_SP[mutrun_count_];
+		}
+		
+		for (int run_index = 0; run_index < mutrun_count_; ++run_index)
+			mutruns_[run_index].reset(p_run);
+	}
+	else
+	{
+		if (mutrun_count_)
+		{
+			// was a non-null genome, needs to become null
+			for (int run_index = 0; run_index < mutrun_count_; ++run_index)
+				mutruns_[run_index].reset();
+			
+			if (mutruns_ != run_buffer_)
+				delete[] mutruns_;
+			mutruns_ = nullptr;
+			
+			mutrun_count_ = 0;
+			mutrun_length_ = 0;
+		}
+	}
 }
-#endif
 
 /*
 void Genome::assert_identical_to_runs(MutationRun_SP *p_mutruns, int32_t p_mutrun_count)

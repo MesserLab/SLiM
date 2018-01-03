@@ -57,7 +57,7 @@ public:
 	//	This class should not be copied, in general, but the default copy constructor and assignment operator cannot be entirely
 	//	disabled, because we want to keep instances of this class inside STL containers.  We therefore override the default copy
 	//	constructor and the default assignment operator to log whenever they are called.  This is intended to reduce the risk of
-	//	unintentional copying.  Logging can be disabled by bracketing with LogGenomeCopyAndAssign() when appropriate.
+	//	unintentional copying.  Logging can be disabled by bracketing with LogGenomicElementCopyAndAssign() when appropriate.
 	//
 	GenomicElement(const GenomicElement &p_original);
 	GenomicElement& operator= (const GenomicElement &p_original);

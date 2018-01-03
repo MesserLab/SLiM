@@ -133,7 +133,7 @@ public:
 	}
 	
 	// usage: new (gXPool->AllocateChunk()) ObjectType(... parameters ...);
-	void *AllocateChunk()
+	inline __attribute__((always_inline)) void *AllocateChunk()
 	{
 		if (_firstDeleted)
 		{
@@ -155,7 +155,7 @@ public:
 	//
 	//	object->~ObjectType();
 	//	gXPool->DisposeChunk(const_cast<ObjectType*>(object));
-	void DisposeChunk(void *content)
+	inline __attribute__((always_inline)) void DisposeChunk(void *content)
 	{
 		*((void **)content) = _firstDeleted;
 		_firstDeleted = content;

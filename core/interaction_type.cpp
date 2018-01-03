@@ -81,7 +81,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 	SLiMSim &sim = p_subpop->population_.sim_;
 	slim_objectid_t subpop_id = p_subpop->subpopulation_id_;
 	slim_popsize_t subpop_size = p_subpop->parent_subpop_size_;
-	Individual *subpop_individuals = p_subpop->parent_individuals_.data();
+	Individual **subpop_individuals = p_subpop->parent_individuals_.data();
 	
 	auto data_iter = data_.find(subpop_id);
 	InteractionsData *subpop_data;
@@ -145,7 +145,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 		subpop_data->positions_ = positions;
 		
 		int ind_index = 0;
-		Individual *individual = subpop_individuals;
+		Individual **individual = subpop_individuals;
 		double *ind_positions = positions;
 		
 		// IMPORTANT: This is the only place in InteractionType's code where the spatial position of the individuals is
@@ -168,7 +168,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 				// fast loop for the non-periodic case
 				while (ind_index < subpop_size)
 				{
-					ind_positions[0] = individual->spatial_x_;
+					ind_positions[0] = (*individual)->spatial_x_;
 					++ind_index; ++individual; ind_positions += SLIM_MAX_DIMENSIONALITY;
 				}
 			}
@@ -179,7 +179,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 				
 				while (ind_index < subpop_size)
 				{
-					double coord = individual->spatial_x_;
+					double coord = (*individual)->spatial_x_;
 					
 					if ((coord < 0.0) || (coord > coord_bound))
 						out_of_bounds_seen = true;
@@ -199,7 +199,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 				// fast loop for the non-periodic case
 				while (ind_index < subpop_size)
 				{
-					ind_positions[0] = individual->spatial_y_;
+					ind_positions[0] = (*individual)->spatial_y_;
 					++ind_index; ++individual; ind_positions += SLIM_MAX_DIMENSIONALITY;
 				}
 			}
@@ -210,7 +210,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 				
 				while (ind_index < subpop_size)
 				{
-					double coord = individual->spatial_y_;
+					double coord = (*individual)->spatial_y_;
 					
 					if ((coord < 0.0) || (coord > coord_bound))
 						out_of_bounds_seen = true;
@@ -230,7 +230,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 				// fast loop for the non-periodic case
 				while (ind_index < subpop_size)
 				{
-					ind_positions[0] = individual->spatial_z_;
+					ind_positions[0] = (*individual)->spatial_z_;
 					++ind_index; ++individual; ind_positions += SLIM_MAX_DIMENSIONALITY;
 				}
 			}
@@ -241,7 +241,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 				
 				while (ind_index < subpop_size)
 				{
-					double coord = individual->spatial_z_;
+					double coord = (*individual)->spatial_z_;
 					
 					if ((coord < 0.0) || (coord > coord_bound))
 						out_of_bounds_seen = true;
@@ -262,8 +262,8 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 				// fast loop for the non-periodic case
 				while (ind_index < subpop_size)
 				{
-					ind_positions[0] = individual->spatial_x_;
-					ind_positions[1] = individual->spatial_y_;
+					ind_positions[0] = (*individual)->spatial_x_;
+					ind_positions[1] = (*individual)->spatial_y_;
 					++ind_index; ++individual; ind_positions += SLIM_MAX_DIMENSIONALITY;
 				}
 			}
@@ -275,8 +275,8 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 				
 				while (ind_index < subpop_size)
 				{
-					double coord1 = individual->spatial_x_;
-					double coord2 = individual->spatial_y_;
+					double coord1 = (*individual)->spatial_x_;
+					double coord2 = (*individual)->spatial_y_;
 					
 					if ((periodic_x_ && ((coord1 < 0.0) || (coord1 > coord1_bound))) ||
 						(periodic_y_ && ((coord2 < 0.0) || (coord2 > coord2_bound))))
@@ -299,8 +299,8 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 				// fast loop for the non-periodic case
 				while (ind_index < subpop_size)
 				{
-					ind_positions[0] = individual->spatial_x_;
-					ind_positions[1] = individual->spatial_z_;
+					ind_positions[0] = (*individual)->spatial_x_;
+					ind_positions[1] = (*individual)->spatial_z_;
 					++ind_index; ++individual; ind_positions += SLIM_MAX_DIMENSIONALITY;
 				}
 			}
@@ -312,8 +312,8 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 				
 				while (ind_index < subpop_size)
 				{
-					double coord1 = individual->spatial_x_;
-					double coord2 = individual->spatial_z_;
+					double coord1 = (*individual)->spatial_x_;
+					double coord2 = (*individual)->spatial_z_;
 					
 					if ((periodic_x_ && ((coord1 < 0.0) || (coord1 > coord1_bound))) ||
 						(periodic_y_ && ((coord2 < 0.0) || (coord2 > coord2_bound))))
@@ -336,8 +336,8 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 				// fast loop for the non-periodic case
 				while (ind_index < subpop_size)
 				{
-					ind_positions[0] = individual->spatial_y_;
-					ind_positions[1] = individual->spatial_z_;
+					ind_positions[0] = (*individual)->spatial_y_;
+					ind_positions[1] = (*individual)->spatial_z_;
 					++ind_index; ++individual; ind_positions += SLIM_MAX_DIMENSIONALITY;
 				}
 			}
@@ -349,8 +349,8 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 				
 				while (ind_index < subpop_size)
 				{
-					double coord1 = individual->spatial_y_;
-					double coord2 = individual->spatial_z_;
+					double coord1 = (*individual)->spatial_y_;
+					double coord2 = (*individual)->spatial_z_;
 					
 					if ((periodic_x_ && ((coord1 < 0.0) || (coord1 > coord1_bound))) ||
 						(periodic_y_ && ((coord2 < 0.0) || (coord2 > coord2_bound))))
@@ -374,9 +374,9 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 				// fast loop for the non-periodic case
 				while (ind_index < subpop_size)
 				{
-					ind_positions[0] = individual->spatial_x_;
-					ind_positions[1] = individual->spatial_y_;
-					ind_positions[2] = individual->spatial_z_;
+					ind_positions[0] = (*individual)->spatial_x_;
+					ind_positions[1] = (*individual)->spatial_y_;
+					ind_positions[2] = (*individual)->spatial_z_;
 					++ind_index; ++individual; ind_positions += SLIM_MAX_DIMENSIONALITY;
 				}
 			}
@@ -389,9 +389,9 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 				
 				while (ind_index < subpop_size)
 				{
-					double coord1 = individual->spatial_x_;
-					double coord2 = individual->spatial_y_;
-					double coord3 = individual->spatial_z_;
+					double coord1 = (*individual)->spatial_x_;
+					double coord2 = (*individual)->spatial_y_;
+					double coord3 = (*individual)->spatial_z_;
 					
 					if ((periodic_x_ && ((coord1 < 0.0) || (coord1 > coord1_bound))) ||
 						(periodic_y_ && ((coord2 < 0.0) || (coord2 > coord2_bound))) ||
@@ -494,7 +494,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 {
 	slim_objectid_t subpop_id = p_subpop->subpopulation_id_;
 	slim_popsize_t subpop_size = p_subpop->parent_subpop_size_;
-	Individual *subpop_individuals = p_subpop->parent_individuals_.data();
+	Individual **subpop_individuals = p_subpop->parent_individuals_.data();
 	InteractionsData &subpop_data = data_[subpop_id];
 	std::vector<SLiMEidosBlock*> &callbacks = subpop_data.evaluation_interaction_callbacks_;
 	bool no_callbacks = (callbacks.size() == 0);
@@ -533,13 +533,13 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 			// No reciprocality, so we don't need to mirror; just go through strengths_ sequentially
 			int receiving_index = 0;
 			double *receiving_strength = subpop_data.strengths_;
-			Individual *receiving_individual = subpop_individuals;
+			Individual **receiving_individual = subpop_individuals;
 			
 			while (receiving_index < subpop_size)
 			{
 				int exerting_index = 0;
 				double *exerting_strength = receiving_strength;		// follow the row of receiver data
-				Individual *exerting_individual = subpop_individuals;
+				Individual **exerting_individual = subpop_individuals;
 				
 				// The inner loop depends on sex-segregation.  If it is enabled, we need to check the existing strength value
 				// and fill only when necessary; if not, we fill in all values with no check because we're overwriting garbage.
@@ -553,7 +553,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 							if (no_callbacks)
 								*exerting_strength = CalculateStrengthNoCallbacks(NAN);
 							else
-								*exerting_strength = CalculateStrengthWithCallbacks(NAN, receiving_individual, exerting_individual, p_subpop, callbacks);
+								*exerting_strength = CalculateStrengthWithCallbacks(NAN, *receiving_individual, *exerting_individual, p_subpop, callbacks);
 						}
 						
 						exerting_index++; exerting_strength++; exerting_individual++;
@@ -574,7 +574,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 							if (no_callbacks)
 								*exerting_strength = CalculateStrengthNoCallbacks(NAN);
 							else
-								*exerting_strength = CalculateStrengthWithCallbacks(NAN, receiving_individual, exerting_individual, p_subpop, callbacks);
+								*exerting_strength = CalculateStrengthWithCallbacks(NAN, *receiving_individual, *exerting_individual, p_subpop, callbacks);
 						}
 						
 						exerting_index++; exerting_strength++; exerting_individual++;
@@ -591,14 +591,14 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 			int receiving_index = 0;
 			double *receiving_strength = subpop_data.strengths_;
 			double *mirror_receiving_strength = subpop_data.strengths_;
-			Individual *receiving_individual = subpop_individuals;
+			Individual **receiving_individual = subpop_individuals;
 			
 			while (receiving_index < subpop_size)
 			{
 				int exerting_index = receiving_index;
 				double *exerting_strength = receiving_strength + exerting_index;
 				double *mirror_exerting_strength = mirror_receiving_strength + exerting_index * subpop_size;
-				Individual *exerting_individual = subpop_individuals + exerting_index;
+				Individual **exerting_individual = subpop_individuals + exerting_index;
 				
 				if (is_sex_segregated)
 				{
@@ -611,7 +611,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 							if (no_callbacks)
 								strength = CalculateStrengthNoCallbacks(NAN);
 							else
-								strength = CalculateStrengthWithCallbacks(NAN, receiving_individual, exerting_individual, p_subpop, callbacks);
+								strength = CalculateStrengthWithCallbacks(NAN, *receiving_individual, *exerting_individual, p_subpop, callbacks);
 							
 							*exerting_strength = strength;
 							*mirror_exerting_strength = strength;
@@ -635,7 +635,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 							if (no_callbacks)
 								strength = CalculateStrengthNoCallbacks(NAN);
 							else
-								strength = CalculateStrengthWithCallbacks(NAN, receiving_individual, exerting_individual, p_subpop, callbacks);
+								strength = CalculateStrengthWithCallbacks(NAN, *receiving_individual, *exerting_individual, p_subpop, callbacks);
 						}
 						
 						*exerting_strength = strength;
@@ -660,7 +660,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 			double *receiving_position = subpop_data.positions_;
 			double *receiving_distance = subpop_data.distances_;
 			double *receiving_strength = subpop_data.strengths_;
-			Individual *receiving_individual = subpop_individuals;
+			Individual **receiving_individual = subpop_individuals;
 			
 			while (receiving_index < subpop_size)
 			{
@@ -668,7 +668,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 				double *exerting_position = subpop_data.positions_;
 				double *exerting_distance = receiving_distance;		// follow the row of receiver data
 				double *exerting_strength = receiving_strength;		// follow the row of receiver data
-				Individual *exerting_individual = subpop_individuals;
+				Individual **exerting_individual = subpop_individuals;
 				
 				// The inner loop depends on sex-segregation.  If it is enabled, we need to check the existing strength value
 				// and fill only when necessary; if not, we fill in all values with no check because we're overwriting garbage.
@@ -689,7 +689,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 								if (no_callbacks)
 									*exerting_strength = CalculateStrengthNoCallbacks(distance);
 								else
-									*exerting_strength = CalculateStrengthWithCallbacks(distance, receiving_individual, exerting_individual, p_subpop, callbacks);
+									*exerting_strength = CalculateStrengthWithCallbacks(distance, *receiving_individual, *exerting_individual, p_subpop, callbacks);
 							}
 							else
 								*exerting_strength = 0.0;
@@ -720,7 +720,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 								if (no_callbacks)
 									*exerting_strength = CalculateStrengthNoCallbacks(distance);
 								else
-									*exerting_strength = CalculateStrengthWithCallbacks(distance, receiving_individual, exerting_individual, p_subpop, callbacks);
+									*exerting_strength = CalculateStrengthWithCallbacks(distance, *receiving_individual, *exerting_individual, p_subpop, callbacks);
 							}
 							else
 								*exerting_strength = 0.0;
@@ -743,7 +743,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 			double *mirror_receiving_distance = subpop_data.distances_;
 			double *receiving_strength = subpop_data.strengths_;
 			double *mirror_receiving_strength = subpop_data.strengths_;
-			Individual *receiving_individual = subpop_individuals;
+			Individual **receiving_individual = subpop_individuals;
 			
 			while (receiving_index < subpop_size)
 			{
@@ -753,7 +753,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 				double *mirror_exerting_distance = mirror_receiving_distance + exerting_index * subpop_size;
 				double *exerting_strength = receiving_strength + exerting_index;
 				double *mirror_exerting_strength = mirror_receiving_strength + exerting_index * subpop_size;
-				Individual *exerting_individual = subpop_individuals;
+				Individual **exerting_individual = subpop_individuals;
 				
 				if (is_sex_segregated)
 				{
@@ -773,7 +773,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 								if (no_callbacks)
 									strength = CalculateStrengthNoCallbacks(distance);
 								else
-									strength = CalculateStrengthWithCallbacks(distance, receiving_individual, exerting_individual, p_subpop, callbacks);
+									strength = CalculateStrengthWithCallbacks(distance, *receiving_individual, *exerting_individual, p_subpop, callbacks);
 							}
 							else
 								strength = 0.0;
@@ -810,7 +810,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 								if (no_callbacks)
 									strength = CalculateStrengthNoCallbacks(distance);
 								else
-									strength = CalculateStrengthWithCallbacks(distance, receiving_individual, exerting_individual, p_subpop, callbacks);
+									strength = CalculateStrengthWithCallbacks(distance, *receiving_individual, *exerting_individual, p_subpop, callbacks);
 							}
 							else
 								strength = 0.0;
@@ -839,7 +839,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 			double *receiving_position = subpop_data.positions_;
 			double *receiving_distance = subpop_data.distances_;
 			double *receiving_strength = subpop_data.strengths_;
-			Individual *receiving_individual = subpop_individuals;
+			Individual **receiving_individual = subpop_individuals;
 			
 			while (receiving_index < subpop_size)
 			{
@@ -847,7 +847,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 				double *exerting_position = subpop_data.positions_;
 				double *exerting_distance = receiving_distance;		// follow the row of receiver data
 				double *exerting_strength = receiving_strength;		// follow the row of receiver data
-				Individual *exerting_individual = subpop_individuals;
+				Individual **exerting_individual = subpop_individuals;
 				
 				// The inner loop depends on sex-segregation.  If it is enabled, we need to check the existing strength value
 				// and fill only when necessary; if not, we fill in all values with no check because we're overwriting garbage.
@@ -891,7 +891,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 								if (no_callbacks)
 									*exerting_strength = CalculateStrengthNoCallbacks(distance);
 								else
-									*exerting_strength = CalculateStrengthWithCallbacks(distance, receiving_individual, exerting_individual, p_subpop, callbacks);
+									*exerting_strength = CalculateStrengthWithCallbacks(distance, *receiving_individual, *exerting_individual, p_subpop, callbacks);
 							}
 							else
 								*exerting_strength = 0.0;
@@ -942,7 +942,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 								if (no_callbacks)
 									*exerting_strength = CalculateStrengthNoCallbacks(distance);
 								else
-									*exerting_strength = CalculateStrengthWithCallbacks(distance, receiving_individual, exerting_individual, p_subpop, callbacks);
+									*exerting_strength = CalculateStrengthWithCallbacks(distance, *receiving_individual, *exerting_individual, p_subpop, callbacks);
 							}
 							else
 								*exerting_strength = 0.0;
@@ -965,7 +965,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 			double *mirror_receiving_distance = subpop_data.distances_;
 			double *receiving_strength = subpop_data.strengths_;
 			double *mirror_receiving_strength = subpop_data.strengths_;
-			Individual *receiving_individual = subpop_individuals;
+			Individual **receiving_individual = subpop_individuals;
 			
 			while (receiving_index < subpop_size)
 			{
@@ -975,7 +975,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 				double *mirror_exerting_distance = mirror_receiving_distance + exerting_index * subpop_size;
 				double *exerting_strength = receiving_strength + exerting_index;
 				double *mirror_exerting_strength = mirror_receiving_strength + exerting_index * subpop_size;
-				Individual *exerting_individual = subpop_individuals;
+				Individual **exerting_individual = subpop_individuals;
 				
 				if (is_sex_segregated)
 				{
@@ -1015,7 +1015,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 								if (no_callbacks)
 									strength = CalculateStrengthNoCallbacks(distance);
 								else
-									strength = CalculateStrengthWithCallbacks(distance, receiving_individual, exerting_individual, p_subpop, callbacks);
+									strength = CalculateStrengthWithCallbacks(distance, *receiving_individual, *exerting_individual, p_subpop, callbacks);
 							}
 							else
 								strength = 0.0;
@@ -1072,7 +1072,7 @@ void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
 								if (no_callbacks)
 									strength = CalculateStrengthNoCallbacks(distance);
 								else
-									strength = CalculateStrengthWithCallbacks(distance, receiving_individual, exerting_individual, p_subpop, callbacks);
+									strength = CalculateStrengthWithCallbacks(distance, *receiving_individual, *exerting_individual, p_subpop, callbacks);
 							}
 							else
 								strength = 0.0;
@@ -2258,7 +2258,7 @@ void InteractionType::FindNeighbors1_3(SLiM_kdNode *root, double *nd, slim_popsi
 }
 
 // find all neighbors in 1D
-void InteractionType::FindNeighborsA_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, EidosValue_Object_vector &p_result_vec, std::vector<Individual> &p_individuals)
+void InteractionType::FindNeighborsA_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, EidosValue_Object_vector &p_result_vec, std::vector<Individual *> &p_individuals)
 {
 	double d = dist_sq1(root, nd);
 #ifndef __clang_analyzer__
@@ -2269,7 +2269,7 @@ void InteractionType::FindNeighborsA_1(SLiM_kdNode *root, double *nd, slim_popsi
 	double dx2 = dx * dx;
 	
 	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
-		p_result_vec.push_object_element(&(p_individuals[root->individual_index_]));
+		p_result_vec.push_object_element(p_individuals[root->individual_index_]);
 	
 	if (dx > 0)
 	{
@@ -2294,7 +2294,7 @@ void InteractionType::FindNeighborsA_1(SLiM_kdNode *root, double *nd, slim_popsi
 }
 
 // find all neighbors in 2D
-void InteractionType::FindNeighborsA_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, EidosValue_Object_vector &p_result_vec, std::vector<Individual> &p_individuals, int p_phase)
+void InteractionType::FindNeighborsA_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, EidosValue_Object_vector &p_result_vec, std::vector<Individual *> &p_individuals, int p_phase)
 {
 	double d = dist_sq2(root, nd);
 #ifndef __clang_analyzer__
@@ -2305,7 +2305,7 @@ void InteractionType::FindNeighborsA_2(SLiM_kdNode *root, double *nd, slim_popsi
 	double dx2 = dx * dx;
 	
 	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
-		p_result_vec.push_object_element(&(p_individuals[root->individual_index_]));
+		p_result_vec.push_object_element(p_individuals[root->individual_index_]);
 	
 	if (++p_phase >= 2) p_phase = 0;
 	
@@ -2332,7 +2332,7 @@ void InteractionType::FindNeighborsA_2(SLiM_kdNode *root, double *nd, slim_popsi
 }
 
 // find all neighbors in 3D
-void InteractionType::FindNeighborsA_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, EidosValue_Object_vector &p_result_vec, std::vector<Individual> &p_individuals, int p_phase)
+void InteractionType::FindNeighborsA_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, EidosValue_Object_vector &p_result_vec, std::vector<Individual *> &p_individuals, int p_phase)
 {
 	double d = dist_sq3(root, nd);
 #ifndef __clang_analyzer__
@@ -2343,7 +2343,7 @@ void InteractionType::FindNeighborsA_3(SLiM_kdNode *root, double *nd, slim_popsi
 	double dx2 = dx * dx;
 	
 	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
-		p_result_vec.push_object_element(&(p_individuals[root->individual_index_]));
+		p_result_vec.push_object_element(p_individuals[root->individual_index_]);
 	
 	if (++p_phase >= 3) p_phase = 0;
 	
@@ -2647,7 +2647,7 @@ void InteractionType::FindNeighbors(Subpopulation *p_subpop, InteractionsData &p
 			
 			if (best && (best_dist <= max_distance_sq_))
 			{
-				Individual *best_individual = &(p_subpop->parent_individuals_[best->individual_index_]);
+				Individual *best_individual = p_subpop->parent_individuals_[best->individual_index_];
 				
 				p_result_vec.push_object_element(best_individual);
 			}
@@ -2687,7 +2687,7 @@ void InteractionType::FindNeighbors(Subpopulation *p_subpop, InteractionsData &p
 				if (!best_rec)
 					break;
 				
-				Individual *best_individual = &(p_subpop->parent_individuals_[best_rec->individual_index_]);
+				Individual *best_individual = p_subpop->parent_individuals_[best_rec->individual_index_];
 				
 				p_result_vec.push_object_element(best_individual);
 			}
@@ -2727,7 +2727,7 @@ double InteractionType::TotalNeighborStrengthA_1(SLiM_kdNode *root, double *nd, 
 			if (!gSLiM_Recursive_callbacks)
 				strength = CalculateStrengthNoCallbacks(distance);
 			else
-				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, &gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
+				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
 			
 			p_focal_strengths[root_individual_index] = strength;
 		}
@@ -2777,7 +2777,7 @@ double InteractionType::TotalNeighborStrengthA_1_reciprocal(SLiM_kdNode *root, d
 			if (!gSLiM_Recursive_callbacks)
 				strength = CalculateStrengthNoCallbacks(distance);
 			else
-				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, &gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
+				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
 			
 			p_focal_strengths[root_individual_index] = strength;
 			*(p_mirror_strengths + root_individual_index * subpop_size) = strength;
@@ -2835,7 +2835,7 @@ double InteractionType::TotalNeighborStrengthA_2(SLiM_kdNode *root, double *nd, 
 			if (!gSLiM_Recursive_callbacks)
 				strength = CalculateStrengthNoCallbacks(distance);
 			else
-				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, &gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
+				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
 			
 			p_focal_strengths[root_individual_index] = strength;
 		}
@@ -2894,7 +2894,7 @@ double InteractionType::TotalNeighborStrengthA_2_reciprocal(SLiM_kdNode *root, d
 			if (!gSLiM_Recursive_callbacks)
 				strength = CalculateStrengthNoCallbacks(distance);
 			else
-				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, &gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
+				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
 			
 			p_focal_strengths[root_individual_index] = strength;
 			*(p_mirror_strengths + root_individual_index * subpop_size) = strength;
@@ -2954,7 +2954,7 @@ double InteractionType::TotalNeighborStrengthA_3(SLiM_kdNode *root, double *nd, 
 			if (!gSLiM_Recursive_callbacks)
 				strength = CalculateStrengthNoCallbacks(distance);
 			else
-				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, &gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
+				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
 			
 			p_focal_strengths[root_individual_index] = strength;
 		}
@@ -3013,7 +3013,7 @@ double InteractionType::TotalNeighborStrengthA_3_reciprocal(SLiM_kdNode *root, d
 			if (!gSLiM_Recursive_callbacks)
 				strength = CalculateStrengthNoCallbacks(distance);
 			else
-				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, &gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
+				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
 			
 			p_focal_strengths[root_individual_index] = strength;
 			*(p_mirror_strengths + root_individual_index * subpop_size) = strength;
@@ -3158,7 +3158,7 @@ void InteractionType::FillNeighborStrengthsA_1(SLiM_kdNode *root, double *nd, do
 			if (!gSLiM_Recursive_callbacks)
 				strength = CalculateStrengthNoCallbacks(distance);
 			else
-				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, &gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
+				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
 			
 			p_focal_strengths[root_individual_index] = strength;
 		}
@@ -3205,7 +3205,7 @@ void InteractionType::FillNeighborStrengthsA_1_reciprocal(SLiM_kdNode *root, dou
 			if (!gSLiM_Recursive_callbacks)
 				strength = CalculateStrengthNoCallbacks(distance);
 			else
-				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, &gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
+				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
 			
 			p_focal_strengths[root_individual_index] = strength;
 			*(p_mirror_strengths + root_individual_index * subpop_size) = strength;
@@ -3260,7 +3260,7 @@ void InteractionType::FillNeighborStrengthsA_2(SLiM_kdNode *root, double *nd, do
 			if (!gSLiM_Recursive_callbacks)
 				strength = CalculateStrengthNoCallbacks(distance);
 			else
-				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, &gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
+				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
 			
 			p_focal_strengths[root_individual_index] = strength;
 		}
@@ -3316,7 +3316,7 @@ void InteractionType::FillNeighborStrengthsA_2_reciprocal(SLiM_kdNode *root, dou
 			if (!gSLiM_Recursive_callbacks)
 				strength = CalculateStrengthNoCallbacks(distance);
 			else
-				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, &gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
+				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
 			
 			p_focal_strengths[root_individual_index] = strength;
 			*(p_mirror_strengths + root_individual_index * subpop_size) = strength;
@@ -3373,7 +3373,7 @@ void InteractionType::FillNeighborStrengthsA_3(SLiM_kdNode *root, double *nd, do
 			if (!gSLiM_Recursive_callbacks)
 				strength = CalculateStrengthNoCallbacks(distance);
 			else
-				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, &gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
+				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
 			
 			p_focal_strengths[root_individual_index] = strength;
 		}
@@ -3429,7 +3429,7 @@ void InteractionType::FillNeighborStrengthsA_3_reciprocal(SLiM_kdNode *root, dou
 			if (!gSLiM_Recursive_callbacks)
 				strength = CalculateStrengthNoCallbacks(distance);
 			else
-				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, &gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
+				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
 			
 			p_focal_strengths[root_individual_index] = strength;
 			*(p_mirror_strengths + root_individual_index * subpop_size) = strength;
@@ -3968,12 +3968,12 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 		EnsureStrengthsPresent(subpop_data);
 		
 		// For non-spatial interactions, just use the subpop's vector of individuals
-		std::vector<Individual> &parents = subpop->parent_individuals_;
+		std::vector<Individual *> &parents = subpop->parent_individuals_;
 		
 		neighbors.resize_no_initialize(subpop_size);
 		
 		for (int parent_index = 0; parent_index < subpop_size; ++parent_index)
-			neighbors.set_object_element_no_check(&parents[parent_index], parent_index);
+			neighbors.set_object_element_no_check(parents[parent_index], parent_index);
 	}
 	else
 	{
@@ -4425,7 +4425,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 								if (no_callbacks)
 									strength = CalculateStrengthNoCallbacks(distance);
 								else
-									strength = CalculateStrengthWithCallbacks(distance, ind1, &subpop1->parent_individuals_[ind2_index], subpop1, callbacks);
+									strength = CalculateStrengthWithCallbacks(distance, ind1, subpop1->parent_individuals_[ind2_index], subpop1, callbacks);
 							}
 							else
 							{
@@ -4461,7 +4461,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 								if (no_callbacks)
 									strength = CalculateStrengthNoCallbacks(distance);
 								else
-									strength = CalculateStrengthWithCallbacks(distance, ind1, &subpop1->parent_individuals_[ind2_index], subpop1, callbacks);
+									strength = CalculateStrengthWithCallbacks(distance, ind1, subpop1->parent_individuals_[ind2_index], subpop1, callbacks);
 							}
 							else
 							{
@@ -4578,7 +4578,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 						if (no_callbacks)
 							strength = CalculateStrengthNoCallbacks(NAN);
 						else
-							strength = CalculateStrengthWithCallbacks(NAN, ind1, &subpop1->parent_individuals_[ind2_index], subpop1, callbacks);
+							strength = CalculateStrengthWithCallbacks(NAN, ind1, subpop1->parent_individuals_[ind2_index], subpop1, callbacks);
 						
 						ind1_strengths[ind2_index] = strength;
 					}
@@ -4597,7 +4597,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 						if (no_callbacks)
 							strength = CalculateStrengthNoCallbacks(NAN);
 						else
-							strength = CalculateStrengthWithCallbacks(NAN, ind1, &subpop1->parent_individuals_[ind2_index], subpop1, callbacks);
+							strength = CalculateStrengthWithCallbacks(NAN, ind1, subpop1->parent_individuals_[ind2_index], subpop1, callbacks);
 						
 						ind1_strengths[ind2_index] = strength;
 						*(mirror_ind1_strengths) = strength;

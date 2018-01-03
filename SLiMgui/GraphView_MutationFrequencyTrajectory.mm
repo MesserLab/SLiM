@@ -319,11 +319,11 @@
 			Subpopulation *subpop = subpop_pair.second;
 			
 			slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
-			std::vector<Genome> &subpop_genomes = subpop->parent_genomes_;
+			std::vector<Genome *> &subpop_genomes = subpop->parent_genomes_;
 			
 			for (int i = 0; i < subpop_genome_count; i++)
 			{
-				Genome &genome = subpop_genomes[i];
+				Genome &genome = *subpop_genomes[i];
 				
 				if (!genome.IsNull())
 				{

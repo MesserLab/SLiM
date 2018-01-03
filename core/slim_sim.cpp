@@ -484,7 +484,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			if (individual_index >= subpop.parent_subpop_size_)
 				EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): referenced individual i" << individual_index << " is out of range." << EidosTerminate();
 			
-			Individual &individual = subpop.parent_individuals_[individual_index];
+			Individual &individual = *subpop.parent_individuals_[individual_index];
 			
 			iss >> sub;			// individual sex identifier (F/M/H) – added in SLiM 2.1, so we need to be robust if it is missing
 			
@@ -570,7 +570,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): genome index out of permitted range." << EidosTerminate();
 		slim_popsize_t genome_index = static_cast<slim_popsize_t>(genome_index_long);	// range-check is above since we need to check against SLIM_MAX_SUBPOP_SIZE * 2
 		
-		Genome &genome = subpop.parent_genomes_[genome_index];
+		Genome &genome = *subpop.parent_genomes_[genome_index];
 		
 		// Now we might have [A|X|Y] (SLiM 2.0), or we might have the first mutation id - or we might have nothing at all
 		if (iss >> sub)
@@ -1081,7 +1081,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 				break;
 			
 			int individual_index = genome_index / 2;
-			Individual &individual = subpop.parent_individuals_[individual_index];
+			Individual &individual = *subpop.parent_individuals_[individual_index];
 			
 			if (spatial_output_count >= 1)
 			{
@@ -1109,7 +1109,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 				break;
 			
 			int individual_index = genome_index / 2;
-			Individual &individual = subpop.parent_individuals_[individual_index];
+			Individual &individual = *subpop.parent_individuals_[individual_index];
 			
 			individual.age_ = *(slim_generation_t *)p;
 			p += sizeof(slim_generation_t);
@@ -1123,7 +1123,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		if ((genome_index < 0) || (genome_index > SLIM_MAX_SUBPOP_SIZE * 2))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): genome index out of permitted range." << EidosTerminate();
 		
-		Genome &genome = subpop.parent_genomes_[genome_index];
+		Genome &genome = *subpop.parent_genomes_[genome_index];
 		
 		// Error-check the genome type
 		if (genome_type != (int32_t)genome.Type())
@@ -2352,12 +2352,12 @@ void SLiMSim::CollectSLiMguiMutationProfileInfo(void)
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
 	{
 		Subpopulation *subpop = subpop_pair.second;
-		std::vector<Genome> &subpop_genomes = subpop->parent_genomes_;
+		std::vector<Genome *> &subpop_genomes = subpop->parent_genomes_;
 		
-		for (Genome &genome : subpop_genomes)
+		for (Genome *genome : subpop_genomes)
 		{
-			MutationRun_SP *mutruns = genome.mutruns_;
-			int32_t mutrun_count = genome.mutrun_count_;
+			MutationRun_SP *mutruns = genome->mutruns_;
+			int32_t mutrun_count = genome->mutrun_count_;
 			
 			profile_mutrun_total_usage_ += mutrun_count;
 			
@@ -2534,6 +2534,12 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[1]);
 #endif
 	}
+	
+#if DEBUG
+	// Check the integrity of all the information in the individuals and genomes of the parental population
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+		subpop_pair.second->CheckIndividualIntegrity();
+#endif
 	
 	
 	// ******************************************************************
@@ -2713,6 +2719,12 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[4]);
 #endif
 	}
+	
+#if DEBUG
+	// Check the integrity of all the information in the individuals and genomes of the parental population
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+		subpop_pair.second->CheckIndividualIntegrity();
+#endif
 	
 	
 	// ******************************************************************
@@ -4964,7 +4976,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 			
 			for (slim_popsize_t i = 0; i < 2 * subpop->parent_subpop_size_; i++)	// go through all parents
 			{
-				Genome &genome = subpop->parent_genomes_[i];
+				Genome &genome = *subpop->parent_genomes_[i];
 				int mutrun_count = genome.mutrun_count_;
 				
 				for (int run_index = 0; run_index < mutrun_count; ++run_index)

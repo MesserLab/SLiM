@@ -54,7 +54,7 @@ extern bool gSLiM_Individual_custom_colors;
 
 class Individual : public SLiMEidosDictionary
 {
-	// This class has a restricted copying policy; see below
+	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	
 #ifdef SLIMGUI
 public:
@@ -81,18 +81,17 @@ private:
 	slim_mutationid_t pedigree_g3_;		// the id of grandparent 3
 	slim_mutationid_t pedigree_g4_;		// the id of grandparent 4
 	
-#ifdef DEBUG
-	static bool s_log_copy_and_assign_;							// true if logging is disabled (see below)
-#endif
-	
 public:
 	
 	// BCH 6 April 2017: making these ivars public; lots of other classes want to access them, but writing
 	// accessors for them seems excessively complicated / slow, and friending the whole class is too invasive.
 	// Basically I think of the Individual class as just being a struct-like bag in some aspects.
 	
+	Genome *genome1_, *genome2_;		// NOT OWNED; must correspond to the entries in the Subpopulation we live in
+	IndividualSex sex_;					// must correspond to our position in the Subpopulation vector we live in
+	
 #ifdef SLIM_NONWF_ONLY
-	slim_generation_t age_;				// the age of the individual, in generations; used only in nonWF models
+	slim_generation_t age_;				// the age of the individual, in generations; -1 in WF models
 #endif  // SLIM_NONWF_ONLY
 	
 	slim_popsize_t index_;				// the individual index in that subpop (0-based, and not multiplied by 2)
@@ -107,19 +106,11 @@ public:
 	//	disabled, because we want to keep instances of this class inside STL containers.  We therefore
 	//	override it to log whenever it is called, to reduce the risk of unintentional copying.
 	//
-	Individual(const Individual &p_original);
-#ifdef DEBUG
-	static bool LogIndividualCopyAndAssign(bool p_log);		// returns the old value; save and restore that value!
-#endif
-	
+	Individual(const Individual &p_original) = delete;
 	Individual& operator= (const Individual &p_original) = delete;						// no copy construction
 	Individual(void) = delete;															// no null construction
-	Individual(Subpopulation &p_subpopulation, slim_popsize_t p_individual_index);		// construct with a subpop and an index
+	Individual(Subpopulation &p_subpopulation, slim_popsize_t p_individual_index, slim_mutationid_t p_pedigree_id, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_generation_t p_age);
 	~Individual(void);																	// destructor
-	
-	void GetGenomes(Genome **p_genome1, Genome **p_genome2) const;
-	inline slim_popsize_t IndexInSubpopulation(void) const { return index_; }
-	IndividualSex Sex(void) const;
 	
 	inline void ClearColor(void) { color_.clear(); }
 	

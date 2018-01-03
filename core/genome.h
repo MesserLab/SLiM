@@ -69,7 +69,7 @@ extern EidosObjectClass *gSLiM_Genome_Class;
 
 class Genome : public EidosObjectElement
 {
-	// This class has a restricted copying policy; see below
+	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	
 	EidosValue_SP self_value_;									// cached EidosValue object for speed
 	
@@ -89,10 +89,6 @@ private:
 	
 	slim_usertag_t tag_value_;									// a user-defined tag value
 	
-#ifdef DEBUG
-	static bool s_log_copy_and_assign_;							// true if logging is disabled (see below)
-#endif
-	
 	// Bulk operation optimization; see WillModifyRunForBulkOperation().  The idea is to keep track of changes to MutationRun
 	// objects in a bulk operation, and short-circuit the operation for all Genomes with the same initial MutationRun (since
 	// the bulk operation will produce the same product MutationRun given the same initial MutationRun).
@@ -102,19 +98,8 @@ private:
 	
 public:
 	
-	//
-	//	This class should not be copied, in general, but the default copy constructor and assignment operator cannot be entirely
-	//	disabled, because we want to keep instances of this class inside STL containers.  We therefore override the default copy
-	//	constructor and the default assignment operator to log whenever they are called.  This is intended to reduce the risk of
-	//	unintentional copying.  Logging can be disabled by bracketing with LogGenomeCopyAndAssign() when appropriate, or by
-	//	using copy_from_genome(), which is the preferred way to intentionally copy a Genome.
-	//
-	Genome(const Genome &p_original);
-	Genome& operator= (const Genome &p_original);
-#ifdef DEBUG
-	static bool LogGenomeCopyAndAssign(bool p_log);		// returns the old value; save and restore that value!
-#endif
-	
+	Genome(const Genome &p_original) = delete;
+	Genome& operator= (const Genome &p_original) = delete;
 	Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length);						// default constructor; gives a non-null genome of type GenomeType::kAutosome
 	Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length, MutationRun *p_run);	// supply a custom mutation run
 	Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length, GenomeType p_genome_type_, bool p_is_null);		// a constructor for parent/child genomes, particularly in the SEX ONLY case
@@ -129,6 +114,9 @@ public:
 	}
 	
 	void MakeNull(void);	// transform into a null genome
+	
+	// used by GenerateIndividualsToFitWF(), essentially to re-initialize Genome objects that may or may not be null
+	void ReinitializeToMutrun(GenomeType p_genome_type, int32_t p_mutrun_count, int32_t p_mutrun_length, MutationRun *p_run);
 	
 	// This should be called before starting to define a mutation run from scratch, as the crossover-mutation code does.  It will
 	// discard the current MutationRun and start over from scratch with a unique, new MutationRun which is returned by the call.
