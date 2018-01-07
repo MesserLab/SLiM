@@ -305,8 +305,7 @@ int RunSLiMTests(void)
 	_RunSubstitutionTests();
 	_RunSLiMEidosBlockTests();
 	_RunContinuousSpaceTests();
-#warning re-enabled nonWF tests once they work
-	//_RunNonWFTests();
+	_RunNonWFTests();
 	
 	_RunInteractionTypeTests();		// many tests, time-consuming, so do this last
 	

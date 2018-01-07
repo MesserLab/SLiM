@@ -781,7 +781,7 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_
 
 #ifdef SLIM_WF_ONLY
 // generate children for subpopulation p_subpop_id, drawing from all source populations, handling crossover and mutation
-void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &p_chromosome, slim_generation_t p_generation, bool p_mate_choice_callbacks_present, bool p_modify_child_callbacks_present, bool p_recombination_callbacks_present)
+void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice_callbacks_present, bool p_modify_child_callbacks_present, bool p_recombination_callbacks_present)
 {
 	bool pedigrees_enabled = sim_.PedigreesEnabled();
 	bool prevent_incidental_selfing = sim_.PreventIncidentalSelfing();
@@ -863,7 +863,6 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 			// to shuffle at all, because no aspect of the mating algorithm is predetermined.
 			slim_popsize_t child_count = 0;	// counter over all subpop_size_ children
 			Subpopulation &source_subpop = p_subpop;
-			slim_objectid_t subpop_id = source_subpop.subpopulation_id_;
 			double selfing_fraction = source_subpop.selfing_fraction_;
 			double cloning_fraction = source_subpop.female_clone_fraction_;
 			
@@ -1053,8 +1052,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 						
 						parent2 = parent1;
 						
-						DoClonalMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_index], subpop_id, 2 * parent1, p_chromosome, p_generation, child_sex);
-						DoClonalMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_index + 1], subpop_id, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
+						DoClonalMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_index], 2 * parent1, child_sex);
+						DoClonalMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_index + 1], 2 * parent1 + 1, child_sex);
 						
 						if (pedigrees_enabled)
 							p_subpop.child_individuals_[child_index]->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent1]);
@@ -1112,8 +1111,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 						}
 						
 						// recombination, gene-conversion, mutation
-						DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_index], subpop_id, parent1, p_chromosome, p_generation, child_sex, parent1_sex, recombination_callbacks);
-						DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_index + 1], subpop_id, parent2, p_chromosome, p_generation, child_sex, parent2_sex, recombination_callbacks);
+						DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_index], parent1, child_sex, parent1_sex, recombination_callbacks);
+						DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_index + 1], parent2, child_sex, parent2_sex, recombination_callbacks);
 						
 						if (pedigrees_enabled)
 							p_subpop.child_individuals_[child_index]->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
@@ -1173,8 +1172,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 					}
 					
 					// recombination, gene-conversion, mutation
-					DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], subpop_id, parent1, p_chromosome, p_generation, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, recombination_callbacks);
-					DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count + 1], subpop_id, parent2, p_chromosome, p_generation, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, recombination_callbacks);
+					DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], parent1, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, recombination_callbacks);
+					DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count + 1], parent2, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, recombination_callbacks);
 					
 					if (pedigrees_enabled)
 						p_subpop.child_individuals_[child_count]->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
@@ -1344,8 +1343,6 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 				// actually influence the proportion selfed/cloned, through e.g. lethal epistatic interactions or failed mate search.
 			retryWithNewSourceSubpop:
 				
-				slim_objectid_t subpop_id = source_subpop->subpopulation_id_;
-				
 				// figure out our callback situation for this source subpop; callbacks come from the source, not the destination
 				std::vector<SLiMEidosBlock*> *mate_choice_callbacks = nullptr, *modify_child_callbacks = nullptr, *recombination_callbacks = nullptr;
 				
@@ -1419,8 +1416,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 					
 					parent2 = parent1;
 					
-					DoClonalMutation(source_subpop, *p_subpop.child_genomes_[2 * child_index], subpop_id, 2 * parent1, p_chromosome, p_generation, child_sex);
-					DoClonalMutation(source_subpop, *p_subpop.child_genomes_[2 * child_index + 1], subpop_id, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
+					DoClonalMutation(source_subpop, *p_subpop.child_genomes_[2 * child_index], 2 * parent1, child_sex);
+					DoClonalMutation(source_subpop, *p_subpop.child_genomes_[2 * child_index + 1], 2 * parent1 + 1, child_sex);
 					
 					if (pedigrees_enabled)
 						p_subpop.child_individuals_[child_index]->TrackPedigreeWithParents(*source_subpop->parent_individuals_[parent1], *source_subpop->parent_individuals_[parent1]);
@@ -1478,8 +1475,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 					}
 					
 					// recombination, gene-conversion, mutation
-					DoCrossoverMutation(source_subpop, *p_subpop.child_genomes_[2 * child_index], subpop_id, parent1, p_chromosome, p_generation, child_sex, parent1_sex, recombination_callbacks);
-					DoCrossoverMutation(source_subpop, *p_subpop.child_genomes_[2 * child_index + 1], subpop_id, parent2, p_chromosome, p_generation, child_sex, parent2_sex, recombination_callbacks);
+					DoCrossoverMutation(source_subpop, *p_subpop.child_genomes_[2 * child_index], parent1, child_sex, parent1_sex, recombination_callbacks);
+					DoCrossoverMutation(source_subpop, *p_subpop.child_genomes_[2 * child_index + 1], parent2, child_sex, parent2_sex, recombination_callbacks);
 					
 					if (pedigrees_enabled)
 						p_subpop.child_individuals_[child_index]->TrackPedigreeWithParents(*source_subpop->parent_individuals_[parent1], *source_subpop->parent_individuals_[parent2]);
@@ -1553,7 +1550,6 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 				if (migrants_to_generate > 0)
 				{
 					Subpopulation &source_subpop = *(migration_sources[pop_count]);
-					slim_objectid_t subpop_id = source_subpop.subpopulation_id_;
 					double selfing_fraction = sex_enabled ? 0.0 : source_subpop.selfing_fraction_;
 					double cloning_fraction = (sex_index == 0) ? source_subpop.female_clone_fraction_ : source_subpop.male_clone_fraction_;
 					
@@ -1592,8 +1588,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 								slim_popsize_t parent2 = source_subpop.DrawMaleParentUsingFitness();
 								
 								// recombination, gene-conversion, mutation
-								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], subpop_id, parent1, p_chromosome, p_generation, child_sex, IndividualSex::kFemale, nullptr);
-								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count + 1], subpop_id, parent2, p_chromosome, p_generation, child_sex, IndividualSex::kMale, nullptr);
+								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], parent1, child_sex, IndividualSex::kFemale, nullptr);
+								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count + 1], parent2, child_sex, IndividualSex::kMale, nullptr);
 								
 								if (pedigrees_enabled)
 									p_subpop.child_individuals_[child_count]->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
@@ -1614,8 +1610,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 								while (prevent_incidental_selfing && (parent2 == parent1));
 								
 								// recombination, gene-conversion, mutation
-								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], subpop_id, parent1, p_chromosome, p_generation, child_sex, IndividualSex::kHermaphrodite, nullptr);
-								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count + 1], subpop_id, parent2, p_chromosome, p_generation, child_sex, IndividualSex::kHermaphrodite, nullptr);
+								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], parent1, child_sex, IndividualSex::kHermaphrodite, nullptr);
+								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count + 1], parent2, child_sex, IndividualSex::kHermaphrodite, nullptr);
 								
 								if (pedigrees_enabled)
 									p_subpop.child_individuals_[child_count]->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
@@ -1644,8 +1640,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 								
 								--number_to_clone;
 								
-								DoClonalMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], subpop_id, 2 * parent1, p_chromosome, p_generation, child_sex);
-								DoClonalMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count + 1], subpop_id, 2 * parent1 + 1, p_chromosome, p_generation, child_sex);
+								DoClonalMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], 2 * parent1, child_sex);
+								DoClonalMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count + 1], 2 * parent1 + 1, child_sex);
 								
 								if (pedigrees_enabled)
 									p_subpop.child_individuals_[child_count]->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent1]);
@@ -1689,8 +1685,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, const Chromosome &
 								}
 								
 								// recombination, gene-conversion, mutation
-								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], subpop_id, parent1, p_chromosome, p_generation, child_sex, parent1_sex, nullptr);
-								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count + 1], subpop_id, parent2, p_chromosome, p_generation, child_sex, parent2_sex, nullptr);
+								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], parent1, child_sex, parent1_sex, nullptr);
+								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count + 1], parent2, child_sex, parent2_sex, nullptr);
 								
 								if (pedigrees_enabled)
 									p_subpop.child_individuals_[child_count]->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
@@ -1911,13 +1907,13 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 }
 
 // generate a child genome from parental genomes, with recombination, gene conversion, and mutation
-void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_child_genome, slim_objectid_t p_source_subpop_id, slim_popsize_t p_parent_index, const Chromosome &p_chromosome, slim_generation_t p_generation, IndividualSex p_child_sex, IndividualSex p_parent_sex, std::vector<SLiMEidosBlock*> *p_recombination_callbacks)
+void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_child_genome, slim_popsize_t p_parent_index, IndividualSex p_child_sex, IndividualSex p_parent_sex, std::vector<SLiMEidosBlock*> *p_recombination_callbacks)
 {
 	slim_popsize_t parent_genome_1_index = p_parent_index * 2;
 	slim_popsize_t parent_genome_2_index = parent_genome_1_index + 1;
 	
 	// child genome p_child_genome_index in subpopulation p_subpop_id is assigned outcome of cross-overs at breakpoints in all_breakpoints
-	// between parent genomes p_parent1_genome_index and p_parent2_genome_index from subpopulation p_source_subpop_id and new mutations added
+	// between parent genomes p_parent1_genome_index and p_parent2_genome_index from subpopulation p_source_subpop and new mutations added
 	// 
 	// example: all_breakpoints = (r1, r2)
 	// 
@@ -2059,6 +2055,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 	//
 	
 	// determine how many mutations and breakpoints we have
+	Chromosome &chromosome = sim_.TheChromosome();
 	int num_mutations, num_breakpoints;
 	static std::vector<slim_position_t> all_breakpoints;	// avoid buffer reallocs, etc.
 	
@@ -2067,7 +2064,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 	if (use_only_strand_1)
 	{
 		num_breakpoints = 0;
-		num_mutations = p_chromosome.DrawMutationCount(p_parent_sex);
+		num_mutations = chromosome.DrawMutationCount(p_parent_sex);
 		
 		// no call to recombination() callbacks here, since recombination is not possible
 		
@@ -2083,7 +2080,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 		num_breakpoints = p_chromosome.DrawBreakpointCount(p_parent_sex);
 #else
 		// get both the number of mutations and the number of breakpoints here; this allows us to draw both jointly, super fast!
-		p_chromosome.DrawMutationAndBreakpointCounts(p_parent_sex, &num_mutations, &num_breakpoints);
+		chromosome.DrawMutationAndBreakpointCounts(p_parent_sex, &num_mutations, &num_breakpoints);
 #endif
 		
 		//std::cout << num_mutations << " mutations, " << num_breakpoints << " breakpoints" << std::endl;
@@ -2095,7 +2092,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 			std::vector<slim_position_t> crossovers, gc_starts, gc_ends;
 			
 			if (num_breakpoints)
-				p_chromosome.DrawBreakpoints_Detailed(p_parent_sex, num_breakpoints, crossovers, gc_starts, gc_ends);
+				chromosome.DrawBreakpoints_Detailed(p_parent_sex, num_breakpoints, crossovers, gc_starts, gc_ends);
 			
 			// next, apply the recombination callbacks
 			ApplyRecombinationCallbacks(p_parent_index, parent_genome_1, parent_genome_2, p_source_subpop, crossovers, gc_starts, gc_ends, *p_recombination_callbacks);
@@ -2108,7 +2105,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 				all_breakpoints.insert(all_breakpoints.end(), crossovers.begin(), crossovers.end());
 				all_breakpoints.insert(all_breakpoints.end(), gc_starts.begin(), gc_starts.end());
 				all_breakpoints.insert(all_breakpoints.end(), gc_ends.begin(), gc_ends.end());
-				all_breakpoints.emplace_back(p_chromosome.last_position_mutrun_ + 1);
+				all_breakpoints.emplace_back(chromosome.last_position_mutrun_ + 1);
 				
 				std::sort(all_breakpoints.begin(), all_breakpoints.end());
 				all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
@@ -2122,9 +2119,9 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 		else if (num_breakpoints)
 		{
 			// just draw, sort, and unique breakpoints in the standard way
-			p_chromosome.DrawBreakpoints(p_parent_sex, num_breakpoints, all_breakpoints);
+			chromosome.DrawBreakpoints(p_parent_sex, num_breakpoints, all_breakpoints);
 			
-			all_breakpoints.emplace_back(p_chromosome.last_position_mutrun_ + 1);
+			all_breakpoints.emplace_back(chromosome.last_position_mutrun_ + 1);
 			std::sort(all_breakpoints.begin(), all_breakpoints.end());
 			all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
 		}
@@ -2269,7 +2266,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 		
 		for (int k = 0; k < num_mutations; k++)
 		{
-			MutationIndex new_mutation = p_chromosome.DrawNewMutation(p_parent_sex, p_source_subpop_id, p_generation);
+			MutationIndex new_mutation = chromosome.DrawNewMutation(p_parent_sex, p_source_subpop->subpopulation_id_, sim_.Generation());
 			
 			mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
 			
@@ -2388,7 +2385,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 			// fix up the breakpoints vector; above we allow it to be completely empty, for maximal speed in the
 			// 0-mutation/0-breakpoint case, but here we need a defined end breakpoint, so we add it now if necessary
 			if (all_breakpoints.size() == 0)
-				all_breakpoints.emplace_back(p_chromosome.last_position_mutrun_ + 1);
+				all_breakpoints.emplace_back(chromosome.last_position_mutrun_ + 1);
 			
 			int break_index_max = static_cast<int>(all_breakpoints.size());	// can be != num_breakpoints+1 due to gene conversion and dup removal!
 			int break_index = 0;
@@ -2697,7 +2694,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 #endif
 }
 
-void Population::DoClonalMutation(Subpopulation *p_source_subpop, Genome &p_child_genome, slim_objectid_t p_source_subpop_id, slim_popsize_t p_parent_genome_index, const Chromosome &p_chromosome, slim_generation_t p_generation, IndividualSex p_child_sex)
+void Population::DoClonalMutation(Subpopulation *p_source_subpop, Genome &p_child_genome, slim_popsize_t p_parent_genome_index, IndividualSex p_child_sex)
 {
 #pragma unused(p_child_sex)
 #ifdef DEBUG
@@ -2726,7 +2723,8 @@ void Population::DoClonalMutation(Subpopulation *p_source_subpop, Genome &p_chil
 	}
 	
 	// determine how many mutations and breakpoints we have
-	int num_mutations = p_chromosome.DrawMutationCount(p_child_sex);	// the parent sex is the same as the child sex
+	Chromosome &chromosome = sim_.TheChromosome();
+	int num_mutations = chromosome.DrawMutationCount(p_child_sex);	// the parent sex is the same as the child sex
 	
 	// mutations are usually rare, so let's streamline the case where none occur
 	if (num_mutations == 0)
@@ -2744,7 +2742,7 @@ void Population::DoClonalMutation(Subpopulation *p_source_subpop, Genome &p_chil
 		
 		for (int k = 0; k < num_mutations; k++)
 		{
-			MutationIndex new_mutation = p_chromosome.DrawNewMutation(p_child_sex, p_source_subpop_id, p_generation);	// the parent sex is the same as the child sex
+			MutationIndex new_mutation = chromosome.DrawNewMutation(p_child_sex, p_source_subpop->subpopulation_id_, sim_.Generation());	// the parent sex is the same as the child sex
 			
 			mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
 			

@@ -361,11 +361,30 @@ void Genome::ReinitializeToMutrun(GenomeType p_genome_type, int32_t p_mutrun_cou
 			else
 				mutruns_ = new MutationRun_SP[mutrun_count_];
 		}
+		else if (mutrun_count_ != p_mutrun_count)
+		{
+			// the number of mutruns has changed; need to reallocate
+			if (mutruns_ != run_buffer_)
+			{
+				for (int run_index = 0; run_index < mutrun_count_; ++run_index)
+					mutruns_[run_index].reset();
+				
+				delete[] mutruns_;
+			}
+			
+			mutrun_count_ = p_mutrun_count;
+			mutrun_length_ = p_mutrun_length;
+			
+			if (mutrun_count_ <= SLIM_GENOME_MUTRUN_BUFSIZE)
+				mutruns_ = run_buffer_;
+			else
+				mutruns_ = new MutationRun_SP[mutrun_count_];
+		}
 		
 		for (int run_index = 0; run_index < mutrun_count_; ++run_index)
 			mutruns_[run_index].reset(p_run);
 	}
-	else
+	else // if (!p_run)
 	{
 		if (mutrun_count_)
 		{
