@@ -5230,13 +5230,13 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const EidosValue_SP *const p_argument
 	if (!replace && (x_count < sample_size))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() provided with insufficient elements (" << x_count << " supplied, " << sample_size << " needed)." << EidosTerminate(nullptr);
 	
-	result_SP = x_value->NewMatchingType();
-	EidosValue *result = result_SP.get();
-	
 	// the algorithm used depends on whether weights were supplied
 	if (weights_value->Type() != EidosValueType::kValueNULL)
 	{
-		// weights supplied
+		// weights supplied; individual cases are not optimized for this branch right now, since supplying weights seems rare
+		result_SP = x_value->NewMatchingType();
+		EidosValue *result = result_SP.get();
+		
 		std::vector<double> weights_vector;
 		double weights_sum = 0.0;
 		int weights_count = weights_value->Count();
@@ -5298,14 +5298,26 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const EidosValue_SP *const p_argument
 	else
 	{
 		// weights not supplied; use equal weights
-		if (replace)
+		if (sample_size == 1)
 		{
+			// a sample size of 1 is very common; make it as fast as we can by getting a singleton EidosValue directly from x
+			return x_value->GetValueAtIndex((int)gsl_rng_uniform_int(gEidos_rng, x_count), nullptr);
+		}
+		else if (replace)
+		{
+			// with replacement, we can just do a series of independent draws
+			result_SP = x_value->NewMatchingType();
+			EidosValue *result = result_SP.get();
+			
 			for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
 				result->PushValueFromIndexOfEidosValue((int)gsl_rng_uniform_int(gEidos_rng, x_count), *x_value, nullptr);
 		}
 		else
 		{
 			// get indices of x; we sample from this vector and then look up the corresponding EidosValue element
+			result_SP = x_value->NewMatchingType();
+			EidosValue *result = result_SP.get();
+			
 			std::vector<int> index_vector;
 			
 			for (int value_index = 0; value_index < x_count; ++value_index)
