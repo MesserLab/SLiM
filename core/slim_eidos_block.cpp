@@ -339,12 +339,41 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 					Match(EidosTokenType::kTokenIdentifier, "SLiM reproduction() callback");
 					Match(EidosTokenType::kTokenLParen, "SLiM reproduction() callback");
 					
-					// A (optional) subpopulation id is present; add it
+					// A (optional) subpopulation id (or NULL) is present; add it
 					if (current_token_type_ == EidosTokenType::kTokenIdentifier)
 					{
 						callback_info_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
 						
 						Match(EidosTokenType::kTokenIdentifier, "SLiM reproduction() callback");
+						
+						if (current_token_type_ == EidosTokenType::kTokenComma)
+						{
+							// A (optional) sex string (or NULL) is present; add it
+							Match(EidosTokenType::kTokenComma, "SLiM reproduction() callback");
+							
+							if (current_token_type_ == EidosTokenType::kTokenString)
+							{
+								callback_info_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
+								
+								Match(EidosTokenType::kTokenString, "SLiM reproduction() callback");
+							}
+							else if (current_token_type_ == EidosTokenType::kTokenIdentifier)
+							{
+								callback_info_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
+								
+								Match(EidosTokenType::kTokenIdentifier, "SLiM reproduction() callback");
+							}
+							else
+							{
+								if (!parse_make_bad_nodes_)
+									EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; sex of 'M' or 'F' expected." << EidosTerminate(current_token_);
+								
+								// Make a placeholder bad node, to be error-tolerant
+								EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, 0, 0, 0, 0);
+								EidosASTNode *bad_node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(bad_token, true);
+								callback_info_node->AddChild(bad_node);
+							}
+						}
 					}
 					
 					Match(EidosTokenType::kTokenRParen, "SLiM reproduction() callback");
@@ -687,14 +716,31 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 				}
 				else if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_reproduction) == 0))
 				{
-					if ((n_callback_children != 0) && (n_callback_children != 1))
-						EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): reproduction() callback needs 0 or 1 parameters." << EidosTerminate(callback_token);
+					if ((n_callback_children != 0) && (n_callback_children != 1) && (n_callback_children != 2))
+						EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): reproduction() callback needs 0, 1, or 2 parameters." << EidosTerminate(callback_token);
 					
-					if (n_callback_children == 1)
+					if (n_callback_children >= 1)
 					{
 						EidosToken *subpop_id_token = callback_children[0]->token_;
 						
-						subpopulation_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(subpop_id_token->token_string_, 'p', subpop_id_token);
+						if (subpop_id_token->token_string_ == gEidosStr_NULL)
+							subpopulation_id_ = -1;		// not limited to one subpopulation
+						else
+							subpopulation_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(subpop_id_token->token_string_, 'p', subpop_id_token);
+					}
+					
+					if (n_callback_children >= 2)
+					{
+						EidosToken *sex_token = callback_children[1]->token_;
+						
+						if ((sex_token->token_type_ == EidosTokenType::kTokenIdentifier) && (sex_token->token_string_ == gEidosStr_NULL))
+							sex_specificity_ = IndividualSex::kUnspecified;		// not limited by sex
+						else if ((sex_token->token_type_ == EidosTokenType::kTokenString) && (sex_token->token_string_ == "M"))
+							sex_specificity_ = IndividualSex::kMale;
+						else if ((sex_token->token_type_ == EidosTokenType::kTokenString) && (sex_token->token_string_ == "F"))
+							sex_specificity_ = IndividualSex::kFemale;
+						else
+							EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): reproduction() callback needs a value for sex of 'M', 'F', or NULL." << EidosTerminate(callback_token);
 					}
 					
 					type_ = SLiMEidosBlockType::SLiMEidosReproductionCallback;

@@ -1839,6 +1839,14 @@ void SLiMSim::RunInitializeCallbacks(void)
 			if (script_block->type_ == SLiMEidosBlockType::SLiMEidosReproductionCallback)
 				EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): reproduction() callbacks may not be defined in WF models." << EidosTerminate(script_block->identifier_token_);
 	}
+	if (!sex_enabled_)
+	{
+		std::vector<SLiMEidosBlock*> &script_blocks = AllScriptBlocks();
+		
+		for (auto script_block : script_blocks)
+			if ((script_block->type_ == SLiMEidosBlockType::SLiMEidosReproductionCallback) && (script_block->sex_specificity_ != IndividualSex::kUnspecified))
+				EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): reproduction() callbacks may not be limited by sex in non-sexual models." << EidosTerminate(script_block->identifier_token_);
+	}
 	
 	CheckMutationStackPolicy();
 	
@@ -4784,8 +4792,8 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 		case gID_registerInteractionCallback:	return ExecuteMethod_registerInteractionCallback(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_registerMateChoiceCallback:
 		case gID_registerModifyChildCallback:
-		case gID_registerRecombinationCallback:
-		case gID_registerReproductionCallback:	return ExecuteMethod_registerMateModifyRecRepCallback(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_registerRecombinationCallback:	return ExecuteMethod_registerMateModifyRecCallback(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_registerReproductionCallback:	return ExecuteMethod_registerReproductionCallback(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_rescheduleScriptBlock:			return ExecuteMethod_rescheduleScriptBlock(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_simulationFinished:			return ExecuteMethod_simulationFinished(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		default:								return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
@@ -5504,17 +5512,13 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerInteractionCallback(EidosGlobalStri
 //	*********************	– (object<SLiMEidosBlock>$)registerMateChoiceCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
 //	*********************	– (object<SLiMEidosBlock>$)registerModifyChildCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
 //	*********************	– (object<SLiMEidosBlock>$)registerRecombinationCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
-//	*********************	– (object<SLiMEidosBlock>$)registerReproductionCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
 //
-EidosValue_SP SLiMSim::ExecuteMethod_registerMateModifyRecRepCallback(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP SLiMSim::ExecuteMethod_registerMateModifyRecCallback(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
 	if (p_method_id == gID_registerMateChoiceCallback)
 		if (ModelType() == SLiMModelType::kModelTypeNonWF)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerMateModifyRecRepCallback): method -registerMateChoiceCallback() is not available in nonWF models." << EidosTerminate();
-	if (p_method_id == gID_registerReproductionCallback)
-		if (ModelType() == SLiMModelType::kModelTypeWF)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerMateModifyRecRepCallback): method -registerReproductionCallback() is not available in WF models." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerMateModifyRecCallback): method -registerMateChoiceCallback() is not available in nonWF models." << EidosTerminate();
 	
 	EidosValue *id_value = p_arguments[0].get();
 	EidosValue *source_value = p_arguments[1].get();
@@ -5535,18 +5539,72 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerMateModifyRecRepCallback(EidosGloba
 		subpop_id = (subpop_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(subpop_value->IntAtIndex(0, nullptr)) : ((Subpopulation *)subpop_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
 	
 	if (start_generation > end_generation)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerMateModifyRecRepCallback): " << Eidos_StringForGlobalStringID(p_method_id) << " requires start <= end." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerMateModifyRecCallback): " << Eidos_StringForGlobalStringID(p_method_id) << "() requires start <= end." << EidosTerminate();
 	
 	SLiMEidosBlockType block_type;
 	
-	if (p_method_id == gID_registerMateChoiceCallback)				block_type = SLiMEidosBlockType::SLiMEidosMateChoiceCallback;
-	else if (p_method_id == gID_registerModifyChildCallback)		block_type = SLiMEidosBlockType::SLiMEidosModifyChildCallback;
-	else if (p_method_id == gID_registerRecombinationCallback)		block_type = SLiMEidosBlockType::SLiMEidosRecombinationCallback;
-	else /* (p_method_id == gID_registerReproductionCallback) */	block_type = SLiMEidosBlockType::SLiMEidosReproductionCallback;
+	if (p_method_id == gID_registerMateChoiceCallback)					block_type = SLiMEidosBlockType::SLiMEidosMateChoiceCallback;
+	else if (p_method_id == gID_registerModifyChildCallback)			block_type = SLiMEidosBlockType::SLiMEidosModifyChildCallback;
+	else /* if (p_method_id == gID_registerRecombinationCallback) */	block_type = SLiMEidosBlockType::SLiMEidosRecombinationCallback;
 	
 	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, block_type, start_generation, end_generation);
 	
 	new_script_block->subpopulation_id_ = subpop_id;
+	
+	AddScriptBlock(new_script_block, &p_interpreter, nullptr);		// takes ownership from us
+	
+	return new_script_block->SelfSymbolTableEntry().second;
+}
+
+//	*********************	– (object<SLiMEidosBlock>$)registerReproductionCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop = NULL], [Ns$ sex = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
+//
+EidosValue_SP SLiMSim::ExecuteMethod_registerReproductionCallback(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	if (ModelType() == SLiMModelType::kModelTypeWF)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerReproductionCallback): method -registerReproductionCallback() is not available in WF models." << EidosTerminate();
+	
+	EidosValue *id_value = p_arguments[0].get();
+	EidosValue *source_value = p_arguments[1].get();
+	EidosValue *subpop_value = p_arguments[2].get();
+	EidosValue *sex_value = p_arguments[3].get();
+	EidosValue *start_value = p_arguments[4].get();
+	EidosValue *end_value = p_arguments[5].get();
+	
+	slim_objectid_t script_id = -1;		// used if the id is NULL, to indicate an anonymous block
+	std::string script_string = source_value->StringAtIndex(0, nullptr);
+	slim_objectid_t subpop_id = -1;
+	IndividualSex sex_specificity = IndividualSex::kUnspecified;
+	slim_generation_t start_generation = ((start_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(start_value->IntAtIndex(0, nullptr)) : 1);
+	slim_generation_t end_generation = ((end_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(end_value->IntAtIndex(0, nullptr)) : SLIM_MAX_GENERATION);
+	
+	if (id_value->Type() != EidosValueType::kValueNULL)
+		script_id = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 's');
+	
+	if (subpop_value->Type() != EidosValueType::kValueNULL)
+		subpop_id = (subpop_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(subpop_value->IntAtIndex(0, nullptr)) : ((Subpopulation *)subpop_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
+	
+	if (sex_value->Type() != EidosValueType::kValueNULL)
+	{
+		std::string sex_string = sex_value->StringAtIndex(0, nullptr);
+		
+		if (sex_string == "M")			sex_specificity = IndividualSex::kMale;
+		else if (sex_string == "F")		sex_specificity = IndividualSex::kFemale;
+		else
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerReproductionCallback): registerReproductionCallback() requires sex to be 'M', 'F', or NULL." << EidosTerminate();
+		
+		if (!sex_enabled_)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerReproductionCallback): registerReproductionCallback() requires sex to be NULL in non-sexual models." << EidosTerminate();
+	}
+	
+	if (start_generation > end_generation)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerReproductionCallback): registerReproductionCallback() requires start <= end." << EidosTerminate();
+	
+	SLiMEidosBlockType block_type = SLiMEidosBlockType::SLiMEidosReproductionCallback;
+	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, block_type, start_generation, end_generation);
+	
+	new_script_block->subpopulation_id_ = subpop_id;
+	new_script_block->sex_specificity_ = sex_specificity;
 	
 	AddScriptBlock(new_script_block, &p_interpreter, nullptr);		// takes ownership from us
 	
@@ -5916,7 +5974,7 @@ const EidosMethodSignature *SLiMSim_Class::SignatureForMethod(EidosGlobalStringI
 		registerMateChoiceCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerMateChoiceCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL);
 		registerModifyChildCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerModifyChildCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL);
 		registerRecombinationCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerRecombinationCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL);
-		registerReproductionCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerReproductionCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL);
+		registerReproductionCallbackSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerReproductionCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddString_OSN("sex", gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL);
 		rescheduleScriptBlockSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_rescheduleScriptBlock, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddObject_S("block", gSLiM_SLiMEidosBlock_Class)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL)->AddInt_ON("generations", gStaticEidosValueNULL);
 		simulationFinishedSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_simulationFinished, kEidosValueMaskNULL));
 	}

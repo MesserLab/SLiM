@@ -3967,7 +3967,7 @@
 			static EidosCallSignature *callbackSig = nullptr;
 			
 			if (!callbackSig)
-				callbackSig = (new EidosFunctionSignature("reproduction", nullptr, kEidosValueMaskNULL))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
+				callbackSig = (new EidosFunctionSignature("reproduction", nullptr, kEidosValueMaskNULL))->AddObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible)->AddString_OSN("sex", gStaticEidosValueNULLInvisible);
 			
 			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig size:11.0];
 		}

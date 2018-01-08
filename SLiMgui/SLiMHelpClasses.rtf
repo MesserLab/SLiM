@@ -3758,8 +3758,9 @@ The optional parameter
 
 \f2\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>$)registerReproductionCallback(Nis$\'a0id, string$\'a0source, [Nio<Subpopulation>$\'a0subpop
 \f3 \'a0
-\f2 =\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\f2 =\'a0NULL], \cf2 \expnd0\expndtw0\kerning0
+[Ns$\'a0sex\'a0=\'a0NULL], \cf0 \kerning1\expnd0\expndtw0 [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf2 \expnd0\expndtw0\kerning0
 Register a block of Eidos source code, represented as the 
@@ -3774,7 +3775,15 @@ Register a block of Eidos source code, represented as the
 \f2\fs18 integer
 \f0\fs20  identifier, or 
 \f2\fs18 NULL
-\f0\fs20 , the default, to indicate all subpopulations) and optional 
+\f0\fs20 , the default, to indicate all subpopulations), optional sex-specificity 
+\f2\fs18 sex
+\f0\fs20  (which may be 
+\f2\fs18 "M"
+\f0\fs20  or 
+\f2\fs18 "F"
+\f0\fs20  in sexual simulations to make the callback specific to males or females respectively, or 
+\f2\fs18 NULL
+\f0\fs20  for no sex-specificity), and optional 
 \f2\fs18 start
 \f0\fs20  and 
 \f2\fs18 end
@@ -3791,10 +3800,10 @@ Register a block of Eidos source code, represented as the
 \f0\fs20  if there is no need to be able to refer to the block later.  The registered callback is added to the end of the list of registered 
 \f2\fs18 SLiMEidosBlock
 \f0\fs20  objects, and is active immediately; it 
-\i may
-\i0  be eligible to execute in the current generation.  The new 
+\i \cf2 may
+\i0 \cf2  be eligible to execute in the current generation (see section 21.8 for details).  The new 
 \f2\fs18 SLiMEidosBlock
-\f0\fs20  will be defined as a global variable immediately by this method, and will also be returned by this method.\
+\f0\fs20  will be defined as a global variable immediately by this method (see section 20.10), and will also be returned by this method.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(object<SLiMEidosBlock>)rescheduleScriptBlock(object<SLiMEidosBlock>$

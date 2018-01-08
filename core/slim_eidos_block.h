@@ -118,6 +118,7 @@ public:
 	slim_objectid_t mutation_type_id_ = -1;						// -1 if not limited by this; -2 indicates a NULL mutation-type id
 	slim_objectid_t subpopulation_id_ = -1;						// -1 if not limited by this
 	slim_objectid_t interaction_type_id_ = -1;					// -1 if not limited by this
+	IndividualSex sex_specificity_ = IndividualSex::kUnspecified;	// IndividualSex::kUnspecified if not limited by this
 	
 	EidosScript *script_ = nullptr;								// OWNED: nullptr indicates that we are derived from the input file script
 	const EidosASTNode *root_node_ = nullptr;					// NOT OWNED: the root node for the whole block, including its generation range and type nodes
