@@ -17,6 +17,7 @@ development head (nonWF branch):
 	add support for reproduction() callbacks, including adding registerReproductionCallback()
 	make convertToSubstitution default to F in nonWF models, since all non-neutral mutation types influence fitness and thus survival
 	add outputFull() ages=T parameter to control output of age information in nonWF models; does nothing in WF models; also modify readFromPopulationFile()
+	add sampleIndividuals() method on Subpopulation for faster fetching of mates, etc.
 
 
 2.6 (build 1292; Eidos version 1.6):

@@ -67,9 +67,6 @@ private:
 	std::string color_;								// color to use when displayed (in SLiMgui)
 	float color_red_, color_green_, color_blue_;	// cached color components from color_; should always be in sync
 	
-	slim_usertag_t tag_value_;			// a user-defined tag value
-	double tagF_value_;					// a user-defined tag value of float type
-	
 	// Pedigree-tracking ivars.  These are -1 if unknown, otherwise assigned sequentially from 0 counting upward.  They
 	// uniquely identify individuals within the simulation, so that relatedness of individuals can be assessed.  They can
 	// be accessed through the read-only pedigree properties.  These are only maintained if sim->pedigrees_enabled_ is on.
@@ -86,6 +83,9 @@ public:
 	// BCH 6 April 2017: making these ivars public; lots of other classes want to access them, but writing
 	// accessors for them seems excessively complicated / slow, and friending the whole class is too invasive.
 	// Basically I think of the Individual class as just being a struct-like bag in some aspects.
+	
+	slim_usertag_t tag_value_;			// a user-defined tag value
+	double tagF_value_;					// a user-defined tag value of float type
 	
 	Genome *genome1_, *genome2_;		// NOT OWNED; must correspond to the entries in the Subpopulation we live in
 	IndividualSex sex_;					// must correspond to our position in the Subpopulation vector we live in

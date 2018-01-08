@@ -5338,6 +5338,10 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const EidosValue_SP *const p_argument
 				
 				index_vector.erase(index_vector.begin() + rose_index);
 				--contender_count;
+				
+				// this would be faster than the two lines above, but breaks backward compatibility; not worth it right now
+				//index_vector[rose_index] = index_vector.back();
+				//index_vector.resize(--contender_count);
 			}
 		}
 	}
