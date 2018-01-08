@@ -1433,9 +1433,9 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		// Argument processing
 		int max_arg_count = (method_signature->has_ellipsis_ ? ((int)(node_children.size() - 1)) + 1 : (int)method_signature->arg_name_IDs_.size() + 1);
 		
-		if (max_arg_count <= 5)
+		if (max_arg_count <= 8)
 		{
-			EidosValue_SP (arguments_array[5]);
+			EidosValue_SP (arguments_array[8]);
 			int processed_arg_count = _ProcessArgumentList(p_node, method_signature, arguments_array);
 			
 			// If the method is a class method, dispatch it to the class object
