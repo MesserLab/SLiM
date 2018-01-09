@@ -2917,7 +2917,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			{
 				if (!cached_child_genomes_value_)
 				{
-					EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Genome_Class);
+					EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Genome_Class))->reserve(child_genomes_.size());
 					cached_child_genomes_value_ = EidosValue_SP(vec);
 					
 					for (auto genome_iter = child_genomes_.begin(); genome_iter != child_genomes_.end(); genome_iter++)
@@ -2949,7 +2949,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			{
 				if (!cached_parent_genomes_value_)
 				{
-					EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Genome_Class);
+					EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Genome_Class))->reserve(parent_genomes_.size());
 					cached_parent_genomes_value_ = EidosValue_SP(vec);
 					
 					for (auto genome_iter = parent_genomes_.begin(); genome_iter != parent_genomes_.end(); genome_iter++)
@@ -2991,7 +2991,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 				// Build and return an EidosValue_Object_vector with the current set of individuals in it
 				if (!cached_child_individuals_value_)
 				{
-					EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class);
+					EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class))->reserve(subpop_size);
 					cached_child_individuals_value_ = EidosValue_SP(vec);
 					
 					for (slim_popsize_t individual_index = 0; individual_index < subpop_size; individual_index++)
@@ -3012,7 +3012,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 				// Build and return an EidosValue_Object_vector with the current set of individuals in it
 				if (!cached_parent_individuals_value_)
 				{
-					EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class);
+					EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class))->reserve(subpop_size);
 					cached_parent_individuals_value_ = EidosValue_SP(vec);
 					
 					for (slim_popsize_t individual_index = 0; individual_index < subpop_size; individual_index++)
@@ -3162,6 +3162,7 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 		case gID_setSpatialBounds:		return ExecuteMethod_setSpatialBounds(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_cachedFitness:			return ExecuteMethod_cachedFitness(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_sampleIndividuals:		return ExecuteMethod_sampleIndividuals(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_subsetIndividuals:		return ExecuteMethod_subsetIndividuals(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_defineSpatialMap:		return ExecuteMethod_defineSpatialMap(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_spatialMapColor:		return ExecuteMethod_spatialMapColor(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_spatialMapValue:		return ExecuteMethod_spatialMapValue(p_method_id, p_arguments, p_argument_count, p_interpreter);
@@ -4289,6 +4290,146 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 	return result_SP;
 }
 
+//  *********************	– (object<Individual>)subsetIndividuals([No<Individual>$ exclude = NULL], [Ns$ sex = NULL], [Ni$ tag = NULL], [Ni$ minAge = NULL], [Ni$ maxAge = NULL])
+//
+EidosValue_SP Subpopulation::ExecuteMethod_subsetIndividuals(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	// This method is patterned closely upon ExecuteMethod_sampleIndividuals(), but without the sampling aspect
+	EidosValue_SP result_SP(nullptr);
+	
+	int x_count = parent_subpop_size_;
+	
+	if (x_count == 0)
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+	
+	// a specific individual may be excluded
+	EidosValue *exclude_value = p_arguments[0].get();
+	Individual *excluded_individual = nullptr;
+	slim_popsize_t excluded_index = -1;
+	
+	if (exclude_value->Type() != EidosValueType::kValueNULL)
+		excluded_individual = (Individual *)exclude_value->ObjectElementAtIndex(0, nullptr);
+	
+	if (excluded_individual)
+	{
+		if (&excluded_individual->subpopulation_ != this)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_subsetIndividuals): the excluded individual must belong to the subpopulation being subset." << EidosTerminate(nullptr);
+		if (excluded_individual->index_ == -1)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_subsetIndividuals): the excluded individual must be a valid, visible individual (not a newly generated child)." << EidosTerminate(nullptr);
+		
+		excluded_index = excluded_individual->index_;
+	}
+	
+	// a sex may be specified
+	EidosValue *sex_value = p_arguments[1].get();
+	IndividualSex sex = IndividualSex::kUnspecified;
+	
+	if (sex_value->Type() != EidosValueType::kValueNULL)
+	{
+		std::string sex_string = sex_value->StringAtIndex(0, nullptr);
+		
+		if (sex_string == "M")			sex = IndividualSex::kMale;
+		else if (sex_string == "F")		sex = IndividualSex::kFemale;
+		else
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_subsetIndividuals): unrecognized value for sex in subsetIndividuals(); sex must be 'F', 'M', or NULL." << EidosTerminate(nullptr);
+		
+		if (!sex_enabled_)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_subsetIndividuals): sex must be NULL in non-sexual models." << EidosTerminate(nullptr);
+	}
+	
+	// a tag value may be specified
+	EidosValue *tag_value = p_arguments[2].get();
+	bool tag_specified = (tag_value->Type() != EidosValueType::kValueNULL);
+	slim_usertag_t tag = (tag_specified ? tag_value->IntAtIndex(0, nullptr) : 0);
+	
+	// an age min or max may be specified in nonWF models
+	EidosValue *ageMin_value = p_arguments[3].get();
+	EidosValue *ageMax_value = p_arguments[4].get();
+	bool ageMin_specified = (ageMin_value->Type() != EidosValueType::kValueNULL);
+	bool ageMax_specified = (ageMax_value->Type() != EidosValueType::kValueNULL);
+#ifdef SLIM_NONWF_ONLY
+	int64_t ageMin = (ageMin_specified ? ageMin_value->IntAtIndex(0, nullptr) : -1);
+	int64_t ageMax = (ageMax_specified ? ageMax_value->IntAtIndex(0, nullptr) : INT64_MAX);
+	
+	if ((ageMin_specified || ageMax_specified) && (population_.sim_.ModelType() != SLiMModelType::kModelTypeNonWF))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_subsetIndividuals): ageMin and ageMax may only be specified in nonWF models." << EidosTerminate(nullptr);
+#endif  // SLIM_NONWF_ONLY
+	
+	// determine the range the sample will be drawn from; this does not take into account tag or ageMin/ageMax
+	int first_candidate_index, last_candidate_index, candidate_count;
+	
+	if (sex == IndividualSex::kUnspecified)
+	{
+		first_candidate_index = 0;
+		last_candidate_index = parent_subpop_size_ - 1;
+		candidate_count = parent_subpop_size_;
+	}
+	else if (sex == IndividualSex::kFemale)
+	{
+		first_candidate_index = 0;
+		last_candidate_index = parent_first_male_index_ - 1;
+		candidate_count = parent_first_male_index_;
+	}
+	else // if (sex == IndividualSex::kMale)
+	{
+		first_candidate_index = parent_first_male_index_;
+		last_candidate_index = parent_subpop_size_ - 1;
+		candidate_count = (last_candidate_index - first_candidate_index) + 1;
+	}
+	
+	if ((excluded_index >= first_candidate_index) && (excluded_index <= last_candidate_index))
+		candidate_count--;
+	else
+		excluded_index = -1;
+	
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+	EidosValue_Object_vector *result = ((EidosValue_Object_vector *)result_SP.get())->reserve(candidate_count);
+	
+	if (!tag_specified && !ageMin_specified && !ageMax_specified)
+	{
+		// usually there will be no specifed tag/ageMin/ageMax, so handle it more quickly
+		if (excluded_index == -1)
+		{
+			for (int value_index = first_candidate_index; value_index <= last_candidate_index; ++value_index)
+				result->push_object_element_no_check(parent_individuals_[value_index]);
+		}
+		else
+		{
+			for (int value_index = first_candidate_index; value_index <= last_candidate_index; ++value_index)
+			{
+				if (value_index == excluded_index)
+					continue;
+				
+				result->push_object_element_no_check(parent_individuals_[value_index]);
+			}
+		}
+	}
+	else
+	{
+		// this is the full case, a bit slower
+		for (int value_index = first_candidate_index; value_index <= last_candidate_index; ++value_index)
+		{
+			Individual *candidate = parent_individuals_[value_index];
+			
+			if (tag_specified && (candidate->tag_value_ != tag))
+				continue;
+#ifdef SLIM_NONWF_ONLY
+			if (ageMin_specified && (candidate->age_ < ageMin))
+				continue;
+			if (ageMax_specified && (candidate->age_ > ageMax))
+				continue;
+#endif  // SLIM_NONWF_ONLY
+			if (value_index == excluded_index)
+				continue;
+			
+			result->push_object_element_no_check(parent_individuals_[value_index]);
+		}
+	}
+	
+	return result_SP;
+}
+
 //	*********************	– (void)defineSpatialMap(string$ name, string$ spatiality, Ni gridSize, float values, [logical$ interpolate = F], [Nf valueRange = NULL], [Ns colors = NULL])
 //
 EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
@@ -4845,6 +4986,7 @@ const std::vector<const EidosMethodSignature *> *Subpopulation_Class::Methods(vo
 		methods->emplace_back(SignatureForMethodOrRaise(gID_removeSubpopulation));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_cachedFitness));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_sampleIndividuals));
+		methods->emplace_back(SignatureForMethodOrRaise(gID_subsetIndividuals));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_defineSpatialMap));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_spatialMapColor));
 		methods->emplace_back(SignatureForMethodOrRaise(gID_spatialMapValue));
@@ -4879,6 +5021,7 @@ const EidosMethodSignature *Subpopulation_Class::SignatureForMethod(EidosGlobalS
 	static EidosInstanceMethodSignature *removeSubpopulationSig = nullptr;
 	static EidosInstanceMethodSignature *cachedFitnessSig = nullptr;
 	static EidosInstanceMethodSignature *sampleIndividualsSig = nullptr;
+	static EidosInstanceMethodSignature *subsetIndividualsSig = nullptr;
 	static EidosInstanceMethodSignature *defineSpatialMapSig = nullptr;
 	static EidosInstanceMethodSignature *spatialMapColorSig = nullptr;
 	static EidosInstanceMethodSignature *spatialMapValueSig = nullptr;
@@ -4907,6 +5050,7 @@ const EidosMethodSignature *Subpopulation_Class::SignatureForMethod(EidosGlobalS
 		removeSubpopulationSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_removeSubpopulation, kEidosValueMaskNULL));
 		cachedFitnessSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_cachedFitness, kEidosValueMaskFloat))->AddInt_N("indices");
 		sampleIndividualsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sampleIndividuals, kEidosValueMaskObject, gSLiM_Individual_Class))->AddInt_S("size")->AddLogical_OS("replace", gStaticEidosValue_LogicalF)->AddObject_OSN("exclude", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddString_OSN("sex", gStaticEidosValueNULL)->AddInt_OSN("tag", gStaticEidosValueNULL)->AddInt_OSN("minAge", gStaticEidosValueNULL)->AddInt_OSN("maxAge", gStaticEidosValueNULL);
+		subsetIndividualsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_subsetIndividuals, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_OSN("exclude", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddString_OSN("sex", gStaticEidosValueNULL)->AddInt_OSN("tag", gStaticEidosValueNULL)->AddInt_OSN("minAge", gStaticEidosValueNULL)->AddInt_OSN("maxAge", gStaticEidosValueNULL);
 		defineSpatialMapSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_defineSpatialMap, kEidosValueMaskNULL))->AddString_S("name")->AddString_S("spatiality")->AddInt_N("gridSize")->AddFloat("values")->AddLogical_OS("interpolate", gStaticEidosValue_LogicalF)->AddFloat_ON("valueRange", gStaticEidosValueNULL)->AddString_ON("colors", gStaticEidosValueNULL);
 		spatialMapColorSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_spatialMapColor, kEidosValueMaskString))->AddString_S("name")->AddFloat("value");
 		spatialMapValueSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_spatialMapValue, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddString_S("name")->AddFloat("point");
@@ -4937,6 +5081,7 @@ const EidosMethodSignature *Subpopulation_Class::SignatureForMethod(EidosGlobalS
 		case gID_removeSubpopulation:	return removeSubpopulationSig;
 		case gID_cachedFitness:			return cachedFitnessSig;
 		case gID_sampleIndividuals:		return sampleIndividualsSig;
+		case gID_subsetIndividuals:		return subsetIndividualsSig;
 		case gID_defineSpatialMap:		return defineSpatialMapSig;
 		case gID_spatialMapColor:		return spatialMapColorSig;
 		case gID_spatialMapValue:		return spatialMapValueSig;

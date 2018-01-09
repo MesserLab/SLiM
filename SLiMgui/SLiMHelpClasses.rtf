@@ -3800,8 +3800,8 @@ Register a block of Eidos source code, represented as the
 \f0\fs20  if there is no need to be able to refer to the block later.  The registered callback is added to the end of the list of registered 
 \f2\fs18 SLiMEidosBlock
 \f0\fs20  objects, and is active immediately; it 
-\i \cf2 may
-\i0 \cf2  be eligible to execute in the current generation (see section 21.8 for details).  The new 
+\i may
+\i0  be eligible to execute in the current generation (see section 21.8 for details).  The new 
 \f2\fs18 SLiMEidosBlock
 \f0\fs20  will be defined as a global variable immediately by this method (see section 20.10), and will also be returned by this method.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -4010,8 +4010,13 @@ Note that new script blocks can also be created and scheduled using the
 
 \f0\fs20 \cf0 All of the individuals contained by the subpopulation.  Each individual is diploid and thus contains two 
 \f2\fs18 Genome
-\f0\fs20  objects.
-\f3 \
+\f0\fs20  objects.\cf2 \expnd0\expndtw0\kerning0
+  See the 
+\f2\fs18 sampleIndividuals()
+\f0\fs20  and 
+\f2\fs18 subsetIndividuals()
+\f0\fs20  for fast ways to get a subset of the individuals in a subpopulation.
+\f3 \cf0 \kerning1\expnd0\expndtw0 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 selfingRate => (float$)\
@@ -4778,7 +4783,49 @@ This method is shorthand for getting the
 \f2\fs18 []
 \f0\fs20  to select only individuals with the desired properties, and then using 
 \f2\fs18 sample()
-\f0\fs20  to sample from that candidate pool; besides being much simpler than the equivalent Eidos code, it is also much faster.\
+\f0\fs20  to sample from that candidate pool; besides being much simpler than the equivalent Eidos code, it is also much faster.\cf2   See 
+\f2\fs18 subsetIndividuals()
+\f0\fs20  for a similar method that returns a full subset, rather than a sample.\cf2 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0\cf2 \expnd0\expndtw0\kerning0
+(object<Individual>)subsetIndividuals([No<Individual>$\'a0exclude\'a0=\'a0NULL], [Ns$\'a0sex\'a0=\'a0NULL], [Ni$\'a0tag\'a0=\'a0NULL], [Ni$\'a0minAge\'a0=\'a0NULL], [Ni$\'a0maxAge\'a0=\'a0NULL])
+\f3 \cf0 \kerning1\expnd0\expndtw0 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+Returns a vector of individuals subset from the individuals in the target subpopulation.  The parameters specify constraints upon the subset of individuals that will be returned.  Parameter 
+\f2\fs18 exclude
+\f0\fs20 , if non-
+\f2\fs18 NULL
+\f0\fs20 , may specify a specific individual that should not be included (typically the focal individual in some operation).  Parameter 
+\f2\fs18 sex
+\f0\fs20 , if non-
+\f2\fs18 NULL
+\f0\fs20 , may specify a sex (
+\f2\fs18 "M"
+\f0\fs20  or 
+\f2\fs18 "F"
+\f0\fs20 ) for the individuals to be returned, in sexual models.  Parameter 
+\f2\fs18 tag
+\f0\fs20 , if non-
+\f2\fs18 NULL
+\f0\fs20 , may specify a tag value for the individuals to be returned; only individuals whose 
+\f2\fs18 tag
+\f0\fs20  property matches this value will be returned.  Parameters 
+\f2\fs18 minAge
+\f0\fs20  and 
+\f2\fs18 maxAge
+\f0\fs20 , if non-
+\f2\fs18 NULL
+\f0\fs20 , may specify a minimum or maximum age for the individuals to be returned, in nonWF models.\
+This method is shorthand for getting the 
+\f2\fs18 individuals
+\f0\fs20  property of the subpopulation, and then using operator 
+\f2\fs18 []
+\f0\fs20  to select only individuals with the desired properties; besides being much simpler than the equivalent Eidos code, it is also much faster.  See 
+\f2\fs18 sampleIndividuals()
+\f0\fs20  for a similar method that returns a sample taken from a chosen subset of individuals.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(void)setCloningRate(numeric\'a0rate)

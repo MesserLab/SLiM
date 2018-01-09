@@ -469,6 +469,7 @@ extern const std::string gStr_takeMigrants;
 extern const std::string gStr_removeSubpopulation;
 extern const std::string gStr_cachedFitness;
 extern const std::string gStr_sampleIndividuals;
+extern const std::string gStr_subsetIndividuals;
 extern const std::string gStr_defineSpatialMap;
 extern const std::string gStr_spatialMapColor;
 extern const std::string gStr_spatialMapValue;
@@ -718,6 +719,7 @@ enum _SLiMGlobalStringID : int {
 	gID_removeSubpopulation,
 	gID_cachedFitness,
 	gID_sampleIndividuals,
+	gID_subsetIndividuals,
 	gID_defineSpatialMap,
 	gID_spatialMapColor,
 	gID_spatialMapValue,

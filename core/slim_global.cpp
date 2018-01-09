@@ -389,6 +389,7 @@ const std::string gStr_takeMigrants = "takeMigrants";
 const std::string gStr_removeSubpopulation = "removeSubpopulation";
 const std::string gStr_cachedFitness = "cachedFitness";
 const std::string gStr_sampleIndividuals = "sampleIndividuals";
+const std::string gStr_subsetIndividuals = "subsetIndividuals";
 const std::string gStr_defineSpatialMap = "defineSpatialMap";
 const std::string gStr_spatialMapColor = "spatialMapColor";
 const std::string gStr_spatialMapValue = "spatialMapValue";
@@ -674,6 +675,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_removeSubpopulation, gID_removeSubpopulation);
 		Eidos_RegisterStringForGlobalID(gStr_cachedFitness, gID_cachedFitness);
 		Eidos_RegisterStringForGlobalID(gStr_sampleIndividuals, gID_sampleIndividuals);
+		Eidos_RegisterStringForGlobalID(gStr_subsetIndividuals, gID_subsetIndividuals);
 		Eidos_RegisterStringForGlobalID(gStr_defineSpatialMap, gID_defineSpatialMap);
 		Eidos_RegisterStringForGlobalID(gStr_spatialMapColor, gID_spatialMapColor);
 		Eidos_RegisterStringForGlobalID(gStr_spatialMapValue, gID_spatialMapValue);
