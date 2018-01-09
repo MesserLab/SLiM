@@ -299,7 +299,13 @@ void EidosCallSignature::CheckArguments(const EidosValue_SP *const p_arguments, 
 			
 			switch (arg_type)
 			{
-				case EidosValueType::kValueNULL:	type_ok = !!(type_mask & kEidosValueMaskNULL);		break;
+				case EidosValueType::kValueNULL:
+					type_ok = !!(type_mask & kEidosValueMaskNULL);
+					
+					if (type_ok)
+						continue;
+					
+					break;
 				case EidosValueType::kValueLogical:	type_ok = !!(type_mask & kEidosValueMaskLogical);	break;
 				case EidosValueType::kValueString:	type_ok = !!(type_mask & kEidosValueMaskString);	break;
 				case EidosValueType::kValueInt:		type_ok = !!(type_mask & kEidosValueMaskInt);		break;
@@ -336,8 +342,8 @@ void EidosCallSignature::CheckArguments(const EidosValue_SP *const p_arguments, 
 				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " (" << arg_names_[arg_index] << ") cannot be type " << arg_type << " for " << CallType() << " " << call_name_ << "()." << EidosTerminate(nullptr);
 			}
 			
-			// if NULL is explicitly permitted by the signature, we skip the singleton check
-			if (requires_singleton && (argument->Count() != 1) && (arg_type != EidosValueType::kValueNULL))
+			// if the argument is NULL, this singleton check is skipped by the continue statement above
+			if (requires_singleton && (argument->Count() != 1))
 				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " (" << arg_names_[arg_index] << ") must be a singleton (size() == 1) for " << CallType() << " " << call_name_ << "(), but size() == " << argument->Count() << "." << EidosTerminate(nullptr);
 		}
 	}
