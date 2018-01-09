@@ -4962,7 +4962,13 @@ EidosValue_SP EidosInterpreter::Evaluate_Identifier(const EidosASTNode *p_node)
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Identifier()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_Identifier", 0);
 	
-	EidosValue_SP result_SP = EidosValue_SP(global_symbols_->GetValueOrRaiseForASTNode(p_node));	// raises if undefined
+	// use a cached value from EidosASTNode::_OptimizeConstants() if present
+	EidosValue_SP result_SP = p_node->cached_value_;
+	
+	if (!result_SP)
+	{
+		result_SP = EidosValue_SP(global_symbols_->GetValueOrRaiseForASTNode(p_node));	// raises if undefined
+	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Identifier()");
 	return result_SP;

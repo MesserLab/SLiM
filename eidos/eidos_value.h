@@ -124,6 +124,8 @@ extern EidosValue_Float_SP gStaticEidosValue_Float0Point5;
 extern EidosValue_Float_SP gStaticEidosValue_Float1;
 extern EidosValue_Float_SP gStaticEidosValue_FloatINF;
 extern EidosValue_Float_SP gStaticEidosValue_FloatNAN;
+extern EidosValue_Float_SP gStaticEidosValue_FloatE;
+extern EidosValue_Float_SP gStaticEidosValue_FloatPI;
 
 extern EidosValue_String_SP gStaticEidosValue_StringEmpty;
 extern EidosValue_String_SP gStaticEidosValue_StringSpace;

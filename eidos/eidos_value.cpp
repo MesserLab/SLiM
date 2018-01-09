@@ -59,6 +59,8 @@ EidosValue_Float_SP gStaticEidosValue_Float0Point5;
 EidosValue_Float_SP gStaticEidosValue_Float1;
 EidosValue_Float_SP gStaticEidosValue_FloatINF;
 EidosValue_Float_SP gStaticEidosValue_FloatNAN;
+EidosValue_Float_SP gStaticEidosValue_FloatE;
+EidosValue_Float_SP gStaticEidosValue_FloatPI;
 
 EidosValue_String_SP gStaticEidosValue_StringEmpty;
 EidosValue_String_SP gStaticEidosValue_StringSpace;

@@ -235,6 +235,8 @@ void Eidos_WarmUp(void)
 		gStaticEidosValue_Float1 = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(1.0));
 		gStaticEidosValue_FloatINF = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(std::numeric_limits<double>::infinity()));
 		gStaticEidosValue_FloatNAN = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(std::numeric_limits<double>::quiet_NaN()));
+		gStaticEidosValue_FloatE = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(M_E));
+		gStaticEidosValue_FloatPI = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(M_PI));
 		
 		gStaticEidosValue_StringEmpty = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(""));
 		gStaticEidosValue_StringSpace = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(" "));

@@ -104,6 +104,25 @@ void EidosASTNode::_OptimizeConstants(void) const
 		// This is taken from EidosInterpreter::Evaluate_String and needs to match exactly!
 		cached_value_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(token_->token_string_));
 	}
+	else if (token_type == EidosTokenType::kTokenIdentifier)
+	{
+		// Cache values for built-in constants; these can't be changed, so this should be safe, and
+		// should be much faster than having to scan up through all the symbol tables recursively
+		if (token_->token_string_ == gEidosStr_F)
+			cached_value_ = gStaticEidosValue_LogicalF;
+		else if (token_->token_string_ == gEidosStr_T)
+			cached_value_ = gStaticEidosValue_LogicalT;
+		else if (token_->token_string_ == gEidosStr_INF)
+			cached_value_ = gStaticEidosValue_FloatINF;
+		else if (token_->token_string_ == gEidosStr_NAN)
+			cached_value_ = gStaticEidosValue_FloatNAN;
+		else if (token_->token_string_ == gEidosStr_E)
+			cached_value_ = gStaticEidosValue_FloatE;
+		else if (token_->token_string_ == gEidosStr_PI)
+			cached_value_ = gStaticEidosValue_FloatPI;
+		else if (token_->token_string_ == gEidosStr_NULL)
+			cached_value_ = gStaticEidosValueNULL;
+	}
 	else if ((token_type == EidosTokenType::kTokenReturn) || (token_type == EidosTokenType::kTokenLBrace))
 	{
 		// These are node types which can propagate a single constant value upward.  Note that this is not strictly

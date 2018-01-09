@@ -835,6 +835,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_String(const EidosASTNode 
 
 EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Identifier(const EidosASTNode *p_node)
 {
+	// a cached value might be present, from EidosASTNode::_OptimizeConstants(), but at present we don't look
 	EidosTypeSpecifier result_type = global_symbols_->GetTypeForSymbol(p_node->cached_stringID_);
 	
 	return result_type;
