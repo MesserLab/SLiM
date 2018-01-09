@@ -100,10 +100,7 @@ public:
 	
 	Genome(const Genome &p_original) = delete;
 	Genome& operator= (const Genome &p_original) = delete;
-	Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length);						// default constructor; gives a non-null genome of type GenomeType::kAutosome
-	Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length, MutationRun *p_run);	// supply a custom mutation run
-	Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length, GenomeType p_genome_type_, bool p_is_null);		// a constructor for parent/child genomes, particularly in the SEX ONLY case
-	Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length, enum GenomeType p_genome_type_, bool p_is_null, MutationRun *p_run);		// SEX ONLY case with a supplied mutation run
+	Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length, GenomeType p_genome_type_, bool p_is_null);
 	~Genome(void);
 	
 	void NullGenomeAccessError(void) const __attribute__((__noreturn__)) __attribute__((cold)) __attribute__((analyzer_noreturn));		// prints an error message, a stacktrace, and exits; called only for DEBUG
@@ -115,8 +112,9 @@ public:
 	
 	void MakeNull(void);	// transform into a null genome
 	
-	// used by GenerateIndividualsToFitWF(), essentially to re-initialize Genome objects that may or may not be null
-	void ReinitializeToMutrun(GenomeType p_genome_type, int32_t p_mutrun_count, int32_t p_mutrun_length, MutationRun *p_run);
+	// used to re-initialize Genomes to a new state, reusing them for efficiency
+	void ReinitializeGenomeToMutrun(GenomeType p_genome_type, int32_t p_mutrun_count, int32_t p_mutrun_length, MutationRun *p_run);
+	void ReinitializeGenomeNullptr(GenomeType p_genome_type, int32_t p_mutrun_count, int32_t p_mutrun_length);
 	
 	// This should be called before starting to define a mutation run from scratch, as the crossover-mutation code does.  It will
 	// discard the current MutationRun and start over from scratch with a unique, new MutationRun which is returned by the call.
@@ -186,7 +184,7 @@ public:
 		}
 	}
 	
-	inline void clear(void)
+	inline void clear_to_empty(void)
 	{
 #ifdef DEBUG
 		if (mutrun_count_ == 0)
@@ -213,6 +211,14 @@ public:
 		// It is legal to call this method on null genomes, for speed/simplicity; it does no harm
 		for (int run_index = 0; run_index < mutrun_count_; ++run_index)
 			mutruns_[run_index].reset();
+	}
+	
+	inline void check_cleared_to_nullptr(void)
+	{
+		// It is legal to call this method on null genomes, for speed/simplicity; it does no harm
+		for (int run_index = 0; run_index < mutrun_count_; ++run_index)
+			if (mutruns_[run_index])
+				EIDOS_TERMINATION << "ERROR (Genome::check_cleared_to_nullptr): (internal error) genome should be cleared but is not." << EidosTerminate();
 	}
 	
 	inline bool contains_mutation(MutationIndex p_mutation_index)

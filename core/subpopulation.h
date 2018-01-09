@@ -22,7 +22,26 @@
  The class Subpopulation represents one simulated subpopulation, defined primarily by the genomes of the individuals it contains.
  Since one Genome object represents the mutations along one chromosome, and since SLiM presently simulates diploid individuals,
  each individual is represented by two genomes in the genome vector: individual i is represented by genomes 2*i and 2*i+1.
- A subpopulations also knows its size, its selfing fraction, and what fraction it receives as migrants from other subpopulations.
+ A subpopulation also knows its size, its selfing fraction, and what fraction it receives as migrants from other subpopulations.
+ 
+ The way that Subpopulation handles its Genome objects is quite complex, and is at the heart of the operation of the SLiM core,
+ so a lengthy comment on it is merited.  Genomes contain MutationRuns, and they can allocate a buffer in which they keep pointers
+ to those runs.  Allocating and deallocating those buffers takes time, and so is to be avoided; for this reason, Subpopulation
+ re-uses Genome objects.  When a Genome is done being used, it goes into a "junkyard" vector (which one depends on whether it is
+ a null genome or not); FreeSubpopGenome() handles that.  When a new genome is needed, it is preferentially obtained from the
+ appropriate junkyard, and is re-purposed to its new use; NewSubpopGenome() handles that.  Those methods should be called to
+ handle most create/dispose requests for Genomes, so that those junkyard vectors get used.  When NewSubpopGenome() finds the
+ junkyard to be empty, it needs to actually allocate a new Genome object.  This is also complicated.  Genomes are allocated out
+ of a memory pool, genome_pool_, that is specific to the subpopulation.  This helps with memory locality; it keeps all of the
+ Genome objects used by a given subpop grouped closely together in memory.  (We do the same with Individual objects, with another
+ pool, for the same reason).  So allocations of Genomes come out of that pool, and deallocations go back into the pool.  Do not
+ use new or delete with Genome objects.  There is one more complication.  In WF models, separate "parent" and "child" generations
+ are kept by the subpop, and which one is active switches back and forth in each generation, governed by child_generation_valid_.
+ In nonWF models, the child generation variables are all unused; we have a #ifdef scheme with SLIM_WF_ONLY and SLIM_NONWF_ONLY to
+ test for correct isolation of WF and nonWF code (see slim_global.h).  In nonWF models, the parental generation is always active.
+ New offspring instead get put into the nonWF_offspring_ ivars, which get moved into the parental generation ivars at the end of
+ offspring generation.  So in some ways these schemes are similar, but they use a completely non-intersecting set of ivars.  The
+ parental ivars are used by both WF and nonWF models, though.
  
  */
 
@@ -124,6 +143,9 @@ public:
 	EidosObjectPool *genome_pool_ = nullptr;		// a pool out of which genomes are allocated, for locality of memory usage across genomes
 	EidosObjectPool *individual_pool_ = nullptr;	// a pool out of which individuals are allocated, for locality of memory usage across individuals
 	
+	std::vector<Genome *> genome_junkyard_nonnull;	// non-null genomes get put here when we're done with them, so we can reuse them without dealloc/realloc of their mutrun buffers
+	std::vector<Genome *> genome_junkyard_null;		// null genomes get put here when we're done with them, so we can reuse them without dealloc/realloc of their mutrun buffers
+	
 	std::vector<Genome *> parent_genomes_;			// OWNED: all genomes in the parental generation; each individual gets two genomes, males are XY (not YX)
 	EidosValue_SP cached_parent_genomes_value_;		// cached for the genomes property; reset() if changed
 	slim_popsize_t parent_subpop_size_;				// parental subpopulation size
@@ -208,7 +230,68 @@ public:
 	slim_popsize_t DrawMaleParentEqualProbability(void) const;								// draw a male from the subpopulation  with equal probabilities; SEX ONLY
 	
 	void MakeMemoryPools(size_t p_individual_capacity);
-	void WipeIndividualsAndGenomes(std::vector<Individual *> &p_individuals, std::vector<Genome *> &p_genomes, slim_popsize_t p_individual_count, slim_popsize_t p_first_male);
+	
+	// Returns a new genome object that is cleared to nullptr; call clear_to_empty() afterwards if you need empty mutruns
+	inline __attribute__((always_inline)) Genome *NewSubpopGenome(int p_mutrun_count, int p_mutrun_length, GenomeType p_genome_type, bool p_is_null)
+	{
+		if (p_is_null)
+		{
+			if (genome_junkyard_null.size())
+			{
+				Genome *back = genome_junkyard_null.back();
+				genome_junkyard_null.pop_back();
+				
+				back->genome_type_ = p_genome_type;
+				return back;
+			}
+		}
+		else
+		{
+			if (genome_junkyard_nonnull.size())
+			{
+				Genome *back = genome_junkyard_nonnull.back();
+				genome_junkyard_nonnull.pop_back();
+				
+				// Conceptually, we want to call ReinitializeGenomeNoClear() to set the genome up with the
+				// current type, mutrun setup, etc.  But we know that the genome is nonnull, and that we
+				// want it to be nonnull, and we know that the genome has already been cleared to nullptr,
+				// so in practice we can do less work than ReinitializeGenomeNoClear(), inline.
+				back->genome_type_ = p_genome_type;
+				
+				if (back->mutrun_count_ != p_mutrun_count)
+				{
+					// the number of mutruns has changed; need to reallocate
+					if (back->mutruns_ != back->run_buffer_)
+						delete[] back->mutruns_;
+					
+					back->mutrun_count_ = p_mutrun_count;
+					back->mutrun_length_ = p_mutrun_length;
+					
+					if (p_mutrun_count <= SLIM_GENOME_MUTRUN_BUFSIZE)
+						back->mutruns_ = back->run_buffer_;
+					else
+						back->mutruns_ = new MutationRun_SP[p_mutrun_count];
+				}
+				return back;
+			}
+		}
+		
+		return new (genome_pool_->AllocateChunk()) Genome(this, p_mutrun_count, p_mutrun_length, p_genome_type, p_is_null);
+	}
+	
+	// Frees a genome object (puts it in one of the junkyards), clearing it to nullptr to keep our bookkeeping straight
+	inline __attribute__((always_inline)) void FreeSubpopGenome(Genome *p_genome)
+	{
+		if (p_genome->IsNull())
+			genome_junkyard_null.emplace_back(p_genome);
+		else
+		{
+			p_genome->clear_to_nullptr();
+			genome_junkyard_nonnull.emplace_back(p_genome);
+		}
+	}
+	
+	void WipeIndividualsAndGenomes(std::vector<Individual *> &p_individuals, std::vector<Genome *> &p_genomes, slim_popsize_t p_individual_count, slim_popsize_t p_first_male, bool p_no_clear);
 #ifdef SLIM_WF_ONLY
 	void GenerateIndividualsToFitWF(bool p_make_child_generation, bool p_placeholders);		// given the set subpop size and sex ratio, make new genomes and individuals to fit
 #endif	// SLIM_WF_ONLY
@@ -240,7 +323,31 @@ public:
 	void IncrementIndividualAges(void);
 	
 	IndividualSex _GenomeConfigurationForSex(EidosValue *p_sex_value, GenomeType &p_genome1_type, GenomeType &p_genome2_type, bool &p_genome1_null, bool &p_genome2_null);
-	EidosValue_SP _ResultAfterModifyChildCallbacks(bool p_proposed_child_accepted, Individual *p_individual, Genome *p_genome1, Genome *p_genome2);
+	inline __attribute__((always_inline)) EidosValue_SP _ResultAfterModifyChildCallbacks(bool p_proposed_child_accepted, Individual *p_individual, Genome *p_genome1, Genome *p_genome2)
+	{
+		if (p_proposed_child_accepted)
+		{
+			// The child was accepted, so add it to our staging area and return it to the caller
+			nonWF_offspring_genomes_.push_back(p_genome1);
+			nonWF_offspring_genomes_.push_back(p_genome2);
+			nonWF_offspring_individuals_.push_back(p_individual);
+			
+			EidosValue_Object_singleton *individual_value = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(p_individual, gSLiM_Individual_Class);
+			
+			return EidosValue_SP(individual_value);
+		}
+		else
+		{
+			// The child was rejected, so dispose of the genomes and individual
+			FreeSubpopGenome(p_genome1);
+			FreeSubpopGenome(p_genome2);
+			
+			p_individual->~Individual();
+			individual_pool_->DisposeChunk(const_cast<Individual *>(p_individual));
+		}
+		
+		return gStaticEidosValueNULL;
+	}
 #endif  // SLIM_NONWF_ONLY
 	
 	// inline accessors that handle the parent/child distinction

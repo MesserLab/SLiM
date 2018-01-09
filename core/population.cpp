@@ -2149,8 +2149,10 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 			// no mutations, but we do have crossovers, so we just need to interleave the two parental genomes
 			//
 			
-			// start with a clean slate in the child genome
-			p_child_genome.clear_to_nullptr();
+			// start with a clean slate in the child genome; we now expect child genomes to be cleared for us
+#if DEBUG
+			p_child_genome.check_cleared_to_nullptr();
+#endif
 			
 			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 			Genome *parent_genome = parent_genome_1;
@@ -2255,8 +2257,10 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 	{
 		// we have at least one new mutation, so set up for that case (which splits into two cases below)
 		
-		// start with a clean slate in the child genome
-		p_child_genome.clear_to_nullptr();
+		// start with a clean slate in the child genome; we now expect child genomes to be cleared for us
+#if DEBUG
+		p_child_genome.check_cleared_to_nullptr();
+#endif
 		
 		int mutrun_length = p_child_genome.mutrun_length_;
 		int mutrun_count = p_child_genome.mutrun_count_;
@@ -2734,8 +2738,10 @@ void Population::DoClonalMutation(Subpopulation *p_source_subpop, Genome &p_chil
 	}
 	else
 	{
-		// start with a clean slate in the child genome
-		p_child_genome.clear_to_nullptr();
+		// start with a clean slate in the child genome; we now expect child genomes to be cleared for us
+#if DEBUG
+		p_child_genome.check_cleared_to_nullptr();
+#endif
 		
 		// create vector with the mutations to be added
 		MutationRun &mutations_to_add = *MutationRun::NewMutationRun();		// take from shared pool of used objects;

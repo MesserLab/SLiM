@@ -44,31 +44,6 @@ int Genome::s_bulk_operation_mutrun_index_ = -1;
 std::map<MutationRun*, MutationRun*> Genome::s_bulk_operation_runs_;
 
 
-// default constructor; gives a non-null genome of type GenomeType::kAutosome
-Genome::Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length) : subpop_(p_subpop), mutrun_count_(p_mutrun_count), mutrun_length_(p_mutrun_length)
-{
-	if (mutrun_count_ <= SLIM_GENOME_MUTRUN_BUFSIZE)
-		mutruns_ = run_buffer_;
-	else
-		mutruns_ = new MutationRun_SP[mutrun_count_];
-	
-	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-		mutruns_[run_index].reset(MutationRun::NewMutationRun());
-}
-
-// this constructor allows the caller to supply a custom mutation run, which is good for setting up shared runs across genomes
-Genome::Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length, MutationRun *p_run) : subpop_(p_subpop), mutrun_count_(p_mutrun_count), mutrun_length_(p_mutrun_length)
-{
-	if (mutrun_count_ <= SLIM_GENOME_MUTRUN_BUFSIZE)
-		mutruns_ = run_buffer_;
-	else
-		mutruns_ = new MutationRun_SP[mutrun_count_];
-	
-	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-		mutruns_[run_index].reset(p_run);
-}
-
-// a constructor for parent/child genomes, particularly in the SEX ONLY case: species type and null/non-null
 Genome::Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length, enum GenomeType p_genome_type_, bool p_is_null) : genome_type_(p_genome_type_), subpop_(p_subpop)
 {
 	// null genomes are now signalled with a mutrun_count_ of 0, rather than a separate flag
@@ -87,34 +62,6 @@ Genome::Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length,
 			mutruns_ = run_buffer_;
 		else
 			mutruns_ = new MutationRun_SP[mutrun_count_];
-		
-		for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-			mutruns_[run_index].reset(MutationRun::NewMutationRun());
-	}
-}
-
-// a constructor for the SEX ONLY case with a supplied mutation run
-Genome::Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length, enum GenomeType p_genome_type_, bool p_is_null, MutationRun *p_run) : genome_type_(p_genome_type_), subpop_(p_subpop)
-{
-	// null genomes are now signalled with a mutrun_count_ of 0, rather than a separate flag
-	if (p_is_null)
-	{
-		mutrun_count_ = 0;
-		mutrun_length_ = 0;
-		mutruns_ = nullptr;
-	}
-	else
-	{
-		mutrun_count_ = p_mutrun_count;
-		mutrun_length_ = p_mutrun_length;
-		
-		if (mutrun_count_ <= SLIM_GENOME_MUTRUN_BUFSIZE)
-			mutruns_ = run_buffer_;
-		else
-			mutruns_ = new MutationRun_SP[mutrun_count_];
-		
-		for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-			mutruns_[run_index].reset(p_run);
 	}
 }
 
@@ -344,11 +291,74 @@ void Genome::MakeNull(void)
 	}
 }
 
-void Genome::ReinitializeToMutrun(GenomeType p_genome_type, int32_t p_mutrun_count, int32_t p_mutrun_length, MutationRun *p_run)
+void Genome::ReinitializeGenomeToMutrun(GenomeType p_genome_type, int32_t p_mutrun_count, int32_t p_mutrun_length, MutationRun *p_run)
 {
 	genome_type_ = p_genome_type;
 	
-	if (p_run)
+	if (p_mutrun_count)
+	{
+		if (mutrun_count_ == 0)
+		{
+			// was a null genome, needs to become not null
+			mutrun_count_ = p_mutrun_count;
+			mutrun_length_ = p_mutrun_length;
+			
+			if (mutrun_count_ <= SLIM_GENOME_MUTRUN_BUFSIZE)
+				mutruns_ = run_buffer_;
+			else
+				mutruns_ = new MutationRun_SP[mutrun_count_];
+		}
+		else if (mutrun_count_ != p_mutrun_count)
+		{
+			// the number of mutruns has changed; need to reallocate
+			for (int run_index = 0; run_index < mutrun_count_; ++run_index)
+				mutruns_[run_index].reset();
+			
+			if (mutruns_ != run_buffer_)
+				delete[] mutruns_;
+			
+			mutrun_count_ = p_mutrun_count;
+			mutrun_length_ = p_mutrun_length;
+			
+			if (mutrun_count_ <= SLIM_GENOME_MUTRUN_BUFSIZE)
+				mutruns_ = run_buffer_;
+			else
+				mutruns_ = new MutationRun_SP[mutrun_count_];
+		}
+		
+		for (int run_index = 0; run_index < mutrun_count_; ++run_index)
+			mutruns_[run_index].reset(p_run);
+	}
+	else // if (!p_mutrun_count)
+	{
+		if (mutrun_count_)
+		{
+			// was a non-null genome, needs to become null
+			for (int run_index = 0; run_index < mutrun_count_; ++run_index)
+				mutruns_[run_index].reset();
+			
+			if (mutruns_ != run_buffer_)
+				delete[] mutruns_;
+			mutruns_ = nullptr;
+			
+			mutrun_count_ = 0;
+			mutrun_length_ = 0;
+		}
+	}
+}
+
+void Genome::ReinitializeGenomeNullptr(GenomeType p_genome_type, int32_t p_mutrun_count, int32_t p_mutrun_length)
+{
+	genome_type_ = p_genome_type;
+	
+#if DEBUG
+	// we are guaranteed by the caller that all existing mutrun pointers are null; check that, in DEBUG mode
+	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
+		if (mutruns_[run_index])
+			EIDOS_TERMINATION << "ERROR (Genome::ReinitializeGenomeNullptr): (internal error) nonnull mutrun pointer in ReinitializeGenomeNullptr." << EidosTerminate();
+#endif
+	
+	if (p_mutrun_count)
 	{
 		if (mutrun_count_ == 0)
 		{
@@ -365,12 +375,7 @@ void Genome::ReinitializeToMutrun(GenomeType p_genome_type, int32_t p_mutrun_cou
 		{
 			// the number of mutruns has changed; need to reallocate
 			if (mutruns_ != run_buffer_)
-			{
-				for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-					mutruns_[run_index].reset();
-				
 				delete[] mutruns_;
-			}
 			
 			mutrun_count_ = p_mutrun_count;
 			mutrun_length_ = p_mutrun_length;
@@ -381,17 +386,13 @@ void Genome::ReinitializeToMutrun(GenomeType p_genome_type, int32_t p_mutrun_cou
 				mutruns_ = new MutationRun_SP[mutrun_count_];
 		}
 		
-		for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-			mutruns_[run_index].reset(p_run);
+		// we leave the new mutruns_ buffer filled with nullptr
 	}
-	else // if (!p_run)
+	else // if (!p_mutrun_count)
 	{
 		if (mutrun_count_)
 		{
 			// was a non-null genome, needs to become null
-			for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-				mutruns_[run_index].reset();
-			
 			if (mutruns_ != run_buffer_)
 				delete[] mutruns_;
 			mutruns_ = nullptr;

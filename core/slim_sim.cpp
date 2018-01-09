@@ -2661,6 +2661,11 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		
 		population_.child_generation_valid_ = true;
 		
+		// added 30 November 2016 so MutationRun refcounts reflect their usage count in the simulation
+		// moved up to SLiMGenerationStage::kWFStage2GenerateOffspring, 9 January 2018, so that the
+		// population is in a standard state for CheckIndividualIntegrity() at the end of this stage
+		population_.ClearParentalGenomes();
+		
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
 		
@@ -2669,6 +2674,12 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[2]);
 #endif
 	}
+	
+#if DEBUG
+	// Check the integrity of all the information in the individuals and genomes of the parental population
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+		subpop_pair.second->CheckIndividualIntegrity();
+#endif
 	
 	
 	// ******************************************************************
@@ -2682,8 +2693,6 @@ bool SLiMSim::_RunOneGenerationWF(void)
 #endif
 		
 		generation_stage_ = SLiMGenerationStage::kWFStage3RemoveFixedMutations;
-		
-		population_.ClearParentalGenomes();		// added 30 November 2016 so MutationRun refcounts reflect their usage count in the simulation
 		
 		population_.MaintainRegistry();
 		
@@ -2709,6 +2718,12 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[3]);
 #endif
 	}
+	
+#if DEBUG
+	// Check the integrity of all the information in the individuals and genomes of the parental population
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+		subpop_pair.second->CheckIndividualIntegrity();
+#endif
 	
 	
 	// ******************************************************************
@@ -2778,6 +2793,12 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[5]);
 #endif
 	}
+	
+#if DEBUG
+	// Check the integrity of all the information in the individuals and genomes of the parental population
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+		subpop_pair.second->CheckIndividualIntegrity();
+#endif
 	
 	
 	// ******************************************************************
@@ -3002,6 +3023,12 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 #endif
 	}
 	
+#if DEBUG
+	// Check the integrity of all the information in the individuals and genomes of the parental population
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+		subpop_pair.second->CheckIndividualIntegrity();
+#endif
+	
 	
 	// ******************************************************************
 	//
@@ -3092,6 +3119,12 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 #endif
 	}
 	
+#if DEBUG
+	// Check the integrity of all the information in the individuals and genomes of the parental population
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+		subpop_pair.second->CheckIndividualIntegrity();
+#endif
+	
 	
 	// ******************************************************************
 	//
@@ -3137,6 +3170,12 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[6]);
 #endif
 	}
+	
+#if DEBUG
+	// Check the integrity of all the information in the individuals and genomes of the parental population
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+		subpop_pair.second->CheckIndividualIntegrity();
+#endif
 	
 	
 	// ******************************************************************
