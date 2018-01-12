@@ -1087,7 +1087,27 @@ The age of the individual, measured in generation \'93ticks\'94.  A newly genera
 \f0\fs20  objects.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 genomes => (object<Genome>)\
+\f2\fs18 \cf2 \expnd0\expndtw0\kerning0
+fitnessScaling <\'96> (float$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 A 
+\f2\fs18 float
+\f0\fs20  scaling factor applied to the individual\'92s fitness (i.e., the fitness value computed for the individual will be multiplied by this value).  This provides a simple, fast way to modify the fitness of an individual; conceptually it is similar to returning a fitness effect for the individual from a 
+\f2\fs18 fitness(NULL)
+\f0\fs20  callback, but without the complexity and performance overhead of implementing such a callback.  To scale the fitness of all individuals in a subpopulation by the same factor, see the 
+\f2\fs18 fitnessScaling
+\f0\fs20  property of 
+\f2\fs18 Subpopulation
+\f0\fs20 .\
+The value of 
+\f2\fs18 fitnessScaling
+\f0\fs20  is reset to 
+\f2\fs18 1.0
+\f0\fs20  every generation, so that any scaling factor set lasts for only a single generation.  This reset occurs immediately after fitness values are calculated, in both WF and nonWF models.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 genomes => (object<Genome>)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 The pair of 
@@ -3968,7 +3988,28 @@ Note that new script blocks can also be created and scheduled using the
 \f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 genomes => (object<Genome>)\
+\f2\fs18 \cf2 \expnd0\expndtw0\kerning0
+fitnessScaling <\'96> (float$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 A 
+\f2\fs18 float
+\f0\fs20  scaling factor applied to the fitness of all individuals in this subpopulation (i.e., the fitness value computed for each individual will be multiplied by this value).  This is primarily of use in nonWF models, where fitness is absolute, rather than in WF models, where fitness is relative (and thus a constant factor multiplied into the fitness of every individual will make no difference); however, it may be used in either type of model.  This provides a simple, fast way to modify the fitness of all individuals in a subpopulation; conceptually it is similar to returning the same fitness effect for all individuals in the subpopulation from a 
+\f2\fs18 fitness(NULL)
+\f0\fs20  callback, but without the complexity and performance overhead of implementing such a callback.  To scale the fitness of individuals by different (individual-specific) factors, see the 
+\f2\fs18 fitnessScaling
+\f0\fs20  property of 
+\f2\fs18 Individual
+\f0\fs20 .\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 The value of 
+\f2\fs18 fitnessScaling
+\f0\fs20  is reset to 
+\f2\fs18 1.0
+\f0\fs20  every generation, so that any scaling factor set lasts for only a single generation.  This reset occurs immediately after fitness values are calculated, in both WF and nonWF models.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 genomes => (object<Genome>)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 All of the genomes contained by the subpopulation; there are two genomes per diploid individual.

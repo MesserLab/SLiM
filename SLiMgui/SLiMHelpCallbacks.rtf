@@ -391,8 +391,26 @@ In SLiM version 2.3 and later, it is possible to define
 \f0\fs22  value, as usual.  Examples of global 
 \f2\fs18 fitness()
 \f0\fs22  callbacks can be found in the recipes of sections 13.1, 13.3, 13.10, 14.2, 14.4, and 14.5 (and perhaps others).\
+\cf5 \expnd0\expndtw0\kerning0
+Beginning in SLiM 3.0, it is also possible to set the 
+\f2\fs18 fitnessScaling
+\f0\fs22  property on a subpopulation to scale the fitness values of every individual in the subpopulation by the same constant amount, or to set the 
+\f2\fs18 fitnessScaling
+\f0\fs22  property on an individual to scale the fitness value of that specific individual.  These scaling factors are multiplied together with all other fitness effects for an individual to produce the individual\'92s final fitness value.  The 
+\f2\fs18 fitnessScaling
+\f0\fs22  properties of 
+\f2\fs18 Subpopulation
+\f0\fs22  and 
+\f2\fs18 Individual
+\f0\fs22  can often provide similar functionality to 
+\f2\fs18 fitness(NULL)
+\f0\fs22  callbacks with greater efficiency and simplicity.  They are reset to 
+\f2\fs18 1.0
+\f0\fs22  in every generation, immediately after fitness values are calculated, so they only need to be set when a value other than 
+\f2\fs18 1.0
+\f0\fs22  is desired.\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
-\cf0 One caveat to be aware of is that 
+\cf0 \kerning1\expnd0\expndtw0 One caveat to be aware of is that 
 \f2\fs18 fitness()
 \f0\fs22  callbacks are called at the end of each generation, just before the next generation begins.  If you have a 
 \f2\fs18 fitness()

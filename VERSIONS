@@ -18,7 +18,8 @@ development head (nonWF branch):
 	make convertToSubstitution default to F in nonWF models, since all non-neutral mutation types influence fitness and thus survival
 	add outputFull() ages=T parameter to control output of age information in nonWF models; does nothing in WF models; also modify readFromPopulationFile()
 	add sampleIndividuals() and subsetIndividuals() methods on Subpopulation for faster fetching of mates, etc.
-	
+	add fitnessScaling property to Subpopulation and Individual, to alter fitness values per individual or per-subpop without fitness(NULL) callbacks
+
 
 2.6 (build 1292; Eidos version 1.6):
 	make addNewMutation() and addNewDrawnMutation() vectorized, for much higher performance when adding many mutations in bulk; note policy change that requested mutations are returned whether added or not

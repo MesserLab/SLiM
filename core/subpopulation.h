@@ -204,7 +204,9 @@ public:
 	double bounds_z0_ = 0.0, bounds_z1_ = 1.0;
 	SpatialMapMap spatial_maps_;
 	
-	slim_usertag_t tag_value_;										// a user-defined tag value
+	slim_usertag_t tag_value_;							// a user-defined tag value
+	
+	double fitness_scaling_ = 1.0;						// the fitnessScaling property value
 	
 #ifdef SLIMGUI
 	bool gui_selected_ = false;							// keeps track of whether we are selected in SLiMgui's table of subpopulations; note Population::gui_all_selected_ must be kept in synch!
@@ -439,6 +441,8 @@ public:
 	
 	// Accelerated property access; see class EidosObjectElement for comments on this mechanism
 	virtual int64_t GetProperty_Accelerated_Int(EidosGlobalStringID p_property_id);
+	virtual double GetProperty_Accelerated_Float(EidosGlobalStringID p_property_id);
+	virtual void SetProperty_Accelerated_Float(EidosGlobalStringID p_property_id, double p_value);
 };
 
 

@@ -3201,6 +3201,19 @@ void Population::RecalculateFitness(slim_generation_t p_generation)
 			subpop->UpdateFitness(subpop_fitness_callbacks, subpop_global_fitness_callbacks);
 		}
 	}
+	
+	// reset fitness_scaling_ to 1.0 on subpops and individuals
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
+	{
+		Subpopulation *subpop = subpop_pair.second;
+		
+		subpop->fitness_scaling_ = 1.0;
+		
+		std::vector<Individual *> &individuals = subpop->parent_individuals_;
+		
+		for (Individual *individual : individuals)
+			individual->fitness_scaling_ = 1.0;
+	}
 }
 
 #ifdef SLIM_WF_ONLY

@@ -382,6 +382,7 @@ extern const std::string gStr_generation;
 extern const std::string gStr_colorSubstitution;
 extern const std::string gStr_tag;
 extern const std::string gStr_tagF;
+extern const std::string gStr_fitnessScaling;
 extern const std::string gStr_firstMaleIndex;
 extern const std::string gStr_genomes;
 extern const std::string gStr_sex;
@@ -632,6 +633,7 @@ enum _SLiMGlobalStringID : int {
 	gID_colorSubstitution,
 	gID_tag,
 	gID_tagF,
+	gID_fitnessScaling,
 	gID_firstMaleIndex,
 	gID_genomes,
 	gID_sex,

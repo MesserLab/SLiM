@@ -384,6 +384,10 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(tagF_value_));
 		}
+		case gID_fitnessScaling:	// ACCELERATED
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(fitness_scaling_));
+		}
 		case gEidosID_x:			// ACCELERATED
 		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(spatial_x_));
@@ -429,12 +433,13 @@ double Individual::GetProperty_Accelerated_Float(EidosGlobalStringID p_property_
 {
 	switch (p_property_id)
 	{
-		case gID_tagF:			return tagF_value_;
-		case gEidosID_x:		return spatial_x_;
-		case gEidosID_y:		return spatial_y_;
-		case gEidosID_z:		return spatial_z_;
+		case gID_tagF:				return tagF_value_;
+		case gID_fitnessScaling:	return fitness_scaling_;
+		case gEidosID_x:			return spatial_x_;
+		case gEidosID_y:			return spatial_y_;
+		case gEidosID_z:			return spatial_z_;
 			
-		default:				return EidosObjectElement::GetProperty_Accelerated_Float(p_property_id);
+		default:					return EidosObjectElement::GetProperty_Accelerated_Float(p_property_id);
 	}
 }
 
@@ -453,7 +458,7 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_property_id)
 	{
-		case gEidosID_color:	// ACCELERATED
+		case gEidosID_color:		// ACCELERATED
 		{
 			color_ = p_value.StringAtIndex(0, nullptr);
 			if (!color_.empty())
@@ -463,29 +468,38 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 			}
 			return;
 		}
-		case gID_tag:			// ACCELERATED
+		case gID_tag:				// ACCELERATED
 		{
 			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
 			
 			tag_value_ = value;
 			return;
 		}
-		case gID_tagF:			// ACCELERATED
+		case gID_tagF:				// ACCELERATED
 		{
 			tagF_value_ = p_value.FloatAtIndex(0, nullptr);
 			return;
 		}
-		case gEidosID_x:		// ACCELERATED
+		case gID_fitnessScaling:	// ACCELERATED
+		{
+			fitness_scaling_ = p_value.FloatAtIndex(0, nullptr);
+			
+			if ((fitness_scaling_ < 0.0) || (!std::isfinite(fitness_scaling_)))
+				EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property fitnessScaling must have a finite value >= 0.0." << EidosTerminate();
+			
+			return;
+		}
+		case gEidosID_x:			// ACCELERATED
 		{
 			spatial_x_ = p_value.FloatAtIndex(0, nullptr);
 			return;
 		}
-		case gEidosID_y:		// ACCELERATED
+		case gEidosID_y:			// ACCELERATED
 		{
 			spatial_y_ = p_value.FloatAtIndex(0, nullptr);
 			return;
 		}
-		case gEidosID_z:		// ACCELERATED
+		case gEidosID_z:			// ACCELERATED
 		{
 			spatial_z_ = p_value.FloatAtIndex(0, nullptr);
 			return;
@@ -511,12 +525,21 @@ void Individual::SetProperty_Accelerated_Float(EidosGlobalStringID p_property_id
 {
 	switch (p_property_id)
 	{
-		case gID_tagF:			tagF_value_ = p_value; return;
-		case gEidosID_x:		spatial_x_ = p_value; return;
-		case gEidosID_y:		spatial_y_ = p_value; return;
-		case gEidosID_z:		spatial_z_ = p_value; return;
+		case gID_tagF:				tagF_value_ = p_value; return;
+		case gID_fitnessScaling:
+		{
+			fitness_scaling_ = p_value;
 			
-		default:				return EidosObjectElement::SetProperty_Accelerated_Float(p_property_id, p_value);
+			if ((fitness_scaling_ < 0.0) || (!std::isfinite(fitness_scaling_)))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::SetProperty_Accelerated_Float): property fitnessScaling must have a finite value >= 0.0." << EidosTerminate();
+			
+			return;
+		}
+		case gEidosID_x:			spatial_x_ = p_value; return;
+		case gEidosID_y:			spatial_y_ = p_value; return;
+		case gEidosID_z:			spatial_z_ = p_value; return;
+			
+		default:					return EidosObjectElement::SetProperty_Accelerated_Float(p_property_id, p_value);
 	}
 }
 
@@ -1018,6 +1041,7 @@ const std::vector<const EidosPropertySignature *> *Individual_Class::Properties(
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_sex));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_tag));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_tagF));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_fitnessScaling));
 		properties->emplace_back(SignatureForPropertyOrRaise(gEidosID_x));
 		properties->emplace_back(SignatureForPropertyOrRaise(gEidosID_y));
 		properties->emplace_back(SignatureForPropertyOrRaise(gEidosID_z));
@@ -1043,6 +1067,7 @@ const EidosPropertySignature *Individual_Class::SignatureForProperty(EidosGlobal
 	static EidosPropertySignature *sexSig = nullptr;
 	static EidosPropertySignature *tagSig = nullptr;
 	static EidosPropertySignature *tagFSig = nullptr;
+	static EidosPropertySignature *fitnessScalingSig = nullptr;
 	static EidosPropertySignature *xSig = nullptr;
 	static EidosPropertySignature *ySig = nullptr;
 	static EidosPropertySignature *zSig = nullptr;
@@ -1062,6 +1087,7 @@ const EidosPropertySignature *Individual_Class::SignatureForProperty(EidosGlobal
 		sexSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_sex,						gID_sex,						true,	kEidosValueMaskString | kEidosValueMaskSingleton));
 		tagSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,						gID_tag,						false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet()->DeclareAcceleratedSet();
 		tagFSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_tagF,					gID_tagF,						false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet()->DeclareAcceleratedSet();
+		fitnessScalingSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_fitnessScaling,			gID_fitnessScaling,				false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet()->DeclareAcceleratedSet();
 		xSig =							(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_x,					gEidosID_x,						false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet()->DeclareAcceleratedSet();
 		ySig =							(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_y,					gEidosID_y,						false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet()->DeclareAcceleratedSet();
 		zSig =							(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_z,					gEidosID_z,						false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet()->DeclareAcceleratedSet();
@@ -1083,6 +1109,7 @@ const EidosPropertySignature *Individual_Class::SignatureForProperty(EidosGlobal
 		case gID_sex:						return sexSig;
 		case gID_tag:						return tagSig;
 		case gID_tagF:						return tagFSig;
+		case gID_fitnessScaling:			return fitnessScalingSig;
 		case gEidosID_x:					return xSig;
 		case gEidosID_y:					return ySig;
 		case gEidosID_z:					return zSig;

@@ -33,6 +33,7 @@
 #include <assert.h>
 #include <string>
 #include <map>
+#include <utility>
 
 extern std::vector<EidosValue_Object *> gEidosValue_Object_Genome_Registry;		// this is in Eidos; see Subpopulation::ExecuteMethod_takeMigrants()
 extern std::vector<EidosValue_Object *> gEidosValue_Object_Individual_Registry;	// this is in Eidos; see Subpopulation::ExecuteMethod_takeMigrants()
@@ -1233,7 +1234,9 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 	cached_fitness_size_ = 0;	// while we're refilling, the fitness cache is invalid
 	
 	// We optimize the pure neutral case, as long as no fitness callbacks are defined; fitness values are then simply 1.0, for everybody.
+	// BCH 12 Jan 2018: now fitness_scaling_ modifies even pure_neutral_ models, but the framework here remains valid
 	bool pure_neutral = (!fitness_callbacks_exist && !global_fitness_callbacks_exist && population_.sim_.pure_neutral_);
+	double subpop_fitness_scaling = fitness_scaling_;
 	
 	// calculate fitnesses in parent population and create new lookup table
 	if (sex_enabled_)
@@ -1260,19 +1263,21 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		{
 			for (slim_popsize_t i = 0; i < parent_first_male_index_; i++)
 			{
-				cached_parental_fitness_[i] = 1.0;
+				double fitness = subpop_fitness_scaling * parent_individuals_[i]->fitness_scaling_;
+				
+				cached_parental_fitness_[i] = fitness;
 				cached_male_fitness_[i] = 0;
 				
-				totalFemaleFitness += 1.0;
+				totalFemaleFitness += fitness;
 			}
 		}
 		else if (skip_chromosomal_fitness)
 		{
 			for (slim_popsize_t i = 0; i < parent_first_male_index_; i++)
 			{
-				double fitness = 1.0;
+				double fitness = subpop_fitness_scaling * parent_individuals_[i]->fitness_scaling_;
 				
-				if (global_fitness_callbacks_exist)
+				if (global_fitness_callbacks_exist && (fitness > 0.0))
 					fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, i);
 				
 				cached_parental_fitness_[i] = fitness;
@@ -1286,18 +1291,21 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 			// general case for females
 			for (slim_popsize_t i = 0; i < parent_first_male_index_; i++)
 			{
-				double fitness;
+				double fitness = subpop_fitness_scaling * parent_individuals_[i]->fitness_scaling_;
 				
-				if (!fitness_callbacks_exist)
-					fitness = FitnessOfParentWithGenomeIndices_NoCallbacks(i);
-				else if (single_fitness_callback)
-					fitness = FitnessOfParentWithGenomeIndices_SingleCallback(i, p_fitness_callbacks, single_callback_mut_type);
-				else
-					fitness = FitnessOfParentWithGenomeIndices_Callbacks(i, p_fitness_callbacks);
-				
-				// multiply in the effects of any global fitness callbacks (muttype==NULL)
-				if (global_fitness_callbacks_exist && (fitness > 0.0))
-					fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, i);
+				if (fitness > 0.0)
+				{
+					if (!fitness_callbacks_exist)
+						fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(i);
+					else if (single_fitness_callback)
+						fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(i, p_fitness_callbacks, single_callback_mut_type);
+					else
+						fitness *= FitnessOfParentWithGenomeIndices_Callbacks(i, p_fitness_callbacks);
+					
+					// multiply in the effects of any global fitness callbacks (muttype==NULL)
+					if (global_fitness_callbacks_exist && (fitness > 0.0))
+						fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, i);
+				}
 				
 				cached_parental_fitness_[i] = fitness;
 				cached_male_fitness_[i] = 0;				// this vector has 0 for all females, for mateChoice() callbacks
@@ -1325,11 +1333,12 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 			for (slim_popsize_t i = 0; i < num_males; i++)
 			{
 				slim_popsize_t individual_index = (i + parent_first_male_index_);
+				double fitness = subpop_fitness_scaling * parent_individuals_[individual_index]->fitness_scaling_;
 				
-				cached_parental_fitness_[individual_index] = 1.0;
-				cached_male_fitness_[individual_index] = 1.0;
+				cached_parental_fitness_[individual_index] = fitness;
+				cached_male_fitness_[individual_index] = fitness;
 				
-				totalMaleFitness += 1.0;
+				totalMaleFitness += fitness;
 			}
 		}
 		else if (skip_chromosomal_fitness)
@@ -1337,7 +1346,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 			for (slim_popsize_t i = 0; i < num_males; i++)
 			{
 				slim_popsize_t individual_index = (i + parent_first_male_index_);
-				double fitness = 1.0;
+				double fitness = subpop_fitness_scaling * parent_individuals_[individual_index]->fitness_scaling_;
 				
 				if (global_fitness_callbacks_exist && (fitness > 0.0))
 					fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, individual_index);
@@ -1354,18 +1363,21 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 			for (slim_popsize_t i = 0; i < num_males; i++)
 			{
 				slim_popsize_t individual_index = (i + parent_first_male_index_);
-				double fitness;
+				double fitness = subpop_fitness_scaling * parent_individuals_[individual_index]->fitness_scaling_;
 				
-				if (!fitness_callbacks_exist)
-					fitness = FitnessOfParentWithGenomeIndices_NoCallbacks(individual_index);
-				else if (single_fitness_callback)
-					fitness = FitnessOfParentWithGenomeIndices_SingleCallback(individual_index, p_fitness_callbacks, single_callback_mut_type);
-				else
-					fitness = FitnessOfParentWithGenomeIndices_Callbacks(individual_index, p_fitness_callbacks);
-				
-				// multiply in the effects of any global fitness callbacks (muttype==NULL)
-				if (global_fitness_callbacks_exist && (fitness > 0.0))
-					fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, individual_index);
+				if (fitness > 0.0)
+				{
+					if (!fitness_callbacks_exist)
+						fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(individual_index);
+					else if (single_fitness_callback)
+						fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(individual_index, p_fitness_callbacks, single_callback_mut_type);
+					else
+						fitness *= FitnessOfParentWithGenomeIndices_Callbacks(individual_index, p_fitness_callbacks);
+					
+					// multiply in the effects of any global fitness callbacks (muttype==NULL)
+					if (global_fitness_callbacks_exist && (fitness > 0.0))
+						fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, individual_index);
+				}
 				
 				cached_parental_fitness_[individual_index] = fitness;
 				cached_male_fitness_[individual_index] = fitness;
@@ -1403,16 +1415,18 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		{
 			for (slim_popsize_t i = 0; i < parent_subpop_size_; i++)
 			{
-				*(fitness_buffer_ptr++) = 1.0;
+				double fitness = subpop_fitness_scaling * parent_individuals_[i]->fitness_scaling_;
 				
-				totalFitness += 1.0;
+				*(fitness_buffer_ptr++) = fitness;
+				
+				totalFitness += fitness;
 			}
 		}
 		else if (skip_chromosomal_fitness)
 		{
 			for (slim_popsize_t i = 0; i < parent_subpop_size_; i++)
 			{
-				double fitness = 1.0;
+				double fitness = subpop_fitness_scaling * parent_individuals_[i]->fitness_scaling_;
 				
 				// multiply in the effects of any global fitness callbacks (muttype==NULL)
 				if (global_fitness_callbacks_exist && (fitness > 0.0))
@@ -1428,18 +1442,21 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 			// general case for hermaphrodites
 			for (slim_popsize_t i = 0; i < parent_subpop_size_; i++)
 			{
-				double fitness;
+				double fitness = subpop_fitness_scaling * parent_individuals_[i]->fitness_scaling_;
 				
-				if (!fitness_callbacks_exist)
-					fitness = FitnessOfParentWithGenomeIndices_NoCallbacks(i);
-				else if (single_fitness_callback)
-					fitness = FitnessOfParentWithGenomeIndices_SingleCallback(i, p_fitness_callbacks, single_callback_mut_type);
-				else
-					fitness = FitnessOfParentWithGenomeIndices_Callbacks(i, p_fitness_callbacks);
-				
-				// multiply in the effects of any global fitness callbacks (muttype==NULL)
-				if (global_fitness_callbacks_exist && (fitness > 0.0))
-					fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, i);
+				if (fitness > 0)
+				{
+					if (!fitness_callbacks_exist)
+						fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(i);
+					else if (single_fitness_callback)
+						fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(i, p_fitness_callbacks, single_callback_mut_type);
+					else
+						fitness *= FitnessOfParentWithGenomeIndices_Callbacks(i, p_fitness_callbacks);
+					
+					// multiply in the effects of any global fitness callbacks (muttype==NULL)
+					if (global_fitness_callbacks_exist && (fitness > 0.0))
+						fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, i);
+				}
 				
 				*(fitness_buffer_ptr++) = fitness;
 				
@@ -3098,6 +3115,8 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			// variables
 		case gID_tag:					// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value_));
+		case gID_fitnessScaling:		// ACCELERATED
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(fitness_scaling_));
 			
 			// all others, including gID_none
 		default:
@@ -3118,6 +3137,15 @@ int64_t Subpopulation::GetProperty_Accelerated_Int(EidosGlobalStringID p_propert
 	}
 }
 
+double Subpopulation::GetProperty_Accelerated_Float(EidosGlobalStringID p_property_id)
+{
+	switch (p_property_id)
+	{
+		case gID_fitnessScaling:	return fitness_scaling_;
+			
+		default:					return EidosObjectElement::GetProperty_Accelerated_Float(p_property_id);
+	}
+}
 
 void Subpopulation::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
 {
@@ -3130,11 +3158,38 @@ void Subpopulation::SetProperty(EidosGlobalStringID p_property_id, const EidosVa
 			tag_value_ = value;
 			return;
 		}
+		case gID_fitnessScaling:	// ACCELERATED
+		{
+			fitness_scaling_ = p_value.FloatAtIndex(0, nullptr);
+			
+			if ((fitness_scaling_ < 0.0) || (!std::isfinite(fitness_scaling_)))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::SetProperty): property fitnessScaling must have a finite value >= 0.0." << EidosTerminate();
+			
+			return;
+		}
 			
 		default:
 		{
 			return EidosObjectElement::SetProperty(p_property_id, p_value);
 		}
+	}
+}
+
+void Subpopulation::SetProperty_Accelerated_Float(EidosGlobalStringID p_property_id, double p_value)
+{
+	switch (p_property_id)
+	{
+		case gID_fitnessScaling:
+		{
+			fitness_scaling_ = p_value;
+			
+			if ((fitness_scaling_ < 0.0) || (!std::isfinite(fitness_scaling_)))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::SetProperty_Accelerated_Float): property fitnessScaling must have a finite value >= 0.0." << EidosTerminate();
+			
+			return;
+		}
+			
+		default:					return EidosObjectElement::SetProperty_Accelerated_Float(p_property_id, p_value);
 	}
 }
 
@@ -3613,6 +3668,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 			migrant_transmogrified->pedigree_g4_ = migrant->pedigree_g4_;
 			migrant_transmogrified->tag_value_ = migrant->tag_value_;
 			migrant_transmogrified->tagF_value_ = migrant->tagF_value_;
+			migrant_transmogrified->fitness_scaling_ = migrant->fitness_scaling_;
 			migrant_transmogrified->sex_ = migrant->sex_;
 #ifdef SLIM_NONWF_ONLY
 			migrant_transmogrified->age_ = migrant->age_;
@@ -5265,6 +5321,7 @@ const std::vector<const EidosPropertySignature *> *Subpopulation_Class::Properti
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_spatialBounds));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_individualCount));
 		properties->emplace_back(SignatureForPropertyOrRaise(gID_tag));
+		properties->emplace_back(SignatureForPropertyOrRaise(gID_fitnessScaling));
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
@@ -5286,6 +5343,7 @@ const EidosPropertySignature *Subpopulation_Class::SignatureForProperty(EidosGlo
 	static EidosPropertySignature *spatialBoundsSig = nullptr;
 	static EidosPropertySignature *sizeSig = nullptr;
 	static EidosPropertySignature *tagSig = nullptr;
+	static EidosPropertySignature *fitnessScalingSig = nullptr;
 	
 	if (!idSig)
 	{
@@ -5301,6 +5359,7 @@ const EidosPropertySignature *Subpopulation_Class::SignatureForProperty(EidosGlo
 		spatialBoundsSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_spatialBounds,				gID_spatialBounds,				true,	kEidosValueMaskFloat));
 		sizeSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_individualCount,				gID_individualCount,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
 		tagSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,							gID_tag,						false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
+		fitnessScalingSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_fitnessScaling,				gID_fitnessScaling,				false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet()->DeclareAcceleratedSet();
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -5318,6 +5377,7 @@ const EidosPropertySignature *Subpopulation_Class::SignatureForProperty(EidosGlo
 		case gID_spatialBounds:				return spatialBoundsSig;
 		case gID_individualCount:			return sizeSig;
 		case gID_tag:						return tagSig;
+		case gID_fitnessScaling:			return fitnessScalingSig;
 			
 			// all others, including gID_none
 		default:
