@@ -2000,8 +2000,10 @@ void EidosValue_Float_singleton::Sort(bool p_ascending)
 #pragma mark EidosValue_Object
 #pragma mark -
 
-// See comment on EidosValue_Object::EidosValue_Object() below
+// See comments on EidosValue_Object::EidosValue_Object() below
 std::vector<EidosValue_Object *> gEidosValue_Object_Mutation_Registry;
+std::vector<EidosValue_Object *> gEidosValue_Object_Genome_Registry;
+std::vector<EidosValue_Object *> gEidosValue_Object_Individual_Registry;
 
 EidosValue_Object::EidosValue_Object(bool p_singleton, const EidosObjectClass *p_class) : EidosValue(EidosValueType::kValueObject, p_singleton), class_(p_class)
 #ifdef EIDOS_OBJECT_RETAIN_RELEASE
@@ -2017,14 +2019,27 @@ EidosValue_Object::EidosValue_Object(bool p_singleton, const EidosObjectClass *p
 	// is some way to do this without pushing the hack down into Eidos, but at the moment I'm not seeing it.
 	// On the bright side, this scheme actually seems pretty robust; the only way it fails is if somebody avoids
 	// using the constructor or the destructor for EidosValue_Object, I think, which seems unlikely.
-	if (&(class_->ElementType()) == &gEidosStr_Mutation)
+	
+	// BCH 11 January 2018: Sadly, I have found it necessary to extend this hack to Individual and Genome as well.
+	// See Subpopulation::ExecuteMethod_takeMigrants() for the rationale; basically, references to those classes
+	// need to be found and patched when migration occurs in nonWF models, for technical reasons.  I apologize
+	// in advance to anyone who encounters this hack.
+	const std::string *element_type = &(class_->ElementType());
+										
+	if (element_type == &gEidosStr_Mutation)
 		gEidosValue_Object_Mutation_Registry.push_back(this);
+	else if (element_type == &gEidosStr_Genome)
+		gEidosValue_Object_Genome_Registry.push_back(this);
+	else if (element_type == &gEidosStr_Individual)
+		gEidosValue_Object_Individual_Registry.push_back(this);
 }
 
 EidosValue_Object::~EidosValue_Object(void)
 {
 	// See comment on EidosValue_Object::EidosValue_Object() above
-	if (&(class_->ElementType()) == &gEidosStr_Mutation)
+	const std::string *element_type = &(class_->ElementType());
+	
+	if (element_type == &gEidosStr_Mutation)
 	{
 		auto erase_iter = std::find(gEidosValue_Object_Mutation_Registry.begin(), gEidosValue_Object_Mutation_Registry.end(), this);
 		
@@ -2032,6 +2047,24 @@ EidosValue_Object::~EidosValue_Object(void)
 			gEidosValue_Object_Mutation_Registry.erase(erase_iter);
 		else
 			EIDOS_TERMINATION << "ERROR (EidosValue_Object::~EidosValue_Object): (internal error) unregistered EidosValue_Object of class Mutation." << EidosTerminate(nullptr);
+	}
+	else if (element_type == &gEidosStr_Genome)
+	{
+		auto erase_iter = std::find(gEidosValue_Object_Genome_Registry.begin(), gEidosValue_Object_Genome_Registry.end(), this);
+		
+		if (erase_iter != gEidosValue_Object_Genome_Registry.end())
+			gEidosValue_Object_Genome_Registry.erase(erase_iter);
+		else
+			EIDOS_TERMINATION << "ERROR (EidosValue_Object::~EidosValue_Object): (internal error) unregistered EidosValue_Object of class Genome." << EidosTerminate(nullptr);
+	}
+	else if (element_type == &gEidosStr_Individual)
+	{
+		auto erase_iter = std::find(gEidosValue_Object_Individual_Registry.begin(), gEidosValue_Object_Individual_Registry.end(), this);
+		
+		if (erase_iter != gEidosValue_Object_Individual_Registry.end())
+			gEidosValue_Object_Individual_Registry.erase(erase_iter);
+		else
+			EIDOS_TERMINATION << "ERROR (EidosValue_Object::~EidosValue_Object): (internal error) unregistered EidosValue_Object of class Individual." << EidosTerminate(nullptr);
 	}
 }
 

@@ -521,7 +521,7 @@ extern const std::string gStr_exerter;
 
 extern const std::string gStr_SLiMEidosDictionary;
 extern const std::string gStr_Chromosome;
-extern const std::string gStr_Genome;
+//extern const std::string gStr_Genome;			// in Eidos; see EidosValue_Object::EidosValue_Object()
 extern const std::string gStr_GenomicElement;
 extern const std::string gStr_GenomicElementType;
 //extern const std::string gStr_Mutation;		// in Eidos; see EidosValue_Object::EidosValue_Object()
@@ -529,7 +529,7 @@ extern const std::string gStr_MutationType;
 extern const std::string gStr_SLiMEidosBlock;
 extern const std::string gStr_SLiMSim;
 extern const std::string gStr_Subpopulation;
-extern const std::string gStr_Individual;
+//extern const std::string gStr_Individual;		// in Eidos; see EidosValue_Object::EidosValue_Object()
 extern const std::string gStr_Substitution;
 extern const std::string gStr_InteractionType;
 

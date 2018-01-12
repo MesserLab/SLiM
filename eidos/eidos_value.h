@@ -1057,7 +1057,7 @@ public:
 	void expand(void);													// expand to fit (at least) one new value
 	void erase_index(size_t p_index);									// a weak substitute for erase()
 	
-	//inline __attribute__((always_inline)) EidosObjectElement **data(void) { return values_; }		// the accessors below should be used to modify, since they handle Retain()/Release()
+	inline __attribute__((always_inline)) EidosObjectElement **data(void) { return values_; }		// the accessors below should be used to modify, since they handle Retain()/Release()
 	inline __attribute__((always_inline)) EidosObjectElement * const *data(void) const { return values_; }
 	inline __attribute__((always_inline)) size_t size(void) const { return count_; }
 	void push_object_element(EidosObjectElement *p_object);
@@ -1086,7 +1086,7 @@ public:
 	virtual EidosObjectElement *ObjectElementAtIndex(int p_idx, const EidosToken *p_blame_token) const;
 	
 	inline __attribute__((always_inline)) EidosObjectElement *ObjectElementValue(void) const { return value_; }
-	//inline __attribute__((always_inline)) EidosObjectElement * &ObjectElementValue_Mutable(void) { return value_; }		// very dangerous; do not use
+	inline __attribute__((always_inline)) EidosObjectElement * &ObjectElementValue_Mutable(void) { return value_; }		// very dangerous; do not use
 	void SetValue(EidosObjectElement *p_element);																		// very dangerous; used only in Evaluate_For()
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const;

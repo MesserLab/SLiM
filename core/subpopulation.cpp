@@ -34,6 +34,9 @@
 #include <string>
 #include <map>
 
+extern std::vector<EidosValue_Object *> gEidosValue_Object_Genome_Registry;		// this is in Eidos; see Subpopulation::ExecuteMethod_takeMigrants()
+extern std::vector<EidosValue_Object *> gEidosValue_Object_Individual_Registry;	// this is in Eidos; see Subpopulation::ExecuteMethod_takeMigrants()
+
 
 #pragma mark -
 #pragma mark _SpatialMap
@@ -594,6 +597,8 @@ void Subpopulation::GenerateIndividualsToFitNonWF(double p_sex_ratio)
 
 void Subpopulation::CheckIndividualIntegrity(void)
 {
+	EidosScript::ClearErrorPosition();
+	
 #if defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY)
 	SLiMModelType model_type = population_.sim_.ModelType();
 #endif
@@ -3452,7 +3457,367 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 	if (population_.sim_.GenerationStage() == SLiMGenerationStage::kNonWFStage1GenerateOffspring)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_takeMigrants): method -takeMigrants() may not be called from a reproduction() callback." << EidosTerminate();
 	
-#warning implement me!
+	EidosValue_Object *migrants_value = (EidosValue_Object *)p_arguments[0].get();
+	int migrant_count = migrants_value->Count();
+	
+	if (migrant_count == 0)
+		return gStaticEidosValueNULLInvisible;
+	
+	// So, we want to loop through migrants, add them all to the focal subpop (changing their subpop ivar and their index), and remove them from their
+	// old subpop.  This is tricky because Genome and Individual are allocated out of subpop-specific pools; we can't just use the same objects in a
+	// new subpop, because the objects wouldn't know how to free themselves, their owning subpop might cease to exist out from under them, etc.  So
+	// instead, we have to play a shell game: make a new individual and genomes in the focal subpop, use swap() to move the internal information from
+	// old to new, dispose of the old objects, add the new objects to the focal subpop.  Unfortunately, it's even a bit more complex than that, because
+	// this is all done mid-script, so the user can have references to the original individual/genomes.  We want the switcheroo to be invisible to the
+	// user; so we will actually go into the Eidos symbol tables and patch references to the old individual/genomes into references to the new ones.
+	// We do that patching relatively quickly by storing the new (patch) pointer inside each object that needs patching; that adds 8 bytes to the size
+	// of Individual and Genome just to support this method, which sucks, but without that the patching algorithm would be O(N*M) in the number of
+	// migrants and the number of Genome/Individual elements in EidosValue variables, which would be really painful for large models; now it is O(N+M).
+	
+	// I think this might possibly be the most disgusting code I have ever written.  Sorry.  This is the price we pay for allocating Genomes and
+	// Individuals out of subpop-specific pools; if it weren't for that, this method would be trivial and beautiful.  That optimization is worth it,
+	// though – memory locality is king.
+	std::vector<Genome *> old_genome_ptrs, new_genome_ptrs;
+	std::vector<Individual *> old_individual_ptrs, new_individual_ptrs;
+	
+	// First, clear our genome and individual caches in all subpopulations; we don't want to have to do the work of patching them below, and any
+	// subpops involved in the migration will be invalidated anyway so this probably isn't even that much overkill in most models.
+	for (auto subpop_pair : population_)
+	{
+		Subpopulation *subpop = subpop_pair.second;
+		
+		subpop->cached_parent_genomes_value_.reset();
+		subpop->cached_parent_individuals_value_.reset();
+	}
+	
+	// Then loop over the migrants and move them one by one
+	for (int migrant_index = 0; migrant_index < migrant_count; ++migrant_index)
+	{
+		Individual *migrant = (Individual *)migrants_value->ObjectElementAtIndex(migrant_index, nullptr);
+		Subpopulation *source_subpop = &migrant->subpopulation_;
+		
+		if (source_subpop != this)
+		{
+			slim_popsize_t source_subpop_size = source_subpop->parent_subpop_size_;
+			slim_popsize_t source_subpop_index = migrant->index_;
+			Genome *genome1 = migrant->genome1_;
+			Genome *genome2 = migrant->genome2_;
+			
+			if (source_subpop_index < 0)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_takeMigrants): method -takeMigrants() may not move an individual that is not visible in a subpopulation." << EidosTerminate();
+			
+			// remove the originals from source_subpop's vectors
+			if (migrant->sex_ == IndividualSex::kFemale)
+			{
+				// females have to be backfilled by the last female, and then that hole is backfilled by a male, and the first male index changes
+				slim_popsize_t source_first_male = source_subpop->parent_first_male_index_;
+				
+				if (source_subpop_index < source_first_male - 1)
+				{
+					Individual *backfill = source_subpop->parent_individuals_[source_first_male - 1];
+					
+					source_subpop->parent_individuals_[source_subpop_index] = backfill;
+					backfill->index_ = source_subpop_index;
+					
+					source_subpop->parent_genomes_[source_subpop_index * 2] = source_subpop->parent_genomes_[(source_first_male - 1) * 2];
+					source_subpop->parent_genomes_[source_subpop_index * 2 + 1] = source_subpop->parent_genomes_[(source_first_male - 1) * 2 + 1];
+				}
+				
+				if (source_first_male - 1 < source_subpop_size - 1)
+				{
+					Individual *backfill = source_subpop->parent_individuals_[source_subpop_size - 1];
+					
+					source_subpop->parent_individuals_[source_first_male - 1] = backfill;
+					backfill->index_ = source_first_male - 1;
+					
+					source_subpop->parent_genomes_[(source_first_male - 1) * 2] = source_subpop->parent_genomes_[(source_subpop_size - 1) * 2];
+					source_subpop->parent_genomes_[(source_first_male - 1) * 2 + 1] = source_subpop->parent_genomes_[(source_subpop_size - 1) * 2 + 1];
+				}
+				
+				source_subpop->parent_subpop_size_ = --source_subpop_size;
+				source_subpop->parent_individuals_.resize(source_subpop_size);
+				source_subpop->parent_genomes_.resize(source_subpop_size * 2);
+				
+				source_subpop->parent_first_male_index_ = --source_first_male;
+			}
+			else
+			{
+				// males and hermaphrodites can be removed with a simple backfill from the end of the vector
+				if (source_subpop_index < source_subpop_size - 1)
+				{
+					Individual *backfill = source_subpop->parent_individuals_[source_subpop_size - 1];
+					
+					source_subpop->parent_individuals_[source_subpop_index] = backfill;
+					backfill->index_ = source_subpop_index;
+					
+					source_subpop->parent_genomes_[source_subpop_index * 2] = source_subpop->parent_genomes_[(source_subpop_size - 1) * 2];
+					source_subpop->parent_genomes_[source_subpop_index * 2 + 1] = source_subpop->parent_genomes_[(source_subpop_size - 1) * 2 + 1];
+				}
+				
+				source_subpop->parent_subpop_size_ = --source_subpop_size;
+				source_subpop->parent_individuals_.resize(source_subpop_size);
+				source_subpop->parent_genomes_.resize(source_subpop_size * 2);
+			}
+			
+			// make the transmogrified individual and genomes, from our own pools
+			Genome *genome1_transmogrified = NewSubpopGenome(0, 0, GenomeType::kAutosome, true);
+			Genome *genome2_transmogrified = NewSubpopGenome(0, 0, GenomeType::kAutosome, true);
+			Individual *migrant_transmogrified = new (individual_pool_->AllocateChunk()) Individual(*this, -1, -1, genome1_transmogrified, genome2_transmogrified, IndividualSex::kHermaphrodite, -1);
+			
+			// swap over the original individual and genome internals; skip self_value_ and subpop_ and genome1_ and genome2_
+			// actually, for most values we can just copy since we don't care what state is left in the original object
+			genome1_transmogrified->genome_type_ = genome1->genome_type_;
+			std::swap(genome1->mutrun_count_, genome1_transmogrified->mutrun_count_);
+			std::swap(genome1->mutrun_length_, genome1_transmogrified->mutrun_length_);
+			if (genome1->mutruns_ == genome1->run_buffer_)
+			{
+				// if the original genome points into its internal buffer, swap internal buffer contents and point into our internal buffer
+				std::swap(genome1->run_buffer_, genome1_transmogrified->run_buffer_);
+				genome1_transmogrified->mutruns_ = genome1_transmogrified->run_buffer_;
+			}
+			else
+			{
+				// if the original genome points to an external buffer, ignore the internal buffer and just swap external buffers
+				std::swap(genome1->mutruns_, genome1_transmogrified->mutruns_);
+			}
+			genome1->mutruns_ = nullptr;
+			genome1_transmogrified->tag_value_ = genome1->tag_value_;
+			
+			genome2_transmogrified->genome_type_ = genome2->genome_type_;
+			std::swap(genome2->mutrun_count_, genome2_transmogrified->mutrun_count_);
+			std::swap(genome2->mutrun_length_, genome2_transmogrified->mutrun_length_);
+			if (genome2->mutruns_ == genome2->run_buffer_)
+			{
+				// if the original genome points into its internal buffer, swap internal buffer contents and point into our internal buffer
+				std::swap(genome2->run_buffer_, genome2_transmogrified->run_buffer_);
+				genome2_transmogrified->mutruns_ = genome2_transmogrified->run_buffer_;
+			}
+			else
+			{
+				// if the original genome points to an external buffer, ignore the internal buffer and just swap external buffers
+				std::swap(genome2->mutruns_, genome2_transmogrified->mutruns_);
+			}
+			genome2->mutruns_ = nullptr;
+			genome2_transmogrified->tag_value_ = genome2->tag_value_;
+			
+			migrant_transmogrified->color_ = migrant->color_;
+			migrant_transmogrified->color_red_ = migrant->color_red_;
+			migrant_transmogrified->color_green_ = migrant->color_green_;
+			migrant_transmogrified->color_blue_ = migrant->color_blue_;
+			migrant_transmogrified->pedigree_id_ = migrant->pedigree_id_;
+			migrant_transmogrified->pedigree_p1_ = migrant->pedigree_p1_;
+			migrant_transmogrified->pedigree_p2_ = migrant->pedigree_p2_;
+			migrant_transmogrified->pedigree_g1_ = migrant->pedigree_g1_;
+			migrant_transmogrified->pedigree_g2_ = migrant->pedigree_g2_;
+			migrant_transmogrified->pedigree_g3_ = migrant->pedigree_g3_;
+			migrant_transmogrified->pedigree_g4_ = migrant->pedigree_g4_;
+			migrant_transmogrified->tag_value_ = migrant->tag_value_;
+			migrant_transmogrified->tagF_value_ = migrant->tagF_value_;
+			migrant_transmogrified->sex_ = migrant->sex_;
+#ifdef SLIM_NONWF_ONLY
+			migrant_transmogrified->age_ = migrant->age_;
+#endif  // SLIM_NONWF_ONLY
+			migrant_transmogrified->spatial_x_ = migrant->spatial_x_;
+			migrant_transmogrified->spatial_y_ = migrant->spatial_y_;
+			migrant_transmogrified->spatial_z_ = migrant->spatial_z_;
+			
+			// insert the transmogrified instances into ourselves
+			if (migrant_transmogrified->sex_ == IndividualSex::kFemale)
+			{
+				// room has to be made for females by shifting the first male and changing the first male index
+				Individual *backfill = parent_individuals_[parent_first_male_index_];
+				
+				parent_individuals_.push_back(backfill);
+				parent_genomes_.push_back(parent_genomes_[parent_first_male_index_ * 2]);
+				parent_genomes_.push_back(parent_genomes_[parent_first_male_index_ * 2 + 1]);
+				backfill->index_ = parent_subpop_size_;
+				
+				parent_individuals_[parent_first_male_index_] = migrant_transmogrified;
+				parent_genomes_[parent_first_male_index_ * 2] = genome1_transmogrified;
+				parent_genomes_[parent_first_male_index_ * 2 + 1] = genome2_transmogrified;
+				migrant_transmogrified->index_ = parent_first_male_index_;
+				
+				parent_subpop_size_++;
+				parent_first_male_index_++;
+			}
+			else
+			{
+				// males and hermaphrodites can just be added to the end
+				parent_individuals_.push_back(migrant_transmogrified);
+				parent_genomes_.push_back(genome1_transmogrified);
+				parent_genomes_.push_back(genome2_transmogrified);
+				migrant_transmogrified->index_ = parent_subpop_size_;
+				
+				parent_subpop_size_++;
+			}
+			
+			// track all the old and new pointers
+			old_genome_ptrs.push_back(genome1);
+			old_genome_ptrs.push_back(genome2);
+			old_individual_ptrs.push_back(migrant);
+			
+			new_genome_ptrs.push_back(genome1_transmogrified);
+			new_genome_ptrs.push_back(genome2_transmogrified);
+			new_individual_ptrs.push_back(migrant_transmogrified);
+		}
+	}
+	
+	// Get rid of the EidosValue for the migrants, so we don't waste time below fixing it
+	EidosValue_SP *migrants_arg_non_const = const_cast<EidosValue_SP *>(p_arguments + 0);
+	
+	(*migrants_arg_non_const).reset();		// very very naughty; strictly, undefined behavior, but should be fine
+	migrants_value = nullptr;
+	
+	migrant_count = (int)old_individual_ptrs.size();		// the number that actually migrated
+	
+	// Patch all references to the transmogrified genomes and individuals.  We do this by (1) zeroing out the patch_pointer_
+	// ivar in all genomes and individuals that are accessible through EidosValues, (2) setting patch_pointer_ in all of
+	// the genomes and individuals that need to be patched, and then (3) patching the pointers in all EidosValues.
+	if (migrant_count)
+	{
+		// Zero out patch_pointer_ in all Genome objects referenced by EidosValues
+		for (EidosValue_Object *genome_value : gEidosValue_Object_Genome_Registry)
+		{
+			if (genome_value->IsSingleton())
+			{
+				EidosValue_Object_singleton *genome_singleton = (EidosValue_Object_singleton *)genome_value;
+				Genome *genome = (Genome *)genome_singleton->ObjectElementValue();
+				
+				genome->patch_pointer_ = nullptr;
+			}
+			else
+			{
+				EidosValue_Object_vector *genome_vector = (EidosValue_Object_vector *)genome_value;
+				
+				EidosObjectElement * const *vec_data = genome_vector->data();
+				size_t vec_size = genome_vector->size();
+				
+				for (size_t vec_index = 0; vec_index < vec_size; ++vec_index)
+				{
+					Genome *genome = ((Genome *)vec_data[vec_index]);
+					
+					genome->patch_pointer_ = nullptr;
+				}
+			}
+		}
+		
+		// Zero out patch_pointer_ in all Individual objects referenced by EidosValues
+		for (EidosValue_Object *individual_value : gEidosValue_Object_Individual_Registry)
+		{
+			if (individual_value->IsSingleton())
+			{
+				EidosValue_Object_singleton *individual_singleton = (EidosValue_Object_singleton *)individual_value;
+				Individual *individual = (Individual *)individual_singleton->ObjectElementValue();
+				
+				individual->patch_pointer_ = nullptr;
+			}
+			else
+			{
+				EidosValue_Object_vector *individual_vector = (EidosValue_Object_vector *)individual_value;
+				
+				EidosObjectElement * const *vec_data = individual_vector->data();
+				size_t vec_size = individual_vector->size();
+				
+				for (size_t vec_index = 0; vec_index < vec_size; ++vec_index)
+				{
+					Individual *individual = ((Individual *)vec_data[vec_index]);
+					
+					individual->patch_pointer_ = nullptr;
+				}
+			}
+		}
+		
+		// If there are any EidosValues of Genome class, set up patch_pointer_ in all genomes that need patching
+		if (gEidosValue_Object_Genome_Registry.size())
+		{
+			for (int migrant_index = 0; migrant_index < migrant_count * 2; ++migrant_index)
+			{
+				Genome *old_genome = old_genome_ptrs[migrant_index];
+				Genome *new_genome = new_genome_ptrs[migrant_index];
+				
+				old_genome->patch_pointer_ = new_genome;
+			}
+		}
+		
+		// If there are any EidosValues of Individual class, set up patch_pointer_ in all individuals that need patching
+		if (gEidosValue_Object_Individual_Registry.size())
+		{
+			for (int migrant_index = 0; migrant_index < migrant_count; ++migrant_index)
+			{
+				Individual *old_individual = old_individual_ptrs[migrant_index];
+				Individual *new_individual = new_individual_ptrs[migrant_index];
+				
+				old_individual->patch_pointer_ = new_individual;
+			}
+		}
+		
+		// Use patch_pointer_ to patch all Genome objects referenced by EidosValues
+		for (EidosValue_Object *genome_value : gEidosValue_Object_Genome_Registry)
+		{
+			if (genome_value->IsSingleton())
+			{
+				EidosValue_Object_singleton *genome_singleton = (EidosValue_Object_singleton *)genome_value;
+				Genome *genome = (Genome *)genome_singleton->ObjectElementValue();
+				
+				if (genome->patch_pointer_)
+					genome_singleton->ObjectElementValue_Mutable() = genome->patch_pointer_;
+			}
+			else
+			{
+				EidosValue_Object_vector *genome_vector = (EidosValue_Object_vector *)genome_value;
+				
+				EidosObjectElement **vec_data = genome_vector->data();
+				size_t vec_size = genome_vector->size();
+				
+				for (size_t vec_index = 0; vec_index < vec_size; ++vec_index)
+				{
+					Genome *genome = ((Genome *)vec_data[vec_index]);
+					
+					if (genome->patch_pointer_)
+						vec_data[vec_index] = genome->patch_pointer_;
+				}
+			}
+		}
+		
+		// Use patch_pointer_ to patch all Individual objects referenced by EidosValues
+		for (EidosValue_Object *individual_value : gEidosValue_Object_Individual_Registry)
+		{
+			if (individual_value->IsSingleton())
+			{
+				EidosValue_Object_singleton *individual_singleton = (EidosValue_Object_singleton *)individual_value;
+				Individual *individual = (Individual *)individual_singleton->ObjectElementValue();
+				
+				if (individual->patch_pointer_)
+					individual_singleton->ObjectElementValue_Mutable() = individual->patch_pointer_;
+			}
+			else
+			{
+				EidosValue_Object_vector *individual_vector = (EidosValue_Object_vector *)individual_value;
+				
+				EidosObjectElement **vec_data = individual_vector->data();
+				size_t vec_size = individual_vector->size();
+				
+				for (size_t vec_index = 0; vec_index < vec_size; ++vec_index)
+				{
+					Individual *individual = ((Individual *)vec_data[vec_index]);
+					
+					if (individual->patch_pointer_)
+						vec_data[vec_index] = individual->patch_pointer_;
+				}
+			}
+		}
+	}
+	
+	// Finally, dispose of the old individuals and genomes, in their respective subpops; there should be no references to
+	// them any more, since we have removed them from their subpopulation and have patched out all EidosValue references.
+	for (Genome *genome : old_genome_ptrs)
+		(genome->subpop_)->FreeSubpopGenome(genome);
+	
+	for (Individual *individual : old_individual_ptrs)
+	{
+		individual->~Individual();
+		(individual->subpopulation_).individual_pool_->DisposeChunk(const_cast<Individual *>(individual));
+	}
 	
 	return gStaticEidosValueNULLInvisible;
 }

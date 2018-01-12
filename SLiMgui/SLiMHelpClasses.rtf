@@ -4783,9 +4783,9 @@ This method is shorthand for getting the
 \f2\fs18 []
 \f0\fs20  to select only individuals with the desired properties, and then using 
 \f2\fs18 sample()
-\f0\fs20  to sample from that candidate pool; besides being much simpler than the equivalent Eidos code, it is also much faster.\cf2   See 
+\f0\fs20  to sample from that candidate pool; besides being much simpler than the equivalent Eidos code, it is also much faster.  See 
 \f2\fs18 subsetIndividuals()
-\f0\fs20  for a similar method that returns a full subset, rather than a sample.\cf2 \
+\f0\fs20  for a similar method that returns a full subset, rather than a sample.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0\cf2 \expnd0\expndtw0\kerning0
@@ -5031,7 +5031,7 @@ Looks up the spatial map indicated by
 \f2\fs18 migrants
 \f0\fs20  to the target subpopulation (removing them from their previous subpopulation).  Individuals in 
 \f2\fs18 migrants
-\f0\fs20  that are already in the target subpopulation are unaffected.\
+\f0\fs20  that are already in the target subpopulation are unaffected.  Note that the indices and order of individuals and genomes in both the target and source subpopulations will change unpredictably as a side effect of this method.\
 Note that this method is only for use in nonWF models, in which migration is managed manually by the model script.  In WF models, migration is managed automatically by the SLiM core based upon the migration rates set for each subpopulation with 
 \f2\fs18 setMigrationRates()
 \f0\fs20 .

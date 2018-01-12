@@ -1202,7 +1202,7 @@ Genome_Class::Genome_Class(void)
 
 const std::string &Genome_Class::ElementType(void) const
 {
-	return gStr_Genome;
+	return gEidosStr_Genome;		// in Eidos; see EidosValue_Object::EidosValue_Object()
 }
 
 const std::vector<const EidosPropertySignature *> *Genome_Class::Properties(void) const

@@ -62,7 +62,9 @@ public:
 private:
 #endif
 	
-	EidosValue_SP self_value_;			// cached EidosValue object for speed
+	EidosValue_SP self_value_;						// cached EidosValue object for speed
+	
+	Individual *patch_pointer_;						// used only by Subpopulation::ExecuteMethod_takeMigrants(); see that method
 	
 	std::string color_;								// color to use when displayed (in SLiMgui)
 	float color_red_, color_green_, color_blue_;	// cached color components from color_; should always be in sync
@@ -163,6 +165,9 @@ public:
 	virtual void SetProperty_Accelerated_Int(EidosGlobalStringID p_property_id, int64_t p_value);
 	virtual void SetProperty_Accelerated_Float(EidosGlobalStringID p_property_id, double p_value);
 	virtual void SetProperty_Accelerated_String(EidosGlobalStringID p_property_id, const std::string &p_value);
+	
+	// for Subpopulation::ExecuteMethod_takeMigrants()
+	friend Subpopulation;
 };
 
 

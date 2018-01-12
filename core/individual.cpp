@@ -1002,7 +1002,7 @@ Individual_Class::Individual_Class(void)
 
 const std::string &Individual_Class::ElementType(void) const
 {
-	return gStr_Individual;
+	return gEidosStr_Individual;		// in Eidos; see EidosValue_Object::EidosValue_Object()
 }
 
 const std::vector<const EidosPropertySignature *> *Individual_Class::Properties(void) const

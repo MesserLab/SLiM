@@ -1669,7 +1669,9 @@ const std::string gEidosStr_y = "y";
 const std::string gEidosStr_z = "z";
 const std::string gEidosStr_color = "color";
 
-const std::string gEidosStr_Mutation = "Mutation";	// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
+const std::string gEidosStr_Mutation = "Mutation";		// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
+const std::string gEidosStr_Genome = "Genome";			// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
+const std::string gEidosStr_Individual = "Individual";	// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
 
 std::vector<std::string> gEidosConstantNames;
 
@@ -1745,6 +1747,8 @@ void Eidos_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gEidosStr_color, gEidosID_color);
 		
 		Eidos_RegisterStringForGlobalID(gEidosStr_Mutation, gEidosID_Mutation);		// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
+		Eidos_RegisterStringForGlobalID(gEidosStr_Genome, gEidosID_Genome);			// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
+		Eidos_RegisterStringForGlobalID(gEidosStr_Individual, gEidosID_Individual);	// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
 	}
 }
 

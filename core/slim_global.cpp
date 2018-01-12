@@ -443,15 +443,15 @@ const std::string gStr_exerter = "exerter";
 // mostly SLiM element types
 const std::string gStr_SLiMEidosDictionary = "SLiMEidosDictionary";
 const std::string gStr_Chromosome = "Chromosome";
-const std::string gStr_Genome = "Genome";
+//const std::string gStr_Genome = "Genome";				// in Eidos; see EidosValue_Object::EidosValue_Object()
 const std::string gStr_GenomicElement = "GenomicElement";
 const std::string gStr_GenomicElementType = "GenomicElementType";
-//const std::string gStr_Mutation = "Mutation";		// in Eidos; see EidosValue_Object::EidosValue_Object()
+//const std::string gStr_Mutation = "Mutation";			// in Eidos; see EidosValue_Object::EidosValue_Object()
 const std::string gStr_MutationType = "MutationType";
 const std::string gStr_SLiMEidosBlock = "SLiMEidosBlock";
 const std::string gStr_SLiMSim = "SLiMSim";
 const std::string gStr_Subpopulation = "Subpopulation";
-const std::string gStr_Individual = "Individual";
+//const std::string gStr_Individual = "Individual";		// in Eidos; see EidosValue_Object::EidosValue_Object()
 const std::string gStr_Substitution = "Substitution";
 const std::string gStr_InteractionType = "InteractionType";
 
@@ -725,7 +725,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_exerter, gID_exerter);
 		
 		Eidos_RegisterStringForGlobalID(gStr_Chromosome, gID_Chromosome);
-		Eidos_RegisterStringForGlobalID(gStr_Genome, gID_Genome);
+		//Eidos_RegisterStringForGlobalID(gStr_Genome, gID_Genome);					// in Eidos; see EidosValue_Object::EidosValue_Object()
 		Eidos_RegisterStringForGlobalID(gStr_GenomicElement, gID_GenomicElement);
 		Eidos_RegisterStringForGlobalID(gStr_GenomicElementType, gID_GenomicElementType);
 		//Eidos_RegisterStringForGlobalID(gStr_Mutation, gID_Mutation);				// in Eidos; see EidosValue_Object::EidosValue_Object()
@@ -733,7 +733,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_SLiMEidosBlock, gID_SLiMEidosBlock);
 		Eidos_RegisterStringForGlobalID(gStr_SLiMSim, gID_SLiMSim);
 		Eidos_RegisterStringForGlobalID(gStr_Subpopulation, gID_Subpopulation);
-		Eidos_RegisterStringForGlobalID(gStr_Individual, gID_Individual);
+		//Eidos_RegisterStringForGlobalID(gStr_Individual, gID_Individual);			// in Eidos; see EidosValue_Object::EidosValue_Object()
 		Eidos_RegisterStringForGlobalID(gStr_Substitution, gID_Substitution);
 		Eidos_RegisterStringForGlobalID(gStr_InteractionType, gID_InteractionType);
 		

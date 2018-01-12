@@ -73,6 +73,8 @@ class Genome : public EidosObjectElement
 	
 	EidosValue_SP self_value_;									// cached EidosValue object for speed
 	
+	Genome *patch_pointer_;										// used only by Subpopulation::ExecuteMethod_takeMigrants(); see that method
+	
 #ifdef SLIMGUI
 public:
 #else
