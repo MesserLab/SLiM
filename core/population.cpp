@@ -579,7 +579,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 		else if (positive_count <= weights_length / 4)	// the threshold here is a guess
 		{
 			// there are just a few positive values, so try to be faster about scanning for them by checking for zero first
-			double the_rose_in_the_teeth = gsl_rng_uniform_pos(gEidos_rng) * weights_sum;
+			double the_rose_in_the_teeth = Eidos_rng_uniform_pos(gEidos_rng) * weights_sum;
 			double bachelor_sum = 0.0;
 			
 			for (slim_popsize_t weight_index = 0; weight_index < weights_length; ++weight_index)
@@ -601,7 +601,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 		else
 		{
 			// there are many positive values, so we need to do a uniform draw and see who gets the rose
-			double the_rose_in_the_teeth = gsl_rng_uniform_pos(gEidos_rng) * weights_sum;
+			double the_rose_in_the_teeth = Eidos_rng_uniform_pos(gEidos_rng) * weights_sum;
 			double bachelor_sum = 0.0;
 			
 			for (slim_popsize_t weight_index = 0; weight_index < weights_length; ++weight_index)
@@ -1017,21 +1017,21 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						{
 							if (cloning_fraction > 0)
 							{
-								double draw = gsl_rng_uniform(gEidos_rng);
+								double draw = Eidos_rng_uniform(gEidos_rng);
 								
 								if (draw < selfing_fraction)							selfed = true;
 								else if (draw < selfing_fraction + cloning_fraction)	cloned = true;
 							}
 							else
 							{
-								double draw = gsl_rng_uniform(gEidos_rng);
+								double draw = Eidos_rng_uniform(gEidos_rng);
 								
 								if (draw < selfing_fraction)							selfed = true;
 							}
 						}
 						else if (cloning_fraction > 0)
 						{
-							double draw = gsl_rng_uniform(gEidos_rng);
+							double draw = Eidos_rng_uniform(gEidos_rng);
 							
 							if (draw < cloning_fraction)								cloned = true;
 						}
@@ -1381,21 +1381,21 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					{
 						if (cloning_fraction > 0)
 						{
-							double draw = gsl_rng_uniform(gEidos_rng);
+							double draw = Eidos_rng_uniform(gEidos_rng);
 							
 							if (draw < selfing_fraction)							selfed = true;
 							else if (draw < selfing_fraction + cloning_fraction)	cloned = true;
 						}
 						else
 						{
-							double draw = gsl_rng_uniform(gEidos_rng);
+							double draw = Eidos_rng_uniform(gEidos_rng);
 							
 							if (draw < selfing_fraction)							selfed = true;
 						}
 					}
 					else if (cloning_fraction > 0)
 					{
-						double draw = gsl_rng_uniform(gEidos_rng);
+						double draw = Eidos_rng_uniform(gEidos_rng);
 						
 						if (draw < cloning_fraction)								cloned = true;
 					}
@@ -4964,7 +4964,7 @@ void Population::PrintSample_SLiM(std::ostream &p_out, Subpopulation &p_subpop, 
 			if (candidates.size() == 0)
 				EIDOS_TERMINATION << "ERROR (Population::PrintSample_SLiM): not enough eligible genomes for sampling without replacement." << EidosTerminate();
 			
-			candidate_index = static_cast<slim_popsize_t>(gsl_rng_uniform_int(gEidos_rng, candidates.size()));
+			candidate_index = static_cast<slim_popsize_t>(Eidos_rng_uniform_int(gEidos_rng, (uint32_t)candidates.size()));
 			genome_index = candidates[candidate_index];
 			
 			// If we're sampling without replacement, remove the index we have just taken; either we will use it or it is invalid
@@ -5012,7 +5012,7 @@ void Population::PrintSample_MS(std::ostream &p_out, Subpopulation &p_subpop, sl
 			if (candidates.size() == 0)
 				EIDOS_TERMINATION << "ERROR (Population::PrintSample_MS): not enough eligible genomes for sampling without replacement." << EidosTerminate();
 			
-			candidate_index = static_cast<slim_popsize_t>(gsl_rng_uniform_int(gEidos_rng, candidates.size()));
+			candidate_index = static_cast<slim_popsize_t>(Eidos_rng_uniform_int(gEidos_rng, (uint32_t)candidates.size()));
 			genome_index = candidates[candidate_index];
 			
 			// If we're sampling without replacement, remove the index we have just taken; either we will use it or it is invalid
@@ -5063,7 +5063,7 @@ void Population::PrintSample_VCF(std::ostream &p_out, Subpopulation &p_subpop, s
 			if (candidates.size() == 0)
 				EIDOS_TERMINATION << "ERROR (Population::PrintSample_VCF): not enough eligible individuals for sampling without replacement." << EidosTerminate();
 			
-			candidate_index = static_cast<slim_popsize_t>(gsl_rng_uniform_int(gEidos_rng, candidates.size()));
+			candidate_index = static_cast<slim_popsize_t>(Eidos_rng_uniform_int(gEidos_rng, (uint32_t)candidates.size()));
 			individual_index = candidates[candidate_index];
 			
 			// If we're sampling without replacement, remove the index we have just taken; either we will use it or it is invalid

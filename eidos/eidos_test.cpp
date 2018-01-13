@@ -339,7 +339,7 @@ int RunEidosTests(void)
 		totals[i] = 0;
 	
 	for (int i = 0; i < 100000000; ++i)
-		totals[Eidos_RandomInt(gEidos_rng, 17)]++;
+		totals[Eidos_rng_uniform_int(gEidos_rng, 17)]++;
 	
 	for (int i = 0; i < 17; ++i)
 		std::cout << "totals[" << i << "] == " << totals[i] << std::endl;
@@ -570,6 +570,81 @@ int RunEidosTests(void)
 			
 			std::cout << "mu " << mu << " T " << type << ": total = " << total << ", time == " << (end_time - start_time) << std::endl;
 		}
+	}
+#endif
+	
+#if 0
+	// Speed tests of gsl_rng_uniform_int() versus Eidos_rng_uniform_int()
+	{
+		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		
+		for (int64_t iteration = 0; iteration < 100000000; ++iteration)
+			gsl_rng_uniform_int(gEidos_rng, 500);
+		
+		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		
+		std::cout << std::endl << "gsl_rng_uniform_int(): time == " << (end_time - start_time) << std::endl;
+	}
+	
+	{
+		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		
+		for (int64_t iteration = 0; iteration < 100000000; ++iteration)
+			Eidos_rng_uniform_int(gEidos_rng, 500);
+		
+		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		
+		std::cout << "Eidos_rng_uniform_int(): time == " << (end_time - start_time) << std::endl;
+	}
+#endif
+	
+#if 0
+	// Speed tests of gsl_rng_uniform() versus Eidos_rng_uniform()
+	{
+		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		
+		for (int64_t iteration = 0; iteration < 100000000; ++iteration)
+			gsl_rng_uniform(gEidos_rng);
+		
+		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		
+		std::cout << std::endl << "gsl_rng_uniform(): time == " << (end_time - start_time) << std::endl;
+	}
+	
+	{
+		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		
+		for (int64_t iteration = 0; iteration < 100000000; ++iteration)
+			Eidos_rng_uniform(gEidos_rng);
+		
+		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		
+		std::cout << "Eidos_rng_uniform(): time == " << (end_time - start_time) << std::endl;
+	}
+#endif
+	
+#if 0
+	// Speed tests of gsl_rng_uniform_pos() versus Eidos_rng_uniform_pos()
+	{
+		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		
+		for (int64_t iteration = 0; iteration < 100000000; ++iteration)
+			gsl_rng_uniform_pos(gEidos_rng);
+		
+		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		
+		std::cout << std::endl << "gsl_rng_uniform_pos(): time == " << (end_time - start_time) << std::endl;
+	}
+	
+	{
+		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		
+		for (int64_t iteration = 0; iteration < 100000000; ++iteration)
+			Eidos_rng_uniform_pos(gEidos_rng);
+		
+		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		
+		std::cout << "Eidos_rng_uniform_pos(): time == " << (end_time - start_time) << std::endl;
 	}
 #endif
 	

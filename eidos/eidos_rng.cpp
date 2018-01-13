@@ -50,7 +50,7 @@ void Eidos_InitializeRNGFromSeed(unsigned long int p_seed)
 {
 	// Allocate the RNG if needed
 	if (!gEidos_rng)
-		gEidos_rng = gsl_rng_alloc(gsl_rng_taus2);
+		gEidos_rng = gsl_rng_alloc(gsl_rng_taus2);	// the assumption of taus2 is hard-coded in eidos_rng.h
 	
 	// Then set the seed as requested
 	

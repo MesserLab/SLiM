@@ -308,7 +308,7 @@ inline __attribute__((always_inline)) int Chromosome::DrawBreakpointCount(Indivi
 // this method relies on Eidos_FastRandomPoisson_NONZERO() and cannot be called when USE_GSL_POISSON is defined
 inline __attribute__((always_inline)) void Chromosome::DrawMutationAndBreakpointCounts(IndividualSex p_sex, int *p_mut_count, int *p_break_count) const
 {
-	double u = gsl_rng_uniform(gEidos_rng);
+	double u = Eidos_rng_uniform(gEidos_rng);
 	
 	if (single_recombination_map_ && single_mutation_map_)
 	{

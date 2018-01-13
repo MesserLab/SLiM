@@ -4117,7 +4117,7 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 			// Use linear search to do the drawing
 			for (int draw_index = 0; draw_index < count; ++draw_index)
 			{
-				double the_rose_in_the_teeth = gsl_rng_uniform(gEidos_rng) * total_interaction_strength;
+				double the_rose_in_the_teeth = Eidos_rng_uniform(gEidos_rng) * total_interaction_strength;
 				double cumulative_strength = 0.0;
 				int neighbors_size = (int)neighbors.size();
 				int hit_index;

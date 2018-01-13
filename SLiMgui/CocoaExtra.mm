@@ -688,7 +688,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 	draws.reserve(sample_size);
 	
 	if (!local_rng)
-		local_rng = gsl_rng_alloc(gsl_rng_taus2);
+		local_rng = gsl_rng_alloc(gsl_rng_taus2);	// the assumption of taus2 is hard-coded in eidos_rng.h
 	
 	gEidos_rng = local_rng;
 	gsl_rng_set(local_rng, 10);		// arbitrary seed, but the same seed every time

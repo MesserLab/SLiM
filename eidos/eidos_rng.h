@@ -35,6 +35,18 @@
 #include "gsl_rng.h"
 #include "gsl_randist.h"
 
+// We made this function non-static so we can use it here.  Basically, for a little extra speed we try to avoid
+// going through the GSL's indirect function-pointer lookup, and just call taus_get() directly.
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern unsigned long int taus_get(void *vstate);
+
+#ifdef __cplusplus
+}
+#endif
+
 #else
 
 // To build with an externally built GSL library, use this branch, which includes GSL headers from the linked library.
@@ -74,9 +86,9 @@ void Eidos_InitializeRNGFromSeed(unsigned long int p_seed);
 
 
 // get a random bool from a random number generator
-//static inline bool Eidos_RandomBool(gsl_rng * r) { return (bool)(gsl_rng_get(r) & 0x01); }
+//static inline bool Eidos_RandomBool(gsl_rng *p_r) { return (bool)(taus_get(p_r->state) & 0x01); }
 
-// optimization of this is possible assuming each bit returned by gsl_rng_get() is independent and usable as a random boolean.
+// optimization of this is possible assuming each bit returned by taus_get() is independent and usable as a random boolean.
 // I can't find a hard guarantee of this for gsl_rng_taus2, but it is generally true of good modern RNGs...
 static inline __attribute__((always_inline)) bool Eidos_RandomBool(gsl_rng *p_r)
 {
@@ -90,7 +102,7 @@ static inline __attribute__((always_inline)) bool Eidos_RandomBool(gsl_rng *p_r)
 	}
 	else
 	{
-		gEidos_random_bool_bit_buffer = (uint32_t)gsl_rng_get(p_r);	// gsl_rng_taus2 is in fact limited to unsigned 32-bit, according to its docs
+		gEidos_random_bool_bit_buffer = (uint32_t)taus_get(p_r->state);	// gsl_rng_taus2 is in fact limited to unsigned 32-bit, according to its docs
 		retval = gEidos_random_bool_bit_buffer & 0x01;
 		gEidos_random_bool_bit_counter = 31;				// 32 good bits originally, and now we've used one
 	}
@@ -98,11 +110,35 @@ static inline __attribute__((always_inline)) bool Eidos_RandomBool(gsl_rng *p_r)
 	return retval;
 }
 
+// The gsl_rng_uniform() function is a bit slow because of the indirection it goes through to get the
+// function pointer, so this is a customized version that should be faster.  Basically it just hard-codes
+// taus_get(); otherwise its logic is the same.  The taus_get_double() function called by gsl_rng_uniform()
+// has the advantage of inlining the taus_get() function, but on the other hand, Eidos_rng_uniform() is
+// itself inline, which gsl_rng_uniform()'s call to taus_get_double() cannot be, so that should be a wash.
+inline double Eidos_rng_uniform(gsl_rng *p_r)
+{
+	return taus_get(p_r->state) / 4294967296.0;
+}
 
-// the gsl_rng_uniform_int() function is very slow, so this is a customized version that should be faster
-// basically it is faster because (1) the range of the taus2 generator is hard-coded, (2) the range check
-// is done only on #if DEBUG, and (3) it uses uint32; otherwise the logic is the same.
-inline uint32_t Eidos_RandomInt(gsl_rng *p_r, uint32_t p_n)
+// Basically ditto; faster than gsl_rng_uniform_pos() by avoiding indirection.
+inline double Eidos_rng_uniform_pos(const gsl_rng *p_r)
+{
+	double x;
+	
+	do
+	{
+		x = taus_get(p_r->state) / 4294967296.0;
+	}
+	while (x == 0);
+	
+	return x;
+}
+
+// The gsl_rng_uniform_int() function is very slow, so this is a customized version that should be faster.
+// Basically it is faster because (1) the range of the taus2 generator is hard-coded, (2) the range check
+// is done only on #if DEBUG, (3) it uses uint32_t, and (4) it calls taus_get() directly; otherwise the
+// logic is the same.
+inline uint32_t Eidos_rng_uniform_int(gsl_rng *p_r, uint32_t p_n)
 {
 	uint32_t scale = UINT32_MAX / p_n;
 	uint32_t k;
@@ -116,7 +152,7 @@ inline uint32_t Eidos_RandomInt(gsl_rng *p_r, uint32_t p_n)
 	
 	do
 	{
-		k = ((uint32_t)((p_r->type->get) (p_r->state))) / scale;
+		k = ((uint32_t)(taus_get(p_r->state))) / scale;		// taus_get is used by the taus2 RNG
 	}
 	while (k >= p_n);
 	
@@ -151,7 +187,7 @@ static inline __attribute__((always_inline)) unsigned int Eidos_FastRandomPoisso
 	unsigned int x = 0;
 	double p = exp(-p_mu);
 	double s = p;
-	double u = gsl_rng_uniform(gEidos_rng);
+	double u = Eidos_rng_uniform(gEidos_rng);
 	
 	while (u > s)
 	{
@@ -179,7 +215,7 @@ static inline __attribute__((always_inline)) unsigned int Eidos_FastRandomPoisso
 	unsigned int x = 0;
 	double p = p_exp_neg_mu;
 	double s = p;
-	double u = gsl_rng_uniform(gEidos_rng);
+	double u = Eidos_rng_uniform(gEidos_rng);
 	
 	while (u > s)
 	{
@@ -217,7 +253,7 @@ static inline __attribute__((always_inline)) unsigned int Eidos_FastRandomPoisso
 	unsigned int x = 0;
 	double p = p_exp_neg_mu;
 	double s = p;
-	double u = gsl_rng_uniform_pos(gEidos_rng);	// exclude 0.0 so u != s after rescaling
+	double u = Eidos_rng_uniform_pos(gEidos_rng);	// exclude 0.0 so u != s after rescaling
 	
 	// rescale u so that (u > s) is true in the first round
 	u = u * (1.0 - s) + s;

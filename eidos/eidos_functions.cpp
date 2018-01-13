@@ -4401,7 +4401,7 @@ EidosValue_SP Eidos_ExecuteFunction_rdunif(const EidosValue_SP *const p_argument
 		
 		if (num_draws == 1)
 		{
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton((int64_t)Eidos_RandomInt(gEidos_rng, (uint32_t)count0) + min_value0));
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton((int64_t)Eidos_rng_uniform_int(gEidos_rng, (uint32_t)count0) + min_value0));
 		}
 		else
 		{
@@ -4409,7 +4409,7 @@ EidosValue_SP Eidos_ExecuteFunction_rdunif(const EidosValue_SP *const p_argument
 			result_SP = EidosValue_SP(int_result);
 			
 			for (int draw_index = 0; draw_index < num_draws; ++draw_index)
-				int_result->set_int_no_check((int64_t)Eidos_RandomInt(gEidos_rng, (uint32_t)count0) + min_value0, draw_index);
+				int_result->set_int_no_check((int64_t)Eidos_rng_uniform_int(gEidos_rng, (uint32_t)count0) + min_value0, draw_index);
 		}
 	}
 	else
@@ -4428,7 +4428,7 @@ EidosValue_SP Eidos_ExecuteFunction_rdunif(const EidosValue_SP *const p_argument
 			if (count > INT32_MAX)
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rdunif): function rdunif() cannot generate draws across a range greater than " << INT32_MAX << "." << EidosTerminate(nullptr);
 			
-			int_result->set_int_no_check((int64_t)Eidos_RandomInt(gEidos_rng, (uint32_t)count) + min_value, draw_index);
+			int_result->set_int_no_check((int64_t)Eidos_rng_uniform_int(gEidos_rng, (uint32_t)count) + min_value, draw_index);
 		}
 	}
 	
@@ -4862,7 +4862,7 @@ EidosValue_SP Eidos_ExecuteFunction_runif(const EidosValue_SP *const p_arguments
 		// With the default min and max, we can streamline quite a bit
 		if (num_draws == 1)
 		{
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gsl_rng_uniform(gEidos_rng)));
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(Eidos_rng_uniform(gEidos_rng)));
 		}
 		else
 		{
@@ -4870,7 +4870,7 @@ EidosValue_SP Eidos_ExecuteFunction_runif(const EidosValue_SP *const p_arguments
 			result_SP = EidosValue_SP(float_result);
 			
 			for (int draw_index = 0; draw_index < num_draws; ++draw_index)
-				float_result->set_float_no_check(gsl_rng_uniform(gEidos_rng), draw_index);
+				float_result->set_float_no_check(Eidos_rng_uniform(gEidos_rng), draw_index);
 		}
 	}
 	else
@@ -4884,7 +4884,7 @@ EidosValue_SP Eidos_ExecuteFunction_runif(const EidosValue_SP *const p_arguments
 			
 			if (num_draws == 1)
 			{
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gsl_rng_uniform(gEidos_rng) * range0 + min_value0));
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(Eidos_rng_uniform(gEidos_rng) * range0 + min_value0));
 			}
 			else
 			{
@@ -4892,7 +4892,7 @@ EidosValue_SP Eidos_ExecuteFunction_runif(const EidosValue_SP *const p_arguments
 				result_SP = EidosValue_SP(float_result);
 				
 				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
-					float_result->set_float_no_check(gsl_rng_uniform(gEidos_rng) * range0 + min_value0, draw_index);
+					float_result->set_float_no_check(Eidos_rng_uniform(gEidos_rng) * range0 + min_value0, draw_index);
 			}
 		}
 		else
@@ -4909,7 +4909,7 @@ EidosValue_SP Eidos_ExecuteFunction_runif(const EidosValue_SP *const p_arguments
 				if (range < 0.0)
 					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_runif): function runif() requires min < max." << EidosTerminate(nullptr);
 				
-				float_result->set_float_no_check(gsl_rng_uniform(gEidos_rng) * range + min_value, draw_index);
+				float_result->set_float_no_check(Eidos_rng_uniform(gEidos_rng) * range + min_value, draw_index);
 			}
 		}
 	}
@@ -5271,7 +5271,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const EidosValue_SP *const p_argument
 			if (weights_sum <= 0.0)
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() encountered weights summing to <= 0." << EidosTerminate(nullptr);
 			
-			double rose = gsl_rng_uniform(gEidos_rng) * weights_sum;
+			double rose = Eidos_rng_uniform(gEidos_rng) * weights_sum;
 			double rose_sum = 0.0;
 			int rose_index;
 			
@@ -5301,7 +5301,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const EidosValue_SP *const p_argument
 		if (sample_size == 1)
 		{
 			// a sample size of 1 is very common; make it as fast as we can by getting a singleton EidosValue directly from x
-			return x_value->GetValueAtIndex((int)gsl_rng_uniform_int(gEidos_rng, x_count), nullptr);
+			return x_value->GetValueAtIndex((int)Eidos_rng_uniform_int(gEidos_rng, x_count), nullptr);
 		}
 		else if (replace)
 		{
@@ -5310,7 +5310,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const EidosValue_SP *const p_argument
 			EidosValue *result = result_SP.get();
 			
 			for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
-				result->PushValueFromIndexOfEidosValue((int)gsl_rng_uniform_int(gEidos_rng, x_count), *x_value, nullptr);
+				result->PushValueFromIndexOfEidosValue((int)Eidos_rng_uniform_int(gEidos_rng, x_count), *x_value, nullptr);
 		}
 		else
 		{
@@ -5332,7 +5332,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const EidosValue_SP *const p_argument
 				if (contender_count <= 0)
 					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): (internal error) function sample() ran out of eligible elements from which to sample." << EidosTerminate(nullptr);		// CODE COVERAGE: This is dead code
 				
-				int rose_index = (int)gsl_rng_uniform_int(gEidos_rng, contender_count);
+				int rose_index = (int)Eidos_rng_uniform_int(gEidos_rng, (uint32_t)contender_count);
 				
 				result->PushValueFromIndexOfEidosValue(index_vector[rose_index], *x_value, nullptr);
 				

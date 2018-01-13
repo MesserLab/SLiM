@@ -484,7 +484,7 @@ MutationIndex Chromosome::DrawNewMutation(IndividualSex p_sex, slim_objectid_t p
 	const GenomicElementType &genomic_element_type = *source_element.genomic_element_type_ptr_;
 	MutationType *mutation_type_ptr = genomic_element_type.DrawMutationType();
 	
-	slim_position_t position = subrange.start_position_ + static_cast<slim_position_t>(gsl_rng_uniform_int(gEidos_rng, subrange.end_position_ - subrange.start_position_ + 1));  
+	slim_position_t position = subrange.start_position_ + static_cast<slim_position_t>(Eidos_rng_uniform_int(gEidos_rng, subrange.end_position_ - subrange.start_position_ + 1));  
 	
 	double selection_coeff = mutation_type_ptr->DrawSelectionCoefficient();
 	
@@ -548,7 +548,7 @@ void Chromosome::DrawBreakpoints(IndividualSex p_sex, const int p_num_breakpoint
 		// positions to the left of its enclosed bases, up to and including the position to the left of the final base given as the
 		// end position of the interval.  The next interval's first owned recombination position is therefore to the left of the
 		// base that is one position to the right of the end of the preceding interval.  So we have to add one to the position
-		// given by recombination_end_positions_[recombination_interval - 1], at minimum.  Since gsl_rng_uniform_int() returns
+		// given by recombination_end_positions_[recombination_interval - 1], at minimum.  Since Eidos_rng_uniform_int() returns
 		// a zero-based random number, that means we need a +1 here as well.
 		//
 		// The key fact here is that a recombination breakpoint position of 1 means "break to the left of the base at position 1" –
@@ -557,7 +557,7 @@ void Chromosome::DrawBreakpoints(IndividualSex p_sex, const int p_num_breakpoint
 		// breakpoint.  When their position is *equal*, the breakpoint gets serviced by switching strands.  That logic causes the
 		// breakpoints to fall to the left of their designated base.
 		//
-		// Note that gsl_rng_uniform_int() crashes (well, aborts fatally) if passed 0 for n.  We need to guarantee that that doesn't
+		// Note that Eidos_rng_uniform_int() crashes (well, aborts fatally) if passed 0 for n.  We need to guarantee that that doesn't
 		// happen, and we don't want to waste time checking for that condition here.  For a 1-base model, we are guaranteed that
 		// the overall recombination rate will be zero, by the logic in InitializeDraws(), and so we should not be called in the
 		// first place.  For longer chromosomes that start with a 1-base recombination interval, the rate calculated by
@@ -566,16 +566,16 @@ void Chromosome::DrawBreakpoints(IndividualSex p_sex, const int p_num_breakpoint
 		// since we guarantee that recombination end positions are in strictly ascending order.  So we should never crash.  :->
 		
 		if (recombination_interval == 0)
-			breakpoint = static_cast<slim_position_t>(gsl_rng_uniform_int(gEidos_rng, (*end_positions)[recombination_interval]) + 1);
+			breakpoint = static_cast<slim_position_t>(Eidos_rng_uniform_int(gEidos_rng, (*end_positions)[recombination_interval]) + 1);
 		else
-			breakpoint = (*end_positions)[recombination_interval - 1] + 1 + static_cast<slim_position_t>(gsl_rng_uniform_int(gEidos_rng, (*end_positions)[recombination_interval] - (*end_positions)[recombination_interval - 1]));
+			breakpoint = (*end_positions)[recombination_interval - 1] + 1 + static_cast<slim_position_t>(Eidos_rng_uniform_int(gEidos_rng, (*end_positions)[recombination_interval] - (*end_positions)[recombination_interval - 1]));
 		
 		p_crossovers.emplace_back(breakpoint);
 		
 		// recombination can result in gene conversion, with probability gene_conversion_fraction_
 		if (gene_conversion_fraction_ > 0.0)
 		{
-			if ((gene_conversion_fraction_ < 1.0) && (gsl_rng_uniform(gEidos_rng) < gene_conversion_fraction_))
+			if ((gene_conversion_fraction_ < 1.0) && (Eidos_rng_uniform(gEidos_rng) < gene_conversion_fraction_))
 			{
 				// for gene conversion, choose a second breakpoint that is relatively likely to be near to the first
 				// note that this second breakpoint does not count toward the total number of breakpoints we need to
@@ -629,14 +629,14 @@ void Chromosome::DrawBreakpoints_Detailed(IndividualSex p_sex, const int p_num_b
 		
 		// choose a breakpoint anywhere in the chosen recombination interval with equal probability
 		if (recombination_interval == 0)
-			breakpoint = static_cast<slim_position_t>(gsl_rng_uniform_int(gEidos_rng, (*end_positions)[recombination_interval]) + 1);
+			breakpoint = static_cast<slim_position_t>(Eidos_rng_uniform_int(gEidos_rng, (*end_positions)[recombination_interval]) + 1);
 		else
-			breakpoint = (*end_positions)[recombination_interval - 1] + 1 + static_cast<slim_position_t>(gsl_rng_uniform_int(gEidos_rng, (*end_positions)[recombination_interval] - (*end_positions)[recombination_interval - 1]));
+			breakpoint = (*end_positions)[recombination_interval - 1] + 1 + static_cast<slim_position_t>(Eidos_rng_uniform_int(gEidos_rng, (*end_positions)[recombination_interval] - (*end_positions)[recombination_interval - 1]));
 		
 		// recombination can result in gene conversion, with probability gene_conversion_fraction_
 		if (gene_conversion_fraction_ > 0.0)
 		{
-			if ((gene_conversion_fraction_ < 1.0) && (gsl_rng_uniform(gEidos_rng) < gene_conversion_fraction_))
+			if ((gene_conversion_fraction_ < 1.0) && (Eidos_rng_uniform(gEidos_rng) < gene_conversion_fraction_))
 			{
 				p_gcstarts.emplace_back(breakpoint);
 				
