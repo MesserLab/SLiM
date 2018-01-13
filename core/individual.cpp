@@ -48,10 +48,6 @@ Individual::Individual(Subpopulation &p_subpopulation, slim_popsize_t p_individu
 {
 }
 
-Individual::~Individual(void)
-{
-}
-
 double Individual::RelatednessToIndividual(Individual &p_ind)
 {
 	// If we're being asked about ourselves, return 1.0, even if pedigree tracking is off
@@ -1005,7 +1001,7 @@ public:
 	Individual_Class(const Individual_Class &p_original) = delete;	// no copy-construct
 	Individual_Class& operator=(const Individual_Class&) = delete;	// no copying
 	
-	Individual_Class(void);
+	inline Individual_Class(void) { }
 	
 	virtual const std::string &ElementType(void) const;
 	
@@ -1019,10 +1015,6 @@ public:
 
 EidosObjectClass *gSLiM_Individual_Class = new Individual_Class();
 
-
-Individual_Class::Individual_Class(void)
-{
-}
 
 const std::string &Individual_Class::ElementType(void) const
 {

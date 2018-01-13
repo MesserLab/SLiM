@@ -82,11 +82,6 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosTokenType p_token
 	return p_outstream;
 }
 
-EidosToken::EidosToken(EidosTokenType p_token_type, const std::string &p_token_string, int p_token_start, int p_token_end, int32_t p_token_UTF16_start, int32_t p_token_UTF16_end) :
-token_type_(p_token_type), token_string_(p_token_string), token_start_(p_token_start), token_end_(p_token_end), token_UTF16_start_(p_token_UTF16_start), token_UTF16_end_(p_token_UTF16_end)
-{
-}
-
 std::ostream &operator<<(std::ostream &p_outstream, const EidosToken &p_token)
 {
 	// print strings, identifiers, numbers, and keywords with identifying marks; apart from that, print tokens as is

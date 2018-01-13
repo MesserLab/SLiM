@@ -30,17 +30,6 @@
 EidosObjectPool *gEidosASTNodePool = nullptr;
 
 
-EidosASTNode::EidosASTNode(EidosToken *p_token, bool p_token_is_owned) :
-token_(p_token), token_is_owned_(p_token_is_owned)
-{
-}
-
-EidosASTNode::EidosASTNode(EidosToken *p_token, EidosASTNode *p_child_node) :
-token_(p_token)
-{
-	this->AddChild(p_child_node);
-}
-
 EidosASTNode::~EidosASTNode(void)
 {
 	for (auto child : children_)

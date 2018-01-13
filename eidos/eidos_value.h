@@ -258,7 +258,7 @@ public:
 	
 	EidosValue(void) = delete;									// no null constructor
 	EidosValue(EidosValueType p_value_type, bool p_singleton);	// must construct with a type identifier and singleton flag, which will be cached
-	virtual ~EidosValue(void) = 0;								// virtual destructor
+	virtual ~EidosValue(void);
 	
 	// basic methods
 	inline __attribute__((always_inline)) EidosValueType Type(void) const { return cached_type_; }	// the type of the vector, cached at construction
@@ -414,8 +414,8 @@ public:
 	EidosValue_NULL(const EidosValue_NULL &p_original) = delete;	// no copy-construct
 	EidosValue_NULL& operator=(const EidosValue_NULL&) = delete;	// no copying
 	
-	EidosValue_NULL(void) : EidosValue(EidosValueType::kValueNULL, false) { }
-	virtual ~EidosValue_NULL(void);
+	inline EidosValue_NULL(void) : EidosValue(EidosValueType::kValueNULL, false) { }
+	inline virtual ~EidosValue_NULL(void) {}
 	
 	static EidosValue_NULL_SP Static_EidosValue_NULL(void);
 	static EidosValue_NULL_SP Static_EidosValue_NULL_Invisible(void);
@@ -471,11 +471,11 @@ public:
 	EidosValue_Logical(const EidosValue_Logical &p_original) = delete;	// no copy-construct
 	EidosValue_Logical& operator=(const EidosValue_Logical&) = delete;	// no copying
 	
-	EidosValue_Logical(void);
+	inline EidosValue_Logical(void) : EidosValue(EidosValueType::kValueLogical, false) { }
 	explicit EidosValue_Logical(const std::vector<eidos_logical_t> &p_logicalvec);
 	explicit EidosValue_Logical(std::initializer_list<eidos_logical_t> p_init_list);
 	explicit EidosValue_Logical(const eidos_logical_t *p_values, size_t p_count);
-	virtual ~EidosValue_Logical(void);
+	inline virtual ~EidosValue_Logical(void) { free(values_); }
 	
 	virtual const std::string &ElementType(void) const;
 	virtual int Count_Virtual(void) const;
@@ -566,13 +566,13 @@ public:
 class EidosValue_String : public EidosValue
 {
 protected:
-	explicit EidosValue_String(bool p_singleton) : EidosValue(EidosValueType::kValueString, p_singleton) {}
+	explicit inline EidosValue_String(bool p_singleton) : EidosValue(EidosValueType::kValueString, p_singleton) {}
 	
 public:
 	EidosValue_String(const EidosValue_String &p_original) = delete;		// no copy-construct
 	EidosValue_String(void) = delete;										// no default constructor
 	EidosValue_String& operator=(const EidosValue_String&) = delete;		// no copying
-	virtual ~EidosValue_String(void);
+	inline virtual ~EidosValue_String(void) { }
 	
 	virtual const std::string &ElementType(void) const;
 	virtual int Count_Virtual(void) const = 0;
@@ -598,12 +598,12 @@ public:
 	EidosValue_String_vector(const EidosValue_String_vector &p_original) = delete;	// no copy-construct
 	EidosValue_String_vector& operator=(const EidosValue_String_vector&) = delete;	// no copying
 	
-	EidosValue_String_vector(void);
+	inline EidosValue_String_vector(void) : EidosValue_String(false) { }
 	explicit EidosValue_String_vector(const std::vector<std::string> &p_stringvec);
 	EidosValue_String_vector(double *p_doublebuf, int p_buffer_length);
 	//explicit EidosValue_String_vector(const std::string &p_string1);		// disabled to encourage use of EidosValue_String_singleton for this case
 	explicit EidosValue_String_vector(std::initializer_list<const std::string> p_init_list);
-	virtual ~EidosValue_String_vector(void);
+	inline virtual ~EidosValue_String_vector(void) { }
 	
 	virtual int Count_Virtual(void) const;
 	
@@ -636,8 +636,8 @@ public:
 	EidosValue_String_singleton(const EidosValue_String_singleton &p_original) = delete;	// no copy-construct
 	EidosValue_String_singleton& operator=(const EidosValue_String_singleton&) = delete;	// no copying
 	EidosValue_String_singleton(void) = delete;
-	explicit EidosValue_String_singleton(const std::string &p_string1);
-	virtual ~EidosValue_String_singleton(void);
+	explicit inline EidosValue_String_singleton(const std::string &p_string1) : value_(p_string1), EidosValue_String(true) { }
+	inline virtual ~EidosValue_String_singleton(void) { delete cached_script_; }
 	
 	virtual int Count_Virtual(void) const;
 	
@@ -681,13 +681,13 @@ public:
 class EidosValue_Int : public EidosValue
 {
 protected:
-	explicit EidosValue_Int(bool p_singleton) : EidosValue(EidosValueType::kValueInt, p_singleton) {}
+	explicit inline EidosValue_Int(bool p_singleton) : EidosValue(EidosValueType::kValueInt, p_singleton) {}
 	
 public:
 	EidosValue_Int(const EidosValue_Int &p_original) = delete;			// no copy-construct
 	EidosValue_Int(void) = delete;										// no default constructor
 	EidosValue_Int& operator=(const EidosValue_Int&) = delete;			// no copying
-	virtual ~EidosValue_Int(void);
+	inline virtual ~EidosValue_Int(void) { }
 	
 	virtual const std::string &ElementType(void) const;
 	virtual int Count_Virtual(void) const = 0;
@@ -712,14 +712,14 @@ public:
 	EidosValue_Int_vector(const EidosValue_Int_vector &p_original) = delete;	// no copy-construct
 	EidosValue_Int_vector& operator=(const EidosValue_Int_vector&) = delete;	// no copying
 	
-	EidosValue_Int_vector(void);
+	inline EidosValue_Int_vector(void) : EidosValue_Int(false) { }
 	explicit EidosValue_Int_vector(const std::vector<int16_t> &p_intvec);
 	explicit EidosValue_Int_vector(const std::vector<int32_t> &p_intvec);
 	explicit EidosValue_Int_vector(const std::vector<int64_t> &p_intvec);
 	//explicit EidosValue_Int_vector(int64_t p_int1);		// disabled to encourage use of EidosValue_Int_singleton for this case
 	explicit EidosValue_Int_vector(std::initializer_list<int64_t> p_init_list);
 	explicit EidosValue_Int_vector(const int64_t *p_values, size_t p_count);
-	virtual ~EidosValue_Int_vector(void);
+	inline virtual ~EidosValue_Int_vector(void) { free(values_); }
 	
 	virtual int Count_Virtual(void) const;
 	
@@ -778,8 +778,8 @@ public:
 	EidosValue_Int_singleton(const EidosValue_Int_singleton &p_original) = delete;	// no copy-construct
 	EidosValue_Int_singleton& operator=(const EidosValue_Int_singleton&) = delete;	// no copying
 	EidosValue_Int_singleton(void) = delete;
-	explicit EidosValue_Int_singleton(int64_t p_int1);
-	virtual ~EidosValue_Int_singleton(void);
+	explicit inline EidosValue_Int_singleton(int64_t p_int1) : value_(p_int1), EidosValue_Int(true) { }
+	inline virtual ~EidosValue_Int_singleton(void) { }
 	
 	virtual int Count_Virtual(void) const;
 	
@@ -819,13 +819,13 @@ public:
 class EidosValue_Float : public EidosValue
 {
 protected:
-	explicit EidosValue_Float(bool p_singleton) : EidosValue(EidosValueType::kValueFloat, p_singleton) {}
+	explicit inline EidosValue_Float(bool p_singleton) : EidosValue(EidosValueType::kValueFloat, p_singleton) {}
 	
 public:
 	EidosValue_Float(const EidosValue_Float &p_original) = delete;			// no copy-construct
 	EidosValue_Float(void) = delete;										// no default constructor
 	EidosValue_Float& operator=(const EidosValue_Float&) = delete;			// no copying
-	virtual ~EidosValue_Float(void);
+	inline virtual ~EidosValue_Float(void) { }
 	
 	virtual const std::string &ElementType(void) const;
 	virtual int Count_Virtual(void) const = 0;
@@ -850,12 +850,12 @@ public:
 	EidosValue_Float_vector(const EidosValue_Float_vector &p_original) = delete;	// no copy-construct
 	EidosValue_Float_vector& operator=(const EidosValue_Float_vector&) = delete;	// no copying
 	
-	EidosValue_Float_vector(void);
+	inline EidosValue_Float_vector(void) : EidosValue_Float(false) { }
 	explicit EidosValue_Float_vector(const std::vector<double> &p_doublevec);
 	//explicit EidosValue_Float_vector(double p_float1);		// disabled to encourage use of EidosValue_Float_singleton for this case
 	explicit EidosValue_Float_vector(std::initializer_list<double> p_init_list);
 	explicit EidosValue_Float_vector(const double *p_values, size_t p_count);
-	virtual ~EidosValue_Float_vector(void);
+	inline virtual ~EidosValue_Float_vector(void) { free(values_); }
 	
 	virtual int Count_Virtual(void) const;
 	
@@ -914,8 +914,8 @@ public:
 	EidosValue_Float_singleton(const EidosValue_Float_singleton &p_original) = delete;	// no copy-construct
 	EidosValue_Float_singleton& operator=(const EidosValue_Float_singleton&) = delete;	// no copying
 	EidosValue_Float_singleton(void) = delete;
-	explicit EidosValue_Float_singleton(double p_float1);
-	virtual ~EidosValue_Float_singleton(void);
+	explicit inline EidosValue_Float_singleton(double p_float1) : value_(p_float1), EidosValue_Float(true) { }
+	inline virtual ~EidosValue_Float_singleton(void) { }
 	
 	virtual int Count_Virtual(void) const;
 	
@@ -1017,7 +1017,7 @@ public:
 	EidosValue_Object_vector(const EidosValue_Object_vector &p_original);				// can copy-construct
 	EidosValue_Object_vector& operator=(const EidosValue_Object_vector&) = delete;		// no copying
 	
-	explicit EidosValue_Object_vector(const EidosObjectClass *p_class);							// can be gEidos_UndefinedClassObject
+	explicit inline EidosValue_Object_vector(const EidosObjectClass *p_class) : EidosValue_Object(false, p_class) { }		// can be gEidos_UndefinedClassObject
 	explicit EidosValue_Object_vector(const std::vector<EidosObjectElement *> &p_elementvec, const EidosObjectClass *p_class);
 	//explicit EidosValue_Object_vector(EidosObjectElement *p_element1);		// disabled to encourage use of EidosValue_Object_singleton for this case
 	explicit EidosValue_Object_vector(std::initializer_list<EidosObjectElement *> p_init_list, const EidosObjectClass *p_class);
@@ -1136,8 +1136,8 @@ public:
 	EidosObjectElement(const EidosObjectElement &p_original) = delete;		// no copy-construct
 	EidosObjectElement& operator=(const EidosObjectElement&) = delete;		// no copying
 	
-	EidosObjectElement(void);
-	virtual ~EidosObjectElement(void);
+	inline EidosObjectElement(void) { }
+	inline virtual ~EidosObjectElement(void) { }
 	
 	virtual const EidosObjectClass *Class(void) const = 0;
 	
@@ -1197,8 +1197,8 @@ public:
 	EidosObjectElementInternal(const EidosObjectElementInternal &p_original) = delete;		// no copy-construct
 	EidosObjectElementInternal& operator=(const EidosObjectElementInternal&) = delete;		// no copying
 	
-	EidosObjectElementInternal(void);
-	virtual ~EidosObjectElementInternal(void);
+	inline EidosObjectElementInternal(void) { }
+	inline virtual ~EidosObjectElementInternal(void) { }
 	
 #ifdef EIDOS_OBJECT_RETAIN_RELEASE
 	virtual EidosObjectElement *Retain(void);
@@ -1230,8 +1230,8 @@ public:
 	EidosObjectClass(const EidosObjectClass &p_original) = delete;		// no copy-construct
 	EidosObjectClass& operator=(const EidosObjectClass&) = delete;		// no copying
 	
-	EidosObjectClass(void);
-	virtual ~EidosObjectClass(void);
+	inline EidosObjectClass(void) { }
+	inline virtual ~EidosObjectClass(void) { }
 	
 #ifdef EIDOS_OBJECT_RETAIN_RELEASE
 	virtual bool NeedsRetainRelease(void) const;

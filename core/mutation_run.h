@@ -204,7 +204,7 @@ public:
 	
 	MutationRun(const MutationRun&) = delete;					// no copying
 	MutationRun& operator=(const MutationRun&) = delete;		// no copying
-	MutationRun(void);											// constructed empty
+	inline MutationRun(void) : intrusive_ref_count_(0) { }		// constructed empty
 	~MutationRun(void);
 	
 	

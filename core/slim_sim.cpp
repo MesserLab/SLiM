@@ -5808,7 +5808,7 @@ public:
 	SLiMSim_Class(const SLiMSim_Class &p_original) = delete;	// no copy-construct
 	SLiMSim_Class& operator=(const SLiMSim_Class&) = delete;	// no copying
 	
-	SLiMSim_Class(void);
+	inline SLiMSim_Class(void) { }
 	
 	virtual const std::string &ElementType(void) const;
 	
@@ -5822,10 +5822,6 @@ public:
 
 EidosObjectClass *gSLiM_SLiMSim_Class = new SLiMSim_Class();
 
-
-SLiMSim_Class::SLiMSim_Class(void)
-{
-}
 
 const std::string &SLiMSim_Class::ElementType(void) const
 {

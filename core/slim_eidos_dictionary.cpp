@@ -38,10 +38,6 @@ SLiMEidosDictionary::SLiMEidosDictionary(__attribute__((unused)) const SLiMEidos
 	// that this constructor is never called, although the STL insists that it has to exist.
 }
 
-SLiMEidosDictionary::SLiMEidosDictionary(void)
-{
-}
-
 
 //
 // Eidos support

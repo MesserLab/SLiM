@@ -1102,7 +1102,7 @@ public:
 	Chromosome_Class(const Chromosome_Class &p_original) = delete;	// no copy-construct
 	Chromosome_Class& operator=(const Chromosome_Class&) = delete;	// no copying
 	
-	Chromosome_Class(void);
+	inline Chromosome_Class(void) { }
 	
 	virtual const std::string &ElementType(void) const;
 	
@@ -1116,10 +1116,6 @@ public:
 
 EidosObjectClass *gSLiM_Chromosome_Class = new Chromosome_Class();
 
-
-Chromosome_Class::Chromosome_Class(void)
-{
-}
 
 const std::string &Chromosome_Class::ElementType(void) const
 {

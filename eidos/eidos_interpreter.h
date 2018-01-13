@@ -94,7 +94,14 @@ public:
 	EidosInterpreter(const EidosScript &p_script, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context);			// we use the passed symbol table but do not own it
 	EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context);		// we use the passed symbol table but do not own it
 	
-	~EidosInterpreter(void);												// destructor
+	inline ~EidosInterpreter(void)
+	{
+		if (execution_log_)
+			delete execution_log_;
+		
+		if (execution_output_)
+			delete execution_output_;
+	}
 	
 	inline __attribute__((always_inline)) std::string IndentString(int p_indent_level) { return std::string(p_indent_level * 2, ' '); };
 	

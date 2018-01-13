@@ -86,12 +86,12 @@ public:
 	
 	// a destructor is needed now that we inherit from SLiMEidosDictionary; we want it to be as minimal as possible, though, and inline
 #if DEBUG_MUTATIONS
-	inline ~Mutation(void)
+	inline virtual ~Mutation(void)
 	{
 		SLIM_OUTSTREAM << "Mutation destructed: " << this << std::endl;
 	}
 #else
-	inline ~Mutation(void) { }
+	inline virtual ~Mutation(void) { }
 #endif
 	
 	

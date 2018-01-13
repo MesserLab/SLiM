@@ -188,7 +188,7 @@ public:
 	//
 	// Eidos support
 	//
-	EidosSymbolTableEntry &SelfSymbolTableEntry(void) { return self_symbol_; };
+	inline EidosSymbolTableEntry &SelfSymbolTableEntry(void) { return self_symbol_; };
 	EidosSymbolTableEntry &ScriptBlockSymbolTableEntry(void) { if (block_id_ != -1) return script_block_symbol_; else EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::ScriptBlockSymbolTableEntry): (internal error) no symbol table entry." << EidosTerminate(); };
 	
 	virtual const EidosObjectClass *Class(void) const;

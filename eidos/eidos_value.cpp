@@ -759,10 +759,6 @@ void EidosValue::Print(std::ostream &p_ostream) const
 #pragma mark EidosValue_NULL
 #pragma mark -
 
-EidosValue_NULL::~EidosValue_NULL(void)
-{
-}
-
 /* static */ EidosValue_NULL_SP EidosValue_NULL::Static_EidosValue_NULL(void)
 {
 	// this is a truly permanent constant object
@@ -842,10 +838,6 @@ void EidosValue_NULL::Sort(bool p_ascending)
 #pragma mark EidosValue_Logical
 #pragma mark -
 
-EidosValue_Logical::EidosValue_Logical(void) : EidosValue(EidosValueType::kValueLogical, false)
-{
-}
-
 EidosValue_Logical::EidosValue_Logical(const std::vector<eidos_logical_t> &p_logicalvec) : EidosValue(EidosValueType::kValueLogical, false)
 {
 	size_t count = p_logicalvec.size();
@@ -876,11 +868,6 @@ EidosValue_Logical::EidosValue_Logical(const eidos_logical_t *p_values, size_t p
 	
 	for (size_t index = 0; index < p_count; ++index)
 		set_logical_no_check(p_values[index], index);
-}
-
-EidosValue_Logical::~EidosValue_Logical(void)
-{
-	free(values_);
 }
 
 const std::string &EidosValue_Logical::ElementType(void) const
@@ -1089,10 +1076,6 @@ void EidosValue_Logical_const::_CopyDimensionsFromValue(const EidosValue *p_valu
 #pragma mark EidosValue_String
 #pragma mark -
 
-EidosValue_String::~EidosValue_String(void)
-{
-}
-
 const std::string &EidosValue_String::ElementType(void) const
 {
 	return gEidosStr_string;
@@ -1125,10 +1108,6 @@ void EidosValue_String::PrintValueAtIndex(const int p_idx, std::ostream &p_ostre
 // EidosValue_String_vector
 #pragma mark EidosValue_String_vector
 
-EidosValue_String_vector::EidosValue_String_vector(void) : EidosValue_String(false)
-{
-}
-
 EidosValue_String_vector::EidosValue_String_vector(const std::vector<std::string> &p_stringvec) : EidosValue_String(false), values_(p_stringvec)
 {
 }
@@ -1137,10 +1116,6 @@ EidosValue_String_vector::EidosValue_String_vector(std::initializer_list<const s
 {
 	for (auto init_item = p_init_list.begin(); init_item != p_init_list.end(); init_item++)
 		values_.emplace_back(*init_item);
-}
-
-EidosValue_String_vector::~EidosValue_String_vector(void)
-{
 }
 
 int EidosValue_String_vector::Count_Virtual(void) const
@@ -1228,15 +1203,6 @@ void EidosValue_String_vector::Sort(bool p_ascending)
 
 // EidosValue_String_singleton
 #pragma mark EidosValue_String_singleton
-
-EidosValue_String_singleton::EidosValue_String_singleton(const std::string &p_string1) : value_(p_string1), EidosValue_String(true)
-{
-}
-
-EidosValue_String_singleton::~EidosValue_String_singleton(void)
-{
-	delete cached_script_;
-}
 
 int EidosValue_String_singleton::Count_Virtual(void) const
 {
@@ -1332,10 +1298,6 @@ void EidosValue_String_singleton::Sort(bool p_ascending)
 #pragma mark EidosValue_Int
 #pragma mark -
 
-EidosValue_Int::~EidosValue_Int(void)
-{
-}
-
 const std::string &EidosValue_Int::ElementType(void) const
 {
 	return gEidosStr_integer;
@@ -1356,10 +1318,6 @@ void EidosValue_Int::PrintValueAtIndex(const int p_idx, std::ostream &p_ostream)
 
 // EidosValue_Int_vector
 #pragma mark EidosValue_Int_vector
-
-EidosValue_Int_vector::EidosValue_Int_vector(void) : EidosValue_Int(false)
-{
-}
 
 EidosValue_Int_vector::EidosValue_Int_vector(const std::vector<int16_t> &p_intvec) : EidosValue_Int(false)
 {
@@ -1408,11 +1366,6 @@ EidosValue_Int_vector::EidosValue_Int_vector(const int64_t *p_values, size_t p_c
 	
 	for (size_t index = 0; index < p_count; ++index)
 		set_int_no_check(p_values[index], index);
-}
-
-EidosValue_Int_vector::~EidosValue_Int_vector(void)
-{
-	free(values_);
 }
 
 int EidosValue_Int_vector::Count_Virtual(void) const
@@ -1546,14 +1499,6 @@ void EidosValue_Int_vector::erase_index(size_t p_index)
 // EidosValue_Int_singleton
 #pragma mark EidosValue_Int_singleton
 
-EidosValue_Int_singleton::EidosValue_Int_singleton(int64_t p_int1) : value_(p_int1), EidosValue_Int(true)
-{
-}
-
-EidosValue_Int_singleton::~EidosValue_Int_singleton(void)
-{
-}
-
 int EidosValue_Int_singleton::Count_Virtual(void) const
 {
 	return 1;
@@ -1646,10 +1591,6 @@ void EidosValue_Int_singleton::Sort(bool p_ascending)
 #pragma mark EidosValue_Float
 #pragma mark -
 
-EidosValue_Float::~EidosValue_Float(void)
-{
-}
-
 const std::string &EidosValue_Float::ElementType(void) const
 {
 	return gEidosStr_float;
@@ -1682,10 +1623,6 @@ void EidosValue_Float::PrintValueAtIndex(const int p_idx, std::ostream &p_ostrea
 // EidosValue_Float_vector
 #pragma mark EidosValue_Float_vector
 
-EidosValue_Float_vector::EidosValue_Float_vector(void) : EidosValue_Float(false)
-{
-}
-
 EidosValue_Float_vector::EidosValue_Float_vector(const std::vector<double> &p_doublevec) : EidosValue_Float(false)
 {
 	size_t count = p_doublevec.size();
@@ -1711,11 +1648,6 @@ EidosValue_Float_vector::EidosValue_Float_vector(const double *p_values, size_t 
 	
 	for (size_t index = 0; index < p_count; ++index)
 		set_float_no_check(p_values[index], index);
-}
-
-EidosValue_Float_vector::~EidosValue_Float_vector(void)
-{
-	free(values_);
 }
 
 int EidosValue_Float_vector::Count_Virtual(void) const
@@ -1876,14 +1808,6 @@ void EidosValue_Float_vector::erase_index(size_t p_index)
 
 // EidosValue_Float_singleton
 #pragma mark EidosValue_Float_singleton
-
-EidosValue_Float_singleton::EidosValue_Float_singleton(double p_float1) : value_(p_float1), EidosValue_Float(true)
-{
-}
-
-EidosValue_Float_singleton::~EidosValue_Float_singleton(void)
-{
-}
 
 int EidosValue_Float_singleton::Count_Virtual(void) const
 {
@@ -2201,10 +2125,6 @@ EidosValue_Object_vector::EidosValue_Object_vector(const EidosValue_Object_vecto
 	
 	for (size_t index = 0; index < count; ++index)
 		set_object_element_no_check(values[index], index);
-}
-
-EidosValue_Object_vector::EidosValue_Object_vector(const EidosObjectClass *p_class) : EidosValue_Object(false, p_class)
-{
 }
 
 EidosValue_Object_vector::EidosValue_Object_vector(const std::vector<EidosObjectElement *> &p_elementvec, const EidosObjectClass *p_class) : EidosValue_Object(false, p_class)
@@ -3432,14 +3352,6 @@ EidosValue_SP EidosValue_Object_singleton::ExecuteMethodCall(EidosGlobalStringID
 #pragma mark EidosObjectElement
 #pragma mark -
 
-EidosObjectElement::EidosObjectElement(void)
-{
-}
-
-EidosObjectElement::~EidosObjectElement(void)
-{
-}
-
 void EidosObjectElement::Print(std::ostream &p_ostream) const
 {
 	p_ostream << Class()->ElementType();
@@ -3671,6 +3583,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosObjectElement &p_
 //
 #pragma mark EidosObjectElementInternal
 
+/*
 EidosObjectElementInternal::EidosObjectElementInternal(void)
 {
 //	std::cerr << "EidosObjectElementInternal::EidosObjectElementInternal allocated " << this << " with refcount == 1" << std::endl;
@@ -3682,6 +3595,7 @@ EidosObjectElementInternal::~EidosObjectElementInternal(void)
 //	std::cerr << "EidosObjectElementInternal::~EidosObjectElementInternal deallocated " << this << std::endl;
 //	Eidos_PrintStacktrace(stderr, 10);
 }
+*/
 
 #ifdef EIDOS_OBJECT_RETAIN_RELEASE
 EidosObjectElement *EidosObjectElementInternal::Retain(void)
@@ -3718,14 +3632,6 @@ EidosObjectElement *EidosObjectElementInternal::Release(void)
 #pragma mark -
 #pragma mark EidosObjectClass
 #pragma mark -
-
-EidosObjectClass::EidosObjectClass(void)
-{
-}
-
-EidosObjectClass::~EidosObjectClass(void)
-{
-}
 
 #ifdef EIDOS_OBJECT_RETAIN_RELEASE
 bool EidosObjectClass::NeedsRetainRelease(void) const

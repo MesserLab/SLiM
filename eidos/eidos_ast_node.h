@@ -74,8 +74,13 @@ public:
 	EidosASTNode(const EidosASTNode&) = delete;							// no copying
 	EidosASTNode& operator=(const EidosASTNode&) = delete;				// no copying
 	EidosASTNode(void) = delete;										// no null construction
-	EidosASTNode(EidosToken *p_token, bool p_token_is_owned = false);	// standard constructor; if p_token_is_owned, we own the token
-	EidosASTNode(EidosToken *p_token, EidosASTNode *p_child_node);
+	
+	// standard constructor; if p_token_is_owned, we own the token
+	inline EidosASTNode(EidosToken *p_token, bool p_token_is_owned = false) : token_(p_token), token_is_owned_(p_token_is_owned) { }
+	inline EidosASTNode(EidosToken *p_token, EidosASTNode *p_child_node) : token_(p_token)
+	{
+		this->AddChild(p_child_node);
+	}
 	
 	~EidosASTNode(void);												// destructor
 	

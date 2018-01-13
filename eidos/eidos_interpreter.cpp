@@ -126,15 +126,6 @@ EidosInterpreter::EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbol
 		Eidos_InitializeRNGFromSeed(Eidos_GenerateSeedFromPIDAndTime());
 }
 
-EidosInterpreter::~EidosInterpreter(void)
-{
-	if (execution_log_)
-		delete execution_log_;
-	
-	if (execution_output_)
-		delete execution_output_;
-}
-
 void EidosInterpreter::SetShouldLogExecution(bool p_log)
 {
 	logging_execution_ = p_log;

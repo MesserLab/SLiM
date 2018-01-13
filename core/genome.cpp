@@ -1177,7 +1177,7 @@ public:
 	Genome_Class(const Genome_Class &p_original) = delete;	// no copy-construct
 	Genome_Class& operator=(const Genome_Class&) = delete;	// no copying
 	
-	Genome_Class(void);
+	inline Genome_Class(void) { }
 	
 	virtual const std::string &ElementType(void) const;
 	
@@ -1196,10 +1196,6 @@ public:
 
 EidosObjectClass *gSLiM_Genome_Class = new Genome_Class();
 
-
-Genome_Class::Genome_Class(void)
-{
-}
 
 const std::string &Genome_Class::ElementType(void) const
 {

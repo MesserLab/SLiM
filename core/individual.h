@@ -114,7 +114,9 @@ public:
 	Individual& operator= (const Individual &p_original) = delete;						// no copy construction
 	Individual(void) = delete;															// no null construction
 	Individual(Subpopulation &p_subpopulation, slim_popsize_t p_individual_index, slim_mutationid_t p_pedigree_id, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_generation_t p_age);
-	~Individual(void);																	// destructor
+	inline virtual ~Individual(void)
+	{
+	}
 	
 	inline __attribute__((always_inline)) void ClearColor(void) { color_.clear(); }
 	

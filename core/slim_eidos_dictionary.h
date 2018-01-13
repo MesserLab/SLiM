@@ -51,9 +51,9 @@ private:
 public:
 	SLiMEidosDictionary(const SLiMEidosDictionary &p_original);
 	SLiMEidosDictionary& operator= (const SLiMEidosDictionary &p_original) = delete;	// no assignment
-	SLiMEidosDictionary(void);
+	inline SLiMEidosDictionary(void) { }
 	
-	inline ~SLiMEidosDictionary(void)
+	inline virtual ~SLiMEidosDictionary(void)
 	{
 		if (hash_symbols_)
 			delete hash_symbols_;

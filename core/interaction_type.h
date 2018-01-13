@@ -223,7 +223,7 @@ public:
 	//
 	// Eidos support
 	//
-	EidosSymbolTableEntry &SymbolTableEntry(void) { return self_symbol_; }
+	inline EidosSymbolTableEntry &SymbolTableEntry(void) { return self_symbol_; }
 	
 	virtual const EidosObjectClass *Class(void) const;
 	virtual void Print(std::ostream &p_ostream) const;

@@ -210,7 +210,7 @@ public:
 	GenomicElement_Class(const GenomicElement_Class &p_original) = delete;	// no copy-construct
 	GenomicElement_Class& operator=(const GenomicElement_Class&) = delete;	// no copying
 	
-	GenomicElement_Class(void);
+	inline GenomicElement_Class(void) { }
 	
 	virtual const std::string &ElementType(void) const;
 	
@@ -224,10 +224,6 @@ public:
 
 EidosObjectClass *gSLiM_GenomicElement_Class = new GenomicElement_Class();
 
-
-GenomicElement_Class::GenomicElement_Class(void)
-{
-}
 
 const std::string &GenomicElement_Class::ElementType(void) const
 {

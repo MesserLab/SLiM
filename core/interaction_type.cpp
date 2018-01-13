@@ -4723,7 +4723,7 @@ public:
 	InteractionType_Class(const InteractionType_Class &p_original) = delete;	// no copy-construct
 	InteractionType_Class& operator=(const InteractionType_Class&) = delete;	// no copying
 	
-	InteractionType_Class(void);
+	inline InteractionType_Class(void) { }
 	
 	virtual const std::string &ElementType(void) const;
 	
@@ -4737,10 +4737,6 @@ public:
 
 EidosObjectClass *gSLiM_InteractionType_Class = new InteractionType_Class();
 
-
-InteractionType_Class::InteractionType_Class(void)
-{
-}
 
 const std::string &InteractionType_Class::ElementType(void) const
 {

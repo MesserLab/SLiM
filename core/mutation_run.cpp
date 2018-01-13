@@ -29,10 +29,6 @@ int64_t gSLiM_MutationRun_OperationID = 0;
 std::vector<MutationRun *> MutationRun::s_freed_mutation_runs_;
 
 
-MutationRun::MutationRun() : intrusive_ref_count_(0)
-{
-}
-
 MutationRun::~MutationRun(void)
 {
 	// mutations_buffer_ is not malloced and cannot be freed; free only if we have an external buffer

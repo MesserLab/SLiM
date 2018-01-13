@@ -168,7 +168,7 @@ public:
 	Substitution_Class(const Substitution_Class &p_original) = delete;	// no copy-construct
 	Substitution_Class& operator=(const Substitution_Class&) = delete;	// no copying
 	
-	Substitution_Class(void);
+	inline Substitution_Class(void) { }
 	
 	virtual const std::string &ElementType(void) const;
 	
@@ -178,10 +178,6 @@ public:
 
 EidosObjectClass *gSLiM_Substitution_Class = new Substitution_Class();
 
-
-Substitution_Class::Substitution_Class(void)
-{
-}
 
 const std::string &Substitution_Class::ElementType(void) const
 {

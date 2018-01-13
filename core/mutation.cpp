@@ -421,7 +421,7 @@ public:
 	Mutation_Class(const Mutation_Class &p_original) = delete;	// no copy-construct
 	Mutation_Class& operator=(const Mutation_Class&) = delete;	// no copying
 	
-	Mutation_Class(void);
+	inline Mutation_Class(void) { }
 	
 	virtual const std::string &ElementType(void) const;
 	
@@ -435,10 +435,6 @@ public:
 
 EidosObjectClass *gSLiM_Mutation_Class = new Mutation_Class();
 
-
-Mutation_Class::Mutation_Class(void)
-{
-}
 
 const std::string &Mutation_Class::ElementType(void) const
 {

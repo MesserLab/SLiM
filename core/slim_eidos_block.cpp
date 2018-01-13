@@ -1026,7 +1026,7 @@ public:
 	SLiMEidosBlock_Class(const SLiMEidosBlock_Class &p_original) = delete;	// no copy-construct
 	SLiMEidosBlock_Class& operator=(const SLiMEidosBlock_Class&) = delete;	// no copying
 	
-	SLiMEidosBlock_Class(void);
+	inline SLiMEidosBlock_Class(void) { }
 	
 	virtual const std::string &ElementType(void) const;
 	
@@ -1036,10 +1036,6 @@ public:
 
 EidosObjectClass *gSLiM_SLiMEidosBlock_Class = new SLiMEidosBlock_Class();
 
-
-SLiMEidosBlock_Class::SLiMEidosBlock_Class(void)
-{
-}
 
 const std::string &SLiMEidosBlock_Class::ElementType(void) const
 {

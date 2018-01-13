@@ -5314,7 +5314,7 @@ public:
 	Subpopulation_Class(const Subpopulation_Class &p_original) = delete;	// no copy-construct
 	Subpopulation_Class& operator=(const Subpopulation_Class&) = delete;	// no copying
 	
-	Subpopulation_Class(void);
+	inline Subpopulation_Class(void) { }
 	
 	virtual const std::string &ElementType(void) const;
 	
@@ -5328,10 +5328,6 @@ public:
 
 EidosObjectClass *gSLiM_Subpopulation_Class = new Subpopulation_Class;
 
-
-Subpopulation_Class::Subpopulation_Class(void)
-{
-}
 
 const std::string &Subpopulation_Class::ElementType(void) const
 {
