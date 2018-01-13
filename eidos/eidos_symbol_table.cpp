@@ -30,6 +30,21 @@
 #include <cmath>
 
 
+// Internal slot buffers come from here, when possible, and always go back to here.  Buffers held by this pool
+// are always of size EIDOS_SYMBOL_TABLE_BASE_SIZE, and are guaranteed initialized to zero.  We used to just
+// declare internal_symbols_ as EidosSymbolTable_InternalSlot internal_symbols_[EIDOS_SYMBOL_TABLE_BASE_SIZE],
+// making it a fixed-size inlined buffer of slots.  The problem was that every time a symbol table was created
+// all of those slots would be constructed by C++, and every time a symbol table was destructed all those slots
+// would be destructed, even if the symbol table never actually used any slots at all (such as the variables
+// table for a callback that doesn't define any local symbols).  That was a big waste of time.  We know how
+// many slots we are using (internal_symbol_count_) and we can manage the slots much more efficiently ourselves.
+// To do that, though, the slots have to be external to EidosSymbolTable.  Thus, a shared pool of slot buffers.
+// The win doesn't actually come from the use of the shared pool (since before, the slot buffer was inline in
+// EidosSymbolTable, and thus did not cause any extra allocation/deallocation); the win comes from being able
+// to minimize construction/destruction of the slots.
+std::vector<EidosSymbolTable_InternalSlot *> gEidos_EidosSymbolTable_InternalSlotPool;
+
+
 //
 //	EidosSymbolTable
 //
@@ -37,12 +52,8 @@
 #pragma mark EidosSymbolTable
 #pragma mark -
 
-EidosSymbolTable::EidosSymbolTable(EidosSymbolTableType p_table_type, EidosSymbolTable *p_parent_table, bool p_start_with_hash) : table_type_(p_table_type)
+EidosSymbolTable::EidosSymbolTable(EidosSymbolTableType p_table_type, EidosSymbolTable *p_parent_table, bool p_start_with_hash) : table_type_(p_table_type), using_internal_symbols_(!p_start_with_hash), internal_symbol_count_(0), internal_symbols_(nullptr)
 {
-	// Set up the symbol table itself
-	using_internal_symbols_ = !p_start_with_hash;
-	internal_symbol_count_ = 0;
-	
 	if (!p_parent_table)
 	{
 		// If no parent table is given, then we construct a base table for Eidos containing the standard constants.
@@ -112,6 +123,16 @@ EidosSymbolTable::~EidosSymbolTable(void)
 	
 	table_type_ = EidosSymbolTableType::kINVALID_TABLE_TYPE;
 	
+	if (internal_symbols_)
+	{
+		// internal_symbols_ may have symbols defined in it, so we need to zero it out for re-use.  Note we don't
+		// bother zeroing out symbol_name_; that is unnecessary and would just waste time.
+		for (int slot_index = 0; slot_index < EIDOS_SYMBOL_TABLE_BASE_SIZE; ++slot_index)
+			internal_symbols_[slot_index].symbol_value_SP_.reset();
+		
+		ReturnInternalSymbolsToPool();
+	}
+	
 	// In general, every symbol table has its own lifetime, and a single table might be the parent table for many other
 	// symbol tables (in the way that the intrinsic constants table is used as the root parent for all symbol table
 	// chains in Eidos).  The exception to this is defined constants tables, which are added and inserted into the
@@ -123,6 +144,13 @@ EidosSymbolTable::~EidosSymbolTable(void)
 		delete parent_symbol_table_;
 		parent_symbol_table_ = nullptr;
 	}
+}
+
+void EidosSymbolTable::CheckInternalSymbolsNullptr(void)
+{
+	for (int slot_index = 0; slot_index < EIDOS_SYMBOL_TABLE_BASE_SIZE; ++slot_index)
+		if (internal_symbols_[slot_index].symbol_value_SP_)
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::CheckInternalSymbolsNullptr): (internal error) internal symbols buffer not cleared before being returned to the shared pool." << EidosTerminate(nullptr);
 }
 
 std::vector<std::string> EidosSymbolTable::_SymbolNames(bool p_include_constants, bool p_include_variables) const
@@ -406,8 +434,14 @@ void EidosSymbolTable::_SwitchToHash(void)
 			// if we own the symbol name, we can move it to the new hash table entry, otherwise a copy is necessary
 			hash_symbols_.insert(std::pair<EidosGlobalStringID, EidosValue_SP>(old_symbol_slot.symbol_name_, std::move(old_symbol_slot.symbol_value_SP_)));
 			
-			// clean up the built-in slot; probably mostly unnecessary, but prevents hard-to-find bugs
+			// clean up the internal slot
 			old_symbol_slot.symbol_value_SP_.reset();
+		}
+		
+		if (internal_symbols_)
+		{
+			// internal_symbols_ was already cleared by the code above, so we just need to return the buffer to the pool
+			ReturnInternalSymbolsToPool();
 		}
 		
 		using_internal_symbols_ = false;
@@ -441,6 +475,8 @@ void EidosSymbolTable::SetValueForSymbol(EidosGlobalStringID p_symbol_name, Eido
 			
 			if (internal_symbol_count_ < EIDOS_SYMBOL_TABLE_BASE_SIZE)
 			{
+				EnsureInternalSymbolsExist();
+				
 				EidosSymbolTable_InternalSlot *new_symbol_slot_ptr = internal_symbols_ + internal_symbol_count_;
 				
 				new_symbol_slot_ptr->symbol_value_SP_ = std::move(p_value);
@@ -510,6 +546,8 @@ void EidosSymbolTable::SetValueForSymbolNoCopy(EidosGlobalStringID p_symbol_name
 			
 			if (internal_symbol_count_ < EIDOS_SYMBOL_TABLE_BASE_SIZE)
 			{
+				EnsureInternalSymbolsExist();
+				
 				EidosSymbolTable_InternalSlot *new_symbol_slot_ptr = internal_symbols_ + internal_symbol_count_;
 				
 				new_symbol_slot_ptr->symbol_value_SP_ = std::move(p_value);
@@ -635,7 +673,7 @@ void EidosSymbolTable::_RemoveSymbol(EidosGlobalStringID p_symbol_name, bool p_r
 			{
 				*existing_symbol_slot_ptr = std::move(*backfill_symbol_slot_ptr);
 				
-				// clean up the backfill slot; probably unnecessary, but prevents hard-to-find bugs
+				// clean up the backfill slot
 				backfill_symbol_slot_ptr->symbol_value_SP_.reset();
 			}
 		}
@@ -686,6 +724,8 @@ void EidosSymbolTable::_InitializeConstantSymbolEntry(EidosGlobalStringID p_symb
 	{
 		if (internal_symbol_count_ < EIDOS_SYMBOL_TABLE_BASE_SIZE)
 		{
+			EnsureInternalSymbolsExist();
+			
 			EidosSymbolTable_InternalSlot *new_symbol_slot_ptr = internal_symbols_ + internal_symbol_count_;
 			
 			new_symbol_slot_ptr->symbol_value_SP_ = std::move(p_value);

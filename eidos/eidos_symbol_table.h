@@ -74,6 +74,9 @@ typedef struct {
 	EidosGlobalStringID symbol_name_;		// the name of the symbol, but as a uniqued EidosGlobalStringID
 } EidosSymbolTable_InternalSlot;
 
+// A shared pool of internal slot buffers; used by EidosSymbolTable internally to minimize construction/destruction
+extern std::vector<EidosSymbolTable_InternalSlot *> gEidos_EidosSymbolTable_InternalSlotPool;
+
 
 // As an optimization, EidosSymbolTable contains a small buffer within itself, of this size, to avoid malloc/free.
 // The size here is just a guess as to a threshold that will allow most simple scripts sufficient room.
@@ -120,8 +123,8 @@ private:
 	// This flag indicates which storage strategy we are using
 	bool using_internal_symbols_;
 	
-	// If using_internal_symbols_==true, we are using this fixed-size symbol array
-	EidosSymbolTable_InternalSlot internal_symbols_[EIDOS_SYMBOL_TABLE_BASE_SIZE];
+	// If using_internal_symbols_==true, we are using this fixed-size symbol array, taken from a shared pool
+	EidosSymbolTable_InternalSlot *internal_symbols_;	// nullptr, or points to a buffer of size EIDOS_SYMBOL_TABLE_BASE_SIZE
 	size_t internal_symbol_count_;
 	
 	// If using_internal_symbols_==false, we have switched over to this external hash table utilizing std::unordered_map.
@@ -144,6 +147,32 @@ private:
 	void _RemoveSymbol(EidosGlobalStringID p_symbol_name, bool p_remove_constant);
 	void _InitializeConstantSymbolEntry(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value);
 	void _SwitchToHash(void);
+	
+	inline __attribute__((always_inline)) void EnsureInternalSymbolsExist(void)
+	{
+		if (!internal_symbols_)
+		{
+			if (gEidos_EidosSymbolTable_InternalSlotPool.size())
+			{
+				internal_symbols_ = gEidos_EidosSymbolTable_InternalSlotPool.back();
+				gEidos_EidosSymbolTable_InternalSlotPool.pop_back();
+			}
+			else
+			{
+				// We assume that clearing to zero constitutes initialization for EidosSymbolTable_InternalSlot
+				internal_symbols_ = (EidosSymbolTable_InternalSlot *)calloc(EIDOS_SYMBOL_TABLE_BASE_SIZE, sizeof(EidosSymbolTable_InternalSlot));
+			}
+		}
+	}
+	void CheckInternalSymbolsNullptr(void);
+	inline __attribute__((always_inline)) void ReturnInternalSymbolsToPool(void)
+	{
+#if DEBUG
+		CheckInternalSymbolsNullptr();
+#endif
+		gEidos_EidosSymbolTable_InternalSlotPool.push_back(internal_symbols_);
+		internal_symbols_ = nullptr;
+	}
 	
 public:
 	
