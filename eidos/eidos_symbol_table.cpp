@@ -153,6 +153,10 @@ std::vector<std::string> EidosSymbolTable::_SymbolNames(bool p_include_constants
 
 bool EidosSymbolTable::ContainsSymbol(EidosGlobalStringID p_symbol_name) const
 {
+	// Conceptually, this is a recursive function that walks up the symbol table chain.  Doing the recursive calls
+	// is a bit slow, though, so I have unwrapped the recursion.  Here's the original recursive code:
+	
+	/*
 	if (using_internal_symbols_)
 	{
 		// We can compare global string IDs; since all symbol names should be uniqued, this should be safe
@@ -169,6 +173,32 @@ bool EidosSymbolTable::ContainsSymbol(EidosGlobalStringID p_symbol_name) const
 	// We didn't get a hit, so try our chained table
 	if (chain_symbol_table_)
 		return chain_symbol_table_->ContainsSymbol(p_symbol_name);
+	
+	return false;
+	*/
+	
+	// Here's the unwrapped code, which should behave identically:
+	const EidosSymbolTable *current_table = this;
+	
+	do
+	{
+		if (current_table->using_internal_symbols_)
+		{
+			// We can compare global string IDs; since all symbol names should be uniqued, this should be safe
+			for (int symbol_index = (int)current_table->internal_symbol_count_ - 1; symbol_index >= 0; --symbol_index)
+				if (current_table->internal_symbols_[symbol_index].symbol_name_ == p_symbol_name)
+					return true;
+		}
+		else
+		{
+			if (current_table->hash_symbols_.find(p_symbol_name) != current_table->hash_symbols_.end())
+				return true;
+		}
+		
+		// We didn't get a hit, so try our chained table
+		current_table = current_table->chain_symbol_table_;
+	}
+	while (current_table);
 	
 	return false;
 }
@@ -226,6 +256,10 @@ bool EidosSymbolTable::SymbolDefinedAnywhere(EidosGlobalStringID p_symbol_name) 
 
 EidosValue_SP EidosSymbolTable::_GetValue(EidosGlobalStringID p_symbol_name, const EidosToken *p_symbol_token) const
 {
+	// Conceptually, this is a recursive function that walks up the symbol table chain.  Doing the recursive calls
+	// is a bit slow, though, so I have unwrapped the recursion.  Here's the original recursive code:
+	
+	/*
 	if (using_internal_symbols_)
 	{
 		// We can compare global string IDs; since all symbol names should be uniqued, this should be safe
@@ -250,11 +284,47 @@ EidosValue_SP EidosSymbolTable::_GetValue(EidosGlobalStringID p_symbol_name, con
 		return chain_symbol_table_->_GetValue(p_symbol_name, p_symbol_token);
 	
 	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_GetValue): undefined identifier " << Eidos_StringForGlobalStringID(p_symbol_name) << "." << EidosTerminate(p_symbol_token);
+	*/
+	
+	// Here's the unwrapped code, which should behave identically:
+	const EidosSymbolTable *current_table = this;
+	
+	do
+	{
+		if (current_table->using_internal_symbols_)
+		{
+			// We can compare global string IDs; since all symbol names should be uniqued, this should be safe
+			for (int symbol_index = (int)current_table->internal_symbol_count_ - 1; symbol_index >= 0; --symbol_index)
+			{
+				const EidosSymbolTable_InternalSlot *symbol_slot = current_table->internal_symbols_ + symbol_index;
+				
+				if (symbol_slot->symbol_name_ == p_symbol_name)
+					return symbol_slot->symbol_value_SP_;
+			}
+		}
+		else
+		{
+			auto symbol_slot_iter = current_table->hash_symbols_.find(p_symbol_name);
+			
+			if (symbol_slot_iter != current_table->hash_symbols_.end())
+				return symbol_slot_iter->second;
+		}
+		
+		// We didn't get a hit, so try our chained table
+		current_table = current_table->chain_symbol_table_;
+	}
+	while (current_table);
+	
+	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_GetValue): undefined identifier " << Eidos_StringForGlobalStringID(p_symbol_name) << "." << EidosTerminate(p_symbol_token);
 }
 
 // same as above except for handling the p_is_const flag
 EidosValue_SP EidosSymbolTable::_GetValue_IsConst(EidosGlobalStringID p_symbol_name, const EidosToken *p_symbol_token, bool *p_is_const) const
 {
+	// Conceptually, this is a recursive function that walks up the symbol table chain.  Doing the recursive calls
+	// is a bit slow, though, so I have unwrapped the recursion.  Here's the original recursive code:
+	
+	/*
 	if (using_internal_symbols_)
 	{
 		// We can compare global string IDs; since all symbol names should be uniqued, this should be safe
@@ -283,6 +353,44 @@ EidosValue_SP EidosSymbolTable::_GetValue_IsConst(EidosGlobalStringID p_symbol_n
 	// We didn't get a hit, so try our chained table
 	if (chain_symbol_table_)
 		return chain_symbol_table_->_GetValue_IsConst(p_symbol_name, p_symbol_token, p_is_const);	// the chain sets p_is_const
+	
+	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_GetValue_IsConst): undefined identifier " << Eidos_StringForGlobalStringID(p_symbol_name) << "." << EidosTerminate(p_symbol_token);
+	*/
+	
+	// Here's the unwrapped code, which should behave identically:
+	const EidosSymbolTable *current_table = this;
+	
+	do
+	{
+		if (current_table->using_internal_symbols_)
+		{
+			// We can compare global string IDs; since all symbol names should be uniqued, this should be safe
+			for (int symbol_index = (int)current_table->internal_symbol_count_ - 1; symbol_index >= 0; --symbol_index)
+			{
+				const EidosSymbolTable_InternalSlot *symbol_slot = current_table->internal_symbols_ + symbol_index;
+				
+				if (symbol_slot->symbol_name_ == p_symbol_name)
+				{
+					*p_is_const = (current_table->table_type_ != EidosSymbolTableType::kVariablesTable);
+					return symbol_slot->symbol_value_SP_;
+				}
+			}
+		}
+		else
+		{
+			auto symbol_slot_iter = current_table->hash_symbols_.find(p_symbol_name);
+			
+			if (symbol_slot_iter != current_table->hash_symbols_.end())
+			{
+				*p_is_const = (current_table->table_type_ != EidosSymbolTableType::kVariablesTable);
+				return symbol_slot_iter->second;
+			}
+		}
+		
+		// We didn't get a hit, so try our chained table
+		current_table = current_table->chain_symbol_table_;
+	}
+	while (current_table);
 	
 	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_GetValue_IsConst): undefined identifier " << Eidos_StringForGlobalStringID(p_symbol_name) << "." << EidosTerminate(p_symbol_token);
 }
