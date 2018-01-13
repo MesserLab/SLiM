@@ -334,7 +334,13 @@ public:
 			nonWF_offspring_genomes_.push_back(p_genome2);
 			nonWF_offspring_individuals_.push_back(p_individual);
 			
-			EidosValue_Object_singleton *individual_value = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(p_individual, gSLiM_Individual_Class);
+			// Note we use the special EidosValue_Object_singleton() constructor that sets registered_for_patching_ to false
+			// and avoids registering the EidosValue in the address-patching registries.  This is safe because address patching
+			// only occurs as a side effect of takeMigrants(), and takeMigrants() cannot be called within a reproduction()
+			// callback, whereas we are *only* called in reproduction() callbacks; there is no way for this unregistered
+			// EidosValue to slip out to a context where it would need its address to be patched.  Avoiding the registry should
+			// make a speed difference; nevertheless, a gross hack.  See EidosValue_Object::EidosValue_Object() for comments.
+			EidosValue_Object_singleton *individual_value = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(p_individual, gSLiM_Individual_Class, false);
 			
 			return EidosValue_SP(individual_value);
 		}

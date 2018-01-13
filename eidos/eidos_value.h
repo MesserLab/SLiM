@@ -244,6 +244,7 @@ protected:
 	const EidosValueType cached_type_;						// allows Type() to be an inline function; cached at construction
 	uint8_t invisible_;										// as in R; if true, the value will not normally be printed to the console
 	uint8_t is_singleton_;									// allows Count() and IsSingleton() to be inline; cached at construction
+	uint8_t registered_for_patching_;						// used by EidosValue_Object, otherwise UNINITIALIZED; declared here for reasons of memory packing
 	
 	int64_t *dim_;											// nullptr for vectors; points to a malloced, OWNED array of dimensions for matrices and arrays
 															//    when allocated, the first value in the buffer is a count of the dimensions that follow
@@ -970,6 +971,7 @@ protected:
 #endif
 	
 	EidosValue_Object(bool p_singleton, const EidosObjectClass *p_class);
+	EidosValue_Object(bool p_singleton, const EidosObjectClass *p_class, bool p_register_for_patching);		// a variant for self-pointer EidosValues; not for general use
 	
 public:
 	EidosValue_Object(const EidosValue_Object &p_original) = delete;				// no copy-construct
@@ -1075,6 +1077,7 @@ public:
 	EidosValue_Object_singleton& operator=(const EidosValue_Object_singleton&) = delete;		// no copying
 	EidosValue_Object_singleton(void) = delete;
 	explicit EidosValue_Object_singleton(EidosObjectElement *p_element1, const EidosObjectClass *p_class);
+	explicit EidosValue_Object_singleton(EidosObjectElement *p_element1, const EidosObjectClass *p_class, bool p_register_for_patching);	// a variant for self-pointer EidosValues; not for general use
 	virtual ~EidosValue_Object_singleton(void);
 	
 	virtual int Count_Virtual(void) const;

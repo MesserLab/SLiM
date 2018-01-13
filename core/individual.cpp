@@ -112,9 +112,10 @@ double Individual::RelatednessToIndividual(Individual &p_ind)
 
 void Individual::GenerateCachedEidosValue(void)
 {
-	// Note that this cache cannot be invalidated, because we are guaranteeing that this object will
-	// live for at least as long as the symbol table it may be placed into!
-	self_value_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Individual_Class));
+	// Note that this cache cannot be invalidated as long as a symbol table might exist that this value has been placed into
+	// The false parameter selects a constructor variant that prevents this self-cache from having its address patched;
+	// our self-pointer never changes.  See EidosValue_Object::EidosValue_Object() for comments on this disgusting hack.
+	self_value_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Individual_Class, false));
 }
 
 const EidosObjectClass *Individual::Class(void) const

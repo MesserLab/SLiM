@@ -141,7 +141,6 @@ public:
 	// Eidos support
 	//
 	void GenerateCachedEidosValue(void);
-	inline void ClearCachedEidosValue(void) { if (self_value_) self_value_.reset(); };
 	inline EidosValue_SP CachedEidosValue(void) { if (!self_value_) GenerateCachedEidosValue(); return self_value_; };
 	
 	virtual const EidosObjectClass *Class(void) const;
