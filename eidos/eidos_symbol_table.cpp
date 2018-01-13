@@ -125,9 +125,9 @@ EidosSymbolTable::~EidosSymbolTable(void)
 	
 	if (internal_symbols_)
 	{
-		// internal_symbols_ may have symbols defined in it, so we need to zero it out for re-use.  Note we don't
-		// bother zeroing out symbol_name_; that is unnecessary and would just waste time.
-		for (int slot_index = 0; slot_index < EIDOS_SYMBOL_TABLE_BASE_SIZE; ++slot_index)
+		// internal_symbols_ may have symbols defined in it, so we need to zero out the used slots for re-use.
+		// Note we don't bother zeroing out symbol_name_; that is unnecessary and would just waste time.
+		for (size_t slot_index = 0; slot_index < internal_symbol_count_; ++slot_index)
 			internal_symbols_[slot_index].symbol_value_SP_.reset();
 		
 		ReturnInternalSymbolsToPool();
