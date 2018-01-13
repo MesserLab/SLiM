@@ -1537,7 +1537,7 @@ void InteractionType::InitializeStrengths(InteractionsData &p_subpop_data)
 // Ironically, the incorrect logic of the RosettaCode version only produced incorrect results when there
 // were duplicated values in the coordinate vector.
 
-inline void swap(SLiM_kdNode *p_x, SLiM_kdNode *p_y)
+inline __attribute__((always_inline)) void swap(SLiM_kdNode *p_x, SLiM_kdNode *p_y)
 {
 	std::swap(p_x->x, p_y->x);
 	std::swap(p_x->individual_index_, p_y->individual_index_);
@@ -2091,7 +2091,7 @@ void InteractionType::CheckKDTree3_p2_r(SLiM_kdNode *t, double split, bool isLef
 #pragma mark k-d tree neighbor searches
 #pragma mark -
 
-inline double dist_sq1(SLiM_kdNode *a, double *b)
+inline __attribute__((always_inline)) double dist_sq1(SLiM_kdNode *a, double *b)
 {
 #ifndef __clang_analyzer__
 	double t = a->x[0] - b[0];
@@ -2102,7 +2102,7 @@ inline double dist_sq1(SLiM_kdNode *a, double *b)
 #endif
 }
 
-inline double dist_sq2(SLiM_kdNode *a, double *b)
+inline __attribute__((always_inline)) double dist_sq2(SLiM_kdNode *a, double *b)
 {
 #ifndef __clang_analyzer__
 	double t, d;
@@ -2119,7 +2119,7 @@ inline double dist_sq2(SLiM_kdNode *a, double *b)
 #endif
 }
 
-inline double dist_sq3(SLiM_kdNode *a, double *b)
+inline __attribute__((always_inline)) double dist_sq3(SLiM_kdNode *a, double *b)
 {
 #ifndef __clang_analyzer__
 	double t, d;

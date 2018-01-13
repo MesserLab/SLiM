@@ -129,7 +129,7 @@ void Eidos_CheckRSSAgainstMax(std::string p_message1, std::string p_message2);
 
 // *******************************************************************************************************************
 //
-//	Profiling suuport
+//	Profiling support
 //
 #pragma mark -
 #pragma mark Profiling support
@@ -154,7 +154,7 @@ extern double gEidos_ProfileLagTicks;			// the clocked length of an empty profil
 extern double gEidos_ProfileLagSeconds;			// the clocked length of an empty profile block, in seconds
 
 // Get a profile clock measurement, to be used as a start or end time
-inline eidos_profile_t Eidos_ProfileTime(void) { gEidos_ProfileCounter++; return mach_absolute_time(); }
+inline __attribute__((always_inline)) eidos_profile_t Eidos_ProfileTime(void) { gEidos_ProfileCounter++; return mach_absolute_time(); }
 
 // Convert an elapsed profiling time (the difference between two Eidos_ProfileTime() results) to seconds
 double Eidos_ElapsedProfileTime(uint64_t p_elapsed_profile_time);

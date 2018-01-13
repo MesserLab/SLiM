@@ -116,13 +116,13 @@ public:
 	Individual(Subpopulation &p_subpopulation, slim_popsize_t p_individual_index, slim_mutationid_t p_pedigree_id, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_generation_t p_age);
 	~Individual(void);																	// destructor
 	
-	inline void ClearColor(void) { color_.clear(); }
+	inline __attribute__((always_inline)) void ClearColor(void) { color_.clear(); }
 	
-	inline double TagFloat(void) { return tagF_value_; }
+	inline __attribute__((always_inline)) double TagFloat(void) { return tagF_value_; }
 	
 	// This sets the receiver up as a new individual, with a newly assigned pedigree id, and gets
 	// parental and grandparental information from the supplied parents.
-	inline void TrackPedigreeWithParents(Individual &p_parent1, Individual &p_parent2)
+	inline __attribute__((always_inline)) void TrackPedigreeWithParents(Individual &p_parent1, Individual &p_parent2)
 	{
 		pedigree_id_ = gSLiM_next_pedigree_id++;
 		
@@ -141,7 +141,7 @@ public:
 	// Eidos support
 	//
 	void GenerateCachedEidosValue(void);
-	inline EidosValue_SP CachedEidosValue(void) { if (!self_value_) GenerateCachedEidosValue(); return self_value_; };
+	inline __attribute__((always_inline)) EidosValue_SP CachedEidosValue(void) { if (!self_value_) GenerateCachedEidosValue(); return self_value_; };
 	
 	virtual const EidosObjectClass *Class(void) const;
 	virtual void Print(std::ostream &p_ostream) const;

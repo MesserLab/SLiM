@@ -59,7 +59,7 @@ public:
 			delete hash_symbols_;
 	}
 	
-	inline void RemoveAllKeys(void)
+	inline __attribute__((always_inline)) void RemoveAllKeys(void)
 	{
 		if (hash_symbols_)
 			hash_symbols_->clear();

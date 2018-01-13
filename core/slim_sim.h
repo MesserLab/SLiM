@@ -309,30 +309,30 @@ public:
 #endif
 	
 	// Mutation stack policy checking
-	inline void MutationStackPolicyChanged(void)									{ mutation_stack_policy_changed_ = true; }
-	inline void CheckMutationStackPolicy(void)										{ if (mutation_stack_policy_changed_) _CheckMutationStackPolicy(); }
+	inline __attribute__((always_inline)) void MutationStackPolicyChanged(void)												{ mutation_stack_policy_changed_ = true; }
+	inline __attribute__((always_inline)) void CheckMutationStackPolicy(void)												{ if (mutation_stack_policy_changed_) _CheckMutationStackPolicy(); }
 	void _CheckMutationStackPolicy(void);
 	
 	// accessors
-	inline EidosSymbolTable &SymbolTable(void) const								{ return *simulation_constants_; }
-	inline EidosFunctionMap &FunctionMap(void)										{ return simulation_functions_; }
+	inline __attribute__((always_inline)) EidosSymbolTable &SymbolTable(void) const											{ return *simulation_constants_; }
+	inline __attribute__((always_inline)) EidosFunctionMap &FunctionMap(void)												{ return simulation_functions_; }
 	
-	inline SLiMModelType ModelType(void) const										{ return model_type_; }
-	inline slim_generation_t Generation(void) const									{ return generation_; }
-	inline SLiMGenerationStage GenerationStage(void) const							{ return generation_stage_; }
-	inline Chromosome &TheChromosome(void)											{ return chromosome_; }
-	inline Population &ThePopulation(void)											{ return population_; }
-	inline const std::map<slim_objectid_t,MutationType*> &MutationTypes(void) const	{ return mutation_types_; }
-	inline const std::map<slim_objectid_t,GenomicElementType*> &GenomicElementTypes(void) { return genomic_element_types_; }
-	inline const std::map<slim_objectid_t,InteractionType*> &InteractionTypes(void) { return interaction_types_; }
+	inline __attribute__((always_inline)) SLiMModelType ModelType(void) const												{ return model_type_; }
+	inline __attribute__((always_inline)) slim_generation_t Generation(void) const											{ return generation_; }
+	inline __attribute__((always_inline)) SLiMGenerationStage GenerationStage(void) const									{ return generation_stage_; }
+	inline __attribute__((always_inline)) Chromosome &TheChromosome(void)													{ return chromosome_; }
+	inline __attribute__((always_inline)) Population &ThePopulation(void)													{ return population_; }
+	inline __attribute__((always_inline)) const std::map<slim_objectid_t,MutationType*> &MutationTypes(void) const			{ return mutation_types_; }
+	inline __attribute__((always_inline)) const std::map<slim_objectid_t,GenomicElementType*> &GenomicElementTypes(void)	{ return genomic_element_types_; }
+	inline __attribute__((always_inline)) const std::map<slim_objectid_t,InteractionType*> &InteractionTypes(void)			{ return interaction_types_; }
 	
-	inline bool SexEnabled(void) const												{ return sex_enabled_; }
-	inline bool PedigreesEnabled(void) const										{ return pedigrees_enabled_; }
-	inline bool PreventIncidentalSelfing(void) const								{ return prevent_incidental_selfing_; }
-	inline GenomeType ModeledChromosomeType(void) const								{ return modeled_chromosome_type_; }
-	inline double XDominanceCoefficient(void) const									{ return x_chromosome_dominance_coeff_; }
-	inline int SpatialDimensionality(void) const									{ return spatial_dimensionality_; }
-	inline void SpatialPeriodicity(bool *p_x, bool *p_y, bool *p_z) const
+	inline __attribute__((always_inline)) bool SexEnabled(void) const														{ return sex_enabled_; }
+	inline __attribute__((always_inline)) bool PedigreesEnabled(void) const													{ return pedigrees_enabled_; }
+	inline __attribute__((always_inline)) bool PreventIncidentalSelfing(void) const											{ return prevent_incidental_selfing_; }
+	inline __attribute__((always_inline)) GenomeType ModeledChromosomeType(void) const										{ return modeled_chromosome_type_; }
+	inline __attribute__((always_inline)) double XDominanceCoefficient(void) const											{ return x_chromosome_dominance_coeff_; }
+	inline __attribute__((always_inline)) int SpatialDimensionality(void) const												{ return spatial_dimensionality_; }
+	inline __attribute__((always_inline)) void SpatialPeriodicity(bool *p_x, bool *p_y, bool *p_z) const
 	{
 		if (p_x) *p_x = periodic_x_;
 		if (p_y) *p_y = periodic_y_;

@@ -115,13 +115,13 @@ static inline __attribute__((always_inline)) bool Eidos_RandomBool(gsl_rng *p_r)
 // taus_get(); otherwise its logic is the same.  The taus_get_double() function called by gsl_rng_uniform()
 // has the advantage of inlining the taus_get() function, but on the other hand, Eidos_rng_uniform() is
 // itself inline, which gsl_rng_uniform()'s call to taus_get_double() cannot be, so that should be a wash.
-inline double Eidos_rng_uniform(gsl_rng *p_r)
+inline __attribute__((always_inline)) double Eidos_rng_uniform(gsl_rng *p_r)
 {
 	return taus_get(p_r->state) / 4294967296.0;
 }
 
 // Basically ditto; faster than gsl_rng_uniform_pos() by avoiding indirection.
-inline double Eidos_rng_uniform_pos(const gsl_rng *p_r)
+inline __attribute__((always_inline)) double Eidos_rng_uniform_pos(const gsl_rng *p_r)
 {
 	double x;
 	

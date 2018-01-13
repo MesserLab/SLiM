@@ -43,7 +43,7 @@ public:
 	GESubrange(GenomicElement *p_genomic_element_ptr, slim_position_t p_start_position, slim_position_t p_end_position);
 };
 
-inline GESubrange::GESubrange(GenomicElement *p_genomic_element_ptr, slim_position_t p_start_position, slim_position_t p_end_position) :
+inline __attribute__((always_inline)) GESubrange::GESubrange(GenomicElement *p_genomic_element_ptr, slim_position_t p_start_position, slim_position_t p_end_position) :
 	genomic_element_ptr_(p_genomic_element_ptr), start_position_(p_start_position), end_position_(p_end_position)
 {
 }

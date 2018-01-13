@@ -107,7 +107,7 @@ public:
 	
 	void NullGenomeAccessError(void) const __attribute__((__noreturn__)) __attribute__((cold)) __attribute__((analyzer_noreturn));		// prints an error message, a stacktrace, and exits; called only for DEBUG
 	
-	inline bool IsNull(void) const									// returns true if the genome is a null (placeholder) genome, false otherwise
+	inline __attribute__((always_inline)) bool IsNull(void) const									// returns true if the genome is a null (placeholder) genome, false otherwise
 	{
 		return (mutrun_count_ == 0);
 	}
@@ -165,7 +165,7 @@ public:
 	// This tallies up individual Mutation references, using MutationRun usage counts for speed
 	void TallyGenomeMutationReferences(int64_t p_operation_id);
 	
-	inline int mutation_count(void) const	// used to be called size(); renamed to avoid confusion with MutationRun::size() and break code using the wrong method
+	inline __attribute__((always_inline)) int mutation_count(void) const	// used to be called size(); renamed to avoid confusion with MutationRun::size() and break code using the wrong method
 	{
 #ifdef DEBUG
 		if (mutrun_count_ == 0)
@@ -208,7 +208,7 @@ public:
 		}
 	}
 	
-	inline void clear_to_nullptr(void)
+	inline __attribute__((always_inline)) void clear_to_nullptr(void)
 	{
 		// It is legal to call this method on null genomes, for speed/simplicity; it does no harm
 		for (int run_index = 0; run_index < mutrun_count_; ++run_index)
@@ -223,7 +223,7 @@ public:
 				EIDOS_TERMINATION << "ERROR (Genome::check_cleared_to_nullptr): (internal error) genome should be cleared but is not." << EidosTerminate();
 	}
 	
-	inline bool contains_mutation(MutationIndex p_mutation_index)
+	inline __attribute__((always_inline)) bool contains_mutation(MutationIndex p_mutation_index)
 	{
 #ifdef DEBUG
 		if (mutrun_count_ == 0)
@@ -232,7 +232,7 @@ public:
 		return mutruns_[(gSLiM_Mutation_Block + p_mutation_index)->position_ / mutrun_length_]->contains_mutation(p_mutation_index);
 	}
 	
-	inline bool contains_mutation_with_type_and_position(MutationType *p_mut_type, slim_position_t p_position, slim_position_t p_last_position)
+	inline __attribute__((always_inline)) bool contains_mutation_with_type_and_position(MutationType *p_mut_type, slim_position_t p_position, slim_position_t p_last_position)
 	{
 #ifdef DEBUG
 		if (mutrun_count_ == 0)
@@ -241,7 +241,7 @@ public:
 		return mutruns_[p_position / mutrun_length_]->contains_mutation_with_type_and_position(p_mut_type, p_position, p_last_position);
 	}
 	
-	inline void insert_sorted_mutation(MutationIndex p_mutation_index)
+	inline __attribute__((always_inline)) void insert_sorted_mutation(MutationIndex p_mutation_index)
 	{
 		slim_position_t position = (gSLiM_Mutation_Block + p_mutation_index)->position_;
 		int32_t run_index = position / mutrun_length_;
@@ -249,7 +249,7 @@ public:
 		mutruns_[run_index]->insert_sorted_mutation(p_mutation_index);
 	}
 	
-	inline void insert_sorted_mutation_if_unique(MutationIndex p_mutation_index)
+	inline __attribute__((always_inline)) void insert_sorted_mutation_if_unique(MutationIndex p_mutation_index)
 	{
 		slim_position_t position = (gSLiM_Mutation_Block + p_mutation_index)->position_;
 		int32_t run_index = position / mutrun_length_;
@@ -257,7 +257,7 @@ public:
 		mutruns_[run_index]->insert_sorted_mutation_if_unique(p_mutation_index);
 	}
 	
-	inline bool enforce_stack_policy_for_addition(slim_position_t p_position, MutationType *p_mut_type_ptr)
+	inline __attribute__((always_inline)) bool enforce_stack_policy_for_addition(slim_position_t p_position, MutationType *p_mut_type_ptr)
 	{
 #ifdef DEBUG
 		if (mutrun_count_ == 0)
@@ -334,7 +334,7 @@ public:
 	// Eidos support
 	//
 	void GenerateCachedEidosValue(void);
-	inline EidosValue_SP CachedEidosValue(void) { if (!self_value_) GenerateCachedEidosValue(); return self_value_; };
+	inline __attribute__((always_inline)) EidosValue_SP CachedEidosValue(void) { if (!self_value_) GenerateCachedEidosValue(); return self_value_; };
 	
 	virtual const EidosObjectClass *Class(void) const;
 	virtual void Print(std::ostream &p_ostream) const;

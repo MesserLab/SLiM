@@ -95,7 +95,7 @@ public:
 #endif
 	
 	
-	inline MutationIndex BlockIndex(void) const			{ return (MutationIndex)(this - gSLiM_Mutation_Block); }
+	inline __attribute__((always_inline)) MutationIndex BlockIndex(void) const			{ return (MutationIndex)(this - gSLiM_Mutation_Block); }
 	
 	//
 	// Eidos support
@@ -119,14 +119,14 @@ public:
 };
 
 // true if M1 has an earlier (smaller) position than M2
-inline bool operator<(const Mutation &p_mutation1, const Mutation &p_mutation2)
+inline __attribute__((always_inline)) bool operator<(const Mutation &p_mutation1, const Mutation &p_mutation2)
 {
 	return (p_mutation1.position_ < p_mutation2.position_);
 }
 
 // like operator< but with pointers; used for sort() among other things
 // this is kept in terms of Mutation * so callers can cache gSLiM_Mutation_Block locally
-inline bool CompareMutations(const Mutation *p_mutation1, const Mutation *p_mutation2)
+inline __attribute__((always_inline)) bool CompareMutations(const Mutation *p_mutation1, const Mutation *p_mutation2)
 {
 	return (p_mutation1->position_ < p_mutation2->position_);
 }
@@ -157,7 +157,7 @@ void SLiM_CreateMutationBlock(void);
 void SLiM_IncreaseMutationBlockCapacity(void);
 void SLiM_ZeroRefcountBlock(MutationRun &p_mutation_registry);
 
-inline MutationIndex SLiM_NewMutationFromBlock(void)
+inline __attribute__((always_inline)) MutationIndex SLiM_NewMutationFromBlock(void)
 {
 	if (gSLiM_Mutation_FreeIndex == -1)
 		SLiM_IncreaseMutationBlockCapacity();
@@ -172,7 +172,7 @@ inline MutationIndex SLiM_NewMutationFromBlock(void)
 	return result;	// no need to zero out the memory, we are just an allocater, not a constructor
 }
 
-inline void SLiM_DisposeMutationToBlock(MutationIndex p_mutation_index)
+inline __attribute__((always_inline)) void SLiM_DisposeMutationToBlock(MutationIndex p_mutation_index)
 {
 	void *mut_ptr = gSLiM_Mutation_Block + p_mutation_index;
 	

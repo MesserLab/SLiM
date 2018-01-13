@@ -161,7 +161,7 @@ public:
 	// objects, and we actually don't want that; we want the buffers in used MutationRun objects to stay allocated, for
 	// greater speed.  We are constantly creating new runs, adding mutations in to them, and then throwing them away; once
 	// the pool of freed runs settles into a steady state, that process can go on with no memory allocs or reallocs at all.
-	static inline MutationRun *NewMutationRun(void)
+	static inline __attribute__((always_inline)) MutationRun *NewMutationRun(void)
 	{
 		if (s_freed_mutation_runs_.size())
 		{
@@ -176,7 +176,7 @@ public:
 		return new MutationRun();
 	}
 	
-	static inline void FreeMutationRun(MutationRun *p_run)
+	static inline __attribute__((always_inline)) void FreeMutationRun(MutationRun *p_run)
 	{
 		// We return mutation runs to the free list in a valid, reuseable state.  We do not free its buffers, avoiding that
 		// free/alloc thrash is one of the big wins of recycling mutation run objects, in fact.
@@ -226,7 +226,7 @@ public:
 #endif
 	
 	
-	inline void will_modify_run(void) {
+	inline __attribute__((always_inline)) void will_modify_run(void) {
 		SLIM_MUTRUN_LOCK_CHECK();
 		
 #if SLIM_USE_NONNEUTRAL_CACHES
@@ -234,25 +234,25 @@ public:
 #endif
 	}
 	
-	inline MutationIndex const & operator[] (int p_index) const {	// [] returns a reference to a pointer to Mutation; this is the const-pointer variant
+	inline __attribute__((always_inline)) MutationIndex const & operator[] (int p_index) const {	// [] returns a reference to a pointer to Mutation; this is the const-pointer variant
 		return mutations_[p_index];
 	}
 	
-	inline MutationIndex& operator[] (int p_index) {				// [] returns a reference to a pointer to Mutation; this is the non-const-pointer variant
+	inline __attribute__((always_inline)) MutationIndex& operator[] (int p_index) {				// [] returns a reference to a pointer to Mutation; this is the non-const-pointer variant
 		return mutations_[p_index];
 	}
 	
-	inline int size(void) const {
+	inline __attribute__((always_inline)) int size(void) const {
 		return mutation_count_;
 	}
 	
-	inline void set_size(int p_size) {
+	inline __attribute__((always_inline)) void set_size(int p_size) {
 		SLIM_MUTRUN_LOCK_CHECK();
 		
 		mutation_count_ = p_size;
 	}
 	
-	inline void clear(void)
+	inline __attribute__((always_inline)) void clear(void)
 	{
 		SLIM_MUTRUN_LOCK_CHECK();
 		
@@ -263,7 +263,7 @@ public:
 	
 	bool contains_mutation_with_type_and_position(MutationType *p_mut_type, slim_position_t p_position, slim_position_t p_last_position);
 	
-	inline void pop_back(void)
+	inline __attribute__((always_inline)) void pop_back(void)
 	{
 		SLIM_MUTRUN_LOCK_CHECK();
 		
@@ -271,7 +271,7 @@ public:
 			--mutation_count_;
 	}
 	
-	inline void emplace_back(MutationIndex p_mutation_index)
+	inline __attribute__((always_inline)) void emplace_back(MutationIndex p_mutation_index)
 	{
 		SLIM_MUTRUN_LOCK_CHECK();
 		
@@ -485,7 +485,7 @@ public:
 	
 	bool _EnforceStackPolicyForAddition(slim_position_t p_position, MutationStackPolicy p_policy, int64_t p_stack_group);
 	
-	inline bool enforce_stack_policy_for_addition(slim_position_t p_position, MutationType *p_mut_type_ptr)
+	inline __attribute__((always_inline)) bool enforce_stack_policy_for_addition(slim_position_t p_position, MutationType *p_mut_type_ptr)
 	{
 		MutationStackPolicy policy = p_mut_type_ptr->stack_policy_;
 		
@@ -501,7 +501,7 @@ public:
 		}
 	}
 	
-	inline void copy_from_run(const MutationRun &p_source_run)
+	inline __attribute__((always_inline)) void copy_from_run(const MutationRun &p_source_run)
 	{
 		SLIM_MUTRUN_LOCK_CHECK();
 		
@@ -531,24 +531,24 @@ public:
 	// must be guaranteed that none of the mutations in the two given runs are the same.
 	void clear_set_and_merge(MutationRun &p_mutations_to_set, MutationRun &p_mutations_to_add);
 	
-	inline const MutationIndex *begin_pointer_const(void) const
+	inline __attribute__((always_inline)) const MutationIndex *begin_pointer_const(void) const
 	{
 		return mutations_;
 	}
 	
-	inline const MutationIndex *end_pointer_const(void) const
+	inline __attribute__((always_inline)) const MutationIndex *end_pointer_const(void) const
 	{
 		return mutations_ + mutation_count_;
 	}
 	
-	inline MutationIndex *begin_pointer(void)
+	inline __attribute__((always_inline)) MutationIndex *begin_pointer(void)
 	{
 		SLIM_MUTRUN_LOCK_CHECK();
 		
 		return mutations_;
 	}
 	
-	inline MutationIndex *end_pointer(void)
+	inline __attribute__((always_inline)) MutationIndex *end_pointer(void)
 	{
 		SLIM_MUTRUN_LOCK_CHECK();
 		
@@ -556,7 +556,7 @@ public:
 	}
 	
 	void _RemoveFixedMutations(void);
-	inline void RemoveFixedMutations(int64_t p_operation_id)
+	inline __attribute__((always_inline)) void RemoveFixedMutations(int64_t p_operation_id)
 	{
 		if (operation_id_ != p_operation_id)
 		{
@@ -567,7 +567,7 @@ public:
 	}
 	
 	// Hash and comparison functions used by UniqueMutationRuns() to unique mutation runs
-	inline int64_t Hash(void)
+	inline __attribute__((always_inline)) int64_t Hash(void)
 	{
 		uint64_t hash = mutation_count_;
 		
@@ -585,7 +585,7 @@ public:
 		return hash;
 	}
 	
-	inline bool Identical(MutationRun &p_run)
+	inline __attribute__((always_inline)) bool Identical(MutationRun &p_run)
 	{
 		if (mutation_count_ != p_run.mutation_count_)
 			return false;
@@ -602,7 +602,7 @@ public:
 #if SLIM_USE_NONNEUTRAL_CACHES
 	// caching non-neutral mutations; see above for comments about the "regime" etc.
 	
-	inline void zero_out_nonneutral_buffer(void)
+	inline __attribute__((always_inline)) void zero_out_nonneutral_buffer(void)
 	{
 		if (!nonneutral_mutations_)
 		{
@@ -616,7 +616,7 @@ public:
 		nonneutral_mutations_count_ = 0;
 	}
 	
-	inline void add_to_nonneutral_buffer(MutationIndex p_mutation_index)
+	inline __attribute__((always_inline)) void add_to_nonneutral_buffer(MutationIndex p_mutation_index)
 	{
 		// This is basically the emplace_back() code, but for the nonneutral buffer
 		if (nonneutral_mutations_count_ == nonneutral_mutation_capacity_)
@@ -643,7 +643,7 @@ public:
 	
 	void check_nonneutral_mutation_cache();
 	
-	inline void beginend_nonneutral_pointers(const MutationIndex **p_mutptr_iter, const MutationIndex **p_mutptr_max, int32_t p_nonneutral_change_counter, int32_t p_nonneutral_regime)
+	inline __attribute__((always_inline)) void beginend_nonneutral_pointers(const MutationIndex **p_mutptr_iter, const MutationIndex **p_mutptr_max, int32_t p_nonneutral_change_counter, int32_t p_nonneutral_regime)
 	{
 		if ((nonneutral_change_validation_ != p_nonneutral_change_counter) || (nonneutral_mutations_count_ == -1))
 		{
@@ -675,7 +675,7 @@ public:
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
-	inline void tally_nonneutral_mutations(int64_t *p_mutation_count, int64_t *p_nonneutral_count, int64_t *p_recached_count)
+	inline __attribute__((always_inline)) void tally_nonneutral_mutations(int64_t *p_mutation_count, int64_t *p_nonneutral_count, int64_t *p_recached_count)
 	{
 		*p_mutation_count += mutation_count_;
 		
