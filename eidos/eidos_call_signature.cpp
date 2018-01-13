@@ -274,11 +274,9 @@ void EidosCallSignature::CheckArguments(const EidosValue_SP *const p_arguments, 
 	// Check the types of all arguments specified in the signature
 	for (unsigned int arg_index = 0; arg_index < arg_masks_size; ++arg_index)
 	{
-		EidosValueMask type_mask = arg_masks_[arg_index];
+		EidosValueMask type_mask_unstripped = arg_masks_[arg_index];
+		EidosValueMask type_mask = (type_mask_unstripped & kEidosValueMaskFlagStrip);
 		//bool is_optional = !!(type_mask & kEidosValueMaskOptional);		// at this stage, optional arguments are now required; they should have been filled by the function dispatch code
-		bool requires_singleton = !!(type_mask & kEidosValueMaskSingleton);
-		
-		type_mask &= kEidosValueMaskFlagStrip;
 		
 		// if no argument was passed for this slot, it needs to be an optional slot; this check is now redundant, see above
 //		if (p_argument_count <= arg_index)
@@ -290,27 +288,28 @@ void EidosCallSignature::CheckArguments(const EidosValue_SP *const p_arguments, 
 //		}
 		
 		// an argument was passed, so check its type
-		EidosValue *argument = p_arguments[arg_index].get();
-		EidosValueType arg_type = argument->Type();
-		
 		if (type_mask != kEidosValueMaskAny)
 		{
-			bool type_ok = true;
+			EidosValue *argument = p_arguments[arg_index].get();
+			EidosValueType arg_type = argument->Type();
+			bool type_ok;
 			
 			switch (arg_type)
 			{
 				case EidosValueType::kValueNULL:
-					type_ok = !!(type_mask & kEidosValueMaskNULL);
-					
-					if (type_ok)
+				{
+					if (type_mask & kEidosValueMaskNULL)
 						continue;
 					
+					type_ok = false;
 					break;
+				}
 				case EidosValueType::kValueLogical:	type_ok = !!(type_mask & kEidosValueMaskLogical);	break;
 				case EidosValueType::kValueString:	type_ok = !!(type_mask & kEidosValueMaskString);	break;
 				case EidosValueType::kValueInt:		type_ok = !!(type_mask & kEidosValueMaskInt);		break;
 				case EidosValueType::kValueFloat:	type_ok = !!(type_mask & kEidosValueMaskFloat);		break;
 				case EidosValueType::kValueObject:
+				{
 					type_ok = !!(type_mask & kEidosValueMaskObject);
 					
 					// If the argument is object type, and is allowed to be object type, and an object element type was specified
@@ -331,6 +330,7 @@ void EidosCallSignature::CheckArguments(const EidosValue_SP *const p_arguments, 
 						}
 					}
 					break;
+				}
 			}
 			
 			if (!type_ok)
@@ -343,7 +343,7 @@ void EidosCallSignature::CheckArguments(const EidosValue_SP *const p_arguments, 
 			}
 			
 			// if the argument is NULL, this singleton check is skipped by the continue statement above
-			if (requires_singleton && (argument->Count() != 1))
+			if ((type_mask_unstripped & kEidosValueMaskSingleton) && (argument->Count() != 1))
 				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " (" << arg_names_[arg_index] << ") must be a singleton (size() == 1) for " << CallType() << " " << call_name_ << "(), but size() == " << argument->Count() << "." << EidosTerminate(nullptr);
 		}
 	}

@@ -1096,8 +1096,10 @@ int EidosInterpreter::_ProcessArgumentList(const EidosASTNode *p_node, const Eid
 				// We have a named argument; get information on it from its children
 				const std::vector<EidosASTNode *> &child_children = child->children_;
 				
+#if DEBUG
 				if (child_children.size() != 2)
 					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): (internal error) named argument node child count != 2." << EidosTerminate(nullptr);
+#endif
 				
 				EidosASTNode *named_arg_name_node = child_children[0];
 				EidosASTNode *named_arg_value_node = child_children[1];
@@ -1134,8 +1136,10 @@ int EidosInterpreter::_ProcessArgumentList(const EidosASTNode *p_node, const Eid
 					
 					EidosValue_SP default_value = p_call_signature->arg_defaults_[sig_arg_index];
 					
+#if DEBUG
 					if (!default_value)
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): (internal error) missing default value for optional argument." << EidosTerminate(nullptr);
+#endif
 					
 					p_arg_buffer[processed_arg_count] = std::move(default_value);
 					processed_arg_count++;
@@ -1186,8 +1190,10 @@ int EidosInterpreter::_ProcessArgumentList(const EidosASTNode *p_node, const Eid
 		
 		EidosValue_SP default_value = p_call_signature->arg_defaults_[sig_arg_index];
 		
+#if DEBUG
 		if (!default_value)
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): (internal error) missing default value for optional argument." << EidosTerminate(nullptr);
+#endif
 		
 		p_arg_buffer[processed_arg_count] = std::move(default_value);
 		processed_arg_count++;
