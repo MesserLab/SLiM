@@ -3348,9 +3348,16 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 		individual->TrackPedigreeWithParents(*parent, *parent);
 	
 	// Run the candidate past modifyChild() callbacks
-	bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, -1, -1, false, false, this, this, registered_modify_child_callbacks_);
-	
-	return _ResultAfterModifyChildCallbacks(proposed_child_accepted, individual, genome1, genome2);
+	if (registered_modify_child_callbacks_.size())
+	{
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, -1, -1, false, false, this, this, registered_modify_child_callbacks_);
+		
+		return _ResultAfterModifyChildCallbacks(proposed_child_accepted, individual, genome1, genome2);
+	}
+	else
+	{
+		return _ResultAfterModifyChildCallbacks(true, individual, genome1, genome2);
+	}
 }
 
 //	*********************	– (No<Individual>$)addCrossed(object<Individual>$ parent1, object<Individual>$ parent2, [Nfs$ sex = NULL])
@@ -3404,17 +3411,29 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, genome1_type, genome1_null);
 	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
 	Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0);
+	std::vector<SLiMEidosBlock*> *parent1_recombination_callbacks = &parent1_subpop.registered_recombination_callbacks_;
+	std::vector<SLiMEidosBlock*> *parent2_recombination_callbacks = &parent2_subpop.registered_recombination_callbacks_;
 	
-	population_.DoCrossoverMutation(&parent1_subpop, *genome1, parent1->index_, child_sex, parent1_sex, &parent1_subpop.registered_recombination_callbacks_);
-	population_.DoCrossoverMutation(&parent2_subpop, *genome2, parent2->index_, child_sex, parent2_sex, &parent2_subpop.registered_recombination_callbacks_);
+	if (!parent1_recombination_callbacks->size()) parent1_recombination_callbacks = nullptr;
+	if (!parent2_recombination_callbacks->size()) parent2_recombination_callbacks = nullptr;
+	
+	population_.DoCrossoverMutation(&parent1_subpop, *genome1, parent1->index_, child_sex, parent1_sex, parent1_recombination_callbacks);
+	population_.DoCrossoverMutation(&parent2_subpop, *genome2, parent2->index_, child_sex, parent2_sex, parent2_recombination_callbacks);
 	
 	if (pedigrees_enabled)
 		individual->TrackPedigreeWithParents(*parent1, *parent2);
 	
 	// Run the candidate past modifyChild() callbacks
-	bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, -1, -1, false, false, this, this, registered_modify_child_callbacks_);
-	
-	return _ResultAfterModifyChildCallbacks(proposed_child_accepted, individual, genome1, genome2);
+	if (registered_modify_child_callbacks_.size())
+	{
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, -1, -1, false, false, this, this, registered_modify_child_callbacks_);
+		
+		return _ResultAfterModifyChildCallbacks(proposed_child_accepted, individual, genome1, genome2);
+	}
+	else
+	{
+		return _ResultAfterModifyChildCallbacks(true, individual, genome1, genome2);
+	}
 }
 
 //	*********************	– (No<Individual>$)addEmpty([Nfs$ sex = NULL])
@@ -3447,9 +3466,16 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	genome2->clear_to_empty();
 	
 	// Run the candidate past modifyChild() callbacks
-	bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, -1, -1, false, false, this, this, registered_modify_child_callbacks_);
-	
-	return _ResultAfterModifyChildCallbacks(proposed_child_accepted, individual, genome1, genome2);
+	if (registered_modify_child_callbacks_.size())
+	{
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, -1, -1, false, false, this, this, registered_modify_child_callbacks_);
+		
+		return _ResultAfterModifyChildCallbacks(proposed_child_accepted, individual, genome1, genome2);
+	}
+	else
+	{
+		return _ResultAfterModifyChildCallbacks(true, individual, genome1, genome2);
+	}
 }
 
 //	*********************	– (No<Individual>$)addSelfed(object<Individual>$ parent)
@@ -3489,17 +3515,27 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, genome1_type, genome1_null);
 	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
 	Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0);
+	std::vector<SLiMEidosBlock*> *parent_recombination_callbacks = &parent_subpop.registered_recombination_callbacks_;
 	
-	population_.DoCrossoverMutation(&parent_subpop, *genome1, parent->index_, child_sex, parent_sex, &parent_subpop.registered_recombination_callbacks_);
-	population_.DoCrossoverMutation(&parent_subpop, *genome2, parent->index_, child_sex, parent_sex, &parent_subpop.registered_recombination_callbacks_);
+	if (!parent_recombination_callbacks->size()) parent_recombination_callbacks = nullptr;
+	
+	population_.DoCrossoverMutation(&parent_subpop, *genome1, parent->index_, child_sex, parent_sex, parent_recombination_callbacks);
+	population_.DoCrossoverMutation(&parent_subpop, *genome2, parent->index_, child_sex, parent_sex, parent_recombination_callbacks);
 	
 	if (pedigrees_enabled)
 		individual->TrackPedigreeWithParents(*parent, *parent);
 	
 	// Run the candidate past modifyChild() callbacks
-	bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, -1, -1, false, false, this, this, registered_modify_child_callbacks_);
-	
-	return _ResultAfterModifyChildCallbacks(proposed_child_accepted, individual, genome1, genome2);
+	if (registered_modify_child_callbacks_.size())
+	{
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, -1, -1, false, false, this, this, registered_modify_child_callbacks_);
+		
+		return _ResultAfterModifyChildCallbacks(proposed_child_accepted, individual, genome1, genome2);
+	}
+	else
+	{
+		return _ResultAfterModifyChildCallbacks(true, individual, genome1, genome2);
+	}
 }
 
 //	*********************	- (void)takeMigrants(object<Individual> migrants)
