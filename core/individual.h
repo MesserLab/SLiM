@@ -66,11 +66,6 @@ private:
 	std::string color_;								// color to use when displayed (in SLiMgui)
 	float color_red_, color_green_, color_blue_;	// cached color components from color_; should always be in sync
 	
-	// These flags are used to minimize the work done by Subpopulation::SwapChildAndParentGenomes(); it only needs to
-	// reset colors or dictionaries if they have ever been touched by the model.  These flags are set and never cleared.
-	static bool s_any_individual_color_set_;
-	static bool s_any_individual_dictionary_set_;
-	
 	// Pedigree-tracking ivars.  These are -1 if unknown, otherwise assigned sequentially from 0 counting upward.  They
 	// uniquely identify individuals within the simulation, so that relatedness of individuals can be assessed.  They can
 	// be accessed through the read-only pedigree properties.  These are only maintained if sim->pedigrees_enabled_ is on.
@@ -170,6 +165,13 @@ public:
 	virtual void SetProperty_Accelerated_Int(EidosGlobalStringID p_property_id, int64_t p_value);
 	virtual void SetProperty_Accelerated_Float(EidosGlobalStringID p_property_id, double p_value);
 	virtual void SetProperty_Accelerated_String(EidosGlobalStringID p_property_id, const std::string &p_value);
+	
+	
+	// These flags are used to minimize the work done by Subpopulation::SwapChildAndParentGenomes(); it only needs to
+	// reset colors or dictionaries if they have ever been touched by the model.  These flags are set and never cleared.
+	static bool s_any_individual_color_set_;
+	static bool s_any_individual_dictionary_set_;
+	static bool s_any_individual_fitness_scaling_set_;
 	
 	// for Subpopulation::ExecuteMethod_takeMigrants()
 	friend Subpopulation;

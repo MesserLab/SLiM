@@ -3209,10 +3209,14 @@ void Population::RecalculateFitness(slim_generation_t p_generation)
 		
 		subpop->fitness_scaling_ = 1.0;
 		
-		std::vector<Individual *> &individuals = subpop->parent_individuals_;
-		
-		for (Individual *individual : individuals)
-			individual->fitness_scaling_ = 1.0;
+		// Reset fitness_scaling_ on individuals only if it has ever been changed
+		if (Individual::s_any_individual_fitness_scaling_set_)
+		{
+			std::vector<Individual *> &individuals = subpop->parent_individuals_;
+			
+			for (Individual *individual : individuals)
+				individual->fitness_scaling_ = 1.0;
+		}
 	}
 }
 

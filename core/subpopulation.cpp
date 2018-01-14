@@ -1261,14 +1261,29 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		// Set up to draw random females
 		if (pure_neutral)
 		{
-			for (slim_popsize_t i = 0; i < parent_first_male_index_; i++)
+			if (Individual::s_any_individual_fitness_scaling_set_)
 			{
-				double fitness = subpop_fitness_scaling * parent_individuals_[i]->fitness_scaling_;
-				
-				cached_parental_fitness_[i] = fitness;
-				cached_male_fitness_[i] = 0;
-				
-				totalFemaleFitness += fitness;
+				for (slim_popsize_t i = 0; i < parent_first_male_index_; i++)
+				{
+					double fitness = subpop_fitness_scaling * parent_individuals_[i]->fitness_scaling_;
+					
+					cached_parental_fitness_[i] = fitness;
+					cached_male_fitness_[i] = 0;
+					
+					totalFemaleFitness += fitness;
+				}
+			}
+			else
+			{
+				for (slim_popsize_t i = 0; i < parent_first_male_index_; i++)
+				{
+					double fitness = subpop_fitness_scaling;	// no individual fitness_scaling_
+					
+					cached_parental_fitness_[i] = fitness;
+					cached_male_fitness_[i] = 0;
+					
+					totalFemaleFitness += fitness;
+				}
 			}
 		}
 		else if (skip_chromosomal_fitness)
@@ -1330,15 +1345,31 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		
 		if (pure_neutral)
 		{
-			for (slim_popsize_t i = 0; i < num_males; i++)
+			if (Individual::s_any_individual_fitness_scaling_set_)
 			{
-				slim_popsize_t individual_index = (i + parent_first_male_index_);
-				double fitness = subpop_fitness_scaling * parent_individuals_[individual_index]->fitness_scaling_;
-				
-				cached_parental_fitness_[individual_index] = fitness;
-				cached_male_fitness_[individual_index] = fitness;
-				
-				totalMaleFitness += fitness;
+				for (slim_popsize_t i = 0; i < num_males; i++)
+				{
+					slim_popsize_t individual_index = (i + parent_first_male_index_);
+					double fitness = subpop_fitness_scaling * parent_individuals_[individual_index]->fitness_scaling_;
+					
+					cached_parental_fitness_[individual_index] = fitness;
+					cached_male_fitness_[individual_index] = fitness;
+					
+					totalMaleFitness += fitness;
+				}
+			}
+			else
+			{
+				for (slim_popsize_t i = 0; i < num_males; i++)
+				{
+					slim_popsize_t individual_index = (i + parent_first_male_index_);
+					double fitness = subpop_fitness_scaling;	// no individual fitness_scaling_
+					
+					cached_parental_fitness_[individual_index] = fitness;
+					cached_male_fitness_[individual_index] = fitness;
+					
+					totalMaleFitness += fitness;
+				}
 			}
 		}
 		else if (skip_chromosomal_fitness)
@@ -1413,13 +1444,27 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		
 		if (pure_neutral)
 		{
-			for (slim_popsize_t i = 0; i < parent_subpop_size_; i++)
+			if (Individual::s_any_individual_fitness_scaling_set_)
 			{
-				double fitness = subpop_fitness_scaling * parent_individuals_[i]->fitness_scaling_;
-				
-				*(fitness_buffer_ptr++) = fitness;
-				
-				totalFitness += fitness;
+				for (slim_popsize_t i = 0; i < parent_subpop_size_; i++)
+				{
+					double fitness = subpop_fitness_scaling * parent_individuals_[i]->fitness_scaling_;
+					
+					*(fitness_buffer_ptr++) = fitness;
+					
+					totalFitness += fitness;
+				}
+			}
+			else
+			{
+				for (slim_popsize_t i = 0; i < parent_subpop_size_; i++)
+				{
+					double fitness = subpop_fitness_scaling;	// no individual fitness_scaling_
+					
+					*(fitness_buffer_ptr++) = fitness;
+					
+					totalFitness += fitness;
+				}
 			}
 		}
 		else if (skip_chromosomal_fitness)

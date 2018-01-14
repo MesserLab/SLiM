@@ -39,6 +39,7 @@ slim_mutationid_t gSLiM_next_pedigree_id = 0;
 // Static member bools that track whether any individual has ever sustained a particular type of change
 bool Individual::s_any_individual_color_set_ = false;
 bool Individual::s_any_individual_dictionary_set_ = false;
+bool Individual::s_any_individual_fitness_scaling_set_ = false;
 
 
 Individual::Individual(Subpopulation &p_subpopulation, slim_popsize_t p_individual_index, slim_mutationid_t p_pedigree_id, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_generation_t p_age) : subpopulation_(p_subpopulation), index_(p_individual_index), genome1_(p_genome1), genome2_(p_genome2), sex_(p_sex),
@@ -481,6 +482,7 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 		case gID_fitnessScaling:	// ACCELERATED
 		{
 			fitness_scaling_ = p_value.FloatAtIndex(0, nullptr);
+			Individual::s_any_individual_fitness_scaling_set_ = true;
 			
 			if ((fitness_scaling_ < 0.0) || (!std::isfinite(fitness_scaling_)))
 				EIDOS_TERMINATION << "ERROR (Individual::SetProperty): property fitnessScaling must have a finite value >= 0.0." << EidosTerminate();
@@ -527,6 +529,7 @@ void Individual::SetProperty_Accelerated_Float(EidosGlobalStringID p_property_id
 		case gID_fitnessScaling:
 		{
 			fitness_scaling_ = p_value;
+			Individual::s_any_individual_fitness_scaling_set_ = true;
 			
 			if ((fitness_scaling_ < 0.0) || (!std::isfinite(fitness_scaling_)))
 				EIDOS_TERMINATION << "ERROR (Subpopulation::SetProperty_Accelerated_Float): property fitnessScaling must have a finite value >= 0.0." << EidosTerminate();
