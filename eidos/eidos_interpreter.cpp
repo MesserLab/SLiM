@@ -1430,9 +1430,10 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		// Argument processing
 		int max_arg_count = (method_signature->has_ellipsis_ ? ((int)(node_children.size() - 1)) + 1 : (int)method_signature->arg_name_IDs_.size() + 1);
 		
-		if (max_arg_count <= 8)
+		if (max_arg_count <= 10)
 		{
-			EidosValue_SP (arguments_array[8]);
+			static EidosValue_SP (arguments_array[10]);
+			
 			int processed_arg_count = _ProcessArgumentList(p_node, method_signature, arguments_array);
 			
 			// If the method is a class method, dispatch it to the class object
@@ -1448,6 +1449,14 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 			{
 				result_SP = method_object->ExecuteMethodCall(method_id, method_signature, arguments_array, processed_arg_count, *this);
 			}
+			
+			// Clean up the entries of arguments_array that were used.  Using a static buffer this way means that we avoid
+			// constructing/destructing the buffer every time; we just reset the values we use back to nullptr each time.
+			// A throw will blow past this, but it doesn't really matter; that just means a few EidosValues will get held
+			// longer than they otherwise would be, but they'll get throw out eventually and it shouldn't matter.  They
+			// might have invalid pointers in them by then, if they're of type object, but nobody will use them.
+			for (int arg_index = 0; arg_index < processed_arg_count; ++arg_index)
+				arguments_array[arg_index].reset();
 		}
 		else
 		{
