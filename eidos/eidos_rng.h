@@ -35,18 +35,6 @@
 #include "gsl_rng.h"
 #include "gsl_randist.h"
 
-// We made this function non-static so we can use it here.  Basically, for a little extra speed we try to avoid
-// going through the GSL's indirect function-pointer lookup, and just call taus_get() directly.
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-extern unsigned long int taus_get(void *vstate);
-
-#ifdef __cplusplus
-}
-#endif
-
 #else
 
 // To build with an externally built GSL library, use this branch, which includes GSL headers from the linked library.
