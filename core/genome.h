@@ -112,7 +112,7 @@ public:
 		return (mutrun_count_ == 0);
 	}
 	
-	void MakeNull(void);	// transform into a null genome
+	void MakeNull(void) __attribute__((cold));	// transform into a null genome
 	
 	// used to re-initialize Genomes to a new state, reusing them for efficiency
 	void ReinitializeGenomeToMutrun(GenomeType p_genome_type, int32_t p_mutrun_count, int32_t p_mutrun_length, MutationRun *p_run);
