@@ -2616,11 +2616,25 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 	child_individuals_.swap(parent_individuals_);
 	cached_child_individuals_value_.swap(cached_parent_individuals_value_);
 	
-	// Clear out any dictionary values and color values stored in what are now the child individuals
-	for (Individual *child : child_individuals_)
+	// Clear out any dictionary values and color values stored in what are now the child individuals; since this is per-individual it
+	// takes a significant amount of time, so we try to minimize the overhead by doing it only when these facilities have been used
+	if (Individual::s_any_individual_dictionary_set_ && Individual::s_any_individual_color_set_)
 	{
-		child->RemoveAllKeys();
-		child->ClearColor();
+		for (Individual *child : child_individuals_)
+		{
+			child->RemoveAllKeys();
+			child->ClearColor();
+		}
+	}
+	else
+	{
+		if (Individual::s_any_individual_dictionary_set_)
+			for (Individual *child : child_individuals_)
+				child->RemoveAllKeys();
+		
+		if (Individual::s_any_individual_color_set_)
+			for (Individual *child : child_individuals_)
+				child->ClearColor();
 	}
 	
 	// The parents now have the values that used to belong to the children.

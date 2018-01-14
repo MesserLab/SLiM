@@ -48,9 +48,6 @@ extern EidosObjectClass *gSLiM_Individual_Class;
 // A global counter used to assign all Individual objects a unique ID
 extern slim_mutationid_t gSLiM_next_pedigree_id;
 
-// A global flag used to indicate whether custom colors have ever been used by Individual, to save work in the display code
-extern bool gSLiM_Individual_custom_colors;
-
 
 class Individual : public SLiMEidosDictionary
 {
@@ -68,6 +65,11 @@ private:
 	
 	std::string color_;								// color to use when displayed (in SLiMgui)
 	float color_red_, color_green_, color_blue_;	// cached color components from color_; should always be in sync
+	
+	// These flags are used to minimize the work done by Subpopulation::SwapChildAndParentGenomes(); it only needs to
+	// reset colors or dictionaries if they have ever been touched by the model.  These flags are set and never cleared.
+	static bool s_any_individual_color_set_;
+	static bool s_any_individual_dictionary_set_;
 	
 	// Pedigree-tracking ivars.  These are -1 if unknown, otherwise assigned sequentially from 0 counting upward.  They
 	// uniquely identify individuals within the simulation, so that relatedness of individuals can be assessed.  They can

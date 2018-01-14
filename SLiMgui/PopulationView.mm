@@ -194,7 +194,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 			
 			float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0, colorAlpha = 1.0;
 			
-			if (gSLiM_Individual_custom_colors)
+			if (Individual::s_any_individual_color_set_)
 			{
 				Individual &individual = *subpop->parent_individuals_[individualArrayIndex];
 				
@@ -1143,7 +1143,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 		
 		float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0, colorAlpha = 1.0;
 		
-		if (gSLiM_Individual_custom_colors)
+		if (Individual::s_any_individual_color_set_)
 		{
 			if (!individual.color_.empty())
 			{

@@ -36,8 +36,9 @@
 // A global counter used to assign all Individual objects a unique ID
 slim_mutationid_t gSLiM_next_pedigree_id = 0;
 
-// A global flag used to indicate whether custom colors have ever been used by Individual, to save work in the display code
-bool gSLiM_Individual_custom_colors = false;
+// Static member bools that track whether any individual has ever sustained a particular type of change
+bool Individual::s_any_individual_color_set_ = false;
+bool Individual::s_any_individual_dictionary_set_ = false;
 
 
 Individual::Individual(Subpopulation &p_subpopulation, slim_popsize_t p_individual_index, slim_mutationid_t p_pedigree_id, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_generation_t p_age) : subpopulation_(p_subpopulation), index_(p_individual_index), genome1_(p_genome1), genome2_(p_genome2), sex_(p_sex),
@@ -461,7 +462,7 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 			if (!color_.empty())
 			{
 				Eidos_GetColorComponents(color_, &color_red_, &color_green_, &color_blue_);
-				gSLiM_Individual_custom_colors = true;	// notify the display code that custom colors are being used
+				s_any_individual_color_set_ = true;		// keep track of the fact that an individual's color has been set
 			}
 			return;
 		}
@@ -549,7 +550,7 @@ void Individual::SetProperty_Accelerated_String(EidosGlobalStringID p_property_i
 			if (!color_.empty())
 			{
 				Eidos_GetColorComponents(color_, &color_red_, &color_green_, &color_blue_);
-				gSLiM_Individual_custom_colors = true;	// notify the display code that custom colors are being used
+				s_any_individual_color_set_ = true;		// keep track of the fact that an individual's color has been set
 			}
 			return;
 			
@@ -567,7 +568,16 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 		case gID_setSpatialPosition:		return ExecuteMethod_setSpatialPosition(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_sumOfMutationsOfType:		return ExecuteMethod_sumOfMutationsOfType(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_uniqueMutationsOfType:		return ExecuteMethod_uniqueMutationsOfType(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		default:							return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+			
+		default:
+		{
+			// In a sense, we here "subclass" SLiMEidosDictionary to override setValue(); we set a flag remembering that
+			// an individual's dictionary has been modified, and then we call "super" for the usual behavior.
+			if (p_method_id == gID_setValue)
+				s_any_individual_dictionary_set_ = true;
+			
+			return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		}
 	}
 }
 
