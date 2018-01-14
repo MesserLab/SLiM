@@ -649,6 +649,56 @@ int RunEidosTests(void)
 #endif
 	
 #if 0
+	{
+		// Test that our inline, modified version of taus_get() is equivalent to the GSL's taus_get()
+		unsigned long int *gsl_taus, *eidos_taus, *mixed_taus;
+		int iter;
+		
+		gsl_taus = (unsigned long int *)malloc(100000 * sizeof(unsigned long int));
+		eidos_taus = (unsigned long int *)malloc(100000 * sizeof(unsigned long int));
+		mixed_taus = (unsigned long int *)malloc(100000 * sizeof(unsigned long int));
+		
+		Eidos_InitializeRNGFromSeed(10);
+		
+		for (iter = 0; iter < 100000; ++iter)
+			gsl_taus[iter] = gsl_rng_get(gEidos_rng);
+		
+		Eidos_InitializeRNGFromSeed(10);
+		
+		for (iter = 0; iter < 100000; ++iter)
+			eidos_taus[iter] = taus_get_inline(gEidos_rng->state);
+		
+		Eidos_InitializeRNGFromSeed(10);
+		
+		for (iter = 0; iter < 50000; ++iter)
+		{
+			mixed_taus[iter * 2] = gsl_rng_get(gEidos_rng);
+			mixed_taus[iter * 2 + 1] = taus_get_inline(gEidos_rng->state);
+		}
+		
+		for (iter = 0; iter < 50000; ++iter)
+		{
+			unsigned long int a = gsl_taus[iter];
+			unsigned long int b = eidos_taus[iter];
+			unsigned long int c = mixed_taus[iter];
+			
+			if ((a != b) || (b != c))
+			{
+				std::cout << std::endl << "RNG mismatch: a == " << a << ", b == " << b << ", c == " << c << "." << std::endl;
+				break;
+			}
+		}
+		
+		if (iter == 50000)
+			std::cout << std::endl << "RNGs match." << std::endl;
+		
+		free(gsl_taus);
+		free(eidos_taus);
+		free(mixed_taus);
+	}
+#endif
+	
+#if 0
 	// Speed tests of different timing methods; we need a very fast method for profiling
 	// Note that the total_time variables are meaningless; they are just thunks to force the code to include the overhead of understanding the results of the calls
 	

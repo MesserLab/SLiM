@@ -56,11 +56,6 @@ typedef struct
 gsl_rng;
 
 
-// BCH 14 January 2018: I made this function non-static so I can use it directly.  Basically, for a little extra speed
-// we try to avoid going through the GSL's indirect function-pointer lookup, and just call taus_get() directly.
-extern unsigned long int taus_get(void *vstate);
-
-
 /* These structs also need to appear in default.c so you can select
    them via the environment variable GSL_RNG_TYPE */
 

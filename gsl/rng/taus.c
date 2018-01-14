@@ -80,7 +80,7 @@
 
 */
 
-extern unsigned long int taus_get (void *vstate);
+static unsigned long int taus_get (void *vstate);
 static double taus_get_double (void *vstate);
 static void taus_set (void *state, unsigned long int s);
 
@@ -90,7 +90,7 @@ typedef struct
   }
 taus_state_t;
 
-extern inline unsigned long
+static inline unsigned long
 taus_get (void *vstate)
 {
   taus_state_t *state = (taus_state_t *) vstate;

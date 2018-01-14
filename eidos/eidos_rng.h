@@ -27,34 +27,41 @@
 #define __Eidos__eidos_rng__
 
 
-#if 1
-
-// To build with the GSL code included inside SLiM, use this branch, which includes the local GSL headers.  Do not
-// include the GSL's include paths in the project's header search paths, and do not link with -lgsl or lgslcblas.
+// We have our own private copy of (parts of) the GSL library, so that we don't have link dependencies.
 // See the _README file in the gsl directory for information on the local copy of the GSL included in this project.
 #include "gsl_rng.h"
 #include "gsl_randist.h"
 
-#else
-
-// To build with an externally built GSL library, use this branch, which includes GSL headers from the linked library.
-//
-// - compile with "Header Search Paths" : /opt/local/include and /usr/local/include
-// - compile with "Library Search Paths" : /opt/local/lib and /usr/local/lib
-// - link with "Other Linker Flags" : -lgsl and -lgslcblas.
-//
-// This should work with a GSL installed by either Macports or Homebrew on OS X.  On other platforms, use
-// gsl-config --cflags --libs to get the correct header and library search paths.  You will likely want to
-// remove the GSL folder inside this project, too, so there are no conflicts.
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_randist.h>
-
-#endif
-
-
 #include <stdint.h>
 #include <cmath>
 #include "eidos_global.h"
+
+
+// This code is copied and modified from taus.c in the GSL library because we want to be able to inline taus_get().
+// Random number generation can be a major bottleneck in many SLiM models, so I think this is worth the grossness.
+typedef struct
+{
+	unsigned long int s1, s2, s3;
+}
+taus_state_t;
+
+inline __attribute__((always_inline)) unsigned long
+taus_get_inline (void *vstate)
+{
+	taus_state_t *state = (taus_state_t *) vstate;
+	
+#define TAUS_MASK 0xffffffffUL
+#define TAUSWORTHE(s,a,b,c,d) (((s &c) <<d) &TAUS_MASK) ^ ((((s <<a) &TAUS_MASK)^s) >>b)
+	
+	state->s1 = TAUSWORTHE (state->s1, 13, 19, 4294967294UL, 12);
+	state->s2 = TAUSWORTHE (state->s2, 2, 25, 4294967288UL, 4);
+	state->s3 = TAUSWORTHE (state->s3, 3, 11, 4294967280UL, 17);
+	
+	return (state->s1 ^ state->s2 ^ state->s3);
+}
+
+#undef TAUS_MASK
+#undef TAUSWORTHE
 
 
 // This is a globally shared random number generator.  Note that the globals for random bit generation below are also
@@ -90,7 +97,7 @@ static inline __attribute__((always_inline)) bool Eidos_RandomBool(gsl_rng *p_r)
 	}
 	else
 	{
-		gEidos_random_bool_bit_buffer = (uint32_t)taus_get(p_r->state);	// gsl_rng_taus2 is in fact limited to unsigned 32-bit, according to its docs
+		gEidos_random_bool_bit_buffer = (uint32_t)taus_get_inline(p_r->state);	// gsl_rng_taus2 is in fact limited to unsigned 32-bit, according to its docs
 		retval = gEidos_random_bool_bit_buffer & 0x01;
 		gEidos_random_bool_bit_counter = 31;				// 32 good bits originally, and now we've used one
 	}
@@ -105,7 +112,7 @@ static inline __attribute__((always_inline)) bool Eidos_RandomBool(gsl_rng *p_r)
 // itself inline, which gsl_rng_uniform()'s call to taus_get_double() cannot be, so that should be a wash.
 inline __attribute__((always_inline)) double Eidos_rng_uniform(gsl_rng *p_r)
 {
-	return taus_get(p_r->state) / 4294967296.0;
+	return taus_get_inline(p_r->state) / 4294967296.0;
 }
 
 // Basically ditto; faster than gsl_rng_uniform_pos() by avoiding indirection.
@@ -115,7 +122,7 @@ inline __attribute__((always_inline)) double Eidos_rng_uniform_pos(const gsl_rng
 	
 	do
 	{
-		x = taus_get(p_r->state) / 4294967296.0;
+		x = taus_get_inline(p_r->state) / 4294967296.0;
 	}
 	while (x == 0);
 	
@@ -126,7 +133,7 @@ inline __attribute__((always_inline)) double Eidos_rng_uniform_pos(const gsl_rng
 // Basically it is faster because (1) the range of the taus2 generator is hard-coded, (2) the range check
 // is done only on #if DEBUG, (3) it uses uint32_t, and (4) it calls taus_get() directly; otherwise the
 // logic is the same.
-inline uint32_t Eidos_rng_uniform_int(gsl_rng *p_r, uint32_t p_n)
+inline __attribute__((always_inline)) uint32_t Eidos_rng_uniform_int(gsl_rng *p_r, uint32_t p_n)
 {
 	uint32_t scale = UINT32_MAX / p_n;
 	uint32_t k;
@@ -140,7 +147,7 @@ inline uint32_t Eidos_rng_uniform_int(gsl_rng *p_r, uint32_t p_n)
 	
 	do
 	{
-		k = ((uint32_t)(taus_get(p_r->state))) / scale;		// taus_get is used by the taus2 RNG
+		k = ((uint32_t)(taus_get_inline(p_r->state))) / scale;		// taus_get is used by the taus2 RNG
 	}
 	while (k >= p_n);
 	
