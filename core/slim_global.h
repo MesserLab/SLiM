@@ -105,6 +105,7 @@ typedef int32_t	slim_popsize_t;			// subpopulation sizes and indices, include ge
 typedef int64_t slim_usertag_t;			// user-provided "tag" values; also used for the "active" property, which is like tag
 typedef int32_t slim_refcount_t;		// mutation refcounts, counts of the number of occurrences of a mutation
 typedef int64_t slim_mutationid_t;		// identifiers for mutations, which require 64 bits since there can be so many
+typedef int64_t slim_pedigreeid_t;		// identifiers for pedigreed individuals; over many generations in a large model maybe 64 bits?
 typedef int32_t slim_polymorphismid_t;	// identifiers for polymorphisms, which need only 32 bits since they are only segregating mutations
 typedef float slim_selcoeff_t;			// storage of selection coefficients in memory-tight classes; also dominance coefficients
 

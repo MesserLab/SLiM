@@ -46,7 +46,7 @@ class Subpopulation;
 extern EidosObjectClass *gSLiM_Individual_Class;
 
 // A global counter used to assign all Individual objects a unique ID
-extern slim_mutationid_t gSLiM_next_pedigree_id;
+extern slim_pedigreeid_t gSLiM_next_pedigree_id;
 
 
 class Individual : public SLiMEidosDictionary
@@ -69,13 +69,13 @@ private:
 	// Pedigree-tracking ivars.  These are -1 if unknown, otherwise assigned sequentially from 0 counting upward.  They
 	// uniquely identify individuals within the simulation, so that relatedness of individuals can be assessed.  They can
 	// be accessed through the read-only pedigree properties.  These are only maintained if sim->pedigrees_enabled_ is on.
-	slim_mutationid_t pedigree_id_;		// the id of this individual
-	slim_mutationid_t pedigree_p1_;		// the id of parent 1
-	slim_mutationid_t pedigree_p2_;		// the id of parent 2
-	slim_mutationid_t pedigree_g1_;		// the id of grandparent 1
-	slim_mutationid_t pedigree_g2_;		// the id of grandparent 2
-	slim_mutationid_t pedigree_g3_;		// the id of grandparent 3
-	slim_mutationid_t pedigree_g4_;		// the id of grandparent 4
+	slim_pedigreeid_t pedigree_id_;		// the id of this individual
+	slim_pedigreeid_t pedigree_p1_;		// the id of parent 1
+	slim_pedigreeid_t pedigree_p2_;		// the id of parent 2
+	slim_pedigreeid_t pedigree_g1_;		// the id of grandparent 1
+	slim_pedigreeid_t pedigree_g2_;		// the id of grandparent 2
+	slim_pedigreeid_t pedigree_g3_;		// the id of grandparent 3
+	slim_pedigreeid_t pedigree_g4_;		// the id of grandparent 4
 	
 public:
 	
@@ -110,7 +110,7 @@ public:
 	Individual(const Individual &p_original) = delete;
 	Individual& operator= (const Individual &p_original) = delete;						// no copy construction
 	Individual(void) = delete;															// no null construction
-	Individual(Subpopulation &p_subpopulation, slim_popsize_t p_individual_index, slim_mutationid_t p_pedigree_id, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_generation_t p_age);
+	Individual(Subpopulation &p_subpopulation, slim_popsize_t p_individual_index, slim_pedigreeid_t p_pedigree_id, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_generation_t p_age);
 	inline virtual ~Individual(void)
 	{
 	}
@@ -135,6 +135,10 @@ public:
 	}
 	
 	double RelatednessToIndividual(Individual &p_ind);
+	
+	inline __attribute__((always_inline)) slim_pedigreeid_t PedigreeID()			{ return pedigree_id_; }
+	inline __attribute__((always_inline)) slim_pedigreeid_t Parent1PedigreeID()		{ return pedigree_p1_; }
+	inline __attribute__((always_inline)) slim_pedigreeid_t Parent2PedigreeID()		{ return pedigree_p2_; }
 	
 	//
 	// Eidos support

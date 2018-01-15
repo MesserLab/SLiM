@@ -34,7 +34,7 @@
 #pragma mark -
 
 // A global counter used to assign all Individual objects a unique ID
-slim_mutationid_t gSLiM_next_pedigree_id = 0;
+slim_pedigreeid_t gSLiM_next_pedigree_id = 0;
 
 // Static member bools that track whether any individual has ever sustained a particular type of change
 bool Individual::s_any_individual_color_set_ = false;
@@ -42,7 +42,7 @@ bool Individual::s_any_individual_dictionary_set_ = false;
 bool Individual::s_any_individual_fitness_scaling_set_ = false;
 
 
-Individual::Individual(Subpopulation &p_subpopulation, slim_popsize_t p_individual_index, slim_mutationid_t p_pedigree_id, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_generation_t p_age) : subpopulation_(p_subpopulation), index_(p_individual_index), genome1_(p_genome1), genome2_(p_genome2), sex_(p_sex),
+Individual::Individual(Subpopulation &p_subpopulation, slim_popsize_t p_individual_index, slim_pedigreeid_t p_pedigree_id, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_generation_t p_age) : subpopulation_(p_subpopulation), index_(p_individual_index), genome1_(p_genome1), genome2_(p_genome2), sex_(p_sex),
 #ifdef SLIM_NONWF_ONLY
 	age_(p_age),
 #endif  // SLIM_NONWF_ONLY
