@@ -109,6 +109,9 @@ SLiMSim::~SLiMSim(void)
 		if (x_previous_runtimes_)
 			free(x_previous_runtimes_);
 	}
+	
+	// TREE SEQUENCE RECORDING
+	// dispose of any allocated stuff needing cleanup here
 }
 
 void SLiMSim::InitializeRNGFromSeed(unsigned long int *p_override_seed_ptr)
@@ -1868,6 +1871,10 @@ void SLiMSim::RunInitializeCallbacks(void)
 	// kick off mutation run experiments, if needed
 	InitiateMutationRunExperiments();
 	
+	// TREE SEQUENCE RECORDING
+	if (RecordingTreeSequence())
+		StartTreeRecording();
+	
 	// emit our start log
 	SLIM_OUTSTREAM << "\n// Starting run at generation <start>:\n" << time_start_ << " " << "\n" << std::endl;
 }
@@ -3332,6 +3339,10 @@ void SLiMSim::SimulationFinished(void)
 		SLIM_OUTSTREAM << "// if your model changes.  See the SLiM manual for more details." << std::endl;
 		SLIM_OUTSTREAM << std::endl;
 	}
+	
+	// TREE SEQUENCE RECORDING
+	if (RecordingTreeSequence())
+		WriteTreeSequence();
 }
 
 void SLiMSim::_CheckMutationStackPolicy(void)
@@ -3389,6 +3400,90 @@ void SLiMSim::_CheckMutationStackPolicy(void)
 	
 	// we're good until the next change
 	mutation_stack_policy_changed_ = false;
+}
+
+
+//
+// TREE SEQUENCE RECORDING
+//
+#pragma mark -
+#pragma mark Tree sequence recording
+#pragma mark -
+
+// other tree sequence methods should probably be implemented here, unless you just make them inline forwards to code in treerec...
+
+void SLiMSim::StartTreeRecording(void)
+{
+	// Record any initial information needed about the simulation here.  Not sure what information you need.
+	
+	std::cout << "Starting tree sequence recording:" << std::endl;
+	std::cout << "   Chromosome last base position: " << chromosome_.last_position_ << std::endl << std::endl;
+	
+	// This would also be the right place to allocate any storage you need, initialize ivars, etc.  This method will be called once,
+	// immediately after the simulation finishes initializing (after all initialize() callbacks have completed).  It will not be called
+	// again on this SLiMSim instance – but note that in SLiMgui multiple SLiMSim instances may exist, and may all be recording their
+	// own trees, so your code needs to be capable of handling that.  Store your state inside SLiMSim, not in globals.  SLiMgui is
+	// single-threaded, though, so you don't need to worry about re-entrancy or multithreading issues.
+}
+
+void SLiMSim::RecordNewIndividual(Individual *p_individual)
+{
+	// this is called by code where new individuals are created
+	
+	// The individual's pedigree ID should be set up already, as are its parents.  Parents can be -1, meaning that the individual started out
+	// with empty genomes and has no parents (as when a new subpopulation is created).  Both parent pedigree ids can also be the same, which
+	// presently indicates the result of *either* clonal reproduction or hermaphroditic selfing; no distinction is drawn between those in
+	// the pedigree tracking code right now, but that could be changed (it would be logical for the second parent to be -1 for cloning, I
+	// think).  The first parent is always the female in sexual models, guaranteed.  At present, when this code is called the individual may
+	// not be completely initialized yet; it may not know its sex, and its genomes may not know their types, and so forth.  If that needs to
+	// be fixed, it should be reasonably straightforward to do so.  For now, the only information guaranteed valid is the pedigree IDs.
+	slim_pedigreeid_t ind_pid = p_individual->PedigreeID();
+	slim_pedigreeid_t p1_pid = p_individual->Parent1PedigreeID();
+	slim_mutationid_t p2_pid = p_individual->Parent2PedigreeID();
+	
+	std::cout << Generation() << ": New individual created, pedigree id " << ind_pid << " (parents: " << p1_pid << ", " << p2_pid << ")" << std::endl;
+}
+
+void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, bool p_start_strand_2)
+{
+	// this is called by code where recombination occurs; it will not be called if recombination cannot occur, at present
+	
+	// Note that the breakpoints vector provided may (or may not) contain a breakpoint, as the final breakpoint in the vector, that is beyond
+	// the end of the chromosome.  This is for bookkeeping in the crossover-mutation code and should be ignored, as the code below does.
+	// The breakpoints vector may be nullptr (indicating no recombination), but if it exists it will be sorted in ascending order.
+	size_t breakpoint_count = (p_breakpoints ? p_breakpoints->size() : 0);
+	
+	if (breakpoint_count && (p_breakpoints->back() == chromosome_.last_position_mutrun_ + 1))
+		breakpoint_count--;
+	
+	if (breakpoint_count)
+	{
+		std::cout << Generation() << ":   Recombination at positions:";
+		
+		for (size_t breakpoint_index = 0; breakpoint_index < breakpoint_count; ++breakpoint_index)
+			std::cout << " " << (*p_breakpoints)[breakpoint_index];
+		
+		std::cout << " (start with parental strand " << (p_start_strand_2 ? 2 : 1) << ")" << std::endl;
+	}
+	else if (p_breakpoints)
+	{
+		std::cout << Generation() << ":   No recombination (use parental strand " << (p_start_strand_2 ? 2 : 1) << ")" << std::endl;
+	}
+	else
+	{
+		std::cout << Generation() << ":   No parental genome" << std::endl;
+	}
+}
+
+void SLiMSim::WriteTreeSequence(void)
+{
+	// Write the recorded tree sequence stuff to recording_tree_path_; see Eidos_ExecuteFunction_writeFile()
+	// for some example file-writing code, but I guess you'll maybe be using that library you mentioned.
+	// In the present design this method is called only by SLiMSim::SimulationFinished(), so the run is over
+	// and recording is done.  In future I could imagine allowing the user to write out a tree file at multiple
+	// time points, though, so it might be good to postpone cleanup and freeing of resources until ~SLiMSim().
+	
+	std::cout << Generation() << ": ***** Writing tree sequence file to path " << recording_tree_path_ << std::endl;
 }
 
 
@@ -4132,7 +4227,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSex(const std::string &p
 	return gStaticEidosValueNULLInvisible;
 }
 
-//	*********************	(void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""], [string$ periodicity = ""], [integer$ mutationRuns = 0], [logical$ preventIncidentalSelfing = F])
+//	*********************	(void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""], [string$ periodicity = ""], [integer$ mutationRuns = 0], [logical$ preventIncidentalSelfing = F], [string$ treeRecordingPath = ""])
 //
 EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
@@ -4142,6 +4237,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 	EidosValue *arg_periodicity_value = p_arguments[2].get();
 	EidosValue *arg_mutationRuns_value = p_arguments[3].get();
 	EidosValue *arg_preventIncidentalSelfing_value = p_arguments[4].get();
+	EidosValue *arg_treeRecordingPath_value = p_arguments[5].get();
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	if (num_options_declarations_ > 0)
@@ -4155,6 +4251,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 		bool keep_pedigrees = arg_keepPedigrees_value->LogicalAtIndex(0, nullptr);
 		
 		pedigrees_enabled_ = keep_pedigrees;
+		pedigrees_enabled_by_user_ = keep_pedigrees;
 	}
 	
 	{
@@ -4225,16 +4322,32 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 		prevent_incidental_selfing_ = prevent_selfing;
 	}
 	
+	// TREE SEQUENCE RECORDING
+	{
+		// [string$ treeRecordingPath = ""]
+		std::string path = Eidos_ResolvedPath(arg_treeRecordingPath_value->StringAtIndex(0, nullptr));
+		
+		if (path.length() != 0)
+		{
+			recording_tree_ = true;
+			recording_tree_path_ = path;
+			
+			// Pedigree recording is turned on as a side effect of tree sequence recording, since we need to
+			// have unique identifiers for every individual; pedigree recording does that for us
+			pedigrees_enabled_ = true;
+		}
+	}
+	
 	if (DEBUG_INPUT)
 	{
 		output_stream << "initializeSLiMOptions(";
 		
 		bool previous_params = false;
 		
-		if (pedigrees_enabled_)
+		if (pedigrees_enabled_by_user_)
 		{
 			if (previous_params) output_stream << ", ";
-			output_stream << "keepPedigrees = " << (pedigrees_enabled_ ? "T" : "F");
+			output_stream << "keepPedigrees = " << (pedigrees_enabled_by_user_ ? "T" : "F");
 			previous_params = true;
 		}
 		
@@ -4274,6 +4387,13 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 		{
 			if (previous_params) output_stream << ", ";
 			output_stream << "preventIncidentalSelfing = " << (prevent_incidental_selfing_ ? "T" : "F");
+			previous_params = true;
+		}
+		
+		if (recording_tree_)
+		{
+			if (previous_params) output_stream << ", ";
+			output_stream << "treeRecordingPath = '" << recording_tree_path_ << "'";
 			previous_params = true;
 			(void)previous_params;	// dead store above is deliberate
 		}
@@ -4354,7 +4474,7 @@ const std::vector<EidosFunctionSignature_SP> *SLiMSim::ZeroGenerationFunctionSig
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSex, nullptr, kEidosValueMaskNULL, "SLiM"))
 										->AddString_S("chromosomeType")->AddNumeric_OS("xDominanceCoeff", gStaticEidosValue_Float1));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMOptions, nullptr, kEidosValueMaskNULL, "SLiM"))
-										->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("dimensionality", gStaticEidosValue_StringEmpty)->AddString_OS("periodicity", gStaticEidosValue_StringEmpty)->AddInt_OS("mutationRuns", gStaticEidosValue_Integer0)->AddLogical_OS("preventIncidentalSelfing", gStaticEidosValue_LogicalF));
+										->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("dimensionality", gStaticEidosValue_StringEmpty)->AddString_OS("periodicity", gStaticEidosValue_StringEmpty)->AddInt_OS("mutationRuns", gStaticEidosValue_Integer0)->AddLogical_OS("preventIncidentalSelfing", gStaticEidosValue_LogicalF)->AddString_OS("treeRecordingPath", gStaticEidosValue_StringEmpty));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMModelType, nullptr, kEidosValueMaskNULL, "SLiM"))
 									   ->AddString_S("modelType"));
 	}

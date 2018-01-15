@@ -341,6 +341,7 @@ If the optional
 \f2\fs20 , in which case the ellipsis should supply a 
 \f0\fs18 string$
 \f2\fs20  Eidos script parameter.  The global symbol for the new mutation type is immediately available; the return value also provides the new object.\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 Note that by default in WF models, all mutations of a given mutation type will be converted into 
 \f0\fs18 Substitution
@@ -508,7 +509,8 @@ If
 \f2\fs20  is called at all then it must be called before any other initialization function, so that SLiM knows from the outset which features are enabled and which are not.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f0\fs18 \cf0 \kerning1\expnd0\expndtw0 (void)initializeSLiMOptions([logical$\'a0keepPedigrees\'a0=\'a0F], [string$\'a0dimensionality\'a0=\'a0""], [string$\'a0periodicity\'a0=\'a0""], [integer$\'a0mutationRuns\'a0=\'a00], [logical$\'a0preventIncidentalSelfing\'a0=\'a0F])
+\f0\fs18 \cf0 \kerning1\expnd0\expndtw0 (void)initializeSLiMOptions([logical$\'a0keepPedigrees\'a0=\'a0F], [string$\'a0dimensionality\'a0=\'a0""], [string$\'a0periodicity\'a0=\'a0""], [integer$\'a0mutationRuns\'a0=\'a00], [logical$\'a0preventIncidentalSelfing\'a0=\'a0F]\cf2 \expnd0\expndtw0\kerning0
+, [string$\'a0treeRecordingPath\'a0=\'a0""]\cf0 \kerning1\expnd0\expndtw0 )
 \f1 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -631,6 +633,12 @@ If
 \i0  exclude the first parent!), but will occur before 
 \f0\fs18 modifyChild()
 \f2\fs20  callbacks are called (so those callbacks may assume that the first and second parents are distinct).\
+\cf2 \expnd0\expndtw0\kerning0
+If 
+\f0\fs18 treeRecordingPath
+\f2\fs20  is not 
+\f0\fs18 ""
+\f2\fs20 , SLiM will record tree sequence information for later reconstruction of the simulation\'92s evolutionary dynamics.  This feature will be documented more in future.\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf0 This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
+\cf0 \kerning1\expnd0\expndtw0 This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
 }

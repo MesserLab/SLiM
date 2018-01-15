@@ -193,6 +193,7 @@ private:
 	
 	// pedigree tracking: off by default, optionally turned on at init time to enable calls to TrackPedigreeWithParents()
 	bool pedigrees_enabled_ = false;
+	bool pedigrees_enabled_by_user_ = false;	// pedigree tracking is turned on as a side effect of tree sequence recording, but that shouldn't be user-visible
 	
 	// continuous space support
 	int spatial_dimensionality_ = 0;
@@ -236,6 +237,11 @@ private:
 	int32_t x_prev2_stasis_mutcount_;	// the number of mutation runs we settled on when we reached stasis the time before last
 	
 	std::vector<int32_t> x_mutcount_history_;	// a record of the mutation run count used in each generation
+	
+	// TREE SEQUENCE RECORDING
+	bool recording_tree_ = false;		// true if we are doing tree sequence recording
+	std::string recording_tree_path_;	// the path to write the final tree file to; given to initializeSLiMOptions(treeRecordingPath)
+	// add further ivars you need for tree sequence recording here; don't forget to add cleanup for them to SLiMSim::~SLiMSim() if necessary
 	
 public:
 	
@@ -338,6 +344,14 @@ public:
 		if (p_y) *p_y = periodic_y_;
 		if (p_z) *p_z = periodic_z_;
 	}
+	
+	// TREE SEQUENCE RECORDING
+	inline __attribute__((always_inline)) bool RecordingTreeSequence(void) const											{ return recording_tree_; }
+	void StartTreeRecording(void);
+	void RecordNewIndividual(Individual *p_individual);
+	void RecordRecombination(std::vector<slim_position_t> *p_breakpoints, bool p_start_strand_2);
+	void WriteTreeSequence(void);
+	// put any other methods you need for the tree sequence stuff here
 	
 	//
 	// Eidos support

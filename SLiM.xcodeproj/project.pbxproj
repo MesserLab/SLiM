@@ -1122,6 +1122,7 @@
 				986021081A3BB504001BDCFE /* LICENSE */,
 				98AF84641CB307300030D1EB /* VERSIONS */,
 				98C820E01C7A980000548839 /* gsl */,
+				98BCF14F200C5FDB00CB2837 /* treerec */,
 				9857249E1AD34B120047C223 /* eidos */,
 				982663521A3BABD300A0CBBF /* core */,
 				982556AA1BA8E77C0054CB3F /* eidostool */,
@@ -1468,6 +1469,13 @@
 				98F65D591DF39F9D0058BD29 /* Tip_END.rtfd */,
 			);
 			name = "Tips Window";
+			sourceTree = "<group>";
+		};
+		98BCF14F200C5FDB00CB2837 /* treerec */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = treerec;
 			sourceTree = "<group>";
 		};
 		98C820E01C7A980000548839 /* gsl */ = {

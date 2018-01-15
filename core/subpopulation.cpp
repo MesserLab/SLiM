@@ -446,6 +446,7 @@ void Subpopulation::GenerateIndividualsToFitWF(bool p_make_child_generation, boo
 {
 	SLiMSim &sim = population_.sim_;
 	bool pedigrees_enabled = (!p_placeholders) && sim.PedigreesEnabled();
+	bool recording_tree_sequence = (!p_placeholders) && sim.RecordingTreeSequence();
 	Chromosome &chromosome = sim.TheChromosome();
 	int32_t mutrun_count = chromosome.mutrun_count_;
 	int32_t mutrun_length = chromosome.mutrun_length_;
@@ -485,6 +486,14 @@ void Subpopulation::GenerateIndividualsToFitWF(bool p_make_child_generation, boo
 			Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, true);
 			Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, true);
 			Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, new_index, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, IndividualSex::kHermaphrodite, -1);
+			
+			// TREE SEQUENCE RECORDING
+			if (recording_tree_sequence)
+			{
+				sim.RecordNewIndividual(individual);
+				sim.RecordRecombination(nullptr, false);
+				sim.RecordRecombination(nullptr, false);
+			}
 			
 			genomes.push_back(genome1);
 			genomes.push_back(genome2);
@@ -542,6 +551,7 @@ void Subpopulation::GenerateIndividualsToFitNonWF(double p_sex_ratio)
 {
 	SLiMSim &sim = population_.sim_;
 	bool pedigrees_enabled = sim.PedigreesEnabled();
+	bool recording_tree_sequence = sim.RecordingTreeSequence();
 	Chromosome &chromosome = sim.TheChromosome();
 	int32_t mutrun_count = chromosome.mutrun_count_;
 	int32_t mutrun_length = chromosome.mutrun_length_;
@@ -568,6 +578,14 @@ void Subpopulation::GenerateIndividualsToFitNonWF(double p_sex_ratio)
 			Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, true);
 			Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, true);
 			Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, new_index, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, IndividualSex::kHermaphrodite, 0);
+			
+			// TREE SEQUENCE RECORDING
+			if (recording_tree_sequence)
+			{
+				sim.RecordNewIndividual(individual);
+				sim.RecordRecombination(nullptr, false);
+				sim.RecordRecombination(nullptr, false);
+			}
 			
 			parent_genomes_.push_back(genome1);
 			parent_genomes_.push_back(genome2);
@@ -3400,11 +3418,21 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
 	Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0);
 	
+	if (pedigrees_enabled)
+	{
+		individual->TrackPedigreeWithParents(*parent, *parent);
+		
+		// TREE SEQUENCE RECORDING
+		if (sim.RecordingTreeSequence())
+		{
+			sim.RecordNewIndividual(individual);
+			sim.RecordRecombination(nullptr, false);
+			sim.RecordRecombination(nullptr, false);
+		}
+	}
+	
 	population_.DoClonalMutation(&parent_subpop, *genome1, parent->index_, child_sex);
 	population_.DoClonalMutation(&parent_subpop, *genome2, parent->index_, child_sex);
-	
-	if (pedigrees_enabled)
-		individual->TrackPedigreeWithParents(*parent, *parent);
 	
 	// Run the candidate past modifyChild() callbacks
 	if (registered_modify_child_callbacks_.size())
@@ -3473,14 +3501,20 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	std::vector<SLiMEidosBlock*> *parent1_recombination_callbacks = &parent1_subpop.registered_recombination_callbacks_;
 	std::vector<SLiMEidosBlock*> *parent2_recombination_callbacks = &parent2_subpop.registered_recombination_callbacks_;
 	
+	if (pedigrees_enabled)
+	{
+		individual->TrackPedigreeWithParents(*parent1, *parent2);
+		
+		// TREE SEQUENCE RECORDING
+		if (sim.RecordingTreeSequence())
+			sim.RecordNewIndividual(individual);
+	}
+	
 	if (!parent1_recombination_callbacks->size()) parent1_recombination_callbacks = nullptr;
 	if (!parent2_recombination_callbacks->size()) parent2_recombination_callbacks = nullptr;
 	
 	population_.DoCrossoverMutation(&parent1_subpop, *genome1, parent1->index_, child_sex, parent1_sex, parent1_recombination_callbacks);
 	population_.DoCrossoverMutation(&parent2_subpop, *genome2, parent2->index_, child_sex, parent2_sex, parent2_recombination_callbacks);
-	
-	if (pedigrees_enabled)
-		individual->TrackPedigreeWithParents(*parent1, *parent2);
 	
 	// Run the candidate past modifyChild() callbacks
 	if (registered_modify_child_callbacks_.size())
@@ -3519,6 +3553,17 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, genome1_type, genome1_null);
 	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
 	Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, /* index */ -1, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, child_sex, /* age */ 0);
+	
+	if (pedigrees_enabled)
+	{
+		// TREE SEQUENCE RECORDING
+		if (sim.RecordingTreeSequence())
+		{
+			sim.RecordNewIndividual(individual);
+			sim.RecordRecombination(nullptr, false);
+			sim.RecordRecombination(nullptr, false);
+		}
+	}
 	
 	// set up empty mutation runs, since we're not calling DoCrossoverMutation() or DoClonalMutation()
 	genome1->clear_to_empty();
@@ -3576,13 +3621,19 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0);
 	std::vector<SLiMEidosBlock*> *parent_recombination_callbacks = &parent_subpop.registered_recombination_callbacks_;
 	
+	if (pedigrees_enabled)
+	{
+		individual->TrackPedigreeWithParents(*parent, *parent);
+		
+		// TREE SEQUENCE RECORDING
+		if (sim.RecordingTreeSequence())
+			sim.RecordNewIndividual(individual);
+	}
+	
 	if (!parent_recombination_callbacks->size()) parent_recombination_callbacks = nullptr;
 	
 	population_.DoCrossoverMutation(&parent_subpop, *genome1, parent->index_, child_sex, parent_sex, parent_recombination_callbacks);
 	population_.DoCrossoverMutation(&parent_subpop, *genome2, parent->index_, child_sex, parent_sex, parent_recombination_callbacks);
-	
-	if (pedigrees_enabled)
-		individual->TrackPedigreeWithParents(*parent, *parent);
 	
 	// Run the candidate past modifyChild() callbacks
 	if (registered_modify_child_callbacks_.size())

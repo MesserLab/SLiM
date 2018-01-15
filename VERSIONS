@@ -22,7 +22,7 @@ development head (nonWF branch):
 	add sampleIndividuals() and subsetIndividuals() methods on Subpopulation for faster fetching of mates, etc.
 	add fitnessScaling property to Subpopulation and Individual, to alter fitness values per individual or per-subpop without fitness(NULL) callbacks
 	optimizations: EidosSymbolTable improvements, constant caching, callback processing, argument processing, RNG optimizations, inlining, WF parent/child swap efficiency, fitnessScaling work
-	add hooks for tree ancestry code
+	add hooks for tree sequence recording
 
 
 2.6 (build 1292; Eidos version 1.6):
