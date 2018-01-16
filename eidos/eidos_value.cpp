@@ -2568,7 +2568,7 @@ void EidosValue_Object_vector::SetPropertyOfElements(EidosGlobalStringID p_prope
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SetPropertyOfElements): assignment to a property requires an rvalue that is a singleton (multiplex assignment) or that has a .size() matching the .size of the lvalue." << EidosTerminate(nullptr);
 }
 
-EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_method_id, const EidosMethodSignature *p_method_signature, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_method_id, const EidosInstanceMethodSignature *p_method_signature, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 	// This is an instance method, so it gets dispatched to all of our elements
 	auto values_size = size();
@@ -2598,6 +2598,15 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 		
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::ExecuteMethodCall): method " << Eidos_StringForGlobalStringID(p_method_id) << " does not specify a return type, and thus cannot be called on a zero-length vector." << EidosTerminate(nullptr);
 	}
+	else if (p_method_signature->accelerated_imp_)
+	{
+		// the method is accelerated, so call through its accelerated imp; note we do this for singletons too,
+		// because accelerated methods have no non-accelerated implementation, unlike accelerated properties
+		EidosValue_SP result = p_method_signature->accelerated_imper_(values_, values_size, p_method_id, p_arguments, p_argument_count, p_interpreter);
+		
+		p_method_signature->CheckAggregateReturn(*result, values_size);
+		return result;
+	}
 	else if (values_size == 1)
 	{
 		// The singleton case is very common, so it should be special-cased for speed
@@ -2626,6 +2635,12 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 		// down the road I went down with accelerated properties, but I will hold off on that for now.  :->
 		EidosValueMask sig_mask = (p_method_signature->return_mask_ & kEidosValueMaskFlagStrip);
 		bool return_is_singleton = (p_method_signature->return_mask_ & kEidosValueMaskSingleton);
+		
+#if 0
+		// Log vectorized calls to methods, to assess which methods are most worth accelerating
+		if (values_size > 10)
+			std::cerr << "Vector call to method " << Eidos_StringForGlobalStringID(p_method_id) << " on class " << class_->ElementType() << " (" << values_size << " elements)" << std::endl;
+#endif
 		
 		if (sig_mask == kEidosValueMaskNULL)
 		{
@@ -3127,13 +3142,25 @@ void EidosValue_Object_singleton::SetPropertyOfElements(EidosGlobalStringID p_pr
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton::SetPropertyOfElements): assignment to a property requires an rvalue that is a singleton (multiplex assignment) or that has a .size() matching the .size of the lvalue." << EidosTerminate(nullptr);
 }
 
-EidosValue_SP EidosValue_Object_singleton::ExecuteMethodCall(EidosGlobalStringID p_method_id, const EidosMethodSignature *p_method_signature, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP EidosValue_Object_singleton::ExecuteMethodCall(EidosGlobalStringID p_method_id, const EidosInstanceMethodSignature *p_method_signature, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 	// This is an instance method, so it gets dispatched to our element
-	EidosValue_SP result = value_->ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
-	
-	p_method_signature->CheckReturn(*result);
-	return result;
+	if (p_method_signature->accelerated_imp_)
+	{
+		// the method is accelerated, so call through its accelerated imp
+		EidosValue_SP result = p_method_signature->accelerated_imper_(&value_, 1, p_method_id, p_arguments, p_argument_count, p_interpreter);
+		
+		p_method_signature->CheckReturn(*result);
+		return result;
+	}
+	else
+	{
+		// not accelerated, so ExecuteInstanceMethod() handles it
+		EidosValue_SP result = value_->ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		
+		p_method_signature->CheckReturn(*result);
+		return result;
+	}
 }
 
 

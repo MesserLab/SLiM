@@ -55,9 +55,9 @@ EidosValue_SP SLiMEidosDictionary::ExecuteInstanceMethod(EidosGlobalStringID p_m
 {
 	switch (p_method_id)
 	{
-		case gID_getValue:	return ExecuteMethod_getValue(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_setValue:	return ExecuteMethod_setValue(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		default:			return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_getValue:		return ExecuteMethod_getValue(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		//case gID_setValue:	return ExecuteMethod_Accelerated_setValue(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		default:				return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 	}
 }
 
@@ -87,11 +87,10 @@ EidosValue_SP SLiMEidosDictionary::ExecuteMethod_getValue(EidosGlobalStringID p_
 
 //	*********************	- (void)setValue(string $key, + value)
 //
-EidosValue_SP SLiMEidosDictionary::ExecuteMethod_setValue(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP SLiMEidosDictionary::ExecuteMethod_Accelerated_setValue(EidosObjectElement **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
 	EidosValue *key_value = p_arguments[0].get();
-	
 	std::string key = key_value->StringAtIndex(0, nullptr);
 	EidosValue_SP value = p_arguments[1];
 	EidosValueType value_type = value->Type();
@@ -99,15 +98,25 @@ EidosValue_SP SLiMEidosDictionary::ExecuteMethod_setValue(EidosGlobalStringID p_
 	if (value_type == EidosValueType::kValueNULL)
 	{
 		// Setting a key to NULL removes it from the map
-		if (hash_symbols_)
-			hash_symbols_->erase(key);
+		for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
+		{
+			SLiMEidosDictionary *element = (SLiMEidosDictionary *)(p_elements[element_index]);
+			
+			if (element->hash_symbols_)
+				element->hash_symbols_->erase(key);
+		}
 	}
 	else
 	{
-		if (!hash_symbols_)
-			hash_symbols_ = new std::unordered_map<std::string, EidosValue_SP>;
-		
-		(*hash_symbols_)[key] = std::move(value);
+		for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
+		{
+			SLiMEidosDictionary *element = (SLiMEidosDictionary *)(p_elements[element_index]);
+			
+			if (!element->hash_symbols_)
+				element->hash_symbols_ = new std::unordered_map<std::string, EidosValue_SP>;
+			
+			(*element->hash_symbols_)[key] = value;
+		}
 	}
 	
 	return gStaticEidosValueNULLInvisible;
@@ -156,7 +165,7 @@ const EidosMethodSignature *SLiMEidosDictionary_Class::SignatureForMethod(EidosG
 	if (!getValueSig)
 	{
 		getValueSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_getValue, kEidosValueMaskAnyBase))->AddString_S("key");
-		setValueSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setValue, kEidosValueMaskNULL))->AddString_S("key")->AddAnyBase("value");
+		setValueSig = ((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setValue, kEidosValueMaskNULL))->AddString_S("key")->AddAnyBase("value"))->DeclareAcceleratedImp(SLiMEidosDictionary::ExecuteMethod_Accelerated_setValue);
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup

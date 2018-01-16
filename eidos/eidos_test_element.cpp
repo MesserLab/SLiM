@@ -96,15 +96,15 @@ EidosValue_SP EidosTestElement::GetProperty(EidosGlobalStringID p_property_id)
 		return EidosObjectElement::GetProperty(p_property_id);
 }
 
-EidosValue *EidosTestElement::GetProperty_Accelerated__yolk(EidosObjectElement **p_values, size_t p_values_size)
+EidosValue *EidosTestElement::GetProperty_Accelerated__yolk(EidosObjectElement **p_elements, size_t p_elements_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_elements_size);
 	
-	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 	{
-		EidosTestElement *value = (EidosTestElement *)(p_values[value_index]);
+		EidosTestElement *element = (EidosTestElement *)(p_elements[element_index]);
 		
-		int_result->set_int_no_check(value->yolk_, value_index);
+		int_result->set_int_no_check(element->yolk_, element_index);
 	}
 	
 	return int_result;
@@ -123,21 +123,21 @@ void EidosTestElement::SetProperty(EidosGlobalStringID p_property_id, const Eido
 		return EidosObjectElement::SetProperty(p_property_id, p_value);
 }
 
-void EidosTestElement::SetProperty_Accelerated__yolk(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void EidosTestElement::SetProperty_Accelerated__yolk(EidosObjectElement **p_elements, size_t p_elements_size, const EidosValue &p_source, size_t p_source_size)
 {
 	if (p_source_size == 1)
 	{
 		int64_t source_value = p_source.IntAtIndex(0, nullptr);
 		
-		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
-			((EidosTestElement *)(p_values[value_index]))->yolk_ = source_value;
+		for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
+			((EidosTestElement *)(p_elements[element_index]))->yolk_ = source_value;
 	}
 	else
 	{
 		const int64_t *source_data = p_source.IntVector()->data();
 		
-		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
-			((EidosTestElement *)(p_values[value_index]))->yolk_ = source_data[value_index];
+		for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
+			((EidosTestElement *)(p_elements[element_index]))->yolk_ = source_data[element_index];
 	}
 }
 
@@ -146,16 +146,25 @@ EidosValue_SP EidosTestElement::ExecuteInstanceMethod(EidosGlobalStringID p_meth
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_method_id)
 	{
-		case gEidosID__cubicYolk:	return ExecuteMethod_cubicYolk(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		//case gEidosID__cubicYolk:	return ExecuteMethod_Accelerated_cubicYolk(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gEidosID__squareTest:	return ExecuteMethod_squareTest(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		default:					return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 	}
 }
 
-EidosValue_SP EidosTestElement::ExecuteMethod_cubicYolk(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP EidosTestElement::ExecuteMethod_Accelerated_cubicYolk(EidosObjectElement **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(yolk_ * yolk_ * yolk_));
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_elements_size);
+	
+	for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
+	{
+		EidosTestElement *element = (EidosTestElement *)(p_elements[element_index]);
+		
+		int_result->set_int_no_check(element->yolk_ * element->yolk_ * element->yolk_, element_index);
+	}
+	
+	return EidosValue_SP(int_result);
 }
 
 EidosValue_SP EidosTestElement::ExecuteMethod_squareTest(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
@@ -285,7 +294,7 @@ const EidosMethodSignature *EidosTestElement_Class::SignatureForMethod(EidosGlob
 	
 	if (!cubicYolkSig)
 	{
-		cubicYolkSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr__cubicYolk, kEidosValueMaskInt | kEidosValueMaskSingleton));
+		cubicYolkSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr__cubicYolk, kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedImp(EidosTestElement::ExecuteMethod_Accelerated_cubicYolk);
 		squareTestSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr__squareTest, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosTestElement_Class));
 	}
 	

@@ -1447,7 +1447,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 			}
 			else
 			{
-				result_SP = method_object->ExecuteMethodCall(method_id, method_signature, arguments_array, processed_arg_count, *this);
+				result_SP = method_object->ExecuteMethodCall(method_id, (EidosInstanceMethodSignature *)method_signature, arguments_array, processed_arg_count, *this);
 			}
 			
 			// Clean up the entries of arguments_array that were used.  Using a static buffer this way means that we avoid
@@ -1478,7 +1478,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 			}
 			else
 			{
-				result_SP = method_object->ExecuteMethodCall(method_id, method_signature, arguments_ptr, processed_arg_count, *this);
+				result_SP = method_object->ExecuteMethodCall(method_id, (EidosInstanceMethodSignature *)method_signature, arguments_ptr, processed_arg_count, *this);
 			}
 		}
 		

@@ -24,6 +24,7 @@ development head (nonWF branch):
 	optimizations: EidosSymbolTable improvements, constant caching, callback processing, argument processing, RNG optimizations, inlining, WF parent/child swap efficiency, fitnessScaling work
 	add hooks for tree sequence recording
 	improve accelerated property get/set to be more vectorized
+	add support for accelerated method implementations, accelerate a few core methods
 
 
 2.6 (build 1292; Eidos version 1.6):

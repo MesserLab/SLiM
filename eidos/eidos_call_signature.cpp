@@ -387,6 +387,44 @@ void EidosCallSignature::CheckReturn(const EidosValue &p_result) const
 		EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): (internal error) return value must be a singleton (size() == 1) for " << CallType() << " " << call_name_ << "(), but size() == " << p_result.Count() << "." << EidosTerminate(nullptr);
 }
 
+void EidosCallSignature::CheckAggregateReturn(const EidosValue &p_result, size_t p_expected_size) const
+{
+	uint32_t retmask = return_mask_;
+	bool return_type_ok = true;
+	
+	switch (p_result.Type())
+	{
+		case EidosValueType::kValueNULL:
+			// A return type of NULL is always allowed, in fact; we don't want to have to specify this in the return type
+			// This is a little fishy, but since NULL is used to indicate error conditions, NULL returns are exceptional,
+			// and the return type indicates the type ordinarily returned in non-exceptional cases.  We just return here,
+			// since we also don't want to do the singleton check below (since it would raise too).
+			return;
+		case EidosValueType::kValueLogical:	return_type_ok = !!(retmask & kEidosValueMaskLogical);	break;
+		case EidosValueType::kValueInt:		return_type_ok = !!(retmask & kEidosValueMaskInt);		break;
+		case EidosValueType::kValueFloat:	return_type_ok = !!(retmask & kEidosValueMaskFloat);		break;
+		case EidosValueType::kValueString:	return_type_ok = !!(retmask & kEidosValueMaskString);	break;
+		case EidosValueType::kValueObject:
+			return_type_ok = !!(retmask & kEidosValueMaskObject);
+			
+			// If the return is object type, and is allowed to be object type, and an object element type was specified
+			// in the signature, check the object element type of the return.  Note this uses pointer equality!
+			if (return_type_ok && return_class_ && (((EidosValue_Object &)p_result).Class() != return_class_))
+			{
+				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckAggregateReturn): (internal error) object return value cannot be element type " << p_result.ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << return_class_->ElementType() << "." << EidosTerminate(nullptr);
+			}
+			break;
+	}
+	
+	if (!return_type_ok)
+		EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckAggregateReturn): (internal error) return value cannot be type " << p_result.Type() << " for " << CallType() << " " << call_name_ << "()." << EidosTerminate(nullptr);
+
+	bool return_is_singleton = !!(retmask & kEidosValueMaskSingleton);
+	
+	if (return_is_singleton && ((size_t)p_result.Count() > p_expected_size))
+		EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckAggregateReturn): (internal error) return value must be a singleton (size() == 1) for " << CallType() << " " << call_name_ << "." << EidosTerminate(nullptr);
+}
+
 std::string EidosCallSignature::CallDelegate(void) const
 {
 	return "";
@@ -554,12 +592,12 @@ EidosMethodSignature::~EidosMethodSignature(void)
 #pragma mark -
 
 EidosInstanceMethodSignature::EidosInstanceMethodSignature(const std::string &p_function_name, EidosValueMask p_return_mask)
-	: EidosMethodSignature(p_function_name, p_return_mask, false)
+	: EidosMethodSignature(p_function_name, p_return_mask, false), accelerated_imp_(false)
 {
 }
 
 EidosInstanceMethodSignature::EidosInstanceMethodSignature(const std::string &p_function_name, EidosValueMask p_return_mask, const EidosObjectClass *p_return_class)
-	: EidosMethodSignature(p_function_name, p_return_mask, p_return_class, false)
+	: EidosMethodSignature(p_function_name, p_return_mask, p_return_class, false), accelerated_imp_(false)
 {
 }
 
@@ -570,6 +608,27 @@ std::string EidosInstanceMethodSignature::CallPrefix(void) const
 
 EidosInstanceMethodSignature::~EidosInstanceMethodSignature(void)
 {
+}
+
+EidosInstanceMethodSignature *EidosInstanceMethodSignature::DeclareAcceleratedImp(Eidos_AcceleratedMethodImp p_imper)
+{
+	uint32_t retmask = (return_mask_ & kEidosValueMaskFlagStrip);
+	
+	if ((retmask != kEidosValueMaskNULL) && 
+		(retmask != kEidosValueMaskLogical) && 
+		(retmask != kEidosValueMaskInt) && 
+		(retmask != kEidosValueMaskFloat) && 
+		(retmask != kEidosValueMaskString) && 
+		(retmask != kEidosValueMaskObject))
+		EIDOS_TERMINATION << "ERROR (EidosInstanceMethodSignature::DeclareAcceleratedImp): (internal error) only methods returning one guaranteed type may be accelerated." << EidosTerminate(nullptr);
+	
+	if ((retmask == (kEidosValueMaskObject | kEidosValueMaskSingleton)) && (return_class_ == nullptr))
+		EIDOS_TERMINATION << "ERROR (EidosInstanceMethodSignature::DeclareAcceleratedImp): (internal error) only object methods that declare their class may be accelerated." << EidosTerminate(nullptr);
+	
+	accelerated_imp_ = true;
+	accelerated_imper_ = p_imper;
+	
+	return this;
 }
 
 

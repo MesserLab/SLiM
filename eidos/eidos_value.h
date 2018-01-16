@@ -60,6 +60,7 @@ class EidosValue_Object_vector;
 class EidosObjectPool;
 class EidosPropertySignature;
 class EidosMethodSignature;
+class EidosInstanceMethodSignature;
 class EidosInterpreter;
 class EidosToken;
 
@@ -1000,7 +1001,7 @@ public:
 	virtual EidosValue_SP GetPropertyOfElements(EidosGlobalStringID p_property_id) const = 0;
 	virtual void SetPropertyOfElements(EidosGlobalStringID p_property_id, const EidosValue &p_value) = 0;
 	
-	virtual EidosValue_SP ExecuteMethodCall(EidosGlobalStringID p_method_id, const EidosMethodSignature *p_call_signature, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) = 0;
+	virtual EidosValue_SP ExecuteMethodCall(EidosGlobalStringID p_method_id, const EidosInstanceMethodSignature *p_call_signature, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) = 0;
 	
 	// Provided to SLiM for the Mutation-pointer hack; see EidosValue_Object::EidosValue_Object() for comments
 	virtual void PatchPointersByAdding(std::uintptr_t p_pointer_difference) = 0;
@@ -1047,7 +1048,7 @@ public:
 	virtual EidosValue_SP GetPropertyOfElements(EidosGlobalStringID p_property_id) const;
 	virtual void SetPropertyOfElements(EidosGlobalStringID p_property_id, const EidosValue &p_value);
 	
-	virtual EidosValue_SP ExecuteMethodCall(EidosGlobalStringID p_method_id, const EidosMethodSignature *p_call_signature, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	virtual EidosValue_SP ExecuteMethodCall(EidosGlobalStringID p_method_id, const EidosInstanceMethodSignature *p_call_signature, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	
 	// Provided to SLiM for the Mutation-pointer hack; see EidosValue_Object::EidosValue_Object() for comments
 	virtual void PatchPointersByAdding(std::uintptr_t p_pointer_difference);
@@ -1106,7 +1107,7 @@ public:
 	virtual EidosValue_SP GetPropertyOfElements(EidosGlobalStringID p_property_id) const;
 	virtual void SetPropertyOfElements(EidosGlobalStringID p_property_id, const EidosValue &p_value);
 	
-	virtual EidosValue_SP ExecuteMethodCall(EidosGlobalStringID p_method_id, const EidosMethodSignature *p_call_signature, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	virtual EidosValue_SP ExecuteMethodCall(EidosGlobalStringID p_method_id, const EidosInstanceMethodSignature *p_call_signature, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	
 	// Provided to SLiM for the Mutation-pointer hack; see EidosValue_Object::EidosValue_Object() for comments
 	virtual void PatchPointersByAdding(std::uintptr_t p_pointer_difference);

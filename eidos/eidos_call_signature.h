@@ -30,6 +30,15 @@
 // Prototype for a function handler that is internal to Eidos.
 typedef EidosValue_SP (*EidosInternalFunctionPtr)(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 
+// This typedef is for an "accelerated method implementation"  These are static member functions on a class, designed to provide
+// a whole vector of results given a buffer of EidosObjectElements.  The imp is expected to return the correct type for the method.
+// The imp is guaranteed that the EidosObjectElements are of the correct class; it is allowed to do a cast of p_values directly to
+// its own type without checking, according to the calling conventions used here.  There are similarities between this and making
+// a method a class method, but class methods are conceptually called just once and produce one result from the whole call,
+// whereas accelerated method implementations are conceptually called once per element and produce one result per element; they
+// are just implemented internally in a vectorized fashion.
+typedef EidosValue_SP (*Eidos_AcceleratedMethodImp)(EidosObjectElement **p_values, size_t p_values_size, EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+
 
 #pragma mark -
 #pragma mark EidosCallSignature
@@ -168,6 +177,7 @@ public:
 	// check arguments and returns
 	void CheckArguments(const EidosValue_SP *const p_arguments, unsigned int p_argument_count) const;
 	void CheckReturn(const EidosValue &p_result) const;
+	void CheckAggregateReturn(const EidosValue &p_result, size_t p_expected_size) const;
 	
 	// Get the signature as a string, via operator<<
 	std::string SignatureString(void) const;
@@ -247,6 +257,9 @@ public:
 class EidosInstanceMethodSignature : public EidosMethodSignature
 {
 public:
+	bool accelerated_imp_;									// if true, the method has a special vectorized implementation
+	Eidos_AcceleratedMethodImp accelerated_imper_;			// a pointer to a (static member) function that handles the accelerated imp
+	
 	EidosInstanceMethodSignature(const EidosInstanceMethodSignature&) = delete;					// no copying
 	EidosInstanceMethodSignature& operator=(const EidosInstanceMethodSignature&) = delete;		// no copying
 	EidosInstanceMethodSignature(void) = delete;												// no null construction
@@ -256,6 +269,9 @@ public:
 	EidosInstanceMethodSignature(const std::string &p_function_name, EidosValueMask p_return_mask, const EidosObjectClass *p_return_class);
 	
 	virtual std::string CallPrefix(void) const;
+	
+	// property access acceleration
+	EidosInstanceMethodSignature *DeclareAcceleratedImp(Eidos_AcceleratedMethodImp p_imper);
 };
 
 
