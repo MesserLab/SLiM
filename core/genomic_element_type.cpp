@@ -202,15 +202,32 @@ EidosValue_SP GenomicElementType::GetProperty(EidosGlobalStringID p_property_id)
 	}
 }
 
-int64_t GenomicElementType::GetProperty_Accelerated_Int(EidosGlobalStringID p_property_id)
+EidosValue *GenomicElementType::GetProperty_Accelerated_id(EidosObjectElement **p_values, size_t p_values_size)
 {
-	switch (p_property_id)
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
-		case gID_id:	return genomic_element_type_id_;
-		case gID_tag:	return tag_value_;
-			
-		default:		return EidosObjectElement::GetProperty_Accelerated_Int(p_property_id);
+		GenomicElementType *value = (GenomicElementType *)(p_values[value_index]);
+		
+		int_result->set_int_no_check(value->genomic_element_type_id_, value_index);
 	}
+	
+	return int_result;
+}
+
+EidosValue *GenomicElementType::GetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size)
+{
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		GenomicElementType *value = (GenomicElementType *)(p_values[value_index]);
+		
+		int_result->set_int_no_check(value->tag_value_, value_index);
+	}
+	
+	return int_result;
 }
 
 void GenomicElementType::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
@@ -358,10 +375,10 @@ const EidosPropertySignature *GenomicElementType_Class::SignatureForProperty(Eid
 	
 	if (!idSig)
 	{
-		idSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_id,					gID_id,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
+		idSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_id,					gID_id,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(GenomicElementType::GetProperty_Accelerated_id);
 		mutationTypesSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationTypes,		gID_mutationTypes,		true,	kEidosValueMaskObject, gSLiM_MutationType_Class));
 		mutationFractionsSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationFractions,	gID_mutationFractions,	true,	kEidosValueMaskFloat));
-		tagSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					gID_tag,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
+		tagSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					gID_tag,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(GenomicElementType::GetProperty_Accelerated_tag);
 		colorSig =				(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_color,			gEidosID_color,			false,	kEidosValueMaskString | kEidosValueMaskSingleton));
 	}
 	

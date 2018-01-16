@@ -350,25 +350,46 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 	}
 }
 
-int64_t MutationType::GetProperty_Accelerated_Int(EidosGlobalStringID p_property_id)
+EidosValue *MutationType::GetProperty_Accelerated_id(EidosObjectElement **p_values, size_t p_values_size)
 {
-	switch (p_property_id)
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
-		case gID_id:				return mutation_type_id_;
-		case gID_tag:				return tag_value_;
-			
-		default:					return EidosObjectElement::GetProperty_Accelerated_Int(p_property_id);
+		MutationType *value = (MutationType *)(p_values[value_index]);
+		
+		int_result->set_int_no_check(value->mutation_type_id_, value_index);
 	}
+	
+	return int_result;
 }
 
-double MutationType::GetProperty_Accelerated_Float(EidosGlobalStringID p_property_id)
+EidosValue *MutationType::GetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size)
 {
-	switch (p_property_id)
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
-		case gID_dominanceCoeff:	return dominance_coeff_;
-			
-		default:					return EidosObjectElement::GetProperty_Accelerated_Float(p_property_id);
+		MutationType *value = (MutationType *)(p_values[value_index]);
+		
+		int_result->set_int_no_check(value->tag_value_, value_index);
 	}
+	
+	return int_result;
+}
+
+EidosValue *MutationType::GetProperty_Accelerated_dominanceCoeff(EidosObjectElement **p_values, size_t p_values_size)
+{
+	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		MutationType *value = (MutationType *)(p_values[value_index]);
+		
+		float_result->set_float_no_check(value->dominance_coeff_, value_index);
+	}
+	
+	return float_result;
 }
 
 void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
@@ -392,7 +413,7 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 			return;
 		}
 			
-		case gID_convertToSubstitution:
+		case gID_convertToSubstitution:				// ACCELERATED
 		{
 			eidos_logical_t value = p_value.LogicalAtIndex(0, nullptr);
 			
@@ -439,7 +460,7 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 			return;
 		}
 			
-		case gID_tag:
+		case gID_tag:				// ACCELERATED
 		{
 			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
 			
@@ -451,6 +472,43 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 		{
 			return EidosObjectElement::SetProperty(p_property_id, p_value);
 		}
+	}
+}
+
+void MutationType::SetProperty_Accelerated_convertToSubstitution(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+{
+	if (p_source_size == 1)
+	{
+		eidos_logical_t source_value = p_source.LogicalAtIndex(0, nullptr);
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			((MutationType *)(p_values[value_index]))->convert_to_substitution_ = source_value;
+	}
+	else
+	{
+		const eidos_logical_t *source_data = p_source.LogicalVector()->data();
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			((MutationType *)(p_values[value_index]))->convert_to_substitution_ = source_data[value_index];
+	}
+}
+
+void MutationType::SetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+{
+	// SLiMCastToUsertagTypeOrRaise() is a no-op at present
+	if (p_source_size == 1)
+	{
+		int64_t source_value = p_source.IntAtIndex(0, nullptr);
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			((MutationType *)(p_values[value_index]))->tag_value_ = source_value;
+	}
+	else
+	{
+		const int64_t *source_data = p_source.IntVector()->data();
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			((MutationType *)(p_values[value_index]))->tag_value_ = source_data[value_index];
 	}
 }
 
@@ -627,14 +685,14 @@ const EidosPropertySignature *MutationType_Class::SignatureForProperty(EidosGlob
 	
 	if (!idSig)
 	{
-		idSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_id,						gID_id,						true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
-		convertToSubstitutionSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_convertToSubstitution,	gID_convertToSubstitution,	false,	kEidosValueMaskLogical | kEidosValueMaskSingleton));
+		idSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_id,						gID_id,						true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(MutationType::GetProperty_Accelerated_id);
+		convertToSubstitutionSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_convertToSubstitution,	gID_convertToSubstitution,	false,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedSet(MutationType::SetProperty_Accelerated_convertToSubstitution);
 		distributionTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_distributionType,		gID_distributionType,		true,	kEidosValueMaskString | kEidosValueMaskSingleton));
 		distributionParamsSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_distributionParams,		gID_distributionParams,		true,	kEidosValueMaskFloat | kEidosValueMaskString));
-		dominanceCoeffSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_dominanceCoeff,			gID_dominanceCoeff,			false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
+		dominanceCoeffSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_dominanceCoeff,			gID_dominanceCoeff,			false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(MutationType::GetProperty_Accelerated_dominanceCoeff);
 		mutationStackGroupSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationStackGroup,		gID_mutationStackGroup,		false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
 		mutationStackPolicySig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationStackPolicy,		gID_mutationStackPolicy,	false,	kEidosValueMaskString | kEidosValueMaskSingleton));
-		tagSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,						gID_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
+		tagSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,						gID_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(MutationType::GetProperty_Accelerated_tag)->DeclareAcceleratedSet(MutationType::SetProperty_Accelerated_tag);
 		colorSig =					(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_color,				gEidosID_color,				false,	kEidosValueMaskString | kEidosValueMaskSingleton));
 		colorSubstitutionSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_colorSubstitution,		gID_colorSubstitution,		false,	kEidosValueMaskString | kEidosValueMaskSingleton));
 	}

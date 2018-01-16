@@ -1155,26 +1155,6 @@ public:
 	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_str(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	
-	// Accelerated property access, by returning raw C++ types.  Participation in this scheme is entirely optional
-	// on the part of subclasses; you can just implement GetProperty() if you wish.  If you do choose to opt in to
-	// acceleration, you must still implement GetProperty() fully as well.  Opt in by calling DeclareAcceleratedGet()
-	// on the property signatures that you wish to accelerate, in your class interface code.  Only singleton
-	// properties with a single, fully declared return type may be accelerated.
-	virtual eidos_logical_t GetProperty_Accelerated_Logical(EidosGlobalStringID p_property_id);
-	virtual int64_t GetProperty_Accelerated_Int(EidosGlobalStringID p_property_id);
-	virtual double GetProperty_Accelerated_Float(EidosGlobalStringID p_property_id);
-	virtual std::string GetProperty_Accelerated_String(EidosGlobalStringID p_property_id);
-	virtual EidosObjectElement *GetProperty_Accelerated_ObjectElement(EidosGlobalStringID p_property_id);
-	
-	// Accelerated property writing, by receiving raw C++ types.  As with accelerated writing, participation in
-	// this scheme is optional.  Opt in by calling DeclareAcceleratedSet() on the signatures you wish to accelerate.
-	// Only singleton read-write properties with a single, fully declared type may be accelerated.
-	virtual void SetProperty_Accelerated_Logical(EidosGlobalStringID p_property_id, eidos_logical_t p_value);
-	virtual void SetProperty_Accelerated_Int(EidosGlobalStringID p_property_id, int64_t p_value);
-	virtual void SetProperty_Accelerated_Float(EidosGlobalStringID p_property_id, double p_value);
-	virtual void SetProperty_Accelerated_String(EidosGlobalStringID p_property_id, const std::string &p_value);
-	virtual void SetProperty_Accelerated_ObjectElement(EidosGlobalStringID p_property_id, const EidosObjectElement *p_value);
-	
 	// EidosContext is a typedef for EidosObjectElement at present, so this class is the superclass of the Context
 	// object.  If that gets complicated we'll probably want to make a new EidosContext class to formalize things,
 	// but for now the only addition we need for that is this virtual function stub, used for Context-defined

@@ -70,9 +70,14 @@ public:
 	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value);
 	
 	// Accelerated property access; see class EidosObjectElement for comments on this mechanism
-	virtual int64_t GetProperty_Accelerated_Int(EidosGlobalStringID p_property_id);
-	virtual double GetProperty_Accelerated_Float(EidosGlobalStringID p_property_id);
-	virtual EidosObjectElement *GetProperty_Accelerated_ObjectElement(EidosGlobalStringID p_property_id);
+	static EidosValue *GetProperty_Accelerated_id(EidosObjectElement **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_originGeneration(EidosObjectElement **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_fixationGeneration(EidosObjectElement **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_position(EidosObjectElement **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_subpopID(EidosObjectElement **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_selectionCoeff(EidosObjectElement **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_mutationType(EidosObjectElement **p_values, size_t p_values_size);
 };
 
 

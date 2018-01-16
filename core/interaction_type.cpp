@@ -3612,15 +3612,32 @@ EidosValue_SP InteractionType::GetProperty(EidosGlobalStringID p_property_id)
 	}
 }
 
-int64_t InteractionType::GetProperty_Accelerated_Int(EidosGlobalStringID p_property_id)
+EidosValue *InteractionType::GetProperty_Accelerated_id(EidosObjectElement **p_values, size_t p_values_size)
 {
-	switch (p_property_id)
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
-		case gID_id:				return interaction_type_id_;
-		case gID_tag:				return tag_value_;
-			
-		default:					return EidosObjectElement::GetProperty_Accelerated_Int(p_property_id);
+		InteractionType *value = (InteractionType *)(p_values[value_index]);
+		
+		int_result->set_int_no_check(value->interaction_type_id_, value_index);
 	}
+	
+	return int_result;
+}
+
+EidosValue *InteractionType::GetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size)
+{
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		InteractionType *value = (InteractionType *)(p_values[value_index]);
+		
+		int_result->set_int_no_check(value->tag_value_, value_index);
+	}
+	
+	return int_result;
 }
 
 void InteractionType::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
@@ -4774,12 +4791,12 @@ const EidosPropertySignature *InteractionType_Class::SignatureForProperty(EidosG
 	
 	if (!idSig)
 	{
-		idSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_id,				gID_id,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
+		idSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_id,				gID_id,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(InteractionType::GetProperty_Accelerated_id);
 		reciprocalSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_reciprocal,		gID_reciprocal,		true,	kEidosValueMaskLogical | kEidosValueMaskSingleton));
 		sexSegregationSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_sexSegregation,	gID_sexSegregation,	true,	kEidosValueMaskString | kEidosValueMaskSingleton));
 		spatialitySig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_spatiality,		gID_spatiality,		true,	kEidosValueMaskString | kEidosValueMaskSingleton));
 		maxDistanceSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_maxDistance,		gID_maxDistance,	false,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
-		tagSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,				gID_tag,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
+		tagSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,				gID_tag,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(InteractionType::GetProperty_Accelerated_tag);
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup

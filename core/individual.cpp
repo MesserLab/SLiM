@@ -406,50 +406,149 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 	}
 }
 
-int64_t Individual::GetProperty_Accelerated_Int(EidosGlobalStringID p_property_id)
+EidosValue *Individual::GetProperty_Accelerated_index(EidosObjectElement **p_values, size_t p_values_size)
 {
-	switch (p_property_id)
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
-		case gID_index:			return index_;
-		case gID_pedigreeID:	return pedigree_id_;
-		case gID_tag:			return tag_value_;
-			
+		Individual *value = (Individual *)(p_values[value_index]);
+		
+		int_result->set_int_no_check(value->index_, value_index);
+	}
+	
+	return int_result;
+}
+
+EidosValue *Individual::GetProperty_Accelerated_pedigreeID(EidosObjectElement **p_values, size_t p_values_size)
+{
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		Individual *value = (Individual *)(p_values[value_index]);
+		
+		int_result->set_int_no_check(value->pedigree_id_, value_index);
+	}
+	
+	return int_result;
+}
+
+EidosValue *Individual::GetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size)
+{
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		Individual *value = (Individual *)(p_values[value_index]);
+		
+		int_result->set_int_no_check(value->tag_value_, value_index);
+	}
+	
+	return int_result;
+}
+
 #ifdef SLIM_NONWF_ONLY
-		case gID_age:
-		{
-			if (age_ == -1)
-				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property age is not available in WF models." << EidosTerminate();
-			
-			return age_;
-		}
+EidosValue *Individual::GetProperty_Accelerated_age(EidosObjectElement **p_values, size_t p_values_size)
+{
+	if ((p_values_size > 0) && (((Individual *)(p_values[0]))->subpopulation_.population_.sim_.ModelType() == SLiMModelType::kModelTypeWF))
+		EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property age is not available in WF models." << EidosTerminate();
+	
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		Individual *value = (Individual *)(p_values[value_index]);
+		
+		int_result->set_int_no_check(value->age_, value_index);
+	}
+	
+	return int_result;
+}
 #endif  // SLIM_NONWF_ONLY
-			
-		default:				return EidosObjectElement::GetProperty_Accelerated_Int(p_property_id);
+
+EidosValue *Individual::GetProperty_Accelerated_tagF(EidosObjectElement **p_values, size_t p_values_size)
+{
+	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		Individual *value = (Individual *)(p_values[value_index]);
+		
+		float_result->set_float_no_check(value->tagF_value_, value_index);
 	}
+	
+	return float_result;
 }
 
-double Individual::GetProperty_Accelerated_Float(EidosGlobalStringID p_property_id)
+EidosValue *Individual::GetProperty_Accelerated_fitnessScaling(EidosObjectElement **p_values, size_t p_values_size)
 {
-	switch (p_property_id)
+	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
-		case gID_tagF:				return tagF_value_;
-		case gID_fitnessScaling:	return fitness_scaling_;
-		case gEidosID_x:			return spatial_x_;
-		case gEidosID_y:			return spatial_y_;
-		case gEidosID_z:			return spatial_z_;
-			
-		default:					return EidosObjectElement::GetProperty_Accelerated_Float(p_property_id);
+		Individual *value = (Individual *)(p_values[value_index]);
+		
+		float_result->set_float_no_check(value->fitness_scaling_, value_index);
 	}
+	
+	return float_result;
 }
 
-EidosObjectElement *Individual::GetProperty_Accelerated_ObjectElement(EidosGlobalStringID p_property_id)
+EidosValue *Individual::GetProperty_Accelerated_x(EidosObjectElement **p_values, size_t p_values_size)
 {
-	switch (p_property_id)
+	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
-		case gID_subpopulation:	return &subpopulation_;
-			
-		default:				return EidosObjectElement::GetProperty_Accelerated_ObjectElement(p_property_id);
+		Individual *value = (Individual *)(p_values[value_index]);
+		
+		float_result->set_float_no_check(value->spatial_x_, value_index);
 	}
+	
+	return float_result;
+}
+
+EidosValue *Individual::GetProperty_Accelerated_y(EidosObjectElement **p_values, size_t p_values_size)
+{
+	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		Individual *value = (Individual *)(p_values[value_index]);
+		
+		float_result->set_float_no_check(value->spatial_y_, value_index);
+	}
+	
+	return float_result;
+}
+
+EidosValue *Individual::GetProperty_Accelerated_z(EidosObjectElement **p_values, size_t p_values_size)
+{
+	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		Individual *value = (Individual *)(p_values[value_index]);
+		
+		float_result->set_float_no_check(value->spatial_z_, value_index);
+	}
+	
+	return float_result;
+}
+
+EidosValue *Individual::GetProperty_Accelerated_subpopulation(EidosObjectElement **p_values, size_t p_values_size)
+{
+	EidosValue_Object_vector *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Subpopulation_Class))->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		Individual *value = (Individual *)(p_values[value_index]);
+		
+		object_result->set_object_element_no_check(&value->subpopulation_, value_index);
+	}
+	
+	return object_result;
 }
 
 void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
@@ -511,53 +610,175 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 	}
 }
 
-void Individual::SetProperty_Accelerated_Int(EidosGlobalStringID p_property_id, int64_t p_value)
+void Individual::SetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
-	switch (p_property_id)
+	// SLiMCastToUsertagTypeOrRaise() is a no-op at present
+	if (p_source_size == 1)
 	{
-		case gID_tag:			tag_value_ = p_value; return;	// SLiMCastToUsertagTypeOrRaise() is a no-op at present
-			
-		default:				return EidosObjectElement::SetProperty_Accelerated_Int(p_property_id, p_value);
+		int64_t source_value = p_source.IntAtIndex(0, nullptr);
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			((Individual *)(p_values[value_index]))->tag_value_ = source_value;
+	}
+	else
+	{
+		const int64_t *source_data = p_source.IntVector()->data();
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			((Individual *)(p_values[value_index]))->tag_value_ = source_data[value_index];
 	}
 }
 
-void Individual::SetProperty_Accelerated_Float(EidosGlobalStringID p_property_id, double p_value)
+void Individual::SetProperty_Accelerated_tagF(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
-	switch (p_property_id)
+	// SLiMCastToUsertagTypeOrRaise() is a no-op at present
+	if (p_source_size == 1)
 	{
-		case gID_tagF:				tagF_value_ = p_value; return;
-		case gID_fitnessScaling:
+		double source_value = p_source.FloatAtIndex(0, nullptr);
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			((Individual *)(p_values[value_index]))->tagF_value_ = source_value;
+	}
+	else
+	{
+		const double *source_data = p_source.FloatVector()->data();
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			((Individual *)(p_values[value_index]))->tagF_value_ = source_data[value_index];
+	}
+}
+
+void Individual::SetProperty_Accelerated_fitnessScaling(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+{
+	Individual::s_any_individual_fitness_scaling_set_ = true;
+	
+	if (p_source_size == 1)
+	{
+		double source_value = p_source.FloatAtIndex(0, nullptr);
+		
+		if ((source_value < 0.0) || (!std::isfinite(source_value)))
+			EIDOS_TERMINATION << "ERROR (Individual::SetProperty_Accelerated_fitnessScaling): property fitnessScaling must have a finite value >= 0.0." << EidosTerminate();
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			((Individual *)(p_values[value_index]))->fitness_scaling_ = source_value;
+	}
+	else
+	{
+		const double *source_data = p_source.FloatVector()->data();
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 		{
-			fitness_scaling_ = p_value;
-			Individual::s_any_individual_fitness_scaling_set_ = true;
+			double source_value = source_data[value_index];
 			
-			if ((fitness_scaling_ < 0.0) || (!std::isfinite(fitness_scaling_)))
-				EIDOS_TERMINATION << "ERROR (Subpopulation::SetProperty_Accelerated_Float): property fitnessScaling must have a finite value >= 0.0." << EidosTerminate();
+			if ((source_value < 0.0) || (!std::isfinite(source_value)))
+				EIDOS_TERMINATION << "ERROR (Individual::SetProperty_Accelerated_fitnessScaling): property fitnessScaling must have a finite value >= 0.0." << EidosTerminate();
 			
-			return;
+			((Individual *)(p_values[value_index]))->fitness_scaling_ = source_value;
 		}
-		case gEidosID_x:			spatial_x_ = p_value; return;
-		case gEidosID_y:			spatial_y_ = p_value; return;
-		case gEidosID_z:			spatial_z_ = p_value; return;
-			
-		default:					return EidosObjectElement::SetProperty_Accelerated_Float(p_property_id, p_value);
 	}
 }
 
-void Individual::SetProperty_Accelerated_String(EidosGlobalStringID p_property_id, const std::string &p_value)
+void Individual::SetProperty_Accelerated_x(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
-	switch (p_property_id)
+	if (p_source_size == 1)
 	{
-		case gEidosID_color:
-			color_ = p_value;
-			if (!color_.empty())
+		double source_value = p_source.FloatAtIndex(0, nullptr);
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			((Individual *)(p_values[value_index]))->spatial_x_ = source_value;
+	}
+	else
+	{
+		const double *source_data = p_source.FloatVector()->data();
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			((Individual *)(p_values[value_index]))->spatial_x_ = source_data[value_index];
+	}
+}
+
+void Individual::SetProperty_Accelerated_y(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+{
+	if (p_source_size == 1)
+	{
+		double source_value = p_source.FloatAtIndex(0, nullptr);
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			((Individual *)(p_values[value_index]))->spatial_y_ = source_value;
+	}
+	else
+	{
+		const double *source_data = p_source.FloatVector()->data();
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			((Individual *)(p_values[value_index]))->spatial_y_ = source_data[value_index];
+	}
+}
+
+void Individual::SetProperty_Accelerated_z(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+{
+	if (p_source_size == 1)
+	{
+		double source_value = p_source.FloatAtIndex(0, nullptr);
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			((Individual *)(p_values[value_index]))->spatial_z_ = source_value;
+	}
+	else
+	{
+		const double *source_data = p_source.FloatVector()->data();
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			((Individual *)(p_values[value_index]))->spatial_z_ = source_data[value_index];
+	}
+}
+
+void Individual::SetProperty_Accelerated_color(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+{
+	if (p_source_size == 1)
+	{
+		std::string &&source_value = p_source.StringAtIndex(0, nullptr);
+		
+		if (source_value.empty())
+		{
+			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+				((Individual *)(p_values[value_index]))->color_ = source_value;
+		}
+		else
+		{
+			float color_red, color_green, color_blue;
+			
+			Eidos_GetColorComponents(source_value, &color_red, &color_green, &color_blue);
+			
+			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			{
-				Eidos_GetColorComponents(color_, &color_red_, &color_green_, &color_blue_);
+				Individual *individual = ((Individual *)(p_values[value_index]));
+				
+				individual->color_ = source_value;
+				individual->color_red_ = color_red;
+				individual->color_green_ = color_green;
+				individual->color_blue_ = color_blue;
+			}
+			
+			s_any_individual_color_set_ = true;		// keep track of the fact that an individual's color has been set
+		}
+	}
+	else
+	{
+		const std::vector<std::string> *source_data = p_source.StringVector();
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+		{
+			Individual *individual = ((Individual *)(p_values[value_index]));
+			const std::string &source_value = (*source_data)[value_index];
+			
+			individual->color_ = source_value;
+			
+			if (!source_value.empty())
+			{
+				Eidos_GetColorComponents(source_value, &individual->color_red_, &individual->color_green_, &individual->color_blue_);
 				s_any_individual_color_set_ = true;		// keep track of the fact that an individual's color has been set
 			}
-			return;
-			
-		default:				return EidosObjectElement::SetProperty_Accelerated_String(p_property_id, p_value);
+		}
 	}
 }
 
@@ -1087,23 +1308,23 @@ const EidosPropertySignature *Individual_Class::SignatureForProperty(EidosGlobal
 	
 	if (!subpopulationSig)
 	{
-		subpopulationSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopulation,			gID_subpopulation,				true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->DeclareAcceleratedGet();
-		indexSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_index,					gID_index,						true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
+		subpopulationSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopulation,			gID_subpopulation,				true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_subpopulation);
+		indexSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_index,					gID_index,						true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_index);
 		genomesSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomes,					gID_genomes,					true,	kEidosValueMaskObject, gSLiM_Genome_Class));
 		sexSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_sex,						gID_sex,						true,	kEidosValueMaskString | kEidosValueMaskSingleton));
-		tagSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,						gID_tag,						false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet()->DeclareAcceleratedSet();
-		tagFSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_tagF,					gID_tagF,						false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet()->DeclareAcceleratedSet();
-		fitnessScalingSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_fitnessScaling,			gID_fitnessScaling,				false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet()->DeclareAcceleratedSet();
-		xSig =							(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_x,					gEidosID_x,						false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet()->DeclareAcceleratedSet();
-		ySig =							(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_y,					gEidosID_y,						false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet()->DeclareAcceleratedSet();
-		zSig =							(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_z,					gEidosID_z,						false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet()->DeclareAcceleratedSet();
-		ageSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_age,						gID_age,						true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
-		pedigreeIDSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeID,				gID_pedigreeID,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
+		tagSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,						gID_tag,						false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_tag)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_tag);
+		tagFSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_tagF,					gID_tagF,						false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_tagF)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_tagF);
+		fitnessScalingSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_fitnessScaling,			gID_fitnessScaling,				false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_fitnessScaling)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_fitnessScaling);
+		xSig =							(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_x,					gEidosID_x,						false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_x)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_x);
+		ySig =							(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_y,					gEidosID_y,						false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_y)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_y);
+		zSig =							(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_z,					gEidosID_z,						false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_z)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_z);
+		ageSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_age,						gID_age,						true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_age);
+		pedigreeIDSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeID,				gID_pedigreeID,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_pedigreeID);
 		pedigreeParentIDsSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeParentIDs,		gID_pedigreeParentIDs,			true,	kEidosValueMaskInt));
 		pedigreeGrandparentIDsSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeGrandparentIDs,	gID_pedigreeGrandparentIDs,		true,	kEidosValueMaskInt));
 		spatialPositionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_spatialPosition,			gID_spatialPosition,			true,	kEidosValueMaskFloat));
 		uniqueMutationsSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_uniqueMutations,			gID_uniqueMutations,			true,	kEidosValueMaskObject, gSLiM_Mutation_Class));
-		colorSig =						(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_color,				gEidosID_color,					false,	kEidosValueMaskString | kEidosValueMaskSingleton))->DeclareAcceleratedSet();
+		colorSig =						(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_color,				gEidosID_color,					false,	kEidosValueMaskString | kEidosValueMaskSingleton))->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_color);
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup

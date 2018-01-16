@@ -2439,7 +2439,7 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 	else if (values_size == 1)
 	{
 		// the singleton case is very common, so it should be special-cased for speed
-		// comment this case out to fully test the accelerated property code below
+		// accelerated property is not used for singletons because we want to generate a singleton-class result
 		EidosObjectElement *value = values_[0];
 		EidosValue_SP result = value->GetProperty(p_property_id);
 		
@@ -2452,78 +2452,14 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 	}
 	else if (signature->accelerated_get_)
 	{
-		// Accelerated property access is enabled for this property, so we will switch on the type of the property, and
-		// assemble the result value directly from the C++ type values we get from the accelerated access methods...
-		EidosValueMask sig_mask = (signature->value_mask_ & kEidosValueMaskFlagStrip);
-		EidosValue_SP result;
-		
-		switch (sig_mask)
-		{
-			case kEidosValueMaskLogical:
-			{
-				EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(values_size);
-				
-				for (size_t value_index = 0; value_index < values_size; ++value_index)
-					logical_result->set_logical_no_check(values_[value_index]->GetProperty_Accelerated_Logical(p_property_id), value_index);
-				
-				result = EidosValue_SP(logical_result);
-				break;
-			}
-			case kEidosValueMaskInt:
-			{
-				EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(values_size);
-				
-				for (size_t value_index = 0; value_index < values_size; ++value_index)
-					int_result->set_int_no_check(values_[value_index]->GetProperty_Accelerated_Int(p_property_id), value_index);
-				
-				result = EidosValue_SP(int_result);
-				break;
-			}
-			case kEidosValueMaskFloat:
-			{
-				EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(values_size);
-				
-				for (size_t value_index = 0; value_index < values_size; ++value_index)
-					float_result->set_float_no_check(values_[value_index]->GetProperty_Accelerated_Float(p_property_id), value_index);
-				
-				result = EidosValue_SP(float_result);
-				break;
-			}
-			case kEidosValueMaskString:
-			{
-				EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve((int)values_size);
-				
-				for (size_t value_index = 0; value_index < values_size; ++value_index)
-					string_result->PushString(values_[value_index]->GetProperty_Accelerated_String(p_property_id));
-				
-				result = EidosValue_SP(string_result);
-				break;
-			}
-			case kEidosValueMaskObject:
-			{
-				const EidosObjectClass *value_class = signature->value_class_;
-				
-				if (value_class)
-				{
-					EidosValue_Object_vector *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(value_class))->resize_no_initialize((int)values_size);
-					
-					for (size_t value_index = 0; value_index < values_size; ++value_index)
-						object_result->set_object_element_no_check(values_[value_index]->GetProperty_Accelerated_ObjectElement(p_property_id), value_index);
-					
-					result = EidosValue_SP(object_result);
-					break;
-				}
-				else
-					EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::GetPropertyOfElements): (internal error) missing object element class for accelerated property access." << EidosTerminate(nullptr);
-			}
-			default:
-				EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::GetPropertyOfElements): (internal error) unsupported value type for accelerated property access." << EidosTerminate(nullptr);
-		}
+		// Accelerated property access is enabled for this property, so the class will do all the work for us
+		EidosValue_SP result = EidosValue_SP(signature->accelerated_getter(values_, values_size));
 		
 		// Access of singleton properties retains the matrix/array structure of the target
 		if (signature->value_mask_ & kEidosValueMaskSingleton)
 			result->CopyDimensionsFromValue(this);
 		
+		signature->CheckAggregateResultValue(*result, values_size);
 		return result;
 	}
 	else
@@ -2581,72 +2517,21 @@ void EidosValue_Object_vector::SetPropertyOfElements(EidosGlobalStringID p_prope
 	if (!signature)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SetPropertyOfElements): property " << Eidos_StringForGlobalStringID(p_property_id) << " is not defined for object element type " << ElementType() << "." << EidosTerminate(nullptr);
 	
-	signature->CheckAssignedValue(p_value);
+	bool exact_match = signature->CheckAssignedValue(p_value);
 	
 	// We have to check the count ourselves; the signature does not do that for us
-	int p_value_count = p_value.Count();
+	size_t p_value_count = p_value.Count();
 	size_t values_size = (size_t)size();
 	
 	if (p_value_count == 1)
 	{
 		// we have a multiplex assignment of one value to (maybe) more than one element: x.foo = 10
-		if (signature->accelerated_set_ && (Count() > 1))
+		if (signature->accelerated_set_)
 		{
-			// Accelerated property writing is enabled for this property, so we will switch on the type of the property, and
-			// assemble the written values directly from the C++ type values we get from direct access of p_value...
-			EidosValueMask sig_mask = (signature->value_mask_ & kEidosValueMaskFlagStrip);
-			
-			switch (sig_mask)
-			{
-				case kEidosValueMaskLogical:	// p_value must be logical
-				{
-					eidos_logical_t set_value = p_value.LogicalAtIndex(0, nullptr);
-					
-					for (size_t value_index = 0; value_index < values_size; ++value_index)
-						values_[value_index]->SetProperty_Accelerated_Logical(p_property_id, set_value);
-					
-					break;
-				}
-				case kEidosValueMaskInt:		// p_value could be integer or logical
-				{
-					int64_t set_value = p_value.IntAtIndex(0, nullptr);
-					
-					for (size_t value_index = 0; value_index < values_size; ++value_index)
-						values_[value_index]->SetProperty_Accelerated_Int(p_property_id, set_value);
-					
-					break;
-				}
-				case kEidosValueMaskFloat:		// p_value could be float, integer, or logical
-				{
-					double set_value = p_value.FloatAtIndex(0, nullptr);
-					
-					for (size_t value_index = 0; value_index < values_size; ++value_index)
-						values_[value_index]->SetProperty_Accelerated_Float(p_property_id, set_value);
-					
-					break;
-				}
-				case kEidosValueMaskString:		// p_value must be string
-				{
-					const std::string &set_value = p_value.StringAtIndex(0, nullptr);
-					
-					for (size_t value_index = 0; value_index < values_size; ++value_index)
-						values_[value_index]->SetProperty_Accelerated_String(p_property_id, set_value);
-					
-					break;
-				}
-				case kEidosValueMaskObject:		// p_value must be object, and must match in class
-				{
-					const EidosObjectElement *set_value = p_value.ObjectElementAtIndex(0, nullptr);
-					
-					for (size_t value_index = 0; value_index < values_size; ++value_index)
-						values_[value_index]->SetProperty_Accelerated_ObjectElement(p_property_id, set_value);
-					
-					break;
-				}
-				default:
-					EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SetPropertyOfElements): (internal error) unsupported value type for accelerated property writing; should have been caught by CheckAssignedValue()." << EidosTerminate(nullptr);
-					break;
-			}
+			// Accelerated property writing is enabled for this property, so we call the setter directly
+			// Unlike the vector case below, this should work with implicit promotion, because accelerated
+			// setters will get the singleton value safely, not by direct vector access
+			signature->accelerated_setter(values_, values_size, p_value, p_value_count);
 		}
 		else
 		{
@@ -2654,121 +2539,28 @@ void EidosValue_Object_vector::SetPropertyOfElements(EidosGlobalStringID p_prope
 				values_[value_index]->SetProperty(p_property_id, p_value);
 		}
 	}
-	else if (p_value_count == Count())
+	else if (p_value_count == values_size)
 	{
 		if (p_value_count)
 		{
 			if (signature->accelerated_set_)
 			{
-				// Accelerated property writing is enabled for this property, so we will switch on the type of the property, and
-				// assemble the written values directly from the C++ type values we get from direct access of p_value...
-				EidosValueMask sig_mask = (signature->value_mask_ & kEidosValueMaskFlagStrip);
-				
-				switch (sig_mask)
+				// Accelerated property writing is enabled for this property, so we call the setter directly
+				// However, accelerated setting of vectors requires that the value type matches the property
+				// type, without promotion, so we check that condition first and fall through if not
+				if (exact_match)
 				{
-					case kEidosValueMaskLogical:	// p_value must be logical
-					{
-						const eidos_logical_t *value_ptr = p_value.LogicalVector()->data();
-						
-						for (size_t value_index = 0; value_index < values_size; ++value_index)
-							values_[value_index]->SetProperty_Accelerated_Logical(p_property_id, *(value_ptr++));
-						
-						return;
-					}
-					case kEidosValueMaskInt:		// p_value could be integer or logical
-					{
-						EidosValueType set_value_type = p_value.Type();
-						
-						if (set_value_type == EidosValueType::kValueInt)
-						{
-							const int64_t *value_ptr = p_value.IntVector()->data();
-							
-							for (size_t value_index = 0; value_index < values_size; ++value_index)
-								values_[value_index]->SetProperty_Accelerated_Int(p_property_id, *(value_ptr++));
-							
-							return;
-						}
-						else if (set_value_type == EidosValueType::kValueLogical)
-						{
-							const eidos_logical_t *value_ptr = p_value.LogicalVector()->data();
-							
-							for (size_t value_index = 0; value_index < values_size; ++value_index)
-								values_[value_index]->SetProperty_Accelerated_Int(p_property_id, *(value_ptr++) ? 1 : 0);
-							
-							return;
-						}
-						
-						break;
-					}
-					case kEidosValueMaskFloat:		// p_value could be float, integer, or logical
-					{
-						EidosValueType set_value_type = p_value.Type();
-						
-						if (set_value_type == EidosValueType::kValueFloat)
-						{
-							const double *value_ptr = p_value.FloatVector()->data();
-							
-							for (size_t value_index = 0; value_index < values_size; ++value_index)
-								values_[value_index]->SetProperty_Accelerated_Float(p_property_id, *(value_ptr++));
-							
-							return;
-						}
-						else if (set_value_type == EidosValueType::kValueInt)
-						{
-							const int64_t *value_ptr = p_value.IntVector()->data();
-							
-							for (size_t value_index = 0; value_index < values_size; ++value_index)
-								values_[value_index]->SetProperty_Accelerated_Float(p_property_id, *(value_ptr++));
-							
-							return;
-						}
-						else if (set_value_type == EidosValueType::kValueLogical)
-						{
-							const eidos_logical_t *value_ptr = p_value.LogicalVector()->data();
-							
-							for (size_t value_index = 0; value_index < values_size; ++value_index)
-								values_[value_index]->SetProperty_Accelerated_Float(p_property_id, *(value_ptr++) ? 1.0 : 0.0);
-							
-							return;
-						}
-						
-						break;
-					}
-					case kEidosValueMaskString:		// p_value must be string
-					{
-						const std::vector<std::string> *value_vec = p_value.StringVector();
-						const std::string *value_ptr = value_vec->data();
-						
-						for (size_t value_index = 0; value_index < values_size; ++value_index)
-							values_[value_index]->SetProperty_Accelerated_String(p_property_id, *(value_ptr++));
-						
-						return;
-					}
-					case kEidosValueMaskObject:		// p_value must be object, and must match in class
-					{
-						const EidosValue_Object_vector *value_vec = p_value.ObjectElementVector();
-						EidosObjectElement * const *value_ptr = value_vec->data();
-						
-						for (size_t value_index = 0; value_index < values_size; ++value_index)
-							values_[value_index]->SetProperty_Accelerated_ObjectElement(p_property_id, *(value_ptr++));
-						
-						return;
-					}
-					default:
-						break;
+					signature->accelerated_setter(values_, values_size, p_value, p_value_count);
+					return;
 				}
-				
-				EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SetPropertyOfElements): (internal error) unsupported value type for accelerated property writing; should have been caught by CheckAssignedValue()." << EidosTerminate(nullptr);
 			}
-			else
+			
+			// we have a one-to-one assignment of values to elements: x.foo = 1:5 (where x has 5 elements)
+			for (size_t value_idx = 0; value_idx < p_value_count; value_idx++)
 			{
-				// we have a one-to-one assignment of values to elements: x.foo = 1:5 (where x has 5 elements)
-				for (int value_idx = 0; value_idx < p_value_count; value_idx++)
-				{
-					EidosValue_SP temp_rvalue = p_value.GetValueAtIndex(value_idx, nullptr);
-					
-					values_[value_idx]->SetProperty(p_property_id, *temp_rvalue);
-				}
+				EidosValue_SP temp_rvalue = p_value.GetValueAtIndex((int)value_idx, nullptr);
+				
+				values_[value_idx]->SetProperty(p_property_id, *temp_rvalue);
 			}
 		}
 	}
@@ -3372,61 +3164,6 @@ EidosObjectElement *EidosObjectElement::Release(void)
 EidosValue_SP EidosObjectElement::GetProperty(EidosGlobalStringID p_property_id)
 {
 	EIDOS_TERMINATION << "ERROR (EidosObjectElement::GetProperty for " << Class()->ElementType() << "): (internal error) attempt to get a value for property " << Eidos_StringForGlobalStringID(p_property_id) << " was not handled by subclass." << EidosTerminate(nullptr);
-}
-
-eidos_logical_t EidosObjectElement::GetProperty_Accelerated_Logical(EidosGlobalStringID p_property_id)
-{
-	EIDOS_TERMINATION << "ERROR (EidosObjectElement::GetProperty_Accelerated_Logical for " << Class()->ElementType() << "): (internal error) attempt to get a value for accelerated property " << Eidos_StringForGlobalStringID(p_property_id) << " was not handled by subclass." << EidosTerminate(nullptr);
-}
-
-int64_t EidosObjectElement::GetProperty_Accelerated_Int(EidosGlobalStringID p_property_id)
-{
-	EIDOS_TERMINATION << "ERROR (EidosObjectElement::GetProperty_Accelerated_Int for " << Class()->ElementType() << "): (internal error) attempt to get a value for accelerated property " << Eidos_StringForGlobalStringID(p_property_id) << " was not handled by subclass." << EidosTerminate(nullptr);
-}
-
-double EidosObjectElement::GetProperty_Accelerated_Float(EidosGlobalStringID p_property_id)
-{
-	EIDOS_TERMINATION << "ERROR (EidosObjectElement::GetProperty_Accelerated_Float for " << Class()->ElementType() << "): (internal error) attempt to get a value for accelerated property " << Eidos_StringForGlobalStringID(p_property_id) << " was not handled by subclass." << EidosTerminate(nullptr);
-}
-
-std::string EidosObjectElement::GetProperty_Accelerated_String(EidosGlobalStringID p_property_id)
-{
-	EIDOS_TERMINATION << "ERROR (EidosObjectElement::GetProperty_Accelerated_String for " << Class()->ElementType() << "): (internal error) attempt to get a value for accelerated property " << Eidos_StringForGlobalStringID(p_property_id) << " was not handled by subclass." << EidosTerminate(nullptr);
-}
-
-EidosObjectElement *EidosObjectElement::GetProperty_Accelerated_ObjectElement(EidosGlobalStringID p_property_id)
-{
-	EIDOS_TERMINATION << "ERROR (EidosObjectElement::GetProperty_Accelerated_ObjectElement for " << Class()->ElementType() << "): (internal error) attempt to get a value for accelerated property " << Eidos_StringForGlobalStringID(p_property_id) << " was not handled by subclass." << EidosTerminate(nullptr);
-}
-
-void EidosObjectElement::SetProperty_Accelerated_Logical(EidosGlobalStringID p_property_id, eidos_logical_t p_value)
-{
-#pragma unused(p_value)
-	EIDOS_TERMINATION << "ERROR (EidosObjectElement::SetProperty_Accelerated_Logical for " << Class()->ElementType() << "): (internal error) attempt to set a value for accelerated property " << Eidos_StringForGlobalStringID(p_property_id) << " was not handled by subclass." << EidosTerminate(nullptr);
-}
-
-void EidosObjectElement::SetProperty_Accelerated_Int(EidosGlobalStringID p_property_id, int64_t p_value)
-{
-#pragma unused(p_value)
-	EIDOS_TERMINATION << "ERROR (EidosObjectElement::SetProperty_Accelerated_Int for " << Class()->ElementType() << "): (internal error) attempt to set a value for accelerated property " << Eidos_StringForGlobalStringID(p_property_id) << " was not handled by subclass." << EidosTerminate(nullptr);
-}
-
-void EidosObjectElement::SetProperty_Accelerated_Float(EidosGlobalStringID p_property_id, double p_value)
-{
-#pragma unused(p_value)
-	EIDOS_TERMINATION << "ERROR (EidosObjectElement::SetProperty_Accelerated_Float for " << Class()->ElementType() << "): (internal error) attempt to set a value for accelerated property " << Eidos_StringForGlobalStringID(p_property_id) << " was not handled by subclass." << EidosTerminate(nullptr);
-}
-
-void EidosObjectElement::SetProperty_Accelerated_String(EidosGlobalStringID p_property_id, const std::string &p_value)
-{
-#pragma unused(p_value)
-	EIDOS_TERMINATION << "ERROR (EidosObjectElement::SetProperty_Accelerated_String for " << Class()->ElementType() << "): (internal error) attempt to set a value for accelerated property " << Eidos_StringForGlobalStringID(p_property_id) << " was not handled by subclass." << EidosTerminate(nullptr);
-}
-
-void EidosObjectElement::SetProperty_Accelerated_ObjectElement(EidosGlobalStringID p_property_id, const EidosObjectElement *p_value)
-{
-#pragma unused(p_value)
-	EIDOS_TERMINATION << "ERROR (EidosObjectElement::SetProperty_Accelerated_ObjectElement for " << Class()->ElementType() << "): (internal error) attempt to set a value for accelerated property " << Eidos_StringForGlobalStringID(p_property_id) << " was not handled by subclass." << EidosTerminate(nullptr);
 }
 
 void EidosObjectElement::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)

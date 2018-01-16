@@ -132,26 +132,60 @@ EidosValue_SP GenomicElement::GetProperty(EidosGlobalStringID p_property_id)
 	}
 }
 
-int64_t GenomicElement::GetProperty_Accelerated_Int(EidosGlobalStringID p_property_id)
+EidosValue *GenomicElement::GetProperty_Accelerated_startPosition(EidosObjectElement **p_values, size_t p_values_size)
 {
-	switch (p_property_id)
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
-		case gID_startPosition:			return start_position_;
-		case gID_endPosition:			return end_position_;
-		case gID_tag:					return tag_value_;
-			
-		default:						return EidosObjectElement::GetProperty_Accelerated_Int(p_property_id);
+		GenomicElement *value = (GenomicElement *)(p_values[value_index]);
+		
+		int_result->set_int_no_check(value->start_position_, value_index);
 	}
+	
+	return int_result;
 }
 
-EidosObjectElement *GenomicElement::GetProperty_Accelerated_ObjectElement(EidosGlobalStringID p_property_id)
+EidosValue *GenomicElement::GetProperty_Accelerated_endPosition(EidosObjectElement **p_values, size_t p_values_size)
 {
-	switch (p_property_id)
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
-		case gID_genomicElementType:	return genomic_element_type_ptr_;
-			
-		default:						return EidosObjectElement::GetProperty_Accelerated_ObjectElement(p_property_id);
+		GenomicElement *value = (GenomicElement *)(p_values[value_index]);
+		
+		int_result->set_int_no_check(value->end_position_, value_index);
 	}
+	
+	return int_result;
+}
+
+EidosValue *GenomicElement::GetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size)
+{
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		GenomicElement *value = (GenomicElement *)(p_values[value_index]);
+		
+		int_result->set_int_no_check(value->tag_value_, value_index);
+	}
+	
+	return int_result;
+}
+
+EidosValue *GenomicElement::GetProperty_Accelerated_genomicElementType(EidosObjectElement **p_values, size_t p_values_size)
+{
+	EidosValue_Object_vector *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_GenomicElement_Class))->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		GenomicElement *value = (GenomicElement *)(p_values[value_index]);
+		
+		object_result->set_object_element_no_check(value->genomic_element_type_ptr_, value_index);
+	}
+	
+	return object_result;
 }
 
 void GenomicElement::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
@@ -257,10 +291,10 @@ const EidosPropertySignature *GenomicElement_Class::SignatureForProperty(EidosGl
 	
 	if (!genomicElementTypeSig)
 	{
-		genomicElementTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElementType,	gID_genomicElementType,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_GenomicElementType_Class))->DeclareAcceleratedGet();
-		startPositionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_startPosition,		gID_startPosition,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
-		endPositionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_endPosition,			gID_endPosition,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
-		tagSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					gID_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
+		genomicElementTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElementType,	gID_genomicElementType,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_GenomicElementType_Class))->DeclareAcceleratedGet(GenomicElement::GetProperty_Accelerated_genomicElementType);
+		startPositionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_startPosition,		gID_startPosition,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(GenomicElement::GetProperty_Accelerated_startPosition);
+		endPositionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_endPosition,			gID_endPosition,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(GenomicElement::GetProperty_Accelerated_endPosition);
+		tagSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					gID_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(GenomicElement::GetProperty_Accelerated_tag);
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup

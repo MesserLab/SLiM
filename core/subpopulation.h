@@ -446,9 +446,14 @@ public:
 	EidosValue_SP ExecuteMethod_subsetIndividuals(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	
 	// Accelerated property access; see class EidosObjectElement for comments on this mechanism
-	virtual int64_t GetProperty_Accelerated_Int(EidosGlobalStringID p_property_id);
-	virtual double GetProperty_Accelerated_Float(EidosGlobalStringID p_property_id);
-	virtual void SetProperty_Accelerated_Float(EidosGlobalStringID p_property_id, double p_value);
+	static EidosValue *GetProperty_Accelerated_id(EidosObjectElement **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_firstMaleIndex(EidosObjectElement **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_individualCount(EidosObjectElement **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_fitnessScaling(EidosObjectElement **p_values, size_t p_values_size);
+	
+	static void SetProperty_Accelerated_fitnessScaling(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
 };
 
 

@@ -24,6 +24,23 @@
 #include "eidos_value.h"
 
 
+// This typedef is for an "accelerated property getter".  These are static member functions on a class, designed to provide a whole
+// vector of property values given a buffer of EidosObjectElements.  The getter is expected to return the correct type for the
+// property (this is checked).  The getter is guaranteed that the EidosObjectElements are of the correct class; it is allowed to
+// do a cast of p_values directly to its own type without checking, according to the calling conventions used here.
+typedef EidosValue *(*Eidos_AcceleratedPropertyGetter)(EidosObjectElement **p_values, size_t p_values_size);
+
+// This typedef is for an "accelerated property setter".  These are static member functions on a class, designed to set a property
+// value across a buffer of EidosObjectElements.  This is more complex than the getter case, because there are two possibilities:
+// p_source could be a singleton, providing one value to be set across the whole buffer, OR it could be a vector of length equal
+// to the buffer size.  It is guaranteed to be one of those two things; the setter does not need to cover the case where the length
+// of p_source is not singleton but not equal to p_values_size.  As with accelerated getters, p_values is guaranteed by the caller
+// to be of the correct class, and may be cast directly.  (This is actually guaranteed and checked by the property signature, so if
+// the signature is declared incorrectly then a mismatch is possible; but that is not the getter/setter's problem to detect.)  The
+// type of p_source is also checked against the signature, and so may be assumed to be of the declared type.
+typedef void (*Eidos_AcceleratedPropertySetter)(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+
+
 class EidosPropertySignature
 {
 public:
@@ -34,8 +51,11 @@ public:
 	EidosValueMask value_mask_;							// a mask for the type returned; singleton is used, optional is not
 	const EidosObjectClass *value_class_;				// optional type-check for object values; used only if this is not nullptr
 	
-	bool accelerated_get_;									// if true, can be read using the fast-access GetProperty_X() methods
-	bool accelerated_set_;									// if true, can be written using the fast-access SetProperty_X() methods
+	bool accelerated_get_;									// if true, can be read using a fast-access GetProperty_Accelerated_X() method
+	Eidos_AcceleratedPropertyGetter accelerated_getter;		// a pointer to a (static member) function that handles the accelerated get
+	
+	bool accelerated_set_;									// if true, can be written using a fast-access SetProperty_Accelerated_X() method
+	Eidos_AcceleratedPropertySetter accelerated_setter;		// a pointer to a (static member) function that handles the accelerated set
 	
 	EidosPropertySignature(const EidosPropertySignature&) = delete;					// no copying
 	EidosPropertySignature& operator=(const EidosPropertySignature&) = delete;		// no copying
@@ -46,16 +66,17 @@ public:
 	EidosPropertySignature(const std::string &p_property_name, EidosGlobalStringID p_property_id, bool p_read_only, EidosValueMask p_value_mask, const EidosObjectClass *p_value_class);
 	
 	// check arguments and returns
-	void CheckAssignedValue(const EidosValue &p_value) const;	// checks a vector being assigned into a whole object
+	bool CheckAssignedValue(const EidosValue &p_value) const;	// checks a vector being assigned into a whole object; true is exact match, false is implicit type conversion
 	void CheckResultValue(const EidosValue &p_value) const;	// checks the result from a single element
+	void CheckAggregateResultValue(const EidosValue &p_value, size_t p_expected_size) const;	// checks the result from a vector
 	
 	// informational strings about the property
 	std::string PropertyType(void) const;				// "read-only" or "read-write"
 	std::string PropertySymbol(void) const;				// "=>" or "–>"
 	
 	// property access acceleration
-	EidosPropertySignature *DeclareAcceleratedGet(void);
-	EidosPropertySignature *DeclareAcceleratedSet(void);
+	EidosPropertySignature *DeclareAcceleratedGet(Eidos_AcceleratedPropertyGetter p_getter);
+	EidosPropertySignature *DeclareAcceleratedSet(Eidos_AcceleratedPropertySetter p_setter);
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const EidosPropertySignature &p_signature);

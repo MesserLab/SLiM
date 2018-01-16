@@ -92,39 +92,116 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 	}
 }
 
-int64_t Substitution::GetProperty_Accelerated_Int(EidosGlobalStringID p_property_id)
+EidosValue *Substitution::GetProperty_Accelerated_id(EidosObjectElement **p_values, size_t p_values_size)
 {
-	switch (p_property_id)
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
-		case gID_id:					return mutation_id_;
-		case gID_originGeneration:		return generation_;
-		case gID_fixationGeneration:	return fixation_generation_;
-		case gID_position:				return position_;
-		case gID_subpopID:				return subpop_index_;
-		case gID_tag:					return tag_value_;
-			
-		default:						return EidosObjectElement::GetProperty_Accelerated_Int(p_property_id);
+		Substitution *value = (Substitution *)(p_values[value_index]);
+		
+		int_result->set_int_no_check(value->mutation_id_, value_index);
 	}
+	
+	return int_result;
 }
 
-double Substitution::GetProperty_Accelerated_Float(EidosGlobalStringID p_property_id)
+EidosValue *Substitution::GetProperty_Accelerated_originGeneration(EidosObjectElement **p_values, size_t p_values_size)
 {
-	switch (p_property_id)
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
-		case gID_selectionCoeff:		return selection_coeff_;
-			
-		default:						return EidosObjectElement::GetProperty_Accelerated_Float(p_property_id);
+		Substitution *value = (Substitution *)(p_values[value_index]);
+		
+		int_result->set_int_no_check(value->generation_, value_index);
 	}
+	
+	return int_result;
 }
 
-EidosObjectElement *Substitution::GetProperty_Accelerated_ObjectElement(EidosGlobalStringID p_property_id)
+EidosValue *Substitution::GetProperty_Accelerated_fixationGeneration(EidosObjectElement **p_values, size_t p_values_size)
 {
-	switch (p_property_id)
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
-		case gID_mutationType:			return mutation_type_ptr_;
-			
-		default:						return EidosObjectElement::GetProperty_Accelerated_ObjectElement(p_property_id);
+		Substitution *value = (Substitution *)(p_values[value_index]);
+		
+		int_result->set_int_no_check(value->fixation_generation_, value_index);
 	}
+	
+	return int_result;
+}
+
+EidosValue *Substitution::GetProperty_Accelerated_position(EidosObjectElement **p_values, size_t p_values_size)
+{
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		Substitution *value = (Substitution *)(p_values[value_index]);
+		
+		int_result->set_int_no_check(value->position_, value_index);
+	}
+	
+	return int_result;
+}
+
+EidosValue *Substitution::GetProperty_Accelerated_subpopID(EidosObjectElement **p_values, size_t p_values_size)
+{
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		Substitution *value = (Substitution *)(p_values[value_index]);
+		
+		int_result->set_int_no_check(value->subpop_index_, value_index);
+	}
+	
+	return int_result;
+}
+
+EidosValue *Substitution::GetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size)
+{
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		Substitution *value = (Substitution *)(p_values[value_index]);
+		
+		int_result->set_int_no_check(value->tag_value_, value_index);
+	}
+	
+	return int_result;
+}
+
+EidosValue *Substitution::GetProperty_Accelerated_selectionCoeff(EidosObjectElement **p_values, size_t p_values_size)
+{
+	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		Substitution *value = (Substitution *)(p_values[value_index]);
+		
+		float_result->set_float_no_check(value->selection_coeff_, value_index);
+	}
+	
+	return float_result;
+}
+
+EidosValue *Substitution::GetProperty_Accelerated_mutationType(EidosObjectElement **p_values, size_t p_values_size)
+{
+	EidosValue_Object_vector *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_MutationType_Class))->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		Substitution *value = (Substitution *)(p_values[value_index]);
+		
+		object_result->set_object_element_no_check(value->mutation_type_ptr_, value_index);
+	}
+	
+	return object_result;
 }
 
 void Substitution::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
@@ -219,14 +296,14 @@ const EidosPropertySignature *Substitution_Class::SignatureForProperty(EidosGlob
 	
 	if (!idSig)
 	{
-		idSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_id,					gID_id,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
-		mutationTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationType,		gID_mutationType,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class))->DeclareAcceleratedGet();
-		positionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_position,			gID_position,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
-		selectionCoeffSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_selectionCoeff,		gID_selectionCoeff,		true,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
-		subpopIDSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopID,			gID_subpopID,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
-		originGenerationSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_originGeneration,	gID_originGeneration,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
-		fixationGenerationSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_fixationGeneration,	gID_fixationGeneration,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
-		tagSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					gID_tag,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
+		idSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_id,					gID_id,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_id);
+		mutationTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationType,		gID_mutationType,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_mutationType);
+		positionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_position,			gID_position,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_position);
+		selectionCoeffSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_selectionCoeff,		gID_selectionCoeff,		true,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_selectionCoeff);
+		subpopIDSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopID,			gID_subpopID,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_subpopID);
+		originGenerationSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_originGeneration,	gID_originGeneration,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_originGeneration);
+		fixationGenerationSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_fixationGeneration,	gID_fixationGeneration,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_fixationGeneration);
+		tagSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					gID_tag,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_tag);
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup

@@ -539,24 +539,32 @@ EidosValue_SP Genome::GetProperty(EidosGlobalStringID p_property_id)
 	}
 }
 
-eidos_logical_t Genome::GetProperty_Accelerated_Logical(EidosGlobalStringID p_property_id)
+EidosValue *Genome::GetProperty_Accelerated_isNullGenome(EidosObjectElement **p_values, size_t p_values_size)
 {
-	switch (p_property_id)
+	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
-		case gID_isNullGenome:		return (mutrun_count_ == 0);
-			
-		default:					return EidosObjectElement::GetProperty_Accelerated_Logical(p_property_id);
+		Genome *value = (Genome *)(p_values[value_index]);
+		
+		logical_result->set_logical_no_check(value->mutrun_count_ == 0, value_index);
 	}
+	
+	return logical_result;
 }
 
-int64_t Genome::GetProperty_Accelerated_Int(EidosGlobalStringID p_property_id)
+EidosValue *Genome::GetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size)
 {
-	switch (p_property_id)
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
-		case gID_tag:				return tag_value_;
-			
-		default:					return EidosObjectElement::GetProperty_Accelerated_Int(p_property_id);
+		Genome *value = (Genome *)(p_values[value_index]);
+		
+		int_result->set_int_no_check(value->tag_value_, value_index);
 	}
+	
+	return int_result;
 }
 
 void Genome::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
@@ -578,13 +586,22 @@ void Genome::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_
 	}
 }
 
-void Genome::SetProperty_Accelerated_Int(EidosGlobalStringID p_property_id, int64_t p_value)
+void Genome::SetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
-	switch (p_property_id)
+	// SLiMCastToUsertagTypeOrRaise() is a no-op at present
+	if (p_source_size == 1)
 	{
-		case gID_tag:			tag_value_ = p_value; return;		// SLiMCastToUsertagTypeOrRaise() is a no-op at present
-			
-		default:				return EidosObjectElement::SetProperty_Accelerated_Int(p_property_id, p_value);
+		int64_t source_value = p_source.IntAtIndex(0, nullptr);
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			((Genome *)(p_values[value_index]))->tag_value_ = source_value;
+	}
+	else
+	{
+		const int64_t *source_data = p_source.IntVector()->data();
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			((Genome *)(p_values[value_index]))->tag_value_ = source_data[value_index];
 	}
 }
 
@@ -1230,9 +1247,9 @@ const EidosPropertySignature *Genome_Class::SignatureForProperty(EidosGlobalStri
 	if (!genomeTypeSig)
 	{
 		genomeTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomeType,		gID_genomeType,		true,	kEidosValueMaskString | kEidosValueMaskSingleton));
-		isNullGenomeSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_isNullGenome,	gID_isNullGenome,	true,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet();
+		isNullGenomeSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_isNullGenome,	gID_isNullGenome,	true,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Genome::GetProperty_Accelerated_isNullGenome);
 		mutationsSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutations,		gID_mutations,		true,	kEidosValueMaskObject, gSLiM_Mutation_Class));
-		tagSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,				gID_tag,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet()->DeclareAcceleratedSet();
+		tagSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,				gID_tag,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Genome::GetProperty_Accelerated_tag)->DeclareAcceleratedSet(Genome::SetProperty_Accelerated_tag);
 	}
 	
 	// All of our strings are in the global registry, so we can require a successful lookup

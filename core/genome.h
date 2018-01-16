@@ -351,11 +351,11 @@ public:
 	EidosValue_SP ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	
 	// Accelerated property access; see class EidosObjectElement for comments on this mechanism
-	virtual eidos_logical_t GetProperty_Accelerated_Logical(EidosGlobalStringID p_property_id);
-	virtual int64_t GetProperty_Accelerated_Int(EidosGlobalStringID p_property_id);
+	static EidosValue *GetProperty_Accelerated_isNullGenome(EidosObjectElement **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size);
 	
 	// Accelerated property writing; see class EidosObjectElement for comments on this mechanism
-	virtual void SetProperty_Accelerated_Int(EidosGlobalStringID p_property_id, int64_t p_value);
+	static void SetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
 	
 	friend class Genome_Class;
 	

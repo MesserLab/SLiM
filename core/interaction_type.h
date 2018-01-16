@@ -244,7 +244,8 @@ public:
 	EidosValue_SP ExecuteMethod_unevaluate(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	
 	// Accelerated property access; see class EidosObjectElement for comments on this mechanism
-	virtual int64_t GetProperty_Accelerated_Int(EidosGlobalStringID p_property_id);
+	static EidosValue *GetProperty_Accelerated_id(EidosObjectElement **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size);
 };
 
 

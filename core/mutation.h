@@ -110,12 +110,17 @@ public:
 	EidosValue_SP ExecuteMethod_setMutationType(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	
 	// Accelerated property access; see class EidosObjectElement for comments on this mechanism
-	virtual int64_t GetProperty_Accelerated_Int(EidosGlobalStringID p_property_id);
-	virtual double GetProperty_Accelerated_Float(EidosGlobalStringID p_property_id);
-	virtual EidosObjectElement *GetProperty_Accelerated_ObjectElement(EidosGlobalStringID p_property_id);
+	static EidosValue *GetProperty_Accelerated_id(EidosObjectElement **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_originGeneration(EidosObjectElement **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_position(EidosObjectElement **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_subpopID(EidosObjectElement **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_selectionCoeff(EidosObjectElement **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_mutationType(EidosObjectElement **p_values, size_t p_values_size);
 	
 	// Accelerated property writing; see class EidosObjectElement for comments on this mechanism
-	virtual void SetProperty_Accelerated_Int(EidosGlobalStringID p_property_id, int64_t p_value);
+	static void SetProperty_Accelerated_subpopID(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
 };
 
 // true if M1 has an earlier (smaller) position than M2
