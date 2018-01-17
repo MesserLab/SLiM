@@ -2448,7 +2448,10 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 		if (signature->value_mask_ & kEidosValueMaskSingleton)
 			result->CopyDimensionsFromValue(this);
 		
+#if DEBUG
+		// This is time-consuming, and will fail only due to internal bugs, so we should do it only in DEBUG
 		signature->CheckResultValue(*result);
+#endif
 		return result;
 	}
 	else if (signature->accelerated_get_)
@@ -2460,7 +2463,10 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 		if (signature->value_mask_ & kEidosValueMaskSingleton)
 			result->CopyDimensionsFromValue(this);
 		
+#if DEBUG
+		// This is time-consuming, and will fail only due to internal bugs, so we should do it only in DEBUG
 		signature->CheckAggregateResultValue(*result, values_size);
+#endif
 		return result;
 	}
 	else
@@ -2468,17 +2474,23 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 		// get the value from all properties and collect the results
 		std::vector<EidosValue_SP> results;
 		
+#if DEBUG
 		if (values_size < 10)
 		{
+#endif
 			// with small objects, we check every value
 			for (size_t value_index = 0; value_index < values_size; ++value_index)
 			{
 				EidosObjectElement *value = values_[value_index];
 				EidosValue_SP temp_result = value->GetProperty(p_property_id);
 				
+#if DEBUG
+				// This is time-consuming, and will fail only due to internal bugs, so we should do it only in DEBUG
 				signature->CheckResultValue(*temp_result);
+#endif
 				results.emplace_back(temp_result);
 			}
+#if DEBUG
 		}
 		else
 		{
@@ -2499,6 +2511,7 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 				results.emplace_back(temp_result);
 			}
 		}
+#endif
 		
 		// concatenate the results using ConcatenateEidosValues()
 		EidosValue_SP result = ConcatenateEidosValues(results.data(), (int)results.size(), true);
@@ -3120,7 +3133,10 @@ EidosValue_SP EidosValue_Object_singleton::GetPropertyOfElements(EidosGlobalStri
 	if (signature->value_mask_ & kEidosValueMaskSingleton)
 		result->CopyDimensionsFromValue(this);
 	
+#if DEBUG
+	// This is time-consuming, and will fail only due to internal bugs, so we should do it only in DEBUG
 	signature->CheckResultValue(*result);
+#endif
 	
 	return result;
 }
