@@ -50,6 +50,7 @@ class EidosCallSignature
 {
 public:
 	std::string call_name_;
+	EidosGlobalStringID call_id_;
 	
 	EidosValueMask return_mask_;						// a mask specifying the exact return type; the singleton flag is used, the optional flag is not
 	const EidosObjectClass *return_class_;				// optional type-check for object returns; used only if the return is an object and this is not nullptr

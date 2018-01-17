@@ -196,8 +196,7 @@ class EidosTestElement_Class : public EidosObjectClass
 public:
 	EidosTestElement_Class(const EidosTestElement_Class &p_original) = delete;	// no copy-construct
 	EidosTestElement_Class& operator=(const EidosTestElement_Class&) = delete;	// no copying
-	
-	EidosTestElement_Class(void);
+	inline EidosTestElement_Class(void) { }
 	
 #ifdef EIDOS_OBJECT_RETAIN_RELEASE
 	virtual bool NeedsRetainRelease(void) const;
@@ -206,19 +205,11 @@ public:
 	virtual const std::string &ElementType(void) const;
 	
 	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
-	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
-	
 	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
-	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
-	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 };
 
 EidosObjectClass *gEidosTestElement_Class = new EidosTestElement_Class();
 
-
-EidosTestElement_Class::EidosTestElement_Class(void)
-{
-}
 
 #ifdef EIDOS_OBJECT_RETAIN_RELEASE
 bool EidosTestElement_Class::NeedsRetainRelease(void) const
@@ -239,36 +230,14 @@ const std::vector<const EidosPropertySignature *> *EidosTestElement_Class::Prope
 	if (!properties)
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
-		properties->emplace_back(SignatureForPropertyOrRaise(gEidosID__yolk));
-		properties->emplace_back(SignatureForPropertyOrRaise(gEidosID__increment));
+		
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr__yolk,		false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(EidosTestElement::GetProperty_Accelerated__yolk)->DeclareAcceleratedSet(EidosTestElement::SetProperty_Accelerated__yolk));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr__increment,	true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosTestElement_Class)));
+		
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
 	return properties;
-}
-
-const EidosPropertySignature *EidosTestElement_Class::SignatureForProperty(EidosGlobalStringID p_property_id) const
-{
-	// Signatures are all preallocated, for speed
-	static EidosPropertySignature *yolkSig = nullptr;
-	static EidosPropertySignature *incrementSig = nullptr;
-	
-	if (!yolkSig)
-	{
-		yolkSig =		(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr__yolk,		gEidosID__yolk,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(EidosTestElement::GetProperty_Accelerated__yolk)->DeclareAcceleratedSet(EidosTestElement::SetProperty_Accelerated__yolk);
-		incrementSig =	(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr__increment,	gEidosID__increment,	true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosTestElement_Class));
-	}
-	
-	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_property_id)
-	{
-		case gEidosID__yolk:		return yolkSig;
-		case gEidosID__increment:	return incrementSig;
-			
-			// all others, including gID_none
-		default:
-			return EidosObjectClass::SignatureForProperty(p_property_id);
-	}
 }
 
 const std::vector<const EidosMethodSignature *> *EidosTestElement_Class::Methods(void) const
@@ -278,41 +247,14 @@ const std::vector<const EidosMethodSignature *> *EidosTestElement_Class::Methods
 	if (!methods)
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
-		methods->emplace_back(SignatureForMethodOrRaise(gEidosID__cubicYolk));
-		methods->emplace_back(SignatureForMethodOrRaise(gEidosID__squareTest));
+		
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr__cubicYolk, kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedImp(EidosTestElement::ExecuteMethod_Accelerated_cubicYolk));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr__squareTest, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosTestElement_Class)));
+		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	
 	return methods;
-}
-
-const EidosMethodSignature *EidosTestElement_Class::SignatureForMethod(EidosGlobalStringID p_method_id) const
-{
-	// Signatures are all preallocated, for speed
-	static EidosInstanceMethodSignature *cubicYolkSig = nullptr;
-	static EidosInstanceMethodSignature *squareTestSig = nullptr;
-	
-	if (!cubicYolkSig)
-	{
-		cubicYolkSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr__cubicYolk, kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedImp(EidosTestElement::ExecuteMethod_Accelerated_cubicYolk);
-		squareTestSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr__squareTest, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosTestElement_Class));
-	}
-	
-	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_method_id)
-	{
-		case gEidosID__cubicYolk:	return cubicYolkSig;
-		case gEidosID__squareTest:	return squareTestSig;
-			
-			// all others, including gID_none
-		default:
-			return EidosObjectClass::SignatureForMethod(p_method_id);
-	}
-}
-
-EidosValue_SP EidosTestElement_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
-{
-	return EidosObjectClass::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
 }
 
 

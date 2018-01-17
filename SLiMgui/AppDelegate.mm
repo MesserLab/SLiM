@@ -89,6 +89,7 @@ typedef enum SLiMLaunchAction
 	// Warm up our back ends before anything else happens
 	Eidos_WarmUp();
 	SLiM_WarmUp();
+	Eidos_FinishWarmUp();
 	
 	// Create the Open Recipes menu
 	[openRecipesMenu removeAllItems];

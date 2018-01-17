@@ -62,8 +62,8 @@ public:
 	EidosPropertySignature(void) = delete;											// no null construction
 	virtual ~EidosPropertySignature(void);
 	
-	EidosPropertySignature(const std::string &p_property_name, EidosGlobalStringID p_property_id, bool p_read_only, EidosValueMask p_value_mask);
-	EidosPropertySignature(const std::string &p_property_name, EidosGlobalStringID p_property_id, bool p_read_only, EidosValueMask p_value_mask, const EidosObjectClass *p_value_class);
+	EidosPropertySignature(const std::string &p_property_name, bool p_read_only, EidosValueMask p_value_mask);
+	EidosPropertySignature(const std::string &p_property_name, bool p_read_only, EidosValueMask p_value_mask, const EidosObjectClass *p_value_class);
 	
 	// check arguments and returns
 	bool CheckAssignedValue(const EidosValue &p_value) const;	// checks a vector being assigned into a whole object; true is exact match, false is implicit type conversion

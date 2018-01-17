@@ -5523,17 +5523,12 @@ class Subpopulation_Class : public SLiMEidosDictionary_Class
 public:
 	Subpopulation_Class(const Subpopulation_Class &p_original) = delete;	// no copy-construct
 	Subpopulation_Class& operator=(const Subpopulation_Class&) = delete;	// no copying
-	
 	inline Subpopulation_Class(void) { }
 	
 	virtual const std::string &ElementType(void) const;
 	
 	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
-	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
-	
 	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
-	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
-	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 };
 
 EidosObjectClass *gSLiM_Subpopulation_Class = new Subpopulation_Class;
@@ -5551,80 +5546,25 @@ const std::vector<const EidosPropertySignature *> *Subpopulation_Class::Properti
 	if (!properties)
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_id));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_firstMaleIndex));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_genomes));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_individuals));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_immigrantSubpopIDs));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_immigrantSubpopFractions));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_selfingRate));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_cloningRate));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_sexRatio));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_spatialBounds));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_individualCount));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_tag));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_fitnessScaling));
+		
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,							true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_id));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_firstMaleIndex,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_firstMaleIndex));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomes,					true,	kEidosValueMaskObject, gSLiM_Genome_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_individuals,				true,	kEidosValueMaskObject, gSLiM_Individual_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_immigrantSubpopIDs,			true,	kEidosValueMaskInt)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_immigrantSubpopFractions,	true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_selfingRate,				true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_cloningRate,				true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_sexRatio,					true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_spatialBounds,				true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_individualCount,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_individualCount));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,						false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_tag)->DeclareAcceleratedSet(Subpopulation::SetProperty_Accelerated_tag));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_fitnessScaling,				false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_fitnessScaling)->DeclareAcceleratedSet(Subpopulation::SetProperty_Accelerated_fitnessScaling));
+		
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
 	return properties;
-}
-
-const EidosPropertySignature *Subpopulation_Class::SignatureForProperty(EidosGlobalStringID p_property_id) const
-{
-	// Signatures are all preallocated, for speed
-	static EidosPropertySignature *idSig = nullptr;
-	static EidosPropertySignature *firstMaleIndexSig = nullptr;
-	static EidosPropertySignature *genomesSig = nullptr;
-	static EidosPropertySignature *individualsSig = nullptr;
-	static EidosPropertySignature *immigrantSubpopIDsSig = nullptr;
-	static EidosPropertySignature *immigrantSubpopFractionsSig = nullptr;
-	static EidosPropertySignature *selfingRateSig = nullptr;
-	static EidosPropertySignature *cloningRateSig = nullptr;
-	static EidosPropertySignature *sexRatioSig = nullptr;
-	static EidosPropertySignature *spatialBoundsSig = nullptr;
-	static EidosPropertySignature *sizeSig = nullptr;
-	static EidosPropertySignature *tagSig = nullptr;
-	static EidosPropertySignature *fitnessScalingSig = nullptr;
-	
-	if (!idSig)
-	{
-		idSig =							(EidosPropertySignature *)(new EidosPropertySignature(gStr_id,							gID_id,							true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_id);
-		firstMaleIndexSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_firstMaleIndex,				gID_firstMaleIndex,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_firstMaleIndex);
-		genomesSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomes,						gID_genomes,					true,	kEidosValueMaskObject, gSLiM_Genome_Class));
-		individualsSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_individuals,					gID_individuals,				true,	kEidosValueMaskObject, gSLiM_Individual_Class));
-		immigrantSubpopIDsSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_immigrantSubpopIDs,			gID_immigrantSubpopIDs,			true,	kEidosValueMaskInt));
-		immigrantSubpopFractionsSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_immigrantSubpopFractions,	gID_immigrantSubpopFractions,	true,	kEidosValueMaskFloat));
-		selfingRateSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_selfingRate,					gID_selfingRate,				true,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
-		cloningRateSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_cloningRate,					gID_cloningRate,				true,	kEidosValueMaskFloat));
-		sexRatioSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_sexRatio,					gID_sexRatio,					true,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
-		spatialBoundsSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_spatialBounds,				gID_spatialBounds,				true,	kEidosValueMaskFloat));
-		sizeSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_individualCount,				gID_individualCount,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_individualCount);
-		tagSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,							gID_tag,						false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_tag)->DeclareAcceleratedSet(Subpopulation::SetProperty_Accelerated_tag);
-		fitnessScalingSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_fitnessScaling,				gID_fitnessScaling,				false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_fitnessScaling)->DeclareAcceleratedSet(Subpopulation::SetProperty_Accelerated_fitnessScaling);
-	}
-	
-	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_property_id)
-	{
-		case gID_id:						return idSig;
-		case gID_firstMaleIndex:			return firstMaleIndexSig;
-		case gID_genomes:					return genomesSig;
-		case gID_individuals:				return individualsSig;
-		case gID_immigrantSubpopIDs:		return immigrantSubpopIDsSig;
-		case gID_immigrantSubpopFractions:	return immigrantSubpopFractionsSig;
-		case gID_selfingRate:				return selfingRateSig;
-		case gID_cloningRate:				return cloningRateSig;
-		case gID_sexRatio:					return sexRatioSig;
-		case gID_spatialBounds:				return spatialBoundsSig;
-		case gID_individualCount:			return sizeSig;
-		case gID_tag:						return tagSig;
-		case gID_fitnessScaling:			return fitnessScalingSig;
-			
-			// all others, including gID_none
-		default:
-			return EidosObjectClass::SignatureForProperty(p_property_id);
-	}
 }
 
 const std::vector<const EidosMethodSignature *> *Subpopulation_Class::Methods(void) const
@@ -5634,137 +5574,38 @@ const std::vector<const EidosMethodSignature *> *Subpopulation_Class::Methods(vo
 	if (!methods)
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*SLiMEidosDictionary_Class::Methods());
-		methods->emplace_back(SignatureForMethodOrRaise(gID_setMigrationRates));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_pointInBounds));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_pointReflected));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_pointStopped));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_pointPeriodic));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_pointUniform));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_setCloningRate));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_setSelfingRate));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_setSexRatio));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_setSpatialBounds));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_setSubpopulationSize));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_addCloned));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_addCrossed));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_addEmpty));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_addSelfed));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_takeMigrants));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_removeSubpopulation));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_cachedFitness));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_sampleIndividuals));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_subsetIndividuals));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_defineSpatialMap));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_spatialMapColor));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_spatialMapValue));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_outputMSSample));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_outputVCFSample));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_outputSample));
+		
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMigrationRates, kEidosValueMaskNULL))->AddIntObject("sourceSubpops", gSLiM_Subpopulation_Class)->AddNumeric("rates"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointInBounds, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddFloat("point"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointReflected, kEidosValueMaskFloat))->AddFloat("point"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointStopped, kEidosValueMaskFloat))->AddFloat("point"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointPeriodic, kEidosValueMaskFloat))->AddFloat("point"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointUniform, kEidosValueMaskFloat)));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setCloningRate, kEidosValueMaskNULL))->AddNumeric("rate"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSelfingRate, kEidosValueMaskNULL))->AddNumeric_S("rate"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSexRatio, kEidosValueMaskNULL))->AddFloat_S("sexRatio"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSpatialBounds, kEidosValueMaskNULL))->AddFloat("bounds"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSubpopulationSize, kEidosValueMaskNULL))->AddInt_S("size"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addCloned, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddObject_S("parent", gSLiM_Individual_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addCrossed, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddObject_S("parent1", gSLiM_Individual_Class)->AddObject_S("parent2", gSLiM_Individual_Class)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addEmpty, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSelfed, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddObject_S("parent", gSLiM_Individual_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_takeMigrants, kEidosValueMaskNULL))->AddObject("migrants", gSLiM_Individual_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_removeSubpopulation, kEidosValueMaskNULL)));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_cachedFitness, kEidosValueMaskFloat))->AddInt_N("indices"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sampleIndividuals, kEidosValueMaskObject, gSLiM_Individual_Class))->AddInt_S("size")->AddLogical_OS("replace", gStaticEidosValue_LogicalF)->AddObject_OSN("exclude", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddString_OSN("sex", gStaticEidosValueNULL)->AddInt_OSN("tag", gStaticEidosValueNULL)->AddInt_OSN("minAge", gStaticEidosValueNULL)->AddInt_OSN("maxAge", gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_subsetIndividuals, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_OSN("exclude", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddString_OSN("sex", gStaticEidosValueNULL)->AddInt_OSN("tag", gStaticEidosValueNULL)->AddInt_OSN("minAge", gStaticEidosValueNULL)->AddInt_OSN("maxAge", gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_defineSpatialMap, kEidosValueMaskNULL))->AddString_S("name")->AddString_S("spatiality")->AddInt_N("gridSize")->AddFloat("values")->AddLogical_OS("interpolate", gStaticEidosValue_LogicalF)->AddFloat_ON("valueRange", gStaticEidosValueNULL)->AddString_ON("colors", gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_spatialMapColor, kEidosValueMaskString))->AddString_S("name")->AddFloat("value"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_spatialMapValue, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddString_S("name")->AddFloat("point"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMSSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputVCFSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
+		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	
 	return methods;
-}
-
-const EidosMethodSignature *Subpopulation_Class::SignatureForMethod(EidosGlobalStringID p_method_id) const
-{
-	// Signatures are all preallocated, for speed
-	static EidosInstanceMethodSignature *setMigrationRatesSig = nullptr;
-	static EidosInstanceMethodSignature *pointInBoundsSig = nullptr;
-	static EidosInstanceMethodSignature *pointReflectedSig = nullptr;
-	static EidosInstanceMethodSignature *pointStoppedSig = nullptr;
-	static EidosInstanceMethodSignature *pointPeriodicSig = nullptr;
-	static EidosInstanceMethodSignature *pointUniformSig = nullptr;
-	static EidosInstanceMethodSignature *setCloningRateSig = nullptr;
-	static EidosInstanceMethodSignature *setSelfingRateSig = nullptr;
-	static EidosInstanceMethodSignature *setSexRatioSig = nullptr;
-	static EidosInstanceMethodSignature *setSpatialBoundsSig = nullptr;
-	static EidosInstanceMethodSignature *setSubpopulationSizeSig = nullptr;
-	static EidosInstanceMethodSignature *addClonedSig = nullptr;
-	static EidosInstanceMethodSignature *addCrossedSig = nullptr;
-	static EidosInstanceMethodSignature *addEmptySig = nullptr;
-	static EidosInstanceMethodSignature *addSelfedSig = nullptr;
-	static EidosInstanceMethodSignature *takeMigrantsSig = nullptr;
-	static EidosInstanceMethodSignature *removeSubpopulationSig = nullptr;
-	static EidosInstanceMethodSignature *cachedFitnessSig = nullptr;
-	static EidosInstanceMethodSignature *sampleIndividualsSig = nullptr;
-	static EidosInstanceMethodSignature *subsetIndividualsSig = nullptr;
-	static EidosInstanceMethodSignature *defineSpatialMapSig = nullptr;
-	static EidosInstanceMethodSignature *spatialMapColorSig = nullptr;
-	static EidosInstanceMethodSignature *spatialMapValueSig = nullptr;
-	static EidosInstanceMethodSignature *outputMSSampleSig = nullptr;
-	static EidosInstanceMethodSignature *outputVCFSampleSig = nullptr;
-	static EidosInstanceMethodSignature *outputSampleSig = nullptr;
-	
-	if (!setMigrationRatesSig)
-	{
-		setMigrationRatesSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMigrationRates, kEidosValueMaskNULL))->AddIntObject("sourceSubpops", gSLiM_Subpopulation_Class)->AddNumeric("rates");
-		pointInBoundsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointInBounds, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddFloat("point");
-		pointReflectedSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointReflected, kEidosValueMaskFloat))->AddFloat("point");
-		pointStoppedSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointStopped, kEidosValueMaskFloat))->AddFloat("point");
-		pointPeriodicSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointPeriodic, kEidosValueMaskFloat))->AddFloat("point");
-		pointUniformSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointUniform, kEidosValueMaskFloat));
-		setCloningRateSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setCloningRate, kEidosValueMaskNULL))->AddNumeric("rate");
-		setSelfingRateSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSelfingRate, kEidosValueMaskNULL))->AddNumeric_S("rate");
-		setSexRatioSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSexRatio, kEidosValueMaskNULL))->AddFloat_S("sexRatio");
-		setSpatialBoundsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSpatialBounds, kEidosValueMaskNULL))->AddFloat("bounds");
-		setSubpopulationSizeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSubpopulationSize, kEidosValueMaskNULL))->AddInt_S("size");
-		addClonedSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addCloned, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddObject_S("parent", gSLiM_Individual_Class);
-		addCrossedSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addCrossed, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddObject_S("parent1", gSLiM_Individual_Class)->AddObject_S("parent2", gSLiM_Individual_Class)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL);
-		addEmptySig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addEmpty, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL);
-		addSelfedSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSelfed, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddObject_S("parent", gSLiM_Individual_Class);
-		takeMigrantsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_takeMigrants, kEidosValueMaskNULL))->AddObject("migrants", gSLiM_Individual_Class);
-		removeSubpopulationSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_removeSubpopulation, kEidosValueMaskNULL));
-		cachedFitnessSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_cachedFitness, kEidosValueMaskFloat))->AddInt_N("indices");
-		sampleIndividualsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sampleIndividuals, kEidosValueMaskObject, gSLiM_Individual_Class))->AddInt_S("size")->AddLogical_OS("replace", gStaticEidosValue_LogicalF)->AddObject_OSN("exclude", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddString_OSN("sex", gStaticEidosValueNULL)->AddInt_OSN("tag", gStaticEidosValueNULL)->AddInt_OSN("minAge", gStaticEidosValueNULL)->AddInt_OSN("maxAge", gStaticEidosValueNULL);
-		subsetIndividualsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_subsetIndividuals, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_OSN("exclude", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddString_OSN("sex", gStaticEidosValueNULL)->AddInt_OSN("tag", gStaticEidosValueNULL)->AddInt_OSN("minAge", gStaticEidosValueNULL)->AddInt_OSN("maxAge", gStaticEidosValueNULL);
-		defineSpatialMapSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_defineSpatialMap, kEidosValueMaskNULL))->AddString_S("name")->AddString_S("spatiality")->AddInt_N("gridSize")->AddFloat("values")->AddLogical_OS("interpolate", gStaticEidosValue_LogicalF)->AddFloat_ON("valueRange", gStaticEidosValueNULL)->AddString_ON("colors", gStaticEidosValueNULL);
-		spatialMapColorSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_spatialMapColor, kEidosValueMaskString))->AddString_S("name")->AddFloat("value");
-		spatialMapValueSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_spatialMapValue, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddString_S("name")->AddFloat("point");
-		outputMSSampleSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMSSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF);
-		outputVCFSampleSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputVCFSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF);
-		outputSampleSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF);
-	}
-	
-	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_method_id)
-	{
-		case gID_setMigrationRates:		return setMigrationRatesSig;
-		case gID_pointInBounds:			return pointInBoundsSig;
-		case gID_pointReflected:		return pointReflectedSig;
-		case gID_pointStopped:			return pointStoppedSig;
-		case gID_pointPeriodic:			return pointPeriodicSig;
-		case gID_pointUniform:			return pointUniformSig;
-		case gID_setCloningRate:		return setCloningRateSig;
-		case gID_setSelfingRate:		return setSelfingRateSig;
-		case gID_setSexRatio:			return setSexRatioSig;
-		case gID_setSpatialBounds:		return setSpatialBoundsSig;
-		case gID_setSubpopulationSize:	return setSubpopulationSizeSig;
-		case gID_addCloned:				return addClonedSig;
-		case gID_addCrossed:			return addCrossedSig;
-		case gID_addEmpty:				return addEmptySig;
-		case gID_addSelfed:				return addSelfedSig;
-		case gID_takeMigrants:			return takeMigrantsSig;
-		case gID_removeSubpopulation:	return removeSubpopulationSig;
-		case gID_cachedFitness:			return cachedFitnessSig;
-		case gID_sampleIndividuals:		return sampleIndividualsSig;
-		case gID_subsetIndividuals:		return subsetIndividualsSig;
-		case gID_defineSpatialMap:		return defineSpatialMapSig;
-		case gID_spatialMapColor:		return spatialMapColorSig;
-		case gID_spatialMapValue:		return spatialMapValueSig;
-		case gID_outputMSSample:		return outputMSSampleSig;
-		case gID_outputVCFSample:		return outputVCFSampleSig;
-		case gID_outputSample:			return outputSampleSig;
-			
-			// all others, including gID_none
-		default:
-			return SLiMEidosDictionary_Class::SignatureForMethod(p_method_id);
-	}
-}
-
-EidosValue_SP Subpopulation_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
-{
-	return EidosObjectClass::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
 }
 
 

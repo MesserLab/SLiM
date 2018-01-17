@@ -4741,17 +4741,12 @@ class InteractionType_Class : public SLiMEidosDictionary_Class
 public:
 	InteractionType_Class(const InteractionType_Class &p_original) = delete;	// no copy-construct
 	InteractionType_Class& operator=(const InteractionType_Class&) = delete;	// no copying
-	
 	inline InteractionType_Class(void) { }
 	
 	virtual const std::string &ElementType(void) const;
 	
 	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
-	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
-	
 	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
-	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
-	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 };
 
 EidosObjectClass *gSLiM_InteractionType_Class = new InteractionType_Class();
@@ -4769,52 +4764,18 @@ const std::vector<const EidosPropertySignature *> *InteractionType_Class::Proper
 	if (!properties)
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_id));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_reciprocal));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_sexSegregation));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_spatiality));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_maxDistance));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_tag));
+		
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(InteractionType::GetProperty_Accelerated_id));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_reciprocal,		true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_sexSegregation,	true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_spatiality,		true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_maxDistance,	false,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(InteractionType::GetProperty_Accelerated_tag));
+		
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
 	return properties;
-}
-
-const EidosPropertySignature *InteractionType_Class::SignatureForProperty(EidosGlobalStringID p_property_id) const
-{
-	// Signatures are all preallocated, for speed
-	static EidosPropertySignature *idSig = nullptr;
-	static EidosPropertySignature *reciprocalSig = nullptr;
-	static EidosPropertySignature *sexSegregationSig = nullptr;
-	static EidosPropertySignature *spatialitySig = nullptr;
-	static EidosPropertySignature *maxDistanceSig = nullptr;
-	static EidosPropertySignature *tagSig = nullptr;
-	
-	if (!idSig)
-	{
-		idSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_id,				gID_id,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(InteractionType::GetProperty_Accelerated_id);
-		reciprocalSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_reciprocal,		gID_reciprocal,		true,	kEidosValueMaskLogical | kEidosValueMaskSingleton));
-		sexSegregationSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_sexSegregation,	gID_sexSegregation,	true,	kEidosValueMaskString | kEidosValueMaskSingleton));
-		spatialitySig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_spatiality,		gID_spatiality,		true,	kEidosValueMaskString | kEidosValueMaskSingleton));
-		maxDistanceSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_maxDistance,		gID_maxDistance,	false,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
-		tagSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,				gID_tag,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(InteractionType::GetProperty_Accelerated_tag);
-	}
-	
-	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_property_id)
-	{
-		case gID_id:				return idSig;
-		case gID_reciprocal:		return reciprocalSig;
-		case gID_sexSegregation:	return sexSegregationSig;
-		case gID_spatiality:		return spatialitySig;
-		case gID_maxDistance:		return maxDistanceSig;
-		case gID_tag:				return tagSig;
-			
-			// all others, including gID_none
-		default:
-			return EidosObjectClass::SignatureForProperty(p_property_id);
-	}
 }
 
 const std::vector<const EidosMethodSignature *> *InteractionType_Class::Methods(void) const
@@ -4824,79 +4785,30 @@ const std::vector<const EidosMethodSignature *> *InteractionType_Class::Methods(
 	if (!methods)
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*SLiMEidosDictionary_Class::Methods());
-		methods->emplace_back(SignatureForMethodOrRaise(gID_distance));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_distanceToPoint));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_drawByStrength));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_evaluate));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_nearestNeighbors));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_nearestNeighborsOfPoint));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_setInteractionFunction));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_strength));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_totalOfNeighborStrengths));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_unevaluate));
+		
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_distance, kEidosValueMaskFloat))->AddObject("individuals1", gSLiM_Individual_Class)->AddObject_ON("individuals2", gSLiM_Individual_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_distanceToPoint, kEidosValueMaskFloat))->AddObject("individuals1", gSLiM_Individual_Class)->AddFloat("point"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_drawByStrength, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("individual", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_evaluate, kEidosValueMaskNULL))->AddObject_ON("subpops", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddLogical_OS("immediate", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_nearestNeighbors, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("individual", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_nearestNeighborsOfPoint, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("subpop", gSLiM_Subpopulation_Class)->AddFloat("point")->AddInt_OS("count", gStaticEidosValue_Integer1));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setInteractionFunction, kEidosValueMaskNULL))->AddString_S("functionType")->AddEllipsis());
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_strength, kEidosValueMaskFloat))->AddObject("individuals1", gSLiM_Individual_Class)->AddObject_ON("individuals2", gSLiM_Individual_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_totalOfNeighborStrengths, kEidosValueMaskFloat))->AddObject("individuals", gSLiM_Individual_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_unevaluate, kEidosValueMaskNULL)));
+		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	
 	return methods;
 }
 
-const EidosMethodSignature *InteractionType_Class::SignatureForMethod(EidosGlobalStringID p_method_id) const
-{
-	static EidosInstanceMethodSignature *distanceSig = nullptr;
-	static EidosInstanceMethodSignature *distanceToPointSig = nullptr;
-	static EidosInstanceMethodSignature *drawByStrengthSig = nullptr;
-	static EidosInstanceMethodSignature *evaluateSig = nullptr;
-	static EidosInstanceMethodSignature *nearestNeighborsSig = nullptr;
-	static EidosInstanceMethodSignature *nearestNeighborsOfPointSig = nullptr;
-	static EidosInstanceMethodSignature *setInteractionFunctionSig = nullptr;
-	static EidosInstanceMethodSignature *strengthSig = nullptr;
-	static EidosInstanceMethodSignature *totalOfNeighborStrengthsSig = nullptr;
-	static EidosInstanceMethodSignature *unevaluateSig = nullptr;
-	
-	if (!evaluateSig)
-	{
-		distanceSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_distance, kEidosValueMaskFloat))->AddObject("individuals1", gSLiM_Individual_Class)->AddObject_ON("individuals2", gSLiM_Individual_Class, gStaticEidosValueNULL);
-		distanceToPointSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_distanceToPoint, kEidosValueMaskFloat))->AddObject("individuals1", gSLiM_Individual_Class)->AddFloat("point");
-		drawByStrengthSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_drawByStrength, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("individual", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1);
-		evaluateSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_evaluate, kEidosValueMaskNULL))->AddObject_ON("subpops", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddLogical_OS("immediate", gStaticEidosValue_LogicalF);
-		nearestNeighborsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_nearestNeighbors, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("individual", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1);
-		nearestNeighborsOfPointSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_nearestNeighborsOfPoint, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("subpop", gSLiM_Subpopulation_Class)->AddFloat("point")->AddInt_OS("count", gStaticEidosValue_Integer1);
-		setInteractionFunctionSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setInteractionFunction, kEidosValueMaskNULL))->AddString_S("functionType")->AddEllipsis();
-		strengthSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_strength, kEidosValueMaskFloat))->AddObject("individuals1", gSLiM_Individual_Class)->AddObject_ON("individuals2", gSLiM_Individual_Class, gStaticEidosValueNULL);
-		totalOfNeighborStrengthsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_totalOfNeighborStrengths, kEidosValueMaskFloat))->AddObject("individuals", gSLiM_Individual_Class);
-		unevaluateSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_unevaluate, kEidosValueMaskNULL));
-	}
-	
-	switch (p_method_id)
-	{
-		case gID_distance:					return distanceSig;
-		case gID_distanceToPoint:			return distanceToPointSig;
-		case gID_drawByStrength:			return drawByStrengthSig;
-		case gID_evaluate:					return evaluateSig;
-		case gID_nearestNeighbors:			return nearestNeighborsSig;
-		case gID_nearestNeighborsOfPoint:	return nearestNeighborsOfPointSig;
-		case gID_setInteractionFunction:	return setInteractionFunctionSig;
-		case gID_strength:					return strengthSig;
-		case gID_totalOfNeighborStrengths:	return totalOfNeighborStrengthsSig;
-		case gID_unevaluate:				return unevaluateSig;
-			
-			// all others, including gID_none
-		default:
-			return SLiMEidosDictionary_Class::SignatureForMethod(p_method_id);
-	}
-}
-
-EidosValue_SP InteractionType_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
-{
-	return EidosObjectClass::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
-}
-
 
 //
-//	InteractionType_Class
+//	_InteractionsData
 //
 #pragma mark -
-#pragma mark InteractionType_Class
+#pragma mark _InteractionsData
 #pragma mark -
 
 _InteractionsData::_InteractionsData(_InteractionsData&& p_source)

@@ -33,6 +33,7 @@
 #include <vector>
 #include <string>
 #include <initializer_list>
+#include <unordered_map>
 
 #include "eidos_global.h"
 #include "eidos_intrusive_ptr.h"
@@ -1207,6 +1208,11 @@ public:
 
 class EidosObjectClass
 {
+protected:
+	std::unordered_map<EidosGlobalStringID, const EidosPropertySignature *> property_signatures_;
+	std::unordered_map<EidosGlobalStringID, const EidosMethodSignature *> method_signatures_;
+	bool dispatches_cached_ = false;
+	
 public:
 	EidosObjectClass(const EidosObjectClass &p_original) = delete;		// no copy-construct
 	EidosObjectClass& operator=(const EidosObjectClass&) = delete;		// no copying
@@ -1220,20 +1226,45 @@ public:
 	
 	virtual const std::string &ElementType(void) const;
 	
-	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
-	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
+	// We now use dispatch tables to look up our property and method signatures; this is faster than the old switch() dispatch
+	void CacheDispatchTables(void);
+	void RaiseForDispatchUninitialized(void) const __attribute__((__noreturn__)) __attribute__((analyzer_noreturn));
 	
+	inline __attribute__((always_inline)) const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const
+	{
+#if DEBUG
+		if (!dispatches_cached_)
+			RaiseForDispatchUninitialized();
+#endif
+		auto find_iter = property_signatures_.find(p_property_id);
+		
+		if (find_iter != property_signatures_.end())
+			return find_iter->second;
+		
+		return nullptr;
+	}
+	
+	inline __attribute__((always_inline)) const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const
+	{
+#if DEBUG
+		if (!dispatches_cached_)
+			RaiseForDispatchUninitialized();
+#endif
+		auto find_iter = method_signatures_.find(p_method_id);
+		
+		if (find_iter != method_signatures_.end())
+			return find_iter->second;
+		
+		return nullptr;
+	}
+	
+	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
 	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
-	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
 	
 	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_propertySignature(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_methodSignature(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_size(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
-	
-	// These non-virtual utility methods do the same as SignatureForProperty() / SignatureForMethod() but raise on failure
-	const EidosPropertySignature *SignatureForPropertyOrRaise(EidosGlobalStringID p_property_id) const;
-	const EidosMethodSignature *SignatureForMethodOrRaise(EidosGlobalStringID p_method_id) const;
 };
 
 extern EidosObjectClass *gEidos_UndefinedClassObject;

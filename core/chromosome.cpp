@@ -1101,17 +1101,12 @@ class Chromosome_Class : public EidosObjectClass
 public:
 	Chromosome_Class(const Chromosome_Class &p_original) = delete;	// no copy-construct
 	Chromosome_Class& operator=(const Chromosome_Class&) = delete;	// no copying
-	
 	inline Chromosome_Class(void) { }
 	
 	virtual const std::string &ElementType(void) const;
 	
 	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
-	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
-	
 	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
-	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
-	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 };
 
 EidosObjectClass *gSLiM_Chromosome_Class = new Chromosome_Class();
@@ -1129,124 +1124,36 @@ const std::vector<const EidosPropertySignature *> *Chromosome_Class::Properties(
 	if (!properties)
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_genomicElements));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_lastPosition));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutationEndPositions));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutationEndPositionsM));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutationEndPositionsF));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutationRates));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutationRatesM));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutationRatesF));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_overallMutationRate));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_overallMutationRateM));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_overallMutationRateF));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_overallRecombinationRate));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_overallRecombinationRateM));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_overallRecombinationRateF));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_recombinationEndPositions));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_recombinationEndPositionsM));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_recombinationEndPositionsF));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_recombinationRates));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_recombinationRatesM));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_recombinationRatesF));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_geneConversionFraction));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_geneConversionMeanLength));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_tag));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_colorSubstitution));
+		
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElements,			true,	kEidosValueMaskObject, gSLiM_GenomicElement_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_lastPosition,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationEndPositions,		true,	kEidosValueMaskInt)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationEndPositionsM,		true,	kEidosValueMaskInt)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationEndPositionsF,		true,	kEidosValueMaskInt)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationRates,				true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationRatesM,				true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationRatesF,				true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_overallMutationRate,		true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_overallMutationRateM,		true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_overallMutationRateF,		true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_overallRecombinationRate,	true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_overallRecombinationRateM,	true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_overallRecombinationRateF,	true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationEndPositions,	true,	kEidosValueMaskInt)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationEndPositionsM,	true,	kEidosValueMaskInt)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationEndPositionsF,	true,	kEidosValueMaskInt)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationRates,			true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationRatesM,		true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationRatesF,		true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_geneConversionFraction,		false,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_geneConversionMeanLength,	false,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,						false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_colorSubstitution,			false,	kEidosValueMaskString | kEidosValueMaskSingleton)));
+		
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
 	return properties;
-}
-
-const EidosPropertySignature *Chromosome_Class::SignatureForProperty(EidosGlobalStringID p_property_id) const
-{
-	// Signatures are all preallocated, for speed
-	static EidosPropertySignature *genomicElementsSig = nullptr;
-	static EidosPropertySignature *lastPositionSig = nullptr;
-	static EidosPropertySignature *mutationEndPositionsSig = nullptr;
-	static EidosPropertySignature *mutationEndPositionsMSig = nullptr;
-	static EidosPropertySignature *mutationEndPositionsFSig = nullptr;
-	static EidosPropertySignature *mutationRatesSig = nullptr;
-	static EidosPropertySignature *mutationRatesMSig = nullptr;
-	static EidosPropertySignature *mutationRatesFSig = nullptr;
-	static EidosPropertySignature *overallMutationRateSig = nullptr;
-	static EidosPropertySignature *overallMutationRateMSig = nullptr;
-	static EidosPropertySignature *overallMutationRateFSig = nullptr;
-	static EidosPropertySignature *overallRecombinationRateSig = nullptr;
-	static EidosPropertySignature *overallRecombinationRateMSig = nullptr;
-	static EidosPropertySignature *overallRecombinationRateFSig = nullptr;
-	static EidosPropertySignature *recombinationEndPositionsSig = nullptr;
-	static EidosPropertySignature *recombinationEndPositionsMSig = nullptr;
-	static EidosPropertySignature *recombinationEndPositionsFSig = nullptr;
-	static EidosPropertySignature *recombinationRatesSig = nullptr;
-	static EidosPropertySignature *recombinationRatesMSig = nullptr;
-	static EidosPropertySignature *recombinationRatesFSig = nullptr;
-	static EidosPropertySignature *geneConversionFractionSig = nullptr;
-	static EidosPropertySignature *geneConversionMeanLengthSig = nullptr;
-	static EidosPropertySignature *tagSig = nullptr;
-	static EidosPropertySignature *colorSubstitutionSig = nullptr;
-	
-	if (!genomicElementsSig)
-	{
-		genomicElementsSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElements,				gID_genomicElements,			true,	kEidosValueMaskObject, gSLiM_GenomicElement_Class));
-		lastPositionSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_lastPosition,				gID_lastPosition,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
-		mutationEndPositionsSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationEndPositions,		gID_mutationEndPositions,		true,	kEidosValueMaskInt));
-		mutationEndPositionsMSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationEndPositionsM,		gID_mutationEndPositionsM,		true,	kEidosValueMaskInt));
-		mutationEndPositionsFSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationEndPositionsF,		gID_mutationEndPositionsF,		true,	kEidosValueMaskInt));
-		mutationRatesSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationRates,				gID_mutationRates,				true,	kEidosValueMaskFloat));
-		mutationRatesMSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationRatesM,				gID_mutationRatesM,				true,	kEidosValueMaskFloat));
-		mutationRatesFSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationRatesF,				gID_mutationRatesF,				true,	kEidosValueMaskFloat));
-		overallMutationRateSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_overallMutationRate,			gID_overallMutationRate,		true,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
-		overallMutationRateMSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_overallMutationRateM,		gID_overallMutationRateM,		true,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
-		overallMutationRateFSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_overallMutationRateF,		gID_overallMutationRateF,		true,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
-		overallRecombinationRateSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_overallRecombinationRate,	gID_overallRecombinationRate,	true,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
-		overallRecombinationRateMSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_overallRecombinationRateM,	gID_overallRecombinationRateM,	true,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
-		overallRecombinationRateFSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_overallRecombinationRateF,	gID_overallRecombinationRateF,	true,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
-		recombinationEndPositionsSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationEndPositions,	gID_recombinationEndPositions,	true,	kEidosValueMaskInt));
-		recombinationEndPositionsMSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationEndPositionsM,	gID_recombinationEndPositionsM,	true,	kEidosValueMaskInt));
-		recombinationEndPositionsFSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationEndPositionsF,	gID_recombinationEndPositionsF,	true,	kEidosValueMaskInt));
-		recombinationRatesSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationRates,			gID_recombinationRates,			true,	kEidosValueMaskFloat));
-		recombinationRatesMSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationRatesM,			gID_recombinationRatesM,		true,	kEidosValueMaskFloat));
-		recombinationRatesFSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationRatesF,			gID_recombinationRatesF,		true,	kEidosValueMaskFloat));
-		geneConversionFractionSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_geneConversionFraction,		gID_geneConversionFraction,		false,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
-		geneConversionMeanLengthSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_geneConversionMeanLength,	gID_geneConversionMeanLength,	false,	kEidosValueMaskFloat | kEidosValueMaskSingleton));
-		tagSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,							gID_tag,						false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
-		colorSubstitutionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_colorSubstitution,			gID_colorSubstitution,			false,	kEidosValueMaskString | kEidosValueMaskSingleton));
-	}
-	
-	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_property_id)
-	{
-		case gID_genomicElements:				return genomicElementsSig;
-		case gID_lastPosition:					return lastPositionSig;
-		case gID_mutationEndPositions:			return mutationEndPositionsSig;
-		case gID_mutationEndPositionsM:			return mutationEndPositionsMSig;
-		case gID_mutationEndPositionsF:			return mutationEndPositionsFSig;
-		case gID_mutationRates:					return mutationRatesSig;
-		case gID_mutationRatesM:				return mutationRatesMSig;
-		case gID_mutationRatesF:				return mutationRatesFSig;
-		case gID_overallMutationRate:			return overallMutationRateSig;
-		case gID_overallMutationRateM:			return overallMutationRateMSig;
-		case gID_overallMutationRateF:			return overallMutationRateFSig;
-		case gID_overallRecombinationRate:		return overallRecombinationRateSig;
-		case gID_overallRecombinationRateM:		return overallRecombinationRateMSig;
-		case gID_overallRecombinationRateF:		return overallRecombinationRateFSig;
-		case gID_recombinationEndPositions:		return recombinationEndPositionsSig;
-		case gID_recombinationEndPositionsM:	return recombinationEndPositionsMSig;
-		case gID_recombinationEndPositionsF:	return recombinationEndPositionsFSig;
-		case gID_recombinationRates:			return recombinationRatesSig;
-		case gID_recombinationRatesM:			return recombinationRatesMSig;
-		case gID_recombinationRatesF:			return recombinationRatesFSig;
-		case gID_geneConversionFraction:		return geneConversionFractionSig;
-		case gID_geneConversionMeanLength:		return geneConversionMeanLengthSig;
-		case gID_tag:							return tagSig;
-		case gID_colorSubstitution:				return colorSubstitutionSig;
-			
-			// all others, including gID_none
-		default:
-			return EidosObjectClass::SignatureForProperty(p_property_id);
-	}
 }
 
 const std::vector<const EidosMethodSignature *> *Chromosome_Class::Methods(void) const
@@ -1256,39 +1163,14 @@ const std::vector<const EidosMethodSignature *> *Chromosome_Class::Methods(void)
 	if (!methods)
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
-		methods->emplace_back(SignatureForMethodOrRaise(gID_setMutationRate));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_setRecombinationRate));
+		
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationRate, kEidosValueMaskNULL))->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setRecombinationRate, kEidosValueMaskNULL))->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
+		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	
 	return methods;
-}
-
-const EidosMethodSignature *Chromosome_Class::SignatureForMethod(EidosGlobalStringID p_method_id) const
-{
-	static EidosInstanceMethodSignature *setMutationRateSig = nullptr;
-	static EidosInstanceMethodSignature *setRecombinationRateSig = nullptr;
-	
-	if (!setMutationRateSig)
-	{
-		setMutationRateSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationRate, kEidosValueMaskNULL))->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk);
-		setRecombinationRateSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setRecombinationRate, kEidosValueMaskNULL))->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk);
-	}
-	
-	switch (p_method_id)
-	{
-		case gID_setMutationRate:		return setMutationRateSig;
-		case gID_setRecombinationRate:	return setRecombinationRateSig;
-			
-			// all others, including gID_none
-		default:
-			return EidosObjectClass::SignatureForMethod(p_method_id);
-	}
-}
-
-EidosValue_SP Chromosome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
-{
-	return EidosObjectClass::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
 }
 
 

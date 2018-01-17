@@ -3207,12 +3207,14 @@ EidosObjectElement *EidosObjectElement::Release(void)
 
 EidosValue_SP EidosObjectElement::GetProperty(EidosGlobalStringID p_property_id)
 {
+	// This is the backstop, called by subclasses
 	EIDOS_TERMINATION << "ERROR (EidosObjectElement::GetProperty for " << Class()->ElementType() << "): (internal error) attempt to get a value for property " << Eidos_StringForGlobalStringID(p_property_id) << " was not handled by subclass." << EidosTerminate(nullptr);
 }
 
 void EidosObjectElement::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
 {
 #pragma unused(p_value)
+	// This is the backstop, called by subclasses
 	const EidosPropertySignature *signature = Class()->SignatureForProperty(p_property_id);
 	
 	if (!signature)
@@ -3426,34 +3428,53 @@ const std::string &EidosObjectClass::ElementType(void) const
 	return gEidosStr_undefined;
 }
 
-const std::vector<const EidosPropertySignature *> *EidosObjectClass::Properties(void) const
+void EidosObjectClass::CacheDispatchTables(void)
 {
-	static std::vector<const EidosPropertySignature *> *empty_sigs = nullptr;
+	if (dispatches_cached_)
+		EIDOS_TERMINATION << "ERROR (EidosObjectClass::RaiseForDispatchUninitialized): (internal error) dispatch tables not initialized for class " << ElementType() << "." << EidosTerminate(nullptr);
 	
-	if (!empty_sigs)
 	{
-		empty_sigs = new std::vector<const EidosPropertySignature *>;
+		const std::vector<const EidosPropertySignature *> *properties = Properties();
 		
-		// keep alphabetical order here
+		for (const EidosPropertySignature *sig : *properties)
+		{
+			EidosGlobalStringID id = sig->property_id_;
+			
+			property_signatures_.emplace(std::pair<EidosGlobalStringID, const EidosPropertySignature *>(id, sig));
+		}
 	}
 	
-	return empty_sigs;
+	{
+		const std::vector<const EidosMethodSignature *> *methods = Methods();
+		
+		for (const EidosMethodSignature *sig : *methods)
+		{
+			EidosGlobalStringID id = sig->call_id_;
+			
+			method_signatures_.emplace(std::pair<EidosGlobalStringID, const EidosMethodSignature *>(id, sig));
+		}
+	}
+	
+	dispatches_cached_ = true;
 }
 
-const EidosPropertySignature *EidosObjectClass::SignatureForProperty(EidosGlobalStringID p_property_id) const
+void EidosObjectClass::RaiseForDispatchUninitialized(void) const
 {
-#pragma unused(p_property_id)
-	return nullptr;
+	EIDOS_TERMINATION << "ERROR (EidosObjectClass::RaiseForDispatchUninitialized): (internal error) dispatch tables not initialized for class " << ElementType() << "." << EidosTerminate(nullptr);
 }
 
-const EidosPropertySignature *EidosObjectClass::SignatureForPropertyOrRaise(EidosGlobalStringID p_property_id) const
+const std::vector<const EidosPropertySignature *> *EidosObjectClass::Properties(void) const
 {
-	const EidosPropertySignature *signature = SignatureForProperty(p_property_id);
+	static std::vector<const EidosPropertySignature *> *properties = nullptr;
 	
-	if (!signature)
-		EIDOS_TERMINATION << "ERROR (EidosObjectClass::SignatureForPropertyOrRaise for " << ElementType() << "): (internal error) missing property " << Eidos_StringForGlobalStringID(p_property_id) << "." << EidosTerminate(nullptr);
+	if (!properties)
+	{
+		properties = new std::vector<const EidosPropertySignature *>;
+		
+		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
+	}
 	
-	return signature;
+	return properties;
 }
 
 const std::vector<const EidosMethodSignature *> *EidosObjectClass::Methods(void) const
@@ -3464,54 +3485,15 @@ const std::vector<const EidosMethodSignature *> *EidosObjectClass::Methods(void)
 	{
 		methods = new std::vector<const EidosMethodSignature *>;
 		
-		// keep alphabetical order here
-		methods->emplace_back(SignatureForMethodOrRaise(gEidosID_methodSignature));
-		methods->emplace_back(SignatureForMethodOrRaise(gEidosID_propertySignature));
-		methods->emplace_back(SignatureForMethodOrRaise(gEidosID_size));
-		methods->emplace_back(SignatureForMethodOrRaise(gEidosID_str));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_methodSignature, kEidosValueMaskNULL))->AddString_OSN("methodName", gStaticEidosValueNULL));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_propertySignature, kEidosValueMaskNULL))->AddString_OSN("propertyName", gStaticEidosValueNULL));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_size, kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_str, kEidosValueMaskNULL)));
+		
+		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	
 	return methods;
-}
-
-const EidosMethodSignature *EidosObjectClass::SignatureForMethod(EidosGlobalStringID p_method_id) const
-{
-	// Signatures are all preallocated, for speed
-	static EidosClassMethodSignature *methodSig = nullptr;
-	static EidosClassMethodSignature *propertySig = nullptr;
-	static EidosClassMethodSignature *sizeSig = nullptr;
-	static EidosInstanceMethodSignature *strSig = nullptr;
-	
-	if (!methodSig)
-	{
-		methodSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_methodSignature, kEidosValueMaskNULL))->AddString_OSN("methodName", gStaticEidosValueNULL);
-		propertySig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_propertySignature, kEidosValueMaskNULL))->AddString_OSN("propertyName", gStaticEidosValueNULL);
-		sizeSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_size, kEidosValueMaskInt | kEidosValueMaskSingleton));
-		strSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_str, kEidosValueMaskNULL));
-	}
-	
-	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_method_id)
-	{
-		case gEidosID_methodSignature:		return methodSig;
-		case gEidosID_propertySignature:	return propertySig;
-		case gEidosID_size:					return sizeSig;
-		case gEidosID_str:					return strSig;
-			
-			// all others, including gID_none
-		default:
-			return nullptr;
-	}
-}
-
-const EidosMethodSignature *EidosObjectClass::SignatureForMethodOrRaise(EidosGlobalStringID p_method_id) const
-{
-	const EidosMethodSignature *signature = SignatureForMethod(p_method_id);
-	
-	if (!signature)
-		EIDOS_TERMINATION << "ERROR (EidosObjectClass::SignatureForMethodOrRaise for " << ElementType() << "): (internal error) missing method " << Eidos_StringForGlobalStringID(p_method_id) << "." << EidosTerminate(nullptr);
-	
-	return signature;
 }
 
 EidosValue_SP EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const

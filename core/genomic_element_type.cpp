@@ -325,17 +325,12 @@ class GenomicElementType_Class : public SLiMEidosDictionary_Class
 public:
 	GenomicElementType_Class(const GenomicElementType_Class &p_original) = delete;	// no copy-construct
 	GenomicElementType_Class& operator=(const GenomicElementType_Class&) = delete;	// no copying
-	
 	inline GenomicElementType_Class(void) { }
 	
 	virtual const std::string &ElementType(void) const;
 	
 	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
-	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
-	
 	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
-	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
-	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 };
 
 EidosObjectClass *gSLiM_GenomicElementType_Class = new GenomicElementType_Class();
@@ -353,48 +348,17 @@ const std::vector<const EidosPropertySignature *> *GenomicElementType_Class::Pro
 	if (!properties)
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_id));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutationTypes));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutationFractions));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_tag));
-		properties->emplace_back(SignatureForPropertyOrRaise(gEidosID_color));
+		
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(GenomicElementType::GetProperty_Accelerated_id));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationTypes,		true,	kEidosValueMaskObject, gSLiM_MutationType_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationFractions,	true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(GenomicElementType::GetProperty_Accelerated_tag));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_color,			false,	kEidosValueMaskString | kEidosValueMaskSingleton)));
+		
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
 	return properties;
-}
-
-const EidosPropertySignature *GenomicElementType_Class::SignatureForProperty(EidosGlobalStringID p_property_id) const
-{
-	// Signatures are all preallocated, for speed
-	static EidosPropertySignature *idSig = nullptr;
-	static EidosPropertySignature *mutationTypesSig = nullptr;
-	static EidosPropertySignature *mutationFractionsSig = nullptr;
-	static EidosPropertySignature *tagSig = nullptr;
-	static EidosPropertySignature *colorSig = nullptr;
-	
-	if (!idSig)
-	{
-		idSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_id,					gID_id,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(GenomicElementType::GetProperty_Accelerated_id);
-		mutationTypesSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationTypes,		gID_mutationTypes,		true,	kEidosValueMaskObject, gSLiM_MutationType_Class));
-		mutationFractionsSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationFractions,	gID_mutationFractions,	true,	kEidosValueMaskFloat));
-		tagSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					gID_tag,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(GenomicElementType::GetProperty_Accelerated_tag);
-		colorSig =				(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_color,			gEidosID_color,			false,	kEidosValueMaskString | kEidosValueMaskSingleton));
-	}
-	
-	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_property_id)
-	{
-		case gID_id:				return idSig;
-		case gID_mutationTypes:		return mutationTypesSig;
-		case gID_mutationFractions:	return mutationFractionsSig;
-		case gID_tag:				return tagSig;
-		case gEidosID_color:		return colorSig;
-			
-			// all others, including gID_none
-		default:
-			return EidosObjectClass::SignatureForProperty(p_property_id);
-	}
 }
 
 const std::vector<const EidosMethodSignature *> *GenomicElementType_Class::Methods(void) const
@@ -404,31 +368,13 @@ const std::vector<const EidosMethodSignature *> *GenomicElementType_Class::Metho
 	if (!methods)
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*SLiMEidosDictionary_Class::Methods());
-		methods->emplace_back(SignatureForMethodOrRaise(gID_setMutationFractions));
+		
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationFractions, kEidosValueMaskNULL))->AddIntObject("mutationTypes", gSLiM_MutationType_Class)->AddNumeric("proportions"));
+		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	
 	return methods;
-}
-
-const EidosMethodSignature *GenomicElementType_Class::SignatureForMethod(EidosGlobalStringID p_method_id) const
-{
-	static EidosInstanceMethodSignature *setMutationFractionsSig = nullptr;
-	
-	if (!setMutationFractionsSig)
-	{
-		setMutationFractionsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationFractions, kEidosValueMaskNULL))->AddIntObject("mutationTypes", gSLiM_MutationType_Class)->AddNumeric("proportions");
-	}
-	
-	if (p_method_id == gID_setMutationFractions)
-		return setMutationFractionsSig;
-	else
-		return SLiMEidosDictionary_Class::SignatureForMethod(p_method_id);
-}
-
-EidosValue_SP GenomicElementType_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
-{
-	return EidosObjectClass::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
 }
 
 

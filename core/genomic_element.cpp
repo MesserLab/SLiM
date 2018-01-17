@@ -243,17 +243,12 @@ class GenomicElement_Class : public EidosObjectClass
 public:
 	GenomicElement_Class(const GenomicElement_Class &p_original) = delete;	// no copy-construct
 	GenomicElement_Class& operator=(const GenomicElement_Class&) = delete;	// no copying
-	
 	inline GenomicElement_Class(void) { }
 	
 	virtual const std::string &ElementType(void) const;
 	
 	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
-	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
-	
 	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
-	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
-	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 };
 
 EidosObjectClass *gSLiM_GenomicElement_Class = new GenomicElement_Class();
@@ -271,44 +266,16 @@ const std::vector<const EidosPropertySignature *> *GenomicElement_Class::Propert
 	if (!properties)
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_genomicElementType));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_startPosition));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_endPosition));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_tag));
+		
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElementType,	true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_GenomicElementType_Class))->DeclareAcceleratedGet(GenomicElement::GetProperty_Accelerated_genomicElementType));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_startPosition,		true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(GenomicElement::GetProperty_Accelerated_startPosition));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_endPosition,		true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(GenomicElement::GetProperty_Accelerated_endPosition));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(GenomicElement::GetProperty_Accelerated_tag));
+		
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
 	return properties;
-}
-
-const EidosPropertySignature *GenomicElement_Class::SignatureForProperty(EidosGlobalStringID p_property_id) const
-{
-	// Signatures are all preallocated, for speed
-	static EidosPropertySignature *genomicElementTypeSig = nullptr;
-	static EidosPropertySignature *startPositionSig = nullptr;
-	static EidosPropertySignature *endPositionSig = nullptr;
-	static EidosPropertySignature *tagSig = nullptr;
-	
-	if (!genomicElementTypeSig)
-	{
-		genomicElementTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElementType,	gID_genomicElementType,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_GenomicElementType_Class))->DeclareAcceleratedGet(GenomicElement::GetProperty_Accelerated_genomicElementType);
-		startPositionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_startPosition,		gID_startPosition,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(GenomicElement::GetProperty_Accelerated_startPosition);
-		endPositionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_endPosition,			gID_endPosition,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(GenomicElement::GetProperty_Accelerated_endPosition);
-		tagSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					gID_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(GenomicElement::GetProperty_Accelerated_tag);
-	}
-	
-	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_property_id)
-	{
-		case gID_genomicElementType:	return genomicElementTypeSig;
-		case gID_startPosition:			return startPositionSig;
-		case gID_endPosition:			return endPositionSig;
-		case gID_tag:					return tagSig;
-			
-			// all others, including gID_none
-		default:
-			return EidosObjectClass::SignatureForProperty(p_property_id);
-	}
 }
 
 const std::vector<const EidosMethodSignature *> *GenomicElement_Class::Methods(void) const
@@ -318,31 +285,13 @@ const std::vector<const EidosMethodSignature *> *GenomicElement_Class::Methods(v
 	if (!methods)
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
-		methods->emplace_back(SignatureForMethodOrRaise(gID_setGenomicElementType));
+		
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setGenomicElementType, kEidosValueMaskNULL))->AddIntObject_S("genomicElementType", gSLiM_GenomicElementType_Class));
+		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	
 	return methods;
-}
-
-const EidosMethodSignature *GenomicElement_Class::SignatureForMethod(EidosGlobalStringID p_method_id) const
-{
-	static EidosInstanceMethodSignature *setGenomicElementTypeSig = nullptr;
-	
-	if (!setGenomicElementTypeSig)
-	{
-		setGenomicElementTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setGenomicElementType, kEidosValueMaskNULL))->AddIntObject_S("genomicElementType", gSLiM_GenomicElementType_Class);
-	}
-	
-	if (p_method_id == gID_setGenomicElementType)
-		return setGenomicElementTypeSig;
-	else
-		return EidosObjectClass::SignatureForMethod(p_method_id);
-}
-
-EidosValue_SP GenomicElement_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
-{
-	return EidosObjectClass::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
 }
 
 

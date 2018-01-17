@@ -32,12 +32,12 @@
 #pragma mark -
 
 EidosCallSignature::EidosCallSignature(const std::string &p_call_name, EidosValueMask p_return_mask)
-	: call_name_(p_call_name), return_mask_(p_return_mask), return_class_(nullptr)
+	: call_name_(p_call_name), call_id_(Eidos_GlobalStringIDForString(p_call_name)), return_mask_(p_return_mask), return_class_(nullptr)
 {
 }
 
 EidosCallSignature::EidosCallSignature(const std::string &p_call_name, EidosValueMask p_return_mask, const EidosObjectClass *p_return_class)
-	: call_name_(p_call_name), return_mask_(p_return_mask), return_class_(p_return_class)
+	: call_name_(p_call_name), call_id_(Eidos_GlobalStringIDForString(p_call_name)), return_mask_(p_return_mask), return_class_(p_return_class)
 {
 }
 

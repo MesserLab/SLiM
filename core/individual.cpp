@@ -1244,17 +1244,12 @@ class Individual_Class : public SLiMEidosDictionary_Class
 public:
 	Individual_Class(const Individual_Class &p_original) = delete;	// no copy-construct
 	Individual_Class& operator=(const Individual_Class&) = delete;	// no copying
-	
 	inline Individual_Class(void) { }
 	
 	virtual const std::string &ElementType(void) const;
 	
 	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
-	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
-	
 	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
-	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
-	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 };
 
 EidosObjectClass *gSLiM_Individual_Class = new Individual_Class();
@@ -1272,96 +1267,29 @@ const std::vector<const EidosPropertySignature *> *Individual_Class::Properties(
 	if (!properties)
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_subpopulation));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_index));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_genomes));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_sex));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_tag));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_tagF));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_fitnessScaling));
-		properties->emplace_back(SignatureForPropertyOrRaise(gEidosID_x));
-		properties->emplace_back(SignatureForPropertyOrRaise(gEidosID_y));
-		properties->emplace_back(SignatureForPropertyOrRaise(gEidosID_z));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_age));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_pedigreeID));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_pedigreeParentIDs));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_pedigreeGrandparentIDs));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_spatialPosition));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_uniqueMutations));
-		properties->emplace_back(SignatureForPropertyOrRaise(gEidosID_color));
+		
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopulation,			true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_subpopulation));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_index,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_index));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomes,				true,	kEidosValueMaskObject, gSLiM_Genome_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_sex,					true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_tag)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_tag));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tagF,					false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_tagF)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_tagF));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_fitnessScaling,			false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_fitnessScaling)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_fitnessScaling));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_x,					false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_x)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_x));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_y,					false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_y)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_y));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_z,					false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_z)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_z));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_age,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_age));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeID,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_pedigreeID));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeParentIDs,		true,	kEidosValueMaskInt)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeGrandparentIDs,	true,	kEidosValueMaskInt)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_spatialPosition,		true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_uniqueMutations,		true,	kEidosValueMaskObject, gSLiM_Mutation_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_color,				false,	kEidosValueMaskString | kEidosValueMaskSingleton))->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_color));
+		
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
 	return properties;
-}
-
-const EidosPropertySignature *Individual_Class::SignatureForProperty(EidosGlobalStringID p_property_id) const
-{
-	// Signatures are all preallocated, for speed
-	static EidosPropertySignature *subpopulationSig = nullptr;
-	static EidosPropertySignature *indexSig = nullptr;
-	static EidosPropertySignature *genomesSig = nullptr;
-	static EidosPropertySignature *sexSig = nullptr;
-	static EidosPropertySignature *tagSig = nullptr;
-	static EidosPropertySignature *tagFSig = nullptr;
-	static EidosPropertySignature *fitnessScalingSig = nullptr;
-	static EidosPropertySignature *xSig = nullptr;
-	static EidosPropertySignature *ySig = nullptr;
-	static EidosPropertySignature *zSig = nullptr;
-	static EidosPropertySignature *ageSig = nullptr;
-	static EidosPropertySignature *pedigreeIDSig = nullptr;
-	static EidosPropertySignature *pedigreeParentIDsSig = nullptr;
-	static EidosPropertySignature *pedigreeGrandparentIDsSig = nullptr;
-	static EidosPropertySignature *spatialPositionSig = nullptr;
-	static EidosPropertySignature *uniqueMutationsSig = nullptr;
-	static EidosPropertySignature *colorSig = nullptr;
-	
-	if (!subpopulationSig)
-	{
-		subpopulationSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopulation,			gID_subpopulation,				true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_subpopulation);
-		indexSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_index,					gID_index,						true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_index);
-		genomesSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomes,					gID_genomes,					true,	kEidosValueMaskObject, gSLiM_Genome_Class));
-		sexSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_sex,						gID_sex,						true,	kEidosValueMaskString | kEidosValueMaskSingleton));
-		tagSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,						gID_tag,						false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_tag)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_tag);
-		tagFSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_tagF,					gID_tagF,						false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_tagF)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_tagF);
-		fitnessScalingSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_fitnessScaling,			gID_fitnessScaling,				false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_fitnessScaling)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_fitnessScaling);
-		xSig =							(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_x,					gEidosID_x,						false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_x)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_x);
-		ySig =							(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_y,					gEidosID_y,						false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_y)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_y);
-		zSig =							(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_z,					gEidosID_z,						false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_z)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_z);
-		ageSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_age,						gID_age,						true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_age);
-		pedigreeIDSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeID,				gID_pedigreeID,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_pedigreeID);
-		pedigreeParentIDsSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeParentIDs,		gID_pedigreeParentIDs,			true,	kEidosValueMaskInt));
-		pedigreeGrandparentIDsSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeGrandparentIDs,	gID_pedigreeGrandparentIDs,		true,	kEidosValueMaskInt));
-		spatialPositionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_spatialPosition,			gID_spatialPosition,			true,	kEidosValueMaskFloat));
-		uniqueMutationsSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_uniqueMutations,			gID_uniqueMutations,			true,	kEidosValueMaskObject, gSLiM_Mutation_Class));
-		colorSig =						(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_color,				gEidosID_color,					false,	kEidosValueMaskString | kEidosValueMaskSingleton))->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_color);
-	}
-	
-	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_property_id)
-	{
-		case gID_subpopulation:				return subpopulationSig;
-		case gID_index:						return indexSig;
-		case gID_genomes:					return genomesSig;
-		case gID_sex:						return sexSig;
-		case gID_tag:						return tagSig;
-		case gID_tagF:						return tagFSig;
-		case gID_fitnessScaling:			return fitnessScalingSig;
-		case gEidosID_x:					return xSig;
-		case gEidosID_y:					return ySig;
-		case gEidosID_z:					return zSig;
-		case gID_age:						return ageSig;
-		case gID_pedigreeID:				return pedigreeIDSig;
-		case gID_pedigreeParentIDs:			return pedigreeParentIDsSig;
-		case gID_pedigreeGrandparentIDs:	return pedigreeGrandparentIDsSig;
-		case gID_spatialPosition:			return spatialPositionSig;
-		case gID_uniqueMutations:			return uniqueMutationsSig;
-		case gEidosID_color:				return colorSig;
-			
-			// all others, including gID_none
-		default:
-			return EidosObjectClass::SignatureForProperty(p_property_id);
-	}
 }
 
 const std::vector<const EidosMethodSignature *> *Individual_Class::Methods(void) const
@@ -1371,56 +1299,18 @@ const std::vector<const EidosMethodSignature *> *Individual_Class::Methods(void)
 	if (!methods)
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*SLiMEidosDictionary_Class::Methods());
-		methods->emplace_back(SignatureForMethodOrRaise(gID_containsMutations));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_countOfMutationsOfType));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_relatedness));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_setSpatialPosition));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_sumOfMutationsOfType));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_uniqueMutationsOfType));
+		
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMutations, kEidosValueMaskLogical))->AddObject("mutations", gSLiM_Mutation_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_relatedness, kEidosValueMaskFloat))->AddObject("individuals", gSLiM_Individual_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSpatialPosition, kEidosValueMaskNULL))->AddFloat("position"));
+		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sumOfMutationsOfType, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class))->DeclareAcceleratedImp(Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_uniqueMutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
+		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	
 	return methods;
-}
-
-const EidosMethodSignature *Individual_Class::SignatureForMethod(EidosGlobalStringID p_method_id) const
-{
-	static EidosInstanceMethodSignature *containsMutationsSig = nullptr;
-	static EidosInstanceMethodSignature *countOfMutationsOfTypeSig = nullptr;
-	static EidosInstanceMethodSignature *relatednessSig = nullptr;
-	static EidosInstanceMethodSignature *setSpatialPositionSig = nullptr;
-	static EidosInstanceMethodSignature *sumOfMutationsOfTypeSig = nullptr;
-	static EidosInstanceMethodSignature *uniqueMutationsOfTypeSig = nullptr;
-	
-	if (!containsMutationsSig)
-	{
-		containsMutationsSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMutations, kEidosValueMaskLogical))->AddObject("mutations", gSLiM_Mutation_Class);
-		countOfMutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
-		relatednessSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_relatedness, kEidosValueMaskFloat))->AddObject("individuals", gSLiM_Individual_Class);
-		setSpatialPositionSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSpatialPosition, kEidosValueMaskNULL))->AddFloat("position");
-		sumOfMutationsOfTypeSig = ((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sumOfMutationsOfType, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class))->DeclareAcceleratedImp(Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType);
-		uniqueMutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_uniqueMutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
-	}
-	
-	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_method_id)
-	{
-		case gID_containsMutations:			return containsMutationsSig;
-		case gID_countOfMutationsOfType:	return countOfMutationsOfTypeSig;
-		case gID_relatedness:				return relatednessSig;
-		case gID_setSpatialPosition:		return setSpatialPositionSig;
-		case gID_sumOfMutationsOfType:		return sumOfMutationsOfTypeSig;
-		case gID_uniqueMutationsOfType:		return uniqueMutationsOfTypeSig;
-			
-			// all others, including gID_none
-		default:
-			return SLiMEidosDictionary_Class::SignatureForMethod(p_method_id);
-	}
-}
-
-EidosValue_SP Individual_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
-{
-	return EidosObjectClass::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
 }
 
 

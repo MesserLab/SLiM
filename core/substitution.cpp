@@ -244,13 +244,11 @@ class Substitution_Class : public EidosObjectClass
 public:
 	Substitution_Class(const Substitution_Class &p_original) = delete;	// no copy-construct
 	Substitution_Class& operator=(const Substitution_Class&) = delete;	// no copying
-	
 	inline Substitution_Class(void) { }
 	
 	virtual const std::string &ElementType(void) const;
 	
 	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
-	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
 };
 
 EidosObjectClass *gSLiM_Substitution_Class = new Substitution_Class();
@@ -268,60 +266,20 @@ const std::vector<const EidosPropertySignature *> *Substitution_Class::Propertie
 	if (!properties)
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_id));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutationType));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_position));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_selectionCoeff));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_subpopID));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_originGeneration));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_fixationGeneration));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_tag));
+		
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_id));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationType,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_mutationType));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_position,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_position));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_selectionCoeff,		true,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_selectionCoeff));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopID,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_subpopID));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_originGeneration,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_originGeneration));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_fixationGeneration,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_fixationGeneration));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_tag));
+		
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
 	return properties;
-}
-
-const EidosPropertySignature *Substitution_Class::SignatureForProperty(EidosGlobalStringID p_property_id) const
-{
-	// Signatures are all preallocated, for speed
-	static EidosPropertySignature *idSig = nullptr;
-	static EidosPropertySignature *mutationTypeSig = nullptr;
-	static EidosPropertySignature *positionSig = nullptr;
-	static EidosPropertySignature *selectionCoeffSig = nullptr;
-	static EidosPropertySignature *subpopIDSig = nullptr;
-	static EidosPropertySignature *originGenerationSig = nullptr;
-	static EidosPropertySignature *fixationGenerationSig = nullptr;
-	static EidosPropertySignature *tagSig = nullptr;
-	
-	if (!idSig)
-	{
-		idSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_id,					gID_id,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_id);
-		mutationTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationType,		gID_mutationType,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_mutationType);
-		positionSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_position,			gID_position,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_position);
-		selectionCoeffSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_selectionCoeff,		gID_selectionCoeff,		true,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_selectionCoeff);
-		subpopIDSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopID,			gID_subpopID,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_subpopID);
-		originGenerationSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_originGeneration,	gID_originGeneration,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_originGeneration);
-		fixationGenerationSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_fixationGeneration,	gID_fixationGeneration,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_fixationGeneration);
-		tagSig =				(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					gID_tag,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_tag);
-	}
-	
-	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_property_id)
-	{
-		case gID_id:					return idSig;
-		case gID_mutationType:			return mutationTypeSig;
-		case gID_position:				return positionSig;
-		case gID_selectionCoeff:		return selectionCoeffSig;
-		case gID_subpopID:				return subpopIDSig;
-		case gID_originGeneration:		return originGenerationSig;
-		case gID_fixationGeneration:	return fixationGenerationSig;
-		case gID_tag:					return tagSig;
-			
-			// all others, including gID_none
-		default:
-			return EidosObjectClass::SignatureForProperty(p_property_id);
-	}
 }
 
 

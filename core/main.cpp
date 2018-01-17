@@ -202,6 +202,7 @@ int main(int argc, char *argv[])
 		{
 			gEidosTerminateThrows = true;
 			Eidos_WarmUp();
+			Eidos_FinishWarmUp();
 			
 			int test_result = RunEidosTests();
 			
@@ -214,6 +215,7 @@ int main(int argc, char *argv[])
 			gEidosTerminateThrows = true;
 			Eidos_WarmUp();
 			SLiM_WarmUp();
+			Eidos_FinishWarmUp();
 			
 			int test_result = RunSLiMTests();
 			
@@ -280,6 +282,7 @@ int main(int argc, char *argv[])
 	// run the simulation
 	Eidos_WarmUp();
 	SLiM_WarmUp();
+	Eidos_FinishWarmUp();
 	
 	SLiMSim *sim = new SLiMSim(input_file);
 	sim->InitializeRNGFromSeed(override_seed_ptr);

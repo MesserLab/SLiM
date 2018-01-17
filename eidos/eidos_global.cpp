@@ -257,6 +257,21 @@ void Eidos_WarmUp(void)
 	}
 }
 
+void Eidos_FinishWarmUp(void)
+{
+	static bool been_here = false;
+	
+	if (!been_here)
+	{
+		been_here = true;
+		
+		// The Context should have added its classes to gEidosContextClasses by this point, so now we will tell
+		// all registered classes to initialize their dispatch tables; doing this here saves a flag check later
+		for (EidosObjectClass *eidos_class : gEidosContextClasses)
+			eidos_class->CacheDispatchTables();
+	}
+}
+
 bool Eidos_GoodSymbolForDefine(std::string &p_symbol_name)
 {
 	bool good_symbol = true;
@@ -1646,6 +1661,8 @@ const std::string gEidosStr_size = "size";
 const std::string gEidosStr_methodSignature = "methodSignature";
 const std::string gEidosStr_propertySignature = "propertySignature";
 const std::string gEidosStr_str = "str";
+const std::string gEidosStr_type = "type";
+const std::string gEidosStr_source = "source";
 
 // other miscellaneous strings
 const std::string gEidosStr_GetPropertyOfElements = "GetPropertyOfElements";
@@ -1723,6 +1740,8 @@ void Eidos_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gEidosStr_methodSignature, gEidosID_methodSignature);
 		Eidos_RegisterStringForGlobalID(gEidosStr_propertySignature, gEidosID_propertySignature);
 		Eidos_RegisterStringForGlobalID(gEidosStr_str, gEidosID_str);
+		Eidos_RegisterStringForGlobalID(gEidosStr_type, gEidosID_type);
+		Eidos_RegisterStringForGlobalID(gEidosStr_source, gEidosID_source);
 		Eidos_RegisterStringForGlobalID(gEidosStr_applyValue, gEidosID_applyValue);
 		
 		Eidos_RegisterStringForGlobalID(gEidosStr_T, gEidosID_T);

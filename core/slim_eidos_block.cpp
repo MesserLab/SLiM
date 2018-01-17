@@ -955,7 +955,7 @@ EidosValue_SP SLiMEidosBlock::GetProperty(EidosGlobalStringID p_property_id)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(start_generation_));
 		case gID_end:
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(end_generation_));
-		case gID_type:
+		case gEidosID_type:
 		{
 			switch (type_)
 			{
@@ -972,7 +972,7 @@ EidosValue_SP SLiMEidosBlock::GetProperty(EidosGlobalStringID p_property_id)
 				case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_function));
 			}
 		}
-		case gID_source:
+		case gEidosID_source:
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(compound_statement_node_->token_->token_string_));
 			
 			// variables
@@ -1025,13 +1025,11 @@ class SLiMEidosBlock_Class : public EidosObjectClass
 public:
 	SLiMEidosBlock_Class(const SLiMEidosBlock_Class &p_original) = delete;	// no copy-construct
 	SLiMEidosBlock_Class& operator=(const SLiMEidosBlock_Class&) = delete;	// no copying
-	
 	inline SLiMEidosBlock_Class(void) { }
 	
 	virtual const std::string &ElementType(void) const;
 	
 	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
-	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
 };
 
 EidosObjectClass *gSLiM_SLiMEidosBlock_Class = new SLiMEidosBlock_Class();
@@ -1049,56 +1047,19 @@ const std::vector<const EidosPropertySignature *> *SLiMEidosBlock_Class::Propert
 	if (!properties)
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_id));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_start));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_end));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_type));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_source));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_active));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_tag));
+		
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_start,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_end,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_type,		true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_source,	true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_active,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
 	return properties;
-}
-
-const EidosPropertySignature *SLiMEidosBlock_Class::SignatureForProperty(EidosGlobalStringID p_property_id) const
-{
-	// Signatures are all preallocated, for speed
-	static EidosPropertySignature *idSig = nullptr;
-	static EidosPropertySignature *startSig = nullptr;
-	static EidosPropertySignature *endSig = nullptr;
-	static EidosPropertySignature *typeSig = nullptr;
-	static EidosPropertySignature *sourceSig = nullptr;
-	static EidosPropertySignature *activeSig = nullptr;
-	static EidosPropertySignature *tagSig = nullptr;
-	
-	if (!idSig)
-	{
-		idSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_id,		gID_id,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
-		startSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_start,	gID_start,		true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
-		endSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_end,		gID_end,		true,	kEidosValueMaskInt | kEidosValueMaskSingleton));
-		typeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_type,	gID_type,		true,	kEidosValueMaskString | kEidosValueMaskSingleton));
-		sourceSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_source,	gID_source,		true,	kEidosValueMaskString | kEidosValueMaskSingleton));
-		activeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_active,	gID_active,		false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
-		tagSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,		gID_tag,		false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
-	}
-	
-	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_property_id)
-	{
-		case gID_id:		return idSig;
-		case gID_start:		return startSig;
-		case gID_end:		return endSig;
-		case gID_type:		return typeSig;
-		case gID_source:	return sourceSig;
-		case gID_active:	return activeSig;
-		case gID_tag:		return tagSig;
-			
-			// all others, including gID_none
-		default:
-			return EidosObjectClass::SignatureForProperty(p_property_id);
-	}
 }
 
 

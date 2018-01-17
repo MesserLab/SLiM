@@ -60,6 +60,7 @@
 {
 	// Warm up our back end before anything else happens
 	Eidos_WarmUp();
+	Eidos_FinishWarmUp();
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification

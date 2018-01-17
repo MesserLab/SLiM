@@ -27,6 +27,7 @@ development head (nonWF branch):
 	add support for accelerated method implementations, accelerate a few core methods
 	speed up fitness callbacks of the form "A/relFitness"
 	speed up SLiMSim::mutationsOfType(), SLiMSim::countOfMutationsOfType(), Genome::containsMutations(), SLiMSim::mutationCounts(), SLiMSim::mutationFrequencies()
+	switch to dispatch of properties and methods using std::unordered_map to look up the signature
 
 
 2.6 (build 1292; Eidos version 1.6):

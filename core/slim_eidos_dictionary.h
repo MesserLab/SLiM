@@ -81,13 +81,11 @@ class SLiMEidosDictionary_Class : public EidosObjectClass
 public:
 	SLiMEidosDictionary_Class(const SLiMEidosDictionary_Class &p_original) = delete;	// no copy-construct
 	SLiMEidosDictionary_Class& operator=(const SLiMEidosDictionary_Class&) = delete;	// no copying
-	
-	SLiMEidosDictionary_Class(void);
+	inline SLiMEidosDictionary_Class(void) { }
 	
 	virtual const std::string &ElementType(void) const;
 	
 	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
-	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
 };
 
 

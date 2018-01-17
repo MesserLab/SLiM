@@ -37,8 +37,9 @@ class EidosToken;
 
 // This should be called once at startup to give Eidos an opportunity to initialize static state
 void Eidos_WarmUp(void);
+void Eidos_FinishWarmUp(void);
 
-// This can be called at startup, after Eidos_WarmUp(), to define global constants from the command line
+// This can be called at startup, after Eidos_FinishWarmUp(), to define global constants from the command line
 void Eidos_DefineConstantsFromCommandLine(std::vector<std::string> p_constants);
 
 
@@ -420,6 +421,8 @@ extern const std::string gEidosStr_executeLambda;
 extern const std::string gEidosStr__executeLambda_OUTER;
 extern const std::string gEidosStr_ls;
 extern const std::string gEidosStr_rm;
+extern const std::string gEidosStr_type;
+extern const std::string gEidosStr_source;
 
 extern const std::string gEidosStr_if;
 extern const std::string gEidosStr_else;
@@ -487,6 +490,8 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_size,
 	gEidosID_propertySignature,
 	gEidosID_str,
+	gEidosID_type,
+	gEidosID_source,
 	gEidosID_applyValue,
 	
 	gEidosID_T,

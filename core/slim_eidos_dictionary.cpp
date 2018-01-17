@@ -133,10 +133,6 @@ EidosValue_SP SLiMEidosDictionary::ExecuteMethod_Accelerated_setValue(EidosObjec
 EidosObjectClass *gSLiM_SLiMEidosDictionary_Class = new SLiMEidosDictionary_Class();
 
 
-SLiMEidosDictionary_Class::SLiMEidosDictionary_Class(void)
-{
-}
-
 const std::string &SLiMEidosDictionary_Class::ElementType(void) const
 {
 	return gStr_SLiMEidosDictionary;
@@ -149,35 +145,14 @@ const std::vector<const EidosMethodSignature *> *SLiMEidosDictionary_Class::Meth
 	if (!methods)
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
-		methods->emplace_back(SignatureForMethodOrRaise(gID_getValue));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_setValue));
+		
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_getValue, kEidosValueMaskAnyBase))->AddString_S("key"));
+		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setValue, kEidosValueMaskNULL))->AddString_S("key")->AddAnyBase("value"))->DeclareAcceleratedImp(SLiMEidosDictionary::ExecuteMethod_Accelerated_setValue));
+		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	
 	return methods;
-}
-
-const EidosMethodSignature *SLiMEidosDictionary_Class::SignatureForMethod(EidosGlobalStringID p_method_id) const
-{
-	static EidosInstanceMethodSignature *getValueSig = nullptr;
-	static EidosInstanceMethodSignature *setValueSig = nullptr;
-	
-	if (!getValueSig)
-	{
-		getValueSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_getValue, kEidosValueMaskAnyBase))->AddString_S("key");
-		setValueSig = ((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setValue, kEidosValueMaskNULL))->AddString_S("key")->AddAnyBase("value"))->DeclareAcceleratedImp(SLiMEidosDictionary::ExecuteMethod_Accelerated_setValue);
-	}
-	
-	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_method_id)
-	{
-		case gID_getValue:			return getValueSig;
-		case gID_setValue:			return setValueSig;
-			
-			// all others, including gID_none
-		default:
-			return EidosObjectClass::SignatureForMethod(p_method_id);
-	}
 }
 
 

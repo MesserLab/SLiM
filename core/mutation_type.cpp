@@ -626,17 +626,12 @@ class MutationType_Class : public SLiMEidosDictionary_Class
 public:
 	MutationType_Class(const MutationType_Class &p_original) = delete;	// no copy-construct
 	MutationType_Class& operator=(const MutationType_Class&) = delete;	// no copying
-	
 	inline MutationType_Class(void) { }
 	
 	virtual const std::string &ElementType(void) const;
 	
 	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
-	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
-	
 	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
-	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
-	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 };
 
 EidosObjectClass *gSLiM_MutationType_Class = new MutationType_Class();
@@ -654,68 +649,22 @@ const std::vector<const EidosPropertySignature *> *MutationType_Class::Propertie
 	if (!properties)
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_id));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_convertToSubstitution));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_distributionType));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_distributionParams));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_dominanceCoeff));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutationStackGroup));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutationStackPolicy));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_tag));
-		properties->emplace_back(SignatureForPropertyOrRaise(gEidosID_color));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_colorSubstitution));
+		
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,						true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(MutationType::GetProperty_Accelerated_id));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_convertToSubstitution,	false,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedSet(MutationType::SetProperty_Accelerated_convertToSubstitution));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_distributionType,		true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_distributionParams,		true,	kEidosValueMaskFloat | kEidosValueMaskString)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_dominanceCoeff,			false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(MutationType::GetProperty_Accelerated_dominanceCoeff));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationStackGroup,		false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationStackPolicy,	false,	kEidosValueMaskString | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(MutationType::GetProperty_Accelerated_tag)->DeclareAcceleratedSet(MutationType::SetProperty_Accelerated_tag));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_color,				false,	kEidosValueMaskString | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_colorSubstitution,		false,	kEidosValueMaskString | kEidosValueMaskSingleton)));
+		
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
 	return properties;
-}
-
-const EidosPropertySignature *MutationType_Class::SignatureForProperty(EidosGlobalStringID p_property_id) const
-{
-	// Signatures are all preallocated, for speed
-	static EidosPropertySignature *idSig = nullptr;
-	static EidosPropertySignature *convertToSubstitutionSig = nullptr;
-	static EidosPropertySignature *distributionTypeSig = nullptr;
-	static EidosPropertySignature *distributionParamsSig = nullptr;
-	static EidosPropertySignature *dominanceCoeffSig = nullptr;
-	static EidosPropertySignature *mutationStackGroupSig = nullptr;
-	static EidosPropertySignature *mutationStackPolicySig = nullptr;
-	static EidosPropertySignature *tagSig = nullptr;
-	static EidosPropertySignature *colorSig = nullptr;
-	static EidosPropertySignature *colorSubstitutionSig = nullptr;
-	
-	if (!idSig)
-	{
-		idSig =						(EidosPropertySignature *)(new EidosPropertySignature(gStr_id,						gID_id,						true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(MutationType::GetProperty_Accelerated_id);
-		convertToSubstitutionSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_convertToSubstitution,	gID_convertToSubstitution,	false,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedSet(MutationType::SetProperty_Accelerated_convertToSubstitution);
-		distributionTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_distributionType,		gID_distributionType,		true,	kEidosValueMaskString | kEidosValueMaskSingleton));
-		distributionParamsSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_distributionParams,		gID_distributionParams,		true,	kEidosValueMaskFloat | kEidosValueMaskString));
-		dominanceCoeffSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_dominanceCoeff,			gID_dominanceCoeff,			false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(MutationType::GetProperty_Accelerated_dominanceCoeff);
-		mutationStackGroupSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationStackGroup,		gID_mutationStackGroup,		false,	kEidosValueMaskInt | kEidosValueMaskSingleton));
-		mutationStackPolicySig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationStackPolicy,		gID_mutationStackPolicy,	false,	kEidosValueMaskString | kEidosValueMaskSingleton));
-		tagSig =					(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,						gID_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(MutationType::GetProperty_Accelerated_tag)->DeclareAcceleratedSet(MutationType::SetProperty_Accelerated_tag);
-		colorSig =					(EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_color,				gEidosID_color,				false,	kEidosValueMaskString | kEidosValueMaskSingleton));
-		colorSubstitutionSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_colorSubstitution,		gID_colorSubstitution,		false,	kEidosValueMaskString | kEidosValueMaskSingleton));
-	}
-	
-	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_property_id)
-	{
-		case gID_id:					return idSig;
-		case gID_convertToSubstitution:	return convertToSubstitutionSig;
-		case gID_distributionType:		return distributionTypeSig;
-		case gID_distributionParams:	return distributionParamsSig;
-		case gID_dominanceCoeff:		return dominanceCoeffSig;
-		case gID_mutationStackGroup:	return mutationStackGroupSig;
-		case gID_mutationStackPolicy:	return mutationStackPolicySig;
-		case gID_tag:					return tagSig;
-		case gEidosID_color:			return colorSig;
-		case gID_colorSubstitution:		return colorSubstitutionSig;
-			
-			// all others, including gID_none
-		default:
-			return EidosObjectClass::SignatureForProperty(p_property_id);
-	}
 }
 
 const std::vector<const EidosMethodSignature *> *MutationType_Class::Methods(void) const
@@ -725,31 +674,13 @@ const std::vector<const EidosMethodSignature *> *MutationType_Class::Methods(voi
 	if (!methods)
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*SLiMEidosDictionary_Class::Methods());
-		methods->emplace_back(SignatureForMethodOrRaise(gID_setDistribution));
+		
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setDistribution, kEidosValueMaskNULL))->AddString_S("distributionType")->AddEllipsis());
+		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	
 	return methods;
-}
-
-const EidosMethodSignature *MutationType_Class::SignatureForMethod(EidosGlobalStringID p_method_id) const
-{
-	static EidosInstanceMethodSignature *setDistributionSig = nullptr;
-	
-	if (!setDistributionSig)
-	{
-		setDistributionSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setDistribution, kEidosValueMaskNULL))->AddString_S("distributionType")->AddEllipsis();
-	}
-	
-	if (p_method_id == gID_setDistribution)
-		return setDistributionSig;
-	else
-		return SLiMEidosDictionary_Class::SignatureForMethod(p_method_id);
-}
-
-EidosValue_SP MutationType_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
-{
-	return EidosObjectClass::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
 }
 
 

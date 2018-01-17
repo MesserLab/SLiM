@@ -259,6 +259,7 @@ static void _RunSubstitutionTests(void);
 static void _RunSLiMEidosBlockTests(void);
 static void _RunContinuousSpaceTests(void);
 static void _RunNonWFTests(void);
+static void _RunSLiMTimingTests(void);
 
 
 // Test function shared strings
@@ -306,6 +307,7 @@ int RunSLiMTests(void)
 	_RunSLiMEidosBlockTests();
 	_RunContinuousSpaceTests();
 	_RunNonWFTests();
+	_RunSLiMTimingTests();
 	
 	_RunInteractionTypeTests();		// many tests, time-consuming, so do this last
 	
@@ -3439,6 +3441,155 @@ void _RunNonWFTests(void)
 	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "1 { p1.removeSubpopulation(); if (p1.individualCount == 10) stop(); }", 1, 328, "undefined identifier", __LINE__);		// the symbol is undefined immediately
 	SLiMAssertScriptStop(nonWF_prefix + gen1_setup_p1 + "1 { px=p1; p1.removeSubpopulation(); if (px.individualCount == 10) stop(); }", __LINE__);									// does not take visible effect until child generation
 	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "1 { p1.removeSubpopulation(); } 2 { if (p1.individualCount == 0) stop(); }", 1, 334, "undefined identifier", __LINE__);
+}
+
+#pragma mark SLiM timing tests
+void _RunSLiMTimingTests(void)
+{
+#if 0
+	// Speed comparison of different dispatch methods; the conclusion is that std::unordered_map is the fastest
+	{
+		EidosGlobalStringID genome_properties[4] = {gID_genomeType, gID_isNullGenome, gID_mutations, gID_tag};
+		std::map<EidosGlobalStringID, const EidosPropertySignature *> genome_map;
+		std::unordered_map<EidosGlobalStringID, const EidosPropertySignature *> genome_unordered_map;
+		
+		for (int i = 0; i < 4; ++i)
+			genome_map.emplace(std::pair<EidosGlobalStringID, const EidosPropertySignature *>(genome_properties[i], gSLiM_Genome_Class->_SignatureForProperty(genome_properties[i])));
+		
+		for (int i = 0; i < 4; ++i)
+			genome_unordered_map.emplace(std::pair<EidosGlobalStringID, const EidosPropertySignature *>(genome_properties[i], gSLiM_Genome_Class->_SignatureForProperty(genome_properties[i])));
+		
+		{
+			clock_t begin = clock();
+			int64_t total = 0;
+			
+			for (int64_t i = 0; i < 100000000; i++)
+			{
+				EidosGlobalStringID property_id = genome_properties[Eidos_rng_uniform_int(gEidos_rng, 4)];
+				
+				total += (int64_t)(gSLiM_Genome_Class->_SignatureForProperty(property_id));
+			}
+			
+			clock_t end = clock();
+			double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
+			
+			std::cout << "Time for Genome_Class::_SignatureForProperty() calls: " << time_spent << std::endl;
+		}
+		{
+			clock_t begin = clock();
+			int64_t total = 0;
+			
+			for (int64_t i = 0; i < 100000000; i++)
+			{
+				EidosGlobalStringID property_id = genome_properties[Eidos_rng_uniform_int(gEidos_rng, 4)];
+				
+				auto found_iter = genome_map.find(property_id);
+				if (found_iter != genome_map.end())
+				{
+					const EidosPropertySignature *sig = found_iter->second;
+					total += (int64_t)sig;
+				}
+			}
+			
+			clock_t end = clock();
+			double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
+			
+			std::cout << "Time for genome_map calls: " << time_spent << std::endl;
+		}
+		{
+			clock_t begin = clock();
+			int64_t total = 0;
+			
+			for (int64_t i = 0; i < 100000000; i++)
+			{
+				EidosGlobalStringID property_id = genome_properties[Eidos_rng_uniform_int(gEidos_rng, 4)];
+				
+				auto found_iter = genome_unordered_map.find(property_id);
+				if (found_iter != genome_unordered_map.end())
+				{
+					const EidosPropertySignature *sig = found_iter->second;
+					total += (int64_t)sig;
+				}
+			}
+			
+			clock_t end = clock();
+			double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
+			
+			std::cout << "Time for genome_unordered_map calls: " << time_spent << std::endl << std::endl;
+		}
+	}
+	
+	{
+		EidosGlobalStringID individual_properties[17] = {gID_subpopulation, gID_index, gID_genomes, gID_sex, gID_tag, gID_tagF, gID_fitnessScaling, gEidosID_x, gEidosID_y, gEidosID_z, gID_age, gID_pedigreeID, gID_pedigreeParentIDs, gID_pedigreeGrandparentIDs, gID_spatialPosition, gID_uniqueMutations, gEidosID_color};
+		std::map<EidosGlobalStringID, const EidosPropertySignature *> individual_map;
+		std::unordered_map<EidosGlobalStringID, const EidosPropertySignature *> individual_unordered_map;
+		
+		for (int i = 0; i < 17; ++i)
+			individual_map.emplace(std::pair<EidosGlobalStringID, const EidosPropertySignature *>(individual_properties[i], gSLiM_Individual_Class->_SignatureForProperty(individual_properties[i])));
+		
+		for (int i = 0; i < 17; ++i)
+			individual_unordered_map.emplace(std::pair<EidosGlobalStringID, const EidosPropertySignature *>(individual_properties[i], gSLiM_Individual_Class->_SignatureForProperty(individual_properties[i])));
+		
+		{
+			clock_t begin = clock();
+			int64_t total = 0;
+			
+			for (int64_t i = 0; i < 100000000; i++)
+			{
+				EidosGlobalStringID property_id = individual_properties[Eidos_rng_uniform_int(gEidos_rng, 17)];
+				
+				total += (int64_t)(gSLiM_Individual_Class->_SignatureForProperty(property_id));
+			}
+			
+			clock_t end = clock();
+			double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
+			
+			std::cout << "Time for Individual_Class::_SignatureForProperty() calls: " << time_spent << std::endl;
+		}
+		{
+			clock_t begin = clock();
+			int64_t total = 0;
+			
+			for (int64_t i = 0; i < 100000000; i++)
+			{
+				EidosGlobalStringID property_id = individual_properties[Eidos_rng_uniform_int(gEidos_rng, 17)];
+				
+				auto found_iter = individual_map.find(property_id);
+				if (found_iter != individual_map.end())
+				{
+					const EidosPropertySignature *sig = found_iter->second;
+					total += (int64_t)sig;
+				}
+			}
+			
+			clock_t end = clock();
+			double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
+			
+			std::cout << "Time for individual_map calls: " << time_spent << std::endl;
+		}
+		{
+			clock_t begin = clock();
+			int64_t total = 0;
+			
+			for (int64_t i = 0; i < 100000000; i++)
+			{
+				EidosGlobalStringID property_id = individual_properties[Eidos_rng_uniform_int(gEidos_rng, 17)];
+				
+				auto found_iter = individual_unordered_map.find(property_id);
+				if (found_iter != individual_unordered_map.end())
+				{
+					const EidosPropertySignature *sig = found_iter->second;
+					total += (int64_t)sig;
+				}
+			}
+			
+			clock_t end = clock();
+			double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
+			
+			std::cout << "Time for individual_unordered_map calls: " << time_spent << std::endl << std::endl;
+		}
+	}
+#endif
 }
 
 

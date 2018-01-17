@@ -1239,16 +1239,12 @@ class Genome_Class : public EidosObjectClass
 public:
 	Genome_Class(const Genome_Class &p_original) = delete;	// no copy-construct
 	Genome_Class& operator=(const Genome_Class&) = delete;	// no copying
-	
 	inline Genome_Class(void) { }
 	
 	virtual const std::string &ElementType(void) const;
 	
 	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
-	virtual const EidosPropertySignature *SignatureForProperty(EidosGlobalStringID p_property_id) const;
-	
 	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
-	virtual const EidosMethodSignature *SignatureForMethod(EidosGlobalStringID p_method_id) const;
 	
 	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_addMutations(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
@@ -1272,44 +1268,16 @@ const std::vector<const EidosPropertySignature *> *Genome_Class::Properties(void
 	if (!properties)
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_genomeType));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_isNullGenome));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_mutations));
-		properties->emplace_back(SignatureForPropertyOrRaise(gID_tag));
+		
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomeType,		true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_isNullGenome,	true,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Genome::GetProperty_Accelerated_isNullGenome));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutations,		true,	kEidosValueMaskObject, gSLiM_Mutation_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Genome::GetProperty_Accelerated_tag)->DeclareAcceleratedSet(Genome::SetProperty_Accelerated_tag));
+		
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	
 	return properties;
-}
-
-const EidosPropertySignature *Genome_Class::SignatureForProperty(EidosGlobalStringID p_property_id) const
-{
-	// Signatures are all preallocated, for speed
-	static EidosPropertySignature *genomeTypeSig = nullptr;
-	static EidosPropertySignature *isNullGenomeSig = nullptr;
-	static EidosPropertySignature *mutationsSig = nullptr;
-	static EidosPropertySignature *tagSig = nullptr;
-	
-	if (!genomeTypeSig)
-	{
-		genomeTypeSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_genomeType,		gID_genomeType,		true,	kEidosValueMaskString | kEidosValueMaskSingleton));
-		isNullGenomeSig =	(EidosPropertySignature *)(new EidosPropertySignature(gStr_isNullGenome,	gID_isNullGenome,	true,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Genome::GetProperty_Accelerated_isNullGenome);
-		mutationsSig =		(EidosPropertySignature *)(new EidosPropertySignature(gStr_mutations,		gID_mutations,		true,	kEidosValueMaskObject, gSLiM_Mutation_Class));
-		tagSig =			(EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,				gID_tag,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Genome::GetProperty_Accelerated_tag)->DeclareAcceleratedSet(Genome::SetProperty_Accelerated_tag);
-	}
-	
-	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_property_id)
-	{
-		case gID_genomeType:	return genomeTypeSig;
-		case gID_isNullGenome:	return isNullGenomeSig;
-		case gID_mutations:		return mutationsSig;
-		case gID_tag:			return tagSig;
-			
-			// all others, including gID_none
-		default:
-			return EidosObjectClass::SignatureForProperty(p_property_id);
-	}
 }
 
 const std::vector<const EidosMethodSignature *> *Genome_Class::Methods(void) const
@@ -1319,79 +1287,25 @@ const std::vector<const EidosMethodSignature *> *Genome_Class::Methods(void) con
 	if (!methods)
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
-		methods->emplace_back(SignatureForMethodOrRaise(gID_addMutations));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_addNewDrawnMutation));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_addNewMutation));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_containsMarkerMutation));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_containsMutations));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_countOfMutationsOfType));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_positionsOfMutationsOfType));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_mutationsOfType));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_outputMS));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_outputVCF));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_output));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_removeMutations));
-		methods->emplace_back(SignatureForMethodOrRaise(gID_sumOfMutationsOfType));
+		
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addNewDrawnMutation, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject("mutationType", gSLiM_MutationType_Class)->AddInt("position")->AddInt_ON("originGeneration", gStaticEidosValueNULL)->AddIntObject_ON("originSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addNewMutation, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject("mutationType", gSLiM_MutationType_Class)->AddNumeric("selectionCoeff")->AddInt("position")->AddInt_ON("originGeneration", gStaticEidosValueNULL)->AddIntObject_ON("originSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMarkerMutation, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class)->AddInt_S("position"));
+		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMutations, kEidosValueMaskLogical))->AddObject("mutations", gSLiM_Mutation_Class))->DeclareAcceleratedImp(Genome::ExecuteMethod_Accelerated_containsMutations));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_positionsOfMutationsOfType, kEidosValueMaskInt))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_removeMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class)->AddLogical_OS("substitute", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputMS, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputVCF, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_output, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sumOfMutationsOfType, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
+		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	
 	return methods;
-}
-
-const EidosMethodSignature *Genome_Class::SignatureForMethod(EidosGlobalStringID p_method_id) const
-{
-	static EidosClassMethodSignature *addMutationsSig = nullptr;
-	static EidosClassMethodSignature *addNewDrawnMutationSig = nullptr;
-	static EidosClassMethodSignature *addNewMutationSig = nullptr;
-	static EidosInstanceMethodSignature *containsMarkerMutationSig = nullptr;
-	static EidosInstanceMethodSignature *containsMutationsSig = nullptr;
-	static EidosInstanceMethodSignature *countOfMutationsOfTypeSig = nullptr;
-	static EidosInstanceMethodSignature *positionsOfMutationsOfTypeSig = nullptr;
-	static EidosInstanceMethodSignature *mutationsOfTypeSig = nullptr;
-	static EidosClassMethodSignature *removeMutationsSig = nullptr;
-	static EidosClassMethodSignature *outputMSSig = nullptr;
-	static EidosClassMethodSignature *outputVCFSig = nullptr;
-	static EidosClassMethodSignature *outputSig = nullptr;
-	static EidosInstanceMethodSignature *sumOfMutationsOfTypeSig = nullptr;
-	
-	if (!addMutationsSig)
-	{
-		addMutationsSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class);
-		addNewDrawnMutationSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addNewDrawnMutation, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject("mutationType", gSLiM_MutationType_Class)->AddInt("position")->AddInt_ON("originGeneration", gStaticEidosValueNULL)->AddIntObject_ON("originSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL);
-		addNewMutationSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addNewMutation, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject("mutationType", gSLiM_MutationType_Class)->AddNumeric("selectionCoeff")->AddInt("position")->AddInt_ON("originGeneration", gStaticEidosValueNULL)->AddIntObject_ON("originSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL);
-		containsMarkerMutationSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMarkerMutation, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class)->AddInt_S("position");
-		containsMutationsSig = ((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMutations, kEidosValueMaskLogical))->AddObject("mutations", gSLiM_Mutation_Class))->DeclareAcceleratedImp(Genome::ExecuteMethod_Accelerated_containsMutations);
-		countOfMutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
-		positionsOfMutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_positionsOfMutationsOfType, kEidosValueMaskInt))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
-		mutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
-		removeMutationsSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_removeMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class)->AddLogical_OS("substitute", gStaticEidosValue_LogicalF);
-		outputMSSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputMS, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF);
-		outputVCFSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputVCF, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddLogical_OS("append", gStaticEidosValue_LogicalF);
-		outputSig = (EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_output, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF);
-		sumOfMutationsOfTypeSig = (EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sumOfMutationsOfType, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class);
-	}
-	
-	// All of our strings are in the global registry, so we can require a successful lookup
-	switch (p_method_id)
-	{
-		case gID_addMutations:				return addMutationsSig;
-		case gID_addNewDrawnMutation:		return addNewDrawnMutationSig;
-		case gID_addNewMutation:			return addNewMutationSig;
-		case gID_containsMarkerMutation:	return containsMarkerMutationSig;
-		case gID_containsMutations:			return containsMutationsSig;
-		case gID_countOfMutationsOfType:	return countOfMutationsOfTypeSig;
-		case gID_positionsOfMutationsOfType:	return positionsOfMutationsOfTypeSig;
-		case gID_mutationsOfType:			return mutationsOfTypeSig;
-		case gID_removeMutations:			return removeMutationsSig;
-		case gID_outputMS:					return outputMSSig;
-		case gID_outputVCF:					return outputVCFSig;
-		case gID_output:					return outputSig;
-		case gID_sumOfMutationsOfType:		return sumOfMutationsOfTypeSig;
-			
-			// all others, including gID_none
-		default:
-			return EidosObjectClass::SignatureForMethod(p_method_id);
-	}
 }
 
 EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
