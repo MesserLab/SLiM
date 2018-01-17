@@ -320,7 +320,7 @@ public:
 	
 	inline __attribute__((always_inline)) EidosValue *CopyDimensionsFromValue(const EidosValue *p_value)		// copy dimensions from another value; checks for validity, can raise
 	{
-		if (p_value)
+		if ((p_value && p_value->dim_) || dim_)
 			_CopyDimensionsFromValue(p_value);
 		return this;
 	}

@@ -25,6 +25,11 @@
  
  */
 
+// This include is up here because I had to jump through some hoops to break a #include loop between this and mutation_run.h;
+// forward declaration wasn't enough, because MutationType includes a MutationRun inside itself now, and mutation_run.h defines
+// an inline function that uses MutationType in a concrete fashion, so the mutual dependency was harder to break.
+#include "mutation_run.h"
+
 #ifndef __SLiM__mutation_type__
 #define __SLiM__mutation_type__
 
@@ -55,15 +60,6 @@ enum class DFEType : char {
 std::ostream& operator<<(std::ostream& p_out, DFEType p_dfe_type);
 
 	
-// This enumeration represents the policy followed for multiple mutations at the same position.
-// Such "stacked" mutations can be allowed (the default), or the first or last mutation at the position can be kept.
-enum class MutationStackPolicy : char {
-	kStack = 0,
-	kKeepFirst,
-	kKeepLast,
-};
-
-
 class MutationType : public SLiMEidosDictionary
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
@@ -104,6 +100,19 @@ public:
 	slim_usertag_t tag_value_;					// a user-defined tag value
 
 	mutable EidosScript *cached_dfe_script_;	// used by DFE type 's' to hold a cached script for the DFE
+	
+#ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
+	// MutationType now has the ability to (optionally) keep a registry of all extant mutations of its type in the simulation,
+	// separate from the main registry kept by Population.  This allows much faster response to SLiMSim::mutationsOfType()
+	// and SLiMSim::countOfMutationsOfType(), because the muttype's registry can be consulted rather than doing a full scan of
+	// main registry.  However, there is obviously overhead associated with adding/removing mutations from another registry, so
+	// this feature is only turned on if there is demand: when more than one call per generation is made to SLiMSim::mutationsOfType()
+	// or SLiMSim::countOfMutationsOfType() for a given muttype.  From then on, that muttype will track its own registry.  Obviously
+	// this heuristic could be refined, perhaps with a way to stop tracking if it no longer seems to be used.
+	mutable int muttype_registry_call_count_;
+	mutable bool keeping_muttype_registry_;
+	MutationRun muttype_registry_;
+#endif
 	
 	// For optimizing the fitness calculation code, the exact situation for each mutation type is of great interest: does it have
 	// a neutral DFE, and if so has any mutation of that type had its selection coefficient changed to be non-zero, are mutations

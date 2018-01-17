@@ -8841,7 +8841,8 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const EidosValue_SP *const p_arguments
 		symbols.RemoveValueForSymbol(gEidosID_applyValue);
 		
 		// Assemble all the individual results together, just as c() does
-		p_interpreter.ExecutionOutputStream() << interpreter.ExecutionOutput();
+		if (interpreter.HasExecutionOutput())
+			p_interpreter.ExecutionOutputStream() << interpreter.ExecutionOutput();
 		result_SP = ConcatenateEidosValues(results.data(), (int)results.size(), true);
 		
 		// Set the dimensions of the result.  If the returns from the lambda were not consistent in their
@@ -9048,7 +9049,8 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const EidosValue_SP *const p_argument
 		symbols.RemoveValueForSymbol(gEidosID_applyValue);
 		
 		// Assemble all the individual results together, just as c() does
-		p_interpreter.ExecutionOutputStream() << interpreter.ExecutionOutput();
+		if (interpreter.HasExecutionOutput())
+			p_interpreter.ExecutionOutputStream() << interpreter.ExecutionOutput();
 		result_SP = ConcatenateEidosValues(results.data(), (int)results.size(), true);
 		
 		// Finally, we restructure the results:
@@ -9377,7 +9379,8 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const EidosValue_SP *const p_arguments
 			end = clock();
 		
 		// Assimilate output
-		p_interpreter.ExecutionOutputStream() << interpreter.ExecutionOutput();
+		if (interpreter.HasExecutionOutput())
+			p_interpreter.ExecutionOutputStream() << interpreter.ExecutionOutput();
 	}
 	catch (...)
 	{

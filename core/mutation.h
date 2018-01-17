@@ -30,9 +30,11 @@
 
 #include <iostream>
 
-#include "mutation_type.h"
 #include "slim_global.h"
 #include "eidos_value.h"
+#include "slim_eidos_dictionary.h"
+
+class MutationType;
 
 
 extern EidosObjectClass *gSLiM_Mutation_Class;

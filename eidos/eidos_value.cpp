@@ -2440,6 +2440,7 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 	{
 		// the singleton case is very common, so it should be special-cased for speed
 		// accelerated property is not used for singletons because we want to generate a singleton-class result
+		// of course the accelerated getters could be smart enough to do that, but that makes them more complex; not a clear win
 		EidosObjectElement *value = values_[0];
 		EidosValue_SP result = value->GetProperty(p_property_id);
 		

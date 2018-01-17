@@ -648,15 +648,11 @@ EidosValue_SP Genome::ExecuteMethod_containsMarkerMutation(EidosGlobalStringID p
 EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMutations(EidosObjectElement **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *mutations_value = p_arguments[0].get();
-	int mutations_count = mutations_value->Count();
-	
-	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_elements_size * mutations_count);
-	EidosValue_SP result(logical_result);
-	int64_t result_index = 0;
-	
 	if (p_elements_size)
 	{
+		EidosValue *mutations_value = p_arguments[0].get();
+		int mutations_count = mutations_value->Count();
+		
 		if (mutations_count == 1)
 		{
 			Mutation *mut = (Mutation *)(mutations_value->ObjectElementAtIndex(0, nullptr));
@@ -664,20 +660,44 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMutations(EidosObjectEle
 			int32_t mutrun_length = ((Genome *)(p_elements[0]))->mutrun_length_;		// assume all Genome objects have the same mutrun_length_; better be true...
 			slim_position_t mutrun_index = mut->position_ / mutrun_length;
 			
-			for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
+			if (p_elements_size == 1)
 			{
-				Genome *element = (Genome *)(p_elements[element_index]);
+				// We want to be smart enough to return gStaticEidosValue_LogicalT or gStaticEidosValue_LogicalF in the singleton/singleton case
+				Genome *element = (Genome *)(p_elements[0]);
 				
 				if (element->IsNull())
 					EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_Accelerated_containsMutations): containsMutations() cannot be called on a null genome." << EidosTerminate();
 				
 				bool contained = element->mutruns_[mutrun_index]->contains_mutation(mut_block_index);
 				
-				logical_result->set_logical_no_check(contained, result_index++);
+				return (contained ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+			}
+			else
+			{
+				EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_elements_size * mutations_count);
+				EidosValue_SP result(logical_result);
+				int64_t result_index = 0;
+				
+				for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
+				{
+					Genome *element = (Genome *)(p_elements[element_index]);
+					
+					if (element->IsNull())
+						EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_Accelerated_containsMutations): containsMutations() cannot be called on a null genome." << EidosTerminate();
+					
+					bool contained = element->mutruns_[mutrun_index]->contains_mutation(mut_block_index);
+					
+					logical_result->set_logical_no_check(contained, result_index++);
+				}
+				
+				return result;
 			}
 		}
 		else
 		{
+			EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_elements_size * mutations_count);
+			EidosValue_SP result(logical_result);
+			
 			EidosObjectElement * const *mutations_data = mutations_value->ObjectElementVector()->data();
 			
 			for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
@@ -696,10 +716,14 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMutations(EidosObjectEle
 					logical_result->set_logical_no_check(contained, value_index);
 				}
 			}
+			
+			return result;
 		}
 	}
-	
-	return result;
+	else
+	{
+		return gStaticEidosValue_Logical_ZeroVec;
+	}
 }
 
 //	*********************	- (integer$)countOfMutationsOfType(io<MutationType>$ mutType)
@@ -1688,6 +1712,14 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 				pop.mutation_registry_.emplace_back(new_mut_index);
 				retval->push_object_element(gSLiM_Mutation_Block + new_mut_index);
 				mutations_to_add.emplace_back(new_mut_index);
+				
+#ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
+				if (pop.keeping_muttype_registries_ && mutation_type_ptr->keeping_muttype_registry_)
+				{
+					// This mutation type is also keeping its own private registry, so we need to add to that as well
+					mutation_type_ptr->muttype_registry_.emplace_back(new_mut_index);
+				}
+#endif
 			}
 		}
 		

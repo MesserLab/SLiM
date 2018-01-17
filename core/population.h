@@ -69,7 +69,13 @@ public:
 	using std::map<slim_objectid_t,Subpopulation*>::size;
 	
 	SLiMSim &sim_;											// We have a reference back to our simulation
+	
 	MutationRun mutation_registry_;							// OWNED POINTERS: a registry of all mutations that have been added to this population
+#ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
+	bool keeping_muttype_registries_ = false;				// if true, at least one MutationType is also keeping its own registry
+	bool any_muttype_call_count_used_ = false;				// if true, a muttype's muttype_registry_call_count_ has been incremented
+#endif
+	
 	slim_refcount_t total_genome_count_ = 0;				// the number of modeled genomes in the population; a fixed mutation has this frequency
 #ifdef SLIMGUI
 	slim_refcount_t gui_total_genome_count_ = 0;			// the number of modeled genomes in the selected subpopulations in SLiMgui

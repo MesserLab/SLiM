@@ -154,11 +154,6 @@ std::string EidosInterpreter::ExecutionLog(void)
 	return (execution_log_ ? execution_log_->str() : gEidosStr_empty_string);
 }
 
-std::string EidosInterpreter::ExecutionOutput(void)
-{
-	return (execution_output_ ? execution_output_->str() : gEidosStr_empty_string);
-}
-
 std::ostringstream &EidosInterpreter::ExecutionOutputStream(void)
 {
 	// lazy allocation; all use of execution_output_ should get it through this accessor
@@ -1243,7 +1238,8 @@ EidosValue_SP EidosInterpreter::DispatchUserDefinedFunction(const EidosFunctionS
 		result_SP = interpreter.EvaluateInterpreterBlock(false);
 		
 		// Assimilate output
-		ExecutionOutputStream() << interpreter.ExecutionOutput();
+		if (interpreter.HasExecutionOutput())
+			ExecutionOutputStream() << interpreter.ExecutionOutput();
 	}
 	catch (...)
 	{

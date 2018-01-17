@@ -484,22 +484,7 @@ public:
 	}
 	
 	bool _EnforceStackPolicyForAddition(slim_position_t p_position, MutationStackPolicy p_policy, int64_t p_stack_group);
-	
-	inline __attribute__((always_inline)) bool enforce_stack_policy_for_addition(slim_position_t p_position, MutationType *p_mut_type_ptr)
-	{
-		MutationStackPolicy policy = p_mut_type_ptr->stack_policy_;
-		
-		if (policy == MutationStackPolicy::kStack)
-		{
-			// If mutations are allowed to stack (the default), then we have no work to do and the new mutation is always added
-			return true;
-		}
-		else
-		{
-			// Otherwise, a relatively complicated check is needed, so we call out to a non-inline function
-			return _EnforceStackPolicyForAddition(p_position, policy, p_mut_type_ptr->stack_group_);
-		}
-	}
+	inline __attribute__((always_inline)) bool enforce_stack_policy_for_addition(slim_position_t p_position, MutationType *p_mut_type_ptr);	// below
 	
 	inline __attribute__((always_inline)) void copy_from_run(const MutationRun &p_source_run)
 	{
@@ -715,6 +700,24 @@ inline __attribute__((always_inline)) void Eidos_intrusive_ptr_release(const Mut
 	}
 }
 
+// We need MutationType below, but we can't include it at top because it requires MutationRun to be defined...
+#include "mutation_type.h"
+
+inline __attribute__((always_inline)) bool MutationRun::enforce_stack_policy_for_addition(slim_position_t p_position, MutationType *p_mut_type_ptr)
+{
+	MutationStackPolicy policy = p_mut_type_ptr->stack_policy_;
+	
+	if (policy == MutationStackPolicy::kStack)
+	{
+		// If mutations are allowed to stack (the default), then we have no work to do and the new mutation is always added
+		return true;
+	}
+	else
+	{
+		// Otherwise, a relatively complicated check is needed, so we call out to a non-inline function
+		return _EnforceStackPolicyForAddition(p_position, policy, p_mut_type_ptr->stack_group_);
+	}
+}
 
 #endif /* __SLiM__mutation_run__ */
 

@@ -65,6 +65,19 @@ void SLiM_WarmUp(void);
 
 // *******************************************************************************************************************
 //
+//	Global optimization flags
+//
+#pragma mark -
+#pragma mark Global optimization flags
+#pragma mark -
+
+// If defined, MutationType will keep its own registry of all mutations of that type, under certain circumstances.
+// See mutation_type.h for more information on this optimization.
+#define SLIM_KEEP_MUTTYPE_REGISTRIES
+
+
+// *******************************************************************************************************************
+//
 //	Output handling for SLiM
 //
 #pragma mark -
@@ -288,6 +301,15 @@ enum class IndividualSex
 };
 
 std::ostream& operator<<(std::ostream& p_out, IndividualSex p_sex);
+
+
+// This enumeration represents the policy followed for multiple mutations at the same position.
+// Such "stacked" mutations can be allowed (the default), or the first or last mutation at the position can be kept.
+enum class MutationStackPolicy : char {
+	kStack = 0,
+	kKeepFirst,
+	kKeepLast,
+};
 
 
 // *******************************************************************************************************************

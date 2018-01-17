@@ -22,7 +22,7 @@
 #import "AppDelegate.h"
 
 #include "eidos_rng.h"
-#import "mutation_type.h"
+#include "mutation_type.h"
 
 
 @implementation SLiMTableView

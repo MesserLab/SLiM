@@ -25,6 +25,8 @@ development head (nonWF branch):
 	add hooks for tree sequence recording
 	improve accelerated property get/set to be more vectorized
 	add support for accelerated method implementations, accelerate a few core methods
+	speed up fitness callbacks of the form "A/relFitness"
+	speed up SLiMSim::mutationsOfType(), SLiMSim::countOfMutationsOfType(), Genome::containsMutations(), SLiMSim::mutationCounts(), SLiMSim::mutationFrequencies()
 
 
 2.6 (build 1292; Eidos version 1.6):

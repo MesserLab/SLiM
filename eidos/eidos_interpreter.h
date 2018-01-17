@@ -110,7 +110,8 @@ public:
 	std::string ExecutionLog(void);
 	
 	std::ostringstream &ExecutionOutputStream(void);			// lazy allocation; all use of execution_output_ should get it through this accessor
-	std::string ExecutionOutput(void);
+	inline __attribute__((always_inline)) bool HasExecutionOutput(void) { return (execution_output_ ? true : false); }
+	inline __attribute__((always_inline)) std::string ExecutionOutput(void) { return (execution_output_ ? execution_output_->str() : gEidosStr_empty_string); }
 	
 	inline __attribute__((always_inline)) EidosSymbolTable &SymbolTable(void) { return *global_symbols_; };			// the returned reference is to the symbol table that the interpreter has borrowed
 	inline __attribute__((always_inline)) EidosFunctionMap &FunctionMap(void) { return function_map_; };				// the returned reference is to the function map that the interpreter has borrowed
