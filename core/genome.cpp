@@ -41,7 +41,7 @@
 // Static class variables in support of Genome's bulk operation optimization; see Genome::WillModifyRunForBulkOperation()
 int64_t Genome::s_bulk_operation_id_ = 0;
 int Genome::s_bulk_operation_mutrun_index_ = -1;
-std::map<MutationRun*, MutationRun*> Genome::s_bulk_operation_runs_;
+std::unordered_map<MutationRun*, MutationRun*> Genome::s_bulk_operation_runs_;
 
 
 Genome::Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length, enum GenomeType p_genome_type_, bool p_is_null) : genome_type_(p_genome_type_), subpop_(p_subpop)

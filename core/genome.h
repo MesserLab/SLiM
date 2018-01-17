@@ -36,6 +36,7 @@
 
 #include <vector>
 #include <string.h>
+#include <unordered_map>
 
 
 class SLiMSim;
@@ -96,7 +97,7 @@ private:
 	// the bulk operation will produce the same product MutationRun given the same initial MutationRun).
 	static int64_t s_bulk_operation_id_;
 	static int s_bulk_operation_mutrun_index_;
-	static std::map<MutationRun*, MutationRun*> s_bulk_operation_runs_;
+	static std::unordered_map<MutationRun*, MutationRun*> s_bulk_operation_runs_;
 	
 public:
 	
