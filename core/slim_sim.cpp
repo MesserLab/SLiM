@@ -1645,10 +1645,48 @@ void SLiMSim::OptimizeScriptBlock(SLiMEidosBlock *p_script_block)
 				}
 			}
 			
-//			if (p_script_block->has_cached_optimization_ && p_script_block->has_cached_opt_dnorm1_)
-//				std::cout << "optimized:" << std::endl << "   " << p_script_block->script_->String() << std::endl;
+//			if (p_script_block->has_cached_optimization_)
+//				std::cout << "optimized:" << std::endl << "   " << base_node->token_->token_string_ << std::endl;
 //			else
-//				std::cout << "NOT OPTIMIZED:" << std::endl << "   " << p_script_block->script_->String() << std::endl;
+//				std::cout << "NOT OPTIMIZED:" << std::endl << "   " << base_node->token_->token_string_ << std::endl;
+		}
+		else if (p_script_block->type_ == SLiMEidosBlockType::SLiMEidosFitnessCallback)
+		{
+			const EidosASTNode *base_node = p_script_block->compound_statement_node_;
+			
+			if ((base_node->token_->token_type_ == EidosTokenType::kTokenLBrace) && (base_node->children_.size() == 1))
+			{
+				const EidosASTNode *expr_node = base_node->children_[0];
+				
+				// if we have an intervening "return", jump down through it
+				if ((expr_node->token_->token_type_ == EidosTokenType::kTokenReturn) && (expr_node->children_.size() == 1))
+					expr_node = expr_node->children_[0];
+				
+				if ((expr_node->token_->token_type_ == EidosTokenType::kTokenDiv) && (expr_node->children_.size() == 2))
+				{
+					const EidosASTNode *numerator_node = expr_node->children_[0];
+					const EidosASTNode *denominator_node = expr_node->children_[1];
+					
+					if (numerator_node->HasCachedNumericValue())
+					{
+						double numerator = numerator_node->CachedNumericValue();
+						
+						if ((denominator_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (denominator_node->token_->token_string_ == "relFitness"))
+						{
+							// callback of the form { A/relFitness; }
+							// callback of the form { return A/relFitness; }
+							p_script_block->has_cached_optimization_ = true;
+							p_script_block->has_cached_opt_reciprocal = true;
+							p_script_block->cached_opt_A_ = numerator;
+						}
+					}
+				}
+			}
+			
+//			if (p_script_block->has_cached_optimization_)
+//				std::cout << "optimized:" << std::endl << "   " << base_node->token_->token_string_ << std::endl;
+//			else
+//				std::cout << "NOT OPTIMIZED:" << std::endl << "   " << base_node->token_->token_string_ << std::endl;
 		}
 	}
 }

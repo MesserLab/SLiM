@@ -1581,6 +1581,24 @@ double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homo
 					// the cached value is owned by the tree, so we do not dispose of it
 					// there is also no script output to handle
 				}
+				else if (fitness_callback->has_cached_optimization_)
+				{
+					// We can special-case particular simple callbacks for speed.  This is similar to the cached_value_
+					// mechanism above, but it is done in SLiM, not in Eidos, and is specific to callbacks, not general.
+					// The has_cached_optimization_ flag is the umbrella flag for all such optimizations; we then figure
+					// out below which cached optimization is in effect for this callback.  See SLiMSim::OptimizeScriptBlock()
+					// for comments on the specific cases optimized here.
+					if (fitness_callback->has_cached_opt_reciprocal)
+					{
+						double A = fitness_callback->cached_opt_A_;
+						
+						p_computed_fitness = (A / p_computed_fitness);	// p_computed_fitness is relFitness
+					}
+					else
+					{
+						EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessCallbacks): (internal error) cached optimization flag mismatch" << EidosTerminate(fitness_callback->identifier_token_);
+					}
+				}
 				else
 				{
 					// local variables for the callback parameters that we might need to allocate here, and thus need to free below
@@ -1707,7 +1725,7 @@ double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &
 				// We can special-case particular simple callbacks for speed.  This is similar to the cached_value_
 				// mechanism above, but it is done in SLiM, not in Eidos, and is specific to callbacks, not general.
 				// The has_cached_optimization_ flag is the umbrella flag for all such optimizations; we then figure
-				// out below which cached optimization is in effect for this callback.  See SLiMSim::AddScriptBlock()
+				// out below which cached optimization is in effect for this callback.  See SLiMSim::OptimizeScriptBlock()
 				// for comments on the specific cases optimized here.
 				if (fitness_callback->has_cached_opt_dnorm1_)
 				{

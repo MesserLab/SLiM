@@ -164,6 +164,7 @@ public:
 	// has_cached_optimization_ will be true and the flags and values below will indicate exactly how to do so.
 	bool has_cached_optimization_ = false;
 	bool has_cached_opt_dnorm1_ = false;
+	bool has_cached_opt_reciprocal = false;
 	double cached_opt_A_ = 0.0;
 	double cached_opt_B_ = 0.0;
 	double cached_opt_C_ = 0.0;
