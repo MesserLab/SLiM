@@ -3264,7 +3264,7 @@
 		[self eidosConsoleWindowControllerWillExecuteScript:_consoleController];
 		
 		// Add SLiM help items; we need a SLiMSim instance here to get function prototypes
-		std::istringstream infile([[SLiMDocument defaultScriptString] UTF8String]);
+		std::istringstream infile([[SLiMDocument defaultWFScriptString] UTF8String]);
 		
 		SLiMSim signature_sim(infile);
 		// note no sim->InitializeRNGFromSeed() here; we don't need the RNG and don't want it to log or have side effects

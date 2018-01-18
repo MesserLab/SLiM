@@ -32,9 +32,12 @@
 {
 }
 
+@property (nonatomic) BOOL creatingNonWFDocument;		// a flag set across newNonWFDocument: to signal that the new document is a nonWF document, not a WF document
+
 - (SLiMDocument *)transientDocumentToReplace;
 - (void)replaceTransientDocument:(NSArray *)documents;
 
+- (IBAction)newNonWFDocument:(id)sender;
 - (IBAction)openRecipe:(id)sender;
 
 @end

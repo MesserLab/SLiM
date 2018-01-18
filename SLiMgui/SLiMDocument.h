@@ -41,7 +41,8 @@
 
 @property (retain, nonatomic) NSString *recipeName;
 
-+ (NSString *)defaultScriptString;
++ (NSString *)defaultWFScriptString;
++ (NSString *)defaultNonWFScriptString;
 
 - (NSString *)documentScriptString;
 - (void)setDocumentScriptString:(NSString *)newString;

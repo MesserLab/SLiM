@@ -20,11 +20,12 @@
 
 #import "SLiMDocument.h"
 #import "SLiMWindowController.h"
+#import "SLiMDocumentController.h"
 
 
 @implementation SLiMDocument
 
-+ (NSString *)defaultScriptString
++ (NSString *)defaultWFScriptString
 {
 	static NSString *str = @"// set up a simple neutral simulation\n"
 	"initialize() {\n"
@@ -54,13 +55,55 @@
 	return str;
 }
 
++ (NSString *)defaultNonWFScriptString
+{
+	static NSString *str = @"// set up a simple neutral nonWF simulation\n"
+	"initialize() {\n"
+	"	initializeSLiMModelType(\"nonWF\");\n"
+	"	defineConstant(\"K\", 500);	// carrying capacity\n"
+	"	\n"
+	"	// neutral mutations, which are allowed to fix\n"
+	"	initializeMutationType(\"m1\", 0.5, \"f\", 0.0);\n"
+	"	m1.convertToSubstitution = T;\n"
+	"	\n"
+	"	initializeGenomicElementType(\"g1\", m1, 1.0);\n"
+	"	initializeGenomicElement(g1, 0, 99999);\n"
+	"	initializeMutationRate(1e-7);\n"
+	"	initializeRecombinationRate(1e-8);\n"
+	"}\n"
+	"\n"
+	"// each individual reproduces itself once\n"
+	"reproduction() {\n"
+	"	subpop.addCrossed(individual, p1.sampleIndividuals(1));\n"
+	"	return NULL;\n"
+	"}\n"
+	"\n"
+	"// create an initial population of 10 individuals\n"
+	"1 early() {\n"
+	"	sim.addSubpop(\"p1\", 10);\n"
+	"}\n"
+	"\n"
+	"// provide density-dependent selection\n"
+	"early() {\n"
+	"	p1.fitnessScaling = K / p1.individualCount;\n"
+	"}\n"
+	"\n"
+	"// output all fixed mutations at end\n"
+	"2000 late() { sim.outputFixedMutations(); }\n";
+	
+	return str;
+}
+
 - (instancetype)init
 {
 	if (self = [super init])
 	{
 		//[[self undoManager] disableUndoRegistration];
 		
-		documentScriptString = [[SLiMDocument defaultScriptString] retain];
+		if ([(SLiMDocumentController *)[NSDocumentController sharedDocumentController] creatingNonWFDocument])
+			documentScriptString = [[SLiMDocument defaultNonWFScriptString] retain];
+		else
+			documentScriptString = [[SLiMDocument defaultWFScriptString] retain];
 		
 		//[[self undoManager] enableUndoRegistration];
 	}

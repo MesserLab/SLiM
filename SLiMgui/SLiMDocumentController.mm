@@ -104,6 +104,19 @@
 	}
 }
 
+- (IBAction)newNonWFDocument:(id)sender
+{
+	@try {
+		_creatingNonWFDocument = YES;
+		
+		[self newDocument:sender];
+	}
+	@finally
+	{
+		_creatingNonWFDocument = NO;
+	}
+}
+
 - (IBAction)openRecipe:(id)sender
 {
 	NSString *recipeName = [sender title];
