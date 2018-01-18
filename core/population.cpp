@@ -1177,6 +1177,11 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						{
 							// The modifyChild() callbacks suppressed the child altogether; this is juvenile migrant mortality, basically, so
 							// we need to even change the source subpop for our next attempt.  In this case, however, we have no migration.
+							
+							// back out child state we created; we could back out the assigned pedigree ID too, and cancel the tree recording
+							child_genome1->clear_to_nullptr();
+							child_genome2->clear_to_nullptr();
+							
 							num_tries++;
 							goto retryChild;
 						}
@@ -1243,6 +1248,10 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						
 						if (!ApplyModifyChildCallbacks(child, child_genome1, child_genome2, IndividualSex::kHermaphrodite, parent1, parent2, false, false, &p_subpop, &source_subpop, *modify_child_callbacks))
 						{
+							// back out child state we created; we could back out the assigned pedigree ID too, and cancel the tree recording
+							child_genome1->clear_to_nullptr();
+							child_genome2->clear_to_nullptr();
+							
 							num_tries++;
 							
 							if (num_tries > 1000000)
@@ -1579,6 +1588,10 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								source_subpop = migration_sources[pop_count];
 								break;
 							}
+						
+						// back out child state we created; we could back out the assigned pedigree ID too, and cancel the tree recording
+						child_genome1->clear_to_nullptr();
+						child_genome2->clear_to_nullptr();
 						
 						num_tries++;
 						goto retryWithNewSourceSubpop;
