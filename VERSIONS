@@ -25,7 +25,7 @@ development head (nonWF branch):
 	add hooks for tree sequence recording
 	improve accelerated property get/set to be more vectorized
 	add support for accelerated method implementations, accelerate a few core methods
-	speed up SLiMSim::mutationsOfType(), SLiMSim::countOfMutationsOfType(), Genome::containsMutations(), SLiMSim::mutationCounts(), SLiMSim::mutationFrequencies()
+	speed up SLiMSim::mutationsOfType(), SLiMSim::countOfMutationsOfType(), Genome::containsMutations(), SLiMSim::mutationCounts(), SLiMSim::mutationFrequencies(), Genome::mutationsOfType()
 	switch to dispatch of properties and methods using std::unordered_map to look up the signature
 	miscellaneous other optimizations: "1/relFitness" fitness() callbacks, property return checks, symbol table crossover, std::unordered_map vs. std::map, dynamic_cast<> usage, unnecessary IsNull() calls
 

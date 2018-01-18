@@ -770,13 +770,15 @@ EidosValue_SP Genome::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_method
 	SLiMSim &sim = subpop_->population_.sim_;
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, sim, "mutationsOfType()");
 	
-	// Count the number of mutations of the given type, so we can reserve the right vector size : FIXME is this pre-scan really worth it?? BCH 11/29/2017
-	// To avoid having to scan the genome twice for the simplest case of a single mutation, we cache the first mutation found
+	// We want to return a singleton if we can, but we also want to avoid scanning through all our mutations twice.
+	// We do this by not creating a vector until we see the second match; with one match, we make a singleton.
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	int match_count = 0;
 	Mutation *first_match = nullptr;
+	EidosValue_Object_vector *vec = nullptr;
+	EidosValue_SP result_SP;
+	int run_index;
 	
-	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
+	for (run_index = 0; run_index < mutrun_count_; ++run_index)
 	{
 		MutationRun *mutrun = mutruns_[run_index].get();
 		int mut_count = mutrun->size();
@@ -788,43 +790,43 @@ EidosValue_SP Genome::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_method
 			
 			if (mut->mutation_type_ptr_ == mutation_type_ptr)
 			{
-				if (++match_count == 1)
-					first_match = mut;
+				if (!vec)
+				{
+					if (!first_match)
+						first_match = mut;
+					else
+					{
+						vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class));
+						result_SP = EidosValue_SP(vec);
+						
+						vec->push_object_element(first_match);
+						vec->push_object_element(mut);
+						first_match = nullptr;
+					}
+				}
+				else
+				{
+					vec->push_object_element(mut);
+				}
 			}
 		}
 	}
 	
-	// Now allocate the result vector and assemble it
-	if (match_count == 1)
+	// Now return the appropriate return value
+	if (first_match)
 	{
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(first_match, gSLiM_Mutation_Class));
 	}
 	else
 	{
-		EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->resize_no_initialize(match_count);
-		EidosValue_SP result_SP = EidosValue_SP(vec);
-		
-		if (match_count != 0)
+		if (!vec)
 		{
-			int set_index = 0;
-			
-			for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-			{
-				MutationRun *mutrun = mutruns_[run_index].get();
-				int mut_count = mutrun->size();
-				const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
-				
-				for (int mut_index = 0; mut_index < mut_count; ++mut_index)
-				{
-					Mutation *mut = (mut_block_ptr + mut_ptr[mut_index]);
-					
-					if (mut->mutation_type_ptr_ == mutation_type_ptr)
-						vec->set_object_element_no_check(mut, set_index++);
-				}
-			}
+			vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class));
+			result_SP = EidosValue_SP(vec);
 		}
 		
 		return result_SP;
+		
 	}
 }
 
