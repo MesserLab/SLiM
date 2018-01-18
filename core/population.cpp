@@ -4383,14 +4383,27 @@ slim_refcount_t Population::TallyMutationReferences_FAST(void)
 		slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
 		std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
 		
-		for (slim_popsize_t i = 0; i < subpop_genome_count; i++)							// child genomes
+		if (sim_.ModeledChromosomeType() == GenomeType::kAutosome)
 		{
-			Genome &genome = *subpop_genomes[i];
+			// When we're modeling autosomes, we shouldn't have any null genomes, and can thus skip the IsNull() check
+			// and move the tallying outside the loop.  The IsNull() was showing up on profiles, so why not.
+			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+				subpop_genomes[i]->TallyGenomeMutationReferences(operation_id);
 			
-			if (!genome.IsNull())
+			total_genome_count += subpop_genome_count;
+		}
+		else
+		{
+			// When we're modeling non-autosomes, we need to check for null genomes
+			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
 			{
-				genome.TallyGenomeMutationReferences(operation_id);
-				total_genome_count++;	// count only non-null genomes to determine fixation
+				Genome &genome = *subpop_genomes[i];
+				
+				if (!genome.IsNull())
+				{
+					genome.TallyGenomeMutationReferences(operation_id);
+					total_genome_count++;	// count only non-null genomes to determine fixation
+				}
 			}
 		}
 	}
