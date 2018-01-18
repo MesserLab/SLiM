@@ -1169,6 +1169,61 @@
 			NSRectFillUsingOperation(rowRect, NSCompositeSourceOver);
 		}
 	}
+	
+	// Add little colored boxes to the WF-only and nonWF-only API; this is pretty inefficient, but we
+	// don't have very many strings to check so it should be fine, and is simpler than the alternatives...
+	BOOL draw_WF_box = NO, draw_nonWF_box = NO;
+	static NSArray *stringsWF = nullptr;
+	static NSArray *stringsNonWF = nullptr;
+	
+	if (!stringsWF)
+		stringsWF = [@[@"– addSubpopSplit()",
+					   @"– registerMateChoiceCallback()",
+					   @"cloningRate =>",
+					   @"immigrantSubpopFractions =>",
+					   @"immigrantSubpopIDs =>",
+					   @"selfingRate =>",
+					   @"sexRatio =>",
+					   @"– setCloningRate()",
+					   @"– setMigrationRates()",
+					   @"– setSelfingRate()",
+					   @"– setSexRatio()",
+					   @"– setSubpopulationSize()",
+					   @"4. mateChoice() callbacks"
+					   ] retain];
+	
+	if (!stringsNonWF)
+		stringsNonWF = [@[@"initializeSLiMModelType()",
+						  @"age =>",
+						  @"modelType =>",
+						  @"– registerReproductionCallback()",
+						  @"– addCloned()",
+						  @"– addCrossed()",
+						  @"– addEmpty()",
+						  @"– addSelfed()",
+						  @"– removeSubpopulation()",
+						  @"– takeMigrants()",
+						  @"8. reproduction() callbacks"
+						  ] retain];
+	
+	if ([stringsWF containsObject:item])
+		draw_WF_box = YES;
+	if ([stringsNonWF containsObject:item])
+		draw_nonWF_box = YES;
+	
+	if (draw_WF_box || draw_nonWF_box)
+	{
+		NSRect boxRect = NSMakeRect(NSMaxX(rowRect) - 13, rowRect.origin.y + 6, 8, 8);
+		
+		if (draw_WF_box)
+			[[NSColor colorWithCalibratedRed:66/255.0 green:255/255.0 blue:53/255.0 alpha:1.0] set];	// WF-only color (green)
+		else // draw_nonWF_box
+			[[NSColor colorWithCalibratedRed:88/255.0 green:148/255.0 blue:255/255.0 alpha:1.0] set];	// nonWF-only color (blue)
+		
+		NSRectFill(boxRect);
+		[[NSColor blackColor] set];
+		NSFrameRect(boxRect);
+	}
 }
 
 @end

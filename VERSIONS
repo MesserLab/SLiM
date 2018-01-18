@@ -29,6 +29,7 @@ development head (nonWF branch):
 	switch to dispatch of properties and methods using std::unordered_map to look up the signature
 	miscellaneous other optimizations: "1/relFitness" fitness() callbacks, property return checks, symbol table crossover, std::unordered_map vs. std::map, dynamic_cast<> usage, unnecessary IsNull() calls
 	add a "New (nonWF)" menu item to SLiMgui for quick creation of new nonWF models
+	make WF-only and nonWF-only API visibly tagged (with colored boxes) in the SLiMgui help window
 
 
 2.6 (build 1292; Eidos version 1.6):
