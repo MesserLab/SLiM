@@ -306,6 +306,31 @@ double Eidos_ExactSum(const double *p_double_vec, int64_t p_vec_length);
 
 // *******************************************************************************************************************
 //
+//	Locking
+//
+#pragma mark -
+#pragma mark Locking
+#pragma mark -
+
+// exception-safe RAII-based locking; modified from https://stackoverflow.com/a/2201076/2752221
+// I didn't want to depend upon assert(), so I removed that; the user is responsible for checking the flag before locking
+// The point of this is simply that the lock flag gets cleared automatically on exit by RAII, even with exceptions
+class Eidos_simple_lock
+{
+private:
+	Eidos_simple_lock(const Eidos_simple_lock&) = delete;
+	Eidos_simple_lock& operator=(const Eidos_simple_lock&) = delete;
+	
+	bool& mLock;
+	
+public:
+	Eidos_simple_lock(bool& pLock) : mLock(pLock)	{	mLock = true;	}
+	~Eidos_simple_lock(void)						{	mLock = false;	}
+};
+
+
+// *******************************************************************************************************************
+//
 //	Overflow-detecting integer operations
 //
 #pragma mark -

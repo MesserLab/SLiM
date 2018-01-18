@@ -38,6 +38,8 @@
 extern std::vector<EidosValue_Object *> gEidosValue_Object_Genome_Registry;		// this is in Eidos; see Subpopulation::ExecuteMethod_takeMigrants()
 extern std::vector<EidosValue_Object *> gEidosValue_Object_Individual_Registry;	// this is in Eidos; see Subpopulation::ExecuteMethod_takeMigrants()
 
+bool Subpopulation::s_reentrancy_block_ = false;						// prevents re-entrancy in the addX() nonWF methods
+
 
 #pragma mark -
 #pragma mark _SpatialMap
@@ -3493,6 +3495,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	if (population_.sim_.GenerationStage() != SLiMGenerationStage::kNonWFStage1GenerateOffspring)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): method -addCloned() may only be called from a reproduction() callback." << EidosTerminate();
 	
+	if (Subpopulation::s_reentrancy_block_)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): method -addCloned() may not be called from a nested callback." << EidosTerminate();
+	Eidos_simple_lock reentrancy_lock(Subpopulation::s_reentrancy_block_);
+	
 	SLiMSim &sim = population_.sim_;
 	bool pedigrees_enabled = sim.PedigreesEnabled();
 	Chromosome &chromosome = sim.TheChromosome();
@@ -3556,6 +3562,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): method -addCrossed() is not available in WF models." << EidosTerminate();
 	if (population_.sim_.GenerationStage() != SLiMGenerationStage::kNonWFStage1GenerateOffspring)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): method -addCrossed() may only be called from a reproduction() callback." << EidosTerminate();
+	
+	if (Subpopulation::s_reentrancy_block_)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): method -addCloned() may not be called from a nested callback." << EidosTerminate();
+	Eidos_simple_lock reentrancy_lock(Subpopulation::s_reentrancy_block_);
 	
 	SLiMSim &sim = population_.sim_;
 	bool pedigrees_enabled = sim.PedigreesEnabled();
@@ -3639,6 +3649,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	if (population_.sim_.GenerationStage() != SLiMGenerationStage::kNonWFStage1GenerateOffspring)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): method -addEmpty() may only be called from a reproduction() callback." << EidosTerminate();
 	
+	if (Subpopulation::s_reentrancy_block_)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): method -addCloned() may not be called from a nested callback." << EidosTerminate();
+	Eidos_simple_lock reentrancy_lock(Subpopulation::s_reentrancy_block_);
+	
 	EidosValue *sex_value = p_arguments[0].get();
 	GenomeType genome1_type, genome2_type;
 	bool genome1_null, genome2_null;
@@ -3691,6 +3705,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): method -addSelfed() is not available in WF models." << EidosTerminate();
 	if (population_.sim_.GenerationStage() != SLiMGenerationStage::kNonWFStage1GenerateOffspring)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): method -addSelfed() may only be called from a reproduction() callback." << EidosTerminate();
+	
+	if (Subpopulation::s_reentrancy_block_)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): method -addCloned() may not be called from a nested callback." << EidosTerminate();
+	Eidos_simple_lock reentrancy_lock(Subpopulation::s_reentrancy_block_);
 	
 	SLiMSim &sim = population_.sim_;
 	bool pedigrees_enabled = sim.PedigreesEnabled();

@@ -2194,7 +2194,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 	// determine how many mutations and breakpoints we have
 	Chromosome &chromosome = sim_.TheChromosome();
 	int num_mutations, num_breakpoints;
-	static std::vector<slim_position_t> all_breakpoints;	// avoid buffer reallocs, etc.
+	static std::vector<slim_position_t> all_breakpoints;	// avoid buffer reallocs, etc.; we are guaranteed not to be re-entrant by the addX() methods
 	
 	all_breakpoints.clear();
 	

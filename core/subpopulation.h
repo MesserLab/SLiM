@@ -126,6 +126,8 @@ private:
 	
 	EidosSymbolTableEntry self_symbol_;						// for fast setup of the symbol table
 	
+	static bool s_reentrancy_block_;						// prevents re-entrancy in the addX() nonWF methods
+	
 public:
 	
 	Population &population_;						// we need to know our Population so we can remove ourselves, etc.

@@ -5159,7 +5159,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 	{
 		// requested subpops, so get them
 		int requested_subpop_count = subpops_value->Count();
-		static std::vector<Subpopulation*> subpops_to_tally;	// using and clearing a static prevents allocation thrash
+		static std::vector<Subpopulation*> subpops_to_tally;	// using and clearing a static prevents allocation thrash; should be safe from re-entry since TallyMutationReferences() can't re-enter here
 		
 		if (requested_subpop_count)
 		{

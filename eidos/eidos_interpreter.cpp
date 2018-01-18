@@ -1428,31 +1428,68 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		
 		if (max_arg_count <= 10)
 		{
-			static EidosValue_SP (arguments_array[10]);
+			// This flag is used to prevent re-entrancy below.  Note that re-entrancy applies to this whole section of code,
+			// including both argument processing and call execution.  If the user writes Eidos code like f(g()), that will
+			// re-enter here, because g() will be called as a side effect of argument processing while managing the f() call;
+			// the call to g() is finished before the call to f() begins, but Evaluate_Call() is re-entered nevertheless.
+			// It would be nice to be able to use a static argument buffer in the re-entrant case too, but I guess that would
+			// require a stack of buffers, which seems excessively complex.  Maybe this is already excessively complex, but
+			// the argument buffer construction/destruction did show up significantly in profiling.  BCH 1/18/2018
+			static bool reentrancy_flag = false;
 			
-			int processed_arg_count = _ProcessArgumentList(p_node, method_signature, arguments_array);
-			
-			// If the method is a class method, dispatch it to the class object
-			if (method_signature->is_class_method)
+			if (!reentrancy_flag)
 			{
-				// Note that starting in Eidos 1.1 we pass method_object to ExecuteClassMethod(), to allow class methods to
-				// act as non-multicasting methods that operate on the whole target vector.  BCH 11 June 2016
-				result_SP = method_object->Class()->ExecuteClassMethod(method_id, method_object.get(), arguments_array, processed_arg_count, *this);
+				// We are not re-entrant, so we can use a statically allocated buffer to hold our arguments.  This is faster
+				// because the buffer doesn't need to be constructed and destructed; we just reset used indices below.
+				static EidosValue_SP (arguments_array[10]);
+				Eidos_simple_lock reentrancy_lock(reentrancy_flag);	// lock with RAII to prevent re-entrancy here
 				
-				method_signature->CheckReturn(*result_SP);
+				int processed_arg_count = _ProcessArgumentList(p_node, method_signature, arguments_array);
+				
+				// If the method is a class method, dispatch it to the class object
+				if (method_signature->is_class_method)
+				{
+					// Note that starting in Eidos 1.1 we pass method_object to ExecuteClassMethod(), to allow class methods to
+					// act as non-multicasting methods that operate on the whole target vector.  BCH 11 June 2016
+					result_SP = method_object->Class()->ExecuteClassMethod(method_id, method_object.get(), arguments_array, processed_arg_count, *this);
+					
+					method_signature->CheckReturn(*result_SP);
+				}
+				else
+				{
+					result_SP = method_object->ExecuteMethodCall(method_id, (EidosInstanceMethodSignature *)method_signature, arguments_array, processed_arg_count, *this);
+				}
+				
+				// Clean up the entries of arguments_array that were used.  Using a static buffer this way means that we avoid
+				// constructing/destructing the buffer every time; we just reset the values we use back to nullptr each time.
+				// A throw will blow past this, but it doesn't really matter; that just means a few EidosValues will get held
+				// longer than they otherwise would be, but they'll get throw out eventually and it shouldn't matter.  They
+				// might have invalid pointers in them by then, if they're of type object, but nobody will use them.
+				for (int arg_index = 0; arg_index < processed_arg_count; ++arg_index)
+					arguments_array[arg_index].reset();
 			}
 			else
 			{
-				result_SP = method_object->ExecuteMethodCall(method_id, (EidosInstanceMethodSignature *)method_signature, arguments_array, processed_arg_count, *this);
+				// We are re-entrant, so we can't use the static buffer above; we have to allocate and deallocate a local buffer.
+				// This is identical to the dispatch code above, except for the use of the local stack-allocated argument buffer.
+				EidosValue_SP (arguments_array[10]);
+				
+				int processed_arg_count = _ProcessArgumentList(p_node, method_signature, arguments_array);
+				
+				// If the method is a class method, dispatch it to the class object
+				if (method_signature->is_class_method)
+				{
+					// Note that starting in Eidos 1.1 we pass method_object to ExecuteClassMethod(), to allow class methods to
+					// act as non-multicasting methods that operate on the whole target vector.  BCH 11 June 2016
+					result_SP = method_object->Class()->ExecuteClassMethod(method_id, method_object.get(), arguments_array, processed_arg_count, *this);
+					
+					method_signature->CheckReturn(*result_SP);
+				}
+				else
+				{
+					result_SP = method_object->ExecuteMethodCall(method_id, (EidosInstanceMethodSignature *)method_signature, arguments_array, processed_arg_count, *this);
+				}
 			}
-			
-			// Clean up the entries of arguments_array that were used.  Using a static buffer this way means that we avoid
-			// constructing/destructing the buffer every time; we just reset the values we use back to nullptr each time.
-			// A throw will blow past this, but it doesn't really matter; that just means a few EidosValues will get held
-			// longer than they otherwise would be, but they'll get throw out eventually and it shouldn't matter.  They
-			// might have invalid pointers in them by then, if they're of type object, but nobody will use them.
-			for (int arg_index = 0; arg_index < processed_arg_count; ++arg_index)
-				arguments_array[arg_index].reset();
 		}
 		else
 		{
