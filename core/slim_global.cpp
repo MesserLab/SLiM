@@ -95,7 +95,12 @@ void SLiM_RaisePolymorphismidRangeError(int64_t p_long_value)
 
 SLiMSim &SLiM_GetSimFromInterpreter(EidosInterpreter &p_interpreter)
 {
+#if DEBUG
+	// Use dynamic_cast<> only in DEBUG since it is hella slow
 	SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
+#else
+	SLiMSim *sim = (SLiMSim *)(p_interpreter.Context());
+#endif
 	
 	if (!sim)
 		EIDOS_TERMINATION << "ERROR (SLiM_GetSimFromInterpreter): (internal error) the sim is not registered as the context pointer." << EidosTerminate();
@@ -122,7 +127,13 @@ MutationType *SLiM_ExtractMutationTypeFromEidosValue_io(EidosValue *p_value, int
 	}
 	else
 	{
+#if DEBUG
+		// Use dynamic_cast<> only in DEBUG since it is hella slow
+		// the class of the object here should be guaranteed by the caller anyway
 		return dynamic_cast<MutationType *>(p_value->ObjectElementAtIndex(p_index, nullptr));
+#else
+		return (MutationType *)(p_value->ObjectElementAtIndex(p_index, nullptr));
+#endif
 	}
 }
 
@@ -140,7 +151,13 @@ GenomicElementType *SLiM_ExtractGenomicElementTypeFromEidosValue_io(EidosValue *
 	}
 	else
 	{
+#if DEBUG
+		// Use dynamic_cast<> only in DEBUG since it is hella slow
+		// the class of the object here should be guaranteed by the caller anyway
 		return dynamic_cast<GenomicElementType *>(p_value->ObjectElementAtIndex(p_index, nullptr));
+#else
+		return (GenomicElementType *)(p_value->ObjectElementAtIndex(p_index, nullptr));
+#endif
 	}
 }
 
@@ -158,7 +175,13 @@ Subpopulation *SLiM_ExtractSubpopulationFromEidosValue_io(EidosValue *p_value, i
 	}
 	else
 	{
+#if DEBUG
+		// Use dynamic_cast<> only in DEBUG since it is hella slow
+		// the class of the object here should be guaranteed by the caller anyway
 		return dynamic_cast<Subpopulation *>(p_value->ObjectElementAtIndex(p_index, nullptr));
+#else
+		return (Subpopulation *)(p_value->ObjectElementAtIndex(p_index, nullptr));
+#endif
 	}
 }
 
@@ -177,7 +200,13 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
 	}
 	else
 	{
+#if DEBUG
+		// Use dynamic_cast<> only in DEBUG since it is hella slow
+		// the class of the object here should be guaranteed by the caller anyway
 		return dynamic_cast<SLiMEidosBlock *>(p_value->ObjectElementAtIndex(p_index, nullptr));
+#else
+		return (SLiMEidosBlock *)(p_value->ObjectElementAtIndex(p_index, nullptr));
+#endif
 	}
 }
 

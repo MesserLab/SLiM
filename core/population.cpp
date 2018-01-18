@@ -471,12 +471,11 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 								weights_modified = true;
 							}
 							
-							// We really want to use EidosValue_Float_vector's FloatVector() method to get the values; if the dynamic_cast
-							// fails, we presumably have an EidosValue_Float_singleton and must get its value with FloatAtIndex.
-							EidosValue_Float_vector *result_vector_type = dynamic_cast<EidosValue_Float_vector *>(result);
-							
-							if (result_vector_type)
-								memcpy(current_weights, result_vector_type->FloatVector()->data(), sizeof(double) * weights_length);
+							// We really want to use EidosValue_Float_vector's FloatVector() method to get the values;
+							// if we have an EidosValue_Float_singleton we have to get its value with FloatAtIndex.
+							// BCH 1/18/2018: IsSingleton() should be much faster than the dynamic_cast<> used here before
+							if (!result->IsSingleton())
+								memcpy(current_weights, ((EidosValue_Float_vector *)result)->FloatVector()->data(), sizeof(double) * weights_length);
 							else
 								current_weights[0] = result->FloatAtIndex(0, nullptr);
 							

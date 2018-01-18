@@ -1561,7 +1561,13 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	else if (arg_origin_subpop->Type() == EidosValueType::kValueInt)
 		singleton_origin_subpop_id = SLiMCastToObjectidTypeOrRaise(arg_origin_subpop->IntAtIndex(0, nullptr));
 	else
+#if DEBUG
+		// Use dynamic_cast<> only in DEBUG since it is hella slow
+		// The class should be guaranteed by the method signature already
 		singleton_origin_subpop_id = dynamic_cast<Subpopulation *>(arg_origin_subpop->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
+#else
+		singleton_origin_subpop_id = (Subpopulation *)(arg_origin_subpop->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
+#endif
 	
 	// ok, now loop to add the mutations in a single bulk operation per mutation run
 	for (int mutrun_index : mutrun_indexes)
@@ -1605,7 +1611,13 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 					if (arg_origin_subpop->Type() == EidosValueType::kValueInt)
 						origin_subpop_id = SLiMCastToObjectidTypeOrRaise(arg_origin_subpop->IntAtIndex(mut_parameter_index, nullptr));
 					else
+#if DEBUG
+						// Use dynamic_cast<> only in DEBUG since it is hella slow
+						// The class should be guaranteed by the method signature already
 						origin_subpop_id = dynamic_cast<Subpopulation *>(arg_origin_subpop->ObjectElementAtIndex(mut_parameter_index, nullptr))->subpopulation_id_;
+#else
+						origin_subpop_id = (Subpopulation *)(arg_origin_subpop->ObjectElementAtIndex(mut_parameter_index, nullptr))->subpopulation_id_;
+#endif
 				}
 				
 				MutationIndex new_mut_index = SLiM_NewMutationFromBlock();

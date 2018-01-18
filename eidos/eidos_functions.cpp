@@ -7497,7 +7497,7 @@ EidosValue_SP Eidos_ExecuteFunction_cbind(const EidosValue_SP *const p_arguments
 		
 		if (arg_type == EidosValueType::kValueObject)
 		{
-			EidosValue_Object *arg_object = dynamic_cast<EidosValue_Object *>(arg);
+			EidosValue_Object *arg_object = (EidosValue_Object *)arg;
 			const EidosObjectClass *arg_class = arg_object->Class();
 			
 			if (arg_class == gEidos_UndefinedClassObject)
@@ -7678,9 +7678,9 @@ EidosValue_SP Eidos_ExecuteFunction_matrixMult(const EidosValue_SP *const p_argu
 	
 	if (x_type == EidosValueType::kValueObject)
 	{
-		EidosValue_Object *x_object = dynamic_cast<EidosValue_Object *>(x_value);
+		EidosValue_Object *x_object = (EidosValue_Object *)x_value;
 		const EidosObjectClass *x_class = x_object->Class();
-		EidosValue_Object *y_object = dynamic_cast<EidosValue_Object *>(y_value);
+		EidosValue_Object *y_object = (EidosValue_Object *)y_value;
 		const EidosObjectClass *y_class = y_object->Class();
 		
 		if (x_class != y_class)
@@ -8021,7 +8021,7 @@ EidosValue_SP Eidos_ExecuteFunction_rbind(const EidosValue_SP *const p_arguments
 		
 		if (arg_type == EidosValueType::kValueObject)
 		{
-			EidosValue_Object *arg_object = dynamic_cast<EidosValue_Object *>(arg);
+			EidosValue_Object *arg_object = (EidosValue_Object *)arg;
 			const EidosObjectClass *arg_class = arg_object->Class();
 			
 			if (arg_class == gEidos_UndefinedClassObject)
