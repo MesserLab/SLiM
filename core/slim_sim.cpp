@@ -43,7 +43,10 @@
 
 SLiMSim::SLiMSim(std::istream &p_infile) : population_(*this), self_symbol_(gID_sim, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMSim_Class))), x_experiments_enabled_(false)
 {
-	// set up the symbol table we will use for all of our constants
+	// set up the symbol table we will use for all of our constants; we use the external hash table design
+	// BCH 1/18/2018: I looked into telling this table to use the external unordered_map from the start, but testing indicates
+	// that that is actually a bit slower.  I suspect it crosses over for models with more SLiM symbols; but EidosSymbolTable
+	// crosses over to the external table anyway when more symbols are used, so it shouldn't be a big deal.
 	simulation_constants_ = new EidosSymbolTable(EidosSymbolTableType::kContextConstantsTable, gEidosConstantsSymbolTable);
 	
 	// set up the function map with the base Eidos functions plus zero-gen functions, since we're in an initial state
@@ -59,6 +62,9 @@ SLiMSim::SLiMSim(std::istream &p_infile) : population_(*this), self_symbol_(gID_
 SLiMSim::SLiMSim(const char *p_input_file) : population_(*this), self_symbol_(gID_sim, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMSim_Class))), x_experiments_enabled_(false)
 {
 	// set up the symbol table we will use for all of our constants
+	// BCH 1/18/2018: I looked into telling this table to use the external unordered_map from the start, but testing indicates
+	// that that is actually a bit slower.  I suspect it crosses over for models with more SLiM symbols; but EidosSymbolTable
+	// crosses over to the external table anyway when more symbols are used, so it shouldn't be a big deal.
 	simulation_constants_ = new EidosSymbolTable(EidosSymbolTableType::kContextConstantsTable, gEidosConstantsSymbolTable);
 	
 	// set up the function map with the base Eidos functions plus zero-gen functions, since we're in an initial state

@@ -253,6 +253,8 @@ void Eidos_WarmUp(void)
 		EidosInterpreter::CacheBuiltInFunctionMap();
 		
 		// Set up the symbol table for Eidos constants
+		// BCH 1/18/2018: I looked into telling this table to use the external unordered_map from the start, but testing indicates
+		// that that is actually a bit slower.  If the number of intrinsic constants grows above 10 or so, this should be revisited.
 		gEidosConstantsSymbolTable = new EidosSymbolTable(EidosSymbolTableType::kEidosIntrinsicConstantsTable, nullptr);
 	}
 }

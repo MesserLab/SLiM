@@ -84,7 +84,11 @@ extern std::vector<EidosSymbolTable_InternalSlot *> gEidos_EidosSymbolTable_Inte
 // faster up to some threshold size, because calculating hash values for strings is not particularly fast;
 // a linear search through the internal table is often faster than a single hash table lookup.  The critical
 // size threshold will be platform-dependent; the point is that the internal table is a good thing.
-#define EIDOS_SYMBOL_TABLE_BASE_SIZE		30
+// BCH 1/18/2018: This used to be 30, which was just pulled out of a hat I think.  I've done a bit of testing
+// now, and I am guessing the performance crossover point might be around 10-15, although it will depend a lot
+// on the specific usage pattern.  I'm setting it to 16 so that all of the SLiM constants tables for callbacks
+// fit inside the internal table, avoiding thrashing on hash table creation/destruction (plus, power of two).
+#define EIDOS_SYMBOL_TABLE_BASE_SIZE		16
 
 
 // Symbol tables can come in various types.  This is mostly hidden from clients of this class.  The intrinsic

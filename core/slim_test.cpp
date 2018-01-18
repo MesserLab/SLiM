@@ -3447,7 +3447,8 @@ void _RunNonWFTests(void)
 void _RunSLiMTimingTests(void)
 {
 #if 0
-	// Speed comparison of different dispatch methods; the conclusion is that std::unordered_map is the fastest
+	// Speed comparison of different signature lookup methods
+	// the conclusion is that std::unordered_map is faster than std::map or the old switch()-based scheme
 	{
 		EidosGlobalStringID genome_properties[4] = {gID_genomeType, gID_isNullGenome, gID_mutations, gID_tag};
 		std::map<EidosGlobalStringID, const EidosPropertySignature *> genome_map;
@@ -3587,6 +3588,126 @@ void _RunSLiMTimingTests(void)
 			double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
 			
 			std::cout << "Time for individual_unordered_map calls: " << time_spent << std::endl << std::endl;
+		}
+	}
+#endif
+	
+#if 0
+	// Speed comparison between internal and internal symbols for EidosSymbolTable, for ContainsSymbol() checks
+	// the conclusion is that an external table is significantly faster for failed checks (as when we have to
+	// check the intrinsic symbols table for a name conflict before defining a new symbols), slightly faster for
+	// successful checks (as when a random intrinsic symbol is used), but significantly slower for successful
+	// checks against early symbols in the table (T and F, which are very commonly used).  We cache EidosValues
+	// for the intrinsic constants in the tree during optimization, so the successful-lookup cases should not be
+	// important; the failed-check case should be what matters.  Nevertheless, puzzingly, testing indicates that
+	// switching the intrinsic constants table to use the external hash table hurts performance.  I'm not sure
+	// why that is, but I have decided not to do that since it does not seem to be a win despite the results here.
+	{
+		EidosGlobalStringID symbol_ids[7] = {gEidosID_T, gEidosID_F, gEidosID_NULL, gEidosID_PI, gEidosID_E, gEidosID_INF, gEidosID_NAN};
+		EidosSymbolTable internalTable(EidosSymbolTableType::kEidosIntrinsicConstantsTable, nullptr, false);
+		EidosSymbolTable externalTable(EidosSymbolTableType::kEidosIntrinsicConstantsTable, nullptr, true);
+		
+		{
+			clock_t begin = clock();
+			int64_t total = 0;
+			
+			for (int64_t i = 0; i < 1000000000; i++)
+			{
+				bool contains_symbol = internalTable.ContainsSymbol(gEidosID_F);
+				
+				total += (contains_symbol ? 1 : 2);
+			}
+			
+			clock_t end = clock();
+			double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
+			
+			std::cout << "Time for internalTable (F) checks: " << time_spent << std::endl;
+		}
+		{
+			clock_t begin = clock();
+			int64_t total = 0;
+			
+			for (int64_t i = 0; i < 1000000000; i++)
+			{
+				bool contains_symbol = externalTable.ContainsSymbol(gEidosID_F);
+				
+				total += (contains_symbol ? 1 : 2);
+			}
+			
+			clock_t end = clock();
+			double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
+			
+			std::cout << "Time for externalTable (F) checks: " << time_spent << std::endl << std::endl;
+		}
+		
+		{
+			clock_t begin = clock();
+			int64_t total = 0;
+			
+			for (int64_t i = 0; i < 1000000000; i++)
+			{
+				EidosGlobalStringID variable_id = symbol_ids[Eidos_rng_uniform_int(gEidos_rng, 7)];
+				
+				bool contains_symbol = internalTable.ContainsSymbol(variable_id);
+				
+				total += (contains_symbol ? 1 : 2);
+			}
+			
+			clock_t end = clock();
+			double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
+			
+			std::cout << "Time for internalTable successful checks: " << time_spent << std::endl;
+		}
+		{
+			clock_t begin = clock();
+			int64_t total = 0;
+			
+			for (int64_t i = 0; i < 1000000000; i++)
+			{
+				EidosGlobalStringID variable_id = symbol_ids[Eidos_rng_uniform_int(gEidos_rng, 7)];
+				
+				bool contains_symbol = externalTable.ContainsSymbol(variable_id);
+				
+				total += (contains_symbol ? 1 : 2);
+			}
+			
+			clock_t end = clock();
+			double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
+			
+			std::cout << "Time for externalTable successful checks: " << time_spent << std::endl << std::endl;
+		}
+		
+		{
+			clock_t begin = clock();
+			int64_t total = 0;
+			
+			for (int64_t i = 0; i < 1000000000; i++)
+			{
+				bool contains_symbol = internalTable.ContainsSymbol(gEidosID_applyValue);
+				
+				total += (contains_symbol ? 1 : 2);
+			}
+			
+			clock_t end = clock();
+			double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
+			
+			std::cout << "Time for internalTable failed checks: " << time_spent << std::endl;
+		}
+		{
+			clock_t begin = clock();
+			int64_t total = 0;
+			
+			for (int64_t i = 0; i < 1000000000; i++)
+			{
+				bool contains_symbol = externalTable.ContainsSymbol(gEidosID_applyValue);
+				
+				total += (contains_symbol ? 1 : 2);
+			}
+			
+			clock_t end = clock();
+			double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
+			
+			std::cout << "Time for externalTable failed checks: " << time_spent << std::endl << std::endl;
 		}
 	}
 #endif
