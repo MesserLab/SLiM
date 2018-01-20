@@ -112,6 +112,7 @@ extern std::ostringstream gSLiMOut;
 // is in the arrays of mutation indices kept by Genome objects.
 
 typedef int32_t	slim_generation_t;		// generation numbers, generation durations
+typedef int32_t	slim_age_t;				// individual ages which may be from zero on up
 typedef int32_t	slim_position_t;		// chromosome positions, lengths in base pairs
 typedef int32_t	slim_objectid_t;		// identifiers values for objects, like the "5" in p5, g5, m5, s5
 typedef int32_t	slim_popsize_t;			// subpopulation sizes and indices, include genome indices
@@ -130,6 +131,7 @@ typedef float slim_selcoeff_t;			// storage of selection coefficients in memory-
 
 // Functions for casting from Eidos ints (int64_t) to SLiM int types safely; not needed for slim_refcount_t at present
 void SLiM_RaiseGenerationRangeError(int64_t p_long_value);
+void SLiM_RaiseAgeRangeError(int64_t p_long_value);
 void SLiM_RaisePositionRangeError(int64_t p_long_value);
 void SLiM_RaiseObjectidRangeError(int64_t p_long_value);
 void SLiM_RaisePopsizeRangeError(int64_t p_long_value);
@@ -142,6 +144,14 @@ inline __attribute__((always_inline)) slim_generation_t SLiMCastToGenerationType
 		SLiM_RaiseGenerationRangeError(p_long_value);
 	
 	return static_cast<slim_generation_t>(p_long_value);
+}
+
+inline __attribute__((always_inline)) slim_age_t SLiMCastToAgeTypeOrRaise(int64_t p_long_value)
+{
+	if ((p_long_value < 0) || (p_long_value > SLIM_MAX_GENERATION))
+		SLiM_RaiseAgeRangeError(p_long_value);
+	
+	return static_cast<slim_age_t>(p_long_value);
 }
 
 inline __attribute__((always_inline)) slim_position_t SLiMCastToPositionTypeOrRaise(int64_t p_long_value)

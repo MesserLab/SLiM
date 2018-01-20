@@ -528,7 +528,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			else if (opt_param_count == age_output_count)
 			{
 				// only age information is present
-				individual.age_ = (slim_generation_t)EidosInterpreter::NonnegativeIntegerForString(opt_params[0], nullptr);		// age
+				individual.age_ = (slim_age_t)EidosInterpreter::NonnegativeIntegerForString(opt_params[0], nullptr);			// age
 			}
 #endif  // SLIM_NONWF_ONLY
 			else if (opt_param_count == spatial_dimensionality_ + age_output_count)
@@ -543,7 +543,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 				
 #ifdef SLIM_NONWF_ONLY
 				if (age_output_count)
-					individual.age_ = (slim_generation_t)EidosInterpreter::NonnegativeIntegerForString(opt_params[spatial_dimensionality_], nullptr);		// age
+					individual.age_ = (slim_age_t)EidosInterpreter::NonnegativeIntegerForString(opt_params[spatial_dimensionality_], nullptr);		// age
 #endif  // SLIM_NONWF_ONLY
 			}
 			else
@@ -1130,7 +1130,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			int individual_index = genome_index / 2;
 			Individual &individual = *subpop.parent_individuals_[individual_index];
 			
-			individual.age_ = *(slim_generation_t *)p;
+			individual.age_ = *(slim_age_t *)p;
 			p += sizeof(slim_generation_t);
 		}
 #endif  // SLIM_NONWF_ONLY

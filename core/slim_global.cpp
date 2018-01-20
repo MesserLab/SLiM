@@ -68,6 +68,11 @@ void SLiM_RaiseGenerationRangeError(int64_t p_long_value)
 	EIDOS_TERMINATION << "ERROR (SLiM_RaiseGenerationRangeError): value " << p_long_value << " for a generation index or duration is out of range." << EidosTerminate();
 }
 
+void SLiM_RaiseAgeRangeError(int64_t p_long_value)
+{
+	EIDOS_TERMINATION << "ERROR (SLiM_RaiseAgeRangeError): value " << p_long_value << " for an individual age is out of range." << EidosTerminate();
+}
+
 void SLiM_RaisePositionRangeError(int64_t p_long_value)
 {
 	EIDOS_TERMINATION << "ERROR (SLiM_RaisePositionRangeError): value " << p_long_value << " for a chromosome position or length is out of range." << EidosTerminate();

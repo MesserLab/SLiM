@@ -42,7 +42,7 @@ bool Individual::s_any_individual_dictionary_set_ = false;
 bool Individual::s_any_individual_fitness_scaling_set_ = false;
 
 
-Individual::Individual(Subpopulation &p_subpopulation, slim_popsize_t p_individual_index, slim_pedigreeid_t p_pedigree_id, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_generation_t p_age) : subpopulation_(p_subpopulation), index_(p_individual_index), genome1_(p_genome1), genome2_(p_genome2), sex_(p_sex),
+Individual::Individual(Subpopulation &p_subpopulation, slim_popsize_t p_individual_index, slim_pedigreeid_t p_pedigree_id, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_age_t p_age) : subpopulation_(p_subpopulation), index_(p_individual_index), genome1_(p_genome1), genome2_(p_genome2), sex_(p_sex),
 #ifdef SLIM_NONWF_ONLY
 	age_(p_age),
 #endif  // SLIM_NONWF_ONLY
@@ -603,6 +603,13 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 			spatial_z_ = p_value.FloatAtIndex(0, nullptr);
 			return;
 		}
+		case gID_age:				// ACCELERATED
+		{
+			slim_age_t value = SLiMCastToAgeTypeOrRaise(p_value.IntAtIndex(0, nullptr));
+			
+			age_ = value;
+			return;
+		}
 			
 			// all others, including gID_none
 		default:
@@ -779,6 +786,25 @@ void Individual::SetProperty_Accelerated_color(EidosObjectElement **p_values, si
 				s_any_individual_color_set_ = true;		// keep track of the fact that an individual's color has been set
 			}
 		}
+	}
+}
+
+void Individual::SetProperty_Accelerated_age(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+{
+	if (p_source_size == 1)
+	{
+		int64_t source_value = p_source.IntAtIndex(0, nullptr);
+		slim_age_t source_age = SLiMCastToAgeTypeOrRaise(source_value);
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			((Individual *)(p_values[value_index]))->age_ = source_age;
+	}
+	else
+	{
+		const int64_t *source_data = p_source.IntVector()->data();
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			((Individual *)(p_values[value_index]))->age_ = SLiMCastToAgeTypeOrRaise(source_data[value_index]);
 	}
 }
 
@@ -1278,7 +1304,7 @@ const std::vector<const EidosPropertySignature *> *Individual_Class::Properties(
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_x,					false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_x)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_x));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_y,					false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_y)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_y));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_z,					false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_z)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_z));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_age,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_age));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_age,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_age)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_age));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeID,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_pedigreeID));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeParentIDs,		true,	kEidosValueMaskInt)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeGrandparentIDs,	true,	kEidosValueMaskInt)));
