@@ -304,7 +304,14 @@ If the optional
 \f0\fs18 string
 \f2\fs20  giving the name of the new mutation type (such as 
 \f0\fs18 "m5"
-\f2\fs20  to specify an ID of 5).  The 
+\f2\fs20  to specify an ID of 5).\cf2 \expnd0\expndtw0\kerning0
+  The dominanceCoeff parameter supplies the dominance coefficient for the mutation type; 
+\f0\fs18 0.0
+\f2\fs20  produces no dominance, 
+\f0\fs18 1.0
+\f2\fs20  complete dominance, and values greater than 
+\f0\fs18 1.0
+\f2\fs20 , overdominance.\cf0 \kerning1\expnd0\expndtw0   The 
 \f0\fs18 distributionType
 \f2\fs20  may be 
 \f0\fs18 "f"
@@ -633,6 +640,7 @@ If
 \i0  exclude the first parent!), but will occur before 
 \f0\fs18 modifyChild()
 \f2\fs20  callbacks are called (so those callbacks may assume that the first and second parents are distinct).\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 If 
 \f0\fs18 treeRecordingPath
