@@ -3461,6 +3461,12 @@ void _RunKeywordForInTests(void)
 	EidosAssertScriptRaise("x=0; q=11:20; for (y in seqAlong()) x=x+y; x;", 24, "missing required");
 	EidosAssertScriptSuccess("x=0; for (y in seq(1,10)) x=x+y; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(55)));
 	EidosAssertScriptSuccess("x=0; for (y in seq(1,10)) x=x+1; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(10)));
+	EidosAssertScriptSuccess("x=0; for (y in seqLen(5)) x=x+y+2; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(20)));
+	EidosAssertScriptSuccess("x=0; for (y in seqLen(1)) x=x+y+2; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(2)));
+	EidosAssertScriptSuccess("x=0; for (y in seqLen(0)) x=x+y+2; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(0)));
+	EidosAssertScriptRaise("x=0; for (y in seqLen(-1)) x=x+y+2; x;", 15, "requires length to be");
+	EidosAssertScriptRaise("x=0; for (y in seqLen(5:6)) x=x+y+2; x;", 15, "must be a singleton");
+	EidosAssertScriptRaise("x=0; for (y in seqLen('f')) x=x+y+2; x;", 15, "cannot be type");
 	
 	// additional tests for zero-length ranges; seqAlong() is treated separately in the for() code, so it is tested separately here
 	EidosAssertScriptSuccess("i=10; for (i in integer(0)) ; i;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(10)));
@@ -5264,6 +5270,14 @@ void _RunFunctionVectorConstructionTests(void)
 	EidosAssertScriptSuccess("seqAlong(c('foo', 'bar', 'baz'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 1, 2}));
 	EidosAssertScriptSuccess("seqAlong(matrix(5));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0}));
 	EidosAssertScriptSuccess("seqAlong(matrix(5:9));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 1, 2, 3, 4}));
+	
+	// seqLen()
+	EidosAssertScriptSuccess("seqLen(5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 1, 2, 3, 4}));
+	EidosAssertScriptSuccess("seqLen(1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(0)));
+	EidosAssertScriptSuccess("seqLen(0);", gStaticEidosValue_Integer_ZeroVec);
+	EidosAssertScriptRaise("seqLen(-1);", 0, "requires length to be");
+	EidosAssertScriptRaise("seqLen(5:6);", 0, "must be a singleton");
+	EidosAssertScriptRaise("seqLen('f');", 0, "cannot be type");
 	
 	// string()
 	EidosAssertScriptSuccess("string(0);", gStaticEidosValue_String_ZeroVec);

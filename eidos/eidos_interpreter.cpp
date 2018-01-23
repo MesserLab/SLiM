@@ -5340,30 +5340,64 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 		}
 		else if ((range_node->token_->token_type_ == EidosTokenType::kTokenLParen) && (range_node->children_.size() == 2))
 		{
-			// Maybe we can streamline a seqAlong() call; let's check
+			// Maybe we can streamline a seqAlong() or seqLen() call; let's check
 			const EidosASTNode *call_name_node = range_node->children_[0];
 			
 			if (call_name_node->token_->token_type_ == EidosTokenType::kTokenIdentifier)
 			{
 				const EidosFunctionSignature *signature = call_name_node->cached_signature_.get();
 				
-				if (signature && (signature->internal_function_ == &Eidos_ExecuteFunction_seqAlong))
+				if (signature)
 				{
-					if (range_node->children_.size() == 2)
+					if (signature->internal_function_ == &Eidos_ExecuteFunction_seqAlong)
 					{
-						// We have a qualifying seqAlong() call, so evaluate its argument and set up our simple integer sequence
-						const EidosASTNode *argument_node = range_node->children_[1];
-						
-						simpleIntegerRange = true;
-						
-						EidosValue_SP argument_value = FastEvaluateNode(argument_node);
-						
-						start_int = 0;
-						end_int = argument_value->Count() - 1;
-						
-						// A seqAlong() on a zero-length operand would give us a loop from 0 to -1; short-circuit that
-						if (end_int == -1)
-							goto for_exit;
+						if (range_node->children_.size() == 2)
+						{
+							// We have a qualifying seqAlong() call, so evaluate its argument and set up our simple integer sequence
+							const EidosASTNode *argument_node = range_node->children_[1];
+							
+							simpleIntegerRange = true;
+							
+							EidosValue_SP argument_value = FastEvaluateNode(argument_node);
+							
+							start_int = 0;
+							end_int = argument_value->Count() - 1;
+							
+							// A seqAlong() on a zero-length operand would give us a loop from 0 to -1; short-circuit that
+							if (end_int == -1)
+								goto for_exit;
+						}
+					}
+					else if (signature->internal_function_ == &Eidos_ExecuteFunction_seqLen)
+					{
+						if (range_node->children_.size() == 2)
+						{
+							// We have a qualifying seqLen() call, so evaluate its argument and set up our simple integer sequence
+							const EidosASTNode *argument_node = range_node->children_[1];
+							
+							simpleIntegerRange = true;
+							
+							EidosValue_SP argument_value = FastEvaluateNode(argument_node);
+							EidosValueType arg_type = argument_value->Type();
+							
+							// check the argument; could call CheckArguments() except that it would use the wrong error position
+							if (arg_type != EidosValueType::kValueInt)
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): argument 1 (length) cannot be type " << arg_type << " for function seqLen()." << EidosTerminate(call_name_node->token_);
+							if (argument_value->Count() != 1)
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): argument 1 (length) must be a singleton (size() == 1) for function seqLen(), but size() == " << argument_value->Count() << "." << EidosTerminate(call_name_node->token_);
+							
+							int64_t length = argument_value->IntAtIndex(0, call_name_node->token_);
+							
+							if (length < 0)
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): function seqLen() requires length to be greater than or equal to 0 (" << length << " supplied)." << EidosTerminate(call_name_node->token_);
+							
+							start_int = 0;
+							end_int = length - 1;
+							
+							// A seqLen() with a length of 0 would give us a loop from 0 to -1; short-circuit that
+							if (end_int == -1)
+								goto for_exit;
+						}
 					}
 				}
 			}

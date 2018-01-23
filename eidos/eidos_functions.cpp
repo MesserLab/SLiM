@@ -179,6 +179,7 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("sample",			Eidos_ExecuteFunction_sample,		kEidosValueMaskAny))->AddAny("x")->AddInt_S("size")->AddLogical_OS("replace", gStaticEidosValue_LogicalF)->AddNumeric_ON(gEidosStr_weights, gStaticEidosValueNULL));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("seq",				Eidos_ExecuteFunction_seq,			kEidosValueMaskNumeric))->AddNumeric_S("from")->AddNumeric_S("to")->AddNumeric_OSN("by", gStaticEidosValueNULL)->AddInt_OSN("length", gStaticEidosValueNULL));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("seqAlong",			Eidos_ExecuteFunction_seqAlong,		kEidosValueMaskInt))->AddAny("x"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("seqLen",			Eidos_ExecuteFunction_seqLen,		kEidosValueMaskInt))->AddInt_S("length"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_string,	Eidos_ExecuteFunction_string,		kEidosValueMaskString))->AddInt_S("length"));
 		
 		
@@ -5511,6 +5512,26 @@ EidosValue_SP Eidos_ExecuteFunction_seqAlong(const EidosValue_SP *const p_argume
 	result_SP = EidosValue_SP(int_result);
 	
 	for (int value_index = 0; value_index < x_count; ++value_index)
+		int_result->set_int_no_check(value_index, value_index);
+	
+	return result_SP;
+}
+
+//	(integer)seqLen(integer$ length)
+EidosValue_SP Eidos_ExecuteFunction_seqLen(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *length_value = p_arguments[0].get();
+	int64_t length = length_value->IntAtIndex(0, nullptr);
+	
+	if (length < 0)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seqLen): function seqLen() requires length to be greater than or equal to 0 (" << length << " supplied)." << EidosTerminate(nullptr);
+	
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(length);
+	result_SP = EidosValue_SP(int_result);
+	
+	for (int value_index = 0; value_index < length; ++value_index)
 		int_result->set_int_no_check(value_index, value_index);
 	
 	return result_SP;
