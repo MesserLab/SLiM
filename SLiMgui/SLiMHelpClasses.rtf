@@ -1071,7 +1071,7 @@ The optional parameter
 \f0\fs20 \cf2 \expnd0\expndtw0\kerning0
 The age of the individual, measured in generation \'93ticks\'94.  A newly generated offspring individual will have an age of 
 \f2\fs18 0
-\f0\fs20  in the same generation in which is was created.  The age of every individual is incremented by one at the same point that the generation counter is incremented.\cf2   The age of individuals may be changed; usually this only makes sense when setting up the initial state of a model, however.\cf2 \
+\f0\fs20  in the same generation in which is was created.  The age of every individual is incremented by one at the same point that the generation counter is incremented.  The age of individuals may be changed; usually this only makes sense when setting up the initial state of a model, however.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \kerning1\expnd0\expndtw0 color <\'96> (string$)\
@@ -4781,10 +4781,10 @@ Note that this method is only for use in nonWF models, in which there is a disti
 \f2\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0\cf2 \expnd0\expndtw0\kerning0
 (object<Individual>)sampleIndividuals(integer$\'a0size, [logical$\'a0replace\'a0=\'a0F], [No<Individual>$\'a0exclude\'a0=\'a0NULL], [Ns$\'a0sex\'a0=\'a0NULL], [Ni$\'a0tag\'a0=\'a0NULL], [Ni$\'a0minAge\'a0=\'a0NULL], [Ni$\'a0maxAge\'a0=\'a0NULL])
 \f3 \cf0 \kerning1\expnd0\expndtw0 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf2 \expnd0\expndtw0\kerning0
-Returns a vector of individuals, of size equal to parameter 
+Returns a vector of individuals, of size less than or equal to parameter 
 \f2\fs18 size
 \f0\fs20 , sampled from the individuals in the target subpopulation.  Sampling is done without replacement if 
 \f2\fs18 replace
@@ -4818,14 +4818,16 @@ Returns a vector of individuals, of size equal to parameter
 \f2\fs18 maxAge
 \f0\fs20 , if non-
 \f2\fs18 NULL
-\f0\fs20 , may specify a minimum or maximum age for the individuals to be drawn, in nonWF models.\
-This method is shorthand for getting the 
+\f0\fs20 , may specify a minimum or maximum age for the individuals to be drawn, in nonWF models.  If the candidate pool is smaller than the requested sample size, all eligible candidates will be returned (in randomized order); the result will be a zero-length vector if no eligible candidates exist (unlike 
+\f2\fs18 sample()
+\f0\fs20 ).\
+This method is similar to getting the 
 \f2\fs18 individuals
 \f0\fs20  property of the subpopulation, using operator 
 \f2\fs18 []
 \f0\fs20  to select only individuals with the desired properties, and then using 
 \f2\fs18 sample()
-\f0\fs20  to sample from that candidate pool; besides being much simpler than the equivalent Eidos code, it is also much faster.  See 
+\f0\fs20  to sample from that candidate pool.  However, besides being much simpler than the equivalent Eidos code, it is also much faster, and it does not fail if less than the full sample size is available.  See 
 \f2\fs18 subsetIndividuals()
 \f0\fs20  for a similar method that returns a full subset, rather than a sample.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0

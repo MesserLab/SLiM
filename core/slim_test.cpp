@@ -1822,10 +1822,11 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (size(p1.sampleIndividuals(4, replace=T, exclude=p1.individuals[2])) == 4) stop(); }", __LINE__);
 	
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.sampleIndividuals(-1); }", 1, 250, "requires a sample size", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.sampleIndividuals(15, replace=F); }", 1, 250, "candidate pool of size", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.sampleIndividuals(15, replace=F); if (size(i) == 10) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.sampleIndividuals(1, sex='M'); }", 1, 250, "in non-sexual models", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.sampleIndividuals(1, sex='W'); }", 1, 270, "unrecognized value for sex", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.individuals.tag = rep(c(0,1),5); p1.sampleIndividuals(3, exclude=p1.individuals[5], sex='M', tag=1); }", 1, 306, "candidate pool of size", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.individuals.tag = rep(c(0,1),5); if (p1.sampleIndividuals(3, replace=T, exclude=p1.individuals[5], sex='M', tag=1).size() == 3) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.individuals.tag = rep(c(0,1),5); if (p1.sampleIndividuals(3, replace=F, exclude=p1.individuals[5], sex='M', tag=1).size() == 2) stop(); }", __LINE__);
 	
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.individuals.tag = rep(c(0,1),5); if (identical(p1.sampleIndividuals(0, tag=1).tag, integer(0))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.individuals.tag = rep(c(0,1),5); if (identical(p1.sampleIndividuals(1, tag=1).tag, c(1))) stop(); }", __LINE__);

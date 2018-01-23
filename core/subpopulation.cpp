@@ -4760,7 +4760,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 	}
 }
 
-//  *********************	– (object<Individual>)sampleIndividuals(integer$ size, [logical$ replace = F], [No<Individual>$ exclude = NULL], [Ns$ sex = NULL], [Ni$ tag = NULL], [Ni$ minAge = NULL], [Ni$ maxAge = NULL])
+//  *********************	– (No<Individual>)sampleIndividuals(integer$ size, [logical$ replace = F], [No<Individual>$ exclude = NULL], [Ns$ sex = NULL], [Ni$ tag = NULL], [Ni$ minAge = NULL], [Ni$ maxAge = NULL])
 //
 EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
@@ -4774,11 +4774,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 	
 	if (sample_size < 0)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_sampleIndividuals): sampleIndividuals() requires a sample size >= 0 (" << sample_size << " supplied)." << EidosTerminate(nullptr);
-	if (sample_size == 0)
+	if ((sample_size == 0) || (x_count == 0))
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
-	
-	if (x_count == 0)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_sampleIndividuals): sampleIndividuals() cannot sample from an empty subpopulation." << EidosTerminate(nullptr);
 	
 	// a specific individual may be excluded
 	EidosValue *exclude_value = p_arguments[2].get();
@@ -4863,8 +4860,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 	if (!tag_specified && !ageMin_specified && !ageMax_specified)
 	{
 		// we're in the simple case of no specifed tag/ageMin/ageMax, so maybe we can handle it quickly
-		if (!replace && (candidate_count < sample_size))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_sampleIndividuals): sampleIndividuals() cannot draw " << sample_size << " individuals without replacement from a candidate pool of size " << candidate_count << "." << EidosTerminate(nullptr);
+		if (candidate_count == 0)
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+		else if (!replace && (candidate_count < sample_size))
+			sample_size = candidate_count;
 		
 		if (sample_size == 1)
 		{
@@ -4926,9 +4925,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 	
 	{
 		// get indices of individuals; we sample from this vector and then look up the corresponding individual
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
-		EidosValue_Object_vector *result = ((EidosValue_Object_vector *)result_SP.get())->resize_no_initialize(sample_size);
-		
 		std::vector<int> index_vector;
 		
 		for (int value_index = first_candidate_index; value_index <= last_candidate_index; ++value_index)
@@ -4951,24 +4947,33 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 		
 		candidate_count = (int)index_vector.size();
 		
-		if (!replace && (candidate_count < sample_size))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_sampleIndividuals): sampleIndividuals() cannot draw " << sample_size << " individuals without replacement from a candidate pool of size " << candidate_count << "." << EidosTerminate(nullptr);
+		if (candidate_count == 0)
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+		else if (!replace && (candidate_count < sample_size))
+			sample_size = candidate_count;
 		
 		// do the sampling
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+		EidosValue_Object_vector *result = ((EidosValue_Object_vector *)result_SP.get())->resize_no_initialize(sample_size);
 		int64_t contender_count = candidate_count;
 		
 		for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
 		{
+#if DEBUG
 			// this error should never occur, since we checked the count above
 			if (contender_count <= 0)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_sampleIndividuals): (internal error) sampleIndividuals() ran out of eligible individuals from which to sample." << EidosTerminate(nullptr);		// CODE COVERAGE: This is dead code
+#endif
 			
 			int rose_index = (int)Eidos_rng_uniform_int(gEidos_rng, (uint32_t)contender_count);
 			
 			result->set_object_element_no_check(parent_individuals_[index_vector[rose_index]], samples_generated);
 			
-			index_vector[rose_index] = index_vector.back();
-			index_vector.resize(--contender_count);
+			if (!replace)
+			{
+				index_vector[rose_index] = index_vector.back();
+				index_vector.resize(--contender_count);
+			}
 		}
 	}
 	
