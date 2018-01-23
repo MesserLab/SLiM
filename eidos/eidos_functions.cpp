@@ -5343,6 +5343,9 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const EidosValue_SP *const p_argument
 				// this would be faster than the two lines above, but breaks backward compatibility; not worth it right now
 				//index_vector[rose_index] = index_vector.back();
 				//index_vector.resize(--contender_count);
+				
+				// also note that if you decide to break backward compatibility at some point, it would be good to separately
+				// the case where a full sample with replacement – i.e. a shuffle – is requested; no index_vector needed
 			}
 		}
 	}
