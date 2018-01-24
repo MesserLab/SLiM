@@ -123,7 +123,7 @@ typedef int64_t slim_pedigreeid_t;		// identifiers for pedigreed individuals; ov
 typedef int32_t slim_polymorphismid_t;	// identifiers for polymorphisms, which need only 32 bits since they are only segregating mutations
 typedef float slim_selcoeff_t;			// storage of selection coefficients in memory-tight classes; also dominance coefficients
 
-#define SLIM_MAX_GENERATION		(1000000000L)	// generation ranges from 0 (init time) to this
+#define SLIM_MAX_GENERATION		(1000000000L)	// generation ranges from 0 (init time) to this; SLIM_MAX_GENERATION + 1 is an "infinite" marker value
 #define SLIM_MAX_BASE_POSITION	(1000000000L)	// base positions in the chromosome can range from 0 to this
 #define SLIM_INF_BASE_POSITION	(1100000000L)	// used to represent a base position infinitely beyond the end of the chromosome
 #define SLIM_MAX_ID_VALUE		(1000000000L)	// IDs for subpops, genomic elements, etc. can range from 0 to this

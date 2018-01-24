@@ -4276,7 +4276,7 @@
 				{
 					if (scriptBlock->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
 						return @"—";
-					else if (scriptBlock->end_generation_ == SLIM_MAX_GENERATION)
+					else if (scriptBlock->end_generation_ == SLIM_MAX_GENERATION + 1)
 						return @"MAX";
 					else
 						return [NSString stringWithFormat:@"%lld", (int64_t)scriptBlock->end_generation_];

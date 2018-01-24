@@ -566,7 +566,7 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 			// we don't need to do much here except fix the end generation in case none is supplied, as in X:
 			if (colon_token->token_type_ == EidosTokenType::kTokenColon)
 			{
-				end_generation_ = SLIM_MAX_GENERATION;
+				end_generation_ = SLIM_MAX_GENERATION + 1;	// marker value for "no endpoint specified"; illegal for the user to specify this as a literal
 				child_index++;
 			}
 		}
@@ -622,7 +622,7 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) : root_node_(p_root_no
 					if (n_callback_children != 0)
 						EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): initialize() callback needs 0 parameters." << EidosTerminate(callback_token);
 					
-					if ((start_generation_ != -1) || (end_generation_ != SLIM_MAX_GENERATION))
+					if ((start_generation_ != -1) || (end_generation_ != SLIM_MAX_GENERATION + 1))
 						EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): a generation range cannot be specified for an initialize() callback." << EidosTerminate(callback_token);
 					
 					start_generation_ = 0;

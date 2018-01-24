@@ -1918,9 +1918,9 @@ void SLiMSim::RunInitializeCallbacks(void)
 	
 	CheckMutationStackPolicy();
 	
-	time_start_ = FirstGeneration();	// SLIM_MAX_GENERATION if it can't find a first block
+	time_start_ = FirstGeneration();	// SLIM_MAX_GENERATION + 1 if it can't find a first block
 	
-	if (time_start_ == SLIM_MAX_GENERATION)
+	if (time_start_ == SLIM_MAX_GENERATION + 1)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): No Eidos event found to start the simulation." << EidosTerminate();
 	
 	// start at the beginning
@@ -2465,7 +2465,7 @@ void SLiMSim::CollectSLiMguiMutationProfileInfo(void)
 
 slim_generation_t SLiMSim::FirstGeneration(void)
 {
-	slim_generation_t first_gen = SLIM_MAX_GENERATION;
+	slim_generation_t first_gen = SLIM_MAX_GENERATION + 1;
 	std::vector<SLiMEidosBlock*> &script_blocks = AllScriptBlocks();
 	
 	// Figure out our first generation; it is the earliest generation in which an Eidos event is set up to run,
@@ -2492,7 +2492,7 @@ slim_generation_t SLiMSim::EstimatedLastGeneration(void)
 	// Any block type works, since the simulation could plausibly be stopped within a callback.
 	// However, blocks that do not specify an end generation don't count.
 	for (auto script_block : script_blocks)
-		if ((script_block->end_generation_ > last_gen) && (script_block->end_generation_ != SLIM_MAX_GENERATION))
+		if ((script_block->end_generation_ > last_gen) && (script_block->end_generation_ != SLIM_MAX_GENERATION + 1))
 			last_gen = script_block->end_generation_;
 	
 	last_script_block_gen_ = last_gen;
@@ -5743,7 +5743,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerEarlyLateEvent(EidosGlobalStringID 
 	slim_objectid_t script_id = -1;		// used if the id is NULL, to indicate an anonymous block
 	std::string script_string = source_value->StringAtIndex(0, nullptr);
 	slim_generation_t start_generation = ((start_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(start_value->IntAtIndex(0, nullptr)) : 1);
-	slim_generation_t end_generation = ((end_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(end_value->IntAtIndex(0, nullptr)) : SLIM_MAX_GENERATION);
+	slim_generation_t end_generation = ((end_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(end_value->IntAtIndex(0, nullptr)) : SLIM_MAX_GENERATION + 1);
 	
 	if (id_value->Type() != EidosValueType::kValueNULL)
 		script_id = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 's');
@@ -5775,7 +5775,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerFitnessCallback(EidosGlobalStringID
 	slim_objectid_t mut_type_id = -2;	// used if mutType_value is NULL, to indicate a global fitness() callback
 	slim_objectid_t subpop_id = -1;		// used if subpop_value is NULL, to indicate applicability to all subpops
 	slim_generation_t start_generation = ((start_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(start_value->IntAtIndex(0, nullptr)) : 1);
-	slim_generation_t end_generation = ((end_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(end_value->IntAtIndex(0, nullptr)) : SLIM_MAX_GENERATION);
+	slim_generation_t end_generation = ((end_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(end_value->IntAtIndex(0, nullptr)) : SLIM_MAX_GENERATION + 1);
 	
 	if (id_value->Type() != EidosValueType::kValueNULL)
 		script_id = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 's');
@@ -5818,7 +5818,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerInteractionCallback(EidosGlobalStri
 	slim_objectid_t int_type_id = (intType_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(intType_value->IntAtIndex(0, nullptr)) : ((InteractionType *)intType_value->ObjectElementAtIndex(0, nullptr))->interaction_type_id_;
 	slim_objectid_t subpop_id = -1;
 	slim_generation_t start_generation = ((start_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(start_value->IntAtIndex(0, nullptr)) : 1);
-	slim_generation_t end_generation = ((end_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(end_value->IntAtIndex(0, nullptr)) : SLIM_MAX_GENERATION);
+	slim_generation_t end_generation = ((end_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(end_value->IntAtIndex(0, nullptr)) : SLIM_MAX_GENERATION + 1);
 	
 	if (id_value->Type() != EidosValueType::kValueNULL)
 		script_id = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 's');
@@ -5860,7 +5860,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerMateModifyRecCallback(EidosGlobalSt
 	std::string script_string = source_value->StringAtIndex(0, nullptr);
 	slim_objectid_t subpop_id = -1;
 	slim_generation_t start_generation = ((start_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(start_value->IntAtIndex(0, nullptr)) : 1);
-	slim_generation_t end_generation = ((end_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(end_value->IntAtIndex(0, nullptr)) : SLIM_MAX_GENERATION);
+	slim_generation_t end_generation = ((end_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(end_value->IntAtIndex(0, nullptr)) : SLIM_MAX_GENERATION + 1);
 	
 	if (id_value->Type() != EidosValueType::kValueNULL)
 		script_id = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 's');
@@ -5906,7 +5906,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerReproductionCallback(EidosGlobalStr
 	slim_objectid_t subpop_id = -1;
 	IndividualSex sex_specificity = IndividualSex::kUnspecified;
 	slim_generation_t start_generation = ((start_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(start_value->IntAtIndex(0, nullptr)) : 1);
-	slim_generation_t end_generation = ((end_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(end_value->IntAtIndex(0, nullptr)) : SLIM_MAX_GENERATION);
+	slim_generation_t end_generation = ((end_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(end_value->IntAtIndex(0, nullptr)) : SLIM_MAX_GENERATION + 1);
 	
 	if (id_value->Type() != EidosValueType::kValueNULL)
 		script_id = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 's');
@@ -5967,7 +5967,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID p
 		// start/end case; this is simple
 		
 		slim_generation_t start = (start_null ? 1 : SLiMCastToGenerationTypeOrRaise(start_value->IntAtIndex(0, nullptr)));
-		slim_generation_t end = (end_null ? SLIM_MAX_GENERATION : SLiMCastToGenerationTypeOrRaise(end_value->IntAtIndex(0, nullptr)));
+		slim_generation_t end = (end_null ? SLIM_MAX_GENERATION + 1 : SLiMCastToGenerationTypeOrRaise(end_value->IntAtIndex(0, nullptr)));
 		
 		if (start > end)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_rescheduleScriptBlock): reschedule() requires start <= end." << EidosTerminate();
