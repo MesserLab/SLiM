@@ -1,0 +1,62 @@
+initialize() {
+	initializeSLiMModelType("nonWF");
+	initializeSex("A");
+	defineConstant("K", 500);
+	
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	m1.convertToSubstitution = T;
+	initializeMutationType("m2", 0.5, "n", 0.0, 0.3);  // QTL
+	
+	initializeGenomicElementType("g1", c(m1,m2), c(1.0,0.1));
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+reproduction(NULL, "F") {
+	mate = subpop.sampleIndividuals(1, sex="M");
+	
+	if (mate.size())
+	{
+		qtlValue = individual.tagF;
+		expectedLitterSize = max(0.0, qtlValue + 3);
+		litterSize = rpois(1, expectedLitterSize);
+		penalty = 3.0 / litterSize;
+		
+		for (i in seqLen(litterSize))
+		{
+			offspring = subpop.addCrossed(individual, mate);
+			offspring.setValue("penalty", rgamma(1, penalty, 20));
+		}
+	}
+	
+	return NULL;
+}
+1 early() {
+	sim.addSubpop("p1", 500);
+	p1.individuals.setValue("penalty", 1.0);
+}
+early() {
+	// QTL calculations
+	inds = sim.subpopulations.individuals;
+	inds.tagF = inds.sumOfMutationsOfType(m2);
+	
+	// parental investment fitness penalties
+	inds.fitnessScaling = inds.getValue("penalty");
+	
+	// non-overlapping generations
+	inds[inds.age >= 1].fitnessScaling = 0.0;
+	
+	// density-dependence, assuming 50% die of old age
+	p1.fitnessScaling = K / (p1.individualCount / 2);
+}
+fitness(m2) { return 1.0; }
+late() {
+	// output the phenotypic mean and pop size
+	qtlValues = p1.individuals.tagF;
+	expectedSizes = pmax(0.0, qtlValues + 3);
+	
+	cat(sim.generation + ": " + p1.individualCount + " individuals");
+	cat(", mean litter size " + mean(expectedSizes));
+	catn();
+}
+20000 late() { sim.simulationFinished(); }
