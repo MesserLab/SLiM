@@ -84,6 +84,15 @@ sim_(p_sim), mutation_type_id_(p_mutation_type_id), dominance_coeff_(static_cast
 MutationType::~MutationType(void)
 {
 	delete cached_dfe_script_;
+	cached_dfe_script_ = nullptr;
+	
+#ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
+	if (keeping_muttype_registry_)
+	{
+		muttype_registry_.clear();
+		keeping_muttype_registry_ = false;
+	}
+#endif
 }
 
 double MutationType::DrawSelectionCoefficient(void) const

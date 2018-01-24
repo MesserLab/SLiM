@@ -86,6 +86,8 @@ SLiMSim::~SLiMSim(void)
 {
 	//EIDOS_ERRSTREAM << "SLiMSim::~SLiMSim" << std::endl;
 	
+	population_.RemoveAllSubpopulationInfo();
+	
 	delete simulation_constants_;
 	simulation_constants_ = nullptr;
 	
@@ -93,27 +95,34 @@ SLiMSim::~SLiMSim(void)
 	
 	for (auto mutation_type : mutation_types_)
 		delete mutation_type.second;
+	mutation_types_.clear();
 	
 	for (auto genomic_element_type : genomic_element_types_)
 		delete genomic_element_type.second;
+	genomic_element_types_.clear();
 	
 	for (auto interaction_type : interaction_types_)
 		delete interaction_type.second;
+	interaction_types_.clear();
 	
 	for (auto script_block : script_blocks_)
 		delete script_block;
+	script_blocks_.clear();
 	
 	// All the script blocks that refer to the script are now gone
 	delete script_;
+	script_ = nullptr;
 	
 	// Dispose of mutation run experiment data
 	if (x_experiments_enabled_)
 	{
 		if (x_current_runtimes_)
 			free(x_current_runtimes_);
+		x_current_runtimes_ = nullptr;
 		
 		if (x_previous_runtimes_)
 			free(x_previous_runtimes_);
+		x_previous_runtimes_ = nullptr;
 	}
 	
 	// TREE SEQUENCE RECORDING
