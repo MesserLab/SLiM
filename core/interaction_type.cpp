@@ -3050,6 +3050,406 @@ double InteractionType::TotalNeighborStrengthA_3_reciprocal(SLiM_kdNode *root, d
 	return total;
 }
 
+// Now come PERIODIC versions of the above methods, called whenever periodic boundary conditions are enabled for any of the
+// interaction dimensions.  This is necessary because with periodic boundaries we have a problem: for any given interaction
+// there is more than one spatial pairing for that interaction, between different mirrored pairs.  We consider the pairing
+// with the minimum distance to be "canonical", and all other pairings should be ignored (i.e., have interaction strength
+// zero).  We are guaranteed that the canonical pairing is the one that falls inside the maximum interaction distance (if
+// any of the pairings does), and in the k-d tree code that's the only simple way to tell since we only have the positions
+// for the current nodes (which might or might not be mirrors) and we don't know what the spatial bounds are.  We're just
+// too deep in the weeds at this point.  So.  We need to avoid caching an incorrect (non-canonical) distance in the
+// distance matrix, so we only fill in distances if they are less than the max interaction distance.  This fixes a bug
+// where incorrect (non-canonical) distances were getting filled in some cases.  I branched the code for this periodic
+// case so that the non-periodic case is not slowed down by flag checks etc., and can still always fill in distances.  Note
+// that the 1-D case does not need to be treated separately here because its code does not use the distance cache anyway;
+// it will never fill in an incorrect distance.  BCH 1/25/2018
+
+// In addition, for these TotalNeighborStrength...() methods, we need to guarantee that in the periodic case we count the
+// interaction strength for a pair only once, even though we might visit the pair more than once during our neighbor search.
+// Multiple visitation is possible, even though only the canonical pair will be within the maximum distance, because we
+// might (1) visit the canonical pair first and cache its distance and strength, and then (2) visit a non-canonical mirror
+// pair later, fetch the cached distance, and thus try to re-count.  It would really be simpler if we just didn't use the
+// distance cache at all in the periodic case, honestly; but it is too big a performance win to give up on.  BCH 1/25/2018
+
+double InteractionType::TotalNeighborStrengthA_1_PERIODIC(SLiM_kdNode *root, double *nd, uint8_t *p_visited_buf, double *p_focal_strengths)
+{
+	double dx = root->x[0] - nd[0];
+	double distance = fabs(dx);
+	double total = 0.0;
+	
+	// Note we don't use p_focal_distances[] in 1D; it doesn't seem to be worth the overhead, since we need dx anyway...
+	
+	if (distance <= max_distance_)
+	{
+		slim_popsize_t root_individual_index = root->individual_index_;
+		
+		if (!p_visited_buf[root_individual_index])
+		{
+			double strength = p_focal_strengths[root_individual_index];
+			
+			if (std::isnan(strength))
+			{
+				if (!gSLiM_Recursive_callbacks)
+					strength = CalculateStrengthNoCallbacks(distance);
+				else
+					strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
+				
+				p_focal_strengths[root_individual_index] = strength;
+			}
+			
+			total += strength;
+			p_visited_buf[root_individual_index] = true;
+		}
+	}
+	
+	if (dx > 0)
+	{
+		if (root->left)
+			total += TotalNeighborStrengthA_1_PERIODIC(root->left, nd, p_visited_buf, p_focal_strengths);
+		
+		if (distance > max_distance_) return total;
+		
+		if (root->right)
+			total += TotalNeighborStrengthA_1_PERIODIC(root->right, nd, p_visited_buf, p_focal_strengths);
+	}
+	else
+	{
+		if (root->right)
+			total += TotalNeighborStrengthA_1_PERIODIC(root->right, nd, p_visited_buf, p_focal_strengths);
+		
+		if (distance > max_distance_) return total;
+		
+		if (root->left)
+			total += TotalNeighborStrengthA_1_PERIODIC(root->left, nd, p_visited_buf, p_focal_strengths);
+	}
+	
+	return total;
+}
+
+double InteractionType::TotalNeighborStrengthA_1_reciprocal_PERIODIC(SLiM_kdNode *root, double *nd, uint8_t *p_visited_buf, double *p_focal_strengths, double *p_mirror_strengths, int subpop_size)
+{
+	double dx = root->x[0] - nd[0];
+	double distance = fabs(dx);
+	double total = 0.0;
+	
+	// Note we don't use p_focal_distances[] in 1D; it doesn't seem to be worth the overhead, since we need dx anyway...
+	
+	if (distance <= max_distance_)
+	{
+		slim_popsize_t root_individual_index = root->individual_index_;
+		
+		if (!p_visited_buf[root_individual_index])
+		{
+			double strength = p_focal_strengths[root_individual_index];
+			
+			if (std::isnan(strength))
+			{
+				if (!gSLiM_Recursive_callbacks)
+					strength = CalculateStrengthNoCallbacks(distance);
+				else
+					strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
+				
+				p_focal_strengths[root_individual_index] = strength;
+				*(p_mirror_strengths + root_individual_index * subpop_size) = strength;
+			}
+			
+			total += strength;
+			p_visited_buf[root_individual_index] = true;
+		}
+	}
+	
+	if (dx > 0)
+	{
+		if (root->left)
+			total += TotalNeighborStrengthA_1_reciprocal_PERIODIC(root->left, nd, p_visited_buf, p_focal_strengths, p_mirror_strengths, subpop_size);
+		
+		if (distance > max_distance_) return total;
+		
+		if (root->right)
+			total += TotalNeighborStrengthA_1_reciprocal_PERIODIC(root->right, nd, p_visited_buf, p_focal_strengths, p_mirror_strengths, subpop_size);
+	}
+	else
+	{
+		if (root->right)
+			total += TotalNeighborStrengthA_1_reciprocal_PERIODIC(root->right, nd, p_visited_buf, p_focal_strengths, p_mirror_strengths, subpop_size);
+		
+		if (distance > max_distance_) return total;
+		
+		if (root->left)
+			total += TotalNeighborStrengthA_1_reciprocal_PERIODIC(root->left, nd, p_visited_buf, p_focal_strengths, p_mirror_strengths, subpop_size);
+	}
+	
+	return total;
+}
+
+double InteractionType::TotalNeighborStrengthA_2_PERIODIC(SLiM_kdNode *root, double *nd, uint8_t *p_visited_buf, double *p_focal_strengths, double *p_focal_distances, int p_phase)
+{
+	slim_popsize_t root_individual_index = root->individual_index_;
+	double distance = p_focal_distances[root_individual_index];
+	
+	if (std::isnan(distance))
+	{
+		distance = sqrt(dist_sq2(root, nd));
+		
+		// PERIODIC: we can only fill in the distance cache if we know that this is the canonical (i.e. minimum) distance for the pair
+		if (distance <= max_distance_)
+			p_focal_distances[root_individual_index] = distance;
+	}
+	
+	double dx = root->x[p_phase] - nd[p_phase];
+	double dx2 = dx * dx;
+	double total = 0.0;
+	
+	if (distance <= max_distance_)
+	{
+		if (!p_visited_buf[root_individual_index])
+		{
+			double strength = p_focal_strengths[root_individual_index];
+			
+			if (std::isnan(strength))
+			{
+				if (!gSLiM_Recursive_callbacks)
+					strength = CalculateStrengthNoCallbacks(distance);
+				else
+					strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
+				
+				p_focal_strengths[root_individual_index] = strength;
+			}
+			
+			total += strength;
+			p_visited_buf[root_individual_index] = true;
+		}
+	}
+	
+	if (++p_phase >= 2) p_phase = 0;
+	
+	if (dx > 0)
+	{
+		if (root->left)
+			total += TotalNeighborStrengthA_2_PERIODIC(root->left, nd, p_visited_buf, p_focal_strengths, p_focal_distances, p_phase);
+		
+		if (dx2 > max_distance_sq_) return total;
+		
+		if (root->right)
+			total += TotalNeighborStrengthA_2_PERIODIC(root->right, nd, p_visited_buf, p_focal_strengths, p_focal_distances, p_phase);
+	}
+	else
+	{
+		if (root->right)
+			total += TotalNeighborStrengthA_2_PERIODIC(root->right, nd, p_visited_buf, p_focal_strengths, p_focal_distances, p_phase);
+		
+		if (dx2 > max_distance_sq_) return total;
+		
+		if (root->left)
+			total += TotalNeighborStrengthA_2_PERIODIC(root->left, nd, p_visited_buf, p_focal_strengths, p_focal_distances, p_phase);
+	}
+	
+	return total;
+}
+
+double InteractionType::TotalNeighborStrengthA_2_reciprocal_PERIODIC(SLiM_kdNode *root, double *nd, uint8_t *p_visited_buf, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, int p_phase)
+{
+	slim_popsize_t root_individual_index = root->individual_index_;
+	double distance = p_focal_distances[root_individual_index];
+	
+	if (std::isnan(distance))
+	{
+		distance = sqrt(dist_sq2(root, nd));
+		
+		// PERIODIC: we can only fill in the distance cache if we know that this is the canonical (i.e. minimum) distance for the pair
+		if (distance <= max_distance_)
+		{
+			p_focal_distances[root_individual_index] = distance;
+			*(p_mirror_distances + root_individual_index * subpop_size) = distance;
+		}
+	}
+	
+	double dx = root->x[p_phase] - nd[p_phase];
+	double dx2 = dx * dx;
+	double total = 0.0;
+	
+	if (distance <= max_distance_)
+	{
+		if (!p_visited_buf[root_individual_index])
+		{
+			double strength = p_focal_strengths[root_individual_index];
+			
+			if (std::isnan(strength))
+			{
+				if (!gSLiM_Recursive_callbacks)
+					strength = CalculateStrengthNoCallbacks(distance);
+				else
+					strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
+				
+				p_focal_strengths[root_individual_index] = strength;
+				*(p_mirror_strengths + root_individual_index * subpop_size) = strength;
+			}
+			
+			total += strength;
+			p_visited_buf[root_individual_index] = true;
+		}
+	}
+	
+	if (++p_phase >= 2) p_phase = 0;
+	
+	if (dx > 0)
+	{
+		if (root->left)
+			total += TotalNeighborStrengthA_2_reciprocal_PERIODIC(root->left, nd, p_visited_buf, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_phase);
+		
+		if (dx2 > max_distance_sq_) return total;
+		
+		if (root->right)
+			total += TotalNeighborStrengthA_2_reciprocal_PERIODIC(root->right, nd, p_visited_buf, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_phase);
+	}
+	else
+	{
+		if (root->right)
+			total += TotalNeighborStrengthA_2_reciprocal_PERIODIC(root->right, nd, p_visited_buf, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_phase);
+		
+		if (dx2 > max_distance_sq_) return total;
+		
+		if (root->left)
+			total += TotalNeighborStrengthA_2_reciprocal_PERIODIC(root->left, nd, p_visited_buf, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_phase);
+	}
+	
+	return total;
+}
+
+double InteractionType::TotalNeighborStrengthA_3_PERIODIC(SLiM_kdNode *root, double *nd, uint8_t *p_visited_buf, double *p_focal_strengths, double *p_focal_distances, int p_phase)
+{
+	slim_popsize_t root_individual_index = root->individual_index_;
+	double distance = p_focal_distances[root_individual_index];
+	
+	if (std::isnan(distance))
+	{
+		distance = sqrt(dist_sq3(root, nd));
+		
+		// PERIODIC: we can only fill in the distance cache if we know that this is the canonical (i.e. minimum) distance for the pair
+		if (distance <= max_distance_)
+			p_focal_distances[root_individual_index] = distance;
+	}
+	
+	double dx = root->x[p_phase] - nd[p_phase];
+	double dx2 = dx * dx;
+	double total = 0.0;
+	
+	if (distance <= max_distance_)
+	{
+		if (!p_visited_buf[root_individual_index])
+		{
+			double strength = p_focal_strengths[root_individual_index];
+			
+			if (std::isnan(strength))
+			{
+				if (!gSLiM_Recursive_callbacks)
+					strength = CalculateStrengthNoCallbacks(distance);
+				else
+					strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
+				
+				p_focal_strengths[root_individual_index] = strength;
+			}
+			
+			total += strength;
+			p_visited_buf[root_individual_index] = true;
+		}
+	}
+	
+	if (++p_phase >= 3) p_phase = 0;
+	
+	if (dx > 0)
+	{
+		if (root->left)
+			total += TotalNeighborStrengthA_3_PERIODIC(root->left, nd, p_visited_buf, p_focal_strengths, p_focal_distances, p_phase);
+		
+		if (dx2 > max_distance_sq_) return total;
+		
+		if (root->right)
+			total += TotalNeighborStrengthA_3_PERIODIC(root->right, nd, p_visited_buf, p_focal_strengths, p_focal_distances, p_phase);
+	}
+	else
+	{
+		if (root->right)
+			total += TotalNeighborStrengthA_3_PERIODIC(root->right, nd, p_visited_buf, p_focal_strengths, p_focal_distances, p_phase);
+		
+		if (dx2 > max_distance_sq_) return total;
+		
+		if (root->left)
+			total += TotalNeighborStrengthA_3_PERIODIC(root->left, nd, p_visited_buf, p_focal_strengths, p_focal_distances, p_phase);
+	}
+	
+	return total;
+}
+
+double InteractionType::TotalNeighborStrengthA_3_reciprocal_PERIODIC(SLiM_kdNode *root, double *nd, uint8_t *p_visited_buf, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, int p_phase)
+{
+	slim_popsize_t root_individual_index = root->individual_index_;
+	double distance = p_focal_distances[root_individual_index];
+	
+	if (std::isnan(distance))
+	{
+		distance = sqrt(dist_sq3(root, nd));
+		
+		// PERIODIC: we can only fill in the distance cache if we know that this is the canonical (i.e. minimum) distance for the pair
+		if (distance <= max_distance_)
+		{
+			p_focal_distances[root_individual_index] = distance;
+			*(p_mirror_distances + root_individual_index * subpop_size) = distance;
+		}
+	}
+	
+	double dx = root->x[p_phase] - nd[p_phase];
+	double dx2 = dx * dx;
+	double total = 0.0;
+	
+	if (distance <= max_distance_)
+	{
+		if (!p_visited_buf[root_individual_index])
+		{
+			double strength = p_focal_strengths[root_individual_index];
+			
+			if (std::isnan(strength))
+			{
+				if (!gSLiM_Recursive_callbacks)
+					strength = CalculateStrengthNoCallbacks(distance);
+				else
+					strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
+				
+				p_focal_strengths[root_individual_index] = strength;
+				*(p_mirror_strengths + root_individual_index * subpop_size) = strength;
+			}
+			
+			total += strength;
+			p_visited_buf[root_individual_index] = true;
+		}
+	}
+	
+	if (++p_phase >= 3) p_phase = 0;
+	
+	if (dx > 0)
+	{
+		if (root->left)
+			total += TotalNeighborStrengthA_3_reciprocal_PERIODIC(root->left, nd, p_visited_buf, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_phase);
+		
+		if (dx2 > max_distance_sq_) return total;
+		
+		if (root->right)
+			total += TotalNeighborStrengthA_3_reciprocal_PERIODIC(root->right, nd, p_visited_buf, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_phase);
+	}
+	else
+	{
+		if (root->right)
+			total += TotalNeighborStrengthA_3_reciprocal_PERIODIC(root->right, nd, p_visited_buf, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_phase);
+		
+		if (dx2 > max_distance_sq_) return total;
+		
+		if (root->left)
+			total += TotalNeighborStrengthA_3_reciprocal_PERIODIC(root->left, nd, p_visited_buf, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_phase);
+	}
+	
+	return total;
+}
+
 double InteractionType::TotalNeighborStrength(Subpopulation *p_subpop, InteractionsData &p_subpop_data, double *p_point, Individual *p_excluded_individual)
 {
 	if (spatiality_ == 0)
@@ -3073,26 +3473,63 @@ double InteractionType::TotalNeighborStrength(Subpopulation *p_subpop, Interacti
 		double *focal_distances = p_subpop_data.distances_ + focal_index * subpop_size;
 		double *mirror_distances = p_subpop_data.distances_ + focal_index;				// for reciprocality
 		std::vector<SLiMEidosBlock*> &callbacks = p_subpop_data.evaluation_interaction_callbacks_;
+		bool periodicity_enabled = (periodic_x_ || periodic_y_ || periodic_z_);
 		
 		if (callbacks.size() == 0)
 		{
 			// No callbacks; we can assume that the callback-related globals are nilled out
-			if (!reciprocal_)
+			if (!periodicity_enabled)
 			{
-				switch (spatiality_)
+				if (!reciprocal_)
 				{
-					case 1: return TotalNeighborStrengthA_1(p_subpop_data.kd_root_, p_point, focal_strengths);
-					case 2: return TotalNeighborStrengthA_2(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, 0);
-					case 3: return TotalNeighborStrengthA_3(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, 0);
+					switch (spatiality_)
+					{
+						case 1: return TotalNeighborStrengthA_1(p_subpop_data.kd_root_, p_point, focal_strengths);
+						case 2: return TotalNeighborStrengthA_2(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, 0);
+						case 3: return TotalNeighborStrengthA_3(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, 0);
+					}
+				}
+				else
+				{
+					switch (spatiality_)
+					{
+						case 1: return TotalNeighborStrengthA_1_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, subpop_size);
+						case 2: return TotalNeighborStrengthA_2_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, 0);
+						case 3: return TotalNeighborStrengthA_3_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, 0);
+					}
 				}
 			}
 			else
 			{
-				switch (spatiality_)
+				// for the periodic case we need to prevent multiple-counting so we need a buffer of visited flags; we alloc it statically
+				static uint8_t *s_visited_buf = nullptr;
+				static int s_visited_buf_size = -1;
+				
+				if (s_visited_buf_size < subpop_size)
 				{
-					case 1: return TotalNeighborStrengthA_1_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, subpop_size);
-					case 2: return TotalNeighborStrengthA_2_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, 0);
-					case 3: return TotalNeighborStrengthA_3_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, 0);
+					s_visited_buf = (uint8_t *)realloc(s_visited_buf, subpop_size * sizeof(uint8_t));
+					s_visited_buf_size = subpop_size;
+				}
+				
+				EIDOS_BZERO(s_visited_buf, subpop_size * sizeof(uint8_t));
+				
+				if (!reciprocal_)
+				{
+					switch (spatiality_)
+					{
+						case 1: return TotalNeighborStrengthA_1_PERIODIC(p_subpop_data.kd_root_, p_point, s_visited_buf, focal_strengths);
+						case 2: return TotalNeighborStrengthA_2_PERIODIC(p_subpop_data.kd_root_, p_point, s_visited_buf, focal_strengths, focal_distances, 0);
+						case 3: return TotalNeighborStrengthA_3_PERIODIC(p_subpop_data.kd_root_, p_point, s_visited_buf, focal_strengths, focal_distances, 0);
+					}
+				}
+				else
+				{
+					switch (spatiality_)
+					{
+						case 1: return TotalNeighborStrengthA_1_reciprocal_PERIODIC(p_subpop_data.kd_root_, p_point, s_visited_buf, focal_strengths, mirror_strengths, subpop_size);
+						case 2: return TotalNeighborStrengthA_2_reciprocal_PERIODIC(p_subpop_data.kd_root_, p_point, s_visited_buf, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, 0);
+						case 3: return TotalNeighborStrengthA_3_reciprocal_PERIODIC(p_subpop_data.kd_root_, p_point, s_visited_buf, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, 0);
+					}
 				}
 			}
 			
@@ -3107,24 +3544,62 @@ double InteractionType::TotalNeighborStrength(Subpopulation *p_subpop, Interacti
 			
 			double total;
 			
-			if (!reciprocal_)
+			if (!periodicity_enabled)
 			{
-				switch (spatiality_)
+				if (!reciprocal_)
 				{
-					case 1: total = TotalNeighborStrengthA_1(p_subpop_data.kd_root_, p_point, focal_strengths); break;
-					case 2: total = TotalNeighborStrengthA_2(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, 0); break;
-					case 3: total = TotalNeighborStrengthA_3(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, 0); break;
-					default: total = 0.0; break;
+					switch (spatiality_)
+					{
+						case 1: total = TotalNeighborStrengthA_1(p_subpop_data.kd_root_, p_point, focal_strengths); break;
+						case 2: total = TotalNeighborStrengthA_2(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, 0); break;
+						case 3: total = TotalNeighborStrengthA_3(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, 0); break;
+						default: total = 0.0; break;
+					}
+				}
+				else
+				{
+					switch (spatiality_)
+					{
+						case 1: total = TotalNeighborStrengthA_1_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, subpop_size); break;
+						case 2: total = TotalNeighborStrengthA_2_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, 0); break;
+						case 3: total = TotalNeighborStrengthA_3_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, 0); break;
+						default: total = 0.0; break;
+					}
 				}
 			}
 			else
 			{
-				switch (spatiality_)
+				// for the periodic case we need to prevent multiple-counting so we need a buffer of visited flags; we alloc it statically
+				static uint8_t *s_visited_buf = nullptr;
+				static int s_visited_buf_size = -1;
+				
+				if (s_visited_buf_size < subpop_size)
 				{
-					case 1: total = TotalNeighborStrengthA_1_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, subpop_size); break;
-					case 2: total = TotalNeighborStrengthA_2_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, 0); break;
-					case 3: total = TotalNeighborStrengthA_3_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, 0); break;
-					default: total = 0.0; break;
+					s_visited_buf = (uint8_t *)realloc(s_visited_buf, subpop_size * sizeof(uint8_t));
+					s_visited_buf_size = subpop_size;
+				}
+				
+				EIDOS_BZERO(s_visited_buf, subpop_size * sizeof(uint8_t));
+				
+				if (!reciprocal_)
+				{
+					switch (spatiality_)
+					{
+						case 1: total = TotalNeighborStrengthA_1_PERIODIC(p_subpop_data.kd_root_, p_point, s_visited_buf, focal_strengths); break;
+						case 2: total = TotalNeighborStrengthA_2_PERIODIC(p_subpop_data.kd_root_, p_point, s_visited_buf, focal_strengths, focal_distances, 0); break;
+						case 3: total = TotalNeighborStrengthA_3_PERIODIC(p_subpop_data.kd_root_, p_point, s_visited_buf, focal_strengths, focal_distances, 0); break;
+						default: total = 0.0; break;
+					}
+				}
+				else
+				{
+					switch (spatiality_)
+					{
+						case 1: total = TotalNeighborStrengthA_1_reciprocal_PERIODIC(p_subpop_data.kd_root_, p_point, s_visited_buf, focal_strengths, mirror_strengths, subpop_size); break;
+						case 2: total = TotalNeighborStrengthA_2_reciprocal_PERIODIC(p_subpop_data.kd_root_, p_point, s_visited_buf, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, 0); break;
+						case 3: total = TotalNeighborStrengthA_3_reciprocal_PERIODIC(p_subpop_data.kd_root_, p_point, s_visited_buf, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, 0); break;
+						default: total = 0.0; break;
+					}
 				}
 			}
 			
@@ -3464,6 +3939,260 @@ void InteractionType::FillNeighborStrengthsA_3_reciprocal(SLiM_kdNode *root, dou
 	}
 }
 
+// Now come PERIODIC versions of the above methods, called whenever periodic boundary conditions are enabled for any of the
+// interaction dimensions.  This is necessary because with periodic boundaries we have a problem: for any given interaction
+// there is more than one spatial pairing for that interaction, between different mirrored pairs.  We consider the pairing
+// with the minimum distance to be "canonical", and all other pairings should be ignored (i.e., have interaction strength
+// zero).  We are guaranteed that the canonical pairing is the one that falls inside the maximum interaction distance (if
+// any of the pairings does), and in the k-d tree code that's the only simple way to tell since we only have the positions
+// for the current nodes (which might or might not be mirrors) and we don't know what the spatial bounds are.  We're just
+// too deep in the weeds at this point.  So.  We need to avoid caching an incorrect (non-canonical) distance in the
+// distance matrix, so we only fill in distances if they are less than the max interaction distance.  This fixes a bug
+// where incorrect (non-canonical) distances were getting filled in some cases.  I branched the code for this periodic
+// case so that the non-periodic case is not slowed down by flag checks etc., and can still always fill in distances.  Note
+// that the 1-D case does not need to be treated separately here because its code does not use the distance cache anyway;
+// it will never fill in an incorrect distance.  BCH 1/25/2018
+
+void InteractionType::FillNeighborStrengthsA_2_PERIODIC(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_focal_distances, double *p_result_vec, int p_phase)
+{
+	slim_popsize_t root_individual_index = root->individual_index_;
+	double distance = p_focal_distances[root_individual_index];
+	
+	if (std::isnan(distance))
+	{
+		distance = sqrt(dist_sq2(root, nd));
+		
+		// PERIODIC: we can only fill in the distance cache if we know that this is the canonical (i.e. minimum) distance for the pair
+		if (distance <= max_distance_)
+			p_focal_distances[root_individual_index] = distance;
+	}
+	
+	double dx = root->x[p_phase] - nd[p_phase];
+	double dx2 = dx * dx;
+	
+	if (distance <= max_distance_)
+	{
+		double strength = p_focal_strengths[root_individual_index];
+		
+		if (std::isnan(strength))
+		{
+			if (!gSLiM_Recursive_callbacks)
+				strength = CalculateStrengthNoCallbacks(distance);
+			else
+				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
+			
+			p_focal_strengths[root_individual_index] = strength;
+		}
+		
+		p_result_vec[root_individual_index] = strength;
+	}
+	
+	if (++p_phase >= 2) p_phase = 0;
+	
+	if (dx > 0)
+	{
+		if (root->left)
+			FillNeighborStrengthsA_2_PERIODIC(root->left, nd, p_focal_strengths, p_focal_distances, p_result_vec, p_phase);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->right)
+			FillNeighborStrengthsA_2_PERIODIC(root->right, nd, p_focal_strengths, p_focal_distances, p_result_vec, p_phase);
+	}
+	else
+	{
+		if (root->right)
+			FillNeighborStrengthsA_2_PERIODIC(root->right, nd, p_focal_strengths, p_focal_distances, p_result_vec, p_phase);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->left)
+			FillNeighborStrengthsA_2_PERIODIC(root->left, nd, p_focal_strengths, p_focal_distances, p_result_vec, p_phase);
+	}
+}
+
+void InteractionType::FillNeighborStrengthsA_2_reciprocal_PERIODIC(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, double *p_result_vec, int p_phase)
+{
+	slim_popsize_t root_individual_index = root->individual_index_;
+	double distance = p_focal_distances[root_individual_index];
+	
+	if (std::isnan(distance))
+	{
+		distance = sqrt(dist_sq2(root, nd));
+		
+		// PERIODIC: we can only fill in the distance cache if we know that this is the canonical (i.e. minimum) distance for the pair
+		if (distance <= max_distance_)
+		{
+			p_focal_distances[root_individual_index] = distance;
+			*(p_mirror_distances + root_individual_index * subpop_size) = distance;
+		}
+	}
+	
+	double dx = root->x[p_phase] - nd[p_phase];
+	double dx2 = dx * dx;
+	
+	if (distance <= max_distance_)
+	{
+		double strength = p_focal_strengths[root_individual_index];
+		
+		if (std::isnan(strength))
+		{
+			if (!gSLiM_Recursive_callbacks)
+				strength = CalculateStrengthNoCallbacks(distance);
+			else
+				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
+			
+			p_focal_strengths[root_individual_index] = strength;
+			*(p_mirror_strengths + root_individual_index * subpop_size) = strength;
+		}
+		
+		p_result_vec[root_individual_index] = strength;
+	}
+	
+	if (++p_phase >= 2) p_phase = 0;
+	
+	if (dx > 0)
+	{
+		if (root->left)
+			FillNeighborStrengthsA_2_reciprocal_PERIODIC(root->left, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_result_vec, p_phase);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->right)
+			FillNeighborStrengthsA_2_reciprocal_PERIODIC(root->right, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_result_vec, p_phase);
+	}
+	else
+	{
+		if (root->right)
+			FillNeighborStrengthsA_2_reciprocal_PERIODIC(root->right, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_result_vec, p_phase);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->left)
+			FillNeighborStrengthsA_2_reciprocal_PERIODIC(root->left, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_result_vec, p_phase);
+	}
+}
+
+void InteractionType::FillNeighborStrengthsA_3_PERIODIC(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_focal_distances, double *p_result_vec, int p_phase)
+{
+	slim_popsize_t root_individual_index = root->individual_index_;
+	double distance = p_focal_distances[root_individual_index];
+	
+	if (std::isnan(distance))
+	{
+		distance = sqrt(dist_sq3(root, nd));
+		
+		// PERIODIC: we can only fill in the distance cache if we know that this is the canonical (i.e. minimum) distance for the pair
+		if (distance <= max_distance_)
+			p_focal_distances[root_individual_index] = distance;
+	}
+	
+	double dx = root->x[p_phase] - nd[p_phase];
+	double dx2 = dx * dx;
+	
+	if (distance <= max_distance_)
+	{
+		double strength = p_focal_strengths[root_individual_index];
+		
+		if (std::isnan(strength))
+		{
+			if (!gSLiM_Recursive_callbacks)
+				strength = CalculateStrengthNoCallbacks(distance);
+			else
+				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
+			
+			p_focal_strengths[root_individual_index] = strength;
+		}
+		
+		p_result_vec[root_individual_index] = strength;
+	}
+	
+	if (++p_phase >= 3) p_phase = 0;
+	
+	if (dx > 0)
+	{
+		if (root->left)
+			FillNeighborStrengthsA_3_PERIODIC(root->left, nd, p_focal_strengths, p_focal_distances, p_result_vec, p_phase);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->right)
+			FillNeighborStrengthsA_3_PERIODIC(root->right, nd, p_focal_strengths, p_focal_distances, p_result_vec, p_phase);
+	}
+	else
+	{
+		if (root->right)
+			FillNeighborStrengthsA_3_PERIODIC(root->right, nd, p_focal_strengths, p_focal_distances, p_result_vec, p_phase);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->left)
+			FillNeighborStrengthsA_3_PERIODIC(root->left, nd, p_focal_strengths, p_focal_distances, p_result_vec, p_phase);
+	}
+}
+
+void InteractionType::FillNeighborStrengthsA_3_reciprocal_PERIODIC(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, double *p_result_vec, int p_phase)
+{
+	slim_popsize_t root_individual_index = root->individual_index_;
+	double distance = p_focal_distances[root_individual_index];
+	
+	if (std::isnan(distance))
+	{
+		distance = sqrt(dist_sq3(root, nd));
+		
+		// PERIODIC: we can only fill in the distance cache if we know that this is the canonical (i.e. minimum) distance for the pair
+		if (distance <= max_distance_)
+		{
+			p_focal_distances[root_individual_index] = distance;
+			*(p_mirror_distances + root_individual_index * subpop_size) = distance;
+		}
+	}
+	
+	double dx = root->x[p_phase] - nd[p_phase];
+	double dx2 = dx * dx;
+	
+	if (distance <= max_distance_)
+	{
+		double strength = p_focal_strengths[root_individual_index];
+		
+		if (std::isnan(strength))
+		{
+			if (!gSLiM_Recursive_callbacks)
+				strength = CalculateStrengthNoCallbacks(distance);
+			else
+				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
+			
+			p_focal_strengths[root_individual_index] = strength;
+			*(p_mirror_strengths + root_individual_index * subpop_size) = strength;
+		}
+		
+		p_result_vec[root_individual_index] = strength;
+	}
+	
+	if (++p_phase >= 3) p_phase = 0;
+	
+	if (dx > 0)
+	{
+		if (root->left)
+			FillNeighborStrengthsA_3_reciprocal_PERIODIC(root->left, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_result_vec, p_phase);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->right)
+			FillNeighborStrengthsA_3_reciprocal_PERIODIC(root->right, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_result_vec, p_phase);
+	}
+	else
+	{
+		if (root->right)
+			FillNeighborStrengthsA_3_reciprocal_PERIODIC(root->right, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_result_vec, p_phase);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->left)
+			FillNeighborStrengthsA_3_reciprocal_PERIODIC(root->left, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_result_vec, p_phase);
+	}
+}
+
 void InteractionType::FillNeighborStrengths(Subpopulation *p_subpop, InteractionsData &p_subpop_data, double *p_point, Individual *p_excluded_individual, double *p_result_vec)
 {
 	if (spatiality_ == 0)
@@ -3487,26 +4216,51 @@ void InteractionType::FillNeighborStrengths(Subpopulation *p_subpop, Interaction
 		double *focal_distances = p_subpop_data.distances_ + focal_index * subpop_size;
 		double *mirror_distances = p_subpop_data.distances_ + focal_index;				// for reciprocality
 		std::vector<SLiMEidosBlock*> &callbacks = p_subpop_data.evaluation_interaction_callbacks_;
+		bool periodicity_enabled = (periodic_x_ || periodic_y_ || periodic_z_);
 		
 		if (callbacks.size() == 0)
 		{
 			// No callbacks; we can assume that the callback-related globals are nilled out
-			if (!reciprocal_)
+			if (!periodicity_enabled)
 			{
-				switch (spatiality_)
+				if (!reciprocal_)
 				{
-					case 1: FillNeighborStrengthsA_1(p_subpop_data.kd_root_, p_point, focal_strengths, p_result_vec); break;
-					case 2: FillNeighborStrengthsA_2(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, p_result_vec, 0); break;
-					case 3: FillNeighborStrengthsA_3(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, p_result_vec, 0); break;
+					switch (spatiality_)
+					{
+						case 1: FillNeighborStrengthsA_1(p_subpop_data.kd_root_, p_point, focal_strengths, p_result_vec); break;
+						case 2: FillNeighborStrengthsA_2(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, p_result_vec, 0); break;
+						case 3: FillNeighborStrengthsA_3(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, p_result_vec, 0); break;
+					}
+				}
+				else
+				{
+					switch (spatiality_)
+					{
+						case 1: FillNeighborStrengthsA_1_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, subpop_size, p_result_vec); break;
+						case 2: FillNeighborStrengthsA_2_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, p_result_vec, 0); break;
+						case 3: FillNeighborStrengthsA_3_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, p_result_vec, 0); break;
+					}
 				}
 			}
 			else
 			{
-				switch (spatiality_)
+				if (!reciprocal_)
 				{
-					case 1: FillNeighborStrengthsA_1_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, subpop_size, p_result_vec); break;
-					case 2: FillNeighborStrengthsA_2_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, p_result_vec, 0); break;
-					case 3: FillNeighborStrengthsA_3_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, p_result_vec, 0); break;
+					switch (spatiality_)
+					{
+						case 1: FillNeighborStrengthsA_1(p_subpop_data.kd_root_, p_point, focal_strengths, p_result_vec); break;
+						case 2: FillNeighborStrengthsA_2_PERIODIC(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, p_result_vec, 0); break;
+						case 3: FillNeighborStrengthsA_3_PERIODIC(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, p_result_vec, 0); break;
+					}
+				}
+				else
+				{
+					switch (spatiality_)
+					{
+						case 1: FillNeighborStrengthsA_1_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, subpop_size, p_result_vec); break;
+						case 2: FillNeighborStrengthsA_2_reciprocal_PERIODIC(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, p_result_vec, 0); break;
+						case 3: FillNeighborStrengthsA_3_reciprocal_PERIODIC(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, p_result_vec, 0); break;
+					}
 				}
 			}
 		}
@@ -3517,22 +4271,46 @@ void InteractionType::FillNeighborStrengths(Subpopulation *p_subpop, Interaction
 			gSLiM_Recursive_receiver = p_excluded_individual;
 			gSLiM_Recursive_callbacks = &callbacks;
 			
-			if (!reciprocal_)
+			if (!periodicity_enabled)
 			{
-				switch (spatiality_)
+				if (!reciprocal_)
 				{
-					case 1: FillNeighborStrengthsA_1(p_subpop_data.kd_root_, p_point, focal_strengths, p_result_vec); break;
-					case 2: FillNeighborStrengthsA_2(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, p_result_vec, 0); break;
-					case 3: FillNeighborStrengthsA_3(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, p_result_vec, 0); break;
+					switch (spatiality_)
+					{
+						case 1: FillNeighborStrengthsA_1(p_subpop_data.kd_root_, p_point, focal_strengths, p_result_vec); break;
+						case 2: FillNeighborStrengthsA_2(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, p_result_vec, 0); break;
+						case 3: FillNeighborStrengthsA_3(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, p_result_vec, 0); break;
+					}
+				}
+				else
+				{
+					switch (spatiality_)
+					{
+						case 1: FillNeighborStrengthsA_1_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, subpop_size, p_result_vec); break;
+						case 2: FillNeighborStrengthsA_2_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, p_result_vec, 0); break;
+						case 3: FillNeighborStrengthsA_3_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, p_result_vec, 0); break;
+					}
 				}
 			}
 			else
 			{
-				switch (spatiality_)
+				if (!reciprocal_)
 				{
-					case 1: FillNeighborStrengthsA_1_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, subpop_size, p_result_vec); break;
-					case 2: FillNeighborStrengthsA_2_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, p_result_vec, 0); break;
-					case 3: FillNeighborStrengthsA_3_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, p_result_vec, 0); break;
+					switch (spatiality_)
+					{
+						case 1: FillNeighborStrengthsA_1(p_subpop_data.kd_root_, p_point, focal_strengths, p_result_vec); break;
+						case 2: FillNeighborStrengthsA_2_PERIODIC(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, p_result_vec, 0); break;
+						case 3: FillNeighborStrengthsA_3_PERIODIC(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, p_result_vec, 0); break;
+					}
+				}
+				else
+				{
+					switch (spatiality_)
+					{
+						case 1: FillNeighborStrengthsA_1_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, subpop_size, p_result_vec); break;
+						case 2: FillNeighborStrengthsA_2_reciprocal_PERIODIC(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, p_result_vec, 0); break;
+						case 3: FillNeighborStrengthsA_3_reciprocal_PERIODIC(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, p_result_vec, 0); break;
+					}
 				}
 			}
 			

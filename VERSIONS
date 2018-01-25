@@ -32,6 +32,7 @@ development head (nonWF branch):
 	make WF-only and nonWF-only API visibly tagged (with colored boxes) in the SLiMgui help window
 	add seqLen() function to Eidos, like seq_len() in R
 	add nonWF recipes
+	fix InteractionType bug with periodic boundaries and totalOfNeighborStrengths() / strength()
 
 
 2.6 (build 1292; Eidos version 1.6):
