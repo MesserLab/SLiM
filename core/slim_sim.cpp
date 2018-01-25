@@ -3526,6 +3526,11 @@ void SLiMSim::StartTreeRecording(void)
 	// again on this SLiMSim instance – but note that in SLiMgui multiple SLiMSim instances may exist, and may all be recording their
 	// own trees, so your code needs to be capable of handling that.  Store your state inside SLiMSim, not in globals.  SLiMgui is
 	// single-threaded, though, so you don't need to worry about re-entrancy or multithreading issues.
+
+	// TODO initialize ARGrecorder instance.
+	
+	
+
 }
 
 void SLiMSim::RecordNewIndividual(Individual *p_individual)
@@ -3539,11 +3544,20 @@ void SLiMSim::RecordNewIndividual(Individual *p_individual)
 	// think).  The first parent is always the female in sexual models, guaranteed.  At present, when this code is called the individual may
 	// not be completely initialized yet; it may not know its sex, and its genomes may not know their types, and so forth.  If that needs to
 	// be fixed, it should be reasonably straightforward to do so.  For now, the only information guaranteed valid is the pedigree IDs.
-	slim_pedigreeid_t ind_pid = p_individual->PedigreeID();
-	slim_pedigreeid_t p1_pid = p_individual->Parent1PedigreeID();
-	slim_mutationid_t p2_pid = p_individual->Parent2PedigreeID();
+
+	//slim_pedigreeid_t ind_pid = p_individual->PedigreeID();
+	//slim_pedigreeid_t p1_pid = p_individual->Parent1PedigreeID();
+	//slim_mutationid_t p2_pid = p_individual->Parent2PedigreeID();
 	
-	std::cout << Generation() << ": New individual created, pedigree id " << ind_pid << " (parents: " << p1_pid << ", " << p2_pid << ")" << std::endl;
+	//std::cout << Generation() << ": New individual created, pedigree id " << ind_pid << " (parents: " << p1_pid << ", " << p2_pid << ")" << std::endl;
+
+	//THOUGHT: Because all this method does is set Ivars, we could probably speed things up by setting the ivars instead of calling this method 
+
+	//Set ivar to current individual, this way the calls to RecordRecombination have reference.
+	CurrentTreeSequenceIndividual = p_individual;
+	//Set ivar to indicate the first recombination has not been called, (this lets us know which parent each recombination is referring to)
+	FirstRecombinationCalled = false;
+		
 }
 
 void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, bool p_start_strand_2)
@@ -3553,6 +3567,34 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 	// Note that the breakpoints vector provided may (or may not) contain a breakpoint, as the final breakpoint in the vector, that is beyond
 	// the end of the chromosome.  This is for bookkeeping in the crossover-mutation code and should be ignored, as the code below does.
 	// The breakpoints vector may be nullptr (indicating no recombination), but if it exists it will be sorted in ascending order.
+
+	//-Jared Start
+	
+	slim_pedigreeid_t parentID;
+	slim_pedigreeid_t genomeID;
+	slim_pedigreeid_t parentalGenome1ID;
+	slim_pedigreeid_t parentalGenome2ID;
+ 	//if the first recombination has not been called this is a reference to parent 1
+
+	//std::cout << Generation() << ":   Reference to individual: " << CurrentTreeSequenceIndividual->PedigreeID() << std::endl; 
+
+	if(!FirstRecombinationCalled){ 			
+		genomeID = 2 * CurrentTreeSequenceIndividual->PedigreeID();
+		parentID = CurrentTreeSequenceIndividual->Parent1PedigreeID();
+		FirstRecombinationCalled = true;		
+	}else{
+		genomeID = (2 * CurrentTreeSequenceIndividual->PedigreeID()) + 1;
+		parentID = CurrentTreeSequenceIndividual->Parent2PedigreeID();
+	} 
+
+	parentalGenome1ID = 2 * parentID;
+	parentalGenome2ID = 2 * parentID + 1;
+
+	std::cout << Generation() << ":  Call to RecordRecombination for Ind: " <<  CurrentTreeSequenceIndividual->PedigreeID() << std::endl;
+	std::cout << Generation() << ":     ARGrecorder.AddGenomeNode(inputID = " << genomeID << ",time = " << Generation() << ");" << std::endl;  
+	
+
+	
 	size_t breakpoint_count = (p_breakpoints ? p_breakpoints->size() : 0);
 	
 	if (breakpoint_count && (p_breakpoints->back() == chromosome_.last_position_mutrun_ + 1))
@@ -3560,21 +3602,40 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 	
 	if (breakpoint_count)
 	{
-		std::cout << Generation() << ":   Recombination at positions:";
+		std::cout << Generation() << ":     Recombination at positions:";
 		
-		for (size_t breakpoint_index = 0; breakpoint_index < breakpoint_count; ++breakpoint_index)
+		for (size_t breakpoint_index = 0; breakpoint_index < breakpoint_count; ++breakpoint_index){
 			std::cout << " " << (*p_breakpoints)[breakpoint_index];
-		
-		std::cout << " (start with parental strand " << (p_start_strand_2 ? 2 : 1) << ")" << std::endl;
+		}
+		std::cout << std::endl;
+
+		p_breakpoints->insert(p_breakpoints->begin(),0);
+		p_breakpoints->pop_back();
+		p_breakpoints->push_back(chromosome_.last_position_);
+		breakpoint_count++;
+			
+		for (size_t breakpoint_index = 0; breakpoint_index < breakpoint_count; ++breakpoint_index){
+			std::cout << Generation() << ":     ARGrecorder.AddEdge(left = " << (*p_breakpoints)[breakpoint_index] << ",right = " << (*p_breakpoints)[breakpoint_index + 1];
+			std::cout << ",parent = " << (p_start_strand_2 ? parentalGenome2ID : parentalGenome1ID) << ",child = " << genomeID << ");" << std::endl;
+
+			p_start_strand_2 = !p_start_strand_2;
+		}
+
+		//std::cout << " (start with parental genome " << (p_start_strand_2 ? 2 : 1) << ")" << std::endl;
 	}
 	else if (p_breakpoints)
 	{
-		std::cout << Generation() << ":   No recombination (use parental strand " << (p_start_strand_2 ? 2 : 1) << ")" << std::endl;
+		std::cout << Generation() << ":     No recombination (use parental strand " << (p_start_strand_2 ? 2 : 1) << ")" << std::endl;
+		std::cout << Generation() << ":     ARGrecorder.AddEdge(left = " << 0 << ",right = " << chromosome_.last_position_;
+		std::cout << ",parent = " << (p_start_strand_2 ? parentalGenome2ID : parentalGenome1ID) << ",child = " << genomeID << ");" << std::endl;
 	}
 	else
 	{
-		std::cout << Generation() << ":   No parental genome" << std::endl;
+		std::cout << Generation() << ":     No parental genome" << std::endl;
 	}
+	std::cout << std::endl;
+
+	//-Jared End
 }
 
 void SLiMSim::WriteTreeSequence(void)

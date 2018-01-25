@@ -241,6 +241,8 @@ private:
 	// TREE SEQUENCE RECORDING
 	bool recording_tree_ = false;		// true if we are doing tree sequence recording
 	std::string recording_tree_path_;	// the path to write the final tree file to; given to initializeSLiMOptions(treeRecordingPath)
+	Individual *CurrentTreeSequenceIndividual;
+	bool FirstRecombinationCalled = false;
 	// add further ivars you need for tree sequence recording here; don't forget to add cleanup for them to SLiMSim::~SLiMSim() if necessary
 	
 public:
