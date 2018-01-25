@@ -190,6 +190,12 @@ class InteractionType : public SLiMEidosDictionary
 	double TotalNeighborStrengthA_1_reciprocal(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, int subpop_size);
 	double TotalNeighborStrengthA_2_reciprocal(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, int p_phase);
 	double TotalNeighborStrengthA_3_reciprocal(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, int p_phase);
+	double TotalNeighborStrengthA_1_PERIODIC(SLiM_kdNode *root, double *nd, uint8_t *p_visited_buf, double *p_focal_strengths);
+	double TotalNeighborStrengthA_2_PERIODIC(SLiM_kdNode *root, double *nd, uint8_t *p_visited_buf, double *p_focal_strengths, double *p_focal_distances, int p_phase);
+	double TotalNeighborStrengthA_3_PERIODIC(SLiM_kdNode *root, double *nd, uint8_t *p_visited_buf, double *p_focal_strengths, double *p_focal_distances, int p_phase);
+	double TotalNeighborStrengthA_1_reciprocal_PERIODIC(SLiM_kdNode *root, double *nd, uint8_t *p_visited_buf, double *p_focal_strengths, double *p_mirror_strengths, int subpop_size);
+	double TotalNeighborStrengthA_2_reciprocal_PERIODIC(SLiM_kdNode *root, double *nd, uint8_t *p_visited_buf, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, int p_phase);
+	double TotalNeighborStrengthA_3_reciprocal_PERIODIC(SLiM_kdNode *root, double *nd, uint8_t *p_visited_buf, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, int p_phase);
 	double TotalNeighborStrength(Subpopulation *p_subpop, InteractionsData &p_subpop_data, double *p_point, Individual *p_excluded_individual);
 	
 	void FillNeighborStrengthsA_1(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_result_vec);
@@ -198,6 +204,10 @@ class InteractionType : public SLiMEidosDictionary
 	void FillNeighborStrengthsA_1_reciprocal(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, int subpop_size, double *p_result_vec);
 	void FillNeighborStrengthsA_2_reciprocal(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, double *p_result_vec, int p_phase);
 	void FillNeighborStrengthsA_3_reciprocal(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, double *p_result_vec, int p_phase);
+	void FillNeighborStrengthsA_2_PERIODIC(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_focal_distances, double *p_result_vec, int p_phase);
+	void FillNeighborStrengthsA_3_PERIODIC(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_focal_distances, double *p_result_vec, int p_phase);
+	void FillNeighborStrengthsA_2_reciprocal_PERIODIC(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, double *p_result_vec, int p_phase);
+	void FillNeighborStrengthsA_3_reciprocal_PERIODIC(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, double *p_result_vec, int p_phase);
 	void FillNeighborStrengths(Subpopulation *p_subpop, InteractionsData &p_subpop_data, double *p_point, Individual *p_excluded_individual, double *p_result_vec);
 
 public:
