@@ -3545,11 +3545,13 @@ void SLiMSim::RecordNewIndividual(Individual *p_individual)
 	// not be completely initialized yet; it may not know its sex, and its genomes may not know their types, and so forth.  If that needs to
 	// be fixed, it should be reasonably straightforward to do so.  For now, the only information guaranteed valid is the pedigree IDs.
 
-	//slim_pedigreeid_t ind_pid = p_individual->PedigreeID();
-	//slim_pedigreeid_t p1_pid = p_individual->Parent1PedigreeID();
-	//slim_mutationid_t p2_pid = p_individual->Parent2PedigreeID();
+	slim_pedigreeid_t ind_pid = p_individual->PedigreeID();
+	slim_pedigreeid_t p1_pid = p_individual->Parent1PedigreeID();
+	slim_pedigreeid_t p2_pid = p_individual->Parent2PedigreeID();
 	
-	//std::cout << Generation() << ": New individual created, pedigree id " << ind_pid << " (parents: " << p1_pid << ", " << p2_pid << ")" << std::endl;
+	std::cout << "--------------------------------------------------" << std::endl << std::endl;
+		
+	std::cout << Generation() << ": New individual created, pedigree id " << ind_pid << " (parents: " << p1_pid << ", " << p2_pid << ")" << std::endl << std::endl;
 
 	//THOUGHT: Because all this method does is set Ivars, we could probably speed things up by setting the ivars instead of calling this method 
 
@@ -3590,7 +3592,8 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 	parentalGenome1ID = 2 * parentID;
 	parentalGenome2ID = 2 * parentID + 1;
 
-	std::cout << Generation() << ":  Call to RecordRecombination for Ind: " <<  CurrentTreeSequenceIndividual->PedigreeID() << std::endl;
+	std::cout << Generation() << ":  Call to RecordRecombination for Ind: " <<  CurrentTreeSequenceIndividual->PedigreeID();
+	std::cout << " (ParentID: " << parentID << ")" << std::endl;
 	std::cout << Generation() << ":     ARGrecorder.AddGenomeNode(inputID = " << genomeID << ",time = " << Generation() << ");" << std::endl;  
 	
 
@@ -3607,7 +3610,7 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 		for (size_t breakpoint_index = 0; breakpoint_index < breakpoint_count; ++breakpoint_index){
 			std::cout << " " << (*p_breakpoints)[breakpoint_index];
 		}
-		std::cout << std::endl;
+		std::cout << " (start with parental genome " << (p_start_strand_2 ? 2 : 1) << ")" << std::endl;
 
 		p_breakpoints->insert(p_breakpoints->begin(),0);
 		p_breakpoints->pop_back();
@@ -3621,7 +3624,6 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 			p_start_strand_2 = !p_start_strand_2;
 		}
 
-		//std::cout << " (start with parental genome " << (p_start_strand_2 ? 2 : 1) << ")" << std::endl;
 	}
 	else if (p_breakpoints)
 	{
