@@ -3608,11 +3608,7 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 	std::cout << Generation() << ":  Call to RecordRecombination for Ind: " <<  CurrentTreeSequenceIndividual->PedigreeID();
 	std::cout << " (ParentID: " << parentID << ")" << std::endl;
 	std::cout << Generation() << ":     ARGrecorder.AddGenomeNode(inputID = " << genomeID << ",time = " << Generation() << ");" << std::endl;  
-	
 
-	//int endofSim = 10;
-
-	//int isSample = (Generation() == endofSim ? 1 : 0);
 		
 	MspTxtNodeFile << 1 << "\t" << genomeID << "\t" <<  -1 * Generation() <<" \t" << CurrentTreeSequenceIndividual->subpopulation_.subpopulation_id_ << "\n";
 	//Subpopulation &subpopulation_;		// the subpop to which we refer; we get deleted when our subpop gets destructed	
