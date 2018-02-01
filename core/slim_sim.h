@@ -33,6 +33,11 @@
 #include <vector>
 #include <iostream>
 
+//TREE SEQUENCE 
+//adding this so I can write tables to txt file for debugging
+//TODO remove when done.
+#include <fstream>  
+
 #include "slim_global.h"
 #include "mutation.h"
 #include "mutation_type.h"
@@ -244,6 +249,11 @@ private:
 	Individual *CurrentTreeSequenceIndividual;
 	bool FirstRecombinationCalled = false;
 	// add further ivars you need for tree sequence recording here; don't forget to add cleanup for them to SLiMSim::~SLiMSim() if necessary
+
+	//ofstream to write txt file tree sequences
+	std::ofstream MspTxtNodeFile;
+	std::ofstream MspTxtEdgeFile;
+
 	
 public:
 	

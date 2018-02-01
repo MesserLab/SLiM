@@ -3527,9 +3527,22 @@ void SLiMSim::StartTreeRecording(void)
 	// own trees, so your code needs to be capable of handling that.  Store your state inside SLiMSim, not in globals.  SLiMgui is
 	// single-threaded, though, so you don't need to worry about re-entrancy or multithreading issues.
 
-	// TODO initialize ARGrecorder instance.
-	
-	
+	//open a file to to write text NODE and EDGE tables to test tree output
+	MspTxtNodeFile.open("NodeTable.txt");
+	MspTxtEdgeFile.open("EdgeTable.txt");
+
+	if(MspTxtNodeFile.fail()){
+		std::cout << "failed\n";
+	}else{
+		std::cout << "did not fail\n";
+	}		
+	MspTxtNodeFile << "is_sample\t" << "id\t" << "time\t" << "population\n";
+	MspTxtEdgeFile << "left\t" << "right\t" << "parent\t" << "child\n";
+
+	//MspTxtNodeFile.close();
+	//MspTxtEdgeFile.close();
+
+		
 
 }
 
@@ -3597,6 +3610,13 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 	std::cout << Generation() << ":     ARGrecorder.AddGenomeNode(inputID = " << genomeID << ",time = " << Generation() << ");" << std::endl;  
 	
 
+	//int endofSim = 10;
+
+	//int isSample = (Generation() == endofSim ? 1 : 0);
+		
+	MspTxtNodeFile << 1 << "\t" << genomeID << "\t" <<  -1 * Generation() <<" \t" << CurrentTreeSequenceIndividual->subpopulation_.subpopulation_id_ << "\n";
+	//Subpopulation &subpopulation_;		// the subpop to which we refer; we get deleted when our subpop gets destructed	
+	//slim_objectid_t subpopulation_id_;				// the id by which this subpopulation is indexed in the Population
 	
 	size_t breakpoint_count = (p_breakpoints ? p_breakpoints->size() : 0);
 	
@@ -3618,8 +3638,13 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 		breakpoint_count++;
 			
 		for (size_t breakpoint_index = 0; breakpoint_index < breakpoint_count; ++breakpoint_index){
-			std::cout << Generation() << ":     ARGrecorder.AddEdge(left = " << (*p_breakpoints)[breakpoint_index] << ",right = " << (*p_breakpoints)[breakpoint_index + 1];
+			std::cout << Generation() << ":     ARGrecorder.AddEdge(left = ";
+			std::cout << (*p_breakpoints)[breakpoint_index] << ",right = " << (*p_breakpoints)[breakpoint_index + 1];
 			std::cout << ",parent = " << (p_start_strand_2 ? parentalGenome2ID : parentalGenome1ID) << ",child = " << genomeID << ");" << std::endl;
+
+			MspTxtEdgeFile << (*p_breakpoints)[breakpoint_index] << "\t"; 
+			MspTxtEdgeFile << (*p_breakpoints)[breakpoint_index + 1] << "\t"; 
+			MspTxtEdgeFile << (p_start_strand_2 ? parentalGenome2ID : parentalGenome1ID ) << "\t" << genomeID << "\n";
 
 			p_start_strand_2 = !p_start_strand_2;
 		}
@@ -3630,6 +3655,9 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 		std::cout << Generation() << ":     No recombination (use parental strand " << (p_start_strand_2 ? 2 : 1) << ")" << std::endl;
 		std::cout << Generation() << ":     ARGrecorder.AddEdge(left = " << 0 << ",right = " << chromosome_.last_position_;
 		std::cout << ",parent = " << (p_start_strand_2 ? parentalGenome2ID : parentalGenome1ID) << ",child = " << genomeID << ");" << std::endl;
+		MspTxtEdgeFile << 0 << "\t" << chromosome_.last_position_ << "\t";
+		MspTxtEdgeFile << (p_start_strand_2 ? parentalGenome2ID : parentalGenome1ID)<< "\t" << genomeID << "\n";
+	
 	}
 	else
 	{
@@ -3649,6 +3677,8 @@ void SLiMSim::WriteTreeSequence(void)
 	// time points, though, so it might be good to postpone cleanup and freeing of resources until ~SLiMSim().
 	
 	std::cout << Generation() << ": ***** Writing tree sequence file to path " << recording_tree_path_ << std::endl;
+	MspTxtNodeFile.close();
+	MspTxtEdgeFile.close();
 }
 
 
