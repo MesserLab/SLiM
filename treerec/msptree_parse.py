@@ -23,4 +23,5 @@ Nodes.set_columns(flags=Nodes.flags,time=(Nodes.time - minimumTime),population=N
 treeSequence = msprime.load_tables(nodes=Nodes,edges=Edges)
 
 for tree in treeSequence.trees():
-	print(tree.draw(format="unicode"))
+	print(tree.interval)
+	print(tree.draw(format="unicode",height = 200))
