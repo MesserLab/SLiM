@@ -15,6 +15,13 @@ message("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
 # Place slim and eidos in the bin subdirectory of the source directory
 set( EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin )
 
+find_package(HDF5 REQUIRED)
+#include_directories(${HDF5_INCLUDE_DIR})
+
+set(TARGET_NAME tables)
+file(GLOB_RECURSE TABLE_SOURCES ${PROJECT_SOURCE_DIR}/tables-api-files/*.c)
+add_library(${TARGET_NAME} STATIC ${TABLE_SOURCES})
+target_include_directories(${TARGET_NAME} PUBLIC ${HDF5_INCLUDE_DIR})
 
 # GSL 
 set(TARGET_NAME gsl)
@@ -29,10 +36,12 @@ file(GLOB_RECURSE SLIM_SOURCES ${PROJECT_SOURCE_DIR}/core/*.cpp ${PROJECT_SOURCE
 add_executable(${TARGET_NAME} ${SLIM_SOURCES})
 target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} "${PROJECT_SOURCE_DIR}/core" "${PROJECT_SOURCE_DIR}/eidos")
 target_link_libraries(${TARGET_NAME} PUBLIC gsl)
+target_link_libraries(${TARGET_NAME} PUBLIC tables)
 
 set(TARGET_NAME eidos)
 file(GLOB_RECURSE EIDOS_SOURCES  ${PROJECT_SOURCE_DIR}/eidos/*.cpp  ${PROJECT_SOURCE_DIR}/eidostool/*.cpp)
 add_executable(${TARGET_NAME} ${EIDOS_SOURCES})
 target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} "${PROJECT_SOURCE_DIR}/eidos")
 target_link_libraries(${TARGET_NAME} PUBLIC gsl)
+target_link_libraries(${TARGET_NAME} PUBLIC tables)
 
