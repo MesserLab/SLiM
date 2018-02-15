@@ -2938,7 +2938,15 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		// point anyway to synchronize; but in slim's code itself, not in Eidos, the tallies can definitely differ!  Beware!
 		population_.TallyMutationReferences(nullptr, false);
 #endif
-		
+	
+		//TREE SEQUENCE RECORDING
+		//CALL simplifyTables 
+	
+		if (recording_tree_sequence && (Generation() % simplificationInterval) == 0){
+			simplifyTables();
+		}
+
+	
 		cached_value_generation_.reset();
 		generation_++;
 		
@@ -3312,7 +3320,13 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		// point anyway to synchronize; but in slim's code itself, not in Eidos, the tallies can definitely differ!  Beware!
 		population_.TallyMutationReferences(nullptr, false);
 #endif
-		
+	
+		//TREE SEQUENCE RECORDING
+		//Call simplifyTables() 
+		if (recording_tree_sequence && (Generation() % simplificationInterval) == 0){
+			simplifyTables();
+		}
+	
 		cached_value_generation_.reset();
 		generation_++;
 		
@@ -3528,28 +3542,80 @@ handle_error(std::string msg, int err)
 
 void SLiMSim::simplifyTables(void){
 
-	//get all samples, all individuals with lowest time. 
-	//THIS WAY OF GETTING SAMPLES ONLY WORKS FOR NON-WF
+
+	std::cout << "--------- simplifyTables() -----------" << std::endl;
+
+	//get all samples for simplification
+	std::map<slim_objectid_t,Subpopulation*>::iterator it;
+	std::vector<Individual*> subpopulationIndividuals;
+	std::vector<Individual*> populationIndividuals;
+	//std::vector<slim_pedigreeid_t> pedigreeIdOfAliveIndividuals;
 
 	std::vector<node_id_t> samples;
-	double minTime = 0.0;
-	for (int i = 0; i < nodes.num_rows; i++){
-		if(nodes.time[i] < minTime){
-			minTime = nodes.time[i];
+	std::map<int,node_id_t> newMap;
+
+	/*
+	//In WF, This is all nodes in the tables with the lowest time. 
+	if(ModelType() == SLiMModelType::kModelTypeWF){
+	 
+		std::cout << "IN WF CASE" << std::endl;	
+
+		double minTime = 0.0;
+		for (int i = 0; i < nodes.num_rows; i++){
+			if(nodes.time[i] < minTime){
+				minTime = nodes.time[i];
+			}
 		}
-	}
-	for (int i = 0; i < nodes.num_rows; i++){
-		if (nodes.time[i] == minTime){
-			samples.push_back((node_id_t)i);
+		for (int i = 0; i < nodes.num_rows; i++){
+			if (nodes.time[i] == minTime){
+				samples.push_back((node_id_t)i);
+			}
 		}
+	*/
+
+	//In nonWF, Use out IVAR to dig the samples from slim. 
+	
+		//std::cout << "IN NONWF CASE" << std::endl;	
+		//std::vector<Subpopulation*> subpops = population_;
+
+	//std::cout << population_.size() << std::endl;		
+	
+	for ( it = population_.begin(); it != population_.end(); it++){
+		//std::cout << it->second->parent_individuals_.size() << std::endl;
+		subpopulationIndividuals = it->second->parent_individuals_;
+		populationIndividuals.insert(populationIndividuals.end(), subpopulationIndividuals.begin(), subpopulationIndividuals.end());
 	}
 
-		
-			
+	std::cout << populationIndividuals.size() << std::endl;
+	
+	slim_pedigreeid_t IndID;
+	int G1;
+	int G2;
+	int newValueInNodeTable = 0;
+	for (unsigned i; i < populationIndividuals.size(); i++){
+		IndID = populationIndividuals[i]->PedigreeID();
+		G1 = 2 * IndID;
+		G2 = G1 + 1;
+
+		samples.push_back(getMSPID(G1));
+		samples.push_back(getMSPID(G2));	
+				
+		newMap[G1] = (node_id_t)newValueInNodeTable++;
+		newMap[G2] = (node_id_t)newValueInNodeTable++;
+		//std::cout << "i:" << i << std::endl;	
+		//std::cout << "indID: " << IndID << std::endl;
+		//std::cout << "g1: " << G1 << std::endl;
+		//std::cout << "g2: " << G2 << std::endl;
+	}
+				
 	//node_table_print_state(&nodes,stdout);
 	//edge_table_print_state(&edges,stdout);
 
 	//Simplification through MSPrime API
+
+	
+	//GOOD STUFF 	
+
 	ret = sort_tables(&nodes, &edges, &migrations, &sites, &mutations, 0);				
 	if (ret < 0) {
 		handle_error("sort_tables", ret);
@@ -3565,8 +3631,25 @@ void SLiMSim::simplifyTables(void){
 	if (ret < 0) {
 		handle_error("simplifier_run", ret);
 	}
-	numberOfSamplesInLastSimplification = samples.size();
+
+	simplifier_free(&simplifier);
+	
+	//numberOfSamplesInLastSimplification = samples.size();
 	samples.clear();	
+	
+	//set FSIDAS
+	//set FMIDAS
+
+	SLiM_MSP_Id_Map = newMap;	
+	
+
+}
+
+node_id_t SLiMSim::getMSPID(int GenomeID){
+
+	int Offset = GenomeID - FSIDAS;
+	node_id_t retNode = (Offset < 0 ? (SLiM_MSP_Id_Map[GenomeID]) : (FMIDAS + Offset));
+	return retNode;
 
 }
 
@@ -3604,8 +3687,8 @@ void SLiMSim::StartTreeRecording(void)
 	simplificationInterval = 10;
 	FSIDAS = 0;
 	FMIDAS = 0;
-	numberOfSamplesInLastSimplification = 0;
-	lastSimplificationGeneration = 0;
+	//numberOfSamplesInLastSimplification = 0;
+	//lastSimplificationGeneration = 0;
 		
 	//INITIALIZE NODE AND EDGE TABLES.
 	
@@ -3659,9 +3742,9 @@ void SLiMSim::RecordNewIndividual(Individual *p_individual)
 	// be fixed, it should be reasonably straightforward to do so.  For now, the only information guaranteed valid is the pedigree IDs.
 
 
-	/*
+	
 	//DEBUG STDOUT PRINTING
-
+	/*
 	slim_pedigreeid_t ind_pid = p_individual->PedigreeID();
 	slim_pedigreeid_t p1_pid = p_individual->Parent1PedigreeID();
 	slim_pedigreeid_t p2_pid = p_individual->Parent2PedigreeID();
@@ -3688,14 +3771,20 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 	// The breakpoints vector may be nullptr (indicating no recombination), but if it exists it will be sorted in ascending order.
 
 	//At the appropriate time, do simplification on tables	
+	//This should be done at a higher level in SLiM for effeciency. 
 
+	
+	
+/*	
 	bool justSimplified = false;
 	if ((int)(Generation() % simplificationInterval == 0) && ((int)Generation() != lastSimplificationGeneration)){
 		simplifyTables();
 		//std::cout << "in HERE" << Generation() << std::endl;
-		justSimplified = true;
+		//justSimplified = true;
 		lastSimplificationGeneration = (int)Generation();
 	}
+*/
+	
 
 
 	//BIOLOGY NOTE: Recombination is the meiosis process by which the parent gamete produces germ cells, hence two recombination events 
@@ -3709,11 +3798,16 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 	node_id_t genome1MSPID;				//MSPrime equivilent of first genome ID of gemete
 	node_id_t genome2MSPID;				//MSPrime equivilent of second genome ID of gemete
 
-	/*
+	
 	//DEBUG STDOUT PRINTING
-
+	/*
 	std::cout << Generation() << ":   Reference to individual: " << CurrentTreeSequenceIndividual->PedigreeID() << std::endl; 
 	*/
+
+
+	
+	
+	//GOODSTUFF
 
  	//if the first recombination has not been called this is a reference to parent 1
 	if(!FirstRecombinationCalled){ 			
@@ -3730,24 +3824,37 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 	genome1SLiMID = 2 * parentSLiMID;
 	genome2SLiMID = 2 * parentSLiMID + 1;
 
+	genome1MSPID = getMSPID(genome1SLiMID);
+	genome2MSPID = getMSPID(genome2SLiMID);
+
 	//add genome node
 	double time = (double) -1 * Generation();
 	uint32_t flags = 1;
 	offspringMSPID = node_table_add_row(&nodes,flags,time,0,NULL,0);
 	
+	//once we get the call to simplifyTables() higher in SLiM, These should be updated in simplifyTables instead. 
+
+	/*
 	if(justSimplified){
 		FSIDAS = (int)offspringSLiMID;
 		FMIDAS = (int)offspringMSPID;	
 	}
+	*/
 	
-	//THIS ONLY WORKS FOR WF, 
+	//THE FOLLOWING ONLY WORKS FOR WF, 
 	//FOR NON_WF: The second case (FMIDAS + offset) works. but for all individuals that were sampled, we would need to keep a mapping SLiMID - > MSPID 
-		
+	
+
 	//Map the Parental Genome SLiM Id's 
+
+	/*
 	int offset1 = (int)genome1SLiMID - FSIDAS;
 	int offset2 = (int)genome2SLiMID - FSIDAS;
 	genome1MSPID = (offset1 < 0 ? (node_id_t)(numberOfSamplesInLastSimplification + offset1) : (node_id_t)(FMIDAS + offset1));
 	genome2MSPID = (offset2 < 0 ? (node_id_t)(numberOfSamplesInLastSimplification + offset2) : (node_id_t)(FMIDAS + offset2));
+	*/
+	
+
 
 	/*
 	//DEBUG STDOUT PRINTING 
@@ -3756,12 +3863,17 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 	std::cout << " (ParentID: " << parentID << ")" << std::endl;
 	std::cout << Generation() << ":     ARGrecorder.AddGenomeNode(inputID = " << genomeID << ",time = " << Generation() << ");" << std::endl;  
 	*/
+
 	
 	/*
 	//WRITE TABLES TO TXT FILE
 	
 	MspTxtNodeFile << 1 << "\t" << genomeID << "\t" <<  -1 * Generation() <<" \t" << CurrentTreeSequenceIndividual->subpopulation_.subpopulation_id_ << "\n";
 	*/
+
+
+	
+	//GOODSTUFF
 
 	size_t breakpoint_count = (p_breakpoints ? p_breakpoints->size() : 0);
 	
@@ -3770,6 +3882,8 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 	
 	if (breakpoint_count)
 	{
+
+	
 	
 		/*
 		//DEBUG STDOUT PRINTING	
@@ -3782,7 +3896,8 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 		std::cout << " (start with parental genome " << (p_start_strand_2 ? 2 : 1) << ")" << std::endl;
 		*/
 
-		
+	
+	//GOODSTUFF	
 
 		//I want to add the beginning and end position of the chromosome to the vector so it's easier to compute edge intevals
 		p_breakpoints->insert(p_breakpoints->begin(),0);
@@ -3798,7 +3913,12 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 			double left = (double) (*p_breakpoints)[breakpoint_index];
 			double right = (double) (*p_breakpoints)[breakpoint_index + 1];
 			node_id_t parent = (node_id_t) (p_start_strand_2 ? genome2MSPID : genome1MSPID);
-			edge_table_add_row(&edges,left,right,parent,offspringMSPID);
+			ret = edge_table_add_row(&edges,left,right,parent,offspringMSPID);
+			if (ret < 0) {
+				handle_error("add_edge", ret);
+			}
+
+	
  
 			/*
 			//DEBUG STDOUT PRINTING
@@ -3815,7 +3935,8 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 			MspTxtEdgeFile << (*p_breakpoints)[breakpoint_index + 1] << "\t"; 
 			MspTxtEdgeFile << (p_start_strand_2 ? genome2SLiMID : genome1SLiMID ) << "\t" << genomeID << "\n";
 			*/
-		
+	
+	//GOODSTUFF	
 
 			p_start_strand_2 = !p_start_strand_2;
 		}
@@ -3823,6 +3944,9 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 	}
 	else if (p_breakpoints)
 	{
+
+		
+
 		/*
 		//DEBUG STDOUT PRINTING 
 
@@ -3831,10 +3955,18 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 		std::cout << ",parent = " << (p_start_strand_2 ? genome2SLiMID : genome1SLiMID) << ",child = " << genomeID << ");" << std::endl;
 		*/
 
+	
+	//GOODSTUFF
+
 		double left = 0;
 		double right = (double) chromosome_.last_position_;
 		node_id_t parent = (node_id_t) (p_start_strand_2 ? genome2MSPID : genome1MSPID);
-		edge_table_add_row(&edges,left,right,parent,offspringMSPID);
+		ret = edge_table_add_row(&edges,left,right,parent,offspringMSPID);
+		if (ret < 0) {
+			handle_error("add_edge", ret);
+		}
+
+	
 
 		/*
 		//WRITE TABLES TO A TEXT FILE
@@ -3843,15 +3975,27 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 		MspTxtEdgeFile << (p_start_strand_2 ? genome2SLiMID : genome1SLiMID)<< "\t" << genomeID << "\n";
 		*/
 	
+	
+	//GOODSTUFF
+
 	}
 	else
 	{
+
+	
+	
 		/*
 		//DEBUG STDOUT PRINTING		
 
 		std::cout << Generation() << ":     No parental genome" << std::endl;
+
+
 		*/
+	
+	
+	//GOODSTUFF
 	}
+	
 
 	//std::cout << std::endl;
 
@@ -3867,8 +4011,8 @@ void SLiMSim::WriteTreeSequence(void)
 	
 	std::cout << Generation() << ": ***** Writing tree sequence file to path " << recording_tree_path_ << std::endl;
 
-	//node_table_print_state(&nodes,stdout);
-	//edge_table_print_state(&edges,stdout);
+	node_table_print_state(&nodes,stdout);
+	edge_table_print_state(&edges,stdout);
 	simplifyTables();
 	node_table_print_state(&nodes,stdout);
 	edge_table_print_state(&edges,stdout);

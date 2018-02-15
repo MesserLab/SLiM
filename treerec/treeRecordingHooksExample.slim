@@ -1,4 +1,5 @@
 initialize() {
+    //initializeSLiMModelType("nonWF");
     initializeSLiMOptions(treeRecordingPath="~/Desktop/treeseq.txt");
     initializeMutationRate(1e-7);
     initializeMutationType("m1", 0.5, "f", 0.0);
@@ -6,5 +7,7 @@ initialize() {
     initializeGenomicElement(g1, 0, 99999);
     initializeRecombinationRate(5e-6);
 }
-1 late() { sim.addSubpop("p1", 5); }
+1 late() { sim.addSubpop("p1", 5); 
+	   sim.addSubpop("p2", 5);
+	}
 100 late() { sim.simulationFinished(); }
