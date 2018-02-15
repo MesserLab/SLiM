@@ -267,7 +267,7 @@ private:
 	int FSIDAS;				//First slim ID we see after simplification
 	int FMIDAS;				//First MSPrime ID we see after simplification
 	//int numberOfSamplesInLastSimplification;	
-	//int lastSimplificationGeneration;
+	int lastSimplificationGeneration;
 	std::map<int,node_id_t> SLiM_MSP_Id_Map;
 
 	// add further ivars you need for tree sequence recording here; don't forget to add cleanup for them to SLiMSim::~SLiMSim() if necessary
@@ -387,6 +387,7 @@ public:
 	void WriteTreeSequence(void);
 	void simplifyTables(void);
 	node_id_t getMSPID(int GenomeID);
+	void handle_error(std::string msg, int error);
 	// put any other methods you need for the tree sequence stuff here
 	
 	//
