@@ -7,7 +7,7 @@ initialize() {
     initializeGenomicElement(g1, 0, 99999);
     initializeRecombinationRate(5e-6);
 }
-1 late() { sim.addSubpop("p1", 50); 
-	   sim.addSubpop("p2", 50);
+1 late() { sim.addSubpop("p1", 5); 
+	   sim.addSubpop("p2", 5);
 	}
-2000 late() { sim.simulationFinished(); }
+10 late() { sim.simulationFinished(); }

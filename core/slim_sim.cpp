@@ -3545,7 +3545,7 @@ SLiMSim::handle_error(std::string msg, int err)
 void SLiMSim::simplifyTables(void){
 
 
-	std::cout << "--------- simplifyTables() -----------" << std::endl;
+//	std::cout << "--------- simplifyTables() -----------" << std::endl;
 
 	//get all samples for simplification
 	std::map<slim_objectid_t,Subpopulation*>::iterator it;
@@ -3615,8 +3615,6 @@ void SLiMSim::simplifyTables(void){
 
 	//Simplification through MSPrime API
 
-	
-	//GOOD STUFF 	
 
 	ret = sort_tables(&nodes, &edges, &migrations, &sites, &mutations, 0);				
 	if (ret < 0) {
@@ -3809,7 +3807,6 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 
 	
 	
-	//GOODSTUFF
 
  	//if the first recombination has not been called this is a reference to parent 1
 	if(!FirstRecombinationCalled){ 			
@@ -3826,22 +3823,25 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 	genome1SLiMID = 2 * parentSLiMID;
 	genome2SLiMID = 2 * parentSLiMID + 1;
 
+	genome1MSPID = getMSPID(genome1SLiMID);
+	genome2MSPID = getMSPID(genome2SLiMID);
 
 	//add genome node
 	double time = (double) -1 * Generation();
 	uint32_t flags = 1;
 	offspringMSPID = node_table_add_row(&nodes,flags,time,0,NULL,0);
 	
+
+
 	//once we get the call to simplifyTables() higher in SLiM, These should be updated in simplifyTables instead. 
 
 /*	
 	if(justSimplified){
-		FSIDAS = (int)offspringSLiMID;
-		FMIDAS = (int)offspringMSPID;	
+		if(FSIDAS != (int)offspringSLiMID || FMIDAS != (int)offspringMSPID){
+			std::cout << "wtf " << std::endl;
+		}	
 	}
 */	
-	genome1MSPID = getMSPID(genome1SLiMID);
-	genome2MSPID = getMSPID(genome2SLiMID);
 	
 	//THE FOLLOWING ONLY WORKS FOR WF, 
 	//FOR NON_WF: The second case (FMIDAS + offset) works. but for all individuals that were sampled, we would need to keep a mapping SLiMID - > MSPID 
@@ -3874,19 +3874,18 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 
 
 	
-	//GOODSTUFF
+	
 
 	size_t breakpoint_count = (p_breakpoints ? p_breakpoints->size() : 0);
 	
 	if (breakpoint_count && (p_breakpoints->back() == chromosome_.last_position_mutrun_ + 1))
+
 		breakpoint_count--;
 	
 	if (breakpoint_count)
 	{
 
-			
-	
-	/*		
+		/*	
 		//DEBUG STDOUT PRINTING	
 		std::cout << Generation() << ":     Recombination at positions:";
 		
@@ -3895,23 +3894,27 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 			std::cout << " " << (*p_breakpoints)[breakpoint_index];
 		}
 		std::cout << " (start with parental genome " << (p_start_strand_2 ? 2 : 1) << ")" << std::endl;
-	*/	
-
-	
-	//GOODSTUFF	
+		
 
 		//I want to add the beginning and end position of the chromosome to the vector so it's easier to compute edge intevals
+		*/
+		
 		p_breakpoints->insert(p_breakpoints->begin(),0);
 		p_breakpoints->pop_back();
 		p_breakpoints->push_back(chromosome_.last_position_);
+		
+
 //		breakpoint_count++;
 
 
-	/*
+		/*
+		//DEBUG STDOUT PRINTING
 		for (int i = 0; i < p_breakpoints->size(); i ++){
 			std::cout << "p_break[" << i << "]" << (*p_breakpoints)[i] << std::endl;
 		}
-	*/	
+		std::cout << std::endl;	
+		*/
+		
 		//This loop computes all the edge intervals based upon breakpoints given
 		for (size_t breakpoint_index = 0; breakpoint_index < breakpoint_count; ++breakpoint_index){
 			
@@ -3931,10 +3934,7 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 				handle_error("add_edge", ret);
 			}
 
-	
- 
-			
-			//DEBUG STDOUT PRINTING
+		//DEBUG STDOUT PRINTING
 /*		
 			std::cout << Generation() << ":     ARGrecorder.AddEdge(left = ";
 			std::cout << (*p_breakpoints)[breakpoint_index] << ",right = " << (*p_breakpoints)[breakpoint_index + 1];
@@ -3948,10 +3948,8 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 			MspTxtEdgeFile << (*p_breakpoints)[breakpoint_index + 1] << "\t"; 
 			MspTxtEdgeFile << (p_start_strand_2 ? genome2SLiMID : genome1SLiMID ) << "\t" << genomeID << "\n";
 			*/
-	
-	//GOODSTUFF	
-
 			p_start_strand_2 = !p_start_strand_2;
+	
 		}
 
 	}
@@ -3959,7 +3957,7 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 	{
 
 		
-
+	
 		/*
 		//DEBUG STDOUT PRINTING 
 
@@ -3980,7 +3978,7 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 		}
 
 	
-
+	
 		/*
 		//WRITE TABLES TO A TEXT FILE
 		
@@ -4024,8 +4022,8 @@ void SLiMSim::WriteTreeSequence(void)
 	
 	std::cout << Generation() << ": ***** Writing tree sequence file to path " << recording_tree_path_ << std::endl;
 
-	node_table_print_state(&nodes,stdout);
-	edge_table_print_state(&edges,stdout);
+	//node_table_print_state(&nodes,stdout);
+	//edge_table_print_state(&edges,stdout);
 	simplifyTables();
 	node_table_print_state(&nodes,stdout);
 	edge_table_print_state(&edges,stdout);
