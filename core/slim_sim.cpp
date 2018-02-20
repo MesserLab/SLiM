@@ -3535,10 +3535,9 @@ void SLiMSim::_CheckMutationStackPolicy(void)
 void
 SLiMSim::handle_error(std::string msg, int err)
 {
-	node_table_print_state(&nodes,stdout);
-	edge_table_print_state(&edges,stdout);
 	std::cout << "Error:" << msg << ":" << msp_strerror(err) << std::endl;
-    	exit(1);
+	EIDOS_TERMINATION << msg << EidosTerminate();
+	exit(1);
 }
 
 
@@ -3588,13 +3587,10 @@ void SLiMSim::simplifyTables(void){
 	}
 
 	simplifier_free(&simplifier);
-	samples.clear();	
 	
 	FSIDAS = (int)((CurrentTreeSequenceIndividual->PedigreeID()) * 2) + 2;
 	FMIDAS = (int)nodes.num_rows;
-
-	SLiM_MSP_Id_Map = newMap;	
-	
+	SLiM_MSP_Id_Map = newMap;		
 
 }
 
