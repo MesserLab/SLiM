@@ -3615,19 +3615,28 @@ void SLiMSim::StartTreeRecording(void)
 	// own trees, so your code needs to be capable of handling that.  Store your state inside SLiMSim, not in globals.  SLiMgui is
 	// single-threaded, though, so you don't need to worry about re-entrancy or multithreading issues.
 
+	MspTxtNodeTable = fopen("NodeTable.txt","w");
+	MspTxtEdgeTable = fopen("EdgeTable.txt","w");
 
-	/*
-	WRITE TABLES TO A TEXT FILE	
+	if (MspTxtNodeTable == NULL || MspTxtEdgeTable == NULL) {
+ 		
+		handle_error("file did't open",1);    		
+
+	}
+	
+	//WRITE TABLES TO A TEXT FILE	
 
 	//open a file to to write text NODE and EDGE tables to test tree output
-	MspTxtNodeFile.open("NodeTable.txt");
-	MspTxtEdgeFile.open("EdgeTable.txt");
+	//MspTxtNodeFile.open("NodeTable.txt");
+	//MspTxtEdgeFile.open("EdgeTable.txt");
 
-	if(MspTxtNodeFile.fail()){
-		std::cout << "failed\n";
-	}else{
-		std::cout << "did not fail\n";
-	}		
+	//if(MspTxtNodeTable.fail()){
+	//	std::cout << "failed\n";
+	//}else{
+	//	std::cout << "did not fail\n";
+	//}		
+
+	/*
 	MspTxtNodeFile << "is_sample\t" << "id\t" << "time\t" << "population\n";
 	MspTxtEdgeFile << "left\t" << "right\t" << "parent\t" << "child\n";
 	*/
@@ -3759,7 +3768,14 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 	//add genome node
 	double time = (double) -1 * Generation();
 	uint32_t flags = 1;
-	offspringMSPID = node_table_add_row(&nodes,flags,time,0,NULL,0);
+
+	//for metadata -> testing for now
+	std::string osids = std::to_string(offspringSLiMID);	
+	osids = "SLiMID="+osids;
+	size_t size = osids.length();
+	const char *offspring_SLiMID_Const = osids.c_str();
+	
+	offspringMSPID = node_table_add_row(&nodes,flags,time,0,offspring_SLiMID_Const,size);
 	
 	//DEBUG STDOUT PRINTING 
 	/*
@@ -3883,8 +3899,10 @@ void SLiMSim::WriteTreeSequence(void)
 	//node_table_print_state(&nodes,stdout);
 	//edge_table_print_state(&edges,stdout);
 	simplifyTables();
-	node_table_print_state(&nodes,stdout);
-	edge_table_print_state(&edges,stdout);
+	node_table_print_state(&nodes,MspTxtNodeTable);
+	edge_table_print_state(&edges,MspTxtEdgeTable);
+	
+	
 
 	
 	//freeing these for now. Will change this after I get writing figured out.
@@ -3895,12 +3913,12 @@ void SLiMSim::WriteTreeSequence(void)
     	site_table_free(&sites);
     	mutation_table_free(&mutations);
 
-	/*
-	WRITE TABLES TO A TEXT FILE
 	
-	MspTxtNodeFile.close();
-	MspTxtEdgeFile.close();
-	*/
+	//WRITE TABLES TO A TEXT FILE
+	
+	fclose(MspTxtNodeTable);
+	fclose(MspTxtEdgeTable);
+	
 	
 }
 

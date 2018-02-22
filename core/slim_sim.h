@@ -269,6 +269,8 @@ private:
 	//int numberOfSamplesInLastSimplification;	
 	int lastSimplificationGeneration;
 	std::map<int,node_id_t> SLiM_MSP_Id_Map;
+	FILE *MspTxtNodeTable;
+	FILE *MspTxtEdgeTable;
 
 	// add further ivars you need for tree sequence recording here; don't forget to add cleanup for them to SLiMSim::~SLiMSim() if necessary
 
