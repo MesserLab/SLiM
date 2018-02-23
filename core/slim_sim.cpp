@@ -3811,7 +3811,7 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 		p_breakpoints->insert(p_breakpoints->begin(),0);
 		p_breakpoints->pop_back();
 		if(p_breakpoints->back() != chromosome_.last_position_){
-			p_breakpoints->push_back(chromosome_.last_position_);
+			p_breakpoints->push_back(chromosome_.last_position_ + 1);
 		}
 
 		/*
