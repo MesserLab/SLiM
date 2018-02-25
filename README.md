@@ -19,3 +19,12 @@ You should have received a copy of the GNU General Public License along with SLi
 Development & Feedback
 -----------------------------------
 SLiM is under active development, and our goal is to make it as broadly useful as possible.  If you have feedback or feature requests, or if you are interested in contributing to SLiM, please contact Philipp Messer at [messer@cornell.edu](mailto:messer@cornell.edu). Please note that Philipp is also looking for graduate students and postdocs.
+
+To compile the development version from this repository, do:
+```
+mkdir build
+cd build
+cmake ..
+make
+```
+To do this you'll need CMake, available by `brew install cmake` (on OSX) or `aptitude install cmake` (on debian).
