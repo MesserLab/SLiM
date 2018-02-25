@@ -339,9 +339,10 @@ node_table_print_state(node_table_t *self, FILE *out)
             (int) self->max_metadata_length,
             (int) self->max_metadata_length_increment);
     fprintf(out, TABLE_SEP);
-    fprintf(out, "index\tflags\ttime\tpopulation\tmetadata_offset\tmetadata\n");
+    fprintf(out, "index\tflags\tis_sample\ttime\tpopulation\tmetadata_offset\tmetadata\n");
     for (j = 0; j < self->num_rows; j++) {
-        fprintf(out, "%d\t%d\t%f\t%d\t%d\t", (int) j, self->flags[j], self->time[j],
+        fprintf(out, "%d\t%d\t%d\t%f\t%d\t%d\t", (int) j, self->flags[j],
+                (int) (self->flags[j] & MSP_NODE_IS_SAMPLE), self->time[j],
                 (int) self->population[j], self->metadata_offset[j]);
         for (k = self->metadata_offset[j]; k < self->metadata_offset[j + 1]; k++) {
             fprintf(out, "%c", self->metadata[k]);
