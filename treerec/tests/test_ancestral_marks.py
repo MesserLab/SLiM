@@ -21,6 +21,11 @@ def check_consistency(x, y):
 # load tree sequence
 node_file = open("NodeTable.txt", "r")
 edge_file = open("EdgeTable.txt", "r")
+# skip header stuff
+for k in range(5):
+    node_file.readline()
+for k in range(4):
+    edge_file.readline()
 ts = msprime.load_text(nodes=node_file, edges=edge_file, decode_metadata=False)
 
 # get SLiM ID -> msprime ID map from metadata
@@ -30,6 +35,8 @@ for n in ts.nodes():
     assert(meta[:7] == "SLiMID=")
     slim_id = int(n.metadata.decode('utf8').strip().split("=")[1])
     ids[slim_id] = n.id
+
+print("IDs:", ids)
 
 # iterate through SLiM output information
 slim_file = open("TESToutput.txt", "r")
@@ -45,7 +52,11 @@ for header in slim_file:
     pos = int(pos)
     if pos == len(slim):
         slim.append({})
-    slim[pos][mut] = [ids[int(u)] for u in slim_file.readline().split()]
+    slim_ids = [int(u) for u in slim_file.readline().split()]
+    for u in slim_ids:
+        print(u)
+        assert(u in ids)
+    slim[pos][mut] = [ids[u] for u in slim_ids]
 
 
 # test these agree
