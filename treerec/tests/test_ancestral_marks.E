@@ -1,7 +1,6 @@
 initialize() {
     initializeSLiMModelType("nonWF");
     defineConstant("K",30);   
-    setSeed(23);
 
     initializeSLiMOptions(treeRecordingPath="treeseq.txt");
 

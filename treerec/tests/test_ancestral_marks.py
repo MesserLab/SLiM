@@ -36,8 +36,6 @@ for n in ts.nodes():
     slim_id = int(n.metadata.decode('utf8').strip().split("=")[1])
     ids[slim_id] = n.id
 
-print("IDs:", ids)
-
 # iterate through SLiM output information
 slim_file = open("TESToutput.txt", "r")
 
@@ -54,7 +52,6 @@ for header in slim_file:
         slim.append({})
     slim_ids = [int(u) for u in slim_file.readline().split()]
     for u in slim_ids:
-        print(u)
         assert(u in ids)
     slim[pos][mut] = [ids[u] for u in slim_ids]
 
