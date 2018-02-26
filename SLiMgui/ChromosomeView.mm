@@ -1958,7 +1958,10 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		slim_position_t trackingLeftBase = trackingStartBase, trackingRightBase = trackingLastBase;
 		
 		if (trackingLeftBase > trackingRightBase)
-			trackingLeftBase = trackingLastBase, trackingRightBase = trackingStartBase;
+		{
+			trackingLeftBase = trackingLastBase;
+			trackingRightBase = trackingStartBase;
+		}
 		
 		if (trackingLeftBase <= (slim_position_t)displayedRange.location)
 			trackingLeftBase = (slim_position_t)displayedRange.location;
