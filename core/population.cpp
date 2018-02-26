@@ -715,20 +715,41 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_
 			
 			if (modify_child_callback->contains_parent1_)
 			{
-				Individual *parent1 = p_source_subpop->parent_individuals_[p_parent1_index];
-				callback_symbols.InitializeConstantSymbolEntry(gID_parent1, parent1->CachedEidosValue());
+				if (p_parent1_index == -1)
+				{
+					callback_symbols.InitializeConstantSymbolEntry(gID_parent1, gStaticEidosValueNULL);
+				}
+				else
+				{
+					Individual *parent1 = p_source_subpop->parent_individuals_[p_parent1_index];
+					callback_symbols.InitializeConstantSymbolEntry(gID_parent1, parent1->CachedEidosValue());
+				}
 			}
 			
 			if (modify_child_callback->contains_parent1Genome1_)
 			{
-				Genome *parent1_genome1 = p_source_subpop->parent_genomes_[p_parent1_index * 2];
-				callback_symbols.InitializeConstantSymbolEntry(gID_parent1Genome1, parent1_genome1->CachedEidosValue());
+				if (p_parent1_index == -1)
+				{
+					callback_symbols.InitializeConstantSymbolEntry(gID_parent1Genome1, gStaticEidosValueNULL);
+				}
+				else
+				{
+					Genome *parent1_genome1 = p_source_subpop->parent_genomes_[p_parent1_index * 2];
+					callback_symbols.InitializeConstantSymbolEntry(gID_parent1Genome1, parent1_genome1->CachedEidosValue());
+				}
 			}
 			
 			if (modify_child_callback->contains_parent1Genome2_)
 			{
-				Genome *parent1_genome2 = p_source_subpop->parent_genomes_[p_parent1_index * 2 + 1];
-				callback_symbols.InitializeConstantSymbolEntry(gID_parent1Genome2, parent1_genome2->CachedEidosValue());
+				if (p_parent1_index == -1)
+				{
+					callback_symbols.InitializeConstantSymbolEntry(gID_parent1Genome2, gStaticEidosValueNULL);
+				}
+				else
+				{
+					Genome *parent1_genome2 = p_source_subpop->parent_genomes_[p_parent1_index * 2 + 1];
+					callback_symbols.InitializeConstantSymbolEntry(gID_parent1Genome2, parent1_genome2->CachedEidosValue());
+				}
 			}
 			
 			if (modify_child_callback->contains_isSelfing_)
@@ -739,20 +760,41 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_
 			
 			if (modify_child_callback->contains_parent2_)
 			{
-				Individual *parent2 = p_source_subpop->parent_individuals_[p_parent2_index];
-				callback_symbols.InitializeConstantSymbolEntry(gID_parent2, parent2->CachedEidosValue());
+				if (p_parent1_index == -1)
+				{
+					callback_symbols.InitializeConstantSymbolEntry(gID_parent2, gStaticEidosValueNULL);
+				}
+				else
+				{
+					Individual *parent2 = p_source_subpop->parent_individuals_[p_parent2_index];
+					callback_symbols.InitializeConstantSymbolEntry(gID_parent2, parent2->CachedEidosValue());
+				}
 			}
 			
 			if (modify_child_callback->contains_parent2Genome1_)
 			{
-				Genome *parent2_genome1 = p_source_subpop->parent_genomes_[p_parent2_index * 2];
-				callback_symbols.InitializeConstantSymbolEntry(gID_parent2Genome1, parent2_genome1->CachedEidosValue());
+				if (p_parent1_index == -1)
+				{
+					callback_symbols.InitializeConstantSymbolEntry(gID_parent2Genome1, gStaticEidosValueNULL);
+				}
+				else
+				{
+					Genome *parent2_genome1 = p_source_subpop->parent_genomes_[p_parent2_index * 2];
+					callback_symbols.InitializeConstantSymbolEntry(gID_parent2Genome1, parent2_genome1->CachedEidosValue());
+				}
 			}
 			
 			if (modify_child_callback->contains_parent2Genome2_)
 			{
-				Genome *parent2_genome2 = p_source_subpop->parent_genomes_[p_parent2_index * 2 + 1];
-				callback_symbols.InitializeConstantSymbolEntry(gID_parent2Genome2, parent2_genome2->CachedEidosValue());
+				if (p_parent1_index == -1)
+				{
+					callback_symbols.InitializeConstantSymbolEntry(gID_parent2Genome2, gStaticEidosValueNULL);
+				}
+				else
+				{
+					Genome *parent2_genome2 = p_source_subpop->parent_genomes_[p_parent2_index * 2 + 1];
+					callback_symbols.InitializeConstantSymbolEntry(gID_parent2Genome2, parent2_genome2->CachedEidosValue());
+				}
 			}
 			
 			if (modify_child_callback->contains_subpop_)

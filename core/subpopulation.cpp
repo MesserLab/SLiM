@@ -3514,7 +3514,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	if (parent->index_ == -1)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): parent must be visible in a subpopulation (i.e., may not be a new juvenile)." << EidosTerminate();
 	
-	// Determine the sex of the offspring , and the consequent expected genome types
+	// Determine the sex of the offspring, and the consequent expected genome types
 	GenomeType genome1_type = parent->genome1_->Type(), genome2_type = parent->genome2_->Type();
 	bool genome1_null = parent->genome1_->IsNull(), genome2_null = parent->genome2_->IsNull();
 	IndividualSex child_sex = parent_sex;
@@ -3543,7 +3543,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	// Run the candidate past modifyChild() callbacks
 	if (registered_modify_child_callbacks_.size())
 	{
-		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, -1, -1, false, false, this, this, registered_modify_child_callbacks_);
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, parent->index_, parent->index_, false, false, this, this, registered_modify_child_callbacks_);
 		
 		return _ResultAfterModifyChildCallbacks(proposed_child_accepted, individual, genome1, genome2);
 	}
@@ -3629,7 +3629,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	// Run the candidate past modifyChild() callbacks
 	if (registered_modify_child_callbacks_.size())
 	{
-		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, -1, -1, false, false, this, this, registered_modify_child_callbacks_);
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, parent1->index_, parent2->index_, false, false, this, this, registered_modify_child_callbacks_);
 		
 		return _ResultAfterModifyChildCallbacks(proposed_child_accepted, individual, genome1, genome2);
 	}
@@ -3756,7 +3756,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	// Run the candidate past modifyChild() callbacks
 	if (registered_modify_child_callbacks_.size())
 	{
-		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, -1, -1, false, false, this, this, registered_modify_child_callbacks_);
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, parent->index_, parent->index_, false, false, this, this, registered_modify_child_callbacks_);
 		
 		return _ResultAfterModifyChildCallbacks(proposed_child_accepted, individual, genome1, genome2);
 	}
