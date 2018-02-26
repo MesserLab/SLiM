@@ -54,6 +54,20 @@
 @property (atomic, getter=isEidosScrollingLocked) BOOL eidosScrollingLocked;
 @end
 
+// EidosNSString – an NSString subclass to get around the non-uniqueness of NSTaggedPointerStrings; see guardAgainstNSTaggedPointerString
+@interface EidosNSString : NSString <NSCopying>
+{
+	NSString *internal_string_;
+}
++ (NSString *)stringWithString:(NSString *)aString;
+- (instancetype)init;
+- (instancetype)initWithString:(NSString *)aString;
+- (NSUInteger)length;
+- (unichar)characterAtIndex:(NSUInteger)index;
+- (void)getCharacters:(unichar *)buffer range:(NSRange)range;
+- (id)copyWithZone:(nullable NSZone *)zone;
+@end
+
 
 //
 //	EidosHelpController
@@ -134,14 +148,19 @@
 // different objects, even though they contain the same characters, does not work – such tests are always true if the strings
 // are represented with NSTaggedPointerString.  We depend upon pointer equality to look up the right topics, due to the
 // crappy NSDictionary-based design of this class that I should probably rip out.  So we need to prevent NSTaggedPointerString
-// from getting into our topic tree.  As it turns out, at least for now -[NSString stringWithString:] will return a clean
+// from getting into our topic tree.  As it turns out, at least for now +[NSString stringWithString:] will return a clean
 // string that is not an NSTaggedPointerString.  This is surprising, actually, since there is really no reason for it to make
 // a copy, but it does.  This could break at any point, but for now it works, and if it breaks I have a check elsewhere that
 // will detect the duplicate topic pointers and log (see -checkDocumentationForDuplicatePointers).  BCH 11/5/2017
+// Well, that stopped working in OS X 10.13; +[NSString stringWithString:] now makes an NSTaggedPointerString, foiling our
+// scheme.  So my new hack scheme is to use a custom NSString subclass, EidosNSString, for keys in our topic tree.  This method
+// now substitutes an EidosNSString for the original NSString.  That EidosNSString responds to copyWithZone: by making a copy
+// of itself, preventing NSTaggedPointerString from getting in.  This seems to work, and I think it ought to be fairly safe
+// and airtight.  We shall see.  BCH 2/26/2018
 - (NSString *)guardAgainstNSTaggedPointerString:(NSString *)oldString
 {
 	//return oldString;		// can be used to test the efficacy of checkDocumentationForDuplicatePointers; in OS X 10.12.6 we're good
-	return [NSString stringWithString:oldString];
+	return [EidosNSString stringWithString:oldString];
 }
 
 // The attributed strings straight out of the RTF file need a little reformatting, since they have paragraph indents and small font sizes appropriate for print/PDF.
@@ -691,7 +710,7 @@
 		if (topic_iter == topic_keys.end())
 			break;
 		
-		NSLog(@"*** duplicate topic keys in help tree: %@", (NSString *)*topic_iter);
+		NSLog(@"*** duplicate topic keys in help tree: %@ (%@)", (NSString *)*topic_iter, [(id)(*topic_iter) class]);
 		++topic_iter;
 	}
 }
@@ -1431,6 +1450,66 @@
 
 @end
 
+
+//
+//	EidosNSString
+//
+#pragma mark -
+#pragma mark EidosNSString
+
+@implementation EidosNSString
++ (NSString *)stringWithString:(NSString *)aString
+{
+	return [[[EidosNSString alloc] initWithString:aString] autorelease];
+}
+- (instancetype)init
+{
+	if (self = [super init])
+	{
+		internal_string_ = [[NSString alloc] init];
+	}
+	
+	return self;
+}
+- (instancetype)initWithString:(NSString *)aString
+{
+	if (self = [super init])
+	{
+		internal_string_ = [[NSString alloc] initWithString:aString];
+	}
+	
+	return self;
+}
+- (void)dealloc
+{
+	if (internal_string_)
+	{
+		[internal_string_ release];
+		internal_string_ = nil;
+	}
+	
+	[super dealloc];
+}
+- (NSUInteger)length
+{
+	return [internal_string_ length];
+}
+- (unichar)characterAtIndex:(NSUInteger)index
+{
+	return [internal_string_ characterAtIndex:index];
+}
+- (void)getCharacters:(unichar *)buffer range:(NSRange)range
+{
+	[internal_string_ getCharacters:buffer range:range];
+}
+- (id)copyWithZone:(nullable NSZone *)zone
+{
+	NSString *copiedString = [internal_string_ copyWithZone:zone];
+	EidosNSString *copy = [EidosNSString stringWithString:copiedString];
+	[copiedString release];
+	return [copy retain];
+}
+@end
 
 
 
