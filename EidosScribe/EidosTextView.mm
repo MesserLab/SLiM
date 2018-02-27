@@ -351,6 +351,41 @@
 	[pasteboard writeObjects:@[attrStringInRange]];
 }
 
+- (IBAction)paste:(id)sender
+{
+	NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
+	NSString *pbString = nil;
+	
+	if ([pasteboard canReadObjectForClasses:@[[NSString class]] options:nil])
+		pbString = [[pasteboard readObjectsForClasses:@[[NSString class]] options:nil] objectAtIndex:0];
+	else if ([pasteboard canReadObjectForClasses:@[[NSAttributedString class]] options:nil])
+		pbString = [(NSAttributedString *)[[pasteboard readObjectsForClasses:@[[NSAttributedString class]] options:nil] objectAtIndex:0] string];
+	
+	if (pbString)
+	{
+		// This is the point of this override: to standardize the line endings present
+		pbString = [pbString stringByReplacingOccurrencesOfString:@"\n\r" withString:@"\n"];
+		pbString = [pbString stringByReplacingOccurrencesOfString:@"\r\n" withString:@"\n"];
+		pbString = [pbString stringByReplacingOccurrencesOfString:@"\r" withString:@"\n"];
+		pbString = [pbString stringByReplacingOccurrencesOfString:@"\U00002028" withString:@"\n"];	// NSLineSeparatorCharacter
+		pbString = [pbString stringByReplacingOccurrencesOfString:@"\U00002029" withString:@"\n"];	// NSParagraphSeparatorCharacter
+		
+		[self insertText:pbString replacementRange:[self selectedRange]];
+	}
+	else
+		[super paste:sender];
+}
+
+- (IBAction)pasteAsRichText:(id)sender
+{
+	[self paste:sender];
+}
+
+- (IBAction)pasteAsPlainText:(id)sender
+{
+	[self paste:sender];
+}
+	
 - (void)undoRedoSelectionRange:(NSRange)range
 {
 	[[[self undoManager] prepareWithInvocationTarget:self] undoRedoSelectionRange:range];
