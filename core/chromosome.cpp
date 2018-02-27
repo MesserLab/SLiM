@@ -575,7 +575,7 @@ void Chromosome::DrawBreakpoints(IndividualSex p_sex, const int p_num_breakpoint
 		// recombination can result in gene conversion, with probability gene_conversion_fraction_
 		if (gene_conversion_fraction_ > 0.0)
 		{
-			if ((gene_conversion_fraction_ < 1.0) && (Eidos_rng_uniform(gEidos_rng) < gene_conversion_fraction_))
+			if (Eidos_rng_uniform(gEidos_rng) <= gene_conversion_fraction_)
 			{
 				// for gene conversion, choose a second breakpoint that is relatively likely to be near to the first
 				// note that this second breakpoint does not count toward the total number of breakpoints we need to
@@ -636,7 +636,7 @@ void Chromosome::DrawBreakpoints_Detailed(IndividualSex p_sex, const int p_num_b
 		// recombination can result in gene conversion, with probability gene_conversion_fraction_
 		if (gene_conversion_fraction_ > 0.0)
 		{
-			if ((gene_conversion_fraction_ < 1.0) && (Eidos_rng_uniform(gEidos_rng) < gene_conversion_fraction_))
+			if (Eidos_rng_uniform(gEidos_rng) <= gene_conversion_fraction_)
 			{
 				p_gcstarts.emplace_back(breakpoint);
 				
