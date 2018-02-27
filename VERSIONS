@@ -9,6 +9,7 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 development head:
 	fix InteractionType bug with periodic boundaries and totalOfNeighborStrengths() / strength()
+	fix bug where a gene conversion rate of exactly 1.0 would be treated as 0.0
 
 
 2.6 (build 1292; Eidos version 1.6):
