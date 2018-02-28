@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf830
+{\rtf1\ansi\ansicpg1252\cocoartf1561\cocoasubrtf200
 {\fonttbl\f0\fswiss\fcharset0 Optima-Regular;\f1\fnil\fcharset0 Menlo-Regular;\f2\froman\fcharset0 TimesNewRomanPSMT;
 \f3\fnil\fcharset0 Menlo-Italic;\f4\fnil\fcharset0 AppleSymbols;\f5\fswiss\fcharset0 Helvetica;
 \f6\fnil\fcharset0 Menlo-Bold;\f7\ftech\fcharset77 Symbol;}
@@ -852,7 +852,7 @@
 \f2 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (float$)mean(numeric
+\f1\fs18 \cf0 (float$)mean(lif
 \f2 \'a0
 \f1 x)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
@@ -872,7 +872,38 @@
 \f1\fs18 0
 \f0\fs20 , the return value will be 
 \f1\fs18 NULL
-\f2\fs20 .\
+\f2\fs20 .
+\f0 \cf2 \expnd0\expndtw0\kerning0
+  The unusual parameter type signature 
+\f1\fs18 lif
+\f0\fs20  indicates that 
+\f1\fs18 x
+\f0\fs20  can be 
+\f1\fs18 logical
+\f0\fs20 , 
+\f1\fs18 integer
+\f0\fs20 , or 
+\f1\fs18 float
+\f0\fs20 ; if 
+\f1\fs18 x
+\f0\fs20  is 
+\f1\fs18 logical
+\f0\fs20 , it is coerced to 
+\f1\fs18 integer
+\f0\fs20  internally (with 
+\f1\fs18 F
+\f0\fs20  being 
+\f1\fs18 0
+\f0\fs20  and 
+\f1\fs18 T
+\f0\fs20  being 
+\f1\fs18 1
+\f0\fs20 , as always), allowing 
+\f1\fs18 mean()
+\f0\fs20  to calculate the average truth value of a 
+\f1\fs18 logical
+\f0\fs20  vector.
+\f2 \cf0 \kerning1\expnd0\expndtw0 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (+$)min(+\'a0x, ...)\
@@ -1075,8 +1106,8 @@
 Returns a vector of 
 \f1\fs18 n
 \f0\fs20  
-\b \cf2 random draws from a discrete uniform distribution
-\b0 \cf2  from 
+\b random draws from a discrete uniform distribution
+\b0  from 
 \f1\fs18 min
 \f0\fs20  to 
 \f1\fs18 max
@@ -1199,18 +1230,18 @@ Returns a vector of
 \f0\fs20 \cf2 Returns a matrix of 
 \f1\fs18 n
 \f0\fs20  
-\b \cf2 random draws from a 
+\b random draws from a 
 \i k
 \i0 -dimensional multivariate normal distribution
-\b0 \cf2  with a length 
-\i \cf2 k
-\i0 \cf2  mean vector 
+\b0  with a length 
+\i k
+\i0  mean vector 
 \f1\fs18 mu
 \f0\fs20  and a 
-\i \cf2 k
-\i0 \cf2  \'d7 
-\i \cf2 k
-\i0 \cf2  variance-covariance matrix 
+\i k
+\i0  \'d7 
+\i k
+\i0  variance-covariance matrix 
 \f1\fs18 sigma
 \f0\fs20 .  The 
 \f1\fs18 mu
@@ -1221,12 +1252,12 @@ Returns a vector of
 \f0\fs20  draws.  The draws are returned as a matrix with 
 \f1\fs18 n
 \f0\fs20  rows (one row per draw) and 
-\i \cf2 k
-\i0 \cf2  columns (one column per dimension).  The number of dimensions 
-\i \cf2 k
-\i0 \cf2  must be at least two; for 
-\i \cf2 k
-\i0 \cf2 =1, use 
+\i k
+\i0  columns (one column per dimension).  The number of dimensions 
+\i k
+\i0  must be at least two; for 
+\i k
+\i0 =1, use 
 \f1\fs18 rnorm()
 \f0\fs20 .\
 Cholesky decomposition of the variance-covariance matrix 
@@ -1295,8 +1326,8 @@ Cholesky decomposition of the variance-covariance matrix
 Returns a vector of 
 \f1\fs18 n
 \f0\fs20  
-\b \cf2 random draws from a continuous uniform distribution
-\b0 \cf2  from 
+\b random draws from a continuous uniform distribution
+\b0  from 
 \f1\fs18 min
 \f0\fs20  to 
 \f1\fs18 max
@@ -2189,8 +2220,8 @@ and (for matrices and arrays) their dimensions are identical, \cf0 \kerning1\exp
 \f0\fs20  are matrices or arrays, that will be ignored by 
 \f1\fs18 ifelse()
 \f0\fs20  
-\i \cf2 except
-\i0 \cf2  that the result will be of the same dimensionality as 
+\i except
+\i0  that the result will be of the same dimensionality as 
 \f1\fs18 test
 \f0\fs20 .\cf0 \kerning1\expnd0\expndtw0 \
 This is quite similar to a function in R of the same name; note, however, that Eidos evaluates all arguments to functions calls immediately, so 
@@ -2979,7 +3010,7 @@ Prior to Eidos 1.6 / SLiM 2.6,
 \f0\fs20 , and this function did not yet exist\
 
 \i0\b \cf2 Applies a block of Eidos code to margins of x
-\b0 \cf2 .  This function is essentially an extension of 
+\b0 .  This function is essentially an extension of 
 \f1\fs18 sapply()
 \f0\fs20  for use with matrices and arrays; it is recommended that you fully understand 
 \f1\fs18 sapply()
@@ -3173,7 +3204,7 @@ The above explanation may not be entirely clear, so let\'92s look at an example.
 
 \f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
 Creates a new array
-\b0 \cf2  from the data specified by 
+\b0  from the data specified by 
 \f1\fs18 data
 \f0\fs20 , with the dimension sizes specified by 
 \f1\fs18 dim
@@ -3201,7 +3232,7 @@ The elements of
 
 \f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
 Combines vectors or matrices by column
-\b0 \cf2  to produce a single matrix.  The parameters must be vectors (which are interpreted by 
+\b0  to produce a single matrix.  The parameters must be vectors (which are interpreted by 
 \f1\fs18 cbind()
 \f0\fs20  as if they were one-column matrices) or matrices.  They must be of the same type, of the same class if they are of type 
 \f1\fs18 object
@@ -3231,7 +3262,7 @@ To combine vectors or matrices by row instead, see
 
 \f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
 Returns the dimensions
-\b0 \cf2  of matrix or array 
+\b0  of matrix or array 
 \f1\fs18 x
 \f0\fs20 .  The first dimension value is the number of rows, the second is the number of columns, and further values indicate the sizes of higher-order dimensions, identically to how dimensions are supplied to 
 \f1\fs18 array()
@@ -3248,7 +3279,7 @@ Returns the dimensions
 
 \f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
 Returns the result of dropping redundant dimensions
-\b0 \cf2  from matrix or array 
+\b0  from matrix or array 
 \f1\fs18 x
 \f0\fs20 .  Redundant dimensions are those with a size of exactly 1.  Non-redundant dimensions are retained.  If only one non-redundant dimension is present, the result is a vector; if more than one non-redundant dimension is present, the result will be a matrix or array.  If 
 \f1\fs18 x
@@ -3261,7 +3292,7 @@ Returns the result of dropping redundant dimensions
 
 \f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
 Creates a new matrix
-\b0 \cf2  from the data specified by 
+\b0  from the data specified by 
 \f1\fs18 data
 \f0\fs20 .  By default this creates a one-column matrix.  If non-
 \f1\fs18 NULL
@@ -3284,7 +3315,7 @@ Creates a new matrix
 
 \f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
 Returns the result of matrix multiplication
-\b0 \cf2  of 
+\b0  of 
 \f1\fs18 x
 \f0\fs20  with 
 \f1\fs18 y
@@ -3300,23 +3331,23 @@ Returns the result of matrix multiplication
 \f1\fs18 A\'a0*\'a0B
 \f0\fs20 , then 
 \f1\fs18 X
-\f0\i\fs13\fsmilli6667 \cf2 \sub ij
-\i0\fs20 \cf2 \nosupersub \'a0=\'a0
+\f0\i\fs13\fsmilli6667 \sub ij
+\i0\fs20 \nosupersub \'a0=\'a0
 \f1\fs18 A
-\f0\i\fs13\fsmilli6667 \cf2 \sub ij
-\i0\fs20 \cf2 \nosupersub \'a0* 
+\f0\i\fs13\fsmilli6667 \sub ij
+\i0\fs20 \nosupersub \'a0* 
 \f1\fs18 B
-\f0\i\fs13\fsmilli6667 \cf2 \sub ij
-\i0\fs20 \cf2 \nosupersub .  This is parallel to the definition of other operators; A\'a0+\'a0B adds the corresponding elements of the matrices (
+\f0\i\fs13\fsmilli6667 \sub ij
+\i0\fs20 \nosupersub .  This is parallel to the definition of other operators; A\'a0+\'a0B adds the corresponding elements of the matrices (
 \f1\fs18 X
-\f0\i\fs13\fsmilli6667 \cf2 \sub ij
-\i0\fs20 \cf2 \nosupersub \'a0=\'a0
+\f0\i\fs13\fsmilli6667 \sub ij
+\i0\fs20 \nosupersub \'a0=\'a0
 \f1\fs18 A
-\f0\i\fs13\fsmilli6667 \cf2 \sub ij
-\i0\fs20 \cf2 \nosupersub \'a0+\'a0
+\f0\i\fs13\fsmilli6667 \sub ij
+\i0\fs20 \nosupersub \'a0+\'a0
 \f1\fs18 B
-\f0\i\fs13\fsmilli6667 \cf2 \sub ij
-\i0\fs20 \cf2 \nosupersub ), etc.  In R, true matrix multiplication is achieved with a special operator, 
+\f0\i\fs13\fsmilli6667 \sub ij
+\i0\fs20 \nosupersub ), etc.  In R, true matrix multiplication is achieved with a special operator, 
 \f1\fs18 %*%
 \f0\fs20 ; in Eidos, the 
 \f1\fs18 matrixMult()
@@ -3328,20 +3359,20 @@ Both
 \f0\fs20  must be matrices, and must be conformable according to the standard definition of matrix multiplication (i.e., if 
 \f1\fs18 x
 \f0\fs20  is an 
-\i \cf2 n
-\i0 \cf2 \'a0\'d7\'a0
-\i \cf2 m
-\i0 \cf2  matrix then 
+\i n
+\i0 \'a0\'d7\'a0
+\i m
+\i0  matrix then 
 \f1\fs18 y
 \f0\fs20  must be a 
-\i \cf2 m
-\i0 \cf2 \'a0\'d7\'a0
-\i \cf2 p
-\i0 \cf2  matrix, and the result will be a 
-\i \cf2 n
-\i0 \cf2 \'a0\'d7\'a0
-\i \cf2 p
-\i0 \cf2  matrix).  Vectors will not be promoted to matrices by this function, even if such promotion would lead to a conformable matrix.\
+\i m
+\i0 \'a0\'d7\'a0
+\i p
+\i0  matrix, and the result will be a 
+\i n
+\i0 \'a0\'d7\'a0
+\i p
+\i0  matrix).  Vectors will not be promoted to matrices by this function, even if such promotion would lead to a conformable matrix.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (integer$)nrow(*\'a0x)
@@ -3350,7 +3381,7 @@ Both
 
 \f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
 Returns the number of rows
-\b0 \cf2  in matrix or array 
+\b0  in matrix or array 
 \f1\fs18 x
 \f0\fs20 .  For vector 
 \f1\fs18 x
@@ -3373,7 +3404,7 @@ Returns the number of rows
 
 \f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
 Returns the number of columns
-\b0 \cf2  in matrix or array 
+\b0  in matrix or array 
 \f1\fs18 x
 \f0\fs20 .  For vector 
 \f1\fs18 x
@@ -3396,7 +3427,7 @@ Returns the number of columns
 
 \f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
 Combines vectors or matrices by row
-\b0 \cf2  to produce a single matrix.  The parameters must be vectors (which are interpreted by 
+\b0  to produce a single matrix.  The parameters must be vectors (which are interpreted by 
 \f1\fs18 rbind()
 \f0\fs20  as if they were one-row matrices) or matrices.  They must be of the same type, of the same class if they are of type 
 \f1\fs18 object
@@ -3426,7 +3457,7 @@ To combine vectors or matrices by column instead, see
 
 \f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
 Returns the transpose
-\b0 \cf2  of 
+\b0  of 
 \f1\fs18 x
 \f0\fs20 , which must be a matrix.  This is the matrix reflected across its diagonal; or alternatively, the matrix with its columns written out instead as rows in the same order.\
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
@@ -4031,7 +4062,7 @@ Named
 \f0\fs20  prior to Eidos 1.6 / SLiM 2.6\
 
 \i0\b \cf2 Applies a block of Eidos code to the elements of x
-\b0 \cf2 .  This function is sort of a hybrid between 
+\b0 .  This function is sort of a hybrid between 
 \f1\fs18 c()
 \f0\fs20  and 
 \f1\fs18 executeLambda()
@@ -4377,7 +4408,7 @@ Arbitrary command strings involving multiple commands, pipes, redirection, etc.,
 
 \f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
 Prints Eidos\'92s version 
-\b0 \cf2 to Eidos\'92s output stream.  If Eidos is attached to a Context that provides a version number, that is also printed.  The Eidos version number, and the Context version number if available, are returned as an invisible 
+\b0 to Eidos\'92s output stream.  If Eidos is attached to a Context that provides a version number, that is also printed.  The Eidos version number, and the Context version number if available, are returned as an invisible 
 \f1\fs18 float
 \f0\fs20  vector to make it possible for script to test the code version it is running against.  (In this 
 \f1\fs18 float

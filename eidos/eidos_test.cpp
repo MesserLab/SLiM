@@ -4640,20 +4640,22 @@ void _RunFunctionSummaryStatsTests(void)
 	EidosAssertScriptSuccess("max('foo', string(0), c('baz','bar'), 'xyzzy', c('foobar', 'barbaz'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xyzzy")));
 	
 	// mean()
-	EidosAssertScriptRaise("mean(T);", 0, "cannot be type");
+	EidosAssertScriptSuccess("mean(T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(1)));
 	EidosAssertScriptSuccess("mean(3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(3)));
 	EidosAssertScriptSuccess("mean(3.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(3.5)));
 	EidosAssertScriptRaise("mean('foo');", 0, "cannot be type");
-	EidosAssertScriptRaise("mean(c(F, F, T, F, T));", 0, "cannot be type");
+	EidosAssertScriptSuccess("mean(c(F, F, T, F, T));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(0.4)));
 	EidosAssertScriptSuccess("mean(c(3, 7, 19, -5, 16));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(8)));
 	EidosAssertScriptSuccess("mean(c(3.3, 7.2, 19.1, -5.6, 16.0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(8.0)));
 	EidosAssertScriptRaise("mean(c('foo', 'bar', 'baz'));", 0, "cannot be type");
 	EidosAssertScriptRaise("mean(_Test(7));", 0, "cannot be type");
 	EidosAssertScriptRaise("mean(NULL);", 0, "cannot be type");
-	EidosAssertScriptRaise("mean(logical(0));", 0, "cannot be type");
+	EidosAssertScriptSuccess("mean(logical(0));", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("mean(integer(0));", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("mean(float(0));", gStaticEidosValueNULL);
 	EidosAssertScriptRaise("mean(string(0));", 0, "cannot be type");
+	EidosAssertScriptSuccess("mean(rep(1e18, 9));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(1e18)));	// stays in integer internally
+	EidosAssertScriptSuccess("mean(rep(1e18, 10));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(1e18)));	// overflows to float internally
 	
 	// min()
 	EidosAssertScriptSuccess("min(T);", gStaticEidosValue_LogicalT);

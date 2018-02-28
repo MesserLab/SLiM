@@ -138,7 +138,7 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		//
 		
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("max",				Eidos_ExecuteFunction_max,			kEidosValueMaskAnyBase | kEidosValueMaskSingleton))->AddAnyBase("x")->AddEllipsis());
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("mean",				Eidos_ExecuteFunction_mean,			kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddNumeric("x"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("mean",				Eidos_ExecuteFunction_mean,			kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddLogicalEquiv("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("min",				Eidos_ExecuteFunction_min,			kEidosValueMaskAnyBase | kEidosValueMaskSingleton))->AddAnyBase("x")->AddEllipsis());
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("pmax",				Eidos_ExecuteFunction_pmax,			kEidosValueMaskAnyBase))->AddAnyBase("x")->AddAnyBase("y"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("pmin",				Eidos_ExecuteFunction_pmin,			kEidosValueMaskAnyBase))->AddAnyBase("x")->AddAnyBase("y"));
@@ -3563,7 +3563,7 @@ EidosValue_SP Eidos_ExecuteFunction_max(const EidosValue_SP *const p_arguments, 
 	return result_SP;
 }
 
-//	(float$)mean(numeric x)
+//	(float$)mean(lif x)
 EidosValue_SP Eidos_ExecuteFunction_mean(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
@@ -3586,6 +3586,35 @@ EidosValue_SP Eidos_ExecuteFunction_mean(const EidosValue_SP *const p_arguments,
 		EidosValueType x_type = x_value->Type();
 		double sum = 0;
 		
+#if EIDOS_HAS_OVERFLOW_BUILTINS
+		if (x_type == EidosValueType::kValueInt)
+		{
+			// Accelerated integer case
+			const int64_t *int_data = x_value->IntVector()->data();
+			int64_t sum_i = 0;
+			
+			// We do a tricky thing here.  We want to try to compute in integer, but switch to float if we overflow.
+			// If we do overflow, we want to minimize numerical error by accumulating in integer for as long as we
+			// can, and then throwing the integer accumulator over into the float accumulator only when it is about
+			// to overflow.  We perform both computations in parallel, and use integer for the result if we can.
+			for (int value_index = 0; value_index < x_count; ++value_index)
+			{
+				int64_t old_sum = sum_i;
+				int64_t temp = int_data[value_index];
+				
+				bool overflow = Eidos_add_overflow(old_sum, temp, &sum_i);
+				
+				// switch to float computation on overflow, and accumulate in the float sum just before overflow
+				if (overflow)
+				{
+					sum += old_sum;
+					sum_i = temp;		// start integer accumulation again from 0 until it overflows again
+				}
+			}
+			
+			sum += sum_i;			// add in whatever integer accumulation has not overflowed
+		}
+#else
 		if (x_type == EidosValueType::kValueInt)
 		{
 			// Accelerated integer case
@@ -3594,6 +3623,7 @@ EidosValue_SP Eidos_ExecuteFunction_mean(const EidosValue_SP *const p_arguments,
 			for (int value_index = 0; value_index < x_count; ++value_index)
 				sum += int_data[value_index];
 		}
+#endif
 		else if (x_type == EidosValueType::kValueFloat)
 		{
 			// Accelerated float case
@@ -3601,6 +3631,17 @@ EidosValue_SP Eidos_ExecuteFunction_mean(const EidosValue_SP *const p_arguments,
 			
 			for (int value_index = 0; value_index < x_count; ++value_index)
 				sum += float_data[value_index];
+		}
+		else if (x_type == EidosValueType::kValueLogical)
+		{
+			// Accelerated logical case
+			const eidos_logical_t *logical_data = x_value->LogicalVector()->data();
+			int64_t logical_sum = 0;
+			
+			for (int value_index = 0; value_index < x_count; ++value_index)
+				logical_sum += logical_data[value_index];
+			
+			sum = logical_sum;	// avoid floating-point roundoff issues
 		}
 		else
 		{
