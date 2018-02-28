@@ -3899,8 +3899,8 @@ void SLiMSim::WriteTreeSequence(void)
 	//node_table_print_state(&nodes,stdout);
 	//edge_table_print_state(&edges,stdout);
 	simplifyTables();
-	node_table_print_state(&nodes,MspTxtNodeTable);
-	edge_table_print_state(&edges,MspTxtEdgeTable);
+	node_table_dump_text(&nodes,MspTxtNodeTable);
+	edge_table_dump_text(&edges,MspTxtEdgeTable);
 	
 	
 

@@ -44,6 +44,7 @@ early() {
     inds = p1.individuals;
 
     for(Mut in sim.mutationTypes){
+    //for(Mut in sim.mutations){
         for(Pos in 0:9){
             GenomesWithMutAtPos = NULL;
             for(Ind in inds){

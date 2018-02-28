@@ -26,7 +26,7 @@ for k in range(5):
     node_file.readline()
 for k in range(4):
     edge_file.readline()
-ts = msprime.load_text(nodes=node_file, edges=edge_file, decode_metadata=False)
+ts = msprime.load_text(nodes=node_file, edges=edge_file, base64_metadata=False)
 
 # get SLiM ID -> msprime ID map from metadata
 ids = {}
