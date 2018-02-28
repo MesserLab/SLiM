@@ -339,10 +339,11 @@ node_table_print_state(node_table_t *self, FILE *out)
             (int) self->max_metadata_length,
             (int) self->max_metadata_length_increment);
     fprintf(out, TABLE_SEP);
-    fprintf(out, "index\tflags\tis_sample\ttime\tpopulation\tmetadata_offset\tmetadata\n");
+    /* We duplicate the dump_text code here for simplicity because we want to output
+     * the flags column directly. */
+    fprintf(out, "id\tflags\ttime\tpopulation\tmetadata_offset\tmetadata\n");
     for (j = 0; j < self->num_rows; j++) {
-        fprintf(out, "%d\t%d\t%d\t%f\t%d\t%d\t", (int) j, self->flags[j],
-                (int) (self->flags[j] & MSP_NODE_IS_SAMPLE), self->time[j],
+        fprintf(out, "%d\t%d\t%f\t%d\t%d\t", (int) j, self->flags[j], self->time[j],
                 (int) self->population[j], self->metadata_offset[j]);
         for (k = self->metadata_offset[j]; k < self->metadata_offset[j + 1]; k++) {
             fprintf(out, "%c", self->metadata[k]);
@@ -351,6 +352,33 @@ node_table_print_state(node_table_t *self, FILE *out)
     }
     assert(self->metadata_offset[0] == 0);
     assert(self->metadata_offset[self->num_rows] == self->metadata_length);
+}
+
+int
+node_table_dump_text(node_table_t *self, FILE *out)
+{
+    int ret = 0;
+    size_t j;
+    table_size_t metadata_len;
+    int err;
+
+    err = fprintf(out, "id\tis_sample\ttime\tpopulation\tmetadata\n");
+    if (err < 0) {
+        goto out;
+    }
+    for (j = 0; j < self->num_rows; j++) {
+        metadata_len = self->metadata_offset[j + 1] - self->metadata_offset[j];
+        err = fprintf(out, "%d\t%d\t%f\t%d\t%.*s\n", (int) j,
+                (int) (self->flags[j] & MSP_NODE_IS_SAMPLE),
+                self->time[j], self->population[j],
+                metadata_len, self->metadata + self->metadata_offset[j]);
+        if (err < 0) {
+            goto out;
+        }
+    }
+    ret = 0;
+out:
+    return ret;
 }
 
 bool
@@ -505,19 +533,38 @@ edge_table_free(edge_table_t *self)
 void
 edge_table_print_state(edge_table_t *self, FILE *out)
 {
-    size_t j;
+    int ret;
 
     fprintf(out, TABLE_SEP);
     fprintf(out, "edge_table: %p:\n", (void *) self);
     fprintf(out, "num_rows          = %d\tmax= %d\tincrement = %d)\n",
             (int) self->num_rows, (int) self->max_rows, (int) self->max_rows_increment);
     fprintf(out, TABLE_SEP);
-    fprintf(out, "index\tleft\tright\tparent\tchild\n");
-    for (j = 0; j < self->num_rows; j++) {
-        fprintf(out, "%d\t%.3f\t%.3f\t%d\t%d\t", (int) j, self->left[j], self->right[j],
-                self->parent[j], self->child[j]);
-        fprintf(out, "\n");
+    ret = edge_table_dump_text(self, out);
+    assert(ret == 0);
+}
+
+int
+edge_table_dump_text(edge_table_t *self, FILE *out)
+{
+    size_t j;
+    int ret = MSP_ERR_IO;
+    int err;
+
+    err = fprintf(out, "left\tright\tparent\tchild\n");
+    if (err < 0) {
+        goto out;
     }
+    for (j = 0; j < self->num_rows; j++) {
+        err = fprintf(out, "%.3f\t%.3f\t%d\t%d\n", self->left[j], self->right[j],
+                self->parent[j], self->child[j]);
+        if (err < 0) {
+            goto out;
+        }
+    }
+    ret = 0;
+out:
+    return ret;
 }
 
 bool
