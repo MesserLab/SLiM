@@ -831,7 +831,7 @@ site_table_free(site_table_t *self)
 void
 site_table_print_state(site_table_t *self, FILE *out)
 {
-    table_size_t j, k;
+    int ret;
 
     fprintf(out, TABLE_SEP);
     fprintf(out, "site_table: %p:\n", (void *) self);
@@ -846,27 +846,42 @@ site_table_print_state(site_table_t *self, FILE *out)
             (int) self->max_metadata_length,
             (int) self->max_metadata_length_increment);
     fprintf(out, TABLE_SEP);
-    fprintf(out, "index\tposition\tancestral_state_offset\tancestral_state\t"
-            "metadata_offset\tmetadata\n");
-    for (j = 0; j < self->num_rows; j++) {
-        fprintf(out, "%d\t%f\t%d\t", (int) j, self->position[j],
-                self->ancestral_state_offset[j]);
-        for (k = self->ancestral_state_offset[j];
-                k < self->ancestral_state_offset[j + 1]; k++) {
-            fprintf(out, "%c", self->ancestral_state[k]);
-        }
-        fprintf(out, "\t%d\t", self->metadata_offset[j]);
-        for (k = self->metadata_offset[j]; k < self->metadata_offset[j + 1]; k++) {
-            fprintf(out, "%c", self->metadata[k]);
-        }
-        fprintf(out, "\n");
-    }
+    ret = site_table_dump_text(self, out);
+    assert(ret == 0);
 
     assert(self->ancestral_state_offset[0] == 0);
     assert(self->ancestral_state_length
             == self->ancestral_state_offset[self->num_rows]);
     assert(self->metadata_offset[0] == 0);
     assert(self->metadata_length == self->metadata_offset[self->num_rows]);
+}
+
+int
+site_table_dump_text(site_table_t *self, FILE *out)
+{
+    size_t j;
+    int ret = MSP_ERR_IO;
+    int err;
+    table_size_t ancestral_state_len, metadata_len;
+
+    err = fprintf(out, "id\tposition\tancestral_state\tmetadata\n");
+    if (err < 0) {
+        goto out;
+    }
+    for (j = 0; j < self->num_rows; j++) {
+        ancestral_state_len = self->ancestral_state_offset[j + 1] -
+            self->ancestral_state_offset[j];
+        metadata_len = self->metadata_offset[j + 1] - self->metadata_offset[j];
+        err = fprintf(out, "%d\t%f\t%.*s\t%.*s\n", (int) j, self->position[j],
+                ancestral_state_len, self->ancestral_state + self->ancestral_state_offset[j],
+                metadata_len, self->metadata + self->metadata_offset[j]);
+        if (err < 0) {
+            goto out;
+        }
+    }
+    ret = 0;
+out:
+    return ret;
 }
 
 /*************************
@@ -1188,7 +1203,7 @@ mutation_table_free(mutation_table_t *self)
 void
 mutation_table_print_state(mutation_table_t *self, FILE *out)
 {
-    size_t j, k;
+    int ret;
 
     fprintf(out, TABLE_SEP);
     fprintf(out, "mutation_table: %p:\n", (void *) self);
@@ -1203,29 +1218,43 @@ mutation_table_print_state(mutation_table_t *self, FILE *out)
             (int) self->max_metadata_length,
             (int) self->max_metadata_length_increment);
     fprintf(out, TABLE_SEP);
-    fprintf(out,
-            "index\tsite\tnode\tparent\tderived_state_offset\tderived_state\t"
-            "metadata_offset\tmetadata\n");
-    for (j = 0; j < self->num_rows; j++) {
-        fprintf(out, "%d\t%d\t%d\t%d\t%d\t", (int) j, self->site[j], self->node[j],
-                self->parent[j], self->derived_state_offset[j]);
-        for (k = self->derived_state_offset[j];
-                k < self->derived_state_offset[j + 1]; k++) {
-            fprintf(out, "%c", self->derived_state[k]);
-        }
-        fprintf(out, "\t%d\t", self->metadata_offset[j]);
-        for (k = self->metadata_offset[j]; k < self->metadata_offset[j + 1]; k++) {
-            fprintf(out, "%c", self->metadata[k]);
-        }
-        fprintf(out, "\n");
-    }
-
+    ret = mutation_table_dump_text(self, out);
+    assert(ret == 0);
     assert(self->derived_state_offset[0] == 0);
     assert(self->derived_state_length
             == self->derived_state_offset[self->num_rows]);
     assert(self->metadata_offset[0] == 0);
     assert(self->metadata_length
             == self->metadata_offset[self->num_rows]);
+}
+
+int
+mutation_table_dump_text(mutation_table_t *self, FILE *out)
+{
+    size_t j;
+    int ret = MSP_ERR_IO;
+    int err;
+    table_size_t derived_state_len, metadata_len;
+
+    err = fprintf(out, "id\tsite\tnode\tparent\tderived_state\tmetadata\n");
+    if (err < 0) {
+        goto out;
+    }
+    for (j = 0; j < self->num_rows; j++) {
+        derived_state_len = self->derived_state_offset[j + 1] -
+            self->derived_state_offset[j];
+        metadata_len = self->metadata_offset[j + 1] - self->metadata_offset[j];
+        err = fprintf(out, "%d\t%d\t%d\t%d\t%.*s\t%.*s\n", (int) j,
+                self->site[j], self->node[j], self->parent[j],
+                derived_state_len, self->derived_state + self->derived_state_offset[j],
+                metadata_len, self->metadata + self->metadata_offset[j]);
+        if (err < 0) {
+            goto out;
+        }
+    }
+    ret = 0;
+out:
+    return ret;
 }
 
 /*************************
@@ -1378,19 +1407,39 @@ migration_table_free(migration_table_t *self)
 void
 migration_table_print_state(migration_table_t *self, FILE *out)
 {
-    size_t j;
+    int ret;
 
     fprintf(out, TABLE_SEP);
     fprintf(out, "migration_table: %p:\n", (void *) self);
     fprintf(out, "num_rows = %d\tmax= %d\tincrement = %d)\n",
             (int) self->num_rows, (int) self->max_rows, (int) self->max_rows_increment);
     fprintf(out, TABLE_SEP);
-    fprintf(out, "index\tleft\tright\tnode\tsource\tdest\ttime\n");
+    ret = migration_table_dump_text(self, out);
+    assert(ret == 0);
+}
+
+int
+migration_table_dump_text(migration_table_t *self, FILE *out)
+{
+    size_t j;
+    int ret = MSP_ERR_IO;
+    int err;
+
+    err = fprintf(out, "left\tright\tnode\tsource\tdest\ttime\n");
+    if (err < 0) {
+        goto out;
+    }
     for (j = 0; j < self->num_rows; j++) {
-        fprintf(out, "%d\t%.3f\t%.3f\t%d\t%d\t%d\t%f\n", (int) j, self->left[j],
+        err = fprintf(out, "%.3f\t%.3f\t%d\t%d\t%d\t%f\n", self->left[j],
                 self->right[j], (int) self->node[j], (int) self->source[j],
                 (int) self->dest[j], self->time[j]);
+        if (err < 0) {
+            goto out;
+        }
     }
+    ret = 0;
+out:
+    return ret;
 }
 
 
