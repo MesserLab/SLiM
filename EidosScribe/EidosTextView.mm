@@ -1504,9 +1504,36 @@
 						}
 						else
 						{
-							// If this is a function declaration like ")identifier(" then show no signature; it's not a function call
+							// If this is a function declaration like "function(...)identifier(" then show no signature; it's not a function call
+							// Determining this requires a fairly complex backscan, because we also have things like "if (...) identifier(" which
+							// are function calls.  This is the price we pay for working at the token level rather than the AST level for this;
+							// so it goes.  Note that this backscan is separate from the one done outside this block.  BCH 1 March 2018.
 							if ((backscanIndex > 1) && (tokens[backscanIndex - 2].token_type_ == EidosTokenType::kTokenRParen))
-								break;
+							{
+								// Start a new backscan starting at the right paren preceding the identifier; we need to scan back to the balancing
+								// left paren, and then see if the next thing before that is "function" or not.
+								int funcCheckIndex = backscanIndex - 2;
+								int funcCheckParens = 0;
+								
+								while (funcCheckIndex >= 0)
+								{
+									const EidosToken &backscanToken = tokens[funcCheckIndex];
+									EidosTokenType backscanTokenType = backscanToken.token_type_;
+									
+									if (backscanTokenType == EidosTokenType::kTokenRParen)
+										funcCheckParens++;
+									else if (backscanTokenType == EidosTokenType::kTokenLParen)
+										funcCheckParens--;
+									
+									--funcCheckIndex;
+									
+									if (funcCheckParens == 0)
+										break;
+								}
+								
+								if ((funcCheckParens == 0) && (funcCheckIndex >= 0) && (tokens[funcCheckIndex].token_type_ == EidosTokenType::kTokenFunction))
+									break;
+							}
 							
 							// This is a function call, so look up its signature that way, using our best-guess function map
 							EidosFunctionMap *functionMapPtr = [self functionMapForTokenizedScript:script includingOptionalFunctions:YES];
