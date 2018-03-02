@@ -3575,7 +3575,7 @@ void SLiMSim::simplifyTables(void){
 		handle_error("sort_tables", ret);
 	}
 	
-	ret = simplifier_alloc(&simplifier,(double)chromosome_.last_position_ + 1, samples.data(), samples.size(),
+	ret = simplifier_alloc(&simplifier,(double)chromosome_.last_position_, samples.data(), samples.size(),
 	    &nodes, &edges, &migrations, &sites, &mutations, 0, 0);
 	if (ret < 0) {
 		handle_error("simplifier_alloc", ret);
@@ -3642,7 +3642,7 @@ void SLiMSim::StartTreeRecording(void)
 	*/
 
 	
-	simplificationInterval = 10;
+	simplificationInterval = 1000;
 	FSIDAS = 0;
 	FMIDAS = 0;
 	lastSimplificationGeneration = 0;
@@ -3745,6 +3745,8 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 	/*	
 	std::cout << Generation() << ":   Reference to individual: " << CurrentTreeSequenceIndividual->PedigreeID() << std::endl; 
 	*/
+//	std::cout << std::endl;	
+//	std::cout << Generation() << ":  Call to RR # " << (!FirstRecombinationCalled ? "1" : "2") << ", Reference to individual: " << CurrentTreeSequenceIndividual->PedigreeID() << std::endl;
 
  	//if the first recombination has not been called this is a reference to parent 1, else parent 2
 	if(!FirstRecombinationCalled){ 			
@@ -3792,9 +3794,60 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 	size_t breakpoint_count = (p_breakpoints ? p_breakpoints->size() : 0);
 	if (breakpoint_count && (p_breakpoints->back() == chromosome_.last_position_mutrun_ + 1)){
                  breakpoint_count--;	
+		std::cout << "AYYYEEEE Made it in the conditional" << std::endl;
 	}
+//	std::cout << "breakpoint_count: " << breakpoint_count << std::endl; 
 	if (breakpoint_count)
 	{
+
+//		for (int i = 0; i < p_breakpoints->size(); i ++){
+//			std::cout << "p_break[" << i << "]" << (*p_breakpoints)[i] << std::endl;
+//		}
+		
+		//breakpoint_count--;
+		//if((*p_breakpoints)[breakpoint_count - 1] > chromosome_.last_position_){
+		//	breakpoint_count--;
+		//}
+		if((*p_breakpoints)[breakpoint_count - 2] == chromosome_.last_position_){
+			breakpoint_count--;
+		}
+		
+		
+//		std::cout << "breakpoint_count: " << breakpoint_count << std::endl; 
+		
+		//breakpoint_count--;
+		double left = 0.0;
+		double right = (*p_breakpoints)[0];
+		for (int i = 1; i < breakpoint_count; i++){
+		
+//			std::cout << "left = " << left << std::endl;		
+//			std::cout << "Right = " << right << std::endl;		
+	
+			node_id_t parent = (node_id_t) (p_start_strand_2 ? genome2MSPID : genome1MSPID);
+			ret = edge_table_add_row(&edges,left,right,parent,offspringMSPID);
+			if (ret < 0) {
+				handle_error("add_edge", ret);
+			}
+			p_start_strand_2 = !p_start_strand_2;
+			
+			left = right;
+			right = (*p_breakpoints)[i];
+		}
+		
+		//right = (double)chromosome_.last_position_ + 1;
+		right = (double)chromosome_.last_position_;
+		node_id_t parent = (node_id_t) (p_start_strand_2 ? genome2MSPID : genome1MSPID);
+		ret = edge_table_add_row(&edges,left,right,parent,offspringMSPID);
+		if (ret < 0) {
+			handle_error("add_edge", ret);
+		}
+		
+//		std::cout << "left = " << left << std::endl;		
+//		std::cout << "Right = " << right << std::endl;		
+
+		
+		
+					
 		/*	
 		//DEBUG STDOUT PRINTING	
 		std::cout << Generation() << ":     Recombination at positions:";
@@ -3808,12 +3861,14 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 		*/
 		
 		//I want to add the beginning and end position of the chromosome to the vector so it's easier to compute edge intevals
+		
+/*
 		p_breakpoints->insert(p_breakpoints->begin(),0);
 		p_breakpoints->pop_back();
 		if(p_breakpoints->back() != chromosome_.last_position_){
 			p_breakpoints->push_back(chromosome_.last_position_ + 1);
 		}
-
+*/
 		/*
 		//DEBUG STDOUT PRINTING
 		for (int i = 0; i < p_breakpoints->size(); i ++){
@@ -3823,7 +3878,7 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 		*/
 		
 		//This loop computes all the edge intervals based upon breakpoints given
-		
+/*
 		int numIntervals = p_breakpoints->size() - 1;
 		for (size_t breakpoint_index = 0; breakpoint_index < numIntervals; ++breakpoint_index){
 			
@@ -3836,7 +3891,7 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 			if (ret < 0) {
 				handle_error("add_edge", ret);
 			}
-
+*/
 			/*		
 			//DEBUG STDOUT PRINTING
 			std::cout << Generation() << ":     ARGrecorder.AddEdge(left = ";
@@ -3851,9 +3906,10 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 			MspTxtEdgeFile << (*p_breakpoints)[breakpoint_index + 1] << "\t"; 
 			MspTxtEdgeFile << (p_start_strand_2 ? genome2SLiMID : genome1SLiMID ) << "\t" << genomeID << "\n";
 			*/
-
+/*
 			p_start_strand_2 = !p_start_strand_2;
 		}
+*/
 	}
 	else if (p_breakpoints)
 	{
@@ -3867,6 +3923,10 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 
 		double left = 0;
 		double right = (double) chromosome_.last_position_;
+
+//		std::cout << "left = " << left << std::endl;		
+//		std::cout << "Right = " << right << std::endl;		
+
 		node_id_t parent = (node_id_t) (p_start_strand_2 ? genome2MSPID : genome1MSPID);
 		ret = edge_table_add_row(&edges,left,right,parent,offspringMSPID);
 		if (ret < 0) {
@@ -3880,7 +3940,7 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 		MspTxtEdgeFile << (p_start_strand_2 ? genome2SLiMID : genome1SLiMID)<< "\t" << genomeID << "\n";
 		*/
 	}else{}	
-	
+//	std::cout << std::endl;	
 
 }
 

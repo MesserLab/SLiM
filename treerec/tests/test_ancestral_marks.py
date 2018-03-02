@@ -17,15 +17,12 @@ def check_consistency(x, y):
             print('labels of roots in from tree:', a_labels)
             assert(len(set(a_labels)) == 1)
 
+    return True
+
 
 # load tree sequence
 node_file = open("NodeTable.txt", "r")
 edge_file = open("EdgeTable.txt", "r")
-# skip header stuff
-for k in range(5):
-    node_file.readline()
-for k in range(4):
-    edge_file.readline()
 ts = msprime.load_text(nodes=node_file, edges=edge_file, base64_metadata=False)
 
 # get SLiM ID -> msprime ID map from metadata
@@ -35,7 +32,8 @@ for n in ts.nodes():
     assert(meta[:7] == "SLiMID=")
     slim_id = int(n.metadata.decode('utf8').strip().split("=")[1])
     ids[slim_id] = n.id
-
+    #print(n.id)
+#print(ids)
 # iterate through SLiM output information
 slim_file = open("TESToutput.txt", "r")
 
