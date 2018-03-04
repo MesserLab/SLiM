@@ -1,8 +1,13 @@
 #!/bin/bash
+set -eu
+FILES=./testRecipes/*.E
 
-rm -f NodeTable.txt EdgeTable.txt
-rm -f TESToutput.txt 
+for f in $FILES
+do
+ 	../../bin/slim -s 21 $f
+	python3 test_ancestral_marks.py
 
-../../bin/slim -s 21 test_ancestral_marks.E
+	rm -f NodeTable.txt EdgeTable.txt
+	rm -f TESToutput.txt
+done
 
-python3 test_ancestral_marks.py

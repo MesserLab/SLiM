@@ -16,7 +16,7 @@ def check_consistency(x, y):
             print('IDs sharing mutation', a, ":", y[a])
             print('labels of roots in from tree:', a_labels)
             assert(len(set(a_labels)) == 1)
-
+            #print("Passing Test Mutation",a,":",y[a]," Common Ancestor: ",set(a_labels))
     return True
 
 

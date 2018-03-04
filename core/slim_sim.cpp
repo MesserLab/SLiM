@@ -2942,7 +2942,7 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		//TREE SEQUENCE RECORDING
 		//CALL simplifyTables 
 	
-		if (RecordingTreeSequence() && (Generation() % simplificationInterval) == 0){
+		if (RecordingTreeSequence() && (Generation() % simplificationInterval) == 0 && Generation() > 0){
 			simplifyTables();
 		}
 
@@ -3323,7 +3323,7 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 	
 		//TREE SEQUENCE RECORDING
 		//Call simplifyTables() 
-		if (RecordingTreeSequence() && (Generation() % simplificationInterval) == 0){
+		if (RecordingTreeSequence() && (Generation() % simplificationInterval) == 0 && Generation() > 0){
 			simplifyTables();
 		}
 	
@@ -3575,7 +3575,12 @@ void SLiMSim::simplifyTables(void){
 		handle_error("sort_tables", ret);
 	}
 	
-	ret = simplifier_alloc(&simplifier,(double)chromosome_.last_position_, samples.data(), samples.size(),
+	if(nodes.num_rows == 0){
+		std::cout << "aint nobody here" << std::endl;
+		return;
+	}
+	
+	ret = simplifier_alloc(&simplifier,(double)chromosome_.last_position_ + 1, samples.data(), samples.size(),
 	    &nodes, &edges, &migrations, &sites, &mutations, 0, 0);
 	if (ret < 0) {
 		handle_error("simplifier_alloc", ret);
@@ -3588,7 +3593,7 @@ void SLiMSim::simplifyTables(void){
 
 	simplifier_free(&simplifier);
 	
-	FSIDAS = (int)((CurrentTreeSequenceIndividual->PedigreeID()) * 2) + 2;
+	FSIDAS = (int)((CurrentTreeSequenceIndividual->PedigreeID()) * 2);
 	FMIDAS = (int)nodes.num_rows;
 	SLiM_MSP_Id_Map = newMap;		
 
@@ -3596,7 +3601,7 @@ void SLiMSim::simplifyTables(void){
 
 node_id_t SLiMSim::getMSPID(int GenomeID){
 
-	int Offset = GenomeID - FSIDAS;
+	int Offset = GenomeID - (FSIDAS + 2);
 	node_id_t retNode = (Offset < 0 ? (SLiM_MSP_Id_Map[GenomeID]) : (FMIDAS + Offset));
 	return retNode;
 
@@ -3642,8 +3647,8 @@ void SLiMSim::StartTreeRecording(void)
 	*/
 
 	
-	simplificationInterval = 1000;
-	FSIDAS = 0;
+	simplificationInterval = 2;
+	FSIDAS = -2;
 	FMIDAS = 0;
 	lastSimplificationGeneration = 0;
 		
@@ -3760,7 +3765,7 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 
 	//calculate genome ID's 
 	genome1SLiMID = 2 * parentSLiMID;
-	genome2SLiMID = 2 * parentSLiMID + 1;
+	genome2SLiMID = genome1SLiMID + 1;
 
 	//Map the Parental Genome SLiM Id's to MSP IDs.
 	genome1MSPID = getMSPID(genome1SLiMID);
@@ -3778,170 +3783,40 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 	const char *offspring_SLiMID_Const = osids.c_str();
 	
 	offspringMSPID = node_table_add_row(&nodes,flags,time,0,offspring_SLiMID_Const,size);
-	
-	//DEBUG STDOUT PRINTING 
-	/*
-	std::cout << Generation() << ":  Call to RecordRecombination for Genome: " <<  offspringSLiMID;
-	std::cout << " (ParentID: " << parentSLiMID << ")" << std::endl;
-	*/
-	
-	/*
-	//WRITE TABLES TO TXT FILE
-	
-	MspTxtNodeFile << 1 << "\t" << genomeID << "\t" <<  -1 * Generation() <<" \t" << CurrentTreeSequenceIndividual->subpopulation_.subpopulation_id_ << "\n";
-	*/
+
+	if(parentSLiMID == -1){
+		return;
+	}
 
 	size_t breakpoint_count = (p_breakpoints ? p_breakpoints->size() : 0);
-	if (breakpoint_count && (p_breakpoints->back() == chromosome_.last_position_mutrun_ + 1)){
+	//Have yet to make it in this conditional. Ask ben about this funky business. 
+	if (breakpoint_count && (p_breakpoints->back() > chromosome_.last_position_)){
                  breakpoint_count--;	
-		std::cout << "AYYYEEEE Made it in the conditional" << std::endl;
+		//std::cout << "AYYYEEEE Made it in the conditional" << std::endl;
 	}
-//	std::cout << "breakpoint_count: " << breakpoint_count << std::endl; 
-	if (breakpoint_count)
-	{
-
-//		for (int i = 0; i < p_breakpoints->size(); i ++){
-//			std::cout << "p_break[" << i << "]" << (*p_breakpoints)[i] << std::endl;
-//		}
-		
-		//breakpoint_count--;
-		//if((*p_breakpoints)[breakpoint_count - 1] > chromosome_.last_position_){
-		//	breakpoint_count--;
-		//}
-		if((*p_breakpoints)[breakpoint_count - 2] == chromosome_.last_position_){
-			breakpoint_count--;
-		}
-		
-		
-//		std::cout << "breakpoint_count: " << breakpoint_count << std::endl; 
-		
-		//breakpoint_count--;
-		double left = 0.0;
-		double right = (*p_breakpoints)[0];
-		for (int i = 1; i < breakpoint_count; i++){
-		
-//			std::cout << "left = " << left << std::endl;		
-//			std::cout << "Right = " << right << std::endl;		
+	double left = 0.0;
+	double right;
+	for (int i = 0; i < breakpoint_count; i++){
 	
-			node_id_t parent = (node_id_t) (p_start_strand_2 ? genome2MSPID : genome1MSPID);
-			ret = edge_table_add_row(&edges,left,right,parent,offspringMSPID);
-			if (ret < 0) {
-				handle_error("add_edge", ret);
-			}
-			p_start_strand_2 = !p_start_strand_2;
-			
-			left = right;
-			right = (*p_breakpoints)[i];
-		}
-		
-		//right = (double)chromosome_.last_position_ + 1;
-		right = (double)chromosome_.last_position_;
-		node_id_t parent = (node_id_t) (p_start_strand_2 ? genome2MSPID : genome1MSPID);
-		ret = edge_table_add_row(&edges,left,right,parent,offspringMSPID);
-		if (ret < 0) {
-			handle_error("add_edge", ret);
-		}
-		
-//		std::cout << "left = " << left << std::endl;		
-//		std::cout << "Right = " << right << std::endl;		
-
-		
-		
-					
-		/*	
-		//DEBUG STDOUT PRINTING	
-		std::cout << Generation() << ":     Recombination at positions:";
-		
-		//This loop is just for printing our breakpoints
-		for (size_t breakpoint_index = 0; breakpoint_index < breakpoint_count; ++breakpoint_index){
-			std::cout << " " << (*p_breakpoints)[breakpoint_index];
-		}
-		std::cout << " (start with parental genome " << (p_start_strand_2 ? 2 : 1) << ")" << std::endl;
-
-		*/
-		
-		//I want to add the beginning and end position of the chromosome to the vector so it's easier to compute edge intevals
-		
-/*
-		p_breakpoints->insert(p_breakpoints->begin(),0);
-		p_breakpoints->pop_back();
-		if(p_breakpoints->back() != chromosome_.last_position_){
-			p_breakpoints->push_back(chromosome_.last_position_ + 1);
-		}
-*/
-		/*
-		//DEBUG STDOUT PRINTING
-		for (int i = 0; i < p_breakpoints->size(); i ++){
-			std::cout << "p_break[" << i << "]" << (*p_breakpoints)[i] << std::endl;
-		}
-		std::cout << std::endl;	
-		*/
-		
-		//This loop computes all the edge intervals based upon breakpoints given
-/*
-		int numIntervals = p_breakpoints->size() - 1;
-		for (size_t breakpoint_index = 0; breakpoint_index < numIntervals; ++breakpoint_index){
-			
-			//add edge
-			double left = (double) (*p_breakpoints)[breakpoint_index];
-			double right = (double) (*p_breakpoints)[breakpoint_index + 1];
-
-			node_id_t parent = (node_id_t) (p_start_strand_2 ? genome2MSPID : genome1MSPID);
-			ret = edge_table_add_row(&edges,left,right,parent,offspringMSPID);
-			if (ret < 0) {
-				handle_error("add_edge", ret);
-			}
-*/
-			/*		
-			//DEBUG STDOUT PRINTING
-			std::cout << Generation() << ":     ARGrecorder.AddEdge(left = ";
-			std::cout << (*p_breakpoints)[breakpoint_index] << ",right = " << (*p_breakpoints)[breakpoint_index + 1];
-			std::cout << ",parent = " << (p_start_strand_2 ? genome2MSPID : genome1MSPID) << ",child = " << offspringMSPID << ");" << std::endl;
-			*/			
-
-			/*
-			//WRITE TABLES TO A TEXT FILE
-			
-			MspTxtEdgeFile << (*p_breakpoints)[breakpoint_index] << "\t"; 
-			MspTxtEdgeFile << (*p_breakpoints)[breakpoint_index + 1] << "\t"; 
-			MspTxtEdgeFile << (p_start_strand_2 ? genome2SLiMID : genome1SLiMID ) << "\t" << genomeID << "\n";
-			*/
-/*
-			p_start_strand_2 = !p_start_strand_2;
-		}
-*/
-	}
-	else if (p_breakpoints)
-	{
-		/*
-		//DEBUG STDOUT PRINTING 
-
-		std::cout << Generation() << ":     No recombination (use parental strand " << (p_start_strand_2 ? 2 : 1) << ")" << std::endl;
-		std::cout << Generation() << ":     ARGrecorder.AddEdge(left = " << 0 << ",right = " << chromosome_.last_position_;
-		std::cout << ",parent = " << (p_start_strand_2 ? genome2SLiMID : genome1SLiMID) << ",child = " << genomeID << ");" << std::endl;
-		*/
-
-		double left = 0;
-		double right = (double) chromosome_.last_position_;
-
-//		std::cout << "left = " << left << std::endl;		
-//		std::cout << "Right = " << right << std::endl;		
+		right = (*p_breakpoints)[i];
 
 		node_id_t parent = (node_id_t) (p_start_strand_2 ? genome2MSPID : genome1MSPID);
 		ret = edge_table_add_row(&edges,left,right,parent,offspringMSPID);
 		if (ret < 0) {
 			handle_error("add_edge", ret);
 		}
-	
-		/*
-		//WRITE TABLES TO A TEXT FILE
+		p_start_strand_2 = !p_start_strand_2;
 		
-		MspTxtEdgeFile << 0 << "\t" << chromosome_.last_position_ << "\t";
-		MspTxtEdgeFile << (p_start_strand_2 ? genome2SLiMID : genome1SLiMID)<< "\t" << genomeID << "\n";
-		*/
-	}else{}	
-//	std::cout << std::endl;	
-
+		left = right;
+	}
+	
+	right = (double)chromosome_.last_position_+1;
+	node_id_t parent = (node_id_t) (p_start_strand_2 ? genome2MSPID : genome1MSPID);
+	ret = edge_table_add_row(&edges,left,right,parent,offspringMSPID);
+	if (ret < 0) {
+		handle_error("add_edge", ret);
+	}
+		
 }
 
 void SLiMSim::WriteTreeSequence(void)
