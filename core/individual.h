@@ -87,6 +87,7 @@ public:
 	double tagF_value_;					// a user-defined tag value of float type
 	
 	double fitness_scaling_ = 1.0;		// the fitnessScaling property value
+	double cached_fitness_;				// the last calculated fitness value for this individual; NaN for new offspring, 1.0 for new subpops
 	
 	Genome *genome1_, *genome2_;		// NOT OWNED; must correspond to the entries in the Subpopulation we live in
 	IndividualSex sex_;					// must correspond to our position in the Subpopulation vector we live in
@@ -110,7 +111,7 @@ public:
 	Individual(const Individual &p_original) = delete;
 	Individual& operator= (const Individual &p_original) = delete;						// no copy construction
 	Individual(void) = delete;															// no null construction
-	Individual(Subpopulation &p_subpopulation, slim_popsize_t p_individual_index, slim_pedigreeid_t p_pedigree_id, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_age_t p_age);
+	Individual(Subpopulation &p_subpopulation, slim_popsize_t p_individual_index, slim_pedigreeid_t p_pedigree_id, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_age_t p_age, double p_fitness);
 	inline virtual ~Individual(void)
 	{
 	}

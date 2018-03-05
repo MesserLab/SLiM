@@ -190,10 +190,18 @@ public:
 	std::vector<SLiMEidosBlock*> registered_reproduction_callbacks_;	// NOT OWNED: valid only during EvolveSubpopulation; callbacks used when this subpop is parental
 #endif  // SLIM_NONWF_ONLY
 	
-	double *cached_parental_fitness_ = nullptr;		// OWNED POINTER: cached in UpdateFitness(), used by SLiMgui and by the fitness() methods of Subpopulation
+#ifdef SLIM_WF_ONLY
+	// Fitness caching.  Every individual now caches its fitness internally, and that is what is used by SLiMgui and by the cachedFitness() method of Subpopulation.
+	// These fitness cache buffers are additional to that, used only in WF models.  They are used for two things.  First, as the data source for setting up our lookup
+	// objects for drawing mates by fitness; the GSL wants that data to be in the form of a single buffer.  And second, by mateChoice() callbacks, which throw around
+	// vectors of weights, and want to have default weight vectors for the non-sex and sex cases.  In nonWF models these buffers are not used, and not even set up.
+	// In WF models we could continue to use these buffers for all uses (i.e., SLiMgui and cachedFitness()), but to keep the code simple it seems better to use the
+	// caches in Individual for both WF and nonWF models where possible.
+	double *cached_parental_fitness_ = nullptr;		// OWNED POINTER: cached in UpdateFitness()
 	double *cached_male_fitness_ = nullptr;			// OWNED POINTER: SEX ONLY: same as cached_parental_fitness_ but with 0 for all females
 	slim_popsize_t cached_fitness_size_ = 0;		// the size (number of entries used) of cached_parental_fitness_ and cached_male_fitness_
 	slim_popsize_t cached_fitness_capacity_ = 0;	// the capacity of the malloced buffers cached_parental_fitness_ and cached_male_fitness_
+#endif	// SLIM_WF_ONLY
 	
 	// SEX ONLY; the default values here are for the non-sex case
 	bool sex_enabled_ = false;										// the subpopulation needs to have easy reference to whether its individuals are sexual or not...
@@ -305,7 +313,10 @@ public:
 	void CheckIndividualIntegrity(void);
 	
 	IndividualSex SexOfIndividual(slim_popsize_t p_individual_index);						// return the sex of the individual at the given index; uses child_generation_valid
-	void UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callbacks, std::vector<SLiMEidosBlock*> &p_global_fitness_callbacks);							// update the fitness lookup table based upon current mutations
+	void UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callbacks, std::vector<SLiMEidosBlock*> &p_global_fitness_callbacks);	// update fitness values based upon current mutations
+#ifdef SLIM_WF_ONLY
+	void UpdateWFFitnessBuffers(bool p_pure_neutral);																					// update the WF model fitness buffers after UpdateFitness()
+#endif	// SLIM_WF_ONLY
 	
 	// calculate the fitness of a given individual; the x dominance coeff is used only if the X is modeled
 	double FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_t p_individual_index);

@@ -487,7 +487,7 @@ void Subpopulation::GenerateIndividualsToFitWF(bool p_make_child_generation, boo
 			// allocate out of our object pools
 			Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, true);
 			Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, true);
-			Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, new_index, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, IndividualSex::kHermaphrodite, -1);
+			Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, new_index, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, IndividualSex::kHermaphrodite, -1, /* initial fitness for new subpops */ 1.0);
 			
 			// TREE SEQUENCE RECORDING
 			if (recording_tree_sequence)
@@ -579,7 +579,7 @@ void Subpopulation::GenerateIndividualsToFitNonWF(double p_sex_ratio)
 			// allocate out of our object pools
 			Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, true);
 			Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, true);
-			Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, new_index, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, IndividualSex::kHermaphrodite, 0);
+			Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, new_index, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, IndividualSex::kHermaphrodite, 0, /* initial fitness for new subpops */ 1.0);
 			
 			// TREE SEQUENCE RECORDING
 			if (recording_tree_sequence)
@@ -893,6 +893,7 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 	GenerateIndividualsToFitNonWF(0.0);
 #endif
 	
+#ifdef SLIM_WF_ONLY
 	// Set up to draw random individuals, based initially on equal fitnesses
 	cached_parental_fitness_ = (double *)realloc(cached_parental_fitness_, sizeof(double) * parent_subpop_size_);
 	cached_fitness_capacity_ = parent_subpop_size_;
@@ -903,7 +904,6 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 	for (slim_popsize_t i = 0; i < parent_subpop_size_; i++)
 		*(fitness_buffer_ptr++) = 1.0;
 	
-#ifdef SLIM_WF_ONLY
 	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
 		lookup_parent_ = gsl_ran_discrete_preproc(parent_subpop_size_, cached_parental_fitness_);
 #endif	// SLIM_WF_ONLY
@@ -935,6 +935,7 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 	GenerateIndividualsToFitNonWF(p_sex_ratio);
 #endif
 	
+#ifdef SLIM_WF_ONLY
 	// Set up to draw random females, based initially on equal fitnesses
 	cached_parental_fitness_ = (double *)realloc(cached_parental_fitness_, sizeof(double) * parent_subpop_size_);
 	cached_male_fitness_ = (double *)realloc(cached_male_fitness_, sizeof(double) * parent_subpop_size_);
@@ -959,7 +960,6 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 		*(male_buffer_ptr++) = 1.0;
 	}
 	
-#ifdef SLIM_WF_ONLY
 	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
 	{
 		lookup_female_parent_ = gsl_ran_discrete_preproc(parent_first_male_index_, cached_parental_fitness_);
@@ -982,13 +982,13 @@ Subpopulation::~Subpopulation(void)
 	
 	if (lookup_male_parent_)
 		gsl_ran_discrete_free(lookup_male_parent_);
-#endif	// SLIM_WF_ONLY
 	
 	if (cached_parental_fitness_)
 		free(cached_parental_fitness_);
 	
 	if (cached_male_fitness_)
 		free(cached_male_fitness_);
+#endif	// SLIM_WF_ONLY
 	
 	{
 		// dispose of genomes and individuals with our object pools
@@ -1242,109 +1242,76 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 	int global_fitness_callback_count = (int)p_global_fitness_callbacks.size();
 	bool global_fitness_callbacks_exist = (global_fitness_callback_count > 0);
 	
-	// We cache the calculated fitness values, for use in PopulationView and mateChoice() callbacks and such
-	if (cached_fitness_capacity_ < parent_subpop_size_)
-	{
-		cached_parental_fitness_ = (double *)realloc(cached_parental_fitness_, sizeof(double) * parent_subpop_size_);
-		if (sex_enabled_)
-			cached_male_fitness_ = (double *)realloc(cached_male_fitness_, sizeof(double) * parent_subpop_size_);
-		cached_fitness_capacity_ = parent_subpop_size_;
-	}
-	
-	cached_fitness_size_ = 0;	// while we're refilling, the fitness cache is invalid
-	
 	// We optimize the pure neutral case, as long as no fitness callbacks are defined; fitness values are then simply 1.0, for everybody.
 	// BCH 12 Jan 2018: now fitness_scaling_ modifies even pure_neutral_ models, but the framework here remains valid
 	bool pure_neutral = (!fitness_callbacks_exist && !global_fitness_callbacks_exist && population_.sim_.pure_neutral_);
 	double subpop_fitness_scaling = fitness_scaling_;
 	
-	// calculate fitnesses in parent population and create new lookup table
+	// calculate fitnesses in parent population and cache the values
 	if (sex_enabled_)
 	{
 		// SEX ONLY
 		double totalMaleFitness = 0.0, totalFemaleFitness = 0.0;
-		
-#ifdef SLIM_WF_ONLY
-		if (lookup_female_parent_)
-		{
-			gsl_ran_discrete_free(lookup_female_parent_);
-			lookup_female_parent_ = nullptr;
-		}
-		
-		if (lookup_male_parent_)
-		{
-			gsl_ran_discrete_free(lookup_male_parent_);
-			lookup_male_parent_ = nullptr;
-		}
-#endif	// SLIM_WF_ONLY
 		
 		// Set up to draw random females
 		if (pure_neutral)
 		{
 			if (Individual::s_any_individual_fitness_scaling_set_)
 			{
-				for (slim_popsize_t i = 0; i < parent_first_male_index_; i++)
+				for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
 				{
-					double fitness = subpop_fitness_scaling * parent_individuals_[i]->fitness_scaling_;
+					double fitness = subpop_fitness_scaling * parent_individuals_[female_index]->fitness_scaling_;
 					
-					cached_parental_fitness_[i] = fitness;
-					cached_male_fitness_[i] = 0;
-					
+					parent_individuals_[female_index]->cached_fitness_ = fitness;
 					totalFemaleFitness += fitness;
 				}
 			}
 			else
 			{
-				for (slim_popsize_t i = 0; i < parent_first_male_index_; i++)
+				for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
 				{
 					double fitness = subpop_fitness_scaling;	// no individual fitness_scaling_
 					
-					cached_parental_fitness_[i] = fitness;
-					cached_male_fitness_[i] = 0;
-					
+					parent_individuals_[female_index]->cached_fitness_ = fitness;
 					totalFemaleFitness += fitness;
 				}
 			}
 		}
 		else if (skip_chromosomal_fitness)
 		{
-			for (slim_popsize_t i = 0; i < parent_first_male_index_; i++)
+			for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
 			{
-				double fitness = subpop_fitness_scaling * parent_individuals_[i]->fitness_scaling_;
+				double fitness = subpop_fitness_scaling * parent_individuals_[female_index]->fitness_scaling_;
 				
 				if (global_fitness_callbacks_exist && (fitness > 0.0))
-					fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, i);
+					fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, female_index);
 				
-				cached_parental_fitness_[i] = fitness;
-				cached_male_fitness_[i] = 0;
-				
+				parent_individuals_[female_index]->cached_fitness_ = fitness;
 				totalFemaleFitness += fitness;
 			}
 		}
 		else
 		{
 			// general case for females
-			for (slim_popsize_t i = 0; i < parent_first_male_index_; i++)
+			for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
 			{
-				double fitness = subpop_fitness_scaling * parent_individuals_[i]->fitness_scaling_;
+				double fitness = subpop_fitness_scaling * parent_individuals_[female_index]->fitness_scaling_;
 				
 				if (fitness > 0.0)
 				{
 					if (!fitness_callbacks_exist)
-						fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(i);
+						fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(female_index);
 					else if (single_fitness_callback)
-						fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(i, p_fitness_callbacks, single_callback_mut_type);
+						fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(female_index, p_fitness_callbacks, single_callback_mut_type);
 					else
-						fitness *= FitnessOfParentWithGenomeIndices_Callbacks(i, p_fitness_callbacks);
+						fitness *= FitnessOfParentWithGenomeIndices_Callbacks(female_index, p_fitness_callbacks);
 					
 					// multiply in the effects of any global fitness callbacks (muttype==NULL)
 					if (global_fitness_callbacks_exist && (fitness > 0.0))
-						fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, i);
+						fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, female_index);
 				}
 				
-				cached_parental_fitness_[i] = fitness;
-				cached_male_fitness_[i] = 0;				// this vector has 0 for all females, for mateChoice() callbacks
-				
+				parent_individuals_[female_index]->cached_fitness_ = fitness;
 				totalFemaleFitness += fitness;
 			}
 		}
@@ -1353,70 +1320,122 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		if ((population_.sim_.ModelType() == SLiMModelType::kModelTypeWF) && (totalFemaleFitness <= 0.0))
 			EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of females is <= 0.0." << EidosTerminate(nullptr);
 		
-		// in pure neutral models we don't set up the discrete preproc
-#ifdef SLIM_WF_ONLY
-		if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
-			if (!pure_neutral)
-				lookup_female_parent_ = gsl_ran_discrete_preproc(parent_first_male_index_, cached_parental_fitness_);
-#endif	// SLIM_WF_ONLY
-		
 		// Set up to draw random males
-		slim_popsize_t num_males = parent_subpop_size_ - parent_first_male_index_;
-		
 		if (pure_neutral)
 		{
 			if (Individual::s_any_individual_fitness_scaling_set_)
 			{
-				for (slim_popsize_t i = 0; i < num_males; i++)
+				for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
 				{
-					slim_popsize_t individual_index = (i + parent_first_male_index_);
-					double fitness = subpop_fitness_scaling * parent_individuals_[individual_index]->fitness_scaling_;
+					double fitness = subpop_fitness_scaling * parent_individuals_[male_index]->fitness_scaling_;
 					
-					cached_parental_fitness_[individual_index] = fitness;
-					cached_male_fitness_[individual_index] = fitness;
-					
+					parent_individuals_[male_index]->cached_fitness_ = fitness;
 					totalMaleFitness += fitness;
 				}
 			}
 			else
 			{
-				for (slim_popsize_t i = 0; i < num_males; i++)
+				for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
 				{
-					slim_popsize_t individual_index = (i + parent_first_male_index_);
 					double fitness = subpop_fitness_scaling;	// no individual fitness_scaling_
 					
-					cached_parental_fitness_[individual_index] = fitness;
-					cached_male_fitness_[individual_index] = fitness;
-					
+					parent_individuals_[male_index]->cached_fitness_ = fitness;
 					totalMaleFitness += fitness;
 				}
 			}
 		}
 		else if (skip_chromosomal_fitness)
 		{
-			for (slim_popsize_t i = 0; i < num_males; i++)
+			for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
 			{
-				slim_popsize_t individual_index = (i + parent_first_male_index_);
-				double fitness = subpop_fitness_scaling * parent_individuals_[individual_index]->fitness_scaling_;
+				double fitness = subpop_fitness_scaling * parent_individuals_[male_index]->fitness_scaling_;
 				
 				if (global_fitness_callbacks_exist && (fitness > 0.0))
-					fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, individual_index);
+					fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, male_index);
 				
-				cached_parental_fitness_[individual_index] = fitness;
-				cached_male_fitness_[individual_index] = fitness;
-				
+				parent_individuals_[male_index]->cached_fitness_ = fitness;
 				totalMaleFitness += fitness;
 			}
 		}
 		else
 		{
 			// general case for males
-			for (slim_popsize_t i = 0; i < num_males; i++)
+			for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
 			{
-				slim_popsize_t individual_index = (i + parent_first_male_index_);
-				double fitness = subpop_fitness_scaling * parent_individuals_[individual_index]->fitness_scaling_;
+				double fitness = subpop_fitness_scaling * parent_individuals_[male_index]->fitness_scaling_;
 				
 				if (fitness > 0.0)
+				{
+					if (!fitness_callbacks_exist)
+						fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(male_index);
+					else if (single_fitness_callback)
+						fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(male_index, p_fitness_callbacks, single_callback_mut_type);
+					else
+						fitness *= FitnessOfParentWithGenomeIndices_Callbacks(male_index, p_fitness_callbacks);
+					
+					// multiply in the effects of any global fitness callbacks (muttype==NULL)
+					if (global_fitness_callbacks_exist && (fitness > 0.0))
+						fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, male_index);
+				}
+				
+				parent_individuals_[male_index]->cached_fitness_ = fitness;
+				totalMaleFitness += fitness;
+			}
+		}
+		
+		totalFitness += totalMaleFitness;
+		(void)totalFitness;		// tell the static analyzer that we know we just did a dead store
+		
+		if ((population_.sim_.ModelType() == SLiMModelType::kModelTypeWF) && (totalMaleFitness <= 0.0))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of males is <= 0.0." << EidosTerminate(nullptr);
+	}
+	else
+	{
+		if (pure_neutral)
+		{
+			if (Individual::s_any_individual_fitness_scaling_set_)
+			{
+				for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
+				{
+					double fitness = subpop_fitness_scaling * parent_individuals_[individual_index]->fitness_scaling_;
+					
+					parent_individuals_[individual_index]->cached_fitness_ = fitness;
+					totalFitness += fitness;
+				}
+			}
+			else
+			{
+				for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
+				{
+					double fitness = subpop_fitness_scaling;	// no individual fitness_scaling_
+					
+					parent_individuals_[individual_index]->cached_fitness_ = fitness;
+					totalFitness += fitness;
+				}
+			}
+		}
+		else if (skip_chromosomal_fitness)
+		{
+			for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
+			{
+				double fitness = subpop_fitness_scaling * parent_individuals_[individual_index]->fitness_scaling_;
+				
+				// multiply in the effects of any global fitness callbacks (muttype==NULL)
+				if (global_fitness_callbacks_exist && (fitness > 0.0))
+					fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, individual_index);
+				
+				parent_individuals_[individual_index]->cached_fitness_ = fitness;
+				totalFitness += fitness;
+			}
+		}
+		else
+		{
+			// general case for hermaphrodites
+			for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
+			{
+				double fitness = subpop_fitness_scaling * parent_individuals_[individual_index]->fitness_scaling_;
+				
+				if (fitness > 0)
 				{
 					if (!fitness_callbacks_exist)
 						fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(individual_index);
@@ -1430,122 +1449,107 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 						fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, individual_index);
 				}
 				
-				cached_parental_fitness_[individual_index] = fitness;
-				cached_male_fitness_[individual_index] = fitness;
-				
-				totalMaleFitness += fitness;
-			}
-		}
-		
-		totalFitness += totalMaleFitness;
-		(void)totalFitness;		// tell the static analyzer that we know we just did a dead store
-		
-		if ((population_.sim_.ModelType() == SLiMModelType::kModelTypeWF) && (totalMaleFitness <= 0.0))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of males is <= 0.0." << EidosTerminate(nullptr);
-		
-		// in pure neutral models we don't set up the discrete preproc
-#ifdef SLIM_WF_ONLY
-		if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
-			if (!pure_neutral)
-				lookup_male_parent_ = gsl_ran_discrete_preproc(num_males, cached_parental_fitness_ + parent_first_male_index_);
-#endif	// SLIM_WF_ONLY
-	}
-	else
-	{
-		double *fitness_buffer_ptr = cached_parental_fitness_;
-		
-#ifdef SLIM_WF_ONLY
-		if (lookup_parent_)
-		{
-			gsl_ran_discrete_free(lookup_parent_);
-			lookup_parent_ = nullptr;
-		}
-#endif	// SLIM_WF_ONLY
-		
-		if (pure_neutral)
-		{
-			if (Individual::s_any_individual_fitness_scaling_set_)
-			{
-				for (slim_popsize_t i = 0; i < parent_subpop_size_; i++)
-				{
-					double fitness = subpop_fitness_scaling * parent_individuals_[i]->fitness_scaling_;
-					
-					*(fitness_buffer_ptr++) = fitness;
-					
-					totalFitness += fitness;
-				}
-			}
-			else
-			{
-				for (slim_popsize_t i = 0; i < parent_subpop_size_; i++)
-				{
-					double fitness = subpop_fitness_scaling;	// no individual fitness_scaling_
-					
-					*(fitness_buffer_ptr++) = fitness;
-					
-					totalFitness += fitness;
-				}
-			}
-		}
-		else if (skip_chromosomal_fitness)
-		{
-			for (slim_popsize_t i = 0; i < parent_subpop_size_; i++)
-			{
-				double fitness = subpop_fitness_scaling * parent_individuals_[i]->fitness_scaling_;
-				
-				// multiply in the effects of any global fitness callbacks (muttype==NULL)
-				if (global_fitness_callbacks_exist && (fitness > 0.0))
-					fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, i);
-				
-				*(fitness_buffer_ptr++) = fitness;
-				
-				totalFitness += fitness;
-			}
-		}
-		else
-		{
-			// general case for hermaphrodites
-			for (slim_popsize_t i = 0; i < parent_subpop_size_; i++)
-			{
-				double fitness = subpop_fitness_scaling * parent_individuals_[i]->fitness_scaling_;
-				
-				if (fitness > 0)
-				{
-					if (!fitness_callbacks_exist)
-						fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(i);
-					else if (single_fitness_callback)
-						fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(i, p_fitness_callbacks, single_callback_mut_type);
-					else
-						fitness *= FitnessOfParentWithGenomeIndices_Callbacks(i, p_fitness_callbacks);
-					
-					// multiply in the effects of any global fitness callbacks (muttype==NULL)
-					if (global_fitness_callbacks_exist && (fitness > 0.0))
-						fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, i);
-				}
-				
-				*(fitness_buffer_ptr++) = fitness;
-				
+				parent_individuals_[individual_index]->cached_fitness_ = fitness;
 				totalFitness += fitness;
 			}
 		}
 		
 		if ((population_.sim_.ModelType() == SLiMModelType::kModelTypeWF) && (totalFitness <= 0.0))
 			EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of all individuals is <= 0.0." << EidosTerminate(nullptr);
-		
-		// in pure neutral models we don't set up the discrete preproc
-#ifdef SLIM_WF_ONLY
-		if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
-			if (!pure_neutral)
-				lookup_parent_ = gsl_ran_discrete_preproc(parent_subpop_size_, cached_parental_fitness_);
-#endif	// SLIM_WF_ONLY
 	}
-	
-	cached_fitness_size_ = parent_subpop_size_;
 	
 #ifdef SLIMGUI
 	parental_total_fitness_ = totalFitness;
 #endif
+	
+#ifdef SLIM_WF_ONLY
+	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+		UpdateWFFitnessBuffers(pure_neutral);
+#endif	// SLIM_WF_ONLY
 }
+
+#ifdef SLIM_WF_ONLY
+void Subpopulation::UpdateWFFitnessBuffers(bool p_pure_neutral)
+{
+	// This is called only by UpdateFitness(), after the fitness of all individuals has been updated, and only in WF models.
+	// It updates the cached_parental_fitness_ and cached_male_fitness_ buffers, and then generates new lookup tables for mate choice.
+	
+	// Reallocate the fitness buffers to be large enough
+	if (cached_fitness_capacity_ < parent_subpop_size_)
+	{
+		cached_parental_fitness_ = (double *)realloc(cached_parental_fitness_, sizeof(double) * parent_subpop_size_);
+		if (sex_enabled_)
+			cached_male_fitness_ = (double *)realloc(cached_male_fitness_, sizeof(double) * parent_subpop_size_);
+		cached_fitness_capacity_ = parent_subpop_size_;
+	}
+	
+	// Set up the fitness buffers with the new information
+	if (sex_enabled_)
+	{
+		for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
+		{
+			double fitness = parent_individuals_[female_index]->cached_fitness_;
+			
+			cached_parental_fitness_[female_index] = fitness;
+			cached_male_fitness_[female_index] = 0;
+		}
+		
+		for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
+		{
+			double fitness = parent_individuals_[male_index]->cached_fitness_;
+			
+			cached_parental_fitness_[male_index] = fitness;
+			cached_male_fitness_[male_index] = fitness;
+		}
+	}
+	else
+	{
+		for (slim_popsize_t i = 0; i < parent_subpop_size_; i++)
+			cached_parental_fitness_[i] = parent_individuals_[i]->cached_fitness_;
+	}
+	
+	cached_fitness_size_ = parent_subpop_size_;
+	
+	// Remake our mate-choice lookup tables
+	if (sex_enabled_)
+	{
+		// throw out the old tables
+		if (lookup_female_parent_)
+		{
+			gsl_ran_discrete_free(lookup_female_parent_);
+			lookup_female_parent_ = nullptr;
+		}
+		
+		if (lookup_male_parent_)
+		{
+			gsl_ran_discrete_free(lookup_male_parent_);
+			lookup_male_parent_ = nullptr;
+		}
+		
+		// in pure neutral models we don't set up the discrete preproc
+		if (!p_pure_neutral)
+		{
+			lookup_female_parent_ = gsl_ran_discrete_preproc(parent_first_male_index_, cached_parental_fitness_);
+			lookup_male_parent_ = gsl_ran_discrete_preproc(parent_subpop_size_ - parent_first_male_index_, cached_parental_fitness_ + parent_first_male_index_);
+		}
+	}
+	else
+	{
+		// throw out the old tables
+		if (lookup_parent_)
+		{
+			gsl_ran_discrete_free(lookup_parent_);
+			lookup_parent_ = nullptr;
+		}
+		
+		// in pure neutral models we don't set up the discrete preproc
+		if (!p_pure_neutral)
+		{
+			lookup_parent_ = gsl_ran_discrete_preproc(parent_subpop_size_, cached_parental_fitness_);
+		}
+	}
+}
+#endif	// SLIM_WF_ONLY
 
 double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_fitness_callbacks, Individual *p_individual, Genome *p_genome1, Genome *p_genome2)
 {
@@ -2910,7 +2914,6 @@ void Subpopulation::MergeReproductionOffspring(void)
 	
 	cached_parent_genomes_value_.reset();
 	cached_parent_individuals_value_.reset();
-	cached_fitness_size_ = 0;
 	
 	nonWF_offspring_genomes_.clear();
 	nonWF_offspring_individuals_.clear();
@@ -2930,7 +2933,8 @@ void Subpopulation::ViabilitySelection(void)
 	
 	for (int individual_index = 0; individual_index < parent_subpop_size_; ++individual_index)
 	{
-		double fitness = cached_parental_fitness_[individual_index];
+		Individual *individual = individual_data[individual_index];
+		double fitness = individual->cached_fitness_;
 		bool survived;
 		
 		if (fitness <= 0.0)			survived = false;
@@ -2944,8 +2948,7 @@ void Subpopulation::ViabilitySelection(void)
 			{
 				genome_data[survived_genome_index] = genome_data[individual_index * 2];
 				genome_data[survived_genome_index + 1] = genome_data[individual_index * 2 + 1];
-				individual_data[survived_individual_index] = individual_data[individual_index];
-				cached_parental_fitness_[survived_individual_index] = cached_parental_fitness_[individual_index];
+				individual_data[survived_individual_index] = individual;
 				
 				// fix the individual's index_
 				individual_data[survived_individual_index]->index_ = survived_individual_index;
@@ -2959,7 +2962,6 @@ void Subpopulation::ViabilitySelection(void)
 			// individuals that do not survive get deallocated, and will be overwritten
 			Genome *genome1 = genome_data[individual_index * 2];
 			Genome *genome2 = genome_data[individual_index * 2 + 1];
-			Individual *individual = individual_data[individual_index];
 			
 			if (sex_enabled_)
 				if (individual->sex_ == IndividualSex::kFemale)
@@ -3522,7 +3524,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	// Make the new individual as a candidate
 	Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, genome1_type, genome1_null);
 	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
-	Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0);
+	Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
 	
 	if (pedigrees_enabled)
 	{
@@ -3607,7 +3609,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	// Make the new individual as a candidate
 	Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, genome1_type, genome1_null);
 	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
-	Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0);
+	Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
 	std::vector<SLiMEidosBlock*> *parent1_recombination_callbacks = &parent1_subpop.registered_recombination_callbacks_;
 	std::vector<SLiMEidosBlock*> *parent2_recombination_callbacks = &parent2_subpop.registered_recombination_callbacks_;
 	
@@ -3666,7 +3668,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	
 	Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, genome1_type, genome1_null);
 	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
-	Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, /* index */ -1, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, child_sex, /* age */ 0);
+	Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, /* index */ -1, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
 	
 	if (pedigrees_enabled)
 	{
@@ -3736,7 +3738,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	// Make the new individual as a candidate
 	Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, genome1_type, genome1_null);
 	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
-	Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0);
+	Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
 	std::vector<SLiMEidosBlock*> *parent_recombination_callbacks = &parent_subpop.registered_recombination_callbacks_;
 	
 	if (pedigrees_enabled)
@@ -3881,7 +3883,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 			// make the transmogrified individual and genomes, from our own pools
 			Genome *genome1_transmogrified = NewSubpopGenome(0, 0, GenomeType::kAutosome, true);
 			Genome *genome2_transmogrified = NewSubpopGenome(0, 0, GenomeType::kAutosome, true);
-			Individual *migrant_transmogrified = new (individual_pool_->AllocateChunk()) Individual(*this, -1, -1, genome1_transmogrified, genome2_transmogrified, IndividualSex::kHermaphrodite, -1);
+			Individual *migrant_transmogrified = new (individual_pool_->AllocateChunk()) Individual(*this, -1, -1, genome1_transmogrified, genome2_transmogrified, IndividualSex::kHermaphrodite, -1, NAN);
 			
 			// swap over the original individual and genome internals; skip self_value_ and subpop_ and genome1_ and genome2_
 			// actually, for most values we can just copy since we don't care what state is left in the original object
@@ -3933,6 +3935,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 			migrant_transmogrified->tag_value_ = migrant->tag_value_;
 			migrant_transmogrified->tagF_value_ = migrant->tagF_value_;
 			migrant_transmogrified->fitness_scaling_ = migrant->fitness_scaling_;
+			migrant_transmogrified->cached_fitness_ = migrant->cached_fitness_;
 			migrant_transmogrified->sex_ = migrant->sex_;
 #ifdef SLIM_NONWF_ONLY
 			migrant_transmogrified->age_ = migrant->age_;
@@ -4712,8 +4715,19 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 	if (child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may only be called when the parental generation is active (before or during offspring generation)." << EidosTerminate();
 #endif	// SLIM_WF_ONLY
-	if (cached_fitness_size_ == 0)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may not be called while fitness values are being calculated, or before the first time they are calculated." << EidosTerminate();
+	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+	{
+		if (population_.sim_.GenerationStage() == SLiMGenerationStage::kWFStage6CalculateFitness)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may not be called while fitness values are being calculated." << EidosTerminate();
+		if (population_.sim_.GenerationStage() == SLiMGenerationStage::kWFStage5ExecuteLateScripts)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may not be called during late() events in WF models, since the new generation does not yet have fitness values (which are calculated immediately after late() events have executed)." << EidosTerminate();
+	}
+	else
+	{
+		if (population_.sim_.GenerationStage() == SLiMGenerationStage::kNonWFStage3CalculateFitness)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may not be called while fitness values are being calculated." << EidosTerminate();
+		// in nonWF models uncalculated fitness values for new individuals are guaranteed to be NaN, so there is no need for a check here
+	}
 	
 	bool do_all_indices = (indices_value->Type() == EidosValueType::kValueNULL);
 	slim_popsize_t index_count = (do_all_indices ? parent_subpop_size_ : SLiMCastToPopsizeTypeOrRaise(indices_value->Count()));
@@ -4726,11 +4740,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 		{
 			index = SLiMCastToPopsizeTypeOrRaise(indices_value->IntAtIndex(0, nullptr));
 			
-			if (index >= cached_fitness_size_)
+			if (index >= parent_subpop_size_)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() index " << index << " out of range." << EidosTerminate();
 		}
 		
-		double fitness = cached_parental_fitness_[index];
+		double fitness = parent_individuals_[index]->cached_fitness_;
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(fitness));
 	}
@@ -4747,11 +4761,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 			{
 				index = SLiMCastToPopsizeTypeOrRaise(indices_value->IntAtIndex(value_index, nullptr));
 				
-				if (index >= cached_fitness_size_)
+				if (index >= parent_subpop_size_)
 					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() index " << index << " out of range." << EidosTerminate();
 			}
 			
-			double fitness = cached_parental_fitness_[index];
+			double fitness = parent_individuals_[index]->cached_fitness_;
 			
 			float_return->set_float_no_check(fitness, value_index);
 		}

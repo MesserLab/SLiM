@@ -102,9 +102,6 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	SLiMWindowController *controller = [[self window] windowController];
 	double scalingFactor = controller->fitnessColorScale;
 	slim_popsize_t subpopSize = subpop->parent_subpop_size_;
-	double *subpop_fitness = subpop->cached_parental_fitness_;
-	BOOL useCachedFitness = (subpop->cached_fitness_size_ == subpopSize);	// needs to have the right number of entries, otherwise we punt
-	
 	int squareSize, viewColumns = 0, viewRows = 0;
 	
 	// first figure out the biggest square size that will allow us to display the whole subpopulation
@@ -192,32 +189,23 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 			*(vertices++) = right;
 			*(vertices++) = top;
 			
-			float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0, colorAlpha = 1.0;
+			// dark gray default, for a fitness of NaN; should never happen
+			float colorRed = 0.3f, colorGreen = 0.3f, colorBlue = 0.3f, colorAlpha = 1.0;
+			Individual &individual = *subpop->parent_individuals_[individualArrayIndex];
 			
-			if (Individual::s_any_individual_color_set_)
+			if (Individual::s_any_individual_color_set_ && !individual.color_.empty())
 			{
-				Individual &individual = *subpop->parent_individuals_[individualArrayIndex];
-				
-				if (!individual.color_.empty())
-				{
-					colorRed = individual.color_red_;
-					colorGreen = individual.color_green_;
-					colorBlue = individual.color_blue_;
-				}
-				else
-				{
-					// use individual trait values to determine color; we used fitness values cached in UpdateFitness, so we don't have to call out to fitness callbacks
-					double fitness = (useCachedFitness ? subpop_fitness[individualArrayIndex] : 1.0);
-					
-					RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
-				}
+				colorRed = individual.color_red_;
+				colorGreen = individual.color_green_;
+				colorBlue = individual.color_blue_;
 			}
 			else
 			{
 				// use individual trait values to determine color; we used fitness values cached in UpdateFitness, so we don't have to call out to fitness callbacks
-				double fitness = (useCachedFitness ? subpop_fitness[individualArrayIndex] : 1.0);
+				double fitness = individual.cached_fitness_;
 				
-				RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+				if (!std::isnan(fitness))
+					RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 			}
 			
 			for (int j = 0; j < 4; ++j)
@@ -271,10 +259,6 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	SLiMWindowController *controller = [[self window] windowController];
 	double scalingFactor = controller->fitnessColorScale;
 	slim_popsize_t subpopSize = subpop->parent_subpop_size_;
-	double *subpop_fitness = subpop->cached_parental_fitness_;
-	
-	if (!subpop_fitness || (subpop->cached_fitness_size_ != subpopSize))
-		return;
 	
 	static float *glArrayVertices = nil;
 	static float *glArrayColors = nil;
@@ -303,13 +287,18 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	
 	for (int individualIndex = 0; individualIndex < subpopSize; ++individualIndex)
 	{
-		double fitness = subpop_fitness[individualIndex];
-		int binIndex = (int)floor(((fitness - fitnessMin) / (fitnessMax - fitnessMin)) * numberOfBins);
+		Individual &individual = *subpop->parent_individuals_[individualIndex];
+		double fitness = individual.cached_fitness_;
 		
-		if (binIndex < 0) binIndex = 0;
-		if (binIndex >= numberOfBins) binIndex = numberOfBins - 1;
-		
-		binCounts[binIndex]++;
+		if (!std::isnan(fitness))
+		{
+			int binIndex = (int)floor(((fitness - fitnessMin) / (fitnessMax - fitnessMin)) * numberOfBins);
+			
+			if (binIndex < 0) binIndex = 0;
+			if (binIndex >= numberOfBins) binIndex = numberOfBins - 1;
+			
+			binCounts[binIndex]++;
+		}
 	}
 	
 	NSRect histogramArea = NSMakeRect(bounds.origin.x + 5, bounds.origin.y + 5, bounds.size.width - 10, bounds.size.height - 10);
@@ -369,20 +358,21 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	{
 		Subpopulation *subpop = selectedSubpopulations[subpopIndex];
 		slim_popsize_t subpopSize = subpop->parent_subpop_size_;
-		double *subpop_fitness = subpop->cached_parental_fitness_;
-		
-		if (!subpop_fitness || (subpop->cached_fitness_size_ != subpopSize))
-			continue;
 		
 		for (int individualIndex = 0; individualIndex < subpopSize; ++individualIndex)
 		{
-			double fitness = subpop_fitness[individualIndex];
-			int binIndex = (int)floor(((fitness - fitnessMin) / (fitnessMax - fitnessMin)) * numberOfBins);
+			Individual &individual = *subpop->parent_individuals_[individualIndex];
+			double fitness = individual.cached_fitness_;
 			
-			if (binIndex < 0) binIndex = 0;
-			if (binIndex >= numberOfBins) binIndex = numberOfBins - 1;
-			
-			binCounts[binIndex]++;
+			if (!std::isnan(fitness))
+			{
+				int binIndex = (int)floor(((fitness - fitnessMin) / (fitnessMax - fitnessMin)) * numberOfBins);
+				
+				if (binIndex < 0) binIndex = 0;
+				if (binIndex >= numberOfBins) binIndex = numberOfBins - 1;
+				
+				binCounts[binIndex]++;
+			}
 		}
 		
 		binTotal += subpopSize;
@@ -995,8 +985,6 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	double bounds_x0 = subpop->bounds_x0_, bounds_x1 = subpop->bounds_x1_;
 	double bounds_y0 = subpop->bounds_y0_, bounds_y1 = subpop->bounds_y1_;
 	double bounds_x_size = bounds_x1 - bounds_x0, bounds_y_size = bounds_y1 - bounds_y0;
-	double *subpop_fitness = subpop->cached_parental_fitness_;
-	BOOL useCachedFitness = (subpop->cached_fitness_size_ == subpopSize);	// needs to have the right number of entries, otherwise we punt
 	
 	NSRect individualArea = NSMakeRect(bounds.origin.x, bounds.origin.y, bounds.size.width - 1, bounds.size.height - 1);
 	
@@ -1141,28 +1129,19 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 		*(vertices++) = right;
 		*(vertices++) = top;
 		
-		float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0, colorAlpha = 1.0;
+		// dark gray default, for a fitness of NaN; should never happen
+		float colorRed = 0.3f, colorGreen = 0.3f, colorBlue = 0.3f, colorAlpha = 1.0;
 		
-		if (Individual::s_any_individual_color_set_)
+		if (Individual::s_any_individual_color_set_ && !individual.color_.empty())
 		{
-			if (!individual.color_.empty())
-			{
-				colorRed = individual.color_red_;
-				colorGreen = individual.color_green_;
-				colorBlue = individual.color_blue_;
-			}
-			else
-			{
-				// use individual trait values to determine color; we used fitness values cached in UpdateFitness, so we don't have to call out to fitness callbacks
-				double fitness = (useCachedFitness ? subpop_fitness[individualArrayIndex] : 1.0);
-				
-				RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
-			}
+			colorRed = individual.color_red_;
+			colorGreen = individual.color_green_;
+			colorBlue = individual.color_blue_;
 		}
 		else
 		{
 			// use individual trait values to determine color; we used fitness values cached in UpdateFitness, so we don't have to call out to fitness callbacks
-			double fitness = (useCachedFitness ? subpop_fitness[individualArrayIndex] : 1.0);
+			double fitness = individual.cached_fitness_;
 			
 			RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 		}
