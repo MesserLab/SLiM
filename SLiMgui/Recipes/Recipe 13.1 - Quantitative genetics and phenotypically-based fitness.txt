@@ -46,7 +46,7 @@ initialize() {
 	p1.setMigrationRates(p2, 0.01);
 	p2.setMigrationRates(p1, 0.01);
 	
-	sim.registerLateEvent("s2", s1.source, 1, 1);
+	sim.registerEarlyEvent("s2", s1.source, 2, 2);
 }
 1 late() {
 	// optional: give m2 mutations to everyone, as standing variation
@@ -83,9 +83,9 @@ mateChoice() {
 	others = asFloat(sourceSubpop.individuals.tag);
 	return weights * dnorm(others, phenotype, 5.0);
 }
-s1 2000 late() {
+s1 2001 early() {
 	cat("-------------------------------\n");
-	cat("Output for generation " + sim.generation + ":\n\n");
+	cat("Output for end of generation " + (sim.generation - 1) + ":\n\n");
 	
 	// Output population fitness values
 	cat("p1 mean fitness = " + mean(p1.cachedFitness(NULL)) + "\n");
