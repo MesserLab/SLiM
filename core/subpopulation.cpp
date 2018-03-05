@@ -2965,6 +2965,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 	if (cached_fitness_size_ == 0)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may not be called while fitness values are being calculated, or before the first time they are calculated." << EidosTerminate();
 	
+	// BCH 5 March 2018: This stuff gets cleaned up in SLiM 3.0, but for now, we just want to make sure to raise an
+	// error if cachedFitness() gets called at an inappropriate time.  In SLiM 2.6 it returns garbage values if called
+	// from a late() event, because it uses the fitness cache from the previous generation.
+	if (population_.sim_.GenerationStage() == SLiMGenerationStage::kStage6CalculateFitness)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may not be called while fitness values are being calculated." << EidosTerminate();
+	if (population_.sim_.GenerationStage() == SLiMGenerationStage::kStage5ExecuteLateScripts)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may not be called during late() events in WF models, since the new generation does not yet have fitness values (which are calculated immediately after late() events have executed)." << EidosTerminate();
+	
 	bool do_all_indices = (indices_value->Type() == EidosValueType::kValueNULL);
 	slim_popsize_t index_count = (do_all_indices ? parent_subpop_size_ : SLiMCastToPopsizeTypeOrRaise(indices_value->Count()));
 	
