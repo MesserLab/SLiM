@@ -36,6 +36,7 @@ development head (nonWF branch):
 	fix bug where a gene conversion rate of exactly 1.0 would be treated as 0.0
 	fix bug with paste of code from a source with unconventional line endings
 	add support for a logical argument to mean(), and increase the accuracy of mean() for very large integer vectors by trying to avoid floating-point overflow issues
+	fix bug that allowed cachedFitness() to be called from a late() event, returning garbage values
 
 
 2.6 (build 1292; Eidos version 1.6):
