@@ -40,7 +40,7 @@ development head (nonWF branch):
 	fix recipe 13.1, which called cachedFitness() during a late() event, which should have been illegal (and now is illegal)
 	add recipe 13.3 III, mortality-based fitness using fitnessScaling
 	fix a crash when calling setSubpopulationSize(0) (or removeSubpopulation()) twice on the same subpop
-
+	fix searches in the help for strings that return more than one identical hit, such as "tag"; such searches were only displaying one of the multiple hits
 
 2.6 (build 1292; Eidos version 1.6):
 	make addNewMutation() and addNewDrawnMutation() vectorized, for much higher performance when adding many mutations in bulk; note policy change that requested mutations are returned whether added or not

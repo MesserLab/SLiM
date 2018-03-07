@@ -35,8 +35,9 @@
 #endif
 
 
-// EidosHelpOutlineView – this lets us colorize rows in the outline
+// EidosHelpOutlineView – this lets us colorize rows in the outline, and search for all rows matching an item
 @interface EidosHelpOutlineView : NSOutlineView
+- (NSIndexSet *)eidosRowIndicesForItem:(id)item;
 @end
 
 // EidosHelpTextStorage – a little subclass to make line wrapping in the help textview work the way it should, defined below
@@ -840,9 +841,9 @@
 			[_topicOutlineView expandItem:obj];
 		}];
 		
-		// Select all of the items that matched
+		// Select all of the items that matched; rowForItem: only returns the first hit, so we have a custom method that gets all hits
 		[matchKeys enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
-			[_topicOutlineView selectRowIndexes:[NSIndexSet indexSetWithIndex:[_topicOutlineView rowForItem:obj]] byExtendingSelection:YES];
+			[_topicOutlineView selectRowIndexes:[(EidosHelpOutlineView *)_topicOutlineView eidosRowIndicesForItem:obj] byExtendingSelection:YES];
 		}];
 		
 		// The outline view occasionally seems to mis-update; I think it is an AppKit bug but it's hard to be sure.
@@ -1243,6 +1244,22 @@
 		[[NSColor blackColor] set];
 		NSFrameRect(boxRect);
 	}
+}
+	
+- (NSIndexSet *)eidosRowIndicesForItem:(id)item
+{
+	NSMutableIndexSet *indexSet = [NSMutableIndexSet indexSet];
+	NSInteger rowCount = [self numberOfRows];
+	
+	for (NSInteger rowIndex = 0; rowIndex < rowCount; ++rowIndex)
+	{
+		id rowItem = [self itemAtRow:rowIndex];
+		
+		if ([item isEqual:rowItem])
+		[indexSet addIndex:rowIndex];
+	}
+	
+	return indexSet;
 }
 
 @end
