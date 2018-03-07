@@ -39,6 +39,7 @@ development head (nonWF branch):
 	fix bug that allowed cachedFitness() to be called from a late() event, returning garbage values
 	fix recipe 13.1, which called cachedFitness() during a late() event, which should have been illegal (and now is illegal)
 	add recipe 13.3 III, mortality-based fitness using fitnessScaling
+	fix a crash when calling setSubpopulationSize(0) (or removeSubpopulation()) twice on the same subpop
 
 
 2.6 (build 1292; Eidos version 1.6):

@@ -244,20 +244,24 @@ void Population::SetSize(Subpopulation &p_subpop, slim_popsize_t p_subpop_size)
 	
 	if (p_subpop_size == 0) // remove subpopulation p_subpop_id
 	{
-		// Note that we don't free the subpopulation here, because there may be live references to it; instead we keep it to the end of the generation and then free it
-		// First we remove the symbol for the subpop
-		sim_.SymbolTable().RemoveConstantForSymbol(p_subpop.SymbolTableEntry().first);
-		
-		// Then we immediately remove the subpop from our list of subpops
 		slim_objectid_t subpop_id = p_subpop.subpopulation_id_;
 		
-		erase(subpop_id);
-		
-		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
-			subpop_pair.second->migrant_fractions_.erase(subpop_id);
-		
-		// remember the subpop for later disposal
-		removed_subpops_.emplace_back(&p_subpop);
+		// only remove if we have not already removed
+		if (find(subpop_id) != this->end())
+		{
+			// Note that we don't free the subpopulation here, because there may be live references to it; instead we keep it to the end of the generation and then free it
+			// First we remove the symbol for the subpop
+			sim_.SymbolTable().RemoveConstantForSymbol(p_subpop.SymbolTableEntry().first);
+			
+			// Then we immediately remove the subpop from our list of subpops
+			erase(subpop_id);
+			
+			for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
+				subpop_pair.second->migrant_fractions_.erase(subpop_id);
+			
+			// remember the subpop for later disposal
+			removed_subpops_.emplace_back(&p_subpop);
+		}
 	}
 	else
 	{
@@ -272,17 +276,21 @@ void Population::SetSize(Subpopulation &p_subpop, slim_popsize_t p_subpop_size)
 // remove subpopulation p_subpop_id from the model entirely
 void Population::RemoveSubpopulation(Subpopulation &p_subpop)
 {
-	// Note that we don't free the subpopulation here, because there may be live references to it; instead we keep it to the end of the generation and then free it
-	// First we remove the symbol for the subpop
-	sim_.SymbolTable().RemoveConstantForSymbol(p_subpop.SymbolTableEntry().first);
-	
-	// Then we immediately remove the subpop from our list of subpops
 	slim_objectid_t subpop_id = p_subpop.subpopulation_id_;
 	
-	erase(subpop_id);
-	
-	// remember the subpop for later disposal
-	removed_subpops_.emplace_back(&p_subpop);
+	// only remove if we have not already removed
+	if (find(subpop_id) != this->end())
+	{
+		// Note that we don't free the subpopulation here, because there may be live references to it; instead we keep it to the end of the generation and then free it
+		// First we remove the symbol for the subpop
+		sim_.SymbolTable().RemoveConstantForSymbol(p_subpop.SymbolTableEntry().first);
+		
+		// Then we immediately remove the subpop from our list of subpops
+		erase(subpop_id);
+		
+		// remember the subpop for later disposal
+		removed_subpops_.emplace_back(&p_subpop);
+	}
 }
 #endif  // SLIM_NONWF_ONLY
 
