@@ -217,6 +217,9 @@ public:
 	slim_usertag_t tag_value_;							// a user-defined tag value
 	
 	double fitness_scaling_ = 1.0;						// the fitnessScaling property value
+#ifdef SLIMGUI
+	double last_fitness_scaling_ = 1.0;					// the value for fitnessScaling before it was reset; used by SLiMgui
+#endif
 	
 #ifdef SLIMGUI
 	bool gui_selected_ = false;							// keeps track of whether we are selected in SLiMgui's table of subpopulations; note Population::gui_all_selected_ must be kept in synch!

@@ -3462,6 +3462,10 @@ void Population::RecalculateFitness(slim_generation_t p_generation)
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		
+#ifdef SLIMGUI
+		// in SLiMgui, remember the fitness_scaling_ value used in fitness calculations, to renormalize the display
+		subpop->last_fitness_scaling_ = subpop->fitness_scaling_;
+#endif
 		subpop->fitness_scaling_ = 1.0;
 		
 		// Reset fitness_scaling_ on individuals only if it has ever been changed

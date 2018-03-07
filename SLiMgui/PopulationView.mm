@@ -103,6 +103,10 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	double scalingFactor = controller->fitnessColorScale;
 	slim_popsize_t subpopSize = subpop->parent_subpop_size_;
 	int squareSize, viewColumns = 0, viewRows = 0;
+	double subpopFitnessScaling = subpop->last_fitness_scaling_;
+	
+	if ((subpopFitnessScaling <= 0.0) || !std::isfinite(subpopFitnessScaling))
+		subpopFitnessScaling = 1.0;
 	
 	// first figure out the biggest square size that will allow us to display the whole subpopulation
 	for (squareSize = 20; squareSize > 1; --squareSize)
@@ -201,11 +205,12 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 			}
 			else
 			{
-				// use individual trait values to determine color; we used fitness values cached in UpdateFitness, so we don't have to call out to fitness callbacks
+				// use individual trait values to determine color; we use fitness values cached in UpdateFitness, so we don't have to call out to fitness callbacks
+				// we normalize fitness values with subpopFitnessScaling so individual fitness, unscaled by subpopulation fitness, is used for coloring
 				double fitness = individual.cached_fitness_;
 				
 				if (!std::isnan(fitness))
-					RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+					RGBForFitness(fitness / subpopFitnessScaling, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 			}
 			
 			for (int j = 0; j < 4; ++j)
@@ -259,6 +264,10 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	SLiMWindowController *controller = [[self window] windowController];
 	double scalingFactor = controller->fitnessColorScale;
 	slim_popsize_t subpopSize = subpop->parent_subpop_size_;
+	double subpopFitnessScaling = subpop->last_fitness_scaling_;
+	
+	if ((subpopFitnessScaling <= 0.0) || !std::isfinite(subpopFitnessScaling))
+		subpopFitnessScaling = 1.0;
 	
 	static float *glArrayVertices = nil;
 	static float *glArrayColors = nil;
@@ -292,7 +301,8 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 		
 		if (!std::isnan(fitness))
 		{
-			int binIndex = (int)floor(((fitness - fitnessMin) / (fitnessMax - fitnessMin)) * numberOfBins);
+			// we normalize fitness values with subpopFitnessScaling so individual fitness, unscaled by subpopulation fitness, is used for coloring
+			int binIndex = (int)floor((((fitness / subpopFitnessScaling) - fitnessMin) / (fitnessMax - fitnessMin)) * numberOfBins);
 			
 			if (binIndex < 0) binIndex = 0;
 			if (binIndex >= numberOfBins) binIndex = numberOfBins - 1;
@@ -358,6 +368,10 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	{
 		Subpopulation *subpop = selectedSubpopulations[subpopIndex];
 		slim_popsize_t subpopSize = subpop->parent_subpop_size_;
+		double subpopFitnessScaling = subpop->last_fitness_scaling_;
+		
+		if ((subpopFitnessScaling <= 0.0) || !std::isfinite(subpopFitnessScaling))
+		subpopFitnessScaling = 1.0;
 		
 		for (int individualIndex = 0; individualIndex < subpopSize; ++individualIndex)
 		{
@@ -366,7 +380,8 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 			
 			if (!std::isnan(fitness))
 			{
-				int binIndex = (int)floor(((fitness - fitnessMin) / (fitnessMax - fitnessMin)) * numberOfBins);
+				// we normalize fitness values with subpopFitnessScaling so individual fitness, unscaled by subpopulation fitness, is used for coloring
+				int binIndex = (int)floor((((fitness / subpopFitnessScaling) - fitnessMin) / (fitnessMax - fitnessMin)) * numberOfBins);
 				
 				if (binIndex < 0) binIndex = 0;
 				if (binIndex >= numberOfBins) binIndex = numberOfBins - 1;
@@ -985,6 +1000,10 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	double bounds_x0 = subpop->bounds_x0_, bounds_x1 = subpop->bounds_x1_;
 	double bounds_y0 = subpop->bounds_y0_, bounds_y1 = subpop->bounds_y1_;
 	double bounds_x_size = bounds_x1 - bounds_x0, bounds_y_size = bounds_y1 - bounds_y0;
+	double subpopFitnessScaling = subpop->last_fitness_scaling_;
+	
+	if ((subpopFitnessScaling <= 0.0) || !std::isfinite(subpopFitnessScaling))
+		subpopFitnessScaling = 1.0;
 	
 	NSRect individualArea = NSMakeRect(bounds.origin.x, bounds.origin.y, bounds.size.width - 1, bounds.size.height - 1);
 	
@@ -1141,9 +1160,11 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 		else
 		{
 			// use individual trait values to determine color; we used fitness values cached in UpdateFitness, so we don't have to call out to fitness callbacks
+			// we normalize fitness values with subpopFitnessScaling so individual fitness, unscaled by subpopulation fitness, is used for coloring
 			double fitness = individual.cached_fitness_;
 			
-			RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+			if (!std::isnan(fitness))
+				RGBForFitness(fitness / subpopFitnessScaling, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 		}
 		
 		for (int j = 0; j < 4; ++j)
