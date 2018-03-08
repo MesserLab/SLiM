@@ -2981,6 +2981,20 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 	// Stage 1: Generate offspring: call reproduce() callbacks
 	//
 	{
+#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+		// zero out offspring counts used for SLiMgui's display
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+		{
+			Subpopulation *subpop = subpop_pair.second;
+			
+			subpop->gui_offspring_cloned_M_ = 0;
+			subpop->gui_offspring_cloned_F_ = 0;
+			subpop->gui_offspring_selfed_ = 0;
+			subpop->gui_offspring_crossed_ = 0;
+			subpop->gui_offspring_empty_ = 0;
+		}
+#endif
+		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_START();

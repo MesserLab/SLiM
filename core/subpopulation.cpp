@@ -3543,16 +3543,22 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	population_.DoClonalMutation(&parent_subpop, *genome2, parent->index_, child_sex);
 	
 	// Run the candidate past modifyChild() callbacks
+	bool proposed_child_accepted = true;
+	
 	if (registered_modify_child_callbacks_.size())
+		proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, parent->index_, parent->index_, false, false, this, this, registered_modify_child_callbacks_);
+	
+#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+	if (proposed_child_accepted)
 	{
-		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, parent->index_, parent->index_, false, false, this, this, registered_modify_child_callbacks_);
-		
-		return _ResultAfterModifyChildCallbacks(proposed_child_accepted, individual, genome1, genome2);
+		if ((child_sex == IndividualSex::kHermaphrodite) || (child_sex == IndividualSex::kMale))
+			gui_offspring_cloned_M_++;
+		if ((child_sex == IndividualSex::kHermaphrodite) || (child_sex == IndividualSex::kFemale))
+			gui_offspring_cloned_F_++;
 	}
-	else
-	{
-		return _ResultAfterModifyChildCallbacks(true, individual, genome1, genome2);
-	}
+#endif
+	
+	return _ResultAfterModifyChildCallbacks(proposed_child_accepted, individual, genome1, genome2);
 }
 
 //	*********************	– (No<Individual>$)addCrossed(object<Individual>$ parent1, object<Individual>$ parent2, [Nfs$ sex = NULL])
@@ -3633,10 +3639,18 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	{
 		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, parent1->index_, parent2->index_, false, false, this, this, registered_modify_child_callbacks_);
 		
+#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+		if (proposed_child_accepted) gui_offspring_crossed_++;
+#endif
+		
 		return _ResultAfterModifyChildCallbacks(proposed_child_accepted, individual, genome1, genome2);
 	}
 	else
 	{
+#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+		gui_offspring_crossed_++;
+#endif
+		
 		return _ResultAfterModifyChildCallbacks(true, individual, genome1, genome2);
 	}
 }
@@ -3686,16 +3700,16 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	genome2->clear_to_empty();
 	
 	// Run the candidate past modifyChild() callbacks
+	bool proposed_child_accepted = true;
+	
 	if (registered_modify_child_callbacks_.size())
-	{
-		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, -1, -1, false, false, this, this, registered_modify_child_callbacks_);
-		
-		return _ResultAfterModifyChildCallbacks(proposed_child_accepted, individual, genome1, genome2);
-	}
-	else
-	{
-		return _ResultAfterModifyChildCallbacks(true, individual, genome1, genome2);
-	}
+		proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, -1, -1, false, false, this, this, registered_modify_child_callbacks_);
+	
+#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+	if (proposed_child_accepted) gui_offspring_empty_++;
+#endif
+	
+	return _ResultAfterModifyChildCallbacks(proposed_child_accepted, individual, genome1, genome2);
 }
 
 //	*********************	– (No<Individual>$)addSelfed(object<Individual>$ parent)
@@ -3760,10 +3774,18 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	{
 		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, parent->index_, parent->index_, false, false, this, this, registered_modify_child_callbacks_);
 		
+#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+		if (proposed_child_accepted) gui_offspring_selfed_++;
+#endif
+		
 		return _ResultAfterModifyChildCallbacks(proposed_child_accepted, individual, genome1, genome2);
 	}
 	else
 	{
+#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+		gui_offspring_selfed_++;
+#endif
+		
 		return _ResultAfterModifyChildCallbacks(true, individual, genome1, genome2);
 	}
 }

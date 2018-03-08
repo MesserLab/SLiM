@@ -4093,33 +4093,64 @@
 				{
 					return [NSString stringWithFormat:@"%lld", (int64_t)subpop->parent_subpop_size_];
 				}
+#ifdef SLIM_NONWF_ONLY
 				else if (sim->ModelType() == SLiMModelType::kModelTypeNonWF)
 				{
-					// in nonWF models selfing/cloning/sex rates/ratios are not available
+					// in nonWF models selfing/cloning/sex rates/ratios are emergent, calculated from collected metrics
+					double total_offspring = subpop->gui_offspring_cloned_M_ + subpop->gui_offspring_crossed_ + subpop->gui_offspring_empty_ + subpop->gui_offspring_selfed_;
+					
+					if (subpop->sex_enabled_)
+						total_offspring += subpop->gui_offspring_cloned_F_;		// avoid double-counting clones when we are modeling hermaphrodites
+					
+					if (aTableColumn == subpopSelfingRateColumn)
+					{
+						if (!subpop->sex_enabled_ && (total_offspring > 0))
+							return [NSString stringWithFormat:@"%.2f", subpop->gui_offspring_selfed_ / total_offspring];
+					}
+					else if (aTableColumn == subpopFemaleCloningRateColumn)
+					{
+						if (total_offspring > 0)
+							return [NSString stringWithFormat:@"%.2f", subpop->gui_offspring_cloned_F_ / total_offspring];
+					}
+					else if (aTableColumn == subpopMaleCloningRateColumn)
+					{
+						if (total_offspring > 0)
+							return [NSString stringWithFormat:@"%.2f", subpop->gui_offspring_cloned_M_ / total_offspring];
+					}
+					else if (aTableColumn == subpopSexRatioColumn)
+					{
+						if (subpop->sex_enabled_ && (subpop->parent_subpop_size_ > 0))
+							return [NSString stringWithFormat:@"%.2f", 1.0 - subpop->parent_first_male_index_ / (double)subpop->parent_subpop_size_];
+					}
+					
 					return @"—";
 				}
+#endif	// SLIM_NONWF_ONLY
 #ifdef SLIM_WF_ONLY
-				else if (aTableColumn == subpopSelfingRateColumn)
+				else	// sim->ModelType() == SLiMModelType::kModelTypeWF
 				{
-					if (subpop->sex_enabled_)
-						return @"—";
-					else
-						return [NSString stringWithFormat:@"%.2f", subpop->selfing_fraction_];
-				}
-				else if (aTableColumn == subpopFemaleCloningRateColumn)
-				{
-					return [NSString stringWithFormat:@"%.2f", subpop->female_clone_fraction_];
-				}
-				else if (aTableColumn == subpopMaleCloningRateColumn)
-				{
-					return [NSString stringWithFormat:@"%.2f", subpop->male_clone_fraction_];
-				}
-				else if (aTableColumn == subpopSexRatioColumn)
-				{
-					if (subpop->sex_enabled_)
-						return [NSString stringWithFormat:@"%.2f", subpop->parent_sex_ratio_];
-					else
-						return @"—";
+					if (aTableColumn == subpopSelfingRateColumn)
+					{
+						if (subpop->sex_enabled_)
+							return @"—";
+						else
+							return [NSString stringWithFormat:@"%.2f", subpop->selfing_fraction_];
+					}
+					else if (aTableColumn == subpopFemaleCloningRateColumn)
+					{
+						return [NSString stringWithFormat:@"%.2f", subpop->female_clone_fraction_];
+					}
+					else if (aTableColumn == subpopMaleCloningRateColumn)
+					{
+						return [NSString stringWithFormat:@"%.2f", subpop->male_clone_fraction_];
+					}
+					else if (aTableColumn == subpopSexRatioColumn)
+					{
+						if (subpop->sex_enabled_)
+							return [NSString stringWithFormat:@"%.2f", subpop->parent_sex_ratio_];
+						else
+							return @"—";
+					}
 				}
 #endif	// SLIM_WF_ONLY
 			}

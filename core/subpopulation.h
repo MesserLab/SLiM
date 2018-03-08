@@ -227,6 +227,15 @@ public:
 	double gui_center_x_, gui_center_y_, gui_radius_;	// used as scratch space by GraphView_PopulationVisualization
 #endif
 	
+#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+	// these counters track generated offspring of different types, in nonWF models
+	int64_t gui_offspring_cloned_M_ = 0;
+	int64_t gui_offspring_cloned_F_ = 0;
+	int64_t gui_offspring_selfed_ = 0;
+	int64_t gui_offspring_crossed_ = 0;
+	int64_t gui_offspring_empty_ = 0;
+#endif	// (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+	
 	Subpopulation(const Subpopulation&) = delete;													// no copying
 	Subpopulation& operator=(const Subpopulation&) = delete;										// no copying
 	Subpopulation(void) = delete;																	// no null construction
