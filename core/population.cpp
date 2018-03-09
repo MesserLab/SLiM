@@ -3184,11 +3184,14 @@ void Population::SurveyPopulation(void)
 		
 		subpop->parental_total_fitness_ = subpop_total;
 		
-		// then add the fitness total for the subpopulation in to our overall total
-		totalFitness += subpop->parental_total_fitness_;
+		// then add the fitness total for the subpopulation in to our overall total; we use the fitness rescaled
+		// by the last fitnessScaling value, since we want to present individual fitness without density effects
+		double rescaled_fitness = (subpop->parental_total_fitness_ / subpop->last_fitness_scaling_);
+		
+		totalFitness += rescaled_fitness;
 		individualCount += subpop->parent_subpop_size_;
 		
-		RecordFitness(historyIndex, subpop_pair.first, subpop->parental_total_fitness_ / subpop->parent_subpop_size_);
+		RecordFitness(historyIndex, subpop_pair.first, rescaled_fitness / subpop->parent_subpop_size_);
 	}
 	
 	RecordFitness(historyIndex, -1, totalFitness / individualCount);
