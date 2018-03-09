@@ -95,9 +95,10 @@
 
 - (void)updateAfterTick
 {
-	if (![self yAxisIsUserRescaled])
+	SLiMWindowController *controller = [self slimWindowController];
+	
+	if (![controller invalidSimulation] && ![self yAxisIsUserRescaled])
 	{
-		SLiMWindowController *controller = [self slimWindowController];
 		SLiMSim *sim = controller->sim;
 		Population &pop = sim->population_;
 		double minHistory = INFINITY;

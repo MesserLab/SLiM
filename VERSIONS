@@ -42,7 +42,9 @@ development head (nonWF branch):
 	fix a crash when calling setSubpopulationSize(0) (or removeSubpopulation()) twice on the same subpop
 	fix searches in the help for strings that return more than one identical hit, such as "tag"; such searches were only displaying one of the multiple hits
 	display the emergent selfing rate, cloning rate, and sex ratio in SLiMgui for nonWF models
-	make the population visualization graph work better with nonWF models
+	make the population visualization graph work better with nonWF models (using fitness values without density scaling, display emergent migration rates)
+	make the fitness over time graph display fitness without density scaling, as in other aspects of SLiMgui's presentation of fitness
+	fix a crash with the fitness over time graph when the simulation became invalid (due to a stop() call or other error)
 
 
 2.6 (build 1292; Eidos version 1.6):
