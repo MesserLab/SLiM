@@ -223,7 +223,7 @@ public:
 	
 #ifdef SLIMGUI
 	bool gui_selected_ = false;							// keeps track of whether we are selected in SLiMgui's table of subpopulations; note Population::gui_all_selected_ must be kept in synch!
-	double parental_total_fitness_ = 0.0;				// updated in UpdateFitness() when running under SLiMgui
+	double parental_total_fitness_ = 0.0;				// updated in SurveyPopulation() when running under SLiMgui
 	double gui_center_x_, gui_center_y_, gui_radius_;	// used as scratch space by GraphView_PopulationVisualization
 #endif
 	
@@ -234,6 +234,10 @@ public:
 	int64_t gui_offspring_selfed_ = 0;
 	int64_t gui_offspring_crossed_ = 0;
 	int64_t gui_offspring_empty_ = 0;
+	
+	// these track migrants out to us from other subpopulations, in nonWF models
+	int64_t gui_premigration_size_ = 0;
+	std::map<slim_objectid_t,double> gui_migrants_;		// m[i]: fraction made up of migrants from subpopulation i per generation
 #endif	// (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
 	
 	Subpopulation(const Subpopulation&) = delete;													// no copying

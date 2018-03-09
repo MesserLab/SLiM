@@ -874,6 +874,9 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 #ifdef SLIM_WF_ONLY
 	child_subpop_size_(p_subpop_size),
 #endif	// SLIM_WF_ONLY
+#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+	gui_premigration_size_(p_subpop_size),
+#endif
 	self_symbol_(Eidos_GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Subpopulation_Class)))
 {
 #if defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY)
@@ -915,6 +918,9 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 #ifdef SLIM_WF_ONLY
 	parent_sex_ratio_(p_sex_ratio), child_subpop_size_(p_subpop_size), child_sex_ratio_(p_sex_ratio),
 #endif	// SLIM_WF_ONLY
+#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+	gui_premigration_size_(p_subpop_size),
+#endif
 	modeled_chromosome_type_(p_modeled_chromosome_type), x_chromosome_dominance_coeff_(p_x_chromosome_dominance_coeff),
 	self_symbol_(Eidos_GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Subpopulation_Class)))
 {
@@ -1457,10 +1463,6 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		if ((population_.sim_.ModelType() == SLiMModelType::kModelTypeWF) && (totalFitness <= 0.0))
 			EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of all individuals is <= 0.0." << EidosTerminate(nullptr);
 	}
-	
-#ifdef SLIMGUI
-	parental_total_fitness_ = totalFitness;
-#endif
 	
 #ifdef SLIM_WF_ONLY
 	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
@@ -2991,8 +2993,6 @@ void Subpopulation::ViabilitySelection(void)
 		cached_parent_genomes_value_.reset();
 		cached_parent_individuals_value_.reset();
 	}
-	
-	// FIXME parental_total_fitness_ might need to be updated for correct display in SLiMgui
 }
 #endif  // SLIM_NONWF_ONLY
 
@@ -3841,6 +3841,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 		
 		if (source_subpop != this)
 		{
+#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+			// before doing anything else, tally this incoming migrant for SLiMgui
+			++gui_migrants_[source_subpop->subpopulation_id_];
+#endif
+			
 			slim_popsize_t source_subpop_size = source_subpop->parent_subpop_size_;
 			slim_popsize_t source_subpop_index = migrant->index_;
 			Genome *genome1 = migrant->genome1_;

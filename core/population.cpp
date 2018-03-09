@@ -3165,7 +3165,7 @@ void Population::RecordFitness(slim_generation_t p_history_index, slim_objectid_
 // This method is used to record population statistics that are kept per generation for SLiMgui
 void Population::SurveyPopulation(void)
 {
-	// Calculate mean fitness for this generation; this integrates the subpop mean fitness values from UpdateFitness()
+	// Calculate mean fitness for this generation
 	double totalFitness = 0.0;
 	slim_popsize_t individualCount = 0;
 	slim_generation_t historyIndex = sim_.generation_ - 1;	// zero-base: the first generation we put something in is generation 1, and we put it at index 0
@@ -3174,6 +3174,17 @@ void Population::SurveyPopulation(void)
 	{ 
 		Subpopulation *subpop = subpop_pair.second;
 		
+		// first calculate the total fitness across the subpopulation; we used to do this during fitness calculations,
+		// but in nonWF models the population composition can change later in the generation cycle, due to mortality
+		// and migration, so we need to postpone this assessment to the end of the generation – now
+		double subpop_total = 0;
+		
+		for (Individual *individual : subpop->parent_individuals_)
+			subpop_total += individual->cached_fitness_;
+		
+		subpop->parental_total_fitness_ = subpop_total;
+		
+		// then add the fitness total for the subpopulation in to our overall total
 		totalFitness += subpop->parental_total_fitness_;
 		individualCount += subpop->parent_subpop_size_;
 		

@@ -83,7 +83,13 @@
 	// calculate the color from the mean fitness of the population
 	double scalingFactor = controller->fitnessColorScale;
 	double totalFitness = subpop->parental_total_fitness_;
-	double fitness = totalFitness / subpopSize;
+	double subpopFitnessScaling = subpop->last_fitness_scaling_;
+	
+	if ((subpopFitnessScaling <= 0.0) || !std::isfinite(subpopFitnessScaling))
+		subpopFitnessScaling = 1.0;
+	
+	// we normalize fitness values with subpopFitnessScaling so individual fitness, unscaled by subpopulation fitness, is used for coloring
+	double fitness = (totalFitness / subpopFitnessScaling) / subpopSize;
 	float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0;
 	RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 	NSColor *fitnessColor = [NSColor colorWithDeviceRed:colorRed green:colorGreen blue:colorBlue alpha:1.0];	// device, to match OpenGL
@@ -641,13 +647,12 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 		}
 		
 		// in the multipop case, we need to draw migration arrows, too
-#ifdef SLIM_WF_ONLY
-		if (sim->ModelType() == SLiMModelType::kModelTypeWF)
+#if (defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY))
 		{
 			for (auto destSubpopIter = pop.begin(); destSubpopIter != pop.end(); ++destSubpopIter)
 			{
 				Subpopulation *destSubpop = (*destSubpopIter).second;
-				std::map<slim_objectid_t,double> &destMigrants = destSubpop->migrant_fractions_;
+				std::map<slim_objectid_t,double> &destMigrants = (sim->ModelType() == SLiMModelType::kModelTypeWF) ? destSubpop->migrant_fractions_ : destSubpop->gui_migrants_;
 				
 				for (auto sourceSubpopIter = destMigrants.begin(); sourceSubpopIter != destMigrants.end(); ++sourceSubpopIter)
 				{
@@ -659,12 +664,26 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 						Subpopulation *sourceSubpop = sourceSubpopPair->second;
 						double migrantFraction = (*sourceSubpopIter).second;
 						
+						// The gui_migrants_ map is raw migration counts, which need to be converted to a fraction of the sourceSubpop pre-migration size
+						if (sim->ModelType() == SLiMModelType::kModelTypeNonWF)
+						{
+							if (sourceSubpop->gui_premigration_size_ <= 0)
+								continue;
+							
+							migrantFraction /= sourceSubpop->gui_premigration_size_;
+							
+							if (migrantFraction < 0.0)
+								migrantFraction = 0.0;
+							if (migrantFraction > 1.0)
+								migrantFraction = 1.0;
+						}
+						
 						[self drawArrowFromSubpop:sourceSubpop toSubpop:destSubpop migrantFraction:migrantFraction];
 					}
 				}
 			}
 		}
-#endif	// SLIM_WF_ONLY
+#endif
 	}
 	
 	// We're done with our transformed coordinate system
