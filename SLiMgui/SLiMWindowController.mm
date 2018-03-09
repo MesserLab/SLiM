@@ -229,6 +229,8 @@
 		sim_rng = nil;
 	}
 	
+	[self setInvalidSimulation:YES];
+	
 	[continuousPlayStartDate release];
 	continuousPlayStartDate = nil;
 	
@@ -365,7 +367,7 @@
 		
 		// Now we need to clean up so we are in a displayable state.  Note that we don't even attempt to dispose
 		// of the old simulation object; who knows what state it is in, touching it might crash.
-		sim = nil;
+		sim = nullptr;
 		
 		if (sim_rng)
 		{
@@ -4070,7 +4072,7 @@
 
 - (id)tableView:(NSTableView *)aTableView objectValueForTableColumn:(NSTableColumn *)aTableColumn row:(NSInteger)rowIndex
 {
-	if (!invalidSimulation)
+	if (!invalidSimulation && sim)
 	{
 		if (aTableView == subpopTableView)
 		{

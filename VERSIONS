@@ -45,6 +45,7 @@ development head (nonWF branch):
 	make the population visualization graph work better with nonWF models (using fitness values without density scaling, display emergent migration rates)
 	make the fitness over time graph display fitness without density scaling, as in other aspects of SLiMgui's presentation of fitness
 	fix a crash with the fitness over time graph when the simulation became invalid (due to a stop() call or other error)
+	fix a rare crash on quit from SLiMgui
 
 
 2.6 (build 1292; Eidos version 1.6):
