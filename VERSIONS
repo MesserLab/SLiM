@@ -46,6 +46,7 @@ development head (nonWF branch):
 	make the fitness over time graph display fitness without density scaling, as in other aspects of SLiMgui's presentation of fitness
 	fix a crash with the fitness over time graph when the simulation became invalid (due to a stop() call or other error)
 	fix a rare crash on quit from SLiMgui
+	fix a crash due to stack overflow with large population sizes (only when callbacks are involved in offspring generation)
 
 
 2.6 (build 1292; Eidos version 1.6):

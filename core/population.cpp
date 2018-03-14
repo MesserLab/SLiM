@@ -957,6 +957,10 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 			if (sex_enabled || (selfing_fraction > 0.0) || (cloning_fraction > 0.0))
 			{
 				// We have either sex, selfing, or cloning as attributes of each individual child, so we need to pre-plan and shuffle.
+				
+				// BCH 13 March 2018: We were allocating a buffer for the pre-plan on the stack, and that was overflowing the stack when
+				// we had a large number of children; changing to using a static allocated buffer that we reuse.  Note the buffer here is
+				// separate from the one below, and uses a different struct type, despite the similarity.
 				typedef struct
 				{
 					IndividualSex planned_sex;
@@ -964,7 +968,14 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					uint8_t planned_selfed;
 				} offspring_plan;
 				
-				offspring_plan planned_offspring[total_children];
+				static offspring_plan *planned_offspring = nullptr;
+				static int64_t planned_offspring_alloc_size = 0;
+				
+				if (planned_offspring_alloc_size < total_children)
+				{
+					planned_offspring = (offspring_plan *)realloc(planned_offspring, total_children * sizeof(offspring_plan));
+					planned_offspring_alloc_size = total_children;
+				}
 				
 				for (int sex_index = 0; sex_index < number_of_sexes; ++sex_index)
 				{
@@ -1324,6 +1335,10 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 			slim_popsize_t child_count = 0;	// counter over all subpop_size_ children
 			
 			// Pre-plan and shuffle.
+			
+			// BCH 13 March 2018: We were allocating a buffer for the pre-plan on the stack, and that was overflowing the stack when
+			// we had a large number of children; changing to using a static allocated buffer that we reuse.  Note the buffer here is
+			// separate from the one below, and uses a different struct type, despite the similarity.
 			typedef struct
 			{
 				Subpopulation *planned_source;
@@ -1332,7 +1347,14 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 				uint8_t planned_selfed;
 			} offspring_plan;
 			
-			offspring_plan planned_offspring[total_children];
+			static offspring_plan *planned_offspring = nullptr;
+			static int64_t planned_offspring_alloc_size = 0;
+			
+			if (planned_offspring_alloc_size < total_children)
+			{
+				planned_offspring = (offspring_plan *)realloc(planned_offspring, total_children * sizeof(offspring_plan));
+				planned_offspring_alloc_size = total_children;
+			}
 			
 			for (int sex_index = 0; sex_index < number_of_sexes; ++sex_index)
 			{
