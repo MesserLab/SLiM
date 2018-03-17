@@ -4795,7 +4795,11 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 		else
 #endif	// SLIM_WF_ONLY
 		{
-			subpop_sex_ratio = 1.0 - (subpop->parent_first_male_index_ / subpop->parent_subpop_size_);
+			// We want to output empty (but not removed) subpops, so we use a sex ratio of 0.0 to prevent div by 0
+			if (subpop->parent_subpop_size_ == 0)
+				subpop_sex_ratio = 0.0;
+			else
+				subpop_sex_ratio = 1.0 - (subpop->parent_first_male_index_ / subpop->parent_subpop_size_);
 		}
 		
 		p_out << "p" << subpop_pair.first << " " << subpop_size;
