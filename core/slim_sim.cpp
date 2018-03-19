@@ -355,7 +355,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		std::istringstream iss(line);
 		
 		iss >> sub;
-		slim_objectid_t subpop_index = SLiMEidosScript::ExtractIDFromStringWithPrefix(sub.c_str(), 'p', nullptr);
+		slim_objectid_t subpop_index = SLiMEidosScript::ExtractIDFromStringWithPrefix(sub, 'p', nullptr);
 		
 		iss >> sub;
 		int64_t subpop_size_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
@@ -418,7 +418,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			iss >> sub;		// queue up sub for mutation_type_id
 		}
 		
-		slim_objectid_t mutation_type_id = SLiMEidosScript::ExtractIDFromStringWithPrefix(sub.c_str(), 'm', nullptr);
+		slim_objectid_t mutation_type_id = SLiMEidosScript::ExtractIDFromStringWithPrefix(sub, 'm', nullptr);
 		
 		iss >> sub;
 		int64_t position_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
@@ -431,7 +431,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		double dominance_coeff = EidosInterpreter::FloatForString(sub, nullptr);
 		
 		iss >> sub;
-		slim_objectid_t subpop_index = SLiMEidosScript::ExtractIDFromStringWithPrefix(sub.c_str(), 'p', nullptr);
+		slim_objectid_t subpop_index = SLiMEidosScript::ExtractIDFromStringWithPrefix(sub, 'p', nullptr);
 		
 		iss >> sub;
 		int64_t generation_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
@@ -488,14 +488,15 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			
 			iss >> sub;		// pX:iY – individual identifier
 			int pos = static_cast<int>(sub.find_first_of(":"));
-			const char *subpop_id_string = sub.substr(0, pos).c_str();
+			std::string &&subpop_id_string = sub.substr(0, pos);
+			
 			slim_objectid_t subpop_id = SLiMEidosScript::ExtractIDFromStringWithPrefix(subpop_id_string, 'p', nullptr);
-			const char *individual_index_string = sub.substr(pos + 1, std::string::npos).c_str();
+			std::string &&individual_index_string = sub.substr(pos + 1, std::string::npos);
 			
 			if (individual_index_string[0] != 'i')
 				EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): reference to individual is malformed." << EidosTerminate();
 			
-			int64_t individual_index = EidosInterpreter::NonnegativeIntegerForString(individual_index_string + 1, nullptr);
+			int64_t individual_index = EidosInterpreter::NonnegativeIntegerForString(individual_index_string.c_str() + 1, nullptr);
 			
 			auto subpop_pair = population_.find(subpop_id);
 			
@@ -576,7 +577,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		
 		iss >> sub;
 		int pos = static_cast<int>(sub.find_first_of(":"));
-		const char *subpop_id_string = sub.substr(0, pos).c_str();
+		std::string &&subpop_id_string = sub.substr(0, pos);
 		slim_objectid_t subpop_id = SLiMEidosScript::ExtractIDFromStringWithPrefix(subpop_id_string, 'p', nullptr);
 		
 		auto subpop_pair = population_.find(subpop_id);

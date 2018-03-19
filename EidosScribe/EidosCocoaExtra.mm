@@ -39,8 +39,10 @@
 		// Build an attributed string showing the call signature with syntax coloring for its parts
 		NSMutableAttributedString *attrStr = [[[NSMutableAttributedString alloc] init] autorelease];
 		
-		NSString *prefixString = [NSString stringWithUTF8String:signature->CallPrefix().c_str()];	// "", "– ", or "+ "
-		NSString *returnTypeString = [NSString stringWithUTF8String:StringForEidosValueMask(signature->return_mask_, signature->return_class_, "", nullptr).c_str()];
+		std::string &&prefix_string = signature->CallPrefix();
+		NSString *prefixString = [NSString stringWithUTF8String:prefix_string.c_str()];	// "", "– ", or "+ "
+		std::string &&return_type_string = StringForEidosValueMask(signature->return_mask_, signature->return_class_, "", nullptr);
+		NSString *returnTypeString = [NSString stringWithUTF8String:return_type_string.c_str()];
 		NSString *functionNameString = [NSString stringWithUTF8String:signature->call_name_.c_str()];
 		
 		NSDictionary *plainAttrs = [NSDictionary eidosOutputAttrsWithSize:fontSize];
@@ -123,7 +125,8 @@
 				
 				if (arg_obj_class && (stripped_mask & kEidosValueMaskObject))
 				{
-					NSString *objTypeName = [NSString stringWithUTF8String:arg_obj_class->ElementType().c_str()];
+					const std::string &obj_type_name = arg_obj_class->ElementType();
+					NSString *objTypeName = [NSString stringWithUTF8String:obj_type_name.c_str()];
 					
 					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"<" attributes:typeAttrs] autorelease]];
 					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:objTypeName attributes:typeAttrs] autorelease]];
@@ -151,7 +154,8 @@
 						
 						arg_default->Print(default_string_stream);
 						
-						NSString *defaultString = [NSString stringWithUTF8String:default_string_stream.str().c_str()];
+						std::string &&default_string = default_string_stream.str();
+						NSString *defaultString = [NSString stringWithUTF8String:default_string.c_str()];
 						
 						[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:defaultString attributes:plainAttrs] autorelease]];
 					}
@@ -194,8 +198,10 @@
 		// Build an attributed string showing the call signature with syntax coloring for its parts
 		NSMutableAttributedString *attrStr = [[[NSMutableAttributedString alloc] init] autorelease];
 		
-		NSString *connectorString = [NSString stringWithUTF8String:signature->PropertySymbol().c_str()];	// "<–>" or "=>"
-		NSString *valueTypeString = [NSString stringWithUTF8String:StringForEidosValueMask(signature->value_mask_, signature->value_class_, "", nullptr).c_str()];
+		std::string &&connector_string = signature->PropertySymbol();
+		NSString *connectorString = [NSString stringWithUTF8String:connector_string.c_str()];	// "<–>" or "=>"
+		std::string &&value_type_string = StringForEidosValueMask(signature->value_mask_, signature->value_class_, "", nullptr);
+		NSString *valueTypeString = [NSString stringWithUTF8String:value_type_string.c_str()];
 		NSString *propertyNameString = [NSString stringWithUTF8String:signature->property_name_.c_str()];
 		
 		NSDictionary *plainAttrs = [NSDictionary eidosOutputAttrsWithSize:fontSize];

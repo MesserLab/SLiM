@@ -2514,7 +2514,8 @@
 		}
 		catch (...)
 		{
-			errorDiagnostic = [[NSString stringWithUTF8String:Eidos_GetTrimmedRaiseMessage().c_str()] retain];
+			std::string &&error_diagnostic = Eidos_GetTrimmedRaiseMessage();
+			errorDiagnostic = [[NSString stringWithUTF8String:error_diagnostic.c_str()] retain];
 		}
 	}
 	
@@ -2908,7 +2909,8 @@
 			outstring << "#OUT: " << sim->generation_ << " A " << std::endl;
 			sim->population_.PrintAll(outstring, true, true);	// include spatial positions and ages if available
 			
-			NSString *populationDump = [NSString stringWithUTF8String:outstring.str().c_str()];
+			std::string &&population_dump = outstring.str();
+			NSString *populationDump = [NSString stringWithUTF8String:population_dump.c_str()];
 			
 			[populationDump writeToURL:[sp URL] atomically:YES encoding:NSUTF8StringEncoding error:NULL];
 			

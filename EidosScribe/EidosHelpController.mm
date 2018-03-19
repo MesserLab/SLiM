@@ -611,7 +611,8 @@
 				
 				for (const EidosPropertySignature *propertySignature : *classProperties)
 				{
-					NSString *connectorString = [NSString stringWithUTF8String:propertySignature->PropertySymbol().c_str()];	// "<–>" or "=>"
+					std::string &&connector_string = propertySignature->PropertySymbol();
+					NSString *connectorString = [NSString stringWithUTF8String:connector_string.c_str()];	// "<–>" or "=>"
 					NSString *propertyNameString = [NSString stringWithUTF8String:propertySignature->property_name_.c_str()];
 					NSString *propertyString = [NSString stringWithFormat:@"%@ %@", propertyNameString, connectorString];
 					NSUInteger docIndex = [docProperties indexOfObject:propertyString];
@@ -645,7 +646,8 @@
 					
 					if (!isBaseMethod || classIsUndefinedClass)
 					{
-						NSString *prefixString = [NSString stringWithUTF8String:methodSignature->CallPrefix().c_str()];	// "", "– ", or "+ "
+						std::string &&prefix_string = methodSignature->CallPrefix();
+						NSString *prefixString = [NSString stringWithUTF8String:prefix_string.c_str()];	// "", "– ", or "+ "
 						NSString *methodNameString = [NSString stringWithUTF8String:methodSignature->call_name_.c_str()];
 						NSString *methodString = [NSString stringWithFormat:@"%@%@()", prefixString, methodNameString];
 						NSUInteger docIndex = [docMethods indexOfObject:methodString];

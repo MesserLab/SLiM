@@ -264,7 +264,8 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 			
 			script.PrintTokens(token_stream);
 			
-			*tokenString = [NSString stringWithUTF8String:token_stream.str().c_str()];
+			std::string &&token_string = token_stream.str();
+			*tokenString = [NSString stringWithUTF8String:token_string.c_str()];
 			
 #if 0
 			// Do a checkback on UTF8 token ranges versus UTF16 token ranges by replicating the token string using the UTF16 ranges
@@ -295,7 +296,8 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	}
 	catch (...)
 	{
-		*errorString = [NSString stringWithUTF8String:Eidos_GetUntrimmedRaiseMessage().c_str()];
+		std::string &&error_string = Eidos_GetUntrimmedRaiseMessage();
+		*errorString = [NSString stringWithUTF8String:error_string.c_str()];
 		return nil;
 	}
 	
@@ -310,12 +312,14 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 			
 			script.PrintAST(parse_stream);
 			
-			*parseString = [NSString stringWithUTF8String:parse_stream.str().c_str()];
+			std::string &&parse_string = parse_stream.str();
+			*parseString = [NSString stringWithUTF8String:parse_string.c_str()];
 		}
 	}
 	catch (...)
 	{
-		*errorString = [NSString stringWithUTF8String:Eidos_GetUntrimmedRaiseMessage().c_str()];
+		std::string &&error_string = Eidos_GetUntrimmedRaiseMessage();
+		*errorString = [NSString stringWithUTF8String:error_string.c_str()];
 		return nil;
 	}
 	
@@ -369,7 +373,10 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		[browserController reloadBrowser];
 		
 		if (executionString)
-			*executionString = [NSString stringWithUTF8String:interpreter.ExecutionLog().c_str()];
+		{
+			std::string &&execution_string = interpreter.ExecutionLog();
+			*executionString = [NSString stringWithUTF8String:execution_string.c_str()];
+		}
 	}
 	catch (...)
 	{
@@ -378,7 +385,8 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		
 		output = interpreter.ExecutionOutput();
 		
-		*errorString = [NSString stringWithUTF8String:Eidos_GetUntrimmedRaiseMessage().c_str()];
+		std::string &&error_string = Eidos_GetUntrimmedRaiseMessage();
+		*errorString = [NSString stringWithUTF8String:error_string.c_str()];
 		
 		return [NSString stringWithUTF8String:output.c_str()];
 	}
@@ -545,7 +553,8 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		}
 		catch (...)
 		{
-			errorDiagnostic = [[NSString stringWithUTF8String:Eidos_GetTrimmedRaiseMessage().c_str()] retain];
+			std::string &&error_diagnostic = Eidos_GetTrimmedRaiseMessage();
+			errorDiagnostic = [[NSString stringWithUTF8String:error_diagnostic.c_str()] retain];
 		}
 	}
 	

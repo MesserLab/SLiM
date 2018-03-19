@@ -303,7 +303,8 @@
 		outstream << *element_value;
 	}
 	
-	NSString *outString = [NSString stringWithUTF8String:outstream.str().c_str()];
+	std::string &&out_string = outstream.str();
+	NSString *outString = [NSString stringWithUTF8String:out_string.c_str()];
 	
 	if (isConstant)
 		return [[[NSAttributedString alloc] initWithString:outString attributes:[EidosValueWrapper dimmedAttrs]] autorelease];
