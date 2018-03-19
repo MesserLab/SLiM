@@ -530,8 +530,15 @@
 		//NSScrollView *enclosingScrollView = [outputTextView enclosingScrollView];
 		BOOL scrolledToBottom = YES; //(![enclosingScrollView hasVerticalScroller] || [[enclosingScrollView verticalScroller] doubleValue] == 1.0);
 		
-		[outputTextView replaceCharactersInRange:NSMakeRange([[outputTextView string] length], 0) withString:str];
-		[outputTextView setFont:[NSFont fontWithName:@"Menlo" size:[outputTextView displayFontSize]]];
+		NSTextStorage *ts = [outputTextView textStorage];
+		NSUInteger tsOriginalLength = [ts length];
+		NSUInteger strLength = [str length];
+		
+		[ts beginEditing];
+		[ts replaceCharactersInRange:NSMakeRange(tsOriginalLength, 0) withString:str];
+		[ts addAttribute:NSFontAttributeName value:[NSFont fontWithName:@"Menlo" size:[outputTextView displayFontSize]] range:NSMakeRange(tsOriginalLength, strLength)];
+		[ts endEditing];
+		
 		if ([[NSUserDefaults standardUserDefaults] boolForKey:defaultsSyntaxHighlightOutputKey])
 			[outputTextView recolorAfterChanges];
 		
