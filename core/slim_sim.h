@@ -269,9 +269,6 @@ private:
 
 	// TABLE SIMPLIFICATION
 	int simplificationInterval;		//interval at which we will simplify the tree
-	int FSIDAS;				//First slim ID we see after simplification
-	int FMIDAS;				//First MSPrime ID we see after simplification
-	//int numberOfSamplesInLastSimplification;	
 	int lastSimplificationGeneration;
 	std::map<int,node_id_t> SLiM_MSP_Id_Map;
 	FILE *MspTxtNodeTable;

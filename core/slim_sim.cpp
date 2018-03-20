@@ -3547,7 +3547,7 @@ void SLiMSim::simplifyTables(void){
 	std::vector<Individual*> subpopulationIndividuals;
 	std::vector<Individual*> populationIndividuals;
 	std::vector<node_id_t> samples;
-	std::map<int,node_id_t> newMap;
+	std::map<int,node_id_t> newSlimMspIdMap;
 	
 	for ( it = population_.begin(); it != population_.end(); it++){
 		subpopulationIndividuals = it->second->parent_individuals_;
@@ -3566,8 +3566,8 @@ void SLiMSim::simplifyTables(void){
 		samples.push_back(getMSPID(G1));
 		samples.push_back(getMSPID(G2));	
 				
-		newMap[G1] = (node_id_t)newValueInNodeTable++;
-		newMap[G2] = (node_id_t)newValueInNodeTable++;
+		newSlimMspIdMap[G1] = (node_id_t)newValueInNodeTable++;
+		newSlimMspIdMap[G2] = (node_id_t)newValueInNodeTable++;
 	}
 
 	ret = sort_tables(&tables.nodes, &tables.edges, &tables.migrations, &tables.sites, &tables.mutations, 0);				
@@ -3600,16 +3600,14 @@ void SLiMSim::simplifyTables(void){
 
 	simplifier_free(&simplifier);
 */	
-	FSIDAS = (int)((CurrentTreeSequenceIndividual->PedigreeID()) * 2);
-	FMIDAS = (int)tables.nodes.num_rows;
-	SLiM_MSP_Id_Map = newMap;		
+	
+	SLiM_MSP_Id_Map = newSlimMspIdMap;		
 
 }
 
 node_id_t SLiMSim::getMSPID(int GenomeID){
 
-	int Offset = GenomeID - (FSIDAS + 2);
-	node_id_t retNode = (Offset < 0 ? (SLiM_MSP_Id_Map[GenomeID]) : (FMIDAS + Offset));
+	node_id_t retNode = SLiM_MSP_Id_Map[GenomeID];
 	return retNode;
 
 }
@@ -3655,8 +3653,6 @@ void SLiMSim::StartTreeRecording(void)
 
 	
 	simplificationInterval = 2;
-	FSIDAS = -2;
-	FMIDAS = 0;
 	lastSimplificationGeneration = 0;
 		
 	//INITIALIZE NODE AND EDGE TABLES.
@@ -3755,13 +3751,13 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 	//BIOLOGY NOTE: Recombination is the meiosis process by which the parent gamete produces germ cells, hence two recombination events 
 	//per diploid individual. Here each we treat each offspring genome produced as a haploid individual.
 
-	slim_pedigreeid_t parentSLiMID;			//The SLiM gamete that produced this germ cell
-	slim_pedigreeid_t offspringSLiMID;		//The SLiM germ cell being produced
-	slim_pedigreeid_t genome1SLiMID;		//First genome ID of Gamete
-	slim_pedigreeid_t genome2SLiMID;		//Second genome ID of Gamete  
+	slim_pedigreeid_t parentSLiMID;			// The SLiM individual that produced this germ cell
+	slim_pedigreeid_t offspringSLiMID;		// The genome ID of this germ cell
+	slim_pedigreeid_t genome1SLiMID;		// First genome ID of parental gamete
+	slim_pedigreeid_t genome2SLiMID;		// Second genome ID of parental gamete  
 	node_id_t offspringMSPID;			//MSPrime equivilent of germ cell ID (Node returned from MSPrime)
-	node_id_t genome1MSPID;				//MSPrime equivilent of first genome ID of gemete
-	node_id_t genome2MSPID;				//MSPrime equivilent of second genome ID of gemete
+	node_id_t genome1MSPID;				//MSPrime equivilent of first genome ID of parent
+	node_id_t genome2MSPID;				//MSPrime equivilent of second genome ID of parent
 
 	//DEBUG STDOUT PRINTING
 	/*	
@@ -3800,7 +3796,9 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 	const char *offspring_SLiMID_Const = osids.c_str();
 	
 	offspringMSPID = node_table_add_row(&tables.nodes,flags,time,0,offspring_SLiMID_Const,size);
+    SLiM_MSP_Id_Map[offspringSLiMID] = (node_id_t) offspringMSPID;
 
+    // what is this for?
 	if(parentSLiMID == -1){
 		return;
 	}
