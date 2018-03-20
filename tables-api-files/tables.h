@@ -354,8 +354,8 @@ int table_collection_print_state(table_collection_t *self, FILE *out);
 bool table_collection_is_indexed(table_collection_t *self);
 int table_collection_drop_indexes(table_collection_t *self);
 int table_collection_build_indexes(table_collection_t *self, int flags);
-//int table_collection_load(table_collection_t *self, const char *filename, int flags);
-//int table_collection_dump(table_collection_t *tables, const char *filename, int flags);
+int table_collection_load(table_collection_t *self, const char *filename, int flags);
+int table_collection_dump(table_collection_t *tables, const char *filename, int flags);
 int table_collection_copy(table_collection_t *self, table_collection_t *dest);
 int table_collection_free(table_collection_t *self);
 int table_collection_simplify(table_collection_t *self,

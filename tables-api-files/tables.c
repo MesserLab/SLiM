@@ -4607,7 +4607,7 @@ out:
     }
     return ret;
 }
-/*
+
 int WARN_UNUSED
 table_collection_load(table_collection_t *self, const char *filename, int flags)
 {
@@ -4652,7 +4652,7 @@ out:
     hdf5_file_free(&hdf5_file);
     return ret;
 }
-*/
+
 int WARN_UNUSED
 table_collection_simplify(table_collection_t *self,
         node_id_t *samples, size_t num_samples, int flags, node_id_t *node_map)

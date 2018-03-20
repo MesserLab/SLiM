@@ -16,7 +16,7 @@ message("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
 set( EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin )
 
 find_package(HDF5 REQUIRED)
-#include_directories(${HDF5_INCLUDE_DIR})
+include_directories(${HDF5_INCLUDE_DIR})
 
 set(TARGET_NAME tables)
 file(GLOB_RECURSE TABLE_SOURCES ${PROJECT_SOURCE_DIR}/tables-api-files/*.c)
@@ -37,6 +37,7 @@ add_executable(${TARGET_NAME} ${SLIM_SOURCES})
 target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} "${PROJECT_SOURCE_DIR}/core" "${PROJECT_SOURCE_DIR}/eidos")
 target_link_libraries(${TARGET_NAME} PUBLIC gsl)
 target_link_libraries(${TARGET_NAME} PUBLIC tables)
+target_link_libraries(${TARGET_NAME} PUBLIC hdf5 hdf5_cpp)
 
 set(TARGET_NAME eidos)
 file(GLOB_RECURSE EIDOS_SOURCES  ${PROJECT_SOURCE_DIR}/eidos/*.cpp  ${PROJECT_SOURCE_DIR}/eidostool/*.cpp)
@@ -44,4 +45,3 @@ add_executable(${TARGET_NAME} ${EIDOS_SOURCES})
 target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} "${PROJECT_SOURCE_DIR}/eidos")
 target_link_libraries(${TARGET_NAME} PUBLIC gsl)
 target_link_libraries(${TARGET_NAME} PUBLIC tables)
-
