@@ -3570,16 +3570,23 @@ void SLiMSim::simplifyTables(void){
 		newMap[G2] = (node_id_t)newValueInNodeTable++;
 	}
 
-	ret = sort_tables(&nodes, &edges, &migrations, &sites, &mutations, 0);				
+	ret = sort_tables(&tables.nodes, &tables.edges, &tables.migrations, &tables.sites, &tables.mutations, 0);				
 	if (ret < 0) {
 		handle_error("sort_tables", ret);
 	}
 	
-	if(nodes.num_rows == 0){
+	if(tables.nodes.num_rows == 0){
 		std::cout << "aint nobody here" << std::endl;
 		return;
 	}
 	
+	ret = table_collection_simplify(&tables, samples.data(), samples.size(), 0, NULL);
+        if (ret != 0) {
+		handle_error("simplifier_run", ret);
+        }
+
+/*
+	//BEFORE TABLES API UPDATE 	
 	ret = simplifier_alloc(&simplifier,(double)chromosome_.last_position_ + 1, samples.data(), samples.size(),
 	    &nodes, &edges, &migrations, &sites, &mutations, 0, 0);
 	if (ret < 0) {
@@ -3592,9 +3599,9 @@ void SLiMSim::simplifyTables(void){
 	}
 
 	simplifier_free(&simplifier);
-	
+*/	
 	FSIDAS = (int)((CurrentTreeSequenceIndividual->PedigreeID()) * 2);
-	FMIDAS = (int)nodes.num_rows;
+	FMIDAS = (int)tables.nodes.num_rows;
 	SLiM_MSP_Id_Map = newMap;		
 
 }
@@ -3653,7 +3660,17 @@ void SLiMSim::StartTreeRecording(void)
 	lastSimplificationGeneration = 0;
 		
 	//INITIALIZE NODE AND EDGE TABLES.
-	
+
+	ret = table_collection_alloc(&tables, MSP_ALLOC_TABLES);
+        if (ret != 0) {
+            //raise_exception(ret);
+		handle_error("alloc_tables", ret);
+        }
+        /* NB: must set the sequence_length !! */
+        tables.sequence_length = (double)chromosome_.last_position_ + 1;
+
+/*	
+	//BEFORE TABLE API WAS UPDATED
 	ret = node_table_alloc(&nodes, 0, 0);
     	if (ret != 0) {
 		handle_error("alloc_nodes", ret);
@@ -3682,7 +3699,7 @@ void SLiMSim::StartTreeRecording(void)
 		handle_error("alloc_mutations", ret);
 		std::cout << "alloc mutations failed" << std::endl; 
     	}
-		
+*/		
 	
 	std::cout << "succesfully allocated tables" << std::endl;
 			
@@ -3782,7 +3799,7 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 	size_t size = osids.length();
 	const char *offspring_SLiMID_Const = osids.c_str();
 	
-	offspringMSPID = node_table_add_row(&nodes,flags,time,0,offspring_SLiMID_Const,size);
+	offspringMSPID = node_table_add_row(&tables.nodes,flags,time,0,offspring_SLiMID_Const,size);
 
 	if(parentSLiMID == -1){
 		return;
@@ -3801,7 +3818,7 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 		right = (*p_breakpoints)[i];
 
 		node_id_t parent = (node_id_t) (p_start_strand_2 ? genome2MSPID : genome1MSPID);
-		ret = edge_table_add_row(&edges,left,right,parent,offspringMSPID);
+		ret = edge_table_add_row(&tables.edges,left,right,parent,offspringMSPID);
 		if (ret < 0) {
 			handle_error("add_edge", ret);
 		}
@@ -3812,7 +3829,7 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 	
 	right = (double)chromosome_.last_position_+1;
 	node_id_t parent = (node_id_t) (p_start_strand_2 ? genome2MSPID : genome1MSPID);
-	ret = edge_table_add_row(&edges,left,right,parent,offspringMSPID);
+	ret = edge_table_add_row(&tables.edges,left,right,parent,offspringMSPID);
 	if (ret < 0) {
 		handle_error("add_edge", ret);
 	}
@@ -3834,20 +3851,25 @@ void SLiMSim::WriteTreeSequence(void)
 	//node_table_print_state(&nodes,stdout);
 	//edge_table_print_state(&edges,stdout);
 	simplifyTables();
-	node_table_dump_text(&nodes,MspTxtNodeTable);
-	edge_table_dump_text(&edges,MspTxtEdgeTable);
+	node_table_dump_text(&tables.nodes,MspTxtNodeTable);
+	edge_table_dump_text(&tables.edges,MspTxtEdgeTable);
 	
 	
 
 	
 	//freeing these for now. Will change this after I get writing figured out.
 	//simplifier_free(&simplifier);
+
+	table_collection_free(&tables);
+	
+/*
+	//BEFORE TABLES API UPDATE 
     	node_table_free(&nodes);
     	edge_table_free(&edges);
     	migration_table_free(&migrations);
     	site_table_free(&sites);
     	mutation_table_free(&mutations);
-
+*/
 	
 	//WRITE TABLES TO A TEXT FILE
 	

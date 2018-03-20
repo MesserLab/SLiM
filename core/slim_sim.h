@@ -254,12 +254,18 @@ private:
 	
 	// TABLE IVARS
 	int ret;
+	table_collection_t tables;
+	
+/*
+	//BEFORE JEROME UPDATED TABLES API
 	node_table_t nodes;
     	edge_table_t edges;
     	migration_table_t migrations;
     	site_table_t sites;
     	mutation_table_t mutations;
     	simplifier_t simplifier;
+*/
+
 
 	// TABLE SIMPLIFICATION
 	int simplificationInterval;		//interval at which we will simplify the tree

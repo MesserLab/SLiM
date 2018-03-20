@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2017 University of Oxford
+** Copyright (C) 2017-2018 University of Oxford
 **
 ** This file is part of msprime.
 **
@@ -23,7 +23,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include <gsl/gsl_math.h>
+#include <hdf5.h>
 
 #include "util.h"
 #include "tables.h"
@@ -75,15 +75,18 @@ squash_edges(edge_t *edges, size_t num_edges, size_t *num_output_edges)
     return ret;
 }
 
-
 /* Checks that the specified list of offsets is well-formed. */
 static int
-check_offsets(size_t num_rows, table_size_t *offsets)
+check_offsets(size_t num_rows, table_size_t *offsets, table_size_t length,
+        bool check_length)
 {
     int ret = MSP_ERR_BAD_OFFSET;
     size_t j;
 
     if (offsets[0] != 0) {
+        goto out;
+    }
+    if (check_length && offsets[num_rows] != length) {
         goto out;
     }
     for (j = 0; j < num_rows; j++) {
@@ -120,7 +123,7 @@ static int
 node_table_expand_main_columns(node_table_t *self, table_size_t additional_rows)
 {
     int ret = 0;
-    table_size_t increment = GSL_MAX(additional_rows, self->max_rows_increment);
+    table_size_t increment = MSP_MAX(additional_rows, self->max_rows_increment);
     table_size_t new_size = self->max_rows + increment;
 
     if ((self->num_rows + additional_rows) > self->max_rows) {
@@ -151,7 +154,7 @@ static int
 node_table_expand_metadata(node_table_t *self, table_size_t additional_length)
 {
     int ret = 0;
-    table_size_t increment = GSL_MAX(additional_length,
+    table_size_t increment = MSP_MAX(additional_length,
             self->max_metadata_length_increment);
     table_size_t new_size = self->max_metadata_length + increment;
 
@@ -198,7 +201,14 @@ out:
     return ret;
 }
 
-int
+int WARN_UNUSED
+node_table_copy(node_table_t *self, node_table_t *dest)
+{
+    return node_table_set_columns(dest, self->num_rows, self->flags,
+            self->time, self->population, self->metadata, self->metadata_offset);
+}
+
+int WARN_UNUSED
 node_table_set_columns(node_table_t *self, size_t num_rows, uint32_t *flags, double *time,
         population_id_t *population, char *metadata, uint32_t *metadata_offset)
 {
@@ -240,7 +250,7 @@ node_table_append_columns(node_table_t *self, size_t num_rows, uint32_t *flags, 
             self->metadata_offset[self->num_rows + j + 1] = (table_size_t) self->metadata_length;
         }
     } else {
-        ret = check_offsets(num_rows, metadata_offset);
+        ret = check_offsets(num_rows, metadata_offset, 0, false);
         if (ret != 0) {
             goto out;
         }
@@ -409,7 +419,7 @@ static int
 edge_table_expand_columns(edge_table_t *self, size_t additional_rows)
 {
     int ret = 0;
-    size_t increment = GSL_MAX(additional_rows, self->max_rows_increment);
+    size_t increment = MSP_MAX(additional_rows, self->max_rows_increment);
     size_t new_size = self->max_rows + increment;
 
     if ((self->num_rows + additional_rows) > self->max_rows) {
@@ -473,6 +483,13 @@ edge_table_add_row(edge_table_t *self, double left, double right, node_id_t pare
     self->num_rows++;
 out:
     return ret;
+}
+
+int WARN_UNUSED
+edge_table_copy(edge_table_t *self, edge_table_t *dest)
+{
+    return edge_table_set_columns(dest, self->num_rows, self->left, self->right,
+            self->parent, self->child);
 }
 
 int
@@ -593,7 +610,7 @@ static int
 site_table_expand_main_columns(site_table_t *self, size_t additional_rows)
 {
     int ret = 0;
-    table_size_t increment = (table_size_t) GSL_MAX(additional_rows, self->max_rows_increment);
+    table_size_t increment = (table_size_t) MSP_MAX(additional_rows, self->max_rows_increment);
     table_size_t new_size = self->max_rows + increment;
 
     if ((self->num_rows + additional_rows) > self->max_rows) {
@@ -621,7 +638,7 @@ static int
 site_table_expand_ancestral_state(site_table_t *self, size_t additional_length)
 {
     int ret = 0;
-    table_size_t increment = (table_size_t) GSL_MAX(additional_length,
+    table_size_t increment = (table_size_t) MSP_MAX(additional_length,
             self->max_ancestral_state_length_increment);
     table_size_t new_size = self->max_ancestral_state_length + increment;
 
@@ -641,7 +658,7 @@ static int
 site_table_expand_metadata(site_table_t *self, size_t additional_length)
 {
     int ret = 0;
-    table_size_t increment = (table_size_t) GSL_MAX(additional_length,
+    table_size_t increment = (table_size_t) MSP_MAX(additional_length,
             self->max_metadata_length_increment);
     table_size_t new_size = self->max_metadata_length + increment;
 
@@ -772,7 +789,7 @@ site_table_append_columns(site_table_t *self, size_t num_rows, double *position,
             self->metadata_offset[self->num_rows + j + 1] = (table_size_t) self->metadata_length;
         }
     } else {
-        ret = check_offsets(num_rows, metadata_offset);
+        ret = check_offsets(num_rows, metadata_offset, 0, false);
         if (ret != 0) {
             goto out;
         }
@@ -792,7 +809,7 @@ site_table_append_columns(site_table_t *self, size_t num_rows, double *position,
     self->metadata_offset[self->num_rows + num_rows] = self->metadata_length;
 
     /* Ancestral state column */
-    ret = check_offsets(num_rows, ancestral_state_offset);
+    ret = check_offsets(num_rows, ancestral_state_offset, 0, false);
     if (ret != 0) {
         goto out;
     }
@@ -815,10 +832,18 @@ out:
     return ret;
 }
 
+int WARN_UNUSED
+site_table_copy(site_table_t *self, site_table_t *dest)
+{
+    return site_table_set_columns(dest, self->num_rows, self->position,
+            self->ancestral_state, self->ancestral_state_offset,
+            self->metadata, self->metadata_offset);
+}
+
 int
 site_table_set_columns(site_table_t *self, size_t num_rows, double *position,
-        const char *ancestral_state, table_size_t *ancestral_state_length,
-        const char *metadata, table_size_t *metadata_length)
+        const char *ancestral_state, table_size_t *ancestral_state_offset,
+        const char *metadata, table_size_t *metadata_offset)
 {
     int ret = 0;
 
@@ -827,7 +852,7 @@ site_table_set_columns(site_table_t *self, size_t num_rows, double *position,
         goto out;
     }
     ret = site_table_append_columns(self, num_rows, position, ancestral_state,
-            ancestral_state_length, metadata, metadata_length);
+            ancestral_state_offset, metadata, metadata_offset);
 out:
     return ret;
 }
@@ -939,7 +964,7 @@ static int
 mutation_table_expand_main_columns(mutation_table_t *self, size_t additional_rows)
 {
     int ret = 0;
-    table_size_t increment = (table_size_t) GSL_MAX(additional_rows, self->max_rows_increment);
+    table_size_t increment = (table_size_t) MSP_MAX(additional_rows, self->max_rows_increment);
     table_size_t new_size = self->max_rows + increment;
 
     if ((self->num_rows + additional_rows) > self->max_rows) {
@@ -975,7 +1000,7 @@ static int
 mutation_table_expand_derived_state(mutation_table_t *self, size_t additional_length)
 {
     int ret = 0;
-    table_size_t increment = (table_size_t) GSL_MAX(additional_length,
+    table_size_t increment = (table_size_t) MSP_MAX(additional_length,
             self->max_derived_state_length_increment);
     table_size_t new_size = self->max_derived_state_length + increment;
 
@@ -995,7 +1020,7 @@ static int
 mutation_table_expand_metadata(mutation_table_t *self, size_t additional_length)
 {
     int ret = 0;
-    table_size_t increment = (table_size_t) GSL_MAX(additional_length,
+    table_size_t increment = (table_size_t) MSP_MAX(additional_length,
             self->max_metadata_length_increment);
     table_size_t new_size = self->max_metadata_length + increment;
 
@@ -1139,7 +1164,7 @@ mutation_table_append_columns(mutation_table_t *self, size_t num_rows, site_id_t
             self->metadata_offset[self->num_rows + j + 1] = (table_size_t) self->metadata_length;
         }
     } else {
-        ret = check_offsets(num_rows, metadata_offset);
+        ret = check_offsets(num_rows, metadata_offset, 0, false);
         if (ret != 0) {
             goto out;
         }
@@ -1159,7 +1184,7 @@ mutation_table_append_columns(mutation_table_t *self, size_t num_rows, site_id_t
     self->metadata_offset[self->num_rows + num_rows] = self->metadata_length;
 
     /* Derived state column */
-    ret = check_offsets(num_rows, derived_state_offset);
+    ret = check_offsets(num_rows, derived_state_offset, 0, false);
     if (ret != 0) {
         goto out;
     }
@@ -1180,6 +1205,15 @@ mutation_table_append_columns(mutation_table_t *self, size_t num_rows, site_id_t
     self->num_rows += (table_size_t) num_rows;
 out:
     return ret;
+}
+
+int WARN_UNUSED
+mutation_table_copy(mutation_table_t *self, mutation_table_t *dest)
+{
+    return mutation_table_set_columns(dest, self->num_rows,
+            self->site, self->node, self->parent,
+            self->derived_state, self->derived_state_offset,
+            self->metadata, self->metadata_offset);
 }
 
 int
@@ -1312,7 +1346,7 @@ static int
 migration_table_expand(migration_table_t *self, size_t additional_rows)
 {
     int ret = 0;
-    size_t increment = GSL_MAX(additional_rows, self->max_rows_increment);
+    size_t increment = MSP_MAX(additional_rows, self->max_rows_increment);
     size_t new_size = self->max_rows + increment;
 
     if ((self->num_rows + additional_rows) > self->max_rows) {
@@ -1391,6 +1425,14 @@ migration_table_append_columns(migration_table_t *self, size_t num_rows, double 
     self->num_rows += num_rows;
 out:
     return ret;
+}
+
+int WARN_UNUSED
+migration_table_copy(migration_table_t *self, migration_table_t *dest)
+{
+    return migration_table_set_columns(dest, self->num_rows,
+            self->left, self->right, self->node,
+            self->source, self->dest, self->time);
 }
 
 int
@@ -1498,7 +1540,7 @@ static int
 provenance_table_expand_main_columns(provenance_table_t *self, table_size_t additional_rows)
 {
     int ret = 0;
-    table_size_t increment = GSL_MAX(additional_rows, self->max_rows_increment);
+    table_size_t increment = MSP_MAX(additional_rows, self->max_rows_increment);
     table_size_t new_size = self->max_rows + increment;
 
     if ((self->num_rows + additional_rows) > self->max_rows) {
@@ -1522,7 +1564,7 @@ static int
 provenance_table_expand_timestamp(provenance_table_t *self, table_size_t additional_length)
 {
     int ret = 0;
-    table_size_t increment = GSL_MAX(additional_length,
+    table_size_t increment = MSP_MAX(additional_length,
             self->max_timestamp_length_increment);
     table_size_t new_size = self->max_timestamp_length + increment;
 
@@ -1541,7 +1583,7 @@ static int
 provenance_table_expand_provenance(provenance_table_t *self, table_size_t additional_length)
 {
     int ret = 0;
-    table_size_t increment = GSL_MAX(additional_length,
+    table_size_t increment = MSP_MAX(additional_length,
             self->max_record_length_increment);
     table_size_t new_size = self->max_record_length + increment;
 
@@ -1599,6 +1641,14 @@ out:
     return ret;
 }
 
+int WARN_UNUSED
+provenance_table_copy(provenance_table_t *self, provenance_table_t *dest)
+{
+    return provenance_table_set_columns(dest, self->num_rows,
+            self->timestamp, self->timestamp_offset,
+            self->record, self->record_offset);
+}
+
 int
 provenance_table_set_columns(provenance_table_t *self, size_t num_rows,
         char *timestamp, uint32_t *timestamp_offset,
@@ -1634,7 +1684,7 @@ provenance_table_append_columns(provenance_table_t *self, size_t num_rows,
         goto out;
     }
 
-    ret = check_offsets(num_rows, timestamp_offset);
+    ret = check_offsets(num_rows, timestamp_offset, 0, false);
     if (ret != 0) {
         goto out;
     }
@@ -1651,7 +1701,7 @@ provenance_table_append_columns(provenance_table_t *self, size_t num_rows,
             timestamp_length * sizeof(char));
     self->timestamp_length += timestamp_length;
 
-    ret = check_offsets(num_rows, record_offset);
+    ret = check_offsets(num_rows, record_offset, 0, false);
     if (ret != 0) {
         goto out;
     }
@@ -2679,7 +2729,7 @@ simplifier_alloc(simplifier_t *self, double sequence_length,
         /* infer sequence length from the edges */
         sequence_length = 0.0;
         for (j = 0; j < edges->num_rows; j++) {
-            sequence_length = GSL_MAX(sequence_length, edges->right[j]);
+            sequence_length = MSP_MAX(sequence_length, edges->right[j]);
         }
         if (sequence_length <= 0.0) {
             ret = MSP_ERR_BAD_SEQUENCE_LENGTH;
@@ -2698,8 +2748,8 @@ simplifier_alloc(simplifier_t *self, double sequence_length,
     /* If we have more then 256K blocks or edges just allocate this much */
     max_alloc_block = 256 * 1024;
     /* Need to avoid malloc(0) so make sure we have at least 1. */
-    num_nodes_alloc = GSL_MAX(max_alloc_block, 1 + nodes->num_rows);
-    num_edges_alloc = GSL_MAX(max_alloc_block, 1 + edges->num_rows);
+    num_nodes_alloc = MSP_MAX(max_alloc_block, 1 + nodes->num_rows);
+    num_edges_alloc = MSP_MAX(max_alloc_block, 1 + edges->num_rows);
 
     /* TODO we can add a flag to skip these checks for when we know they are
      * unnecessary */
@@ -3086,7 +3136,7 @@ simplifier_merge_ancestors(simplifier_t *self, node_id_t input_id)
         r = self->sequence_length;
         while (node != NULL && ((simplify_segment_t *) node->item)->left == l) {
             H[h] = (simplify_segment_t *) node->item;
-            r = GSL_MIN(r, H[h]->right);
+            r = MSP_MIN(r, H[h]->right);
             h++;
             simplifier_free_avl_node(self, node);
             avl_unlink_node(Q, node);
@@ -3095,7 +3145,7 @@ simplifier_merge_ancestors(simplifier_t *self, node_id_t input_id)
         next_l = 0;
         if (node != NULL) {
             next_l = ((simplify_segment_t *) node->item)->left;
-            r = GSL_MIN(r, next_l);
+            r = MSP_MIN(r, next_l);
         }
         if (h == 1) {
             x = H[0];
@@ -3405,5 +3455,1223 @@ simplifier_run(simplifier_t *self, node_id_t *node_map)
         memcpy(node_map, self->node_id_map, self->input_nodes.num_rows * sizeof(node_id_t));
     }
 out:
+    return ret;
+}
+
+/*************************
+ * hdf5_file
+ *************************/
+
+typedef struct {
+    table_collection_t *tables;
+} hdf5_file_t;
+
+static int
+hdf5_file_alloc(hdf5_file_t *self, table_collection_t *tables)
+{
+    memset(self, 0, sizeof(*self));
+    self->tables = tables;
+    return 0;
+}
+
+static int
+hdf5_file_free(hdf5_file_t *self)
+{
+    return 0;
+}
+
+/* Reads the metadata for the overall file and updates the basic
+ * information in the hdf5_file.
+ */
+static int
+hdf5_file_read_metadata(hdf5_file_t *self, hid_t file_id)
+{
+    int ret = MSP_ERR_HDF5;
+    hid_t attr_id, dataspace_id;
+    herr_t status;
+    int rank;
+    hsize_t dims;
+    uint32_t version[2];
+
+    attr_id = H5Aopen_by_name(file_id, "/", "format_version", H5P_DEFAULT, H5P_DEFAULT);
+    if (attr_id < 0) {
+        goto out;
+    }
+    dataspace_id = H5Aget_space(attr_id);
+    if (dataspace_id < 0) {
+        goto out;
+    }
+    rank = H5Sget_simple_extent_ndims(dataspace_id);
+    if (rank != 1) {
+        ret = MSP_ERR_FILE_FORMAT;
+        goto out;
+    }
+    status = H5Sget_simple_extent_dims(dataspace_id, &dims, NULL);
+    if (status < 0) {
+        goto out;
+    }
+    if (dims != 2) {
+        ret = MSP_ERR_FILE_FORMAT;
+        goto out;
+    }
+    status = H5Aread(attr_id, H5T_NATIVE_UINT32, version);
+    if (status < 0) {
+        goto out;
+    }
+    status = H5Sclose(dataspace_id);
+    if (status < 0) {
+        goto out;
+    }
+    status = H5Aclose(attr_id);
+    if (status < 0) {
+        goto out;
+    }
+
+    attr_id = H5Aopen_by_name(file_id, "/", "sequence_length", H5P_DEFAULT, H5P_DEFAULT);
+    if (attr_id < 0) {
+        goto out;
+    }
+    dataspace_id = H5Aget_space(attr_id);
+    if (dataspace_id < 0) {
+        goto out;
+    }
+    rank = H5Sget_simple_extent_ndims(dataspace_id);
+    if (rank != 1) {
+        ret = MSP_ERR_FILE_FORMAT;
+        goto out;
+    }
+    status = H5Sget_simple_extent_dims(dataspace_id, &dims, NULL);
+    if (status < 0) {
+        goto out;
+    }
+    if (dims != 1) {
+        ret = MSP_ERR_FILE_FORMAT;
+        goto out;
+    }
+    status = H5Aread(attr_id, H5T_NATIVE_DOUBLE, &self->tables->sequence_length);
+    if (status < 0) {
+        goto out;
+    }
+    status = H5Sclose(dataspace_id);
+    if (status < 0) {
+        goto out;
+    }
+    status = H5Aclose(attr_id);
+    if (status < 0) {
+        goto out;
+    }
+
+    /* Sanity check */
+    if (version[0] < MSP_FILE_FORMAT_VERSION_MAJOR) {
+        ret = MSP_ERR_FILE_VERSION_TOO_OLD;
+        goto out;
+    }
+    if (version[0] > MSP_FILE_FORMAT_VERSION_MAJOR) {
+        ret = MSP_ERR_FILE_VERSION_TOO_NEW;
+        goto out;
+    }
+    if (self->tables->sequence_length <= 0.0) {
+        ret = MSP_ERR_BAD_SEQUENCE_LENGTH;
+        goto out;
+    }
+    ret = 0;
+out:
+    return ret;
+}
+
+/* Reads the groups within the HDF5 file to ensure that they exist.
+ */
+static int
+hdf5_file_read_groups(hdf5_file_t *self, hid_t file_id)
+{
+    int ret = MSP_ERR_HDF5;
+    htri_t exists;
+    const char* groups[] = {
+        "/edges",
+        "/edges/indexes",
+        "/nodes",
+        "/sites",
+        "/mutations",
+        "/migrations",
+        "/provenances",
+    };
+    size_t num_groups = sizeof(groups) / sizeof(const char *);
+    size_t j;
+
+    for (j = 0; j < num_groups; j++) {
+        exists = H5Lexists(file_id, groups[j], H5P_DEFAULT);
+        if (exists < 0) {
+            goto out;
+        }
+        if (! exists) {
+            ret = MSP_ERR_FILE_FORMAT;
+            goto out;
+        }
+    }
+    ret = 0;
+out:
+    return ret;
+
+}
+
+/* Reads the dimensions for each table and allocs it.
+ */
+static int
+hdf5_file_read_dimensions(hdf5_file_t *self, hid_t file_id)
+{
+    int ret = MSP_ERR_HDF5;
+    hid_t dataset_id, dataspace_id;
+    herr_t status;
+    htri_t exists;
+    int rank;
+    hsize_t dims;
+
+    size_t num_nodes = 0;
+    size_t num_edges = 0;
+    size_t num_sites = 0;
+    size_t num_mutations = 0;
+    size_t num_migrations = 0;
+    size_t num_provenances = 0;
+    size_t ancestral_state_length = 0;
+    size_t derived_state_length = 0;
+    size_t site_metadata_length = 0;
+    size_t mutation_metadata_length = 0;
+    size_t node_metadata_length = 0;
+    size_t provenance_timestamp_length = 0;
+    size_t provenance_record_length = 0;
+
+    struct _dimension_read {
+        const char *name;
+        size_t *dest;
+    };
+    struct _dimension_read fields[] = {
+        {"/sites/position", &num_sites},
+        {"/sites/ancestral_state", &ancestral_state_length},
+        {"/sites/metadata", &site_metadata_length},
+        {"/mutations/site", &num_mutations},
+        {"/mutations/derived_state", &derived_state_length},
+        {"/mutations/metadata", &mutation_metadata_length},
+        {"/nodes/time", &num_nodes},
+        {"/nodes/metadata", &node_metadata_length},
+        {"/edges/left", &num_edges},
+        {"/migrations/left", &num_migrations},
+        {"/provenances/timestamp_offset", &num_provenances},
+        {"/provenances/timestamp", &provenance_timestamp_length},
+        {"/provenances/record", &provenance_record_length},
+    };
+    size_t num_fields = sizeof(fields) / sizeof(struct _dimension_read);
+    size_t j;
+
+    for (j = 0; j < num_fields; j++) {
+        *fields[j].dest = 0;
+        exists = H5Lexists(file_id, fields[j].name, H5P_DEFAULT);
+        if (exists < 0) {
+            goto out;
+        }
+        if (exists) {
+            dataset_id = H5Dopen(file_id, fields[j].name, H5P_DEFAULT);
+            if (dataset_id < 0) {
+                ret = MSP_ERR_FILE_FORMAT;
+                goto out;
+            }
+            dataspace_id = H5Dget_space(dataset_id);
+            if (dataspace_id < 0) {
+                goto out;
+            }
+            rank = H5Sget_simple_extent_ndims(dataspace_id);
+            if (rank != 1) {
+                ret = MSP_ERR_FILE_FORMAT;
+                goto out;
+            }
+            status = H5Sget_simple_extent_dims(dataspace_id, &dims, NULL);
+            if (status < 0) {
+                goto out;
+            }
+            *fields[j].dest = (size_t) dims;
+            status = H5Sclose(dataspace_id);
+            if (status < 0) {
+                goto out;
+            }
+            status = H5Dclose(dataset_id);
+            if (status < 0) {
+                goto out;
+            }
+        }
+    }
+    /* provenance is a special case because we have no simple columns. We must
+     * have at least one row in the offsets col or we have an error. */
+    if (num_provenances == 0) {
+        goto out;
+    }
+    num_provenances -= 1;
+
+    /* Allocate the tables with the correct sizes */
+    ret = node_table_alloc(&self->tables->nodes, num_nodes, node_metadata_length);
+    if (ret != 0) {
+        goto out;
+    }
+    self->tables->nodes.num_rows = (table_size_t) num_nodes;
+    self->tables->nodes.metadata_length = (table_size_t) node_metadata_length;
+
+    ret = edge_table_alloc(&self->tables->edges, num_edges);
+    if (ret != 0) {
+        goto out;
+    }
+    self->tables->edges.num_rows = (table_size_t) num_edges;
+
+    ret = migration_table_alloc(&self->tables->migrations, num_migrations);
+    if (ret != 0) {
+        goto out;
+    }
+    self->tables->migrations.num_rows = (table_size_t) num_migrations;
+
+    ret = site_table_alloc(&self->tables->sites, num_sites, ancestral_state_length,
+            site_metadata_length);
+    if (ret != 0) {
+        goto out;
+    }
+    self->tables->sites.num_rows = (table_size_t) num_sites;
+    self->tables->sites.ancestral_state_length = (table_size_t) ancestral_state_length;
+    self->tables->sites.metadata_length = (table_size_t) site_metadata_length;
+
+    ret = mutation_table_alloc(&self->tables->mutations, num_mutations,
+            derived_state_length, mutation_metadata_length);
+    if (ret != 0) {
+        goto out;
+    }
+    self->tables->mutations.num_rows = (table_size_t) num_mutations;
+    self->tables->mutations.derived_state_length = (table_size_t) derived_state_length;
+    self->tables->mutations.metadata_length = (table_size_t) mutation_metadata_length;
+
+    ret = provenance_table_alloc(&self->tables->provenances, num_provenances,
+            provenance_timestamp_length, provenance_record_length);
+    self->tables->provenances.num_rows = (table_size_t) num_provenances;
+    self->tables->provenances.timestamp_length = (table_size_t) provenance_timestamp_length;
+    self->tables->provenances.record_length = (table_size_t) provenance_record_length;
+    if (ret != 0) {
+        goto out;
+    }
+    /* Alloc the indexes */
+    self->tables->indexes.edge_insertion_order = malloc(num_edges * sizeof(edge_id_t));
+    self->tables->indexes.edge_removal_order = malloc(num_edges * sizeof(edge_id_t));
+    if (self->tables->indexes.edge_insertion_order == NULL
+            || self->tables->indexes.edge_removal_order == NULL) {
+        ret = MSP_ERR_NO_MEMORY;
+        goto out;
+    }
+    ret = 0;
+out:
+    return ret;
+}
+
+static int
+hdf5_file_check_dimensions(hdf5_file_t *self, hid_t file_id)
+{
+    int ret = MSP_ERR_HDF5;
+    hid_t dataset_id, dataspace_id;
+    herr_t status;
+    int rank;
+    hsize_t dims[2];
+    htri_t exists;
+    struct _dimension_check {
+        const char *name;
+        size_t size;
+    };
+    struct _dimension_check fields[] = {
+        {"/sites/position", self->tables->sites.num_rows},
+        {"/sites/ancestral_state", self->tables->sites.ancestral_state_length},
+        {"/sites/ancestral_state_offset", self->tables->sites.num_rows + 1},
+        {"/sites/metadata", self->tables->sites.metadata_length},
+        {"/sites/metadata_offset", self->tables->sites.num_rows + 1},
+
+        {"/mutations/site", self->tables->mutations.num_rows},
+        {"/mutations/node", self->tables->mutations.num_rows},
+        {"/mutations/parent", self->tables->mutations.num_rows},
+        {"/mutations/derived_state", self->tables->mutations.derived_state_length},
+        {"/mutations/derived_state_offset", self->tables->mutations.num_rows + 1},
+        {"/mutations/metadata", self->tables->mutations.metadata_length},
+        {"/mutations/metadata_offset", self->tables->mutations.num_rows + 1},
+
+        {"/nodes/flags", self->tables->nodes.num_rows},
+        {"/nodes/population", self->tables->nodes.num_rows},
+        {"/nodes/metadata", self->tables->nodes.metadata_length},
+        {"/nodes/metadata_offset", self->tables->nodes.num_rows + 1},
+        {"/nodes/time", self->tables->nodes.num_rows},
+
+        {"/edges/left", self->tables->edges.num_rows},
+        {"/edges/right", self->tables->edges.num_rows},
+        {"/edges/parent", self->tables->edges.num_rows},
+        {"/edges/child", self->tables->edges.num_rows},
+        {"/edges/indexes/insertion_order", self->tables->edges.num_rows},
+        {"/edges/indexes/removal_order", self->tables->edges.num_rows},
+
+        {"/migrations/left", self->tables->migrations.num_rows},
+        {"/migrations/right", self->tables->migrations.num_rows},
+        {"/migrations/node", self->tables->migrations.num_rows},
+        {"/migrations/source", self->tables->migrations.num_rows},
+        {"/migrations/dest", self->tables->migrations.num_rows},
+        {"/migrations/time", self->tables->migrations.num_rows},
+
+        {"/provenances/timestamp", self->tables->provenances.timestamp_length},
+        {"/provenances/timestamp_offset", self->tables->provenances.num_rows + 1},
+        {"/provenances/record", self->tables->provenances.record_length},
+        {"/provenances/record_offset", self->tables->provenances.num_rows + 1},
+    };
+    size_t num_fields = sizeof(fields) / sizeof(struct _dimension_check);
+    size_t j;
+
+    /* Now go though the rest of the fields and make sure they have the
+     * right sizes
+     */
+    for (j = 0; j < num_fields; j++) {
+        exists = H5Lexists(file_id, fields[j].name, H5P_DEFAULT);
+        if (exists < 0) {
+            goto out;
+        }
+        dims[0] = 0;
+        if (exists) {
+            dataset_id = H5Dopen(file_id, fields[j].name, H5P_DEFAULT);
+            if (dataset_id < 0) {
+                goto out;
+            }
+            dataspace_id = H5Dget_space(dataset_id);
+            if (dataspace_id < 0) {
+                goto out;
+            }
+            rank = H5Sget_simple_extent_ndims(dataspace_id);
+            if (rank != 1) {
+                ret = MSP_ERR_FILE_FORMAT;
+                goto out;
+            }
+            status = H5Sget_simple_extent_dims(dataspace_id, dims, NULL);
+            if (status < 0) {
+                goto out;
+            }
+            status = H5Sclose(dataspace_id);
+            if (status < 0) {
+                goto out;
+            }
+            status = H5Dclose(dataset_id);
+            if (status < 0) {
+                goto out;
+            }
+        }
+        if (dims[0] != fields[j].size) {
+            ret = MSP_ERR_FILE_FORMAT;
+            goto out;
+        }
+    }
+    ret = 0;
+out:
+    return ret;
+}
+
+static int
+hdf5_file_read_data(hdf5_file_t *self, hid_t file_id)
+{
+    herr_t status;
+    int ret = MSP_ERR_HDF5;
+    hid_t dataset_id;
+    htri_t exists;
+    struct _hdf5_field_read {
+        const char *name;
+        hid_t type;
+        void *dest;
+    };
+    struct _hdf5_field_read fields[] = {
+        {"/nodes/metadata", H5T_NATIVE_CHAR, self->tables->nodes.metadata},
+        {"/nodes/metadata_offset", H5T_NATIVE_UINT32,
+            self->tables->nodes.metadata_offset},
+        {"/nodes/flags", H5T_NATIVE_UINT32, self->tables->nodes.flags},
+        {"/nodes/population", H5T_NATIVE_INT32, self->tables->nodes.population},
+        {"/nodes/time", H5T_NATIVE_DOUBLE, self->tables->nodes.time},
+
+        {"/sites/position", H5T_NATIVE_DOUBLE, self->tables->sites.position},
+        {"/sites/ancestral_state", H5T_NATIVE_CHAR, self->tables->sites.ancestral_state},
+        {"/sites/ancestral_state_offset", H5T_NATIVE_UINT32,
+            self->tables->sites.ancestral_state_offset},
+        {"/sites/metadata", H5T_NATIVE_CHAR, self->tables->sites.metadata},
+        {"/sites/metadata_offset", H5T_NATIVE_UINT32, self->tables->sites.metadata_offset},
+
+        {"/mutations/site", H5T_NATIVE_INT32, self->tables->mutations.site},
+        {"/mutations/node", H5T_NATIVE_INT32, self->tables->mutations.node},
+        {"/mutations/parent", H5T_NATIVE_INT32, self->tables->mutations.parent},
+        {"/mutations/derived_state", H5T_NATIVE_CHAR, self->tables->mutations.derived_state},
+        {"/mutations/derived_state_offset", H5T_NATIVE_UINT32,
+            self->tables->mutations.derived_state_offset},
+        {"/mutations/metadata", H5T_NATIVE_CHAR, self->tables->mutations.metadata},
+        {"/mutations/metadata_offset", H5T_NATIVE_UINT32,
+            self->tables->mutations.metadata_offset},
+
+        {"/edges/left", H5T_NATIVE_DOUBLE, self->tables->edges.left},
+        {"/edges/right", H5T_NATIVE_DOUBLE, self->tables->edges.right},
+        {"/edges/parent", H5T_NATIVE_INT32, self->tables->edges.parent},
+        {"/edges/child", H5T_NATIVE_INT32, self->tables->edges.child},
+
+        {"/edges/indexes/insertion_order", H5T_NATIVE_INT32,
+            self->tables->indexes.edge_insertion_order},
+        {"/edges/indexes/removal_order", H5T_NATIVE_INT32,
+            self->tables->indexes.edge_removal_order},
+
+        {"/migrations/left", H5T_NATIVE_DOUBLE, self->tables->migrations.left},
+        {"/migrations/right", H5T_NATIVE_DOUBLE, self->tables->migrations.right},
+        {"/migrations/node", H5T_NATIVE_INT32, self->tables->migrations.node},
+        {"/migrations/source", H5T_NATIVE_INT32, self->tables->migrations.source},
+        {"/migrations/dest", H5T_NATIVE_INT32, self->tables->migrations.dest},
+        {"/migrations/time", H5T_NATIVE_DOUBLE, self->tables->migrations.time},
+
+        {"/provenances/timestamp", H5T_NATIVE_CHAR, self->tables->provenances.timestamp},
+        {"/provenances/timestamp_offset", H5T_NATIVE_UINT32,
+            self->tables->provenances.timestamp_offset},
+        {"/provenances/record", H5T_NATIVE_CHAR, self->tables->provenances.record},
+        {"/provenances/record_offset", H5T_NATIVE_UINT32,
+            self->tables->provenances.record_offset},
+    };
+    size_t num_fields = sizeof(fields) / sizeof(struct _hdf5_field_read);
+    size_t j;
+
+    for (j = 0; j < num_fields; j++) {
+        exists = H5Lexists(file_id, fields[j].name, H5P_DEFAULT);
+        if (exists < 0) {
+            goto out;
+        }
+        if (exists) {
+            dataset_id = H5Dopen(file_id, fields[j].name, H5P_DEFAULT);
+            if (dataset_id < 0) {
+                goto out;
+            }
+            status = H5Dread(dataset_id, fields[j].type, H5S_ALL, H5S_ALL, H5P_DEFAULT,
+                    fields[j].dest);
+            if (status < 0) {
+                goto out;
+            }
+            status = H5Dclose(dataset_id);
+            if (status < 0) {
+                goto out;
+            }
+        }
+    }
+    ret = 0;
+out:
+    return ret;
+}
+
+static int
+hdf5_file_load(hdf5_file_t *self, const char *filename)
+{
+    int ret = MSP_ERR_GENERIC;
+    herr_t status;
+    hid_t file_id = -1;
+
+    file_id = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
+    if (file_id < 0) {
+        ret = MSP_ERR_HDF5;
+        goto out;
+    }
+    ret = hdf5_file_read_metadata(self, file_id);
+    if (ret < 0) {
+        goto out;
+    }
+    ret = hdf5_file_read_groups(self, file_id);
+    if (ret < 0) {
+        goto out;
+    }
+    ret = hdf5_file_read_dimensions(self, file_id);
+    if (ret < 0) {
+        goto out;
+    }
+    ret = hdf5_file_check_dimensions(self, file_id);
+    if (ret < 0) {
+        goto out;
+    }
+    ret = hdf5_file_read_data(self, file_id);
+    if (ret != 0) {
+        goto out;
+    }
+
+out:
+    if (file_id >= 0) {
+        status = H5Fclose(file_id);
+        if (status < 0) {
+            ret = MSP_ERR_HDF5;
+        }
+    }
+    return ret;
+}
+
+
+static int
+hdf5_file_write_hdf5_data(hdf5_file_t *self, hid_t file_id, int flags)
+{
+    herr_t ret = -1;
+    herr_t status;
+    hid_t group_id, dataset_id, dataspace_id, plist_id;
+    hsize_t dim, chunk_size;
+    struct _hdf5_field_write {
+        const char *name;
+        hid_t storage_type;
+        hid_t memory_type;
+        size_t size;
+        void *source;
+    };
+    struct _hdf5_field_write fields[] = {
+        {"/nodes/metadata",
+            H5T_STD_I8LE, H5T_NATIVE_CHAR,
+            self->tables->nodes.metadata_length, self->tables->nodes.metadata},
+        {"/nodes/metadata_offset",
+            H5T_STD_U32LE, H5T_NATIVE_UINT32,
+            self->tables->nodes.num_rows + 1, self->tables->nodes.metadata_offset},
+        {"/nodes/flags",
+            H5T_STD_U32LE, H5T_NATIVE_UINT32,
+            self->tables->nodes.num_rows, self->tables->nodes.flags},
+        {"/nodes/population",
+            H5T_STD_I32LE, H5T_NATIVE_INT32,
+            self->tables->nodes.num_rows, self->tables->nodes.population},
+        {"/nodes/time",
+            H5T_IEEE_F64LE, H5T_NATIVE_DOUBLE,
+            self->tables->nodes.num_rows, self->tables->nodes.time},
+
+        {"/edges/left",
+            H5T_IEEE_F64LE, H5T_NATIVE_DOUBLE,
+            self->tables->edges.num_rows, self->tables->edges.left},
+        {"/edges/right",
+            H5T_IEEE_F64LE, H5T_NATIVE_DOUBLE,
+            self->tables->edges.num_rows, self->tables->edges.right},
+        {"/edges/parent",
+            H5T_STD_I32LE, H5T_NATIVE_INT32,
+            self->tables->edges.num_rows, self->tables->edges.parent},
+        {"/edges/child",
+            H5T_STD_I32LE, H5T_NATIVE_INT32,
+            self->tables->edges.num_rows, self->tables->edges.child},
+
+        {"/edges/indexes/insertion_order",
+            H5T_STD_I32LE, H5T_NATIVE_INT32,
+            self->tables->edges.num_rows, self->tables->indexes.edge_insertion_order},
+        {"/edges/indexes/removal_order",
+            H5T_STD_I32LE, H5T_NATIVE_INT32,
+            self->tables->edges.num_rows, self->tables->indexes.edge_removal_order},
+
+        {"/sites/position",
+            H5T_IEEE_F64LE, H5T_NATIVE_DOUBLE,
+            self->tables->sites.num_rows, self->tables->sites.position},
+        {"/sites/ancestral_state",
+            H5T_STD_I8LE, H5T_NATIVE_CHAR,
+            self->tables->sites.ancestral_state_length, self->tables->sites.ancestral_state},
+        {"/sites/ancestral_state_offset",
+            H5T_STD_U32LE, H5T_NATIVE_UINT32,
+            self->tables->sites.num_rows + 1, self->tables->sites.ancestral_state_offset},
+        {"/sites/metadata",
+            H5T_STD_I8LE, H5T_NATIVE_CHAR,
+            self->tables->sites.metadata_length, self->tables->sites.metadata},
+        {"/sites/metadata_offset",
+            H5T_STD_U32LE, H5T_NATIVE_UINT32,
+            self->tables->sites.num_rows + 1, self->tables->sites.metadata_offset},
+
+        {"/mutations/site",
+            H5T_STD_I32LE, H5T_NATIVE_INT32,
+            self->tables->mutations.num_rows, self->tables->mutations.site},
+        {"/mutations/node",
+            H5T_STD_I32LE, H5T_NATIVE_INT32,
+            self->tables->mutations.num_rows, self->tables->mutations.node},
+        {"/mutations/parent",
+            H5T_STD_I32LE, H5T_NATIVE_INT32,
+            self->tables->mutations.num_rows, self->tables->mutations.parent},
+        {"/mutations/derived_state",
+            H5T_STD_I8LE, H5T_NATIVE_CHAR,
+            self->tables->mutations.derived_state_length, self->tables->mutations.derived_state},
+        {"/mutations/derived_state_offset",
+            H5T_STD_U32LE, H5T_NATIVE_UINT32,
+            self->tables->mutations.num_rows + 1, self->tables->mutations.derived_state_offset},
+        {"/mutations/metadata",
+            H5T_STD_I8LE, H5T_NATIVE_CHAR,
+            self->tables->mutations.metadata_length, self->tables->mutations.metadata},
+        {"/mutations/metadata_offset",
+            H5T_STD_U32LE, H5T_NATIVE_UINT32,
+            self->tables->mutations.num_rows + 1, self->tables->mutations.metadata_offset},
+
+        {"/migrations/left",
+            H5T_IEEE_F64LE, H5T_NATIVE_DOUBLE,
+            self->tables->migrations.num_rows, self->tables->migrations.left},
+        {"/migrations/right",
+            H5T_IEEE_F64LE, H5T_NATIVE_DOUBLE,
+            self->tables->migrations.num_rows, self->tables->migrations.right},
+        {"/migrations/time",
+            H5T_IEEE_F64LE, H5T_NATIVE_DOUBLE,
+            self->tables->migrations.num_rows, self->tables->migrations.time},
+        {"/migrations/node",
+            H5T_STD_I32LE, H5T_NATIVE_INT32,
+            self->tables->migrations.num_rows, self->tables->migrations.node},
+        {"/migrations/source",
+            H5T_STD_I32LE, H5T_NATIVE_INT32,
+            self->tables->migrations.num_rows, self->tables->migrations.source},
+        {"/migrations/dest",
+            H5T_STD_I32LE, H5T_NATIVE_INT32,
+            self->tables->migrations.num_rows, self->tables->migrations.dest},
+
+        {"/provenances/timestamp",
+            H5T_STD_I8LE, H5T_NATIVE_CHAR,
+            self->tables->provenances.timestamp_length, self->tables->provenances.timestamp},
+        {"/provenances/timestamp_offset",
+            H5T_STD_U32LE, H5T_NATIVE_UINT32,
+            self->tables->provenances.num_rows + 1, self->tables->provenances.timestamp_offset},
+        {"/provenances/record",
+            H5T_STD_I8LE, H5T_NATIVE_CHAR,
+            self->tables->provenances.record_length, self->tables->provenances.record},
+        {"/provenances/record_offset",
+            H5T_STD_U32LE, H5T_NATIVE_UINT32,
+            self->tables->provenances.num_rows + 1, self->tables->provenances.record_offset},
+    };
+    size_t num_fields = sizeof(fields) / sizeof(struct _hdf5_field_write);
+    struct _hdf5_group_write {
+        const char *name;
+    };
+    struct _hdf5_group_write groups[] = {
+        {"/sites"},
+        {"/mutations"},
+        {"/nodes"},
+        {"/edges"},
+        {"/edges/indexes"},
+        {"/migrations"},
+        {"/provenances"},
+    };
+    size_t num_groups = sizeof(groups) / sizeof(struct _hdf5_group_write);
+    size_t j;
+
+    /* Create the groups */
+    for (j = 0; j < num_groups; j++) {
+        group_id = H5Gcreate(file_id, groups[j].name, H5P_DEFAULT, H5P_DEFAULT,
+                H5P_DEFAULT);
+        if (group_id < 0) {
+            goto out;
+        }
+        status = H5Gclose(group_id);
+        if (status < 0) {
+            goto out;
+        }
+    }
+    /* now write the datasets */
+    for (j = 0; j < num_fields; j++) {
+        dim = fields[j].size;
+        /* Never create any 0-sized datasets. This causes all sorts of problems in older
+         * versions of HDF5, and so we adopt the protocol of omitting the dataset if it
+         * is of zero size.
+         */
+        if (dim > 0) {
+            dataspace_id = H5Screate_simple(1, &dim, &dim);
+            if (dataspace_id < 0) {
+                goto out;
+            }
+            plist_id = H5Pcreate(H5P_DATASET_CREATE);
+            if (plist_id < 0) {
+                goto out;
+            }
+            /* Set the chunk size to the full size of the dataset since we
+             * always read the full thing.
+             */
+            chunk_size = MSP_MAX(1, fields[j].size);
+            status = H5Pset_chunk(plist_id, 1, &chunk_size);
+            if (status < 0) {
+                goto out;
+            }
+            if (fields[j].memory_type != H5T_NATIVE_DOUBLE) {
+                /* For integer types, use the scale offset compression */
+                status = H5Pset_scaleoffset(plist_id, H5Z_SO_INT,
+                         H5Z_SO_INT_MINBITS_DEFAULT);
+                if (status < 0) {
+                    goto out;
+                }
+            }
+            if (flags & MSP_DUMP_ZLIB_COMPRESSION) {
+                /* Turn on byte shuffling to improve compression */
+                status = H5Pset_shuffle(plist_id);
+                if (status < 0) {
+                    goto out;
+                }
+                /* Set zlib compression at level 9 (best compression) */
+                status = H5Pset_deflate(plist_id, 9);
+                if (status < 0) {
+                    goto out;
+                }
+            }
+            /* Turn on Fletcher32 checksums for integrity checks */
+            status = H5Pset_fletcher32(plist_id);
+            if (status < 0) {
+                goto out;
+            }
+            dataset_id = H5Dcreate2(file_id, fields[j].name,
+                    fields[j].storage_type, dataspace_id, H5P_DEFAULT,
+                    plist_id, H5P_DEFAULT);
+            if (fields[j].size > 0) {
+                /* Don't write zero sized datasets to work-around problems
+                 * with older versions of hdf5. */
+                status = H5Dwrite(dataset_id, fields[j].memory_type, H5S_ALL,
+                        H5S_ALL, H5P_DEFAULT, fields[j].source);
+                if (status < 0) {
+                    goto out;
+                }
+            }
+            status = H5Dclose(dataset_id);
+            if (status < 0) {
+                goto out;
+            }
+            status = H5Pclose(plist_id);
+            if (status < 0) {
+                goto out;
+            }
+            status = H5Sclose(dataspace_id);
+            if (status < 0) {
+                goto out;
+            }
+        }
+    }
+    ret = 0;
+out:
+    return ret;
+}
+
+static int
+hdf5_file_write_hdf5_metadata(hdf5_file_t *self, hid_t file_id)
+{
+    herr_t status = -1;
+    hid_t attr_id, dataspace_id;
+    hsize_t dims = 1;
+    uint32_t version[2] = {
+        MSP_FILE_FORMAT_VERSION_MAJOR, MSP_FILE_FORMAT_VERSION_MINOR};
+    uint32_t unused_value = 0;
+
+    struct _hdf5_metadata_write {
+        const char *name;
+        hid_t parent;
+        hid_t storage_type;
+        hid_t memory_type;
+        size_t size;
+        void *source;
+    };
+    struct _hdf5_metadata_write fields[] = {
+        {"format_version", 0, H5T_STD_U32LE, H5T_NATIVE_UINT32, 2, version},
+        {"sequence_length", 0, H5T_IEEE_F64LE, H5T_NATIVE_DOUBLE, 1,
+            &self->tables->sequence_length},
+        /* The sample size attribute is vestigial, and only included because
+         * older versions of msprime give a better error condition when confronted
+         * with a newer file format. Due to a bug in the way that this attribute
+         * was loaded, versions of msprime pre 0.4.0 would complain about a missing
+         * attribute rather than giving a File format error. */
+        {"sample_size", 0, H5T_STD_U32LE, H5T_NATIVE_UINT32, 1, &unused_value},
+    };
+    size_t num_fields = sizeof(fields) / sizeof(struct _hdf5_metadata_write);
+    size_t j;
+
+    for (j = 0; j < num_fields; j++) {
+        dims = fields[j].size;
+        dataspace_id = H5Screate_simple(1, &dims, NULL);
+        if (dataspace_id < 0) {
+            status = (herr_t) dataspace_id;
+            goto out;
+        }
+        attr_id = H5Acreate(file_id, fields[j].name,
+                fields[j].storage_type, dataspace_id, H5P_DEFAULT,
+                H5P_DEFAULT);
+        if (attr_id < 0) {
+            goto out;
+        }
+        status = H5Awrite(attr_id, fields[j].memory_type, fields[j].source);
+        if (status < 0) {
+            goto out;
+        }
+        status = H5Aclose(attr_id);
+        if (status < 0) {
+            goto out;
+        }
+        status = H5Sclose(dataspace_id);
+        if (status < 0) {
+            goto out;
+        }
+    }
+ out:
+    return status;
+}
+
+static int WARN_UNUSED
+hdf5_file_dump(hdf5_file_t *self, const char *filename, int flags)
+{
+    int ret = MSP_ERR_HDF5;
+    herr_t status;
+    hid_t file_id = -1;
+
+    file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    if (file_id < 0) {
+        goto out;
+    }
+    status = hdf5_file_write_hdf5_metadata(self, file_id);
+    if (status < 0) {
+        goto out;
+    }
+    ret = hdf5_file_write_hdf5_data(self, file_id, flags);
+    if (ret < 0) {
+        goto out;
+    }
+    ret = 0;
+out:
+    if (file_id > 0) {
+        status = H5Fclose(file_id);
+        if (status < 0) {
+            ret = MSP_ERR_HDF5;
+        }
+    }
+    return ret;
+}
+
+/*************************
+ * table_collection
+ *************************/
+
+typedef struct {
+    node_id_t index;
+    /* These are the sort keys in order */
+    double first;
+    double second;
+    node_id_t third;
+    node_id_t fourth;
+} index_sort_t;
+
+static int
+cmp_index_sort(const void *a, const void *b) {
+    const index_sort_t *ca = (const index_sort_t *) a;
+    const index_sort_t *cb = (const index_sort_t *) b;
+    int ret = (ca->first > cb->first) - (ca->first < cb->first);
+    if (ret == 0) {
+        ret = (ca->second > cb->second) - (ca->second < cb->second);
+        if (ret == 0) {
+            ret = (ca->third > cb->third) - (ca->third < cb->third);
+            if (ret == 0) {
+                ret = (ca->fourth > cb->fourth) - (ca->fourth < cb->fourth);
+            }
+        }
+    }
+    return ret;
+}
+
+static int
+table_collection_check_offsets(table_collection_t *self)
+{
+    int ret = 0;
+
+    ret = check_offsets(self->nodes.num_rows, self->nodes.metadata_offset,
+            self->nodes.metadata_length, true);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = check_offsets(self->sites.num_rows, self->sites.ancestral_state_offset,
+            self->sites.ancestral_state_length, true);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = check_offsets(self->sites.num_rows, self->sites.metadata_offset,
+            self->sites.metadata_length, true);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = check_offsets(self->mutations.num_rows, self->mutations.derived_state_offset,
+            self->mutations.derived_state_length, true);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = check_offsets(self->mutations.num_rows, self->mutations.metadata_offset,
+            self->mutations.metadata_length, true);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = check_offsets(self->provenances.num_rows, self->provenances.timestamp_offset,
+            self->provenances.timestamp_length, true);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = check_offsets(self->provenances.num_rows, self->provenances.record_offset,
+            self->provenances.record_length, true);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = 0;
+out:
+    return ret;
+}
+
+int
+table_collection_print_state(table_collection_t *self, FILE *out)
+{
+    fprintf(out, "Table collection state\n");
+    fprintf(out, "sequence_length = %f\n", self->sequence_length);
+    node_table_print_state(&self->nodes, out);
+    edge_table_print_state(&self->edges, out);
+    migration_table_print_state(&self->migrations, out);
+    site_table_print_state(&self->sites, out);
+    mutation_table_print_state(&self->mutations, out);
+    provenance_table_print_state(&self->provenances, out);
+    return 0;
+}
+
+int
+table_collection_alloc(table_collection_t *self, int flags)
+{
+    int ret = 0;
+    memset(self, 0, sizeof(*self));
+    if (flags & MSP_ALLOC_TABLES) {
+        /* Allocate all the tables with their default increments */
+        ret = node_table_alloc(&self->nodes, 0, 0);
+        if (ret != 0) {
+            goto out;
+        }
+        ret = edge_table_alloc(&self->edges, 0);
+        if (ret != 0) {
+            goto out;
+        }
+        ret = migration_table_alloc(&self->migrations, 0);
+        if (ret != 0) {
+            goto out;
+        }
+        ret = site_table_alloc(&self->sites, 0, 0, 0);
+        if (ret != 0) {
+            goto out;
+        }
+        ret = mutation_table_alloc(&self->mutations, 0, 0, 0);
+        if (ret != 0) {
+            goto out;
+        }
+        ret = provenance_table_alloc(&self->provenances, 0, 0, 0);
+        if (ret != 0) {
+            goto out;
+        }
+    }
+out:
+    return ret;
+}
+
+int
+table_collection_free(table_collection_t *self)
+{
+    int ret = 0;
+
+    node_table_free(&self->nodes);
+    edge_table_free(&self->edges);
+    migration_table_free(&self->migrations);
+    site_table_free(&self->sites);
+    mutation_table_free(&self->mutations);
+    provenance_table_free(&self->provenances);
+    msp_safe_free(self->indexes.edge_insertion_order);
+    msp_safe_free(self->indexes.edge_removal_order);
+    return ret;
+}
+
+int WARN_UNUSED
+table_collection_copy(table_collection_t *self, table_collection_t *dest)
+{
+    int ret = 0;
+    size_t index_size;
+
+    ret = node_table_copy(&self->nodes, &dest->nodes);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = edge_table_copy(&self->edges, &dest->edges);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = migration_table_copy(&self->migrations, &dest->migrations);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = site_table_copy(&self->sites, &dest->sites);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = mutation_table_copy(&self->mutations, &dest->mutations);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = provenance_table_copy(&self->provenances, &dest->provenances);
+    if (ret != 0) {
+        goto out;
+    }
+    dest->sequence_length = self->sequence_length;
+    if (table_collection_is_indexed(self)) {
+        table_collection_drop_indexes(dest);
+        index_size = self->edges.num_rows * sizeof(edge_id_t);
+        dest->indexes.edge_insertion_order = malloc(index_size);
+        dest->indexes.edge_removal_order = malloc(index_size);
+        if (dest->indexes.edge_insertion_order == NULL
+                || dest->indexes.edge_removal_order == NULL) {
+            ret = MSP_ERR_NO_MEMORY;
+            goto out;
+        }
+        memcpy(dest->indexes.edge_insertion_order, self->indexes.edge_insertion_order,
+                index_size);
+        memcpy(dest->indexes.edge_removal_order, self->indexes.edge_removal_order,
+                index_size);
+    }
+out:
+    return ret;
+}
+
+bool
+table_collection_is_indexed(table_collection_t *self)
+{
+    return self->indexes.edge_insertion_order != NULL
+        && self->indexes.edge_removal_order != NULL;
+}
+
+int
+table_collection_drop_indexes(table_collection_t *self)
+{
+    msp_safe_free(self->indexes.edge_insertion_order);
+    msp_safe_free(self->indexes.edge_removal_order);
+    self->indexes.edge_insertion_order = NULL;
+    self->indexes.edge_removal_order = NULL;
+    return 0;
+}
+
+int WARN_UNUSED
+table_collection_build_indexes(table_collection_t *self, int flags)
+{
+    int ret = MSP_ERR_GENERIC;
+    size_t j;
+    double *time = self->nodes.time;
+    index_sort_t *sort_buff = NULL;
+    node_id_t parent;
+
+    /* Alloc the indexes. Free them first if they aren't NULL. */
+    msp_safe_free(self->indexes.edge_insertion_order);
+    msp_safe_free(self->indexes.edge_removal_order);
+    self->indexes.edge_insertion_order = malloc(self->edges.num_rows * sizeof(edge_id_t));
+    self->indexes.edge_removal_order = malloc(self->edges.num_rows * sizeof(edge_id_t));
+    if (self->indexes.edge_insertion_order == NULL
+            || self->indexes.edge_removal_order == NULL) {
+        ret = MSP_ERR_NO_MEMORY;
+        goto out;
+    }
+
+    /* Alloc the sort buffer */
+    sort_buff = malloc(self->edges.num_rows * sizeof(index_sort_t));
+    if (sort_buff == NULL) {
+        ret = MSP_ERR_NO_MEMORY;
+        goto out;
+    }
+
+    /* sort by left and increasing time to give us the order in which
+     * records should be inserted */
+    for (j = 0; j < self->edges.num_rows; j++) {
+        sort_buff[j].index = (node_id_t ) j;
+        sort_buff[j].first = self->edges.left[j];
+        parent = self->edges.parent[j];
+        if (parent == MSP_NULL_NODE) {
+            ret = MSP_ERR_NULL_PARENT;
+            goto out;
+        }
+        if (parent < 0 || parent >= (node_id_t) self->nodes.num_rows) {
+            ret = MSP_ERR_NODE_OUT_OF_BOUNDS;
+            goto out;
+        }
+        sort_buff[j].second = time[parent];
+        sort_buff[j].third = parent;
+        sort_buff[j].fourth = self->edges.child[j];
+    }
+    qsort(sort_buff, self->edges.num_rows, sizeof(index_sort_t), cmp_index_sort);
+    for (j = 0; j < self->edges.num_rows; j++) {
+        self->indexes.edge_insertion_order[j] = sort_buff[j].index;
+    }
+    /* sort by right and decreasing parent time to give us the order in which
+     * records should be removed. */
+    for (j = 0; j < self->edges.num_rows; j++) {
+        sort_buff[j].index = (node_id_t ) j;
+        sort_buff[j].first = self->edges.right[j];
+        parent = self->edges.parent[j];
+        if (parent == MSP_NULL_NODE) {
+            ret = MSP_ERR_NULL_PARENT;
+            goto out;
+        }
+        if (parent < 0 || parent >= (node_id_t) self->nodes.num_rows) {
+            ret = MSP_ERR_NODE_OUT_OF_BOUNDS;
+            goto out;
+        }
+        sort_buff[j].second = -time[parent];
+        sort_buff[j].third = -parent;
+        sort_buff[j].fourth = -self->edges.child[j];
+    }
+    qsort(sort_buff, self->edges.num_rows, sizeof(index_sort_t), cmp_index_sort);
+    for (j = 0; j < self->edges.num_rows; j++) {
+        self->indexes.edge_removal_order[j] = sort_buff[j].index;
+    }
+    ret = 0;
+out:
+    if (sort_buff != NULL) {
+        free(sort_buff);
+    }
+    return ret;
+}
+/*
+int WARN_UNUSED
+table_collection_load(table_collection_t *self, const char *filename, int flags)
+{
+    int ret = 0;
+    hdf5_file_t hdf5_file;
+
+    ret = hdf5_file_alloc(&hdf5_file, self);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = hdf5_file_load(&hdf5_file, filename);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = table_collection_check_offsets(self);
+out:
+    hdf5_file_free(&hdf5_file);
+    return ret;
+}
+
+int WARN_UNUSED
+table_collection_dump(table_collection_t *self, const char *filename, int flags)
+{
+    int ret = 0;
+    hdf5_file_t hdf5_file;
+
+    if (!table_collection_is_indexed(self)) {
+        ret = table_collection_build_indexes(self, 0);
+        if (ret != 0) {
+            goto out;
+        }
+    }
+    ret = hdf5_file_alloc(&hdf5_file, self);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = hdf5_file_dump(&hdf5_file, filename, flags);
+    if (ret != 0) {
+        goto out;
+    }
+out:
+    hdf5_file_free(&hdf5_file);
+    return ret;
+}
+*/
+int WARN_UNUSED
+table_collection_simplify(table_collection_t *self,
+        node_id_t *samples, size_t num_samples, int flags, node_id_t *node_map)
+{
+    int ret = 0;
+    simplifier_t simplifier;
+
+    /* TODO the simplifier object should take a table collection as a parameter */
+    ret = simplifier_alloc(&simplifier, self->sequence_length,
+            samples, num_samples, &self->nodes, &self->edges, &self->migrations,
+            &self->sites, &self->mutations, 0, flags);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = simplifier_run(&simplifier, node_map);
+    if (ret != 0) {
+        goto out;
+    }
+out:
+    simplifier_free(&simplifier);
     return ret;
 }

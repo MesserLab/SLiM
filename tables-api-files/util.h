@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2015-2016 University of Oxford
+** Copyright (C) 2015-2018 University of Oxford
 **
 ** This file is part of msprime.
 **
@@ -43,6 +43,17 @@
 
 /* Flags for dump tables */
 #define MSP_ALLOC_TABLES 1
+
+/* Flags for load tables */
+#define MSP_BUILD_INDEXES 1
+
+/* Flags for tree sequence dump/load */
+#define MSP_DUMP_ZLIB_COMPRESSION 1
+#define MSP_LOAD_EXTENDED_CHECKS  1
+
+#define MSP_FILE_FORMAT_VERSION_MAJOR 10
+#define MSP_FILE_FORMAT_VERSION_MINOR 0
+
 
 /* Error codes */
 #define MSP_ERR_GENERIC                                             -1
@@ -119,6 +130,9 @@
 
 const char * msp_strerror(int err);
 void __msp_safe_free(void **ptr);
+
 #define msp_safe_free(pointer) __msp_safe_free((void **) &(pointer))
+#define MSP_MAX(a,b) ((a) > (b) ? (a) : (b))
+#define MSP_MIN(a,b) ((a) < (b) ? (a) : (b))
 
 #endif /*__UTIL_H__*/
