@@ -51,7 +51,7 @@
 
 //TREE SEQUENCE
 //INCLUDE JEROME's TABLES API
-#include "../tables-api-files/tables.h"
+#include "../treerec/tskit/tables.h"
 
 
 class EidosInterpreter;

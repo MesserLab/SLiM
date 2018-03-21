@@ -19,7 +19,7 @@ find_package(HDF5 REQUIRED)
 include_directories(${HDF5_INCLUDE_DIR})
 
 set(TARGET_NAME tables)
-file(GLOB_RECURSE TABLE_SOURCES ${PROJECT_SOURCE_DIR}/tables-api-files/*.c)
+file(GLOB_RECURSE TABLE_SOURCES ${PROJECT_SOURCE_DIR}/treerec/tskit/*.c)
 add_library(${TARGET_NAME} STATIC ${TABLE_SOURCES})
 target_include_directories(${TARGET_NAME} PUBLIC ${HDF5_INCLUDE_DIR})
 
