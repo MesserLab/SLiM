@@ -3729,6 +3729,7 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 	else if (p_function_name.compare(gStr_initializeMutationRate) == 0)			return ExecuteContextFunction_initializeMutationRate(p_function_name, p_arguments, p_argument_count, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeSex) == 0)					return ExecuteContextFunction_initializeSex(p_function_name, p_arguments, p_argument_count, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeSLiMOptions) == 0)			return ExecuteContextFunction_initializeSLiMOptions(p_function_name, p_arguments, p_argument_count, p_interpreter);
+	else if (p_function_name.compare(gStr_initializeTreeSeq) == 0)				return ExecuteContextFunction_initializeTreeSeq(p_function_name, p_arguments, p_argument_count, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeSLiMModelType) == 0)		return ExecuteContextFunction_initializeSLiMModelType(p_function_name, p_arguments, p_argument_count, p_interpreter);
 	
 	EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): the function " << p_function_name << "() is not implemented by SLiMSim." << EidosTerminate();
