@@ -3651,33 +3651,6 @@ void SLiMSim::StartTreeRecording(void)
 	// own trees, so your code needs to be capable of handling that.  Store your state inside SLiMSim, not in globals.  SLiMgui is
 	// single-threaded, though, so you don't need to worry about re-entrancy or multithreading issues.
 
-	MspTxtNodeTable = fopen("NodeTable.txt","w");
-	MspTxtEdgeTable = fopen("EdgeTable.txt","w");
-
-	if (MspTxtNodeTable == NULL || MspTxtEdgeTable == NULL) {
- 		
-		handle_error("file did't open",1);    		
-
-	}
-	
-	//WRITE TABLES TO A TEXT FILE	
-
-	//open a file to to write text NODE and EDGE tables to test tree output
-	//MspTxtNodeFile.open("NodeTable.txt");
-	//MspTxtEdgeFile.open("EdgeTable.txt");
-
-	//if(MspTxtNodeTable.fail()){
-	//	std::cout << "failed\n";
-	//}else{
-	//	std::cout << "did not fail\n";
-	//}		
-
-	/*
-	MspTxtNodeFile << "is_sample\t" << "id\t" << "time\t" << "population\n";
-	MspTxtEdgeFile << "left\t" << "right\t" << "parent\t" << "child\n";
-	*/
-
-	
 	simplificationInterval = 2;
 	lastSimplificationGeneration = 0;
 		
@@ -3691,38 +3664,6 @@ void SLiMSim::StartTreeRecording(void)
         /* NB: must set the sequence_length !! */
         tables.sequence_length = (double)chromosome_.last_position_ + 1;
 
-/*	
-	//BEFORE TABLE API WAS UPDATED
-	ret = node_table_alloc(&nodes, 0, 0);
-    	if (ret != 0) {
-		handle_error("alloc_nodes", ret);
-		std::cout << "alloc nodes failed" << std::endl; 
-    	}
-    	ret = edge_table_alloc(&edges, 0);
-    	if (ret != 0) {
-		handle_error("alloc_edges", ret);
-		std::cout << "alloc edged failed" << std::endl; 
-    	}
-    	//Even though we're not going to use them, we still have to allocate
-     	//migration, site and mutations tables because the simplifier class
-     	//expects them. This is annoying and will be fixed at some point 
-    	ret = migration_table_alloc(&migrations, 0);
-    	if (ret != 0) {
-		handle_error("alloc_migrations", ret);
-		std::cout << "alloc migrations failed" << std::endl; 
-    	}
-    	ret = site_table_alloc(&sites, 0, 0, 0);
-    	if (ret != 0) {
-		handle_error("alloc_sites", ret);
-		std::cout << "alloc sites failed" << std::endl; 
-    	}
-    	ret = mutation_table_alloc(&mutations, 0, 0, 0);
-    	if (ret != 0) {
-		handle_error("alloc_mutations", ret);
-		std::cout << "alloc mutations failed" << std::endl; 
-    	}
-*/		
-	
 	std::cout << "succesfully allocated tables" << std::endl;
 			
 	
@@ -3873,17 +3814,17 @@ void SLiMSim::CheckAutoSimplification(void)
 	{
 		if (simplify_elapsed_ >= simplify_interval_)
 		{
-			uint64_t old_table_size = &tables.nodes.num_rows;
-            old_table_size += &tables.edges.num_rows;
-            old_table_size += &tables.sites.num_rows;
-            old_table_size += &tables.mutations.num_rows;
+			uint64_t old_table_size = (uint64_t) &tables.nodes.num_rows;
+            old_table_size += (uint64_t) &tables.edges.num_rows;
+            old_table_size += (uint64_t) &tables.sites.num_rows;
+            old_table_size += (uint64_t) &tables.mutations.num_rows;
 			
 			SimplifyTreeSequence();
 			
-			uint64_t new_table_size = &tables.nodes.num_rows;
-            new_table_size += &tables.edges.num_rows;
-            new_table_size += &tables.sites.num_rows;
-            new_table_size += &tables.mutations.num_rows;
+			uint64_t new_table_size = (uint64_t) &tables.nodes.num_rows;
+            new_table_size += (uint64_t) &tables.edges.num_rows;
+            new_table_size += (uint64_t) &tables.sites.num_rows;
+            new_table_size += (uint64_t) &tables.mutations.num_rows;
 			double ratio = old_table_size / (double)new_table_size;
 			
 			// Adjust our automatic simplification interval based upon the observed change in storage space used.
@@ -3912,7 +3853,7 @@ void SLiMSim::CheckAutoSimplification(void)
 		}
 	}
 }
-￼
+
 void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify)
 {
     // If p_binary, then write out to that path;
@@ -3932,17 +3873,20 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
         path.pop_back();		// remove the trailing slash, which just confuses stat()
 
     if (p_binary) {
-        table_collection_dump(&tables, p_recording_tree_path, 0);
+        table_collection_dump(&tables, p_recording_tree_path.c_str(), 0);
     } else {
         std::string error_string;
         bool success = Eidos_CreateDirectory(path, &error_string);
-        if (error_string.length())
-            p_interpreter.ExecutionOutputStream() << error_string << std::endl;
+        // FIXME: do some error checking here, like e.g. 
+        // if (error_string.length())
+        //     p_interpreter.ExecutionOutputStream() << error_string << std::endl;
 
         FILE *MspTxtNodeTable;
         FILE *MspTxtEdgeTable;
-        MspTxtNodeTable = fopen(path + "/NodeTable.txt","w");
-        MspTxtEdgeTable = fopen(path + "/EdgeTable.txt","w");
+        std::string NodeFileName = path + "/NodeTable.txt";
+        std::string EdgeFileName = path + "/EdgeTable.txt";
+        MspTxtNodeTable = fopen(NodeFileName.c_str(),"w");
+        MspTxtEdgeTable = fopen(EdgeFileName.c_str(),"w");
         node_table_dump_text(&tables.nodes,MspTxtNodeTable);
         edge_table_dump_text(&tables.edges,MspTxtEdgeTable);
         fclose(MspTxtNodeTable);

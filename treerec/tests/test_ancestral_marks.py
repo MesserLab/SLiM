@@ -24,8 +24,8 @@ class TestSlimSim(unittest.TestCase):
 
     def test_ts_slim_consistency(self):
         # load tree sequence
-        node_file = open("NodeTable.txt", "r")
-        edge_file = open("EdgeTable.txt", "r")
+        node_file = open("test_output/NodeTable.txt", "r")
+        edge_file = open("test_output/EdgeTable.txt", "r")
         ts = msprime.load_text(nodes=node_file, edges=edge_file, base64_metadata=False)
 
         # get SLiM ID -> msprime ID map from metadata

@@ -3,7 +3,7 @@ initialize() {
     initializeSLiMModelType("nonWF");
 
     // TREE SEQUENCE TEST OUTPUT
-    initializeSLiMOptions(treeRecordingPath="treeseq.txt");
+    initializeTreeSeq();
     source("testing_utils.slim");
     defineConstant("n_marks",20);   // number of marked genomes
     initializeMarkedMutations(n_marks);

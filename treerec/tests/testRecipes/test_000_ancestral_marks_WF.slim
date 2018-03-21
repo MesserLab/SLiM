@@ -1,10 +1,6 @@
-// quick neutral.slim : ^Total mutation frequencies: (.*)$
-//
-// A test script with a quick, vanilla neutral simulation; this is the SLiMgui default model
-//
 initialize() {
     // TREE SEQUENCE TEST OUTPUT
-    initializeSLiMOptions(treeRecordingPath="treeseq.txt");
+    initializeTreeSeq();
     source("testing_utils.slim");
     defineConstant("n_marks",20);   // number of marked genomes
     initializeMarkedMutations(n_marks);
@@ -14,17 +10,18 @@ initialize() {
     initializeMutationRate(0.0);
     initializeRecombinationRate(0.2);    
 }
-1 {
-	sim.addSubpop("p1", 500);
-    
+
+1 late() {
+    sim.addSubpop("p1",10);
     // TREE SEQUENCE TEST OUTPUT
     initializeMarks(sim, n_marks);
 }
-10 late() { p1.outputSample(10); }
-20 late() { p1.outputSample(10); }
-20 late() { sim.outputFixedMutations(); }
-20 late() { cat("\nTotal mutation frequencies: " + sum(sim.mutationFrequencies(NULL)) + "\n"); }
-20 late() {
+
+
+10 late() {
+
     // TREE SEQUENCE TEST OUTPUT
     outputMutationResult(sim);
+
+    sim.simulationFinished();
 }
