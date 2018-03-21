@@ -20,7 +20,7 @@ function (void)initializeMarks(i$ num_marks)
 }
 
 function (void)outputMutationResult([s$ outputFile="TESToutput.txt"]) {
-    sim.treeSeqOutput("test_output", simplify=T, binary=F);
+    sim.treeSeqOutput("test_output", binary=F, simplify=T);
     for(Mut in sim.mutationTypes){
         for(Pos in 0:sim.chromosome.lastPosition){
             GenomesWithMutAtPos = NULL;

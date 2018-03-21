@@ -251,6 +251,8 @@ private:
 	bool recording_tree_ = false;		// true if we are doing tree sequence recording
 	Individual *CurrentTreeSequenceIndividual;
 	bool FirstRecombinationCalled = false;
+	table_size_t rowsInNodeTableBeforeAddingCurInd;
+	size_t rowsInEdgeTableBeforeAddingCurInd;
 	
 	// TABLE IVARS
 	int ret;   // FIXME call this something more descriptive

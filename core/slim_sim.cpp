@@ -3698,6 +3698,9 @@ void SLiMSim::SetCurrentNewIndividual(Individual *p_individual)
 	//Set ivar to indicate the first recombination has not been called, (this lets us know which parent each recombination is referring to
 	FirstRecombinationCalled = false;
 
+	rowsInNodeTableBeforeAddingCurInd = tables.nodes.num_rows;
+	rowsInEdgeTableBeforeAddingCurInd = tables.edges.num_rows;
+
 }
 
 void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, bool p_start_strand_2)
