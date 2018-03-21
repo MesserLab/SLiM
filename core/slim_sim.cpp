@@ -2514,8 +2514,7 @@ void SLiMSim::SetGeneration(slim_generation_t p_new_generation)
 	
 	// The tree sequence generation increments when offspring generation occurs, not at the ends of generations as delineated by SLiM.
 	// This prevents the tree sequence code from seeing two "generations" with the same value for the generation counter.
-	if (((ModelType() == SLiMModelType::kModelTypeWF) && (GenerationStage() <= SLiMGenerationStage::kWFStage2GenerateOffspring)) ||
-		((ModelType() == SLiMModelType::kModelTypeNonWF) && (GenerationStage() <= SLiMGenerationStage::kNonWFStage1GenerateOffspring)))
+	if ((ModelType() == SLiMModelType::kModelTypeWF) && (GenerationStage() < SLiMGenerationStage::kWFStage2GenerateOffspring))
 		tree_seq_generation_ = generation_ - 1;
 	else
 		tree_seq_generation_ = generation_;
@@ -2672,6 +2671,10 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		
 		generation_stage_ = SLiMGenerationStage::kWFStage2GenerateOffspring;
 		
+		// increment the tree-sequence generation immediately, since we are now going to make a new generation of individuals
+		tree_seq_generation_++;
+		// note that generation_ is incremented later!
+		
 		std::vector<SLiMEidosBlock*> mate_choice_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosMateChoiceCallback, -1, -1, -1);
 		std::vector<SLiMEidosBlock*> modify_child_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosModifyChildCallback, -1, -1, -1);
 		std::vector<SLiMEidosBlock*> recombination_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosRecombinationCallback, -1, -1, -1);
@@ -2773,10 +2776,6 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
-		
-		// increment the tree-sequence generation immediately, since we now have a new generation of individuals
-		tree_seq_generation_++;
-		// note that generation_ is incremented later!
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
@@ -3105,10 +3104,6 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
 		
-		// increment the tree-sequence generation immediately, since we now have a new generation of individuals
-		tree_seq_generation_++;
-		// note that generation_ is incremented later!
-		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[1]);
@@ -3362,7 +3357,7 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 	
 		cached_value_generation_.reset();
 		generation_++;
-		// note that tree_seq_generation_ was incremented earlier!
+		tree_seq_generation_++;
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
 			subpop_pair.second->IncrementIndividualAges();
