@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf830
+{\rtf1\ansi\ansicpg1252\cocoartf1561\cocoasubrtf200
 {\fonttbl\f0\fnil\fcharset0 Menlo-Regular;\f1\froman\fcharset0 TimesNewRomanPSMT;\f2\fswiss\fcharset0 Optima-Regular;
 \f3\fswiss\fcharset0 Helvetica;}
 {\colortbl;\red255\green255\blue255;\red0\green0\blue0;}
@@ -516,8 +516,7 @@ If
 \f2\fs20  is called at all then it must be called before any other initialization function, so that SLiM knows from the outset which features are enabled and which are not.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f0\fs18 \cf0 \kerning1\expnd0\expndtw0 (void)initializeSLiMOptions([logical$\'a0keepPedigrees\'a0=\'a0F], [string$\'a0dimensionality\'a0=\'a0""], [string$\'a0periodicity\'a0=\'a0""], [integer$\'a0mutationRuns\'a0=\'a00], [logical$\'a0preventIncidentalSelfing\'a0=\'a0F]\cf2 \expnd0\expndtw0\kerning0
-, [string$\'a0treeRecordingPath\'a0=\'a0""]\cf0 \kerning1\expnd0\expndtw0 )
+\f0\fs18 \cf0 \kerning1\expnd0\expndtw0 (void)initializeSLiMOptions([logical$\'a0keepPedigrees\'a0=\'a0F], [string$\'a0dimensionality\'a0=\'a0""], [string$\'a0periodicity\'a0=\'a0""], [integer$\'a0mutationRuns\'a0=\'a00], [logical$\'a0preventIncidentalSelfing\'a0=\'a0F])
 \f1 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -640,13 +639,26 @@ If
 \i0  exclude the first parent!), but will occur before 
 \f0\fs18 modifyChild()
 \f2\fs20  callbacks are called (so those callbacks may assume that the first and second parents are distinct).\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
-If 
-\f0\fs18 treeRecordingPath
-\f2\fs20  is not 
-\f0\fs18 ""
-\f2\fs20 , SLiM will record tree sequence information for later reconstruction of the simulation\'92s evolutionary dynamics.  This feature will be documented more in future.\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf0 \kerning1\expnd0\expndtw0 This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
+\cf0 This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f0\fs18 \cf0 (void)initializeTreeSeq([logical$\'a0recordMutations\'a0=\'a0T], [float$\'a0simplificationRatio\'a0=\'a02])
+\f1 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 \expnd0\expndtw0\kerning0
+Configure options for tree sequence recording.  Calling this function turns on tree sequence recording, as a side effect, for later reconstruction of the simulation\'92s evolutionary dynamics; if you do not want tree sequence recording to be enabled, do not call this function.\
+The 
+\f0\fs18 recordMutations
+\f2\fs20  flag controls whether information about individual mutations is recorded or not.  Such recording takes time and memory, and so can be turned off if only the tree sequence itself is needed, but it is turned off by default since mutation recording is generally useful.\
+The 
+\f0\fs18 simplificationRatio
+\f2\fs20  parameter controls how often automatic simplification of the recorded tree sequence occurs.  SLiM will try to find an optimal generation interval for simplification such that the ratio of the memory used by the tree sequence tables, (before:after) simplification, is close to the requested ratio.  The default of 
+\f0\fs18 2
+\f2\fs20  thus requests that SLiM try to find a generation interval such that automatic simplification reduces the memory usage by a factor of two.  
+\f0\fs18 INF
+\f2\fs20  may be supplied as a special value indicating that automatic simplification should never occur; 
+\f0\fs18 0
+\f2\fs20  may be supplied to indicate that automatic simplification should be performed at the end of every generation.\
 }

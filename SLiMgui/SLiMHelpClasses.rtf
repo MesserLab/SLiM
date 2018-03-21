@@ -1779,12 +1779,12 @@ Returns a vector containing distances between individuals in
 \f0\fs20 , for example, then 
 \f2\fs18 point[0]
 \f0\fs20  is assumed to be an 
-\i x
-\i0  value, and 
+\i \cf2 x
+\i0 \cf2  value, and 
 \f2\fs18 point[1]
 \f0\fs20  is assumed to be a 
-\i z
-\i0  value.  Be careful; this means that in general it is not safe to pass an individual\'92s 
+\i \cf2 z
+\i0 \cf2  value.  Be careful; this means that in general it is not safe to pass an individual\'92s 
 \f2\fs18 spatialPosition
 \f0\fs20  property for 
 \f2\fs18 point
@@ -3821,8 +3821,8 @@ Register a block of Eidos source code, represented as the
 \f0\fs20  if there is no need to be able to refer to the block later.  The registered callback is added to the end of the list of registered 
 \f2\fs18 SLiMEidosBlock
 \f0\fs20  objects, and is active immediately; it 
-\i may
-\i0  be eligible to execute in the current generation (see section 21.8 for details).  The new 
+\i \cf2 may
+\i0 \cf2  be eligible to execute in the current generation (see section 21.8 for details).  The new 
 \f2\fs18 SLiMEidosBlock
 \f0\fs20  will be defined as a global variable immediately by this method (see section 20.10), and will also be returned by this method.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -3941,9 +3941,56 @@ Note that new script blocks can also be created and scheduled using the
 \f2\fs18 stop()
 \f0\fs20 , which raises an error condition.
 \f3 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf2 \expnd0\expndtw0\kerning0
+\'96\'a0(void)treeSeqSimplify(void)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 Triggers an immediate simplification of the tree sequence recording tables.  This method may only be called if tree sequence recording has been turned on with 
+\f2\fs18 initializeTreeSeq()
+\f0\fs20 .  A call to this method will free up memory being used by entries that are no longer in the ancestral path of any individual within the current sample (currently living individuals, in other words, plus those explicitly added to the sample with 
+\f2\fs18 treeSeqRememberIndividuals()
+\f0\fs20 ), but it can also take a significant amount of time.  Typically calling this method is not necessary; the automatic simplification performed occasionally by SLiM should be sufficient for most models.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf2 \'96\'a0(void)treeSeqRememberIndividuals(object<Individual>\'a0individuals)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 Permanently adds the individuals specified by 
+\f2\fs18 individuals
+\f0\fs20  to the sample retained across tree sequence table simplification.  This method may only be called if tree sequence recording has been turned on with 
+\f2\fs18 initializeTreeSeq()
+\f0\fs20 .  All currently living individuals are always retained across simplification; this method does not need to be called, and indeed should not be called, for that purpose.  Instead, 
+\f2\fs18 treeSeqRememberIndividuals()
+\f0\fs20  is for 
+\i \cf2 permanently
+\i0 \cf2  adding particular individuals to the retained sample.  Typically this would be used, for example, to retain the initial individuals created in new subpopulations with 
+\f2\fs18 addSubpop()
+\f0\fs20 , if you wanted the tree sequences recorded to include the ultimate ancestors that root the whole simulated tree.  However, this is not the typical usage pattern for the tree sequence recording; most models will not need to call this method.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf2 \'96\'a0(void)treeSeqOutput(string$\'a0path, [logical$\'a0binary\'a0=\'a0T], [logical$\'a0simplify\'a0=\'a0T])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 Outputs the current tree sequence recording tables to the path specified by path.  This method may only be called if tree sequence recording has been turned on with 
+\f2\fs18 initializeTreeSeq()
+\f0\fs20 .  If 
+\f2\fs18 simplify
+\f0\fs20  is 
+\f2\fs18 T
+\f0\fs20  (the default), simplification will be done immediately prior to output; this is almost always desirable, unless a model wishes to avoid simplification entirely.  If 
+\f2\fs18 binary
+\f0\fs20  is 
+\f2\fs18 T
+\f0\fs20  (the default), a single binary tree sequence file will be written to the specified path; if 
+\f2\fs18 binary
+\f0\fs20  is 
+\f2\fs18 F
+\f0\fs20 , the path should be a path to a directory, which will be created if it does not already exist, and the tree sequences recording tables will be written to text files within that directory.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 5.12  Class Subpopulation\
+\b\fs22 \cf0 \kerning1\expnd0\expndtw0 5.12  Class Subpopulation\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \i\b0 \cf0 5.12.1  
@@ -4298,7 +4345,7 @@ Note that this method is only for use in nonWF models.  See
 \f2\fs18 late()
 \f0\fs20  event, because fitness values for the new offspring generation have not yet been calculated and are undefined.  In nonWF models, the population may be a mixture of new and old individuals, so instead, 
 \f2\fs18 NAN
-\f0\fs20  will be returned as the fitness of any new individuals whose fitness has not yet been calculated.  \cf2 When new subpopulations are first created with 
+\f0\fs20  will be returned as the fitness of any new individuals whose fitness has not yet been calculated.  When new subpopulations are first created with 
 \f2\fs18 addSubpop()
 \f0\fs20  or 
 \f2\fs18 addSubpopSplit()
@@ -4359,20 +4406,20 @@ Defines a spatial map for the subpopulation.  The map will henceforth be identif
 \f0\fs20  must be of length 
 \f2\fs18 2
 \f0\fs20 , specifying the size of the values grid in the 
-\i x
-\i0  and 
-\i z
-\i0  dimensions.  The parameter 
+\i \cf2 x
+\i0 \cf2  and 
+\i \cf2 z
+\i0 \cf2  dimensions.  The parameter 
 \f2\fs18 values
 \f0\fs20  then gives the values of the grid; it must be of length equal to the product of the 
 \f2\fs18 gridSize
 \f0\fs20  elements, and specifies values varying first in the 
-\i x
-\i0  dimension, then in 
-\i y
-\i0 , then in 
-\i z
-\i0 .\
+\i \cf2 x
+\i0 \cf2  dimension, then in 
+\i \cf2 y
+\i0 \cf2 , then in 
+\i \cf2 z
+\i0 \cf2 .\
 Beginning in SLiM 2.6, the 
 \f2\fs18 values
 \f0\fs20  parameter may be a matrix/array with the number of dimensions appropriate for the declared spatiality of the map; for example, a map with spatiality 
@@ -4392,24 +4439,24 @@ Beginning in SLiM 2.6, the
 \f0\fs20 .  The data in 
 \f2\fs18 values
 \f0\fs20  is interpreted just as is described above for the vector case: varying first in 
-\i x
-\i0 , then in 
-\i y
-\i0 , then in 
-\i z
-\i0 .  BEWARE: since the values in Eidos matrices and arrays are stored in column-first order (following the convention established by R), this means that for a map with spatiality 
+\i \cf2 x
+\i0 \cf2 , then in 
+\i \cf2 y
+\i0 \cf2 , then in 
+\i \cf2 z
+\i0 \cf2 .  BEWARE: since the values in Eidos matrices and arrays are stored in column-first order (following the convention established by R), this means that for a map with spatiality 
 \f2\fs18 "xy"
 \f0\fs20  each column of the 
 \f2\fs18 values
 \f0\fs20  matrix will provide map data as 
-\i x
-\i0  varies and 
-\i y
-\i0  remains constant.  This will be confusing if you think of matrix columns as being \'93
-\i x
-\i0 \'94 and matrix rows as being \'93
-\i y
-\i0 \'94, so try not to think that way; the opposite is true.  This behavior is actually simple, self-consistent, and backward-compatible; if you before created a spatial map with a vector 
+\i \cf2 x
+\i0 \cf2  varies and 
+\i \cf2 y
+\i0 \cf2  remains constant.  This will be confusing if you think of matrix columns as being \'93
+\i \cf2 x
+\i0 \cf2 \'94 and matrix rows as being \'93
+\i \cf2 y
+\i0 \cf2 \'94, so try not to think that way; the opposite is true.  This behavior is actually simple, self-consistent, and backward-compatible; if you before created a spatial map with a vector 
 \f2\fs18 values
 \f0\fs20  before and a 
 \f2\fs18 gridSize
@@ -4428,16 +4475,16 @@ Beginning in SLiM 2.6, the
 \f0\fs20 ).  If, however, you are looking at a matrix as printed in the Eidos console, and want that matrix to be used as a spatial map in SLiM in the same orientation, you should use the transpose of the matrix, as supplied by the 
 \f2\fs18 t()
 \f0\fs20  function.  Actually, since matrices are printed in the console with each successive row having a 
-\i larger
-\i0  index, whereas in Cartesian (
-\i x
-\i0 , 
-\i y
-\i0 ) coordinates 
-\i y
-\i0 -values increase as you go 
-\i upward
-\i0 , you may also wish to reverse the order of rows in your matrix prior to transposing (or the order of columns after transposing), with an expression such as 
+\i \cf2 larger
+\i0 \cf2  index, whereas in Cartesian (
+\i \cf2 x
+\i0 \cf2 , 
+\i \cf2 y
+\i0 \cf2 ) coordinates 
+\i \cf2 y
+\i0 \cf2 -values increase as you go 
+\i \cf2 upward
+\i0 \cf2 , you may also wish to reverse the order of rows in your matrix prior to transposing (or the order of columns after transposing), with an expression such as 
 \f2\fs18 t(map[(nrow(map)-1):0,])
 \f0\fs20 , in order to make the spatial map display in SLiMgui as you expect (since SLiMgui displays everything in Cartesian coordinates).  Apologies if this is confusing; it would be nice if matrix notation, programming languages, and Descartes all agreed on such things, but they do not, so be very careful that your spatial maps are oriented as you wish them to be!\
 Moving on to the other parameters of 
@@ -4485,8 +4532,8 @@ Note that at present, SLiMgui will only display spatial maps of spatiality
 \f0\fs20 ; the color-mapping parameters will simply be ignored by SLiMgui for other spatiality values (even if the spatiality is a superset of these values; SLiMgui will not attempt to display an 
 \f2\fs18 "xyz"
 \f0\fs20  spatial map, for example, since it has no way to choose which 2D slice through the 
-\i xyz
-\i0  space it ought to display).  The 
+\i \cf2 xyz
+\i0 \cf2  space it ought to display).  The 
 \f2\fs18 spatialMapColor()
 \f0\fs20  method will return translated color strings for any spatial map, however, even if SLiMgui is unable to display the spatial map.  If there are multiple spatial maps with color-mapping parameters defined, SLiMgui will choose just one for display; it will prefer an 
 \f2\fs18 "xy"
@@ -5075,10 +5122,10 @@ Looks up the spatial map indicated by
 \f0\fs20  must be of length 
 \f2\fs18 2
 \f0\fs20 , specifying the 
-\i x
-\i0  and 
-\i z
-\i0  coordinates of the point to be evaluated.  Interpolation will automatically be used if it was enabled for the spatial map.  Point coordinates are clamped into the range defined by the spatial boundaries, even if the spatial boundaries are periodic; use 
+\i \cf2 x
+\i0 \cf2  and 
+\i \cf2 z
+\i0 \cf2  coordinates of the point to be evaluated.  Interpolation will automatically be used if it was enabled for the spatial map.  Point coordinates are clamped into the range defined by the spatial boundaries, even if the spatial boundaries are periodic; use 
 \f2\fs18 pointPeriodic()
 \f0\fs20  to wrap the point coordinates first if desired.  See the documentation for 
 \f2\fs18 defineSpatialMap()

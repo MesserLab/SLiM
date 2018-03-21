@@ -120,6 +120,7 @@ typedef int64_t slim_usertag_t;			// user-provided "tag" values; also used for t
 typedef int32_t slim_refcount_t;		// mutation refcounts, counts of the number of occurrences of a mutation
 typedef int64_t slim_mutationid_t;		// identifiers for mutations, which require 64 bits since there can be so many
 typedef int64_t slim_pedigreeid_t;		// identifiers for pedigreed individuals; over many generations in a large model maybe 64 bits?
+typedef int64_t slim_genomeid_t;		// identifiers for pedigreed genomes; not user-visible, used by the tree-recording code, pedigree_id*2 + [0/1]
 typedef int32_t slim_polymorphismid_t;	// identifiers for polymorphisms, which need only 32 bits since they are only segregating mutations
 typedef float slim_selcoeff_t;			// storage of selection coefficients in memory-tight classes; also dominance coefficients
 
@@ -346,6 +347,7 @@ extern const std::string gStr_initializeMutationRate;
 extern const std::string gStr_initializeRecombinationRate;
 extern const std::string gStr_initializeSex;
 extern const std::string gStr_initializeSLiMOptions;
+extern const std::string gStr_initializeTreeSeq;
 extern const std::string gStr_initializeSLiMModelType;
 extern const std::string gStr_initializeInteractionType;
 
@@ -484,6 +486,9 @@ extern const std::string gStr_registerRecombinationCallback;
 extern const std::string gStr_registerReproductionCallback;
 extern const std::string gStr_rescheduleScriptBlock;
 extern const std::string gStr_simulationFinished;
+extern const std::string gStr_treeSeqSimplify;
+extern const std::string gStr_treeSeqRememberIndividuals;
+extern const std::string gStr_treeSeqOutput;
 extern const std::string gStr_setMigrationRates;
 extern const std::string gStr_pointInBounds;
 extern const std::string gStr_pointReflected;
@@ -597,6 +602,7 @@ enum _SLiMGlobalStringID : int {
 	gID_initializeRecombinationRate,
 	gID_initializeSex,
 	gID_initializeSLiMOptions,
+	gID_initializeTreeSeq,
 	gID_initializeSLiMModelType,
 	gID_initializeInteractionType,
 	
@@ -735,6 +741,9 @@ enum _SLiMGlobalStringID : int {
 	gID_registerReproductionCallback,
 	gID_rescheduleScriptBlock,
 	gID_simulationFinished,
+	gID_treeSeqSimplify,
+	gID_treeSeqRememberIndividuals,
+	gID_treeSeqOutput,
 	gID_setMigrationRates,
 	gID_pointInBounds,
 	gID_pointReflected,

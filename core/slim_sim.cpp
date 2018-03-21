@@ -131,6 +131,7 @@ SLiMSim::~SLiMSim(void)
 	
 	// TREE SEQUENCE RECORDING
 	// dispose of any allocated stuff needing cleanup here
+	table_collection_free(&tables);
 }
 
 void SLiMSim::InitializeRNGFromSeed(unsigned long int *p_override_seed_ptr)
@@ -682,7 +683,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 	// weird, but probably nobody will ever even notice...
 	
 	// As of SLiM 2.1, we change the generation as a side effect of loading; otherwise we can't correctly update our state here!
-	generation_ = file_generation;
+	SetGeneration(file_generation);
 	
 	// Re-tally mutation references so we have accurate frequency counts for our new mutations
 	population_.UniqueMutationRuns();
@@ -1267,7 +1268,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	// weird, but probably nobody will ever even notice...
 	
 	// As of SLiM 2.1, we change the generation as a side effect of loading; otherwise we can't correctly update our state here!
-	generation_ = file_generation;
+	SetGeneration(file_generation);
 	
 	// Re-tally mutation references so we have accurate frequency counts for our new mutations
 	population_.UniqueMutationRuns();
@@ -1836,6 +1837,7 @@ void SLiMSim::RunInitializeCallbacks(void)
 	num_gene_conversions_ = 0;
 	num_sex_declarations_ = 0;
 	num_options_declarations_ = 0;
+	num_treeseq_declarations_ = 0;
 	num_modeltype_declarations_ = 0;
 	
 	if (DEBUG_INPUT)
@@ -1929,7 +1931,7 @@ void SLiMSim::RunInitializeCallbacks(void)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): No Eidos event found to start the simulation." << EidosTerminate();
 	
 	// start at the beginning
-	generation_ = time_start_;
+	SetGeneration(time_start_);
 	
 	// set up the "sim" symbol now that initialization is complete
 	simulation_constants_->InitializeConstantSymbolEntry(SymbolTableEntry());
@@ -2506,6 +2508,18 @@ slim_generation_t SLiMSim::EstimatedLastGeneration(void)
 	return last_script_block_gen_;
 }
 
+void SLiMSim::SetGeneration(slim_generation_t p_new_generation)
+{
+	generation_ = p_new_generation;
+	
+	// The tree sequence generation increments when offspring generation occurs, not at the ends of generations as delineated by SLiM.
+	// This prevents the tree sequence code from seeing two "generations" with the same value for the generation counter.
+	if ((ModelType() == SLiMModelType::kModelTypeWF) && (GenerationStage() < SLiMGenerationStage::kWFStage2GenerateOffspring))
+		tree_seq_generation_ = generation_ - 1;
+	else
+		tree_seq_generation_ = generation_;
+}
+
 // This function is called only by the SLiM self-testing machinery.  It has no exception handling; raises will
 // blow through to the catch block in the test harness so that they can be handled there.
 bool SLiMSim::_RunOneGeneration(void)
@@ -2603,6 +2617,8 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		SLIM_PROFILE_BLOCK_START();
 #endif
 		
+		//std::cout << "WF early() events, generation_ == " << generation_ << ", tree_seq_generation_ == " << tree_seq_generation_ << std::endl;
+		
 		generation_stage_ = SLiMGenerationStage::kWFStage1ExecuteEarlyScripts;
 		
 		std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1, -1);
@@ -2654,6 +2670,10 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		CheckMutationStackPolicy();
 		
 		generation_stage_ = SLiMGenerationStage::kWFStage2GenerateOffspring;
+		
+		// increment the tree-sequence generation immediately, since we are now going to make a new generation of individuals
+		tree_seq_generation_++;
+		// note that generation_ is incremented later!
 		
 		std::vector<SLiMEidosBlock*> mate_choice_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosMateChoiceCallback, -1, -1, -1);
 		std::vector<SLiMEidosBlock*> modify_child_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosModifyChildCallback, -1, -1, -1);
@@ -2853,6 +2873,8 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		
 		generation_stage_ = SLiMGenerationStage::kWFStage5ExecuteLateScripts;
 		
+		//std::cout << "WF late() events, generation_ == " << generation_ << ", tree_seq_generation_ == " << tree_seq_generation_ << std::endl;
+		
 		std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1, -1);
 		
 		for (auto script_block : late_blocks)
@@ -2940,15 +2962,18 @@ bool SLiMSim::_RunOneGenerationWF(void)
 #endif
 	
 		//TREE SEQUENCE RECORDING
-		//CALL simplifyTables 
-	
 		if (RecordingTreeSequence() && (Generation() % simplificationInterval) == 0 && Generation() > 0){
-			simplifyTables();
+			SimplifyTreeSequence();
 		}
 
 	
 		cached_value_generation_.reset();
 		generation_++;
+		// note that tree_seq_generation_ was incremented earlier!
+		
+		// TREE SEQUENCE RECORDING
+		if (recording_tree_)
+			CheckAutoSimplification();
 		
 		// Zero out error-reporting info so raises elsewhere don't get attributed to this script
 		gEidosCurrentScript = nullptr;
@@ -3115,6 +3140,8 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		
 		generation_stage_ = SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts;
 		
+		//std::cout << "nonWF early() events, generation_ == " << generation_ << ", tree_seq_generation_ == " << tree_seq_generation_ << std::endl;
+		
 		std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1, -1);
 		
 		for (auto script_block : early_blocks)
@@ -3259,6 +3286,8 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		
 		generation_stage_ = SLiMGenerationStage::kNonWFStage6ExecuteLateScripts;
 		
+		//std::cout << "nonWF late() events, generation_ == " << generation_ << ", tree_seq_generation_ == " << tree_seq_generation_ << std::endl;
+		
 		std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1, -1);
 		
 		for (auto script_block : late_blocks)
@@ -3322,16 +3351,20 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 #endif
 	
 		//TREE SEQUENCE RECORDING
-		//Call simplifyTables() 
 		if (RecordingTreeSequence() && (Generation() % simplificationInterval) == 0 && Generation() > 0){
-			simplifyTables();
+			SimplifyTreeSequence();
 		}
 	
 		cached_value_generation_.reset();
 		generation_++;
+		tree_seq_generation_++;
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
 			subpop_pair.second->IncrementIndividualAges();
+		
+		// TREE SEQUENCE RECORDING
+		if (recording_tree_)
+			CheckAutoSimplification();
 		
 		// Zero out error-reporting info so raises elsewhere don't get attributed to this script
 		gEidosCurrentScript = nullptr;
@@ -3459,10 +3492,6 @@ void SLiMSim::SimulationFinished(void)
 		SLIM_OUTSTREAM << "// if your model changes.  See the SLiM manual for more details." << std::endl;
 		SLIM_OUTSTREAM << std::endl;
 	}
-	
-	// TREE SEQUENCE RECORDING
-	if (RecordingTreeSequence())
-		WriteTreeSequence();
 }
 
 void SLiMSim::_CheckMutationStackPolicy(void)
@@ -3541,7 +3570,7 @@ SLiMSim::handle_error(std::string msg, int err)
 }
 
 
-void SLiMSim::simplifyTables(void){
+void SLiMSim::SimplifyTreeSequence(void){
 
 	std::map<slim_objectid_t,Subpopulation*>::iterator it;
 	std::vector<Individual*> subpopulationIndividuals;
@@ -3553,11 +3582,16 @@ void SLiMSim::simplifyTables(void){
 		subpopulationIndividuals = it->second->parent_individuals_;
 		populationIndividuals.insert(populationIndividuals.end(), subpopulationIndividuals.begin(), subpopulationIndividuals.end());
 	}
+
+    // the RememberedGenomes will come first in the list of samples
+    for (node_id_t sid : RememberedGenomes) {
+        samples.push_back(sid);
+    }
 	
 	slim_pedigreeid_t IndID;
 	int G1;
 	int G2;
-	int newValueInNodeTable = 0;
+	int newValueInNodeTable = RememberedGenomes.size();
 	for (unsigned i; i < populationIndividuals.size(); i++){
 		IndID = populationIndividuals[i]->PedigreeID();
 		G1 = 2 * IndID;
@@ -3579,30 +3613,21 @@ void SLiMSim::simplifyTables(void){
 		std::cout << "aint nobody here" << std::endl;
 		return;
 	}
+
+    // DEBUG OUTPUT
+    std::string debug_output = "tables_debug";
+    WriteTreeSequence(debug_output, 0, 0);
 	
 	ret = table_collection_simplify(&tables, samples.data(), samples.size(), 0, NULL);
         if (ret != 0) {
 		handle_error("simplifier_run", ret);
         }
 
-/*
-	//BEFORE TABLES API UPDATE 	
-	ret = simplifier_alloc(&simplifier,(double)chromosome_.last_position_ + 1, samples.data(), samples.size(),
-	    &nodes, &edges, &migrations, &sites, &mutations, 0, 0);
-	if (ret < 0) {
-		handle_error("simplifier_alloc", ret);
-	}
-
-	ret = simplifier_run(&simplifier, NULL);
-	if (ret < 0) {
-		handle_error("simplifier_run", ret);
-	}
-
-	simplifier_free(&simplifier);
-*/	
-	
 	SLiM_MSP_Id_Map = newSlimMspIdMap;		
-
+	for (node_id_t i=0; i < RememberedGenomes.size(); i++){
+        RememberedGenomes[i] = i;
+    }
+	simplify_elapsed_ = 0;
 }
 
 node_id_t SLiMSim::getMSPID(int GenomeID){
@@ -3625,33 +3650,6 @@ void SLiMSim::StartTreeRecording(void)
 	// own trees, so your code needs to be capable of handling that.  Store your state inside SLiMSim, not in globals.  SLiMgui is
 	// single-threaded, though, so you don't need to worry about re-entrancy or multithreading issues.
 
-	MspTxtNodeTable = fopen("NodeTable.txt","w");
-	MspTxtEdgeTable = fopen("EdgeTable.txt","w");
-
-	if (MspTxtNodeTable == NULL || MspTxtEdgeTable == NULL) {
- 		
-		handle_error("file did't open",1);    		
-
-	}
-	
-	//WRITE TABLES TO A TEXT FILE	
-
-	//open a file to to write text NODE and EDGE tables to test tree output
-	//MspTxtNodeFile.open("NodeTable.txt");
-	//MspTxtEdgeFile.open("EdgeTable.txt");
-
-	//if(MspTxtNodeTable.fail()){
-	//	std::cout << "failed\n";
-	//}else{
-	//	std::cout << "did not fail\n";
-	//}		
-
-	/*
-	MspTxtNodeFile << "is_sample\t" << "id\t" << "time\t" << "population\n";
-	MspTxtEdgeFile << "left\t" << "right\t" << "parent\t" << "child\n";
-	*/
-
-	
 	simplificationInterval = 2;
 	lastSimplificationGeneration = 0;
 		
@@ -3665,46 +3663,14 @@ void SLiMSim::StartTreeRecording(void)
         /* NB: must set the sequence_length !! */
         tables.sequence_length = (double)chromosome_.last_position_ + 1;
 
-/*	
-	//BEFORE TABLE API WAS UPDATED
-	ret = node_table_alloc(&nodes, 0, 0);
-    	if (ret != 0) {
-		handle_error("alloc_nodes", ret);
-		std::cout << "alloc nodes failed" << std::endl; 
-    	}
-    	ret = edge_table_alloc(&edges, 0);
-    	if (ret != 0) {
-		handle_error("alloc_edges", ret);
-		std::cout << "alloc edged failed" << std::endl; 
-    	}
-    	//Even though we're not going to use them, we still have to allocate
-     	//migration, site and mutations tables because the simplifier class
-     	//expects them. This is annoying and will be fixed at some point 
-    	ret = migration_table_alloc(&migrations, 0);
-    	if (ret != 0) {
-		handle_error("alloc_migrations", ret);
-		std::cout << "alloc migrations failed" << std::endl; 
-    	}
-    	ret = site_table_alloc(&sites, 0, 0, 0);
-    	if (ret != 0) {
-		handle_error("alloc_sites", ret);
-		std::cout << "alloc sites failed" << std::endl; 
-    	}
-    	ret = mutation_table_alloc(&mutations, 0, 0, 0);
-    	if (ret != 0) {
-		handle_error("alloc_mutations", ret);
-		std::cout << "alloc mutations failed" << std::endl; 
-    	}
-*/		
-	
 	std::cout << "succesfully allocated tables" << std::endl;
 			
 	
 }
 
-void SLiMSim::RecordNewIndividual(Individual *p_individual)
+void SLiMSim::SetCurrentNewIndividual(Individual *p_individual)
 {
-	//THOUGHT: ALL THIS METHOD DOES IS SET IVARS, we could probably speed things up by setting the ivars instead of calling this method 
+	// THOUGHT: ALL THIS METHOD DOES IS SET IVARS, we could probably speed things up by setting the ivars instead of calling this method 
 
 	// this is called by code where new individuals are created
 	
@@ -3716,8 +3682,6 @@ void SLiMSim::RecordNewIndividual(Individual *p_individual)
 	// not be completely initialized yet; it may not know its sex, and its genomes may not know their types, and so forth.  If that needs to
 	// be fixed, it should be reasonably straightforward to do so.  For now, the only information guaranteed valid is the pedigree IDs.
 
-
-	
 	//DEBUG STDOUT PRINTING
 	/*
 	slim_pedigreeid_t ind_pid = p_individual->PedigreeID();
@@ -3729,15 +3693,14 @@ void SLiMSim::RecordNewIndividual(Individual *p_individual)
 	std::cout << Generation() << ": New individual created, pedigree id " << ind_pid << " (parents: " << p1_pid << ", " << p2_pid << ")" << std::endl << std::endl;
 	*/
 
-
-	//Set ivar to current individual, this way the calls to RecordRecombination have reference.
+	//Set ivar to current individual, this way the calls to RecordNewGenome have reference.
 	CurrentTreeSequenceIndividual = p_individual;
 	//Set ivar to indicate the first recombination has not been called, (this lets us know which parent each recombination is referring to
 	FirstRecombinationCalled = false;
-		
+
 }
 
-void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, bool p_start_strand_2)
+void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, bool p_start_strand_2)
 {
 	// this is called by code where recombination occurs; it will not be called if recombination cannot occur, at present
 	
@@ -3760,11 +3723,12 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 	node_id_t genome2MSPID;				//MSPrime equivilent of second genome ID of parent
 
 	//DEBUG STDOUT PRINTING
-	/*	
-	std::cout << Generation() << ":   Reference to individual: " << CurrentTreeSequenceIndividual->PedigreeID() << std::endl; 
-	*/
-//	std::cout << std::endl;	
-//	std::cout << Generation() << ":  Call to RR # " << (!FirstRecombinationCalled ? "1" : "2") << ", Reference to individual: " << CurrentTreeSequenceIndividual->PedigreeID() << std::endl;
+    /*
+  	std::cout << "------------" << std::endl;	
+	std::cout << "generation: " << Generation() << " -- and tree_seq_generation  " << tree_seq_generation << std::endl;
+	std::cout << "     Reference to individual: " << CurrentTreeSequenceIndividual->PedigreeID() << std::endl; 
+  	std::cout << "     " << (!FirstRecombinationCalled ? "first recomb" : "second recomb") << ", Reference to individual: " << std::endl;
+    */
 
  	//if the first recombination has not been called this is a reference to parent 1, else parent 2
 	if(!FirstRecombinationCalled){ 			
@@ -3786,7 +3750,7 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 
 
 	//add genome node
-	double time = (double) -1 * Generation();
+	double time = (double) -1 * tree_seq_generation_;
 	uint32_t flags = 1;
 
 	//for metadata -> testing for now
@@ -3798,7 +3762,7 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 	offspringMSPID = node_table_add_row(&tables.nodes,flags,time,0,offspring_SLiMID_Const,size);
     SLiM_MSP_Id_Map[offspringSLiMID] = (node_id_t) offspringMSPID;
 
-    // what is this for?
+    // if there is no parent then no need to record edges
 	if(parentSLiMID == -1){
 		return;
 	}
@@ -3834,47 +3798,110 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 		
 }
 
-void SLiMSim::WriteTreeSequence(void)
+void SLiMSim::CheckAutoSimplification(void)
 {
-	//TODO
+	// This is called at the end of each generation, at an appropriate time to simplify.  This method decides
+	// whether to simplify or not, based upon how long it has been since the last time we simplified.  Each
+	// time we simplify, we ask whether we simplified too early, too late, or just the right time by comparing
+	// the pre:post ratio of the tree recording table sizes to the desired pre:post ratio, simplification_ratio_,
+	// as set up in initializeTreeSeq().  Note that a simplification_ratio_ value of INF means "never simplify
+	// automatically"; we check for that up front.
+	++simplify_elapsed_;
+	
+	if (!std::isinf(simplification_ratio_))
+	{
+		if (simplify_elapsed_ >= simplify_interval_)
+		{
+			uint64_t old_table_size = (uint64_t) &tables.nodes.num_rows;
+            old_table_size += (uint64_t) &tables.edges.num_rows;
+            old_table_size += (uint64_t) &tables.sites.num_rows;
+            old_table_size += (uint64_t) &tables.mutations.num_rows;
+			
+			SimplifyTreeSequence();
+			
+			uint64_t new_table_size = (uint64_t) &tables.nodes.num_rows;
+            new_table_size += (uint64_t) &tables.edges.num_rows;
+            new_table_size += (uint64_t) &tables.sites.num_rows;
+            new_table_size += (uint64_t) &tables.mutations.num_rows;
+			double ratio = old_table_size / (double)new_table_size;
+			
+			// Adjust our automatic simplification interval based upon the observed change in storage space used.
+			// Not sure if this is exactly what we want to do; this will hunt around a lot without settling on a value,
+			// but that seems harmless.  The scaling factor of 1.2 is chosen somewhat arbitrarily; we want it to be
+			// large enough that we will arrive at the optimum interval before too terribly long, but small enough
+			// that we have some granularity, so that once we reach the optimum we don't fluctuate too much.
+			if (ratio < simplification_ratio_)
+			{
+				// We simplified too soon; wait a little longer next time
+				simplify_interval_ *= 1.2;
+				
+				// Impose a maximum interval of 1000, so we don't get caught flat-footed if model demography changes
+				if (simplify_interval_ > 1000.0)
+					simplify_interval_ = 1000.0;
+			}
+			else if (ratio > simplification_ratio_)
+			{
+				// We simplified too late; wait a little less long next time
+				simplify_interval_ /= 1.2;
+				
+				// Impose a minimum interval of 1.0, just to head off weird underflow issues
+				if (simplify_interval_ < 1.0)
+					simplify_interval_ = 1.0;
+			}
+		}
+	}
+}
 
-	// Write the recorded tree sequence stuff to recording_tree_path_; see Eidos_ExecuteFunction_writeFile()
-	// for some example file-writing code, but I guess you'll maybe be using that library you mentioned.
-	// In the present design this method is called only by SLiMSim::SimulationFinished(), so the run is over
-	// and recording is done.  In future I could imagine allowing the user to write out a tree file at multiple
-	// time points, though, so it might be good to postpone cleanup and freeing of resources until ~SLiMSim().
-	
-	std::cout << Generation() << ": ***** Writing tree sequence file to path " << recording_tree_path_ << std::endl;
+void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify)
+{
+    // If p_binary, then write out to that path;
+    // otherwise, create p_recording_tree_path as a directory,
+    // and write out to text files in that directory
 
-	//node_table_print_state(&nodes,stdout);
-	//edge_table_print_state(&edges,stdout);
-	simplifyTables();
-	node_table_dump_text(&tables.nodes,MspTxtNodeTable);
-	edge_table_dump_text(&tables.edges,MspTxtEdgeTable);
+    if (p_simplify) {
+        SimplifyTreeSequence();
+    }
 	
-	
+	// Standardize the path, resolving a leading ~ and maybe other things
+	std::string path = Eidos_ResolvedPath(p_recording_tree_path);
 
-	
-	//freeing these for now. Will change this after I get writing figured out.
-	//simplifier_free(&simplifier);
+    int path_length = (int)path.length();
+    bool path_ends_in_slash = (path_length > 0) && (path[path_length-1] == '/');
+    if (path_ends_in_slash)
+        path.pop_back();		// remove the trailing slash, which just confuses stat()
 
-	table_collection_free(&tables);
+    if (p_binary) {
+        table_collection_dump(&tables, p_recording_tree_path.c_str(), 0);
+    } else {
+        std::string error_string;
+        bool success = Eidos_CreateDirectory(path, &error_string);
+        // FIXME: do some error checking here, like e.g. 
+        // if (error_string.length())
+        //     p_interpreter.ExecutionOutputStream() << error_string << std::endl;
+
+        FILE *MspTxtNodeTable;
+        FILE *MspTxtEdgeTable;
+        std::string NodeFileName = path + "/NodeTable.txt";
+        std::string EdgeFileName = path + "/EdgeTable.txt";
+        MspTxtNodeTable = fopen(NodeFileName.c_str(),"w");
+        MspTxtEdgeTable = fopen(EdgeFileName.c_str(),"w");
+        node_table_dump_text(&tables.nodes,MspTxtNodeTable);
+        edge_table_dump_text(&tables.edges,MspTxtEdgeTable);
+        fclose(MspTxtNodeTable);
+        fclose(MspTxtEdgeTable);
+    }
+}	
+
+void SLiMSim::RememberIndividuals(std::vector<slim_pedigreeid_t> p_individual_ids)
+{
+	// The individuals with pedigree ids specified in p_individual_ids are to be remembered
+	// permanently in this run of the model, i.e. added to the sample in every simplify.
 	
-/*
-	//BEFORE TABLES API UPDATE 
-    	node_table_free(&nodes);
-    	edge_table_free(&edges);
-    	migration_table_free(&migrations);
-    	site_table_free(&sites);
-    	mutation_table_free(&mutations);
-*/
-	
-	//WRITE TABLES TO A TEXT FILE
-	
-	fclose(MspTxtNodeTable);
-	fclose(MspTxtEdgeTable);
-	
-	
+    // FIXME: not doing any error checking here
+    for (slim_pedigreeid_t ind_id : p_individual_ids) {
+        RememberedGenomes.push_back((node_id_t) 2*ind_id);
+        RememberedGenomes.push_back((node_id_t) 2*ind_id + 1);
+    }
 }
 
 
@@ -3902,6 +3929,7 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 	else if (p_function_name.compare(gStr_initializeMutationRate) == 0)			return ExecuteContextFunction_initializeMutationRate(p_function_name, p_arguments, p_argument_count, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeSex) == 0)					return ExecuteContextFunction_initializeSex(p_function_name, p_arguments, p_argument_count, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeSLiMOptions) == 0)			return ExecuteContextFunction_initializeSLiMOptions(p_function_name, p_arguments, p_argument_count, p_interpreter);
+	else if (p_function_name.compare(gStr_initializeTreeSeq) == 0)				return ExecuteContextFunction_initializeTreeSeq(p_function_name, p_arguments, p_argument_count, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeSLiMModelType) == 0)		return ExecuteContextFunction_initializeSLiMModelType(p_function_name, p_arguments, p_argument_count, p_interpreter);
 	
 	EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): the function " << p_function_name << "() is not implemented by SLiMSim." << EidosTerminate();
@@ -4618,7 +4646,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSex(const std::string &p
 	return gStaticEidosValueNULLInvisible;
 }
 
-//	*********************	(void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""], [string$ periodicity = ""], [integer$ mutationRuns = 0], [logical$ preventIncidentalSelfing = F], [string$ treeRecordingPath = ""])
+//	*********************	(void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""], [string$ periodicity = ""], [integer$ mutationRuns = 0], [logical$ preventIncidentalSelfing = F])
 //
 EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
@@ -4628,13 +4656,12 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 	EidosValue *arg_periodicity_value = p_arguments[2].get();
 	EidosValue *arg_mutationRuns_value = p_arguments[3].get();
 	EidosValue *arg_preventIncidentalSelfing_value = p_arguments[4].get();
-	EidosValue *arg_treeRecordingPath_value = p_arguments[5].get();
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	if (num_options_declarations_ > 0)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMOptions): initializeSLiMOptions() may be called only once." << EidosTerminate();
 	
-	if ((num_interaction_types_ > 0) || (num_mutation_types_ > 0) || (num_mutation_rates_ > 0) || (num_genomic_element_types_ > 0) || (num_genomic_elements_ > 0) || (num_recombination_rates_ > 0) || (num_gene_conversions_ > 0) || (num_sex_declarations_ > 0))
+	if ((num_interaction_types_ > 0) || (num_mutation_types_ > 0) || (num_mutation_rates_ > 0) || (num_genomic_element_types_ > 0) || (num_genomic_elements_ > 0) || (num_recombination_rates_ > 0) || (num_gene_conversions_ > 0) || (num_sex_declarations_ > 0) || (num_treeseq_declarations_ > 0))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMOptions): initializeSLiMOptions() must be called before all other initialization functions except initializeSLiMModelType()." << EidosTerminate();
 	
 	{
@@ -4713,22 +4740,6 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 		prevent_incidental_selfing_ = prevent_selfing;
 	}
 	
-	// TREE SEQUENCE RECORDING
-	{
-		// [string$ treeRecordingPath = ""]
-		std::string path = Eidos_ResolvedPath(arg_treeRecordingPath_value->StringAtIndex(0, nullptr));
-		
-		if (path.length() != 0)
-		{
-			recording_tree_ = true;
-			recording_tree_path_ = path;
-			
-			// Pedigree recording is turned on as a side effect of tree sequence recording, since we need to
-			// have unique identifiers for every individual; pedigree recording does that for us
-			pedigrees_enabled_ = true;
-		}
-	}
-	
 	if (DEBUG_INPUT)
 	{
 		output_stream << "initializeSLiMOptions(";
@@ -4779,13 +4790,6 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 			if (previous_params) output_stream << ", ";
 			output_stream << "preventIncidentalSelfing = " << (prevent_incidental_selfing_ ? "T" : "F");
 			previous_params = true;
-		}
-		
-		if (recording_tree_)
-		{
-			if (previous_params) output_stream << ", ";
-			output_stream << "treeRecordingPath = '" << recording_tree_path_ << "'";
-			previous_params = true;
 			(void)previous_params;	// dead store above is deliberate
 		}
 		
@@ -4796,6 +4800,63 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 	
 	return gStaticEidosValueNULLInvisible;
 }
+
+// TREE SEQUENCE RECORDING
+//	*********************	(void)initializeTreeSeq([logical$ recordMutations = T], [float$ simplificationRatio = 2.0])
+//
+EidosValue_SP SLiMSim::ExecuteContextFunction_initializeTreeSeq(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_function_name, p_argument_count, p_interpreter)
+	EidosValue *arg_recordMutations_value = p_arguments[0].get();
+	EidosValue *arg_simplificationRatio_value = p_arguments[1].get();
+	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
+	
+	if (num_treeseq_declarations_ > 0)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeTreeSeq): initializeTreeSeq() may be called only once." << EidosTerminate();
+	
+	recording_tree_ = true;
+	recording_mutations_ = arg_recordMutations_value->LogicalAtIndex(0, nullptr);
+	simplification_ratio_ = arg_simplificationRatio_value->FloatAtIndex(0, nullptr);
+	
+	// Pedigree recording is turned on as a side effect of tree sequence recording, since we need to
+	// have unique identifiers for every individual; pedigree recording does that for us
+	pedigrees_enabled_ = true;
+	
+	// Choose an initial auto-simplification interval
+	if (simplification_ratio_ == 0.0)
+		simplify_interval_ = 1.0;
+	else
+		simplify_interval_ = 20;
+	
+	if (DEBUG_INPUT)
+	{
+		output_stream << "initializeTreeSeq(";
+		
+		bool previous_params = false;
+		
+		if (!recording_mutations_)
+		{
+			if (previous_params) output_stream << ", ";
+			output_stream << "recordMutations = " << (recording_mutations_ ? "T" : "F");
+			previous_params = true;
+		}
+		
+		if (simplification_ratio_ != 2.0)
+		{
+			if (previous_params) output_stream << ", ";
+			output_stream << "simplificationRatio = " << simplification_ratio_;
+			previous_params = true;
+			(void)previous_params;	// dead store above is deliberate
+		}
+		
+		output_stream << ");" << std::endl;
+	}
+	
+	num_treeseq_declarations_++;
+	
+	return gStaticEidosValueNULLInvisible;
+}
+
 
 //	*********************	(void)initializeSLiMModelType(string$ modelType)
 //
@@ -4808,7 +4869,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMModelType(const std:
 	if (num_modeltype_declarations_ > 0)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMModelType): initializeSLiMModelType() may be called only once." << EidosTerminate();
 	
-	if ((num_interaction_types_ > 0) || (num_mutation_types_ > 0) || (num_mutation_rates_ > 0) || (num_genomic_element_types_ > 0) || (num_genomic_elements_ > 0) || (num_recombination_rates_ > 0) || (num_gene_conversions_ > 0) || (num_sex_declarations_ > 0) || (num_options_declarations_ > 0))
+	if ((num_interaction_types_ > 0) || (num_mutation_types_ > 0) || (num_mutation_rates_ > 0) || (num_genomic_element_types_ > 0) || (num_genomic_elements_ > 0) || (num_recombination_rates_ > 0) || (num_gene_conversions_ > 0) || (num_sex_declarations_ > 0) || (num_options_declarations_ > 0) || (num_treeseq_declarations_ > 0))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMModelType): initializeSLiMModelType() must be called before all other initialization functions." << EidosTerminate();
 	
 	{
@@ -4865,7 +4926,9 @@ const std::vector<EidosFunctionSignature_SP> *SLiMSim::ZeroGenerationFunctionSig
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSex, nullptr, kEidosValueMaskNULL, "SLiM"))
 										->AddString_S("chromosomeType")->AddNumeric_OS("xDominanceCoeff", gStaticEidosValue_Float1));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMOptions, nullptr, kEidosValueMaskNULL, "SLiM"))
-										->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("dimensionality", gStaticEidosValue_StringEmpty)->AddString_OS("periodicity", gStaticEidosValue_StringEmpty)->AddInt_OS("mutationRuns", gStaticEidosValue_Integer0)->AddLogical_OS("preventIncidentalSelfing", gStaticEidosValue_LogicalF)->AddString_OS("treeRecordingPath", gStaticEidosValue_StringEmpty));
+									   ->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("dimensionality", gStaticEidosValue_StringEmpty)->AddString_OS("periodicity", gStaticEidosValue_StringEmpty)->AddInt_OS("mutationRuns", gStaticEidosValue_Integer0)->AddLogical_OS("preventIncidentalSelfing", gStaticEidosValue_LogicalF));
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeTreeSeq, nullptr, kEidosValueMaskNULL, "SLiM"))
+									   ->AddLogical_OS("recordMutations", gStaticEidosValue_LogicalT)->AddFloat_OS("simplificationRatio", gStaticEidosValue_Float2));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMModelType, nullptr, kEidosValueMaskNULL, "SLiM"))
 									   ->AddString_S("modelType"));
 	}
@@ -5250,8 +5313,9 @@ void SLiMSim::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p
 		{
 			int64_t value = p_value.IntAtIndex(0, nullptr);
 			slim_generation_t old_generation = generation_;
+			slim_generation_t new_generation = SLiMCastToGenerationTypeOrRaise(value);
 			
-			generation_ = SLiMCastToGenerationTypeOrRaise(value);
+			SetGeneration(new_generation);
 			cached_value_generation_.reset();
 			
 			// Setting the generation into the future is generally harmless; the simulation logic is designed to handle that anyway, since
@@ -5346,6 +5410,9 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 		case gID_registerReproductionCallback:	return ExecuteMethod_registerReproductionCallback(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_rescheduleScriptBlock:			return ExecuteMethod_rescheduleScriptBlock(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_simulationFinished:			return ExecuteMethod_simulationFinished(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_treeSeqSimplify:				return ExecuteMethod_treeSeqSimplify(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_treeSeqRememberIndividuals:	return ExecuteMethod_treeSeqRememberIndividuals(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_treeSeqOutput:					return ExecuteMethod_treeSeqOutput(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		default:								return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 	}
 }
@@ -6400,6 +6467,86 @@ EidosValue_SP SLiMSim::ExecuteMethod_simulationFinished(EidosGlobalStringID p_me
 	return gStaticEidosValueNULLInvisible;
 }
 
+// TREE SEQUENCE RECORDING
+//	*********************	- (void)treeSeqSimplify(void)
+//
+EidosValue_SP SLiMSim::ExecuteMethod_treeSeqSimplify(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	if (!recording_tree_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqSimplify): treeSeqSimplify() may only be called when tree recording is enabled." << EidosTerminate();
+	
+	SLiMGenerationStage gen_stage = GenerationStage();
+	
+	if ((gen_stage != SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kWFStage5ExecuteLateScripts) &&
+		(gen_stage != SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqSimplify): treeSeqSimplify() may only be called from an early() or late() event." << EidosTerminate();
+
+	SimplifyTreeSequence();
+	
+	return gStaticEidosValueNULLInvisible;
+}
+
+// TREE SEQUENCE RECORDING
+//	*********************	- (void)treeSeqRememberIndividuals(object<Individual> individuals)
+//
+EidosValue_SP SLiMSim::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_argument_count, p_interpreter)
+	EidosValue_Object *individuals_value = (EidosValue_Object *)p_arguments[0].get();
+	int ind_count = individuals_value->Count();
+	
+	if (!recording_tree_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqRememberIndividuals): treeSeqRememberIndividuals() may only be called when tree recording is enabled." << EidosTerminate();
+	
+	SLiMGenerationStage gen_stage = GenerationStage();
+	
+	if ((gen_stage != SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kWFStage5ExecuteLateScripts) &&
+		(gen_stage != SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqRememberIndividuals): treeSeqRememberIndividuals() may only be called from an early() or late() event." << EidosTerminate();
+	
+	std::vector<slim_pedigreeid_t> individual_IDs;
+	
+	for (int ind_index = 0; ind_index < ind_count; ind_index++)
+	{
+		Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex(ind_index, nullptr));
+		
+		individual_IDs.emplace_back(ind->PedigreeID());
+	}
+	
+	RememberIndividuals(individual_IDs);
+	
+	return gStaticEidosValueNULLInvisible;
+}
+
+// TREE SEQUENCE RECORDING
+//	*********************	- (void)treeSeqOutput(string$ path, [logical$ binary = T], [logical$ simplify = T])
+//
+EidosValue_SP SLiMSim::ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_argument_count, p_interpreter)
+	EidosValue *path_value = p_arguments[0].get();
+	EidosValue *binary_value = p_arguments[1].get();
+	EidosValue *simplify_value = p_arguments[2].get();
+	
+	if (!recording_tree_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqOutput): treeSeqOutput() may only be called when tree recording is enabled." << EidosTerminate();
+	
+	SLiMGenerationStage gen_stage = GenerationStage();
+	
+	if ((gen_stage != SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kWFStage5ExecuteLateScripts) &&
+		(gen_stage != SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqOutput): treeSeqOutput() may only be called from an early() or late() event." << EidosTerminate();
+	
+	std::string path_string = path_value->StringAtIndex(0, nullptr);
+	bool binary = binary_value->LogicalAtIndex(0, nullptr);
+	bool simplify = simplify_value->LogicalAtIndex(0, nullptr);
+	
+	WriteTreeSequence(path_string, binary, simplify);
+	
+	return gStaticEidosValueNULLInvisible;
+}
+
 
 //
 //	SLiMSim_Class
@@ -6491,6 +6638,9 @@ const std::vector<const EidosMethodSignature *> *SLiMSim_Class::Methods(void) co
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerReproductionCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddString_OSN("sex", gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_rescheduleScriptBlock, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddObject_S("block", gSLiM_SLiMEidosBlock_Class)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL)->AddInt_ON("generations", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_simulationFinished, kEidosValueMaskNULL)));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqSimplify, kEidosValueMaskNULL)));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqRememberIndividuals, kEidosValueMaskNULL))->AddObject("individuals", gSLiM_Individual_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqOutput, kEidosValueMaskNULL))->AddString_S("path")->AddLogical_OS("binary", gStaticEidosValue_LogicalT)->AddLogical_OS("simplify", gStaticEidosValue_LogicalT));
 							  
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}

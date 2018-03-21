@@ -51,7 +51,7 @@
 
 //TREE SEQUENCE
 //INCLUDE JEROME's TABLES API
-#include "../tables-api-files/tables.h"
+#include "../treerec/tskit/tables.h"
 
 
 class EidosInterpreter;
@@ -188,6 +188,7 @@ private:
 	int num_gene_conversions_;
 	int num_sex_declarations_;	// SEX ONLY; used to check for sex vs. non-sex errors in the file, so the #SEX tag must come before any reliance on SEX ONLY features
 	int num_options_declarations_;
+	int num_treeseq_declarations_;
 	int num_modeltype_declarations_;
 	
 	slim_position_t last_genomic_element_position_ = -1;	// used to check new genomic elements for consistency
@@ -248,32 +249,26 @@ private:
 	
 	// TREE SEQUENCE RECORDING
 	bool recording_tree_ = false;		// true if we are doing tree sequence recording
-	std::string recording_tree_path_;	// the path to write the final tree file to; given to initializeSLiMOptions(treeRecordingPath)
 	Individual *CurrentTreeSequenceIndividual;
 	bool FirstRecombinationCalled = false;
 	
 	// TABLE IVARS
-	int ret;
+	int ret;   // FIXME call this something more descriptive
 	table_collection_t tables;
 	
-/*
-	//BEFORE JEROME UPDATED TABLES API
-	node_table_t nodes;
-    	edge_table_t edges;
-    	migration_table_t migrations;
-    	site_table_t sites;
-    	mutation_table_t mutations;
-    	simplifier_t simplifier;
-*/
-
-
 	// TABLE SIMPLIFICATION
 	int simplificationInterval;		//interval at which we will simplify the tree
 	int lastSimplificationGeneration;
+    std::vector<node_id_t> RememberedGenomes;
 	std::map<int,node_id_t> SLiM_MSP_Id_Map;
-	FILE *MspTxtNodeTable;
-	FILE *MspTxtEdgeTable;
 
+	bool recording_mutations_ = false;	// true if we are recording mutations in our tree sequence tables
+	double simplification_ratio_;		// the pre:post table size ratio we target with our automatic simplification heuristic
+	slim_generation_t simplify_elapsed_ = 0;	// the number of generations elapsed since a simplification was done (automatic or otherwise)
+	double simplify_interval_;			// the number of generations between automatic simplifications
+	slim_generation_t tree_seq_generation_ = 0;	// the generation for the tree sequence code, incremented after offspring generation
+												// this is needed since addSubpop() in an early() event makes one gen, and then the offspring
+												// arrive in the same generation according to SLiM, which confuses the tree-seq code
 	// add further ivars you need for tree sequence recording here; don't forget to add cleanup for them to SLiMSim::~SLiMSim() if necessary
 
 	//ofstream to write txt file tree sequences
@@ -363,6 +358,7 @@ public:
 	
 	inline __attribute__((always_inline)) SLiMModelType ModelType(void) const												{ return model_type_; }
 	inline __attribute__((always_inline)) slim_generation_t Generation(void) const											{ return generation_; }
+	void SetGeneration(slim_generation_t p_new_generation);
 	inline __attribute__((always_inline)) SLiMGenerationStage GenerationStage(void) const									{ return generation_stage_; }
 	inline __attribute__((always_inline)) Chromosome &TheChromosome(void)													{ return chromosome_; }
 	inline __attribute__((always_inline)) Population &ThePopulation(void)													{ return population_; }
@@ -386,12 +382,14 @@ public:
 	// TREE SEQUENCE RECORDING
 	inline __attribute__((always_inline)) bool RecordingTreeSequence(void) const											{ return recording_tree_; }
 	void StartTreeRecording(void);
-	void RecordNewIndividual(Individual *p_individual);
-	void RecordRecombination(std::vector<slim_position_t> *p_breakpoints, bool p_start_strand_2);
-	void WriteTreeSequence(void);
-	void simplifyTables(void);
+	void SetCurrentNewIndividual(Individual *p_individual);
+	void RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, bool p_start_strand_2);
+	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify);
+	void SimplifyTreeSequence(void);
 	node_id_t getMSPID(int GenomeID);
 	void handle_error(std::string msg, int error);
+	void CheckAutoSimplification(void);
+	void RememberIndividuals(std::vector<slim_pedigreeid_t> p_individual_ids);
 	// put any other methods you need for the tree sequence stuff here
 	
 	//
@@ -409,6 +407,7 @@ public:
 	EidosValue_SP ExecuteContextFunction_initializeMutationRate(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeSex(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeSLiMOptions(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteContextFunction_initializeTreeSeq(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeSLiMModelType(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	
 	EidosSymbolTable *SymbolsFromBaseSymbols(EidosSymbolTable *p_base_symbols);				// derive a symbol table, adding our own symbols if needed
@@ -448,6 +447,9 @@ public:
 	EidosValue_SP ExecuteMethod_registerReproductionCallback(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_simulationFinished(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_treeSeqSimplify(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 };
 
 

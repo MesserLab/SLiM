@@ -492,9 +492,9 @@ void Subpopulation::GenerateIndividualsToFitWF(bool p_make_child_generation, boo
 			// TREE SEQUENCE RECORDING
 			if (recording_tree_sequence)
 			{
-				sim.RecordNewIndividual(individual);
-				sim.RecordRecombination(nullptr, false);
-				sim.RecordRecombination(nullptr, false);
+				sim.SetCurrentNewIndividual(individual);
+				sim.RecordNewGenome(nullptr, false);
+				sim.RecordNewGenome(nullptr, false);
 			}
 			
 			genomes.push_back(genome1);
@@ -584,9 +584,9 @@ void Subpopulation::GenerateIndividualsToFitNonWF(double p_sex_ratio)
 			// TREE SEQUENCE RECORDING
 			if (recording_tree_sequence)
 			{
-				sim.RecordNewIndividual(individual);
-				sim.RecordRecombination(nullptr, false);
-				sim.RecordRecombination(nullptr, false);
+				sim.SetCurrentNewIndividual(individual);
+				sim.RecordNewGenome(nullptr, false);
+				sim.RecordNewGenome(nullptr, false);
 			}
 			
 			parent_genomes_.push_back(genome1);
@@ -3533,9 +3533,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 		// TREE SEQUENCE RECORDING
 		if (sim.RecordingTreeSequence())
 		{
-			sim.RecordNewIndividual(individual);
-			sim.RecordRecombination(nullptr, false);
-			sim.RecordRecombination(nullptr, false);
+			sim.SetCurrentNewIndividual(individual);
+			sim.RecordNewGenome(nullptr, false);
+			sim.RecordNewGenome(nullptr, false);
 		}
 	}
 	
@@ -3625,7 +3625,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 		
 		// TREE SEQUENCE RECORDING
 		if (sim.RecordingTreeSequence())
-			sim.RecordNewIndividual(individual);
+			sim.SetCurrentNewIndividual(individual);
 	}
 	
 	if (!parent1_recombination_callbacks->size()) parent1_recombination_callbacks = nullptr;
@@ -3689,9 +3689,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 		// TREE SEQUENCE RECORDING
 		if (sim.RecordingTreeSequence())
 		{
-			sim.RecordNewIndividual(individual);
-			sim.RecordRecombination(nullptr, false);
-			sim.RecordRecombination(nullptr, false);
+			sim.SetCurrentNewIndividual(individual);
+			sim.RecordNewGenome(nullptr, false);
+			sim.RecordNewGenome(nullptr, false);
 		}
 	}
 	
@@ -3761,7 +3761,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 		
 		// TREE SEQUENCE RECORDING
 		if (sim.RecordingTreeSequence())
-			sim.RecordNewIndividual(individual);
+			sim.SetCurrentNewIndividual(individual);
 	}
 	
 	if (!parent_recombination_callbacks->size()) parent_recombination_callbacks = nullptr;
@@ -3930,6 +3930,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 			}
 			genome1->mutruns_ = nullptr;
 			genome1_transmogrified->tag_value_ = genome1->tag_value_;
+			genome1_transmogrified->genome_id_ = genome1->genome_id_;
 			
 			genome2_transmogrified->genome_type_ = genome2->genome_type_;
 			std::swap(genome2->mutrun_count_, genome2_transmogrified->mutrun_count_);
@@ -3947,6 +3948,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 			}
 			genome2->mutruns_ = nullptr;
 			genome2_transmogrified->tag_value_ = genome2->tag_value_;
+			genome2_transmogrified->genome_id_ = genome2->genome_id_;
 			
 			migrant_transmogrified->color_ = migrant->color_;
 			migrant_transmogrified->color_red_ = migrant->color_red_;

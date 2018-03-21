@@ -289,6 +289,13 @@ std::string Eidos_GetUntrimmedRaiseMessage(void);
 // Resolve a leading ~ in a filesystem path to the user's home directory
 std::string Eidos_ResolvedPath(const std::string p_path);
 
+// Create a directory at a given filesystem path if it does not already exist (which is not an error);
+// calls Eidos_ResolvedPath() on the given path, since I think we always want that anyway.  Returns false
+// if the operation fails (i.e. the directory may or may not even exist).  Returns true if the directory
+// exists.  A warning string can be returned through p_error_string, even if true is returned; for example,
+// if the directory already exists a warning is emitted but the return value is true.
+bool Eidos_CreateDirectory(std::string p_path, std::string *p_error_string);
+
 // Create a temporary file based upon a template filename; note that pattern is modified!
 int Eidos_mkstemps(char *p_pattern, int p_suffix_len);
 

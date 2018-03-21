@@ -264,6 +264,7 @@ const std::string gStr_initializeMutationRate = "initializeMutationRate";
 const std::string gStr_initializeRecombinationRate = "initializeRecombinationRate";
 const std::string gStr_initializeSex = "initializeSex";
 const std::string gStr_initializeSLiMOptions = "initializeSLiMOptions";
+const std::string gStr_initializeTreeSeq = "initializeTreeSeq";
 const std::string gStr_initializeSLiMModelType = "initializeSLiMModelType";
 const std::string gStr_initializeInteractionType = "initializeInteractionType";
 
@@ -405,6 +406,9 @@ const std::string gStr_registerRecombinationCallback = "registerRecombinationCal
 const std::string gStr_registerReproductionCallback = "registerReproductionCallback";
 const std::string gStr_rescheduleScriptBlock = "rescheduleScriptBlock";
 const std::string gStr_simulationFinished = "simulationFinished";
+const std::string gStr_treeSeqSimplify = "treeSeqSimplify";
+const std::string gStr_treeSeqRememberIndividuals = "treeSeqRememberIndividuals";
+const std::string gStr_treeSeqOutput = "treeSeqOutput";
 const std::string gStr_setMigrationRates = "setMigrationRates";
 const std::string gStr_pointInBounds = "pointInBounds";
 const std::string gStr_pointReflected = "pointReflected";
@@ -556,6 +560,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_initializeRecombinationRate, gID_initializeRecombinationRate);
 		Eidos_RegisterStringForGlobalID(gStr_initializeSex, gID_initializeSex);
 		Eidos_RegisterStringForGlobalID(gStr_initializeSLiMOptions, gID_initializeSLiMOptions);
+		Eidos_RegisterStringForGlobalID(gStr_initializeTreeSeq, gID_initializeTreeSeq);
 		Eidos_RegisterStringForGlobalID(gStr_initializeSLiMModelType, gID_initializeSLiMModelType);
 		Eidos_RegisterStringForGlobalID(gStr_initializeInteractionType, gID_initializeInteractionType);
 		
@@ -692,6 +697,9 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_registerReproductionCallback, gID_registerReproductionCallback);
 		Eidos_RegisterStringForGlobalID(gStr_rescheduleScriptBlock, gID_rescheduleScriptBlock);
 		Eidos_RegisterStringForGlobalID(gStr_simulationFinished, gID_simulationFinished);
+		Eidos_RegisterStringForGlobalID(gStr_treeSeqSimplify, gID_treeSeqSimplify);
+		Eidos_RegisterStringForGlobalID(gStr_treeSeqRememberIndividuals, gID_treeSeqRememberIndividuals);
+		Eidos_RegisterStringForGlobalID(gStr_treeSeqOutput, gID_treeSeqOutput);
 		Eidos_RegisterStringForGlobalID(gStr_setMigrationRates, gID_setMigrationRates);
 		Eidos_RegisterStringForGlobalID(gStr_pointInBounds, gID_pointInBounds);
 		Eidos_RegisterStringForGlobalID(gStr_pointReflected, gID_pointReflected);
