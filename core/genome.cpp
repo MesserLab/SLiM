@@ -24,6 +24,7 @@
 #include "eidos_property_signature.h"
 #include "slim_sim.h"
 #include "polymorphism.h"
+#include "subpopulation.h"
 
 #include <algorithm>
 #include <string>

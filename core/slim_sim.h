@@ -386,6 +386,7 @@ public:
 	void StartTreeRecording(void);
 	void SetCurrentNewIndividual(Individual *p_individual);
 	void RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, bool p_start_strand_2);
+	void RetractNewIndividual(void);
 	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify);
 	void SimplifyTreeSequence(void);
 	node_id_t getMSPID(int GenomeID);
