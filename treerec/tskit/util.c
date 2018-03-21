@@ -28,6 +28,7 @@
 
 #include "util.h"
 
+#if 0
 #define MSP_HDF5_ERR_MSG_SIZE 1024
 
 static char _hdf5_error[MSP_HDF5_ERR_MSG_SIZE];
@@ -44,6 +45,7 @@ hdf5_error_walker(unsigned n, const H5E_error2_t *err_desc, void *client_data)
     }
     return 0;
 }
+#endif
 
 const char *
 msp_strerror(int err)

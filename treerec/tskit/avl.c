@@ -142,8 +142,11 @@ int avl_search_closest(const avl_tree_t *avltree, const void *item, avl_node_t *
 	node = avltree->top;
 
 	if(!node)
-		return *avlnode = NULL, 0;
-
+	{
+		*avlnode = NULL;
+		return 0;
+	}
+	
 	cmp = avltree->cmp;
 
 	for(;;) {
@@ -153,14 +156,21 @@ int avl_search_closest(const avl_tree_t *avltree, const void *item, avl_node_t *
 			if(node->left)
 				node = node->left;
 			else
-				return *avlnode = node, -1;
+			{
+				*avlnode = node;
+				return -1;
+			}
 		} else if(c > 0) {
 			if(node->right)
 				node = node->right;
 			else
-				return *avlnode = node, 1;
+			{
+				*avlnode = node;
+				return 1;
+			}
 		} else {
-			return *avlnode = node, 0;
+			*avlnode = node;
+			return 0;
 		}
 	}
 }

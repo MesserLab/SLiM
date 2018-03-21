@@ -131,7 +131,8 @@ SLiMSim::~SLiMSim(void)
 	
 	// TREE SEQUENCE RECORDING
 	// dispose of any allocated stuff needing cleanup here
-	table_collection_free(&tables);
+	if (recording_tree_)
+		table_collection_free(&tables);
 }
 
 void SLiMSim::InitializeRNGFromSeed(unsigned long int *p_override_seed_ptr)
@@ -3566,20 +3567,19 @@ SLiMSim::handle_error(std::string msg, int err)
 {
 	std::cout << "Error:" << msg << ":" << msp_strerror(err) << std::endl;
 	EIDOS_TERMINATION << msg << EidosTerminate();
-	exit(1);
 }
 
 
 void SLiMSim::SimplifyTreeSequence(void){
 
 	std::map<slim_objectid_t,Subpopulation*>::iterator it;
-	std::vector<Individual*> subpopulationIndividuals;
+	;
 	std::vector<Individual*> populationIndividuals;
 	std::vector<node_id_t> samples;
 	std::map<int,node_id_t> newSlimMspIdMap;
 	
 	for ( it = population_.begin(); it != population_.end(); it++){
-		subpopulationIndividuals = it->second->parent_individuals_;
+		std::vector<Individual*> &subpopulationIndividuals = it->second->parent_individuals_;
 		populationIndividuals.insert(populationIndividuals.end(), subpopulationIndividuals.begin(), subpopulationIndividuals.end());
 	}
 
@@ -3592,7 +3592,7 @@ void SLiMSim::SimplifyTreeSequence(void){
 	int G1;
 	int G2;
 	int newValueInNodeTable = RememberedGenomes.size();
-	for (unsigned i; i < populationIndividuals.size(); i++){
+	for (unsigned i = 0; i < populationIndividuals.size(); i++){
 		IndID = populationIndividuals[i]->PedigreeID();
 		G1 = 2 * IndID;
 		G2 = G1 + 1;
@@ -3863,32 +3863,31 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
     }
 	
 	// Standardize the path, resolving a leading ~ and maybe other things
-	std::string path = Eidos_ResolvedPath(p_recording_tree_path);
-
-    int path_length = (int)path.length();
-    bool path_ends_in_slash = (path_length > 0) && (path[path_length-1] == '/');
-    if (path_ends_in_slash)
-        path.pop_back();		// remove the trailing slash, which just confuses stat()
-
+	std::string path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(p_recording_tree_path));
+	
     if (p_binary) {
         table_collection_dump(&tables, p_recording_tree_path.c_str(), 0);
     } else {
         std::string error_string;
         bool success = Eidos_CreateDirectory(path, &error_string);
-        // FIXME: do some error checking here, like e.g. 
-        // if (error_string.length())
-        //     p_interpreter.ExecutionOutputStream() << error_string << std::endl;
-
-        FILE *MspTxtNodeTable;
-        FILE *MspTxtEdgeTable;
-        std::string NodeFileName = path + "/NodeTable.txt";
-        std::string EdgeFileName = path + "/EdgeTable.txt";
-        MspTxtNodeTable = fopen(NodeFileName.c_str(),"w");
-        MspTxtEdgeTable = fopen(EdgeFileName.c_str(),"w");
-        node_table_dump_text(&tables.nodes,MspTxtNodeTable);
-        edge_table_dump_text(&tables.edges,MspTxtEdgeTable);
-        fclose(MspTxtNodeTable);
-        fclose(MspTxtEdgeTable);
+		
+		if (success)
+		{
+			FILE *MspTxtNodeTable;
+			FILE *MspTxtEdgeTable;
+			std::string NodeFileName = path + "/NodeTable.txt";
+			std::string EdgeFileName = path + "/EdgeTable.txt";
+			MspTxtNodeTable = fopen(NodeFileName.c_str(),"w");
+			MspTxtEdgeTable = fopen(EdgeFileName.c_str(),"w");
+			node_table_dump_text(&tables.nodes,MspTxtNodeTable);
+			edge_table_dump_text(&tables.edges,MspTxtEdgeTable);
+			fclose(MspTxtNodeTable);
+			fclose(MspTxtEdgeTable);
+		}
+		else
+		{
+			EIDOS_TERMINATION << "ERROR (SLiMSim::WriteTreeSequence): unable to create output folder for treeSeqOutput() (" << error_string << ")" << EidosTerminate();
+		}
     }
 }	
 
