@@ -3477,6 +3477,7 @@ hdf5_file_alloc(hdf5_file_t *self, table_collection_t *tables)
 static int
 hdf5_file_free(hdf5_file_t *self)
 {
+#pragma unused(self)
     return 0;
 }
 
@@ -3584,7 +3585,8 @@ out:
 static int
 hdf5_file_read_groups(hdf5_file_t *self, hid_t file_id)
 {
-    int ret = MSP_ERR_HDF5;
+#pragma unused(self)
+   int ret = MSP_ERR_HDF5;
     htri_t exists;
     const char* groups[] = {
         "/edges",
@@ -4532,7 +4534,8 @@ table_collection_drop_indexes(table_collection_t *self)
 int WARN_UNUSED
 table_collection_build_indexes(table_collection_t *self, int flags)
 {
-    int ret = MSP_ERR_GENERIC;
+#pragma unused(flags)
+   int ret = MSP_ERR_GENERIC;
     size_t j;
     double *time = self->nodes.time;
     index_sort_t *sort_buff = NULL;
@@ -4611,7 +4614,8 @@ out:
 int WARN_UNUSED
 table_collection_load(table_collection_t *self, const char *filename, int flags)
 {
-    int ret = 0;
+#pragma unused(flags)
+   int ret = 0;
     hdf5_file_t hdf5_file;
 
     ret = hdf5_file_alloc(&hdf5_file, self);
