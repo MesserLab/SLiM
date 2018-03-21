@@ -1,0 +1,66 @@
+initialize() {
+    initializeSLiMModelType("nonWF");
+    defineConstant("K",30);   
+
+    initializeSLiMOptions(treeRecordingPath="treeseq.txt");
+
+    for(i in 1:400){
+        initializeMutationType("m" + asString(i), 0.5, "f", 0.0);
+    }
+
+    initializeGenomicElementType("g1",m1,1.0);
+    initializeGenomicElement(g1, 0, 999);
+    initializeMutationRate(0.0);
+    initializeRecombinationRate(0.01);    
+}
+
+reproduction() {
+    subpop.addCrossed(individual,subpop.sampleIndividuals(1));
+    return NULL;
+}
+
+1 early() {
+    sim.addSubpop("p1",200);
+    
+    count = 0;
+    for(geno in p1.individuals.genomes){
+        for(pos in 0:999){    
+            mut = sim.mutationTypes[count];
+            geno.addNewDrawnMutation(mut,pos);            
+        }
+        count = count + 1;    
+    }
+    //  sim.outputFull();
+}
+
+early() {
+
+    p1.fitnessScaling = K / p1.individualCount;
+
+}
+
+100 late() {
+
+    inds = p1.individuals;
+
+    for(Mut in sim.mutationTypes){
+    //for(Mut in sim.mutations){
+        for(Pos in 0:sim.chromosome.lastPosition){
+            GenomesWithMutAtPos = NULL;
+            for(Ind in inds){
+                pedID = Ind.pedigreeID;
+                genomeNum = 0;
+                for(geno in Ind.genomes){
+                    genomeID = (2 * pedID) + genomeNum;
+                    if(geno.containsMarkerMutation(Mut,Pos)){
+                        GenomesWithMutAtPos = c(GenomesWithMutAtPos,genomeID);
+                    }
+                    genomeNum = genomeNum + 1;    
+                }
+            }
+            writeFile("TESToutput.txt", paste(Mut) + " " + paste(Pos), append=T);
+            writeFile("TESToutput.txt", paste(GenomesWithMutAtPos), append=T);
+        }
+    }
+    sim.simulationFinished();
+}
