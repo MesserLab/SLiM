@@ -4,7 +4,7 @@ FILES=./testRecipes/test_*.slim
 
 for f in $FILES
 do
-	rm -f NodeTable.txt EdgeTable.txt TESToutput.txt SLiM_run_output.log
+	rm -f test_output/NodeTable.txt test_output/EdgeTable.txt TESToutput.txt SLiM_run_output.log
 
     echo "Now testing SLiM Recipe: $f"
  	../../bin/slim -s 21 $f &> SLiM_run_output.log

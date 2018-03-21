@@ -259,9 +259,8 @@ private:
 	// TABLE SIMPLIFICATION
 	int simplificationInterval;		//interval at which we will simplify the tree
 	int lastSimplificationGeneration;
+    std::vector<node_id_t> RememberedGenomes;
 	std::map<int,node_id_t> SLiM_MSP_Id_Map;
-	FILE *MspTxtNodeTable;
-	FILE *MspTxtEdgeTable;
 
 	bool recording_mutations_ = false;	// true if we are recording mutations in our tree sequence tables
 	double simplification_ratio_;		// the pre:post table size ratio we target with our automatic simplification heuristic
@@ -382,11 +381,10 @@ public:
 	void RecordNewIndividual(Individual *p_individual);
 	void RecordRecombination(std::vector<slim_position_t> *p_breakpoints, bool p_start_strand_2);
 	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify);
-	void simplifyTables(void);
+	void SimplifyTreeSequence(void);
 	node_id_t getMSPID(int GenomeID);
 	void handle_error(std::string msg, int error);
 	void CheckAutoSimplification(void);
-	void SimplifyTree(void);
 	void RememberIndividuals(std::vector<slim_pedigreeid_t> p_individual_ids);
 	// put any other methods you need for the tree sequence stuff here
 	

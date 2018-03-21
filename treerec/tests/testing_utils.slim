@@ -18,8 +18,8 @@ function (void)initializeMarks(o$ Sim, i$ num_marks)
     return NULL;
 }
 
-function (void)outputMutationResult(o$ Sim, [s$ outputFile="TESToutput.txt"])
-{
+function (void)outputMutationResult(o$ Sim, [s$ outputFile="TESToutput.txt"]) {
+    Sim.treeSeqOutput("test_output", simplify=T, binary=F);
     for(Mut in Sim.mutationTypes){
         for(Pos in 0:Sim.chromosome.lastPosition){
             GenomesWithMutAtPos = NULL;

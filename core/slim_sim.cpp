@@ -131,6 +131,7 @@ SLiMSim::~SLiMSim(void)
 	
 	// TREE SEQUENCE RECORDING
 	// dispose of any allocated stuff needing cleanup here
+	table_collection_free(&tables);
 }
 
 void SLiMSim::InitializeRNGFromSeed(unsigned long int *p_override_seed_ptr)
@@ -2941,10 +2942,8 @@ bool SLiMSim::_RunOneGenerationWF(void)
 #endif
 	
 		//TREE SEQUENCE RECORDING
-		//CALL simplifyTables 
-	
 		if (RecordingTreeSequence() && (Generation() % simplificationInterval) == 0 && Generation() > 0){
-			simplifyTables();
+			SimplifyTreeSequence();
 		}
 
 	
@@ -3327,9 +3326,8 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 #endif
 	
 		//TREE SEQUENCE RECORDING
-		//Call simplifyTables() 
 		if (RecordingTreeSequence() && (Generation() % simplificationInterval) == 0 && Generation() > 0){
-			simplifyTables();
+			SimplifyTreeSequence();
 		}
 	
 		cached_value_generation_.reset();
@@ -3546,7 +3544,7 @@ SLiMSim::handle_error(std::string msg, int err)
 }
 
 
-void SLiMSim::simplifyTables(void){
+void SLiMSim::SimplifyTreeSequence(void){
 
 	std::map<slim_objectid_t,Subpopulation*>::iterator it;
 	std::vector<Individual*> subpopulationIndividuals;
@@ -3558,11 +3556,16 @@ void SLiMSim::simplifyTables(void){
 		subpopulationIndividuals = it->second->parent_individuals_;
 		populationIndividuals.insert(populationIndividuals.end(), subpopulationIndividuals.begin(), subpopulationIndividuals.end());
 	}
+
+    // the RememberedGenomes will come first in the list of samples
+    for (node_id_t sid : RememberedGenomes) {
+        samples.push_back(sid);
+    }
 	
 	slim_pedigreeid_t IndID;
 	int G1;
 	int G2;
-	int newValueInNodeTable = 0;
+	int newValueInNodeTable = RememberedGenomes.size();
 	for (unsigned i; i < populationIndividuals.size(); i++){
 		IndID = populationIndividuals[i]->PedigreeID();
 		G1 = 2 * IndID;
@@ -3590,24 +3593,11 @@ void SLiMSim::simplifyTables(void){
 		handle_error("simplifier_run", ret);
         }
 
-/*
-	//BEFORE TABLES API UPDATE 	
-	ret = simplifier_alloc(&simplifier,(double)chromosome_.last_position_ + 1, samples.data(), samples.size(),
-	    &nodes, &edges, &migrations, &sites, &mutations, 0, 0);
-	if (ret < 0) {
-		handle_error("simplifier_alloc", ret);
-	}
-
-	ret = simplifier_run(&simplifier, NULL);
-	if (ret < 0) {
-		handle_error("simplifier_run", ret);
-	}
-
-	simplifier_free(&simplifier);
-*/	
-	
 	SLiM_MSP_Id_Map = newSlimMspIdMap;		
-
+	for (node_id_t i=0; i < RememberedGenomes.size(); i++){
+        RememberedGenomes[i] = i;
+    }
+	simplify_elapsed_ = 0;
 }
 
 node_id_t SLiMSim::getMSPID(int GenomeID){
@@ -3839,27 +3829,6 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 		
 }
 
-void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify)
-{
-	// Write the recorded tree sequence stuff to p_recording_tree_path.
-	if (p_simplify)
-		SimplifyTree();
-	
-	// Standardize the path, resolving a leading ~ and maybe other things
-	std::string path = Eidos_ResolvedPath(p_recording_tree_path);
-	
-	if (p_binary)
-	{
-		// Write a binary file to the specified path
-		std::cout << Generation() << ": ***** Writing binary tree sequence file to path " << p_recording_tree_path << std::endl;
-	}
-	else
-	{
-		// Create a folder at the specified path and then create files inside with standard names
-		std::cout << Generation() << ": ***** Writing text tree sequence file to path " << p_recording_tree_path << std::endl;
-	}
-}
-
 void SLiMSim::CheckAutoSimplification(void)
 {
 	// This is called at the end of each generation, at an appropriate time to simplify.  This method decides
@@ -3874,11 +3843,17 @@ void SLiMSim::CheckAutoSimplification(void)
 	{
 		if (simplify_elapsed_ >= simplify_interval_)
 		{
-			uint64_t old_table_size = 1;	// FIXME: get the current table size
+			uint64_t old_table_size = &tables.nodes.num_rows;
+            old_table_size += &tables.edges.num_rows;
+            old_table_size += &tables.sites.num_rows;
+            old_table_size += &tables.mutations.num_rows;
 			
-			SimplifyTree();
+			SimplifyTreeSequence();
 			
-			uint64_t new_table_size = 1;	// FIXME: get the current table size
+			uint64_t new_table_size = &tables.nodes.num_rows;
+            new_table_size += &tables.edges.num_rows;
+            new_table_size += &tables.sites.num_rows;
+            new_table_size += &tables.mutations.num_rows;
 			double ratio = old_table_size / (double)new_table_size;
 			
 			// Adjust our automatic simplification interval based upon the observed change in storage space used.
@@ -3910,52 +3885,40 @@ void SLiMSim::CheckAutoSimplification(void)
 ￼
 void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify)
 {
-	// FIXME: needs to either:
-    // if p_binary, then write out to that path;
+    // If p_binary, then write out to that path;
     // otherwise, create p_recording_tree_path as a directory,
     // and write out to text files in that directory
 
-	// Write the recorded tree sequence stuff to recording_tree_path_; see Eidos_ExecuteFunction_writeFile()
-	// for some example file-writing code, but I guess you'll maybe be using that library you mentioned.
-	// In the present design this method is called only by SLiMSim::SimulationFinished(), so the run is over
-	// and recording is done.  In future I could imagine allowing the user to write out a tree file at multiple
-	// time points, though, so it might be good to postpone cleanup and freeing of resources until ~SLiMSim().
+    if (p_simplify) {
+        SimplifyTreeSequence();
+    }
 	
-	std::cout << Generation() << ": ***** Writing tree sequence file to path " << recording_tree_path_ << std::endl;
+	// Standardize the path, resolving a leading ~ and maybe other things
+	std::string path = Eidos_ResolvedPath(p_recording_tree_path);
 
-	//node_table_print_state(&nodes,stdout);
-	//edge_table_print_state(&edges,stdout);
-	simplifyTables();
-	node_table_dump_text(&tables.nodes,MspTxtNodeTable);
-	edge_table_dump_text(&tables.edges,MspTxtEdgeTable);
-	
-	table_collection_free(&tables);
-	
-	
-	fclose(MspTxtNodeTable);
-	fclose(MspTxtEdgeTable);
+    if (p_binary) {
+        table_collection_dump(&tables, p_recording_tree_path, 0);
+    } else {
+        // FIXME add directory stuff here.
+        FILE *MspTxtNodeTable;
+        FILE *MspTxtEdgeTable;
+        node_table_dump_text(&tables.nodes,MspTxtNodeTable);
+        edge_table_dump_text(&tables.edges,MspTxtEdgeTable);
+        fclose(MspTxtNodeTable);
+        fclose(MspTxtEdgeTable);
+    }
 }	
-	
-void SLiMSim::SimplifyTree(void)
-{
-	// This gets called by CheckAutoSimplification() when it chooses to simplify, and also gets called when
-	// the user makes a treeSeqSimplify() call.  It should call out to whatever code on the tree sequence side
-	// actually causes a simplification to occur.
-	
-	std::cout << Generation() << ": ***** Simplifying tree" << std::endl;		// FIXME replace me
-
-    // FIXME: should call simplifyTables
-	
-	// Reset our auto-simplification counter to start counting up to the simplification interval again
-	simplify_elapsed_ = 0;
-}
 
 void SLiMSim::RememberIndividuals(std::vector<slim_pedigreeid_t> p_individual_ids)
 {
 	// The individuals with pedigree ids specified in p_individual_ids are to be remembered
 	// permanently in this run of the model, i.e. added to the sample in every simplify.
 	
-	std::cout << Generation() << ": ***** Remembering specified individuals" << std::endl;		// FIXME replace me
+    // FIXME: not doing any error checking here
+    for (slim_pedigreeid_t ind_id : p_individual_ids) {
+        RememberedGenomes.push_back((node_id_t) 2*ind_id);
+        RememberedGenomes.push_back((node_id_t) 2*ind_id + 1);
+    }
 }
 
 
@@ -6534,7 +6497,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqSimplify(EidosGlobalStringID p_metho
 		(gen_stage != SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqSimplify): treeSeqSimplify() may only be called from an early() or late() event." << EidosTerminate();
 
-	SimplifyTree();
+	SimplifyTreeSequence();
 	
 	return gStaticEidosValueNULLInvisible;
 }
