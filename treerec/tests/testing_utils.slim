@@ -7,9 +7,9 @@ function (void)initializeMarkedMutations(i$ num_marks)
     return NULL;
 }
 
-function (void)initializeMarks(o$ Sim, i$ num_marks)
+function (void)initializeMarks(i$ num_marks)
 {
-    markedGenomes = sample(Sim.subpopulations.genomes, min(num_marks,2*sum(Sim.subpopulations.individualCount)));
+    markedGenomes = sample(sim.subpopulations.genomes, min(num_marks,2*sum(sim.subpopulations.individualCount)));
     for(k in seqAlong(markedGenomes)){
         for(pos in 0:sim.chromosome.lastPosition){   
             mut = sim.mutationTypes[k];
@@ -19,12 +19,12 @@ function (void)initializeMarks(o$ Sim, i$ num_marks)
     return NULL;
 }
 
-function (void)outputMutationResult(o$ Sim, [s$ outputFile="TESToutput.txt"]) {
-    Sim.treeSeqOutput("test_output", simplify=T, binary=F);
-    for(Mut in Sim.mutationTypes){
-        for(Pos in 0:Sim.chromosome.lastPosition){
+function (void)outputMutationResult([s$ outputFile="TESToutput.txt"]) {
+    sim.treeSeqOutput("test_output", simplify=T, binary=F);
+    for(Mut in sim.mutationTypes){
+        for(Pos in 0:sim.chromosome.lastPosition){
             GenomesWithMutAtPos = NULL;
-            for(pop in Sim.subpopulations) {
+            for(pop in sim.subpopulations) {
                 for(Ind in pop.individuals){
                     pedID = Ind.pedigreeID;
                     for(k in seqAlong(Ind.genomes)){
@@ -41,3 +41,9 @@ function (void)outputMutationResult(o$ Sim, [s$ outputFile="TESToutput.txt"]) {
     }
     return NULL;
 }
+
+// SETUP WHATNOT
+
+initializeTreeSeq();
+defineConstant("n_marks",20);   // number of marked genomes
+initializeMarkedMutations(n_marks);

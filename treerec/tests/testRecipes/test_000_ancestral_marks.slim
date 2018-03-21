@@ -3,10 +3,7 @@ initialize() {
     initializeSLiMModelType("nonWF");
 
     // TREE SEQUENCE TEST OUTPUT
-    initializeTreeSeq();
     source("testing_utils.slim");
-    defineConstant("n_marks",20);   // number of marked genomes
-    initializeMarkedMutations(n_marks);
 
     defineConstant("K",30);  
 
@@ -26,7 +23,7 @@ reproduction() {
 
 1 early() {
     // TREE SEQUENCE TEST OUTPUT
-    initializeMarks(sim, n_marks);
+    initializeMarks(n_marks);
 }
 
 early() {
@@ -38,7 +35,7 @@ early() {
 10 late() {
 
     // TREE SEQUENCE TEST OUTPUT
-    outputMutationResult(sim);
+    outputMutationResult();
 
     sim.simulationFinished();
 }
