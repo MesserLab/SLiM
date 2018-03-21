@@ -3613,6 +3613,10 @@ void SLiMSim::SimplifyTreeSequence(void){
 		std::cout << "aint nobody here" << std::endl;
 		return;
 	}
+
+    // DEBUG OUTPUT
+    std::string debug_output = "tables_debug";
+    WriteTreeSequence(debug_output, 0, 0);
 	
 	ret = table_collection_simplify(&tables, samples.data(), samples.size(), 0, NULL);
         if (ret != 0) {
@@ -3694,8 +3698,6 @@ void SLiMSim::SetCurrentNewIndividual(Individual *p_individual)
 	//Set ivar to indicate the first recombination has not been called, (this lets us know which parent each recombination is referring to
 	FirstRecombinationCalled = false;
 
-	// FIXME: Use tree_seq_generation_, not Generation(), here and elsewhere, which increments immediately after offspring generation;
-	// this should fix the addSubpop() issue when called in an early() event, I guess...
 }
 
 void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, bool p_start_strand_2)
@@ -3721,11 +3723,12 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, bool 
 	node_id_t genome2MSPID;				//MSPrime equivilent of second genome ID of parent
 
 	//DEBUG STDOUT PRINTING
-	/*	
-	std::cout << Generation() << ":   Reference to individual: " << CurrentTreeSequenceIndividual->PedigreeID() << std::endl; 
-	*/
-//	std::cout << std::endl;	
-//	std::cout << Generation() << ":  Call to RR # " << (!FirstRecombinationCalled ? "1" : "2") << ", Reference to individual: " << CurrentTreeSequenceIndividual->PedigreeID() << std::endl;
+    /*
+  	std::cout << "------------" << std::endl;	
+	std::cout << "generation: " << Generation() << " -- and tree_seq_generation  " << tree_seq_generation << std::endl;
+	std::cout << "     Reference to individual: " << CurrentTreeSequenceIndividual->PedigreeID() << std::endl; 
+  	std::cout << "     " << (!FirstRecombinationCalled ? "first recomb" : "second recomb") << ", Reference to individual: " << std::endl;
+    */
 
  	//if the first recombination has not been called this is a reference to parent 1, else parent 2
 	if(!FirstRecombinationCalled){ 			

@@ -8,9 +8,9 @@ initialize() {
     defineConstant("K",30);  
 
     initializeGenomicElementType("g1",m1,1.0);
-    initializeGenomicElement(g1, 0, 999);
+    initializeGenomicElement(g1, 0, 99);
     initializeMutationRate(0.0);
-    initializeRecombinationRate(0.01);
+    initializeRecombinationRate(0.1);
 }
 
 reproduction() {
@@ -18,7 +18,7 @@ reproduction() {
     return NULL;
 }
 1 early() {
-    sim.addSubpop("p1",100);
+    sim.addSubpop("p1",10);
 }   
 
 1 early() {
@@ -27,9 +27,7 @@ reproduction() {
 }
 
 early() {
-
     p1.fitnessScaling = K / p1.individualCount;
-
 }
 
 10 late() {
