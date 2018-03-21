@@ -1,26 +1,19 @@
+// quick neutral.slim : ^Total mutation frequencies: (.*)$
+//
+// A test script with a quick, vanilla neutral simulation; this is the SLiMgui default model
+//
 initialize() {
-    initializeSLiMModelType("nonWF");
-    defineConstant("K",30);   
-
     initializeSLiMOptions(treeRecordingPath="treeseq.txt");
-
-    for(i in 1:20){
+    for (i in 1:20) {
         initializeMutationType("m" + asString(i), 0.5, "f", 0.0);
     }
-
     initializeGenomicElementType("g1",c(m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18,m19,m20),rep(1.0,20));
     initializeGenomicElement(g1, 0, 9);
     initializeMutationRate(0.0);
     initializeRecombinationRate(0.2);    
 }
-
-reproduction() {
-    subpop.addCrossed(individual,subpop.sampleIndividuals(1));
-    return NULL;
-}
-
-1 early() {
-    sim.addSubpop("p1",10);
+1 {
+	sim.addSubpop("p1", 500);
     
     count = 0;
     for(geno in p1.individuals.genomes){
@@ -30,19 +23,12 @@ reproduction() {
         }
         count = count + 1;    
     }
-    //  sim.outputFull();
 }
-
-early() {
-
-    p1.fitnessScaling = K / p1.individualCount;
-
-}
-
-10 late() {
-
-    inds = p1.individuals;
-
+10 late() { p1.outputSample(10); }
+20 late() { p1.outputSample(10); }
+20 late() { sim.outputFixedMutations(); }
+20 late() { cat("\nTotal mutation frequencies: " + sum(sim.mutationFrequencies(NULL)) + "\n"); }
+20 late() {
     for(Mut in sim.mutationTypes){
     //for(Mut in sim.mutations){
         for(Pos in 0:9){
@@ -62,5 +48,5 @@ early() {
             writeFile("TESToutput.txt", paste(GenomesWithMutAtPos), append=T);
         }
     }
-    sim.simulationFinished();
+
 }

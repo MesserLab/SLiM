@@ -1,6 +1,6 @@
 #!/bin/bash
-set -eu
-FILES=./testRecipes/*.E
+set -u
+FILES=./testRecipes/*.slim
 
 for f in $FILES
 do
@@ -8,6 +8,7 @@ do
 
     echo "Now testing SLiM Recipe: $f"
  	../../bin/slim -s 21 $f &> SLiM_run_output.log
-	python3 -m nose test_ancestral_marks.py
+	python3 -m nose test_ancestral_marks.py || exit 1
 done
+
 
