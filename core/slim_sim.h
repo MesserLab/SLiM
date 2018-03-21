@@ -245,6 +245,9 @@ private:
 	double simplification_ratio_;		// the pre:post table size ratio we target with our automatic simplification heuristic
 	slim_generation_t simplify_elapsed_ = 0;	// the number of generations elapsed since a simplification was done (automatic or otherwise)
 	double simplify_interval_;			// the number of generations between automatic simplifications
+	slim_generation_t tree_seq_generation_ = 0;	// the generation for the tree sequence code, incremented after offspring generation
+												// this is needed since addSubpop() in an early() event makes one gen, and then the offspring
+												// arrive in the same generation according to SLiM, which confuses the tree-seq code
 	// add further ivars you need for tree sequence recording here; don't forget to add cleanup for them to SLiMSim::~SLiMSim() if necessary
 	
 public:
@@ -329,6 +332,7 @@ public:
 	
 	inline __attribute__((always_inline)) SLiMModelType ModelType(void) const												{ return model_type_; }
 	inline __attribute__((always_inline)) slim_generation_t Generation(void) const											{ return generation_; }
+	void SetGeneration(slim_generation_t p_new_generation);
 	inline __attribute__((always_inline)) SLiMGenerationStage GenerationStage(void) const									{ return generation_stage_; }
 	inline __attribute__((always_inline)) Chromosome &TheChromosome(void)													{ return chromosome_; }
 	inline __attribute__((always_inline)) Population &ThePopulation(void)													{ return population_; }
@@ -352,8 +356,8 @@ public:
 	// TREE SEQUENCE RECORDING
 	inline __attribute__((always_inline)) bool RecordingTreeSequence(void) const											{ return recording_tree_; }
 	void StartTreeRecording(void);
-	void RecordNewIndividual(Individual *p_individual);
-	void RecordRecombination(std::vector<slim_position_t> *p_breakpoints, bool p_start_strand_2);
+	void SetCurrentNewIndividual(Individual *p_individual);
+	void RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, bool p_start_strand_2);
 	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify);
 	void CheckAutoSimplification(void);
 	void SimplifyTree(void);

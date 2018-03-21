@@ -678,7 +678,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 	// weird, but probably nobody will ever even notice...
 	
 	// As of SLiM 2.1, we change the generation as a side effect of loading; otherwise we can't correctly update our state here!
-	generation_ = file_generation;
+	SetGeneration(file_generation);
 	
 	// Re-tally mutation references so we have accurate frequency counts for our new mutations
 	population_.UniqueMutationRuns();
@@ -1263,7 +1263,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	// weird, but probably nobody will ever even notice...
 	
 	// As of SLiM 2.1, we change the generation as a side effect of loading; otherwise we can't correctly update our state here!
-	generation_ = file_generation;
+	SetGeneration(file_generation);
 	
 	// Re-tally mutation references so we have accurate frequency counts for our new mutations
 	population_.UniqueMutationRuns();
@@ -1926,7 +1926,7 @@ void SLiMSim::RunInitializeCallbacks(void)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): No Eidos event found to start the simulation." << EidosTerminate();
 	
 	// start at the beginning
-	generation_ = time_start_;
+	SetGeneration(time_start_);
 	
 	// set up the "sim" symbol now that initialization is complete
 	simulation_constants_->InitializeConstantSymbolEntry(SymbolTableEntry());
@@ -2503,6 +2503,19 @@ slim_generation_t SLiMSim::EstimatedLastGeneration(void)
 	return last_script_block_gen_;
 }
 
+void SLiMSim::SetGeneration(slim_generation_t p_new_generation)
+{
+	generation_ = p_new_generation;
+	
+	// The tree sequence generation increments when offspring generation occurs, not at the ends of generations as delineated by SLiM.
+	// This prevents the tree sequence code from seeing two "generations" with the same value for the generation counter.
+	if (((ModelType() == SLiMModelType::kModelTypeWF) && (GenerationStage() <= SLiMGenerationStage::kWFStage2GenerateOffspring)) ||
+		((ModelType() == SLiMModelType::kModelTypeNonWF) && (GenerationStage() <= SLiMGenerationStage::kNonWFStage1GenerateOffspring)))
+		tree_seq_generation_ = generation_ - 1;
+	else
+		tree_seq_generation_ = generation_;
+}
+
 // This function is called only by the SLiM self-testing machinery.  It has no exception handling; raises will
 // blow through to the catch block in the test harness so that they can be handled there.
 bool SLiMSim::_RunOneGeneration(void)
@@ -2599,6 +2612,8 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_START();
 #endif
+		
+		//std::cout << "WF early() events, generation_ == " << generation_ << ", tree_seq_generation_ == " << tree_seq_generation_ << std::endl;
 		
 		generation_stage_ = SLiMGenerationStage::kWFStage1ExecuteEarlyScripts;
 		
@@ -2754,6 +2769,10 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
 		
+		// increment the tree-sequence generation immediately, since we now have a new generation of individuals
+		tree_seq_generation_++;
+		// note that generation_ is incremented later!
+		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[2]);
@@ -2850,6 +2869,8 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		
 		generation_stage_ = SLiMGenerationStage::kWFStage5ExecuteLateScripts;
 		
+		//std::cout << "WF late() events, generation_ == " << generation_ << ", tree_seq_generation_ == " << tree_seq_generation_ << std::endl;
+		
 		std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1, -1);
 		
 		for (auto script_block : late_blocks)
@@ -2938,6 +2959,7 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		
 		cached_value_generation_.reset();
 		generation_++;
+		// note that tree_seq_generation_ was incremented earlier!
 		
 		// TREE SEQUENCE RECORDING
 		if (recording_tree_)
@@ -3072,6 +3094,10 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
 		
+		// increment the tree-sequence generation immediately, since we now have a new generation of individuals
+		tree_seq_generation_++;
+		// note that generation_ is incremented later!
+		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[1]);
@@ -3107,6 +3133,8 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 #endif
 		
 		generation_stage_ = SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts;
+		
+		//std::cout << "nonWF early() events, generation_ == " << generation_ << ", tree_seq_generation_ == " << tree_seq_generation_ << std::endl;
 		
 		std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1, -1);
 		
@@ -3252,6 +3280,8 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		
 		generation_stage_ = SLiMGenerationStage::kNonWFStage6ExecuteLateScripts;
 		
+		//std::cout << "nonWF late() events, generation_ == " << generation_ << ", tree_seq_generation_ == " << tree_seq_generation_ << std::endl;
+		
 		std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1, -1);
 		
 		for (auto script_block : late_blocks)
@@ -3316,6 +3346,7 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		
 		cached_value_generation_.reset();
 		generation_++;
+		// note that tree_seq_generation_ was incremented earlier!
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
 			subpop_pair.second->IncrementIndividualAges();
@@ -3533,7 +3564,7 @@ void SLiMSim::StartTreeRecording(void)
 	// single-threaded, though, so you don't need to worry about re-entrancy or multithreading issues.
 }
 
-void SLiMSim::RecordNewIndividual(Individual *p_individual)
+void SLiMSim::SetCurrentNewIndividual(Individual *p_individual)
 {
 	// this is called by code where new individuals are created
 	
@@ -3548,10 +3579,12 @@ void SLiMSim::RecordNewIndividual(Individual *p_individual)
 	slim_pedigreeid_t p1_pid = p_individual->Parent1PedigreeID();
 	slim_mutationid_t p2_pid = p_individual->Parent2PedigreeID();
 	
-	std::cout << Generation() << ": New individual created, pedigree id " << ind_pid << " (parents: " << p1_pid << ", " << p2_pid << ")" << std::endl;
+	// Use tree_seq_generation_, not Generation(), here and elsewhere, which increments immediately after offspring generation;
+	// this should fix the addSubpop() issue when called in an early() event, I guess...
+	std::cout << tree_seq_generation_ << ": New individual created, pedigree id " << ind_pid << " (parents: " << p1_pid << ", " << p2_pid << ")" << std::endl;
 }
 
-void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, bool p_start_strand_2)
+void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, bool p_start_strand_2)
 {
 	// this is called by code where recombination occurs; it will not be called if recombination cannot occur, at present
 	
@@ -5079,8 +5112,9 @@ void SLiMSim::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p
 		{
 			int64_t value = p_value.IntAtIndex(0, nullptr);
 			slim_generation_t old_generation = generation_;
+			slim_generation_t new_generation = SLiMCastToGenerationTypeOrRaise(value);
 			
-			generation_ = SLiMCastToGenerationTypeOrRaise(value);
+			SetGeneration(new_generation);
 			cached_value_generation_.reset();
 			
 			// Setting the generation into the future is generally harmless; the simulation logic is designed to handle that anyway, since

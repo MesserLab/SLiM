@@ -92,6 +92,20 @@ private:
 	
 	slim_usertag_t tag_value_;									// a user-defined tag value
 	
+	// Pedigree-tracking ivars.  These are -1 if unknown, otherwise assigned sequentially from 0 counting upward.  They
+	// uniquely identify genomes within the simulation.  These are not user-visible in SLiM (unlike the individual-level
+	// pedigree IDs); they are for internal use by the tree-recording code only.  However, they are maintained whenever
+	// sim->pedigrees_enabled_ is on.  If these are maintained, individual pedigree IDs are also maintained in parallel;
+	// see individual.h.  The genome pedigree IDs for an individual are always equal to the individual pedigree ID * 2
+	// plus 0 or 1; in other words, genome_id_ = pedigree_id_ * 2 + [0/1].  That invariant is guaranteed and essential
+	// for correct operation.
+	slim_genomeid_t genome_id_;
+	
+	// ********** BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE **********
+	//
+	// New ivars added above need to be handled in some way by Subpopulation::ExecuteMethod_takeMigrants(), which will
+	// need to transfer the values over to new Genome objects when migration of their parent individual occurs!
+	
 	// Bulk operation optimization; see WillModifyRunForBulkOperation().  The idea is to keep track of changes to MutationRun
 	// objects in a bulk operation, and short-circuit the operation for all Genomes with the same initial MutationRun (since
 	// the bulk operation will produce the same product MutationRun given the same initial MutationRun).
@@ -105,6 +119,8 @@ public:
 	Genome& operator= (const Genome &p_original) = delete;
 	Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length, GenomeType p_genome_type_, bool p_is_null);
 	~Genome(void);
+	
+	inline __attribute__((always_inline)) slim_genomeid_t GenomeID()			{ return genome_id_; }
 	
 	void NullGenomeAccessError(void) const __attribute__((__noreturn__)) __attribute__((cold)) __attribute__((analyzer_noreturn));		// prints an error message, a stacktrace, and exits; called only for DEBUG
 	

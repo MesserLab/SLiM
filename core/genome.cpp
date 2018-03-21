@@ -44,7 +44,7 @@ int Genome::s_bulk_operation_mutrun_index_ = -1;
 std::unordered_map<MutationRun*, MutationRun*> Genome::s_bulk_operation_runs_;
 
 
-Genome::Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length, enum GenomeType p_genome_type_, bool p_is_null) : genome_type_(p_genome_type_), subpop_(p_subpop)
+Genome::Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length, enum GenomeType p_genome_type_, bool p_is_null) : genome_type_(p_genome_type_), subpop_(p_subpop), genome_id_(-1)
 {
 	// null genomes are now signalled with a mutrun_count_ of 0, rather than a separate flag
 	if (p_is_null)
@@ -1178,7 +1178,7 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 			p_out << "S=" << mutation->selection_coeff_ << ";";
 			p_out << "DOM=" << mutation->mutation_type_ptr_->dominance_coeff_ << ";";
 			p_out << "PO=" << mutation->subpop_index_ << ";";
-			p_out << "GO=" << mutation->generation_ << ";";
+			p_out << "GO=" << mutation->origin_generation_ << ";";
 			p_out << "MT=" << mutation->mutation_type_ptr_->mutation_type_id_ << ";";
 			p_out << "AC=" << polymorphism.prevalence_ << ";";
 			p_out << "DP=1000";
