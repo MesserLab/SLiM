@@ -47,6 +47,7 @@ development head (nonWF branch):
 	fix a crash with the fitness over time graph when the simulation became invalid (due to a stop() call or other error)
 	fix a rare crash on quit from SLiMgui
 	fix a crash due to stack overflow with large population sizes (only when callbacks are involved in offspring generation)
+	add new tree seq stuff: initializeTreeSeq(), treeSeqSimplify(), treeSeqRememberIndividuals(), treeSeqOutput()
 
 
 2.6 (build 1292; Eidos version 1.6):
