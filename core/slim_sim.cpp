@@ -6237,6 +6237,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_simulationFinished(EidosGlobalStringID p_me
 //
 EidosValue_SP SLiMSim::ExecuteMethod_treeSeqSimplify(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
 	if (!recording_tree_)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqSimplify): treeSeqSimplify() may only be called when tree recording is enabled." << EidosTerminate();
 	
@@ -6256,6 +6257,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqSimplify(EidosGlobalStringID p_metho
 //
 EidosValue_SP SLiMSim::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
+#pragma unused (p_method_id, p_argument_count, p_interpreter)
 	EidosValue_Object *individuals_value = (EidosValue_Object *)p_arguments[0].get();
 	int ind_count = individuals_value->Count();
 	
@@ -6274,7 +6276,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStrin
 	{
 		Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex(ind_index, nullptr));
 		
-		individual_IDs.emplace_back(ind->pedigree_id_);
+		individual_IDs.emplace_back(ind->PedigreeID());
 	}
 	
 	RememberIndividuals(individual_IDs);
@@ -6287,6 +6289,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStrin
 //
 EidosValue_SP SLiMSim::ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
+#pragma unused (p_method_id, p_argument_count, p_interpreter)
 	EidosValue *path_value = p_arguments[0].get();
 	EidosValue *binary_value = p_arguments[1].get();
 	EidosValue *simplify_value = p_arguments[2].get();
