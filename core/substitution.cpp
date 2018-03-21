@@ -34,13 +34,13 @@
 #pragma mark -
 
 Substitution::Substitution(Mutation &p_mutation, slim_generation_t p_fixation_generation) :
-mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position_), selection_coeff_(p_mutation.selection_coeff_), subpop_index_(p_mutation.subpop_index_), generation_(p_mutation.generation_), fixation_generation_(p_fixation_generation), mutation_id_(p_mutation.mutation_id_), tag_value_(p_mutation.tag_value_)
+mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position_), selection_coeff_(p_mutation.selection_coeff_), subpop_index_(p_mutation.subpop_index_), origin_generation_(p_mutation.origin_generation_), fixation_generation_(p_fixation_generation), mutation_id_(p_mutation.mutation_id_), tag_value_(p_mutation.tag_value_)
 {
 }
 
 void Substitution::PrintForSLiMOutput(std::ostream &p_out) const
 { 
-	p_out << mutation_id_ << " m" << mutation_type_ptr_->mutation_type_id_ << " " << position_ << " " << selection_coeff_ << " " << mutation_type_ptr_->dominance_coeff_ << " p" << subpop_index_ << " " << generation_ << " "<< fixation_generation_ << std::endl;
+	p_out << mutation_id_ << " m" << mutation_type_ptr_->mutation_type_id_ << " " << position_ << " " << selection_coeff_ << " " << mutation_type_ptr_->dominance_coeff_ << " p" << subpop_index_ << " " << origin_generation_ << " "<< fixation_generation_ << std::endl;
 }
 
 
@@ -78,7 +78,7 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_subpopID:				// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(subpop_index_));
 		case gID_originGeneration:		// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(generation_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(origin_generation_));
 		case gID_fixationGeneration:	// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(fixation_generation_));
 			
@@ -114,7 +114,7 @@ EidosValue *Substitution::GetProperty_Accelerated_originGeneration(EidosObjectEl
 	{
 		Substitution *value = (Substitution *)(p_values[value_index]);
 		
-		int_result->set_int_no_check(value->generation_, value_index);
+		int_result->set_int_no_check(value->origin_generation_, value_index);
 	}
 	
 	return int_result;

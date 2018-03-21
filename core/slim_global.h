@@ -120,6 +120,7 @@ typedef int64_t slim_usertag_t;			// user-provided "tag" values; also used for t
 typedef int32_t slim_refcount_t;		// mutation refcounts, counts of the number of occurrences of a mutation
 typedef int64_t slim_mutationid_t;		// identifiers for mutations, which require 64 bits since there can be so many
 typedef int64_t slim_pedigreeid_t;		// identifiers for pedigreed individuals; over many generations in a large model maybe 64 bits?
+typedef int64_t slim_genomeid_t;		// identifiers for pedigreed genomes; not user-visible, used by the tree-recording code, pedigree_id*2 + [0/1]
 typedef int32_t slim_polymorphismid_t;	// identifiers for polymorphisms, which need only 32 bits since they are only segregating mutations
 typedef float slim_selcoeff_t;			// storage of selection coefficients in memory-tight classes; also dominance coefficients
 

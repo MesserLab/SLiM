@@ -1150,9 +1150,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 							// TREE SEQUENCE RECORDING
 							if (recording_tree_sequence)
 							{
-								sim_.RecordNewIndividual(new_child);
-								sim_.RecordRecombination(nullptr, false);
-								sim_.RecordRecombination(nullptr, false);
+								sim_.SetCurrentNewIndividual(new_child);
+								sim_.RecordNewGenome(nullptr, false);
+								sim_.RecordNewGenome(nullptr, false);
 							}
 						}
 						
@@ -1219,7 +1219,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 							
 							// TREE SEQUENCE RECORDING
 							if (recording_tree_sequence)
-								sim_.RecordNewIndividual(new_child);
+								sim_.SetCurrentNewIndividual(new_child);
 						}
 						
 						// recombination, gene-conversion, mutation
@@ -1293,7 +1293,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence)
-							sim_.RecordNewIndividual(new_child);
+							sim_.SetCurrentNewIndividual(new_child);
 					}
 					
 					// recombination, gene-conversion, mutation
@@ -1562,9 +1562,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence)
 						{
-							sim_.RecordNewIndividual(new_child);
-							sim_.RecordRecombination(nullptr, false);
-							sim_.RecordRecombination(nullptr, false);
+							sim_.SetCurrentNewIndividual(new_child);
+							sim_.RecordNewGenome(nullptr, false);
+							sim_.RecordNewGenome(nullptr, false);
 						}
 					}
 					
@@ -1631,7 +1631,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence)
-							sim_.RecordNewIndividual(new_child);
+							sim_.SetCurrentNewIndividual(new_child);
 					}
 					
 					// recombination, gene-conversion, mutation
@@ -1756,7 +1756,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									
 									// TREE SEQUENCE RECORDING
 									if (recording_tree_sequence)
-										sim_.RecordNewIndividual(new_child);
+										sim_.SetCurrentNewIndividual(new_child);
 								}
 								
 								// recombination, gene-conversion, mutation
@@ -1786,7 +1786,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									
 									// TREE SEQUENCE RECORDING
 									if (recording_tree_sequence)
-										sim_.RecordNewIndividual(new_child);
+										sim_.SetCurrentNewIndividual(new_child);
 								}
 								
 								// recombination, gene-conversion, mutation
@@ -1826,9 +1826,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									// TREE SEQUENCE RECORDING
 									if (recording_tree_sequence)
 									{
-										sim_.RecordNewIndividual(new_child);
-										sim_.RecordRecombination(nullptr, false);
-										sim_.RecordRecombination(nullptr, false);
+										sim_.SetCurrentNewIndividual(new_child);
+										sim_.RecordNewGenome(nullptr, false);
+										sim_.RecordNewGenome(nullptr, false);
 									}
 								}
 								
@@ -1881,7 +1881,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									
 									// TREE SEQUENCE RECORDING
 									if (recording_tree_sequence)
-										sim_.RecordNewIndividual(new_child);
+										sim_.SetCurrentNewIndividual(new_child);
 								}
 								
 								// recombination, gene-conversion, mutation
@@ -2245,7 +2245,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 		
 		// TREE SEQUENCE RECORDING
 		if (sim_.RecordingTreeSequence())
-			sim_.RecordRecombination(nullptr, false);
+			sim_.RecordNewGenome(nullptr, false);
 		
 		return;
 	}
@@ -2367,7 +2367,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 	
 	// TREE SEQUENCE RECORDING
 	if (sim_.RecordingTreeSequence())
-		sim_.RecordRecombination(&all_breakpoints, do_swap);
+		sim_.RecordNewGenome(&all_breakpoints, do_swap);
 	
 	// mutations are usually rare, so let's streamline the case where none occur
 	if (num_mutations == 0)
@@ -4542,7 +4542,7 @@ void Population::RemoveAllFixedMutations(void)
 				
 #ifdef SLIMGUI
 				// If we're running under SLiMgui, make a note of the lifetime of the mutation
-				slim_generation_t loss_time = sim_.generation_ - mutation->generation_;
+				slim_generation_t loss_time = sim_.generation_ - mutation->origin_generation_;
 				int mutation_type_index = mutation->mutation_type_ptr_->mutation_type_index_;
 				
 				AddTallyForMutationTypeAndBinNumber(mutation_type_index, mutation_type_count, loss_time / 10, &mutation_loss_times_, &mutation_loss_gen_slots_);
@@ -4558,7 +4558,7 @@ void Population::RemoveAllFixedMutations(void)
 				
 #ifdef SLIMGUI
 				// If we're running under SLiMgui, make a note of the fixation time of the mutation
-				slim_generation_t fixation_time = sim_.generation_ - mutation->generation_;
+				slim_generation_t fixation_time = sim_.generation_ - mutation->origin_generation_;
 				int mutation_type_index = mutation->mutation_type_ptr_->mutation_type_index_;
 				
 				AddTallyForMutationTypeAndBinNumber(mutation_type_index, mutation_type_count, fixation_time / 10, &mutation_fixation_times_, &mutation_fixation_gen_slots_);
@@ -5150,7 +5150,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		slim_selcoeff_t selection_coeff = mutation_ptr->selection_coeff_;
 		slim_selcoeff_t dominance_coeff = mutation_type_ptr->dominance_coeff_;
 		slim_objectid_t subpop_index = mutation_ptr->subpop_index_;
-		slim_generation_t generation = mutation_ptr->generation_;
+		slim_generation_t generation = mutation_ptr->origin_generation_;
 		slim_refcount_t prevalence = polymorphism.prevalence_;
 		
 		// Write a tag indicating we are starting a new mutation

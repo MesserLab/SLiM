@@ -33,13 +33,13 @@ Polymorphism::Polymorphism(slim_polymorphismid_t p_polymorphism_id, const Mutati
 void Polymorphism::Print(std::ostream &p_out) const
 {
 	// Added mutation_ptr_->mutation_id_ to this output, BCH 11 June 2016
-	p_out << polymorphism_id_ << " " << mutation_ptr_->mutation_id_ << " " << "m" << mutation_ptr_->mutation_type_ptr_->mutation_type_id_ << " " << mutation_ptr_->position_ << " " << mutation_ptr_->selection_coeff_ << " " << mutation_ptr_->mutation_type_ptr_->dominance_coeff_ << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->generation_ << " " << prevalence_ << std::endl;
+	p_out << polymorphism_id_ << " " << mutation_ptr_->mutation_id_ << " " << "m" << mutation_ptr_->mutation_type_ptr_->mutation_type_id_ << " " << mutation_ptr_->position_ << " " << mutation_ptr_->selection_coeff_ << " " << mutation_ptr_->mutation_type_ptr_->dominance_coeff_ << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_generation_ << " " << prevalence_ << std::endl;
 }
 
 void Polymorphism::Print_NoID(std::ostream &p_out) const
 {
 	// Added mutation_ptr_->mutation_id_ to this output, BCH 11 June 2016
-	p_out << mutation_ptr_->mutation_id_ << " " << "m" << mutation_ptr_->mutation_type_ptr_->mutation_type_id_ << " " << mutation_ptr_->position_ << " " << mutation_ptr_->selection_coeff_ << " " << mutation_ptr_->mutation_type_ptr_->dominance_coeff_ << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->generation_ << " " << prevalence_ << std::endl;
+	p_out << mutation_ptr_->mutation_id_ << " " << "m" << mutation_ptr_->mutation_type_ptr_->mutation_type_id_ << " " << mutation_ptr_->position_ << " " << mutation_ptr_->selection_coeff_ << " " << mutation_ptr_->mutation_type_ptr_->dominance_coeff_ << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_generation_ << " " << prevalence_ << std::endl;
 }
 
 // find p_mutation in p_polymorphisms and return its id

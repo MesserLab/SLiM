@@ -8236,62 +8236,16 @@ EidosValue_SP Eidos_ExecuteFunction_createDirectory(const EidosValue_SP *const p
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
-	EidosValue_SP result_SP(nullptr);
-	
 	EidosValue *path_value = p_arguments[0].get();
 	std::string base_path = path_value->StringAtIndex(0, nullptr);
-	int base_path_length = (int)base_path.length();
-	bool base_path_ends_in_slash = (base_path_length > 0) && (base_path[base_path_length-1] == '/');
+	std::string error_string;
+	bool success = Eidos_CreateDirectory(base_path, &error_string);
 	
-	if (base_path_ends_in_slash)
-		base_path.pop_back();		// remove the trailing slash, which just confuses stat()
+	// Emit a warning if there was one
+	if (error_string.length())
+		p_interpreter.ExecutionOutputStream() << error_string << std::endl;
 	
-	std::string path = Eidos_ResolvedPath(base_path);
-	
-	errno = 0;
-	
-	struct stat file_info;
-	bool path_exists = (stat(path.c_str(), &file_info) == 0);
-	
-	if (path_exists)
-	{
-		bool is_directory = !!(file_info.st_mode & S_IFDIR);
-		
-		if (is_directory)
-		{
-			p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_createDirectory): function createDirectory() could not create a directory at " << path << " because a directory at that path already exists." << std::endl;
-			result_SP = gStaticEidosValue_LogicalT;
-		}
-		else
-		{
-			p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_createDirectory): function createDirectory() could not create a directory at " << path << " because a file at that path already exists." << std::endl;
-			result_SP = gStaticEidosValue_LogicalF;
-		}
-	}
-	else if (errno == ENOENT)
-	{
-		// The path does not exist, so let's try to create it
-		errno = 0;
-		
-		if (mkdir(path.c_str(), 0777) == 0)
-		{
-			// success
-			result_SP = gStaticEidosValue_LogicalT;
-		}
-		else
-		{
-			p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_createDirectory): function createDirectory() could not create a directory at " << path << " because of an unspecified filesystem error." << std::endl;
-			result_SP = gStaticEidosValue_LogicalF;
-		}
-	}
-	else
-	{
-		// The stat() call failed for an unknown reason
-		p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_createDirectory): function createDirectory() could not create a directory at " << path << " because of an unspecified filesystem error." << std::endl;
-		result_SP = gStaticEidosValue_LogicalF;
-	}
-	
-	return result_SP;
+	return (success ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 }
 
 //	(string)filesAtPath(string$ path, [logical$ fullPaths = F])
