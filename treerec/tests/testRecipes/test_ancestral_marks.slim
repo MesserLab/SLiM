@@ -1,36 +1,32 @@
 initialize() {
+
     initializeSLiMModelType("nonWF");
-    defineConstant("K",30);   
 
+    // TREE SEQUENCE TEST OUTPUT
     initializeSLiMOptions(treeRecordingPath="treeseq.txt");
+    source("testing_utils.slim");
+    defineConstant("n_marks",20);   // number of marked genomes
+    initializeMarkedMutations(n_marks);
 
-    for(i in 1:20){
-        initializeMutationType("m" + asString(i), 0.5, "f", 0.0);
-    }
+    defineConstant("K",30);  
 
     initializeGenomicElementType("g1",m1,1.0);
     initializeGenomicElement(g1, 0, 999);
     initializeMutationRate(0.0);
-    initializeRecombinationRate(0.01);    
+    initializeRecombinationRate(0.01);
 }
 
 reproduction() {
     subpop.addCrossed(individual,subpop.sampleIndividuals(1));
     return NULL;
 }
+1 early() {
+    sim.addSubpop("p1",100);
+}   
 
 1 early() {
-    sim.addSubpop("p1",10);
-    
-    count = 0;
-    for(geno in p1.individuals.genomes){
-        for(pos in 0:999){    
-            mut = sim.mutationTypes[count];
-            geno.addNewDrawnMutation(mut,pos);            
-        }
-        count = count + 1;    
-    }
-    //  sim.outputFull();
+    // TREE SEQUENCE TEST OUTPUT
+    initializeMarks(sim, n_marks);
 }
 
 early() {
@@ -41,26 +37,8 @@ early() {
 
 10 late() {
 
-    inds = p1.individuals;
+    // TREE SEQUENCE TEST OUTPUT
+    outputMutationResult(sim);
 
-    for(Mut in sim.mutationTypes){
-    //for(Mut in sim.mutations){
-        for(Pos in 0:sim.chromosome.lastPosition){
-            GenomesWithMutAtPos = NULL;
-            for(Ind in inds){
-                pedID = Ind.pedigreeID;
-                genomeNum = 0;
-                for(geno in Ind.genomes){
-                    genomeID = (2 * pedID) + genomeNum;
-                    if(geno.containsMarkerMutation(Mut,Pos)){
-                        GenomesWithMutAtPos = c(GenomesWithMutAtPos,genomeID);
-                    }
-                    genomeNum = genomeNum + 1;    
-                }
-            }
-            writeFile("TESToutput.txt", paste(Mut) + " " + paste(Pos), append=T);
-            writeFile("TESToutput.txt", paste(GenomesWithMutAtPos), append=T);
-        }
-    }
     sim.simulationFinished();
 }

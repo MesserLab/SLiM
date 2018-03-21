@@ -1,0 +1,42 @@
+function (void)initializeMarkedMutations(i$ num_marks)
+{
+    for(i in 1:num_marks){
+        initializeMutationType("m" + asString(i), 0.5, "f", 0.0);
+    }
+    return NULL;
+}
+
+function (void)initializeMarks(o$ Sim, i$ num_marks)
+{
+    markedGenomes = sample(Sim.subpopulations.genomes, min(num_marks,2*sum(Sim.subpopulations.individualCount)));
+    for(k in seqAlong(markedGenomes)){
+        for(pos in 0:sim.chromosome.lastPosition){   
+            mut = sim.mutationTypes[k];
+            markedGenomes[k].addNewDrawnMutation(mut,pos);           
+        }
+    }
+    return NULL;
+}
+
+function (void)outputMutationResult(o$ Sim, [s$ outputFile="TESToutput.txt"])
+{
+    for(Mut in Sim.mutationTypes){
+        for(Pos in 0:Sim.chromosome.lastPosition){
+            GenomesWithMutAtPos = NULL;
+            for(pop in Sim.subpopulations) {
+                for(Ind in pop.individuals){
+                    pedID = Ind.pedigreeID;
+                    for(k in seqAlong(Ind.genomes)){
+                        genomeID = (2 * pedID) + k;
+                        if(Ind.genomes[k].containsMarkerMutation(Mut,Pos)){
+                            GenomesWithMutAtPos = c(GenomesWithMutAtPos,genomeID);
+                        }
+                    }
+                }
+                writeFile(outputFile, paste(Mut) + " " + paste(Pos), append=T);
+                writeFile(outputFile, paste(GenomesWithMutAtPos), append=T);
+            }
+        }
+    }
+    return NULL;
+}

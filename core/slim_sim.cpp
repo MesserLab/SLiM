@@ -3704,7 +3704,7 @@ void SLiMSim::StartTreeRecording(void)
 
 void SLiMSim::RecordNewIndividual(Individual *p_individual)
 {
-	//THOUGHT: ALL THIS METHOD DOES IS SET IVARS, we could probably speed things up by setting the ivars instead of calling this method 
+	// THOUGHT: ALL THIS METHOD DOES IS SET IVARS, we could probably speed things up by setting the ivars instead of calling this method 
 
 	// this is called by code where new individuals are created
 	
@@ -3734,7 +3734,7 @@ void SLiMSim::RecordNewIndividual(Individual *p_individual)
 	CurrentTreeSequenceIndividual = p_individual;
 	//Set ivar to indicate the first recombination has not been called, (this lets us know which parent each recombination is referring to
 	FirstRecombinationCalled = false;
-		
+
 }
 
 void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, bool p_start_strand_2)
@@ -3798,7 +3798,7 @@ void SLiMSim::RecordRecombination(std::vector<slim_position_t> *p_breakpoints, b
 	offspringMSPID = node_table_add_row(&tables.nodes,flags,time,0,offspring_SLiMID_Const,size);
     SLiM_MSP_Id_Map[offspringSLiMID] = (node_id_t) offspringMSPID;
 
-    // what is this for?
+    // if there is no parent then no need to record edges
 	if(parentSLiMID == -1){
 		return;
 	}

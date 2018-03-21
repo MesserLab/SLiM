@@ -1,6 +1,6 @@
 #!/bin/bash
 set -u
-FILES=./testRecipes/*.slim
+FILES=./testRecipes/test_*.slim
 
 for f in $FILES
 do
