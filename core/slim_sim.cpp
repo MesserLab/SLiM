@@ -3753,7 +3753,7 @@ void SLiMSim::SetCurrentNewIndividual(Individual *p_individual)
 	std::cout << Generation() << ": New individual created, pedigree id " << ind_pid << " (parents: " << p1_pid << ", " << p2_pid << ")" << std::endl << std::endl;
 	*/
 
-	//Set ivar to current individual, this way the calls to RecordRecombination have reference.
+	//Set ivar to current individual, this way the calls to RecordNewGenome have reference.
 	CurrentTreeSequenceIndividual = p_individual;
 	//Set ivar to indicate the first recombination has not been called, (this lets us know which parent each recombination is referring to
 	FirstRecombinationCalled = false;
@@ -3811,7 +3811,7 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, bool 
 
 
 	//add genome node
-	double time = (double) -1 * Generation();
+	double time = (double) -1 * tree_seq_generation_;
 	uint32_t flags = 1;
 
 	//for metadata -> testing for now
@@ -3926,12 +3926,23 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 	// Standardize the path, resolving a leading ~ and maybe other things
 	std::string path = Eidos_ResolvedPath(p_recording_tree_path);
 
+    int path_length = (int)path.length();
+    bool path_ends_in_slash = (path_length > 0) && (path[path_length-1] == '/');
+    if (path_ends_in_slash)
+        path.pop_back();		// remove the trailing slash, which just confuses stat()
+
     if (p_binary) {
         table_collection_dump(&tables, p_recording_tree_path, 0);
     } else {
-        // FIXME add directory stuff here.
+        std::string error_string;
+        bool success = Eidos_CreateDirectory(path, &error_string);
+        if (error_string.length())
+            p_interpreter.ExecutionOutputStream() << error_string << std::endl;
+
         FILE *MspTxtNodeTable;
         FILE *MspTxtEdgeTable;
+        MspTxtNodeTable = fopen(path + "/NodeTable.txt","w");
+        MspTxtEdgeTable = fopen(path + "/EdgeTable.txt","w");
         node_table_dump_text(&tables.nodes,MspTxtNodeTable);
         edge_table_dump_text(&tables.edges,MspTxtEdgeTable);
         fclose(MspTxtNodeTable);
