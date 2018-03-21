@@ -1080,7 +1080,7 @@ void Eidos_CheckRSSAgainstMax(std::string p_message1, std::string p_message2)
 #pragma mark -
 
 // resolve a leading ~ in a filesystem path to the user's home directory
-std::string Eidos_ResolvedPath(const std::string p_path)
+std::string Eidos_ResolvedPath(std::string p_path)
 {
 	std::string path = p_path;
 	
@@ -1124,16 +1124,22 @@ std::string Eidos_ResolvedPath(const std::string p_path)
 	return path;
 }
 
+// Remove a trailing slash in a path like ~/foo/bar/
+std::string Eidos_StripTrailingSlash(std::string p_path)
+{
+	int path_length = (int)p_path.length();
+	bool path_ends_in_slash = (path_length > 0) && (p_path[path_length-1] == '/');
+	
+	if (path_ends_in_slash)
+		p_path.pop_back();		// remove the trailing slash, which just confuses stat()
+	
+	return p_path;
+}
+
 // Create a directory at the given path if it does not already exist; returns false if an error occurred (which emits a warning)
 bool Eidos_CreateDirectory(std::string p_path, std::string* p_error_string)
 {
-	int base_path_length = (int)p_path.length();
-	bool base_path_ends_in_slash = (base_path_length > 0) && (p_path[base_path_length-1] == '/');
-	
-	if (base_path_ends_in_slash)
-		p_path.pop_back();		// remove the trailing slash, which just confuses stat()
-	
-	std::string path = Eidos_ResolvedPath(p_path);
+	std::string path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(p_path));
 	
 	errno = 0;
 	
