@@ -33,6 +33,7 @@
 #include "eidos_interpreter.h"
 #include "eidos_symbol_table.h"
 #include "polymorphism.h"
+#include "subpopulation.h"
 
 
 Population::Population(SLiMSim &p_sim) : sim_(p_sim)
@@ -1242,6 +1243,10 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 							child_genome1->clear_to_nullptr();
 							child_genome2->clear_to_nullptr();
 							
+							// TREE SEQUENCE RECORDING
+							if (recording_tree_sequence)
+								sim_.RetractNewIndividual();
+							
 							num_tries++;
 							goto retryChild;
 						}
@@ -1311,6 +1316,10 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 							// back out child state we created; we could back out the assigned pedigree ID too, and cancel the tree recording
 							child_genome1->clear_to_nullptr();
 							child_genome2->clear_to_nullptr();
+							
+							// TREE SEQUENCE RECORDING
+							if (recording_tree_sequence)
+								sim_.RetractNewIndividual();
 							
 							num_tries++;
 							
@@ -1663,6 +1672,10 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						// back out child state we created; we could back out the assigned pedigree ID too, and cancel the tree recording
 						child_genome1->clear_to_nullptr();
 						child_genome2->clear_to_nullptr();
+						
+						// TREE SEQUENCE RECORDING
+						if (recording_tree_sequence)
+							sim_.RetractNewIndividual();
 						
 						num_tries++;
 						goto retryWithNewSourceSubpop;

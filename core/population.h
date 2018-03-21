@@ -33,7 +33,6 @@
 #include <string>
 
 #include "slim_global.h"
-#include "subpopulation.h"
 #include "substitution.h"
 #include "chromosome.h"
 #include "slim_eidos_block.h"
@@ -41,6 +40,9 @@
 
 
 class SLiMSim;
+class Subpopulation;
+class Individual;
+class Genome;
 
 
 #ifdef SLIMGUI

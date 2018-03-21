@@ -26,6 +26,7 @@
 #include "eidos_ast_node.h"
 #include "individual.h"
 #include "polymorphism.h"
+#include "subpopulation.h"
 
 
 #include <iostream>
@@ -3698,6 +3699,15 @@ void SLiMSim::SetCurrentNewIndividual(Individual *p_individual)
 	//Set ivar to indicate the first recombination has not been called, (this lets us know which parent each recombination is referring to
 	FirstRecombinationCalled = false;
 
+}
+
+void SLiMSim::RetractNewIndividual()
+{
+	// This is called when a new child, introduced by SetCurrentNewIndividual(), gets rejected by a modifyChild()
+	// callback.  We will have logged recombination breakpoints and new mutations into our tables, and now want
+	// to back those changes out by re-setting the active row index for the tables.
+	
+	
 }
 
 void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, bool p_start_strand_2)
