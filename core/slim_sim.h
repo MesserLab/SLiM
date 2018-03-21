@@ -180,6 +180,7 @@ private:
 	int num_gene_conversions_;
 	int num_sex_declarations_;	// SEX ONLY; used to check for sex vs. non-sex errors in the file, so the #SEX tag must come before any reliance on SEX ONLY features
 	int num_options_declarations_;
+	int num_treeseq_declarations_;
 	int num_modeltype_declarations_;
 	
 	slim_position_t last_genomic_element_position_ = -1;	// used to check new genomic elements for consistency
@@ -240,7 +241,10 @@ private:
 	
 	// TREE SEQUENCE RECORDING
 	bool recording_tree_ = false;		// true if we are doing tree sequence recording
-	std::string recording_tree_path_;	// the path to write the final tree file to; given to initializeSLiMOptions(treeRecordingPath)
+	bool recording_mutations_ = false;	// true if we are recording mutations in our tree sequence tables
+	double simplification_ratio_;		// the pre:post table size ratio we target with our automatic simplification heuristic
+	slim_generation_t simplify_elapsed_ = 0;	// the number of generations elapsed since a simplification was done (automatic or otherwise)
+	double simplify_interval_;			// the number of generations between automatic simplifications
 	// add further ivars you need for tree sequence recording here; don't forget to add cleanup for them to SLiMSim::~SLiMSim() if necessary
 	
 public:
@@ -350,7 +354,10 @@ public:
 	void StartTreeRecording(void);
 	void RecordNewIndividual(Individual *p_individual);
 	void RecordRecombination(std::vector<slim_position_t> *p_breakpoints, bool p_start_strand_2);
-	void WriteTreeSequence(void);
+	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify);
+	void CheckAutoSimplification(void);
+	void SimplifyTree(void);
+	void RememberIndividuals(std::vector<slim_pedigreeid_t> p_individual_ids);
 	// put any other methods you need for the tree sequence stuff here
 	
 	//
@@ -368,6 +375,7 @@ public:
 	EidosValue_SP ExecuteContextFunction_initializeMutationRate(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeSex(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeSLiMOptions(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteContextFunction_initializeTreeSeq(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeSLiMModelType(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	
 	EidosSymbolTable *SymbolsFromBaseSymbols(EidosSymbolTable *p_base_symbols);				// derive a symbol table, adding our own symbols if needed
@@ -407,6 +415,9 @@ public:
 	EidosValue_SP ExecuteMethod_registerReproductionCallback(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_simulationFinished(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_treeSeqSimplify(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 };
 
 

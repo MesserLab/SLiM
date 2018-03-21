@@ -346,6 +346,7 @@ extern const std::string gStr_initializeMutationRate;
 extern const std::string gStr_initializeRecombinationRate;
 extern const std::string gStr_initializeSex;
 extern const std::string gStr_initializeSLiMOptions;
+extern const std::string gStr_initializeTreeSeq;
 extern const std::string gStr_initializeSLiMModelType;
 extern const std::string gStr_initializeInteractionType;
 
@@ -484,6 +485,9 @@ extern const std::string gStr_registerRecombinationCallback;
 extern const std::string gStr_registerReproductionCallback;
 extern const std::string gStr_rescheduleScriptBlock;
 extern const std::string gStr_simulationFinished;
+extern const std::string gStr_treeSeqSimplify;
+extern const std::string gStr_treeSeqRememberIndividuals;
+extern const std::string gStr_treeSeqOutput;
 extern const std::string gStr_setMigrationRates;
 extern const std::string gStr_pointInBounds;
 extern const std::string gStr_pointReflected;
@@ -597,6 +601,7 @@ enum _SLiMGlobalStringID : int {
 	gID_initializeRecombinationRate,
 	gID_initializeSex,
 	gID_initializeSLiMOptions,
+	gID_initializeTreeSeq,
 	gID_initializeSLiMModelType,
 	gID_initializeInteractionType,
 	
@@ -735,6 +740,9 @@ enum _SLiMGlobalStringID : int {
 	gID_registerReproductionCallback,
 	gID_rescheduleScriptBlock,
 	gID_simulationFinished,
+	gID_treeSeqSimplify,
+	gID_treeSeqRememberIndividuals,
+	gID_treeSeqOutput,
 	gID_setMigrationRates,
 	gID_pointInBounds,
 	gID_pointReflected,
