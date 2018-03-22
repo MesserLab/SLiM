@@ -5428,6 +5428,12 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 EidosValue_SP SLiMSim::ExecuteMethod_addSubpop(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	SLiMGenerationStage gen_stage = GenerationStage();
+	
+	if ((gen_stage != SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kWFStage5ExecuteLateScripts) &&
+		(gen_stage != SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_addSubpop): addSubpop() may only be called from an early() or late() event." << EidosTerminate();
+	
 	EidosValue *subpopID_value = p_arguments[0].get();
 	EidosValue *size_value = p_arguments[1].get();
 	EidosValue *sexRatio_value = p_arguments[2].get();
@@ -5462,6 +5468,12 @@ EidosValue_SP SLiMSim::ExecuteMethod_addSubpopSplit(EidosGlobalStringID p_method
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
 	if (ModelType() == SLiMModelType::kModelTypeNonWF)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_addSubpopSplit): method -addSubpopSplit() is not available in nonWF models." << EidosTerminate();
+	
+	SLiMGenerationStage gen_stage = GenerationStage();
+	
+	if ((gen_stage != SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kWFStage5ExecuteLateScripts) &&
+		(gen_stage != SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_addSubpopSplit): addSubpopSplit() may only be called from an early() or late() event." << EidosTerminate();
 	
 	EidosValue *subpopID_value = p_arguments[0].get();
 	EidosValue *size_value = p_arguments[1].get();
@@ -5828,7 +5840,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_
 	
 	if (!warned_early_output_)
 	{
-		if ((ModelType() == SLiMModelType::kModelTypeWF) && (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts))
+		if (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts)
 		{
 			output_stream << "#WARNING (SLiMSim::ExecuteMethod_outputFixedMutations): outputFixedMutations() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the generation, not the end." << std::endl;
 			warned_early_output_ = true;
@@ -5910,7 +5922,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 	
 	if (!warned_early_output_)
 	{
-		if ((ModelType() == SLiMModelType::kModelTypeWF) && (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts))
+		if (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts)
 		{
 			p_interpreter.ExecutionOutputStream() << "#WARNING (SLiMSim::ExecuteMethod_outputFull): outputFull() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the generation, not the end." << std::endl;
 			warned_early_output_ = true;
@@ -5987,7 +5999,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 	
 	if (!warned_early_output_)
 	{
-		if ((ModelType() == SLiMModelType::kModelTypeWF) && (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts))
+		if (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts)
 		{
 			output_stream << "#WARNING (SLiMSim::ExecuteMethod_outputMutations): outputMutations() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the generation, not the end." << std::endl;
 			warned_early_output_ = true;
@@ -6072,16 +6084,22 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 EidosValue_SP SLiMSim::ExecuteMethod_readFromPopulationFile(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	SLiMGenerationStage gen_stage = GenerationStage();
+	
+	if ((gen_stage != SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kWFStage5ExecuteLateScripts) &&
+		(gen_stage != SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() may only be called from an early() or late() event." << EidosTerminate();
+	
 	EidosValue *filePath_value = p_arguments[0].get();
 	
 	if (!warned_early_read_)
 	{
-		if ((ModelType() == SLiMModelType::kModelTypeWF) && (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts))
+		if (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts)
 		{
 			p_interpreter.ExecutionOutputStream() << "#WARNING (SLiMSim::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() should probably not be called from an early() event in a WF model; fitness values will not be recalculated prior to offspring generation unless recalculateFitness() is called." << std::endl;
 			warned_early_read_ = true;
 		}
-		if ((ModelType() == SLiMModelType::kModelTypeNonWF) && (GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
+		if (GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts)
 		{
 			p_interpreter.ExecutionOutputStream() << "#WARNING (SLiMSim::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() should probably not be called from a late() event in a nonWF model; fitness values will not be recalculated prior to offspring generation unless recalculateFitness() is called." << std::endl;
 			warned_early_read_ = true;
@@ -6487,7 +6505,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqSimplify(EidosGlobalStringID p_metho
 	if ((gen_stage != SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kWFStage5ExecuteLateScripts) &&
 		(gen_stage != SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqSimplify): treeSeqSimplify() may only be called from an early() or late() event." << EidosTerminate();
-
+	
 	SimplifyTreeSequence();
 	
 	return gStaticEidosValueNULLInvisible;

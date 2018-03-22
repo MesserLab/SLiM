@@ -4948,8 +4948,8 @@ EidosValue_SP InteractionType::ExecuteMethod_evaluate(EidosGlobalStringID p_meth
 	EidosValue *immediate_value = p_arguments[1].get();
 	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
 	
-	if (((sim.ModelType() == SLiMModelType::kModelTypeWF) && (sim.GenerationStage() == SLiMGenerationStage::kWFStage2GenerateOffspring)) ||
-		((sim.ModelType() == SLiMModelType::kModelTypeNonWF) && (sim.GenerationStage() == SLiMGenerationStage::kNonWFStage1GenerateOffspring)))
+	if ((sim.GenerationStage() == SLiMGenerationStage::kWFStage2GenerateOffspring) ||
+		(sim.GenerationStage() == SLiMGenerationStage::kNonWFStage1GenerateOffspring))
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_evaluate): evaluate() may not be called during offspring generation." << EidosTerminate();
 	
 	bool immediate = immediate_value->LogicalAtIndex(0, nullptr);
