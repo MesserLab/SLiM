@@ -3709,6 +3709,8 @@ void SLiMSim::RetractNewIndividual()
 	// This is called when a new child, introduced by SetCurrentNewIndividual(), gets rejected by a modifyChild()
 	// callback.  We will have logged recombination breakpoints and new mutations into our tables, and now want
 	// to back those changes out by re-setting the active row index for the tables.
+	tables.nodes.num_rows = rowsInNodeTableBeforeAddingCurInd;
+	tables.edges.num_rows = rowsInEdgeTableBeforeAddingCurInd;
 	
 	
 }
