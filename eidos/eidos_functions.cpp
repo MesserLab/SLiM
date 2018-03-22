@@ -31,7 +31,6 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <string.h>
-#include <sys/types.h>
 #include <fstream>
 #include <stdexcept>
 #include <algorithm>
@@ -39,6 +38,7 @@
 #include <utility>
 #include <numeric>
 #include <sys/stat.h>
+#include <sys/param.h>
 
 #include "time.h"
 #include "string.h"
@@ -297,8 +297,10 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("createDirectory",	Eidos_ExecuteFunction_createDirectory,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S("path"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("filesAtPath",		Eidos_ExecuteFunction_filesAtPath,	kEidosValueMaskString))->AddString_S("path")->AddLogical_OS("fullPaths", gStaticEidosValue_LogicalF));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("getwd",				Eidos_ExecuteFunction_getwd,		kEidosValueMaskString | kEidosValueMaskSingleton)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("deleteFile",		Eidos_ExecuteFunction_deleteFile,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S("filePath"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("readFile",			Eidos_ExecuteFunction_readFile,		kEidosValueMaskString))->AddString_S("filePath"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("setwd",				Eidos_ExecuteFunction_setwd,		kEidosValueMaskString | kEidosValueMaskSingleton))->AddString_S("path"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("writeFile",			Eidos_ExecuteFunction_writeFile,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S("filePath")->AddString("contents")->AddLogical_OS("append", gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("writeTempFile",		Eidos_ExecuteFunction_writeTempFile,	kEidosValueMaskString | kEidosValueMaskSingleton))->AddString_S("prefix")->AddString_S("suffix")->AddString("contents"));
 
@@ -8306,6 +8308,55 @@ EidosValue_SP Eidos_ExecuteFunction_filesAtPath(const EidosValue_SP *const p_arg
 		p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_filesAtPath): function filesAtPath() could not open path " << path << "." << std::endl;
 		result_SP = gStaticEidosValueNULL;
 	}
+	
+	return result_SP;
+}
+
+//	(string$)getwd(void)
+EidosValue_SP Eidos_ExecuteFunction_getwd(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	static char *path_buffer = nullptr;
+	
+	if (!path_buffer)
+		path_buffer = (char *)malloc(MAXPATHLEN * sizeof(char));
+	
+	char *buf = getcwd(path_buffer, MAXPATHLEN * sizeof(char));
+	std::string wd(buf);
+	
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(wd));
+	
+	return result_SP;
+}
+
+//	(string$)setwd(string$ path)
+EidosValue_SP Eidos_ExecuteFunction_setwd(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	// Get the path; this code is identical to getwd() above, except it makes the value invisible
+	static char *path_buffer = nullptr;
+	
+	if (!path_buffer)
+		path_buffer = (char *)malloc(MAXPATHLEN * sizeof(char));
+	
+	char *buf = getcwd(path_buffer, MAXPATHLEN * sizeof(char));
+	std::string wd(buf);
+	
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(wd));
+	result_SP->SetInvisible(true);
+	
+	// Now set the path
+	EidosValue *filePath_value = p_arguments[0].get();
+	std::string base_path = filePath_value->StringAtIndex(0, nullptr);
+	std::string final_path = Eidos_ResolvedPath(base_path);
+	
+	errno = 0;
+	int retval = chdir(final_path.c_str());
+	
+	if (retval == -1)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setwd): the working directory could not be set (error " << errno << ")" << EidosTerminate(nullptr);
 	
 	return result_SP;
 }

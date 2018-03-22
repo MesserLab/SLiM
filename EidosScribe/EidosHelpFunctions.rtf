@@ -3534,9 +3534,37 @@ Returns the transpose
 \f1\fs18 NULL
 \f0\fs20  will be returned.
 \f2 \
+\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 \expnd0\expndtw0\kerning0
+(string$)getwd(void)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Gets the current filesystem working directory
+\b0 .  The filesystem working directory is the directory which will be used as a base path for relative filesystem paths.  For example, if the working directory is 
+\f1\fs18 "~/Desktop"
+\f0\fs20  (the 
+\f1\fs18 Desktop
+\f0\fs20  subdirectory within the current user\'92s home directory, as represented by 
+\f1\fs18 ~
+\f0\fs20 ), then the filename 
+\f1\fs18 "foo.txt"
+\f0\fs20  would correspond to the filesystem path 
+\f1\fs18 "~/Desktop/foo.txt"
+\f0\fs20 , and the relative path 
+\f1\fs18 "bar/baz/"
+\f0\fs20  would correspond to the filesystem path 
+\f1\fs18 \'93~/Desktop/bar/baz/\'93
+\f0\fs20 .\
+Note that the path returned may not be identical to the path previously set with 
+\f1\fs18 setwd()
+\f0\fs20 , if for example symbolic links are involved; but it ought to refer to the same actual directory in the filesystem.\
+The initial working directory is not well-defined.  It may be the directory within which the running process is located, or may be the current directory in the shell from which the running process was launched; or it may be some other path, depending upon the operating system and other environmental factors.  It is therefore unwise to rely upon the initial working directory; 
+\f1\fs18 setwd()
+\f0\fs20  should always be called to set the working directory before relative filesystem paths are used.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (string)readFile(string$\'a0filePath)
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (string)readFile(string$\'a0filePath)
 \f2 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -3555,7 +3583,25 @@ Returns the transpose
 \f2 \
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (logical$)writeFile(string$\'a0filePath, string\'a0contents, [logical$\'a0append\'a0=\'a0F])
+\f1\fs18 \cf2 \expnd0\expndtw0\kerning0
+(string$)setwd(string$\'a0path)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Sets the current filesystem working directory
+\b0 .  The filesystem working directory is the directory which will be used as a base path for relative filesystem paths (see 
+\f1\fs18 getwd()
+\f0\fs20  for further discussion).  An error will result if the working directory cannot be set to the given path.\
+The current working directory prior to the change will be returned as an invisible 
+\f1\fs18 string
+\f0\fs20  value; the value returned is identical to the value that would have been returned by 
+\f1\fs18 getwd()
+\f0\fs20 , apart from its invisibility.\
+The initial working directory is not well-defined; see 
+\f1\fs18 getwd()
+\f0\fs20  for further discussion.\
+\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (logical$)writeFile(string$\'a0filePath, string\'a0contents, [logical$\'a0append\'a0=\'a0F])
 \f2 \
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 

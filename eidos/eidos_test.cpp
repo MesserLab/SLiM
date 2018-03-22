@@ -6400,6 +6400,9 @@ void _RunFunctionFilesystemTests(void)
 	EidosAssertScriptSuccess("file = writeTempFile('eidos_test_', '.txt', ''); identical(readFile(file), string(0));", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("file = writeTempFile('eidos_test_', '.txt', 'foo'); identical(readFile(file), 'foo');", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("file = writeTempFile('eidos_test_', '.txt', c(paste(0:4), paste(5:9))); identical(readFile(file), c('0 1 2 3 4', '5 6 7 8 9'));", gStaticEidosValue_LogicalT);
+	
+	// getwd() / setwd()
+	EidosAssertScriptSuccess("path1 = getwd(); path2 = setwd(path1); path1 == path2;", gStaticEidosValue_LogicalT);
 }
 
 #pragma mark color manipulation
