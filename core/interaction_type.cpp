@@ -4891,7 +4891,7 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 	
 	if (total_interaction_strength > 0.0)
 	{
-		result_vec->resize_no_initialize((int)count);
+		result_vec->resize_no_initialize(count);
 		
 		EidosValue_Object_vector *result_direct = result_vec->ObjectElementVector_Mutable();
 		
@@ -4900,7 +4900,7 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 			// Use gsl_ran_discrete() to do the drawing
 			gsl_ran_discrete_t *gsl_lookup = gsl_ran_discrete_preproc(cached_strength.size(), cached_strength.data());
 			
-			for (int draw_index = 0; draw_index < count; ++draw_index)
+			for (int64_t draw_index = 0; draw_index < count; ++draw_index)
 			{
 				int hit_index = (int)gsl_ran_discrete(gEidos_rng, gsl_lookup);
 				
@@ -4912,7 +4912,7 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 		else
 		{
 			// Use linear search to do the drawing
-			for (int draw_index = 0; draw_index < count; ++draw_index)
+			for (int64_t draw_index = 0; draw_index < count; ++draw_index)
 			{
 				double the_rose_in_the_teeth = Eidos_rng_uniform(gEidos_rng) * total_interaction_strength;
 				double cumulative_strength = 0.0;

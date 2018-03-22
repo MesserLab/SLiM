@@ -4310,10 +4310,10 @@ EidosValue_SP Eidos_ExecuteFunction_dnorm(const EidosValue_SP *const p_arguments
 		else
 		{
 			const double *float_data = arg_quantile->FloatVector()->data();
-			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize((int)num_quantiles);
+			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
 			result_SP = EidosValue_SP(float_result);
 			
-			for (int value_index = 0; value_index < num_quantiles; ++value_index)
+			for (int64_t value_index = 0; value_index < num_quantiles; ++value_index)
 				float_result->set_float_no_check(gsl_ran_gaussian_pdf(float_data[value_index] - mu0, sigma0), value_index);
 		}
 	}
@@ -4377,10 +4377,10 @@ EidosValue_SP Eidos_ExecuteFunction_rbinom(const EidosValue_SP *const p_argument
 		}
 		else
 		{
-			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)num_draws);
+			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(num_draws);
 			result_SP = EidosValue_SP(int_result);
 			
-			for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 				int_result->set_int_no_check(gsl_ran_binomial(gEidos_rng, probability0, size0), draw_index);
 		}
 	}
@@ -4447,10 +4447,10 @@ EidosValue_SP Eidos_ExecuteFunction_rdunif(const EidosValue_SP *const p_argument
 		}
 		else
 		{
-			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)num_draws);
+			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(num_draws);
 			result_SP = EidosValue_SP(int_result);
 			
-			for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 				int_result->set_int_no_check((int64_t)Eidos_rng_uniform_int(gEidos_rng, (uint32_t)count0) + min_value0, draw_index);
 		}
 	}
@@ -4505,10 +4505,10 @@ EidosValue_SP Eidos_ExecuteFunction_rexp(const EidosValue_SP *const p_arguments,
 		}
 		else
 		{
-			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize((int)num_draws);
+			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_draws);
 			result_SP = EidosValue_SP(float_result);
 			
-			for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 				float_result->set_float_no_check(gsl_ran_exponential(gEidos_rng, mu0), draw_index);
 		}
 	}
@@ -4565,12 +4565,12 @@ EidosValue_SP Eidos_ExecuteFunction_rgamma(const EidosValue_SP *const p_argument
 		}
 		else
 		{
-			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize((int)num_draws);
+			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_draws);
 			result_SP = EidosValue_SP(float_result);
 			
 			double scale = mean0 / shape0;
 			
-			for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 				float_result->set_float_no_check(gsl_ran_gamma(gEidos_rng, shape0, scale), draw_index);
 		}
 	}
@@ -4628,10 +4628,10 @@ EidosValue_SP Eidos_ExecuteFunction_rlnorm(const EidosValue_SP *const p_argument
 		}
 		else
 		{
-			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize((int)num_draws);
+			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_draws);
 			result_SP = EidosValue_SP(float_result);
 			
-			for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 				float_result->set_float_no_check(gsl_ran_lognormal(gEidos_rng, meanlog0, sdlog0), draw_index);
 		}
 	}
@@ -4714,10 +4714,10 @@ EidosValue_SP Eidos_ExecuteFunction_rmvnorm(const EidosValue_SP *const p_argumen
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rmvnorm): (internal error) an unknown error with code " << gsl_err << " occurred inside the GNU Scientific Library's gsl_linalg_cholesky_decomp1() function." << EidosTerminate(nullptr);
 	}
 	
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize((int)(num_draws * d));
+	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_draws * d);
 	result_SP = EidosValue_SP(float_result);
 	
-	for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+	for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 	{
 		gsl_err = gsl_ran_multivariate_gaussian(gEidos_rng, gsl_mu, gsl_L, gsl_result);
 		
@@ -4785,10 +4785,10 @@ EidosValue_SP Eidos_ExecuteFunction_rnorm(const EidosValue_SP *const p_arguments
 		}
 		else
 		{
-			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize((int)num_draws);
+			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_draws);
 			result_SP = EidosValue_SP(float_result);
 			
-			for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 				float_result->set_float_no_check(gsl_ran_gaussian(gEidos_rng, sigma0) + mu0, draw_index);
 		}
 	}
@@ -4847,10 +4847,10 @@ EidosValue_SP Eidos_ExecuteFunction_rpois(const EidosValue_SP *const p_arguments
 		}
 		else
 		{
-			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)num_draws);
+			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(num_draws);
 			result_SP = EidosValue_SP(int_result);
 			
-			for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 				int_result->set_int_no_check(gsl_ran_poisson(gEidos_rng, lambda0), draw_index);
 		}
 	}
@@ -4908,10 +4908,10 @@ EidosValue_SP Eidos_ExecuteFunction_runif(const EidosValue_SP *const p_arguments
 		}
 		else
 		{
-			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize((int)num_draws);
+			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_draws);
 			result_SP = EidosValue_SP(float_result);
 			
-			for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 				float_result->set_float_no_check(Eidos_rng_uniform(gEidos_rng), draw_index);
 		}
 	}
@@ -4930,10 +4930,10 @@ EidosValue_SP Eidos_ExecuteFunction_runif(const EidosValue_SP *const p_arguments
 			}
 			else
 			{
-				EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize((int)num_draws);
+				EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_draws);
 				result_SP = EidosValue_SP(float_result);
 				
-				for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+				for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 					float_result->set_float_no_check(Eidos_rng_uniform(gEidos_rng) * range0 + min_value0, draw_index);
 			}
 		}
@@ -4998,10 +4998,10 @@ EidosValue_SP Eidos_ExecuteFunction_rweibull(const EidosValue_SP *const p_argume
 		}
 		else
 		{
-			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize((int)num_draws);
+			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_draws);
 			result_SP = EidosValue_SP(float_result);
 			
-			for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 				float_result->set_float_no_check(gsl_ran_weibull(gEidos_rng, lambda0, k0), draw_index);
 		}
 	}
@@ -5064,7 +5064,7 @@ EidosValue_SP Eidos_ExecuteFunction_float(const EidosValue_SP *const p_arguments
 	if (element_count == 0)
 		return gStaticEidosValue_Float_ZeroVec;
 	
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize((int)element_count);
+	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(element_count);
 	result_SP = EidosValue_SP(float_result);
 	
 	for (int64_t value_index = 0; value_index < element_count; ++value_index)
@@ -5093,7 +5093,7 @@ EidosValue_SP Eidos_ExecuteFunction_integer(const EidosValue_SP *const p_argumen
 	if (element_count == 0)
 		return gStaticEidosValue_Integer_ZeroVec;
 	
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)element_count);
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(element_count);
 	result_SP = EidosValue_SP(int_result);
 	
 	for (int64_t value_index = 0; value_index < element_count; ++value_index)
@@ -5149,7 +5149,7 @@ EidosValue_SP Eidos_ExecuteFunction_logical(const EidosValue_SP *const p_argumen
 	if (element_count == 0)
 		return gStaticEidosValue_Logical_ZeroVec;
 	
-	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize((int)element_count);
+	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(element_count);
 	result_SP = EidosValue_SP(logical_result);
 	
 	for (int64_t value_index = 0; value_index < element_count; ++value_index)
@@ -5433,7 +5433,7 @@ EidosValue_SP Eidos_ExecuteFunction_seq(const EidosValue_SP *const p_arguments, 
 			double first_value = from_value->FloatAtIndex(0, nullptr);
 			double second_value = to_value->FloatAtIndex(0, nullptr);
 			
-			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize((int)length);
+			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(length);
 			result_SP = EidosValue_SP(float_result);
 			
 			for (int64_t seq_index = 0; seq_index < length; ++seq_index)
@@ -5461,7 +5461,7 @@ EidosValue_SP Eidos_ExecuteFunction_seq(const EidosValue_SP *const p_arguments, 
 			{
 				// length divides evenly, so generate an integer sequence
 				int64_t by = (second_value - first_value) / (length - 1);
-				EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)length);
+				EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(length);
 				result_SP = EidosValue_SP(int_result);
 				
 				for (int64_t seq_index = 0; seq_index < length; ++seq_index)
@@ -5471,7 +5471,7 @@ EidosValue_SP Eidos_ExecuteFunction_seq(const EidosValue_SP *const p_arguments, 
 			{
 				// length does not divide evenly, so generate a float sequence
 				double by = (second_value - first_value) / (double)(length - 1);
-				EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize((int)length);
+				EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(length);
 				result_SP = EidosValue_SP(float_result);
 				
 				for (int64_t seq_index = 0; seq_index < length; ++seq_index)

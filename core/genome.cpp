@@ -675,9 +675,8 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMutations(EidosObjectEle
 			}
 			else
 			{
-				EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_elements_size * mutations_count);
+				EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_elements_size);
 				EidosValue_SP result(logical_result);
-				int64_t result_index = 0;
 				
 				for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 				{
@@ -688,7 +687,7 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMutations(EidosObjectEle
 					
 					bool contained = element->mutruns_[mutrun_index]->contains_mutation(mut_block_index);
 					
-					logical_result->set_logical_no_check(contained, result_index++);
+					logical_result->set_logical_no_check(contained, element_index);
 				}
 				
 				return result;
@@ -698,6 +697,7 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMutations(EidosObjectEle
 		{
 			EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_elements_size * mutations_count);
 			EidosValue_SP result(logical_result);
+			int64_t result_index = 0;
 			
 			EidosObjectElement * const *mutations_data = mutations_value->ObjectElementVector()->data();
 			
@@ -714,7 +714,7 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMutations(EidosObjectEle
 					MutationIndex mut_block_index = mut->BlockIndex();
 					bool contained = element->contains_mutation(mut_block_index);
 					
-					logical_result->set_logical_no_check(contained, value_index);
+					logical_result->set_logical_no_check(contained, result_index++);
 				}
 			}
 			
