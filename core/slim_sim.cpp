@@ -2963,12 +2963,6 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		population_.TallyMutationReferences(nullptr, false);
 #endif
 	
-		//TREE SEQUENCE RECORDING
-		if (RecordingTreeSequence() && (Generation() % simplificationInterval) == 0 && Generation() > 0){
-			SimplifyTreeSequence();
-		}
-
-	
 		cached_value_generation_.reset();
 		generation_++;
 		// note that tree_seq_generation_ was incremented earlier!
@@ -3352,11 +3346,6 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		population_.TallyMutationReferences(nullptr, false);
 #endif
 	
-		//TREE SEQUENCE RECORDING
-		if (RecordingTreeSequence() && (Generation() % simplificationInterval) == 0 && Generation() > 0){
-			SimplifyTreeSequence();
-		}
-	
 		cached_value_generation_.reset();
 		generation_++;
 		tree_seq_generation_++;
@@ -3577,7 +3566,7 @@ void SLiMSim::SimplifyTreeSequence(void){
 	;
 	std::vector<Individual*> populationIndividuals;
 	std::vector<node_id_t> samples;
-	std::map<int,node_id_t> newSlimMspIdMap;
+	std::map<slim_genomeid_t,node_id_t> newSlimMspIdMap;
 	
 	for ( it = population_.begin(); it != population_.end(); it++){
 		std::vector<Individual*> &subpopulationIndividuals = it->second->parent_individuals_;
@@ -3590,9 +3579,9 @@ void SLiMSim::SimplifyTreeSequence(void){
     }
 	
 	slim_pedigreeid_t IndID;
-	int G1;
-	int G2;
-	int newValueInNodeTable = RememberedGenomes.size();
+	slim_genomeid_t G1;
+	slim_genomeid_t G2;
+	node_id_t newValueInNodeTable = (node_id_t)RememberedGenomes.size();
 	for (unsigned i = 0; i < populationIndividuals.size(); i++){
 		IndID = populationIndividuals[i]->PedigreeID();
 		G1 = 2 * IndID;
@@ -3601,13 +3590,13 @@ void SLiMSim::SimplifyTreeSequence(void){
 		samples.push_back(getMSPID(G1));
 		samples.push_back(getMSPID(G2));	
 				
-		newSlimMspIdMap[G1] = (node_id_t)newValueInNodeTable++;
-		newSlimMspIdMap[G2] = (node_id_t)newValueInNodeTable++;
+		newSlimMspIdMap[G1] = newValueInNodeTable++;
+		newSlimMspIdMap[G2] = newValueInNodeTable++;
 	}
-
-	ret = sort_tables(&tables.nodes, &tables.edges, &tables.migrations, &tables.sites, &tables.mutations, 0);				
-	if (ret < 0) {
-		handle_error("sort_tables", ret);
+	
+	tree_return_value_ = sort_tables(&tables.nodes, &tables.edges, &tables.migrations, &tables.sites, &tables.mutations, 0);				
+	if (tree_return_value_ < 0) {
+		handle_error("sort_tables", tree_return_value_);
 	}
 	
 	if(tables.nodes.num_rows == 0){
@@ -3619,19 +3608,19 @@ void SLiMSim::SimplifyTreeSequence(void){
     std::string debug_output = "tables_debug";
     WriteTreeSequence(debug_output, 0, 0);
 	
-	ret = table_collection_simplify(&tables, samples.data(), samples.size(), 0, NULL);
-        if (ret != 0) {
-		handle_error("simplifier_run", ret);
+	tree_return_value_ = table_collection_simplify(&tables, samples.data(), samples.size(), 0, NULL);
+        if (tree_return_value_ != 0) {
+		handle_error("simplifier_run", tree_return_value_);
         }
 
 	SLiM_MSP_Id_Map = newSlimMspIdMap;		
-	for (node_id_t i=0; i < RememberedGenomes.size(); i++){
+	for (node_id_t i = 0; i < (node_id_t)RememberedGenomes.size(); i++){
         RememberedGenomes[i] = i;
     }
 	simplify_elapsed_ = 0;
 }
 
-node_id_t SLiMSim::getMSPID(int GenomeID){
+node_id_t SLiMSim::getMSPID(slim_genomeid_t GenomeID){
 
 	node_id_t retNode = SLiM_MSP_Id_Map[GenomeID];
 	return retNode;
@@ -3651,15 +3640,12 @@ void SLiMSim::StartTreeRecording(void)
 	// own trees, so your code needs to be capable of handling that.  Store your state inside SLiMSim, not in globals.  SLiMgui is
 	// single-threaded, though, so you don't need to worry about re-entrancy or multithreading issues.
 
-	simplificationInterval = 2;
-	lastSimplificationGeneration = 0;
-		
 	//INITIALIZE NODE AND EDGE TABLES.
-
-	ret = table_collection_alloc(&tables, MSP_ALLOC_TABLES);
-        if (ret != 0) {
+	
+	tree_return_value_ = table_collection_alloc(&tables, MSP_ALLOC_TABLES);
+        if (tree_return_value_ != 0) {
             //raise_exception(ret);
-		handle_error("alloc_tables", ret);
+		handle_error("alloc_tables", tree_return_value_);
         }
         /* NB: must set the sequence_length !! */
         tables.sequence_length = (double)chromosome_.last_position_ + 1;
@@ -3790,14 +3776,14 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, bool 
 	}
 	double left = 0.0;
 	double right;
-	for (int i = 0; i < breakpoint_count; i++){
+	for (size_t i = 0; i < breakpoint_count; i++){
 	
 		right = (*p_breakpoints)[i];
 
 		node_id_t parent = (node_id_t) (p_start_strand_2 ? genome2MSPID : genome1MSPID);
-		ret = edge_table_add_row(&tables.edges,left,right,parent,offspringMSPID);
-		if (ret < 0) {
-			handle_error("add_edge", ret);
+		tree_return_value_ = edge_table_add_row(&tables.edges,left,right,parent,offspringMSPID);
+		if (tree_return_value_ < 0) {
+			handle_error("add_edge", tree_return_value_);
 		}
 		p_start_strand_2 = !p_start_strand_2;
 		
@@ -3806,9 +3792,9 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, bool 
 	
 	right = (double)chromosome_.last_position_+1;
 	node_id_t parent = (node_id_t) (p_start_strand_2 ? genome2MSPID : genome1MSPID);
-	ret = edge_table_add_row(&tables.edges,left,right,parent,offspringMSPID);
-	if (ret < 0) {
-		handle_error("add_edge", ret);
+	tree_return_value_ = edge_table_add_row(&tables.edges,left,right,parent,offspringMSPID);
+	if (tree_return_value_ < 0) {
+		handle_error("add_edge", tree_return_value_);
 	}
 		
 }
@@ -3827,18 +3813,22 @@ void SLiMSim::CheckAutoSimplification(void)
 	{
 		if (simplify_elapsed_ >= simplify_interval_)
 		{
-			uint64_t old_table_size = (uint64_t) &tables.nodes.num_rows;
-            old_table_size += (uint64_t) &tables.edges.num_rows;
-            old_table_size += (uint64_t) &tables.sites.num_rows;
-            old_table_size += (uint64_t) &tables.mutations.num_rows;
+			uint64_t old_table_size = (uint64_t)tables.nodes.num_rows;
+            old_table_size += (uint64_t)tables.edges.num_rows;
+            old_table_size += (uint64_t)tables.sites.num_rows;
+            old_table_size += (uint64_t)tables.mutations.num_rows;
 			
 			SimplifyTreeSequence();
 			
-			uint64_t new_table_size = (uint64_t) &tables.nodes.num_rows;
-            new_table_size += (uint64_t) &tables.edges.num_rows;
-            new_table_size += (uint64_t) &tables.sites.num_rows;
-            new_table_size += (uint64_t) &tables.mutations.num_rows;
+			uint64_t new_table_size = (uint64_t)tables.nodes.num_rows;
+            new_table_size += (uint64_t)tables.edges.num_rows;
+            new_table_size += (uint64_t)tables.sites.num_rows;
+            new_table_size += (uint64_t)tables.mutations.num_rows;
 			double ratio = old_table_size / (double)new_table_size;
+			
+			//std::cout << "auto-simplified in generation " << generation_ << "; old size " << old_table_size << ", new size " << new_table_size;
+			//std::cout << "; ratio " << ratio << ", target " << simplification_ratio_ << std::endl;
+			//std::cout << "old interval " << simplify_interval_ << ", new interval ";
 			
 			// Adjust our automatic simplification interval based upon the observed change in storage space used.
 			// Not sure if this is exactly what we want to do; this will hunt around a lot without settling on a value,
@@ -3863,6 +3853,8 @@ void SLiMSim::CheckAutoSimplification(void)
 				if (simplify_interval_ < 1.0)
 					simplify_interval_ = 1.0;
 			}
+			
+			//std::cout << simplify_interval_ << std::endl;
 		}
 	}
 }
@@ -3913,8 +3905,8 @@ void SLiMSim::RememberIndividuals(std::vector<slim_pedigreeid_t> p_individual_id
 	
     // FIXME: not doing any error checking here
     for (slim_pedigreeid_t ind_id : p_individual_ids) {
-        RememberedGenomes.push_back((node_id_t) 2*ind_id);
-        RememberedGenomes.push_back((node_id_t) 2*ind_id + 1);
+        RememberedGenomes.push_back((node_id_t) (2*ind_id));
+        RememberedGenomes.push_back((node_id_t) (2*ind_id + 1));
     }
 }
 
@@ -4816,7 +4808,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 }
 
 // TREE SEQUENCE RECORDING
-//	*********************	(void)initializeTreeSeq([logical$ recordMutations = T], [float$ simplificationRatio = 2.0])
+//	*********************	(void)initializeTreeSeq([logical$ recordMutations = T], [float$ simplificationRatio = 10])
 //
 EidosValue_SP SLiMSim::ExecuteContextFunction_initializeTreeSeq(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
@@ -4942,7 +4934,7 @@ const std::vector<EidosFunctionSignature_SP> *SLiMSim::ZeroGenerationFunctionSig
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMOptions, nullptr, kEidosValueMaskNULL, "SLiM"))
 									   ->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("dimensionality", gStaticEidosValue_StringEmpty)->AddString_OS("periodicity", gStaticEidosValue_StringEmpty)->AddInt_OS("mutationRuns", gStaticEidosValue_Integer0)->AddLogical_OS("preventIncidentalSelfing", gStaticEidosValue_LogicalF));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeTreeSeq, nullptr, kEidosValueMaskNULL, "SLiM"))
-									   ->AddLogical_OS("recordMutations", gStaticEidosValue_LogicalT)->AddFloat_OS("simplificationRatio", gStaticEidosValue_Float2));
+									   ->AddLogical_OS("recordMutations", gStaticEidosValue_LogicalT)->AddFloat_OS("simplificationRatio", gStaticEidosValue_Float10));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMModelType, nullptr, kEidosValueMaskNULL, "SLiM"))
 									   ->AddString_S("modelType"));
 	}

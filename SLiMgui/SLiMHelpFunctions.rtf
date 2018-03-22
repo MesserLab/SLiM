@@ -643,7 +643,7 @@ If
 \cf0 This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f0\fs18 \cf0 (void)initializeTreeSeq([logical$\'a0recordMutations\'a0=\'a0T], [float$\'a0simplificationRatio\'a0=\'a02])
+\f0\fs18 \cf0 (void)initializeTreeSeq([logical$\'a0recordMutations\'a0=\'a0T], [float$\'a0simplificationRatio\'a0=\'a010])
 \f1 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -655,8 +655,8 @@ The
 The 
 \f0\fs18 simplificationRatio
 \f2\fs20  parameter controls how often automatic simplification of the recorded tree sequence occurs.  SLiM will try to find an optimal generation interval for simplification such that the ratio of the memory used by the tree sequence tables, (before:after) simplification, is close to the requested ratio.  The default of 
-\f0\fs18 2
-\f2\fs20  thus requests that SLiM try to find a generation interval such that automatic simplification reduces the memory usage by a factor of two.  
+\f0\fs18 10
+\f2\fs20  thus requests that SLiM try to find a generation interval such that automatic simplification reduces the memory usage by a factor of ten.  
 \f0\fs18 INF
 \f2\fs20  may be supplied as a special value indicating that automatic simplification should never occur; 
 \f0\fs18 0
