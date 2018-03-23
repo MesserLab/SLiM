@@ -821,10 +821,69 @@
 \f2\fs20 .\
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 3.2.  Summary statistics functions\
+\f0\b\fs22 \cf0 3.2.  Statistics functions\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\b0\fs18 \cf0 (+$)max(+\'a0x, ...)\
+\f1\b0\fs18 \cf2 \expnd0\expndtw0\kerning0
+(float$)cor(numeric\'a0x, numeric\'a0y)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 Returns the 
+\b sample Pearson\'92s correlation coefficient
+\b0  between 
+\f1\fs18 x
+\f0\fs20  and 
+\f1\fs18 y
+\f0\fs20 , usually denoted 
+\i \cf2 r
+\i0 \cf2 .  The sizes of 
+\f1\fs18 x
+\f0\fs20  and 
+\f1\fs18 y
+\f0\fs20  must be identical.  If 
+\f1\fs18 x
+\f0\fs20  and 
+\f1\fs18 y
+\f0\fs20  have a size of 
+\f1\fs18 0
+\f0\fs20  or 
+\f1\fs18 1
+\f0\fs20 , the return value will be 
+\f1\fs18 NULL
+\f0\fs20 .  At present it is illegal to call 
+\f1\fs18 cor()
+\f0\fs20  with a matrix or array argument, because the desired behavior in that case has not yet been implemented.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (float$)cov(numeric\'a0x, numeric\'a0y)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 Returns the 
+\b corrected sample covariance
+\b0  between 
+\f1\fs18 x
+\f0\fs20  and 
+\f1\fs18 y
+\f0\fs20 .  The sizes of 
+\f1\fs18 x
+\f0\fs20  and 
+\f1\fs18 y
+\f0\fs20  must be identical.  If 
+\f1\fs18 x
+\f0\fs20  and 
+\f1\fs18 y
+\f0\fs20  have a size of 
+\f1\fs18 0
+\f0\fs20  or 
+\f1\fs18 1
+\f0\fs20 , the return value will be 
+\f1\fs18 NULL
+\f0\fs20 .  At present it is illegal to call 
+\f1\fs18 cov()
+\f0\fs20  with a matrix or array argument, because the desired behavior in that case has not yet been implemented.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (+$)max(+\'a0x, ...)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns the 
@@ -1048,9 +1107,83 @@
 \f0  the return value will be 
 \f1\fs18 NULL
 \f2\fs20 .\
+\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (float$)ttest(float
+\f2 \'a0
+\f1 x, [Nf\'a0y\'a0=\'a0NULL], [Nf$\'a0mu\'a0=\'a0NULL])\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf0 Returns the 
+\i p
+\i0 -value resulting from running a 
+\i t
+\i0 -test with the supplied data.  Two types of 
+\i t
+\f2\i0 -
+\f0 tests can be performed.  If 
+\f1\fs18 x
+\f0\fs20  and 
+\f1\fs18 y
+\f0\fs20  are supplied (i.e., 
+\f1\fs18 y
+\f0\fs20  is non-
+\f1\fs18 NULL
+\f0\fs20 ), a two-sample unpaired two-sided Welch\'92s 
+\i t
+\i0 -test is conducted using the samples in 
+\f1\fs18 x
+\f0\fs20  and 
+\f1\fs18 y
+\f0\fs20 , each of which must contain at least two elements.  The null hypothesis for this test is that the two samples are drawn from populations with the same mean.  Other options, such as pooled-variance 
+\i t
+\i0 -tests, paired 
+\i t
+\i0 -tests, and one-sided 
+\i t
+\i0 -tests, are not presently available.  If 
+\f1\fs18 x
+\f0\fs20  and 
+\f1\fs18 mu
+\f0\fs20  are supplied (i.e., 
+\f1\fs18 mu
+\f0\fs20  is non-
+\f1\fs18 NULL
+\f0\fs20 ), a one-sample 
+\i t
+\i0 -test is conducted in which the null hypothesis is that the sample is drawn from a population with mean 
+\f1\fs18 mu
+\f2\fs20 .\
+
+\f0 Note that the results from this function are substantially different from those produced by R.  The Eidos 
+\f1\fs18 ttest() 
+\f0\fs20 function uses uncorrected sample statistics, which means they will be biased for small sample sizes, whereas R probably uses corrected, unbiased sample statistics.  This is an Eidos bug, and might be fixed if anyone complains.  If large sample sizes are used, however, the bias is likely to be small, and uncorrected statistics are simpler and faster to compute.\
+\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 \expnd0\expndtw0\kerning0
+(float$)var(numeric\'a0x)\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 Returns the 
+\b corrected sample variance
+\b0  of 
+\f1\fs18 x
+\f0\fs20 .  If 
+\f1\fs18 x
+\f0\fs20  has a size of 
+\f1\fs18 0
+\f0\fs20  or 
+\f1\fs18 1
+\f0\fs20 , the return value will be 
+\f1\fs18 NULL
+\f0\fs20 .  This is the square of the standard deviation calculated by 
+\f1\fs18 sd()
+\f0\fs20 .  At present it is illegal to call 
+\f1\fs18 var()
+\f0\fs20  with a matrix or array argument, because the desired behavior in that case has not yet been implemented.\
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 3.3.  Distribution drawing and density functions\
+\b\fs22 \cf0 \kerning1\expnd0\expndtw0 3.3.  Distribution drawing and density functions\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\b0\fs18 \cf0 (float)dnorm(float\'a0x, [numeric\'a0mean\'a0=\'a00], [numeric\'a0sd\'a0=\'a01])\
@@ -4385,57 +4518,6 @@ Arbitrary command strings involving multiple commands, pipes, redirection, etc.,
 \f0\fs20  with 
 \f1\fs18 <
 \f2\fs20 .\
-\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f1\fs18 \cf0 (float$)ttest(float
-\f2 \'a0
-\f1 x, [Nf\'a0y\'a0=\'a0NULL], [Nf$\'a0mu\'a0=\'a0NULL])\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-
-\f0\fs20 \cf0 Returns the 
-\i p
-\i0 -value resulting from running a 
-\i t
-\i0 -test with the supplied data.  Two types of 
-\i t
-\f2\i0 -
-\f0 tests can be performed.  If 
-\f1\fs18 x
-\f0\fs20  and 
-\f1\fs18 y
-\f0\fs20  are supplied (i.e., 
-\f1\fs18 y
-\f0\fs20  is non-
-\f1\fs18 NULL
-\f0\fs20 ), a two-sample unpaired two-sided Welch\'92s 
-\i t
-\i0 -test is conducted using the samples in 
-\f1\fs18 x
-\f0\fs20  and 
-\f1\fs18 y
-\f0\fs20 , each of which must contain at least two elements.  The null hypothesis for this test is that the two samples are drawn from populations with the same mean.  Other options, such as pooled-variance 
-\i t
-\i0 -tests, paired 
-\i t
-\i0 -tests, and one-sided 
-\i t
-\i0 -tests, are not presently available.  If 
-\f1\fs18 x
-\f0\fs20  and 
-\f1\fs18 mu
-\f0\fs20  are supplied (i.e., 
-\f1\fs18 mu
-\f0\fs20  is non-
-\f1\fs18 NULL
-\f0\fs20 ), a one-sample 
-\i t
-\i0 -test is conducted in which the null hypothesis is that the sample is drawn from a population with mean 
-\f1\fs18 mu
-\f2\fs20 .\
-
-\f0 Note that the results from this function are substantially different from those produced by R.  The Eidos 
-\f1\fs18 ttest() 
-\f0\fs20 function uses uncorrected sample statistics, which means they will be biased for small sample sizes, whereas R probably uses corrected, unbiased sample statistics.  This is an Eidos bug, and might be fixed if anyone complains.  If large sample sizes are used, however, the bias is likely to be small, and uncorrected statistics are simpler and faster to compute.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (string$)time(void)\

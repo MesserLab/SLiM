@@ -134,9 +134,11 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		
 		// ************************************************************************************
 		//
-		//	summary statistics functions
+		//	statistics functions
 		//
 		
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("cor",				Eidos_ExecuteFunction_cor,			kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddNumeric("x")->AddNumeric("y"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("cov",				Eidos_ExecuteFunction_cov,			kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddNumeric("x")->AddNumeric("y"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("max",				Eidos_ExecuteFunction_max,			kEidosValueMaskAnyBase | kEidosValueMaskSingleton))->AddAnyBase("x")->AddEllipsis());
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("mean",				Eidos_ExecuteFunction_mean,			kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddLogicalEquiv("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("min",				Eidos_ExecuteFunction_min,			kEidosValueMaskAnyBase | kEidosValueMaskSingleton))->AddAnyBase("x")->AddEllipsis());
@@ -144,6 +146,8 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("pmin",				Eidos_ExecuteFunction_pmin,			kEidosValueMaskAnyBase))->AddAnyBase("x")->AddAnyBase("y"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("range",				Eidos_ExecuteFunction_range,		kEidosValueMaskNumeric))->AddNumeric("x")->AddEllipsis());
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("sd",				Eidos_ExecuteFunction_sd,			kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddNumeric("x"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("ttest",				Eidos_ExecuteFunction_ttest,		kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddFloat("x")->AddFloat_ON("y", gStaticEidosValueNULL)->AddFloat_OSN("mu", gStaticEidosValueNULL));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("var",				Eidos_ExecuteFunction_var,			kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddNumeric("x"));
 		
 		
 		// ************************************************************************************
@@ -286,7 +290,6 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("stop",				Eidos_ExecuteFunction_stop,			kEidosValueMaskNULL))->AddString_OSN("message", gStaticEidosValueNULL));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("system",			Eidos_ExecuteFunction_system,		kEidosValueMaskString))->AddString_S("command")->AddString_O("args", gStaticEidosValue_StringEmpty)->AddString_O("input", gStaticEidosValue_StringEmpty)->AddLogical_OS("stderr", gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("time",				Eidos_ExecuteFunction_time,			kEidosValueMaskString | kEidosValueMaskSingleton)));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("ttest",				Eidos_ExecuteFunction_ttest,		kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddFloat("x")->AddFloat_ON("y", gStaticEidosValueNULL)->AddFloat_OSN("mu", gStaticEidosValueNULL));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("version",			Eidos_ExecuteFunction_version,		kEidosValueMaskFloat)));
 		
 		
@@ -3402,12 +3405,115 @@ EidosValue_SP Eidos_ExecuteFunction_trunc(const EidosValue_SP *const p_arguments
 
 // ************************************************************************************
 //
-//	summary statistics functions
+//	statistics functions
 //
 #pragma mark -
-#pragma mark Summary statistics functions
+#pragma mark Statistics functions
 #pragma mark -
 
+
+//	(float$)cor(numeric x, numeric y)
+EidosValue_SP Eidos_ExecuteFunction_cor(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *x_value = p_arguments[0].get();
+	EidosValue *y_value = p_arguments[1].get();
+	int count = x_value->Count();
+	
+	if (x_value->IsArray() || y_value->IsArray())
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cor): function cor() does not currently support matrix/array arguments." << EidosTerminate(nullptr);
+	if (count != y_value->Count())
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cor): function cor() requires that x and y be the same size." << EidosTerminate(nullptr);
+	
+	if (count > 1)
+	{
+		// calculate means
+		double mean_x = 0, mean_y = 0;
+		
+		for (int value_index = 0; value_index < count; ++value_index)
+		{
+			mean_x += x_value->FloatAtIndex(value_index, nullptr);
+			mean_y += y_value->FloatAtIndex(value_index, nullptr);
+		}
+		
+		mean_x /= count;
+		mean_y /= count;
+		
+		// calculate sums of squares and products of differences
+		double ss_x = 0, ss_y = 0, diff_prod = 0;
+		
+		for (int value_index = 0; value_index < count; ++value_index)
+		{
+			double dx = x_value->FloatAtIndex(value_index, nullptr) - mean_x;
+			double dy = y_value->FloatAtIndex(value_index, nullptr) - mean_y;
+			
+			ss_x += dx * dx;
+			ss_y += dy * dy;
+			diff_prod += dx * dy;
+		}
+		
+		// calculate correlation
+		double cor = diff_prod / (sqrt(ss_x) * sqrt(ss_y));
+		
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(cor));
+	}
+	else
+	{
+		result_SP = gStaticEidosValueNULL;
+	}
+	
+	return result_SP;
+}
+
+//	(float$)cov(numeric x, numeric y)
+EidosValue_SP Eidos_ExecuteFunction_cov(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *x_value = p_arguments[0].get();
+	EidosValue *y_value = p_arguments[1].get();
+	int count = x_value->Count();
+	
+	if (x_value->IsArray() || y_value->IsArray())
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cov): function cov() does not currently support matrix/array arguments." << EidosTerminate(nullptr);
+	if (count != y_value->Count())
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cov): function cov() requires that x and y be the same size." << EidosTerminate(nullptr);
+	
+	if (count > 1)
+	{
+		// calculate means
+		double mean_x = 0, mean_y = 0;
+		
+		for (int value_index = 0; value_index < count; ++value_index)
+		{
+			mean_x += x_value->FloatAtIndex(value_index, nullptr);
+			mean_y += y_value->FloatAtIndex(value_index, nullptr);
+		}
+		
+		mean_x /= count;
+		mean_y /= count;
+		
+		// calculate covariance
+		double cov = 0;
+		
+		for (int value_index = 0; value_index < count; ++value_index)
+		{
+			double temp_x = (x_value->FloatAtIndex(value_index, nullptr) - mean_x);
+			double temp_y = (y_value->FloatAtIndex(value_index, nullptr) - mean_y);
+			cov += temp_x * temp_y;
+		}
+		
+		cov = cov / (count - 1);
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(cov));
+	}
+	else
+	{
+		result_SP = gStaticEidosValueNULL;
+	}
+	
+	return result_SP;
+}
 
 //	(+$)max(+ x, ...)
 EidosValue_SP Eidos_ExecuteFunction_max(const EidosValue_SP *const p_arguments, int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
@@ -4257,6 +4363,120 @@ EidosValue_SP Eidos_ExecuteFunction_sd(const EidosValue_SP *const p_arguments, _
 		
 		sd = sqrt(sd / (x_count - 1));
 		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(sd));
+	}
+	else
+	{
+		result_SP = gStaticEidosValueNULL;
+	}
+	
+	return result_SP;
+}
+
+//	(float$)ttest(float x, [Nf y = NULL], [Nf$ mu = NULL])
+EidosValue_SP Eidos_ExecuteFunction_ttest(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
+	
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *x_value = p_arguments[0].get();
+	int x_count = x_value->Count();
+	EidosValue *y_value = p_arguments[1].get();
+	EidosValueType y_type = y_value->Type();
+	int y_count = y_value->Count();
+	EidosValue *mu_value = p_arguments[2].get();
+	EidosValueType mu_type = mu_value->Type();
+	
+	if ((y_type == EidosValueType::kValueNULL) && (mu_type == EidosValueType::kValueNULL))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ttest): function ttest() requires either y or mu to be non-NULL." << EidosTerminate(nullptr);
+	if ((y_type != EidosValueType::kValueNULL) && (mu_type != EidosValueType::kValueNULL))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ttest): function ttest() requires either y or mu to be NULL." << EidosTerminate(nullptr);
+	
+	double pvalue = 0.0;
+	const double *vec1 = nullptr;
+	double singleton1;
+	
+	if (x_count == 1)
+	{
+		singleton1 = x_value->FloatAtIndex(0, nullptr);
+		vec1 = &singleton1;
+	}
+	else
+	{
+		vec1 = x_value->FloatVector()->data();
+	}
+	
+	if (x_count <= 1)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ttest): function ttest() requires enough elements in x to compute variance." << EidosTerminate(nullptr);
+	
+	if (y_type != EidosValueType::kValueNULL)
+	{
+		// This is the x & y case, which is a two-sample Welch's t-test
+		if (y_count <= 1)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ttest): function ttest() requires enough elements in y to compute variance." << EidosTerminate(nullptr);
+		
+		const double *vec2 = nullptr;
+		double singleton2;
+		
+		if (y_count == 1)
+		{
+			singleton2 = y_value->FloatAtIndex(0, nullptr);
+			vec2 = &singleton2;
+		}
+		else
+		{
+			vec2 = y_value->FloatVector()->data();
+		}
+		
+		// Right now this function only provides a two-sample t-test; we could add an optional mu argument and make y optional in order to allow a one-sample test as well
+		// If we got into that, we'd probably want to provide one-sided t-tests as well, yada yada...
+		pvalue = Eidos_TTest_TwoSampleWelch(vec1, x_count, vec2, y_count, nullptr, nullptr);
+	}
+	else if (mu_type != EidosValueType::kValueNULL)
+	{
+		// This is the x & mu case, which is a one-sample t-test
+		double mu = mu_value->FloatAtIndex(0, nullptr);
+		
+		pvalue = Eidos_TTest_OneSample(vec1, x_count, mu, nullptr);
+	}
+	
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(pvalue));
+	
+	return result_SP;
+}
+
+//	(float$)var(numeric x)
+EidosValue_SP Eidos_ExecuteFunction_var(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *x_value = p_arguments[0].get();
+	int x_count = x_value->Count();
+	
+	if (x_value->IsArray())
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_var): function var() does not currently support a matrix/array argument." << EidosTerminate(nullptr);
+	
+	if (x_count > 1)
+	{
+		// calculate mean
+		double mean = 0;
+		
+		for (int value_index = 0; value_index < x_count; ++value_index)
+			mean += x_value->FloatAtIndex(value_index, nullptr);
+		
+		mean /= x_count;
+		
+		// calculate variance
+		double var = 0;
+		
+		for (int value_index = 0; value_index < x_count; ++value_index)
+		{
+			double temp = (x_value->FloatAtIndex(value_index, nullptr) - mean);
+			var += temp * temp;
+		}
+		
+		var = var / (x_count - 1);
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(var));
 	}
 	else
 	{
@@ -9836,79 +10056,6 @@ EidosValue_SP Eidos_ExecuteFunction_time(__attribute__((unused)) const EidosValu
 	strftime(buffer, 20, "%H:%M:%S", &timeinfo);
 	
 	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(std::string(buffer)));
-	
-	return result_SP;
-}
-
-//	(float$)ttest(float x, [Nf y = NULL], [Nf$ mu = NULL])
-EidosValue_SP Eidos_ExecuteFunction_ttest(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
-{
-	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
-	
-	EidosValue_SP result_SP(nullptr);
-	
-	EidosValue *x_value = p_arguments[0].get();
-	int x_count = x_value->Count();
-	EidosValue *y_value = p_arguments[1].get();
-	EidosValueType y_type = y_value->Type();
-	int y_count = y_value->Count();
-	EidosValue *mu_value = p_arguments[2].get();
-	EidosValueType mu_type = mu_value->Type();
-	
-	if ((y_type == EidosValueType::kValueNULL) && (mu_type == EidosValueType::kValueNULL))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ttest): function ttest() requires either y or mu to be non-NULL." << EidosTerminate(nullptr);
-	if ((y_type != EidosValueType::kValueNULL) && (mu_type != EidosValueType::kValueNULL))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ttest): function ttest() requires either y or mu to be NULL." << EidosTerminate(nullptr);
-	
-	double pvalue = 0.0;
-	const double *vec1 = nullptr;
-	double singleton1;
-	
-	if (x_count == 1)
-	{
-		singleton1 = x_value->FloatAtIndex(0, nullptr);
-		vec1 = &singleton1;
-	}
-	else
-	{
-		vec1 = x_value->FloatVector()->data();
-	}
-	
-	if (x_count <= 1)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ttest): function ttest() requires enough elements in x to compute variance." << EidosTerminate(nullptr);
-	
-	if (y_type != EidosValueType::kValueNULL)
-	{
-		// This is the x & y case, which is a two-sample Welch's t-test
-		if (y_count <= 1)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ttest): function ttest() requires enough elements in y to compute variance." << EidosTerminate(nullptr);
-		
-		const double *vec2 = nullptr;
-		double singleton2;
-		
-		if (y_count == 1)
-		{
-			singleton2 = y_value->FloatAtIndex(0, nullptr);
-			vec2 = &singleton2;
-		}
-		else
-		{
-			vec2 = y_value->FloatVector()->data();
-		}
-		
-		// Right now this function only provides a two-sample t-test; we could add an optional mu argument and make y optional in order to allow a one-sample test as well
-		// If we got into that, we'd probably want to provide one-sided t-tests as well, yada yada...
-		pvalue = Eidos_TTest_TwoSampleWelch(vec1, x_count, vec2, y_count, nullptr, nullptr);
-	}
-	else if (mu_type != EidosValueType::kValueNULL)
-	{
-		// This is the x & mu case, which is a one-sample t-test
-		double mu = mu_value->FloatAtIndex(0, nullptr);
-		
-		pvalue = Eidos_TTest_OneSample(vec1, x_count, mu, nullptr);
-	}
-	
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(pvalue));
 	
 	return result_SP;
 }

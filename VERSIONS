@@ -49,6 +49,7 @@ development head (nonWF branch):
 	fix a crash due to stack overflow with large population sizes (only when callbacks are involved in offspring generation)
 	add new tree seq stuff: initializeTreeSeq(), treeSeqSimplify(), treeSeqRememberIndividuals(), treeSeqOutput()
 	add getwd() / setwd() functions to Eidos
+	add var(), cov(), cor() statistics functions to Eidos for variance, covariance, and (Pearson) correlation
 
 
 2.6 (build 1292; Eidos version 1.6):
