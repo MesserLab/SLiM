@@ -8533,7 +8533,7 @@ EidosValue_SP Eidos_ExecuteFunction_filesAtPath(const EidosValue_SP *const p_arg
 }
 
 //	(string$)getwd(void)
-EidosValue_SP Eidos_ExecuteFunction_getwd(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_getwd(__attribute__((unused)) const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
