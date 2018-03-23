@@ -3605,8 +3605,8 @@ void SLiMSim::SimplifyTreeSequence(void){
 	}
 
     // DEBUG OUTPUT
-    std::string debug_output = "tables_debug";
-    WriteTreeSequence(debug_output, 0, 0);
+    //std::string debug_output = "tables_debug";
+    //WriteTreeSequence(debug_output, 0, 0);
 	
 	tree_return_value_ = table_collection_simplify(&tables, samples.data(), samples.size(), 0, NULL);
         if (tree_return_value_ != 0) {
