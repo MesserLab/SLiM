@@ -245,7 +245,7 @@ static void _RunKeywordBreakTests(void);
 static void _RunKeywordReturnTests(void);
 static void _RunFunctionMathTests(void);
 static void _RunFunctionMatrixArrayTests(void);
-static void _RunFunctionSummaryStatsTests(void);
+static void _RunFunctionStatisticsTests(void);
 static void _RunFunctionVectorConstructionTests(void);
 static void _RunFunctionValueInspectionManipulationTests(void);
 static void _RunFunctionValueTestingCoercionTests(void);
@@ -302,7 +302,7 @@ int RunEidosTests(void)
 	_RunKeywordReturnTests();
 	_RunFunctionMathTests();
 	_RunFunctionMatrixArrayTests();
-	_RunFunctionSummaryStatsTests();
+	_RunFunctionStatisticsTests();
 	_RunFunctionVectorConstructionTests();
 	_RunFunctionValueInspectionManipulationTests();
 	_RunFunctionValueTestingCoercionTests();
@@ -4613,9 +4613,53 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptSuccess("identical(trunc(matrix(c(0.1, 5.7, -0.3))), matrix(trunc(c(0.1, 5.7, -0.3))));", gStaticEidosValue_LogicalT);
 }
 
-#pragma mark summary statistics
-void _RunFunctionSummaryStatsTests(void)
+#pragma mark statistics
+void _RunFunctionStatisticsTests(void)
 {
+	// cor()
+	EidosAssertScriptRaise("cor(T, T);", 0, "cannot be type");
+	EidosAssertScriptSuccess("cor(3, 3);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("cor(3.5, 3.5);", gStaticEidosValueNULL);
+	EidosAssertScriptRaise("cor('foo', 'foo');", 0, "cannot be type");
+	EidosAssertScriptRaise("cor(c(F, F, T, F, T), c(F, F, T, F, T));", 0, "cannot be type");
+	EidosAssertScriptSuccess("abs(cor(1:5, 1:5) - 1) < 1e-10;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("abs(cor(1:11, 1:11) - 1) < 1e-10;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("abs(cor(1:5, 5:1) - -1) < 1e-10;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("abs(cor(1:11, 11:1) - -1) < 1e-10;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("abs(cor(1.0:5, 1:5) - 1) < 1e-10;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("abs(cor(1:11, 1.0:11) - 1) < 1e-10;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("abs(cor(1.0:5, 5.0:1) - -1) < 1e-10;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("abs(cor(1.0:11, 11.0:1) - -1) < 1e-10;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("cor(c('foo', 'bar', 'baz'), c('foo', 'bar', 'baz'));", 0, "cannot be type");
+	EidosAssertScriptRaise("cor(_Test(7), _Test(7));", 0, "cannot be type");
+	EidosAssertScriptRaise("cor(NULL, NULL);", 0, "cannot be type");
+	EidosAssertScriptRaise("cor(logical(0), logical(0));", 0, "cannot be type");
+	EidosAssertScriptSuccess("cor(integer(0), integer(0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("cor(float(0), float(0));", gStaticEidosValueNULL);
+	EidosAssertScriptRaise("cor(string(0), string(0));", 0, "cannot be type");
+	
+	// cov()
+	EidosAssertScriptRaise("cov(T, T);", 0, "cannot be type");
+	EidosAssertScriptSuccess("cov(3, 3);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("cov(3.5, 3.5);", gStaticEidosValueNULL);
+	EidosAssertScriptRaise("cov('foo', 'foo');", 0, "cannot be type");
+	EidosAssertScriptRaise("cov(c(F, F, T, F, T), c(F, F, T, F, T));", 0, "cannot be type");
+	EidosAssertScriptSuccess("abs(cov(1:5, 1:5) - 2.5) < 1e-10;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("abs(cov(1:11, 1:11) - 11) < 1e-10;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("abs(cov(1:5, 5:1) - -2.5) < 1e-10;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("abs(cov(1:11, 11:1) - -11) < 1e-10;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("abs(cov(1.0:5, 1:5) - 2.5) < 1e-10;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("abs(cov(1:11, 1.0:11) - 11) < 1e-10;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("abs(cov(1.0:5, 5.0:1) - -2.5) < 1e-10;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("abs(cov(1.0:11, 11.0:1) - -11) < 1e-10;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("cov(c('foo', 'bar', 'baz'), c('foo', 'bar', 'baz'));", 0, "cannot be type");
+	EidosAssertScriptRaise("cov(_Test(7), _Test(7));", 0, "cannot be type");
+	EidosAssertScriptRaise("cov(NULL, NULL);", 0, "cannot be type");
+	EidosAssertScriptRaise("cov(logical(0), logical(0));", 0, "cannot be type");
+	EidosAssertScriptSuccess("cov(integer(0), integer(0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("cov(float(0), float(0));", gStaticEidosValueNULL);
+	EidosAssertScriptRaise("cov(string(0), string(0));", 0, "cannot be type");
+	
 	// max()
 	EidosAssertScriptSuccess("max(T);", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("max(3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
@@ -4839,6 +4883,34 @@ void _RunFunctionSummaryStatsTests(void)
 	EidosAssertScriptSuccess("sd(integer(0));", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("sd(float(0));", gStaticEidosValueNULL);
 	EidosAssertScriptRaise("sd(string(0));", 0, "cannot be type");
+	
+	// ttest()
+	EidosAssertScriptRaise("ttest(1:5.0);", 0, "either y or mu to be non-NULL");
+	EidosAssertScriptRaise("ttest(1:5.0, 1:5.0, 5.0);", 0, "either y or mu to be NULL");
+	EidosAssertScriptRaise("ttest(5.0, 1:5.0);", 0, "enough elements in x");
+	EidosAssertScriptRaise("ttest(1:5.0, 5.0);", 0, "enough elements in y");
+	EidosAssertScriptRaise("ttest(5.0, mu=6.0);", 0, "enough elements in x");
+	EidosAssertScriptSuccess("abs(ttest(1:50.0, 1:50.0) - 1.0) < 0.001;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("abs(ttest(1:50.0, 1:60.0) - 0.101496) < 0.001;", gStaticEidosValue_LogicalT);			// R gives 0.1046, not sure why but I suspect corrected vs. uncorrected standard deviations
+	EidosAssertScriptSuccess("abs(ttest(1:50.0, 10.0:60.0) - 0.00145575) < 0.001;", gStaticEidosValue_LogicalT);	// R gives 0.001615
+	EidosAssertScriptSuccess("abs(ttest(1:50.0, mu=25.0) - 0.807481) < 0.001;", gStaticEidosValue_LogicalT);		// R gives 0.8094
+	EidosAssertScriptSuccess("abs(ttest(1:50.0, mu=30.0) - 0.0321796) < 0.001;", gStaticEidosValue_LogicalT);		// R gives 0.03387
+	
+	// var()
+	EidosAssertScriptRaise("var(T);", 0, "cannot be type");
+	EidosAssertScriptSuccess("var(3);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("var(3.5);", gStaticEidosValueNULL);
+	EidosAssertScriptRaise("var('foo');", 0, "cannot be type");
+	EidosAssertScriptRaise("var(c(F, F, T, F, T));", 0, "cannot be type");
+	EidosAssertScriptSuccess("var(c(2, 3, 2, 8, 0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(9)));
+	EidosAssertScriptSuccess("var(c(9.1, 5.1, 5.1, 4.1, 7.1));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(4.0)));
+	EidosAssertScriptRaise("var(c('foo', 'bar', 'baz'));", 0, "cannot be type");
+	EidosAssertScriptRaise("var(_Test(7));", 0, "cannot be type");
+	EidosAssertScriptRaise("var(NULL);", 0, "cannot be type");
+	EidosAssertScriptRaise("var(logical(0));", 0, "cannot be type");
+	EidosAssertScriptSuccess("var(integer(0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("var(float(0));", gStaticEidosValueNULL);
+	EidosAssertScriptRaise("var(string(0));", 0, "cannot be type");
 	
 	#pragma distributions
 	
@@ -6861,18 +6933,6 @@ void _RunFunctionMiscTests(void)
 	EidosAssertScriptRaise("time(3.5);", 0, "too many arguments supplied");
 	EidosAssertScriptRaise("time('foo');", 0, "too many arguments supplied");
 	EidosAssertScriptRaise("time(_Test(7));", 0, "too many arguments supplied");
-	
-	// ttest()
-	EidosAssertScriptRaise("ttest(1:5.0);", 0, "either y or mu to be non-NULL");
-	EidosAssertScriptRaise("ttest(1:5.0, 1:5.0, 5.0);", 0, "either y or mu to be NULL");
-	EidosAssertScriptRaise("ttest(5.0, 1:5.0);", 0, "enough elements in x");
-	EidosAssertScriptRaise("ttest(1:5.0, 5.0);", 0, "enough elements in y");
-	EidosAssertScriptRaise("ttest(5.0, mu=6.0);", 0, "enough elements in x");
-	EidosAssertScriptSuccess("abs(ttest(1:50.0, 1:50.0) - 1.0) < 0.001;", gStaticEidosValue_LogicalT);
-	EidosAssertScriptSuccess("abs(ttest(1:50.0, 1:60.0) - 0.101496) < 0.001;", gStaticEidosValue_LogicalT);			// R gives 0.1046, not sure why but I suspect corrected vs. uncorrected standard deviations
-	EidosAssertScriptSuccess("abs(ttest(1:50.0, 10.0:60.0) - 0.00145575) < 0.001;", gStaticEidosValue_LogicalT);	// R gives 0.001615
-	EidosAssertScriptSuccess("abs(ttest(1:50.0, mu=25.0) - 0.807481) < 0.001;", gStaticEidosValue_LogicalT);		// R gives 0.8094
-	EidosAssertScriptSuccess("abs(ttest(1:50.0, mu=30.0) - 0.0321796) < 0.001;", gStaticEidosValue_LogicalT);		// R gives 0.03387
 	
 	// version()
 	EidosAssertScriptSuccess("type(version()) == 'float';", gStaticEidosValue_LogicalT);
