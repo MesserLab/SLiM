@@ -927,7 +927,7 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 10000000 entries cannot be constructed." << EidosTerminate(operator_token);
 			
 			EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
-			EidosValue_Int_vector *int_result = int_result_SP->resize_no_initialize((int)(second_int - first_int + 1));
+			EidosValue_Int_vector *int_result = int_result_SP->resize_no_initialize(second_int - first_int + 1);
 			
 			for (int64_t range_index = 0; range_index <= second_int - first_int; ++range_index)
 				int_result->set_int_no_check(range_index + first_int, range_index);
@@ -940,7 +940,7 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 10000000 entries cannot be constructed." << EidosTerminate(operator_token);
 			
 			EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
-			EidosValue_Int_vector *int_result = int_result_SP->resize_no_initialize((int)(first_int - second_int + 1));
+			EidosValue_Int_vector *int_result = int_result_SP->resize_no_initialize(first_int - second_int + 1);
 			
 			for (int64_t range_index = 0; range_index <= first_int - second_int; ++range_index)
 				int_result->set_int_no_check(first_int - range_index, range_index);
@@ -1059,17 +1059,23 @@ int EidosInterpreter::_ProcessArgumentList(const EidosASTNode *p_node, const Eid
 	// interleaving default arguments and handling named arguments as we go.
 	int processed_arg_count = 0;
 	auto node_children_end = node_children.end();
-	auto sig_arg_index = 0;
-	auto sig_arg_count = (int)p_call_signature->arg_name_IDs_.size();
+	int sig_arg_index = 0;
+	int sig_arg_count = (int)p_call_signature->arg_name_IDs_.size();
 	bool had_named_argument = false;
 	
 	for (auto child_iter = node_children.begin() + 1; child_iter != node_children_end; ++child_iter)
 	{
 		EidosASTNode *child = *child_iter;
+		bool is_named_argument = (child->token_->token_type_ == EidosTokenType::kTokenAssign);
+		
+#if DEBUG
+		if (is_named_argument && (child->children_.size() != 2))
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): (internal error) named argument node child count != 2." << EidosTerminate(nullptr);
+#endif
 		
 		if (sig_arg_index < sig_arg_count)
 		{
-			if (child->token_->token_type_ != EidosTokenType::kTokenAssign)
+			if (!is_named_argument)
 			{
 				// We have a non-named argument; it will go into the next argument slot from the signature
 				if (had_named_argument)
@@ -1081,11 +1087,6 @@ int EidosInterpreter::_ProcessArgumentList(const EidosASTNode *p_node, const Eid
 			{
 				// We have a named argument; get information on it from its children
 				const std::vector<EidosASTNode *> &child_children = child->children_;
-				
-#if DEBUG
-				if (child_children.size() != 2)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): (internal error) named argument node child count != 2." << EidosTerminate(nullptr);
-#endif
 				
 				EidosASTNode *named_arg_name_node = child_children[0];
 				EidosASTNode *named_arg_value_node = child_children[1];
@@ -1144,15 +1145,37 @@ int EidosInterpreter::_ProcessArgumentList(const EidosASTNode *p_node, const Eid
 		{
 			// We're beyond the end of the signature's arguments; check whether this argument can qualify as an ellipsis argument
 			if (!p_call_signature->has_ellipsis_)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): too many arguments supplied to function " << p_call_signature->call_name_ << "." << EidosTerminate(nullptr);
+			{
+				// OK, this argument is definitely illegal; check whether it is a named argument that is out of order, or just an excess argument
+				if (is_named_argument)
+				{
+					// We have a named argument; get information on it from its children
+					EidosASTNode *named_arg_name_node = child->children_[0];
+					EidosGlobalStringID named_arg_nameID = named_arg_name_node->cached_stringID_;
+					const std::string &named_arg = named_arg_name_node->token_->token_string_;
+					
+					// Look for a named parameter in the call signature that matches
+					for (int sig_check_index = 0; sig_check_index < sig_arg_count; ++sig_check_index)
+					{
+						EidosGlobalStringID arg_name_ID = p_call_signature->arg_name_IDs_[sig_check_index];
+						
+						if (named_arg_nameID == arg_name_ID)
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): argument " << named_arg << " to function " << p_call_signature->call_name_ << " could not be matched; probably supplied out of order or supplied more than once." << EidosTerminate(nullptr);
+					}
+					
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): unrecognized named argument " << named_arg << " to function " << p_call_signature->call_name_ << "." << EidosTerminate(nullptr);
+				}
+				else
+				{
+					if (had_named_argument)
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): too many arguments supplied to function " << p_call_signature->call_name_ << " (after handling named arguments, which might have filled in default values for previous arguments)." << EidosTerminate(nullptr);
+					else
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): too many arguments supplied to function " << p_call_signature->call_name_ << "." << EidosTerminate(nullptr);
+				}
+			}
 			
 			if (child->token_->token_type_ == EidosTokenType::kTokenAssign)
-			{
-				if (child->children_.size() == 2)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument " << child->children_[0]->token_->token_string_ << " in ellipsis argument section (after the last explicit argument)." << EidosTerminate(nullptr);
-				else
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument in ellipsis argument section (after the last explicit argument)." << EidosTerminate(nullptr);
-			}
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument " << child->children_[0]->token_->token_string_ << " in ellipsis argument section (after the last explicit argument)." << EidosTerminate(nullptr);
 		}
 		
 		// Evaluate the child and emplace it in the arguments buffer
@@ -2463,7 +2486,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 					{
 						// This is an overflow-safe version of:
-						//int_result->PushInt(first_child_value->IntAtIndex(value_index, operator_token) - second_child_value->IntAtIndex(value_index, operator_token));
+						//int_result->set_int_no_check(first_child_value->IntAtIndex(value_index, operator_token) - second_child_value->IntAtIndex(value_index, operator_token));
 						
 						int64_t first_operand = first_child_data[value_index];
 						int64_t second_operand = second_child_data[value_index];
@@ -2489,7 +2512,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
 				{
 					// This is an overflow-safe version of:
-					//int_result->PushInt(singleton_int - second_child_value->IntAtIndex(value_index, operator_token));
+					//int_result->set_int_no_check(singleton_int - second_child_value->IntAtIndex(value_index, operator_token));
 					
 					int64_t second_operand = second_child_data[value_index];
 					int64_t subtract_result;
@@ -2513,7 +2536,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 				{
 					// This is an overflow-safe version of:
-					//int_result->PushInt(first_child_value->IntAtIndex(value_index, operator_token) - singleton_int);
+					//int_result->set_int_no_check(first_child_value->IntAtIndex(value_index, operator_token) - singleton_int);
 					
 					int64_t first_operand = first_child_data[value_index];
 					int64_t subtract_result;
@@ -2835,7 +2858,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 				{
 					// This is an overflow-safe version of:
-					//int_result->PushInt(first_child_value->IntAtIndex(value_index, operator_token) * second_child_value->IntAtIndex(value_index, operator_token));
+					//int_result->set_int_no_check(first_child_value->IntAtIndex(value_index, operator_token) * second_child_value->IntAtIndex(value_index, operator_token));
 					
 					int64_t first_operand = first_child_data[value_index];
 					int64_t second_operand = second_child_data[value_index];
@@ -2924,7 +2947,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 			for (int value_index = 0; value_index < any_count; ++value_index)
 			{
 				// This is an overflow-safe version of:
-				//int_result->PushInt(any_count_child->IntAtIndex(value_index, operator_token) * singleton_int);
+				//int_result->set_int_no_check(any_count_child->IntAtIndex(value_index, operator_token) * singleton_int);
 				
 				int64_t first_operand = any_count_data[value_index];
 				int64_t multiply_result;

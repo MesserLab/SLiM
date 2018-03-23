@@ -1223,8 +1223,8 @@ void _RunFunctionDispatchTests(void)
 	EidosAssertScriptRaise("abs(-10, -10);", 0, "too many arguments supplied");
 	EidosAssertScriptSuccess("abs(x=-10);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(10)));
 	EidosAssertScriptRaise("abs(y=-10);", 0, "skipped over required argument");
-	EidosAssertScriptRaise("abs(x=-10, x=-10);", 0, "too many arguments supplied");
-	EidosAssertScriptRaise("abs(x=-10, y=-10);", 0, "too many arguments supplied");
+	EidosAssertScriptRaise("abs(x=-10, x=-10);", 0, "supplied more than once");
+	EidosAssertScriptRaise("abs(x=-10, y=-10);", 0, "unrecognized named argument y");
 	EidosAssertScriptRaise("abs(y=-10, x=-10);", 0, "skipped over required argument");
 	
 	EidosAssertScriptSuccess("integerDiv(6, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(2)));
@@ -1241,7 +1241,8 @@ void _RunFunctionDispatchTests(void)
 	EidosAssertScriptSuccess("seq(1, 3, by=1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3}));
 	EidosAssertScriptSuccess("seq(1, 3, by=NULL);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3}));
 	EidosAssertScriptRaise("seq(1, 3, x=1);", 0, "ran out of optional arguments");
-	EidosAssertScriptRaise("seq(1, 3, by=1, length=1, by=1);", 0, "too many arguments supplied");
+	EidosAssertScriptRaise("seq(1, 3, by=1, length=1, by=1);", 0, "supplied more than once");
+	EidosAssertScriptRaise("seq(1, 3, length=1, by=1);", 0, "supplied out of order");
 	EidosAssertScriptSuccess("seq(1, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3}));
 	EidosAssertScriptRaise("seq(by=1, 1, 3);", 0, "named argument by skipped over required argument");
 	EidosAssertScriptRaise("seq(by=NULL, 1, 3);", 0, "named argument by skipped over required argument");
@@ -6400,6 +6401,9 @@ void _RunFunctionFilesystemTests(void)
 	EidosAssertScriptSuccess("file = writeTempFile('eidos_test_', '.txt', ''); identical(readFile(file), string(0));", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("file = writeTempFile('eidos_test_', '.txt', 'foo'); identical(readFile(file), 'foo');", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("file = writeTempFile('eidos_test_', '.txt', c(paste(0:4), paste(5:9))); identical(readFile(file), c('0 1 2 3 4', '5 6 7 8 9'));", gStaticEidosValue_LogicalT);
+	
+	// getwd() / setwd()
+	EidosAssertScriptSuccess("path1 = getwd(); path2 = setwd(path1); path1 == path2;", gStaticEidosValue_LogicalT);
 }
 
 #pragma mark color manipulation
@@ -6984,7 +6988,7 @@ void _RunUserDefinedFunctionTests(void)
 	EidosAssertScriptRaise("function (s)foo(i x) { x; } foo(5, 6);", 28, "too many arguments supplied");
 	EidosAssertScriptRaise("function (s)foo(i x) { x; } foo(x=5);", 28, "return value cannot be type integer");
 	EidosAssertScriptRaise("function (s)foo(i x) { x; } foo(y=5);", 28, "named argument y skipped over required argument x");
-	EidosAssertScriptRaise("function (s)foo(i x) { x; } foo(x=5, y=5);", 28, "too many arguments supplied");
+	EidosAssertScriptRaise("function (s)foo(i x) { x; } foo(x=5, y=5);", 28, "unrecognized named argument y");
 	
 	// Mutual recursion
 	EidosAssertScriptSuccess("function (i)foo(i x) { x + bar(x); } function (i)bar(i x) { if (x <= 1) 1; else foo(x - 1); } foo(5); ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(16)));

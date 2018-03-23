@@ -675,9 +675,8 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMutations(EidosObjectEle
 			}
 			else
 			{
-				EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_elements_size * mutations_count);
+				EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_elements_size);
 				EidosValue_SP result(logical_result);
-				int64_t result_index = 0;
 				
 				for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 				{
@@ -688,7 +687,7 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMutations(EidosObjectEle
 					
 					bool contained = element->mutruns_[mutrun_index]->contains_mutation(mut_block_index);
 					
-					logical_result->set_logical_no_check(contained, result_index++);
+					logical_result->set_logical_no_check(contained, element_index);
 				}
 				
 				return result;
@@ -698,6 +697,7 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMutations(EidosObjectEle
 		{
 			EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_elements_size * mutations_count);
 			EidosValue_SP result(logical_result);
+			int64_t result_index = 0;
 			
 			EidosObjectElement * const *mutations_data = mutations_value->ObjectElementVector()->data();
 			
@@ -714,7 +714,7 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMutations(EidosObjectEle
 					MutationIndex mut_block_index = mut->BlockIndex();
 					bool contained = element->contains_mutation(mut_block_index);
 					
-					logical_result->set_logical_no_check(contained, value_index);
+					logical_result->set_logical_no_check(contained, result_index++);
 				}
 			}
 			
@@ -1351,12 +1351,12 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 	
 	if (!sim.warned_early_mutation_add_)
 	{
-		if ((sim.ModelType() == SLiMModelType::kModelTypeWF) && (sim.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts))
+		if (sim.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts)
 		{
 			p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addMutations): addMutations() should probably not be called from an early() event in a WF model; the added mutation(s) will not influence fitness values during offspring generation." << std::endl;
 			sim.warned_early_mutation_add_ = true;
 		}
-		if ((sim.ModelType() == SLiMModelType::kModelTypeNonWF) && (sim.GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
+		if (sim.GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts)
 		{
 			p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addMutations): addMutations() should probably not be called from a late() event in a nonWF model; the added mutation(s) will not influence fitness values until the partway through the next generation." << std::endl;
 			sim.warned_early_mutation_add_ = true;
@@ -1464,12 +1464,12 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	
 	if (!sim.warned_early_mutation_add_)
 	{
-		if ((sim.ModelType() == SLiMModelType::kModelTypeWF) && (sim.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts))
+		if (sim.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts)
 		{
 			p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " should probably not be called from an early() event in a WF model; the added mutation will not influence fitness values during offspring generation." << std::endl;
 			sim.warned_early_mutation_add_ = true;
 		}
-		if ((sim.ModelType() == SLiMModelType::kModelTypeNonWF) && (sim.GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
+		if (sim.GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts)
 		{
 			p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " should probably not be called from a late() event in a nonWF model; the added mutation will not influence fitness values until the partway through the next generation." << std::endl;
 			sim.warned_early_mutation_add_ = true;
@@ -1798,12 +1798,12 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 	
 	if (!sim.warned_early_mutation_remove_)
 	{
-		if ((sim.ModelType() == SLiMModelType::kModelTypeWF) && (sim.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts))
+		if (sim.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts)
 		{
 			p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_removeMutations): removeMutations() should probably not be called from an early() event in a WF model; the removed mutation(s) will still influence fitness values during offspring generation." << std::endl;
 			sim.warned_early_mutation_remove_ = true;
 		}
-		if ((sim.ModelType() == SLiMModelType::kModelTypeNonWF) && (sim.GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
+		if (sim.GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts)
 		{
 			p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_removeMutations): removeMutations() should probably not be called from an late() event in a nonWF model; the removed mutation(s) will still influence fitness values until the partway through the next generation." << std::endl;
 			sim.warned_early_mutation_remove_ = true;

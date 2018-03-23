@@ -253,15 +253,13 @@ private:
 	bool FirstRecombinationCalled = false;
 	
 	// TABLE IVARS
-	int ret;   // FIXME call this something more descriptive
+	int tree_return_value_;
 	table_collection_t tables;
 	
 	// TABLE SIMPLIFICATION
-	int simplificationInterval;		//interval at which we will simplify the tree
-	int lastSimplificationGeneration;
     std::vector<node_id_t> RememberedGenomes;
-	std::map<int,node_id_t> SLiM_MSP_Id_Map;
-
+	std::map<slim_genomeid_t,node_id_t> SLiM_MSP_Id_Map;
+	
 	bool recording_mutations_ = false;	// true if we are recording mutations in our tree sequence tables
 	double simplification_ratio_;		// the pre:post table size ratio we target with our automatic simplification heuristic
 	slim_generation_t simplify_elapsed_ = 0;	// the number of generations elapsed since a simplification was done (automatic or otherwise)
@@ -387,7 +385,7 @@ public:
 	void RetractNewIndividual(void);
 	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify);
 	void SimplifyTreeSequence(void);
-	node_id_t getMSPID(int GenomeID);
+	node_id_t getMSPID(slim_genomeid_t GenomeID);
 	void handle_error(std::string msg, int error);
 	void CheckAutoSimplification(void);
 	void RememberIndividuals(std::vector<slim_pedigreeid_t> p_individual_ids);

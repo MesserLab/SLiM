@@ -57,7 +57,7 @@ EidosValue_Int_SP gStaticEidosValue_Integer1;
 EidosValue_Float_SP gStaticEidosValue_Float0;
 EidosValue_Float_SP gStaticEidosValue_Float0Point5;
 EidosValue_Float_SP gStaticEidosValue_Float1;
-EidosValue_Float_SP gStaticEidosValue_Float2;
+EidosValue_Float_SP gStaticEidosValue_Float10;
 EidosValue_Float_SP gStaticEidosValue_FloatINF;
 EidosValue_Float_SP gStaticEidosValue_FloatNAN;
 EidosValue_Float_SP gStaticEidosValue_FloatE;
@@ -1325,7 +1325,7 @@ EidosValue_Int_vector::EidosValue_Int_vector(const std::vector<int16_t> &p_intve
 	size_t count = p_intvec.size();
 	const int16_t *values = p_intvec.data();
 	
-	resize_no_initialize(p_intvec.size());
+	resize_no_initialize(count);
 	
 	for (size_t index = 0; index < count; ++index)
 		set_int_no_check(values[index], index);
@@ -1336,7 +1336,7 @@ EidosValue_Int_vector::EidosValue_Int_vector(const std::vector<int32_t> &p_intve
 	size_t count = p_intvec.size();
 	const int32_t *values = p_intvec.data();
 	
-	resize_no_initialize(p_intvec.size());
+	resize_no_initialize(count);
 	
 	for (size_t index = 0; index < count; ++index)
 		set_int_no_check(values[index], index);
