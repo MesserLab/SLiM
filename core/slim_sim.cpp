@@ -3699,9 +3699,6 @@ void SLiMSim::SetCurrentNewIndividual(Individual *p_individual)
 	//Set ivar to indicate the first recombination has not been called, (this lets us know which parent each recombination is referring to
 	FirstRecombinationCalled = false;
 
-	rowsInNodeTableBeforeAddingCurInd = tables.nodes.num_rows;
-	rowsInEdgeTableBeforeAddingCurInd = tables.edges.num_rows;
-
 }
 
 void SLiMSim::RetractNewIndividual()
@@ -3709,9 +3706,6 @@ void SLiMSim::RetractNewIndividual()
 	// This is called when a new child, introduced by SetCurrentNewIndividual(), gets rejected by a modifyChild()
 	// callback.  We will have logged recombination breakpoints and new mutations into our tables, and now want
 	// to back those changes out by re-setting the active row index for the tables.
-	tables.nodes.num_rows = rowsInNodeTableBeforeAddingCurInd;
-	tables.edges.num_rows = rowsInEdgeTableBeforeAddingCurInd;
-	
 	
 }
 
