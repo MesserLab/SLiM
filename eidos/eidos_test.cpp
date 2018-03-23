@@ -243,11 +243,14 @@ static void _RunKeywordForInTests(void);
 static void _RunKeywordNextTests(void);
 static void _RunKeywordBreakTests(void);
 static void _RunKeywordReturnTests(void);
-static void _RunFunctionMathTests(void);
+static void _RunFunctionMathTests_a_through_q(void);
+static void _RunFunctionMathTests_r_through_z(void);
 static void _RunFunctionMatrixArrayTests(void);
 static void _RunFunctionStatisticsTests(void);
+static void _RunFunctionDistributionTests(void);
 static void _RunFunctionVectorConstructionTests(void);
-static void _RunFunctionValueInspectionManipulationTests(void);
+static void _RunFunctionValueInspectionManipulationTests_a_through_l(void);
+static void _RunFunctionValueInspectionManipulationTests_m_through_z(void);
 static void _RunFunctionValueTestingCoercionTests(void);
 static void _RunFunctionFilesystemTests(void);
 static void _RunColorManipulationTests(void);
@@ -300,11 +303,14 @@ int RunEidosTests(void)
 	_RunKeywordNextTests();
 	_RunKeywordBreakTests();
 	_RunKeywordReturnTests();
-	_RunFunctionMathTests();
+	_RunFunctionMathTests_a_through_q();
+	_RunFunctionMathTests_r_through_z();
 	_RunFunctionMatrixArrayTests();
 	_RunFunctionStatisticsTests();
+	_RunFunctionDistributionTests();
 	_RunFunctionVectorConstructionTests();
-	_RunFunctionValueInspectionManipulationTests();
+	_RunFunctionValueInspectionManipulationTests_a_through_l();
+	_RunFunctionValueInspectionManipulationTests_m_through_z();
 	_RunFunctionValueTestingCoercionTests();
 	_RunFunctionFilesystemTests();
 	_RunColorManipulationTests();
@@ -3553,7 +3559,7 @@ void _RunKeywordReturnTests(void)
 	#pragma mark -
 	
 #pragma mark math
-void _RunFunctionMathTests(void)
+void _RunFunctionMathTests_a_through_q(void)
 {
 	// abs()
 	EidosAssertScriptSuccess("abs(5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
@@ -4004,6 +4010,29 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptSuccess("product(matrix(5));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
 	EidosAssertScriptSuccess("product(matrix(c(5, -5)));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-25)));
 	EidosAssertScriptSuccess("product(array(c(5, -5, 3), c(1,3,1)));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-75)));
+}
+
+void _RunFunctionMathTests_r_through_z(void)
+{
+	// round()
+	EidosAssertScriptSuccess("round(5.1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(5.0)));
+	EidosAssertScriptSuccess("round(-5.1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-5.0)));
+	EidosAssertScriptSuccess("round(c(-2.1, 7.1, -18.8, 12.8));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{-2.0, 7, -19, 13}));
+	EidosAssertScriptRaise("round(T);", 0, "cannot be type");
+	EidosAssertScriptRaise("round(5);", 0, "cannot be type");
+	EidosAssertScriptRaise("round('foo');", 0, "cannot be type");
+	EidosAssertScriptRaise("round(_Test(7));", 0, "cannot be type");
+	EidosAssertScriptRaise("round(NULL);", 0, "cannot be type");
+	EidosAssertScriptRaise("round(logical(0));", 0, "cannot be type");
+	EidosAssertScriptRaise("round(integer(0));", 0, "cannot be type");
+	EidosAssertScriptSuccess("round(float(0));", gStaticEidosValue_Float_ZeroVec);
+	EidosAssertScriptRaise("round(string(0));", 0, "cannot be type");
+	
+	EidosAssertScriptSuccess("identical(round(matrix(0.3)), matrix(round(0.3)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(round(matrix(0.6)), matrix(round(0.6)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(round(matrix(-0.3)), matrix(round(-0.3)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(round(matrix(-0.6)), matrix(round(-0.6)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(round(matrix(c(0.1, 5.7, -0.3))), matrix(round(c(0.1, 5.7, -0.3))));", gStaticEidosValue_LogicalT);
 	
 	// setUnion()
 	EidosAssertScriptSuccess("setUnion(NULL, NULL);", gStaticEidosValueNULL);
@@ -4476,26 +4505,6 @@ void _RunFunctionMathTests(void)
 	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); setSymmetricDifference(c(x, x, x, x), c(x, x, x, x))._yolk;", gStaticEidosValue_Integer_ZeroVec);
 	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); z = _Test(-5); q = _Test(26); setSymmetricDifference(c(x, y, x, y, z), c(x, q, x, q, x))._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{9, -5, 26}));
 	
-	// round()
-	EidosAssertScriptSuccess("round(5.1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(5.0)));
-	EidosAssertScriptSuccess("round(-5.1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-5.0)));
-	EidosAssertScriptSuccess("round(c(-2.1, 7.1, -18.8, 12.8));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{-2.0, 7, -19, 13}));
-	EidosAssertScriptRaise("round(T);", 0, "cannot be type");
-	EidosAssertScriptRaise("round(5);", 0, "cannot be type");
-	EidosAssertScriptRaise("round('foo');", 0, "cannot be type");
-	EidosAssertScriptRaise("round(_Test(7));", 0, "cannot be type");
-	EidosAssertScriptRaise("round(NULL);", 0, "cannot be type");
-	EidosAssertScriptRaise("round(logical(0));", 0, "cannot be type");
-	EidosAssertScriptRaise("round(integer(0));", 0, "cannot be type");
-	EidosAssertScriptSuccess("round(float(0));", gStaticEidosValue_Float_ZeroVec);
-	EidosAssertScriptRaise("round(string(0));", 0, "cannot be type");
-	
-	EidosAssertScriptSuccess("identical(round(matrix(0.3)), matrix(round(0.3)));", gStaticEidosValue_LogicalT);
-	EidosAssertScriptSuccess("identical(round(matrix(0.6)), matrix(round(0.6)));", gStaticEidosValue_LogicalT);
-	EidosAssertScriptSuccess("identical(round(matrix(-0.3)), matrix(round(-0.3)));", gStaticEidosValue_LogicalT);
-	EidosAssertScriptSuccess("identical(round(matrix(-0.6)), matrix(round(-0.6)));", gStaticEidosValue_LogicalT);
-	EidosAssertScriptSuccess("identical(round(matrix(c(0.1, 5.7, -0.3))), matrix(round(c(0.1, 5.7, -0.3))));", gStaticEidosValue_LogicalT);
-	
 	// sin()
 	EidosAssertScriptSuccess("abs(sin(0) - 0) < 0.000001;", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("abs(sin(0.0) - 0) < 0.000001;", gStaticEidosValue_LogicalT);
@@ -4911,9 +4920,11 @@ void _RunFunctionStatisticsTests(void)
 	EidosAssertScriptSuccess("var(integer(0));", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("var(float(0));", gStaticEidosValueNULL);
 	EidosAssertScriptRaise("var(string(0));", 0, "cannot be type");
-	
-	#pragma distributions
-	
+}
+
+#pragma mark distributions
+void _RunFunctionDistributionTests(void)
+{
 	// dnorm()
 	EidosAssertScriptSuccess("dnorm(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess("dnorm(float(0), float(0), float(0));", gStaticEidosValue_Float_ZeroVec);
@@ -5365,7 +5376,7 @@ void _RunFunctionVectorConstructionTests(void)
 }
 
 #pragma mark value inspection / manipulation
-void _RunFunctionValueInspectionManipulationTests(void)
+void _RunFunctionValueInspectionManipulationTests_a_through_l(void)
 {
 	// all()
 	EidosAssertScriptRaise("all(NULL);", 0, "cannot be type");
@@ -5748,7 +5759,10 @@ void _RunFunctionValueInspectionManipulationTests(void)
 	EidosAssertScriptSuccess("identical(ifelse(matrix(c(F,F), ncol=1), 5:6, 2:3), matrix(c(2,3), ncol=1));", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("identical(ifelse(array(c(T,F), c(1,2,1)), 5:6, 2:3), array(c(5,3), c(1,2,1)));", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("identical(ifelse(matrix(c(T,F,F,T,F,T), nrow=2), 1:6, -6:-1), matrix(c(1,-5,-4,4,-2,6), nrow=2));", gStaticEidosValue_LogicalT);
-	
+}
+
+void _RunFunctionValueInspectionManipulationTests_m_through_z(void)
+{
 	// match()
 	EidosAssertScriptSuccess("match(NULL, NULL);", gStaticEidosValue_Integer_ZeroVec);
 	EidosAssertScriptRaise("match(NULL, F);", 0, "to be the same type");
