@@ -52,7 +52,9 @@ public:
 	EidosToken *token_;													// normally not owned (owned by the Script's token stream) but:
 	std::vector<EidosASTNode *> children_;								// OWNED POINTERS
 	
-	mutable EidosValue_SP cached_value_;								// an optional pre-cached EidosValue representing the node
+	mutable EidosValue_SP cached_literal_value_;						// an optional pre-cached EidosValue for numbers, strings, and constant identifiers
+	mutable EidosValue_SP cached_range_value_;							// an optional pre-cached EidosValue for constant range-operator expressions
+	mutable EidosValue_SP cached_return_value_;							// an optional pre-cached EidosValue for constant return statements and constant-return blocks
 	mutable EidosFunctionSignature_SP cached_signature_ = nullptr;		// a cached pointer to the function signature corresponding to the token
 	mutable EidosEvaluationMethod cached_evaluator_ = nullptr;			// a pre-cached pointer to method to evaluate this node; shorthand for EvaluateNode()
 	mutable EidosGlobalStringID cached_stringID_ = gEidosID_none;		// a pre-cached identifier for the token string, for fast property/method lookup

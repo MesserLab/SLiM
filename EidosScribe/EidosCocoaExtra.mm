@@ -93,8 +93,10 @@
 					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"*" attributes:typeAttrs] autorelease]];
 				else if (stripped_mask == kEidosValueMaskAnyBase)
 					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"+" attributes:typeAttrs] autorelease]];
-				else if (stripped_mask == kEidosValueMaskNULL)
+				else if (stripped_mask == kEidosValueMaskVOID)
 					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"void" attributes:typeAttrs] autorelease]];
+				else if (stripped_mask == kEidosValueMaskNULL)
+					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"NULL" attributes:typeAttrs] autorelease]];
 				else if (stripped_mask == kEidosValueMaskLogical)
 					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"logical" attributes:typeAttrs] autorelease]];
 				else if (stripped_mask == kEidosValueMaskString)
@@ -109,6 +111,8 @@
 					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"numeric" attributes:typeAttrs] autorelease]];
 				else
 				{
+					if (stripped_mask & kEidosValueMaskVOID)
+						[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"v" attributes:typeAttrs] autorelease]];
 					if (stripped_mask & kEidosValueMaskNULL)
 						[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"N" attributes:typeAttrs] autorelease]];
 					if (stripped_mask & kEidosValueMaskLogical)

@@ -11,7 +11,7 @@ initialize() {
 }
 mateChoice() {
 	// Prefer relatives as mates
-	weights * (individual.relatedness(sourceSubpop.individuals) + 0.01);
+	return weights * (individual.relatedness(sourceSubpop.individuals) + 0.01);
 }
 1000 late() {
 	// Calculate and print mean nucleotide heterozygosity across the population

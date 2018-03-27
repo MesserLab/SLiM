@@ -119,7 +119,7 @@ public:
 	
 	// Evaluation methods; the caller owns the returned EidosValue object
 	EidosValue_SP EvaluateInternalBlock(EidosScript *p_script_for_block);		// the starting point for internally executed blocks, which require braces and suppress output
-	EidosValue_SP EvaluateInterpreterBlock(bool p_print_output);	// the starting point for executed blocks in Eidos, which do not require braces
+	EidosValue_SP EvaluateInterpreterBlock(bool p_print_output, bool p_return_last_value);		// the starting point for executed blocks in Eidos, which do not require braces
 	
 	void _ProcessSubsetAssignment(EidosValue_SP *p_base_value_ptr, EidosGlobalStringID *p_property_string_id_ptr, std::vector<int> *p_indices_ptr, const EidosASTNode *p_parent_node);
 	void _AssignRValueToLValue(EidosValue_SP p_rvalue, const EidosASTNode *p_lvalue_node);

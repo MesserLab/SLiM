@@ -51,6 +51,8 @@ enum class SLiMEidosBlockType {
 	SLiMEidosUserDefinedFunction,
 };
 
+std::ostream& operator<<(std::ostream& p_out, SLiMEidosBlockType p_block_type);
+
 
 #pragma mark -
 #pragma mark SLiMEidosScript

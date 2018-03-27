@@ -366,7 +366,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		if (executionString)
 			interpreter.SetShouldLogExecution(true);
 		
-		EidosValue_SP result = interpreter.EvaluateInterpreterBlock(true);	// result not used
+		EidosValue_SP result = interpreter.EvaluateInterpreterBlock(true, true);	// print output, return the last statement value (result not used)
 		output = interpreter.ExecutionOutput();
 		
 		// reload outline view to show new global symbols, in case they have changed

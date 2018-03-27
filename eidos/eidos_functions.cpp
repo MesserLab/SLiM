@@ -194,8 +194,8 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("all",				Eidos_ExecuteFunction_all,			kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddLogical("x")->AddEllipsis());
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("any",				Eidos_ExecuteFunction_any,			kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddLogical("x")->AddEllipsis());
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("cat",				Eidos_ExecuteFunction_cat,			kEidosValueMaskNULL))->AddAny("x")->AddString_OS("sep", gStaticEidosValue_StringSpace));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("catn",				Eidos_ExecuteFunction_catn,			kEidosValueMaskNULL))->AddAny_O("x", gStaticEidosValue_StringEmpty)->AddString_OS("sep", gStaticEidosValue_StringSpace));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("cat",				Eidos_ExecuteFunction_cat,			kEidosValueMaskVOID))->AddAny("x")->AddString_OS("sep", gStaticEidosValue_StringSpace));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("catn",				Eidos_ExecuteFunction_catn,			kEidosValueMaskVOID))->AddAny_O("x", gStaticEidosValue_StringEmpty)->AddString_OS("sep", gStaticEidosValue_StringSpace));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("format",			Eidos_ExecuteFunction_format,		kEidosValueMaskString))->AddString_S("format")->AddNumeric("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("identical",			Eidos_ExecuteFunction_identical,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddAny("x")->AddAny("y"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("ifelse",			Eidos_ExecuteFunction_ifelse,		kEidosValueMaskAny))->AddLogical("test")->AddAny("trueValues")->AddAny("falseValues"));
@@ -204,12 +204,12 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("order",				Eidos_ExecuteFunction_order,		kEidosValueMaskInt))->AddAnyBase("x")->AddLogical_OS("ascending", gStaticEidosValue_LogicalT));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("paste",				Eidos_ExecuteFunction_paste,		kEidosValueMaskString | kEidosValueMaskSingleton))->AddAny("x")->AddString_OS("sep", gStaticEidosValue_StringSpace));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("paste0",			Eidos_ExecuteFunction_paste0,		kEidosValueMaskString | kEidosValueMaskSingleton))->AddAny("x"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("print",				Eidos_ExecuteFunction_print,		kEidosValueMaskNULL))->AddAny("x"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("print",				Eidos_ExecuteFunction_print,		kEidosValueMaskVOID))->AddAny("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rev",				Eidos_ExecuteFunction_rev,			kEidosValueMaskAny))->AddAny("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_size,		Eidos_ExecuteFunction_size,			kEidosValueMaskInt | kEidosValueMaskSingleton))->AddAny("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("sort",				Eidos_ExecuteFunction_sort,			kEidosValueMaskAnyBase))->AddAnyBase("x")->AddLogical_OS("ascending", gStaticEidosValue_LogicalT));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("sortBy",			Eidos_ExecuteFunction_sortBy,		kEidosValueMaskObject))->AddObject("x", nullptr)->AddString_S("property")->AddLogical_OS("ascending", gStaticEidosValue_LogicalT));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_str,		Eidos_ExecuteFunction_str,			kEidosValueMaskNULL))->AddAny("x"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_str,		Eidos_ExecuteFunction_str,			kEidosValueMaskVOID))->AddAny("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("strsplit",			Eidos_ExecuteFunction_strsplit,		kEidosValueMaskString))->AddString_S("x")->AddString_OS("sep", gStaticEidosValue_StringSpace));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("substr",			Eidos_ExecuteFunction_substr,		kEidosValueMaskString))->AddString("x")->AddInt("first")->AddInt_ON("last", gStaticEidosValueNULL));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("unique",			Eidos_ExecuteFunction_unique,		kEidosValueMaskAny))->AddAny("x")->AddLogical_OS("preserveOrder", gStaticEidosValue_LogicalT));
@@ -272,22 +272,22 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_apply,		Eidos_ExecuteFunction_apply,		kEidosValueMaskAny))->AddAny("x")->AddInt("margin")->AddString_S("lambdaSource"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_sapply,	Eidos_ExecuteFunction_sapply,		kEidosValueMaskAny))->AddAny("x")->AddString_S("lambdaSource")->AddString_OS("simplify", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("vector"))));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("beep",				Eidos_ExecuteFunction_beep,			kEidosValueMaskNULL))->AddString_OSN("soundName", gStaticEidosValueNULL));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("citation",			Eidos_ExecuteFunction_citation,		kEidosValueMaskNULL)));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("beep",				Eidos_ExecuteFunction_beep,			kEidosValueMaskVOID))->AddString_OSN("soundName", gStaticEidosValueNULL));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("citation",			Eidos_ExecuteFunction_citation,		kEidosValueMaskVOID)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("clock",				Eidos_ExecuteFunction_clock,		kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("date",				Eidos_ExecuteFunction_date,			kEidosValueMaskString | kEidosValueMaskSingleton)));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("defineConstant",	Eidos_ExecuteFunction_defineConstant,	kEidosValueMaskNULL))->AddString_S("symbol")->AddAnyBase("value"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_doCall,	Eidos_ExecuteFunction_doCall,		kEidosValueMaskAny))->AddString_S("functionName")->AddEllipsis());
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_executeLambda,	Eidos_ExecuteFunction_executeLambda,	kEidosValueMaskAny))->AddString_S("lambdaSource")->AddLogical_OS("timed", gStaticEidosValue_LogicalF));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr__executeLambda_OUTER,	Eidos_ExecuteFunction__executeLambda_OUTER,	kEidosValueMaskAny))->AddString_S("lambdaSource")->AddLogical_OS("timed", gStaticEidosValue_LogicalF));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("defineConstant",	Eidos_ExecuteFunction_defineConstant,	kEidosValueMaskVOID))->AddString_S("symbol")->AddAnyBase("value"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_doCall,	Eidos_ExecuteFunction_doCall,		kEidosValueMaskAny | kEidosValueMaskVOID))->AddString_S("functionName")->AddEllipsis());
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_executeLambda,	Eidos_ExecuteFunction_executeLambda,	kEidosValueMaskAny | kEidosValueMaskVOID))->AddString_S("lambdaSource")->AddLogical_OS("timed", gStaticEidosValue_LogicalF));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr__executeLambda_OUTER,	Eidos_ExecuteFunction__executeLambda_OUTER,	kEidosValueMaskAny | kEidosValueMaskVOID))->AddString_S("lambdaSource")->AddLogical_OS("timed", gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("exists",			Eidos_ExecuteFunction_exists,		kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S("symbol"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("functionSignature",	Eidos_ExecuteFunction_functionSignature,	kEidosValueMaskNULL))->AddString_OSN("functionName", gStaticEidosValueNULL));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_ls,		Eidos_ExecuteFunction_ls,			kEidosValueMaskNULL)));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("license",			Eidos_ExecuteFunction_license,		kEidosValueMaskNULL)));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_rm,		Eidos_ExecuteFunction_rm,			kEidosValueMaskNULL))->AddString_ON("variableNames", gStaticEidosValueNULL)->AddLogical_OS("removeConstants", gStaticEidosValue_LogicalF));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("setSeed",			Eidos_ExecuteFunction_setSeed,		kEidosValueMaskNULL))->AddInt_S("seed"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("functionSignature",	Eidos_ExecuteFunction_functionSignature,	kEidosValueMaskVOID))->AddString_OSN("functionName", gStaticEidosValueNULL));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_ls,		Eidos_ExecuteFunction_ls,			kEidosValueMaskVOID)));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("license",			Eidos_ExecuteFunction_license,		kEidosValueMaskVOID)));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_rm,		Eidos_ExecuteFunction_rm,			kEidosValueMaskVOID))->AddString_ON("variableNames", gStaticEidosValueNULL)->AddLogical_OS("removeConstants", gStaticEidosValue_LogicalF));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("setSeed",			Eidos_ExecuteFunction_setSeed,		kEidosValueMaskVOID))->AddInt_S("seed"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("getSeed",			Eidos_ExecuteFunction_getSeed,		kEidosValueMaskInt | kEidosValueMaskSingleton)));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("stop",				Eidos_ExecuteFunction_stop,			kEidosValueMaskNULL))->AddString_OSN("message", gStaticEidosValueNULL));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("stop",				Eidos_ExecuteFunction_stop,			kEidosValueMaskVOID))->AddString_OSN("message", gStaticEidosValueNULL));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("system",			Eidos_ExecuteFunction_system,		kEidosValueMaskString))->AddString_S("command")->AddString_O("args", gStaticEidosValue_StringEmpty)->AddString_O("input", gStaticEidosValue_StringEmpty)->AddLogical_OS("stderr", gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("time",				Eidos_ExecuteFunction_time,			kEidosValueMaskString | kEidosValueMaskSingleton)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("version",			Eidos_ExecuteFunction_version,		kEidosValueMaskFloat)));
@@ -312,7 +312,7 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		//
 		//	built-in user-defined functions
 		//
-		EidosFunctionSignature *source_signature = (EidosFunctionSignature *)(new EidosFunctionSignature("source",	nullptr,	kEidosValueMaskNULL))->AddString_S("filePath");
+		EidosFunctionSignature *source_signature = (EidosFunctionSignature *)(new EidosFunctionSignature("source",	nullptr,	kEidosValueMaskVOID))->AddString_S("filePath");
 		EidosScript *source_script = new EidosScript("{ _executeLambda_OUTER(paste(readFile(filePath), '\\n')); return; }");
 		
 		source_script->Tokenize();
@@ -360,12 +360,12 @@ void EidosInterpreter::CacheBuiltInFunctionMap(void)
 //	Executing function calls
 //
 
-EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int p_argument_count, bool p_allow_null)
+EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int p_argument_count, bool p_allow_null, bool p_allow_void)
 {
 	// This function expects an error range to be set bracketing it externally,
 	// so no blame token is needed here.
 	
-	EidosValueType highest_type = EidosValueType::kValueNULL;	// start at the lowest
+	EidosValueType highest_type = EidosValueType::kValueVOID;	// start at the lowest
 	bool has_object_type = false, has_nonobject_type = false, all_invisible = true;
 	const EidosObjectClass *element_class = gEidos_UndefinedClassObject;
 	int reserve_size = 0;
@@ -379,7 +379,9 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 		
 		reserve_size += arg_value_count;
 		
-		if (!p_allow_null && (arg_type == EidosValueType::kValueNULL))
+		if (arg_type == EidosValueType::kValueVOID && !p_allow_void)
+			EIDOS_TERMINATION << "ERROR (ConcatenateEidosValues): void is not allowed to be used in this context." << EidosTerminate(nullptr);
+		if (arg_type == EidosValueType::kValueNULL && !p_allow_null)
 			EIDOS_TERMINATION << "ERROR (ConcatenateEidosValues): NULL is not allowed to be used in this context." << EidosTerminate(nullptr);
 		
 		// The highest type includes arguments of zero length; doing c(3, 7, string(0)) should produce a string vector
@@ -410,16 +412,27 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 			
 			has_object_type = true;
 		}
-		else if (arg_type != EidosValueType::kValueNULL)
+		else if ((arg_type != EidosValueType::kValueNULL) && (arg_type != EidosValueType::kValueVOID))
 			has_nonobject_type = true;
 	}
 	
 	if (has_object_type && has_nonobject_type)
 		EIDOS_TERMINATION << "ERROR (ConcatenateEidosValues): object and non-object types cannot be mixed." << EidosTerminate(nullptr);
 	
-	// If we've got nothing but NULL, then return NULL; preserve invisibility
+	if (highest_type == EidosValueType::kValueVOID)
+	{
+		// If VOID is disallowed by p_allow_void, we will not return it.  Otherwise, if all the values we concatenated are VOID,
+		// we return VOID; the result of a vectorized method call where every call returns VOID is VOID, for instance.
+		return gStaticEidosValueVOID;
+	}
 	if (highest_type == EidosValueType::kValueNULL)
-		return (all_invisible ? gStaticEidosValueNULLInvisible : gStaticEidosValueNULL);
+	{
+		// If we've got nothing but NULL, then return NULL; preserve invisibility
+		if (all_invisible)
+			return gStaticEidosValueNULLInvisible;
+		else
+			return gStaticEidosValueNULL;
+	}
 	
 	// Create an object of the right return type, concatenate all the arguments together, and return it
 	// Note that NULLs here concatenate away silently because their Count()==0; a bit dangerous!
@@ -1968,7 +1981,7 @@ EidosValue_SP Eidos_ExecuteFunction_setUnion(const EidosValue_SP *const p_argume
 		// a new EidosValue containing all elements from both arguments, and then call UniqueEidosValue() to unique it.
 		// This code might look slow, but really the uniquing is O(N^2) and everything else is O(N), so since
 		// we are in the vector/vector case here, it really isn't worth worrying about optimizing the O(N) part.
-		result_SP = ConcatenateEidosValues(p_arguments, 2, false);
+		result_SP = ConcatenateEidosValues(p_arguments, 2, false, false);	// no NULL, no VOID
 		result_SP = UniqueEidosValue(result_SP.get(), false, true);
 	}
 	
@@ -5265,7 +5278,10 @@ EidosValue_SP Eidos_ExecuteFunction_c(const EidosValue_SP *const p_arguments, __
 	
 	EidosValue_SP result_SP(nullptr);
 	
-	result_SP = ConcatenateEidosValues(p_arguments, p_argument_count, true);
+	if (p_argument_count == 0)
+		result_SP = gStaticEidosValueNULL;	// c() returns NULL, by definition
+	else
+		result_SP = ConcatenateEidosValues(p_arguments, p_argument_count, true, false);	// allow NULL but not VOID
 	
 	return result_SP;
 }
@@ -5904,8 +5920,6 @@ EidosValue_SP Eidos_ExecuteFunction_cat(const EidosValue_SP *const p_arguments, 
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
 	// SYNCH WITH catn() BELOW!
-	EidosValue_SP result_SP(nullptr);
-	
 	EidosValue *x_value = p_arguments[0].get();
 	int x_count = x_value->Count();
 	EidosValueType x_type = x_value->Type();
@@ -5923,9 +5937,7 @@ EidosValue_SP Eidos_ExecuteFunction_cat(const EidosValue_SP *const p_arguments, 
 			output_stream << x_value->StringAtIndex(value_index, nullptr);
 	}
 	
-	result_SP = gStaticEidosValueNULLInvisible;
-	
-	return result_SP;
+	return gStaticEidosValueVOID;
 }
 
 //	(void)catn([* x = ""], [string$ sep = " "])
@@ -5934,8 +5946,6 @@ EidosValue_SP Eidos_ExecuteFunction_catn(const EidosValue_SP *const p_arguments,
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
 	// SYNCH WITH cat() ABOVE!
-	EidosValue_SP result_SP(nullptr);
-	
 	EidosValue *x_value = p_arguments[0].get();
 	int x_count = x_value->Count();
 	EidosValueType x_type = x_value->Type();
@@ -5955,9 +5965,7 @@ EidosValue_SP Eidos_ExecuteFunction_catn(const EidosValue_SP *const p_arguments,
 	
 	output_stream << std::endl;
 	
-	result_SP = gStaticEidosValueNULLInvisible;
-	
-	return result_SP;
+	return gStaticEidosValueVOID;
 }
 
 //	(string)format(string$ format, numeric x)
@@ -6961,15 +6969,11 @@ EidosValue_SP Eidos_ExecuteFunction_paste0(const EidosValue_SP *const p_argument
 //	(void)print(* x)
 EidosValue_SP Eidos_ExecuteFunction_print(const EidosValue_SP *const p_arguments, int __attribute__((unused)) p_argument_count, EidosInterpreter &p_interpreter)
 {
-	EidosValue_SP result_SP(nullptr);
-	
 	EidosValue *x_value = p_arguments[0].get();
 	
 	p_interpreter.ExecutionOutputStream() << *x_value << std::endl;
 	
-	result_SP = gStaticEidosValueNULLInvisible;
-	
-	return result_SP;
+	return gStaticEidosValueVOID;
 }
 
 //	(*)rev(* x)
@@ -7105,7 +7109,7 @@ EidosValue_SP Eidos_ExecuteFunction_str(const EidosValue_SP *const p_arguments, 
 	
 	output_stream << std::endl;
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 
 //	(string)strsplit(string$ x, [string$ sep = " "])
@@ -7836,6 +7840,7 @@ EidosValue_SP Eidos_ExecuteFunction_cbind(const EidosValue_SP *const p_arguments
 	
 	switch (result_type)
 	{
+		case EidosValueType::kValueVOID:	break;		// never hit
 		case EidosValueType::kValueNULL:	break;		// never hit
 		case EidosValueType::kValueLogical:	result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->reserve(result_length)); break;
 		case EidosValueType::kValueInt:		result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->reserve(result_length)); break;
@@ -8360,6 +8365,7 @@ EidosValue_SP Eidos_ExecuteFunction_rbind(const EidosValue_SP *const p_arguments
 	
 	switch (result_type)
 	{
+		case EidosValueType::kValueVOID:	break;		// never hit
 		case EidosValueType::kValueNULL:	break;		// never hit
 		case EidosValueType::kValueLogical:	result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->reserve(result_length)); break;
 		case EidosValueType::kValueInt:		result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->reserve(result_length)); break;
@@ -8533,7 +8539,7 @@ EidosValue_SP Eidos_ExecuteFunction_filesAtPath(const EidosValue_SP *const p_arg
 }
 
 //	(string$)getwd(void)
-EidosValue_SP Eidos_ExecuteFunction_getwd(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_getwd(__attribute__((unused)) const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -9092,7 +9098,10 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const EidosValue_SP *const p_arguments
 			// Get the result.  BEWARE!  This calls causes re-entry into the Eidos interpreter, which is not usually
 			// possible since Eidos does not support multithreaded usage.  This is therefore a key failure point for
 			// bugs that would otherwise not manifest.
-			EidosValue_SP &&return_value_SP = interpreter.EvaluateInterpreterBlock(false);
+			EidosValue_SP &&return_value_SP = interpreter.EvaluateInterpreterBlock(false, true);		// do not print output, return the last statement value
+			
+			if (return_value_SP->Type() == EidosValueType::kValueVOID)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_apply): each iteration within apply() must return a non-void value." << EidosTerminate(nullptr);
 			
 			if (consistent_return_length)
 			{
@@ -9133,7 +9142,7 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const EidosValue_SP *const p_arguments
 		// Assemble all the individual results together, just as c() does
 		if (interpreter.HasExecutionOutput())
 			p_interpreter.ExecutionOutputStream() << interpreter.ExecutionOutput();
-		result_SP = ConcatenateEidosValues(results.data(), (int)results.size(), true);
+		result_SP = ConcatenateEidosValues(results.data(), (int)results.size(), true, false);	// allow NULL but not VOID
 		
 		// Set the dimensions of the result.  If the returns from the lambda were not consistent in their
 		// length and dimensions, we just return the plain vector without dimensions; we can't do anything
@@ -9316,7 +9325,10 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const EidosValue_SP *const p_argument
 			// Get the result.  BEWARE!  This calls causes re-entry into the Eidos interpreter, which is not usually
 			// possible since Eidos does not support multithreaded usage.  This is therefore a key failure point for
 			// bugs that would otherwise not manifest.
-			EidosValue_SP &&return_value_SP = interpreter.EvaluateInterpreterBlock(false);
+			EidosValue_SP &&return_value_SP = interpreter.EvaluateInterpreterBlock(false, true);		// do not print output, return the last statement value
+			
+			if (return_value_SP->Type() == EidosValueType::kValueVOID)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sapply): each iteration within sapply() must return a non-void value." << EidosTerminate(nullptr);
 			
 			if (return_value_SP->Type() == EidosValueType::kValueNULL)
 			{
@@ -9341,7 +9353,7 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const EidosValue_SP *const p_argument
 		// Assemble all the individual results together, just as c() does
 		if (interpreter.HasExecutionOutput())
 			p_interpreter.ExecutionOutputStream() << interpreter.ExecutionOutput();
-		result_SP = ConcatenateEidosValues(results.data(), (int)results.size(), true);
+		result_SP = ConcatenateEidosValues(results.data(), (int)results.size(), true, false);	// allow NULL but not VOID
 		
 		// Finally, we restructure the results:
 		//
@@ -9414,8 +9426,6 @@ EidosValue_SP Eidos_ExecuteFunction_beep(const EidosValue_SP *const p_arguments,
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
-	EidosValue_SP result_SP(nullptr);
-	
 	EidosValue *soundName_value = p_arguments[0].get();
 	std::string name_string = ((soundName_value->Type() == EidosValueType::kValueString) ? soundName_value->StringAtIndex(0, nullptr) : gEidosStr_empty_string);
 	
@@ -9428,17 +9438,13 @@ EidosValue_SP Eidos_ExecuteFunction_beep(const EidosValue_SP *const p_arguments,
 		output_stream << beep_error << std::endl;
 	}
 	
-	result_SP = gStaticEidosValueNULLInvisible;
-	
-	return result_SP;
+	return gStaticEidosValueVOID;
 }
 
 //	(void)citation(void)
 EidosValue_SP Eidos_ExecuteFunction_citation(__attribute__((unused)) const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
-	
-	EidosValue_SP result_SP(nullptr);
 	
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 	
@@ -9452,9 +9458,7 @@ EidosValue_SP Eidos_ExecuteFunction_citation(__attribute__((unused)) const Eidos
 		output_stream << gEidosContextCitation << std::endl;
 	}
 	
-	result_SP = gStaticEidosValueNULLInvisible;
-	
-	return result_SP;
+	return gStaticEidosValueVOID;
 }
 
 //	(float$)clock(void)
@@ -9497,8 +9501,6 @@ EidosValue_SP Eidos_ExecuteFunction_defineConstant(const EidosValue_SP *const p_
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
-	EidosValue_SP result_SP(nullptr);
-	
 	std::string symbol_name = p_arguments[0]->StringAtIndex(0, nullptr);
 	const EidosValue_SP x_value_sp = p_arguments[1];
 	EidosGlobalStringID symbol_id = Eidos_GlobalStringIDForString(symbol_name);
@@ -9506,9 +9508,7 @@ EidosValue_SP Eidos_ExecuteFunction_defineConstant(const EidosValue_SP *const p_
 	
 	symbols.DefineConstantForSymbol(symbol_id, x_value_sp);
 	
-	result_SP = gStaticEidosValueNULLInvisible;
-	
-	return result_SP;
+	return gStaticEidosValueVOID;
 }
 
 //	(*)doCall(string$ functionName, ...)
@@ -9663,7 +9663,7 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const EidosValue_SP *const p_arguments
 		// Get the result.  BEWARE!  This calls causes re-entry into the Eidos interpreter, which is not usually
 		// possible since Eidos does not support multithreaded usage.  This is therefore a key failure point for
 		// bugs that would otherwise not manifest.
-		result_SP = interpreter.EvaluateInterpreterBlock(false);
+		result_SP = interpreter.EvaluateInterpreterBlock(false, true);		// do not print output, return the last statement value
 		
 		if (timed)
 			end = clock();
@@ -9754,8 +9754,6 @@ EidosValue_SP Eidos_ExecuteFunction_functionSignature(const EidosValue_SP *const
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
-	EidosValue_SP result_SP(nullptr);
-	
 	EidosValue *functionName_value = p_arguments[0].get();
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 	bool function_name_specified = (functionName_value->Type() == EidosValueType::kValueString);
@@ -9790,9 +9788,7 @@ EidosValue_SP Eidos_ExecuteFunction_functionSignature(const EidosValue_SP *const
 	if (function_name_specified && !signature_found)
 		output_stream << "No function signature found for \"" << match_string << "\"." << std::endl;
 	
-	result_SP = gStaticEidosValueNULLInvisible;
-	
-	return result_SP;
+	return gStaticEidosValueVOID;
 }
 
 //	(void)ls(void)
@@ -9800,21 +9796,15 @@ EidosValue_SP Eidos_ExecuteFunction_ls(__attribute__((unused)) const EidosValue_
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
-	EidosValue_SP result_SP(nullptr);
-	
 	p_interpreter.ExecutionOutputStream() << p_interpreter.SymbolTable();
 	
-	result_SP = gStaticEidosValueNULLInvisible;
-	
-	return result_SP;
+	return gStaticEidosValueVOID;
 }
 
 //	(void)license(void)
 EidosValue_SP Eidos_ExecuteFunction_license(__attribute__((unused)) const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
-	
-	EidosValue_SP result_SP(nullptr);
 	
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 	
@@ -9840,17 +9830,13 @@ EidosValue_SP Eidos_ExecuteFunction_license(__attribute__((unused)) const EidosV
 		output_stream << gEidosContextLicense << std::endl;
 	}
 	
-	result_SP = gStaticEidosValueNULLInvisible;
-	
-	return result_SP;
+	return gStaticEidosValueVOID;
 }
 
 //	(void)rm([Ns variableNames = NULL], [logical$ removeConstants = F])
 EidosValue_SP Eidos_ExecuteFunction_rm(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
-	
-	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *variableNames_value = p_arguments[0].get();
 	bool removeConstants = p_arguments[1]->LogicalAtIndex(0, nullptr);
@@ -9875,9 +9861,7 @@ EidosValue_SP Eidos_ExecuteFunction_rm(const EidosValue_SP *const p_arguments, _
 		for (std::string &symbol : symbols_to_remove)
 			symbols.RemoveValueForSymbol(Eidos_GlobalStringIDForString(symbol));
 	
-	result_SP = gStaticEidosValueNULLInvisible;
-	
-	return result_SP;
+	return gStaticEidosValueVOID;
 }
 
 //	(void)setSeed(integer$ seed)
@@ -9885,15 +9869,11 @@ EidosValue_SP Eidos_ExecuteFunction_setSeed(const EidosValue_SP *const p_argumen
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
-	EidosValue_SP result_SP(nullptr);
-	
 	EidosValue *seed_value = p_arguments[0].get();
 	
 	Eidos_InitializeRNGFromSeed(seed_value->IntAtIndex(0, nullptr));
 	
-	result_SP = gStaticEidosValueNULLInvisible;
-	
-	return result_SP;
+	return gStaticEidosValueVOID;
 }
 
 //	(integer$)getSeed(void)

@@ -835,8 +835,8 @@
 \f0\fs20  and 
 \f1\fs18 y
 \f0\fs20 , usually denoted 
-\i \cf2 r
-\i0 \cf2 .  The sizes of 
+\i r
+\i0 .  The sizes of 
 \f1\fs18 x
 \f0\fs20  and 
 \f1\fs18 y
@@ -3692,9 +3692,12 @@ Returns the transpose
 Note that the path returned may not be identical to the path previously set with 
 \f1\fs18 setwd()
 \f0\fs20 , if for example symbolic links are involved; but it ought to refer to the same actual directory in the filesystem.\
-The initial working directory is not well-defined.  It may be the directory within which the running process is located, or may be the current directory in the shell from which the running process was launched; or it may be some other path, depending upon the operating system and other environmental factors.  It is therefore unwise to rely upon the initial working directory; 
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 The initial working directory is \'96 as is generally the case on Un*x \'96 simply the directory given to the running Eidos process by its parent process (the operating system, a shell, a job scheduler, a debugger, or whatever the case may be).  If you launch Eidos (or SLiM) from the command line in a Un*x shell, it is typically the current directory in that shell.  Before relative filesystem paths are used, you may therefore wish check what the initial working directory is on your platform, with 
+\f1\fs18 getwd()
+\f0\fs20 , if you are not sure.  Alternatively, you can simply use 
 \f1\fs18 setwd()
-\f0\fs20  should always be called to set the working directory before relative filesystem paths are used.\
+\f0\fs20  to set the working directory to a known path.\cf2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (string)readFile(string$\'a0filePath)
@@ -3729,9 +3732,11 @@ The current working directory prior to the change will be returned as an invisib
 \f0\fs20  value; the value returned is identical to the value that would have been returned by 
 \f1\fs18 getwd()
 \f0\fs20 , apart from its invisibility.\
-The initial working directory is not well-defined; see 
+See 
 \f1\fs18 getwd()
-\f0\fs20  for further discussion.\
+\f0\fs20  for discussion regarding the initial working directory, before it is set with 
+\f1\fs18 setwd()
+\f0\fs20 .\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (logical$)writeFile(string$\'a0filePath, string\'a0contents, [logical$\'a0append\'a0=\'a0F])
@@ -4048,7 +4053,8 @@ When
 \f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (*)doCall(string$\'a0functionName, ...)\
+\f1\fs18 \cf0 (\cf2 \expnd0\expndtw0\kerning0
+vNlifso\cf0 \kerning1\expnd0\expndtw0 )doCall(string$\'a0functionName, ...)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns the results from a 
@@ -4071,7 +4077,8 @@ When
 \f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (*)executeLambda(string$\'a0lambdaSource, [logical$\'a0timed\'a0=\'a0F])\
+\f1\fs18 \cf0 (\cf2 \expnd0\expndtw0\kerning0
+vNlifso\cf0 \kerning1\expnd0\expndtw0 )executeLambda(string$\'a0lambdaSource, [logical$\'a0timed\'a0=\'a0F])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf0 Executes a block of Eidos code

@@ -1498,152 +1498,168 @@ void SLiMSim::OptimizeScriptBlock(SLiMEidosBlock *p_script_block)
 				bool opt_dnorm1_candidate = true;
 				const EidosASTNode *expr_node = base_node->children_[0];
 				
-				// if we have an intervening "return", jump down through it
+				// we must have an intervening "return", which we jump down through
 				if ((expr_node->token_->token_type_ == EidosTokenType::kTokenReturn) && (expr_node->children_.size() == 1))
+				{
 					expr_node = expr_node->children_[0];
-				
-				// parse an optional constant at the beginning, like 1.0 + ...
-				double added_constant = NAN;
-				
-				if ((expr_node->token_->token_type_ == EidosTokenType::kTokenPlus) && (expr_node->children_.size() == 2))
-				{
-					const EidosASTNode *constant_node = expr_node->children_[0];
-					const EidosASTNode *rhs_node = expr_node->children_[1];
 					
-					if (constant_node->HasCachedNumericValue())
+					// parse an optional constant at the beginning, like 1.0 + ...
+					double added_constant = NAN;
+					
+					if ((expr_node->token_->token_type_ == EidosTokenType::kTokenPlus) && (expr_node->children_.size() == 2))
 					{
-						added_constant = constant_node->CachedNumericValue();
-						expr_node = rhs_node;
+						const EidosASTNode *constant_node = expr_node->children_[0];
+						const EidosASTNode *rhs_node = expr_node->children_[1];
+						
+						if (constant_node->HasCachedNumericValue())
+						{
+							added_constant = constant_node->CachedNumericValue();
+							expr_node = rhs_node;
+						}
+						else
+							opt_dnorm1_candidate = false;
 					}
 					else
-						opt_dnorm1_candidate = false;
-				}
-				else
-				{
-					added_constant = 0.0;
-				}
-				
-				// parse an optional divisor at the end, ... / div
-				double denominator = NAN;
-				
-				if ((expr_node->token_->token_type_ == EidosTokenType::kTokenDiv) && (expr_node->children_.size() == 2))
-				{
-					const EidosASTNode *numerator_node = expr_node->children_[0];
-					const EidosASTNode *denominator_node = expr_node->children_[1];
-					
-					if (denominator_node->HasCachedNumericValue())
 					{
-						denominator = denominator_node->CachedNumericValue();
-						expr_node = numerator_node;
+						added_constant = 0.0;
+					}
+					
+					// parse an optional divisor at the end, ... / div
+					double denominator = NAN;
+					
+					if ((expr_node->token_->token_type_ == EidosTokenType::kTokenDiv) && (expr_node->children_.size() == 2))
+					{
+						const EidosASTNode *numerator_node = expr_node->children_[0];
+						const EidosASTNode *denominator_node = expr_node->children_[1];
+						
+						if (denominator_node->HasCachedNumericValue())
+						{
+							denominator = denominator_node->CachedNumericValue();
+							expr_node = numerator_node;
+						}
+						else
+							opt_dnorm1_candidate = false;
 					}
 					else
-						opt_dnorm1_candidate = false;
-				}
-				else
-				{
-					denominator = 1.0;
-				}
-				
-				// parse the dnorm() function call
-				if (opt_dnorm1_candidate && (expr_node->token_->token_type_ == EidosTokenType::kTokenLParen) && (expr_node->children_.size() >= 2))
-				{
-					const EidosASTNode *call_node = expr_node->children_[0];
-					
-					if ((call_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (call_node->token_->token_string_ == "dnorm"))
 					{
-						int child_count = (int)expr_node->children_.size();
-						const EidosASTNode *x_node = expr_node->children_[1];
-						const EidosASTNode *mean_node = (child_count >= 3) ? expr_node->children_[2] : nullptr;
-						const EidosASTNode *sd_node = (child_count >= 4) ? expr_node->children_[3] : nullptr;
-						double mean_value = 0.0, sd_value = 1.0;
+						denominator = 1.0;
+					}
+					
+					// parse the dnorm() function call
+					if (opt_dnorm1_candidate && (expr_node->token_->token_type_ == EidosTokenType::kTokenLParen) && (expr_node->children_.size() >= 2))
+					{
+						const EidosASTNode *call_node = expr_node->children_[0];
 						
-						// resolve named arguments
-						if ((x_node->token_->token_type_ == EidosTokenType::kTokenAssign) && (x_node->children_.size() == 2))
+						if ((call_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (call_node->token_->token_string_ == "dnorm"))
 						{
-							const EidosASTNode *name_node = x_node->children_[0];
-							const EidosASTNode *value_node = x_node->children_[1];
+							int child_count = (int)expr_node->children_.size();
+							const EidosASTNode *x_node = expr_node->children_[1];
+							const EidosASTNode *mean_node = (child_count >= 3) ? expr_node->children_[2] : nullptr;
+							const EidosASTNode *sd_node = (child_count >= 4) ? expr_node->children_[3] : nullptr;
+							double mean_value = 0.0, sd_value = 1.0;
 							
-							if ((name_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (name_node->token_->token_string_ == "x"))
-								x_node = value_node;
-							else
-								opt_dnorm1_candidate = false;
-						}
-						if (mean_node && (mean_node->token_->token_type_ == EidosTokenType::kTokenAssign) && (mean_node->children_.size() == 2))
-						{
-							const EidosASTNode *name_node = mean_node->children_[0];
-							const EidosASTNode *value_node = mean_node->children_[1];
-							
-							if ((name_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (name_node->token_->token_string_ == "mean"))
-								mean_node = value_node;
-							else
-								opt_dnorm1_candidate = false;
-						}
-						if (sd_node && (sd_node->token_->token_type_ == EidosTokenType::kTokenAssign) && (sd_node->children_.size() == 2))
-						{
-							const EidosASTNode *name_node = sd_node->children_[0];
-							const EidosASTNode *value_node = sd_node->children_[1];
-							
-							if ((name_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (name_node->token_->token_string_ == "sd"))
-								sd_node = value_node;
-							else
-								opt_dnorm1_candidate = false;
-						}
-						
-						// the mean and sd parameters of dnorm can be omitted in the below calls, but if they are given, get their values
-						if (mean_node)
-						{
-							if (mean_node->HasCachedNumericValue())
-								mean_value = mean_node->CachedNumericValue();
-							else
-								opt_dnorm1_candidate = false;
-						}
-						
-						if (sd_node)
-						{
-							if (sd_node->HasCachedNumericValue())
-								sd_value = sd_node->CachedNumericValue();
-							else
-								opt_dnorm1_candidate = false;
-						}
-						
-						// parse the x argument to dnorm, which can take several different forms
-						if (opt_dnorm1_candidate)
-						{
-							if ((x_node->token_->token_type_ == EidosTokenType::kTokenMinus) && (x_node->children_.size() == 2) && (mean_value == 0.0))
+							// resolve named arguments
+							if ((x_node->token_->token_type_ == EidosTokenType::kTokenAssign) && (x_node->children_.size() == 2))
 							{
-								const EidosASTNode *lhs_node = x_node->children_[0];
-								const EidosASTNode *rhs_node = x_node->children_[1];
-								const EidosASTNode *dot_node = nullptr, *constant_node = nullptr;
+								const EidosASTNode *name_node = x_node->children_[0];
+								const EidosASTNode *value_node = x_node->children_[1];
 								
-								if (lhs_node->token_->token_type_ == EidosTokenType::kTokenDot)
-								{
-									dot_node = lhs_node;
-									constant_node = rhs_node;
-								}
-								else if (rhs_node->token_->token_type_ == EidosTokenType::kTokenDot)
-								{
-									dot_node = rhs_node;
-									constant_node = lhs_node;
-								}
+								if ((name_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (name_node->token_->token_string_ == "x"))
+									x_node = value_node;
+								else
+									opt_dnorm1_candidate = false;
+							}
+							if (mean_node && (mean_node->token_->token_type_ == EidosTokenType::kTokenAssign) && (mean_node->children_.size() == 2))
+							{
+								const EidosASTNode *name_node = mean_node->children_[0];
+								const EidosASTNode *value_node = mean_node->children_[1];
 								
-								if (dot_node && constant_node && (dot_node->children_.size() == 2) && constant_node->HasCachedNumericValue())
+								if ((name_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (name_node->token_->token_string_ == "mean"))
+									mean_node = value_node;
+								else
+									opt_dnorm1_candidate = false;
+							}
+							if (sd_node && (sd_node->token_->token_type_ == EidosTokenType::kTokenAssign) && (sd_node->children_.size() == 2))
+							{
+								const EidosASTNode *name_node = sd_node->children_[0];
+								const EidosASTNode *value_node = sd_node->children_[1];
+								
+								if ((name_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (name_node->token_->token_string_ == "sd"))
+									sd_node = value_node;
+								else
+									opt_dnorm1_candidate = false;
+							}
+							
+							// the mean and sd parameters of dnorm can be omitted in the below calls, but if they are given, get their values
+							if (mean_node)
+							{
+								if (mean_node->HasCachedNumericValue())
+									mean_value = mean_node->CachedNumericValue();
+								else
+									opt_dnorm1_candidate = false;
+							}
+							
+							if (sd_node)
+							{
+								if (sd_node->HasCachedNumericValue())
+									sd_value = sd_node->CachedNumericValue();
+								else
+									opt_dnorm1_candidate = false;
+							}
+							
+							// parse the x argument to dnorm, which can take several different forms
+							if (opt_dnorm1_candidate)
+							{
+								if ((x_node->token_->token_type_ == EidosTokenType::kTokenMinus) && (x_node->children_.size() == 2) && (mean_value == 0.0))
 								{
-									const EidosASTNode *var_node = dot_node->children_[0];
-									const EidosASTNode *prop_node = dot_node->children_[1];
+									const EidosASTNode *lhs_node = x_node->children_[0];
+									const EidosASTNode *rhs_node = x_node->children_[1];
+									const EidosASTNode *dot_node = nullptr, *constant_node = nullptr;
 									
-									mean_value = constant_node->CachedNumericValue();
+									if (lhs_node->token_->token_type_ == EidosTokenType::kTokenDot)
+									{
+										dot_node = lhs_node;
+										constant_node = rhs_node;
+									}
+									else if (rhs_node->token_->token_type_ == EidosTokenType::kTokenDot)
+									{
+										dot_node = rhs_node;
+										constant_node = lhs_node;
+									}
+									
+									if (dot_node && constant_node && (dot_node->children_.size() == 2) && constant_node->HasCachedNumericValue())
+									{
+										const EidosASTNode *var_node = dot_node->children_[0];
+										const EidosASTNode *prop_node = dot_node->children_[1];
+										
+										mean_value = constant_node->CachedNumericValue();
+										
+										if ((var_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (var_node->token_->token_string_ == "individual")
+											&& (prop_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (prop_node->token_->token_string_ == "tagF"))
+										{
+											// callback of the form { return D + dnorm(individual.tagF - A, 0.0, B) / C; }
+											// callback of the form { return D + dnorm(individual.tagF - A, 0.0, B); }
+											// callback of the form { return D + dnorm(A - individual.tagF, 0.0, B) / C; }
+											// callback of the form { return D + dnorm(A - individual.tagF, 0.0, B); }
+											p_script_block->has_cached_optimization_ = true;
+											p_script_block->has_cached_opt_dnorm1_ = true;
+											p_script_block->cached_opt_A_ = mean_value;
+											p_script_block->cached_opt_B_ = sd_value;
+											p_script_block->cached_opt_C_ = denominator;
+											p_script_block->cached_opt_D_ = added_constant;
+										}
+									}
+								}
+								else if ((x_node->token_->token_type_ == EidosTokenType::kTokenDot) && (x_node->children_.size() == 2))
+								{
+									const EidosASTNode *var_node = x_node->children_[0];
+									const EidosASTNode *prop_node = x_node->children_[1];
 									
 									if ((var_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (var_node->token_->token_string_ == "individual")
 										&& (prop_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (prop_node->token_->token_string_ == "tagF"))
 									{
-										// callback of the form { return D + dnorm(individual.tagF - A, 0.0, B) / C; }
-										// callback of the form { return D + dnorm(individual.tagF - A, 0.0, B); }
-										// callback of the form { D + dnorm(individual.tagF - A, 0.0, B) / C; }
-										// callback of the form { D + dnorm(individual.tagF - A, 0.0, B); }
-										// callback of the form { return D + dnorm(A - individual.tagF, 0.0, B) / C; }
-										// callback of the form { return D + dnorm(A - individual.tagF, 0.0, B); }
-										// callback of the form { D + dnorm(A - individual.tagF, 0.0, B) / C; }
-										// callback of the form { D + dnorm(A - individual.tagF, 0.0, B); }
+										// callback of the form { return D + dnorm(individual.tagF, A, B) / C; }
+										// callback of the form { return D + dnorm(individual.tagF, A, B); }
 										p_script_block->has_cached_optimization_ = true;
 										p_script_block->has_cached_opt_dnorm1_ = true;
 										p_script_block->cached_opt_A_ = mean_value;
@@ -1651,26 +1667,6 @@ void SLiMSim::OptimizeScriptBlock(SLiMEidosBlock *p_script_block)
 										p_script_block->cached_opt_C_ = denominator;
 										p_script_block->cached_opt_D_ = added_constant;
 									}
-								}
-							}
-							else if ((x_node->token_->token_type_ == EidosTokenType::kTokenDot) && (x_node->children_.size() == 2))
-							{
-								const EidosASTNode *var_node = x_node->children_[0];
-								const EidosASTNode *prop_node = x_node->children_[1];
-								
-								if ((var_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (var_node->token_->token_string_ == "individual")
-									&& (prop_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (prop_node->token_->token_string_ == "tagF"))
-								{
-									// callback of the form { D + return dnorm(individual.tagF, A, B) / C; }
-									// callback of the form { D + return dnorm(individual.tagF, A, B); }
-									// callback of the form { D + dnorm(individual.tagF, A, B) / C; }
-									// callback of the form { D + dnorm(individual.tagF, A, B); }
-									p_script_block->has_cached_optimization_ = true;
-									p_script_block->has_cached_opt_dnorm1_ = true;
-									p_script_block->cached_opt_A_ = mean_value;
-									p_script_block->cached_opt_B_ = sd_value;
-									p_script_block->cached_opt_C_ = denominator;
-									p_script_block->cached_opt_D_ = added_constant;
 								}
 							}
 						}
@@ -1691,26 +1687,27 @@ void SLiMSim::OptimizeScriptBlock(SLiMEidosBlock *p_script_block)
 			{
 				const EidosASTNode *expr_node = base_node->children_[0];
 				
-				// if we have an intervening "return", jump down through it
+				// we must have an intervening "return", which we jump down through
 				if ((expr_node->token_->token_type_ == EidosTokenType::kTokenReturn) && (expr_node->children_.size() == 1))
-					expr_node = expr_node->children_[0];
-				
-				if ((expr_node->token_->token_type_ == EidosTokenType::kTokenDiv) && (expr_node->children_.size() == 2))
 				{
-					const EidosASTNode *numerator_node = expr_node->children_[0];
-					const EidosASTNode *denominator_node = expr_node->children_[1];
+					expr_node = expr_node->children_[0];
 					
-					if (numerator_node->HasCachedNumericValue())
+					if ((expr_node->token_->token_type_ == EidosTokenType::kTokenDiv) && (expr_node->children_.size() == 2))
 					{
-						double numerator = numerator_node->CachedNumericValue();
+						const EidosASTNode *numerator_node = expr_node->children_[0];
+						const EidosASTNode *denominator_node = expr_node->children_[1];
 						
-						if ((denominator_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (denominator_node->token_->token_string_ == "relFitness"))
+						if (numerator_node->HasCachedNumericValue())
 						{
-							// callback of the form { A/relFitness; }
-							// callback of the form { return A/relFitness; }
-							p_script_block->has_cached_optimization_ = true;
-							p_script_block->has_cached_opt_reciprocal = true;
-							p_script_block->cached_opt_A_ = numerator;
+							double numerator = numerator_node->CachedNumericValue();
+							
+							if ((denominator_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (denominator_node->token_->token_string_ == "relFitness"))
+							{
+								// callback of the form { return A/relFitness; }
+								p_script_block->has_cached_optimization_ = true;
+								p_script_block->has_cached_opt_reciprocal = true;
+								p_script_block->cached_opt_A_ = numerator;
+							}
 						}
 					}
 				}
@@ -3933,7 +3930,6 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 	else if (p_function_name.compare(gStr_initializeSLiMModelType) == 0)		return ExecuteContextFunction_initializeSLiMModelType(p_function_name, p_arguments, p_argument_count, p_interpreter);
 	
 	EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): the function " << p_function_name << "() is not implemented by SLiMSim." << EidosTerminate();
-	return gStaticEidosValueNULLInvisible;
 }
 
 //	*********************	(void)initializeGenomicElement(io<GenomicElementType>$ genomicElementType, integer$ start, integer$ end)
@@ -3992,7 +3988,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElement(const std
 	
 	num_genomic_elements_++;
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 
 //	*********************	(object<GenomicElementType>$)initializeGenomicElementType(is$ id, io<MutationType> mutationTypes, numeric proportions)
@@ -4433,7 +4429,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeRecombinationRate(const 
 	
 	num_recombination_rates_++;
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 
 //	*********************	(void)initializeGeneConversion(numeric$ conversionFraction, numeric$ meanLength)
@@ -4464,7 +4460,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGeneConversion(const std
 	
 	num_gene_conversions_++;
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 
 //	*********************	(void)initializeMutationRate(numeric rates, [Ni ends = NULL], [string$ sex = "*"])
@@ -4596,7 +4592,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationRate(const std::
 	
 	num_mutation_rates_++;
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 
 //	*********************	(void)initializeSex(string$ chromosomeType, [numeric$ xDominanceCoeff = 1])
@@ -4643,7 +4639,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSex(const std::string &p
 	sex_enabled_ = true;
 	num_sex_declarations_++;
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 
 //	*********************	(void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""], [string$ periodicity = ""], [integer$ mutationRuns = 0], [logical$ preventIncidentalSelfing = F])
@@ -4798,7 +4794,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 	
 	num_options_declarations_++;
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 
 // TREE SEQUENCE RECORDING
@@ -4854,7 +4850,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeTreeSeq(const std::strin
 	
 	num_treeseq_declarations_++;
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 
 
@@ -4899,7 +4895,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMModelType(const std:
 	
 	num_modeltype_declarations_++;
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 
 const std::vector<EidosFunctionSignature_SP> *SLiMSim::ZeroGenerationFunctionSignatures(void)
@@ -4909,7 +4905,7 @@ const std::vector<EidosFunctionSignature_SP> *SLiMSim::ZeroGenerationFunctionSig
 	
 	if (!sim_0_signatures_.size())
 	{
-		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElement, nullptr, kEidosValueMaskNULL, "SLiM"))
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElement, nullptr, kEidosValueMaskVOID, "SLiM"))
 										->AddIntObject_S("genomicElementType", gSLiM_GenomicElementType_Class)->AddInt_S("start")->AddInt_S("end"));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElementType, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_GenomicElementType_Class, "SLiM"))
 										->AddIntString_S("id")->AddIntObject("mutationTypes", gSLiM_MutationType_Class)->AddNumeric("proportions"));
@@ -4917,19 +4913,19 @@ const std::vector<EidosFunctionSignature_SP> *SLiMSim::ZeroGenerationFunctionSig
 										->AddIntString_S("id")->AddString_S(gStr_spatiality)->AddLogical_OS(gStr_reciprocal, gStaticEidosValue_LogicalF)->AddNumeric_OS(gStr_maxDistance, gStaticEidosValue_FloatINF)->AddString_OS(gStr_sexSegregation, gStaticEidosValue_StringDoubleAsterisk));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationType, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class, "SLiM"))
 										->AddIntString_S("id")->AddNumeric_S("dominanceCoeff")->AddString_S("distributionType")->AddEllipsis());
-		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeRecombinationRate, nullptr, kEidosValueMaskNULL, "SLiM"))
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeRecombinationRate, nullptr, kEidosValueMaskVOID, "SLiM"))
 										->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
-		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGeneConversion, nullptr, kEidosValueMaskNULL, "SLiM"))
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGeneConversion, nullptr, kEidosValueMaskVOID, "SLiM"))
 										->AddNumeric_S("conversionFraction")->AddNumeric_S("meanLength"));
-		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationRate, nullptr, kEidosValueMaskNULL, "SLiM"))
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationRate, nullptr, kEidosValueMaskVOID, "SLiM"))
 										->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
-		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSex, nullptr, kEidosValueMaskNULL, "SLiM"))
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSex, nullptr, kEidosValueMaskVOID, "SLiM"))
 										->AddString_S("chromosomeType")->AddNumeric_OS("xDominanceCoeff", gStaticEidosValue_Float1));
-		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMOptions, nullptr, kEidosValueMaskNULL, "SLiM"))
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMOptions, nullptr, kEidosValueMaskVOID, "SLiM"))
 									   ->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("dimensionality", gStaticEidosValue_StringEmpty)->AddString_OS("periodicity", gStaticEidosValue_StringEmpty)->AddInt_OS("mutationRuns", gStaticEidosValue_Integer0)->AddLogical_OS("preventIncidentalSelfing", gStaticEidosValue_LogicalF));
-		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeTreeSeq, nullptr, kEidosValueMaskNULL, "SLiM"))
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeTreeSeq, nullptr, kEidosValueMaskVOID, "SLiM"))
 									   ->AddLogical_OS("recordMutations", gStaticEidosValue_LogicalT)->AddFloat_OS("simplificationRatio", gStaticEidosValue_Float10));
-		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMModelType, nullptr, kEidosValueMaskNULL, "SLiM"))
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMModelType, nullptr, kEidosValueMaskVOID, "SLiM"))
 									   ->AddString_S("modelType"));
 	}
 	
@@ -5538,7 +5534,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_deregisterScriptBlock(EidosGlobalStringID p
 		}
 	}
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 
 //	*********************	– (float)mutationFrequencies(No<Subpopulation> subpops, [No<Mutation> mutations = NULL])
@@ -5900,7 +5896,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_
 	if (has_file)
 		outfile.close(); 
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 			
 //	*********************	– (void)outputFull([Ns$ filePath = NULL], [logical$ binary = F], [logical$ append=F], [logical$ spatialPositions = T], [logical$ ages = T])
@@ -5977,7 +5973,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 		}
 	}
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 			
 //	*********************	– (void)outputMutations(object<Mutation> mutations, [Ns$ filePath = NULL], [logical$ append=F])
@@ -6070,7 +6066,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 	if (has_file)
 		outfile.close(); 
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 			
 //	*********************	- (integer$)readFromPopulationFile(string$ filePath)
@@ -6126,7 +6122,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_recalculateFitness(EidosGlobalStringID p_me
 	
 	population_.RecalculateFitness(gen);
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 			
 //	*********************	– (object<SLiMEidosBlock>$)registerEarlyEvent(Nis$ id, string$ source, [Ni$ start = NULL], [Ni$ end = NULL])
@@ -6482,7 +6478,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_simulationFinished(EidosGlobalStringID p_me
 	
 	sim_declared_finished_ = true;
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 
 // TREE SEQUENCE RECORDING
@@ -6502,7 +6498,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqSimplify(EidosGlobalStringID p_metho
 	
 	SimplifyTreeSequence();
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 
 // TREE SEQUENCE RECORDING
@@ -6534,7 +6530,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStrin
 	
 	RememberIndividuals(individual_IDs);
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 
 // TREE SEQUENCE RECORDING
@@ -6562,7 +6558,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_
 	
 	WriteTreeSequence(path_string, binary, simplify);
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 
 
@@ -6637,15 +6633,15 @@ const std::vector<const EidosMethodSignature *> *SLiMSim_Class::Methods(void) co
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpop, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->AddIntString_S("subpopID")->AddInt_S("size")->AddFloat_OS("sexRatio", gStaticEidosValue_Float0Point5));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpopSplit, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->AddIntString_S("subpopID")->AddInt_S("size")->AddIntObject_S("sourceSubpop", gSLiM_Subpopulation_Class)->AddFloat_OS("sexRatio", gStaticEidosValue_Float0Point5));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_deregisterScriptBlock, kEidosValueMaskNULL))->AddIntObject("scriptBlocks", gSLiM_SLiMEidosBlock_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_deregisterScriptBlock, kEidosValueMaskVOID))->AddIntObject("scriptBlocks", gSLiM_SLiMEidosBlock_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationFrequencies, kEidosValueMaskFloat))->AddObject_N("subpops", gSLiM_Subpopulation_Class)->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationCounts, kEidosValueMaskInt))->AddObject_N("subpops", gSLiM_Subpopulation_Class)->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFixedMutations, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFull, kEidosValueMaskNULL))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("binary", gStaticEidosValue_LogicalF)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("spatialPositions", gStaticEidosValue_LogicalT)->AddLogical_OS("ages", gStaticEidosValue_LogicalT));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMutations, kEidosValueMaskNULL))->AddObject("mutations", gSLiM_Mutation_Class)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFixedMutations, kEidosValueMaskVOID))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFull, kEidosValueMaskVOID))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("binary", gStaticEidosValue_LogicalF)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("spatialPositions", gStaticEidosValue_LogicalT)->AddLogical_OS("ages", gStaticEidosValue_LogicalT));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMutations, kEidosValueMaskVOID))->AddObject("mutations", gSLiM_Mutation_Class)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_readFromPopulationFile, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddString_S("filePath"));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_recalculateFitness, kEidosValueMaskNULL))->AddInt_OSN("generation", gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_recalculateFitness, kEidosValueMaskVOID))->AddInt_OSN("generation", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerEarlyEvent, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerLateEvent, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerFitnessCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_SN("mutType", gSLiM_MutationType_Class)->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
@@ -6655,10 +6651,10 @@ const std::vector<const EidosMethodSignature *> *SLiMSim_Class::Methods(void) co
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerRecombinationCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerReproductionCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddString_OSN("sex", gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_rescheduleScriptBlock, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddObject_S("block", gSLiM_SLiMEidosBlock_Class)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL)->AddInt_ON("generations", gStaticEidosValueNULL));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_simulationFinished, kEidosValueMaskNULL)));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqSimplify, kEidosValueMaskNULL)));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqRememberIndividuals, kEidosValueMaskNULL))->AddObject("individuals", gSLiM_Individual_Class));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqOutput, kEidosValueMaskNULL))->AddString_S("path")->AddLogical_OS("binary", gStaticEidosValue_LogicalT)->AddLogical_OS("simplify", gStaticEidosValue_LogicalT));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_simulationFinished, kEidosValueMaskVOID)));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqSimplify, kEidosValueMaskVOID)));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqRememberIndividuals, kEidosValueMaskVOID))->AddObject("individuals", gSLiM_Individual_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqOutput, kEidosValueMaskVOID))->AddString_S("path")->AddLogical_OS("binary", gStaticEidosValue_LogicalT)->AddLogical_OS("simplify", gStaticEidosValue_LogicalT));
 							  
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}

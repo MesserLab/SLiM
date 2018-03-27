@@ -175,6 +175,13 @@ void SLiMAssertScriptRaise(const std::string &p_script_string, const int p_bad_l
 			std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : stop() reached (expected \"" << p_reason_snip << "\")." << std::endl;
 			std::cerr << "--------------------" << std::endl << std::endl;
 		}
+		
+		// Error messages that say (internal error) should not be possible to trigger in script
+		if (raise_message.find("(internal error)") != std::string::npos)
+		{
+			std::cerr << p_script_string << " : error message contains (internal error) erroneously" << std::endl;
+			std::cerr << "   raise message: " << raise_message << std::endl;
+		}
 	}
 	
 	delete sim;
@@ -3384,10 +3391,10 @@ void _RunSLiMEidosBlockTests(void)
 	
 	// Test user-defined functions in SLiM; there is a huge amount more that could be tested, but these get tested by EidosScribe too,
 	// so mostly we just need to make sure here that they get declared and defined properly in SLiM, and are callable.
-	SLiMAssertScriptStop(gen1_setup_p1 + "function (i)A(i x) {x*2;} 1 { if (A(2) == 4) stop(); } 10 {  } ", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "function (i)A(i x) {B(x)+1;} function (i)B(i x) {x*2;} 1 { if (A(2) == 5) stop(); } 10 {  } ", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "function (i)A(i x) {return x*2;} 1 { if (A(2) == 4) stop(); } 10 {  } ", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "function (i)A(i x) {return B(x)+1;} function (i)B(i x) {return x*2;} 1 { if (A(2) == 5) stop(); } 10 {  } ", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "function (i)fac([i b=10]) { if (b <= 1) return 1; else return b*fac(b-1); } 1 { if (fac(5) == 120) stop(); } 10 {  } ", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "function (i)spsize(o<Subpopulation>$ sp) { sp.individualCount; } 2 { if (spsize(p1) == 10) stop(); } 10 {  } ", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "function (i)spsize(o<Subpopulation>$ sp) { return sp.individualCount; } 2 { if (spsize(p1) == 10) stop(); } 10 {  } ", __LINE__);
 }
 
 #pragma mark Continuous space tests

@@ -24,6 +24,27 @@
 #include <vector>
 
 
+std::ostream& operator<<(std::ostream& p_out, SLiMEidosBlockType p_block_type)
+{
+	switch (p_block_type)
+	{
+		case SLiMEidosBlockType::SLiMEidosEventEarly:				p_out << "early()"; break;
+		case SLiMEidosBlockType::SLiMEidosEventLate:				p_out << "late()"; break;
+		case SLiMEidosBlockType::SLiMEidosInitializeCallback:		p_out << "initialize()"; break;
+		case SLiMEidosBlockType::SLiMEidosFitnessCallback:			p_out << "fitness()"; break;
+		case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:	p_out << "fitness(NULL)"; break;
+		case SLiMEidosBlockType::SLiMEidosInteractionCallback:		p_out << "interaction()"; break;
+		case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		p_out << "mateChoice()"; break;
+		case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		p_out << "modifyChild()"; break;
+		case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	p_out << "recombination()"; break;
+		case SLiMEidosBlockType::SLiMEidosReproductionCallback:		p_out << "reproduction()"; break;
+		case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:		p_out << "function"; break;
+	}
+	
+	return p_out;
+}
+
+
 //
 //	SLiMEidosScript
 //
@@ -1213,7 +1234,7 @@ void SLiMTypeInterpreter::_SetTypeForISArgumentOfClass(const EidosASTNode *p_arg
 		else if (arg_token->token_type_ == EidosTokenType::kTokenNumber)
 		{
 			// The argument can be numeric, in which case it must have a cached int value that is singleton and within bounds
-			EidosValue *cached_value = p_arg_node->cached_value_.get();
+			EidosValue *cached_value = p_arg_node->cached_literal_value_.get();
 			
 			if (cached_value && (cached_value->Type() == EidosValueType::kValueInt) && (cached_value->IsSingleton()))
 			{

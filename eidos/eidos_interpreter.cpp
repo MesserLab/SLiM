@@ -246,12 +246,12 @@ EidosValue_SP EidosInterpreter::EvaluateInternalBlock(EidosScript *p_script_for_
 
 // the starting point for script blocks in Eidos, which do not require braces; this is not really a "block" but a series of
 // independent statements grouped only by virtue of having been executed together as a unit in the interpreter
-EidosValue_SP EidosInterpreter::EvaluateInterpreterBlock(bool p_print_output)
+EidosValue_SP EidosInterpreter::EvaluateInterpreterBlock(bool p_print_output, bool p_return_last_value)
 {
 	EIDOS_BEGIN_EXECUTION_LOG();
 	EIDOS_ENTRY_EXECUTION_LOG("EvaluateInterpreterBlock()");
 	
-	EidosValue_SP result_SP = gStaticEidosValueNULLInvisible;
+	EidosValue_SP result_SP = gStaticEidosValueVOID;
 	
 	for (EidosASTNode *child_node : root_node_->children_)
 	{
@@ -260,7 +260,7 @@ EidosValue_SP EidosInterpreter::EvaluateInterpreterBlock(bool p_print_output)
 		SLIM_PROFILE_BLOCK_START();
 #endif
 		
-		result_SP = FastEvaluateNode(child_node);
+		EidosValue_SP statement_result_SP = FastEvaluateNode(child_node);
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
@@ -272,14 +272,14 @@ EidosValue_SP EidosInterpreter::EvaluateInterpreterBlock(bool p_print_output)
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::EvaluateInterpreterBlock): statement \"" << (next_statement_hit_ ? gEidosStr_next : gEidosStr_break) << "\" encountered with no enclosing loop." << EidosTerminate(nullptr);		// nullptr used to allow the token set by the next/break to be used
 		
 		// send the result of each statement to our output stream; result==nullptr indicates invisible NULL, so we don't print
-		EidosValue *result = result_SP.get();
+		EidosValue *statement_result = statement_result_SP.get();
 		
-		if (p_print_output && result && !result->Invisible())
+		if (p_print_output && statement_result && !statement_result->Invisible())
 		{
 			std::ostringstream &execution_output = ExecutionOutputStream();
 			
 			auto position = execution_output.tellp();
-			execution_output << *result;
+			execution_output << *statement_result;
 			
 			// EidosValue does not put an endl on the stream, so if it emitted any output, add an endl
 			if (position != execution_output.tellp())
@@ -290,8 +290,18 @@ EidosValue_SP EidosInterpreter::EvaluateInterpreterBlock(bool p_print_output)
 		if (return_statement_hit_)
 		{
 			return_statement_hit_ = false;
+			result_SP = std::move(statement_result_SP);
 			break;
 		}
+		
+		// If we're returning the last value seen, keep track of it.  The policy now (starting in SLiM 3) is that lambdas – blocks
+		// of code without braces, such as supplied to apply(), sapply(), executeLambda(), as command-line defines in SLiM, etc. –
+		// implicitly evaluate to the value of the last statement they execute, and a return is not needed.  Functions – blocks
+		// of code with braces, such as user-defined functions, events and callbacks in SLiM, etc. – do not make any implicit return,
+		// and evaluate to VOID unless a return statement is explicitly executed.  Functions that are required to return a value
+		// must therefore do so explicitly with a return; and functions that are declared as returning void must never return a value.
+		if (p_return_last_value)
+			result_SP = std::move(statement_result_SP);
 	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("EvaluateInterpreterBlock()");
@@ -674,6 +684,10 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue_SP p_rvalue, const Eidos
 	}
 #endif
 	
+	// any assignment involving a void rvalue is illegal; check for that up front
+	if (p_rvalue->Type() == EidosValueType::kValueVOID)
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): void may never be assigned." << EidosTerminate(nullptr);
+	
 	switch (token_type)
 	{
 		case EidosTokenType::kTokenLBracket:
@@ -781,7 +795,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue_SP p_rvalue, const Eidos
 			EidosValueType first_child_type = first_child_value->Type();
 			
 			if (first_child_type != EidosValueType::kValueObject)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): (internal error) operand type " << first_child_type << " is not supported by the '.' operator." << EidosTerminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): operand type " << first_child_type << " is not supported by the '.' operator." << EidosTerminate(nullptr);
 			
 			EidosASTNode *second_child_node = p_lvalue_node->children_[1];
 			
@@ -856,7 +870,7 @@ EidosValue_SP EidosInterpreter::Evaluate_NullStatement(const EidosASTNode *p_nod
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_NullStatement()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_NullStatement", 0);
 	
-	EidosValue_SP result_SP = gStaticEidosValueNULLInvisible;
+	EidosValue_SP result_SP = gStaticEidosValueVOID;
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_NullStatement()");
 	return result_SP;
@@ -866,7 +880,7 @@ EidosValue_SP EidosInterpreter::Evaluate_CompoundStatement(const EidosASTNode *p
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_CompoundStatement()");
 	
-	EidosValue_SP result_SP = gStaticEidosValueNULLInvisible;
+	EidosValue_SP result_SP = gStaticEidosValueVOID;
 	
 	for (EidosASTNode *child_node : p_node->children_)
 	{
@@ -875,7 +889,7 @@ EidosValue_SP EidosInterpreter::Evaluate_CompoundStatement(const EidosASTNode *p
 		SLIM_PROFILE_BLOCK_START();
 #endif
 		
-		result_SP = FastEvaluateNode(child_node);
+		EidosValue_SP statement_result_SP = FastEvaluateNode(child_node);
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
@@ -883,8 +897,13 @@ EidosValue_SP EidosInterpreter::Evaluate_CompoundStatement(const EidosASTNode *p
 #endif
 		
 		// a next, break, or return makes us exit immediately, out to the (presumably enclosing) loop evaluator
-		if (next_statement_hit_ || break_statement_hit_ || return_statement_hit_)
+		if (next_statement_hit_ || break_statement_hit_)
 			break;
+		if (return_statement_hit_)
+		{
+			result_SP = std::move(statement_result_SP);
+			break;
+		}
 	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_CompoundStatement()");
@@ -1025,7 +1044,7 @@ EidosValue_SP EidosInterpreter::Evaluate_RangeExpr(const EidosASTNode *p_node)
 
 	// Constant expressions involving the range operator are particularly common, so we cache them for reuse
 	// here, as an optimization.  If we have a cached value, we can simply return it.
-	EidosValue_SP result_SP = p_node->cached_value_;
+	EidosValue_SP result_SP = p_node->cached_range_value_;
 	
 	if (!result_SP)
 	{
@@ -1040,7 +1059,7 @@ EidosValue_SP EidosInterpreter::Evaluate_RangeExpr(const EidosASTNode *p_node)
 		
 		// cache our range as a constant in the tree if we can
 		if (cacheable)
-			p_node->cached_value_ = result_SP;
+			p_node->cached_range_value_ = result_SP;
 	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_RangeExpr()");
@@ -1258,7 +1277,7 @@ EidosValue_SP EidosInterpreter::DispatchUserDefinedFunction(const EidosFunctionS
 		// Get the result.  BEWARE!  This calls causes re-entry into the Eidos interpreter, which is not usually
 		// possible since Eidos does not support multithreaded usage.  This is therefore a key failure point for
 		// bugs that would otherwise not manifest.
-		result_SP = interpreter.EvaluateInterpreterBlock(false);
+		result_SP = interpreter.EvaluateInterpreterBlock(false, false);	// don't print output, don't return last statement value
 		
 		// Assimilate output
 		if (interpreter.HasExecutionOutput())
@@ -1389,14 +1408,10 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): unbound function " << *function_name << "." << EidosTerminate(call_identifier_token);
 		}
 		
-		// If the code above supplied no return value, invisible NULL is assumed as a default to prevent a crash;
-		// but this is an internal error so the check is run only when in debug.  Not in debug, we crash.
+		// If the code above supplied no return value, raise when in debug.  Not in debug, we crash.
 #ifdef DEBUG
 		if (!result_SP)
-		{
-			std::cerr << "result_SP not set in function " << *function_name << std::endl;
-			result_SP = gStaticEidosValueNULLInvisible;
-		}
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): (internal error) function " << *function_name << " returned nullptr." << EidosTerminate(call_identifier_token);
 #endif
 		
 		// Check the return value against the signature
@@ -1416,7 +1431,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		EidosValueType first_child_type = first_child_value->Type();
 		
 		if (first_child_type != EidosValueType::kValueObject)
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): (internal error) operand type " << first_child_type << " is not supported by the '.' operator." << EidosTerminate(call_name_node->token_);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): operand type " << first_child_type << " is not supported by the '.' operator." << EidosTerminate(call_name_node->token_);
 		
 		EidosASTNode *second_child_node = call_name_node->children_[1];
 		
@@ -1543,7 +1558,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 	}
 	else
 	{
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): (internal error) type " << call_name_token_type << " is not supported by the '()' operator (illegal operand for a function call operation)." << EidosTerminate(call_name_node->token_);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): the '()' operator may only be used with a function name or method name (illegal operand for a function call operation)." << EidosTerminate(call_name_node->token_);
 	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Call()");
@@ -1562,6 +1577,9 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 	EidosValue_SP first_child_value = FastEvaluateNode(p_node->children_[0]);
 	EidosValueType first_child_type = first_child_value->Type();
 	int first_child_dim_count = first_child_value->DimensionCount();
+	
+	if (first_child_type == EidosValueType::kValueVOID)
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): subsetting of a value of type void is not supported by the '[]' operator." << EidosTerminate(operator_token);
 	
 	// organize our subset arguments
 	int child_count = (int)p_node->children_.size();
@@ -2102,6 +2120,9 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 		
 		if ((first_child_dimcount > 1) && (second_child_dimcount > 1) && !EidosValue::MatchingDimensions(first_child_value.get(), second_child_value.get()))
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): non-conformable array operands to binary '+' operator." << EidosTerminate(operator_token);
+		
+		if ((first_child_type == EidosValueType::kValueVOID) || (second_child_type == EidosValueType::kValueVOID))
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): operand type void is not supported by the '+' operator." << EidosTerminate(operator_token);
 		
 		if ((first_child_type == EidosValueType::kValueString) || (second_child_type == EidosValueType::kValueString))
 		{
@@ -3863,8 +3884,8 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 			
 			if (lvalue_type == EidosValueType::kValueInt)
 			{
-				EidosASTNode *rvalue_node = p_node->children_[1];								// the operator node
-				EidosValue *cached_operand2 = rvalue_node->children_[1]->cached_value_.get();	// the numeric constant
+				EidosASTNode *rvalue_node = p_node->children_[1];										// the operator node
+				EidosValue *cached_operand2 = rvalue_node->children_[1]->cached_literal_value_.get();	// the numeric constant
 				
 				// if the lvalue is an integer, we require the rvalue to be an integer also; we don't handle mixed types here
 				if (cached_operand2->Type() == EidosValueType::kValueInt)
@@ -3960,8 +3981,8 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 			else if (lvalue_type == EidosValueType::kValueFloat)
 			{
 				// if the lvalue is a float, we do not require the rvalue to be a float also; the integer will promote to float seamlessly
-				EidosASTNode *rvalue_node = p_node->children_[1];								// the operator node
-				EidosValue *cached_operand2 = rvalue_node->children_[1]->cached_value_.get();	// the numeric constant
+				EidosASTNode *rvalue_node = p_node->children_[1];										// the operator node
+				EidosValue *cached_operand2 = rvalue_node->children_[1]->cached_literal_value_.get();	// the numeric constant
 				EidosTokenType compound_operator = rvalue_node->token_->token_type_;
 				double operand2_value = cached_operand2->FloatAtIndex(0, nullptr);				// might be an int64_t and get converted
 				
@@ -4084,9 +4105,9 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 	
 compoundAssignmentSuccess:
 	
-	// by design, assignment does not yield a usable value; instead it produces NULL – this prevents the error "if (x = 3) ..."
-	// since the condition is NULL and will raise; the loss of legitimate uses of "if (x = 3)" seems a small price to pay
-	EidosValue_SP result_SP = gStaticEidosValueNULLInvisible;
+	// by design, assignment does not yield a usable value; instead it produces void – this prevents the error "if (x = 3) ..."
+	// since the condition is void and will raise; the loss of legitimate uses of "if (x = 3)" seems a small price to pay
+	EidosValue_SP result_SP = gStaticEidosValueVOID;
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Assign()");
 	return result_SP;
@@ -4105,6 +4126,9 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 	
 	EidosValueType first_child_type = first_child_value->Type();
 	EidosValueType second_child_type = second_child_value->Type();
+	
+	if ((first_child_type == EidosValueType::kValueVOID) || (second_child_type == EidosValueType::kValueVOID))
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Eq): operand type void is not supported by the '==' operator." << EidosTerminate(operator_token);
 	
 	if ((first_child_type != EidosValueType::kValueNULL) && (second_child_type != EidosValueType::kValueNULL))
 	{
@@ -4288,6 +4312,8 @@ EidosValue_SP EidosInterpreter::Evaluate_Lt(const EidosASTNode *p_node)
 	EidosValueType first_child_type = first_child_value->Type();
 	EidosValueType second_child_type = second_child_value->Type();
 	
+	if ((first_child_type == EidosValueType::kValueVOID) || (second_child_type == EidosValueType::kValueVOID))
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Lt): operand type void is not supported by the '<' operator." << EidosTerminate(operator_token);
 	if ((first_child_type == EidosValueType::kValueObject) || (second_child_type == EidosValueType::kValueObject))
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Lt): the '<' operator cannot be used with type object." << EidosTerminate(operator_token);
 	
@@ -4393,6 +4419,8 @@ EidosValue_SP EidosInterpreter::Evaluate_LtEq(const EidosASTNode *p_node)
 	EidosValueType first_child_type = first_child_value->Type();
 	EidosValueType second_child_type = second_child_value->Type();
 	
+	if ((first_child_type == EidosValueType::kValueVOID) || (second_child_type == EidosValueType::kValueVOID))
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_LtEq): operand type void is not supported by the '<=' operator." << EidosTerminate(operator_token);
 	if ((first_child_type == EidosValueType::kValueObject) || (second_child_type == EidosValueType::kValueObject))
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_LtEq): the '<=' operator cannot be used with type object." << EidosTerminate(operator_token);
 	
@@ -4498,6 +4526,8 @@ EidosValue_SP EidosInterpreter::Evaluate_Gt(const EidosASTNode *p_node)
 	EidosValueType first_child_type = first_child_value->Type();
 	EidosValueType second_child_type = second_child_value->Type();
 	
+	if ((first_child_type == EidosValueType::kValueVOID) || (second_child_type == EidosValueType::kValueVOID))
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Gt): operand type void is not supported by the '>' operator." << EidosTerminate(operator_token);
 	if ((first_child_type == EidosValueType::kValueObject) || (second_child_type == EidosValueType::kValueObject))
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Gt): the '>' operator cannot be used with type object." << EidosTerminate(operator_token);
 	
@@ -4603,6 +4633,8 @@ EidosValue_SP EidosInterpreter::Evaluate_GtEq(const EidosASTNode *p_node)
 	EidosValueType first_child_type = first_child_value->Type();
 	EidosValueType second_child_type = second_child_value->Type();
 	
+	if ((first_child_type == EidosValueType::kValueVOID) || (second_child_type == EidosValueType::kValueVOID))
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_GtEq): operand type void is not supported by the '>=' operator." << EidosTerminate(operator_token);
 	if ((first_child_type == EidosValueType::kValueObject) || (second_child_type == EidosValueType::kValueObject))
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_GtEq): the '>=' operator cannot be used with type object." << EidosTerminate(operator_token);
 	
@@ -4707,6 +4739,9 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 	
 	EidosValueType first_child_type = first_child_value->Type();
 	EidosValueType second_child_type = second_child_value->Type();
+	
+	if ((first_child_type == EidosValueType::kValueVOID) || (second_child_type == EidosValueType::kValueVOID))
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_NotEq): operand type void is not supported by the '!=' operator." << EidosTerminate(operator_token);
 	
 	if ((first_child_type != EidosValueType::kValueNULL) && (second_child_type != EidosValueType::kValueNULL))
 	{
@@ -4987,7 +5022,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Number(const EidosASTNode *p_node)
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_Number", 0);
 	
 	// use a cached value from EidosASTNode::_OptimizeConstants() if present; this should always be hit now!
-	EidosValue_SP result_SP = p_node->cached_value_;
+	EidosValue_SP result_SP = p_node->cached_literal_value_;
 	
 	if (!result_SP)
 	{
@@ -5007,7 +5042,7 @@ EidosValue_SP EidosInterpreter::Evaluate_String(const EidosASTNode *p_node)
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_String", 0);
 	
 	// use a cached value from EidosASTNode::_OptimizeConstants() if present; this should always be hit now!
-	EidosValue_SP result_SP = p_node->cached_value_;
+	EidosValue_SP result_SP = p_node->cached_literal_value_;
 	
 	if (!result_SP)
 	{
@@ -5025,7 +5060,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Identifier(const EidosASTNode *p_node)
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_Identifier", 0);
 	
 	// use a cached value from EidosASTNode::_OptimizeConstants() if present
-	EidosValue_SP result_SP = p_node->cached_value_;
+	EidosValue_SP result_SP = p_node->cached_literal_value_;
 	
 	if (!result_SP)
 	{
@@ -5085,9 +5120,9 @@ EidosValue_SP EidosInterpreter::Evaluate_If(const EidosASTNode *p_node)
 			SLIM_PROFILE_BLOCK_END_CONDITION(false_node->profile_total_);
 #endif
 		}
-		else										// no 'else' node, so the result is NULL
+		else								// no 'else' node, so the result is void
 		{
-			result_SP = gStaticEidosValueNULLInvisible;
+			result_SP = gStaticEidosValueVOID;
 		}
 	}
 	else if (condition_result->Count() == 1)
@@ -5126,9 +5161,9 @@ EidosValue_SP EidosInterpreter::Evaluate_If(const EidosASTNode *p_node)
 			SLIM_PROFILE_BLOCK_END_CONDITION(false_node->profile_total_);
 #endif
 		}
-		else										// no 'else' node, so the result is NULL
+		else								// no 'else' node, so the result is void
 		{
-			result_SP = gStaticEidosValueNULLInvisible;
+			result_SP = gStaticEidosValueVOID;
 		}
 	}
 	else
@@ -5210,7 +5245,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Do(const EidosASTNode *p_node)
 	while (true);
 	
 	if (!result_SP)
-		result_SP = gStaticEidosValueNULLInvisible;
+		result_SP = gStaticEidosValueVOID;
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Do()");
 	return result_SP;
@@ -5285,7 +5320,7 @@ EidosValue_SP EidosInterpreter::Evaluate_While(const EidosASTNode *p_node)
 	}
 	
 	if (!result_SP)
-		result_SP = gStaticEidosValueNULLInvisible;
+		result_SP = gStaticEidosValueVOID;
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_While()");
 	return result_SP;
@@ -5334,7 +5369,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 		if ((range_node->token_->token_type_ == EidosTokenType::kTokenColon) && (range_node->children_.size() == 2))
 		{
 			// Maybe we can streamline a colon-operator range expression; let's check
-			if (!range_node->cached_value_)
+			if (!range_node->cached_range_value_)
 			{
 				EidosValue_SP range_start_value_SP = FastEvaluateNode(range_node->children_[0]);
 				EidosValue *range_start_value = range_start_value_SP.get();
@@ -5771,6 +5806,8 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 		}
 		else
 		{
+			if (range_type == EidosValueType::kValueVOID)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): the 'for' keyword does not allow void for its right operand (the range to be iterated over)." << EidosTerminate(p_node->token_);
 			if (range_type == EidosValueType::kValueNULL)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): the 'for' keyword does not allow NULL for its right operand (the range to be iterated over)." << EidosTerminate(p_node->token_);
 		}
@@ -5779,7 +5816,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 for_exit:
 	
 	if (!result_SP)
-		result_SP = gStaticEidosValueNULLInvisible;
+		result_SP = gStaticEidosValueVOID;
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_For()");
 	return result_SP;
@@ -5798,7 +5835,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Next(const EidosASTNode *p_node)
 	// We set up the error state on our token so that if we don't get handled properly above, we are highlighted.
 	EidosScript::PushErrorPositionFromToken(p_node->token_);
 	
-	EidosValue_SP result_SP = gStaticEidosValueNULLInvisible;
+	EidosValue_SP result_SP = gStaticEidosValueVOID;
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Next()");
 	return result_SP;
@@ -5817,7 +5854,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Break(const EidosASTNode *p_node)
 	// We set up the error state on our token so that if we don't get handled properly above, we are highlighted.
 	EidosScript::PushErrorPositionFromToken(p_node->token_);
 	
-	EidosValue_SP result_SP = gStaticEidosValueNULLInvisible;
+	EidosValue_SP result_SP = gStaticEidosValueVOID;
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Break()");
 	return result_SP;
@@ -5838,7 +5875,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Return(const EidosASTNode *p_node)
 	EidosValue_SP result_SP;
 	
 	if (p_node->children_.size() == 0)
-		result_SP = gStaticEidosValueNULLInvisible;	// default return value
+		result_SP = gStaticEidosValueVOID;	// no return value; note that "return;" is semantically different from "return NULL;" because it returns void
 	else
 		result_SP = FastEvaluateNode(p_node->children_[0]);
 	
@@ -5966,8 +6003,8 @@ EidosValue_SP EidosInterpreter::Evaluate_FunctionDecl(const EidosASTNode *p_node
 	
 	function_map_.insert(EidosFunctionMapPair(sig->call_name_, EidosFunctionSignature_SP(sig)));
 	
-	// Always return NULL
-	EidosValue_SP result_SP = gStaticEidosValueNULLInvisible;
+	// Always return void
+	EidosValue_SP result_SP = gStaticEidosValueVOID;
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_FunctionDecl()");
 	

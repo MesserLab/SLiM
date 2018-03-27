@@ -141,7 +141,7 @@ int main(int argc, const char * argv[])
 	EidosFunctionMap function_map(*EidosInterpreter::BuiltInFunctionMap());
 	EidosInterpreter interpreter(script, *variable_symbols, function_map, nullptr);
 	
-	EidosValue_SP result = interpreter.EvaluateInterpreterBlock(true);
+	EidosValue_SP result = interpreter.EvaluateInterpreterBlock(true, true);	// print output, return the last statement value (result not used)
 	std::string output = interpreter.ExecutionOutput();
 	
 	std::cout << output << std::endl;

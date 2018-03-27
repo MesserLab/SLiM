@@ -86,46 +86,61 @@ void EidosASTNode::_OptimizeConstants(void) const
 	
 	if (token_type == EidosTokenType::kTokenNumber)
 	{
-		cached_value_ = EidosInterpreter::NumericValueForString(token_->token_string_, token_);
+		cached_literal_value_ = EidosInterpreter::NumericValueForString(token_->token_string_, token_);
 	}
 	else if (token_type == EidosTokenType::kTokenString)
 	{
 		// This is taken from EidosInterpreter::Evaluate_String and needs to match exactly!
-		cached_value_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(token_->token_string_));
+		cached_literal_value_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(token_->token_string_));
 	}
 	else if (token_type == EidosTokenType::kTokenIdentifier)
 	{
 		// Cache values for built-in constants; these can't be changed, so this should be safe, and
 		// should be much faster than having to scan up through all the symbol tables recursively
 		if (token_->token_string_ == gEidosStr_F)
-			cached_value_ = gStaticEidosValue_LogicalF;
+			cached_literal_value_ = gStaticEidosValue_LogicalF;
 		else if (token_->token_string_ == gEidosStr_T)
-			cached_value_ = gStaticEidosValue_LogicalT;
+			cached_literal_value_ = gStaticEidosValue_LogicalT;
 		else if (token_->token_string_ == gEidosStr_INF)
-			cached_value_ = gStaticEidosValue_FloatINF;
+			cached_literal_value_ = gStaticEidosValue_FloatINF;
 		else if (token_->token_string_ == gEidosStr_NAN)
-			cached_value_ = gStaticEidosValue_FloatNAN;
+			cached_literal_value_ = gStaticEidosValue_FloatNAN;
 		else if (token_->token_string_ == gEidosStr_E)
-			cached_value_ = gStaticEidosValue_FloatE;
+			cached_literal_value_ = gStaticEidosValue_FloatE;
 		else if (token_->token_string_ == gEidosStr_PI)
-			cached_value_ = gStaticEidosValue_FloatPI;
+			cached_literal_value_ = gStaticEidosValue_FloatPI;
 		else if (token_->token_string_ == gEidosStr_NULL)
-			cached_value_ = gStaticEidosValueNULL;
+			cached_literal_value_ = gStaticEidosValueNULL;
 	}
-	else if ((token_type == EidosTokenType::kTokenReturn) || (token_type == EidosTokenType::kTokenLBrace))
+	else if (token_type == EidosTokenType::kTokenReturn)
 	{
-		// These are node types which can propagate a single constant value upward.  Note that this is not strictly
-		// true; both return and compound statements have side effects on the flow of execution.  It would therefore
-		// be inappropriate for their execution to be short-circuited in favor of a constant value in general; but
-		// that is not what this optimization means.  Rather, it means that these nodes are saying "I've got just a
-		// constant value inside me, so *if* nothing else is going on around me, I can be taken as equal to that
-		// constant."  We honor that conditional statement by only checking for the cached constant in specific places.
+		// A return statement can propagate a single constant value upward.  Note that this is not strictly true;
+		// return statements have side effects on the flow of execution.  It would therefore be inappropriate for
+		// their execution to be short-circuited in favor of a constant value in general; but that is not what
+		// this optimization means.  Rather, it means that these nodes are saying "I've got just a constant value
+		// inside me, so *if* nothing else is going on around me, I can be taken as equal to that constant."  We
+		// honor that conditional statement by only checking for the cached constant in specific places.
 		if (children_.size() == 1)
 		{
 			const EidosASTNode *child = children_[0];
 			
-			if (child->cached_value_)
-				cached_value_ = child->cached_value_;
+			if (child->cached_literal_value_)
+				cached_return_value_ = child->cached_literal_value_;
+		}
+	}
+	else if (token_type == EidosTokenType::kTokenLBrace)
+	{
+		// This dovetails with the caching of returned values above, and the same caveats apply.  Basically, the idea
+		// is that if a block consists of nothing but the return of a constant value, like "{ return 1.5; }", then
+		// the block can declare that with cached_value_ and intelligent users of the block can avoid interpreting
+		// the block.  Note that since blocks no longer evaluate to the value of their last statement, we now require
+		// the child of the block to be an explicit return statement.
+		if (children_.size() == 1)
+		{
+			const EidosASTNode *child = children_[0];
+			
+			if (child->cached_return_value_ && (child->token_->token_type_ == EidosTokenType::kTokenReturn))
+				cached_return_value_ = child->cached_return_value_;
 		}
 	}
 }
@@ -331,7 +346,7 @@ void EidosASTNode::_OptimizeAssignments(void) const
 							// ... the left and right identifiers are the same...
 							EidosASTNode *right_operand = child1->children_[1];
 							
-							if ((right_operand->token_->token_type_ == EidosTokenType::kTokenNumber) && (right_operand->cached_value_))
+							if ((right_operand->token_->token_type_ == EidosTokenType::kTokenNumber) && (right_operand->cached_literal_value_))
 							{
 								// ... and the right operand is a constant number with a cached value...
 								
@@ -348,14 +363,14 @@ void EidosASTNode::_OptimizeAssignments(void) const
 
 bool EidosASTNode::HasCachedNumericValue(void) const
 {
-	if ((token_->token_type_ == EidosTokenType::kTokenNumber) && cached_value_ && (cached_value_->Count() == 1))
+	if ((token_->token_type_ == EidosTokenType::kTokenNumber) && cached_literal_value_ && (cached_literal_value_->Count() == 1))
 		return true;
 	
 	if ((token_->token_type_ == EidosTokenType::kTokenMinus) && (children_.size() == 1))
 	{
 		const EidosASTNode *minus_child = children_[0];
 		
-		if ((minus_child->token_->token_type_ == EidosTokenType::kTokenNumber) && minus_child->cached_value_ && (minus_child->cached_value_->Count() == 1))
+		if ((minus_child->token_->token_type_ == EidosTokenType::kTokenNumber) && minus_child->cached_literal_value_ && (minus_child->cached_literal_value_->Count() == 1))
 			return true;
 	}
 	
@@ -364,15 +379,15 @@ bool EidosASTNode::HasCachedNumericValue(void) const
 
 double EidosASTNode::CachedNumericValue(void) const
 {
-	if ((token_->token_type_ == EidosTokenType::kTokenNumber) && cached_value_ && (cached_value_->Count() == 1))
-		return cached_value_->FloatAtIndex(0, nullptr);
+	if ((token_->token_type_ == EidosTokenType::kTokenNumber) && cached_literal_value_ && (cached_literal_value_->Count() == 1))
+		return cached_literal_value_->FloatAtIndex(0, nullptr);
 	
 	if ((token_->token_type_ == EidosTokenType::kTokenMinus) && (children_.size() == 1))
 	{
 		const EidosASTNode *minus_child = children_[0];
 		
-		if ((minus_child->token_->token_type_ == EidosTokenType::kTokenNumber) && minus_child->cached_value_ && (minus_child->cached_value_->Count() == 1))
-			return -minus_child->cached_value_->FloatAtIndex(0, nullptr);
+		if ((minus_child->token_->token_type_ == EidosTokenType::kTokenNumber) && minus_child->cached_literal_value_ && (minus_child->cached_literal_value_->Count() == 1))
+			return -minus_child->cached_literal_value_->FloatAtIndex(0, nullptr);
 	}
 	
 	EIDOS_TERMINATION << "ERROR (EidosASTNode::CachedNumericValue): (internal error) no cached numeric value" << EidosTerminate(nullptr);
