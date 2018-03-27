@@ -1884,20 +1884,8 @@ EidosASTNode *EidosScript::Parse_ReturnTypeSpec()
 			if (!parse_make_bad_nodes_)
 				EIDOS_TERMINATION << "ERROR (EidosScript::Parse_ReturnTypeSpec): unexpected token '" << *current_token_ << "' in return-type specifier; perhaps 'void' is missing?  Note that function() has been renamed to functionSignature()." << EidosTerminate(current_token_);
 		
-		if ((current_token_type_ == EidosTokenType::kTokenIdentifier) && (current_token_->token_string_ == "void"))
-		{
-			// create a node for the void type-specifier, which Parse_TypeSpec() does not handle
-			node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
-			node->typespec_.type_mask = kEidosValueMaskNULL;
-			node->typespec_.object_class = nullptr;
-			
-			Match(EidosTokenType::kTokenIdentifier, "return-type specifier");
-		}
-		else
-		{
-			// create a node for the type-specifier
-			node = Parse_TypeSpec();
-		}
+		// create a node for the type-specifier
+		node = Parse_TypeSpec();
 		
 		Match(EidosTokenType::kTokenRParen, "return-type specifier");
 	}
@@ -1928,9 +1916,22 @@ EidosASTNode *EidosScript::Parse_TypeSpec(void)
 		
 		if (current_token_type_ == EidosTokenType::kTokenIdentifier)
 		{
+			// Note that as a matter of syntax, this method will parse "void" and type-specifiers containing "v" as pertaining
+			// to the "void" type in Eidos.  If the caller does not allow void to be used in a specific context, that is a
+			// matter of semantics; the caller should check and raise if void is used, in that case.
 			const std::string &type = current_token_->token_string_;
 			
-			if (type == "logical")
+			if (type == "void")
+			{
+				node->typespec_.type_mask = kEidosValueMaskVOID;
+				Match(EidosTokenType::kTokenIdentifier, "type specifier");
+			}
+			else if (type == "NULL")
+			{
+				node->typespec_.type_mask = kEidosValueMaskNULL;
+				Match(EidosTokenType::kTokenIdentifier, "type specifier");
+			}
+			else if (type == "logical")
 			{
 				node->typespec_.type_mask = kEidosValueMaskLogical;
 				Match(EidosTokenType::kTokenIdentifier, "type specifier");
@@ -1965,14 +1966,15 @@ EidosASTNode *EidosScript::Parse_TypeSpec(void)
 			}
 			else
 			{
-				// Check for a type composed of (Nlifso)*
-				bool seen_N = false, seen_l = false, seen_i = false, seen_f = false, seen_s = false, seen_o = false;
+				// Check for a type composed of (vNlifso)*
+				bool seen_v = false, seen_N = false, seen_l = false, seen_i = false, seen_f = false, seen_s = false, seen_o = false;
 				bool saw_double = false;
 				
 				for (const char &c : type)
 				{
 					switch (c)
 					{
+						case 'v':	if (seen_v) saw_double = true; else seen_v = true; break;
 						case 'N':	if (seen_N) saw_double = true; else seen_N = true; break;
 						case 'l':	if (seen_l) saw_double = true; else seen_l = true; break;
 						case 'i':	if (seen_i) saw_double = true; else seen_i = true; break;
@@ -1988,6 +1990,7 @@ EidosASTNode *EidosScript::Parse_TypeSpec(void)
 							EIDOS_TERMINATION << "ERROR (EidosScript::Parse_TypeSpec): illegal type-specifier '" << type << "' (doubly specified type '" << c << "')." << EidosTerminate(current_token_);
 				}
 				
+				if (seen_v)		node->typespec_.type_mask |= kEidosValueMaskVOID;
 				if (seen_N)		node->typespec_.type_mask |= kEidosValueMaskNULL;
 				if (seen_l)		node->typespec_.type_mask |= kEidosValueMaskLogical;
 				if (seen_i)		node->typespec_.type_mask |= kEidosValueMaskInt;
@@ -2023,6 +2026,12 @@ EidosASTNode *EidosScript::Parse_TypeSpec(void)
 		
 		if (current_token_type_ == EidosTokenType::kTokenSingleton)
 		{
+			// Check for some illegal cases, where (semantically) the type may not be declared as singleton
+			if ((node->typespec_.type_mask == kEidosValueMaskVOID) ||
+				(node->typespec_.type_mask == kEidosValueMaskNULL) ||
+				(node->typespec_.type_mask == (kEidosValueMaskNULL | kEidosValueMaskVOID)))
+				EIDOS_TERMINATION << "ERROR (EidosScript::Parse_TypeSpec): type-specifiers that consist only of void and/or NULL may not be declared to be singleton." << EidosTerminate(current_token_);
+			
 			// Mark the node as representing a singleton
 			node->typespec_.type_mask |= kEidosValueMaskSingleton;
 			
@@ -2085,7 +2094,11 @@ EidosASTNode *EidosScript::Parse_ParamList(void)
 		
 		Match(EidosTokenType::kTokenLParen, "parameter list");
 		
-		if ((current_token_type_ == EidosTokenType::kTokenIdentifier) && (current_token_->token_string_ == "void"))
+		// Look ahead one token for the 'void' ')' pattern.  The token at parse_index_ + 1 will always be defined,
+		// at least as an EOF; looking ahead two tokens would require a bounds check, but one token does not.
+		if ((current_token_type_ == EidosTokenType::kTokenIdentifier) &&
+			(current_token_->token_string_ == "void") &&
+			(token_stream_.at(parse_index_ + 1).token_type_ == EidosTokenType::kTokenRParen))
 		{
 			// A void parameter list is represented by no children of the param-list node
 			Match(EidosTokenType::kTokenIdentifier, "parameter list");
@@ -2140,7 +2153,13 @@ EidosASTNode *EidosScript::Parse_ParamSpec(void)
 			// In this case the parent node is of type EidosTokenType::kTokenLBracket
 			Match(EidosTokenType::kTokenLBracket, "parameter specifier");
 			
+			EidosToken *type_specifier_token = current_token_;
+			
 			type_node = Parse_TypeSpec();
+			
+			if (type_node->typespec_.type_mask & kEidosValueMaskVOID)
+				EIDOS_TERMINATION << "ERROR (EidosScript::Parse_ParamSpec): void is not allowed in parameter type-specifiers; function parameters may not accept void arguments." << EidosTerminate(type_specifier_token);
+			
 			type_node->typespec_.type_mask |= kEidosValueMaskOptional;
 			node->AddChild(type_node);
 			
@@ -2169,7 +2188,13 @@ EidosASTNode *EidosScript::Parse_ParamSpec(void)
 			// This is a required argument of the form "type-spec ID"
 			// It is stored as a node with two children: type-spec, ID
 			// In this case the parent node is of type EidosTokenType::kTokenIdentifier
+			EidosToken *type_specifier_token = current_token_;
+			
 			type_node = Parse_TypeSpec();
+			
+			if (type_node->typespec_.type_mask & kEidosValueMaskVOID)
+				EIDOS_TERMINATION << "ERROR (EidosScript::Parse_ParamSpec): void is not allowed in parameter type-specifiers; function parameters may not accept void arguments." << EidosTerminate(type_specifier_token);
+			
 			node->AddChild(type_node);
 			
 			parameter_id = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);

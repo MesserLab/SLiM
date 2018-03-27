@@ -119,7 +119,7 @@ EidosValue_SP SLiMEidosDictionary::ExecuteMethod_Accelerated_setValue(EidosObjec
 		}
 	}
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 
 
@@ -147,7 +147,7 @@ const std::vector<const EidosMethodSignature *> *SLiMEidosDictionary_Class::Meth
 		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_getValue, kEidosValueMaskAnyBase))->AddString_S("key"));
-		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setValue, kEidosValueMaskNULL))->AddString_S("key")->AddAnyBase("value"))->DeclareAcceleratedImp(SLiMEidosDictionary::ExecuteMethod_Accelerated_setValue));
+		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setValue, kEidosValueMaskVOID))->AddString_S("key")->AddAnyBase("value"))->DeclareAcceleratedImp(SLiMEidosDictionary::ExecuteMethod_Accelerated_setValue));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}

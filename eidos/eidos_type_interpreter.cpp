@@ -810,7 +810,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Number(const EidosASTNode 
 {
 	// use a cached value from EidosASTNode::_OptimizeConstants() if present; this should always be hit now!
 	EidosTypeSpecifier result_type = EidosTypeSpecifier{kEidosValueMaskNumeric, nullptr};
-	EidosValue_SP result_SP = p_node->cached_value_;
+	EidosValue_SP result_SP = p_node->cached_literal_value_;
 	
 	if (result_SP)
 	{

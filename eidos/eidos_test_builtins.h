@@ -18,7 +18,7 @@ R"V0G0N(
 // (numeric)abs(numeric x)
 function (numeric)abs_func(numeric x)
 {
-	sapply(x, 'if (applyValue < 0) -applyValue; else applyValue;');
+	return sapply(x, 'if (applyValue < 0) -applyValue; else applyValue;');
 }
 
 x = sample(-1000:1000, 10000, T);	// integer
@@ -65,7 +65,7 @@ for (iter in 1:10000)
 // (numeric)cumProduct(numeric x)
 function (numeric)cumProduct_func(numeric x)
 {
-	sapply(seqAlong(x), 'product(x[0:applyValue]);');
+	return sapply(seqAlong(x), 'product(x[0:applyValue]);');
 }
 
 for (iter in 1:100)
@@ -88,7 +88,7 @@ for (iter in 1:100)
 // (numeric)cumSum(numeric x)
 function (numeric)cumSum_func(numeric x)
 {
-	sapply(seqAlong(x), 'sum(x[0:applyValue]);');
+	return sapply(seqAlong(x), 'sum(x[0:applyValue]);');
 }
 
 for (iter in 1:100)
@@ -111,7 +111,7 @@ for (iter in 1:100)
 // (float)exp(numeric x)
 function (f)exp_func(numeric x)
 {
-	E ^ x;	// this uses pow(), which may produce slightly different results than exp()
+	return E ^ x;	// this uses pow(), which may produce slightly different results than exp()
 }
 
 x = sample(-100:100, 10000, T);	// integer
@@ -145,7 +145,7 @@ for (iter in 1:10000)
 // (+$)max(+ x, ...)
 function (+$)max_func(+ x)
 {
-	sort(x)[size(x) - 1];
+	return sort(x)[size(x) - 1];
 }
 
 for (iter in 1:100)
@@ -168,7 +168,7 @@ for (iter in 1:100)
 // (float$)mean(numeric x)
 function (f$)mean_func(numeric x)
 {
-	sum(x) / size(x);
+	return sum(x) / size(x);
 }
 
 for (iter in 1:100)
@@ -191,7 +191,7 @@ for (iter in 1:100)
 // (+$)min(+ x, ...)
 function (+$)min_func(+ x)
 {
-	sort(x)[0];
+	return sort(x)[0];
 }
 
 for (iter in 1:100)
@@ -214,7 +214,7 @@ for (iter in 1:100)
 // (+)pmax(+ x, + y)
 function (+)pmax_func(+x, +y)
 {
-	ifelse(x > y, x, y);
+	return ifelse(x > y, x, y);
 }
 
 x = sample(-100:100, 10000, T);	// integer
@@ -233,7 +233,7 @@ if (!identical(xbuiltin, xuserdef)) stop('Mismatch in test of pmax(f)');
 // (+)pmin(+ x, + y)
 function (+)pmin_func(+x, +y)
 {
-	ifelse(x < y, x, y);
+	return ifelse(x < y, x, y);
 }
 
 x = sample(-100:100, 10000, T);	// integer
@@ -254,7 +254,7 @@ function (numeric$)product_func(numeric x)
 {
 	p = 1;
 	
-	sapply(x, 'p = p * applyValue;');
+	sapply(x, 'p = p * applyValue; NULL;');
 	
 	return p;
 }
@@ -359,7 +359,7 @@ for (iter in 1:100)
 // (*)rev(* x)
 function (*)rev_func(* x)
 {
-	x[(size(x) - 1):0];
+	return x[(size(x) - 1):0];
 }
 
 for (iter in 1:100)
@@ -506,7 +506,7 @@ for (iter in 1:100)
 // (float)sqrt(numeric x)
 function (f)sqrt_func(numeric x)
 {
-	x ^ 0.5;	// this uses pow(), which may produce slightly different results than sqrt()
+	return x ^ 0.5;	// this uses pow(), which may produce slightly different results than sqrt()
 }
 
 x = sample(1:100, 10000, T);	// integer
@@ -525,7 +525,7 @@ function (numeric$)sum_func(numeric x)
 {
 	s = 0;
 	
-	sapply(x, 's = s + applyValue;');
+	sapply(x, 's = s + applyValue; NULL;');
 	
 	return s;
 }
@@ -552,7 +552,7 @@ function (f$)sumExact_func(f x)
 {
 	s = 0;
 	
-	sapply(x, 's = s + applyValue;');	// no attempt to sum exactly, just using tolerance limits below
+	sapply(x, 's = s + applyValue; NULL;');	// no attempt to sum exactly, just using tolerance limits below
 	
 	return s;
 }

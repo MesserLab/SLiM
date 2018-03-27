@@ -990,9 +990,11 @@ EidosValue_SP Individual::ExecuteMethod_setSpatialPosition(EidosGlobalStringID p
 			spatial_y_ = position_value->FloatAtIndex(1, nullptr);
 			spatial_z_ = position_value->FloatAtIndex(2, nullptr);
 			break;
+		default:
+			EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_setSpatialPosition): (internal error) unrecognized dimensionality." << EidosTerminate();
 	}
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }			
 
 //	*********************	- (integer$)sumOfMutationsOfType(io<MutationType>$ mutType)
@@ -1343,7 +1345,7 @@ const std::vector<const EidosMethodSignature *> *Individual_Class::Methods(void)
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMutations, kEidosValueMaskLogical))->AddObject("mutations", gSLiM_Mutation_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_relatedness, kEidosValueMaskFloat))->AddObject("individuals", gSLiM_Individual_Class));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSpatialPosition, kEidosValueMaskNULL))->AddFloat("position"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSpatialPosition, kEidosValueMaskVOID))->AddFloat("position"));
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sumOfMutationsOfType, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class))->DeclareAcceleratedImp(Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_uniqueMutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		

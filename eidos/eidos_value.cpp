@@ -39,6 +39,8 @@ EidosObjectPool *gEidosValuePool = nullptr;
 //	Internally, these are implemented as subclasses that terminate if they are dealloced or modified.
 //
 
+EidosValue_VOID_SP gStaticEidosValueVOID;
+
 EidosValue_NULL_SP gStaticEidosValueNULL;
 EidosValue_NULL_SP gStaticEidosValueNULLInvisible;
 
@@ -75,6 +77,7 @@ std::string StringForEidosValueType(const EidosValueType p_type)
 {
 	switch (p_type)
 	{
+		case EidosValueType::kValueVOID:		return gEidosStr_void;
 		case EidosValueType::kValueNULL:		return gEidosStr_NULL;
 		case EidosValueType::kValueLogical:		return gEidosStr_logical;
 		case EidosValueType::kValueString:		return gEidosStr_string;
@@ -109,7 +112,8 @@ std::string StringForEidosValueMask(const EidosValueMask p_mask, const EidosObje
 	if (stripped_mask == kEidosValueMaskNone)			out_string += "?";
 	else if (stripped_mask == kEidosValueMaskAny)		out_string += "*";
 	else if (stripped_mask == kEidosValueMaskAnyBase)	out_string += "+";
-	else if (stripped_mask == kEidosValueMaskNULL)		out_string += gEidosStr_void;
+	else if (stripped_mask == kEidosValueMaskVOID)		out_string += gEidosStr_void;
+	else if (stripped_mask == kEidosValueMaskNULL)		out_string += gEidosStr_NULL;
 	else if (stripped_mask == kEidosValueMaskLogical)	out_string += gEidosStr_logical;
 	else if (stripped_mask == kEidosValueMaskString)	out_string += gEidosStr_string;
 	else if (stripped_mask == kEidosValueMaskInt)		out_string += gEidosStr_integer;
@@ -118,6 +122,7 @@ std::string StringForEidosValueMask(const EidosValueMask p_mask, const EidosObje
 	else if (stripped_mask == kEidosValueMaskNumeric)	out_string += gEidosStr_numeric;
 	else
 	{
+		if (stripped_mask & kEidosValueMaskVOID)		out_string += "v";
 		if (stripped_mask & kEidosValueMaskNULL)		out_string += "N";
 		if (stripped_mask & kEidosValueMaskLogical)		out_string += "l";
 		if (stripped_mask & kEidosValueMaskInt)			out_string += "i";
@@ -172,6 +177,8 @@ int CompareEidosValues(const EidosValue &p_value1, int p_index1, const EidosValu
 	EidosValueType type1 = p_value1.Type();
 	EidosValueType type2 = p_value2.Type();
 	
+	if ((type1 == EidosValueType::kValueVOID) || (type2 == EidosValueType::kValueVOID))
+		EIDOS_TERMINATION << "ERROR (CompareEidosValues): (internal error) comparison with void is illegal." << EidosTerminate(p_blame_token);
 	if ((type1 == EidosValueType::kValueNULL) || (type2 == EidosValueType::kValueNULL))
 		EIDOS_TERMINATION << "ERROR (CompareEidosValues): (internal error) comparison with NULL is illegal." << EidosTerminate(p_blame_token);
 	
@@ -269,6 +276,8 @@ int CompareEidosValues_Logical(const EidosValue &p_value1, int p_index1, const E
 
 EidosCompareFunctionPtr Eidos_GetCompareFunctionForTypes(EidosValueType p_type1, EidosValueType p_type2, const EidosToken *p_blame_token)
 {
+	if ((p_type1 == EidosValueType::kValueVOID) || (p_type2 == EidosValueType::kValueVOID))
+		EIDOS_TERMINATION << "ERROR (Eidos_GetCompareFunctionForTypes): (internal error) comparison with void is illegal." << EidosTerminate(p_blame_token);
 	if ((p_type1 == EidosValueType::kValueNULL) || (p_type2 == EidosValueType::kValueNULL))
 		EIDOS_TERMINATION << "ERROR (Eidos_GetCompareFunctionForTypes): (internal error) comparison with NULL is illegal." << EidosTerminate(p_blame_token);
 	
@@ -670,6 +679,7 @@ void EidosValue::Print(std::ostream &p_ostream) const
 		
 		switch (type)
 		{
+			case EidosValueType::kValueVOID:	p_ostream << gEidosStr_void; break;
 			case EidosValueType::kValueNULL:	p_ostream << gEidosStr_NULL; break;
 			case EidosValueType::kValueLogical:
 			case EidosValueType::kValueInt:
@@ -750,6 +760,74 @@ void EidosValue::Print(std::ostream &p_ostream) const
 	{
 		EIDOS_TERMINATION << "ERROR (EidosValue::Print): (internal error) illegal dimension count " << dim_[0] << "." << EidosTerminate(nullptr);
 	}
+}
+
+
+//
+//	EidosValue_VOID
+//
+#pragma mark -
+#pragma mark EidosValue_VOID
+#pragma mark -
+
+/* static */ EidosValue_VOID_SP EidosValue_VOID::Static_EidosValue_VOID(void)
+{
+	// this is a truly permanent constant object
+	static EidosValue_VOID_SP static_void = EidosValue_VOID_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_VOID());
+	
+	static_void->invisible_ = true;		// set every time, since we don't have a constructor to set invisibility
+	
+	return static_void;
+}
+
+const std::string &EidosValue_VOID::ElementType(void) const
+{
+	return gEidosStr_void;
+}
+
+int EidosValue_VOID::Count_Virtual(void) const
+{
+	return 0;
+}
+
+void EidosValue_VOID::PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const
+{
+#pragma unused(p_idx)
+	p_ostream << gEidosStr_void;
+}
+
+EidosValue_SP EidosValue_VOID::GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const
+{
+#pragma unused(p_idx, p_blame_token)
+	EIDOS_TERMINATION << "ERROR (EidosValue_VOID::GetValueAtIndex): (internal error) illegal on void." << EidosTerminate(p_blame_token);
+}
+
+void EidosValue_VOID::SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token)
+{
+#pragma unused(p_idx, p_value)
+	EIDOS_TERMINATION << "ERROR (EidosValue_VOID::SetValueAtIndex): (internal error) illegal on void." << EidosTerminate(p_blame_token);
+}
+
+EidosValue_SP EidosValue_VOID::CopyValues(void) const
+{
+	EIDOS_TERMINATION << "ERROR (EidosValue_VOID::CopyValues): (internal error) illegal on void." << EidosTerminate(nullptr);
+}
+
+EidosValue_SP EidosValue_VOID::NewMatchingType(void) const
+{
+	EIDOS_TERMINATION << "ERROR (EidosValue_VOID::NewMatchingType): (internal error) illegal on void." << EidosTerminate(nullptr);
+}
+
+void EidosValue_VOID::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
+{
+#pragma unused(p_idx, p_source_script_value)
+	EIDOS_TERMINATION << "ERROR (EidosValue_VOID::PushValueFromIndexOfEidosValue): (internal error) illegal on void." << EidosTerminate(p_blame_token);
+}
+
+void EidosValue_VOID::Sort(bool p_ascending)
+{
+#pragma unused(p_ascending)
+	EIDOS_TERMINATION << "ERROR (EidosValue_VOID::Sort): (internal error) illegal on void." << EidosTerminate(nullptr);
 }
 
 
@@ -2265,6 +2343,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 	// switch on the property type for efficiency
 	switch (property_type)
 	{
+		case EidosValueType::kValueVOID:
 		case EidosValueType::kValueNULL:
 		case EidosValueType::kValueObject:
 			EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SortBy): sorting property " << p_property << " returned " << property_type << "; a property that evaluates to logical, int, float, or string is required." << EidosTerminate(nullptr);
@@ -2418,14 +2497,17 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 		// allows code to proceed without errors without having to check for the zero-length case, by simply propagating the
 		// zero-length-ness forward while preserving the expected type for the expression.  If multiple return types are possible,
 		// we return a zero-length vector for the simplest type supported.
+		// BCH 24 March 2018: Decided this policy is a bit unsafe; now we only propagate a zero-length result forward if the
+		// return type is unambiguous, otherwise it is an error.
 		EidosValueMask sig_mask = (signature->value_mask_ & kEidosValueMaskFlagStrip);
 		
-		if (sig_mask & kEidosValueMaskNULL) return gStaticEidosValueNULL;	// we assume visible NULL is the NULL desired, to avoid masking errors
-		if (sig_mask & kEidosValueMaskLogical) return gStaticEidosValue_Logical_ZeroVec;
-		if (sig_mask & kEidosValueMaskInt) return gStaticEidosValue_Integer_ZeroVec;
-		if (sig_mask & kEidosValueMaskFloat) return gStaticEidosValue_Float_ZeroVec;
-		if (sig_mask & kEidosValueMaskString) return gStaticEidosValue_String_ZeroVec;
-		if (sig_mask & kEidosValueMaskObject)
+		if (sig_mask == kEidosValueMaskVOID) return gStaticEidosValueVOID;	// (not legal for properties anyway)
+		if (sig_mask == kEidosValueMaskNULL) return gStaticEidosValueNULL;	// (not legal for properties anyway)
+		if (sig_mask == kEidosValueMaskLogical) return gStaticEidosValue_Logical_ZeroVec;
+		if (sig_mask == kEidosValueMaskInt) return gStaticEidosValue_Integer_ZeroVec;
+		if (sig_mask == kEidosValueMaskFloat) return gStaticEidosValue_Float_ZeroVec;
+		if (sig_mask == kEidosValueMaskString) return gStaticEidosValue_String_ZeroVec;
+		if (sig_mask == kEidosValueMaskObject)
 		{
 			const EidosObjectClass *value_class = signature->value_class_;
 			
@@ -2435,7 +2517,7 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 				return gStaticEidosValue_Object_ZeroVec;
 		}
 		
-		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::GetPropertyOfElements): property " << Eidos_StringForGlobalStringID(p_property_id) << " does not specify a value type, and thus cannot be accessed on a zero-length vector." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::GetPropertyOfElements): property " << Eidos_StringForGlobalStringID(p_property_id) << " does not specify an unambiguous value type, and thus cannot be accessed on a zero-length vector." << EidosTerminate(nullptr);
 	}
 	else if (values_size == 1)
 	{
@@ -2515,7 +2597,7 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 #endif
 		
 		// concatenate the results using ConcatenateEidosValues()
-		EidosValue_SP result = ConcatenateEidosValues(results.data(), (int)results.size(), true);
+		EidosValue_SP result = ConcatenateEidosValues(results.data(), (int)results.size(), true, false);	// allow NULL, don't allow VOID
 		
 		// Access of singleton properties retains the matrix/array structure of the target
 		if (signature->value_mask_ & kEidosValueMaskSingleton)
@@ -2594,14 +2676,17 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 		// allows code to proceed without errors without having to check for the zero-length case, by simply propagating the
 		// zero-length-ness forward while preserving the expected type for the expression.  If multiple return types are possible,
 		// we return a zero-length vector for the simplest type supported.
+		// BCH 24 March 2018: Decided this policy is a bit unsafe; now we only propagate a zero-length result forward if the
+		// return type is unambiguous, otherwise it is an error.
 		EidosValueMask sig_mask = (p_method_signature->return_mask_ & kEidosValueMaskFlagStrip);
 		
-		if (sig_mask & kEidosValueMaskNULL) return gStaticEidosValueNULL;	// we assume visible NULL is the NULL desired, to avoid masking errors
-		if (sig_mask & kEidosValueMaskLogical) return gStaticEidosValue_Logical_ZeroVec;
-		if (sig_mask & kEidosValueMaskInt) return gStaticEidosValue_Integer_ZeroVec;
-		if (sig_mask & kEidosValueMaskFloat) return gStaticEidosValue_Float_ZeroVec;
-		if (sig_mask & kEidosValueMaskString) return gStaticEidosValue_String_ZeroVec;
-		if (sig_mask & kEidosValueMaskObject)
+		if (sig_mask == kEidosValueMaskVOID) return gStaticEidosValueVOID;
+		if (sig_mask == kEidosValueMaskNULL) return gStaticEidosValueNULL;	// we assume visible NULL is the NULL desired, to avoid masking errors
+		if (sig_mask == kEidosValueMaskLogical) return gStaticEidosValue_Logical_ZeroVec;
+		if (sig_mask == kEidosValueMaskInt) return gStaticEidosValue_Integer_ZeroVec;
+		if (sig_mask == kEidosValueMaskFloat) return gStaticEidosValue_Float_ZeroVec;
+		if (sig_mask == kEidosValueMaskString) return gStaticEidosValue_String_ZeroVec;
+		if (sig_mask == kEidosValueMaskObject)
 		{
 			const EidosObjectClass *return_class = p_method_signature->return_class_;
 			
@@ -2611,7 +2696,7 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 				return gStaticEidosValue_Object_ZeroVec;
 		}
 		
-		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::ExecuteMethodCall): method " << Eidos_StringForGlobalStringID(p_method_id) << " does not specify a return type, and thus cannot be called on a zero-length vector." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::ExecuteMethodCall): method " << Eidos_StringForGlobalStringID(p_method_id) << " does not specify an unambiguous return type, and thus cannot be called on a zero-length vector." << EidosTerminate(nullptr);
 	}
 	else if (p_method_signature->accelerated_imp_)
 	{
@@ -2657,7 +2742,20 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 			std::cerr << "Vector call to method " << Eidos_StringForGlobalStringID(p_method_id) << " on class " << class_->ElementType() << " (" << values_size << " elements)" << std::endl;
 #endif
 		
-		if (sig_mask == kEidosValueMaskNULL)
+		if (sig_mask == kEidosValueMaskVOID)
+		{
+			// No need to gather results at all, since they should all be void.
+			for (size_t value_index = 0; value_index < values_size; ++value_index)
+			{
+				EidosValue_SP temp_result = values_[value_index]->ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+#if DEBUG
+				p_method_signature->CheckReturn(*temp_result);
+#endif
+			}
+			
+			return gStaticEidosValueVOID;
+		}
+		else if (sig_mask == kEidosValueMaskNULL)
 		{
 			// We still need to make the method calls, but we don't need to gather results at all, except to note the invisible flag
 			// ConcatenateEidosValues() returns invisible NULL only when all values concatenated are invisible; we mirror that.
@@ -2926,7 +3024,7 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 			}
 			
 			// concatenate the results using ConcatenateEidosValues()
-			EidosValue_SP result = ConcatenateEidosValues(results.data(), (int)results.size(), true);
+			EidosValue_SP result = ConcatenateEidosValues(results.data(), (int)results.size(), true, false);	// allow NULL, don't allow VOID
 			
 			return result;
 		}
@@ -3345,7 +3443,7 @@ EidosValue_SP EidosObjectElement::ExecuteMethod_str(EidosGlobalStringID p_method
 		}
 	}
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 
 EidosValue_SP EidosObjectElement::ContextDefinedFunctionDispatch(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
@@ -3486,10 +3584,10 @@ const std::vector<const EidosMethodSignature *> *EidosObjectClass::Methods(void)
 	{
 		methods = new std::vector<const EidosMethodSignature *>;
 		
-		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_methodSignature, kEidosValueMaskNULL))->AddString_OSN("methodName", gStaticEidosValueNULL));
-		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_propertySignature, kEidosValueMaskNULL))->AddString_OSN("propertyName", gStaticEidosValueNULL));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_methodSignature, kEidosValueMaskVOID))->AddString_OSN("methodName", gStaticEidosValueNULL));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_propertySignature, kEidosValueMaskVOID))->AddString_OSN("propertyName", gStaticEidosValueNULL));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_size, kEidosValueMaskInt | kEidosValueMaskSingleton)));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_str, kEidosValueMaskNULL)));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_str, kEidosValueMaskVOID)));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
@@ -3548,7 +3646,7 @@ EidosValue_SP EidosObjectClass::ExecuteMethod_propertySignature(EidosGlobalStrin
 	if (has_match_string && !signature_found)
 		output_stream << "No property found for \"" << match_string << "\"." << std::endl;
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 
 //	*********************	+ (void)methodSignature([Ns$ methodName = NULL])
@@ -3596,7 +3694,7 @@ EidosValue_SP EidosObjectClass::ExecuteMethod_methodSignature(EidosGlobalStringI
 	if (has_match_string && !signature_found)
 		output_stream << "No method signature found for \"" << match_string << "\"." << std::endl;
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 
 //	*********************	+ (integer$)size(void)

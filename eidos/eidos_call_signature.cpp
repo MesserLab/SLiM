@@ -116,6 +116,7 @@ EidosCallSignature *EidosCallSignature::AddArgWithDefault(EidosValueMask p_arg_m
 			
 			switch (arg_type)
 			{
+				case EidosValueType::kValueVOID:	type_ok = false;									break;
 				case EidosValueType::kValueNULL:	type_ok = !!(type_mask & kEidosValueMaskNULL);		break;
 				case EidosValueType::kValueLogical:	type_ok = !!(type_mask & kEidosValueMaskLogical);	break;
 				case EidosValueType::kValueString:	type_ok = !!(type_mask & kEidosValueMaskString);	break;
@@ -262,13 +263,28 @@ void EidosCallSignature::CheckArguments(const EidosValue_SP *const p_arguments, 
 	size_t arg_masks_size = arg_masks_.size();
 	
 	// Check the number of arguments supplied; note that now our function dispatch code guarantees that every argument is present, including optional arguments
-	if (!has_ellipsis_ && (p_argument_count != arg_masks_size))
+	if (!has_ellipsis_)
 	{
-		if (p_argument_count > arg_masks_size)
-			EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): " << CallType() << " " << call_name_ << "() requires at most " << arg_masks_.size() << " argument(s), but " << p_argument_count << " are supplied (after incorporating default arguments)." << EidosTerminate(nullptr);
-		
-		if (p_argument_count < arg_masks_size)
-			EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): " << CallType() << " " << call_name_ << "() requires " << arg_masks_.size() << " argument(s), but " << p_argument_count << " are supplied (after incorporating default arguments)." << EidosTerminate(nullptr);
+		if (p_argument_count != arg_masks_size)
+		{
+			if (p_argument_count > arg_masks_size)
+				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): " << CallType() << " " << call_name_ << "() requires at most " << arg_masks_.size() << " argument(s), but " << p_argument_count << " are supplied (after incorporating default arguments)." << EidosTerminate(nullptr);
+			
+			if (p_argument_count < arg_masks_size)
+				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): " << CallType() << " " << call_name_ << "() requires " << arg_masks_.size() << " argument(s), but " << p_argument_count << " are supplied (after incorporating default arguments)." << EidosTerminate(nullptr);
+		}
+	}
+	else	// has_ellipsis_
+	{
+		// Check for void in any ellipsis arguments; we do this first since we've already checked the has_ellipsis_ flag, to avoid an unnecessary branch
+		for (unsigned int arg_index = (unsigned int)arg_masks_size; arg_index < p_argument_count; ++arg_index)
+		{
+			EidosValue *argument = p_arguments[arg_index].get();
+			EidosValueType arg_type = argument->Type();
+			
+			if (arg_type == EidosValueType::kValueVOID)
+				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): ellipsis argument cannot be type " << arg_type << " for " << CallType() << " " << call_name_ << "()." << EidosTerminate(nullptr);
+		}
 	}
 	
 	// Check the types of all arguments specified in the signature
@@ -278,74 +294,62 @@ void EidosCallSignature::CheckArguments(const EidosValue_SP *const p_arguments, 
 		EidosValueMask type_mask = (type_mask_unstripped & kEidosValueMaskFlagStrip);
 		//bool is_optional = !!(type_mask & kEidosValueMaskOptional);		// at this stage, optional arguments are now required; they should have been filled by the function dispatch code
 		
-		// if no argument was passed for this slot, it needs to be an optional slot; this check is now redundant, see above
-//		if (p_argument_count <= arg_index)
-//		{
-//			if (is_optional)
-//				break;			// all the rest of the arguments must be optional, so we're done checking
-//			else
-//				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): missing required argument " << arg_names_[arg_index] << " for " << CallType() << " " << call_name_ << "()." << EidosTerminate(nullptr);
-//		}
+		EidosValue *argument = p_arguments[arg_index].get();
+		EidosValueType arg_type = argument->Type();
+		bool type_ok;
 		
-		// an argument was passed, so check its type
-		if (type_mask != kEidosValueMaskAny)
+		switch (arg_type)
 		{
-			EidosValue *argument = p_arguments[arg_index].get();
-			EidosValueType arg_type = argument->Type();
-			bool type_ok;
-			
-			switch (arg_type)
+			case EidosValueType::kValueVOID:	type_ok = false; break;		// never legal regardless of type_mask; void may never be passed as a parameter
+			case EidosValueType::kValueNULL:
 			{
-				case EidosValueType::kValueNULL:
-				{
-					if (type_mask & kEidosValueMaskNULL)
-						continue;
-					
-					type_ok = false;
-					break;
-				}
-				case EidosValueType::kValueLogical:	type_ok = !!(type_mask & kEidosValueMaskLogical);	break;
-				case EidosValueType::kValueString:	type_ok = !!(type_mask & kEidosValueMaskString);	break;
-				case EidosValueType::kValueInt:		type_ok = !!(type_mask & kEidosValueMaskInt);		break;
-				case EidosValueType::kValueFloat:	type_ok = !!(type_mask & kEidosValueMaskFloat);		break;
-				case EidosValueType::kValueObject:
-				{
-					type_ok = !!(type_mask & kEidosValueMaskObject);
-					
-					// If the argument is object type, and is allowed to be object type, and an object element type was specified
-					// in the signature, check the object element type of the argument.  Note this uses pointer equality!
-					const EidosObjectClass *signature_class = arg_classes_[arg_index];
-					
-					if (type_ok && signature_class)
-					{
-						const EidosObjectClass *argument_class = ((EidosValue_Object *)argument)->Class();
-						
-						if (argument_class != signature_class)
-						{
-							// Empty object vectors of undefined class are allowed to be passed for type-specified parameters; such vectors are generic
-							if ((argument_class == gEidos_UndefinedClassObject) && (argument->Count() == 0))
-								break;
-							
-							EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " cannot be object element type " << argument->ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << signature_class->ElementType() << "." << EidosTerminate(nullptr);
-						}
-					}
-					break;
-				}
-			}
-			
-			if (!type_ok)
-			{
-				// We have special error-handling for apply() because sapply() used to be named apply() and we want to steer users to the new call
-				if ((call_name_ == "apply") && (arg_type == EidosValueType::kValueString))
-					EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " (" << arg_names_[arg_index] << ") cannot be type " << arg_type << " for " << CallType() << " " << call_name_ << "()." << std::endl << "NOTE: The apply() function was renamed sapply() in Eidos 1.6, and a new function named apply() has been added; you may need to change this call to be a call to sapply() instead." << EidosTerminate(nullptr);
+				if (type_mask & kEidosValueMaskNULL)
+					continue;
 				
-				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " (" << arg_names_[arg_index] << ") cannot be type " << arg_type << " for " << CallType() << " " << call_name_ << "()." << EidosTerminate(nullptr);
+				type_ok = false;
+				break;
 			}
-			
-			// if the argument is NULL, this singleton check is skipped by the continue statement above
-			if ((type_mask_unstripped & kEidosValueMaskSingleton) && (argument->Count() != 1))
-				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " (" << arg_names_[arg_index] << ") must be a singleton (size() == 1) for " << CallType() << " " << call_name_ << "(), but size() == " << argument->Count() << "." << EidosTerminate(nullptr);
+			case EidosValueType::kValueLogical:	type_ok = !!(type_mask & kEidosValueMaskLogical);	break;
+			case EidosValueType::kValueString:	type_ok = !!(type_mask & kEidosValueMaskString);	break;
+			case EidosValueType::kValueInt:		type_ok = !!(type_mask & kEidosValueMaskInt);		break;
+			case EidosValueType::kValueFloat:	type_ok = !!(type_mask & kEidosValueMaskFloat);		break;
+			case EidosValueType::kValueObject:
+			{
+				type_ok = !!(type_mask & kEidosValueMaskObject);
+				
+				// If the argument is object type, and is allowed to be object type, and an object element type was specified
+				// in the signature, check the object element type of the argument.  Note this uses pointer equality!
+				const EidosObjectClass *signature_class = arg_classes_[arg_index];
+				
+				if (type_ok && signature_class)
+				{
+					const EidosObjectClass *argument_class = ((EidosValue_Object *)argument)->Class();
+					
+					if (argument_class != signature_class)
+					{
+						// Empty object vectors of undefined class are allowed to be passed for type-specified parameters; such vectors are generic
+						if ((argument_class == gEidos_UndefinedClassObject) && (argument->Count() == 0))
+							break;
+						
+						EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " cannot be object element type " << argument->ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << signature_class->ElementType() << "." << EidosTerminate(nullptr);
+					}
+				}
+				break;
+			}
 		}
+		
+		if (!type_ok)
+		{
+			// We have special error-handling for apply() because sapply() used to be named apply() and we want to steer users to the new call
+			if ((call_name_ == "apply") && (arg_type == EidosValueType::kValueString))
+				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " (" << arg_names_[arg_index] << ") cannot be type " << arg_type << " for " << CallType() << " " << call_name_ << "()." << std::endl << "NOTE: The apply() function was renamed sapply() in Eidos 1.6, and a new function named apply() has been added; you may need to change this call to be a call to sapply() instead." << EidosTerminate(nullptr);
+			
+			EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " (" << arg_names_[arg_index] << ") cannot be type " << arg_type << " for " << CallType() << " " << call_name_ << "()." << EidosTerminate(nullptr);
+		}
+		
+		// if the argument is NULL, this singleton check is skipped by the continue statement above
+		if ((type_mask_unstripped & kEidosValueMaskSingleton) && (argument->Count() != 1))
+			EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " (" << arg_names_[arg_index] << ") must be a singleton (size() == 1) for " << CallType() << " " << call_name_ << "(), but size() == " << argument->Count() << "." << EidosTerminate(nullptr);
 	}
 }
 
@@ -356,15 +360,26 @@ void EidosCallSignature::CheckReturn(const EidosValue &p_result) const
 	
 	switch (p_result.Type())
 	{
+		case EidosValueType::kValueVOID:	return_type_ok = !!(retmask & kEidosValueMaskVOID);		break;
 		case EidosValueType::kValueNULL:
+		{
 			// A return type of NULL is always allowed, in fact; we don't want to have to specify this in the return type
 			// This is a little fishy, but since NULL is used to indicate error conditions, NULL returns are exceptional,
 			// and the return type indicates the type ordinarily returned in non-exceptional cases.  We just return here,
 			// since we also don't want to do the singleton check below (since it would raise too).
+			
+			// BCH 23 March 2018: We do not allow a return of NULL from functions that are declared as returning void.
+			if (retmask == kEidosValueMaskVOID)
+			{
+				return_type_ok = false;
+				break;
+			}
+			
 			return;
+		}
 		case EidosValueType::kValueLogical:	return_type_ok = !!(retmask & kEidosValueMaskLogical);	break;
 		case EidosValueType::kValueInt:		return_type_ok = !!(retmask & kEidosValueMaskInt);		break;
-		case EidosValueType::kValueFloat:	return_type_ok = !!(retmask & kEidosValueMaskFloat);		break;
+		case EidosValueType::kValueFloat:	return_type_ok = !!(retmask & kEidosValueMaskFloat);	break;
 		case EidosValueType::kValueString:	return_type_ok = !!(retmask & kEidosValueMaskString);	break;
 		case EidosValueType::kValueObject:
 			return_type_ok = !!(retmask & kEidosValueMaskObject);
@@ -373,18 +388,26 @@ void EidosCallSignature::CheckReturn(const EidosValue &p_result) const
 			// in the signature, check the object element type of the return.  Note this uses pointer equality!
 			if (return_type_ok && return_class_ && (((EidosValue_Object &)p_result).Class() != return_class_))
 			{
-				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): (internal error) object return value cannot be element type " << p_result.ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << return_class_->ElementType() << "." << EidosTerminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): object return value cannot be element type " << p_result.ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << return_class_->ElementType() << "." << EidosTerminate(nullptr);
 			}
 			break;
 	}
 	
 	if (!return_type_ok)
-		EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): (internal error) return value cannot be type " << p_result.Type() << " for " << CallType() << " " << call_name_ << "()." << EidosTerminate(nullptr);
+	{
+		// We try to emit more helpful error messages when void is involved in the type mismatch
+		if (retmask == kEidosValueMaskVOID)
+			EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): return value must be void for " << CallType() << " " << call_name_ << "(); use a \"return;\" statement if you wish to explicitly return with no return value." << EidosTerminate(nullptr);
+		else if (p_result.Type() == EidosValueType::kValueVOID)
+			EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): return value cannot be void for " << CallType() << " " << call_name_ << "(); use a \"return\" statement to explicitly return a value." << EidosTerminate(nullptr);
+		else
+			EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): return value cannot be type " << p_result.Type() << " for " << CallType() << " " << call_name_ << "()." << EidosTerminate(nullptr);
+	}
 	
 	bool return_is_singleton = !!(retmask & kEidosValueMaskSingleton);
 	
 	if (return_is_singleton && (p_result.Count() != 1))
-		EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): (internal error) return value must be a singleton (size() == 1) for " << CallType() << " " << call_name_ << "(), but size() == " << p_result.Count() << "." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): return value must be a singleton (size() == 1) for " << CallType() << " " << call_name_ << "(), but size() == " << p_result.Count() << "." << EidosTerminate(nullptr);
 }
 
 void EidosCallSignature::CheckAggregateReturn(const EidosValue &p_result, size_t p_expected_size) const
@@ -394,15 +417,26 @@ void EidosCallSignature::CheckAggregateReturn(const EidosValue &p_result, size_t
 	
 	switch (p_result.Type())
 	{
+		case EidosValueType::kValueVOID:	return_type_ok = !!(retmask & kEidosValueMaskVOID);		break;
 		case EidosValueType::kValueNULL:
+		{
 			// A return type of NULL is always allowed, in fact; we don't want to have to specify this in the return type
 			// This is a little fishy, but since NULL is used to indicate error conditions, NULL returns are exceptional,
 			// and the return type indicates the type ordinarily returned in non-exceptional cases.  We just return here,
 			// since we also don't want to do the singleton check below (since it would raise too).
+			
+			// BCH 23 March 2018: We do not allow a return of NULL from functions that are declared as returning void.
+			if (retmask == kEidosValueMaskVOID)
+			{
+				return_type_ok = false;
+				break;
+			}
+			
 			return;
+		}
 		case EidosValueType::kValueLogical:	return_type_ok = !!(retmask & kEidosValueMaskLogical);	break;
 		case EidosValueType::kValueInt:		return_type_ok = !!(retmask & kEidosValueMaskInt);		break;
-		case EidosValueType::kValueFloat:	return_type_ok = !!(retmask & kEidosValueMaskFloat);		break;
+		case EidosValueType::kValueFloat:	return_type_ok = !!(retmask & kEidosValueMaskFloat);	break;
 		case EidosValueType::kValueString:	return_type_ok = !!(retmask & kEidosValueMaskString);	break;
 		case EidosValueType::kValueObject:
 			return_type_ok = !!(retmask & kEidosValueMaskObject);
@@ -411,18 +445,26 @@ void EidosCallSignature::CheckAggregateReturn(const EidosValue &p_result, size_t
 			// in the signature, check the object element type of the return.  Note this uses pointer equality!
 			if (return_type_ok && return_class_ && (((EidosValue_Object &)p_result).Class() != return_class_))
 			{
-				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckAggregateReturn): (internal error) object return value cannot be element type " << p_result.ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << return_class_->ElementType() << "." << EidosTerminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckAggregateReturn): object return value cannot be element type " << p_result.ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << return_class_->ElementType() << "." << EidosTerminate(nullptr);
 			}
 			break;
 	}
 	
 	if (!return_type_ok)
-		EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckAggregateReturn): (internal error) return value cannot be type " << p_result.Type() << " for " << CallType() << " " << call_name_ << "()." << EidosTerminate(nullptr);
-
+	{
+		// We try to emit more helpful error messages when void is involved in the type mismatch
+		if (retmask == kEidosValueMaskVOID)
+			EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckAggregateReturn): return value must be void for " << CallType() << " " << call_name_ << "(); use a \"return;\" statement if you wish to explicitly return with no return value." << EidosTerminate(nullptr);
+		else if (p_result.Type() == EidosValueType::kValueVOID)
+			EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckAggregateReturn): return value cannot be void for " << CallType() << " " << call_name_ << "(); use a \"return\" statement to explicitly return a value." << EidosTerminate(nullptr);
+		else
+			EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckAggregateReturn): return value cannot be type " << p_result.Type() << " for " << CallType() << " " << call_name_ << "()." << EidosTerminate(nullptr);
+	}
+	
 	bool return_is_singleton = !!(retmask & kEidosValueMaskSingleton);
 	
 	if (return_is_singleton && ((size_t)p_result.Count() > p_expected_size))
-		EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckAggregateReturn): (internal error) return value must be a singleton (size() == 1) for " << CallType() << " " << call_name_ << "." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckAggregateReturn): return value must be a singleton (size() == 1) for " << CallType() << " " << call_name_ << "." << EidosTerminate(nullptr);
 }
 
 std::string EidosCallSignature::CallDelegate(void) const
@@ -614,7 +656,8 @@ EidosInstanceMethodSignature *EidosInstanceMethodSignature::DeclareAcceleratedIm
 {
 	uint32_t retmask = (return_mask_ & kEidosValueMaskFlagStrip);
 	
-	if ((retmask != kEidosValueMaskNULL) && 
+	if ((retmask != kEidosValueMaskVOID) && 
+		(retmask != kEidosValueMaskNULL) && 
 		(retmask != kEidosValueMaskLogical) && 
 		(retmask != kEidosValueMaskInt) && 
 		(retmask != kEidosValueMaskFloat) && 

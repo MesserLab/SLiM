@@ -215,6 +215,8 @@ void Eidos_WarmUp(void)
 		gEidosASTNodePool = new EidosObjectPool(sizeof(EidosASTNode));
 		
 		// Allocate global permanents
+		gStaticEidosValueVOID = EidosValue_VOID::Static_EidosValue_VOID();
+		
 		gStaticEidosValueNULL = EidosValue_NULL::Static_EidosValue_NULL();
 		gStaticEidosValueNULLInvisible = EidosValue_NULL::Static_EidosValue_NULL_Invisible();
 		
@@ -333,7 +335,7 @@ EidosValue_SP Eidos_ValueForCommandLineExpression(std::string &p_value_expressio
 		EidosFunctionMap function_map(*EidosInterpreter::BuiltInFunctionMap());
 		EidosInterpreter interpreter(script, symbol_table, function_map, nullptr);
 		
-		value = interpreter.EvaluateInterpreterBlock(false);
+		value = interpreter.EvaluateInterpreterBlock(false, true);	// do not print output, return the last statement value
 	}
 	catch (...)
 	{

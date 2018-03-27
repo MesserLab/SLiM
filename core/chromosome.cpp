@@ -981,7 +981,7 @@ EidosValue_SP Chromosome::ExecuteMethod_setMutationRate(EidosGlobalStringID p_me
 	
 	InitializeDraws();
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 
 //	*********************	– (void)setRecombinationRate(numeric rates, [Ni ends = NULL], [string$ sex = "*"])
@@ -1085,7 +1085,7 @@ EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID
 	
 	InitializeDraws();
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 
 
@@ -1164,8 +1164,8 @@ const std::vector<const EidosMethodSignature *> *Chromosome_Class::Methods(void)
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
 		
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationRate, kEidosValueMaskNULL))->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setRecombinationRate, kEidosValueMaskNULL))->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationRate, kEidosValueMaskVOID))->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setRecombinationRate, kEidosValueMaskVOID))->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}

@@ -227,7 +227,7 @@ EidosValue_SP GenomicElement::ExecuteMethod_setGenomicElementType(EidosGlobalStr
 	
 	genomic_element_type_ptr_ = getype_ptr;
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 
 
@@ -286,7 +286,7 @@ const std::vector<const EidosMethodSignature *> *GenomicElement_Class::Methods(v
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
 		
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setGenomicElementType, kEidosValueMaskNULL))->AddIntObject_S("genomicElementType", gSLiM_GenomicElementType_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setGenomicElementType, kEidosValueMaskVOID))->AddIntObject_S("genomicElementType", gSLiM_GenomicElementType_Class));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}

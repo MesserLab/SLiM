@@ -1143,10 +1143,10 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 			{
 				const EidosASTNode *compound_statement_node = fitness_callback->compound_statement_node_;
 				
-				if (compound_statement_node->cached_value_)
+				if (compound_statement_node->cached_return_value_)
 				{
 					// The script is a constant expression such as "{ return 1.1; }"
-					EidosValue *result = compound_statement_node->cached_value_.get();
+					EidosValue *result = compound_statement_node->cached_return_value_.get();
 					
 					if ((result->Type() == EidosValueType::kValueFloat) || (result->Count() == 1))
 					{
@@ -1183,10 +1183,10 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 			{
 				const EidosASTNode *compound_statement_node = fitness_callback->compound_statement_node_;
 				
-				if (compound_statement_node->cached_value_)
+				if (compound_statement_node->cached_return_value_)
 				{
 					// The script is a constant expression such as "{ return 1.1; }"
-					EidosValue *result = compound_statement_node->cached_value_.get();
+					EidosValue *result = compound_statement_node->cached_return_value_.get();
 					
 					if ((result->Type() == EidosValueType::kValueFloat) || (result->Count() == 1))
 					{
@@ -1575,10 +1575,10 @@ double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homo
 				// This code is similar to Population::ExecuteScript, but we set up an additional symbol table, and we use the return value
 				const EidosASTNode *compound_statement_node = fitness_callback->compound_statement_node_;
 				
-				if (compound_statement_node->cached_value_)
+				if (compound_statement_node->cached_return_value_)
 				{
 					// The script is a constant expression such as "{ return 1.1; }", so we can short-circuit it completely
-					EidosValue_SP result_SP = compound_statement_node->cached_value_;
+					EidosValue_SP result_SP = compound_statement_node->cached_return_value_;
 					EidosValue *result = result_SP.get();
 					
 					if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
@@ -1591,7 +1591,7 @@ double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homo
 				}
 				else if (fitness_callback->has_cached_optimization_)
 				{
-					// We can special-case particular simple callbacks for speed.  This is similar to the cached_value_
+					// We can special-case particular simple callbacks for speed.  This is similar to the cached_return_value_
 					// mechanism above, but it is done in SLiM, not in Eidos, and is specific to callbacks, not general.
 					// The has_cached_optimization_ flag is the umbrella flag for all such optimizations; we then figure
 					// out below which cached optimization is in effect for this callback.  See SLiMSim::OptimizeScriptBlock()
@@ -1716,10 +1716,10 @@ double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &
 			// This code is similar to Population::ExecuteScript, but we set up an additional symbol table, and we use the return value
 			const EidosASTNode *compound_statement_node = fitness_callback->compound_statement_node_;
 			
-			if (compound_statement_node->cached_value_)
+			if (compound_statement_node->cached_return_value_)
 			{
 				// The script is a constant expression such as "{ return 1.1; }", so we can short-circuit it completely
-				EidosValue_SP result_SP = compound_statement_node->cached_value_;
+				EidosValue_SP result_SP = compound_statement_node->cached_return_value_;
 				EidosValue *result = result_SP.get();
 				
 				if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
@@ -1732,7 +1732,7 @@ double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &
 			}
 			else if (fitness_callback->has_cached_optimization_)
 			{
-				// We can special-case particular simple callbacks for speed.  This is similar to the cached_value_
+				// We can special-case particular simple callbacks for speed.  This is similar to the cached_return_value_
 				// mechanism above, but it is done in SLiM, not in Eidos, and is specific to callbacks, not general.
 				// The has_cached_optimization_ flag is the umbrella flag for all such optimizations; we then figure
 				// out below which cached optimization is in effect for this callback.  See SLiMSim::OptimizeScriptBlock()
@@ -2797,7 +2797,7 @@ void Subpopulation::ApplyReproductionCallbacks(std::vector<SLiMEidosBlock*> &p_r
 						EidosValue *result = result_SP.get();
 						
 						if (result->Type() != EidosValueType::kValueNULL)
-							EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyReproductionCallbacks): reproduction() callbacks must return NULL." << EidosTerminate(reproduction_callback->identifier_token_);
+							EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyReproductionCallbacks): reproduction() callbacks must explicitly return NULL." << EidosTerminate(reproduction_callback->identifier_token_);
 						
 						// Output generated by the interpreter goes to our output stream
 						if (interpreter.HasExecutionOutput())
@@ -3804,7 +3804,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 	int migrant_count = migrants_value->Count();
 	
 	if (migrant_count == 0)
-		return gStaticEidosValueNULLInvisible;
+		return gStaticEidosValueVOID;
 	
 	// So, we want to loop through migrants, add them all to the focal subpop (changing their subpop ivar and their index), and remove them from their
 	// old subpop.  This is tricky because Genome and Individual are allocated out of subpop-specific pools; we can't just use the same objects in a
@@ -4171,7 +4171,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 		(individual->subpopulation_).individual_pool_->DisposeChunk(const_cast<Individual *>(individual));
 	}
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 
 #endif  // SLIM_NONWF_ONLY
@@ -4212,7 +4212,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setMigrationRates(EidosGlobalStringID
 		subpops_seen.emplace_back(source_subpop_id);
 	}
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 #endif	// SLIM_WF_ONLY
 
@@ -4256,9 +4256,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointInBounds(EidosGlobalStringID p_m
 			return ((x >= bounds_x0_) && (x <= bounds_x1_) && (y >= bounds_y0_) && (y <= bounds_y1_) && (z >= bounds_z0_) && (z <= bounds_z1_))
 			? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
 		}
+		default:
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointInBounds): (internal error) unrecognized dimensionality." << EidosTerminate();
 	}
-	
-	return gStaticEidosValueNULLInvisible;
 }			
 
 //	*********************	– (float)pointReflected(float point)
@@ -4343,9 +4343,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointReflected(EidosGlobalStringID p_
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{x, y, z});
 		}
+		default:
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointReflected): (internal error) unrecognized dimensionality." << EidosTerminate();
 	}
-	
-	return gStaticEidosValueNULLInvisible;
 }			
 
 //	*********************	– (float)pointStopped(float point)
@@ -4388,9 +4388,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointStopped(EidosGlobalStringID p_me
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{x, y, z});
 		}
+		default:
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointStopped): (internal error) unrecognized dimensionality." << EidosTerminate();
 	}
-	
-	return gStaticEidosValueNULLInvisible;
 }			
 
 //	*********************	– (float)pointPeriodic(float point)
@@ -4478,9 +4478,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointPeriodic(EidosGlobalStringID p_m
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{x, y, z});
 		}
+		default:
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointPeriodic): (internal error) unrecognized dimensionality." << EidosTerminate();
 	}
-	
-	return gStaticEidosValueNULLInvisible;
 }			
 
 //	*********************	– (float)pointUniform(void)
@@ -4519,9 +4519,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_me
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{x, y, z});
 		}
+		default:
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointUniform): (internal error) unrecognized dimensionality." << EidosTerminate();
 	}
-	
-	return gStaticEidosValueNULLInvisible;
 }			
 
 #ifdef SLIM_WF_ONLY
@@ -4569,7 +4569,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setCloningRate(EidosGlobalStringID p_
 		male_clone_fraction_ = cloning_fraction;
 	}
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }			
 #endif	// SLIM_WF_ONLY
 
@@ -4594,7 +4594,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSelfingRate(EidosGlobalStringID p_
 	
 	selfing_fraction_ = selfing_fraction;
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }			
 #endif	// SLIM_WF_ONLY
 
@@ -4627,7 +4627,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSexRatio(EidosGlobalStringID p_met
 	child_sex_ratio_ = sex_ratio;
 	GenerateIndividualsToFitWF(true, true);		// make child generation, placeholders
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 #endif	// SLIM_WF_ONLY
 
@@ -4696,7 +4696,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSpatialBounds(EidosGlobalStringID 
 	if (bad_periodic_bounds)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSpatialBounds): setSpatialBounds() requires min coordinates to be 0.0 for dimensions that are periodic." << EidosTerminate();
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }			
 
 #ifdef SLIM_WF_ONLY
@@ -4714,7 +4714,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSubpopulationSize(EidosGlobalStrin
 	
 	population_.SetSize(*this, subpop_size);
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 #endif	// SLIM_WF_ONLY
 
@@ -4729,7 +4729,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_removeSubpopulation(EidosGlobalString
 	
 	population_.RemoveSubpopulation(*this);
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 #endif  // SLIM_NONWF_ONLY
 
@@ -5305,7 +5305,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID 
 	
 	spatial_maps_.insert(SpatialMapPair(map_name, spatial_map));
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 
 //	*********************	- (string)spatialMapColor(string$ name, float value)
@@ -5351,8 +5351,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapColor(EidosGlobalStringID p
 	}
 	else
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapColor): spatialMapColor() could not find map with name " << map_name << "." << EidosTerminate();
-	
-	return gStaticEidosValueNULLInvisible;
 }
 
 //	*********************	– (float$)spatialMapValue(string$ name, float point)
@@ -5463,8 +5461,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p
 	}
 	else
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): spatialMapValue() could not find map with name " << map_name << "." << EidosTerminate();
-	
-	return gStaticEidosValueNULLInvisible;
 }
 
 #undef SLiMClampCoordinate
@@ -5573,7 +5569,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 	if (has_file)
 		outfile.close(); 
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 
 
@@ -5641,32 +5637,32 @@ const std::vector<const EidosMethodSignature *> *Subpopulation_Class::Methods(vo
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*SLiMEidosDictionary_Class::Methods());
 		
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMigrationRates, kEidosValueMaskNULL))->AddIntObject("sourceSubpops", gSLiM_Subpopulation_Class)->AddNumeric("rates"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMigrationRates, kEidosValueMaskVOID))->AddIntObject("sourceSubpops", gSLiM_Subpopulation_Class)->AddNumeric("rates"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointInBounds, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddFloat("point"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointReflected, kEidosValueMaskFloat))->AddFloat("point"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointStopped, kEidosValueMaskFloat))->AddFloat("point"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointPeriodic, kEidosValueMaskFloat))->AddFloat("point"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointUniform, kEidosValueMaskFloat)));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setCloningRate, kEidosValueMaskNULL))->AddNumeric("rate"));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSelfingRate, kEidosValueMaskNULL))->AddNumeric_S("rate"));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSexRatio, kEidosValueMaskNULL))->AddFloat_S("sexRatio"));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSpatialBounds, kEidosValueMaskNULL))->AddFloat("bounds"));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSubpopulationSize, kEidosValueMaskNULL))->AddInt_S("size"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setCloningRate, kEidosValueMaskVOID))->AddNumeric("rate"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSelfingRate, kEidosValueMaskVOID))->AddNumeric_S("rate"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSexRatio, kEidosValueMaskVOID))->AddFloat_S("sexRatio"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSpatialBounds, kEidosValueMaskVOID))->AddFloat("bounds"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSubpopulationSize, kEidosValueMaskVOID))->AddInt_S("size"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addCloned, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddObject_S("parent", gSLiM_Individual_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addCrossed, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddObject_S("parent1", gSLiM_Individual_Class)->AddObject_S("parent2", gSLiM_Individual_Class)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addEmpty, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSelfed, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddObject_S("parent", gSLiM_Individual_Class));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_takeMigrants, kEidosValueMaskNULL))->AddObject("migrants", gSLiM_Individual_Class));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_removeSubpopulation, kEidosValueMaskNULL)));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_takeMigrants, kEidosValueMaskVOID))->AddObject("migrants", gSLiM_Individual_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_removeSubpopulation, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_cachedFitness, kEidosValueMaskFloat))->AddInt_N("indices"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sampleIndividuals, kEidosValueMaskObject, gSLiM_Individual_Class))->AddInt_S("size")->AddLogical_OS("replace", gStaticEidosValue_LogicalF)->AddObject_OSN("exclude", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddString_OSN("sex", gStaticEidosValueNULL)->AddInt_OSN("tag", gStaticEidosValueNULL)->AddInt_OSN("minAge", gStaticEidosValueNULL)->AddInt_OSN("maxAge", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_subsetIndividuals, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_OSN("exclude", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddString_OSN("sex", gStaticEidosValueNULL)->AddInt_OSN("tag", gStaticEidosValueNULL)->AddInt_OSN("minAge", gStaticEidosValueNULL)->AddInt_OSN("maxAge", gStaticEidosValueNULL));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_defineSpatialMap, kEidosValueMaskNULL))->AddString_S("name")->AddString_S("spatiality")->AddInt_N("gridSize")->AddFloat("values")->AddLogical_OS("interpolate", gStaticEidosValue_LogicalF)->AddFloat_ON("valueRange", gStaticEidosValueNULL)->AddString_ON("colors", gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_defineSpatialMap, kEidosValueMaskVOID))->AddString_S("name")->AddString_S("spatiality")->AddInt_N("gridSize")->AddFloat("values")->AddLogical_OS("interpolate", gStaticEidosValue_LogicalF)->AddFloat_ON("valueRange", gStaticEidosValueNULL)->AddString_ON("colors", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_spatialMapColor, kEidosValueMaskString))->AddString_S("name")->AddFloat("value"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_spatialMapValue, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddString_S("name")->AddFloat("point"));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMSSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputVCFSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputSample, kEidosValueMaskNULL))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMSSample, kEidosValueMaskVOID))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputVCFSample, kEidosValueMaskVOID))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputSample, kEidosValueMaskVOID))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}

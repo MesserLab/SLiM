@@ -28,6 +28,8 @@ EidosPropertySignature::EidosPropertySignature(const std::string &p_property_nam
 {
 	if (!read_only_ && !(value_mask_ & kEidosValueMaskSingleton))
 		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::EidosPropertySignature): (internal error) read-write property " << property_name_ << " must produce a singleton value according to Eidos semantics." << EidosTerminate(nullptr);
+	if (value_mask_ & kEidosValueMaskVOID)
+		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::EidosPropertySignature): (internal error) properties are not allowed to return void." << EidosTerminate(nullptr);
 	if (value_mask_ & kEidosValueMaskNULL)
 		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::EidosPropertySignature): (internal error) properties are not allowed to return NULL." << EidosTerminate(nullptr);
 }
@@ -37,6 +39,8 @@ EidosPropertySignature::EidosPropertySignature(const std::string &p_property_nam
 {
 	if (!read_only_ && !(value_mask_ & kEidosValueMaskSingleton))
 		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::EidosPropertySignature): (internal error) read-write property " << property_name_ << " must produce a singleton value according to Eidos semantics." << EidosTerminate(nullptr);
+	if (value_mask_ & kEidosValueMaskVOID)
+		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::EidosPropertySignature): (internal error) properties are not allowed to return void." << EidosTerminate(nullptr);
 	if (value_mask_ & kEidosValueMaskNULL)
 		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::EidosPropertySignature): (internal error) properties are not allowed to return NULL." << EidosTerminate(nullptr);
 }
@@ -53,6 +57,9 @@ bool EidosPropertySignature::CheckAssignedValue(const EidosValue &p_value) const
 	
 	switch (p_value.Type())
 	{
+		case EidosValueType::kValueVOID:
+			value_type_ok = false;	// never OK regardless of retmask
+			break;
 		case EidosValueType::kValueNULL:
 			// BCH 30 January 2017: setting NULL into a property used to be allowed here without declaration (as it is
 			// when getting the value of a property), but I think that was just a bug.  I'm modifying this to throw an
@@ -106,6 +113,10 @@ void EidosPropertySignature::CheckResultValue(const EidosValue &p_value) const
 	
 	switch (p_value.Type())
 	{
+		case EidosValueType::kValueVOID:
+			// void is not allowed as a property value, getting or setting, ever.
+			EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckResultValue): (internal error) void returned for property " << property_name_ << "." << EidosTerminate(nullptr);
+			return;
 		case EidosValueType::kValueNULL:
 			// A return type of NULL is always allowed, in fact; we don't want to have to specify this in the return type
 			// This is a little fishy, but since NULL is used to indicate error conditions, NULL returns are exceptional,
@@ -157,6 +168,10 @@ void EidosPropertySignature::CheckAggregateResultValue(const EidosValue &p_value
 	
 	switch (p_value.Type())
 	{
+		case EidosValueType::kValueVOID:
+			// void is not allowed as a property value, getting or setting, ever.
+			EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckAggregateResultValue): (internal error) void returned for property " << property_name_ << "." << EidosTerminate(nullptr);
+			return;
 		case EidosValueType::kValueNULL:
 			// BCH 11 December 2017: NULL is not allowed as a property value, getting or setting, ever.
 			EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckAggregateResultValue): (internal error) NULL returned for property " << property_name_ << "." << EidosTerminate(nullptr);

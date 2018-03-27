@@ -19,7 +19,7 @@ mateChoice() {
 	}
 	return float(0);
 }
-2000 late() {
+2001 early() {
 	fixedMuts = sum(sim.substitutions.mutationType == m2);
 	osize = 1.0 + (fixedMuts * 0.01) - mean(p1.cachedFitness(NULL));
 	cat("Mean ornament size: " + osize);

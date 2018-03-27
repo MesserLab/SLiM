@@ -174,7 +174,7 @@ double MutationType::DrawSelectionCoefficient(void) const
 				EidosFunctionMap &function_map = sim_.FunctionMap();
 				EidosInterpreter interpreter(*cached_dfe_script_, client_symbols, function_map, nullptr);
 				
-				EidosValue_SP result_SP = interpreter.EvaluateInterpreterBlock(false);
+				EidosValue_SP result_SP = interpreter.EvaluateInterpreterBlock(false, true);	// do not print output, return the last statement value
 				EidosValue *result = result_SP.get();
 				EidosValueType result_type = result->Type();
 				int result_count = result->Count();
@@ -619,7 +619,7 @@ EidosValue_SP MutationType::ExecuteMethod_setDistribution(EidosGlobalStringID p_
 		all_pure_neutral_DFE_ = false;
 	}
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 
 
@@ -684,7 +684,7 @@ const std::vector<const EidosMethodSignature *> *MutationType_Class::Methods(voi
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*SLiMEidosDictionary_Class::Methods());
 		
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setDistribution, kEidosValueMaskNULL))->AddString_S("distributionType")->AddEllipsis());
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setDistribution, kEidosValueMaskVOID))->AddString_S("distributionType")->AddEllipsis());
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}

@@ -42,6 +42,7 @@
 
 
 class EidosValue;
+class EidosValue_VOID;
 class EidosValue_NULL;
 class EidosValue_Logical;
 class EidosValue_Logical_const;
@@ -83,6 +84,7 @@ typedef uint8_t eidos_logical_t;
 // We use Eidos_intrusive_ptr to refer to most EidosValue instances, unless they are used only in one place with
 // a single owner.  For convenience, there is a typedef for Eidos_intrusive_ptr for each EidosValue subclass.
 typedef Eidos_intrusive_ptr<EidosValue>						EidosValue_SP;
+typedef Eidos_intrusive_ptr<EidosValue_VOID>				EidosValue_VOID_SP;
 typedef Eidos_intrusive_ptr<EidosValue_NULL>				EidosValue_NULL_SP;
 typedef Eidos_intrusive_ptr<EidosValue_Logical>				EidosValue_Logical_SP;
 typedef Eidos_intrusive_ptr<EidosValue_Logical_const>		EidosValue_Logical_const_SP;
@@ -106,6 +108,8 @@ extern EidosObjectPool *gEidosValuePool;
 
 
 // Global EidosValues that are defined at Eidos_WarmUp() time and are never deallocated.
+extern EidosValue_VOID_SP gStaticEidosValueVOID;
+
 extern EidosValue_NULL_SP gStaticEidosValueNULL;
 extern EidosValue_NULL_SP gStaticEidosValueNULLInvisible;
 
@@ -141,7 +145,8 @@ extern EidosValue_String_SP gStaticEidosValue_StringDoubleAsterisk;
 // that NULL never gets promoted to any other type, and nothing ever gets promoted to object type.
 enum class EidosValueType : uint8_t
 {
-	kValueNULL = 0,		// special NULL type; this cannot be mixed with other types or promoted to other types
+	kValueVOID = 0,		// special void type; this cannot be mixed with other types or promoted to other types, cannot be passed to a function/method, cannot be assigned to a variable
+	kValueNULL,			// special NULL type; this cannot be mixed with other types or promoted to other types
 	
 	kValueLogical,		// logicals (eidos_logical_t)
 	kValueInt,			// integers (int64_t)
@@ -160,21 +165,22 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosValueType p_type)
 typedef uint32_t EidosValueMask;
 
 const EidosValueMask kEidosValueMaskNone =			0x00000000;
-const EidosValueMask kEidosValueMaskNULL =			0x00000001;
-const EidosValueMask kEidosValueMaskLogical =		0x00000002;
-const EidosValueMask kEidosValueMaskInt =			0x00000004;
-const EidosValueMask kEidosValueMaskFloat =			0x00000008;
-const EidosValueMask kEidosValueMaskString =		0x00000010;
-const EidosValueMask kEidosValueMaskObject =		0x00000020;
-	
+const EidosValueMask kEidosValueMaskVOID =			0x00000001;
+const EidosValueMask kEidosValueMaskNULL =			0x00000002;
+const EidosValueMask kEidosValueMaskLogical =		0x00000004;
+const EidosValueMask kEidosValueMaskInt =			0x00000008;
+const EidosValueMask kEidosValueMaskFloat =			0x00000010;
+const EidosValueMask kEidosValueMaskString =		0x00000020;
+const EidosValueMask kEidosValueMaskObject =		0x00000040;
+
 const EidosValueMask kEidosValueMaskOptional =		0x80000000;
 const EidosValueMask kEidosValueMaskSingleton =		0x40000000;
 const EidosValueMask kEidosValueMaskFlagStrip =		0x3FFFFFFF;
-	
+
 const EidosValueMask kEidosValueMaskNumeric =		(kEidosValueMaskInt | kEidosValueMaskFloat);									// integer or float
 const EidosValueMask kEidosValueMaskLogicalEquiv =	(kEidosValueMaskLogical | kEidosValueMaskInt | kEidosValueMaskFloat);			// logical, integer, or float
-const EidosValueMask kEidosValueMaskAnyBase =		(kEidosValueMaskNULL | kEidosValueMaskLogicalEquiv | kEidosValueMaskString);	// any type except object
-const EidosValueMask kEidosValueMaskAny =			(kEidosValueMaskAnyBase | kEidosValueMaskObject);								// any type including object
+const EidosValueMask kEidosValueMaskAnyBase =		(kEidosValueMaskNULL | kEidosValueMaskLogicalEquiv | kEidosValueMaskString);	// any non-void type except object
+const EidosValueMask kEidosValueMaskAny =			(kEidosValueMaskAnyBase | kEidosValueMaskObject);								// any non-void type including object
 
 std::string StringForEidosValueMask(const EidosValueMask p_mask, const EidosObjectClass *p_object_class, const std::string &p_name, EidosValue *p_default);
 //std::ostream &operator<<(std::ostream &p_outstream, const EidosValueMask p_mask);	// can't do this since EidosValueMask is just uint32_t
@@ -402,13 +408,54 @@ inline __attribute__((always_inline)) void Eidos_intrusive_ptr_release(const Eid
 
 
 #pragma mark -
+#pragma mark EidosValue_VOID
+#pragma mark -
+
+//	*********************************************************************************************************
+//
+//	EidosValue_VOID represents void values in Eidos.  We have one static global EidosValue_VOID instance,
+//	which should be used for all void values.
+//
+
+class EidosValue_VOID : public EidosValue
+{
+public:
+	EidosValue_VOID(const EidosValue_VOID &p_original) = delete;	// no copy-construct
+	EidosValue_VOID& operator=(const EidosValue_VOID&) = delete;	// no copying
+	
+	inline EidosValue_VOID(void) : EidosValue(EidosValueType::kValueVOID, false) { }
+	inline virtual ~EidosValue_VOID(void) {}
+	
+	static EidosValue_VOID_SP Static_EidosValue_VOID(void);
+	
+	virtual const std::string &ElementType(void) const;
+	virtual int Count_Virtual(void) const;
+	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const;
+	
+	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const;
+	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token);
+	
+	virtual eidos_logical_t LogicalAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const { RaiseForUnsupportedConversionCall(p_blame_token); };
+	virtual std::string StringAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const { RaiseForUnsupportedConversionCall(p_blame_token); };
+	virtual int64_t IntAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const { RaiseForUnsupportedConversionCall(p_blame_token); };
+	virtual double FloatAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const { RaiseForUnsupportedConversionCall(p_blame_token); };
+	virtual EidosObjectElement *ObjectElementAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const { RaiseForUnsupportedConversionCall(p_blame_token); };
+	
+	virtual EidosValue_SP CopyValues(void) const;
+	virtual EidosValue_SP NewMatchingType(void) const;
+	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token);
+	virtual void Sort(bool p_ascending);
+};
+
+
+#pragma mark -
 #pragma mark EidosValue_NULL
 #pragma mark -
 
 //	*********************************************************************************************************
 //
-//	EidosValue_NULL and EidosValue_NULL_const represent NULL values in Eidos.  EidosValue_NULL_const
-//	is used for static global EidosValue_NULL instances; we have two, one invisible, one not.
+//	EidosValue_NULL represents NULL values in Eidos.  We have two static global EidosValue_NULL instances,
+//	representing invisible versus non-invisible NULL.
 //
 
 class EidosValue_NULL : public EidosValue

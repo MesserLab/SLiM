@@ -469,7 +469,7 @@ EidosValue_SP Mutation::ExecuteMethod_setSelectionCoeff(EidosGlobalStringID p_me
 	cached_one_plus_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + selection_coeff_);
 	cached_one_plus_dom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->dominance_coeff_ * selection_coeff_);
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 
 //	*********************	- (void)setMutationType(io<MutationType>$ mutType)
@@ -493,7 +493,7 @@ EidosValue_SP Mutation::ExecuteMethod_setMutationType(EidosGlobalStringID p_meth
 	cached_one_plus_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + selection_coeff_);
 	cached_one_plus_dom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->dominance_coeff_ * selection_coeff_);
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 
 
@@ -555,8 +555,8 @@ const std::vector<const EidosMethodSignature *> *Mutation_Class::Methods(void) c
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*SLiMEidosDictionary_Class::Methods());
 		
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSelectionCoeff, kEidosValueMaskNULL))->AddFloat_S("selectionCoeff"));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationType, kEidosValueMaskNULL))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSelectionCoeff, kEidosValueMaskVOID))->AddFloat_S("selectionCoeff"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationType, kEidosValueMaskVOID))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}

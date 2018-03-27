@@ -50,6 +50,10 @@ development head (nonWF branch):
 	add new tree seq stuff: initializeTreeSeq(), treeSeqSimplify(), treeSeqRememberIndividuals(), treeSeqOutput()
 	add getwd() / setwd() functions to Eidos
 	add var(), cov(), cor() statistics functions to Eidos for variance, covariance, and (Pearson) correlation
+	change Eidos to not automatically assume return values based upon the value of the last statement; that makes it confusing/hard to define a function that returns void
+	policy change: property/method accesses on zero-length vectors now raise unless the return type of the property/method is unambiguous
+	"void" is now an actual value type in Eidos, although it can only be used as a return type for functions/methods; this improves type-safety
+	fix recipes: 13.2 (mateChoice() callback with no explicit return), 13.9 (sapply() with no value), 11.2 (cachedFitness() from a late() event)
 
 
 2.6 (build 1292; Eidos version 1.6):

@@ -309,7 +309,7 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationFractions(EidosGlobal
 	// Reinitialize our mutation type lookup based on the new info
 	InitializeDraws();
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 
 
@@ -369,7 +369,7 @@ const std::vector<const EidosMethodSignature *> *GenomicElementType_Class::Metho
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*SLiMEidosDictionary_Class::Methods());
 		
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationFractions, kEidosValueMaskNULL))->AddIntObject("mutationTypes", gSLiM_MutationType_Class)->AddNumeric("proportions"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationFractions, kEidosValueMaskVOID))->AddIntObject("mutationTypes", gSLiM_MutationType_Class)->AddNumeric("proportions"));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}

@@ -1278,10 +1278,10 @@ double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Indivi
 			// The callback is active and matches our interaction type id, so we need to execute it
 			const EidosASTNode *compound_statement_node = interaction_callback->compound_statement_node_;
 			
-			if (compound_statement_node->cached_value_)
+			if (compound_statement_node->cached_return_value_)
 			{
 				// The script is a constant expression such as "{ return 1.1; }", so we can short-circuit it completely
-				EidosValue_SP result_SP = compound_statement_node->cached_value_;
+				EidosValue_SP result_SP = compound_statement_node->cached_return_value_;
 				EidosValue *result = result_SP.get();
 				
 				if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
@@ -4968,7 +4968,7 @@ EidosValue_SP InteractionType::ExecuteMethod_evaluate(EidosGlobalStringID p_meth
 			EvaluateSubpopulation((Subpopulation *)(subpops_value->ObjectElementAtIndex(requested_subpop_index, nullptr)), immediate);
 	}
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 
 //	*********************	– (object<Individual>)nearestNeighbors(object<Individual>$ individual, [integer$ count = 1])
@@ -5137,7 +5137,7 @@ EidosValue_SP InteractionType::ExecuteMethod_setInteractionFunction(EidosGlobalS
 	if_param1_ = ((if_parameters.size() >= 1) ? if_parameters[0] : 0.0);
 	if_param2_ = ((if_parameters.size() >= 2) ? if_parameters[1] : 0.0);
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 
 //	*********************	– (float)strength(object<Individual> individuals1, [No<Individual> individuals2 = NULL])
@@ -5495,7 +5495,7 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 	return EidosValue_SP(result_vec);
 }
 
-//	*********************	– (float)unevaluate(void)
+//	*********************	– (void)unevaluate(void)
 //
 EidosValue_SP InteractionType::ExecuteMethod_unevaluate(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
@@ -5503,7 +5503,7 @@ EidosValue_SP InteractionType::ExecuteMethod_unevaluate(EidosGlobalStringID p_me
 	
 	Invalidate();
 	
-	return gStaticEidosValueNULLInvisible;
+	return gStaticEidosValueVOID;
 }
 
 
@@ -5567,13 +5567,13 @@ const std::vector<const EidosMethodSignature *> *InteractionType_Class::Methods(
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_distance, kEidosValueMaskFloat))->AddObject("individuals1", gSLiM_Individual_Class)->AddObject_ON("individuals2", gSLiM_Individual_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_distanceToPoint, kEidosValueMaskFloat))->AddObject("individuals1", gSLiM_Individual_Class)->AddFloat("point"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_drawByStrength, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("individual", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_evaluate, kEidosValueMaskNULL))->AddObject_ON("subpops", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddLogical_OS("immediate", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_evaluate, kEidosValueMaskVOID))->AddObject_ON("subpops", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddLogical_OS("immediate", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_nearestNeighbors, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("individual", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_nearestNeighborsOfPoint, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("subpop", gSLiM_Subpopulation_Class)->AddFloat("point")->AddInt_OS("count", gStaticEidosValue_Integer1));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setInteractionFunction, kEidosValueMaskNULL))->AddString_S("functionType")->AddEllipsis());
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setInteractionFunction, kEidosValueMaskVOID))->AddString_S("functionType")->AddEllipsis());
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_strength, kEidosValueMaskFloat))->AddObject("individuals1", gSLiM_Individual_Class)->AddObject_ON("individuals2", gSLiM_Individual_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_totalOfNeighborStrengths, kEidosValueMaskFloat))->AddObject("individuals", gSLiM_Individual_Class));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_unevaluate, kEidosValueMaskNULL)));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_unevaluate, kEidosValueMaskVOID)));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
