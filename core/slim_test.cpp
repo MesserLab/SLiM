@@ -175,6 +175,13 @@ void SLiMAssertScriptRaise(const std::string &p_script_string, const int p_bad_l
 			std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : stop() reached (expected \"" << p_reason_snip << "\")." << std::endl;
 			std::cerr << "--------------------" << std::endl << std::endl;
 		}
+		
+		// Error messages that say (internal error) should not be possible to trigger in script
+		if (raise_message.find("(internal error)") != std::string::npos)
+		{
+			std::cerr << p_script_string << " : error message contains (internal error) erroneously" << std::endl;
+			std::cerr << "   raise message: " << raise_message << std::endl;
+		}
 	}
 	
 	delete sim;
