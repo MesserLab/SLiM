@@ -203,6 +203,13 @@ void EidosAssertScriptRaise(const std::string &p_script_string, const int p_bad_
 			std::cerr << "   raise message: " << raise_message << std::endl;
 			std::cerr << "--------------------" << std::endl << std::endl;
 		}
+		
+		// Error messages that say (internal error) should not be possible to trigger in script
+		if (raise_message.find("(internal error)") != std::string::npos)
+		{
+			std::cerr << p_script_string << " : error message contains (internal error) erroneously" << std::endl;
+			std::cerr << "   raise message: " << raise_message << std::endl;
+		}
 	}
 	
 	gEidosCurrentScript = nullptr;

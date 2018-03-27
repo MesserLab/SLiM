@@ -1408,7 +1408,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		EidosValueType first_child_type = first_child_value->Type();
 		
 		if (first_child_type != EidosValueType::kValueObject)
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): (internal error) operand type " << first_child_type << " is not supported by the '.' operator." << EidosTerminate(call_name_node->token_);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): operand type " << first_child_type << " is not supported by the '.' operator." << EidosTerminate(call_name_node->token_);
 		
 		EidosASTNode *second_child_node = call_name_node->children_[1];
 		
@@ -1535,7 +1535,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 	}
 	else
 	{
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): (internal error) the '()' operator may only be used with a function name or method name (illegal operand for a function call operation)." << EidosTerminate(call_name_node->token_);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): the '()' operator may only be used with a function name or method name (illegal operand for a function call operation)." << EidosTerminate(call_name_node->token_);
 	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Call()");

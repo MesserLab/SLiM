@@ -3307,7 +3307,7 @@ EidosObjectElement *EidosObjectElement::Release(void)
 EidosValue_SP EidosObjectElement::GetProperty(EidosGlobalStringID p_property_id)
 {
 	// This is the backstop, called by subclasses
-	EIDOS_TERMINATION << "ERROR (EidosObjectElement::GetProperty for " << Class()->ElementType() << "): (internal error) attempt to get a value for property " << Eidos_StringForGlobalStringID(p_property_id) << " was not handled by subclass." << EidosTerminate(nullptr);
+	EIDOS_TERMINATION << "ERROR (EidosObjectElement::GetProperty for " << Class()->ElementType() << "): attempt to get a value for property " << Eidos_StringForGlobalStringID(p_property_id) << " was not handled by subclass." << EidosTerminate(nullptr);
 }
 
 void EidosObjectElement::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
