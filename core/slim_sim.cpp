@@ -3689,6 +3689,7 @@ void SLiMSim::RetractNewIndividual()
 	// callback.  We will have logged recombination breakpoints and new mutations into our tables, and now want
 	// to back those changes out by re-setting the active row index for the tables.
 	
+	std::cout << tree_seq_generation_ << ": Retracting new individual." << std::endl;
 }
 
 void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, bool p_start_strand_2)
@@ -3787,6 +3788,34 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, bool 
 		handle_error("add_edge", tree_return_value_);
 	}
 		
+}
+
+void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t p_position, const std::vector<slim_mutationid_t> &p_derived_mutations)
+{
+	// This is called whenever a new mutation is added to a genome.  Because mutation stacking makes things
+	// complicated, this hook supplies not just the new mutation, but the entire new derived state – all of
+	// the mutations that exist at the given position in the given genome, post-addition.  This derived
+	// state may involve the removal of some ancestral mutations (or may not), in addition to the new mutation
+	// that was added.  The new state is not even guaranteed to be different from the ancestral state; because
+	// of the way new mutations are added in some paths (with bulk operations) we may not know.  This method
+	// will also be called when a mutation is removed from a given genome; if no mutations remain at the
+	// given position, p_derived_mutations will be empty.  The p_genome_id value supplied is based upon the
+	// individual's pedigree ID, with the expected invariant relationship: it is 2 * pedigree_id + [0/1].
+	// The vector of IDs passed in here is reused internally, so this method must not keep a pointer to it;
+	// any information that needs to be kept from it must be copied out.
+	std::cout << tree_seq_generation_ << ":   New derived state for genome id " << p_genome_id << " at position " << p_position << ":";
+	
+	if (p_derived_mutations.size())
+	{
+		for (slim_mutationid_t mut_id : p_derived_mutations)
+			std::cout << " " << mut_id;
+	}
+	else
+	{
+		std::cout << " <empty>";
+	}
+	
+	std::cout << std::endl;
 }
 
 void SLiMSim::CheckAutoSimplification(void)

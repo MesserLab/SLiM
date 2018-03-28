@@ -516,6 +516,10 @@ public:
 	// must be guaranteed that none of the mutations in the two given runs are the same.
 	void clear_set_and_merge(MutationRun &p_mutations_to_set, MutationRun &p_mutations_to_add);
 	
+	// This is used by the tree sequence recording code to get the full derived state at a given position.
+	// Note that the vector returned is cached internally and reused with each call, for speed.
+	const std::vector<slim_mutationid_t> *derived_mutation_ids_at_position(slim_position_t p_position);
+	
 	inline __attribute__((always_inline)) const MutationIndex *begin_pointer_const(void) const
 	{
 		return mutations_;

@@ -253,6 +253,34 @@ bool MutationRun::contains_mutation_with_type_and_position(MutationType *p_mut_t
 	return false;
 }
 
+const std::vector<slim_mutationid_t> *MutationRun::derived_mutation_ids_at_position(slim_position_t p_position)
+{
+	static std::vector<slim_mutationid_t> return_vec;
+	
+	// First clear out whatever might be left over from last time
+	return_vec.clear();
+	
+	// Then fill in all the mutation IDs at the given position.  We search backward from the end since usually we are called
+	// when a new mutation has just been added to the end; this will be slow for addNew[Drawn]Mutation() and removeMutations(),
+	// but fast for the other cases, such as new SLiM-generated mutations, which are much more common.
+	MutationIndex *begin_ptr = begin_pointer();
+	MutationIndex *end_ptr = end_pointer();
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	
+	for (MutationIndex *mut_ptr = end_ptr - 1; mut_ptr >= begin_ptr; --mut_ptr)
+	{
+		Mutation *mut = mut_block_ptr + *mut_ptr;
+		slim_position_t mut_position = mut->position_;
+		
+		if (mut_position == p_position)
+			return_vec.push_back(mut->mutation_id_);
+		else if (mut_position < p_position)
+			break;
+	}
+	
+	return &return_vec;
+}
+
 void MutationRun::_RemoveFixedMutations(void)
 {
 	// Mutations that have fixed, and are thus targeted for removal, have already had their refcount set to -1.

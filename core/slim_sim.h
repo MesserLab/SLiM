@@ -382,6 +382,7 @@ public:
 	void StartTreeRecording(void);
 	void SetCurrentNewIndividual(Individual *p_individual);
 	void RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, bool p_start_strand_2);
+	void RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t p_position, const std::vector<slim_mutationid_t> &p_derived_mutations);
 	void RetractNewIndividual(void);
 	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify);
 	void SimplifyTreeSequence(void);
