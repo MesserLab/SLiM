@@ -1373,6 +1373,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 	std::sort(mutations_to_add.begin(), mutations_to_add.end(), [ ](Mutation *i1, Mutation *i2) {return i1->position_ < i2->position_;});
 	
 	// Now handle the mutations to add, broken into bulk operations according to the mutation run they fall into
+	bool recording_tree_sequence = sim.RecordingTreeSequence();
 	int last_handled_mutrun_index = -1;
 	
 	for (int value_index = 0; value_index < mutations_count; ++value_index)
@@ -1426,6 +1427,28 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 		
 		// invalidate cached mutation refcounts; refcounts have changed
 		pop.cached_tally_genome_count_ = 0;
+	}
+	
+	if (recording_tree_sequence)
+	{
+		// TREE SEQUENCE RECORDING
+		// notify the tree seq code of the new derived state at every position in every target genome; this is overkill, since not all the
+		// target genomes will have changed at every position, but that should be fixed by the next tree sequence simplification.
+		if (recording_tree_sequence)
+		{
+			for (int genome_index = 0; genome_index < target_size; ++genome_index)
+			{
+				Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
+				slim_genomeid_t target_id = target_genome->genome_id_;
+				
+				for (Mutation *mut : mutations_to_add)
+				{
+					slim_position_t pos = mut->position_;
+					
+					sim.RecordNewDerivedState(target_id, pos, *target_genome->derived_mutation_ids_at_position(pos));
+				}
+			}
+		}
 	}
 	
 	return gStaticEidosValueVOID;
@@ -1573,6 +1596,8 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 #endif
 	
 	// ok, now loop to add the mutations in a single bulk operation per mutation run
+	bool recording_tree_sequence = sim.RecordingTreeSequence();
+	
 	for (int mutrun_index : mutrun_indexes)
 	{
 		int64_t operation_id = ++gSLiM_MutationRun_OperationID;
@@ -1673,6 +1698,22 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 				original_mutrun.copy_from_run(merge_run);
 				
 				MutationRun::FreeMutationRun(&merge_run);
+			}
+			
+			// TREE SEQUENCE RECORDING
+			// whether WillModifyRunForBulkOperation() short-circuited the addition or not, we need to notify the tree seq code
+			if (recording_tree_sequence)
+			{
+				MutationIndex *muts = mutations_to_add.begin_pointer();
+				MutationIndex *muts_end = mutations_to_add.end_pointer();
+				
+				while (muts != muts_end)
+				{
+					Mutation *mut = gSLiM_Mutation_Block + *(muts++);
+					slim_position_t pos = mut->position_;
+					
+					sim.RecordNewDerivedState(target_genome->genome_id_, pos, *target_genome->derived_mutation_ids_at_position(pos));
+				}
 			}
 		}
 		
@@ -1837,6 +1878,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 	}
 	
 	// Now handle the mutations to remove, broken into bulk operations according to the mutation run they fall into
+	bool recording_tree_sequence = sim.RecordingTreeSequence();
 	int last_handled_mutrun_index = -1;
 	
 	for (int value_index = 0; value_index < mutations_count; ++value_index)
@@ -1920,6 +1962,25 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 		
 		// invalidate cached mutation refcounts; refcounts have changed
 		pop.cached_tally_genome_count_ = 0;
+	}
+	
+	// TREE SEQUENCE RECORDING
+	// notify the tree seq code of the new derived state at every position in every target genome; this is overkill, since not all the
+	// target genomes contained all the mutations being removed, but that should be fixed by the next tree sequence simplification.
+	if (recording_tree_sequence)
+	{
+		for (int genome_index = 0; genome_index < target_size; ++genome_index)
+		{
+			Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
+			slim_genomeid_t target_id = target_genome->genome_id_;
+			
+			for (Mutation *mut : mutations_to_remove)
+			{
+				slim_position_t pos = mut->position_;
+				
+				sim.RecordNewDerivedState(target_id, pos, *target_genome->derived_mutation_ids_at_position(pos));
+			}
+		}
 	}
 	
 	return gStaticEidosValueVOID;

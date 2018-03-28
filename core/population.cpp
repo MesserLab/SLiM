@@ -1159,7 +1159,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 							{
 								sim_.SetCurrentNewIndividual(new_child);
 								sim_.RecordNewGenome(nullptr, false);
-								sim_.RecordNewGenome(nullptr, false);
+								sim_.RecordNewGenome(nullptr, true);
 							}
 						}
 						
@@ -1579,7 +1579,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						{
 							sim_.SetCurrentNewIndividual(new_child);
 							sim_.RecordNewGenome(nullptr, false);
-							sim_.RecordNewGenome(nullptr, false);
+							sim_.RecordNewGenome(nullptr, true);
 						}
 					}
 					
@@ -1847,7 +1847,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									{
 										sim_.SetCurrentNewIndividual(new_child);
 										sim_.RecordNewGenome(nullptr, false);
-										sim_.RecordNewGenome(nullptr, false);
+										sim_.RecordNewGenome(nullptr, true);
 									}
 								}
 								
@@ -2264,7 +2264,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 		
 		// TREE SEQUENCE RECORDING
 		if (sim_.RecordingTreeSequence())
-			sim_.RecordNewGenome(nullptr, false);
+			sim_.RecordNewGenome(nullptr, do_swap);
 		
 		return;
 	}
@@ -2385,7 +2385,9 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 	}
 	
 	// TREE SEQUENCE RECORDING
-	if (sim_.RecordingTreeSequence())
+	bool recording_tree_sequence = sim_.RecordingTreeSequence();
+	
+	if (recording_tree_sequence)
 		sim_.RecordNewGenome(&all_breakpoints, do_swap);
 	
 	// mutations are usually rare, so let's streamline the case where none occur
@@ -2612,6 +2614,10 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 						if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
 							new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
 #endif
+						
+						// TREE SEQUENCE RECORDING
+						if (recording_tree_sequence)
+							sim_.RecordNewDerivedState(p_child_genome.genome_id_, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
 					}
 					else
 					{
@@ -2755,6 +2761,10 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 										if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
 											new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
 #endif
+										
+										// TREE SEQUENCE RECORDING
+										if (recording_tree_sequence)
+											sim_.RecordNewDerivedState(p_child_genome.genome_id_, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
 									}
 									else
 									{
@@ -2797,6 +2807,10 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 									if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
 										new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
 #endif
+									
+									// TREE SEQUENCE RECORDING
+									if (recording_tree_sequence)
+										sim_.RecordNewDerivedState(p_child_genome.genome_id_, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
 								}
 								else
 								{
@@ -2940,6 +2954,10 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 							if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
 								new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
 #endif
+							
+							// TREE SEQUENCE RECORDING
+							if (recording_tree_sequence)
+								sim_.RecordNewDerivedState(p_child_genome.genome_id_, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
 						}
 						else
 						{
@@ -2993,6 +3011,8 @@ void Population::DoClonalMutation(Subpopulation *p_source_subpop, Genome &p_chil
 	if (p_child_sex == IndividualSex::kUnspecified)
 		EIDOS_TERMINATION << "ERROR (Population::DoClonalMutation): Child sex cannot be IndividualSex::kUnspecified." << EidosTerminate();
 #endif
+	
+	bool recording_tree_sequence = sim_.RecordingTreeSequence();
 	
 	GenomeType child_genome_type = p_child_genome.Type();
 	Genome *parent_genome = p_source_subpop->parent_genomes_[p_parent_genome_index];
@@ -3104,6 +3124,10 @@ void Population::DoClonalMutation(Subpopulation *p_source_subpop, Genome &p_chil
 							if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
 								new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
 #endif
+							
+							// TREE SEQUENCE RECORDING
+							if (recording_tree_sequence)
+								sim_.RecordNewDerivedState(p_child_genome.genome_id_, mutation_iter_pos, *child_run->derived_mutation_ids_at_position(mutation_iter_pos));
 						}
 						else
 						{

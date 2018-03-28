@@ -494,7 +494,7 @@ void Subpopulation::GenerateIndividualsToFitWF(bool p_make_child_generation, boo
 			{
 				sim.SetCurrentNewIndividual(individual);
 				sim.RecordNewGenome(nullptr, false);
-				sim.RecordNewGenome(nullptr, false);
+				sim.RecordNewGenome(nullptr, true);
 			}
 			
 			genomes.push_back(genome1);
@@ -586,7 +586,7 @@ void Subpopulation::GenerateIndividualsToFitNonWF(double p_sex_ratio)
 			{
 				sim.SetCurrentNewIndividual(individual);
 				sim.RecordNewGenome(nullptr, false);
-				sim.RecordNewGenome(nullptr, false);
+				sim.RecordNewGenome(nullptr, true);
 			}
 			
 			parent_genomes_.push_back(genome1);
@@ -3535,7 +3535,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 		{
 			sim.SetCurrentNewIndividual(individual);
 			sim.RecordNewGenome(nullptr, false);
-			sim.RecordNewGenome(nullptr, false);
+			sim.RecordNewGenome(nullptr, true);
 		}
 	}
 	
@@ -3691,7 +3691,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 		{
 			sim.SetCurrentNewIndividual(individual);
 			sim.RecordNewGenome(nullptr, false);
-			sim.RecordNewGenome(nullptr, false);
+			sim.RecordNewGenome(nullptr, true);
 		}
 	}
 	
