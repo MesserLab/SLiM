@@ -15,6 +15,7 @@
 #include "eidos_ast_node.h"
 #include "slim_sim.h"
 #include "interaction_type.h"
+#include "subpopulation.h"
 
 #include "errno.h"
 #include "string.h"

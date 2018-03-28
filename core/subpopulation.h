@@ -56,6 +56,8 @@
 #include "eidos_value.h"
 #include "slim_eidos_block.h"
 #include "individual.h"
+#include "population.h"
+#include "slim_sim.h"
 #include "slim_eidos_dictionary.h"
 
 #include <vector>
@@ -381,6 +383,12 @@ public:
 			
 			p_individual->~Individual();
 			individual_pool_->DisposeChunk(const_cast<Individual *>(p_individual));
+			
+			// TREE SEQUENCE RECORDING
+			SLiMSim &sim = population_.sim_;
+			
+			if (sim.RecordingTreeSequence())
+				sim.RetractNewIndividual();
 		}
 		
 		return gStaticEidosValueNULL;

@@ -26,6 +26,7 @@
 #include "eidos_ast_node.h"
 #include "individual.h"
 #include "polymorphism.h"
+#include "subpopulation.h"
 
 #include <iostream>
 #include <fstream>
@@ -3542,6 +3543,18 @@ void SLiMSim::_CheckMutationStackPolicy(void)
 
 // other tree sequence methods should probably be implemented here, unless you just make them inline forwards to code in treerec...
 
+void SLiMSim::SimplifyTreeSequence(void)
+{
+	// This gets called by CheckAutoSimplification() when it chooses to simplify, and also gets called when
+	// the user makes a treeSeqSimplify() call.  It should call out to whatever code on the tree sequence side
+	// actually causes a simplification to occur.
+	
+	std::cout << Generation() << ": ***** Simplifying tree" << std::endl;		// FIXME replace me
+	
+	// Reset our auto-simplification counter to start counting up to the simplification interval again
+	simplify_elapsed_ = 0;
+}
+
 void SLiMSim::StartTreeRecording(void)
 {
 	// Record any initial information needed about the simulation here.  Not sure what information you need.
@@ -3576,6 +3589,14 @@ void SLiMSim::SetCurrentNewIndividual(Individual *p_individual)
 	std::cout << tree_seq_generation_ << ": New individual created, pedigree id " << ind_pid << " (parents: " << p1_pid << ", " << p2_pid << ")" << std::endl;
 }
 
+void SLiMSim::RetractNewIndividual()
+{
+	// This is called when a new child, introduced by SetCurrentNewIndividual(), gets rejected by a modifyChild()
+	// callback.  We will have logged recombination breakpoints and new mutations into our tables, and now want
+	// to back those changes out by re-setting the active row index for the tables.
+	
+}
+
 void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, bool p_start_strand_2)
 {
 	// this is called by code where recombination occurs; it will not be called if recombination cannot occur, at present
@@ -3607,27 +3628,6 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, bool 
 	}
 }
 
-void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify)
-{
-	// Write the recorded tree sequence stuff to p_recording_tree_path.
-	if (p_simplify)
-		SimplifyTree();
-	
-	// Standardize the path, resolving a leading ~ and maybe other things
-	std::string path = Eidos_ResolvedPath(p_recording_tree_path);
-	
-	if (p_binary)
-	{
-		// Write a binary file to the specified path
-		std::cout << Generation() << ": ***** Writing binary tree sequence file to path " << p_recording_tree_path << std::endl;
-	}
-	else
-	{
-		// Create a folder at the specified path and then create files inside with standard names
-		std::cout << Generation() << ": ***** Writing text tree sequence file to path " << p_recording_tree_path << std::endl;
-	}
-}
-
 void SLiMSim::CheckAutoSimplification(void)
 {
 	// This is called at the end of each generation, at an appropriate time to simplify.  This method decides
@@ -3644,7 +3644,7 @@ void SLiMSim::CheckAutoSimplification(void)
 		{
 			uint64_t old_table_size = 1;	// FIXME: get the current table size
 			
-			SimplifyTree();
+			SimplifyTreeSequence();
 			
 			uint64_t new_table_size = 1;	// FIXME: get the current table size
 			double ratio = old_table_size / (double)new_table_size;
@@ -3676,16 +3676,25 @@ void SLiMSim::CheckAutoSimplification(void)
 	}
 }
 
-void SLiMSim::SimplifyTree(void)
+void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify)
 {
-	// This gets called by CheckAutoSimplification() when it chooses to simplify, and also gets called when
-	// the user makes a treeSeqSimplify() call.  It should call out to whatever code on the tree sequence side
-	// actually causes a simplification to occur.
+	// Write the recorded tree sequence stuff to p_recording_tree_path.
+	if (p_simplify)
+		SimplifyTreeSequence();
 	
-	std::cout << Generation() << ": ***** Simplifying tree" << std::endl;		// FIXME replace me
+	// Standardize the path, resolving a leading ~ and maybe other things
+	std::string path = Eidos_ResolvedPath(p_recording_tree_path);
 	
-	// Reset our auto-simplification counter to start counting up to the simplification interval again
-	simplify_elapsed_ = 0;
+	if (p_binary)
+	{
+		// Write a binary file to the specified path
+		std::cout << Generation() << ": ***** Writing binary tree sequence file to path " << p_recording_tree_path << std::endl;
+	}
+	else
+	{
+		// Create a folder at the specified path and then create files inside with standard names
+		std::cout << Generation() << ": ***** Writing text tree sequence file to path " << p_recording_tree_path << std::endl;
+	}
 }
 
 void SLiMSim::RememberIndividuals(std::vector<slim_pedigreeid_t> p_individual_ids)
@@ -4593,7 +4602,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 }
 
 // TREE SEQUENCE RECORDING
-//	*********************	(void)initializeTreeSeq([logical$ recordMutations = T], [float$ simplificationRatio = 2.0])
+//	*********************	(void)initializeTreeSeq([logical$ recordMutations = T], [float$ simplificationRatio = 10])
 //
 EidosValue_SP SLiMSim::ExecuteContextFunction_initializeTreeSeq(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
@@ -4719,7 +4728,7 @@ const std::vector<EidosFunctionSignature_SP> *SLiMSim::ZeroGenerationFunctionSig
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMOptions, nullptr, kEidosValueMaskVOID, "SLiM"))
 									   ->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("dimensionality", gStaticEidosValue_StringEmpty)->AddString_OS("periodicity", gStaticEidosValue_StringEmpty)->AddInt_OS("mutationRuns", gStaticEidosValue_Integer0)->AddLogical_OS("preventIncidentalSelfing", gStaticEidosValue_LogicalF));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeTreeSeq, nullptr, kEidosValueMaskVOID, "SLiM"))
-									   ->AddLogical_OS("recordMutations", gStaticEidosValue_LogicalT)->AddFloat_OS("simplificationRatio", gStaticEidosValue_Float2));
+									   ->AddLogical_OS("recordMutations", gStaticEidosValue_LogicalT)->AddFloat_OS("simplificationRatio", gStaticEidosValue_Float10));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMModelType, nullptr, kEidosValueMaskVOID, "SLiM"))
 									   ->AddString_S("modelType"));
 	}
@@ -5213,6 +5222,12 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 EidosValue_SP SLiMSim::ExecuteMethod_addSubpop(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	SLiMGenerationStage gen_stage = GenerationStage();
+	
+	if ((gen_stage != SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kWFStage5ExecuteLateScripts) &&
+		(gen_stage != SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_addSubpop): addSubpop() may only be called from an early() or late() event." << EidosTerminate();
+	
 	EidosValue *subpopID_value = p_arguments[0].get();
 	EidosValue *size_value = p_arguments[1].get();
 	EidosValue *sexRatio_value = p_arguments[2].get();
@@ -5247,6 +5262,12 @@ EidosValue_SP SLiMSim::ExecuteMethod_addSubpopSplit(EidosGlobalStringID p_method
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
 	if (ModelType() == SLiMModelType::kModelTypeNonWF)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_addSubpopSplit): method -addSubpopSplit() is not available in nonWF models." << EidosTerminate();
+	
+	SLiMGenerationStage gen_stage = GenerationStage();
+	
+	if ((gen_stage != SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kWFStage5ExecuteLateScripts) &&
+		(gen_stage != SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_addSubpopSplit): addSubpopSplit() may only be called from an early() or late() event." << EidosTerminate();
 	
 	EidosValue *subpopID_value = p_arguments[0].get();
 	EidosValue *size_value = p_arguments[1].get();
@@ -5613,7 +5634,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_
 	
 	if (!warned_early_output_)
 	{
-		if ((ModelType() == SLiMModelType::kModelTypeWF) && (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts))
+		if (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts)
 		{
 			output_stream << "#WARNING (SLiMSim::ExecuteMethod_outputFixedMutations): outputFixedMutations() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the generation, not the end." << std::endl;
 			warned_early_output_ = true;
@@ -5695,7 +5716,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 	
 	if (!warned_early_output_)
 	{
-		if ((ModelType() == SLiMModelType::kModelTypeWF) && (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts))
+		if (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts)
 		{
 			p_interpreter.ExecutionOutputStream() << "#WARNING (SLiMSim::ExecuteMethod_outputFull): outputFull() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the generation, not the end." << std::endl;
 			warned_early_output_ = true;
@@ -5772,7 +5793,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 	
 	if (!warned_early_output_)
 	{
-		if ((ModelType() == SLiMModelType::kModelTypeWF) && (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts))
+		if (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts)
 		{
 			output_stream << "#WARNING (SLiMSim::ExecuteMethod_outputMutations): outputMutations() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the generation, not the end." << std::endl;
 			warned_early_output_ = true;
@@ -5857,16 +5878,22 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 EidosValue_SP SLiMSim::ExecuteMethod_readFromPopulationFile(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	SLiMGenerationStage gen_stage = GenerationStage();
+	
+	if ((gen_stage != SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kWFStage5ExecuteLateScripts) &&
+		(gen_stage != SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() may only be called from an early() or late() event." << EidosTerminate();
+	
 	EidosValue *filePath_value = p_arguments[0].get();
 	
 	if (!warned_early_read_)
 	{
-		if ((ModelType() == SLiMModelType::kModelTypeWF) && (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts))
+		if (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts)
 		{
 			p_interpreter.ExecutionOutputStream() << "#WARNING (SLiMSim::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() should probably not be called from an early() event in a WF model; fitness values will not be recalculated prior to offspring generation unless recalculateFitness() is called." << std::endl;
 			warned_early_read_ = true;
 		}
-		if ((ModelType() == SLiMModelType::kModelTypeNonWF) && (GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
+		if (GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts)
 		{
 			p_interpreter.ExecutionOutputStream() << "#WARNING (SLiMSim::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() should probably not be called from a late() event in a nonWF model; fitness values will not be recalculated prior to offspring generation unless recalculateFitness() is called." << std::endl;
 			warned_early_read_ = true;
@@ -6272,8 +6299,8 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqSimplify(EidosGlobalStringID p_metho
 	if ((gen_stage != SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kWFStage5ExecuteLateScripts) &&
 		(gen_stage != SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqSimplify): treeSeqSimplify() may only be called from an early() or late() event." << EidosTerminate();
-
-	SimplifyTree();
+	
+	SimplifyTreeSequence();
 	
 	return gStaticEidosValueVOID;
 }

@@ -287,7 +287,10 @@ std::string Eidos_GetUntrimmedRaiseMessage(void);
 #define EIDOS_BZERO(s, n) memset((s), 0, (n))
 
 // Resolve a leading ~ in a filesystem path to the user's home directory
-std::string Eidos_ResolvedPath(const std::string p_path);
+std::string Eidos_ResolvedPath(std::string p_path);
+
+// Remove a trailing slash in a path like ~/foo/bar/
+std::string Eidos_StripTrailingSlash(std::string p_path);
 
 // Create a directory at a given filesystem path if it does not already exist (which is not an error);
 // calls Eidos_ResolvedPath() on the given path, since I think we always want that anyway.  Returns false

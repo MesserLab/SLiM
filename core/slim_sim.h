@@ -23,7 +23,6 @@
  
  */
 
-
 #ifndef __SLiM__slim_sim__
 #define __SLiM__slim_sim__
 
@@ -358,9 +357,10 @@ public:
 	void StartTreeRecording(void);
 	void SetCurrentNewIndividual(Individual *p_individual);
 	void RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, bool p_start_strand_2);
+	void RetractNewIndividual(void);
 	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify);
+	void SimplifyTreeSequence(void);
 	void CheckAutoSimplification(void);
-	void SimplifyTree(void);
 	void RememberIndividuals(std::vector<slim_pedigreeid_t> p_individual_ids);
 	// put any other methods you need for the tree sequence stuff here
 	

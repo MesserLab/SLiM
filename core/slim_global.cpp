@@ -22,6 +22,7 @@
 #include "mutation.h"
 #include "mutation_run.h"
 #include "slim_sim.h"
+#include "subpopulation.h"
 
 #include <string>
 #include <vector>

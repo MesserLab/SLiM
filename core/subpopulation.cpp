@@ -3492,16 +3492,16 @@ IndividualSex Subpopulation::_GenomeConfigurationForSex(EidosValue *p_sex_value,
 EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+	SLiMSim &sim = population_.sim_;
+	if (sim.ModelType() == SLiMModelType::kModelTypeWF)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): method -addCloned() is not available in WF models." << EidosTerminate();
-	if (population_.sim_.GenerationStage() != SLiMGenerationStage::kNonWFStage1GenerateOffspring)
+	if (sim.GenerationStage() != SLiMGenerationStage::kNonWFStage1GenerateOffspring)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): method -addCloned() may only be called from a reproduction() callback." << EidosTerminate();
 	
 	if (Subpopulation::s_reentrancy_block_)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): method -addCloned() may not be called from a nested callback." << EidosTerminate();
 	Eidos_simple_lock reentrancy_lock(Subpopulation::s_reentrancy_block_);
 	
-	SLiMSim &sim = population_.sim_;
 	bool pedigrees_enabled = sim.PedigreesEnabled();
 	Chromosome &chromosome = sim.TheChromosome();
 	int32_t mutrun_count = chromosome.mutrun_count_, mutrun_length = chromosome.mutrun_length_;
@@ -3566,16 +3566,16 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+	SLiMSim &sim = population_.sim_;
+	if (sim.ModelType() == SLiMModelType::kModelTypeWF)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): method -addCrossed() is not available in WF models." << EidosTerminate();
-	if (population_.sim_.GenerationStage() != SLiMGenerationStage::kNonWFStage1GenerateOffspring)
+	if (sim.GenerationStage() != SLiMGenerationStage::kNonWFStage1GenerateOffspring)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): method -addCrossed() may only be called from a reproduction() callback." << EidosTerminate();
 	
 	if (Subpopulation::s_reentrancy_block_)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): method -addCloned() may not be called from a nested callback." << EidosTerminate();
 	Eidos_simple_lock reentrancy_lock(Subpopulation::s_reentrancy_block_);
 	
-	SLiMSim &sim = population_.sim_;
 	bool pedigrees_enabled = sim.PedigreesEnabled();
 	bool prevent_incidental_selfing = sim.PreventIncidentalSelfing();
 	Chromosome &chromosome = sim.TheChromosome();
@@ -3660,9 +3660,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+	SLiMSim &sim = population_.sim_;
+	if (sim.ModelType() == SLiMModelType::kModelTypeWF)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): method -addEmpty() is not available in WF models." << EidosTerminate();
-	if (population_.sim_.GenerationStage() != SLiMGenerationStage::kNonWFStage1GenerateOffspring)
+	if (sim.GenerationStage() != SLiMGenerationStage::kNonWFStage1GenerateOffspring)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): method -addEmpty() may only be called from a reproduction() callback." << EidosTerminate();
 	
 	if (Subpopulation::s_reentrancy_block_)
@@ -3675,7 +3676,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	IndividualSex child_sex = _GenomeConfigurationForSex(sex_value, genome1_type, genome2_type, genome1_null, genome2_null);
 	
 	// Make the new individual as a candidate
-	SLiMSim &sim = population_.sim_;
 	bool pedigrees_enabled = sim.PedigreesEnabled();
 	Chromosome &chromosome = sim.TheChromosome();
 	int32_t mutrun_count = chromosome.mutrun_count_, mutrun_length = chromosome.mutrun_length_;
@@ -3717,16 +3717,16 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+	SLiMSim &sim = population_.sim_;
+	if (sim.ModelType() == SLiMModelType::kModelTypeWF)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): method -addSelfed() is not available in WF models." << EidosTerminate();
-	if (population_.sim_.GenerationStage() != SLiMGenerationStage::kNonWFStage1GenerateOffspring)
+	if (sim.GenerationStage() != SLiMGenerationStage::kNonWFStage1GenerateOffspring)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): method -addSelfed() may only be called from a reproduction() callback." << EidosTerminate();
 	
 	if (Subpopulation::s_reentrancy_block_)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): method -addCloned() may not be called from a nested callback." << EidosTerminate();
 	Eidos_simple_lock reentrancy_lock(Subpopulation::s_reentrancy_block_);
 	
-	SLiMSim &sim = population_.sim_;
 	bool pedigrees_enabled = sim.PedigreesEnabled();
 	Chromosome &chromosome = sim.TheChromosome();
 	int32_t mutrun_count = chromosome.mutrun_count_, mutrun_length = chromosome.mutrun_length_;
@@ -3795,9 +3795,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+	SLiMSim &sim = population_.sim_;
+	if (sim.ModelType() == SLiMModelType::kModelTypeWF)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_takeMigrants): method -takeMigrants() is not available in WF models." << EidosTerminate();
-	if (population_.sim_.GenerationStage() == SLiMGenerationStage::kNonWFStage1GenerateOffspring)
+	if (sim.GenerationStage() == SLiMGenerationStage::kNonWFStage1GenerateOffspring)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_takeMigrants): method -takeMigrants() may not be called from a reproduction() callback." << EidosTerminate();
 	
 	EidosValue_Object *migrants_value = (EidosValue_Object *)p_arguments[0].get();
@@ -4744,16 +4745,19 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 	if (child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may only be called when the parental generation is active (before or during offspring generation)." << EidosTerminate();
 #endif	// SLIM_WF_ONLY
-	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+	
+	SLiMSim &sim = population_.sim_;
+	
+	if (sim.ModelType() == SLiMModelType::kModelTypeWF)
 	{
-		if (population_.sim_.GenerationStage() == SLiMGenerationStage::kWFStage6CalculateFitness)
+		if (sim.GenerationStage() == SLiMGenerationStage::kWFStage6CalculateFitness)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may not be called while fitness values are being calculated." << EidosTerminate();
-		if (population_.sim_.GenerationStage() == SLiMGenerationStage::kWFStage5ExecuteLateScripts)
+		if (sim.GenerationStage() == SLiMGenerationStage::kWFStage5ExecuteLateScripts)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may not be called during late() events in WF models, since the new generation does not yet have fitness values (which are calculated immediately after late() events have executed)." << EidosTerminate();
 	}
 	else
 	{
-		if (population_.sim_.GenerationStage() == SLiMGenerationStage::kNonWFStage3CalculateFitness)
+		if (sim.GenerationStage() == SLiMGenerationStage::kNonWFStage3CalculateFitness)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may not be called while fitness values are being calculated." << EidosTerminate();
 		// in nonWF models uncalculated fitness values for new individuals are guaranteed to be NaN, so there is no need for a check here
 	}
@@ -5484,7 +5488,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 	
 	if (!sim.warned_early_output_)
 	{
-		if ((sim.ModelType() == SLiMModelType::kModelTypeWF) && (sim.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts))
+		if (sim.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts)
 		{
 			output_stream << "#WARNING (Subpopulation::ExecuteMethod_outputXSample): " << Eidos_StringForGlobalStringID(p_method_id) << "() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the generation, not the end." << std::endl;
 			sim.warned_early_output_ = true;

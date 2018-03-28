@@ -24,6 +24,7 @@
 #include "eidos_property_signature.h"
 #include "slim_sim.h"
 #include "polymorphism.h"
+#include "subpopulation.h"
 
 #include <algorithm>
 #include <string>
@@ -1350,12 +1351,12 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 	
 	if (!sim.warned_early_mutation_add_)
 	{
-		if ((sim.ModelType() == SLiMModelType::kModelTypeWF) && (sim.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts))
+		if (sim.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts)
 		{
 			p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addMutations): addMutations() should probably not be called from an early() event in a WF model; the added mutation(s) will not influence fitness values during offspring generation." << std::endl;
 			sim.warned_early_mutation_add_ = true;
 		}
-		if ((sim.ModelType() == SLiMModelType::kModelTypeNonWF) && (sim.GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
+		if (sim.GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts)
 		{
 			p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addMutations): addMutations() should probably not be called from a late() event in a nonWF model; the added mutation(s) will not influence fitness values until the partway through the next generation." << std::endl;
 			sim.warned_early_mutation_add_ = true;
@@ -1463,12 +1464,12 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	
 	if (!sim.warned_early_mutation_add_)
 	{
-		if ((sim.ModelType() == SLiMModelType::kModelTypeWF) && (sim.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts))
+		if (sim.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts)
 		{
 			p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " should probably not be called from an early() event in a WF model; the added mutation will not influence fitness values during offspring generation." << std::endl;
 			sim.warned_early_mutation_add_ = true;
 		}
-		if ((sim.ModelType() == SLiMModelType::kModelTypeNonWF) && (sim.GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
+		if (sim.GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts)
 		{
 			p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " should probably not be called from a late() event in a nonWF model; the added mutation will not influence fitness values until the partway through the next generation." << std::endl;
 			sim.warned_early_mutation_add_ = true;
@@ -1797,12 +1798,12 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 	
 	if (!sim.warned_early_mutation_remove_)
 	{
-		if ((sim.ModelType() == SLiMModelType::kModelTypeWF) && (sim.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts))
+		if (sim.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts)
 		{
 			p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_removeMutations): removeMutations() should probably not be called from an early() event in a WF model; the removed mutation(s) will still influence fitness values during offspring generation." << std::endl;
 			sim.warned_early_mutation_remove_ = true;
 		}
-		if ((sim.ModelType() == SLiMModelType::kModelTypeNonWF) && (sim.GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
+		if (sim.GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts)
 		{
 			p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_removeMutations): removeMutations() should probably not be called from an late() event in a nonWF model; the removed mutation(s) will still influence fitness values until the partway through the next generation." << std::endl;
 			sim.warned_early_mutation_remove_ = true;
