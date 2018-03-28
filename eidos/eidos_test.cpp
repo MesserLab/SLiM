@@ -7076,7 +7076,7 @@ void _RunUserDefinedFunctionTests(void)
 	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(5, 6);", 35, "too many arguments supplied");
 	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(x=5);", 35, "return value cannot be type integer");
 	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(y=5);", 35, "named argument y skipped over required argument x");
-	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(x=5, y=5);", 35, "too many arguments supplied");
+	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(x=5, y=5);", 35, "unrecognized named argument y");
 	
 	// Mutual recursion
 	EidosAssertScriptSuccess("function (i)foo(i x) { return x + bar(x); } function (i)bar(i x) { if (x <= 1) return 1; else return foo(x - 1); } foo(5); ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(16)));

@@ -28,7 +28,6 @@
 #include "polymorphism.h"
 #include "subpopulation.h"
 
-
 #include <iostream>
 #include <fstream>
 #include <stdexcept>
