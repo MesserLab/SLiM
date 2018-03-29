@@ -3681,12 +3681,9 @@ void SLiMSim::SetCurrentNewIndividual(Individual *p_individual)
 		
 	std::cout << Generation() << ": New individual created, pedigree id " << ind_pid << " (parents: " << p1_pid << ", " << p2_pid << ")" << std::endl << std::endl;
 	*/
-
-	//Set ivar to current individual, this way the calls to RecordNewGenome have reference.
-	CurrentTreeSequenceIndividual = p_individual;
-	//Set ivar to indicate the first recombination has not been called, (this lets us know which parent each recombination is referring to
-	FirstRecombinationCalled = false;
-
+	
+	// This call now does nothing, but we will want to save off any information necessary
+	// to make RetractNewIndividual() work, such as the current row in various tables...
 }
 
 void SLiMSim::RetractNewIndividual()
@@ -3698,7 +3695,7 @@ void SLiMSim::RetractNewIndividual()
 	std::cout << tree_seq_generation_ << ": Retracting new individual." << std::endl;
 }
 
-void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, bool p_start_strand_2)
+void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_genomeid_t p_new_genome_id, slim_genomeid_t p_initial_parental_genome_id, slim_genomeid_t p_second_parental_genome_id)
 {
 	// this is called by code where recombination occurs; it will not be called if recombination cannot occur, at present
 	
@@ -3712,13 +3709,7 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, bool 
 	//BIOLOGY NOTE: Recombination is the meiosis process by which the parent gamete produces germ cells, hence two recombination events 
 	//per diploid individual. Here each we treat each offspring genome produced as a haploid individual.
 
-	slim_pedigreeid_t parentSLiMID;			// The SLiM individual that produced this germ cell
-	slim_pedigreeid_t offspringSLiMID;		// The genome ID of this germ cell
-	slim_pedigreeid_t genome1SLiMID;		// First genome ID of parental gamete
-	slim_pedigreeid_t genome2SLiMID;		// Second genome ID of parental gamete  
 	node_id_t offspringMSPID;			//MSPrime equivilent of germ cell ID (Node returned from MSPrime)
-	node_id_t genome1MSPID;				//MSPrime equivilent of first genome ID of parent
-	node_id_t genome2MSPID;				//MSPrime equivilent of second genome ID of parent
 
 	//DEBUG STDOUT PRINTING
     /*
@@ -3728,43 +3719,31 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, bool 
   	std::cout << "     " << (!FirstRecombinationCalled ? "first recomb" : "second recomb") << ", Reference to individual: " << std::endl;
     */
 
- 	//if the first recombination has not been called this is a reference to parent 1, else parent 2
-	if(!FirstRecombinationCalled){ 			
-		offspringSLiMID = 2 * CurrentTreeSequenceIndividual->PedigreeID();
-		parentSLiMID = CurrentTreeSequenceIndividual->Parent1PedigreeID();
-		FirstRecombinationCalled = true;		
-	}else{
-		offspringSLiMID = (2 * CurrentTreeSequenceIndividual->PedigreeID()) + 1;
-		parentSLiMID = CurrentTreeSequenceIndividual->Parent2PedigreeID();
-	} 
-
-	//calculate genome ID's 
-	genome1SLiMID = 2 * parentSLiMID;
-	genome2SLiMID = genome1SLiMID + 1;
-
-	//Map the Parental Genome SLiM Id's to MSP IDs.
-	genome1MSPID = getMSPID(genome1SLiMID);
-	genome2MSPID = getMSPID(genome2SLiMID);
-
-
 	//add genome node
 	double time = (double) -1 * tree_seq_generation_;
 	uint32_t flags = 1;
 
 	//for metadata -> testing for now
-	std::string osids = std::to_string(offspringSLiMID);	
+	std::string osids = std::to_string(p_new_genome_id);	
 	osids = "SLiMID="+osids;
 	size_t size = osids.length();
 	const char *offspring_SLiMID_Const = osids.c_str();
 	
 	offspringMSPID = node_table_add_row(&tables.nodes,flags,time,0,offspring_SLiMID_Const,size);
-    SLiM_MSP_Id_Map[offspringSLiMID] = (node_id_t) offspringMSPID;
-
+    SLiM_MSP_Id_Map[p_new_genome_id] = (node_id_t) offspringMSPID;
+	
     // if there is no parent then no need to record edges
-	if(parentSLiMID == -1){
+	if ((p_initial_parental_genome_id == -1) && (p_second_parental_genome_id == -1)) {
 		return;
 	}
+	
+	node_id_t genome1MSPID;				//MSPrime equivilent of first genome ID of parent
+	node_id_t genome2MSPID;				//MSPrime equivilent of second genome ID of parent
 
+	//Map the Parental Genome SLiM Id's to MSP IDs.
+	genome1MSPID = getMSPID(p_initial_parental_genome_id);
+	genome2MSPID = (p_second_parental_genome_id == -1) ? genome1MSPID : getMSPID(p_second_parental_genome_id);
+	
 	size_t breakpoint_count = (p_breakpoints ? p_breakpoints->size() : 0);
 	//Have yet to make it in this conditional. Ask ben about this funky business. 
 	if (breakpoint_count && (p_breakpoints->back() > chromosome_.last_position_)){
@@ -3773,27 +3752,27 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, bool 
 	}
 	double left = 0.0;
 	double right;
-	for (size_t i = 0; i < breakpoint_count; i++){
+	size_t i;
+	
+	for (i = 0; i < breakpoint_count; i++){
 	
 		right = (*p_breakpoints)[i];
 
-		node_id_t parent = (node_id_t) (p_start_strand_2 ? genome2MSPID : genome1MSPID);
+		node_id_t parent = (node_id_t) genome1MSPID;
 		tree_return_value_ = edge_table_add_row(&tables.edges,left,right,parent,offspringMSPID);
 		if (tree_return_value_ < 0) {
 			handle_error("add_edge", tree_return_value_);
 		}
-		p_start_strand_2 = !p_start_strand_2;
 		
 		left = right;
 	}
 	
 	right = (double)chromosome_.last_position_+1;
-	node_id_t parent = (node_id_t) (p_start_strand_2 ? genome2MSPID : genome1MSPID);
+	node_id_t parent = (node_id_t) (((i % 2) == 0) ? genome1MSPID : genome2MSPID);
 	tree_return_value_ = edge_table_add_row(&tables.edges,left,right,parent,offspringMSPID);
 	if (tree_return_value_ < 0) {
 		handle_error("add_edge", tree_return_value_);
 	}
-		
 }
 
 void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t p_position, const std::vector<slim_mutationid_t> &p_derived_mutations)
@@ -3809,6 +3788,9 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
 	// individual's pedigree ID, with the expected invariant relationship: it is 2 * pedigree_id + [0/1].
 	// The vector of IDs passed in here is reused internally, so this method must not keep a pointer to it;
 	// any information that needs to be kept from it must be copied out.
+
+	//DEBUG STDOUT PRINTING
+	/*
 	std::cout << tree_seq_generation_ << ":   New derived state for genome id " << p_genome_id << " at position " << p_position << ":";
 	
 	if (p_derived_mutations.size())
@@ -3822,6 +3804,7 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
 	}
 	
 	std::cout << std::endl;
+	 */
 }
 
 void SLiMSim::CheckAutoSimplification(void)

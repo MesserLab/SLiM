@@ -1148,6 +1148,11 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						
 						parent2 = parent1;
 						
+						Genome &child_genome_1 = *p_subpop.child_genomes_[2 * child_index];
+						Genome &child_genome_2 = *p_subpop.child_genomes_[2 * child_index + 1];
+						Genome &parent_genome_1 = *source_subpop.parent_genomes_[2 * parent1];
+						Genome &parent_genome_2 = *source_subpop.parent_genomes_[2 * parent1 + 1];
+						
 						if (pedigrees_enabled)
 						{
 							Individual *new_child = p_subpop.child_individuals_[child_index];
@@ -1158,13 +1163,13 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 							if (recording_tree_sequence)
 							{
 								sim_.SetCurrentNewIndividual(new_child);
-								sim_.RecordNewGenome(nullptr, false);
-								sim_.RecordNewGenome(nullptr, true);
+								sim_.RecordNewGenome(nullptr, child_genome_1.genome_id_, parent_genome_1.genome_id_, -1);
+								sim_.RecordNewGenome(nullptr, child_genome_2.genome_id_, parent_genome_2.genome_id_, -1);
 							}
 						}
 						
-						DoClonalMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_index], 2 * parent1, child_sex);
-						DoClonalMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_index + 1], 2 * parent1 + 1, child_sex);
+						DoClonalMutation(&source_subpop, child_genome_1, parent_genome_1, child_sex);
+						DoClonalMutation(&source_subpop, child_genome_2, parent_genome_2, child_sex);
 					}
 					else
 					{
@@ -1568,6 +1573,11 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					
 					parent2 = parent1;
 					
+					Genome &child_genome_1 = *p_subpop.child_genomes_[2 * child_index];
+					Genome &child_genome_2 = *p_subpop.child_genomes_[2 * child_index + 1];
+					Genome &parent_genome_1 = *source_subpop->parent_genomes_[2 * parent1];
+					Genome &parent_genome_2 = *source_subpop->parent_genomes_[2 * parent1 + 1];
+					
 					if (pedigrees_enabled)
 					{
 						Individual *new_child = p_subpop.child_individuals_[child_index];
@@ -1578,13 +1588,13 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						if (recording_tree_sequence)
 						{
 							sim_.SetCurrentNewIndividual(new_child);
-							sim_.RecordNewGenome(nullptr, false);
-							sim_.RecordNewGenome(nullptr, true);
+							sim_.RecordNewGenome(nullptr, child_genome_1.genome_id_, parent_genome_1.genome_id_, -1);
+							sim_.RecordNewGenome(nullptr, child_genome_2.genome_id_, parent_genome_2.genome_id_, -1);
 						}
 					}
 					
-					DoClonalMutation(source_subpop, *p_subpop.child_genomes_[2 * child_index], 2 * parent1, child_sex);
-					DoClonalMutation(source_subpop, *p_subpop.child_genomes_[2 * child_index + 1], 2 * parent1 + 1, child_sex);
+					DoClonalMutation(source_subpop, child_genome_1, parent_genome_1, child_sex);
+					DoClonalMutation(source_subpop, child_genome_2, parent_genome_2, child_sex);
 				}
 				else
 				{
@@ -1836,6 +1846,11 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								
 								--number_to_clone;
 								
+								Genome &child_genome_1 = *p_subpop.child_genomes_[2 * child_count];
+								Genome &child_genome_2 = *p_subpop.child_genomes_[2 * child_count + 1];
+								Genome &parent_genome_1 = *source_subpop.parent_genomes_[2 * parent1];
+								Genome &parent_genome_2 = *source_subpop.parent_genomes_[2 * parent1 + 1];
+								
 								if (pedigrees_enabled)
 								{
 									Individual *new_child = p_subpop.child_individuals_[child_count];
@@ -1846,13 +1861,13 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									if (recording_tree_sequence)
 									{
 										sim_.SetCurrentNewIndividual(new_child);
-										sim_.RecordNewGenome(nullptr, false);
-										sim_.RecordNewGenome(nullptr, true);
+										sim_.RecordNewGenome(nullptr, child_genome_1.genome_id_, parent_genome_1.genome_id_, -1);
+										sim_.RecordNewGenome(nullptr, child_genome_2.genome_id_, parent_genome_2.genome_id_, -1);
 									}
 								}
 								
-								DoClonalMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], 2 * parent1, child_sex);
-								DoClonalMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count + 1], 2 * parent1 + 1, child_sex);
+								DoClonalMutation(&source_subpop, child_genome_1, parent_genome_1, child_sex);
+								DoClonalMutation(&source_subpop, child_genome_2, parent_genome_2, child_sex);
 							}
 							else
 							{
@@ -2264,7 +2279,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 		
 		// TREE SEQUENCE RECORDING
 		if (sim_.RecordingTreeSequence())
-			sim_.RecordNewGenome(nullptr, do_swap);
+			sim_.RecordNewGenome(nullptr, p_child_genome.genome_id_, parent_genome_1->genome_id_, parent_genome_2->genome_id_);
 		
 		return;
 	}
@@ -2388,7 +2403,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 	bool recording_tree_sequence = sim_.RecordingTreeSequence();
 	
 	if (recording_tree_sequence)
-		sim_.RecordNewGenome(&all_breakpoints, do_swap);
+		sim_.RecordNewGenome(&all_breakpoints, p_child_genome.genome_id_, parent_genome_1->genome_id_, parent_genome_2->genome_id_);
 	
 	// mutations are usually rare, so let's streamline the case where none occur
 	if (num_mutations == 0)
@@ -3004,7 +3019,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 #endif
 }
 
-void Population::DoClonalMutation(Subpopulation *p_source_subpop, Genome &p_child_genome, slim_popsize_t p_parent_genome_index, IndividualSex p_child_sex)
+void Population::DoClonalMutation(Subpopulation *p_source_subpop, Genome &p_child_genome, Genome &p_parent_genome, IndividualSex p_child_sex)
 {
 #pragma unused(p_child_sex)
 #ifdef DEBUG
@@ -3015,15 +3030,14 @@ void Population::DoClonalMutation(Subpopulation *p_source_subpop, Genome &p_chil
 	bool recording_tree_sequence = sim_.RecordingTreeSequence();
 	
 	GenomeType child_genome_type = p_child_genome.Type();
-	Genome *parent_genome = p_source_subpop->parent_genomes_[p_parent_genome_index];
-	GenomeType parent_genome_type = parent_genome->Type();
+	GenomeType parent_genome_type = p_parent_genome.Type();
 	
 	if (child_genome_type != parent_genome_type)
 		EIDOS_TERMINATION << "ERROR (Population::DoClonalMutation): Mismatch between parent and child genome types (type != type)." << EidosTerminate();
 	
 	// check for null cases
 	bool child_genome_null = p_child_genome.IsNull();
-	bool parent_genome_null = parent_genome->IsNull();
+	bool parent_genome_null = p_parent_genome.IsNull();
 	
 	if (child_genome_null != parent_genome_null)
 		EIDOS_TERMINATION << "ERROR (Population::DoClonalMutation): Mismatch between parent and child genome types (null != null)." << EidosTerminate();
@@ -3042,7 +3056,7 @@ void Population::DoClonalMutation(Subpopulation *p_source_subpop, Genome &p_chil
 	if (num_mutations == 0)
 	{
 		// no mutations, so the child genome is just a copy of the parental genome
-		p_child_genome.copy_from_genome(*p_source_subpop->parent_genomes_[p_parent_genome_index]);
+		p_child_genome.copy_from_genome(p_parent_genome);
 	}
 	else
 	{
@@ -3082,13 +3096,13 @@ void Population::DoClonalMutation(Subpopulation *p_source_subpop, Genome &p_chil
 			if (mutation_iter_mutrun_index > run_index)
 			{
 				// no mutations in this run, so just copy the run pointer
-				p_child_genome.mutruns_[run_index] = parent_genome->mutruns_[run_index];
+				p_child_genome.mutruns_[run_index] = p_parent_genome.mutruns_[run_index];
 			}
 			else
 			{
 				// interleave the parental genome with the new mutations
 				MutationRun *child_run = p_child_genome.WillCreateRun(run_index);
-				MutationRun *parent_run = parent_genome->mutruns_[run_index].get();
+				MutationRun *parent_run = p_parent_genome.mutruns_[run_index].get();
 				const MutationIndex *parent_iter		= parent_run->begin_pointer_const();
 				const MutationIndex *parent_iter_max	= parent_run->end_pointer_const();
 				
