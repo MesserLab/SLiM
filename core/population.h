@@ -131,7 +131,7 @@ public:
 	void DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_child_genome, slim_popsize_t p_parent_index, IndividualSex p_child_sex, IndividualSex p_parent_sex, std::vector<SLiMEidosBlock*> *p_recombination_callbacks);
 	
 	// generate a child genome from a single parental genome, without recombination or gene conversion, but with mutation
-	void DoClonalMutation(Subpopulation *p_source_subpop, Genome &p_child_genome, slim_popsize_t p_parent_genome_index, IndividualSex p_child_sex);
+	void DoClonalMutation(Subpopulation *p_source_subpop, Genome &p_child_genome, Genome &p_parent_genome, IndividualSex p_child_sex);
 	
 	// An internal method that validates cached fitness values kept by Mutation objects
 	void ValidateMutationFitnessCaches(void);

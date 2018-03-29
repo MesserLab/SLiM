@@ -3606,7 +3606,7 @@ void SLiMSim::RetractNewIndividual()
 	std::cout << tree_seq_generation_ << ": Retracting new individual." << std::endl;
 }
 
-void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, bool p_start_strand_2)
+void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_genomeid_t p_new_genome_id, slim_genomeid_t p_initial_parental_genome_id, slim_genomeid_t p_second_parental_genome_id)
 {
 	// this is called by code where recombination occurs; it will not be called if recombination cannot occur, at present
 	
@@ -3620,17 +3620,17 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, bool 
 	
 	if (breakpoint_count)
 	{
-		std::cout << tree_seq_generation_ << ":   Recombination at positions:";
+		std::cout << tree_seq_generation_ << ":   New genome with ID " << p_new_genome_id << " from recombination at positions:";
 		
 		for (size_t breakpoint_index = 0; breakpoint_index < breakpoint_count; ++breakpoint_index)
 			std::cout << " " << (*p_breakpoints)[breakpoint_index];
-		
-		std::cout << " (start with parental strand " << (p_start_strand_2 ? 2 : 1) << ")" << std::endl;
 	}
 	else
 	{
-		std::cout << tree_seq_generation_ << ":   No recombination (use parental strand " << (p_start_strand_2 ? 2 : 1) << ")" << std::endl;
+		std::cout << tree_seq_generation_ << ":   New genome with ID " << p_new_genome_id << " with no recombination";
 	}
+	
+	std::cout << " (parental genome IDs " << p_initial_parental_genome_id << ", " << p_second_parental_genome_id << ")" << std::endl;
 }
 
 void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t p_position, const std::vector<slim_mutationid_t> &p_derived_mutations)

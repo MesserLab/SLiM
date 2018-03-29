@@ -493,8 +493,8 @@ void Subpopulation::GenerateIndividualsToFitWF(bool p_make_child_generation, boo
 			if (recording_tree_sequence)
 			{
 				sim.SetCurrentNewIndividual(individual);
-				sim.RecordNewGenome(nullptr, false);
-				sim.RecordNewGenome(nullptr, true);
+				sim.RecordNewGenome(nullptr, genome1->genome_id_, -1, -1);
+				sim.RecordNewGenome(nullptr, genome2->genome_id_, -1, -1);
 			}
 			
 			genomes.push_back(genome1);
@@ -585,8 +585,8 @@ void Subpopulation::GenerateIndividualsToFitNonWF(double p_sex_ratio)
 			if (recording_tree_sequence)
 			{
 				sim.SetCurrentNewIndividual(individual);
-				sim.RecordNewGenome(nullptr, false);
-				sim.RecordNewGenome(nullptr, true);
+				sim.RecordNewGenome(nullptr, genome1->genome_id_, -1, -1);
+				sim.RecordNewGenome(nullptr, genome2->genome_id_, -1, -1);
 			}
 			
 			parent_genomes_.push_back(genome1);
@@ -664,6 +664,14 @@ void Subpopulation::CheckIndividualIntegrity(void)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) genome 1 of individual has the wrong mutrun count/length." << EidosTerminate();
 		if (!genome2->IsNull() && ((genome2->mutrun_count_ != mutrun_count) || (genome2->mutrun_length_ != mutrun_length)))
 			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) genome 2 of individual has the wrong mutrun count/length." << EidosTerminate();
+		
+		if (population_.sim_.PedigreesEnabled())
+		{
+			if (individual->pedigree_id_ == -1)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) individual has an invalid pedigree ID." << EidosTerminate();
+			if ((genome1->genome_id_ != individual->pedigree_id_ * 2) || (genome2->genome_id_ != individual->pedigree_id_ * 2 + 1))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) genome has an invalid genome ID." << EidosTerminate();
+		}
 		
 #if defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY)
 		if (model_type == SLiMModelType::kModelTypeWF)
@@ -783,6 +791,14 @@ void Subpopulation::CheckIndividualIntegrity(void)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) genome 1 of individual has the wrong mutrun count/length." << EidosTerminate();
 			if (!genome2->IsNull() && ((genome2->mutrun_count_ != mutrun_count) || (genome2->mutrun_length_ != mutrun_length)))
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) genome 2 of individual has the wrong mutrun count/length." << EidosTerminate();
+			
+			if (population_.sim_.PedigreesEnabled() && child_generation_valid_)
+			{
+				if (individual->pedigree_id_ == -1)
+					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) individual has an invalid pedigree ID." << EidosTerminate();
+				if ((genome1->genome_id_ != individual->pedigree_id_ * 2) || (genome2->genome_id_ != individual->pedigree_id_ * 2 + 1))
+					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) genome has an invalid genome ID." << EidosTerminate();
+			}
 			
 			if (sex_enabled_)
 			{
@@ -3525,6 +3541,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, genome1_type, genome1_null);
 	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
 	Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
+	Genome &parent_genome_1 = *parent_subpop.parent_genomes_[2 * parent->index_];
+	Genome &parent_genome_2 = *parent_subpop.parent_genomes_[2 * parent->index_ + 1];
 	
 	if (pedigrees_enabled)
 	{
@@ -3534,13 +3552,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 		if (sim.RecordingTreeSequence())
 		{
 			sim.SetCurrentNewIndividual(individual);
-			sim.RecordNewGenome(nullptr, false);
-			sim.RecordNewGenome(nullptr, true);
+			sim.RecordNewGenome(nullptr, genome1->genome_id_, parent_genome_1.genome_id_, -1);
+			sim.RecordNewGenome(nullptr, genome2->genome_id_, parent_genome_2.genome_id_, -1);
 		}
 	}
 	
-	population_.DoClonalMutation(&parent_subpop, *genome1, parent->index_ * 2, child_sex);
-	population_.DoClonalMutation(&parent_subpop, *genome2, parent->index_ * 2 + 1, child_sex);
+	population_.DoClonalMutation(&parent_subpop, *genome1, parent_genome_1, child_sex);
+	population_.DoClonalMutation(&parent_subpop, *genome2, parent_genome_2, child_sex);
 	
 	// Run the candidate past modifyChild() callbacks
 	bool proposed_child_accepted = true;
@@ -3690,8 +3708,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 		if (sim.RecordingTreeSequence())
 		{
 			sim.SetCurrentNewIndividual(individual);
-			sim.RecordNewGenome(nullptr, false);
-			sim.RecordNewGenome(nullptr, true);
+			sim.RecordNewGenome(nullptr, genome1->genome_id_, -1, -1);
+			sim.RecordNewGenome(nullptr, genome2->genome_id_, -1, -1);
 		}
 	}
 	
