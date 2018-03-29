@@ -3753,22 +3753,24 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_
 	double left = 0.0;
 	double right;
 	size_t i;
+	bool polarity = true;
 	
 	for (i = 0; i < breakpoint_count; i++){
 	
 		right = (*p_breakpoints)[i];
 
-		node_id_t parent = (node_id_t) genome1MSPID;
+		node_id_t parent = (node_id_t) (polarity ? genome1MSPID : genome2MSPID);
 		tree_return_value_ = edge_table_add_row(&tables.edges,left,right,parent,offspringMSPID);
 		if (tree_return_value_ < 0) {
 			handle_error("add_edge", tree_return_value_);
 		}
+		polarity = !polarity;
 		
 		left = right;
 	}
 	
 	right = (double)chromosome_.last_position_+1;
-	node_id_t parent = (node_id_t) (((i % 2) == 0) ? genome1MSPID : genome2MSPID);
+	node_id_t parent = (node_id_t) (polarity ? genome1MSPID : genome2MSPID);
 	tree_return_value_ = edge_table_add_row(&tables.edges,left,right,parent,offspringMSPID);
 	if (tree_return_value_ < 0) {
 		handle_error("add_edge", tree_return_value_);
