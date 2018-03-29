@@ -127,7 +127,8 @@ SLiMSim::~SLiMSim(void)
 	}
 	
 	// TREE SEQUENCE RECORDING
-	// dispose of any allocated stuff needing cleanup here
+	if (RecordingTreeSequence())
+		FreeTreeSequence();
 }
 
 void SLiMSim::InitializeRNGFromSeed(unsigned long int *p_override_seed_ptr)
@@ -270,6 +271,13 @@ slim_generation_t SLiMSim::InitializePopulationFromFile(const char *p_file, Eido
 		
 		// then we dispose of all existing subpopulations, mutations, etc.
 		population_.RemoveAllSubpopulationInfo();
+		
+		// TREE SEQUENCE RECORDING
+		if (RecordingTreeSequence())
+		{
+			FreeTreeSequence();
+			StartTreeRecording();
+		}
 	}
 	
 	if (file_format == 1)
@@ -3728,6 +3736,12 @@ void SLiMSim::RememberIndividuals(std::vector<slim_pedigreeid_t> p_individual_id
 	// permanently in this run of the model, i.e. added to the sample in every simplify.
 	
 	std::cout << tree_seq_generation_ << ": ***** Remembering specified individuals" << std::endl;		// FIXME replace me
+}
+
+void SLiMSim::FreeTreeSequence(void)
+{
+	// Free any tree-sequence recording stuff that has been allocated; called when SLiMSim is getting deallocated,
+	// and also when we're wiping the slate clean with something like readFromPopulationFile().
 }
 
 
