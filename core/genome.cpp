@@ -1373,7 +1373,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 	std::sort(mutations_to_add.begin(), mutations_to_add.end(), [ ](Mutation *i1, Mutation *i2) {return i1->position_ < i2->position_;});
 	
 	// Now handle the mutations to add, broken into bulk operations according to the mutation run they fall into
-	bool recording_tree_sequence = sim.RecordingTreeSequence();
+	bool recording_tree_sequence_mutations = sim.RecordingTreeSequenceMutations();
 	int last_handled_mutrun_index = -1;
 	
 	for (int value_index = 0; value_index < mutations_count; ++value_index)
@@ -1429,24 +1429,21 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 		pop.cached_tally_genome_count_ = 0;
 	}
 	
-	if (recording_tree_sequence)
+	if (recording_tree_sequence_mutations)
 	{
 		// TREE SEQUENCE RECORDING
 		// notify the tree seq code of the new derived state at every position in every target genome; this is overkill, since not all the
 		// target genomes will have changed at every position, but that should be fixed by the next tree sequence simplification.
-		if (recording_tree_sequence)
+		for (int genome_index = 0; genome_index < target_size; ++genome_index)
 		{
-			for (int genome_index = 0; genome_index < target_size; ++genome_index)
+			Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
+			slim_genomeid_t target_id = target_genome->genome_id_;
+			
+			for (Mutation *mut : mutations_to_add)
 			{
-				Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
-				slim_genomeid_t target_id = target_genome->genome_id_;
+				slim_position_t pos = mut->position_;
 				
-				for (Mutation *mut : mutations_to_add)
-				{
-					slim_position_t pos = mut->position_;
-					
-					sim.RecordNewDerivedState(target_id, pos, *target_genome->derived_mutation_ids_at_position(pos));
-				}
+				sim.RecordNewDerivedState(target_id, pos, *target_genome->derived_mutation_ids_at_position(pos));
 			}
 		}
 	}
@@ -1596,7 +1593,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 #endif
 	
 	// ok, now loop to add the mutations in a single bulk operation per mutation run
-	bool recording_tree_sequence = sim.RecordingTreeSequence();
+	bool recording_tree_sequence_mutations = sim.RecordingTreeSequenceMutations();
 	
 	for (int mutrun_index : mutrun_indexes)
 	{
@@ -1702,7 +1699,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 			
 			// TREE SEQUENCE RECORDING
 			// whether WillModifyRunForBulkOperation() short-circuited the addition or not, we need to notify the tree seq code
-			if (recording_tree_sequence)
+			if (recording_tree_sequence_mutations)
 			{
 				MutationIndex *muts = mutations_to_add.begin_pointer();
 				MutationIndex *muts_end = mutations_to_add.end_pointer();
@@ -1878,7 +1875,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 	}
 	
 	// Now handle the mutations to remove, broken into bulk operations according to the mutation run they fall into
-	bool recording_tree_sequence = sim.RecordingTreeSequence();
+	bool recording_tree_sequence_mutations = sim.RecordingTreeSequenceMutations();
 	int last_handled_mutrun_index = -1;
 	
 	for (int value_index = 0; value_index < mutations_count; ++value_index)
@@ -1967,7 +1964,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 	// TREE SEQUENCE RECORDING
 	// notify the tree seq code of the new derived state at every position in every target genome; this is overkill, since not all the
 	// target genomes contained all the mutations being removed, but that should be fixed by the next tree sequence simplification.
-	if (recording_tree_sequence)
+	if (recording_tree_sequence_mutations)
 	{
 		for (int genome_index = 0; genome_index < target_size; ++genome_index)
 		{
