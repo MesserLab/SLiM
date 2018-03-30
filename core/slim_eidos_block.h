@@ -49,6 +49,8 @@ enum class SLiMEidosBlockType {
 	SLiMEidosReproductionCallback,
 	
 	SLiMEidosUserDefinedFunction,
+	
+	SLiMEidosNoBlockType = -1		// not used as a type, only used to indicate "no type"
 };
 
 std::ostream& operator<<(std::ostream& p_out, SLiMEidosBlockType p_block_type);

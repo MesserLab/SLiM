@@ -3746,6 +3746,7 @@
 									}
 									break;
 								}
+								case SLiMEidosBlockType::SLiMEidosNoBlockType: break;	// never hit
 							}
 						}
 						
@@ -4346,6 +4347,7 @@
 							
 							return [functionName stringByAppendingString:@"()"];
 						}
+						case SLiMEidosBlockType::SLiMEidosNoBlockType:				return @"";	// never hit
 					}
 				}
 			}

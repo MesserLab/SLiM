@@ -42,12 +42,15 @@ bool Individual::s_any_individual_dictionary_set_ = false;
 bool Individual::s_any_individual_fitness_scaling_set_ = false;
 
 
-Individual::Individual(Subpopulation &p_subpopulation, slim_popsize_t p_individual_index, slim_pedigreeid_t p_pedigree_id, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_age_t p_age, double p_fitness) : subpopulation_(p_subpopulation), index_(p_individual_index), cached_fitness_(p_fitness), genome1_(p_genome1), genome2_(p_genome2), sex_(p_sex),
+Individual::Individual(Subpopulation &p_subpopulation, slim_popsize_t p_individual_index, slim_pedigreeid_t p_pedigree_id, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_age_t p_age, double p_fitness) : subpopulation_(p_subpopulation), index_(p_individual_index), cached_fitness_UNSAFE_(p_fitness), genome1_(p_genome1), genome2_(p_genome2), sex_(p_sex),
 #ifdef SLIM_NONWF_ONLY
 	age_(p_age),
 #endif  // SLIM_NONWF_ONLY
 	pedigree_id_(p_pedigree_id), pedigree_p1_(-1), pedigree_p2_(-1), pedigree_g1_(-1), pedigree_g2_(-1), pedigree_g3_(-1), pedigree_g4_(-1)
 {
+#ifndef SLIM_NONWF_ONLY
+#pragma unused(p_age)
+#endif
 	// Make our genomes use the correct pedigree IDs, if we're doing pedigree recording
 	if (p_pedigree_id != -1)
 	{

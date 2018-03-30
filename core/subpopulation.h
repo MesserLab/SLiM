@@ -128,8 +128,6 @@ private:
 	
 	EidosSymbolTableEntry self_symbol_;						// for fast setup of the symbol table
 	
-	static bool s_reentrancy_block_;						// prevents re-entrancy in the addX() nonWF methods
-	
 public:
 	
 	Population &population_;						// we need to know our Population so we can remove ourselves, etc.
@@ -204,6 +202,19 @@ public:
 	slim_popsize_t cached_fitness_size_ = 0;		// the size (number of entries used) of cached_parental_fitness_ and cached_male_fitness_
 	slim_popsize_t cached_fitness_capacity_ = 0;	// the capacity of the malloced buffers cached_parental_fitness_ and cached_male_fitness_
 #endif	// SLIM_WF_ONLY
+	
+#if (!defined(SLIMGUI) && defined(SLIM_WF_ONLY))
+	// Optimized fitness caching at the Individual level.  Individual has an ivar named cached_fitness_UNSAFE_ that keeps a cached fitness value for each individual.
+	// When a model is neutral or nearly neutral, every individual may have the same fitness value, and we may know that.  In such cases, we want to avoid setting
+	// up the cached fitness value in each individual; instead, we set a flag here that overrides cached_fitness_UNSAFE_ and says it has the same value for all.
+	// This optimization only happens when we're not in SLiMgui, for simplicitly, since SLiMgui uses the Individual cached fitness values in various places.  And it
+	// happens only for the parental generation's cached fitness values (cached fitness values for the child generation should never be accessed by anyone anyway
+	// since they are not valid).  And it happens only in WF models, since in nonWF models the generational overlap makes this scheme impossible.  A somewhat special
+	// case, then, but it seems worthwhile since the penalty for seting every cached fitness value, and then gathering them back up again in UpdateWFFitnessBuffers(),
+	// is large – almost 20% of total runtime for the full Gravel model, for example.  Neutral WF models are common and worth special-casing.
+	bool individual_cached_fitness_OVERRIDE_ = false;
+	double individual_cached_fitness_OVERRIDE_value_;
+#endif
 	
 	// SEX ONLY; the default values here are for the non-sex case
 	bool sex_enabled_ = false;										// the subpopulation needs to have easy reference to whether its individuals are sexual or not...

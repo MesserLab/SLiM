@@ -356,6 +356,9 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 	SLIM_PROFILE_BLOCK_START();
 #endif
 	
+	SLiMEidosBlockType old_executing_block_type = sim_.executing_block_type_;
+	sim_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosMateChoiceCallback;
+	
 	// We start out using standard weights taken from the source subpopulation.  If, when we are done handling callbacks, we are still
 	// using those standard weights, then we can do a draw using our fast lookup tables.  Otherwise, we will do a draw the hard way.
 	bool sex_enabled = p_subpop->sex_enabled_;
@@ -527,6 +530,8 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 				if (weights_modified)
 					free(current_weights);
 				
+				sim_.executing_block_type_ = old_executing_block_type;
+				
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 				// PROFILING
 				SLIM_PROFILE_BLOCK_END(sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)]);
@@ -550,6 +555,8 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 			if (drawn_parent < p_source_subpop->parent_first_male_index_)
 				EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): second parent chosen by mateChoice() callback is female." << EidosTerminate(last_interventionist_mate_choice_callback->identifier_token_);
 		}
+		
+		sim_.executing_block_type_ = old_executing_block_type;
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
@@ -595,6 +602,8 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 			//EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): weights returned by mateChoice() callback sum to 0.0 or less." << EidosTerminate(last_interventionist_mate_choice_callback->identifier_token_);
 			if (weights_modified)
 				free(current_weights);
+			
+			sim_.executing_block_type_ = old_executing_block_type;
 			
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 			// PROFILING
@@ -668,6 +677,8 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 				EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): second parent chosen by mateChoice() callback is female." << EidosTerminate(last_interventionist_mate_choice_callback->identifier_token_);
 		}
 		
+		sim_.executing_block_type_ = old_executing_block_type;
+		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_END(sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)]);
@@ -675,6 +686,8 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 		
 		return drawn_parent;
 	}
+	
+	sim_.executing_block_type_ = old_executing_block_type;
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
@@ -693,6 +706,11 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_
 	// PROFILING
 	SLIM_PROFILE_BLOCK_START();
 #endif
+	
+	// note the focal child during the callback, so we can prevent illegal operations during the callback
+	SLiMEidosBlockType old_executing_block_type = sim_.executing_block_type_;
+	sim_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosModifyChildCallback;
+	sim_.focal_modification_child_ = p_child;
 	
 	for (SLiMEidosBlock *modify_child_callback : p_modify_child_callbacks)
 	{
@@ -836,6 +854,9 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_
 				// If this callback told us not to generate the child, we do not call the rest of the callback chain; we're done
 				if (!generate_child)
 				{
+					sim_.executing_block_type_ = old_executing_block_type;
+					sim_.focal_modification_child_ = nullptr;
+					
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 					// PROFILING
 					SLIM_PROFILE_BLOCK_END(sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosModifyChildCallback)]);
@@ -854,6 +875,9 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_
 			}
 		}
 	}
+	
+	sim_.executing_block_type_ = old_executing_block_type;
+	sim_.focal_modification_child_ = nullptr;
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
@@ -1943,6 +1967,10 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 	SLIM_PROFILE_BLOCK_START();
 #endif
 	
+	// note the focal child during the callback, so we can prevent illegal operations during the callback
+	SLiMEidosBlockType old_executing_block_type = sim_.executing_block_type_;
+	sim_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosRecombinationCallback;
+	
 	bool crossovers_changed = false, gcstarts_changed = false, gcends_changed = false;
 	EidosValue_SP local_crossovers_ptr, local_gcstarts_ptr, local_gcends_ptr;
 	
@@ -2130,6 +2158,8 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 		
 		breakpoints_changed = true;
 	}
+	
+	sim_.executing_block_type_ = old_executing_block_type;
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
@@ -3260,7 +3290,7 @@ void Population::SurveyPopulation(void)
 		double subpop_total = 0;
 		
 		for (Individual *individual : subpop->parent_individuals_)
-			subpop_total += individual->cached_fitness_;
+			subpop_total += individual->cached_fitness_UNSAFE_;
 		
 		subpop->parental_total_fitness_ = subpop_total;
 		
@@ -3514,6 +3544,9 @@ void Population::RecalculateFitness(slim_generation_t p_generation)
 	// move forward to the regime we just chose; UpdateFitness() can consult this to get the current regime
 	sim_.last_nonneutral_regime_ = current_regime;
 	
+	SLiMEidosBlockType old_executing_block_type = sim_.executing_block_type_;
+	sim_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosFitnessCallback;	// used for both fitness() and fitness(NULL) for simplicity
+	
 	if (no_active_callbacks)
 	{
 		std::vector<SLiMEidosBlock*> no_fitness_callbacks;
@@ -3550,6 +3583,8 @@ void Population::RecalculateFitness(slim_generation_t p_generation)
 			subpop->UpdateFitness(subpop_fitness_callbacks, subpop_global_fitness_callbacks);
 		}
 	}
+	
+	sim_.executing_block_type_ = old_executing_block_type;
 	
 	// reset fitness_scaling_ to 1.0 on subpops and individuals
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)

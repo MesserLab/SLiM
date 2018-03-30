@@ -707,6 +707,9 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		for (auto muttype_iter : mutation_types_)
 			(muttype_iter.second)->subject_to_fitness_callback_ = true;			// we're not doing RecalculateFitness()'s work, so play it safe
 		
+		SLiMEidosBlockType old_executing_block_type = executing_block_type_;
+		executing_block_type_ = SLiMEidosBlockType::SLiMEidosFitnessCallback;	// used for both fitness() and fitness(NULL) for simplicity
+		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
 		{
 			slim_objectid_t subpop_id = subpop_pair.first;
@@ -716,6 +719,8 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			
 			subpop->UpdateFitness(fitness_callbacks, global_fitness_callbacks);
 		}
+		
+		executing_block_type_ = old_executing_block_type;
 		
 #ifdef SLIMGUI
 		// Let SLiMgui survey the population for mean fitness and such, if it is our target
@@ -1292,6 +1297,9 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		for (auto muttype_iter : mutation_types_)
 			(muttype_iter.second)->subject_to_fitness_callback_ = true;	// we're not doing RecalculateFitness()'s work, so play it safe
 		
+		SLiMEidosBlockType old_executing_block_type = executing_block_type_;
+		executing_block_type_ = SLiMEidosBlockType::SLiMEidosFitnessCallback;	// used for both fitness() and fitness(NULL) for simplicity
+		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
 		{
 			slim_objectid_t subpop_id = subpop_pair.first;
@@ -1301,6 +1309,8 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			
 			subpop->UpdateFitness(fitness_callbacks, global_fitness_callbacks);
 		}
+		
+		executing_block_type_ = old_executing_block_type;
 		
 #ifdef SLIMGUI
 		// Let SLiMgui survey the population for mean fitness and such, if it is our target
@@ -1371,6 +1381,7 @@ void SLiMSim::ValidateScriptBlockCaches(void)
 				case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	cached_recombination_callbacks_.push_back(script_block);	break;
 				case SLiMEidosBlockType::SLiMEidosReproductionCallback:		cached_reproduction_callbacks_.push_back(script_block);		break;
 				case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:		cached_userdef_functions_.push_back(script_block);			break;
+				case SLiMEidosBlockType::SLiMEidosNoBlockType:				break;	// never hit
 			}
 		}
 		
@@ -1398,6 +1409,7 @@ std::vector<SLiMEidosBlock*> SLiMSim::ScriptBlocksMatching(slim_generation_t p_g
 		case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	block_list = &cached_recombination_callbacks_;			break;
 		case SLiMEidosBlockType::SLiMEidosReproductionCallback:		block_list = &cached_reproduction_callbacks_;			break;
 		case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:		block_list = &cached_userdef_functions_;				break;
+		case SLiMEidosBlockType::SLiMEidosNoBlockType:				break;	// never hit
 	}
 	
 	std::vector<SLiMEidosBlock*> matches;
@@ -1856,6 +1868,9 @@ void SLiMSim::RunInitializeCallbacks(void)
 	// execute initialize() callbacks, which should always have a generation of 0 set
 	std::vector<SLiMEidosBlock*> init_blocks = ScriptBlocksMatching(0, SLiMEidosBlockType::SLiMEidosInitializeCallback, -1, -1, -1);
 	
+	SLiMEidosBlockType old_executing_block_type = executing_block_type_;
+	executing_block_type_ = SLiMEidosBlockType::SLiMEidosInitializeCallback;
+	
 	for (auto script_block : init_blocks)
 	{
 		if (script_block->active_)
@@ -1873,6 +1888,8 @@ void SLiMSim::RunInitializeCallbacks(void)
 #endif
 		}
 	}
+	
+	executing_block_type_ = old_executing_block_type;
 	
 	DeregisterScheduledScriptBlocks();
 	
@@ -2627,6 +2644,9 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		
 		std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1, -1);
 		
+		SLiMEidosBlockType old_executing_block_type = executing_block_type_;
+		executing_block_type_ = SLiMEidosBlockType::SLiMEidosEventEarly;
+		
 		for (auto script_block : early_blocks)
 		{
 			if (script_block->active_)
@@ -2644,6 +2664,8 @@ bool SLiMSim::_RunOneGenerationWF(void)
 #endif
 			}
 		}
+		
+		executing_block_type_ = old_executing_block_type;
 		
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
@@ -2881,6 +2903,9 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		
 		std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1, -1);
 		
+		SLiMEidosBlockType old_executing_block_type = executing_block_type_;
+		executing_block_type_ = SLiMEidosBlockType::SLiMEidosEventLate;
+		
 		for (auto script_block : late_blocks)
 		{
 			if (script_block->active_)
@@ -2898,6 +2923,8 @@ bool SLiMSim::_RunOneGenerationWF(void)
 #endif
 			}
 		}
+		
+		executing_block_type_ = old_executing_block_type;
 		
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
@@ -3085,8 +3112,13 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		}
 		
 		// then evolve each subpop
+		SLiMEidosBlockType old_executing_block_type = executing_block_type_;
+		executing_block_type_ = SLiMEidosBlockType::SLiMEidosReproductionCallback;
+		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
 			subpop_pair.second->ReproduceSubpopulation();
+		
+		executing_block_type_ = old_executing_block_type;
 		
 		// Invalidate interactions, now that the generation they were valid for is disappearing
 		for (auto int_type = interaction_types_.begin(); int_type != interaction_types_.end(); ++int_type)
@@ -3142,6 +3174,9 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		
 		std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1, -1);
 		
+		SLiMEidosBlockType old_executing_block_type = executing_block_type_;
+		executing_block_type_ = SLiMEidosBlockType::SLiMEidosEventEarly;
+		
 		for (auto script_block : early_blocks)
 		{
 			if (script_block->active_)
@@ -3159,6 +3194,8 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 #endif
 			}
 		}
+		
+		executing_block_type_ = old_executing_block_type;
 		
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
@@ -3288,6 +3325,9 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		
 		std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1, -1);
 		
+		SLiMEidosBlockType old_executing_block_type = executing_block_type_;
+		executing_block_type_ = SLiMEidosBlockType::SLiMEidosEventLate;
+		
 		for (auto script_block : late_blocks)
 		{
 			if (script_block->active_)
@@ -3305,6 +3345,8 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 #endif
 			}
 		}
+		
+		executing_block_type_ = old_executing_block_type;
 		
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
@@ -5450,6 +5492,8 @@ EidosValue_SP SLiMSim::ExecuteMethod_addSubpop(EidosGlobalStringID p_method_id, 
 	if ((gen_stage != SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kWFStage5ExecuteLateScripts) &&
 		(gen_stage != SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_addSubpop): addSubpop() may only be called from an early() or late() event." << EidosTerminate();
+	if ((executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_addSubpop): addSubpop() may not be called from inside a callback." << EidosTerminate();
 	
 	EidosValue *subpopID_value = p_arguments[0].get();
 	EidosValue *size_value = p_arguments[1].get();
@@ -5491,6 +5535,8 @@ EidosValue_SP SLiMSim::ExecuteMethod_addSubpopSplit(EidosGlobalStringID p_method
 	if ((gen_stage != SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kWFStage5ExecuteLateScripts) &&
 		(gen_stage != SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_addSubpopSplit): addSubpopSplit() may only be called from an early() or late() event." << EidosTerminate();
+	if ((executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_addSubpopSplit): addSubpopSplit() may not be called from inside a callback." << EidosTerminate();
 	
 	EidosValue *subpopID_value = p_arguments[0].get();
 	EidosValue *size_value = p_arguments[1].get();
@@ -5538,7 +5584,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_deregisterScriptBlock(EidosGlobalStringID p
 		
 		if (block->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
 		{
-			// this should never be hit, because the user should have to way to get a reference to a function block
+			// this should never be hit, because the user should have no way to get a reference to a function block
 			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_deregisterScriptBlock): (internal error) deregisterScriptBlock() cannot be called on user-defined function script blocks." << EidosTerminate();
 		}
 		else if (block->type_ == SLiMEidosBlockType::SLiMEidosInteractionCallback)
@@ -6106,8 +6152,8 @@ EidosValue_SP SLiMSim::ExecuteMethod_readFromPopulationFile(EidosGlobalStringID 
 	if ((gen_stage != SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kWFStage5ExecuteLateScripts) &&
 		(gen_stage != SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() may only be called from an early() or late() event." << EidosTerminate();
-	
-	EidosValue *filePath_value = p_arguments[0].get();
+	if ((executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() may not be called from inside a callback." << EidosTerminate();
 	
 	if (!warned_early_read_)
 	{
@@ -6123,6 +6169,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_readFromPopulationFile(EidosGlobalStringID 
 		}
 	}
 	
+	EidosValue *filePath_value = p_arguments[0].get();
 	std::string file_path = Eidos_ResolvedPath(filePath_value->StringAtIndex(0, nullptr));
 	
 	// first we clear out all variables of type Subpopulation etc. from the symbol table; they will all be invalid momentarily
@@ -6140,6 +6187,14 @@ EidosValue_SP SLiMSim::ExecuteMethod_readFromPopulationFile(EidosGlobalStringID 
 EidosValue_SP SLiMSim::ExecuteMethod_recalculateFitness(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	SLiMGenerationStage gen_stage = GenerationStage();
+	
+	if ((gen_stage != SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kWFStage5ExecuteLateScripts) &&
+		(gen_stage != SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_recalculateFitness): recalculateFitness() may only be called from an early() or late() event." << EidosTerminate();
+	if ((executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_recalculateFitness): recalculateFitness() may not be called from inside a callback." << EidosTerminate();
+	
 	EidosValue *generation_value = p_arguments[0].get();
 	
 	// Trigger a fitness recalculation.  This is suggested after making a change that would modify fitness values, such as altering
@@ -6522,6 +6577,8 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqSimplify(EidosGlobalStringID p_metho
 	if ((gen_stage != SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kWFStage5ExecuteLateScripts) &&
 		(gen_stage != SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqSimplify): treeSeqSimplify() may only be called from an early() or late() event." << EidosTerminate();
+	if ((executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqSimplify): treeSeqSimplify() may not be called from inside a callback." << EidosTerminate();
 	
 	SimplifyTreeSequence();
 	
@@ -6540,11 +6597,8 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStrin
 	if (!recording_tree_)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqRememberIndividuals): treeSeqRememberIndividuals() may only be called when tree recording is enabled." << EidosTerminate();
 	
-	SLiMGenerationStage gen_stage = GenerationStage();
-	
-	if ((gen_stage != SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kWFStage5ExecuteLateScripts) &&
-		(gen_stage != SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqRememberIndividuals): treeSeqRememberIndividuals() may only be called from an early() or late() event." << EidosTerminate();
+	if ((executing_block_type_ == SLiMEidosBlockType::SLiMEidosFitnessCallback) || (executing_block_type_ == SLiMEidosBlockType::SLiMEidosMateChoiceCallback) || (executing_block_type_ == SLiMEidosBlockType::SLiMEidosModifyChildCallback) || (executing_block_type_ == SLiMEidosBlockType::SLiMEidosRecombinationCallback))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqRememberIndividuals): treeSeqRememberIndividuals() may not be called from inside a fitness(), mateChoice(), modifyChild(), or recombination() callback." << EidosTerminate();
 	
 	std::vector<slim_pedigreeid_t> individual_IDs;
 	
@@ -6578,6 +6632,8 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_
 	if ((gen_stage != SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kWFStage5ExecuteLateScripts) &&
 		(gen_stage != SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqOutput): treeSeqOutput() may only be called from an early() or late() event." << EidosTerminate();
+	if ((executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqOutput): treeSeqOutput() may not be called from inside a callback." << EidosTerminate();
 	
 	std::string path_string = path_value->StringAtIndex(0, nullptr);
 	bool binary = binary_value->LogicalAtIndex(0, nullptr);

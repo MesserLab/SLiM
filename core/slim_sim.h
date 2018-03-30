@@ -150,6 +150,7 @@ private:
 	EidosSymbolTable *simulation_constants_ = nullptr;								// A symbol table of constants defined by SLiM (p1, g1, m1, s1, etc.)
 	EidosFunctionMap simulation_functions_;											// A map of all defined functions in the simulation
 	
+	// these ivars track the generation, generation stage, and related state
 	slim_generation_t time_start_ = 0;												// the first generation number for which the simulation will run
 	slim_generation_t generation_ = 0;												// the current generation reached in simulation
 	SLiMGenerationStage generation_stage_ = SLiMGenerationStage::kStage0PreGeneration;		// the within-generation stage currently being executed
@@ -295,6 +296,10 @@ public:
 	bool warned_early_mutation_remove_ = false;
 	bool warned_early_output_ = false;
 	bool warned_early_read_ = false;
+	
+	// these ivars are set around callbacks so we know what type of callback we're in, to prevent illegal operations during callbacks
+	SLiMEidosBlockType executing_block_type_ = SLiMEidosBlockType::SLiMEidosNoBlockType;	// the innermost callback type we're executing now
+	Individual *focal_modification_child_;					// set during a modifyChild() callback to indicate the child being modified
 	
 	SLiMSim(const SLiMSim&) = delete;												// no copying
 	SLiMSim& operator=(const SLiMSim&) = delete;									// no copying
