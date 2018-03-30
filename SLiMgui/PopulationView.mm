@@ -207,7 +207,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 			{
 				// use individual trait values to determine color; we use fitness values cached in UpdateFitness, so we don't have to call out to fitness callbacks
 				// we normalize fitness values with subpopFitnessScaling so individual fitness, unscaled by subpopulation fitness, is used for coloring
-				double fitness = individual.cached_fitness_;
+				double fitness = individual.cached_fitness_UNSAFE_;
 				
 				if (!std::isnan(fitness))
 					RGBForFitness(fitness / subpopFitnessScaling, &colorRed, &colorGreen, &colorBlue, scalingFactor);
@@ -297,7 +297,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	for (int individualIndex = 0; individualIndex < subpopSize; ++individualIndex)
 	{
 		Individual &individual = *subpop->parent_individuals_[individualIndex];
-		double fitness = individual.cached_fitness_;
+		double fitness = individual.cached_fitness_UNSAFE_;
 		
 		if (!std::isnan(fitness))
 		{
@@ -376,7 +376,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 		for (int individualIndex = 0; individualIndex < subpopSize; ++individualIndex)
 		{
 			Individual &individual = *subpop->parent_individuals_[individualIndex];
-			double fitness = individual.cached_fitness_;
+			double fitness = individual.cached_fitness_UNSAFE_;
 			
 			if (!std::isnan(fitness))
 			{
@@ -1161,7 +1161,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 		{
 			// use individual trait values to determine color; we used fitness values cached in UpdateFitness, so we don't have to call out to fitness callbacks
 			// we normalize fitness values with subpopFitnessScaling so individual fitness, unscaled by subpopulation fitness, is used for coloring
-			double fitness = individual.cached_fitness_;
+			double fitness = individual.cached_fitness_UNSAFE_;
 			
 			if (!std::isnan(fitness))
 				RGBForFitness(fitness / subpopFitnessScaling, &colorRed, &colorGreen, &colorBlue, scalingFactor);

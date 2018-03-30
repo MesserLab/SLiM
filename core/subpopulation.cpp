@@ -38,8 +38,6 @@
 extern std::vector<EidosValue_Object *> gEidosValue_Object_Genome_Registry;		// this is in Eidos; see Subpopulation::ExecuteMethod_takeMigrants()
 extern std::vector<EidosValue_Object *> gEidosValue_Object_Individual_Registry;	// this is in Eidos; see Subpopulation::ExecuteMethod_takeMigrants()
 
-bool Subpopulation::s_reentrancy_block_ = false;						// prevents re-entrancy in the addX() nonWF methods
-
 
 #pragma mark -
 #pragma mark _SpatialMap
@@ -619,6 +617,9 @@ void Subpopulation::GenerateIndividualsToFitNonWF(double p_sex_ratio)
 void Subpopulation::CheckIndividualIntegrity(void)
 {
 	EidosScript::ClearErrorPosition();
+	
+	if (population_.sim_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosNoBlockType)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) executing block type was not maintained correctly." << EidosTerminate();
 	
 #if defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY)
 	SLiMModelType model_type = population_.sim_.ModelType();
@@ -1269,6 +1270,12 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 	bool pure_neutral = (!fitness_callbacks_exist && !global_fitness_callbacks_exist && population_.sim_.pure_neutral_);
 	double subpop_fitness_scaling = fitness_scaling_;
 	
+#if (!defined(SLIMGUI) && defined(SLIM_WF_ONLY))
+	// Reset our override of individual cached fitness values; we make this decision afresh with each UpdateFitness() call.  See
+	// the header for further comments on this mechanism.
+	individual_cached_fitness_OVERRIDE_ = false;
+#endif
+	
 	// calculate fitnesses in parent population and cache the values
 	if (sex_enabled_)
 	{
@@ -1284,19 +1291,30 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 				{
 					double fitness = subpop_fitness_scaling * parent_individuals_[female_index]->fitness_scaling_;
 					
-					parent_individuals_[female_index]->cached_fitness_ = fitness;
+					parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
 					totalFemaleFitness += fitness;
 				}
 			}
 			else
 			{
-				for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
+				double fitness = subpop_fitness_scaling;	// no individual fitness_scaling_
+				
+#if (!defined(SLIMGUI) && defined(SLIM_WF_ONLY))
+				// Here we override setting up every cached_fitness_UNSAFE_ value, and set up a subpop-level cache instead.
+				// This is why cached_fitness_UNSAFE_ is marked "UNSAFE".  See the header for details on this.
+				if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
 				{
-					double fitness = subpop_fitness_scaling;	// no individual fitness_scaling_
-					
-					parent_individuals_[female_index]->cached_fitness_ = fitness;
-					totalFemaleFitness += fitness;
+					individual_cached_fitness_OVERRIDE_ = true;
+					individual_cached_fitness_OVERRIDE_value_ = fitness;
 				}
+				else
+#endif
+				{
+					for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
+						parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
+				}
+				
+				totalFemaleFitness = fitness * parent_first_male_index_;
 			}
 		}
 		else if (skip_chromosomal_fitness)
@@ -1308,7 +1326,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 				if (global_fitness_callbacks_exist && (fitness > 0.0))
 					fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, female_index);
 				
-				parent_individuals_[female_index]->cached_fitness_ = fitness;
+				parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
 				totalFemaleFitness += fitness;
 			}
 		}
@@ -1333,7 +1351,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 						fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, female_index);
 				}
 				
-				parent_individuals_[female_index]->cached_fitness_ = fitness;
+				parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
 				totalFemaleFitness += fitness;
 			}
 		}
@@ -1351,19 +1369,31 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 				{
 					double fitness = subpop_fitness_scaling * parent_individuals_[male_index]->fitness_scaling_;
 					
-					parent_individuals_[male_index]->cached_fitness_ = fitness;
+					parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
 					totalMaleFitness += fitness;
 				}
 			}
 			else
 			{
-				for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
+				double fitness = subpop_fitness_scaling;	// no individual fitness_scaling_
+				
+#if (!defined(SLIMGUI) && defined(SLIM_WF_ONLY))
+				// Here we override setting up every cached_fitness_UNSAFE_ value, and set up a subpop-level cache instead.
+				// This is why cached_fitness_UNSAFE_ is marked "UNSAFE".  See the header for details on this.
+				if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
 				{
-					double fitness = subpop_fitness_scaling;	// no individual fitness_scaling_
-					
-					parent_individuals_[male_index]->cached_fitness_ = fitness;
-					totalMaleFitness += fitness;
+					individual_cached_fitness_OVERRIDE_ = true;
+					individual_cached_fitness_OVERRIDE_value_ = fitness;
 				}
+				else
+#endif
+				{
+					for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
+						parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
+				}
+				
+				if (parent_subpop_size_ > parent_first_male_index_)
+					totalMaleFitness = fitness * (parent_subpop_size_ - parent_first_male_index_);
 			}
 		}
 		else if (skip_chromosomal_fitness)
@@ -1375,7 +1405,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 				if (global_fitness_callbacks_exist && (fitness > 0.0))
 					fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, male_index);
 				
-				parent_individuals_[male_index]->cached_fitness_ = fitness;
+				parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
 				totalMaleFitness += fitness;
 			}
 		}
@@ -1400,7 +1430,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 						fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, male_index);
 				}
 				
-				parent_individuals_[male_index]->cached_fitness_ = fitness;
+				parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
 				totalMaleFitness += fitness;
 			}
 		}
@@ -1421,19 +1451,30 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 				{
 					double fitness = subpop_fitness_scaling * parent_individuals_[individual_index]->fitness_scaling_;
 					
-					parent_individuals_[individual_index]->cached_fitness_ = fitness;
+					parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
 					totalFitness += fitness;
 				}
 			}
 			else
 			{
-				for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
+				double fitness = subpop_fitness_scaling;	// no individual fitness_scaling_
+				
+#if (!defined(SLIMGUI) && defined(SLIM_WF_ONLY))
+				// Here we override setting up every cached_fitness_UNSAFE_ value, and set up a subpop-level cache instead.
+				// This is why cached_fitness_UNSAFE_ is marked "UNSAFE".  See the header for details on this.
+				if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
 				{
-					double fitness = subpop_fitness_scaling;	// no individual fitness_scaling_
-					
-					parent_individuals_[individual_index]->cached_fitness_ = fitness;
-					totalFitness += fitness;
+					individual_cached_fitness_OVERRIDE_ = true;
+					individual_cached_fitness_OVERRIDE_value_ = fitness;
 				}
+				else
+#endif
+				{
+					for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
+						parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
+				}
+				
+				totalFitness = fitness * parent_subpop_size_;
 			}
 		}
 		else if (skip_chromosomal_fitness)
@@ -1446,7 +1487,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 				if (global_fitness_callbacks_exist && (fitness > 0.0))
 					fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, individual_index);
 				
-				parent_individuals_[individual_index]->cached_fitness_ = fitness;
+				parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
 				totalFitness += fitness;
 			}
 		}
@@ -1471,7 +1512,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 						fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, individual_index);
 				}
 				
-				parent_individuals_[individual_index]->cached_fitness_ = fitness;
+				parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
 				totalFitness += fitness;
 			}
 		}
@@ -1502,28 +1543,59 @@ void Subpopulation::UpdateWFFitnessBuffers(bool p_pure_neutral)
 	}
 	
 	// Set up the fitness buffers with the new information
-	if (sex_enabled_)
+#if (!defined(SLIMGUI) && defined(SLIM_WF_ONLY))
+	if (individual_cached_fitness_OVERRIDE_)
 	{
-		for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
-		{
-			double fitness = parent_individuals_[female_index]->cached_fitness_;
-			
-			cached_parental_fitness_[female_index] = fitness;
-			cached_male_fitness_[female_index] = 0;
-		}
+		// This is the optimized case, where all individuals have the same fitness and it is cached at the subpop level
+		double universal_cached_fitness = individual_cached_fitness_OVERRIDE_value_;
 		
-		for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
+		if (sex_enabled_)
 		{
-			double fitness = parent_individuals_[male_index]->cached_fitness_;
+			for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
+			{
+				cached_parental_fitness_[female_index] = universal_cached_fitness;
+				cached_male_fitness_[female_index] = 0;
+			}
 			
-			cached_parental_fitness_[male_index] = fitness;
-			cached_male_fitness_[male_index] = fitness;
+			for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
+			{
+				cached_parental_fitness_[male_index] = universal_cached_fitness;
+				cached_male_fitness_[male_index] = universal_cached_fitness;
+			}
+		}
+		else
+		{
+			for (slim_popsize_t i = 0; i < parent_subpop_size_; i++)
+				cached_parental_fitness_[i] = universal_cached_fitness;
 		}
 	}
 	else
+#endif
 	{
-		for (slim_popsize_t i = 0; i < parent_subpop_size_; i++)
-			cached_parental_fitness_[i] = parent_individuals_[i]->cached_fitness_;
+		// This is the normal case, where cached_fitness_UNSAFE_ has the cached fitness values for each individual
+		if (sex_enabled_)
+		{
+			for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
+			{
+				double fitness = parent_individuals_[female_index]->cached_fitness_UNSAFE_;
+				
+				cached_parental_fitness_[female_index] = fitness;
+				cached_male_fitness_[female_index] = 0;
+			}
+			
+			for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
+			{
+				double fitness = parent_individuals_[male_index]->cached_fitness_UNSAFE_;
+				
+				cached_parental_fitness_[male_index] = fitness;
+				cached_male_fitness_[male_index] = fitness;
+			}
+		}
+		else
+		{
+			for (slim_popsize_t i = 0; i < parent_subpop_size_; i++)
+				cached_parental_fitness_[i] = parent_individuals_[i]->cached_fitness_UNSAFE_;
+		}
 	}
 	
 	cached_fitness_size_ = parent_subpop_size_;
@@ -2952,7 +3024,7 @@ void Subpopulation::ViabilitySelection(void)
 	for (int individual_index = 0; individual_index < parent_subpop_size_; ++individual_index)
 	{
 		Individual *individual = individual_data[individual_index];
-		double fitness = individual->cached_fitness_;
+		double fitness = individual->cached_fitness_UNSAFE_;	// never overridden in nonWF models, so this is safe with no check
 		bool survived;
 		
 		if (fitness <= 0.0)			survived = false;
@@ -3513,10 +3585,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): method -addCloned() is not available in WF models." << EidosTerminate();
 	if (sim.GenerationStage() != SLiMGenerationStage::kNonWFStage1GenerateOffspring)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): method -addCloned() may only be called from a reproduction() callback." << EidosTerminate();
-	
-	if (Subpopulation::s_reentrancy_block_)
+	if (sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): method -addCloned() may not be called from a nested callback." << EidosTerminate();
-	Eidos_simple_lock reentrancy_lock(Subpopulation::s_reentrancy_block_);
 	
 	bool pedigrees_enabled = sim.PedigreesEnabled();
 	Chromosome &chromosome = sim.TheChromosome();
@@ -3589,10 +3659,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): method -addCrossed() is not available in WF models." << EidosTerminate();
 	if (sim.GenerationStage() != SLiMGenerationStage::kNonWFStage1GenerateOffspring)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): method -addCrossed() may only be called from a reproduction() callback." << EidosTerminate();
-	
-	if (Subpopulation::s_reentrancy_block_)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): method -addCloned() may not be called from a nested callback." << EidosTerminate();
-	Eidos_simple_lock reentrancy_lock(Subpopulation::s_reentrancy_block_);
+	if (sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): method -addCrossed() may not be called from a nested callback." << EidosTerminate();
 	
 	bool pedigrees_enabled = sim.PedigreesEnabled();
 	bool prevent_incidental_selfing = sim.PreventIncidentalSelfing();
@@ -3683,10 +3751,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): method -addEmpty() is not available in WF models." << EidosTerminate();
 	if (sim.GenerationStage() != SLiMGenerationStage::kNonWFStage1GenerateOffspring)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): method -addEmpty() may only be called from a reproduction() callback." << EidosTerminate();
-	
-	if (Subpopulation::s_reentrancy_block_)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): method -addCloned() may not be called from a nested callback." << EidosTerminate();
-	Eidos_simple_lock reentrancy_lock(Subpopulation::s_reentrancy_block_);
+	if (sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): method -addEmpty() may not be called from a nested callback." << EidosTerminate();
 	
 	EidosValue *sex_value = p_arguments[0].get();
 	GenomeType genome1_type, genome2_type;
@@ -3740,10 +3806,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): method -addSelfed() is not available in WF models." << EidosTerminate();
 	if (sim.GenerationStage() != SLiMGenerationStage::kNonWFStage1GenerateOffspring)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): method -addSelfed() may only be called from a reproduction() callback." << EidosTerminate();
-	
-	if (Subpopulation::s_reentrancy_block_)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): method -addCloned() may not be called from a nested callback." << EidosTerminate();
-	Eidos_simple_lock reentrancy_lock(Subpopulation::s_reentrancy_block_);
+	if (sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): method -addSelfed() may not be called from a nested callback." << EidosTerminate();
 	
 	bool pedigrees_enabled = sim.PedigreesEnabled();
 	Chromosome &chromosome = sim.TheChromosome();
@@ -3816,8 +3880,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 	SLiMSim &sim = population_.sim_;
 	if (sim.ModelType() == SLiMModelType::kModelTypeWF)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_takeMigrants): method -takeMigrants() is not available in WF models." << EidosTerminate();
-	if (sim.GenerationStage() == SLiMGenerationStage::kNonWFStage1GenerateOffspring)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_takeMigrants): method -takeMigrants() may not be called from a reproduction() callback." << EidosTerminate();
+	if ((sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_takeMigrants): method -takeMigrants() must be called directly from an early() or late() event." << EidosTerminate();
 	
 	EidosValue_Object *migrants_value = (EidosValue_Object *)p_arguments[0].get();
 	int migrant_count = migrants_value->Count();
@@ -3983,7 +4047,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 			migrant_transmogrified->tag_value_ = migrant->tag_value_;
 			migrant_transmogrified->tagF_value_ = migrant->tagF_value_;
 			migrant_transmogrified->fitness_scaling_ = migrant->fitness_scaling_;
-			migrant_transmogrified->cached_fitness_ = migrant->cached_fitness_;
+			migrant_transmogrified->cached_fitness_UNSAFE_ = migrant->cached_fitness_UNSAFE_;	// never overridden in noWF models, so this is safe
 			migrant_transmogrified->sex_ = migrant->sex_;
 #ifdef SLIM_NONWF_ONLY
 			migrant_transmogrified->age_ = migrant->age_;
@@ -4743,8 +4807,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSubpopulationSize(EidosGlobalStrin
 EidosValue_SP Subpopulation::ExecuteMethod_removeSubpopulation(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+	SLiMSim &sim = population_.sim_;
+	if (sim.ModelType() == SLiMModelType::kModelTypeWF)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_removeSubpopulation): method -removeSubpopulation() is not available in WF models." << EidosTerminate();
+	if ((sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_removeSubpopulation): method -removeSubpopulation() must be called directly from an early() or late() event." << EidosTerminate();
 	
 	population_.RemoveSubpopulation(*this);
 	
@@ -4795,7 +4862,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() index " << index << " out of range." << EidosTerminate();
 		}
 		
-		double fitness = parent_individuals_[index]->cached_fitness_;
+#if (!defined(SLIMGUI) && defined(SLIM_WF_ONLY))
+		double fitness = (individual_cached_fitness_OVERRIDE_ ? individual_cached_fitness_OVERRIDE_value_ : parent_individuals_[index]->cached_fitness_UNSAFE_);
+#else
+		double fitness = parent_individuals_[index]->cached_fitness_UNSAFE_;
+#endif
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(fitness));
 	}
@@ -4816,7 +4887,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() index " << index << " out of range." << EidosTerminate();
 			}
 			
-			double fitness = parent_individuals_[index]->cached_fitness_;
+#if (!defined(SLIMGUI) && defined(SLIM_WF_ONLY))
+			double fitness = (individual_cached_fitness_OVERRIDE_ ? individual_cached_fitness_OVERRIDE_value_ : parent_individuals_[index]->cached_fitness_UNSAFE_);
+#else
+			double fitness = parent_individuals_[index]->cached_fitness_UNSAFE_;
+#endif
 			
 			float_return->set_float_no_check(fitness, value_index);
 		}

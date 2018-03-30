@@ -1270,6 +1270,9 @@ double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Indivi
 #endif
 	
 	SLiMSim &sim = p_subpop->population_.sim_;
+
+	SLiMEidosBlockType old_executing_block_type = sim.executing_block_type_;
+	sim.executing_block_type_ = SLiMEidosBlockType::SLiMEidosInteractionCallback;
 	
 	for (SLiMEidosBlock *interaction_callback : p_interaction_callbacks)
 	{
@@ -1359,6 +1362,8 @@ double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Indivi
 			}
 		}
 	}
+	
+	sim.executing_block_type_ = old_executing_block_type;
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING

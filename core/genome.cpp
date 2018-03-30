@@ -1363,6 +1363,30 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 		}
 	}
 	
+	if (pop.sim_.executing_block_type_ == SLiMEidosBlockType::SLiMEidosModifyChildCallback)
+	{
+		// Check that we're not inside a modifyChild() callback, or if we are, that the only genomes being modified belong to the new child.
+		// This prevents problems with retracting the proposed child when tree-sequence recording is enabled; other extraneous changes must
+		// not be backed out, and it's hard to separate, e.g., what's a child-related new mutation from an extraneously added new mutation.
+		// Note that the other Genome methods that add/remove mutations perform the same check, and should be maintained in parallel.
+		Individual *focal_modification_child = pop.sim_.focal_modification_child_;
+		
+		if (focal_modification_child)
+		{
+			Genome *focal_genome_1 = focal_modification_child->genome1_, *focal_genome_2 = focal_modification_child->genome2_;
+			
+			for (int genome_index = 0; genome_index < target_size; ++genome_index)
+			{
+				Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
+				
+				if ((target_genome != focal_genome_1) && (target_genome != focal_genome_2))
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addMutations): addMutations() cannot be called from within a modifyChild() callback to modify any genomes except those of the focal child being generated." << EidosTerminate();
+			}
+		}
+	}
+	else if (pop.sim_.executing_block_type_ == SLiMEidosBlockType::SLiMEidosRecombinationCallback)
+		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addMutations): addMutations() cannot be called from within a recombination() callback." << EidosTerminate();
+	
 	// Construct a vector of mutations to add that is sorted by position
 	int mutations_count = mutations_value->Count();
 	std::vector<Mutation *> mutations_to_add;
@@ -1495,6 +1519,30 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 			sim.warned_early_mutation_add_ = true;
 		}
 	}
+	
+	if (pop.sim_.executing_block_type_ == SLiMEidosBlockType::SLiMEidosModifyChildCallback)
+	{
+		// Check that we're not inside a modifyChild() callback, or if we are, that the only genomes being modified belong to the new child.
+		// This prevents problems with retracting the proposed child when tree-sequence recording is enabled; other extraneous changes must
+		// not be backed out, and it's hard to separate, e.g., what's a child-related new mutation from an extraneously added new mutation.
+		// Note that the other Genome methods that add/remove mutations perform the same check, and should be maintained in parallel.
+		Individual *focal_modification_child = pop.sim_.focal_modification_child_;
+		
+		if (focal_modification_child)
+		{
+			Genome *focal_genome_1 = focal_modification_child->genome1_, *focal_genome_2 = focal_modification_child->genome2_;
+			
+			for (int genome_index = 0; genome_index < target_size; ++genome_index)
+			{
+				Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
+				
+				if ((target_genome != focal_genome_1) && (target_genome != focal_genome_2))
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " cannot be called from within a modifyChild() callback to modify any genomes except those of the focal child being generated." << EidosTerminate();
+			}
+		}
+	}
+	else if (pop.sim_.executing_block_type_ == SLiMEidosBlockType::SLiMEidosRecombinationCallback)
+		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " cannot be called from within a recombination() callback." << EidosTerminate();
 	
 	// position, originGeneration, and originSubpop can now be either singletons or vectors of matching length or NULL; check them all
 	int muttype_count = arg_muttype->Count();
@@ -1850,6 +1898,30 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 	
 	Population &pop = sim.ThePopulation();
 	slim_generation_t generation = sim.Generation();
+	
+	if (pop.sim_.executing_block_type_ == SLiMEidosBlockType::SLiMEidosModifyChildCallback)
+	{
+		// Check that we're not inside a modifyChild() callback, or if we are, that the only genomes being modified belong to the new child.
+		// This prevents problems with retracting the proposed child when tree-sequence recording is enabled; other extraneous changes must
+		// not be backed out, and it's hard to separate, e.g., what's a child-related new mutation from an extraneously added new mutation.
+		// Note that the other Genome methods that add/remove mutations perform the same check, and should be maintained in parallel.
+		Individual *focal_modification_child = pop.sim_.focal_modification_child_;
+		
+		if (focal_modification_child)
+		{
+			Genome *focal_genome_1 = focal_modification_child->genome1_, *focal_genome_2 = focal_modification_child->genome2_;
+			
+			for (int genome_index = 0; genome_index < target_size; ++genome_index)
+			{
+				Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
+				
+				if ((target_genome != focal_genome_1) && (target_genome != focal_genome_2))
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called from within a modifyChild() callback to modify any genomes except those of the focal child being generated." << EidosTerminate();
+			}
+		}
+	}
+	else if (pop.sim_.executing_block_type_ == SLiMEidosBlockType::SLiMEidosRecombinationCallback)
+		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called from within a recombination() callback." << EidosTerminate();
 	
 	// Construct a vector of mutations to remove that is sorted by position
 	int mutations_count = mutations_value->Count();
