@@ -169,7 +169,7 @@ public:
 	bool WillModifyRunForBulkOperation(int64_t p_operation_id, int p_mutrun_index);
 	static void BulkOperationEnd(int64_t p_operation_id, int p_mutrun_index);
 	
-	GenomeType Type(void) const										// returns the type of the genome: automosomal, X chromosome, or Y chromosome
+	inline __attribute__((always_inline)) GenomeType Type(void) const			// returns the type of the genome: automosomal, X chromosome, or Y chromosome
 	{
 		return genome_type_;
 	}
