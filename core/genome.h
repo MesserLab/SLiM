@@ -335,12 +335,14 @@ public:
 		// subpop_ = p_source_genome.subpop_;
 	}
 	
-	inline const std::vector<slim_mutationid_t> *derived_mutation_ids_at_position(slim_position_t p_position)
+	inline const std::vector<slim_mutationid_t> *derived_mutation_ids_at_position(slim_position_t p_position) const
 	{
 		int32_t run_index = p_position / mutrun_length_;
 		
 		return mutruns_[run_index]->derived_mutation_ids_at_position(p_position);
 	}
+	
+	void record_derived_states(SLiMSim *p_sim) const;
 	
 	//void assert_identical_to_runs(MutationRun_SP *p_mutruns, int32_t p_mutrun_count);
 	

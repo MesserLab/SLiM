@@ -404,6 +404,53 @@ void Genome::ReinitializeGenomeNullptr(GenomeType p_genome_type, int32_t p_mutru
 	}
 }
 
+void Genome::record_derived_states(SLiMSim *p_sim) const
+{
+	// This is called by SLiMSim::RecordAllDerivedStatesFromSLiM() to record all the derived states present
+	// in a given genome that was just created by readFromPopulationFile() or some similar situation.  It should
+	// make calls to record the derived state at each position in the genome that has any mutation.
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	static std::vector<slim_mutationid_t> record_vec;
+	
+	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
+	{
+		MutationRun *mutrun = mutruns_[run_index].get();
+		int mutrun_size = mutrun->size();
+		slim_position_t last_pos = -1;
+		
+		//record_vec.clear();	// should always be left clear by the code below
+		
+		for (int mut_index = 0; mut_index < mutrun_size; ++mut_index)
+		{
+			MutationIndex mutation_index = (*mutrun)[mut_index];
+			Mutation *mutation = mut_block_ptr + mutation_index;
+			slim_position_t mutation_pos = mutation->position_;
+			
+			if (mutation_pos != last_pos)
+			{
+				// New position, so we finish the previous derived-state block...
+				if (last_pos != -1)
+				{
+					p_sim->RecordNewDerivedState(genome_id_, last_pos, record_vec);
+					record_vec.clear();
+				}
+				
+				// ...and start a new derived-state block
+				last_pos = mutation_pos;
+			}
+			
+			record_vec.push_back(mutation_index);
+		}
+		
+		// record the last derived block, if any
+		if (last_pos != -1)
+		{
+			p_sim->RecordNewDerivedState(genome_id_, last_pos, record_vec);
+			record_vec.clear();
+		}
+	}
+}
+
 /*
 void Genome::assert_identical_to_runs(MutationRun_SP *p_mutruns, int32_t p_mutrun_count)
 {

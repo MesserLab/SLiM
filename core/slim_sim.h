@@ -370,6 +370,7 @@ public:
 	void CheckAutoSimplification(void);
 	void RememberIndividuals(std::vector<slim_pedigreeid_t> p_individual_ids);
 	void FreeTreeSequence(void);
+	void RecordAllDerivedStatesFromSLiM(void);
 	// put any other methods you need for the tree sequence stuff here
 	
 	//
