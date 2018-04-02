@@ -4,7 +4,7 @@ function (void)initializeMarkedMutations(i$ num_marks)
     for(i in 1:num_marks){
         initializeMutationType("m" + asString(i), 0.5, "f", 0.0);
     }
-    return NULL;
+    return;
 }
 
 function (void)initializeMarks(i$ num_marks)
@@ -16,7 +16,7 @@ function (void)initializeMarks(i$ num_marks)
             markedGenomes[k].addNewDrawnMutation(mut,pos);           
         }
     }
-    return NULL;
+    return;
 }
 
 function (void)outputMutationResult([s$ outputFile="TESToutput.txt"]) {
@@ -39,7 +39,7 @@ function (void)outputMutationResult([s$ outputFile="TESToutput.txt"]) {
             }
         }
     }
-    return NULL;
+    return;
 }
 
 // SETUP WHATNOT

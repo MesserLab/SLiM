@@ -2,6 +2,8 @@
 set -u
 FILES=./testRecipes/test_*.slim
 
+mkdir -p test_output
+
 for f in $FILES
 do
 	rm -f test_output/NodeTable.txt test_output/EdgeTable.txt TESToutput.txt SLiM_run_output.log
