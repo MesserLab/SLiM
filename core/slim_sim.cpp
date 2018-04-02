@@ -3939,7 +3939,7 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 	std::string path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(p_recording_tree_path));
 	
     if (p_binary) {
-        table_collection_dump(&tables, p_recording_tree_path.c_str(), 0);
+        table_collection_dump(&tables, path.c_str(), 0);
     } else {
         std::string error_string;
         bool success = Eidos_CreateDirectory(path, &error_string);
