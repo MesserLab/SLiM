@@ -243,52 +243,64 @@ slim_generation_t SLiMSim::InitializePopulationFromFile(const char *p_file, Eido
 	if (file_format == 0)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromFile): initialization file is invalid." << EidosTerminate();
 	
+	if (p_interpreter)
 	{
-		if (p_interpreter)
+		EidosSymbolTable &symbols = p_interpreter->SymbolTable();
+		std::vector<std::string> all_symbols = symbols.AllSymbols();
+		std::vector<EidosGlobalStringID> symbols_to_remove;
+		
+		for (std::string symbol_name : all_symbols)
 		{
-			EidosSymbolTable &symbols = p_interpreter->SymbolTable();
-			std::vector<std::string> all_symbols = symbols.AllSymbols();
-			std::vector<EidosGlobalStringID> symbols_to_remove;
+			EidosGlobalStringID symbol_ID = Eidos_GlobalStringIDForString(symbol_name);
+			EidosValue_SP symbol_value = symbols.GetValueOrRaiseForSymbol(symbol_ID);
 			
-			for (std::string symbol_name : all_symbols)
+			if (symbol_value->Type() == EidosValueType::kValueObject)
 			{
-				EidosGlobalStringID symbol_ID = Eidos_GlobalStringIDForString(symbol_name);
-				EidosValue_SP symbol_value = symbols.GetValueOrRaiseForSymbol(symbol_ID);
+				const EidosObjectClass *symbol_class = static_pointer_cast<EidosValue_Object>(symbol_value)->Class();
 				
-				if (symbol_value->Type() == EidosValueType::kValueObject)
-				{
-					const EidosObjectClass *symbol_class = static_pointer_cast<EidosValue_Object>(symbol_value)->Class();
-					
-					if ((symbol_class == gSLiM_Subpopulation_Class) || (symbol_class == gSLiM_Genome_Class) || (symbol_class == gSLiM_Individual_Class) || (symbol_class == gSLiM_Mutation_Class) || (symbol_class == gSLiM_Substitution_Class))
-						symbols_to_remove.emplace_back(symbol_ID);
-				}
+				if ((symbol_class == gSLiM_Subpopulation_Class) || (symbol_class == gSLiM_Genome_Class) || (symbol_class == gSLiM_Individual_Class) || (symbol_class == gSLiM_Mutation_Class) || (symbol_class == gSLiM_Substitution_Class))
+					symbols_to_remove.emplace_back(symbol_ID);
 			}
-			
-			for (EidosGlobalStringID symbol_ID : symbols_to_remove)
-				symbols.RemoveConstantForSymbol(symbol_ID);
 		}
 		
-		// invalidate interactions, since any cached interaction data depends on the subpopulations and individuals
-		for (auto int_type = interaction_types_.begin(); int_type != interaction_types_.end(); ++int_type)
-			int_type->second->Invalidate();
-		
-		// then we dispose of all existing subpopulations, mutations, etc.
-		population_.RemoveAllSubpopulationInfo();
-		
-		// TREE SEQUENCE RECORDING
-		if (RecordingTreeSequence())
-		{
-			FreeTreeSequence();
-			StartTreeRecording();
-		}
+		for (EidosGlobalStringID symbol_ID : symbols_to_remove)
+			symbols.RemoveConstantForSymbol(symbol_ID);
 	}
 	
+	// invalidate interactions, since any cached interaction data depends on the subpopulations and individuals
+	for (auto int_type = interaction_types_.begin(); int_type != interaction_types_.end(); ++int_type)
+		int_type->second->Invalidate();
+	
+	// then we dispose of all existing subpopulations, mutations, etc.
+	population_.RemoveAllSubpopulationInfo();
+	
+	// TREE SEQUENCE RECORDING
+	if (RecordingTreeSequence())
+	{
+		FreeTreeSequence();
+		StartTreeRecording();
+	}
+	
+	slim_generation_t new_generation;
+	
 	if (file_format == 1)
-		return _InitializePopulationFromTextFile(p_file, p_interpreter);
+		new_generation = _InitializePopulationFromTextFile(p_file, p_interpreter);
 	else if (file_format == 2)
-		return _InitializePopulationFromBinaryFile(p_file, p_interpreter);
+		new_generation = _InitializePopulationFromBinaryFile(p_file, p_interpreter);
 	else
 		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromFile): unreconized format code." << EidosTerminate();
+	
+	// TREE SEQUENCE RECORDING
+	if (RecordingTreeSequence())
+	{
+		// set up all of the mutations we just read in with the tree-seq recording code
+		RecordAllDerivedStatesFromSLiM();
+		
+		// reset our tree-seq auto-simplification interval so we don't simplify immediately
+		simplify_elapsed_ = 0;
+	}
+	
+	return new_generation;
 }
 
 slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file, EidosInterpreter *p_interpreter)
@@ -314,6 +326,10 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		int64_t generation_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
 		file_generation = SLiMCastToGenerationTypeOrRaise(generation_long);
 	}
+	
+	// As of SLiM 2.1, we change the generation as a side effect of loading; otherwise we can't correctly update our state here!
+	// As of SLiM 3, we set the generation up here, before making any individuals, because we need it to be correct for the tree-seq recording code.
+	SetGeneration(file_generation);
 	
 	// Read and ignore initial stuff until we hit the Populations section
 	int64_t file_version = 0;	// initially unknown; we will leave this as 0 for versions < 3, for now
@@ -685,12 +701,9 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 	// BCH 5 April 2017: Well, it has been shown otherwise.  Now that interactions have been added, fitness() callbacks often depend on
 	// them, which means the interactions need to be evaluated, which means we can't evaluate fitness values yet; we need to give the
 	// user's script a chance to evaluate the interactions.  This was always a problem, really; fitness() callbacks might have needed
-	// some external state to be set up that would on the population state.  But now it is a glaring problem, and forces us to revise
+	// some external state to be set up that would be on the population state.  But now it is a glaring problem, and forces us to revise
 	// our policy.  For backward compatibility, we will keep the old behavior if reading a file that is version 2 or earlier; a bit
 	// weird, but probably nobody will ever even notice...
-	
-	// As of SLiM 2.1, we change the generation as a side effect of loading; otherwise we can't correctly update our state here!
-	SetGeneration(file_generation);
 	
 	// Re-tally mutation references so we have accurate frequency counts for our new mutations
 	population_.UniqueMutationRuns();
@@ -890,6 +903,10 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		if (section_end_tag != (int32_t)0xFFFF0000)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): missing section end after header." << EidosTerminate();
 	}
+	
+	// As of SLiM 2.1, we change the generation as a side effect of loading; otherwise we can't correctly update our state here!
+	// As of SLiM 3, we set the generation up here, before making any individuals, because we need it to be correct for the tree-seq recording code.
+	SetGeneration(file_generation);
 	
 	// Populations section
 	while (true)
@@ -1275,12 +1292,9 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	// BCH 5 April 2017: Well, it has been shown otherwise.  Now that interactions have been added, fitness() callbacks often depend on
 	// them, which means the interactions need to be evaluated, which means we can't evaluate fitness values yet; we need to give the
 	// user's script a chance to evaluate the interactions.  This was always a problem, really; fitness() callbacks might have needed
-	// some external state to be set up that would on the population state.  But now it is a glaring problem, and forces us to revise
+	// some external state to be set up that would be on the population state.  But now it is a glaring problem, and forces us to revise
 	// our policy.  For backward compatibility, we will keep the old behavior if reading a file that is version 2 or earlier; a bit
 	// weird, but probably nobody will ever even notice...
-	
-	// As of SLiM 2.1, we change the generation as a side effect of loading; otherwise we can't correctly update our state here!
-	SetGeneration(file_generation);
 	
 	// Re-tally mutation references so we have accurate frequency counts for our new mutations
 	population_.UniqueMutationRuns();
@@ -3968,6 +3982,40 @@ void SLiMSim::FreeTreeSequence(void)
 	// and also when we're wiping the slate clean with something like readFromPopulationFile().
 	if (recording_tree_)
 		table_collection_free(&tables);
+}
+
+void SLiMSim::RecordAllDerivedStatesFromSLiM(void)
+{
+	// This is called when new tree sequence tables need to be built to correspond to the current state of SLiM, such as
+	// after handling a readFromPopulationFile() call.  It is guaranteed by the caller of this method that any old tree
+	// sequence recording stuff has been freed with a call to FreeTreeSequence(), and then a new recording session has
+	// been initiated with StartTreeRecording(); it might be good for this method to do a sanity check that all of the
+	// recording tables are indeed allocated but empty, I guess.  This method then records every extant individual by
+	// making the appropriate calls to SetCurrentNewIndividual(), RecordNewGenome(), and RecordNewDerivedState().  Note
+	// that modifyChild() callbacks do not happen in this scenario, so new individuals will not get retracted.  Note
+	// also that new mutations will not be added one at a time, when they are stacked; instead, each block of stacked
+	// mutations in a genome will be added with a single derived state call here.
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+	{
+		Subpopulation *subpop = subpop_pair.second;
+		
+		for (Individual *individual : subpop->parent_individuals_)
+		{
+			Genome *genome1 = individual->genome1_;
+			Genome *genome2 = individual->genome2_;
+			
+			// This is done for us, at present, as a side effect of the readPopulationFile() code...
+			//SetCurrentNewIndividual(individual);
+			//RecordNewGenome(nullptr, genome1->genome_id_, -1, -1);
+			//RecordNewGenome(nullptr, genome2->genome_id_, -1, -1);
+			
+			if (recording_mutations_)
+			{
+				genome1->record_derived_states(this);
+				genome2->record_derived_states(this);
+			}
+		}
+	}
 }
 
 
