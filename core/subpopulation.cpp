@@ -600,10 +600,7 @@ void Subpopulation::GenerateIndividualsToFitNonWF(double p_sex_ratio)
 		
 		parent_first_male_index_ = parent_subpop_size_ - total_males;
 		
-		if (parent_first_male_index_ <= 0)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualsToFitNonWF): sex ratio of " << p_sex_ratio << " produced no females." << EidosTerminate();
-		else if (parent_first_male_index_ >= parent_subpop_size_)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualsToFitNonWF): sex ratio of " << p_sex_ratio << " produced no males." << EidosTerminate();
+		// There is no requirement that a population have males or females, in nonWF, so we do not do the check here that we do for WF models...
 		
 		WipeIndividualsAndGenomes(parent_individuals_, parent_genomes_, parent_subpop_size_, parent_first_male_index_, false);
 	}
