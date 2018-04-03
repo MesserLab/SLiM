@@ -79,6 +79,16 @@ enum class SLiMGenerationStage
 	kNonWFStage7AdvanceGenerationCounter,
 };
 
+enum class SLiMFileFormat
+{
+	kFileNotFound = -1,
+	kFormatUnrecognized = 0,
+	kFormatSLiMText,			// as saved by outputFull(filePath, binary=F)
+	kFormatSLiMBinary,			// as saved by outputFull(filePath, binary=T)
+	kFormatMSPrimeText,			// as saved by treeSeqOutput(path, binary=F)
+	kFormatMSPrimeBinary		// as saved by treeSeqOutput(path, binary=T)
+};
+
 
 class SLiMSim : public SLiMEidosDictionary
 {
@@ -164,10 +174,13 @@ private:
 	double x_chromosome_dominance_coeff_ = 1.0;										// the dominance coefficient for heterozygosity at the X locus (i.e. males); this is global
 	
 	// private initialization methods
-	int FormatOfPopulationFile(const char *p_file);			// -1 is file does not exist, 0 is format unrecognized, 1 is text, 2 is binary
-	slim_generation_t InitializePopulationFromFile(const char *p_file, EidosInterpreter *p_interpreter);		// initialize the population from the file
-	slim_generation_t _InitializePopulationFromTextFile(const char *p_file, EidosInterpreter *p_interpreter);	// initialize the population from a text file
-	slim_generation_t _InitializePopulationFromBinaryFile(const char *p_file, EidosInterpreter *p_interpreter);	// initialize the population from a binary file
+	SLiMFileFormat FormatOfPopulationFile(const std::string &p_file_string);		// determine the format of a file/folder at the given path using leading bytes, etc.
+	slim_generation_t InitializePopulationFromFile(const std::string &p_file_string, EidosInterpreter *p_interpreter);	// initialize the population from the file
+	slim_generation_t _InitializePopulationFromTextFile(const char *p_file, EidosInterpreter *p_interpreter);			// initialize the population from a SLiM text file
+	slim_generation_t _InitializePopulationFromBinaryFile(const char *p_file, EidosInterpreter *p_interpreter);			// initialize the population from a SLiM binary file
+	slim_generation_t _InstantiateSLiMObjectsFromTreeSequence(void);																	// given tree-seq tables, makes individuals, genomes, and mutations
+	slim_generation_t _InitializePopulationFromMSPrimeTextFile(const char *p_file, EidosInterpreter *p_interpreter);	// initialize the population from an msprime text file
+	slim_generation_t _InitializePopulationFromMSPrimeBinaryFile(const char *p_file, EidosInterpreter *p_interpreter);	// initialize the population from an msprime binary file
 	void InitializeFromFile(std::istream &p_infile);								// parse a input file and set up the simulation state from its contents
 	
 	// initialization completeness check counts; used only when running initialize() callbacks
