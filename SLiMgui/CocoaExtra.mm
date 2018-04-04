@@ -995,6 +995,42 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 
 @end
 
+@implementation SLiMLayoutRoundoffView
+
+- (void)layout
+{
+	// We want to manually layout our (single) subview, to correct for subpixel positioning that screws up our drawing.
+	// The documentation for -layout is abysmal, but it turns out what you want to do is remove all constraints from the
+	// view that you want to manually lay out, so that the autolayout code is not fighting with you, and *then* use
+	// -layout in the superview of that view to manually set the frame of the subview.  We remove the relevant constraints
+	// in -windowDidLoad in SLiMWindowController.  Here we just check for a half-pixel position in our own bounds, and if
+	// present, tweak our subview's frame to remove it.  Seems to work; took hours upon hours to figure out.  :-<
+	NSArray *subviews = [self subviews];
+	
+	if ([subviews count] == 1)
+	{
+		NSView *subview = [subviews objectAtIndex:0];
+		NSRect selfBounds = [self frame];
+		NSRect frame = selfBounds;
+		
+		if (selfBounds.size.height != round(selfBounds.size.height))
+		{
+			frame.origin.y += 0.5;
+			frame.size.height -= 0.5;
+		}
+		
+		//NSLog(@"selfBounds: %@", NSStringFromRect(selfBounds));
+		//NSLog(@"frame: %@", NSStringFromRect(frame));
+		
+		[subview setFrame:frame];
+		[subview setNeedsLayout:YES];
+	}
+	
+	[super layout];
+}
+
+@end
+
 
 // Work around Apple's bug that they never fix that causes console logs on startup
 // Thanks to TyngJJ on https://forums.developer.apple.com/thread/49052 for this workaround

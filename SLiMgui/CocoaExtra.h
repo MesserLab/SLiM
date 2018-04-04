@@ -105,6 +105,12 @@ void RGBForSelectionCoeff(double selectionCoeff, float *colorRed, float *colorGr
 @interface SLiMAutoselectTextField : NSTextField
 @end
 
+// A subclass for a view that forces its (single) subview to match its own bounds, except that a half-pixel
+// alignment in this view will be corrected in the subview; this makes OpenGL views play nice with Retina.
+// This code is not general-purpose at the moment, it works only specifically with SLiMgui's view setup.
+@interface SLiMLayoutRoundoffView : NSView
+@end
+
 
 
 

@@ -749,6 +749,21 @@
 	// Tell Cocoa that we can go full-screen
 	[[self window] setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
 	
+	// The splitview sets the size of overallTopView based upon the position of the splitter.  The overallTopView then
+	// wants to manually manage the size of its subview, as a way of compensating for half-pixel frame positions that
+	// mess up our OpenGL subviews.  I'm not sure whether the autoresizing mask stuff is also necessary, but removing
+	// the constraints certainly seems to be.  (We have the constraints in the nib so that working in the nib has fully
+	// defined constraints, even though we don't want them at runtime.)  See SLiMLayoutRoundoffView in CocoaExtra.mm.
+	[overallTopView removeConstraint:overallTopViewConstraint1];
+	[overallTopView removeConstraint:overallTopViewConstraint2];
+	[overallTopView removeConstraint:overallTopViewConstraint3];
+	[overallTopView removeConstraint:overallTopViewConstraint4];
+	
+	NSView *subviewOfOverallTopView = [[overallTopView subviews] objectAtIndex:0];
+	
+	[subviewOfOverallTopView setAutoresizingMask:NSViewNotSizable];
+	[subviewOfOverallTopView setTranslatesAutoresizingMaskIntoConstraints:YES];
+	
 	// Fix our splitview's position restore, which NSSplitView sometimes screws up
 	[overallSplitView eidosRestoreAutosavedPositionsWithName:@"SLiMgui Overall Splitter"];
 	[bottomSplitView eidosRestoreAutosavedPositionsWithName:@"SLiMgui Splitter"];
