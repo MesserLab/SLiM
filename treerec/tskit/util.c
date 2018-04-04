@@ -259,6 +259,9 @@ msp_strerror(int err)
         case MSP_ERR_MUTATION_PARENT_AFTER_CHILD:
             ret = "Parent mutation ID must be < current ID.";
             break;
+        case MSP_ERR_CONTRADICTORY_ANCESTRAL_STATES:
+            ret = "More than one site record with the same position but different ancestral states.";
+            break;
         case MSP_ERR_BAD_OFFSET:
             ret = "Bad offset provided in input array.";
             break;

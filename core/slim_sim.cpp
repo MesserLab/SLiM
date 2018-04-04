@@ -3923,34 +3923,59 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_
 
 void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t p_position, const std::vector<slim_mutationid_t> &p_derived_mutations)
 {
-	// This is called whenever a new mutation is added to a genome.  Because mutation stacking makes things
-	// complicated, this hook supplies not just the new mutation, but the entire new derived state – all of
-	// the mutations that exist at the given position in the given genome, post-addition.  This derived
-	// state may involve the removal of some ancestral mutations (or may not), in addition to the new mutation
-	// that was added.  The new state is not even guaranteed to be different from the ancestral state; because
-	// of the way new mutations are added in some paths (with bulk operations) we may not know.  This method
-	// will also be called when a mutation is removed from a given genome; if no mutations remain at the
-	// given position, p_derived_mutations will be empty.  The p_genome_id value supplied is based upon the
-	// individual's pedigree ID, with the expected invariant relationship: it is 2 * pedigree_id + [0/1].
-	// The vector of IDs passed in here is reused internally, so this method must not keep a pointer to it;
-	// any information that needs to be kept from it must be copied out.
+    // This is called whenever a new mutation is added to a genome.  Because
+    // mutation stacking makes things complicated, this hook supplies not just
+    // the new mutation, but the entire new derived state – all of the
+    // mutations that exist at the given position in the given genome,
+    // post-addition.  This derived state may involve the removal of some
+    // ancestral mutations (or may not), in addition to the new mutation that
+    // was added.  The new state is not even guaranteed to be different from
+    // the ancestral state; because of the way new mutations are added in some
+    // paths (with bulk operations) we may not know.  This method will also be
+    // called when a mutation is removed from a given genome; if no mutations
+    // remain at the given position, p_derived_mutations will be empty.  The
+    // p_genome_id value supplied is based upon the individual's pedigree ID,
+    // with the expected invariant relationship: it is 2 * pedigree_id + [0/1].
+    // The vector of IDs passed in here is reused internally, so this method
+    // must not keep a pointer to it; any information that needs to be kept
+    // from it must be copied out.
 
 	//DEBUG STDOUT PRINTING
-	/*
 	std::cout << tree_seq_generation_ << ":   New derived state for genome id " << p_genome_id << " at position " << p_position << ":";
 	
-	if (p_derived_mutations.size())
-	{
+	if (p_derived_mutations.size()) {
 		for (slim_mutationid_t mut_id : p_derived_mutations)
 			std::cout << " " << mut_id;
-	}
-	else
-	{
+	} else {
 		std::cout << " <empty>";
 	}
-	
 	std::cout << std::endl;
-	 */
+	/* END DEBUG */
+
+    node_id_t genomeMSPID = getMSPID(p_genome_id);
+
+    // add new site
+    // the first (NULL, 0) is ancestral state; second is metadata
+    site_id_t site_id;
+    site_id = site_table_add_row(&tables.sites, (double) p_position, 
+                        NULL, 0, NULL, 0);
+    if (site_id < 0) {
+        handle_error("add_site", site_id);
+    }
+
+    // form derived state: needs to be a const char*
+    size_t derived_state_length = p_derived_mutations.size() * sizeof(*p_derived_mutations) / sizeof(char);
+    char derived_state[table_size_t];
+    memcpy(derived_state, p_derived_mutations, derived_state_length);
+
+    // we don't record parent mutations; they are added later
+    // the last (NULL, 0) is metadata
+    tree_return_value_= mutation_table_add_row(&tables.mutations, site_id, genomeMSPID, 
+                            MSP_NULL_MUTATION, derived_state, derived_state_length, NULL, 0);
+
+	if (tree_return_value_ < 0) {
+		handle_error("add_mutation", tree_return_value_);
+	}
 }
 
 void SLiMSim::CheckAutoSimplification(void)

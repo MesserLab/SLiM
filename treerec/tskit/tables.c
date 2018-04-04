@@ -1995,6 +1995,8 @@ table_sorter_sort_sites(table_sorter_t *self)
             sizeof(*ancestral_state_mem));
     char *metadata_mem = malloc(self->sites->metadata_length *
             sizeof(*metadata_mem));
+    site_id_t jj;
+    double last_position;
 
     if (sorted_sites == NULL || ancestral_state_mem == NULL || metadata_mem == NULL) {
         ret = MSP_ERR_NO_MEMORY;
@@ -2023,20 +2025,37 @@ table_sorter_sort_sites(table_sorter_t *self)
     /* Build the mapping from old site IDs to new site IDs and copy back into the table */
     ancestral_state_offset = 0;
     metadata_offset = 0;
+    jj = 0;
+    last_position = -1;
     for (j = 0; j < self->sites->num_rows; j++) {
-        self->site_id_map[sorted_sites[j].id] = (site_id_t) j;
-        self->sites->position[j] = sorted_sites[j].position;
-        self->sites->ancestral_state_offset[j] = ancestral_state_offset;
-        memcpy(self->sites->ancestral_state + ancestral_state_offset,
-            sorted_sites[j].ancestral_state,
-            sorted_sites[j].ancestral_state_length);
-        ancestral_state_offset += sorted_sites[j].ancestral_state_length;
-        self->sites->metadata_offset[j] = metadata_offset;
-        memcpy(self->sites->metadata + metadata_offset,
-            sorted_sites[j].metadata,
-            sorted_sites[j].metadata_length);
-        metadata_offset += sorted_sites[j].metadata_length;
+        self->site_id_map[sorted_sites[j].id] = jj;
+        if (sorted_sites[j].position == last_position) {
+            /* duplicate site, do not include */
+            if ((sorted_sites[j].ancestral_state_length != 
+                        sorted_sites[j-1].ancestral_state_length) ||
+                (memcmp(sorted_sites[j].ancestral_state,
+                        sorted_sites[j-1].ancestral_state,
+                        sorted_sites[j].ancestral_state_length) != 0)) {
+                ret = MSP_ERR_CONTRADICTORY_ANCESTRAL_STATES;
+                goto out;
+            }
+        } else {
+            self->sites->position[jj] = sorted_sites[j].position;
+            self->sites->ancestral_state_offset[jj] = ancestral_state_offset;
+            memcpy(self->sites->ancestral_state + ancestral_state_offset,
+                sorted_sites[j].ancestral_state,
+                sorted_sites[j].ancestral_state_length);
+            ancestral_state_offset += sorted_sites[j].ancestral_state_length;
+            self->sites->metadata_offset[jj] = metadata_offset;
+            memcpy(self->sites->metadata + metadata_offset,
+                sorted_sites[j].metadata,
+                sorted_sites[j].metadata_length);
+            metadata_offset += sorted_sites[j].metadata_length;
+            last_position = sorted_sites[j].position;
+            jj++;
+        }
     }
+    self->sites->num_rows = jj;
     self->sites->ancestral_state_offset[self->sites->num_rows] = ancestral_state_offset;
     self->sites->metadata_offset[self->sites->num_rows] = metadata_offset;
 out:
