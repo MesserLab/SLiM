@@ -38,6 +38,7 @@ std::ostream& operator<<(std::ostream& p_out, IFType p_if_type)
 		case IFType::kLinear:			p_out << gStr_l;		break;
 		case IFType::kExponential:		p_out << gStr_e;		break;
 		case IFType::kNormal:			p_out << gEidosStr_n;	break;
+		case IFType::kCauchy:			p_out << gEidosStr_c;	break;
 	}
 	
 	return p_out;
@@ -1245,6 +1246,11 @@ double InteractionType::CalculateStrengthNoCallbacks(double p_distance)
 			return (if_param1_ * exp(-if_param2_ * p_distance));										// fmax * exp(−λd)
 		case IFType::kNormal:
 			return (if_param1_ * exp(-(p_distance * p_distance) / (2.0 * if_param2_ * if_param2_)));	// fmax * exp(−d^2/2σ^2)
+		case IFType::kCauchy:
+		{
+			double temp = p_distance / if_param2_;
+			return (if_param1_ / (1.0 + temp * temp));													// fmax / (1+(d/λ)^2)
+		}
 	}
 }
 
@@ -5116,8 +5122,13 @@ EidosValue_SP InteractionType::ExecuteMethod_setInteractionFunction(EidosGlobalS
 		if_type = IFType::kNormal;
 		expected_if_param_count = 2;
 	}
+	else if (if_type_string.compare(gEidosStr_c) == 0)
+	{
+		if_type = IFType::kCauchy;
+		expected_if_param_count = 2;
+	}
 	else
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): setInteractionFunction() functionType \"" << if_type_string << "\" must be \"f\", \"l\", \"e\", or \"n\"." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): setInteractionFunction() functionType \"" << if_type_string << "\" must be \"f\", \"l\", \"e\", \"n\", or \"c\"." << EidosTerminate();
 	
 	if ((spatiality_ == 0) && (if_type != IFType::kFixed))
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): setInteractionFunction() requires functionType 'f' for non-spatial interactions." << EidosTerminate();

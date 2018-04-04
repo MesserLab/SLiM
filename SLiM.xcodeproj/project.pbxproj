@@ -238,6 +238,10 @@
 		9887946F1EA8808000AE0C8D /* SLiMPDFWindowController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9887946D1EA8808000AE0C8D /* SLiMPDFWindowController.mm */; };
 		988794701EA8808000AE0C8D /* SLiMPDFWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9887946E1EA8808000AE0C8D /* SLiMPDFWindow.xib */; };
 		988794731EA8C42200AE0C8D /* SLiMPDFView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 988794721EA8C42200AE0C8D /* SLiMPDFView.mm */; };
+		988880EC20744EE900E10172 /* cauchy.c in Sources */ = {isa = PBXBuildFile; fileRef = 988880EB20744EE800E10172 /* cauchy.c */; };
+		988880ED20744F0100E10172 /* cauchy.c in Sources */ = {isa = PBXBuildFile; fileRef = 988880EB20744EE800E10172 /* cauchy.c */; };
+		988880EE20744F0100E10172 /* cauchy.c in Sources */ = {isa = PBXBuildFile; fileRef = 988880EB20744EE800E10172 /* cauchy.c */; };
+		988880EF20744F0200E10172 /* cauchy.c in Sources */ = {isa = PBXBuildFile; fileRef = 988880EB20744EE800E10172 /* cauchy.c */; };
 		9892282B1BAE279700429674 /* EidosHelpOperators.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9892282A1BAE279700429674 /* EidosHelpOperators.rtf */; };
 		9892282C1BAE279700429674 /* EidosHelpOperators.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9892282A1BAE279700429674 /* EidosHelpOperators.rtf */; };
 		9892282E1BAE27AA00429674 /* EidosHelpTypes.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9892282D1BAE27AA00429674 /* EidosHelpTypes.rtf */; };
@@ -799,6 +803,7 @@
 		9887946E1EA8808000AE0C8D /* SLiMPDFWindow.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = SLiMPDFWindow.xib; sourceTree = "<group>"; };
 		988794711EA8C42200AE0C8D /* SLiMPDFView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SLiMPDFView.h; sourceTree = "<group>"; };
 		988794721EA8C42200AE0C8D /* SLiMPDFView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SLiMPDFView.mm; sourceTree = "<group>"; };
+		988880EB20744EE800E10172 /* cauchy.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cauchy.c; sourceTree = "<group>"; };
 		9892282A1BAE279700429674 /* EidosHelpOperators.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = EidosHelpOperators.rtf; sourceTree = "<group>"; };
 		9892282D1BAE27AA00429674 /* EidosHelpTypes.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = EidosHelpTypes.rtf; sourceTree = "<group>"; };
 		989228301BAF496C00429674 /* EidosHelpStatements.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = EidosHelpStatements.rtf; sourceTree = "<group>"; };
@@ -1544,6 +1549,7 @@
 				98C820FD1C7A980000548839 /* gsl_randist.h */,
 				98C820F71C7A980000548839 /* beta.c */,
 				98C820F81C7A980000548839 /* binomial_tpe.c */,
+				988880EB20744EE800E10172 /* cauchy.c */,
 				98C821A71C7A9B1600548839 /* discrete.c */,
 				98C820F91C7A980000548839 /* exponential.c */,
 				98C820FA1C7A980000548839 /* gamma.c */,
@@ -2075,6 +2081,7 @@
 				98C821991C7A983800548839 /* zeta.c in Sources */,
 				98C8218B1C7A983800548839 /* multinomial.c in Sources */,
 				98C821851C7A983800548839 /* binomial_tpe.c in Sources */,
+				988880EF20744F0200E10172 /* cauchy.c in Sources */,
 				98C8219C1C7A983800548839 /* infnan.c in Sources */,
 				982556BA1BA8EF930054CB3F /* eidos_functions.cpp in Sources */,
 				982556B91BA8EF8F0054CB3F /* eidos_interpreter.cpp in Sources */,
@@ -2198,6 +2205,7 @@
 				989790DA1AF3D0E100C6B14C /* eidos_test_element.cpp in Sources */,
 				982663541A3BABD300A0CBBF /* main.cpp in Sources */,
 				9876E5FC1ED5599F00FF9762 /* gauss.c in Sources */,
+				988880EC20744EE900E10172 /* cauchy.c in Sources */,
 				98E9A69F1A3CD551000AD4FC /* substitution.cpp in Sources */,
 				98C821391C7A980000548839 /* exp.c in Sources */,
 				98C8213E1C7A980000548839 /* trig.c in Sources */,
@@ -2292,6 +2300,7 @@
 				98332AFE1FDBC4BB00274FF0 /* matrix.c in Sources */,
 				98C8217A1C7A983800548839 /* trig.c in Sources */,
 				98332AC91FDBA74900274FF0 /* vector.c in Sources */,
+				988880EE20744F0100E10172 /* cauchy.c in Sources */,
 				98C8217D1C7A983800548839 /* fdiv.c in Sources */,
 				985724D01AD479010047C223 /* eidos_value.cpp in Sources */,
 				982556661BA450980054CB3F /* EidosHelpController.mm in Sources */,
@@ -2426,6 +2435,7 @@
 				98C8215D1C7A983700548839 /* zeta.c in Sources */,
 				98C821591C7A983700548839 /* log.c in Sources */,
 				98DE4C281B713F4C004FDF5F /* ScriptMod_OutputSubpopSample.mm in Sources */,
+				988880ED20744F0100E10172 /* cauchy.c in Sources */,
 				986D73E91B07E89E007FBB70 /* eidos_call_signature.cpp in Sources */,
 				98DE4C1A1B713F16004FDF5F /* ScriptMod_RemoveSubpop.mm in Sources */,
 				98D4C20A1A7086FF00FFB083 /* ChromosomeView.mm in Sources */,

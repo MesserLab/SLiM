@@ -1228,9 +1228,30 @@
 \f1\fs18 n
 \f0\fs20 , specifying a value for each draw.
 \f2 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 \expnd0\expndtw0\kerning0
+(float)rcauchy(integer$\'a0n, [numeric\'a0location\'a0=\'a00], [numeric\'a0scale\'a0=\'a01])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 Returns a vector of 
+\f1\fs18 n
+\f0\fs20  
+\b random draws from a Cauchy distribution
+\b0  with location 
+\f1\fs18 location
+\f0\fs20  and scale 
+\f1\fs18 scale
+\f0\fs20 .  The 
+\f1\fs18 location
+\f0\fs20  and 
+\f1\fs18 scale
+\f0\fs20  parameters may either be singletons, specifying a single value to be used for all of the draws, or they may be vectors of length 
+\f1\fs18 n
+\f0\fs20 , specifying a value for each draw.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (integer)rdunif(integer$\'a0n, [integer\'a0min\'a0=\'a00], [integer\'a0max
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (integer)rdunif(integer$\'a0n, [integer\'a0min\'a0=\'a00], [integer\'a0max
 \f2 \'a0
 \f1 =\'a01])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
@@ -3692,12 +3713,11 @@ Returns the transpose
 Note that the path returned may not be identical to the path previously set with 
 \f1\fs18 setwd()
 \f0\fs20 , if for example symbolic links are involved; but it ought to refer to the same actual directory in the filesystem.\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 The initial working directory is \'96 as is generally the case on Un*x \'96 simply the directory given to the running Eidos process by its parent process (the operating system, a shell, a job scheduler, a debugger, or whatever the case may be).  If you launch Eidos (or SLiM) from the command line in a Un*x shell, it is typically the current directory in that shell.  Before relative filesystem paths are used, you may therefore wish check what the initial working directory is on your platform, with 
+The initial working directory is \'96 as is generally the case on Un*x \'96 simply the directory given to the running Eidos process by its parent process (the operating system, a shell, a job scheduler, a debugger, or whatever the case may be).  If you launch Eidos (or SLiM) from the command line in a Un*x shell, it is typically the current directory in that shell.  Before relative filesystem paths are used, you may therefore wish check what the initial working directory is on your platform, with 
 \f1\fs18 getwd()
 \f0\fs20 , if you are not sure.  Alternatively, you can simply use 
 \f1\fs18 setwd()
-\f0\fs20  to set the working directory to a known path.\cf2 \
+\f0\fs20  to set the working directory to a known path.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (string)readFile(string$\'a0filePath)

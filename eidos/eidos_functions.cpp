@@ -157,6 +157,7 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dnorm",				Eidos_ExecuteFunction_dnorm,		kEidosValueMaskFloat))->AddFloat("x")->AddNumeric_O("mean", gStaticEidosValue_Float0)->AddNumeric_O("sd", gStaticEidosValue_Float1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rbinom",			Eidos_ExecuteFunction_rbinom,		kEidosValueMaskInt))->AddInt_S(gEidosStr_n)->AddInt("size")->AddFloat("prob"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rcauchy",				Eidos_ExecuteFunction_rcauchy,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("location", gStaticEidosValue_Float0)->AddNumeric_O("scale", gStaticEidosValue_Float1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rdunif",			Eidos_ExecuteFunction_rdunif,		kEidosValueMaskInt))->AddInt_S(gEidosStr_n)->AddInt_O("min", gStaticEidosValue_Integer0)->AddInt_O("max", gStaticEidosValue_Integer1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rexp",				Eidos_ExecuteFunction_rexp,			kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("mu", gStaticEidosValue_Float1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rgamma",			Eidos_ExecuteFunction_rgamma,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric("mean")->AddNumeric("shape"));
@@ -173,7 +174,7 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		//	vector construction functions
 		//
 		
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("c",					Eidos_ExecuteFunction_c,			kEidosValueMaskAny))->AddEllipsis());
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_c,			Eidos_ExecuteFunction_c,			kEidosValueMaskAny))->AddEllipsis());
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_float,		Eidos_ExecuteFunction_float,		kEidosValueMaskFloat))->AddInt_S("length"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_integer,	Eidos_ExecuteFunction_integer,		kEidosValueMaskInt))->AddInt_S("length")->AddInt_OS("fill1", gStaticEidosValue_Integer0)->AddInt_OS("fill2", gStaticEidosValue_Integer1)->AddInt_ON("fill2Indices", gStaticEidosValueNULL));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_logical,	Eidos_ExecuteFunction_logical,		kEidosValueMaskLogical))->AddInt_S("length"));
@@ -4635,6 +4636,70 @@ EidosValue_SP Eidos_ExecuteFunction_rbinom(const EidosValue_SP *const p_argument
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rbinom): function rbinom() requires probability in [0.0, 1.0] (" << probability << " supplied)." << EidosTerminate(nullptr);
 			
 			int_result->set_int_no_check(gsl_ran_binomial(gEidos_rng, probability, size), draw_index);
+		}
+	}
+	
+	return result_SP;
+}
+
+//	(float)rcauchy(integer$ n, [numeric location = 0], [numeric scale = 1])
+EidosValue_SP Eidos_ExecuteFunction_rcauchy(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
+	
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *n_value = p_arguments[0].get();
+	EidosValue *arg_location = p_arguments[1].get();
+	EidosValue *arg_scale = p_arguments[2].get();
+	int64_t num_draws = n_value->IntAtIndex(0, nullptr);
+	int arg_location_count = arg_location->Count();
+	int arg_scale_count = arg_scale->Count();
+	bool location_singleton = (arg_location_count == 1);
+	bool scale_singleton = (arg_scale_count == 1);
+	
+	if (num_draws < 0)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rcauchy): function rcauchy() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << EidosTerminate(nullptr);
+	if (!location_singleton && (arg_location_count != num_draws))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rcauchy): function rcauchy() requires location to be of length 1 or n." << EidosTerminate(nullptr);
+	if (!scale_singleton && (arg_scale_count != num_draws))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rcauchy): function rcauchy() requires scale to be of length 1 or n." << EidosTerminate(nullptr);
+	
+	double location0 = (arg_location_count ? arg_location->FloatAtIndex(0, nullptr) : 0.0);
+	double scale0 = (arg_scale_count ? arg_scale->FloatAtIndex(0, nullptr) : 1.0);
+	
+	if (location_singleton && scale_singleton)
+	{
+		if (scale0 <= 0.0)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rcauchy): function rcauchy() requires scale > 0.0 (" << scale0 << " supplied)." << EidosTerminate(nullptr);
+		
+		if (num_draws == 1)
+		{
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gsl_ran_cauchy(gEidos_rng, scale0) + location0));
+		}
+		else
+		{
+			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_draws);
+			result_SP = EidosValue_SP(float_result);
+			
+			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
+				float_result->set_float_no_check(gsl_ran_cauchy(gEidos_rng, scale0) + location0, draw_index);
+		}
+	}
+	else
+	{
+		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize((int)num_draws);
+		result_SP = EidosValue_SP(float_result);
+		
+		for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+		{
+			double location = (location_singleton ? location0 : arg_location->FloatAtIndex(draw_index, nullptr));
+			double scale = (scale_singleton ? scale0 : arg_scale->FloatAtIndex(draw_index, nullptr));
+			
+			if (scale <= 0.0)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rcauchy): function rcauchy() requires scale > 0.0 (" << scale << " supplied)." << EidosTerminate(nullptr);
+			
+			float_result->set_float_no_check(gsl_ran_cauchy(gEidos_rng, scale) + location, draw_index);
 		}
 	}
 	

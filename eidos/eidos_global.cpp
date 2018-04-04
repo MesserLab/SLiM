@@ -1747,6 +1747,7 @@ const std::string gEidosStr__squareTest = "_squareTest";
 // strings for parameters, function names, etc., that are needed as explicit registrations in a Context and thus have to be
 // explicitly registered by Eidos; see the comment in Eidos_RegisterStringForGlobalID() below
 const std::string gEidosStr_weights = "weights";
+const std::string gEidosStr_c = "c";
 const std::string gEidosStr_n = "n";
 const std::string gEidosStr_x = "x";
 const std::string gEidosStr_y = "y";
@@ -1826,6 +1827,7 @@ void Eidos_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gEidosStr__squareTest, gEidosID__squareTest);
 		
 		Eidos_RegisterStringForGlobalID(gEidosStr_weights, gEidosID_weights);
+		Eidos_RegisterStringForGlobalID(gEidosStr_c, gEidosID_c);
 		Eidos_RegisterStringForGlobalID(gEidosStr_n, gEidosID_n);
 		Eidos_RegisterStringForGlobalID(gEidosStr_x, gEidosID_x);
 		Eidos_RegisterStringForGlobalID(gEidosStr_y, gEidosID_y);
