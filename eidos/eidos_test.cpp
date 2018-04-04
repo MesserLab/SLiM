@@ -4977,6 +4977,20 @@ void _RunFunctionDistributionTests(void)
 	EidosAssertScriptRaise("rbinom(2, -1, c(0.5,0.5));", 0, "requires size >= 0");
 	EidosAssertScriptRaise("rbinom(2, c(10,10), -0.1);", 0, "in [0.0, 1.0]");
 	
+	// rcauchy()
+	EidosAssertScriptSuccess("rcauchy(0);", gStaticEidosValue_Float_ZeroVec);
+	EidosAssertScriptSuccess("rcauchy(0, float(0), float(0));", gStaticEidosValue_Float_ZeroVec);
+	EidosAssertScriptSuccess("setSeed(0); (rcauchy(2) - c(0.665522, -0.155038)) < 0.00001;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
+	EidosAssertScriptSuccess("setSeed(0); (rcauchy(2, 10.0) - c(10.6655, 9.84496)) < 0.001;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
+	EidosAssertScriptSuccess("setSeed(2); (rcauchy(2, 10.0, 100.0) - c(-255.486, -4.66262)) < 0.001;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
+	EidosAssertScriptSuccess("setSeed(3); (rcauchy(2, c(-10, 10), 100.0) - c(89.8355, 1331.82)) < 0.01;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
+	EidosAssertScriptSuccess("setSeed(4); (rcauchy(2, 10.0, c(0.1, 10)) - c(10.05, -4.51227)) < 0.001;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
+	EidosAssertScriptRaise("rcauchy(-1);", 0, "requires n to be");
+	EidosAssertScriptRaise("rcauchy(1, 0, 0);", 0, "requires scale > 0.0");
+	EidosAssertScriptRaise("rcauchy(2, c(0,0), -1);", 0, "requires scale > 0.0");
+	EidosAssertScriptRaise("rcauchy(2, c(-10, 10, 1), 100.0);", 0, "requires location to be");
+	EidosAssertScriptRaise("rcauchy(2, 10.0, c(0.1, 10, 1));", 0, "requires scale to be");
+	
 	// rdunif()
 	EidosAssertScriptSuccess("rdunif(0);", gStaticEidosValue_Integer_ZeroVec);
 	EidosAssertScriptSuccess("rdunif(0, integer(0), integer(0));", gStaticEidosValue_Integer_ZeroVec);

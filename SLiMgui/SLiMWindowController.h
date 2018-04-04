@@ -94,6 +94,11 @@
 	IBOutlet NSTableColumn *scriptBlocksTypeColumn;
 	
 	IBOutlet NSSplitView *overallSplitView;
+	IBOutlet NSView *overallTopView;
+	IBOutlet NSLayoutConstraint *overallTopViewConstraint1;
+	IBOutlet NSLayoutConstraint *overallTopViewConstraint2;
+	IBOutlet NSLayoutConstraint *overallTopViewConstraint3;
+	IBOutlet NSLayoutConstraint *overallTopViewConstraint4;
 	
 	IBOutlet NSTextField *fitnessTitleTextField;
 	IBOutlet SLiMColorStripeView *fitnessColorStripe;

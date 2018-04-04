@@ -36,6 +36,9 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 //TREE SEQUENCE
 #include <stdio.h>
@@ -199,50 +202,97 @@ void GetInputLine(std::istream &p_input_file, std::string &p_line)
 	p_line.erase(p_line.find_last_not_of(" \t") + 1);
 }
 
-int SLiMSim::FormatOfPopulationFile(const char *p_file)
+SLiMFileFormat SLiMSim::FormatOfPopulationFile(const std::string &p_file_string)
 {
-	if (p_file)
+	if (p_file_string.length())
 	{
-		std::ifstream infile(p_file, std::ios::in | std::ios::binary);
+		// p_file should have had its trailing slash stripped already, and a leading ~ should have been resolved
+		// we will check those assumptions here for safety...
+		if (p_file_string[0] == '~')
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FormatOfPopulationFile): (internal error) leading ~ in path was not resolved." << EidosTerminate();
+		if (p_file_string.back() == '/')
+			EIDOS_TERMINATION << "ERROR (SLiMSim::FormatOfPopulationFile): (internal error) trailing / in path was not stripped." << EidosTerminate();
 		
-		if (!infile.is_open() || infile.eof())
-			return -1;
+		// First determine if the path is for a file or a directory
+		const char *file_cstr = p_file_string.c_str();
+		struct stat statbuf;
 		
-		// Determine the file length
-		infile.seekg(0, std::ios_base::end);
-		std::size_t file_size = infile.tellg();
+		if (stat(file_cstr, &statbuf) != 0)
+			return SLiMFileFormat::kFileNotFound;
 		
-		// Determine the file format
-		if (file_size >= 4)
+		if (S_ISDIR(statbuf.st_mode))
 		{
-			char file_chars[4] = {0, 0, 0, 0};
-			int32_t file_endianness_tag = 0;
+			// The path is for a whole directory.  The only file format we recognize that is directory-based is the
+			// msprime text (i.e. non-binary) format, which requires files with specific names inside; let's check.
+			// The files should be named EdgeTable.txt and NodeTable.txt, at present.
+			std::string edge_path = p_file_string + "/EdgeTable.txt";
 			
-			infile.seekg(0, std::ios_base::beg);
-			infile.read(&file_chars[0], 4);
+			if (stat(edge_path.c_str(), &statbuf) != 0)
+				return SLiMFileFormat::kFormatUnrecognized;
+			if (!S_ISREG(statbuf.st_mode))
+				return SLiMFileFormat::kFormatUnrecognized;
 			
-			infile.seekg(0, std::ios_base::beg);
-			infile.read(reinterpret_cast<char *>(&file_endianness_tag), sizeof file_endianness_tag);
+			std::string node_path = p_file_string + "/NodeTable.txt";
 			
-			if ((file_chars[0] == '#') && (file_chars[1] == 'O') && (file_chars[2] == 'U') && (file_chars[3] == 'T'))
-				return 1;
-			else if (file_endianness_tag == 0x12345678)
-				return 2;
+			if (stat(node_path.c_str(), &statbuf) != 0)
+				return SLiMFileFormat::kFormatUnrecognized;
+			if (!S_ISREG(statbuf.st_mode))
+				return SLiMFileFormat::kFormatUnrecognized;
+			
+			return SLiMFileFormat::kFormatMSPrimeText;
+		}
+		else if (S_ISREG(statbuf.st_mode))
+		{
+			// The path is for a file.  It could be a SLiM text file, SLiM binary file, or msprime binary file; we
+			// determine which using the leading 4 bytes of the file.  This heuristic will need to be adjusted
+			// if/when these file formats change (such as going off of HD5 in the msprime file format).
+			std::ifstream infile(file_cstr, std::ios::in | std::ios::binary);
+			
+			if (!infile.is_open() || infile.eof())
+				return SLiMFileFormat::kFileNotFound;
+			
+			// Determine the file length
+			infile.seekg(0, std::ios_base::end);
+			std::size_t file_size = infile.tellg();
+			
+			// Determine the file format
+			if (file_size >= 4)
+			{
+				char file_chars[4] = {0, 0, 0, 0};
+				uint32_t file_endianness_tag = 0;
+				
+				infile.seekg(0, std::ios_base::beg);
+				infile.read(&file_chars[0], 4);
+				
+				infile.seekg(0, std::ios_base::beg);
+				infile.read(reinterpret_cast<char *>(&file_endianness_tag), sizeof file_endianness_tag);
+				
+				if ((file_chars[0] == '#') && (file_chars[1] == 'O') && (file_chars[2] == 'U') && (file_chars[3] == 'T'))
+					return SLiMFileFormat::kFormatSLiMText;
+				else if (file_endianness_tag == 0x12345678)
+					return SLiMFileFormat::kFormatSLiMBinary;
+				else if (file_endianness_tag == 0x46444889)			// 'âHDF', the prefix for HDF5 files apparently; reinterpreted via endianness
+					return SLiMFileFormat::kFormatMSPrimeBinary;
+			}
 		}
 	}
 	
-	return 0;
+	return SLiMFileFormat::kFormatUnrecognized;
 }
 
-slim_generation_t SLiMSim::InitializePopulationFromFile(const char *p_file, EidosInterpreter *p_interpreter)
+slim_generation_t SLiMSim::InitializePopulationFromFile(const std::string &p_file_string, EidosInterpreter *p_interpreter)
 {
-	int file_format = FormatOfPopulationFile(p_file);	// -1 is file does not exist, 0 is format unrecognized, 1 is text, 2 is binary
+	SLiMFileFormat file_format = FormatOfPopulationFile(p_file_string);
 	
-	if (file_format == -1)
+	if (file_format == SLiMFileFormat::kFileNotFound)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromFile): initialization file does not exist or is empty." << EidosTerminate();
-	if (file_format == 0)
+	if (file_format == SLiMFileFormat::kFormatUnrecognized)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromFile): initialization file is invalid." << EidosTerminate();
 	
+	// first we clear out all variables of type Subpopulation etc. from the symbol table; they will all be invalid momentarily
+	// note that we do this not only in our constants table, but in the user's variables as well; we can leave no stone unturned
+	// FIXME: Note that we presently have no way of clearing out EidosScribe/SLiMgui references (the variable browser, in particular),
+	// and so EidosConsoleWindowController has to do an ugly and only partly effective hack to work around this issue.
 	if (p_interpreter)
 	{
 		EidosSymbolTable &symbols = p_interpreter->SymbolTable();
@@ -281,12 +331,17 @@ slim_generation_t SLiMSim::InitializePopulationFromFile(const char *p_file, Eido
 		StartTreeRecording();
 	}
 	
+	const char *file_cstr = p_file_string.c_str();
 	slim_generation_t new_generation;
 	
-	if (file_format == 1)
-		new_generation = _InitializePopulationFromTextFile(p_file, p_interpreter);
-	else if (file_format == 2)
-		new_generation = _InitializePopulationFromBinaryFile(p_file, p_interpreter);
+	if (file_format == SLiMFileFormat::kFormatSLiMText)
+		new_generation = _InitializePopulationFromTextFile(file_cstr, p_interpreter);
+	else if (file_format == SLiMFileFormat::kFormatSLiMBinary)
+		new_generation = _InitializePopulationFromBinaryFile(file_cstr, p_interpreter);
+	else if (file_format == SLiMFileFormat::kFormatMSPrimeText)
+		new_generation = _InitializePopulationFromMSPrimeTextFile(file_cstr, p_interpreter);
+	else if (file_format == SLiMFileFormat::kFormatMSPrimeBinary)
+		new_generation = _InitializePopulationFromMSPrimeBinaryFile(file_cstr, p_interpreter);
 	else
 		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromFile): unreconized format code." << EidosTerminate();
 	
@@ -1341,6 +1396,39 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	return 0;
 }
 #endif
+
+slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTreeSequence(void)
+{
+	// make individuals with genomes corresponding to each node (what about nodes that were in the sample but are not part of the current generation?)
+	
+	
+	// make mutation objects
+	
+	
+	// add mutation objects to the appropriate genomes
+	
+	
+	// return the current simulation generation as reconstructed from the file
+	return 1;
+}
+
+slim_generation_t SLiMSim::_InitializePopulationFromMSPrimeTextFile(const char *p_file, EidosInterpreter *p_interpreter)
+{
+	// read the files from disk
+	
+	
+	// make the corresponding SLiM objects
+	return _InstantiateSLiMObjectsFromTreeSequence();
+}
+
+slim_generation_t SLiMSim::_InitializePopulationFromMSPrimeBinaryFile(const char *p_file, EidosInterpreter *p_interpreter)
+{
+	// read the file from disk
+	
+	
+	// make the corresponding SLiM objects
+	return _InstantiateSLiMObjectsFromTreeSequence();
+}
 
 void SLiMSim::ValidateScriptBlockCaches(void)
 {
@@ -6218,14 +6306,8 @@ EidosValue_SP SLiMSim::ExecuteMethod_readFromPopulationFile(EidosGlobalStringID 
 	}
 	
 	EidosValue *filePath_value = p_arguments[0].get();
-	std::string file_path = Eidos_ResolvedPath(filePath_value->StringAtIndex(0, nullptr));
-	
-	// first we clear out all variables of type Subpopulation etc. from the symbol table; they will all be invalid momentarily
-	// note that we do this not only in our constants table, but in the user's variables as well; we can leave no stone unturned
-	// FIXME: Note that we presently have no way of clearing out EidosScribe/SLiMgui references (the variable browser, in particular),
-	// and so EidosConsoleWindowController has to do an ugly and only partly effective hack to work around this issue.
-	const char *file_path_cstr = file_path.c_str();
-	slim_generation_t file_generation = InitializePopulationFromFile(file_path_cstr, &p_interpreter);
+	std::string file_path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(filePath_value->StringAtIndex(0, nullptr)));
+	slim_generation_t file_generation = InitializePopulationFromFile(file_path, &p_interpreter);
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(file_generation));
 }

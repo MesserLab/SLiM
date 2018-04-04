@@ -1779,12 +1779,12 @@ Returns a vector containing distances between individuals in
 \f0\fs20 , for example, then 
 \f2\fs18 point[0]
 \f0\fs20  is assumed to be an 
-\i \cf2 x
-\i0 \cf2  value, and 
+\i x
+\i0  value, and 
 \f2\fs18 point[1]
 \f0\fs20  is assumed to be a 
-\i \cf2 z
-\i0 \cf2  value.  Be careful; this means that in general it is not safe to pass an individual\'92s 
+\i z
+\i0  value.  Be careful; this means that in general it is not safe to pass an individual\'92s 
 \f2\fs18 spatialPosition
 \f0\fs20  property for 
 \f2\fs18 point
@@ -1946,13 +1946,20 @@ If an interaction is never evaluated for a given subpopulation, it is guaranteed
 \f2\fs18 numeric$
 \f0\fs20  maximum strength and a 
 \f2\fs18 numeric$
-\f0\fs20  lambda (shape) parameter for a negative exponential function; or 
+\f0\fs20  lambda (shape) parameter for a negative exponential function; \cf2 \expnd0\expndtw0\kerning0
+; 
 \f2\fs18 "n"
 \f0\fs20 , in which case the ellipsis should supply a 
 \f2\fs18 numeric$
 \f0\fs20  maximum strength and a 
 \f2\fs18 numeric$
-\f0\fs20  sigma (standard deviation) parameter for a Gaussian function.  Non-spatial interactions must use function type 
+\f0\fs20  sigma (standard deviation) parameter for a Gaussian function; or 
+\f2\fs18 "c"
+\f0\fs20 , in which case the ellipsis should supply a 
+\f2\fs18 numeric$
+\f0\fs20  maximum strength and a 
+\f2\fs18 numeric$
+\f0\fs20  scale parameter for a Cauchy distribution function\cf0 \kerning1\expnd0\expndtw0 .  Non-spatial interactions must use function type 
 \f2\fs18 "f"
 \f0\fs20 , since no distance values are available in that case.\
 The interaction function for an interaction type is normally a constant in simulations; in any case, it cannot be changed when an interaction has already been evaluated for a given generation of individuals.
@@ -3821,8 +3828,8 @@ Register a block of Eidos source code, represented as the
 \f0\fs20  if there is no need to be able to refer to the block later.  The registered callback is added to the end of the list of registered 
 \f2\fs18 SLiMEidosBlock
 \f0\fs20  objects, and is active immediately; it 
-\i \cf2 may
-\i0 \cf2  be eligible to execute in the current generation (see section 21.8 for details).  The new 
+\i may
+\i0  be eligible to execute in the current generation (see section 21.8 for details).  The new 
 \f2\fs18 SLiMEidosBlock
 \f0\fs20  will be defined as a global variable immediately by this method (see section 20.10), and will also be returned by this method.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -3964,8 +3971,8 @@ Note that new script blocks can also be created and scheduled using the
 \f0\fs20 .  All currently living individuals are always retained across simplification; this method does not need to be called, and indeed should not be called, for that purpose.  Instead, 
 \f2\fs18 treeSeqRememberIndividuals()
 \f0\fs20  is for 
-\i \cf2 permanently
-\i0 \cf2  adding particular individuals to the retained sample.  Typically this would be used, for example, to retain the initial individuals created in new subpopulations with 
+\i permanently
+\i0  adding particular individuals to the retained sample.  Typically this would be used, for example, to retain the initial individuals created in new subpopulations with 
 \f2\fs18 addSubpop()
 \f0\fs20 , if you wanted the tree sequences recorded to include the ultimate ancestors that root the whole simulated tree.  However, this is not the typical usage pattern for the tree sequence recording; most models will not need to call this method.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -4406,20 +4413,20 @@ Defines a spatial map for the subpopulation.  The map will henceforth be identif
 \f0\fs20  must be of length 
 \f2\fs18 2
 \f0\fs20 , specifying the size of the values grid in the 
-\i \cf2 x
-\i0 \cf2  and 
-\i \cf2 z
-\i0 \cf2  dimensions.  The parameter 
+\i x
+\i0  and 
+\i z
+\i0  dimensions.  The parameter 
 \f2\fs18 values
 \f0\fs20  then gives the values of the grid; it must be of length equal to the product of the 
 \f2\fs18 gridSize
 \f0\fs20  elements, and specifies values varying first in the 
-\i \cf2 x
-\i0 \cf2  dimension, then in 
-\i \cf2 y
-\i0 \cf2 , then in 
-\i \cf2 z
-\i0 \cf2 .\
+\i x
+\i0  dimension, then in 
+\i y
+\i0 , then in 
+\i z
+\i0 .\
 Beginning in SLiM 2.6, the 
 \f2\fs18 values
 \f0\fs20  parameter may be a matrix/array with the number of dimensions appropriate for the declared spatiality of the map; for example, a map with spatiality 
@@ -4439,24 +4446,24 @@ Beginning in SLiM 2.6, the
 \f0\fs20 .  The data in 
 \f2\fs18 values
 \f0\fs20  is interpreted just as is described above for the vector case: varying first in 
-\i \cf2 x
-\i0 \cf2 , then in 
-\i \cf2 y
-\i0 \cf2 , then in 
-\i \cf2 z
-\i0 \cf2 .  BEWARE: since the values in Eidos matrices and arrays are stored in column-first order (following the convention established by R), this means that for a map with spatiality 
+\i x
+\i0 , then in 
+\i y
+\i0 , then in 
+\i z
+\i0 .  BEWARE: since the values in Eidos matrices and arrays are stored in column-first order (following the convention established by R), this means that for a map with spatiality 
 \f2\fs18 "xy"
 \f0\fs20  each column of the 
 \f2\fs18 values
 \f0\fs20  matrix will provide map data as 
-\i \cf2 x
-\i0 \cf2  varies and 
-\i \cf2 y
-\i0 \cf2  remains constant.  This will be confusing if you think of matrix columns as being \'93
-\i \cf2 x
-\i0 \cf2 \'94 and matrix rows as being \'93
-\i \cf2 y
-\i0 \cf2 \'94, so try not to think that way; the opposite is true.  This behavior is actually simple, self-consistent, and backward-compatible; if you before created a spatial map with a vector 
+\i x
+\i0  varies and 
+\i y
+\i0  remains constant.  This will be confusing if you think of matrix columns as being \'93
+\i x
+\i0 \'94 and matrix rows as being \'93
+\i y
+\i0 \'94, so try not to think that way; the opposite is true.  This behavior is actually simple, self-consistent, and backward-compatible; if you before created a spatial map with a vector 
 \f2\fs18 values
 \f0\fs20  before and a 
 \f2\fs18 gridSize
@@ -4475,16 +4482,16 @@ Beginning in SLiM 2.6, the
 \f0\fs20 ).  If, however, you are looking at a matrix as printed in the Eidos console, and want that matrix to be used as a spatial map in SLiM in the same orientation, you should use the transpose of the matrix, as supplied by the 
 \f2\fs18 t()
 \f0\fs20  function.  Actually, since matrices are printed in the console with each successive row having a 
-\i \cf2 larger
-\i0 \cf2  index, whereas in Cartesian (
-\i \cf2 x
-\i0 \cf2 , 
-\i \cf2 y
-\i0 \cf2 ) coordinates 
-\i \cf2 y
-\i0 \cf2 -values increase as you go 
-\i \cf2 upward
-\i0 \cf2 , you may also wish to reverse the order of rows in your matrix prior to transposing (or the order of columns after transposing), with an expression such as 
+\i larger
+\i0  index, whereas in Cartesian (
+\i x
+\i0 , 
+\i y
+\i0 ) coordinates 
+\i y
+\i0 -values increase as you go 
+\i upward
+\i0 , you may also wish to reverse the order of rows in your matrix prior to transposing (or the order of columns after transposing), with an expression such as 
 \f2\fs18 t(map[(nrow(map)-1):0,])
 \f0\fs20 , in order to make the spatial map display in SLiMgui as you expect (since SLiMgui displays everything in Cartesian coordinates).  Apologies if this is confusing; it would be nice if matrix notation, programming languages, and Descartes all agreed on such things, but they do not, so be very careful that your spatial maps are oriented as you wish them to be!\
 Moving on to the other parameters of 
@@ -4532,8 +4539,8 @@ Note that at present, SLiMgui will only display spatial maps of spatiality
 \f0\fs20 ; the color-mapping parameters will simply be ignored by SLiMgui for other spatiality values (even if the spatiality is a superset of these values; SLiMgui will not attempt to display an 
 \f2\fs18 "xyz"
 \f0\fs20  spatial map, for example, since it has no way to choose which 2D slice through the 
-\i \cf2 xyz
-\i0 \cf2  space it ought to display).  The 
+\i xyz
+\i0  space it ought to display).  The 
 \f2\fs18 spatialMapColor()
 \f0\fs20  method will return translated color strings for any spatial map, however, even if SLiMgui is unable to display the spatial map.  If there are multiple spatial maps with color-mapping parameters defined, SLiMgui will choose just one for display; it will prefer an 
 \f2\fs18 "xy"
@@ -5122,10 +5129,10 @@ Looks up the spatial map indicated by
 \f0\fs20  must be of length 
 \f2\fs18 2
 \f0\fs20 , specifying the 
-\i \cf2 x
-\i0 \cf2  and 
-\i \cf2 z
-\i0 \cf2  coordinates of the point to be evaluated.  Interpolation will automatically be used if it was enabled for the spatial map.  Point coordinates are clamped into the range defined by the spatial boundaries, even if the spatial boundaries are periodic; use 
+\i x
+\i0  and 
+\i z
+\i0  coordinates of the point to be evaluated.  Interpolation will automatically be used if it was enabled for the spatial map.  Point coordinates are clamped into the range defined by the spatial boundaries, even if the spatial boundaries are periodic; use 
 \f2\fs18 pointPeriodic()
 \f0\fs20  to wrap the point coordinates first if desired.  See the documentation for 
 \f2\fs18 defineSpatialMap()

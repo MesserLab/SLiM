@@ -787,6 +787,8 @@ setSeed(asInteger(clock() * 100000));
 m = mean(rbinom(100000, 5, 0.3));	// expectation is np, 5 * 0.3
 if (abs(m - (5 * 0.3)) > 0.02) stop('Mismatch in expectation vs. realization of rbinom() - could be random chance (but very unlikely), rerun test');
 
+// not sure how to test rcauchy() this way, since its mean, variance, etc. are undefined...
+
 setSeed(asInteger(clock() * 100000));
 x = rdunif(210000, -10, 10);
 x = sapply(-10:10, "sum(x == applyValue);");

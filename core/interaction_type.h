@@ -54,7 +54,8 @@ enum class IFType : char {
 	kFixed = 0,
 	kLinear,
 	kExponential,
-	kNormal
+	kNormal,
+	kCauchy
 };
 
 std::ostream& operator<<(std::ostream& p_out, IFType p_if_type);

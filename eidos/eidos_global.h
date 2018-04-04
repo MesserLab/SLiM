@@ -504,6 +504,7 @@ extern const std::string gEidosStr__cubicYolk;
 extern const std::string gEidosStr__squareTest;
 
 extern const std::string gEidosStr_weights;
+extern const std::string gEidosStr_c;
 extern const std::string gEidosStr_n;
 extern const std::string gEidosStr_x;
 extern const std::string gEidosStr_y;
@@ -544,6 +545,7 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID__squareTest,
 	
 	gEidosID_weights,
+	gEidosID_c,
 	gEidosID_n,
 	gEidosID_x,
 	gEidosID_y,

@@ -54,6 +54,8 @@ development head (nonWF branch):
 	policy change: property/method accesses on zero-length vectors now raise unless the return type of the property/method is unambiguous
 	"void" is now an actual value type in Eidos, although it can only be used as a return type for functions/methods; this improves type-safety
 	fix recipes: 13.2 (mateChoice() callback with no explicit return), 13.9 (sapply() with no value), 11.2 (cachedFitness() from a late() event)
+	add rcauchy() for Cauchy distribution draws, and a "c" Cauchy interaction function option for InteractionType
+	fix a display bug in SLiMgui on Retina displays
 
 
 2.6 (build 1292; Eidos version 1.6):
