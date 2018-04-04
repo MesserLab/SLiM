@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		381DC19D2075901B007D85BE /* libhdf5.101.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 381DC19C2075901B007D85BE /* libhdf5.101.dylib */; };
+		381DC19E2075901B007D85BE /* libhdf5.101.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 381DC19C2075901B007D85BE /* libhdf5.101.dylib */; };
 		980613AD1FAFD79100D379BA /* SLiMHaplotypeGraphView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 980613AC1FAFD79100D379BA /* SLiMHaplotypeGraphView.mm */; };
 		980613B01FAFF16000D379BA /* SLiMHaplotypeGraphWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 980613AE1FAFF16000D379BA /* SLiMHaplotypeGraphWindow.xib */; };
 		98090FA21B1B8B5800791DBF /* show_browser_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98090FA01B1B8B5800791DBF /* show_browser_H.pdf */; };
@@ -582,6 +584,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		381DC19C2075901B007D85BE /* libhdf5.101.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libhdf5.101.dylib; path = ../../../../../../usr/local/Cellar/hdf5/1.10.1_2/lib/libhdf5.101.dylib; sourceTree = "<group>"; };
 		980613AB1FAFD79100D379BA /* SLiMHaplotypeGraphView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SLiMHaplotypeGraphView.h; sourceTree = "<group>"; };
 		980613AC1FAFD79100D379BA /* SLiMHaplotypeGraphView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SLiMHaplotypeGraphView.mm; sourceTree = "<group>"; };
 		980613AF1FAFF16000D379BA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/SLiMHaplotypeGraphWindow.xib; sourceTree = "<group>"; };
@@ -1023,6 +1026,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				9850D8EC20630E27006BFD2E /* libhdf5.101.dylib in Frameworks */,
+				381DC19D2075901B007D85BE /* libhdf5.101.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1051,6 +1055,7 @@
 				9850D8EF20630F6B006BFD2E /* libhdf5.101.dylib in Frameworks */,
 				98D4C2161A7187E200FFB083 /* Quartz.framework in Frameworks */,
 				98D4C2101A716E0E00FFB083 /* WebKit.framework in Frameworks */,
+				381DC19E2075901B007D85BE /* libhdf5.101.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1451,6 +1456,7 @@
 			isa = PBXGroup;
 			children = (
 				9850D8EB20630E27006BFD2E /* libhdf5.101.dylib */,
+				381DC19C2075901B007D85BE /* libhdf5.101.dylib */,
 				98A240581B8E3295005C9A30 /* Cocoa.framework */,
 			);
 			name = "Shared Frameworks";
@@ -2872,7 +2878,10 @@
 				GCC_WARN_UNUSED_LABEL = YES;
 				GCC_WARN_UNUSED_PARAMETER = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				HEADER_SEARCH_PATHS = /opt/local/include/;
+				HEADER_SEARCH_PATHS = (
+					/opt/local/include/,
+					/usr/local/cellar/hdf5/1.10.1_2/include,
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -2932,7 +2941,10 @@
 				GCC_WARN_UNUSED_LABEL = YES;
 				GCC_WARN_UNUSED_PARAMETER = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				HEADER_SEARCH_PATHS = /opt/local/include/;
+				HEADER_SEARCH_PATHS = (
+					/opt/local/include/,
+					/usr/local/cellar/hdf5/1.10.1_2/include,
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				OTHER_CFLAGS = "";
@@ -2948,6 +2960,7 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					/opt/local/lib,
+					/usr/local/Cellar/hdf5/1.10.1_2/lib,
 				);
 				PRODUCT_NAME = slim;
 			};
@@ -2959,6 +2972,7 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					/opt/local/lib,
+					/usr/local/Cellar/hdf5/1.10.1_2/lib,
 				);
 				PRODUCT_NAME = slim;
 			};
@@ -3057,6 +3071,7 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					/opt/local/lib,
+					/usr/local/Cellar/hdf5/1.10.1_2/lib,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				PRODUCT_BUNDLE_IDENTIFIER = "edu.MesserLab.$(PRODUCT_NAME:rfc1034identifier)";
@@ -3081,6 +3096,7 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					/opt/local/lib,
+					/usr/local/Cellar/hdf5/1.10.1_2/lib,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				PRODUCT_BUNDLE_IDENTIFIER = "edu.MesserLab.$(PRODUCT_NAME:rfc1034identifier)";
