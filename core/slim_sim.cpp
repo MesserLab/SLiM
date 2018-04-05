@@ -3759,10 +3759,18 @@ void SLiMSim::SimplifyTreeSequence(void){
 		handle_error("simplifier_run", tree_return_value_);
         }
 
+    // update map of RememberedGenomes
 	SLiM_MSP_Id_Map = newSlimMspIdMap;		
 	for (node_id_t i = 0; i < (node_id_t)RememberedGenomes.size(); i++){
         RememberedGenomes[i] = i;
     }
+
+    // update list of currently recorded Site positions
+    current_sites.clear();
+    for (int i = 0; i < tables.sites.num_rows; i++){
+        current_sites.insert(std::pair<slim_position_t, site_id_t>(tables.sites.position[i], (site_id_t) i));
+    }
+
 	simplify_elapsed_ = 0;
 }
 
@@ -3941,6 +3949,7 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
     // from it must be copied out.
 
 	//DEBUG STDOUT PRINTING
+    /*
 	std::cout << tree_seq_generation_ << ":   New derived state for genome id " << p_genome_id << " at position " << p_position << ":";
 	
 	if (p_derived_mutations.size()) {
@@ -3950,28 +3959,34 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
 		std::cout << " <empty>";
 	}
 	std::cout << std::endl;
-	/* END DEBUG */
+	// END DEBUG */
 
     node_id_t genomeMSPID = getMSPID(p_genome_id);
 
     // add new site
-    // the first (NULL, 0) is ancestral state; second is metadata
     site_id_t site_id;
-    site_id = site_table_add_row(&tables.sites, (double) p_position, 
-                        NULL, 0, NULL, 0);
-    if (site_id < 0) {
-        handle_error("add_site", site_id);
+
+    std::unordered_map<slim_position_t, site_id_t>::const_iterator site_iter = current_sites.find(p_position);
+    if (site_iter == current_sites.end()) {
+        // the first (NULL, 0) is ancestral state; second is metadata
+        site_id = site_table_add_row(&tables.sites, (double) p_position, 
+                                     NULL, 0, NULL, 0);
+        if (site_id < 0) {
+            handle_error("add_site", site_id);
+        }
+        current_sites.insert(std::pair<slim_position_t, site_id_t>(p_position,site_id));
+    } else {
+        site_id = site_iter->second;
     }
 
     // form derived state: needs to be a const char*
-    size_t derived_state_length = p_derived_mutations.size() * sizeof(*p_derived_mutations) / sizeof(char);
-    char derived_state[table_size_t];
-    memcpy(derived_state, p_derived_mutations, derived_state_length);
+    char *derived_muts_bytes = (char *)(p_derived_mutations.data());
+    size_t derived_state_length = p_derived_mutations.size() * sizeof(slim_mutationid_t);
 
     // we don't record parent mutations; they are added later
     // the last (NULL, 0) is metadata
-    tree_return_value_= mutation_table_add_row(&tables.mutations, site_id, genomeMSPID, 
-                            MSP_NULL_MUTATION, derived_state, derived_state_length, NULL, 0);
+    tree_return_value_ = mutation_table_add_row(&tables.mutations, site_id, genomeMSPID, 
+                            MSP_NULL_MUTATION, derived_muts_bytes, derived_state_length, NULL, 0);
 
 	if (tree_return_value_ < 0) {
 		handle_error("add_mutation", tree_return_value_);
