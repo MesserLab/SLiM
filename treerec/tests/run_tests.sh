@@ -6,7 +6,7 @@ mkdir -p test_output
 
 for f in $FILES
 do
-	rm -f test_output/NodeTable.txt test_output/EdgeTable.txt test_output/SLiM_run_output.log test_output/TESToutput.txt 
+	rm -f test_output/*
 
     echo "Now testing SLiM Recipe: $f"
  	../../bin/slim -s 22 $f &> test_output/SLiM_run_output.log

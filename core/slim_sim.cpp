@@ -4053,6 +4053,69 @@ void SLiMSim::CheckAutoSimplification(void)
 	}
 }
 
+
+void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
+{
+    /***************************************
+     * Make the data stored in the tables safe to output to ASCII.
+     * Currently, this only deals with the MutationTable:
+     * We have packed the integer mutation IDs into the "derived_state" char*;
+     * for output to ascii we need to convert this.
+     ***************************************/
+
+    /* first translate the bytes we've put into mutation derived state into printable ascii */
+    tree_return_value_ = table_collection_copy(&tables, new_tables);
+    if (tree_return_value_ < 0) 
+    {
+        handle_error("convert_to_ascii", tree_return_value_);
+    }
+    mutation_table_t new_mutation_table = new_tables->mutations;
+    tree_return_value_ = mutation_table_clear(&new_mutation_table);
+    if (tree_return_value_ < 0) 
+    {
+        handle_error("convert_to_ascii", tree_return_value_);
+    }
+
+    slim_mutationid_t *int_derived_state;
+    const char *derived_state = tables.mutations.derived_state;
+    table_size_t *derived_state_offset = tables.mutations.derived_state_offset;
+    std::string text_derived_state;
+    std::vector<table_size_t> text_derived_state_offset;
+    size_t cur_derived_state_length = 0;
+
+    text_derived_state_offset.push_back(0);
+
+    for (size_t j=0; j<tables.mutations.num_rows; j++)
+    {
+        int_derived_state = (slim_mutationid_t *) (derived_state + derived_state_offset[j]);
+        cur_derived_state_length = (derived_state_offset[j+1] - derived_state_offset[j])/sizeof(slim_mutationid_t);
+
+        for (size_t i = 0; i < cur_derived_state_length; i++)
+        {
+            if (i != 0)
+                text_derived_state.append(",");
+            text_derived_state.append(std::to_string(int_derived_state[i]));
+        }
+        text_derived_state_offset.push_back(text_derived_state.size());
+    }
+
+    tree_return_value_ = mutation_table_append_columns(&new_mutation_table,
+                                    tables.mutations.num_rows,
+                                    tables.mutations.site,
+                                    tables.mutations.node,
+                                    tables.mutations.parent,
+                                    text_derived_state.c_str(),
+                                    text_derived_state_offset.data(),
+                                    tables.mutations.metadata,
+                                    tables.mutations.metadata_offset);
+    if (tree_return_value_ < 0) 
+    {
+        handle_error("convert_to_ascii", tree_return_value_);
+    }
+
+}
+
+
 void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify)
 {
     // If p_binary, then write out to that path;
@@ -4074,6 +4137,11 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 		
 		if (success)
 		{
+            /* first translate the bytes we've put into mutation derived state into printable ascii */
+            table_collection_t output_tables;
+            table_collection_alloc(&output_tables, MSP_ALLOC_TABLES);
+            TreeSequenceDataToAscii(&output_tables);
+
 			FILE *MspTxtNodeTable;
 			FILE *MspTxtEdgeTable;
 			FILE *MspTxtSiteTable;
@@ -4086,10 +4154,10 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 			MspTxtEdgeTable = fopen(EdgeFileName.c_str(),"w");
 			MspTxtSiteTable = fopen(SiteFileName.c_str(),"w");
 			MspTxtMutationTable = fopen(MutationFileName.c_str(),"w");
-			node_table_dump_text(&tables.nodes,MspTxtNodeTable);
-			edge_table_dump_text(&tables.edges,MspTxtEdgeTable);
-			site_table_dump_text(&tables.sites,MspTxtSiteTable);
-			mutation_table_dump_text(&tables.mutations,MspTxtMutationTable);
+			node_table_dump_text(&(output_tables.nodes),MspTxtNodeTable);
+			edge_table_dump_text(&(output_tables.edges),MspTxtEdgeTable);
+			site_table_dump_text(&(output_tables.sites),MspTxtSiteTable);
+			mutation_table_dump_text(&(output_tables.mutations),MspTxtMutationTable);
 			fclose(MspTxtNodeTable);
 			fclose(MspTxtEdgeTable);
 			fclose(MspTxtSiteTable);

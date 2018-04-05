@@ -26,7 +26,11 @@ class TestSlimSim(unittest.TestCase):
         # load tree sequence
         node_file = open("test_output/NodeTable.txt", "r")
         edge_file = open("test_output/EdgeTable.txt", "r")
-        ts = msprime.load_text(nodes=node_file, edges=edge_file, base64_metadata=False)
+        site_file = open("test_output/SiteTable.txt", "r")
+        mutation_file = open("test_output/MutationTable.txt", "r")
+        ts = msprime.load_text(nodes=node_file, edges=edge_file, 
+                               sites=site_file, mutations=mutation_file,
+                               base64_metadata=False)
 
         # get SLiM ID -> msprime ID map from metadata
         ids = {}
@@ -41,7 +45,7 @@ class TestSlimSim(unittest.TestCase):
         slim_file = open("test_output/TESToutput.txt", "r")
 
         # slim will be indexed by position,
-        # and contain a dict indexted by mutation type giving the indivs
+        # and contain a dict indexed by mutation type giving the indivs
         # inheriting that mut at that position
         slim = []
 
