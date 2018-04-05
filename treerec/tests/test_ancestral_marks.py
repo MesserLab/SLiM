@@ -38,7 +38,7 @@ class TestSlimSim(unittest.TestCase):
             print(n.id)
         print(ids)
         # iterate through SLiM output information
-        slim_file = open("TESToutput.txt", "r")
+        slim_file = open("test_output/TESToutput.txt", "r")
 
         # slim will be indexed by position,
         # and contain a dict indexted by mutation type giving the indivs

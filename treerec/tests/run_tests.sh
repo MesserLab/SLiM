@@ -6,10 +6,10 @@ mkdir -p test_output
 
 for f in $FILES
 do
-	rm -f test_output/NodeTable.txt test_output/EdgeTable.txt TESToutput.txt SLiM_run_output.log
+	rm -f test_output/NodeTable.txt test_output/EdgeTable.txt test_output/SLiM_run_output.log test_output/TESToutput.txt 
 
     echo "Now testing SLiM Recipe: $f"
- 	../../bin/slim -s 22 $f &> SLiM_run_output.log
+ 	../../bin/slim -s 22 $f &> test_output/SLiM_run_output.log
 	python3 -m nose test_ancestral_marks.py || exit 1
 done
 

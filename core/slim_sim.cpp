@@ -4076,14 +4076,24 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 		{
 			FILE *MspTxtNodeTable;
 			FILE *MspTxtEdgeTable;
+			FILE *MspTxtSiteTable;
+			FILE *MspTxtMutationTable;
 			std::string NodeFileName = path + "/NodeTable.txt";
 			std::string EdgeFileName = path + "/EdgeTable.txt";
+			std::string SiteFileName = path + "/SiteTable.txt";
+			std::string MutationFileName = path + "/MutationTable.txt";
 			MspTxtNodeTable = fopen(NodeFileName.c_str(),"w");
 			MspTxtEdgeTable = fopen(EdgeFileName.c_str(),"w");
+			MspTxtSiteTable = fopen(SiteFileName.c_str(),"w");
+			MspTxtMutationTable = fopen(MutationFileName.c_str(),"w");
 			node_table_dump_text(&tables.nodes,MspTxtNodeTable);
 			edge_table_dump_text(&tables.edges,MspTxtEdgeTable);
+			site_table_dump_text(&tables.sites,MspTxtSiteTable);
+			mutation_table_dump_text(&tables.mutations,MspTxtMutationTable);
 			fclose(MspTxtNodeTable);
 			fclose(MspTxtEdgeTable);
+			fclose(MspTxtSiteTable);
+			fclose(MspTxtMutationTable);
 		}
 		else
 		{

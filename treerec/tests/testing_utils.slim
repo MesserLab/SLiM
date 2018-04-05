@@ -19,7 +19,7 @@ function (void)initializeMarks(i$ num_marks)
     return;
 }
 
-function (void)outputMutationResult([s$ outputFile="TESToutput.txt"]) {
+function (void)outputMutationResult([s$ outputFile="test_output/TESToutput.txt"]) {
     sim.treeSeqOutput("test_output", binary=F, simplify=T);
     for(Mut in sim.mutationTypes){
         for(Pos in 0:sim.chromosome.lastPosition){
