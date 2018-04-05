@@ -2112,6 +2112,12 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.pointStopped(-2.0); stop(); }", 1, 250, "pointStopped() cannot be called in non-spatial simulations", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.pointUniform(); stop(); }", 1, 250, "pointUniform() cannot be called in non-spatial simulations", __LINE__);
 	
+	SLiMAssertScriptStop(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-2.0, 7.5)); if (identical(p1.pointInBounds(float(0)), logical(0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-2.0, 7.5)); if (identical(p1.pointReflected(float(0)), float(0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-2.0, 7.5)); if (identical(p1.pointStopped(float(0)), float(0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xPx + "1 { p1.setSpatialBounds(c(0.0, 7.5)); if (identical(p1.pointPeriodic(float(0)), float(0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-2.0, 7.5)); if (identical(p1.pointUniform(0), float(0))) stop(); }", __LINE__);
+	
 	SLiMAssertScriptStop(gen1_setup_i1x + "1 { if (identical(p1.spatialBounds, c(0.0, 1.0))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-2.0, 7.5)); if (identical(p1.spatialBounds, c(-2.0, 7.5))) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1x + "1 { p1.setSpatialBounds(-2.0); stop(); }", 1, 424, "requires twice as many coordinates", __LINE__);
@@ -2122,7 +2128,8 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-2.0, 7.5)); if (p1.pointInBounds(7.5) == T) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-2.0, 7.5)); if (p1.pointInBounds(7.6) == F) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-2.0, 7.5)); if (p1.pointInBounds(11.0, 0.0) == F) stop(); }", 1, 463, "too many arguments supplied", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-2.0, 7.5)); if (p1.pointInBounds(c(11.0, 0.0)) == F) stop(); }", 1, 463, "requires exactly as many coordinates", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-2.0, 7.5)); if (identical(p1.pointInBounds(c(11.0, 0.0)), c(F,T))) stop(); }", __LINE__);
+	
 	SLiMAssertScriptStop(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-5.0, 2.5)); if (p1.pointReflected(-15.5) == -0.5) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-5.0, 2.5)); if (p1.pointReflected(-5.5) == -4.5) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-5.0, 2.5)); if (p1.pointReflected(-5.0) == -5.0) stop(); }", __LINE__);
@@ -2131,7 +2138,8 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-5.0, 2.5)); if (p1.pointReflected(3.5) == 1.5) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-5.0, 2.5)); if (p1.pointReflected(11.0) == -4.0) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-5.0, 2.5)); if (p1.pointReflected(11.0, 0.0) == -4.0) stop(); }", 1, 463, "too many arguments supplied", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-5.0, 2.5)); if (p1.pointReflected(c(11.0, 0.0)) == -4.0) stop(); }", 1, 463, "requires exactly as many coordinates", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-5.0, 2.5)); if (identical(p1.pointReflected(c(-15.5, -5.5, 2.0, 3.5)), c(-0.5, -4.5, 2.0, 1.5))) stop(); }", __LINE__);
+	
 	SLiMAssertScriptStop(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-5.0, 2.5)); if (p1.pointStopped(-15.5) == -5.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-5.0, 2.5)); if (p1.pointStopped(-5.5) == -5.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-5.0, 2.5)); if (p1.pointStopped(-5.0) == -5.0) stop(); }", __LINE__);
@@ -2140,8 +2148,11 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-5.0, 2.5)); if (p1.pointStopped(3.5) == 2.5) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-5.0, 2.5)); if (p1.pointStopped(11.0) == 2.5) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-5.0, 2.5)); if (p1.pointStopped(11.0, 0.0) == -4.0) stop(); }", 1, 463, "too many arguments supplied", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-5.0, 2.5)); if (p1.pointStopped(c(11.0, 0.0)) == -4.0) stop(); }", 1, 463, "requires exactly as many coordinates", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-5.0, 2.5)); if (identical(p1.pointStopped(c(-15.5, -5.5, 2.0, 3.5)), c(-5.0, -5.0, 2.0, 2.5))) stop(); }", __LINE__);
+	
 	SLiMAssertScriptStop(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-5.0, 2.5)); if (size(p1.pointUniform()) == 1) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-5.0, 2.5)); if (size(p1.pointUniform(1)) == 1) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-5.0, 2.5)); if (size(p1.pointUniform(5)) == 5) stop(); }", __LINE__);
 	
 	SLiMAssertScriptRaise(gen1_setup_i1x + "1 { p1.setSpatialBounds(c(-5.0, 2.5)); if (p1.pointPeriodic(-15.5) == -0.5) stop(); }", 1, 463, "no periodic spatial dimension", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1xPx + "1 { p1.setSpatialBounds(c(-5.0, 2.5)); if (p1.pointPeriodic(-15.5) == -0.5) stop(); }", 1, 441, "requires min coordinates to be 0.0", __LINE__);
@@ -2153,7 +2164,7 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1xPx + "1 { p1.setSpatialBounds(c(0.0, 2.5)); if (p1.pointPeriodic(3.5) == 1.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xPx + "1 { p1.setSpatialBounds(c(0.0, 2.5)); if (p1.pointPeriodic(11.0) == 1.0) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1xPx + "1 { p1.setSpatialBounds(c(0.0, 2.5)); if (p1.pointPeriodic(11.0, 0.0) == -4.0) stop(); }", 1, 479, "too many arguments supplied", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1xPx + "1 { p1.setSpatialBounds(c(0.0, 2.5)); if (p1.pointPeriodic(c(11.0, 0.0)) == -4.0) stop(); }", 1, 479, "requires exactly as many coordinates", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xPx + "1 { p1.setSpatialBounds(c(0.0, 2.5)); if (identical(p1.pointPeriodic(c(-0.5, -5.5, 0.0, 2.5, 3.5)), c(2.0, 2.0, 0.0, 2.5, 1.0))) stop(); }", __LINE__);
 	
 	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { if (identical(p1.spatialBounds, c(0.0, 0.0, 0.0, 1.0, 1.0, 1.0))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.setSpatialBounds(c(-2.0, -100, 10.0, 7.5, -99.5, 12.0)); if (identical(p1.spatialBounds, c(-2.0, -100, 10.0, 7.5, -99.5, 12.0))) stop(); }", __LINE__);
@@ -2173,7 +2184,9 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1xyz_bounds + "if (p1.pointInBounds(c(-9.5, 1.0, 11.0)) == T) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_bounds + "if (p1.pointInBounds(c(-9.5, 1.0, 14.0)) == F) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1xyz_bounds + "if (p1.pointInBounds(11.0, 0.0) == F) stop(); }", 1, 554, "too many arguments supplied", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1xyz_bounds + "if (p1.pointInBounds(c(11.0, 0.0)) == F) stop(); }", 1, 554, "requires exactly as many coordinates", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz_bounds + "if (p1.pointInBounds(c(11.0, 0.0)) == F) stop(); }", 1, 554, "requires the length of point", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_bounds + "if (identical(p1.pointInBounds(c(-10.1, 1.0, 11.0, -9.5, 1.0, 11.0)), c(F, T))) stop(); }", __LINE__);
+	
 	SLiMAssertScriptStop(gen1_setup_i1xyz_bounds + "if (identical(p1.pointReflected(c(-10.5, 1.0, 11.0)), c(-9.5, 1.0, 11.0))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_bounds + "if (identical(p1.pointReflected(c(-9.5, 1.0, 11.0)), c(-9.5, 1.0, 11.0))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_bounds + "if (identical(p1.pointReflected(c(-8.0, 1.0, 11.0)), c(-10.0, 1.0, 11.0))) stop(); }", __LINE__);
@@ -2184,7 +2197,9 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1xyz_bounds + "if (identical(p1.pointReflected(c(-9.5, 1.0, 11.0)), c(-9.5, 1.0, 11.0))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_bounds + "if (identical(p1.pointReflected(c(-9.5, 1.0, 14.5)), c(-9.5, 1.0, 11.5))) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1xyz_bounds + "if (p1.pointReflected(11.0, 0.0) == -4.0) stop(); }", 1, 554, "too many arguments supplied", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1xyz_bounds + "if (p1.pointReflected(c(11.0, 0.0)) == -4.0) stop(); }", 1, 554, "requires exactly as many coordinates", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz_bounds + "if (p1.pointReflected(c(11.0, 0.0)) == -4.0) stop(); }", 1, 554, "requires the length of point", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_bounds + "if (identical(p1.pointReflected(c(-10.5, -1.0, 4.5, -8.0, 2.5, 14.5)), c(-9.5, 1.0, 10.5, -10.0, 1.5, 11.5))) stop(); }", __LINE__);
+	
 	SLiMAssertScriptStop(gen1_setup_i1xyz_bounds + "if (identical(p1.pointStopped(c(-10.5, 1.0, 11.0)), c(-10.0, 1.0, 11.0))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_bounds + "if (identical(p1.pointStopped(c(-9.5, 1.0, 11.0)), c(-9.5, 1.0, 11.0))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_bounds + "if (identical(p1.pointStopped(c(-8.0, 1.0, 11.0)), c(-9.0, 1.0, 11.0))) stop(); }", __LINE__);
@@ -2195,8 +2210,12 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1xyz_bounds + "if (identical(p1.pointStopped(c(-9.5, 1.0, 11.0)), c(-9.5, 1.0, 11.0))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_bounds + "if (identical(p1.pointStopped(c(-9.5, 1.0, 14.5)), c(-9.5, 1.0, 13.0))) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1xyz_bounds + "if (p1.pointStopped(11.0, 0.0) == -4.0) stop(); }", 1, 554, "too many arguments supplied", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1xyz_bounds + "if (p1.pointStopped(c(11.0, 0.0)) == -4.0) stop(); }", 1, 554, "requires exactly as many coordinates", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz_bounds + "if (p1.pointStopped(c(11.0, 0.0)) == -4.0) stop(); }", 1, 554, "requires the length of point", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_bounds + "if (identical(p1.pointStopped(c(-10.5, -1.0, 4.5, -8.0, 2.5, 14.5)), c(-10.0, 0.0, 10.0, -9.0, 2.0, 13.0))) stop(); }", __LINE__);
+	
 	SLiMAssertScriptStop(gen1_setup_i1xyz_bounds + "if (size(p1.pointUniform()) == 3) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_bounds + "if (size(p1.pointUniform(1)) == 3) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_bounds + "if (size(p1.pointUniform(5)) == 15) stop(); }", __LINE__);
 	
 	SLiMAssertScriptStop(gen1_setup_i1xyzPxz_bounds + "if (identical(p1.pointPeriodic(c(-10.5, 1.0, 11.0)), c(7.5, 1.0, 11.0))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyzPxz_bounds + "if (identical(p1.pointPeriodic(c(-9.5, 1.0, 11.0)), c(8.5, 1.0, 11.0))) stop(); }", __LINE__);
@@ -2208,7 +2227,8 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1xyzPxz_bounds + "if (identical(p1.pointPeriodic(c(-9.5, 1.0, 11.0)), c(8.5, 1.0, 11.0))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyzPxz_bounds + "if (identical(p1.pointPeriodic(c(-9.5, 1.0, 14.5)), c(8.5, 1.0, 1.5))) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1xyzPxz_bounds + "if (p1.pointPeriodic(11.0, 0.0) == -4.0) stop(); }", 1, 568, "too many arguments supplied", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1xyzPxz_bounds + "if (p1.pointPeriodic(c(11.0, 0.0)) == -4.0) stop(); }", 1, 568, "requires exactly as many coordinates", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyzPxz_bounds + "if (p1.pointPeriodic(c(11.0, 0.0)) == -4.0) stop(); }", 1, 568, "requires the length of point", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyzPxz_bounds + "if (identical(p1.pointPeriodic(c(-10.5, -1.0, 4.5, -8.0, 2.5, 14.5)), c(7.5, -1.0, 4.5, 1.0, 2.5, 1.5))) stop(); }", __LINE__);
 	
 	// Test spatial stuff including defineSpatialMap(), spatialMapColor(), and spatialMapValue()
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.defineSpatialMap('map', '', integer(0), float(0)); stop(); }", 1, 250, "spatiality \"\" must be", __LINE__);
@@ -2591,9 +2611,23 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { i = p1.individuals; i.spatialPosition = 0.5; stop(); }", 1, 285, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1x + "1 { i = p1.individuals; i.spatialPosition = 0.5; stop(); }", 1, 459, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { i = p1.individuals; i.spatialPosition = 0.5; stop(); }", 1, 523, "read-only property", __LINE__);
+	
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { i = p1.individuals; i.setSpatialPosition(0.5); stop(); }", 1, 269, "cannot be called in non-spatial simulations", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1x + "1 { i = p1.individuals; i[0].setSpatialPosition(float(0)); }", 1, 446, "requires at least as many coordinates", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1x + "1 { i = p1.individuals; i[0].setSpatialPosition(0.5); if (identical(i[0].spatialPosition, 0.5)) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1x + "1 { i = p1.individuals; i[0].setSpatialPosition(c(0.5, 0.6)); }", 1, 446, "position parameter to contain", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1x + "1 { i = p1.individuals; i.setSpatialPosition(float(0)); }", 1, 443, "requires at least as many coordinates", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1x + "1 { i = p1.individuals; i.setSpatialPosition(0.5); if (identical(i.spatialPosition, rep(0.5, 10))) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1x + "1 { i = p1.individuals; i.setSpatialPosition(c(0.5, 0.6)); }", 1, 443, "position parameter to contain", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1x + "1 { i = p1.individuals; i.setSpatialPosition((1:10) / 10.0); if (identical(i.spatialPosition, (1:10) / 10.0)) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { i = p1.individuals; i[0].setSpatialPosition(0.5); }", 1, 510, "requires at least as many coordinates", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { i = p1.individuals; i[0].setSpatialPosition(c(0.5, 0.6, 0.7)); if (identical(i[0].spatialPosition, c(0.5, 0.6, 0.7))) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { i = p1.individuals; i[0].setSpatialPosition(c(0.5, 0.6, 0.7, 0.8)); }", 1, 510, "position parameter to contain", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { i = p1.individuals; i.setSpatialPosition(0.5); }", 1, 507, "requires at least as many coordinates", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { i = p1.individuals; i.setSpatialPosition(c(0.5, 0.6, 0.7)); if (identical(i.spatialPosition, rep(c(0.5, 0.6, 0.7), 10))) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { i = p1.individuals; i.setSpatialPosition(c(0.5, 0.6, 0.7, 0.8)); }", 1, 507, "position parameter to contain", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { i = p1.individuals; i.setSpatialPosition(1.0:30); if (identical(i.spatialPosition, 1.0:30)) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { i = p1.individuals; i.setSpatialPosition(1.0:30); if (identical(i.z, (1.0:10)*3)) stop(); }", __LINE__);
 	
 	// Some specific testing for setting of accelerated properties
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; i.tag = (seqAlong(i) % 2 == 0); if (all(i.tag == (seqAlong(i) % 2 == 0))) stop(); }", __LINE__);

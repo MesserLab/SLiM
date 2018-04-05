@@ -56,6 +56,7 @@ development head (nonWF branch):
 	fix recipes: 13.2 (mateChoice() callback with no explicit return), 13.9 (sapply() with no value), 11.2 (cachedFitness() from a late() event)
 	add rcauchy() for Cauchy distribution draws, and a "c" Cauchy interaction function option for InteractionType
 	fix a display bug in SLiMgui on Retina displays
+	extend spatial point-processing methods (pointInBounds(), point[Periodic/Reflected/Stopped/Uniform], setSpatialPosition()) to be vectorized
 
 
 2.6 (build 1292; Eidos version 1.6):
