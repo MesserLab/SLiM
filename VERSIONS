@@ -57,6 +57,7 @@ development head (nonWF branch):
 	add rcauchy() for Cauchy distribution draws, and a "c" Cauchy interaction function option for InteractionType
 	fix a display bug in SLiMgui on Retina displays
 	extend spatial point-processing methods (pointInBounds(), point[Periodic/Reflected/Stopped/Uniform], setSpatialPosition()) to be vectorized
+	add bounds-checking for MutationType DFE parameters and InteractionType IF parameters
 
 
 2.6 (build 1292; Eidos version 1.6):

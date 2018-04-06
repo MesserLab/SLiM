@@ -4204,74 +4204,16 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationType(const std::
 	slim_objectid_t map_identifier = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 'm');
 	double dominance_coeff = dominanceCoeff_value->FloatAtIndex(0, nullptr);
 	std::string dfe_type_string = distributionType_value->StringAtIndex(0, nullptr);
-	DFEType dfe_type;
-	int expected_dfe_param_count = 0;
-	std::vector<double> dfe_parameters;
-	std::vector<std::string> dfe_strings;
-	bool numericParams = true;		// if true, params must be int/float; if false, params must be string
 	
 	if (mutation_types_.count(map_identifier) > 0) 
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationType): initializeMutationType() mutation type m" << map_identifier << " already defined." << EidosTerminate();
 	
-	if (dfe_type_string.compare(gStr_f) == 0)
-	{
-		dfe_type = DFEType::kFixed;
-		expected_dfe_param_count = 1;
-	}
-	else if (dfe_type_string.compare(gStr_g) == 0)
-	{
-		dfe_type = DFEType::kGamma;
-		expected_dfe_param_count = 2;
-	}
-	else if (dfe_type_string.compare(gStr_e) == 0)
-	{
-		dfe_type = DFEType::kExponential;
-		expected_dfe_param_count = 1;
-	}
-	else if (dfe_type_string.compare(gEidosStr_n) == 0)
-	{
-		dfe_type = DFEType::kNormal;
-		expected_dfe_param_count = 2;
-	}
-	else if (dfe_type_string.compare(gStr_w) == 0)
-	{
-		dfe_type = DFEType::kWeibull;
-		expected_dfe_param_count = 2;
-	}
-	else if (dfe_type_string.compare(gStr_s) == 0)
-	{
-		dfe_type = DFEType::kScript;
-		expected_dfe_param_count = 1;
-		numericParams = false;
-	}
-	else
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationType): initializeMutationType() distributionType \"" << dfe_type_string << "\" must be \"f\", \"g\", \"e\", \"n\", \"w\", or \"s\"." << EidosTerminate();
+	// Parse the DFE type and parameters, and do various sanity checks
+	DFEType dfe_type;
+	std::vector<double> dfe_parameters;
+	std::vector<std::string> dfe_strings;
 	
-	if (p_argument_count != 3 + expected_dfe_param_count)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationType): initializeMutationType() distributionType \"" << dfe_type << "\" requires exactly " << expected_dfe_param_count << " DFE parameter" << (expected_dfe_param_count == 1 ? "" : "s") << "." << EidosTerminate();
-	
-	for (int dfe_param_index = 0; dfe_param_index < expected_dfe_param_count; ++dfe_param_index)
-	{
-		EidosValue *dfe_param_value = p_arguments[3 + dfe_param_index].get();
-		EidosValueType dfe_param_type = dfe_param_value->Type();
-		
-		if (numericParams)
-		{
-			if ((dfe_param_type != EidosValueType::kValueFloat) && (dfe_param_type != EidosValueType::kValueInt))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationType): initializeMutationType() requires that DFE parameters be numeric (integer or float)." << EidosTerminate();
-			
-			dfe_parameters.emplace_back(dfe_param_value->FloatAtIndex(0, nullptr));
-			// intentionally no bounds checks for DFE parameters
-		}
-		else
-		{
-			if (dfe_param_type != EidosValueType::kValueString)
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationType): initializeMutationType() requires that the parameters for this DFE be of type string." << EidosTerminate();
-			
-			dfe_strings.emplace_back(dfe_param_value->StringAtIndex(0, nullptr));
-			// intentionally no bounds checks for DFE parameters
-		}
-	}
+	MutationType::ParseDFEParameters(dfe_type_string, p_arguments + 3, p_argument_count - 3, &dfe_type, &dfe_parameters, &dfe_strings);
 	
 #ifdef SLIMGUI
 	// each new mutation type gets a unique zero-based index, used by SLiMgui to categorize mutations
@@ -4302,7 +4244,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationType(const std::
 		{
 			output_stream << "initializeMutationType(" << map_identifier << ", " << dominance_coeff << ", \"" << dfe_type << "\"";
 			
-			if (numericParams)
+			if (dfe_parameters.size() > 0)
 			{
 				for (double dfe_param : dfe_parameters)
 					output_stream << ", " << dfe_param;

@@ -163,6 +163,9 @@ public:
 #endif
 	~MutationType(void);
 	
+	static void ParseDFEParameters(std::string &p_dfe_type_string, const EidosValue_SP *const p_arguments, int p_argument_count,
+								   DFEType *p_dfe_type, std::vector<double> *p_dfe_parameters, std::vector<std::string> *p_dfe_strings);
+	
 	double DrawSelectionCoefficient(void) const;					// draw a selection coefficient from this mutation type's DFE
 	
 	//
