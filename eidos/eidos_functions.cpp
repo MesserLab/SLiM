@@ -8566,16 +8566,19 @@ EidosValue_SP Eidos_ExecuteFunction_filesAtPath(const EidosValue_SP *const p_arg
 		EidosValue_String_vector *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector();
 		result_SP = EidosValue_SP(string_result);
 		
-		struct dirent *ep;
-		struct dirent ep_storage;
-		
 		while (true)
 		{
-			int retval = readdir_r(dp, &ep_storage, &ep);
+			// BCH 5 April 2018: switching to readdir() instead of readdir_r().  It seemed like readdir_r() would be better in principle, since
+			// it's thread-safe, but apparently it has been deprecated in POSIX because of several issues, and readdir() is now recommended
+			// after all (and is thread-safe in most situations, supposedly, but if we ever go multithreaded that will need to be checked.)
+			errno = 0;
 			
-			if (retval != 0)
+			struct dirent *ep = readdir(dp);
+			int error = errno;
+			
+			if (!ep && error)
 			{
-				p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_filesAtPath): function filesAtPath() encountered error code " << retval << " while iterating through path " << path << "." << std::endl;
+				p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_filesAtPath): function filesAtPath() encountered error code " << error << " while iterating through path " << path << "." << std::endl;
 				result_SP = gStaticEidosValueNULL;
 				break;
 			}

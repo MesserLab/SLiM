@@ -4296,7 +4296,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setMigrationRates(EidosGlobalStringID
 }
 #endif	// SLIM_WF_ONLY
 
-//	*********************	– (logical$)pointInBounds(float point)
+//	*********************	– (logical)pointInBounds(float point)
 //
 EidosValue_SP Subpopulation::ExecuteMethod_pointInBounds(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
@@ -4304,41 +4304,100 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointInBounds(EidosGlobalStringID p_m
 	EidosValue *point_value = p_arguments[0].get();
 	
 	SLiMSim &sim = population_.sim_;
-	
 	int dimensionality = sim.SpatialDimensionality();
 	int value_count = point_value->Count();
 	
 	if (dimensionality == 0)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointInBounds): pointInBounds() cannot be called in non-spatial simulations." << EidosTerminate();
-	if (value_count != dimensionality)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointInBounds): pointInBounds() requires exactly as many coordinates as the spatial dimensionality of the simulation." << EidosTerminate();
+	if (value_count == 0)
+		return gStaticEidosValue_Logical_ZeroVec;
+	
+	int point_count = value_count / dimensionality;
+	
+	if (value_count != point_count * dimensionality)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointInBounds): pointInBounds() requires the length of point to be an exact multiple of the spatial dimensionality of the simulation (i.e., point must contain zero or more complete points)." << EidosTerminate();
+	
+	if ((point_count == 1) && (dimensionality == 1))
+	{
+		// singleton case, get it out of the way
+		double x = point_value->FloatAtIndex(0, nullptr);
+		return ((x >= bounds_x0_) && (x <= bounds_x1_)) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+	}
+	
+	const EidosValue_Float_vector *float_vec = point_value->FloatVector();
+	const double *point_buf = float_vec->data();
+	
+	if (point_count == 1)
+	{
+		// single-point case, do it separately to return a singleton logical value, and handle the multi-point case more quickly
+		switch (dimensionality)
+		{
+			case 1:
+			{
+				double x = point_buf[0];
+				return ((x >= bounds_x0_) && (x <= bounds_x1_))
+					? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+			}
+			case 2:
+			{
+				double x = point_buf[0];
+				double y = point_buf[1];
+				return ((x >= bounds_x0_) && (x <= bounds_x1_) && (y >= bounds_y0_) && (y <= bounds_y1_))
+					? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+			}
+			case 3:
+			{
+				double x = point_buf[0];
+				double y = point_buf[1];
+				double z = point_buf[2];
+				return ((x >= bounds_x0_) && (x <= bounds_x1_) && (y >= bounds_y0_) && (y <= bounds_y1_) && (z >= bounds_z0_) && (z <= bounds_z1_))
+					? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+			}
+			default:
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointInBounds): (internal error) unrecognized dimensionality." << EidosTerminate();
+		}
+	}
+	
+	// multiple-point case, new in SLiM 3
+	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(point_count);
 	
 	switch (dimensionality)
 	{
 		case 1:
-		{
-			double x = point_value->FloatAtIndex(0, nullptr);
-			return ((x >= bounds_x0_) && (x <= bounds_x1_))
-			? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
-		}
+			for (int point_index = 0; point_index < point_count; ++point_index)
+			{
+				double x = *(point_buf++);
+				eidos_logical_t in_bounds = ((x >= bounds_x0_) && (x <= bounds_x1_));
+				
+				logical_result->set_logical_no_check(in_bounds, point_index);
+			}
+			break;
 		case 2:
-		{
-			double x = point_value->FloatAtIndex(0, nullptr);
-			double y = point_value->FloatAtIndex(1, nullptr);
-			return ((x >= bounds_x0_) && (x <= bounds_x1_) && (y >= bounds_y0_) && (y <= bounds_y1_))
-			? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
-		}
+			for (int point_index = 0; point_index < point_count; ++point_index)
+			{
+				double x = *(point_buf++);
+				double y = *(point_buf++);
+				eidos_logical_t in_bounds = ((x >= bounds_x0_) && (x <= bounds_x1_) && (y >= bounds_y0_) && (y <= bounds_y1_));
+				
+				logical_result->set_logical_no_check(in_bounds, point_index);
+			}
+			break;
 		case 3:
-		{
-			double x = point_value->FloatAtIndex(0, nullptr);
-			double y = point_value->FloatAtIndex(1, nullptr);
-			double z = point_value->FloatAtIndex(2, nullptr);
-			return ((x >= bounds_x0_) && (x <= bounds_x1_) && (y >= bounds_y0_) && (y <= bounds_y1_) && (z >= bounds_z0_) && (z <= bounds_z1_))
-			? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
-		}
+			for (int point_index = 0; point_index < point_count; ++point_index)
+			{
+				double x = *(point_buf++);
+				double y = *(point_buf++);
+				double z = *(point_buf++);
+				eidos_logical_t in_bounds = ((x >= bounds_x0_) && (x <= bounds_x1_) && (y >= bounds_y0_) && (y <= bounds_y1_) && (z >= bounds_z0_) && (z <= bounds_z1_));
+				
+				logical_result->set_logical_no_check(in_bounds, point_index);
+			}
+			break;
 		default:
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointInBounds): (internal error) unrecognized dimensionality." << EidosTerminate();
 	}
+	
+	return EidosValue_SP(logical_result);
 }			
 
 //	*********************	– (float)pointReflected(float point)
@@ -4349,83 +4408,113 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointReflected(EidosGlobalStringID p_
 	EidosValue *point_value = p_arguments[0].get();
 	
 	SLiMSim &sim = population_.sim_;
-	
 	int dimensionality = sim.SpatialDimensionality();
 	int value_count = point_value->Count();
 	
 	if (dimensionality == 0)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointReflected): pointReflected() cannot be called in non-spatial simulations." << EidosTerminate();
-	if (value_count != dimensionality)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointReflected): pointReflected() requires exactly as many coordinates as the spatial dimensionality of the simulation." << EidosTerminate();
+	if (value_count == 0)
+		return gStaticEidosValue_Float_ZeroVec;
+	
+	int point_count = value_count / dimensionality;
+	
+	if (value_count != point_count * dimensionality)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointReflected): pointReflected() requires the length of point to be an exact multiple of the spatial dimensionality of the simulation (i.e., point must contain zero or more complete points)." << EidosTerminate();
+	
+	if ((point_count == 1) && (dimensionality == 1))
+	{
+		// Handle the singleton separately, so we can handle the non-singleton case more quickly
+		double x = point_value->FloatAtIndex(0, nullptr);
+		
+		while (true)
+		{
+			if (x < bounds_x0_) x = bounds_x0_ + (bounds_x0_ - x);
+			else if (x > bounds_x1_) x = bounds_x1_ - (x - bounds_x1_);
+			else break;
+		}
+		
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(x));
+	}
+	
+	// non-singleton general case
+	const EidosValue_Float_vector *float_vec = point_value->FloatVector();
+	const double *point_buf = float_vec->data();
+	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(value_count);
+	int value_index = 0;
 	
 	switch (dimensionality)
 	{
 		case 1:
-		{
-			double x = point_value->FloatAtIndex(0, nullptr);
-			
-			while (true)
+			for (int64_t point_index = 0; point_index < point_count; ++point_index)
 			{
-				if (x < bounds_x0_) x = bounds_x0_ + (bounds_x0_ - x);
-				else if (x > bounds_x1_) x = bounds_x1_ - (x - bounds_x1_);
-				else break;
+				double x = *(point_buf++);
+				while (true)
+				{
+					if (x < bounds_x0_) x = bounds_x0_ + (bounds_x0_ - x);
+					else if (x > bounds_x1_) x = bounds_x1_ - (x - bounds_x1_);
+					else break;
+				}
+				float_result->set_float_no_check(x, value_index++);
 			}
-			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(x));
-		}
+			break;
 		case 2:
-		{
-			double x = point_value->FloatAtIndex(0, nullptr);
-			double y = point_value->FloatAtIndex(1, nullptr);
-			
-			while (true)
+			for (int64_t point_index = 0; point_index < point_count; ++point_index)
 			{
-				if (x < bounds_x0_) x = bounds_x0_ + (bounds_x0_ - x);
-				else if (x > bounds_x1_) x = bounds_x1_ - (x - bounds_x1_);
-				else break;
+				double x = *(point_buf++);
+				while (true)
+				{
+					if (x < bounds_x0_) x = bounds_x0_ + (bounds_x0_ - x);
+					else if (x > bounds_x1_) x = bounds_x1_ - (x - bounds_x1_);
+					else break;
+				}
+				float_result->set_float_no_check(x, value_index++);
+				
+				double y = *(point_buf++);
+				while (true)
+				{
+					if (y < bounds_y0_) y = bounds_y0_ + (bounds_y0_ - y);
+					else if (y > bounds_y1_) y = bounds_y1_ - (y - bounds_y1_);
+					else break;
+				}
+				float_result->set_float_no_check(y, value_index++);
 			}
-			
-			while (true)
-			{
-				if (y < bounds_y0_) y = bounds_y0_ + (bounds_y0_ - y);
-				else if (y > bounds_y1_) y = bounds_y1_ - (y - bounds_y1_);
-				else break;
-			}
-			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{x, y});
-		}
+			break;
 		case 3:
-		{
-			double x = point_value->FloatAtIndex(0, nullptr);
-			double y = point_value->FloatAtIndex(1, nullptr);
-			double z = point_value->FloatAtIndex(2, nullptr);
-			
-			while (true)
+			for (int64_t point_index = 0; point_index < point_count; ++point_index)
 			{
-				if (x < bounds_x0_) x = bounds_x0_ + (bounds_x0_ - x);
-				else if (x > bounds_x1_) x = bounds_x1_ - (x - bounds_x1_);
-				else break;
+				double x = *(point_buf++);
+				while (true)
+				{
+					if (x < bounds_x0_) x = bounds_x0_ + (bounds_x0_ - x);
+					else if (x > bounds_x1_) x = bounds_x1_ - (x - bounds_x1_);
+					else break;
+				}
+				float_result->set_float_no_check(x, value_index++);
+				
+				double y = *(point_buf++);
+				while (true)
+				{
+					if (y < bounds_y0_) y = bounds_y0_ + (bounds_y0_ - y);
+					else if (y > bounds_y1_) y = bounds_y1_ - (y - bounds_y1_);
+					else break;
+				}
+				float_result->set_float_no_check(y, value_index++);
+				
+				double z = *(point_buf++);
+				while (true)
+				{
+					if (z < bounds_z0_) z = bounds_z0_ + (bounds_z0_ - z);
+					else if (z > bounds_z1_) z = bounds_z1_ - (z - bounds_z1_);
+					else break;
+				}
+				float_result->set_float_no_check(z, value_index++);
 			}
-			
-			while (true)
-			{
-				if (y < bounds_y0_) y = bounds_y0_ + (bounds_y0_ - y);
-				else if (y > bounds_y1_) y = bounds_y1_ - (y - bounds_y1_);
-				else break;
-			}
-			
-			while (true)
-			{
-				if (z < bounds_z0_) z = bounds_z0_ + (bounds_z0_ - z);
-				else if (z > bounds_z1_) z = bounds_z1_ - (z - bounds_z1_);
-				else break;
-			}
-			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{x, y, z});
-		}
+			break;
 		default:
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointReflected): (internal error) unrecognized dimensionality." << EidosTerminate();
 	}
+	
+	return EidosValue_SP(float_result);
 }			
 
 //	*********************	– (float)pointStopped(float point)
@@ -4436,41 +4525,70 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointStopped(EidosGlobalStringID p_me
 	EidosValue *point_value = p_arguments[0].get();
 	
 	SLiMSim &sim = population_.sim_;
-	
 	int dimensionality = sim.SpatialDimensionality();
 	int value_count = point_value->Count();
 	
 	if (dimensionality == 0)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointStopped): pointStopped() cannot be called in non-spatial simulations." << EidosTerminate();
-	if (value_count != dimensionality)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointStopped): pointStopped() requires exactly as many coordinates as the spatial dimensionality of the simulation." << EidosTerminate();
+	if (value_count == 0)
+		return gStaticEidosValue_Float_ZeroVec;
+	
+	int point_count = value_count / dimensionality;
+	
+	if (value_count != point_count * dimensionality)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointStopped): pointStopped() requires the length of point to be an exact multiple of the spatial dimensionality of the simulation (i.e., point must contain zero or more complete points)." << EidosTerminate();
+	
+	if ((point_count == 1) && (dimensionality == 1))
+	{
+		// Handle the singleton separately, so we can handle the non-singleton case more quickly
+		double x = point_value->FloatAtIndex(0, nullptr);
+		
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(std::max(bounds_x0_, std::min(bounds_x1_, x))));
+	}
+	
+	// non-singleton general case
+	const EidosValue_Float_vector *float_vec = point_value->FloatVector();
+	const double *point_buf = float_vec->data();
+	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(value_count);
+	int value_index = 0;
 	
 	switch (dimensionality)
 	{
 		case 1:
-		{
-			double x = std::max(bounds_x0_, std::min(bounds_x1_, point_value->FloatAtIndex(0, nullptr)));
-			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(x));
-		}
+			for (int64_t point_index = 0; point_index < point_count; ++point_index)
+			{
+				double x = *(point_buf++);
+				float_result->set_float_no_check(std::max(bounds_x0_, std::min(bounds_x1_, x)), value_index++);
+			}
+			break;
 		case 2:
-		{
-			double x = std::max(bounds_x0_, std::min(bounds_x1_, point_value->FloatAtIndex(0, nullptr)));
-			double y = std::max(bounds_y0_, std::min(bounds_y1_, point_value->FloatAtIndex(1, nullptr)));
-			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{x, y});
-		}
+			for (int64_t point_index = 0; point_index < point_count; ++point_index)
+			{
+				double x = *(point_buf++);
+				float_result->set_float_no_check(std::max(bounds_x0_, std::min(bounds_x1_, x)), value_index++);
+				
+				double y = *(point_buf++);
+				float_result->set_float_no_check(std::max(bounds_y0_, std::min(bounds_y1_, y)), value_index++);
+			}
+			break;
 		case 3:
-		{
-			double x = std::max(bounds_x0_, std::min(bounds_x1_, point_value->FloatAtIndex(0, nullptr)));
-			double y = std::max(bounds_y0_, std::min(bounds_y1_, point_value->FloatAtIndex(1, nullptr)));
-			double z = std::max(bounds_z0_, std::min(bounds_z1_, point_value->FloatAtIndex(2, nullptr)));
-			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{x, y, z});
-		}
+			for (int64_t point_index = 0; point_index < point_count; ++point_index)
+			{
+				double x = *(point_buf++);
+				float_result->set_float_no_check(std::max(bounds_x0_, std::min(bounds_x1_, x)), value_index++);
+				
+				double y = *(point_buf++);
+				float_result->set_float_no_check(std::max(bounds_y0_, std::min(bounds_y1_, y)), value_index++);
+				
+				double z = *(point_buf++);
+				float_result->set_float_no_check(std::max(bounds_z0_, std::min(bounds_z1_, z)), value_index++);
+			}
+			break;
 		default:
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointStopped): (internal error) unrecognized dimensionality." << EidosTerminate();
 	}
+	
+	return EidosValue_SP(float_result);
 }			
 
 //	*********************	– (float)pointPeriodic(float point)
@@ -4481,14 +4599,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointPeriodic(EidosGlobalStringID p_m
 	EidosValue *point_value = p_arguments[0].get();
 	
 	SLiMSim &sim = population_.sim_;
-	
 	int dimensionality = sim.SpatialDimensionality();
 	int value_count = point_value->Count();
 	
 	if (dimensionality == 0)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointPeriodic): pointPeriodic() cannot be called in non-spatial simulations." << EidosTerminate();
-	if (value_count != dimensionality)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointPeriodic): pointPeriodic() requires exactly as many coordinates as the spatial dimensionality of the simulation." << EidosTerminate();
 	
 	bool periodic_x, periodic_y, periodic_z;
 	
@@ -4496,6 +4611,34 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointPeriodic(EidosGlobalStringID p_m
 	
 	if (!periodic_x && !periodic_y && !periodic_z)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointPeriodic): pointPeriodic() cannot be called when no periodic spatial dimension has been set up." << EidosTerminate();
+	
+	if (value_count == 0)
+		return gStaticEidosValue_Float_ZeroVec;
+	
+	int point_count = value_count / dimensionality;
+	
+	if (value_count != point_count * dimensionality)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointPeriodic): pointPeriodic() requires the length of point to be an exact multiple of the spatial dimensionality of the simulation (i.e., point must contain zero or more complete points)." << EidosTerminate();
+	
+	if ((point_count == 1) && (dimensionality == 1))
+	{
+		// Handle the singleton separately, so we can handle the non-singleton case more quickly
+		double x = point_value->FloatAtIndex(0, nullptr);
+		
+		if (periodic_x)
+		{
+			while (x < 0.0)			x += bounds_x1_;
+			while (x > bounds_x1_)	x -= bounds_x1_;
+		}
+		
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(x));
+	}
+	
+	// non-singleton general case
+	const EidosValue_Float_vector *float_vec = point_value->FloatVector();
+	const double *point_buf = float_vec->data();
+	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(value_count);
+	int value_index = 0;
 	
 	// Wrap coordinates; note that we assume here that bounds_x0_ == bounds_y0_ == bounds_z0_ == 0,
 	// which is enforced when periodic boundary conditions are set, in setSpatialBounds().  Note also
@@ -4505,65 +4648,73 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointPeriodic(EidosGlobalStringID p_m
 	switch (dimensionality)
 	{
 		case 1:
-		{
-			double x = point_value->FloatAtIndex(0, nullptr);
-			
-			if (periodic_x)
+			for (int64_t point_index = 0; point_index < point_count; ++point_index)
 			{
-				while (x < 0.0)			x += bounds_x1_;
-				while (x > bounds_x1_)	x -= bounds_x1_;
+				double x = *(point_buf++);
+				if (periodic_x)
+				{
+					while (x < 0.0)			x += bounds_x1_;
+					while (x > bounds_x1_)	x -= bounds_x1_;
+				}
+				float_result->set_float_no_check(x, value_index++);
 			}
-			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(x));
-		}
+			break;
 		case 2:
-		{
-			double x = point_value->FloatAtIndex(0, nullptr);
-			double y = point_value->FloatAtIndex(1, nullptr);
-			
-			if (periodic_x)
+			for (int64_t point_index = 0; point_index < point_count; ++point_index)
 			{
-				while (x < 0.0)			x += bounds_x1_;
-				while (x > bounds_x1_)	x -= bounds_x1_;
+				double x = *(point_buf++);
+				if (periodic_x)
+				{
+					while (x < 0.0)			x += bounds_x1_;
+					while (x > bounds_x1_)	x -= bounds_x1_;
+				}
+				float_result->set_float_no_check(x, value_index++);
+				
+				double y = *(point_buf++);
+				if (periodic_y)
+				{
+					while (y < 0.0)			y += bounds_y1_;
+					while (y > bounds_y1_)	y -= bounds_y1_;
+				}
+				float_result->set_float_no_check(y, value_index++);
 			}
-			if (periodic_y)
-			{
-				while (y < 0.0)			y += bounds_y1_;
-				while (y > bounds_y1_)	y -= bounds_y1_;
-			}
-			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{x, y});
-		}
+			break;
 		case 3:
-		{
-			double x = point_value->FloatAtIndex(0, nullptr);
-			double y = point_value->FloatAtIndex(1, nullptr);
-			double z = point_value->FloatAtIndex(2, nullptr);
-			
-			if (periodic_x)
+			for (int64_t point_index = 0; point_index < point_count; ++point_index)
 			{
-				while (x < 0.0)			x += bounds_x1_;
-				while (x > bounds_x1_)	x -= bounds_x1_;
+				double x = *(point_buf++);
+				if (periodic_x)
+				{
+					while (x < 0.0)			x += bounds_x1_;
+					while (x > bounds_x1_)	x -= bounds_x1_;
+				}
+				float_result->set_float_no_check(x, value_index++);
+				
+				double y = *(point_buf++);
+				if (periodic_y)
+				{
+					while (y < 0.0)			y += bounds_y1_;
+					while (y > bounds_y1_)	y -= bounds_y1_;
+				}
+				float_result->set_float_no_check(y, value_index++);
+				
+				double z = *(point_buf++);
+				if (periodic_z)
+				{
+					while (z < 0.0)			z += bounds_z1_;
+					while (z > bounds_z1_)	z -= bounds_z1_;
+				}
+				float_result->set_float_no_check(z, value_index++);
 			}
-			if (periodic_y)
-			{
-				while (y < 0.0)			y += bounds_y1_;
-				while (y > bounds_y1_)	y -= bounds_y1_;
-			}
-			if (periodic_z)
-			{
-				while (z < 0.0)			z += bounds_z1_;
-				while (z > bounds_z1_)	z -= bounds_z1_;
-			}
-			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{x, y, z});
-		}
+			break;
 		default:
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointPeriodic): (internal error) unrecognized dimensionality." << EidosTerminate();
 	}
+	
+	return EidosValue_SP(float_result);
 }			
 
-//	*********************	– (float)pointUniform(void)
+//	*********************	– (float)pointUniform([integer$ n = 1])
 //
 EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
@@ -4576,32 +4727,53 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_me
 	if (dimensionality == 0)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointUniform): pointUniform() cannot be called in non-spatial simulations." << EidosTerminate();
 	
+	EidosValue *n_value = p_arguments[0].get();
+	int64_t point_count = n_value->IntAtIndex(0, nullptr);
+	
+	if (point_count < 0)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointUniform): pointUniform() requires n >= 0." << EidosTerminate();
+	if (point_count == 0)
+		return gStaticEidosValue_Float_ZeroVec;
+	
+	int64_t length_out = point_count * dimensionality;
+	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(length_out);
+	EidosValue_SP result_SP = EidosValue_SP(float_result);
+	int value_index = 0;
+	
 	switch (dimensionality)
 	{
 		case 1:
 		{
-			double x = Eidos_rng_uniform(gEidos_rng) * (bounds_x1_ - bounds_x0_) + bounds_x0_;
-			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(x));
+			for (int64_t point_index = 0; point_index < point_count; ++point_index)
+			{
+				float_result->set_float_no_check(Eidos_rng_uniform(gEidos_rng) * (bounds_x1_ - bounds_x0_) + bounds_x0_, value_index++);
+			}
+			break;
 		}
 		case 2:
 		{
-			double x = Eidos_rng_uniform(gEidos_rng) * (bounds_x1_ - bounds_x0_) + bounds_x0_;
-			double y = Eidos_rng_uniform(gEidos_rng) * (bounds_y1_ - bounds_y0_) + bounds_y0_;
-			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{x, y});
+			for (int64_t point_index = 0; point_index < point_count; ++point_index)
+			{
+				float_result->set_float_no_check(Eidos_rng_uniform(gEidos_rng) * (bounds_x1_ - bounds_x0_) + bounds_x0_, value_index++);
+				float_result->set_float_no_check(Eidos_rng_uniform(gEidos_rng) * (bounds_y1_ - bounds_y0_) + bounds_y0_, value_index++);
+			}
+			break;
 		}
 		case 3:
 		{
-			double x = Eidos_rng_uniform(gEidos_rng) * (bounds_x1_ - bounds_x0_) + bounds_x0_;
-			double y = Eidos_rng_uniform(gEidos_rng) * (bounds_y1_ - bounds_y0_) + bounds_y0_;
-			double z = Eidos_rng_uniform(gEidos_rng) * (bounds_z1_ - bounds_z0_) + bounds_z0_;
-			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{x, y, z});
+			for (int64_t point_index = 0; point_index < point_count; ++point_index)
+			{
+				float_result->set_float_no_check(Eidos_rng_uniform(gEidos_rng) * (bounds_x1_ - bounds_x0_) + bounds_x0_, value_index++);
+				float_result->set_float_no_check(Eidos_rng_uniform(gEidos_rng) * (bounds_y1_ - bounds_y0_) + bounds_y0_, value_index++);
+				float_result->set_float_no_check(Eidos_rng_uniform(gEidos_rng) * (bounds_z1_ - bounds_z0_) + bounds_z0_, value_index++);
+			}
+			break;
 		}
 		default:
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointUniform): (internal error) unrecognized dimensionality." << EidosTerminate();
 	}
+	
+	return result_SP;
 }			
 
 #ifdef SLIM_WF_ONLY
@@ -5732,11 +5904,11 @@ const std::vector<const EidosMethodSignature *> *Subpopulation_Class::Methods(vo
 		methods = new std::vector<const EidosMethodSignature *>(*SLiMEidosDictionary_Class::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMigrationRates, kEidosValueMaskVOID))->AddIntObject("sourceSubpops", gSLiM_Subpopulation_Class)->AddNumeric("rates"));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointInBounds, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddFloat("point"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointInBounds, kEidosValueMaskLogical))->AddFloat("point"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointReflected, kEidosValueMaskFloat))->AddFloat("point"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointStopped, kEidosValueMaskFloat))->AddFloat("point"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointPeriodic, kEidosValueMaskFloat))->AddFloat("point"));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointUniform, kEidosValueMaskFloat)));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointUniform, kEidosValueMaskFloat))->AddInt_OS(gEidosStr_n, gStaticEidosValue_Integer1));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setCloningRate, kEidosValueMaskVOID))->AddNumeric("rate"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSelfingRate, kEidosValueMaskVOID))->AddNumeric_S("rate"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSexRatio, kEidosValueMaskVOID))->AddFloat_S("sexRatio"));

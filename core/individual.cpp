@@ -830,7 +830,6 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 		case gID_containsMutations:			return ExecuteMethod_containsMutations(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_countOfMutationsOfType:	return ExecuteMethod_countOfMutationsOfType(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_relatedness:				return ExecuteMethod_relatedness(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_setSpatialPosition:		return ExecuteMethod_setSpatialPosition(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		//case gID_sumOfMutationsOfType:	return ExecuteMethod_Accelerated_sumOfMutationsOfType(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_uniqueMutationsOfType:		return ExecuteMethod_uniqueMutationsOfType(p_method_id, p_arguments, p_argument_count, p_interpreter);
 			
@@ -961,44 +960,6 @@ EidosValue_SP Individual::ExecuteMethod_relatedness(EidosGlobalStringID p_method
 	
 	return gStaticEidosValueNULL;
 }
-
-//	*********************	– (void)setSpatialPosition(float position)
-//
-EidosValue_SP Individual::ExecuteMethod_setSpatialPosition(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
-{
-#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *position_value = p_arguments[0].get();
-	SLiMSim &sim = subpopulation_.population_.sim_;
-	
-	int dimensionality = sim.SpatialDimensionality();
-	int value_count = position_value->Count();
-	
-	if (dimensionality == 0)
-		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_setSpatialPosition): setSpatialPosition() cannot be called in non-spatial simulations." << EidosTerminate();
-	
-	if (value_count < dimensionality)
-		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_setSpatialPosition): setSpatialPosition() requires at least as many coordinates as the spatial dimensionality of the simulation." << EidosTerminate();
-	
-	switch (dimensionality)
-	{
-		case 1:
-			spatial_x_ = position_value->FloatAtIndex(0, nullptr);
-			break;
-		case 2:
-			spatial_x_ = position_value->FloatAtIndex(0, nullptr);
-			spatial_y_ = position_value->FloatAtIndex(1, nullptr);
-			break;
-		case 3:
-			spatial_x_ = position_value->FloatAtIndex(0, nullptr);
-			spatial_y_ = position_value->FloatAtIndex(1, nullptr);
-			spatial_z_ = position_value->FloatAtIndex(2, nullptr);
-			break;
-		default:
-			EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_setSpatialPosition): (internal error) unrecognized dimensionality." << EidosTerminate();
-	}
-	
-	return gStaticEidosValueVOID;
-}			
 
 //	*********************	- (integer$)sumOfMutationsOfType(io<MutationType>$ mutType)
 //
@@ -1293,6 +1254,9 @@ public:
 	
 	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
 	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
+	
+	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
+	EidosValue_SP ExecuteMethod_setSpatialPosition(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 };
 
 EidosObjectClass *gSLiM_Individual_Class = new Individual_Class();
@@ -1348,7 +1312,7 @@ const std::vector<const EidosMethodSignature *> *Individual_Class::Methods(void)
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMutations, kEidosValueMaskLogical))->AddObject("mutations", gSLiM_Mutation_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_relatedness, kEidosValueMaskFloat))->AddObject("individuals", gSLiM_Individual_Class));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSpatialPosition, kEidosValueMaskVOID))->AddFloat("position"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosClassMethodSignature(gStr_setSpatialPosition, kEidosValueMaskVOID))->AddFloat("position"));
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sumOfMutationsOfType, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class))->DeclareAcceleratedImp(Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_uniqueMutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		
@@ -1357,6 +1321,155 @@ const std::vector<const EidosMethodSignature *> *Individual_Class::Methods(void)
 	
 	return methods;
 }
+
+EidosValue_SP Individual_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
+{
+	switch (p_method_id)
+	{
+		case gID_setSpatialPosition:	return ExecuteMethod_setSpatialPosition(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
+		default:						return EidosObjectClass::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
+	}
+}
+
+//	*********************	– (void)setSpatialPosition(float position)
+//
+EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *position_value = p_arguments[0].get();
+	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
+	int dimensionality = sim.SpatialDimensionality();
+	int value_count = position_value->Count();
+	int target_size = p_target->Count();
+	
+	if (dimensionality == 0)
+		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_setSpatialPosition): setSpatialPosition() cannot be called in non-spatial simulations." << EidosTerminate();
+	if ((dimensionality < 0) || (dimensionality > 3))
+		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_setSpatialPosition): (internal error) unrecognized dimensionality." << EidosTerminate();
+	
+	if (value_count < dimensionality)
+		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_setSpatialPosition): setSpatialPosition() requires at least as many coordinates as the spatial dimensionality of the simulation." << EidosTerminate();
+	
+	if (value_count == dimensionality)
+	{
+		// One point is being set across all targets
+		if (target_size == 1)
+		{
+			// Handle the singleton target case separately so we can handle the vector target case faster
+			Individual *target = (Individual *)p_target->ObjectElementAtIndex(0, nullptr);
+			
+			switch (dimensionality)
+			{
+				case 1:
+					target->spatial_x_ = position_value->FloatAtIndex(0, nullptr);
+					break;
+				case 2:
+					target->spatial_x_ = position_value->FloatAtIndex(0, nullptr);
+					target->spatial_y_ = position_value->FloatAtIndex(1, nullptr);
+					break;
+				case 3:
+					target->spatial_x_ = position_value->FloatAtIndex(0, nullptr);
+					target->spatial_y_ = position_value->FloatAtIndex(1, nullptr);
+					target->spatial_z_ = position_value->FloatAtIndex(2, nullptr);
+					break;
+			}
+		}
+		else
+		{
+			// Vector target case, one point
+			const EidosValue_Object_vector *target_vec = p_target->ObjectElementVector();
+			Individual * const *targets = (Individual * const *)(target_vec->data());
+			
+			switch (dimensionality)
+			{
+				case 1:
+				{
+					double x = position_value->FloatAtIndex(0, nullptr);
+					for (int target_index = 0; target_index < target_size; ++target_index)
+					{
+						Individual *target = targets[target_index];
+						target->spatial_x_ = x;
+					}
+					break;
+				}
+				case 2:
+				{
+					double x = position_value->FloatAtIndex(0, nullptr);
+					double y = position_value->FloatAtIndex(1, nullptr);
+					for (int target_index = 0; target_index < target_size; ++target_index)
+					{
+						Individual *target = targets[target_index];
+						target->spatial_x_ = x;
+						target->spatial_y_ = y;
+					}
+					break;
+				}
+				case 3:
+				{
+					double x = position_value->FloatAtIndex(0, nullptr);
+					double y = position_value->FloatAtIndex(1, nullptr);
+					double z = position_value->FloatAtIndex(2, nullptr);
+					for (int target_index = 0; target_index < target_size; ++target_index)
+					{
+						Individual *target = targets[target_index];
+						target->spatial_x_ = x;
+						target->spatial_y_ = y;
+						target->spatial_z_ = z;
+					}
+					break;
+				}
+			}
+		}
+	}
+	else if (value_count == dimensionality * target_size)
+	{
+		// Vector target case, one point per target (so the point vector has to be non-singleton too)
+		const EidosValue_Object_vector *target_vec = p_target->ObjectElementVector();
+		Individual * const *targets = (Individual * const *)(target_vec->data());
+		const EidosValue_Float_vector *position_vec = position_value->FloatVector();
+		const double *positions = position_vec->data();
+		
+		switch (dimensionality)
+		{
+			case 1:
+			{
+				for (int target_index = 0; target_index < target_size; ++target_index)
+				{
+					Individual *target = targets[target_index];
+					target->spatial_x_ = *(positions++);
+				}
+				break;
+			}
+			case 2:
+			{
+				for (int target_index = 0; target_index < target_size; ++target_index)
+				{
+					Individual *target = targets[target_index];
+					target->spatial_x_ = *(positions++);
+					target->spatial_y_ = *(positions++);
+				}
+				break;
+			}
+			case 3:
+			{
+				for (int target_index = 0; target_index < target_size; ++target_index)
+				{
+					Individual *target = targets[target_index];
+					target->spatial_x_ = *(positions++);
+					target->spatial_y_ = *(positions++);
+					target->spatial_z_ = *(positions++);
+				}
+				break;
+			}
+		}
+	}
+	else
+	{
+		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_setSpatialPosition): setSpatialPosition() requires the position parameter to contain either one point, or one point per individual (where each point has a number of coordinates equal to the spatial dimensionality of the simulation)." << EidosTerminate();
+	}
+	
+	return gStaticEidosValueVOID;
+}			
 
 
 
