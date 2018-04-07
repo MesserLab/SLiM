@@ -1,19 +1,36 @@
+// Note setup at the end
 
 function (void)initializeMarkedMutations(i$ num_marks)
 {
     for(i in 1:num_marks){
         initializeMutationType("m" + asString(i), 0.5, "f", 0.0);
     }
+    // used for ongoing marking
+    initializeMutationType("m0", 0.5, "f", 0.0);
+    m0.mutationStackPolicy = "l";
     return;
 }
 
 function (void)initializeMarks(i$ num_marks)
 {
+    // add a separate type of mutation to each of some genomes
     markedGenomes = sample(sim.subpopulations.genomes, min(num_marks,2*sum(sim.subpopulations.individualCount)));
     for(k in seqAlong(markedGenomes)){
-        for(pos in 0:sim.chromosome.lastPosition){   
+        for(pos in 0:sim.chromosome.lastPosition){
             mut = sim.mutationTypes[k];
-            markedGenomes[k].addNewDrawnMutation(mut,pos);           
+            markedGenomes[k].addNewDrawnMutation(mut,pos);
+        }
+    }
+    return;
+}
+
+function (void)ongoingMarks(i$ num_marks)
+{
+    // add a new mutation of type m0 to each of some genomes
+    markedGenomes = sample(sim.subpopulations.genomes, min(num_marks,2*sum(sim.subpopulations.individualCount)));
+    for(k in seqAlong(markedGenomes)){
+        for(pos in 0:sim.chromosome.lastPosition){
+            markedGenomes[k].addNewDrawnMutation(m0,pos);
         }
     }
     return;
@@ -21,7 +38,7 @@ function (void)initializeMarks(i$ num_marks)
 
 function (void)outputMutationResult([s$ outputFile="test_output/slim_mutation_output.txt"]) {
     /* * *
-     * For each individual, output 
+     * For each individual, output
      * a list of mutations, and
      * a list of positions of those mutations.
      * * */

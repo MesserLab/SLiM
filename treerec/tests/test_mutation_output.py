@@ -1,30 +1,37 @@
 from testutils import *
 
-def read_test_mutation_output(filename="test_output/slim_mutation_output.txt"):
-    # Read in the genotypes output by the SLiM function outputMutationResult(),
-    # producing a dictionary indexed by position,
-    # whose values are dictionaries indexed by SLiM genome ID, giving the genotype
-    # at that position in that genome
-    slim_file = open(filename, "r")
-    slim = {}
-    for header in slim_file:
-        headstring, genstring = header.split()
-        assert headstring == "#Genome:"
-        genome = int(genstring)
-        mutations = slim_file.readline().split()
-        assert mutations[0] == "Mutations:"
-        mutations = [int(u) for u in mutations[1:]]
-        positions = slim_file.readline().split()
-        assert positions[0] == "Positions:"
-        positions = [int(u) for u in positions[1:]]
-        for pos, mut in zip(positions, mutations):
-            if pos not in slim:
-                slim[pos] = {}
-            slim[pos][genome] = mut
-    return slim
 
+class TestWithMutations(TestSlimOutput):
 
-class TestWithMutations(unittest.TestCase):
+    def read_test_mutation_output(self, filename="test_output/slim_mutation_output.txt"):
+        # Read in the genotypes output by the SLiM function outputMutationResult(),
+        # producing a dictionary indexed by position, whose values are dictionaries
+        # indexed by SLiM genome ID, giving a mutation carried at that position in
+        # that genome.
+        slim_file = open(filename, "r")
+        slim = {}
+        for header in slim_file:
+            headstring, genstring = header.split()
+            self.assertEqual(headstring, "#Genome:")
+            genome = int(genstring)
+            mutations = slim_file.readline().split()
+            self.assertEqual(mutations[0], "Mutations:")
+            mutations = [int(u) for u in mutations[1:]]
+            positions = slim_file.readline().split()
+            self.assertEqual(positions[0], "Positions:")
+            positions = [int(u) for u in positions[1:]]
+            for pos, mut in zip(positions, mutations):
+                if pos not in slim:
+                    slim[pos] = {}
+                if genome not in slim[pos]:
+                    slim[pos][genome] = []
+                slim[pos][genome].append(mut)
+        return slim
+
+    def check_no_multiple_mutations(self, ts):
+        # there should be at most one mutation per branch
+        mut_locs = [(m.position, m.node) for m in ts.mutations()]
+        self.assertEqual(len(mut_locs), len(set(mut_locs)))
 
     def get_ts(self):
         # read in from text
@@ -52,15 +59,15 @@ class TestWithMutations(unittest.TestCase):
     def test_ts_slim_consistency(self):
         # load tree sequence
         for ts in self.get_ts():
+            self.check_no_multiple_mutations(ts)
             # this is a dictionary of SLiM -> msprime ID (from metadata in nodes)
-            ids = get_slim_ids(ts)
+            ids = self.get_slim_ids(ts)
             slim_ids = list(ids.keys())
             msp_ids = list(ids.values())
             msp_samples = ts.samples()
             # this contains the genotype information output by SLiM:
             #  indexed by position, then SLiM ID
-            slim = read_test_mutation_output(filename="test_output/slim_mutation_output.txt")
-
+            slim = self.read_test_mutation_output(filename="test_output/slim_mutation_output.txt")
             pos = -1
             for var in ts.variants():
                 pos += 1
@@ -68,12 +75,18 @@ class TestWithMutations(unittest.TestCase):
                     # invariant sites: no genotypes
                     self.assertTrue(pos not in slim)
                     pos += 1
+                print("-----------------")
                 print("pos:", pos)
+                print(var)
                 for j in slim_ids:
+                    print("slim id", j, "msp id", ids[j])
                     if ids[j] in msp_samples:
+                        msp_genotypes = [u for u in var.alleles[var.genotypes[ids[j]]].split(",")]
+                        print("msp:", msp_genotypes)
                         if (pos not in slim) or (j not in slim[pos]):
                             # no mutations at this site
-                            self.assertEqual(var.alleles[var.genotypes[ids[j]]], '')
+                            self.assertEqual(msp_genotypes, [''])
                         else:
-                            self.assertEqual(var.alleles[var.genotypes[ids[j]]], str(slim[pos][j]))
+                            print("slim:", slim[pos][j])
+                            self.assertEqual(set(msp_genotypes), set([str(u) for u in slim[pos][j]]))
 

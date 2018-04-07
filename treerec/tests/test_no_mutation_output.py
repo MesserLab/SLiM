@@ -1,26 +1,25 @@
 from testutils import *
 
-def read_no_mutation_output(ids,
-                                 filename="test_output/slim_mutation_output.txt"):
-        # slim will be indexed by position,
-        # and contain a dict indexted by mutation type giving the indivs
-        # inheriting that mut at that position
-        slim_file = open(filename, "r")
-        slim = []
-        for header in slim_file:
-            assert header[0:12] == "MutationType"
-            mut, pos = header[12:].split()
-            pos = int(pos)
-            if pos == len(slim):
-                slim.append({})
-            slim_ids = [int(u) for u in slim_file.readline().split()]
-            for u in slim_ids:
-                assert u in ids
-            slim[pos][mut] = [ids[u] for u in slim_ids]
-        return slim
+class TestNoMutations(TestSlimOutput):
 
-
-class TestNoMutations(unittest.TestCase):
+    def read_no_mutation_output(self, ids,
+                                filename="test_output/slim_mutation_output.txt"):
+            # slim will be indexed by position,
+            # and contain a dict indexted by mutation type giving the indivs
+            # inheriting that mut at that position
+            slim_file = open(filename, "r")
+            slim = []
+            for header in slim_file:
+                self.assertEqual(header[0:12], "MutationType")
+                mut, pos = header[12:].split()
+                pos = int(pos)
+                if pos == len(slim):
+                    slim.append({})
+                slim_ids = [int(u) for u in slim_file.readline().split()]
+                for u in slim_ids:
+                    self.assertTrue(u in ids)
+                slim[pos][mut] = [ids[u] for u in slim_ids]
+            return slim
 
     def get_ts(self):
         # read in from text
@@ -64,8 +63,8 @@ class TestNoMutations(unittest.TestCase):
         # load tree sequence
         for ts in self.get_ts():
             # this is a dictionary of SLiM -> msprime ID (from metadata in nodes)
-            ids = get_slim_ids(ts)
-            slim = read_no_mutation_output(ids,
+            ids = self.get_slim_ids(ts)
+            slim = self.read_no_mutation_output(ids,
                                  filename="test_output/slim_mutation_output.txt")
 
             pos = 0
