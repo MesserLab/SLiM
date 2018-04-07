@@ -268,6 +268,11 @@
 	[[_consoleController browserController] hideWindow];
 	[_consoleController hideWindow];
 	[self setConsoleController:nil];
+	
+	// Also close and let go of our mini-graph tooltip window
+	[self hideMiniGraphToolTipWindow];
+	[functionGraphToolTipWindow autorelease];
+	functionGraphToolTipWindow = nil;
 }
 
 - (void)dealloc
@@ -672,6 +677,15 @@
 		
 		if (sim)
 			sim->genomic_element_types_changed_ = false;
+	}
+	
+	if (invalid || sim->interaction_types_changed_)
+	{
+		[interactionTypeTableView reloadData];
+		[interactionTypeTableView setNeedsDisplay];
+		
+		if (sim)
+			sim->interaction_types_changed_ = false;
 	}
 	
 	if (invalid || sim->scripts_changed_)
@@ -4086,6 +4100,10 @@
 		{
 			return sim->genomic_element_types_.size();
 		}
+		else if (aTableView == interactionTypeTableView)
+		{
+			return sim->interaction_types_.size();
+		}
 		else if (aTableView == scriptBlocksTableView)
 		{
 			return sim->AllScriptBlocks().size();
@@ -4221,7 +4239,7 @@
 					
 					if (mutationType->dfe_type_ == DFEType::kScript)
 					{
-						// DFE type 's' has string parameters
+						// DFE type 's' has parameters of type string
 						for (unsigned int paramIndex = 0; paramIndex < mutationType->dfe_strings_.size(); ++paramIndex)
 						{
 							const char *dfe_string = mutationType->dfe_strings_[paramIndex].c_str();
@@ -4235,7 +4253,7 @@
 					}
 					else
 					{
-						// All other DFEs have double parameters
+						// All other DFEs have parameters of type double
 						for (unsigned int paramIndex = 0; paramIndex < mutationType->dfe_parameters_.size(); ++paramIndex)
 						{
 							NSString *paramSymbol = @"";
@@ -4295,6 +4313,66 @@
 						
 						if (mutTypeIndex < genomicElementType->mutation_fractions_.size() - 1)
 							[paramString appendString:@", "];
+					}
+					
+					return [paramString autorelease];
+				}
+			}
+		}
+		else if (aTableView == interactionTypeTableView)
+		{
+			std::map<slim_objectid_t,InteractionType*> &interactionTypes = sim->interaction_types_;
+			int interactionTypeCount = (int)interactionTypes.size();
+			
+			if (rowIndex < interactionTypeCount)
+			{
+				auto interactionTypeIter = interactionTypes.begin();
+				
+				std::advance(interactionTypeIter, rowIndex);
+				slim_objectid_t interactionTypeID = interactionTypeIter->first;
+				InteractionType *interactionType = interactionTypeIter->second;
+				
+				if (aTableColumn == interactionTypeIDColumn)
+				{
+					return [NSString stringWithFormat:@"m%lld", (int64_t)interactionTypeID];
+				}
+				else if (aTableColumn == interactionTypeMaxDistanceColumn)
+				{
+					return [NSString stringWithFormat:@"%.3f", interactionType->max_distance_];
+				}
+				else if (aTableColumn == interactionTypeIFTypeColumn)
+				{
+					switch (interactionType->if_type_)
+					{
+						case IFType::kFixed:			return @"fixed";
+						case IFType::kLinear:			return @"linear";
+						case IFType::kExponential:		return @"exp";
+						case IFType::kNormal:			return @"normal";
+						case IFType::kCauchy:			return @"Cauchy";
+					}
+				}
+				else if (aTableColumn == interactionTypeIFParamsColumn)
+				{
+					NSMutableString *paramString = [[NSMutableString alloc] init];
+					
+					// the first parameter is always the maximum interaction strength
+					[paramString appendFormat:@"f=%.3f", interactionType->if_param1_];
+					
+					// append second parameters where applicable
+					switch (interactionType->if_type_)
+					{
+						case IFType::kFixed:
+						case IFType::kLinear:
+							break;
+						case IFType::kExponential:
+							[paramString appendFormat:@", β=%.3f", interactionType->if_param2_];
+							break;
+						case IFType::kNormal:
+							[paramString appendFormat:@", σ=%.3f", interactionType->if_param2_];
+							break;
+						case IFType::kCauchy:
+							[paramString appendFormat:@", γ=%.3f", interactionType->if_param2_];
+							break;
 					}
 					
 					return [paramString autorelease];
@@ -4407,53 +4485,74 @@
 				std::advance(mutTypeIter, rowIndex);
 				MutationType *mutationType = mutTypeIter->second;
 				
-				/*
-				// Show the script for type "s" muttypes in a tooltip.  Now that we can display distribution plots, we don't do this.
-				 
-				if (mutationType->dfe_type_ == DFEType::kScript)
-				{
-					const char *dfe_string = mutationType->dfe_strings_[0].c_str();
-					NSString *ns_dfe_string = [NSString stringWithUTF8String:dfe_string];
-					
-					// change whitespace to non-breaking spaces; we want to force AppKit not to wrap code
-					// note this doesn't really prevent AppKit from wrapping our tooltip, and I'd also like to use Monaco 9; I think I need a custom popup to do that...
-					ns_dfe_string = [ns_dfe_string stringByReplacingOccurrencesOfString:@" " withString:@" "];		// second string is an &nbsp;
-					ns_dfe_string = [ns_dfe_string stringByReplacingOccurrencesOfString:@"\t" withString:@"   "];		// second string is three &nbsp;s
-					
-					return ns_dfe_string;
-				}
-				else
-				 */
-				{
-					// If we're already showing the tooltip for this muttype, short-circuit; sometimes we get called twice with no exit
-					if (mutTypeToolTipWindow && ([mutTypeToolTipWindow mutType] == mutationType))
-						return (id _Nonnull)nil;	// get rid of the static analyzer warning
-					
-					//NSLog(@"show DFE tooltip view here for mut ID %d!", mutationType->mutation_type_id_);
-					
-					// Make the tooltip window, configure it, and display it
-					if (!mutTypeToolTipWindow)
-						mutTypeToolTipWindow = [SLiMMutationTypeDFEToolTipWindow new];
-					
-					NSPoint tipPoint = NSMakePoint(mouseLocation.x + 0, mouseLocation.y + 65);
-					
-					tipPoint = [[mutTypeTableView superview] convertPoint:tipPoint toView:nil];
-					NSRect tipRect = NSMakeRect(tipPoint.x, tipPoint.y, 0, 0);
-					tipPoint = [[mutTypeTableView window] convertRectToScreen:tipRect].origin;
-					
-					[mutTypeToolTipWindow setMutType:mutationType];		// questionable for it to have a pointer to the mutation type, but I can't think of a way to crash it... it displays once and then never again...
-					[mutTypeToolTipWindow setTipPoint:tipPoint];
-					[mutTypeToolTipWindow orderFront:nil];
-					
-					// Wire it to a tracking area so it gets taken down when the mouse moves; see mouseExited: below
-					NSTrackingArea *trackingArea = [[NSTrackingArea alloc] initWithRect:*rect
-																				options:(NSTrackingMouseEnteredAndExited | NSTrackingActiveAlways)
-																				  owner:self
-																			   userInfo:@{@"mut_id" : [NSNumber numberWithInteger:mutationType->mutation_type_id_]}];
-					
-					[mutTypeTableView addTrackingArea:trackingArea];
-					[trackingArea release];
-				}
+				// If we're already showing the tooltip for this muttype, short-circuit; sometimes we get called twice with no exit
+				if (functionGraphToolTipWindow && ([functionGraphToolTipWindow mutType] == mutationType))
+					return (id _Nonnull)nil;	// get rid of the static analyzer warning
+				
+				//NSLog(@"show DFE tooltip view here for mut ID %d!", mutationType->mutation_type_id_);
+				
+				// Make the tooltip window, configure it, and display it
+				if (!functionGraphToolTipWindow)
+					functionGraphToolTipWindow = [SLiMFunctionGraphToolTipWindow new];
+				
+				NSPoint tipPoint = NSMakePoint(mouseLocation.x + 0, mouseLocation.y + 65);
+				
+				tipPoint = [[mutTypeTableView superview] convertPoint:tipPoint toView:nil];
+				NSRect tipRect = NSMakeRect(tipPoint.x, tipPoint.y, 0, 0);
+				tipPoint = [[mutTypeTableView window] convertRectToScreen:tipRect].origin;
+				
+				[functionGraphToolTipWindow setMutType:mutationType];	// questionable for it to have a pointer to the mutation type, but I can't think of a way to crash it...
+				[functionGraphToolTipWindow setTipPoint:tipPoint];
+				[functionGraphToolTipWindow orderFront:nil];
+				
+				// Wire it to a tracking area so it gets taken down when the mouse moves; see mouseExited: below
+				NSTrackingArea *trackingArea = [[NSTrackingArea alloc] initWithRect:*rect
+																			options:(NSTrackingMouseEnteredAndExited | NSTrackingActiveAlways)
+																			  owner:self
+																		   userInfo:@{@"mut_id" : [NSNumber numberWithInteger:mutationType->mutation_type_id_]}];
+				
+				[mutTypeTableView addTrackingArea:[trackingArea autorelease]];
+			}
+		}
+		else if (aTableView == interactionTypeTableView)
+		{
+			std::map<slim_objectid_t,InteractionType*> &interactionTypes = sim->interaction_types_;
+			int interactionTypeCount = (int)interactionTypes.size();
+			
+			if (rowIndex < interactionTypeCount)
+			{
+				auto interactionTypeIter = interactionTypes.begin();
+				
+				std::advance(interactionTypeIter, rowIndex);
+				InteractionType *interactionType = interactionTypeIter->second;
+				
+				// If we're already showing the tooltip for this muttype, short-circuit; sometimes we get called twice with no exit
+				if (functionGraphToolTipWindow && ([functionGraphToolTipWindow interactionType] == interactionType))
+					return (id _Nonnull)nil;	// get rid of the static analyzer warning
+				
+				//NSLog(@"show DFE tooltip view here for interaction ID %d!", interactionType->interaction_type_id_);
+				
+				// Make the tooltip window, configure it, and display it
+				if (!functionGraphToolTipWindow)
+					functionGraphToolTipWindow = [SLiMFunctionGraphToolTipWindow new];
+				
+				NSPoint tipPoint = NSMakePoint(mouseLocation.x + 0, mouseLocation.y + 65);
+				
+				tipPoint = [[interactionTypeTableView superview] convertPoint:tipPoint toView:nil];
+				NSRect tipRect = NSMakeRect(tipPoint.x, tipPoint.y, 0, 0);
+				tipPoint = [[interactionTypeTableView window] convertRectToScreen:tipRect].origin;
+				
+				[functionGraphToolTipWindow setInteractionType:interactionType];	// questionable for it to have a pointer to the interaction type, but I can't think of a way to crash it...
+				[functionGraphToolTipWindow setTipPoint:tipPoint];
+				[functionGraphToolTipWindow orderFront:nil];
+				
+				// Wire it to a tracking area so it gets taken down when the mouse moves; see mouseExited: below
+				NSTrackingArea *trackingArea = [[NSTrackingArea alloc] initWithRect:*rect
+																			options:(NSTrackingMouseEnteredAndExited | NSTrackingActiveAlways)
+																			  owner:self
+																		   userInfo:@{@"int_id" : [NSNumber numberWithInteger:interactionType->interaction_type_id_]}];
+				
+				[interactionTypeTableView addTrackingArea:[trackingArea autorelease]];
 			}
 		}
 	}
@@ -4461,30 +4560,54 @@
 	return (id _Nonnull)nil;	// get rid of the static analyzer warning
 }
 
+- (void)hideMiniGraphToolTipWindow
+{
+	if (functionGraphToolTipWindow)
+	{
+		[functionGraphToolTipWindow orderOut:nil];
+		[functionGraphToolTipWindow setMutType:nullptr];
+		[functionGraphToolTipWindow setInteractionType:nullptr];
+	}
+}
+
 // Used to take down a custom tooltip window that we may have shown above, displaying a mutation type's DFE
 - (void)mouseExited:(NSEvent *)event
 {
-	if (!mutTypeToolTipWindow)
+	if (!functionGraphToolTipWindow)
 		return;
 	
 	NSTrackingArea *trackingArea = [event trackingArea];
 	NSDictionary *userInfo = [trackingArea userInfo];
 	NSObject *mut_id_object = [userInfo objectForKey:@"mut_id"];
+	NSObject *int_id_object = [userInfo objectForKey:@"int_id"];
 	
-	if (!mut_id_object)
+	if ((!mut_id_object && !int_id_object) || (mut_id_object && int_id_object))
 		return;
 	
-	slim_objectid_t mut_id = (slim_objectid_t)[(NSNumber *)mut_id_object integerValue];
+	if (mut_id_object)
+	{
+		slim_objectid_t mut_id = (slim_objectid_t)[(NSNumber *)mut_id_object integerValue];
+		
+		if (mut_id != [functionGraphToolTipWindow mutType]->mutation_type_id_)
+			return;
+		
+		//NSLog(@"   take down DFE tooltip view here for mut ID %d!", mut_id);
+		
+		[mutTypeTableView removeTrackingArea:trackingArea];
+	}
+	else if (int_id_object)
+	{
+		slim_objectid_t int_id = (slim_objectid_t)[(NSNumber *)int_id_object integerValue];
+		
+		if (int_id != [functionGraphToolTipWindow interactionType]->interaction_type_id_)
+			return;
+		
+		//NSLog(@"   take down DFE tooltip view here for interaction ID %d!", int_id);
+		
+		[interactionTypeTableView removeTrackingArea:trackingArea];
+	}
 	
-	if (mut_id != [mutTypeToolTipWindow mutType]->mutation_type_id_)
-		return;
-	
-	//NSLog(@"   take down DFE tooltip view here for mut ID %d!", mut_id);
-	
-	[mutTypeTableView removeTrackingArea:trackingArea];
-	
-	[mutTypeToolTipWindow orderOut:nil];
-	[mutTypeToolTipWindow setMutType:nullptr];
+	[self hideMiniGraphToolTipWindow];
 }
 
 
@@ -4592,6 +4715,11 @@
 //
 #pragma mark -
 #pragma mark NSDrawer delegate
+
+- (void)drawerWillClose:(NSNotification *)notification
+{
+	[self hideMiniGraphToolTipWindow];
+}
 
 - (void)drawerDidOpen:(NSNotification *)notification
 {

@@ -5145,13 +5145,41 @@ EidosValue_SP InteractionType::ExecuteMethod_setInteractionFunction(EidosGlobalS
 			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): setInteractionFunction() requires that the parameters for this interaction function be of type numeric (integer or float)." << EidosTerminate();
 		
 		if_parameters.emplace_back(if_param_value->FloatAtIndex(0, nullptr));
-		// intentionally no bounds checks for IF parameters
+	}
+	
+	// Bounds-check the IF parameters in the cases where there is a hard bound
+	switch (if_type)
+	{
+		case IFType::kFixed:
+			// no limits on fixed IFs; doesn't make much sense to use 0.0, but it's not illegal
+			break;
+		case IFType::kLinear:
+			// no limits on linear IFs; doesn't make much sense to use 0.0, but it's not illegal
+			break;
+		case IFType::kExponential:
+			// no limits on exponential IFs; a shape of 0.0 doesn't make much sense, but it's not illegal
+			break;
+		case IFType::kNormal:
+			// no limits on the maximum strength (although 0.0 doesn't make much sense); sd must be >= 0
+			if (if_parameters[1] < 0.0)
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): an interaction function of type \"n\" must have a standard deviation parameter >= 0." << EidosTerminate();
+			break;
+		case IFType::kCauchy:
+			// no limits on the maximum strength (although 0.0 doesn't make much sense); scale must be > 0
+			if (if_parameters[1] <= 0.0)
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): an interaction function of type \"c\" must have a scale parameter > 0." << EidosTerminate();
+			break;
 	}
 	
 	// Everything seems to be in order, so replace our IF info with the new info
 	if_type_ = if_type;
 	if_param1_ = ((if_parameters.size() >= 1) ? if_parameters[0] : 0.0);
 	if_param2_ = ((if_parameters.size() >= 2) ? if_parameters[1] : 0.0);
+	
+	// mark that interaction types changed, so they get redisplayed in SLiMgui
+	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
+	
+	sim.interaction_types_changed_ = true;
 	
 	return gStaticEidosValueVOID;
 }

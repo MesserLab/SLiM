@@ -23,6 +23,7 @@
 
 @class SLiMWindowController;
 class MutationType;
+class InteractionType;
 
 // An NSTableView subclass that avoids becoming first responder; annoying that this is necessary, sigh...
 @interface SLiMTableView : NSTableView
@@ -74,14 +75,16 @@ void RGBForSelectionCoeff(double selectionCoeff, float *colorRed, float *colorGr
 @end
 
 // Classes to show a custom tooltip view displaying a graph of a mutation type's DFE in the muttype table view
-@interface SLiMMutationTypeDFEToolTipView : NSView
+// Now also used for similarly displaying an interaction type's IF in the interaction type table view
+@interface SLiMFunctionGraphToolTipView : NSView
 @end
 
-@interface SLiMMutationTypeDFEToolTipWindow : NSPanel
+@interface SLiMFunctionGraphToolTipWindow : NSPanel
 @property (nonatomic, assign) MutationType *mutType;
+@property (nonatomic, assign) InteractionType *interactionType;
 @property (nonatomic) NSPoint tipPoint;
 
-+ (instancetype)new;	// makes a new marker, not shown; set it up with a mutType and tip point and then call orderFront:
++ (instancetype)new;	// makes a new marker, not shown; set it up with a mutType/intType and tip point and then call orderFront:
 
 @end
 

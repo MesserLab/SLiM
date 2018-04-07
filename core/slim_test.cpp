@@ -415,27 +415,35 @@ void _RunInitTests(void)
 	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'e', 0.0, 0.0); stop(); }", 1, 15, "requires exactly 1 DFE parameter", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'n', 0.0); stop(); }", 1, 15, "requires exactly 2 DFE parameters", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'w', 0.0); stop(); }", 1, 15, "requires exactly 2 DFE parameters", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'f', 'foo'); stop(); }", 1, 15, "requires that DFE parameters be numeric", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'g', 'foo', 0.0); stop(); }", 1, 15, "requires that DFE parameters be numeric", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'g', 0.0, 'foo'); stop(); }", 1, 15, "requires that DFE parameters be numeric", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'e', 'foo'); stop(); }", 1, 15, "requires that DFE parameters be numeric", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'n', 'foo', 0.0); stop(); }", 1, 15, "requires that DFE parameters be numeric", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'n', 0.0, 'foo'); stop(); }", 1, 15, "requires that DFE parameters be numeric", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'w', 'foo', 0.0); stop(); }", 1, 15, "requires that DFE parameters be numeric", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'w', 0.0, 'foo'); stop(); }", 1, 15, "requires that DFE parameters be numeric", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'f', '1'); stop(); }", 1, 15, "requires that DFE parameters be numeric", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'g', '1', 0.0); stop(); }", 1, 15, "requires that DFE parameters be numeric", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'g', 0.0, '1'); stop(); }", 1, 15, "requires that DFE parameters be numeric", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'e', '1'); stop(); }", 1, 15, "requires that DFE parameters be numeric", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'n', '1', 0.0); stop(); }", 1, 15, "requires that DFE parameters be numeric", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'n', 0.0, '1'); stop(); }", 1, 15, "requires that DFE parameters be numeric", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'w', '1', 0.0); stop(); }", 1, 15, "requires that DFE parameters be numeric", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'w', 0.0, '1'); stop(); }", 1, 15, "requires that DFE parameters be numeric", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'f', 'foo'); stop(); }", 1, 15, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'g', 'foo', 0.0); stop(); }", 1, 15, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'g', 0.0, 'foo'); stop(); }", 1, 15, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'e', 'foo'); stop(); }", 1, 15, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'n', 'foo', 0.0); stop(); }", 1, 15, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'n', 0.0, 'foo'); stop(); }", 1, 15, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'w', 'foo', 0.0); stop(); }", 1, 15, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'w', 0.0, 'foo'); stop(); }", 1, 15, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'f', '1'); stop(); }", 1, 15, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'g', '1', 0.0); stop(); }", 1, 15, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'g', 0.0, '1'); stop(); }", 1, 15, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'e', '1'); stop(); }", 1, 15, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'n', '1', 0.0); stop(); }", 1, 15, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'n', 0.0, '1'); stop(); }", 1, 15, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'w', '1', 0.0); stop(); }", 1, 15, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'w', 0.0, '1'); stop(); }", 1, 15, "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'x', 0.0); stop(); }", 1, 15, "must be \"f\", \"g\", \"e\", \"n\", \"w\", or \"s\"", __LINE__);
 	SLiMAssertScriptStop("initialize() { x = initializeMutationType('m7', 0.5, 'f', 0.0); if (x == m7) stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { x = initializeMutationType(7, 0.5, 'f', 0.0); if (x == m7) stop(); }", __LINE__);
 	SLiMAssertScriptRaise("initialize() { m7 = 15; initializeMutationType(7, 0.5, 'f', 0.0); stop(); }", 1, 24, "already defined", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0); initializeMutationType('m1', 0.5, 'f', 0.0); stop(); }", 1, 60, "already defined", __LINE__);
+	
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'g', 3.1, 0.0); stop(); }", 1, 15, "must have a shape parameter > 0", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'g', 3.1, -1.0); stop(); }", 1, 15, "must have a shape parameter > 0", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'n', 3.1, -1.0); stop(); }", 1, 15, "must have a standard deviation parameter >= 0", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'w', 0.0, 7.5); stop(); }", 1, 15, "must have a scale parameter > 0", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'w', -1.0, 7.5); stop(); }", 1, 15, "must have a scale parameter > 0", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'w', 3.1, 0.0); stop(); }", 1, 15, "must have a shape parameter > 0", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'w', 3.1, -7.5); stop(); }", 1, 15, "must have a shape parameter > 0", __LINE__);
 	
 	// Test (object<GenomicElementType>$)initializeGenomicElementType(is$ id, io<MutationType> mutationTypes, numeric proportions)
 	std::string define_m12(" initializeMutationType('m1', 0.5, 'f', 0.0); initializeMutationType('m2', 0.5, 'f', 0.5); ");
@@ -999,33 +1007,41 @@ void _RunMutationTypeTests(void)
 	SLiMAssertScriptStop(gen1_setup + "1 { m1.setDistribution('w', 3.1, 7.5); if (m1.distributionType == 'w' & identical(m1.distributionParams, c(3.1, 7.5))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { m1.setDistribution('s', 'return 1;'); if (m1.distributionType == 's' & identical(m1.distributionParams, 'return 1;')) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('x', 1.5); stop(); }", 1, 219, "must be \"f\", \"g\", \"e\", \"n\", \"w\", or \"s\"", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('f', 'foo'); stop(); }", 1, 219, "requires that the parameters for this DFE be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', 'foo', 7.5); stop(); }", 1, 219, "requires that the parameters for this DFE be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', 3.1, 'foo'); stop(); }", 1, 219, "requires that the parameters for this DFE be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('e', 'foo'); stop(); }", 1, 219, "requires that the parameters for this DFE be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('n', 'foo', 7.5); stop(); }", 1, 219, "requires that the parameters for this DFE be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('n', 3.1, 'foo'); stop(); }", 1, 219, "requires that the parameters for this DFE be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('w', 'foo', 7.5); stop(); }", 1, 219, "requires that the parameters for this DFE be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('w', 3.1, 'foo'); stop(); }", 1, 219, "requires that the parameters for this DFE be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('s', 3); stop(); }", 1, 219, "requires that the parameters for this DFE be of type string", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('f', '1'); stop(); }", 1, 219, "requires that the parameters for this DFE be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', '1', 7.5); stop(); }", 1, 219, "requires that the parameters for this DFE be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', 3.1, '1'); stop(); }", 1, 219, "requires that the parameters for this DFE be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('e', '1'); stop(); }", 1, 219, "requires that the parameters for this DFE be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('n', '1', 7.5); stop(); }", 1, 219, "requires that the parameters for this DFE be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('n', 3.1, '1'); stop(); }", 1, 219, "requires that the parameters for this DFE be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('w', '1', 7.5); stop(); }", 1, 219, "requires that the parameters for this DFE be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('w', 3.1, '1'); stop(); }", 1, 219, "requires that the parameters for this DFE be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('s', 3.1); stop(); }", 1, 219, "requires that the parameters for this DFE be of type string", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('f', T); stop(); }", 1, 219, "requires that the parameters for this DFE be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', T, 7.5); stop(); }", 1, 219, "requires that the parameters for this DFE be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', 3.1, T); stop(); }", 1, 219, "requires that the parameters for this DFE be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('e', T); stop(); }", 1, 219, "requires that the parameters for this DFE be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('n', T, 7.5); stop(); }", 1, 219, "requires that the parameters for this DFE be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('n', 3.1, T); stop(); }", 1, 219, "requires that the parameters for this DFE be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('w', T, 7.5); stop(); }", 1, 219, "requires that the parameters for this DFE be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('w', 3.1, T); stop(); }", 1, 219, "requires that the parameters for this DFE be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('s', T); stop(); }", 1, 219, "requires that the parameters for this DFE be of type string", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('f', 'foo'); stop(); }", 1, 219, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', 'foo', 7.5); stop(); }", 1, 219, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', 3.1, 'foo'); stop(); }", 1, 219, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('e', 'foo'); stop(); }", 1, 219, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('n', 'foo', 7.5); stop(); }", 1, 219, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('n', 3.1, 'foo'); stop(); }", 1, 219, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('w', 'foo', 7.5); stop(); }", 1, 219, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('w', 3.1, 'foo'); stop(); }", 1, 219, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('s', 3); stop(); }", 1, 219, "must be of type string", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('f', '1'); stop(); }", 1, 219, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', '1', 7.5); stop(); }", 1, 219, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', 3.1, '1'); stop(); }", 1, 219, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('e', '1'); stop(); }", 1, 219, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('n', '1', 7.5); stop(); }", 1, 219, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('n', 3.1, '1'); stop(); }", 1, 219, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('w', '1', 7.5); stop(); }", 1, 219, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('w', 3.1, '1'); stop(); }", 1, 219, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('s', 3.1); stop(); }", 1, 219, "must be of type string", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('f', T); stop(); }", 1, 219, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', T, 7.5); stop(); }", 1, 219, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', 3.1, T); stop(); }", 1, 219, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('e', T); stop(); }", 1, 219, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('n', T, 7.5); stop(); }", 1, 219, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('n', 3.1, T); stop(); }", 1, 219, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('w', T, 7.5); stop(); }", 1, 219, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('w', 3.1, T); stop(); }", 1, 219, "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('s', T); stop(); }", 1, 219, "must be of type string", __LINE__);
+	
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', 3.1, 0.0); }", 1, 219, "must have a shape parameter > 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('g', 3.1, -1.0); }", 1, 219, "must have a shape parameter > 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('n', 3.1, -1.0); }", 1, 219, "must have a standard deviation parameter >= 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('w', 0.0, 7.5); }", 1, 219, "must have a scale parameter > 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('w', -1.0, 7.5); }", 1, 219, "must have a scale parameter > 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('w', 3.1, 0.0); }", 1, 219, "must have a shape parameter > 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.setDistribution('w', 3.1, -7.5); }", 1, 219, "must have a shape parameter > 0", __LINE__);
 	
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { m1.setDistribution('s', 'return foo;'); } 100 { stop(); }", -1, -1, "undefined identifier foo", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { m1.setDistribution('s', 'x >< 5;'); } 100 { stop(); }", -1, -1, "tokenize/parse error in type 's' DFE callback script", __LINE__);
@@ -2901,6 +2917,13 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "i1.unevaluate(); i1.maxDistance=1.0; i1.setInteractionFunction('n', 5.0, 1.0); i1.evaluate(immediate=T); stop(); }", __LINE__);
 		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.unevaluate(); i1.maxDistance=1.0; i1.setInteractionFunction('n', 5.0); i1.evaluate(immediate=T); stop(); }", 1, 604, "requires exactly", __LINE__);
 		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.unevaluate(); i1.maxDistance=1.0; i1.setInteractionFunction('n', 5.0, 2.0, 1.0); i1.evaluate(immediate=T); stop(); }", 1, 604, "requires exactly", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1x_pop + "i1.unevaluate(); i1.maxDistance=1.0; i1.setInteractionFunction('c', 5.0, 1.0); i1.evaluate(immediate=T); stop(); }", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.unevaluate(); i1.maxDistance=1.0; i1.setInteractionFunction('c', 5.0); i1.evaluate(immediate=T); stop(); }", 1, 604, "requires exactly", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.unevaluate(); i1.maxDistance=1.0; i1.setInteractionFunction('c', 5.0, 2.0, 1.0); i1.evaluate(immediate=T); stop(); }", 1, 604, "requires exactly", __LINE__);
+		
+		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.unevaluate(); i1.maxDistance=1.0; i1.setInteractionFunction('n', 5.0, -1.0); stop(); }", 1, 604, "must have a standard deviation parameter >= 0", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.unevaluate(); i1.maxDistance=1.0; i1.setInteractionFunction('c', 5.0, 0.0); stop(); }", 1, 604, "must have a scale parameter > 0", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.unevaluate(); i1.maxDistance=1.0; i1.setInteractionFunction('c', 5.0, -1.0); stop(); }", 1, 604, "must have a scale parameter > 0", __LINE__);
 		
 		// Test InteractionType – (float)strength(object<Individual> individuals1, [No<Individual> individuals2 = NULL])
 		if (!sex_seg_on)
@@ -3064,6 +3087,13 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.maxDistance=1.0; i1.setInteractionFunction('n', 5.0, 1.0); i1.evaluate(immediate=T); stop(); }", __LINE__);
 		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.maxDistance=1.0; i1.setInteractionFunction('n', 5.0); i1.evaluate(immediate=T); stop(); }", 1, 597, "requires exactly", __LINE__);
 		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.maxDistance=1.0; i1.setInteractionFunction('n', 5.0, 2.0, 1.0); i1.evaluate(immediate=T); stop(); }", 1, 597, "requires exactly", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.maxDistance=1.0; i1.setInteractionFunction('c', 5.0, 1.0); i1.evaluate(immediate=T); stop(); }", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.maxDistance=1.0; i1.setInteractionFunction('c', 5.0); i1.evaluate(immediate=T); stop(); }", 1, 597, "requires exactly", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.maxDistance=1.0; i1.setInteractionFunction('c', 5.0, 2.0, 1.0); i1.evaluate(immediate=T); stop(); }", 1, 597, "requires exactly", __LINE__);
+		
+		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.maxDistance=1.0; i1.setInteractionFunction('n', 5.0, -1.0); stop(); }", 1, 597, "must have a standard deviation parameter >= 0", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.maxDistance=1.0; i1.setInteractionFunction('c', 5.0, 0.0); stop(); }", 1, 597, "must have a scale parameter > 0", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.maxDistance=1.0; i1.setInteractionFunction('c', 5.0, -1.0); stop(); }", 1, 597, "must have a scale parameter > 0", __LINE__);
 		
 		// Test InteractionType – (float)strength(object<Individual> individuals1, [No<Individual> individuals2 = NULL])
 		if (!sex_seg_on)
@@ -3211,6 +3241,13 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.maxDistance=1.0; i1.setInteractionFunction('n', 5.0, 1.0); i1.evaluate(immediate=T); stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.maxDistance=1.0; i1.setInteractionFunction('n', 5.0); i1.evaluate(immediate=T); stop(); }", 1, 590, "requires exactly", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.maxDistance=1.0; i1.setInteractionFunction('n', 5.0, 2.0, 1.0); i1.evaluate(immediate=T); stop(); }", 1, 590, "requires exactly", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.maxDistance=1.0; i1.setInteractionFunction('c', 5.0, 1.0); i1.evaluate(immediate=T); stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.maxDistance=1.0; i1.setInteractionFunction('c', 5.0); i1.evaluate(immediate=T); stop(); }", 1, 590, "requires exactly", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.maxDistance=1.0; i1.setInteractionFunction('c', 5.0, 2.0, 1.0); i1.evaluate(immediate=T); stop(); }", 1, 590, "requires exactly", __LINE__);
+	
+	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.maxDistance=1.0; i1.setInteractionFunction('n', 5.0, -1.0); stop(); }", 1, 590, "must have a standard deviation parameter >= 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.maxDistance=1.0; i1.setInteractionFunction('c', 5.0, 0.0); stop(); }", 1, 590, "must have a scale parameter > 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.maxDistance=1.0; i1.setInteractionFunction('c', 5.0, -1.0); stop(); }", 1, 590, "must have a scale parameter > 0", __LINE__);
 	
 	// Test InteractionType – (float)strength(object<Individual> individuals1, [No<Individual> individuals2 = NULL])
 	if (!sex_seg_on)

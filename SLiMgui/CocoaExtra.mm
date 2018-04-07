@@ -23,6 +23,7 @@
 
 #include "eidos_rng.h"
 #include "mutation_type.h"
+#include "interaction_type.h"
 
 
 @implementation SLiMTableView
@@ -633,7 +634,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 @end
 
 
-@implementation SLiMMutationTypeDFEToolTipView
+@implementation SLiMFunctionGraphToolTipView
 
 - (void)drawRect:(NSRect)dirtyRect
 {
@@ -647,7 +648,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 	}
 	
 	NSRect bounds = [self bounds];
-	SLiMMutationTypeDFEToolTipWindow *tooltipWindow = (SLiMMutationTypeDFEToolTipWindow *)[self window];
+	SLiMFunctionGraphToolTipWindow *tooltipWindow = (SLiMFunctionGraphToolTipWindow *)[self window];
 	
 	// Frame and fill our label rect
 	[[NSColor colorWithCalibratedHue:0.0 saturation:0.0 brightness:0.95 alpha:1.0] set];
@@ -656,105 +657,167 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 	[[NSColor colorWithCalibratedHue:0.15 saturation:0.0 brightness:0.75 alpha:1.0] set];
 	NSFrameRect(bounds);
 	
-	NSRect graphRect = NSMakeRect(bounds.origin.x + 6, bounds.origin.x + 14, bounds.size.width - 12, bounds.size.height - 20);
-	
-	[[NSColor colorWithCalibratedHue:0.15 saturation:0.0 brightness:0.2 alpha:1.0] set];
-	NSRectFill(NSMakeRect(graphRect.origin.x, graphRect.origin.y, graphRect.size.width, 1));
-	
-	NSRectFill(NSMakeRect(graphRect.origin.x, graphRect.origin.y - 3, 1, 3));
-	NSRectFill(NSMakeRect(graphRect.origin.x + (graphRect.size.width - 1) * 0.125, graphRect.origin.y - 1, 1, 1));
-	NSRectFill(NSMakeRect(graphRect.origin.x + (graphRect.size.width - 1) * 0.25, graphRect.origin.y - 1, 1, 1));
-	NSRectFill(NSMakeRect(graphRect.origin.x + (graphRect.size.width - 1) * 0.375, graphRect.origin.y - 1, 1, 1));
-	NSRectFill(NSMakeRect(graphRect.origin.x + (graphRect.size.width - 1) * 0.5, graphRect.origin.y - 3, 1, 3));
-	NSRectFill(NSMakeRect(graphRect.origin.x + (graphRect.size.width - 1) * 0.625, graphRect.origin.y - 1, 1, 1));
-	NSRectFill(NSMakeRect(graphRect.origin.x + (graphRect.size.width - 1) * 0.75, graphRect.origin.y - 1, 1, 1));
-	NSRectFill(NSMakeRect(graphRect.origin.x + (graphRect.size.width - 1) * 0.875, graphRect.origin.y - 1, 1, 1));
-	NSRectFill(NSMakeRect(graphRect.origin.x + graphRect.size.width - 1, graphRect.origin.y - 3, 1, 3));
-	
-	// Draw all the values we will plot; we need our own private RNG so we don't screw up the simulation's.
-	// Drawing selection coefficients could raise, if they are type "s" and there is an error in the script,
-	// so we run the sampling inside a try/catch block; if we get a raise, we just show a "?" in the plot.
+	// Plan our plotting
 	MutationType *mut_type = [tooltipWindow mutType];
+	InteractionType *interaction_type = [tooltipWindow interactionType];
 	
-	if (!mut_type)
+	if ((!mut_type && !interaction_type) || (mut_type && interaction_type))
 		return;
 	
-	gsl_rng *save_rng = gEidos_rng;				// should be nullptr anyway, but being safe...
-	static gsl_rng *local_rng = nullptr;
+	int sample_size;
 	std::vector<double> draws;
 	bool draw_positive = false, draw_negative = false;
-	const int sample_size = (mut_type->dfe_type_ == DFEType::kScript) ? 100000 : 1000000;	// large enough to make curves pretty smooth, small enough to be reasonably fast
+	bool heights_negative = false;
+	double axis_min, axis_max;
+	bool draw_axis_midpoint = true, custom_axis_max = false;
 	
-	draws.reserve(sample_size);
-	
-	if (!local_rng)
-		local_rng = gsl_rng_alloc(gsl_rng_taus2);	// the assumption of taus2 is hard-coded in eidos_rng.h
-	
-	gEidos_rng = local_rng;
-	gsl_rng_set(local_rng, 10);		// arbitrary seed, but the same seed every time
-	//clock_t start = clock();
-	
-	try
+	if (mut_type)
 	{
-		for (int sample_count = 0; sample_count < sample_size; ++sample_count)
+		// Generate draws for a mutation type; this case is stochastic, based upon a large number of DFE samples.
+		// Draw all the values we will plot; we need our own private RNG so we don't screw up the simulation's.
+		// Drawing selection coefficients could raise, if they are type "s" and there is an error in the script,
+		// so we run the sampling inside a try/catch block; if we get a raise, we just show a "?" in the plot.
+		gsl_rng *save_rng = gEidos_rng;				// should be nullptr anyway, but being safe...
+		static gsl_rng *local_rng = nullptr;
+		
+		sample_size = (mut_type->dfe_type_ == DFEType::kScript) ? 100000 : 1000000;	// large enough to make curves pretty smooth, small enough to be reasonably fast
+		draws.reserve(sample_size);
+		
+		if (!local_rng)
+			local_rng = gsl_rng_alloc(gsl_rng_taus2);	// the assumption of taus2 is hard-coded in eidos_rng.h
+		
+		gEidos_rng = local_rng;
+		gsl_rng_set(local_rng, 10);		// arbitrary seed, but the same seed every time
+		
+		//clock_t start = clock();
+		
+		try
 		{
-			double draw = mut_type->DrawSelectionCoefficient();
-			
-			draws.push_back(draw);
-			
-			if (draw < 0.0)			draw_negative = true;
-			else if (draw > 0.0)	draw_positive = true;
+			for (int sample_count = 0; sample_count < sample_size; ++sample_count)
+			{
+				double draw = mut_type->DrawSelectionCoefficient();
+				
+				draws.push_back(draw);
+				
+				if (draw < 0.0)			draw_negative = true;
+				else if (draw > 0.0)	draw_positive = true;
+			}
+		}
+		catch (...)
+		{
+			draws.clear();
+			draw_negative = true;
+			draw_positive = true;
+		}
+		
+		//NSLog(@"Draws took %f seconds", (clock() - start) / (double)CLOCKS_PER_SEC);
+		
+		gEidos_rng = save_rng;
+		
+		// figure out axis limits
+		if (draw_negative && !draw_positive)
+		{
+			axis_min = -1.0;
+			axis_max = 0.0;
+		}
+		else if (draw_positive && !draw_negative)
+		{
+			axis_min = 0.0;
+			axis_max = 1.0;
+		}
+		else
+		{
+			axis_min = -1.0;
+			axis_max = 1.0;
 		}
 	}
-	catch (...)
+	else // if (interaction_type)
 	{
-		draws.clear();
-		draw_negative = true;
+		// Since interaction types are deterministic, we don't need draws; we will just calculate our
+		// bin heights directly below.
+		sample_size = 0;
+		draw_negative = false;
 		draw_positive = true;
-	}
-	
-	//NSLog(@"Draws took %f seconds", (clock() - start) / (double)CLOCKS_PER_SEC);
-	
-	gEidos_rng = save_rng;
-	
-	// Decide on the axis limits and draw the axis labels
-	double axis_min = -1.0, axis_max = 1.0;
-	
-	if (draw_negative && !draw_positive)
-	{
-		axis_min = -1.0;
-		axis_max = 0.0;
-	}
-	else if (draw_positive && !draw_negative)
-	{
 		axis_min = 0.0;
-		axis_max = 1.0;
+		if ((interaction_type->max_distance_ < 1.0) || std::isinf(interaction_type->max_distance_))
+		{
+			axis_max = 1.0;
+		}
+		else
+		{
+			axis_max = interaction_type->max_distance_;
+			draw_axis_midpoint = false;
+			custom_axis_max = true;
+		}
+		heights_negative = (interaction_type->if_param1_ < 0.0);	// this is a negative-strength interaction, if T
 	}
+	
+	// Draw the graph axes and ticks
+	NSRect graphRect = NSMakeRect(bounds.origin.x + 6, bounds.origin.y + (heights_negative ? 5 : 14), bounds.size.width - 12, bounds.size.height - 20);
+	CGFloat axis_y = (heights_negative ? graphRect.origin.y + graphRect.size.height - 1 : graphRect.origin.y);
+	CGFloat tickoff3 = (heights_negative ? 1 : -3);
+	CGFloat tickoff1 = (heights_negative ? 1 : -1);
+	
+	[[NSColor colorWithCalibratedHue:0.15 saturation:0.0 brightness:0.2 alpha:1.0] set];
+	NSRectFill(NSMakeRect(graphRect.origin.x, axis_y, graphRect.size.width, 1));
+	
+	NSRectFill(NSMakeRect(graphRect.origin.x, axis_y + tickoff3, 1, 3));
+	NSRectFill(NSMakeRect(graphRect.origin.x + (graphRect.size.width - 1) * 0.125, axis_y + tickoff1, 1, 1));
+	NSRectFill(NSMakeRect(graphRect.origin.x + (graphRect.size.width - 1) * 0.25, axis_y + tickoff1, 1, 1));
+	NSRectFill(NSMakeRect(graphRect.origin.x + (graphRect.size.width - 1) * 0.375, axis_y + tickoff1, 1, 1));
+	NSRectFill(NSMakeRect(graphRect.origin.x + (graphRect.size.width - 1) * 0.5, axis_y + tickoff3, 1, 3));
+	NSRectFill(NSMakeRect(graphRect.origin.x + (graphRect.size.width - 1) * 0.625, axis_y + tickoff1, 1, 1));
+	NSRectFill(NSMakeRect(graphRect.origin.x + (graphRect.size.width - 1) * 0.75, axis_y + tickoff1, 1, 1));
+	NSRectFill(NSMakeRect(graphRect.origin.x + (graphRect.size.width - 1) * 0.875, axis_y + tickoff1, 1, 1));
+	NSRectFill(NSMakeRect(graphRect.origin.x + graphRect.size.width - 1, axis_y + tickoff3, 1, 3));
+	
+	// Draw the axis labels
+	std::ostringstream ss;
+	ss << axis_max;
+	std::string ss_str = ss.str();
+	NSString *axis_max_pretty_string = [NSString stringWithUTF8String:ss_str.c_str()];
 	
 	NSString *axis_min_label = (axis_min == 0.0 ? @"0" : @"−1");
 	NSString *axis_half_label = (axis_min == 0.0 ? @"0.5" : (axis_max == 0.0 ? @"−0.5" : @"0"));
-	NSString *axis_max_label = (axis_max == 0.0 ? @"0" : @"1");
+	NSString *axis_max_label = (custom_axis_max ? axis_max_pretty_string : (axis_max == 0.0 ? @"0" : @"1"));
 	NSSize min_label_size = [axis_min_label sizeWithAttributes:labelAttrs];
 	NSSize half_label_size = [axis_half_label sizeWithAttributes:labelAttrs];
 	NSSize max_label_size = [axis_max_label sizeWithAttributes:labelAttrs];
 	double min_label_halfwidth = round(min_label_size.width / 2.0);
 	double half_label_halfwidth = round(half_label_size.width / 2.0);
 	double max_label_halfwidth = round(max_label_size.width / 2.0);
+	CGFloat label_y = (heights_negative ? bounds.origin.y + bounds.size.height - 12 : bounds.origin.y + 1);
 	
-	[axis_min_label drawAtPoint:NSMakePoint(bounds.origin.x + 7 - min_label_halfwidth, bounds.origin.y + 1) withAttributes:labelAttrs];
-	[axis_half_label drawAtPoint:NSMakePoint(bounds.origin.x + 38.5 - half_label_halfwidth, bounds.origin.y + 1) withAttributes:labelAttrs];
-	[axis_max_label drawAtPoint:NSMakePoint(bounds.origin.x + 70 - max_label_halfwidth, bounds.origin.y + 1) withAttributes:labelAttrs];
+	[axis_min_label drawAtPoint:NSMakePoint(bounds.origin.x + 7 - min_label_halfwidth, label_y) withAttributes:labelAttrs];
+	if (draw_axis_midpoint)
+		[axis_half_label drawAtPoint:NSMakePoint(bounds.origin.x + 38.5 - half_label_halfwidth, label_y) withAttributes:labelAttrs];
+	if (custom_axis_max)
+		[axis_max_label drawAtPoint:NSMakePoint(bounds.origin.x + 72 - round(max_label_size.width), label_y) withAttributes:labelAttrs];
+	else
+		[axis_max_label drawAtPoint:NSMakePoint(bounds.origin.x + 70 - max_label_halfwidth, label_y) withAttributes:labelAttrs];
 	
-	if (draws.size())
+	// If we had an exception while drawing values, just show a question mark and return
+	if (mut_type && !draws.size())
 	{
-		NSRect interiorRect = NSMakeRect(graphRect.origin.x, graphRect.origin.y + 2, graphRect.size.width, graphRect.size.height - 2);
+		NSString *questionMark = @"?";
+		NSSize q_size = [questionMark sizeWithAttributes:questionMarkAttrs];
+		double q_halfwidth = round(q_size.width / 2.0);
 		
-		// Tabulate the distribution from the samples we took; the math here is a bit subtle, because when we are doing a -1 to +1 axis
-		// we want those values to fall at bin centers, but when we're doing 0 to +1 or -1 to 0 we want 0 to fall at the bin edge.
-		int half_bin_count = (int)round(interiorRect.size.width);
-		int bin_count = half_bin_count * 2;								// 2x bins to look nice on Retina displays
-		int32_t *bins = (int32_t *)calloc(bin_count, sizeof(int32_t));
-		
+		[questionMark drawAtPoint:NSMakePoint(bounds.origin.x + bounds.size.width / 2.0 - q_halfwidth, bounds.origin.y + 22) withAttributes:questionMarkAttrs];
+		return;
+	}
+	
+	NSRect interiorRect = NSMakeRect(graphRect.origin.x, graphRect.origin.y + (heights_negative ? 0 : 2), graphRect.size.width, graphRect.size.height - 2);
+	
+	// Tabulate the distribution from the samples we took; the math here is a bit subtle, because when we are doing a -1 to +1 axis
+	// we want those values to fall at bin centers, but when we're doing 0 to +1 or -1 to 0 we want 0 to fall at the bin edge.
+	int half_bin_count = (int)round(interiorRect.size.width);
+	int bin_count = half_bin_count * 2;								// 2x bins to look nice on Retina displays
+	double *bins = (double *)calloc(bin_count, sizeof(double));
+	
+	if (sample_size)
+	{
+		// sample-based tabulation into a histogram; mutation types only, right now
 		for (int sample_count = 0; sample_count < sample_size; ++sample_count)
 		{
 			double sel_coeff = draws[sample_count];
@@ -770,42 +833,78 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 			if ((bin_index >= 0) && (bin_index < bin_count))
 				bins[bin_index]++;
 		}
-		
-		// If we only have samples equal to zero, replicate the center column for symmetry
-		if (!draw_positive && !draw_negative)
-		{
-			int32_t zero_count = std::max(bins[half_bin_count - 1], bins[half_bin_count]);	// whichever way it rounds...
-			
-			bins[half_bin_count - 1] = zero_count;
-			bins[half_bin_count] = zero_count;
-		}
-		
-		// Find the maximum bin count
-		int32_t max_bin = 0;
-		
-		for (int bin_index = 0; bin_index < bin_count; ++bin_index)
-			max_bin = std::max(max_bin, bins[bin_index]);
-		
-		// Plot the bins
-		[[NSColor colorWithCalibratedHue:0.15 saturation:0.0 brightness:0.0 alpha:1.0] set];
-		
-		for (int bin_index = 0; bin_index < bin_count; ++bin_index)
-		{
-			if (bins[bin_index] > 0)
-				NSRectFill(NSMakeRect(interiorRect.origin.x + bin_index * 0.5, interiorRect.origin.y, 0.5, interiorRect.size.height * (bins[bin_index] / (double)max_bin)));
-		}
-		
-		free(bins);
 	}
 	else
 	{
-		// We had an exception while drawing values, so we just show a question mark
-		NSString *questionMark = @"?";
-		NSSize q_size = [questionMark sizeWithAttributes:questionMarkAttrs];
-		double q_halfwidth = round(q_size.width / 2.0);
+		// non-sample-based construction of a function by evaluation; interaction types only, right now
+		double max_x = interaction_type->max_distance_;
 		
-		[questionMark drawAtPoint:NSMakePoint(bounds.origin.x + bounds.size.width / 2.0 - q_halfwidth, bounds.origin.y + 22) withAttributes:questionMarkAttrs];
+		for (int bin_index = 0; bin_index < bin_count; ++bin_index)
+		{
+			double bin_left = (bin_index / (double)bin_count) * axis_max;
+			double bin_right = ((bin_index + 1) / (double)bin_count) * axis_max;
+			double total_value = 0.0;
+			
+			for (int evaluate_index = 0; evaluate_index <= 999; ++evaluate_index)
+			{
+				double evaluate_x = bin_left + (bin_right - bin_left) / 999;
+				
+				if (evaluate_x < max_x)
+					total_value += interaction_type->CalculateStrengthNoCallbacks(evaluate_x);
+			}
+			
+			bins[bin_index] = total_value / 1000.0;
+		}
 	}
+	
+	// If we only have samples equal to zero, replicate the center column for symmetry
+	if (!draw_positive && !draw_negative)
+	{
+		double zero_count = std::max(bins[half_bin_count - 1], bins[half_bin_count]);	// whichever way it rounds...
+		
+		bins[half_bin_count - 1] = zero_count;
+		bins[half_bin_count] = zero_count;
+	}
+	
+	// Find the maximum-magnitude bin count
+	double max_bin = 0;
+	
+	if (heights_negative)
+	{
+		for (int bin_index = 0; bin_index < bin_count; ++bin_index)
+			max_bin = std::min(max_bin, bins[bin_index]);
+	}
+	else
+	{
+		for (int bin_index = 0; bin_index < bin_count; ++bin_index)
+			max_bin = std::max(max_bin, bins[bin_index]);
+	}
+	
+	// Plot the bins
+	[[NSColor colorWithCalibratedHue:0.15 saturation:0.0 brightness:0.0 alpha:1.0] set];
+	
+	if (heights_negative)
+	{
+		for (int bin_index = 0; bin_index < bin_count; ++bin_index)
+		{
+			if (bins[bin_index] < 0)
+			{
+				double height = interiorRect.size.height * (bins[bin_index] / max_bin);
+				
+				NSRectFill(NSMakeRect(interiorRect.origin.x + bin_index * 0.5, interiorRect.origin.y + interiorRect.size.height - height, 0.5, height));
+			}
+		}
+	}
+	else
+	{
+		for (int bin_index = 0; bin_index < bin_count; ++bin_index)
+		{
+			if (bins[bin_index] > 0)
+				NSRectFill(NSMakeRect(interiorRect.origin.x + bin_index * 0.5, interiorRect.origin.y, 0.5, interiorRect.size.height * (bins[bin_index] / max_bin)));
+		}
+	}
+	
+	free(bins);
 }
 
 - (BOOL)isOpaque
@@ -815,7 +914,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 
 @end
 
-@implementation SLiMMutationTypeDFEToolTipWindow
+@implementation SLiMFunctionGraphToolTipWindow
 
 // makes a new marker with no label and no tip point, not shown
 + (instancetype)new
@@ -833,13 +932,14 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 		[self setOpaque:NO];
 		[self setBackgroundColor:[NSColor clearColor]];
 		
-		SLiMMutationTypeDFEToolTipView *view = [[SLiMMutationTypeDFEToolTipView alloc] initWithFrame:contentRect];
+		SLiMFunctionGraphToolTipView *view = [[SLiMFunctionGraphToolTipView alloc] initWithFrame:contentRect];
 		
 		[self setContentView:view];
 		[view release];
 		
 		_tipPoint = NSMakePoint(contentRect.origin.x, contentRect.origin.y);
 		_mutType = nullptr;
+		_interactionType = nullptr;
 	}
 	
 	return self;
@@ -850,6 +950,16 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 	if (_mutType != mutType)
 	{
 		_mutType = mutType;
+		
+		[[self contentView] setNeedsDisplay:YES];
+	}
+}
+
+- (void)setInteractionType:(InteractionType *)interactionType
+{
+	if (_interactionType != interactionType)
+	{
+		_interactionType = interactionType;
 		
 		[[self contentView] setNeedsDisplay:YES];
 	}
