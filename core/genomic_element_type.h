@@ -39,6 +39,8 @@
 #include "eidos_value.h"
 #include "slim_eidos_dictionary.h"
 
+class SLiMSim;
+
 
 extern EidosObjectClass *gSLiM_GenomicElementType_Class;
 
@@ -54,6 +56,8 @@ private:
 	
 public:
 	
+	SLiMSim &sim_;														// We have a reference back to our simulation, for flipping changed flags and such
+	
 	slim_objectid_t genomic_element_type_id_;							// the id by which this genomic element type is indexed in the chromosome
 	EidosValue_SP cached_value_getype_id_;								// a cached value for genomic_element_type_id_; reset() if that changes
 	
@@ -68,7 +72,7 @@ public:
 	GenomicElementType(const GenomicElementType&) = delete;				// no copying
 	GenomicElementType& operator=(const GenomicElementType&) = delete;	// no copying
 	GenomicElementType(void) = delete;									// no null construction
-	GenomicElementType(slim_objectid_t p_genomic_element_type_id, std::vector<MutationType*> p_mutation_type_ptrs, std::vector<double> p_mutation_fractions);
+	GenomicElementType(SLiMSim &p_sim, slim_objectid_t p_genomic_element_type_id, std::vector<MutationType*> p_mutation_type_ptrs, std::vector<double> p_mutation_fractions);
 	~GenomicElementType(void);
 	
 	void InitializeDraws(void);									// reinitialize our mutation-type lookup after changing our mutation type or proportions

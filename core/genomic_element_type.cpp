@@ -33,8 +33,8 @@
 #pragma mark GenomicElementType
 #pragma mark -
 
-GenomicElementType::GenomicElementType(slim_objectid_t p_genomic_element_type_id, std::vector<MutationType*> p_mutation_type_ptrs, std::vector<double> p_mutation_fractions) :
-	genomic_element_type_id_(p_genomic_element_type_id), mutation_type_ptrs_(p_mutation_type_ptrs), mutation_fractions_(p_mutation_fractions),
+GenomicElementType::GenomicElementType(SLiMSim &p_sim, slim_objectid_t p_genomic_element_type_id, std::vector<MutationType*> p_mutation_type_ptrs, std::vector<double> p_mutation_fractions) :
+	sim_(p_sim), genomic_element_type_id_(p_genomic_element_type_id), mutation_type_ptrs_(p_mutation_type_ptrs), mutation_fractions_(p_mutation_fractions),
 	self_symbol_(Eidos_GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('g', p_genomic_element_type_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_GenomicElementType_Class)))
 {
 	InitializeDraws();
@@ -239,6 +239,10 @@ void GenomicElementType::SetProperty(EidosGlobalStringID p_property_id, const Ei
 			color_ = p_value.StringAtIndex(0, nullptr);
 			if (!color_.empty())
 				Eidos_GetColorComponents(color_, &color_red_, &color_green_, &color_blue_);
+			
+			// tweak a flag to make SLiMgui update
+			sim_.genomic_element_types_changed_ = true;
+			
 			return;
 		}
 		case gID_tag:
@@ -270,6 +274,7 @@ EidosValue_SP GenomicElementType::ExecuteInstanceMethod(EidosGlobalStringID p_me
 EidosValue_SP GenomicElementType::ExecuteMethod_setMutationFractions(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
 	EidosValue *mutationTypes_value = p_arguments[0].get();
 	EidosValue *proportions_value = p_arguments[1].get();
 	
@@ -284,7 +289,6 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationFractions(EidosGlobal
 	
 	for (int mut_type_index = 0; mut_type_index < mut_type_id_count; ++mut_type_index)
 	{ 
-		SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
 		MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutationTypes_value, mut_type_index, sim, "setMutationFractions()");
 		double proportion = proportions_value->FloatAtIndex(mut_type_index, nullptr);
 		
@@ -308,6 +312,9 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationFractions(EidosGlobal
 	
 	// Reinitialize our mutation type lookup based on the new info
 	InitializeDraws();
+	
+	// Notify interested parties of the change
+	sim.genomic_element_types_changed_ = true;
 	
 	return gStaticEidosValueVOID;
 }
