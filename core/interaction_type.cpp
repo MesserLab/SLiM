@@ -5176,6 +5176,11 @@ EidosValue_SP InteractionType::ExecuteMethod_setInteractionFunction(EidosGlobalS
 	if_param1_ = ((if_parameters.size() >= 1) ? if_parameters[0] : 0.0);
 	if_param2_ = ((if_parameters.size() >= 2) ? if_parameters[1] : 0.0);
 	
+	// mark that interaction types changed, so they get redisplayed in SLiMgui
+	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
+	
+	sim.interaction_types_changed_ = true;
+	
 	return gStaticEidosValueVOID;
 }
 

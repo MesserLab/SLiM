@@ -87,6 +87,12 @@
 	IBOutlet NSTableColumn *genomicElementTypeColorColumn;
 	IBOutlet NSTableColumn *genomicElementTypeMutationTypesColumn;
 	
+	IBOutlet NSTableView *interactionTypeTableView;
+	IBOutlet NSTableColumn *interactionTypeIDColumn;
+	IBOutlet NSTableColumn *interactionTypeMaxDistanceColumn;
+	IBOutlet NSTableColumn *interactionTypeIFTypeColumn;
+	IBOutlet NSTableColumn *interactionTypeIFParamsColumn;
+	
 	IBOutlet NSTableView *scriptBlocksTableView;
 	IBOutlet NSTableColumn *scriptBlocksIDColumn;
 	IBOutlet NSTableColumn *scriptBlocksStartColumn;
@@ -184,7 +190,7 @@
 	// Misc
 	bool observingKeyPaths;
 	
-	SLiMMutationTypeDFEToolTipWindow *mutTypeToolTipWindow;
+	SLiMFunctionGraphToolTipWindow *functionGraphToolTipWindow;		// for previews of muttype DFEs or interaction type IFs
 }
 
 + (NSColor *)blackContrastingColorForIndex:(int)index;

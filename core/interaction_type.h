@@ -119,6 +119,12 @@ class InteractionType : public SLiMEidosDictionary
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	
+#ifdef SLIMGUI
+public:
+#else
+private:
+#endif
+	
 	EidosSymbolTableEntry self_symbol_;							// for fast setup of the symbol table
 	
 	std::string spatiality_string_;				// can be "x", "y", "z", "xy", "xz", "yz", or "xyz"; this determines spatiality_

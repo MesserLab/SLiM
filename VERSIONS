@@ -58,6 +58,7 @@ development head (nonWF branch):
 	fix a display bug in SLiMgui on Retina displays
 	extend spatial point-processing methods (pointInBounds(), point[Periodic/Reflected/Stopped/Uniform], setSpatialPosition()) to be vectorized
 	add bounds-checking for MutationType DFE parameters and InteractionType IF parameters
+	display interaction types in the tableview drawer in SLiMgui, with a hover preview of the interaction function, as with mutation types
 
 
 2.6 (build 1292; Eidos version 1.6):
