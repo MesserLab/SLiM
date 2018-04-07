@@ -198,13 +198,6 @@ private:
 	
 	slim_position_t last_genomic_element_position_ = -1;	// used to check new genomic elements for consistency
 	
-	// change flags; used only by SLiMgui, to know that something has changed and a UI update is needed; start as true to provoke an initial display
-	bool interaction_types_changed_ = true;
-	bool mutation_types_changed_ = true;
-	bool genomic_element_types_changed_ = true;
-	bool chromosome_changed_ = true;
-	bool scripts_changed_ = true;
-	
 	// pedigree tracking: off by default, optionally turned on at init time to enable calls to TrackPedigreeWithParents()
 	bool pedigrees_enabled_ = false;
 	bool pedigrees_enabled_by_user_ = false;	// pedigree tracking is turned on as a side effect of tree sequence recording, but that shouldn't be user-visible
@@ -290,6 +283,13 @@ public:
 	// these ivars are set around callbacks so we know what type of callback we're in, to prevent illegal operations during callbacks
 	SLiMEidosBlockType executing_block_type_ = SLiMEidosBlockType::SLiMEidosNoBlockType;	// the innermost callback type we're executing now
 	Individual *focal_modification_child_;					// set during a modifyChild() callback to indicate the child being modified
+	
+	// change flags; used only by SLiMgui, to know that something has changed and a UI update is needed; start as true to provoke an initial display
+	bool interaction_types_changed_ = true;
+	bool mutation_types_changed_ = true;
+	bool genomic_element_types_changed_ = true;
+	bool chromosome_changed_ = true;
+	bool scripts_changed_ = true;
 	
 	SLiMSim(const SLiMSim&) = delete;												// no copying
 	SLiMSim& operator=(const SLiMSim&) = delete;									// no copying

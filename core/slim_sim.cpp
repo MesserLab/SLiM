@@ -4060,7 +4060,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElementType(const
 		}
 	}
 	
-	GenomicElementType *new_genomic_element_type = new GenomicElementType(map_identifier, mutation_types, mutation_fractions);
+	GenomicElementType *new_genomic_element_type = new GenomicElementType(*this, map_identifier, mutation_types, mutation_fractions);
 	genomic_element_types_.insert(std::pair<const slim_objectid_t,GenomicElementType*>(map_identifier, new_genomic_element_type));
 	genomic_element_types_changed_ = true;
 	
@@ -4158,7 +4158,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeInteractionType(const st
 	if (((receiver_sex != IndividualSex::kUnspecified) || (exerter_sex != IndividualSex::kUnspecified)) && !sex_enabled_)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeInteractionType): initializeInteractionType() sexSegregation value other than '**' unsupported in non-sexual simulation." << EidosTerminate();
 	
-	InteractionType *new_interaction_type = new InteractionType(map_identifier, spatiality_string, reciprocal, max_distance, receiver_sex, exerter_sex);
+	InteractionType *new_interaction_type = new InteractionType(*this, map_identifier, spatiality_string, reciprocal, max_distance, receiver_sex, exerter_sex);
 	
 	interaction_types_.insert(std::pair<const slim_objectid_t,InteractionType*>(map_identifier, new_interaction_type));
 	interaction_types_changed_ = true;

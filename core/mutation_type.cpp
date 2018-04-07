@@ -541,6 +541,7 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 			// become invalid.  We set a flag here to indicate that values that depend on us need to be recached.
 			dominance_coeff_changed_ = true;
 			sim_.any_dominance_coeff_changed_ = true;
+			sim_.mutation_types_changed_ = true;
 			
 			return;
 		}
