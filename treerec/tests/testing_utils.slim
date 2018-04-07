@@ -19,7 +19,34 @@ function (void)initializeMarks(i$ num_marks)
     return;
 }
 
-function (void)outputMutationResult([s$ outputFile="test_output/TESToutput.txt"]) {
+function (void)outputMutationResult([s$ outputFile="test_output/slim_mutation_output.txt"]) {
+    /* * *
+     * For each individual, output 
+     * a list of mutations, and
+     * a list of positions of those mutations.
+     * * */
+    sim.treeSeqOutput("test_output", binary=F, simplify=T);
+    sim.treeSeqOutput("test_output/test_output.treeseq", binary=T, simplify=T);
+    sim.treeSeqOutput("test_output/test_output.unsimplified.treeseq", binary=T, simplify=F);
+    for (pop in sim.subpopulations) {
+        for (ind in pop.individuals) {
+            pedID = ind.pedigreeID;
+            for(k in seqAlong(ind.genomes)){
+                genome = ind.genomes[k];
+                genomeID = (2 * pedID) + k;
+                writeFile(outputFile, "#Genome: " + paste(genomeID), append=T);
+                writeFile(outputFile, "Mutations: " + paste(genome.mutations.id), append=T);
+                writeFile(outputFile, "Positions: " + paste(genome.mutations.position), append=T);
+            }
+        }
+    }
+}
+
+function (void)outputMutationTypes([s$ outputFile="test_output/slim_mutation_output.txt"]) {
+    /* * *
+    * For each mutation type, output at each position the list of genomes
+    * that have inherited a mutation of that type at that position
+    *  * */
     sim.treeSeqOutput("test_output", binary=F, simplify=T);
     for(Mut in sim.mutationTypes){
         for(Pos in 0:sim.chromosome.lastPosition){

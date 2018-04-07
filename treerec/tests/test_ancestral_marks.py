@@ -1,6 +1,39 @@
 import msprime
 import unittest
 
+def read_test_mutation_output(filename="test_output/slim_mutation_output.txt"):
+    # Read in the genotypes output by the SLiM function outputMutationResult(),
+    # producing a dictionary indexed by position,
+    # whose values are dictionaries indexed by SLiM genome ID, giving the genotype
+    # at that position in that genome
+    slim_file = open(filename, "r")
+    slim = {}
+    for header in slim_file:
+        headstring, genstring = header.split()
+        assert headstring == "#Genome:"
+        genome = int(genstring)
+        mutations = slim_file.readline().split()
+        assert mutations[0] == "Mutations:"
+        mutations = [int(u) for u in mutations[1:]]
+        positions = slim_file.readline().split()
+        assert positions[0] == "Positions:"
+        positions = [int(u) for u in positions[1:]]
+        for pos, mut in zip(positions, mutations):
+            if pos not in slim:
+                slim[pos] = {}
+            slim[pos][genome] = mut
+    return slim
+
+def get_slim_ids(ts):
+    # get SLiM ID -> msprime ID map from metadata
+    ids = {}
+    for n in ts.nodes():
+        meta = n.metadata.decode('utf8')
+        assert meta[:7] == "SLiMID="
+        slim_id = int(n.metadata.decode('utf8').strip().split("=")[1])
+        ids[slim_id] = n.id
+    return ids
+
 
 class TestSlimSim(unittest.TestCase):
 
@@ -32,49 +65,46 @@ class TestSlimSim(unittest.TestCase):
                                sites=site_file, mutations=mutation_file,
                                base64_metadata=False)
 
-        # get SLiM ID -> msprime ID map from metadata
-        ids = {}
-        for n in ts.nodes():
-            meta = n.metadata.decode('utf8')
-            self.assertEqual(meta[:7], "SLiMID=")
-            slim_id = int(n.metadata.decode('utf8').strip().split("=")[1])
-            ids[slim_id] = n.id
-            print(n.id)
-        print(ids)
-        # iterate through SLiM output information
-        slim_file = open("test_output/TESToutput.txt", "r")
+        # this is a dictionary of SLiM -> msprime ID (from metadata in nodes)
+        ids = get_slim_ids(ts)
+        slim_ids = list(ids.keys())
+        msp_ids = list(ids.values())
+        msp_samples = ts.samples()
+        # this contains the genotype information output by SLiM:
+        #  indexed by position, then SLiM ID
+        slim = read_test_mutation_output(filename="test_output/slim_mutation_output.txt")
 
-        # slim will be indexed by position,
-        # and contain a dict indexed by mutation type giving the indivs
-        # inheriting that mut at that position
-        slim = []
-
-        for header in slim_file:
-            self.assertEqual(header[0:12], "MutationType")
-            mut, pos = header[12:].split()
-            pos = int(pos)
-            if pos == len(slim):
-                slim.append({})
-            slim_ids = [int(u) for u in slim_file.readline().split()]
-            for u in slim_ids:
-                self.assertTrue(u in ids)
-            slim[pos][mut] = [ids[u] for u in slim_ids]
-
-
-        # test these agree
-        pos = 0
-        for t in ts.trees():
-            # get partition of leaves from this tree, using SLiM IDs
-            print(t.draw(format="unicode",height = 200))
-            print("left:", t.interval[0], "right:", t.interval[1])
-            fams = {}
-            for x in t.nodes():
-                u = x
-                while t.parent(u) != msprime.NULL_NODE:
-                    u = t.parent(u)
-                fams[x] = u
-            while pos < t.interval[1]:
-                print("pos:", pos, "------------")
-                self.check_consistency(fams, slim[pos])
+        pos = -1
+        for var in ts.variants():
+            print("----")
+            print(var)
+            pos += 1
+            while pos < int(var.position):
+                # invariant sites: no genotypes
+                self.assertTrue(pos not in slim)
                 pos += 1
+            print("pos:", pos)
+            for j in slim_ids:
+                if ids[j] in msp_samples:
+                    if (pos not in slim) or (j not in slim[pos]):
+                        # no mutations at this site
+                        self.assertEqual(var.alleles[var.genotypes[ids[j]]], '')
+                    else:
+                        self.assertEqual(var.alleles[var.genotypes[ids[j]]], str(slim[pos][j]))
 
+# class dontTestSlimSimWithoutMutations(unittest.TestCase):
+#     for t in ts.trees():
+#         # get partition of leaves from this tree, using SLiM IDs
+#         print(t.draw(format="unicode",height = 200))
+#         print("left:", t.interval[0], "right:", t.interval[1])
+#         fams = {}
+#         for x in t.nodes():
+#             u = x
+#             while t.parent(u) != msprime.NULL_NODE:
+#                 u = t.parent(u)
+#             fams[x] = u
+#         while pos < t.interval[1]:
+#             print("pos:", pos, "------------")
+#             self.check_consistency(fams, slim[pos])
+#             pos += 1
+# 
