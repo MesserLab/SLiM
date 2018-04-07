@@ -1,5 +1,4 @@
-import msprime
-import unittest
+from testutils import *
 
 def read_test_mutation_output(filename="test_output/slim_mutation_output.txt"):
     # Read in the genotypes output by the SLiM function outputMutationResult(),
@@ -24,18 +23,8 @@ def read_test_mutation_output(filename="test_output/slim_mutation_output.txt"):
             slim[pos][genome] = mut
     return slim
 
-def get_slim_ids(ts):
-    # get SLiM ID -> msprime ID map from metadata
-    ids = {}
-    for n in ts.nodes():
-        meta = n.metadata.decode('utf8')
-        assert meta[:7] == "SLiMID="
-        slim_id = int(n.metadata.decode('utf8').strip().split("=")[1])
-        ids[slim_id] = n.id
-    return ids
 
-
-class TestSlimSim(unittest.TestCase):
+class TestWithMutations(unittest.TestCase):
 
     def get_ts(self):
         # read in from text
@@ -88,39 +77,3 @@ class TestSlimSim(unittest.TestCase):
                         else:
                             self.assertEqual(var.alleles[var.genotypes[ids[j]]], str(slim[pos][j]))
 
-
-
-# class dontTestSlimSimWithoutMutations(unittest.TestCase):
-#
-#   def check_consistency(self, x, y):
-#       # here y is an iterable of disjoint lists of ids (determined by indivs
-#       # who share mutations in SLiM) and x is a dict whose keys are ids and
-#       # whose values are labels (the roots in msprime); check that any two
-#       # ids in the same element of y have the same label in x
-#       all_ids = []
-#       for a in y:
-#           if len(y[a]) > 0:
-#               a_labels = []
-#               for u in y[a]:
-#                   self.assertTrue(u in x)
-#                   self.assertTrue(u not in all_ids)
-#                   all_ids.append(u)
-#                   a_labels.append(x[u])
-#               print('IDs sharing mutation', a, ":", y[a])
-#               print('labels of roots in from tree:', a_labels)
-#               self.assertEqual(len(set(a_labels)), 1)
-#     for t in ts.trees():
-#         # get partition of leaves from this tree, using SLiM IDs
-#         print(t.draw(format="unicode",height = 200))
-#         print("left:", t.interval[0], "right:", t.interval[1])
-#         fams = {}
-#         for x in t.nodes():
-#             u = x
-#             while t.parent(u) != msprime.NULL_NODE:
-#                 u = t.parent(u)
-#             fams[x] = u
-#         while pos < t.interval[1]:
-#             print("pos:", pos, "------------")
-#             self.check_consistency(fams, slim[pos])
-#             pos += 1
-# 

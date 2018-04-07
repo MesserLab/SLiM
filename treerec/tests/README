@@ -1,6 +1,6 @@
 To add a new test:
 
-1. Put the recipe in the `testRecipes/` directory, with a filename like `test_XXX.slim`.
+1. Put the recipe in the `testMutationRecipes/` or `testNoMutationRecipes/` directory, with a filename like `test_XXX.slim`.
 2. Add the additional necessary stuff, like `source("testing_utils.slim");` : see examples.
 
 To temporarily turn off a test, just add e.g. `dont_` to the start of its file name.
