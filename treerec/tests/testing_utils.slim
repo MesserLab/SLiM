@@ -1,4 +1,4 @@
-// Note setup at the end
+// Note call to initializeTreeSeq at the end.
 
 function (void)initializeMarkedMutations(i$ num_marks)
 {
@@ -86,8 +86,4 @@ function (void)outputMutationTypes([s$ outputFile="test_output/slim_no_mutation_
     return;
 }
 
-// SETUP WHATNOT
-
 initializeTreeSeq();
-defineConstant("n_marks",20);   // number of marked genomes
-initializeMarkedMutations(n_marks);

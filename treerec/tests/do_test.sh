@@ -24,19 +24,30 @@ do
 	rm -f test_output/*
 
     echo "Now testing SLiM Recipe: $RECIPE"
- 	../../bin/slim -s 22 $RECIPE &> test_output/SLiM_run_output.log
+    ../../bin/slim -s 22 $RECIPE &> test_output/SLiM_run_output.log || (echo "SLiM error" && exit 1)
+
+    TESTED="no"
 
     if [ -e "test_output/slim_no_mutation_output.txt" ]
     then
         echo "  Testing no-mutation output."
         python3 -m nose test_no_mutation_output.py || exit 1
+        TESTED="yes"
     fi
 
     if [ -e "test_output/slim_mutation_output.txt" ]
     then
         echo "  Testing with-mutation output."
         python3 -m nose test_mutation_output.py || exit 1
+        TESTED="yes"
+    fi
+
+    if [ "$TESTED" = "no" ]
+    then
+        echo "    ERROR: no test output."
+        exit 1
     fi
 
 done
 
+exit 0

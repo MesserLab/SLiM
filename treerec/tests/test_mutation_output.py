@@ -28,11 +28,6 @@ class TestWithMutations(TestSlimOutput):
                 slim[pos][genome].append(mut)
         return slim
 
-    def check_no_multiple_mutations(self, ts):
-        # there should be at most one mutation per branch
-        mut_locs = [(m.position, m.node) for m in ts.mutations()]
-        self.assertEqual(len(mut_locs), len(set(mut_locs)))
-
     def get_ts(self):
         # read in from text
         node_file = open("test_output/NodeTable.txt", "r")
@@ -59,7 +54,6 @@ class TestWithMutations(TestSlimOutput):
     def test_ts_slim_consistency(self):
         # load tree sequence
         for ts in self.get_ts():
-            self.check_no_multiple_mutations(ts)
             # this is a dictionary of SLiM -> msprime ID (from metadata in nodes)
             ids = self.get_slim_ids(ts)
             slim_ids = list(ids.keys())

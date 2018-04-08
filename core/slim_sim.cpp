@@ -3828,8 +3828,7 @@ void SLiMSim::SetCurrentNewIndividual(Individual *p_individual)
 	// not be completely initialized yet; it may not know its sex, and its genomes may not know their types, and so forth.  If that needs to
 	// be fixed, it should be reasonably straightforward to do so.  For now, the only information guaranteed valid is the pedigree IDs.
 
-	//DEBUG STDOUT PRINTING
-	/*
+	//DEBUG STDOUT PRINTING /*
 	slim_pedigreeid_t ind_pid = p_individual->PedigreeID();
 	slim_pedigreeid_t p1_pid = p_individual->Parent1PedigreeID();
 	slim_pedigreeid_t p2_pid = p_individual->Parent2PedigreeID();
@@ -3837,7 +3836,7 @@ void SLiMSim::SetCurrentNewIndividual(Individual *p_individual)
 	std::cout << "--------------------------------------------------" << std::endl << std::endl;
 		
 	std::cout << Generation() << ": New individual created, pedigree id " << ind_pid << " (parents: " << p1_pid << ", " << p2_pid << ")" << std::endl << std::endl;
-	*/
+	// */
 	
     table_collection_set_position(&table_position);
 }
@@ -3869,13 +3868,11 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_
 
 	node_id_t offspringMSPID;			//MSPrime equivilent of germ cell ID (Node returned from MSPrime)
 
-	//DEBUG STDOUT PRINTING
-    /*
+	//DEBUG STDOUT PRINTING /*
   	std::cout << "------------" << std::endl;	
-	std::cout << "generation: " << Generation() << " -- and tree_seq_generation  " << tree_seq_generation << std::endl;
-	std::cout << "     Reference to individual: " << CurrentTreeSequenceIndividual->PedigreeID() << std::endl; 
-  	std::cout << "     " << (!FirstRecombinationCalled ? "first recomb" : "second recomb") << ", Reference to individual: " << std::endl;
-    */
+	std::cout << "generation: " << Generation() << " -- and tree_seq_generation  " << tree_seq_generation_ << std::endl;
+    std::cout << "New genome: " << p_new_genome_id << std::endl;
+    // */
 
 	//add genome node
 	double time = (double) -1 * tree_seq_generation_;
@@ -3954,8 +3951,7 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
     // must not keep a pointer to it; any information that needs to be kept
     // from it must be copied out.
 
-	//DEBUG STDOUT PRINTING
-    /*
+	//DEBUG STDOUT PRINTING /*
 	std::cout << tree_seq_generation_ << ":   New derived state for genome id " << p_genome_id << " at position " << p_position << ":";
 	
 	if (p_derived_mutations.size()) {
@@ -3969,7 +3965,7 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
 
     node_id_t genomeMSPID = getMSPID(p_genome_id);
 
-    // add new site
+    // add new site (if necessary?)
     site_id_t site_id;
 
     std::unordered_map<slim_position_t, site_id_t>::const_iterator site_iter = current_sites.find(p_position);
@@ -3985,6 +3981,23 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
         site_id = site_iter->second;
     }
 
+    // DEBUG STDOUT
+    std::cout << ":    Working at site " << site_id << std::endl;
+    std::cout << ":    parent mutations? ";
+
+    // identify any previous mutations at this site in this genome
+    // note if we don't look up sites we'll have to compare positions
+    mutation_id_t parent_mut_id = MSP_NULL_MUTATION;
+    table_size_t j = table_position.mutation_position + 1;
+    while (j < tables.mutations.num_rows) {
+        std::cout << " " << j;
+        if (tables.mutations.site[j] == site_id) {
+            parent_mut_id = j;
+        }
+        j++;
+    }
+    std::cout << " :: parent : " << parent_mut_id << std::endl;
+
     // form derived state: needs to be a const char*
     char *derived_muts_bytes = (char *)(p_derived_mutations.data());
     size_t derived_state_length = p_derived_mutations.size() * sizeof(slim_mutationid_t);
@@ -3992,7 +4005,7 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
     // we don't record parent mutations; they are added later
     // the last (NULL, 0) is metadata
     tree_return_value_ = mutation_table_add_row(&tables.mutations, site_id, genomeMSPID, 
-                            MSP_NULL_MUTATION, derived_muts_bytes, derived_state_length, NULL, 0);
+                            parent_mut_id, derived_muts_bytes, derived_state_length, NULL, 0);
 
 	if (tree_return_value_ < 0) {
 		handle_error("add_mutation", tree_return_value_);
