@@ -3,7 +3,7 @@ from testutils import *
 class TestNoMutations(TestSlimOutput):
 
     def read_no_mutation_output(self, ids,
-                                filename="test_output/slim_mutation_output.txt"):
+                                filename="test_output/slim_no_mutation_output.txt"):
             # slim will be indexed by position,
             # and contain a dict indexted by mutation type giving the indivs
             # inheriting that mut at that position
@@ -64,9 +64,7 @@ class TestNoMutations(TestSlimOutput):
         for ts in self.get_ts():
             # this is a dictionary of SLiM -> msprime ID (from metadata in nodes)
             ids = self.get_slim_ids(ts)
-            slim = self.read_no_mutation_output(ids,
-                                 filename="test_output/slim_mutation_output.txt")
-
+            slim = self.read_no_mutation_output(ids)
             pos = 0
             for t in ts.trees():
                 # get partition of leaves from this tree, using SLiM IDs

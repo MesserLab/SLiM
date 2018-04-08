@@ -262,6 +262,9 @@ msp_strerror(int err)
         case MSP_ERR_CONTRADICTORY_ANCESTRAL_STATES:
             ret = "More than one site record with the same position but different ancestral states.";
             break;
+        case MSP_ERR_BAD_TABLE_POSITION:
+            ret = "Table collection position is negative or larger than current number of rows.";
+            break;
         case MSP_ERR_BAD_OFFSET:
             ret = "Bad offset provided in input array.";
             break;

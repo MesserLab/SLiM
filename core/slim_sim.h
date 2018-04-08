@@ -260,6 +260,7 @@ private:
 	// TABLE IVARS
 	int tree_return_value_;
 	table_collection_t tables;
+	table_collection_position_t table_position;
 	
 	// TABLE SIMPLIFICATION
     std::vector<node_id_t> RememberedGenomes;
