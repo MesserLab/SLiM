@@ -4681,11 +4681,18 @@ out:
 }
 
 /* Table collection position */
+void
+table_collection_init_position(table_collection_position_t *position,
+    table_collection_t *tables)
+{
+    position->tables = tables;
+    table_collection_set_position(position);
+}
 
 void
 table_collection_set_position(table_collection_position_t *position)
 {
-    /* Record the current "end" position of a table collection, 
+    /* Record the current "end" position of a table collection,
      * which is the current last row in each table.
      * */
 
@@ -4702,27 +4709,27 @@ table_collection_reset_position(table_collection_position_t *position)
     int ret = 0;
 
     /* "Reset" a table collection to the previously recorded position. */
-    ret = node_table_reset_position(&(position->tables->nodes), 
+    ret = node_table_reset_position(&(position->tables->nodes),
                                     position->node_position);
     if (ret != 0) {
         goto out;
     }
-    ret = edge_table_reset_position(&(position->tables->edges), 
+    ret = edge_table_reset_position(&(position->tables->edges),
                                     position->edge_position);
     if (ret != 0) {
         goto out;
     }
-    ret = migration_table_reset_position(&(position->tables->migrations), 
+    ret = migration_table_reset_position(&(position->tables->migrations),
                                          position->migration_position);
     if (ret != 0) {
         goto out;
     }
-    ret = site_table_reset_position(&(position->tables->sites), 
+    ret = site_table_reset_position(&(position->tables->sites),
                                     position->site_position);
     if (ret != 0) {
         goto out;
     }
-    ret = mutation_table_reset_position(&(position->tables->mutations), 
+    ret = mutation_table_reset_position(&(position->tables->mutations),
                                     position->mutation_position);
     if (ret != 0) {
         goto out;

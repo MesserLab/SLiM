@@ -3771,6 +3771,9 @@ void SLiMSim::SimplifyTreeSequence(void){
         current_sites.insert(std::pair<slim_position_t, site_id_t>(tables.sites.position[i], (site_id_t) i));
     }
 
+    // reset current position
+    table_collection_set_position(&table_position);
+
 	simplify_elapsed_ = 0;
 }
 
@@ -3804,6 +3807,8 @@ void SLiMSim::StartTreeRecording(void)
         /* NB: must set the sequence_length !! */
         tables.sequence_length = (double)chromosome_.last_position_ + 1;
 
+    table_collection_init_position(&table_position, &tables);
+
 	std::cout << "succesfully allocated tables" << std::endl;
 			
 	
@@ -3834,8 +3839,7 @@ void SLiMSim::SetCurrentNewIndividual(Individual *p_individual)
 	std::cout << Generation() << ": New individual created, pedigree id " << ind_pid << " (parents: " << p1_pid << ", " << p2_pid << ")" << std::endl << std::endl;
 	*/
 	
-	// This call now does nothing, but we will want to save off any information necessary
-	// to make RetractNewIndividual() work, such as the current row in various tables...
+    table_collection_set_position(&table_position);
 }
 
 void SLiMSim::RetractNewIndividual()
@@ -3845,6 +3849,8 @@ void SLiMSim::RetractNewIndividual()
 	// to back those changes out by re-setting the active row index for the tables.
 	
 	std::cout << tree_seq_generation_ << ": Retracting new individual." << std::endl;
+
+    table_collection_reset_position(&table_position);
 }
 
 void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_genomeid_t p_new_genome_id, slim_genomeid_t p_initial_parental_genome_id, slim_genomeid_t p_second_parental_genome_id)
@@ -3880,7 +3886,7 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_
 	osids = "SLiMID="+osids;
 	size_t size = osids.length();
 	const char *offspring_SLiMID_Const = osids.c_str();
-	
+
 	offspringMSPID = node_table_add_row(&tables.nodes,flags,time,0,offspring_SLiMID_Const,size);
     SLiM_MSP_Id_Map[p_new_genome_id] = (node_id_t) offspringMSPID;
 	
