@@ -1,6 +1,7 @@
 initialize() {
 
     initializeSLiMModelType("nonWF");
+	initializeSex('A');
 
     // TREE SEQUENCE TEST OUTPUT
     source("testing_utils.slim");
@@ -20,8 +21,8 @@ initialize() {
     initializeRecombinationRate(0.1);
 }
 
-reproduction() {
-    subpop.addCrossed(individual,subpop.sampleIndividuals(1));
+reproduction(NULL,"F") {
+    subpop.addCrossed(individual,subpop.sampleIndividuals(1, sex="M"));
     return NULL;
 }
 1 early() {
@@ -39,4 +40,5 @@ early() {
 
     sim.simulationFinished();
 }
+
 

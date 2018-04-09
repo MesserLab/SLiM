@@ -15,7 +15,7 @@ mkdir -p test_output
 
 for RECIPE in "$@"
 do
-    if [ ! -e $RECIPE ]
+    if [ ! -e "$RECIPE" ]
     then
         echo "Recipe $RECIPE does not exist."
         exit 1
@@ -24,7 +24,7 @@ do
 	rm -f test_output/*
 
     echo "Now testing SLiM Recipe: $RECIPE"
-    ../../bin/slim -s 22 $RECIPE &> test_output/SLiM_run_output.log || (echo "SLiM error" && exit 1)
+    ../../bin/slim -s 22 "$RECIPE" &> test_output/SLiM_run_output.log || (echo "SLiM error" && exit 1)
 
     TESTED="no"
 
