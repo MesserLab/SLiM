@@ -1069,6 +1069,126 @@ int RunEidosTests(void)
 	}
 #endif
 	
+#if 0
+	// Speed comparison between Poisson and binomial draws in various parameter regimes, using the GSL's own code.
+	// For doing things like drawing the number of recombination or mutation events that happen across a genome,
+	// the binomial distribution is technically correct (# trials, probability per trial), but we have been using
+	// the Poisson distribution because it is an extremely good approximation for the binomial in the regimes we
+	// normally run in (e.g., chromosomes longer than ~100 sites, per-site probabilities less than 1e-3).  And
+	// that is fine.  However, some people are using SLiM with parameters where the Poisson poorly approximates
+	// the binomial (10 independent loci, i.e. 9 trials, 0.5 probability per trial), so we should switch.  The
+	// question is: how big is the price of switching?  Poisson is nice because it is simple and fast; binomial
+	// is complex and slow.  If the price is substantial, we might continue to use Poisson in the parameter
+	// regime where it is safe, and switch to binomial only when necessary; but if the price is small, we'll just
+	// switch to binomial always, for simplicity.
+	
+	// Regarding the Poisson approximation, https://www.itl.nist.gov/div898/handbook/pmc/section3/pmc331.htm says:
+	// The sample size n should be equal to or larger than 20 and the probability of a single success, p, should
+	// be smaller than or equal to 0.05. If n >= 100, the approximation is excellent if np is also <= 10.
+	
+	// The GSL, in binomial_tpe.c, has the following comment:
+	//
+	//	Note, Bruce Schmeiser (personal communication) points out that if
+	//	you want very fast binomial deviates, and you are happy with
+	//	approximate results, and/or n and n*p are both large, then you can
+	//	just use gaussian estimates: mean=n*p, variance=n*p*(1-p).
+	//
+	// And it turns out that the Gaussian approxiamtion is indeed as much as twice as fast as either of the other
+	// methods, and is quite accurate under Schmeiser's stated conditions.  So we may want to use it; testing it.
+	// Regarding this approximation, Wikipedia recommends that it be used when n > 9*(1-p)/p and n > 9*p/(1-p).
+	
+	// Upshot: I have encoded our rules for which distribution to prefer in the code below; the preference is
+	// shown with asterisks.  Happily, this often coincides with the fastest version.  BCH 7 April 2018.
+	{
+		for (int trial = 0; trial < 8*11; ++trial)
+		{
+			double p = 0.0;
+			unsigned int n = 0;
+			
+			switch (trial % 8)
+			{
+				case 0: p = 0.5; break;
+				case 1: p = 0.1; break;
+				case 2: p = 0.01; break;
+				case 3: p = 0.001; break;
+				case 4: p = 0.0001; break;
+				case 5: p = 0.000001; break;
+				case 6: p = 0.00000001; break;
+				case 7: p = 0.0000000001; break;
+			}
+			
+			switch (trial / 8)
+			{
+				case 0: n = 10; break;
+				case 1: n = 15; break;
+				case 2: n = 20; break;
+				case 3: n = 25; break;
+				case 4: n = 50; break;
+				case 5: n = 100; break;
+				case 6: n = 200; break;
+				case 7: n = 1000; break;
+				case 8: n = 10000; break;
+				case 9: n = 10000000; break;
+				case 10: n = 1000000000; break;
+			}
+			
+			std::cout << "Case #" << trial << " (" << n << " trials, " << p << " probability):" << std::endl;
+			
+			// decide which version will be used in SLiM
+			int pref = 0;
+			bool gaussian_allowed = ((n > 9 * (1-p) / p) && (n > 9 * p / (1-p)));
+			bool poisson_allowed = ((p <= 0.01) && (n > 50));
+			
+			gaussian_allowed = false;
+			
+			if ((n >= 20) && gaussian_allowed)			// Gaussian; (n >= 20) is because binomial is faster before then anyway
+				pref = 3;
+			else if ((n * p <= 1.0) && poisson_allowed)	// Poisson; (n * p > 1.0) because binomial is faster before then anyway
+				pref = 2;
+			else										// binomial
+				pref = 1;
+			
+			{
+				clock_t begin = clock();
+				int64_t total = 0;
+				
+				for (int64_t i = 0; i < 20000000; i++)
+					total += gsl_ran_binomial(gEidos_rng, p, n);
+				
+				double time_spent = static_cast<double>(clock() - begin) / CLOCKS_PER_SEC;
+				std::cout << ((pref == 1) ? "***" : "   ");
+				std::cout << "time for 20000000 calls to gsl_ran_binomial(): " << time_spent << " (total == " << total << ")" << std::endl;
+			}
+			if (poisson_allowed)
+			{
+				clock_t begin = clock();
+				int64_t total = 0;
+				
+				for (int64_t i = 0; i < 20000000; i++)
+					total += gsl_ran_poisson(gEidos_rng, p * n);
+				
+				double time_spent = static_cast<double>(clock() - begin) / CLOCKS_PER_SEC;
+				std::cout << ((pref == 2) ? "***" : "   ");
+				std::cout << "time for 20000000 calls to gsl_ran_poisson(): " << time_spent << " (total == " << total << ")" << std::endl;
+			}
+			if (gaussian_allowed)
+			{
+				clock_t begin = clock();
+				int64_t total = 0;
+				double sd = sqrt(n * p * (1 - p));
+				
+				for (int64_t i = 0; i < 20000000; i++)
+					total += (int)round(gsl_ran_gaussian(gEidos_rng, sd) + p * n);
+				
+				double time_spent = static_cast<double>(clock() - begin) / CLOCKS_PER_SEC;
+				std::cout << ((pref == 3) ? "***" : "   ");
+				std::cout << "time for 20000000 calls to gsl_ran_gaussian(): " << time_spent << " (total == " << total << ")" << std::endl;
+			}
+			std::cout << std::endl;
+		}
+	}
+#endif
+	
 	// If we ran tests, the random number seed has been set; let's set it back to a good seed value
 	Eidos_InitializeRNGFromSeed(Eidos_GenerateSeedFromPIDAndTime());
 	
