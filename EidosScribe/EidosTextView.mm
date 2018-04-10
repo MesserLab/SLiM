@@ -113,9 +113,16 @@
 }
 
 // handle flashing of matching delimiters
-- (void)insertText:(id)insertString
+- (void)insertText:(id)insertString replacementRange:(NSRange)replacementRange
 {
-	[super insertText:insertString];
+	//bool replacingSelection = NSEqualRanges(replacementRange, [self selectedRange]);
+	
+	[super insertText:insertString replacementRange:replacementRange];
+	
+	// if we replaced something other than the selected range, something weird is going on and we shouldn't flash
+	// this is commented out because it doesn't work; AppKit likes to call this method with {NSNotFound,0} for typing...
+	//if (!replacingSelection)
+	//	return;
 	
 	// if the insert string isn't one character in length, it cannot be a brace character
 	if ([insertString length] != 1)
@@ -927,7 +934,7 @@
 				// After the double-click interval since the second mouseDown, the mouseUp is no longer eligible
 				if (eventTime - doubleDownTime <= [NSEvent doubleClickInterval])
 				{
-					// MAINTENANCE NOTE: This also exists, in slightly altered form, in insertText:, so please maintain the two in parallel!
+					// MAINTENANCE NOTE: This also exists, in slightly altered form, in insertText:replacementRange:, so please maintain the two in parallel!
 					NSString *scriptString = [[self textStorage] string];
 					int stringLength = (int)[scriptString length];
 					int proposedCharacterIndex = (int)proposedCharRange.location;
