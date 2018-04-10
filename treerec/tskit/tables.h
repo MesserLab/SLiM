@@ -125,6 +125,15 @@ typedef struct {
     /* TODO Add in reserved space for future tables. */
 } table_collection_t;
 
+typedef struct {
+    table_collection_t *tables;
+    table_size_t node_position;
+    table_size_t edge_position;
+    table_size_t migration_position;
+    table_size_t site_position;
+    table_size_t mutation_position;
+} table_collection_position_t;
+
 /* Definitions for the basic objects */
 typedef struct {
     uint32_t flags;
@@ -373,6 +382,17 @@ void simplifier_print_state(simplifier_t *self, FILE *out);
 int sort_tables(node_table_t *nodes, edge_table_t *edges, migration_table_t *migrations,
         site_table_t *sites, mutation_table_t *mutations, size_t edge_start);
 int squash_edges(edge_t *edges, size_t num_edges, size_t *num_output_edges);
+
+void table_collection_init_position(table_collection_position_t *position,
+        table_collection_t *tables);
+void table_collection_set_position(table_collection_position_t *position);
+int table_collection_reset_position(table_collection_position_t *position);
+int node_table_reset_position(node_table_t *nodes, table_size_t n);
+int edge_table_reset_position(edge_table_t *edges, table_size_t n);
+int migration_table_reset_position(migration_table_t *migrations, table_size_t n);
+int site_table_reset_position(site_table_t *sites, table_size_t n);
+int mutation_table_reset_position(mutation_table_t *mutations, table_size_t n);
+
 
 #ifdef __cplusplus
 }

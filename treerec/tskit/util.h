@@ -127,6 +127,8 @@
 #define MSP_ERR_MUTATION_PARENT_DIFFERENT_SITE                      -69
 #define MSP_ERR_MUTATION_PARENT_EQUAL                               -70
 #define MSP_ERR_MUTATION_PARENT_AFTER_CHILD                         -71
+#define MSP_ERR_BAD_TABLE_POSITION                                  -72
+#define MSP_ERR_CONTRADICTORY_ANCESTRAL_STATES                      -73
 
 const char * msp_strerror(int err);
 void __msp_safe_free(void **ptr);
