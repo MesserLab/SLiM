@@ -4,7 +4,7 @@
 //
 initialize() {
     // TREE SEQUENCE TEST OUTPUT
-    source("testing_utils.slim");
+    source("marked_mutations_setup.slim");
 
 	initializeGenomicElementType("g1", m1, 1.0);
     initializeGenomicElement(g1, 0, 9);
@@ -17,11 +17,8 @@ initialize() {
     // TREE SEQUENCE TEST OUTPUT
     initializeMarks(n_marks);
 }
-10 late() { p1.outputSample(10); }
-20 late() { p1.outputSample(10); }
-20 late() { sim.outputFixedMutations(); }
-20 late() { cat("\nTotal mutation frequencies: " + sum(sim.mutationFrequencies(NULL)) + "\n"); }
-20 late() {
+200 late() {
     // TREE SEQUENCE TEST OUTPUT
+    outputMutationTypes();
     outputMutationResult();
 }
