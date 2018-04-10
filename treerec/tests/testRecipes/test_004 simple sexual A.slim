@@ -12,9 +12,9 @@ initialize() {
 	initializeRecombinationRate(1e-2);
 }
 1 {
-	sim.addSubpop("p1", 10);
+	sim.addSubpop("p1", 100);
 }
-15 late() { 
+100 late() { 
     outputMutationResult();
     cat("\nTotal mutation frequencies: " + sum(sim.mutationFrequencies(NULL)) + "\n"); 
 }

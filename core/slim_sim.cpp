@@ -3754,7 +3754,7 @@ void SLiMSim::SimplifyTreeSequence(void){
     //std::string debug_output = "tables_debug";
     //WriteTreeSequence(debug_output, 0, 0);
 	
-	tree_return_value_ = table_collection_simplify(&tables, samples.data(), samples.size(), 0, NULL);
+	tree_return_value_ = table_collection_simplify(&tables, samples.data(), samples.size(), MSP_FILTER_ZERO_MUTATION_SITES, NULL);
         if (tree_return_value_ != 0) {
 		handle_error("simplifier_run", tree_return_value_);
         }
@@ -3828,7 +3828,7 @@ void SLiMSim::SetCurrentNewIndividual(Individual *p_individual)
 	// not be completely initialized yet; it may not know its sex, and its genomes may not know their types, and so forth.  If that needs to
 	// be fixed, it should be reasonably straightforward to do so.  For now, the only information guaranteed valid is the pedigree IDs.
 
-	//DEBUG STDOUT PRINTING /*
+	/*DEBUG STDOUT PRINTING 
 	slim_pedigreeid_t ind_pid = p_individual->PedigreeID();
 	slim_pedigreeid_t p1_pid = p_individual->Parent1PedigreeID();
 	slim_pedigreeid_t p2_pid = p_individual->Parent2PedigreeID();
@@ -3854,24 +3854,17 @@ void SLiMSim::RetractNewIndividual()
 
 void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_genomeid_t p_new_genome_id, slim_genomeid_t p_initial_parental_genome_id, slim_genomeid_t p_second_parental_genome_id)
 {
-	// this is called by code where recombination occurs; it will not be called if recombination cannot occur, at present
-	
 	// Note that the breakpoints vector provided may (or may not) contain a breakpoint, as the final breakpoint in the vector, that is beyond
 	// the end of the chromosome.  This is for bookkeeping in the crossover-mutation code and should be ignored, as the code below does.
 	// The breakpoints vector may be nullptr (indicating no recombination), but if it exists it will be sorted in ascending order.
 
-	//At the appropriate time, do simplification on tables	
-	//This should be done at a higher level in SLiM for effeciency. -DONE-
-	
-	//BIOLOGY NOTE: Recombination is the meiosis process by which the parent gamete produces germ cells, hence two recombination events 
-	//per diploid individual. Here each we treat each offspring genome produced as a haploid individual.
-
 	node_id_t offspringMSPID;			//MSPrime equivilent of germ cell ID (Node returned from MSPrime)
 
-	//DEBUG STDOUT PRINTING /*
+	/*DEBUG STDOUT PRINTING 
   	std::cout << "------------" << std::endl;	
 	std::cout << "generation: " << Generation() << " -- and tree_seq_generation  " << tree_seq_generation_ << std::endl;
     std::cout << "New genome: " << p_new_genome_id << std::endl;
+    std::cout << "  with parents " << p_initial_parental_genome_id << " and " << p_second_parental_genome_id << std::endl;
     // */
 
 	//add genome node
@@ -3898,6 +3891,15 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_
 	//Map the Parental Genome SLiM Id's to MSP IDs.
 	genome1MSPID = getMSPID(p_initial_parental_genome_id);
 	genome2MSPID = (p_second_parental_genome_id == -1) ? genome1MSPID : getMSPID(p_second_parental_genome_id);
+
+	/*DEBUG STDOUT PRINTING
+    std::cout << "  in MSP ids: " << genome1MSPID << " and " << genome2MSPID << " ---> " << offspringMSPID << std::endl;
+    std::cout << "  and breakpoints ";
+	for (size_t i = 0; i < (p_breakpoints ? p_breakpoints->size() : 0); i++){
+        std::cout << (*p_breakpoints)[i] << " ";
+    }
+    std::cout << std::endl;
+    // */
 	
 	size_t breakpoint_count = (p_breakpoints ? p_breakpoints->size() : 0);
 	//Have yet to make it in this conditional. Ask ben about this funky business. 
@@ -3951,8 +3953,10 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
     // must not keep a pointer to it; any information that needs to be kept
     // from it must be copied out.
 
-	//DEBUG STDOUT PRINTING /*
-	std::cout << tree_seq_generation_ << ":   New derived state for genome id " << p_genome_id << " at position " << p_position << ":";
+    node_id_t genomeMSPID = getMSPID(p_genome_id);
+
+	/*DEBUG STDOUT PRINTING
+	std::cout << tree_seq_generation_ << ":   New derived state for genome id " << p_genome_id << " (msp: " << genomeMSPID << ") at position " << p_position << ":";
 	
 	if (p_derived_mutations.size()) {
 		for (slim_mutationid_t mut_id : p_derived_mutations)
@@ -3962,8 +3966,6 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
 	}
 	std::cout << std::endl;
 	// END DEBUG */
-
-    node_id_t genomeMSPID = getMSPID(p_genome_id);
 
     // add new site (if necessary?)
     site_id_t site_id;
@@ -3981,22 +3983,23 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
         site_id = site_iter->second;
     }
 
-    // DEBUG STDOUT
+    /* DEBUG STDOUT
     std::cout << ":    Working at site " << site_id << std::endl;
     std::cout << ":    parent mutations? ";
+    // */
 
     // identify any previous mutations at this site in this genome
     // note if we don't look up sites we'll have to compare positions
     mutation_id_t parent_mut_id = MSP_NULL_MUTATION;
     table_size_t j = table_position.mutation_position + 1;
     while (j < tables.mutations.num_rows) {
-        std::cout << " " << j;
+        // std::cout << " " << j;
         if (tables.mutations.site[j] == site_id) {
             parent_mut_id = j;
         }
         j++;
     }
-    std::cout << " :: parent : " << parent_mut_id << std::endl;
+    // std::cout << " :: parent : " << parent_mut_id << std::endl;
 
     // form derived state: needs to be a const char*
     char *derived_muts_bytes = (char *)(p_derived_mutations.data());
