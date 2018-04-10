@@ -2399,6 +2399,8 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 			// just draw, sort, and unique breakpoints in the standard way
 			chromosome.DrawBreakpoints(p_parent_sex, num_breakpoints, all_breakpoints);
 			
+			num_breakpoints = (int)all_breakpoints.size();	// may have changed length due to gene conversion!
+			
 			if (num_breakpoints > 2)
 			{
 				std::sort(all_breakpoints.begin(), all_breakpoints.end());
