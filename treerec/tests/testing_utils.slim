@@ -51,9 +51,13 @@ function (void)outputMutationResult([s$ outputFile="test_output/slim_mutation_ou
             for(k in seqAlong(ind.genomes)){
                 genome = ind.genomes[k];
                 genomeID = (2 * pedID) + k;
-                ids = c(genome.mutations.id, sim.substitutions.id);
-                positions = c(genome.mutations.position, sim.substitutions.position);
-                writeFile(outputFile, "#Genome: " + paste(genomeID), append=T);
+                ids = genome.mutations.id;
+                positions = genome.mutations.position;
+                if (!genome.isNullGenome) {
+                    ids = c(ids, sim.substitutions.id);
+                    positions = c(positions, sim.substitutions.position);
+                }
+                writeFile(outputFile, "#Genome: " + paste(genomeID) + " " + paste(ind.sex), append=T);
                 writeFile(outputFile, "Mutations: " + paste(ids), append=T);
                 writeFile(outputFile, "Positions: " + paste(positions), append=T);
             }

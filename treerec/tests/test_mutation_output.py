@@ -11,9 +11,9 @@ class TestWithMutations(TestSlimOutput):
         slim_file = open(filename, "r")
         slim = {}
         for header in slim_file:
-            headstring, genstring = header.split()
-            self.assertEqual(headstring, "#Genome:")
-            genome = int(genstring)
+            headstring = header.split()
+            self.assertEqual(headstring[0], "#Genome:")
+            genome = int(headstring[1])
             mutations = slim_file.readline().split()
             self.assertEqual(mutations[0], "Mutations:")
             mutations = [int(u) for u in mutations[1:]]
