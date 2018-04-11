@@ -765,9 +765,13 @@
 	
 	// The splitview sets the size of overallTopView based upon the position of the splitter.  The overallTopView then
 	// wants to manually manage the size of its subview, as a way of compensating for half-pixel frame positions that
-	// mess up our OpenGL subviews.  I'm not sure whether the autoresizing mask stuff is also necessary, but removing
-	// the constraints certainly seems to be.  (We have the constraints in the nib so that working in the nib has fully
-	// defined constraints, even though we don't want them at runtime.)  See SLiMLayoutRoundoffView in CocoaExtra.mm.
+	// mess up our OpenGL subviews.  (We have the constraints in the nib so that working in the nib has fully defined
+	// constraints, even though we don't want them at runtime.)  See SLiMLayoutRoundoffView in CocoaExtra.mm.  Note
+	// that a side effect of this is that the window doesn't know its minimum width, because the necessary chain of
+	// constraints is broken by overallTopView; we have to set a minimum width for the window in the nib to make that
+	// work.  Which seems to work, although it's an unfortunate hack.  The minimum height is governed by constraints
+	// on the top-level views under the main splitview, however, and thus the minimum height set on the window in the
+	// nib is ignored.
 	[overallTopView removeConstraint:overallTopViewConstraint1];
 	[overallTopView removeConstraint:overallTopViewConstraint2];
 	[overallTopView removeConstraint:overallTopViewConstraint3];
@@ -843,8 +847,8 @@
 	[graphCommandsButton setSlimMenu:graphCommandsMenu];
 	[genomeCommandsButton setSlimMenu:genomeCommandsMenu];
 	
-	// Configure our drawer
-	[drawer setMinContentSize:NSMakeSize(280, 570)];
+	// Configure our drawer; note that the minimum height here actually forces a minimum height on our window too
+	[drawer setMinContentSize:NSMakeSize(280, 450)];
 	[drawer setMaxContentSize:NSMakeSize(450, 570)];
 	[drawer setContentSize:NSMakeSize(280, 570)];
 	[drawer setLeadingOffset:0.0];
