@@ -4015,6 +4015,20 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
 	}
 }
 
+void SLiMSim::RecordNewDerivedStateNonMeiosis(slim_genomeid_t p_genome_id, slim_position_t p_position, const std::vector<slim_mutationid_t> &p_derived_mutations)
+{
+	// This is called when a mutation is added or removed outside of the crossover-mutation code.  When we're
+	// in the crossover-mutation code, the correct context has been set up for new derived state recording,
+	// with SetCurrentNewIndividual() and RecordNewGenome(), so that a backscan for the existence of previous
+	// state is fast; that is the case in RecordNewDerivedState().  Here, that context has not been set up,
+	// and a more expensive backscan is necessary to determine whether previous state exists at the given
+	// position.  So the use of this call instead of RecordNewDerivedState() basically notifies the tree-seq
+	// code "we're out of context here, you have to do a full backscan".
+	std::cout << tree_seq_generation_ << ":   New derived state about to be logged outside of meiosis...";
+	
+	RecordNewDerivedState(p_genome_id, p_position, p_derived_mutations);
+}
+
 void SLiMSim::CheckAutoSimplification(void)
 {
 	// This is called at the end of each generation, at an appropriate time to simplify.  This method decides
@@ -4219,7 +4233,7 @@ void SLiMSim::RecordAllDerivedStatesFromSLiM(void)
 	// sequence recording stuff has been freed with a call to FreeTreeSequence(), and then a new recording session has
 	// been initiated with StartTreeRecording(); it might be good for this method to do a sanity check that all of the
 	// recording tables are indeed allocated but empty, I guess.  This method then records every extant individual by
-	// making the appropriate calls to SetCurrentNewIndividual(), RecordNewGenome(), and RecordNewDerivedState().  Note
+	// making calls to SetCurrentNewIndividual(), RecordNewGenome(), and RecordNewDerivedStateNonMeiosis().  Note
 	// that modifyChild() callbacks do not happen in this scenario, so new individuals will not get retracted.  Note
 	// also that new mutations will not be added one at a time, when they are stacked; instead, each block of stacked
 	// mutations in a genome will be added with a single derived state call here.
