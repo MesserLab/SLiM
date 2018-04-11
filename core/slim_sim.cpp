@@ -3860,7 +3860,7 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_
 
 	node_id_t offspringMSPID;			//MSPrime equivilent of germ cell ID (Node returned from MSPrime)
 
-	/*DEBUG STDOUT PRINTING 
+	/* DEBUG STDOUT PRINTING 
   	std::cout << "------------" << std::endl;	
 	std::cout << "generation: " << Generation() << " -- and tree_seq_generation  " << tree_seq_generation_ << std::endl;
     std::cout << "New genome: " << p_new_genome_id << std::endl;
@@ -3892,7 +3892,7 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_
 	genome1MSPID = getMSPID(p_initial_parental_genome_id);
 	genome2MSPID = (p_second_parental_genome_id == -1) ? genome1MSPID : getMSPID(p_second_parental_genome_id);
 
-	/*DEBUG STDOUT PRINTING
+	/* DEBUG STDOUT PRINTING
     std::cout << "  in MSP ids: " << genome1MSPID << " and " << genome2MSPID << " ---> " << offspringMSPID << std::endl;
     std::cout << "  and breakpoints ";
 	for (size_t i = 0; i < (p_breakpoints ? p_breakpoints->size() : 0); i++){

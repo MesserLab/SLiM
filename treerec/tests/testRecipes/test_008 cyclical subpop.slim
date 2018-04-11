@@ -1,10 +1,9 @@
-// simple sexual X.slim : ^Total mutation frequencies: (.*)$
+// cyclical subpop.slim : ^Total mutation frequencies: (.*)$
 //
-// A test script for the simple X chromosome case
+// A test script using a cyclically varying subpop size
 //
 initialize() {
     source("testing_utils.slim");
-	initializeSex('X');
 	initializeMutationRate(1e-6);
 	initializeMutationType("m1", 0.5, "f", 0.0);
 	initializeGenomicElementType("g1", m1, 1.0);
@@ -14,6 +13,12 @@ initialize() {
 1 {
 	sim.addSubpop("p1", 100);
 }
+{
+	newSize = cos((sim.generation - 1) / 100) * 100 + 150;
+	p1.setSubpopulationSize(asInteger(newSize));
+}
+
 500 late() { 
     outputMutationResult();
+    cat("\nTotal mutation frequencies: " + sum(sim.mutationFrequencies(NULL)) + "\n"); 
 }
