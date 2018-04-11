@@ -4686,11 +4686,26 @@ table_collection_init_position(table_collection_position_t *position,
     table_collection_t *tables)
 {
     position->tables = tables;
-    table_collection_set_position(position);
+    table_collection_current_position(position);
 }
 
 void
-table_collection_set_position(table_collection_position_t *position)
+table_collection_set_position(table_collection_position_t *position,
+       table_size_t node_position,
+       table_size_t edge_position,
+       table_size_t migration_position,
+       table_size_t site_position,
+       table_size_t mutation_position)
+{
+    position->node_position = node_position;
+    position->edge_position = edge_position;
+    position->migration_position = migration_position;
+    position->site_position = site_position;
+    position->mutation_position = mutation_position;
+}
+
+void
+table_collection_current_position(table_collection_position_t *position)
 {
     /* Record the current "end" position of a table collection,
      * which is the current number of rows in the table.

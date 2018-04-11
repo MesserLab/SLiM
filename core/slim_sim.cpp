@@ -3709,12 +3709,11 @@ SLiMSim::handle_error(std::string msg, int err)
 void SLiMSim::SimplifyTreeSequence(void){
 
 	std::map<slim_objectid_t,Subpopulation*>::iterator it;
-	;
 	std::vector<Individual*> populationIndividuals;
 	std::vector<node_id_t> samples;
 	std::map<slim_genomeid_t,node_id_t> newSlimMspIdMap;
 	
-	for ( it = population_.begin(); it != population_.end(); it++){
+	for (it = population_.begin(); it != population_.end(); it++){
 		std::vector<Individual*> &subpopulationIndividuals = it->second->parent_individuals_;
 		populationIndividuals.insert(populationIndividuals.end(), subpopulationIndividuals.begin(), subpopulationIndividuals.end());
 	}
@@ -3750,14 +3749,10 @@ void SLiMSim::SimplifyTreeSequence(void){
 		return;
 	}
 
-    // DEBUG OUTPUT
-    //std::string debug_output = "tables_debug";
-    //WriteTreeSequence(debug_output, 0, 0);
-	
 	tree_return_value_ = table_collection_simplify(&tables, samples.data(), samples.size(), MSP_FILTER_ZERO_MUTATION_SITES, NULL);
-        if (tree_return_value_ != 0) {
-		handle_error("simplifier_run", tree_return_value_);
-        }
+    if (tree_return_value_ != 0) {
+        handle_error("simplifier_run", tree_return_value_);
+    }
 
     // update map of RememberedGenomes
 	SLiM_MSP_Id_Map = newSlimMspIdMap;		
@@ -3772,7 +3767,7 @@ void SLiMSim::SimplifyTreeSequence(void){
     }
 
     // reset current position
-    table_collection_set_position(&table_position);
+    table_collection_current_position(&table_position);
 
 	simplify_elapsed_ = 0;
 }
@@ -3816,8 +3811,6 @@ void SLiMSim::StartTreeRecording(void)
 
 void SLiMSim::SetCurrentNewIndividual(Individual *p_individual)
 {
-	// THOUGHT: ALL THIS METHOD DOES IS SET IVARS, we could probably speed things up by setting the ivars instead of calling this method 
-
 	// this is called by code where new individuals are created
 	
 	// The individual's pedigree ID should be set up already, as are its parents.  Parents can be -1, meaning that the individual started out
@@ -3828,17 +3821,15 @@ void SLiMSim::SetCurrentNewIndividual(Individual *p_individual)
 	// not be completely initialized yet; it may not know its sex, and its genomes may not know their types, and so forth.  If that needs to
 	// be fixed, it should be reasonably straightforward to do so.  For now, the only information guaranteed valid is the pedigree IDs.
 
-	/*DEBUG STDOUT PRINTING 
+	/* DEBUG STDOUT PRINTING 
 	slim_pedigreeid_t ind_pid = p_individual->PedigreeID();
 	slim_pedigreeid_t p1_pid = p_individual->Parent1PedigreeID();
 	slim_pedigreeid_t p2_pid = p_individual->Parent2PedigreeID();
-	
 	std::cout << "--------------------------------------------------" << std::endl << std::endl;
-		
 	std::cout << Generation() << ": New individual created, pedigree id " << ind_pid << " (parents: " << p1_pid << ", " << p2_pid << ")" << std::endl << std::endl;
 	// */
 	
-    table_collection_set_position(&table_position);
+    table_collection_current_position(&table_position);
 }
 
 void SLiMSim::RetractNewIndividual()
@@ -3852,8 +3843,11 @@ void SLiMSim::RetractNewIndividual()
     table_collection_reset_position(&table_position);
 }
 
-void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_genomeid_t p_new_genome_id, slim_genomeid_t p_initial_parental_genome_id, slim_genomeid_t p_second_parental_genome_id)
+void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_genomeid_t p_new_genome_id, 
+        slim_genomeid_t p_initial_parental_genome_id, slim_genomeid_t p_second_parental_genome_id)
 {
+    /* This records information about an individual in both the Node and Edge tables. */
+
 	// Note that the breakpoints vector provided may (or may not) contain a breakpoint, as the final breakpoint in the vector, that is beyond
 	// the end of the chromosome.  This is for bookkeeping in the crossover-mutation code and should be ignored, as the code below does.
 	// The breakpoints vector may be nullptr (indicating no recombination), but if it exists it will be sorted in ascending order.
@@ -3936,6 +3930,22 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_
 
 void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t p_position, const std::vector<slim_mutationid_t> &p_derived_mutations)
 {
+    // This records information in the Site and Mutation tables.  Properly
+    // recording information for a new mutation in the Site table requires
+    // checking whether there is already a Site at that position, and referring
+    // to it, instead of adding a new site, if so. We only really need to do
+    // that if there is more than one mutation at the same position in a given
+    // *individual* (since we go through and remove redundant sites at
+    // Simplify). Furthermore, if there's more than one mutation in a given
+    // indivdiual, we have to say which takes precedence, which we can record
+    // in the `parent` column of the Mutation table.  To facilitate these
+    // things, we keep a bookmark into the Tables of the earliest positoin we
+    // have to go back to, to check for multiple mutations.  This bookmark is
+    // `table_position`, and is updated by SetCurrentNewIndividual().  If this
+    // has *not* been properly called, then we need to look back through the
+    // entire set of tables for previous hits; this is done by the method
+    // RecordNewDerivedStateNonMeiosis().
+
     // This is called whenever a new mutation is added to a genome.  Because
     // mutation stacking makes things complicated, this hook supplies not just
     // the new mutation, but the entire new derived state – all of the
@@ -3955,9 +3965,9 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
 
     node_id_t genomeMSPID = getMSPID(p_genome_id);
 
-	/*DEBUG STDOUT PRINTING
-	std::cout << tree_seq_generation_ << ":   New derived state for genome id " << p_genome_id << " (msp: " << genomeMSPID << ") at position " << p_position << ":";
-	
+	/* DEBUG STDOUT PRINTING
+	std::cout << tree_seq_generation_ << ":   New derived state for genome id "; 
+    std::cout << p_genome_id << " (msp: " << genomeMSPID << ") at position " << p_position << ":";
 	if (p_derived_mutations.size()) {
 		for (slim_mutationid_t mut_id : p_derived_mutations)
 			std::cout << " " << mut_id;
@@ -3979,27 +3989,41 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
             handle_error("add_site", site_id);
         }
         current_sites.insert(std::pair<slim_position_t, site_id_t>(p_position,site_id));
+
+        /* DEBUG STDOUT
+        std::cout << "   New Site, at position " << p_position;
+        std::cout << " and site ID " << site_id << std::endl;
+        // END DEBUG */
     } else {
         site_id = site_iter->second;
+        /* DEBUG STDOUT
+        std::cout << "   Existing Site, at position " << p_position;
+        std::cout << " and site ID " << site_id << std::endl;
+        // END DEBUG */
+    }
+
+    // Identify any previous mutations at this site in this genome.
+    // Note: if we allow duplicate sites in the future, we'll have to compare positions
+    mutation_id_t parent_mut_id = MSP_NULL_MUTATION;
+    table_size_t j = table_position.mutation_position - 1;
+    if (tables.mutations.num_rows > 0) {
+        while (j < tables.mutations.num_rows) {
+            if (tables.mutations.site[j] == site_id 
+                    && tables.mutations.node[j] == genomeMSPID) {
+                parent_mut_id = j;
+            }
+            j++;
+        }
     }
 
     /* DEBUG STDOUT
-    std::cout << ":    Working at site " << site_id << std::endl;
-    std::cout << ":    parent mutations? ";
+    std::cout << ":    Working at site " << site_id;
+    std::cout << " which is " << (site_id == tables.sites.num_rows - 1 ? "the last" : "an older"); 
+    std::cout << " site" << std::endl;
+    std::cout << ":    parent mutations? checked from " <<  table_position.mutation_position - 1;
+    std::cout << " to " << tables.mutations.num_rows;
+    std::cout << " :: parent : " << parent_mut_id << std::endl;
     // */
-
-    // identify any previous mutations at this site in this genome
-    // note if we don't look up sites we'll have to compare positions
-    mutation_id_t parent_mut_id = MSP_NULL_MUTATION;
-    table_size_t j = table_position.mutation_position + 1;
-    while (j < tables.mutations.num_rows) {
-        // std::cout << " " << j;
-        if (tables.mutations.site[j] == site_id) {
-            parent_mut_id = j;
-        }
-        j++;
-    }
-    // std::cout << " :: parent : " << parent_mut_id << std::endl;
 
     // form derived state: needs to be a const char*
     char *derived_muts_bytes = (char *)(p_derived_mutations.data());
@@ -4017,15 +4041,26 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
 
 void SLiMSim::RecordNewDerivedStateNonMeiosis(slim_genomeid_t p_genome_id, slim_position_t p_position, const std::vector<slim_mutationid_t> &p_derived_mutations)
 {
-	// This is called when a mutation is added or removed outside of the crossover-mutation code.  When we're
-	// in the crossover-mutation code, the correct context has been set up for new derived state recording,
-	// with SetCurrentNewIndividual() and RecordNewGenome(), so that a backscan for the existence of previous
-	// state is fast; that is the case in RecordNewDerivedState().  Here, that context has not been set up,
-	// and a more expensive backscan is necessary to determine whether previous state exists at the given
-	// position.  So the use of this call instead of RecordNewDerivedState() basically notifies the tree-seq
+    // This is called when a mutation is added or removed outside of the
+    // crossover-mutation code.  When we're in the crossover-mutation code, the
+    // correct context has been set up for new derived state recording, with
+    // SetCurrentNewIndividual() and RecordNewGenome(), so that a backscan for
+    // the existence of previous state is fast; that is the case in
+    // RecordNewDerivedState().  Here, that context has not been set up, and a
+    // more expensive backscan is necessary to determine whether previous state
+    // exists at the given position.  So the use of this call instead of
+    // RecordNewDerivedState() basically notifies the tree-seq
 	// code "we're out of context here, you have to do a full backscan".
-	std::cout << tree_seq_generation_ << ":   New derived state about to be logged outside of meiosis...";
+    // See further explanation in RecordNewDerivedState().
+
+    /* DEBUG STDOUT
+	std::cout << tree_seq_generation_ << ":   New derived state about to be logged outside of meiosis..."<< std::endl;;
+    std::cout << "    Resetting table position." << std::endl;
+    // */
 	
+    // reset the position to the start of the tables, since we don't know any better
+    table_collection_set_position(&table_position, (table_size_t) 1, (table_size_t) 1, 
+            (table_size_t) 1, (table_size_t) 1, (table_size_t) 1);
 	RecordNewDerivedState(p_genome_id, p_position, p_derived_mutations);
 }
 
