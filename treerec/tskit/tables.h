@@ -383,6 +383,8 @@ int sort_tables(node_table_t *nodes, edge_table_t *edges, migration_table_t *mig
         site_table_t *sites, mutation_table_t *mutations, size_t edge_start);
 int squash_edges(edge_t *edges, size_t num_edges, size_t *num_output_edges);
 
+int clean_tables(site_table_t *sites, mutation_table_t *mutations);
+
 void table_collection_init_position(table_collection_position_t *position,
         table_collection_t *tables);
 void table_collection_set_position(table_collection_position_t *position,
