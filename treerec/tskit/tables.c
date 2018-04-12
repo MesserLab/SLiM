@@ -4686,21 +4686,36 @@ table_collection_init_position(table_collection_position_t *position,
     table_collection_t *tables)
 {
     position->tables = tables;
-    table_collection_set_position(position);
+    table_collection_current_position(position);
 }
 
 void
-table_collection_set_position(table_collection_position_t *position)
+table_collection_set_position(table_collection_position_t *position,
+       table_size_t node_position,
+       table_size_t edge_position,
+       table_size_t migration_position,
+       table_size_t site_position,
+       table_size_t mutation_position)
+{
+    position->node_position = node_position;
+    position->edge_position = edge_position;
+    position->migration_position = migration_position;
+    position->site_position = site_position;
+    position->mutation_position = mutation_position;
+}
+
+void
+table_collection_current_position(table_collection_position_t *position)
 {
     /* Record the current "end" position of a table collection,
-     * which is the current last row in each table.
+     * which is the current number of rows in the table.
      * */
 
-    position->node_position = position->tables->nodes.num_rows - 1;
-    position->edge_position = position->tables->edges.num_rows - 1;
-    position->migration_position = position->tables->migrations.num_rows - 1;
-    position->site_position = position->tables->sites.num_rows - 1;
-    position->mutation_position = position->tables->mutations.num_rows - 1;
+    position->node_position = position->tables->nodes.num_rows;
+    position->edge_position = position->tables->edges.num_rows;
+    position->migration_position = position->tables->migrations.num_rows;
+    position->site_position = position->tables->sites.num_rows;
+    position->mutation_position = position->tables->mutations.num_rows;
 }
 
 int WARN_UNUSED
@@ -4741,16 +4756,14 @@ out:
 int WARN_UNUSED
 node_table_reset_position(node_table_t *nodes, table_size_t n)
 {
-    /* Remove rows, so that the new last row is row n,
-     * and num_rows is n+1. */
+    /* Remove rows, so that the new number of rows is n */
     int ret = 0;
-    if (n < 0 || n >= nodes->num_rows) {
+    if (n > nodes->num_rows) {
         ret = MSP_ERR_BAD_TABLE_POSITION;
         goto out;
     }
-    assert(n < nodes->num_rows);
     nodes->num_rows = n;
-    nodes->metadata_length = nodes->metadata_offset[n+1];
+    nodes->metadata_length = nodes->metadata_offset[n];
 out:
     return ret;
 }
@@ -4758,14 +4771,12 @@ out:
 int WARN_UNUSED
 edge_table_reset_position(edge_table_t *edges, table_size_t n)
 {
-    /* Remove rows, so that the new last row is row n,
-     * and num_rows is n+1. */
+    /* Remove rows, so that the new number of rows is n */
     int ret = 0;
-    if (n < 0 || n >= edges->num_rows) {
+    if (n > edges->num_rows) {
         ret = MSP_ERR_BAD_TABLE_POSITION;
         goto out;
     }
-    assert(n < edges->num_rows);
     edges->num_rows = n;
 out:
     return ret;
@@ -4774,14 +4785,12 @@ out:
 int WARN_UNUSED
 migration_table_reset_position(migration_table_t *migrations, table_size_t n)
 {
-    /* Remove rows, so that the new last row is row n,
-     * and num_rows is n+1. */
+    /* Remove rows, so that the new number of rows is n */
     int ret = 0;
-    if (n < 0 || n >= migrations->num_rows) {
+    if (n > migrations->num_rows) {
         ret = MSP_ERR_BAD_TABLE_POSITION;
         goto out;
     }
-    assert(n < migrations->num_rows);
     migrations->num_rows = n;
 out:
     return ret;
@@ -4790,17 +4799,15 @@ out:
 int WARN_UNUSED
 site_table_reset_position(site_table_t *sites, table_size_t n)
 {
-    /* Remove rows, so that the new last row is row n,
-     * and num_rows is n+1. */
+    /* Remove rows, so that the new number of rows is n */
     int ret = 0;
-    if (n < 0 || n >= sites->num_rows) {
+    if (n > sites->num_rows) {
         ret = MSP_ERR_BAD_TABLE_POSITION;
         goto out;
     }
-    assert(n < sites->num_rows);
     sites->num_rows = n;
-    sites->ancestral_state_length = sites->ancestral_state_offset[n+1];
-    sites->metadata_length = sites->metadata_offset[n+1];
+    sites->ancestral_state_length = sites->ancestral_state_offset[n];
+    sites->metadata_length = sites->metadata_offset[n];
 out:
     return ret;
 }
@@ -4808,17 +4815,15 @@ out:
 int WARN_UNUSED
 mutation_table_reset_position(mutation_table_t *mutations, table_size_t n)
 {
-    /* Remove rows, so that the new last row is row n,
-     * and num_rows is n+1. */
+    /* Remove rows, so that the new number of rows is n */
     int ret = 0;
-    if (n < 0 || n >= mutations->num_rows) {
+    if (n > mutations->num_rows) {
         ret = MSP_ERR_BAD_TABLE_POSITION;
         goto out;
     }
-    assert(n < mutations->num_rows);
     mutations->num_rows = n;
-    mutations->derived_state_length = mutations->derived_state_offset[n+1];
-    mutations->metadata_length = mutations->metadata_offset[n+1];
+    mutations->derived_state_length = mutations->derived_state_offset[n];
+    mutations->metadata_length = mutations->metadata_offset[n];
 out:
     return ret;
 }

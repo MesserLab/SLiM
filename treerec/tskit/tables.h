@@ -385,7 +385,11 @@ int squash_edges(edge_t *edges, size_t num_edges, size_t *num_output_edges);
 
 void table_collection_init_position(table_collection_position_t *position,
         table_collection_t *tables);
-void table_collection_set_position(table_collection_position_t *position);
+void table_collection_set_position(table_collection_position_t *position,
+        table_size_t node_position, table_size_t edge_position,
+        table_size_t migration_position, table_size_t site_position,
+        table_size_t mutation_position);
+void table_collection_current_position(table_collection_position_t *position);
 int table_collection_reset_position(table_collection_position_t *position);
 int node_table_reset_position(node_table_t *nodes, table_size_t n);
 int edge_table_reset_position(edge_table_t *edges, table_size_t n);
