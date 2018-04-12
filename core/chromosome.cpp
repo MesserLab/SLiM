@@ -63,6 +63,7 @@ Chromosome::Chromosome(void) :
 	single_recombination_map_(true), 
 	lookup_recombination_H_(nullptr), lookup_recombination_M_(nullptr), lookup_recombination_F_(nullptr),
 	overall_recombination_rate_H_(0.0), overall_recombination_rate_M_(0.0), overall_recombination_rate_F_(0.0),
+	overall_recombination_rate_H_userlevel_(0.0), overall_recombination_rate_M_userlevel_(0.0), overall_recombination_rate_F_userlevel_(0.0),
 	exp_neg_overall_recombination_rate_H_(0.0), exp_neg_overall_recombination_rate_M_(0.0), exp_neg_overall_recombination_rate_F_(0.0), 
 	
 #ifndef USE_GSL_POISSON
@@ -187,18 +188,21 @@ void Chromosome::InitializeDraws(void)
 	}
 	
 	// Now remake our recombination map info, which we delegate to _InitializeOneRecombinationMap()
+	any_recombination_rates_05_ = false;
+	
 	if (single_recombination_map_)
 	{
-		_InitializeOneRecombinationMap(lookup_recombination_H_, recombination_end_positions_H_, recombination_rates_H_, overall_recombination_rate_H_, exp_neg_overall_recombination_rate_H_);
+		_InitializeOneRecombinationMap(lookup_recombination_H_, recombination_end_positions_H_, recombination_rates_H_, overall_recombination_rate_H_, exp_neg_overall_recombination_rate_H_, overall_recombination_rate_H_userlevel_);
 		
 		// Copy the H rates into the M and F ivars, so that they can be used by DrawMutationAndBreakpointCounts() if needed
 		overall_recombination_rate_M_ = overall_recombination_rate_F_ = overall_recombination_rate_H_;
 		exp_neg_overall_recombination_rate_M_ = exp_neg_overall_recombination_rate_F_ = exp_neg_overall_recombination_rate_H_;
+		overall_recombination_rate_M_userlevel_ = overall_recombination_rate_F_userlevel_ = overall_recombination_rate_H_userlevel_;
 	}
 	else
 	{
-		_InitializeOneRecombinationMap(lookup_recombination_M_, recombination_end_positions_M_, recombination_rates_M_, overall_recombination_rate_M_, exp_neg_overall_recombination_rate_M_);
-		_InitializeOneRecombinationMap(lookup_recombination_F_, recombination_end_positions_F_, recombination_rates_F_, overall_recombination_rate_F_, exp_neg_overall_recombination_rate_F_);
+		_InitializeOneRecombinationMap(lookup_recombination_M_, recombination_end_positions_M_, recombination_rates_M_, overall_recombination_rate_M_, exp_neg_overall_recombination_rate_M_, overall_recombination_rate_M_userlevel_);
+		_InitializeOneRecombinationMap(lookup_recombination_F_, recombination_end_positions_F_, recombination_rates_F_, overall_recombination_rate_F_, exp_neg_overall_recombination_rate_F_, overall_recombination_rate_F_userlevel_);
 	}
 	
 #ifndef USE_GSL_POISSON
@@ -318,7 +322,7 @@ void Chromosome::ChooseMutationRunLayout(int p_preferred_count)
 }
 
 // initialize one recombination map, used internally by InitializeDraws() to avoid code duplication
-void Chromosome::_InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, vector<slim_position_t> &p_end_positions, vector<double> &p_rates, double &p_overall_rate, double &p_exp_neg_overall_rate)
+void Chromosome::_InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, vector<slim_position_t> &p_end_positions, vector<double> &p_rates, double &p_overall_rate, double &p_exp_neg_overall_rate, double &p_overall_rate_userlevel)
 {
 	// Patch the recombination interval end vector if it is empty; see setRecombinationRate() and initializeRecombinationRate().
 	// Basically, the length of the chromosome might not have been known yet when the user set the rate.
@@ -334,17 +338,104 @@ void Chromosome::_InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, v
 	if (p_end_positions[p_rates.size() - 1] < last_position_)
 		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): recombination endpoints do not cover the full chromosome." << EidosTerminate();
 	
-	// Calculate the overall recombination rate and the lookup table for breakpoints
-	std::vector<double> B(p_rates.size());
+	// BCH 11 April 2018: Fixing this code to use Peter Ralph's reparameterization that corrects for the way we use these rates
+	// downstream.  So the rates we are passed in p_rates are from the user, and they represent "ancestry breakpoint" rates: the
+	// desired probability of a crossover from one base to the next.  Downstream, when we actually generate breakpoints, we will
+	// draw the number of breakpoints from a Poisson distribution with the overall rate of p_overall_rate that we sum up here,
+	// then we will draw the location of each breakpoint from the p_lookup table we build here, and then we will sort and unique
+	// those breakpoints so that we only ever have one breakpoint, at most, between any two bases.  That uniquing is the key step
+	// that drives this reparameterization.  We need to choose a reparameterized lambda value for the Poisson draw such that the
+	// probability P[Poisson(lambda) >= 1] == rate.  Simply using lambda=rate is a good approximation when rate is small, but when
+	// rate is larger than 0.01 it starts to break down, and when rate is 0.5 it is quite inaccurate; P[Poisson(0.5) >= 1] ~= 0.39.
+	// So we reparameterize according to the formula:
+	//
+	//		lambda = -log(1 - p)
+	//
+	// where p is the probability requested by the user and lambda is the expected mean used for the Poisson draw to ensure that
+	// P[Poisson(lambda) >= 1] == p.  Note that this formula blows up for p >= 1, and gets numerically unstable as it approaches
+	// that limit; the lambda values chosen will become very large.  Since values above 0.5 are unbiological anyway, we do not
+	// allow them; all recombination rates must be <= 0.5 in SLiM, as of this change.  0.5 represents complete independence;
+	// we do not allow "anti-linkage" at present since it seems to be unbiological.  If somebody argues with us on that, we could
+	// extend the limit up to, say, 0.9 without things blowing up badly, but 1.0 is out of the question.
+	//
+	// Here we also calculate the overall recombination rate in reparameterized units, which is what we actually use to draw
+	// breakpoints, *and* the overall recombination rate in non-reparameterized units (as in SLiM 2.x and before), which is what
+	// we report to the user if they ask for it (representing the expected number of crossovers along the chromosome).  The
+	// reparameterized overall recombination rate is the expected number of breakpoints we will generate *before* uniquing,
+	// which has no meaning for the user.
+	std::vector<double> reparameterized_rates;
 	
-	B[0] = p_rates[0] * static_cast<double>(p_end_positions[0]);	// No +1 here, because the position to the left of the first base is not a valid recombination position.
+	reparameterized_rates.reserve(p_rates.size());
+	
+	for (double user_rate : p_rates)
+	{
+		// this bounds check should have been done already externally to us, but no harm in making sure...
+		if ((user_rate < 0.0) || (user_rate > 0.5))
+			EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): all recombination rates in SLiM must be in [0.0, 0.5]." << EidosTerminate();
+		
+#if 1
+		// This is the new recombination-rate paradigm that compensates for uniquing of breakpoints, etc.
+		
+		// keep track of whether any recombination rates in the model are 0.5; if so, gene conversion needs to exclude those positions
+		if (user_rate == 0.5)
+			any_recombination_rates_05_ = true;
+		
+		reparameterized_rates.emplace_back(-log(1.0 - user_rate));
+		
+		/*
+		 A good model to test that the recombination rate observed is actually the crossover rate requested:
+		
+		initialize() {
+		   defineConstant("L", 10);		// 10 breakpoint positions, so 11 bases
+		   defineConstant("N", 1000);		// 1000 diploids
+		
+		   initializeMutationRate(0);
+		   initializeMutationType("m1", 0.5, "f", 0.0);
+		   initializeGenomicElementType("g1", m1, 1.0);
+		   initializeGenomicElement(g1, 0, L);
+		   initializeRecombinationRate(0.5);
+		}
+		1 {
+		   sim.addSubpop("p1", N);
+		   sim.tag = 0;
+		}
+		recombination() {
+		   sim.tag = sim.tag + size(unique(breakpoints));
+		   return F;
+		}
+		10000 late() {
+		   print(sim.tag / (10000 * N * 2 * L));
+		}
+
+		 */
+#else
+		// This is the old recombination-rate paradigm, which should be used only for testing output compatibility in tests
+#warning old recombination-rate paradigm enabled!
+		
+		reparameterized_rates.emplace_back(user_rate);
+#endif
+	}
+	
+	// Calculate the overall recombination rate and the lookup table for breakpoints
+	std::vector<double> B(reparameterized_rates.size());
+	std::vector<double> B_userlevel(reparameterized_rates.size());
+	
+	B_userlevel[0] = p_rates[0] * static_cast<double>(p_end_positions[0]);
+	B[0] = reparameterized_rates[0] * static_cast<double>(p_end_positions[0]);	// No +1 here, because the position to the left of the first base is not a valid recombination position.
 																	// So a 1-base model (position 0 to 0) has an end of 0, and thus an overall rate of 0.  This means that
 																	// gsl_ran_discrete_preproc() is given an interval with rate 0, but that seems OK.  BCH 4 April 2016
-	for (unsigned int i = 1; i < p_rates.size(); i++)
-		B[i] = p_rates[i] * static_cast<double>(p_end_positions[i] - p_end_positions[i - 1]);
+	for (unsigned int i = 1; i < reparameterized_rates.size(); i++)
+	{
+		double length = static_cast<double>(p_end_positions[i] - p_end_positions[i - 1]);
+		
+		B_userlevel[i] = p_rates[i] * length;
+		B[i] = reparameterized_rates[i] * length;
+	}
 	
-	p_overall_rate = Eidos_ExactSum(B.data(), p_rates.size());
+	p_overall_rate_userlevel = Eidos_ExactSum(B_userlevel.data(), p_rates.size());
+	p_overall_rate = Eidos_ExactSum(B.data(), reparameterized_rates.size());
 	
+	// All the recombination machinery below uses the reparameterized rates
 #ifndef USE_GSL_POISSON
 	p_exp_neg_overall_rate = Eidos_FastRandomPoisson_PRECALCULATE(p_overall_rate);				// exp(-mu); can be 0 due to underflow
 #endif
@@ -352,7 +443,7 @@ void Chromosome::_InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, v
 	if (p_lookup)
 		gsl_ran_discrete_free(p_lookup);
 	
-	p_lookup = gsl_ran_discrete_preproc(p_rates.size(), B.data());
+	p_lookup = gsl_ran_discrete_preproc(reparameterized_rates.size(), B.data());
 }
 
 // initialize one mutation map, used internally by InitializeDraws() to avoid code duplication
@@ -496,10 +587,16 @@ MutationIndex Chromosome::DrawNewMutation(IndividualSex p_sex, slim_objectid_t p
 	return new_mut_index;
 }
 
-// choose a set of recombination breakpoints, based on recombination intervals, overall recombination rate, and gene conversion probability
-// BEWARE!  Chromosome::DrawBreakpoints_Detailed() below must be altered in parallel with this method!
-void Chromosome::DrawBreakpoints(IndividualSex p_sex, const int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers) const
+// choose a set of recombination breakpoints, based on recombination intervals and overall recombination rate
+// note that this does not handle gene conversion or recombination breakpoints; those are done after this step
+void Chromosome::DrawUniquedBreakpoints(IndividualSex p_sex, const int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers) const
 {
+	// BEWARE!  Chromosome::DrawUniquedBreakpointsForGC_r05() below must be altered in parallel with this method!
+#if DEBUG
+	if (any_recombination_rates_05_)
+		EIDOS_TERMINATION << "ERROR (Chromosome::DrawUniquedBreakpoints): (internal error) this method should not be called when rate==0.5 segments exist." << EidosTerminate();
+#endif
+	
 	gsl_ran_discrete_t *lookup;
 	const vector<slim_position_t> *end_positions;
 	
@@ -571,49 +668,64 @@ void Chromosome::DrawBreakpoints(IndividualSex p_sex, const int p_num_breakpoint
 			breakpoint = (*end_positions)[recombination_interval - 1] + 1 + static_cast<slim_position_t>(Eidos_rng_uniform_int(gEidos_rng, (*end_positions)[recombination_interval] - (*end_positions)[recombination_interval - 1]));
 		
 		p_crossovers.emplace_back(breakpoint);
+	}
+	
+	// sort and unique
+	if (p_num_breakpoints > 2)
+	{
+		std::sort(p_crossovers.begin(), p_crossovers.end());
+		p_crossovers.erase(unique(p_crossovers.begin(), p_crossovers.end()), p_crossovers.end());
+	}
+	else if (p_num_breakpoints == 2)
+	{
+		// do our own dumb inline sort/unique if we have just two elements, to avoid the calls above
+		// I didn't actually test this to confirm that it's faster, but models that generate many
+		// breakpoints will generally hit the case above anyway, and models that generate few will
+		// suffer only the additional (num_breakpoints == 2) test before falling through...
+		slim_position_t bp1 = p_crossovers[0];
+		slim_position_t bp2 = p_crossovers[1];
 		
-		// recombination can result in gene conversion, with probability gene_conversion_fraction_
-		if (gene_conversion_fraction_ > 0.0)
-		{
-			if (Eidos_rng_uniform(gEidos_rng) <= gene_conversion_fraction_)
-			{
-				// for gene conversion, choose a second breakpoint that is relatively likely to be near to the first
-				// note that this second breakpoint does not count toward the total number of breakpoints we need to
-				// generate; this means that when gene conversion occurs, we return more breakpoints than requested!
-				slim_position_t breakpoint2 = SLiMClampToPositionType(breakpoint + gsl_ran_geometric(gEidos_rng, 1.0 / gene_conversion_avg_length_));
-				
-				if (breakpoint2 <= last_position_)	// used to always add; added this 17 August 2015 BCH, but shouldn't really matter
-					p_crossovers.emplace_back(breakpoint2);
-			}
-		}
+		if (bp1 > bp2)
+			std::swap(p_crossovers[0], p_crossovers[1]);
+		else if (bp1 == bp2)
+			p_crossovers.resize(1);
 	}
 }
 
-// The same logic as Chromosome::DrawBreakpoints() above, but breaks results down into crossovers versus
-// gene conversion stand/end points.  See Chromosome::DrawBreakpoints for comments on the logic.
-void Chromosome::DrawBreakpoints_Detailed(IndividualSex p_sex, const int p_num_breakpoints, vector<slim_position_t> &p_crossovers, vector<slim_position_t> &p_gcstarts, vector<slim_position_t> &p_gcends) const
+// This is identical to Chromosome::DrawUniquedBreakpoints() except that it segregates crossovers from
+// rate r=0.5 regions in a separate vector; see Chromosome::DrawUniquedBreakpoints() for comments.
+// This should be called only in the case where at least one rate=0.5 region exists, for efficiency.
+void Chromosome::DrawUniquedBreakpointsForGC_r05(IndividualSex p_sex, const int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers, std::vector<slim_position_t> &p_crossovers_from_r05) const
 {
+	// BEWARE!  Chromosome::DrawUniquedBreakpoints() above must be altered in parallel with this method!
+#if DEBUG
+	if (!any_recombination_rates_05_)
+		EIDOS_TERMINATION << "ERROR (Chromosome::DrawUniquedBreakpointsForGC_r05): (internal error) this method should only be called when rate==0.5 segments exist." << EidosTerminate();
+#endif
+	
 	gsl_ran_discrete_t *lookup;
 	const vector<slim_position_t> *end_positions;
+	const vector<double> *rates;
 	
 	if (single_recombination_map_)
 	{
-		// With a single map, we don't care what sex we are passed; same map for all, and sex may be enabled or disabled
 		lookup = lookup_recombination_H_;
 		end_positions = &recombination_end_positions_H_;
+		rates = &recombination_rates_H_;
 	}
 	else
 	{
-		// With sex-specific maps, we treat males and females separately, and the individual we're given better be one of the two
 		if (p_sex == IndividualSex::kMale)
 		{
 			lookup = lookup_recombination_M_;
 			end_positions = &recombination_end_positions_M_;
+			rates = &recombination_rates_M_;
 		}
 		else if (p_sex == IndividualSex::kFemale)
 		{
 			lookup = lookup_recombination_F_;
 			end_positions = &recombination_end_positions_F_;
+			rates = &recombination_rates_F_;
 		}
 		else
 		{
@@ -621,40 +733,80 @@ void Chromosome::DrawBreakpoints_Detailed(IndividualSex p_sex, const int p_num_b
 		}
 	}
 	
-	// draw recombination breakpoints
 	for (int i = 0; i < p_num_breakpoints; i++)
 	{
 		slim_position_t breakpoint = 0;
 		int recombination_interval = static_cast<int>(gsl_ran_discrete(gEidos_rng, lookup));
 		
-		// choose a breakpoint anywhere in the chosen recombination interval with equal probability
 		if (recombination_interval == 0)
 			breakpoint = static_cast<slim_position_t>(Eidos_rng_uniform_int(gEidos_rng, (*end_positions)[recombination_interval]) + 1);
 		else
 			breakpoint = (*end_positions)[recombination_interval - 1] + 1 + static_cast<slim_position_t>(Eidos_rng_uniform_int(gEidos_rng, (*end_positions)[recombination_interval] - (*end_positions)[recombination_interval - 1]));
 		
-		// recombination can result in gene conversion, with probability gene_conversion_fraction_
-		if (gene_conversion_fraction_ > 0.0)
+		if ((*rates)[recombination_interval] == 0.5)
+			p_crossovers_from_r05.emplace_back(breakpoint);
+		else
+			p_crossovers.emplace_back(breakpoint);
+	}
+	
+	// sort and unique
+	if (p_crossovers.size() > 2)
+	{
+		std::sort(p_crossovers.begin(), p_crossovers.end());
+		p_crossovers.erase(unique(p_crossovers.begin(), p_crossovers.end()), p_crossovers.end());
+	}
+	else if (p_crossovers.size() == 2)
+	{
+		// do our own dumb inline sort/unique if we have just two elements, to avoid the calls above
+		// I didn't actually test this to confirm that it's faster, but models that generate many
+		// breakpoints will generally hit the case above anyway, and models that generate few will
+		// suffer only the additional (num_breakpoints == 2) test before falling through...
+		slim_position_t bp1 = p_crossovers[0];
+		slim_position_t bp2 = p_crossovers[1];
+		
+		if (bp1 > bp2)
+			std::swap(p_crossovers[0], p_crossovers[1]);
+		else if (bp1 == bp2)
+			p_crossovers.resize(1);
+	}
+	
+	// note that we do not sort/unique p_crossovers_from_r05; we do not guarantee to the caller that we will do that.
+	// p_crossovers needs to be sorted/uniqued so gene conversion can use it, but the r05 breakpoints will be uniqued later.
+}
+
+void Chromosome::DoGeneConversion(std::vector<slim_position_t> &p_crossovers, std::vector<slim_position_t> &p_gc_starts, std::vector<slim_position_t> &p_gc_ends) const
+{
+	// Run through p_crossovers and randomly convert breakpoints into gene conversion stretches
+	// Note that if there are any rate==0.5 positions, breakpoints associated with them should not be in p_crossovers
+	
+	if (gene_conversion_fraction_ > 0.0)
+	{
+		int breakpoint_count = (int)p_crossovers.size();
+		
+		for (int breakpoint_index = 0; breakpoint_index < breakpoint_count; ++breakpoint_index)
 		{
 			if (Eidos_rng_uniform(gEidos_rng) <= gene_conversion_fraction_)
 			{
-				p_gcstarts.emplace_back(breakpoint);
-				
-				// for gene conversion, choose a second breakpoint that is relatively likely to be near to the first
-				// note that this second breakpoint does not count toward the total number of breakpoints we need to
-				// generate; this means that when gene conversion occurs, we return more breakpoints than requested!
+				// we would like to do gene conversion; draw the end of the gene conversion stretch and see if it's off the end
+				// we used to always add the second breakpoint; added this test 17 August 2015 BCH, but it shouldn't really matter
+				slim_position_t breakpoint = p_crossovers[breakpoint_index];
 				slim_position_t breakpoint2 = SLiMClampToPositionType(breakpoint + gsl_ran_geometric(gEidos_rng, 1.0 / gene_conversion_avg_length_));
 				
-				if (breakpoint2 <= last_position_)	// used to always add; added this 17 August 2015 BCH, but shouldn't really matter
-					p_gcends.emplace_back(breakpoint2);
-				else
-					p_gcends.emplace_back(last_position_ + 1);	// so every start has an end; harmless and will be removed by unique()
-				
-				continue;
+				if (breakpoint2 <= last_position_)	
+				{
+					// ok, we have a valid GC stretch, so convert p_crossovers[breakpoint_index] to a gc site
+					p_gc_starts.push_back(breakpoint);
+					p_gc_ends.push_back(breakpoint2);
+					
+					// backfill the crossovers vector to remove the converted breakpoint
+					p_crossovers[breakpoint_index] = p_crossovers[breakpoint_count - 1];
+					breakpoint_count--;
+				}
 			}
 		}
 		
-		p_crossovers.emplace_back(breakpoint);
+		// resize to fit the items left behind after gene conversion
+		p_crossovers.resize(breakpoint_count);
 	}
 }
 
@@ -755,19 +907,19 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			if (!single_recombination_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallRecombinationRate is not defined since sex-specific recombination rate maps have been defined." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_recombination_rate_H_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_recombination_rate_H_userlevel_));
 		}
 		case gID_overallRecombinationRateM:
 		{
 			if (single_recombination_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallRecombinationRateM is not defined since sex-specific recombination rate maps have not been defined." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_recombination_rate_M_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_recombination_rate_M_userlevel_));
 		}
 		case gID_overallRecombinationRateF:
 		{
 			if (single_recombination_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallRecombinationRateF is not defined since sex-specific recombination rate maps have not been defined." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_recombination_rate_F_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_recombination_rate_F_userlevel_));
 		}
 			
 		case gID_recombinationEndPositions:
@@ -1029,8 +1181,8 @@ EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID
 		double recombination_rate = rates_value->FloatAtIndex(0, nullptr);
 		
 		// check values
-		if (recombination_rate < 0.0)		// intentionally no upper bound
-			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() rate " << recombination_rate << " out of range; rates must be >= 0." << EidosTerminate();
+		if ((recombination_rate < 0.0) || (recombination_rate > 0.5))
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() rate " << recombination_rate << " out of range; rates must be in [0.0, 0.5]." << EidosTerminate();
 		
 		// then adopt them
 		rates.clear();
@@ -1057,8 +1209,8 @@ EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID
 				if (recombination_end_position <= ends_value->IntAtIndex(value_index - 1, nullptr))
 					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() requires ends to be in strictly ascending order." << EidosTerminate();
 			
-			if (recombination_rate < 0.0)		// intentionally no upper bound
-				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() rate " << recombination_rate << " out of range; rates must be >= 0." << EidosTerminate();
+			if ((recombination_rate < 0.0) || (recombination_rate > 0.5))
+				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() rate " << recombination_rate << " out of range; rates must be in [0.0, 0.5]." << EidosTerminate();
 		}
 		
 		// The stake here is that the last position in the chromosome is not allowed to change after the chromosome is

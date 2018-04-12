@@ -2358,24 +2358,131 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 		
 		//std::cout << num_mutations << " mutations, " << num_breakpoints << " breakpoints" << std::endl;
 		
-		// handle recombination() breakpoints here, if any
-		if (p_recombination_callbacks)
+		// draw the breakpoints based on the recombination rate map, and sort and unique the result
+		if (num_breakpoints)
 		{
-			// first draw breakpoints, distinguing between crossovers and gene conversion start/end points
-			std::vector<slim_position_t> crossovers, gc_starts, gc_ends;
+			if (chromosome.gene_conversion_fraction_ > 0.0)
+			{
+				// gene conversion, with or without recombination callbacks
+				if (!chromosome.any_recombination_rates_05_)
+				{
+					// we have no recombination rates of 0.5, so we don't have to worry about them
+					std::vector<slim_position_t> gc_starts, gc_ends;
+					
+					chromosome.DrawUniquedBreakpoints(p_parent_sex, num_breakpoints, all_breakpoints);
+					
+					if (chromosome.gene_conversion_fraction_ > 0.0)
+						chromosome.DoGeneConversion(all_breakpoints, gc_starts, gc_ends);
+					
+					if (p_recombination_callbacks)
+						ApplyRecombinationCallbacks(p_parent_index, parent_genome_1, parent_genome_2, p_source_subpop, all_breakpoints, gc_starts, gc_ends, *p_recombination_callbacks);
+					
+					num_breakpoints = (int)(all_breakpoints.size() + gc_starts.size() + gc_ends.size());
+					
+					if (num_breakpoints)
+					{
+						all_breakpoints.insert(all_breakpoints.end(), gc_starts.begin(), gc_starts.end());
+						all_breakpoints.insert(all_breakpoints.end(), gc_ends.begin(), gc_ends.end());
+						
+						if (all_breakpoints.size() > 1)
+						{
+							std::sort(all_breakpoints.begin(), all_breakpoints.end());
+							all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
+						}
+						
+						// no need to sort or unique this breakpoint, as it is past the end of any legitimate breakpoints
+						all_breakpoints.emplace_back(chromosome.last_position_mutrun_ + 10);
+					}
+					else
+					{
+						// Note that we do not add the (p_chromosome.last_position_mutrun_ + 1) breakpoint here, for speed in the
+						// cases where it is not needed; this needs to be patched up below in the cases where it *is* needed
+					}
+				}
+				else
+				{
+					// we have recombination rates of 0.5, so we need to separate out those breakpoints, which are not GC-eligible
+					std::vector<slim_position_t> breakpoints_r05, gc_starts, gc_ends;
+					
+					chromosome.DrawUniquedBreakpointsForGC_r05(p_parent_sex, num_breakpoints, all_breakpoints, breakpoints_r05);
+					chromosome.DoGeneConversion(all_breakpoints, gc_starts, gc_ends);
+					all_breakpoints.insert(all_breakpoints.end(), breakpoints_r05.begin(), breakpoints_r05.end());
+					
+					if (p_recombination_callbacks)
+						ApplyRecombinationCallbacks(p_parent_index, parent_genome_1, parent_genome_2, p_source_subpop, all_breakpoints, gc_starts, gc_ends, *p_recombination_callbacks);
+					
+					num_breakpoints = (int)(all_breakpoints.size() + gc_starts.size() + gc_ends.size());
+					
+					if (num_breakpoints)
+					{
+						all_breakpoints.insert(all_breakpoints.end(), gc_starts.begin(), gc_starts.end());
+						all_breakpoints.insert(all_breakpoints.end(), gc_ends.begin(), gc_ends.end());
+						
+						if (all_breakpoints.size() > 1)
+						{
+							std::sort(all_breakpoints.begin(), all_breakpoints.end());
+							all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
+						}
+						
+						// no need to sort or unique this breakpoint, as it is past the end of any legitimate breakpoints
+						all_breakpoints.emplace_back(chromosome.last_position_mutrun_ + 10);
+					}
+					else
+					{
+						// Note that we do not add the (p_chromosome.last_position_mutrun_ + 1) breakpoint here, for speed in the
+						// cases where it is not needed; this needs to be patched up below in the cases where it *is* needed
+					}
+				}
+			}
+			else if (p_recombination_callbacks)
+			{
+				// recombination callbacks but no gene conversion
+				chromosome.DrawUniquedBreakpoints(p_parent_sex, num_breakpoints, all_breakpoints);
+				
+				std::vector<slim_position_t> gc_starts, gc_ends;
+				
+				ApplyRecombinationCallbacks(p_parent_index, parent_genome_1, parent_genome_2, p_source_subpop, all_breakpoints, gc_starts, gc_ends, *p_recombination_callbacks);
+				num_breakpoints = (int)(all_breakpoints.size() + gc_starts.size() + gc_ends.size());
+				
+				if (num_breakpoints)
+				{
+					all_breakpoints.insert(all_breakpoints.end(), gc_starts.begin(), gc_starts.end());
+					all_breakpoints.insert(all_breakpoints.end(), gc_ends.begin(), gc_ends.end());
+					
+					if (all_breakpoints.size() > 1)
+					{
+						std::sort(all_breakpoints.begin(), all_breakpoints.end());
+						all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
+					}
+					
+					// no need to sort or unique this breakpoint, as it is past the end of any legitimate breakpoints
+					all_breakpoints.emplace_back(chromosome.last_position_mutrun_ + 10);
+				}
+				else
+				{
+					// Note that we do not add the (p_chromosome.last_position_mutrun_ + 1) breakpoint here, for speed in the
+					// cases where it is not needed; this needs to be patched up below in the cases where it *is* needed
+				}
+			}
+			else
+			{
+				// neither gene conversion nor recombination
+				chromosome.DrawUniquedBreakpoints(p_parent_sex, num_breakpoints, all_breakpoints);
+				
+				// no need to sort or unique this breakpoint, as it is past the end of any legitimate breakpoints
+				all_breakpoints.emplace_back(chromosome.last_position_mutrun_ + 10);
+			}
+		}
+		else if (p_recombination_callbacks)
+		{
+			// no breakpoints from the SLiM core, so no gene conversion can occur, but we still have recombination() callbacks
+			std::vector<slim_position_t> gc_starts, gc_ends;
 			
-			if (num_breakpoints)
-				chromosome.DrawBreakpoints_Detailed(p_parent_sex, num_breakpoints, crossovers, gc_starts, gc_ends);
-			
-			// next, apply the recombination callbacks
-			ApplyRecombinationCallbacks(p_parent_index, parent_genome_1, parent_genome_2, p_source_subpop, crossovers, gc_starts, gc_ends, *p_recombination_callbacks);
-			
-			// Finally, combine the crossovers and gene conversion start/end points into a single sorted, uniqued vector
-			num_breakpoints = (int)(crossovers.size() + gc_starts.size() + gc_ends.size());
+			ApplyRecombinationCallbacks(p_parent_index, parent_genome_1, parent_genome_2, p_source_subpop, all_breakpoints, gc_starts, gc_ends, *p_recombination_callbacks);
+			num_breakpoints = (int)(all_breakpoints.size() + gc_starts.size() + gc_ends.size());
 			
 			if (num_breakpoints)
 			{
-				all_breakpoints.insert(all_breakpoints.end(), crossovers.begin(), crossovers.end());
 				all_breakpoints.insert(all_breakpoints.end(), gc_starts.begin(), gc_starts.end());
 				all_breakpoints.insert(all_breakpoints.end(), gc_ends.begin(), gc_ends.end());
 				
@@ -2394,38 +2501,10 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 				// cases where it is not needed; this needs to be patched up below in the cases where it *is* needed
 			}
 		}
-		else if (num_breakpoints)
-		{
-			// just draw, sort, and unique breakpoints in the standard way
-			chromosome.DrawBreakpoints(p_parent_sex, num_breakpoints, all_breakpoints);
-			
-			num_breakpoints = (int)all_breakpoints.size();	// may have changed length due to gene conversion!
-			
-			if (num_breakpoints > 2)
-			{
-				std::sort(all_breakpoints.begin(), all_breakpoints.end());
-				all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
-			}
-			else if (num_breakpoints == 2)
-			{
-				// do our own dumb inline sort/unique if we have just two elements, to avoid the calls above
-				// I didn't actually test this to confirm that it's faster, but models that generate many
-				// breakpoints will generally hit the case above anyway, and models that generate few will
-				// suffer only the additional (num_breakpoints == 2) test before falling through...
-				slim_position_t bp1 = all_breakpoints[0];
-				slim_position_t bp2 = all_breakpoints[1];
-				
-				if (bp1 > bp2)
-					std::swap(all_breakpoints[0], all_breakpoints[1]);
-				else if (bp1 == bp2)
-					all_breakpoints.resize(1);
-			}
-			
-			// no need to sort or unique this breakpoint, as it is past the end of any legitimate breakpoints
-			all_breakpoints.emplace_back(chromosome.last_position_mutrun_ + 10);
-		}
 		else
 		{
+			// no breakpoints, no gene conversion, no recombination() callbacks
+			
 			// Note that we do not add the (p_chromosome.last_position_mutrun_ + 1) breakpoint here, for speed in the
 			// cases where it is not needed; this needs to be patched up below in the cases where it *is* needed
 		}
