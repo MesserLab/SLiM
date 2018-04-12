@@ -300,8 +300,6 @@ private:
 	// TABLE SIMPLIFICATION
     std::vector<node_id_t> RememberedGenomes;
 	std::map<slim_genomeid_t,node_id_t> SLiM_MSP_Id_Map;
-    // TODO: remove this when sort_tables takes care of duplicated sites instead
-    std::unordered_map<slim_position_t, site_id_t> current_sites;
 	
 	bool recording_mutations_ = false;	// true if we are recording mutations in our tree sequence tables
 	double simplification_ratio_;		// the pre:post table size ratio we target with our automatic simplification heuristic
