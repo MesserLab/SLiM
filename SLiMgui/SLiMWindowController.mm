@@ -2185,6 +2185,8 @@
 #ifdef DEBUG
 	if (isProfileAction)
 	{
+		[profileButton setState:NSOffState];
+		
 		NSAlert *alert = [[NSAlert alloc] init];
 		
 		[alert setAlertStyle:NSWarningAlertStyle];
@@ -2204,6 +2206,8 @@
 #if (SLIMPROFILING == 0)
 	if (isProfileAction)
 	{
+		[profileButton setState:NSOffState];
+		
 		NSAlert *alert = [[NSAlert alloc] init];
 		
 		[alert setAlertStyle:NSWarningAlertStyle];
