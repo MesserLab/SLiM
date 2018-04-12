@@ -303,7 +303,7 @@ std::ostream& operator<<(std::ostream& p_out, GenomeType p_genome_type);
 
 // This enumeration represents the sex of an individual: hermaphrodite, female, or male.  It also includes an "unspecified"
 // value that is useful in situations where the code wants to say that it doesn't care what sex is present.
-enum class IndividualSex
+enum class IndividualSex : int32_t
 {
 	kUnspecified = -2,
 	kHermaphrodite = -1,

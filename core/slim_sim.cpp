@@ -3928,7 +3928,7 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_
 	}
 }
 
-void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t p_position, const std::vector<slim_mutationid_t> &p_derived_mutations)
+void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations)
 {
     // This records information in the Site and Mutation tables.  Properly
     // recording information for a new mutation in the Site table requires
@@ -3969,8 +3969,8 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
 	std::cout << tree_seq_generation_ << ":   New derived state for genome id "; 
     std::cout << p_genome_id << " (msp: " << genomeMSPID << ") at position " << p_position << ":";
 	if (p_derived_mutations.size()) {
-		for (slim_mutationid_t mut_id : p_derived_mutations)
-			std::cout << " " << mut_id;
+	 for (Mutation *mutation : p_derived_mutations)
+	 std::cout << " " << mutation->mutation_id_;
 	} else {
 		std::cout << " <empty>";
 	}
@@ -4026,20 +4026,26 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
     // */
 
     // form derived state: needs to be a const char*
-    char *derived_muts_bytes = (char *)(p_derived_mutations.data());
-    size_t derived_state_length = p_derived_mutations.size() * sizeof(slim_mutationid_t);
+	static std::vector<slim_mutationid_t> derived_mutation_ids;
+	
+	derived_mutation_ids.clear();
+	for (Mutation *mutation : p_derived_mutations)
+		derived_mutation_ids.push_back(mutation->mutation_id_);
+	
+    char *derived_muts_bytes = (char *)(derived_mutation_ids.data());
+    size_t derived_state_length = derived_mutation_ids.size() * sizeof(slim_mutationid_t);
 
     // we don't record parent mutations; they are added later
     // the last (NULL, 0) is metadata
     tree_return_value_ = mutation_table_add_row(&tables.mutations, site_id, genomeMSPID, 
-                            parent_mut_id, derived_muts_bytes, derived_state_length, NULL, 0);
+                            parent_mut_id, derived_muts_bytes, (table_size_t)derived_state_length, NULL, 0);
 
 	if (tree_return_value_ < 0) {
 		handle_error("add_mutation", tree_return_value_);
 	}
 }
 
-void SLiMSim::RecordNewDerivedStateNonMeiosis(slim_genomeid_t p_genome_id, slim_position_t p_position, const std::vector<slim_mutationid_t> &p_derived_mutations)
+void SLiMSim::RecordNewDerivedStateNonMeiosis(slim_genomeid_t p_genome_id, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations)
 {
     // This is called when a mutation is added or removed outside of the
     // crossover-mutation code.  When we're in the crossover-mutation code, the
@@ -4293,6 +4299,41 @@ void SLiMSim::RecordAllDerivedStatesFromSLiM(void)
 			}
 		}
 	}
+}
+
+struct MutationInfoRec *SLiMSim::MutationInfoForMutation(Mutation *p_mutation)
+{
+	if (!p_mutation)
+		return nullptr;
+	
+	static struct MutationInfoRec static_mutation_info;
+	
+	static_mutation_info.mutation_type_id_ = p_mutation->mutation_type_ptr_->mutation_type_id_;
+	static_mutation_info.selection_coeff_ = p_mutation->selection_coeff_;
+	static_mutation_info.subpop_index_ = p_mutation->subpop_index_;
+	static_mutation_info.origin_generation_ = p_mutation->origin_generation_;
+	
+	return &static_mutation_info;
+}
+
+struct IndividualInfoRec *SLiMSim::IndividualInfoForIndividual(Individual *p_individual)
+{
+	if (!p_individual)
+		return nullptr;
+	
+	static struct IndividualInfoRec static_individual_info;
+	
+	static_individual_info.sex_ = p_individual->sex_;
+#ifdef SLIM_NONWF_ONLY
+	static_individual_info.age_ = p_individual->age_;
+#else
+	static_individual_info.age_ = -1;
+#endif
+	static_individual_info.spatial_x_ = p_individual->spatial_x_;
+	static_individual_info.spatial_y_ = p_individual->spatial_y_;
+	static_individual_info.spatial_z_ = p_individual->spatial_z_;
+	
+	return &static_individual_info;
 }
 
 

@@ -71,36 +71,38 @@
 
 // When a document is opened, check to see whether there is a document that is already open, and whether it is transient.
 // If so, transfer the document's window controllers and close the transient document.
-- (id)openDocumentWithContentsOfURL:(NSURL *)absoluteURL display:(BOOL)displayDocument error:(NSError **)outError
+- (void)openDocumentWithContentsOfURL:(NSURL *)absoluteURL display:(BOOL)displayDocument completionHandler:(nonnull void (^)(NSDocument * _Nullable, BOOL, NSError * _Nullable))completionHandler
 {
 	SLiMDocument *transientDoc = [self transientDocumentToReplace];
 	
 	if (transientDoc)
 	{
-		// Defer display so we can replace the transient document first
-		NSDocument *typelessDoc = [super openDocumentWithContentsOfURL:absoluteURL display:NO error:outError];
-		
-		if (typelessDoc)
+		// Defer display so we can replace the transient document first.  We have to have our own handler to intercept the result,
+		// process it, and then call our caller's completion handler.
+		[super openDocumentWithContentsOfURL:absoluteURL display:NO completionHandler:(^ void (NSDocument *typelessDoc, BOOL already_open, NSError *error)
 		{
-			if ([typelessDoc isKindOfClass:[SLiMDocument class]])
+			if (typelessDoc)
 			{
-				SLiMDocument *doc = (SLiMDocument *)typelessDoc;
+				if ([typelessDoc isKindOfClass:[SLiMDocument class]])
+				{
+					SLiMDocument *doc = (SLiMDocument *)typelessDoc;
+					
+					[self replaceTransientDocument:[NSArray arrayWithObjects:transientDoc, doc, nil]];
+				}
 				
-				[self replaceTransientDocument:[NSArray arrayWithObjects:transientDoc, doc, nil]];
+				if (displayDocument)
+				{
+					[typelessDoc makeWindowControllers];
+					[typelessDoc showWindows];
+				}
 			}
 			
-			if (displayDocument)
-			{
-				[typelessDoc makeWindowControllers];
-				[typelessDoc showWindows];
-			}
-		}
-		
-		return typelessDoc;
+			completionHandler(typelessDoc, NO, error);
+		})];
 	}
 	else
 	{
-		return [super openDocumentWithContentsOfURL:absoluteURL display:displayDocument error:outError];
+		[super openDocumentWithContentsOfURL:absoluteURL display:displayDocument completionHandler:completionHandler];
 	}
 }
 

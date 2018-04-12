@@ -99,6 +99,41 @@ enum class SLiMFileFormat
 };
 
 
+// TREE SEQUENCE RECORDING
+// This struct is used by the tree-rec code to record all metadata about a mutation that needs to be saved.
+// This should be kept in sync with any new state that needs to be written out about mutations, but of course
+// changing the members/size/layout of this struct will mean that old output files will no longer be readable.
+// Note we save only the mutation type id, not state from the mutation type such as the dominance coefficient.
+// I decided not to use __attribute__((__packed__)); if this struct isn't naturally 16 bytes something is deeply wrong.
+struct MutationInfoRec {
+	slim_objectid_t mutation_type_id_;		// 4 bytes (int32_t): the id of the mutation type the mutation belongs to
+	slim_selcoeff_t selection_coeff_;		// 4 bytes (float): the selection coefficient
+	slim_objectid_t subpop_index_;			// 4 bytes (int32_t): the id of the subpopulation in which the mutation arose
+	slim_generation_t origin_generation_;	// 4 bytes (int32_t): the generation in which the mutation arose
+};
+
+// This struct is used by the tree-rec code to record all metadata about an individual that needs to be saved.
+// This should be kept in sync with any new state that needs to be written out about individuals, but of course
+// changing the members/size/layout of this struct will mean that old output files will no longer be readable.
+// I decided not to use __attribute__((__packed__)); if this struct isn't naturally 32 bytes something is deeply wrong.
+struct IndividualInfoRec {
+	// no pedigree IDs
+	IndividualSex sex_;						// 4 bytes (int32_t): the sex of the individual (H, F, M)
+	slim_age_t age_;						// 4 bytes (int32_t): the age of the individual (saved as -1 in WF models)
+	double spatial_x_;						// 8 bytes (double): spatial position x (garbage in models that don't use it)
+	double spatial_y_;						// 8 bytes (double): spatial position y (garbage in models that don't use it)
+	double spatial_z_;						// 8 bytes (double): spatial position z (garbage in models that don't use it)
+};
+
+static_assert(sizeof(struct MutationInfoRec) == 16, "MutationInfoRec is not 16 bytes!");
+static_assert(sizeof(struct IndividualInfoRec) == 32, "IndividualInfoRec is not 32 bytes!");
+#if defined(__BYTE_ORDER__)
+#if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+#warning Reading and writing binary files with SLiM may produce non-standard results on this (big-endian) platform due to endianness
+#endif
+#endif
+
+
 class SLiMSim : public SLiMEidosDictionary
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
@@ -402,8 +437,8 @@ public:
 	void StartTreeRecording(void);
 	void SetCurrentNewIndividual(Individual *p_individual);
 	void RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_genomeid_t p_new_genome_id, slim_genomeid_t p_initial_parental_genome_id, slim_genomeid_t p_second_parental_genome_id);
-	void RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t p_position, const std::vector<slim_mutationid_t> &p_derived_mutations);
-	void RecordNewDerivedStateNonMeiosis(slim_genomeid_t p_genome_id, slim_position_t p_position, const std::vector<slim_mutationid_t> &p_derived_mutations);
+	void RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations);
+	void RecordNewDerivedStateNonMeiosis(slim_genomeid_t p_genome_id, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations);
 	void RetractNewIndividual(void);
     void TreeSequenceDataToAscii(table_collection_t *new_tables);
 	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify);
@@ -414,6 +449,8 @@ public:
 	void RememberIndividuals(std::vector<slim_pedigreeid_t> p_individual_ids);
 	void FreeTreeSequence(void);
 	void RecordAllDerivedStatesFromSLiM(void);
+	struct MutationInfoRec *MutationInfoForMutation(Mutation *p_mutation);
+	struct IndividualInfoRec *IndividualInfoForIndividual(Individual *p_individual);
 	// put any other methods you need for the tree sequence stuff here
 	
 	//

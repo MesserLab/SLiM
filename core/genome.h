@@ -335,7 +335,7 @@ public:
 		// subpop_ = p_source_genome.subpop_;
 	}
 	
-	inline const std::vector<slim_mutationid_t> *derived_mutation_ids_at_position(slim_position_t p_position) const
+	inline const std::vector<Mutation *> *derived_mutation_ids_at_position(slim_position_t p_position) const
 	{
 		int32_t run_index = p_position / mutrun_length_;
 		
