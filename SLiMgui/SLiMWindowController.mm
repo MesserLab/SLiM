@@ -3907,7 +3907,7 @@
 
 - (void)windowDidResize:(NSNotification *)notification
 {
-	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
+	//[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
 	
 	NSWindow *resizingWindow = [notification object];
 	NSView *contentView = [resizingWindow contentView];
@@ -3921,7 +3921,7 @@
 
 - (void)windowDidMove:(NSNotification *)notification
 {
-	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
+	//[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
 }
 
 
