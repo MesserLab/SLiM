@@ -484,8 +484,10 @@ void _RunInitTests(void)
 	// Test (void)initializeRecombinationRate(numeric rates, [integer ends])
 	SLiMAssertScriptStop("initialize() { initializeRecombinationRate(0.0); stop(); }", __LINE__);														// legal: singleton rate, no end
 	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(); stop(); }", 1, 15, "missing required argument", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(-0.00001); stop(); }", 1, 15, "requires rates to be >= 0", __LINE__);
-	SLiMAssertScriptStop("initialize() { initializeRecombinationRate(10000); stop(); }", __LINE__);													// legal; no maximum rate
+	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(-0.00001); stop(); }", 1, 15, "requires rates to be in [0.0, 0.5]", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeRecombinationRate(0.5); stop(); }", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(0.6); stop(); }", 1, 15, "requires rates to be in [0.0, 0.5]", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(10000); stop(); }", 1, 15, "requires rates to be in [0.0, 0.5]", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeRecombinationRate(c(0.0, 0.1), c(1000, 2000)); stop(); }", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(c(0.0, 0.1)); stop(); }", 1, 15, "requires rates to be a singleton if", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(integer(0), integer(0)); stop(); }", 1, 15, "ends and rates to be", __LINE__);
@@ -493,12 +495,14 @@ void _RunInitTests(void)
 	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(c(0.0, 0.1), 1:3); stop(); }", 1, 15, "ends and rates to be", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(c(0.0, 0.1), c(2000, 1000)); stop(); }", 1, 15, "ascending order", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(c(0.0, 0.1), c(1000, 1000)); stop(); }", 1, 15, "ascending order", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(c(0.0, -0.001), c(1000, 2000)); stop(); }", 1, 15, "requires rates to be >= 0", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(c(0.0, -0.001), c(1000, 2000)); stop(); }", 1, 15, "requires rates to be in [0.0, 0.5]", __LINE__);
 	
 	SLiMAssertScriptStop("initialize() { initializeSex('A'); initializeRecombinationRate(0.0); stop(); }", __LINE__);														// legal: singleton rate, no end
 	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeRecombinationRate(); stop(); }", 1, 35, "missing required argument", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeRecombinationRate(-0.00001); stop(); }", 1, 35, "requires rates to be >= 0", __LINE__);
-	SLiMAssertScriptStop("initialize() { initializeSex('A'); initializeRecombinationRate(10000); stop(); }", __LINE__);													// legal; no maximum rate
+	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeRecombinationRate(-0.00001); stop(); }", 1, 35, "requires rates to be in [0.0, 0.5]", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSex('A'); initializeRecombinationRate(0.5); stop(); }", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeRecombinationRate(0.6); stop(); }", 1, 35, "requires rates to be in [0.0, 0.5]", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeRecombinationRate(10000); stop(); }", 1, 35, "requires rates to be in [0.0, 0.5]", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSex('A'); initializeRecombinationRate(c(0.0, 0.1), c(1000, 2000)); stop(); }", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeRecombinationRate(c(0.0, 0.1)); stop(); }", 1, 35, "requires rates to be a singleton if", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeRecombinationRate(integer(0), integer(0)); stop(); }", 1, 35, "ends and rates to be", __LINE__);
@@ -506,7 +510,7 @@ void _RunInitTests(void)
 	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeRecombinationRate(c(0.0, 0.1), 1:3); stop(); }", 1, 35, "ends and rates to be", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeRecombinationRate(c(0.0, 0.1), c(2000, 1000)); stop(); }", 1, 35, "ascending order", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeRecombinationRate(c(0.0, 0.1), c(1000, 1000)); stop(); }", 1, 35, "ascending order", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeRecombinationRate(c(0.0, -0.001), c(1000, 2000)); stop(); }", 1, 35, "requires rates to be >= 0", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeRecombinationRate(c(0.0, -0.001), c(1000, 2000)); stop(); }", 1, 35, "requires rates to be in [0.0, 0.5]", __LINE__);
 	
 	SLiMAssertScriptStop("initialize() { initializeSex('A'); initializeRecombinationRate(c(0.0, 0.1), c(1000, 2000), '*'); stop(); }", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeRecombinationRate(integer(0), integer(0), '*'); stop(); }", 1, 35, "ends and rates to be", __LINE__);
@@ -514,7 +518,7 @@ void _RunInitTests(void)
 	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeRecombinationRate(c(0.0, 0.1), 1:3, '*'); stop(); }", 1, 35, "ends and rates to be", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeRecombinationRate(c(0.0, 0.1), c(2000, 1000), '*'); stop(); }", 1, 35, "ascending order", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeRecombinationRate(c(0.0, 0.1), c(1000, 1000), '*'); stop(); }", 1, 35, "ascending order", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeRecombinationRate(c(0.0, -0.001), c(1000, 2000), '*'); stop(); }", 1, 35, "requires rates to be >= 0", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeRecombinationRate(c(0.0, -0.001), c(1000, 2000), '*'); stop(); }", 1, 35, "requires rates to be in [0.0, 0.5]", __LINE__);
 	
 	SLiMAssertScriptStop("initialize() { initializeSex('A'); initializeRecombinationRate(c(0.0, 0.1), c(1000, 2000), 'M'); stop(); }", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeRecombinationRate(integer(0), integer(0), 'M'); stop(); }", 1, 35, "ends and rates to be", __LINE__);
@@ -522,7 +526,7 @@ void _RunInitTests(void)
 	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeRecombinationRate(c(0.0, 0.1), 1:3, 'M'); stop(); }", 1, 35, "ends and rates to be", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeRecombinationRate(c(0.0, 0.1), c(2000, 1000), 'M'); stop(); }", 1, 35, "ascending order", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeRecombinationRate(c(0.0, 0.1), c(1000, 1000), 'M'); stop(); }", 1, 35, "ascending order", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeRecombinationRate(c(0.0, -0.001), c(1000, 2000), 'M'); stop(); }", 1, 35, "requires rates to be >= 0", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeRecombinationRate(c(0.0, -0.001), c(1000, 2000), 'M'); stop(); }", 1, 35, "requires rates to be in [0.0, 0.5]", __LINE__);
 	
 	SLiMAssertScriptStop("initialize() {" + define_g1 + "initializeMutationRate(0.0); initializeGenomicElement(g1, 0, 2000); initializeSex('A'); initializeRecombinationRate(c(0.0, 0.1), c(1000, 2000), 'M'); initializeRecombinationRate(0.0, 2000, 'F'); stop(); } 1 {}", __LINE__);
 	SLiMAssertScriptRaise("initialize() {" + define_g1 + "initializeMutationRate(0.0); initializeGenomicElement(g1, 0, 3000); initializeSex('A'); initializeRecombinationRate(c(0.0, 0.1), c(1000, 2000), 'M'); initializeRecombinationRate(0.0, 2000, 'F'); } 1 {}", -1, -1, "do not cover the full chromosome", __LINE__);
@@ -1404,7 +1408,9 @@ void _RunChromosomeTests(void)
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(0.0); stop(); }", __LINE__);														// legal: singleton rate, no end
 	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(); stop(); }", 1, 240, "missing required argument", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(-0.00001); stop(); }", 1, 240, "out of range", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(10000); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(0.5); stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(0.6); stop(); }", 1, 240, "rates must be in [0.0, 0.5]", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(10000); stop(); }", 1, 240, "rates must be in [0.0, 0.5]", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1), c(1000, 99999)); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.001), c(1000, 99999)); stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1)); stop(); }", 1, 240, "to be a singleton if", __LINE__);
@@ -1413,9 +1419,9 @@ void _RunChromosomeTests(void)
 	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1), 99997:99999); stop(); }", 1, 240, "to be of equal and nonzero size", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1), c(99999, 1000)); stop(); }", 1, 240, "ascending order", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1), c(99999, 99999)); stop(); }", 1, 240, "ascending order", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 99999)); stop(); }", 1, 240, "must be >= 0", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 2000)); stop(); }", 1, 240, "must be >= 0", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 100000)); stop(); }", 1, 240, "must be >= 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 99999)); stop(); }", 1, 240, "rates must be in [0.0, 0.5]", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 2000)); stop(); }", 1, 240, "rates must be in [0.0, 0.5]", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 100000)); stop(); }", 1, 240, "rates must be in [0.0, 0.5]", __LINE__);
 	
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1), c(1000, 99999), '*'); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.001), c(1000, 99999), '*'); stop(); }", __LINE__);
@@ -1424,14 +1430,16 @@ void _RunChromosomeTests(void)
 	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1), 99997:99999, '*'); stop(); }", 1, 240, "to be of equal and nonzero size", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1), c(99999, 1000), '*'); stop(); }", 1, 240, "ascending order", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1), c(99999, 99999), '*'); stop(); }", 1, 240, "ascending order", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 99999), '*'); stop(); }", 1, 240, "must be >= 0", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 2000), '*'); stop(); }", 1, 240, "must be >= 0", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 100000), '*'); stop(); }", 1, 240, "must be >= 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 99999), '*'); stop(); }", 1, 240, "rates must be in [0.0, 0.5]", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 2000), '*'); stop(); }", 1, 240, "rates must be in [0.0, 0.5]", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 100000), '*'); stop(); }", 1, 240, "rates must be in [0.0, 0.5]", __LINE__);
 	
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(0.0); stop(); }", __LINE__);														// legal: singleton rate, no end
 	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(); stop(); }", 1, 260, "missing required argument", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(-0.00001); stop(); }", 1, 260, "out of range", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(10000); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(0.5); stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(0.6); stop(); }", 1, 260, "rates must be in [0.0, 0.5]", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(10000); stop(); }", 1, 260, "rates must be in [0.0, 0.5]", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1), c(1000, 99999)); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.001), c(1000, 99999)); stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1)); stop(); }", 1, 260, "to be a singleton if", __LINE__);
@@ -1440,9 +1448,9 @@ void _RunChromosomeTests(void)
 	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1), 99997:99999); stop(); }", 1, 260, "to be of equal and nonzero size", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1), c(99999, 1000)); stop(); }", 1, 260, "ascending order", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1), c(99999, 99999)); stop(); }", 1, 260, "ascending order", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 99999)); stop(); }", 1, 260, "must be >= 0", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 2000)); stop(); }", 1, 260, "must be >= 0", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 100000)); stop(); }", 1, 260, "must be >= 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 99999)); stop(); }", 1, 260, "rates must be in [0.0, 0.5]", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 2000)); stop(); }", 1, 260, "rates must be in [0.0, 0.5]", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 100000)); stop(); }", 1, 260, "rates must be in [0.0, 0.5]", __LINE__);
 	
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1), c(1000, 99999), '*'); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.001), c(1000, 99999), '*'); stop(); }", __LINE__);
@@ -1451,9 +1459,9 @@ void _RunChromosomeTests(void)
 	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1), 99997:99999, '*'); stop(); }", 1, 260, "to be of equal and nonzero size", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1), c(99999, 1000), '*'); stop(); }", 1, 260, "ascending order", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1), c(99999, 99999), '*'); stop(); }", 1, 260, "ascending order", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 99999), '*'); stop(); }", 1, 260, "must be >= 0", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 2000), '*'); stop(); }", 1, 260, "must be >= 0", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 100000), '*'); stop(); }", 1, 260, "must be >= 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 99999), '*'); stop(); }", 1, 260, "rates must be in [0.0, 0.5]", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 2000), '*'); stop(); }", 1, 260, "rates must be in [0.0, 0.5]", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 100000), '*'); stop(); }", 1, 260, "rates must be in [0.0, 0.5]", __LINE__);
 	
 	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1), c(1000, 99999), 'M'); stop(); }", 1, 260, "single map versus separate maps", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setRecombinationRate(integer(0), integer(0), 'M'); stop(); }", 1, 260, "single map versus separate maps", __LINE__);
@@ -1499,9 +1507,9 @@ void _RunChromosomeTests(void)
 	SLiMAssertScriptRaise(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1), 99997:99999, 'M'); stop(); }", 1, 367, "to be of equal and nonzero size", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1), c(99999, 1000), 'M'); stop(); }", 1, 367, "ascending order", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, 0.1), c(99999, 99999), 'M'); stop(); }", 1, 367, "ascending order", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 99999), 'M'); stop(); }", 1, 367, "must be >= 0", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 2000), 'M'); stop(); }", 1, 367, "must be >= 0", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 100000), 'M'); stop(); }", 1, 367, "must be >= 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 99999), 'M'); stop(); }", 1, 367, "rates must be in [0.0, 0.5]", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 2000), 'M'); stop(); }", 1, 367, "rates must be in [0.0, 0.5]", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 100000), 'M'); stop(); }", 1, 367, "rates must be in [0.0, 0.5]", __LINE__);
 }
 
 #pragma mark Mutation tests

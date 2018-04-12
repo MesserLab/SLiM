@@ -124,9 +124,11 @@ public:
 	vector<slim_position_t> recombination_end_positions_M_;
 	vector<slim_position_t> recombination_end_positions_F_;
 	
-	vector<double> recombination_rates_H_;					// recombination rates, in events per base pair
+	vector<double> recombination_rates_H_;					// recombination rates, in probability of crossover per base pair (user-specified)
 	vector<double> recombination_rates_M_;
 	vector<double> recombination_rates_F_;
+	
+	bool any_recombination_rates_05_ = false;				// set to T if any recombination rate is 0.5; those are excluded from gene conversion
 	
 	slim_position_t last_position_;							// last position; used to be called length_ but it is (length - 1) really
 	EidosValue_SP cached_value_lastpos_;					// a cached value for last_position_; reset() if that changes
@@ -135,9 +137,13 @@ public:
 	double overall_mutation_rate_M_;						// overall mutation rate
 	double overall_mutation_rate_F_;						// overall mutation rate
 	
-	double overall_recombination_rate_H_;					// overall recombination rate
-	double overall_recombination_rate_M_;					// overall recombination rate
-	double overall_recombination_rate_F_;					// overall recombination rate
+	double overall_recombination_rate_H_;					// overall recombination rate (reparameterized; see _InitializeOneRecombinationMap)
+	double overall_recombination_rate_M_;					// overall recombination rate (reparameterized; see _InitializeOneRecombinationMap)
+	double overall_recombination_rate_F_;					// overall recombination rate (reparameterized; see _InitializeOneRecombinationMap)
+	
+	double overall_recombination_rate_H_userlevel_;			// overall recombination rate (unreparameterized; see _InitializeOneRecombinationMap)
+	double overall_recombination_rate_M_userlevel_;			// overall recombination rate (unreparameterized; see _InitializeOneRecombinationMap)
+	double overall_recombination_rate_F_userlevel_;			// overall recombination rate (unreparameterized; see _InitializeOneRecombinationMap)
 	
 	double gene_conversion_fraction_;						// gene conversion fraction
 	double gene_conversion_avg_length_;						// average gene conversion stretch length
@@ -158,7 +164,7 @@ public:
 	
 	// initialize the random lookup tables used by Chromosome to draw mutation and recombination events
 	void InitializeDraws(void);
-	void _InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, vector<slim_position_t> &p_end_positions, vector<double> &p_rates, double &p_overall_rate, double &p_exp_neg_overall_rate);
+	void _InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, vector<slim_position_t> &p_end_positions, vector<double> &p_rates, double &p_overall_rate, double &p_exp_neg_overall_rate, double &p_overall_rate_userlevel);
 	void _InitializeOneMutationMap(gsl_ran_discrete_t *&p_lookup, vector<slim_position_t> &p_end_positions, vector<double> &p_rates, double &p_overall_rate, double &p_exp_neg_overall_rate, vector<GESubrange> &p_subranges);
 	void ChooseMutationRunLayout(int p_preferred_count);
 	
@@ -172,8 +178,9 @@ public:
 	int DrawBreakpointCount(IndividualSex p_sex) const;
 	
 	// choose a set of recombination breakpoints, based on recomb. intervals, overall recomb. rate, and gene conversion probability
-	void DrawBreakpoints(IndividualSex p_sex, const int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers) const;
-	void DrawBreakpoints_Detailed(IndividualSex p_sex, const int p_num_breakpoints, vector<slim_position_t> &p_crossovers, vector<slim_position_t> &p_gcstarts, vector<slim_position_t> &p_gcends) const;
+	void DrawUniquedBreakpoints(IndividualSex p_sex, const int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers) const;
+	void DrawUniquedBreakpointsForGC_r05(IndividualSex p_sex, const int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers, std::vector<slim_position_t> &p_crossovers_from_r05) const;
+	void DoGeneConversion(std::vector<slim_position_t> &p_crossovers, std::vector<slim_position_t> &p_gc_starts, std::vector<slim_position_t> &p_gc_ends) const;
 	
 #ifndef USE_GSL_POISSON
 	// draw both the mutation count and breakpoint count, using a single Poisson draw for speed

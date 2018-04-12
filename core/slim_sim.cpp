@@ -4328,8 +4328,8 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeRecombinationRate(const 
 		double recombination_rate = rates_value->FloatAtIndex(0, nullptr);
 		
 		// check values
-		if (recombination_rate < 0.0)		// intentionally no upper bound
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requires rates to be >= 0 (" << recombination_rate << " supplied)." << EidosTerminate();
+		if ((recombination_rate < 0.0) || (recombination_rate > 0.5))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requires rates to be in [0.0, 0.5] (" << recombination_rate << " supplied)." << EidosTerminate();
 		
 		// then adopt them
 		rates.clear();
@@ -4355,8 +4355,8 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeRecombinationRate(const 
 				if (recombination_end_position <= ends_value->IntAtIndex(value_index - 1, nullptr))
 					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requires ends to be in strictly ascending order." << EidosTerminate();
 			
-			if (recombination_rate < 0.0)		// intentionally no upper bound
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requires rates to be >= 0 (" << recombination_rate << " supplied)." << EidosTerminate();
+			if ((recombination_rate < 0.0) || (recombination_rate > 0.5))
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requires rates to be in [0.0, 0.5] (" << recombination_rate << " supplied)." << EidosTerminate();
 		}
 		
 		// then adopt them
