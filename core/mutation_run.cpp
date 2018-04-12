@@ -253,9 +253,9 @@ bool MutationRun::contains_mutation_with_type_and_position(MutationType *p_mut_t
 	return false;
 }
 
-const std::vector<slim_mutationid_t> *MutationRun::derived_mutation_ids_at_position(slim_position_t p_position) const
+const std::vector<Mutation *> *MutationRun::derived_mutation_ids_at_position(slim_position_t p_position) const
 {
-	static std::vector<slim_mutationid_t> return_vec;
+	static std::vector<Mutation *> return_vec;
 	
 	// First clear out whatever might be left over from last time
 	return_vec.clear();
@@ -273,7 +273,7 @@ const std::vector<slim_mutationid_t> *MutationRun::derived_mutation_ids_at_posit
 		slim_position_t mut_position = mut->position_;
 		
 		if (mut_position == p_position)
-			return_vec.push_back(mut->mutation_id_);
+			return_vec.push_back(mut);
 		else if (mut_position < p_position)
 			break;
 	}

@@ -3777,7 +3777,7 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_
 	std::cout << " (parental genome IDs " << p_initial_parental_genome_id << ", " << p_second_parental_genome_id << ")" << std::endl;
 }
 
-void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t p_position, const std::vector<slim_mutationid_t> &p_derived_mutations)
+void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations)
 {
 	// This is called whenever a new mutation is added to a genome.  Because mutation stacking makes things
 	// complicated, this hook supplies not just the new mutation, but the entire new derived state – all of
@@ -3794,8 +3794,8 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
 	
 	if (p_derived_mutations.size())
 	{
-		for (slim_mutationid_t mut_id : p_derived_mutations)
-			std::cout << " " << mut_id;
+		for (Mutation *mutation : p_derived_mutations)
+			std::cout << " " << mutation->mutation_id_;
 	}
 	else
 	{
@@ -3805,7 +3805,7 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
 	std::cout << std::endl;
 }
 
-void SLiMSim::RecordNewDerivedStateNonMeiosis(slim_genomeid_t p_genome_id, slim_position_t p_position, const std::vector<slim_mutationid_t> &p_derived_mutations)
+void SLiMSim::RecordNewDerivedStateNonMeiosis(slim_genomeid_t p_genome_id, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations)
 {
 	// This is called when a mutation is added or removed outside of the crossover-mutation code.  When we're
 	// in the crossover-mutation code, the correct context has been set up for new derived state recording,
@@ -3934,6 +3934,41 @@ void SLiMSim::RecordAllDerivedStatesFromSLiM(void)
 			}
 		}
 	}
+}
+
+struct MutationInfoRec *SLiMSim::MutationInfoForMutation(Mutation *p_mutation)
+{
+	if (!p_mutation)
+		return nullptr;
+	
+	static struct MutationInfoRec static_mutation_info;
+	
+	static_mutation_info.mutation_type_id_ = p_mutation->mutation_type_ptr_->mutation_type_id_;
+	static_mutation_info.selection_coeff_ = p_mutation->selection_coeff_;
+	static_mutation_info.subpop_index_ = p_mutation->subpop_index_;
+	static_mutation_info.origin_generation_ = p_mutation->origin_generation_;
+	
+	return &static_mutation_info;
+}
+
+struct IndividualInfoRec *SLiMSim::IndividualInfoForIndividual(Individual *p_individual)
+{
+	if (!p_individual)
+		return nullptr;
+	
+	static struct IndividualInfoRec static_individual_info;
+	
+	static_individual_info.sex_ = p_individual->sex_;
+#ifdef SLIM_NONWF_ONLY
+	static_individual_info.age_ = p_individual->age_;
+#else
+	static_individual_info.age_ = -1;
+#endif
+	static_individual_info.spatial_x_ = p_individual->spatial_x_;
+	static_individual_info.spatial_y_ = p_individual->spatial_y_;
+	static_individual_info.spatial_z_ = p_individual->spatial_z_;
+	
+	return &static_individual_info;
 }
 
 

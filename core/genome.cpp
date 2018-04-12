@@ -415,7 +415,7 @@ void Genome::record_derived_states(SLiMSim *p_sim) const
 	// state at each of the positions we're recording, we just presently have no way to tell the tree-seq code
 	// that it can skip the backscan work.  If this turns out to be a performance problem, that could be improved.
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	static std::vector<slim_mutationid_t> record_vec;
+	static std::vector<Mutation *> record_vec;
 	
 	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
 	{
@@ -444,7 +444,7 @@ void Genome::record_derived_states(SLiMSim *p_sim) const
 				last_pos = mutation_pos;
 			}
 			
-			record_vec.push_back(mutation_index);
+			record_vec.push_back(mutation);
 		}
 		
 		// record the last derived block, if any
