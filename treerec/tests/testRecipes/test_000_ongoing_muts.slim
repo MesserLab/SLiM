@@ -18,24 +18,19 @@ reproduction() {
     return NULL;
 }
 1 early() {
-    sim.addSubpop("p1",3);
+    sim.addSubpop("p1",100);
 }   
 
 1 early() {
     // TREE SEQUENCE TEST OUTPUT
-    ongoingMarks(n_marks);
-}
-
-early() {
-    // TREE SEQUENCE TEST OUTPUT
-    initializeMarks(2);
+    initializeMarks(n_marks);
 }
 
 early() {
     p1.fitnessScaling = K / p1.individualCount;
 }
 
-10 late() {
+200 late() {
 
     // TREE SEQUENCE TEST OUTPUT
     outputMutationResult();
