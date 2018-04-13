@@ -4851,6 +4851,7 @@ static int table_cleaner_run(table_cleaner_t *self)
     // table.
 
     int ret = 0;
+    site_table_t *new_sites = NULL;
 
     if (self->sites->num_rows <= 1) {
         // nothing to do
@@ -4860,7 +4861,6 @@ static int table_cleaner_run(table_cleaner_t *self)
     table_size_t j, k, site_j, copy_start;
     double last_position, position;
 
-    site_table_t *new_sites;
     new_sites = malloc(sizeof(site_table_t));
     ret = site_table_alloc(new_sites, self->sites->max_rows_increment,
             self->sites->max_ancestral_state_length_increment,
@@ -4924,10 +4924,13 @@ static int table_cleaner_run(table_cleaner_t *self)
         goto out;
     }
 
-    // Clean up
-    site_table_free(new_sites);
-
 out:
+
+    if (new_sites != NULL) {
+        site_table_free(new_sites);
+        free(new_sites);
+    }
+
     return ret;
 }
 
