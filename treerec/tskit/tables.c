@@ -4721,7 +4721,7 @@ table_collection_current_position(table_collection_position_t *position)
     position->mutation_position = position->tables->mutations.num_rows;
 }
 
-int WARN_UNUSED
+static int WARN_UNUSED
 node_table_reset_position(node_table_t *nodes, table_size_t n)
 {
     /* Remove rows, so that the new number of rows is n */
@@ -4736,7 +4736,7 @@ out:
     return ret;
 }
 
-int WARN_UNUSED
+static int WARN_UNUSED
 edge_table_reset_position(edge_table_t *edges, table_size_t n)
 {
     /* Remove rows, so that the new number of rows is n */
@@ -4750,7 +4750,7 @@ out:
     return ret;
 }
 
-int WARN_UNUSED
+static int WARN_UNUSED
 migration_table_reset_position(migration_table_t *migrations, table_size_t n)
 {
     /* Remove rows, so that the new number of rows is n */
@@ -4764,7 +4764,7 @@ out:
     return ret;
 }
 
-int WARN_UNUSED
+static int WARN_UNUSED
 site_table_reset_position(site_table_t *sites, table_size_t n)
 {
     /* Remove rows, so that the new number of rows is n */
@@ -4780,7 +4780,7 @@ out:
     return ret;
 }
 
-int WARN_UNUSED
+static int WARN_UNUSED
 mutation_table_reset_position(mutation_table_t *mutations, table_size_t n)
 {
     /* Remove rows, so that the new number of rows is n */
@@ -4843,7 +4843,7 @@ typedef struct {
     site_id_t *site_id_map;
 } table_cleaner_t;
 
-int table_cleaner_run(table_cleaner_t *self)
+static int table_cleaner_run(table_cleaner_t *self)
 {
     // Remove any sites with duplicate positions, retaining only the *first*
     // one. Assumes the tables have been sorted, throwing an error if not.
@@ -4931,7 +4931,7 @@ out:
     return ret;
 }
 
-int 
+static int 
 table_cleaner_alloc(table_cleaner_t *self, 
         site_table_t *sites,
         mutation_table_t *mutations) {
