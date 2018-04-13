@@ -8,8 +8,7 @@ class TestSlimOutput(unittest.TestCase):
         ids = {}
         for n in ts.nodes():
             meta = n.metadata.decode('utf8')
-            assert meta[:7] == "SLiMID="
-            slim_id = int(n.metadata.decode('utf8').strip().split("=")[1])
+            slim_id = int(meta)
             ids[slim_id] = n.id
         return ids
 

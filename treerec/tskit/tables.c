@@ -210,7 +210,7 @@ node_table_copy(node_table_t *self, node_table_t *dest)
 
 int WARN_UNUSED
 node_table_set_columns(node_table_t *self, size_t num_rows, uint32_t *flags, double *time,
-        population_id_t *population, char *metadata, uint32_t *metadata_offset)
+        population_id_t *population, const char *metadata, uint32_t *metadata_offset)
 {
     int ret;
 
@@ -226,7 +226,7 @@ out:
 
 int
 node_table_append_columns(node_table_t *self, size_t num_rows, uint32_t *flags, double *time,
-        population_id_t *population, char *metadata, uint32_t *metadata_offset)
+        population_id_t *population, const char *metadata, uint32_t *metadata_offset)
 {
     int ret;
     table_size_t j, metadata_length;

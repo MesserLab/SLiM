@@ -253,13 +253,13 @@ typedef struct {
 } simplifier_t;
 
 int node_table_alloc(node_table_t *self, size_t max_rows_increment,
-        size_t max_name_length_increment);
+        size_t max_metadata_length_increment);
 node_id_t node_table_add_row(node_table_t *self, uint32_t flags, double time,
-        population_id_t population, const char *name, size_t name_length);
+        population_id_t population, const char *metadata, size_t metadata_length);
 int node_table_set_columns(node_table_t *self, size_t num_rows, uint32_t *flags, double *time,
-        population_id_t *population, char *name, table_size_t *name_length);
+        population_id_t *population, const char *metadata, table_size_t *metadata_length);
 int node_table_append_columns(node_table_t *self, size_t num_rows, uint32_t *flags, double *time,
-        population_id_t *population, char *name, table_size_t *name_length);
+        population_id_t *population, const char *metadata, table_size_t *metadata_length);
 int node_table_clear(node_table_t *self);
 int node_table_free(node_table_t *self);
 int node_table_dump_text(node_table_t *self, FILE *out);

@@ -3825,7 +3825,7 @@ void SLiMSim::SetCurrentNewIndividual(Individual *p_individual)
 	// not be completely initialized yet; it may not know its sex, and its genomes may not know their types, and so forth.  If that needs to
 	// be fixed, it should be reasonably straightforward to do so.  For now, the only information guaranteed valid is the pedigree IDs.
 
-	// DEBUG STDOUT PRINTING 
+	/* DEBUG STDOUT PRINTING 
 	slim_pedigreeid_t ind_pid = p_individual->PedigreeID();
 	slim_pedigreeid_t p1_pid = p_individual->Parent1PedigreeID();
 	slim_pedigreeid_t p2_pid = p_individual->Parent2PedigreeID();
@@ -3841,7 +3841,7 @@ void SLiMSim::SetCurrentNewIndividual(Individual *p_individual)
 	
     table_collection_current_position(&table_position);
 
-    // DEBUG STDOUT
+    /* DEBUG STDOUT
 	std::cout << "   Current position: ";
     std::cout << table_position.node_position << ", ";
     std::cout << table_position.edge_position << ", ";
@@ -3858,7 +3858,7 @@ void SLiMSim::RetractNewIndividual()
 	// callback.  We will have logged recombination breakpoints and new mutations into our tables, and now want
 	// to back those changes out by re-setting the active row index for the tables.
 	
-    // DEBUG STDOUT
+    /* DEBUG STDOUT
 	std::cout << tree_seq_generation_ << ": Retracting new individual: previous table position ";
     std::cout << tables.nodes.num_rows << ", ";
     std::cout << tables.edges.num_rows << ", ";
@@ -3869,7 +3869,7 @@ void SLiMSim::RetractNewIndividual()
 
     table_collection_reset_position(&table_position);
     
-    // DEBUG STDOUT
+    /* DEBUG STDOUT
 	std::cout << "  resulting table position ";
     std::cout << tables.nodes.num_rows << ", ";
     std::cout << tables.edges.num_rows << ", ";
@@ -3890,7 +3890,7 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_
 
 	node_id_t offspringMSPID;			//MSPrime equivilent of germ cell ID (Node returned from MSPrime)
 
-	// DEBUG STDOUT PRINTING 
+	/* DEBUG STDOUT PRINTING 
   	std::cout << "------------" << std::endl;	
 	std::cout << "generation: " << Generation() << " -- and tree_seq_generation  " << tree_seq_generation_ << std::endl;
     std::cout << "New genome: " << p_new_genome_id << std::endl;
@@ -3901,13 +3901,9 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_
 	double time = (double) -1 * tree_seq_generation_;
 	uint32_t flags = 1;
 
-	//for metadata -> testing for now
-	std::string osids = std::to_string(p_new_genome_id);	
-	osids = "SLiMID="+osids;
-	size_t size = osids.length();
-	const char *offspring_SLiMID_Const = osids.c_str();
-
-	offspringMSPID = node_table_add_row(&tables.nodes,flags,time,0,offspring_SLiMID_Const,size);
+    const char *metadata = (char *)&p_new_genome_id;
+    size_t metadata_length = sizeof(slim_genomeid_t)/sizeof(char);
+	offspringMSPID = node_table_add_row(&tables.nodes, flags, time, 0, metadata, metadata_length);
     SLiM_MSP_Id_Map[p_new_genome_id] = (node_id_t) offspringMSPID;
 	
     // if there is no parent then no need to record edges
@@ -3922,7 +3918,7 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_
 	genome1MSPID = getMSPID(p_initial_parental_genome_id);
 	genome2MSPID = (p_second_parental_genome_id == -1) ? genome1MSPID : getMSPID(p_second_parental_genome_id);
 
-	// DEBUG STDOUT PRINTING
+	/* DEBUG STDOUT PRINTING
     std::cout << "  in MSP ids: " << genome1MSPID << " and " << genome2MSPID << " ---> " << offspringMSPID << std::endl;
     std::cout << "  and breakpoints ";
 	for (size_t i = 0; i < (p_breakpoints ? p_breakpoints->size() : 0); i++){
@@ -4001,7 +3997,7 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
 
     node_id_t genomeMSPID = getMSPID(p_genome_id);
 
-	// DEBUG STDOUT PRINTING
+	/* DEBUG STDOUT PRINTING
 	std::cout << tree_seq_generation_ << ":   New derived state for genome id "; 
     std::cout << p_genome_id << " (msp: " << genomeMSPID << ") at position " << p_position << ":";
 	if (p_derived_mutations.size()) {
@@ -4039,7 +4035,7 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
                                      NULL, 0, NULL, 0);
     }
 
-    // DEBUG STDOUT
+    /* DEBUG STDOUT
     std::cout << ":    Working at site " << site_id;
     std::cout << " which is " << (site_id == tables.sites.num_rows - 1 ? "the last" : "an older"); 
     std::cout << " site" << std::endl;
@@ -4082,7 +4078,7 @@ void SLiMSim::RecordNewDerivedStateNonMeiosis(slim_genomeid_t p_genome_id, slim_
 	// code "we're out of context here, you have to do a full backscan".
     // See further explanation in RecordNewDerivedState().
 
-    // DEBUG STDOUT
+    /* DEBUG STDOUT
 	std::cout << tree_seq_generation_ << ":   New derived state about to be logged outside of meiosis..."<< std::endl;;
     std::cout << "    Resetting table position." << std::endl;
     // */
@@ -4163,12 +4159,14 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
      * for output to ascii we need to convert this.
      ***************************************/
 
-    /* first translate the bytes we've put into mutation derived state into printable ascii */
     tree_return_value_ = table_collection_copy(&tables, new_tables);
     if (tree_return_value_ < 0) 
     {
         handle_error("convert_to_ascii", tree_return_value_);
     }
+
+    /***  Ascii-ify Mutation Table ***/
+
     mutation_table_t new_mutation_table = new_tables->mutations;
     tree_return_value_ = mutation_table_clear(&new_mutation_table);
     if (tree_return_value_ < 0) 
@@ -4187,7 +4185,7 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
 
     for (size_t j=0; j<tables.mutations.num_rows; j++)
     {
-        int_derived_state = (slim_mutationid_t *) (derived_state + derived_state_offset[j]);
+        int_derived_state = (slim_mutationid_t *)(derived_state + derived_state_offset[j]);
         cur_derived_state_length = (derived_state_offset[j+1] - derived_state_offset[j])/sizeof(slim_mutationid_t);
 
         for (size_t i = 0; i < cur_derived_state_length; i++)
@@ -4199,7 +4197,7 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
         text_derived_state_offset.push_back(text_derived_state.size());
     }
 
-    tree_return_value_ = mutation_table_append_columns(&new_mutation_table,
+    tree_return_value_ = mutation_table_set_columns(&new_mutation_table,
                                     tables.mutations.num_rows,
                                     tables.mutations.site,
                                     tables.mutations.node,
@@ -4208,6 +4206,42 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
                                     text_derived_state_offset.data(),
                                     tables.mutations.metadata,
                                     tables.mutations.metadata_offset);
+    if (tree_return_value_ < 0) 
+    {
+        handle_error("convert_to_ascii", tree_return_value_);
+    }
+
+    /***** Ascii-ify Node Table *****/
+
+    node_table_t new_node_table = new_tables->nodes;
+    tree_return_value_ = node_table_clear(&new_node_table);
+    if (tree_return_value_ < 0) 
+    {
+        handle_error("convert_to_ascii", tree_return_value_);
+    }
+
+    slim_genomeid_t *int_genomeid;
+    const char *metadata = tables.nodes.metadata;
+    table_size_t *metadata_offset = tables.nodes.metadata_offset;
+    std::string text_metadata;
+    std::vector<table_size_t> text_metadata_offset;
+
+    text_metadata_offset.push_back(0);
+
+    for (size_t j=0; j<tables.nodes.num_rows; j++)
+    {
+        int_genomeid = (slim_genomeid_t *)(metadata + metadata_offset[j]);
+        text_metadata.append(std::to_string(*int_genomeid));
+        text_metadata_offset.push_back(text_metadata.size());
+    }
+
+    tree_return_value_ = node_table_set_columns(&new_node_table,
+                                    tables.nodes.num_rows,
+                                    tables.nodes.flags,
+                                    tables.nodes.time,
+                                    tables.nodes.population,
+                                    text_metadata.c_str(),
+                                    text_metadata_offset.data());
     if (tree_return_value_ < 0) 
     {
         handle_error("convert_to_ascii", tree_return_value_);
