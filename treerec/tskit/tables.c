@@ -4722,41 +4722,6 @@ table_collection_current_position(table_collection_position_t *position)
 }
 
 int WARN_UNUSED
-table_collection_reset_position(table_collection_position_t *position)
-{
-    int ret = 0;
-
-    /* "Reset" a table collection to the previously recorded position. */
-    ret = node_table_reset_position(&(position->tables->nodes),
-                                    position->node_position);
-    if (ret != 0) {
-        goto out;
-    }
-    ret = edge_table_reset_position(&(position->tables->edges),
-                                    position->edge_position);
-    if (ret != 0) {
-        goto out;
-    }
-    ret = migration_table_reset_position(&(position->tables->migrations),
-                                         position->migration_position);
-    if (ret != 0) {
-        goto out;
-    }
-    ret = site_table_reset_position(&(position->tables->sites),
-                                    position->site_position);
-    if (ret != 0) {
-        goto out;
-    }
-    ret = mutation_table_reset_position(&(position->tables->mutations),
-                                    position->mutation_position);
-    if (ret != 0) {
-        goto out;
-    }
-out:
-    return ret;
-}
-
-int WARN_UNUSED
 node_table_reset_position(node_table_t *nodes, table_size_t n)
 {
     /* Remove rows, so that the new number of rows is n */
@@ -4831,6 +4796,42 @@ out:
     return ret;
 }
 
+int WARN_UNUSED
+table_collection_reset_position(table_collection_position_t *position)
+{
+    int ret = 0;
+
+    /* "Reset" a table collection to the previously recorded position. */
+    ret = node_table_reset_position(&(position->tables->nodes),
+                                    position->node_position);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = edge_table_reset_position(&(position->tables->edges),
+                                    position->edge_position);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = migration_table_reset_position(&(position->tables->migrations),
+                                         position->migration_position);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = site_table_reset_position(&(position->tables->sites),
+                                    position->site_position);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = mutation_table_reset_position(&(position->tables->mutations),
+                                    position->mutation_position);
+    if (ret != 0) {
+        goto out;
+    }
+out:
+    return ret;
+}
+
+
 /*******************
  * Cleaning tables *
  ******************/
@@ -4860,9 +4861,17 @@ int table_cleaner_run(table_cleaner_t *self)
     double last_position, position;
 
     site_table_t *new_sites;
+    new_sites = malloc(sizeof(site_table_t));
     ret = site_table_alloc(new_sites, self->sites->max_rows_increment,
             self->sites->max_ancestral_state_length_increment,
             self->sites->max_metadata_length_increment);
+    if (ret != 0) {
+        goto out;
+    }
+    if (new_sites == NULL) {
+        ret = MSP_ERR_NO_MEMORY;
+        goto out;
+    }
 
     site_j = 0;
     copy_start = 0;
@@ -4941,6 +4950,7 @@ table_cleaner_alloc(table_cleaner_t *self,
         ret = MSP_ERR_NO_MEMORY;
         goto out;
     }
+
 out:
     return ret;
 }
@@ -4962,11 +4972,14 @@ clean_tables(site_table_t *sites, mutation_table_t *mutations)
         ret = MSP_ERR_NO_MEMORY;
         goto out;
     }
+
     ret = table_cleaner_alloc(cleaner, sites, mutations);
     if (ret != 0) {
         goto out;
     }
+
     ret = table_cleaner_run(cleaner);
+
 out:
     if (cleaner != NULL) {
         table_cleaner_free(cleaner);

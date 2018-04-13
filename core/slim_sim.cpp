@@ -3743,21 +3743,20 @@ void SLiMSim::SimplifyTreeSequence(void){
 		newSlimMspIdMap[G1] = newValueInNodeTable++;
 		newSlimMspIdMap[G2] = newValueInNodeTable++;
 	}
-
-    // this removes sites with duplicate positions
-	tree_return_value_ = clean_tables(&tables.sites, &tables.mutations);
-	if (tree_return_value_ < 0) {
-		handle_error("sort_tables", tree_return_value_);
+	
+	if(tables.nodes.num_rows == 0){
+		std::cout << "aint nobody here" << std::endl;
+		return;
 	}
 	
 	tree_return_value_ = sort_tables(&tables.nodes, &tables.edges, &tables.migrations, &tables.sites, &tables.mutations, 0);				
 	if (tree_return_value_ < 0) {
 		handle_error("sort_tables", tree_return_value_);
 	}
-	
-	if(tables.nodes.num_rows == 0){
-		std::cout << "aint nobody here" << std::endl;
-		return;
+
+	tree_return_value_ = clean_tables(&tables.sites, &tables.mutations);
+	if (tree_return_value_ < 0) {
+		handle_error("clean_tables", tree_return_value_);
 	}
 
 	tree_return_value_ = table_collection_simplify(&tables, samples.data(), samples.size(), MSP_FILTER_ZERO_MUTATION_SITES, NULL);

@@ -393,11 +393,6 @@ void table_collection_set_position(table_collection_position_t *position,
         table_size_t mutation_position);
 void table_collection_current_position(table_collection_position_t *position);
 int table_collection_reset_position(table_collection_position_t *position);
-int node_table_reset_position(node_table_t *nodes, table_size_t n);
-int edge_table_reset_position(edge_table_t *edges, table_size_t n);
-int migration_table_reset_position(migration_table_t *migrations, table_size_t n);
-int site_table_reset_position(site_table_t *sites, table_size_t n);
-int mutation_table_reset_position(mutation_table_t *mutations, table_size_t n);
 
 
 #ifdef __cplusplus
