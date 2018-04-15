@@ -4907,6 +4907,7 @@ static int table_cleaner_run(table_cleaner_t *self)
                 &(self->sites->ancestral_state_offset[copy_start]),
                 &(self->sites->metadata[self->sites->metadata_offset[copy_start]]),
                 &(self->sites->metadata_offset[copy_start]));
+        self->site_id_map[j] = site_j;
     }
 
     // Remap sites in the mutation table
