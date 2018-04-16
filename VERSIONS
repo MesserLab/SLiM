@@ -60,6 +60,7 @@ development head (nonWF branch):
 	add bounds-checking for MutationType DFE parameters and InteractionType IF parameters
 	display interaction types in the tableview drawer in SLiMgui, with a hover preview of the interaction function, as with mutation types
 	fix the incorrect actual recombination rate for requested recombination rates close to 0.5, impose a <= 0.5 requirement on recombination rates, add related recipe 13.18
+	improve options for display of subpopulations in the population view (control-click or right-click for menu)
 
 
 2.6 (build 1292; Eidos version 1.6):
