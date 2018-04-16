@@ -28,3 +28,8 @@ cmake ..
 make
 ```
 To do this you'll need CMake, available by `brew install cmake` (on OSX) or `aptitude install cmake` (on debian).
+
+*Further notes for developers:* to enable debugging flags, replace the `cmake` command with
+```
+cmake -DCMAKE_BUILD_TYPE=Debug ..
+```

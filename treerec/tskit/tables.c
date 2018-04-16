@@ -4847,91 +4847,82 @@ static int table_cleaner_run(table_cleaner_t *self)
 {
     // Remove any sites with duplicate positions, retaining only the *first*
     // one. Assumes the tables have been sorted, throwing an error if not.
-    // TODO: this could be done in place rather than by constructing a new
-    // table.
 
     int ret = 0;
-    site_table_t *new_sites = NULL;
 
     if (self->sites->num_rows <= 1) {
         // nothing to do
         goto out;
     }
 
-    table_size_t j, k, site_j, copy_start;
+    table_size_t j, k, site_j;
+    table_size_t as_length, as_offset;
+    table_size_t md_length, md_offset;
     double last_position, position;
 
-    new_sites = malloc(sizeof(site_table_t));
-    ret = site_table_alloc(new_sites, self->sites->max_rows_increment,
-            self->sites->max_ancestral_state_length_increment,
-            self->sites->max_metadata_length_increment);
-    if (ret != 0) {
-        goto out;
-    }
-    if (new_sites == NULL) {
-        ret = MSP_ERR_NO_MEMORY;
-        goto out;
-    }
-
-    site_j = 0;
-    copy_start = 0;
     self->site_id_map[0] = 0;
+    site_j = 0;
     last_position = self->sites->position[0];
+    as_offset = self->sites->ancestral_state_offset[1];
+    md_offset = self->sites->metadata_offset[1];
     for (j = 1; j < self->sites->num_rows; j++) {
         position = self->sites->position[j];
         if (position < last_position) {
             ret = MSP_ERR_UNSORTED_SITES;
             goto out;
         }
-        if (position == last_position) {
-            if (copy_start < j) {
-                site_table_append_columns(new_sites, (table_size_t) j - copy_start,
-                        &(self->sites->position[copy_start]),
-                        &(self->sites->ancestral_state[self->sites->ancestral_state_offset[copy_start]]),
-                        &(self->sites->ancestral_state_offset[copy_start]),
-                        &(self->sites->metadata[self->sites->metadata_offset[copy_start]]),
-                        &(self->sites->metadata_offset[copy_start]));
-            }
-            copy_start = j + 1;
-        } else {
+        if (position != last_position) {
             site_j++;
+            as_length = self->sites->ancestral_state_offset[j + 1] - self->sites->ancestral_state_offset[j];
+            md_length = self->sites->metadata_offset[j + 1] - self->sites->metadata_offset[j];
+            if (site_j != j) {
+                assert(site_j < j);
+                self->sites->position[site_j] = self->sites->position[j];
+                memcpy(self->sites->ancestral_state + self->sites->ancestral_state_offset[site_j],
+                        self->sites->ancestral_state + self->sites->ancestral_state_offset[j],
+                        as_length);
+                self->sites->ancestral_state_offset[site_j] = as_offset;
+                memcpy(self->sites->metadata + self->sites->metadata_offset[site_j],
+                        self->sites->metadata + self->sites->metadata_offset[j],
+                        md_length);
+                self->sites->metadata_offset[site_j] = md_offset;
+            }
+            as_offset += as_length;
+            md_offset += md_length;
             last_position = position;
         }
         self->site_id_map[j] = site_j;
     }
-    if (copy_start < self->sites->num_rows) {
-        assert(j == self->sites->num_rows);
-        site_table_append_columns(new_sites, (table_size_t) j - copy_start,
-                &(self->sites->position[copy_start]),
-                &(self->sites->ancestral_state[self->sites->ancestral_state_offset[copy_start]]),
-                &(self->sites->ancestral_state_offset[copy_start]),
-                &(self->sites->metadata[self->sites->metadata_offset[copy_start]]),
-                &(self->sites->metadata_offset[copy_start]));
-        self->site_id_map[j] = site_j;
+
+    if (site_j == j) {
+        // we haven't changed anything, no need to remap sites
+        goto out;
+    }
+
+    // reset site table size
+    self->sites->num_rows = site_j + 1;
+    self->sites->ancestral_state_length = self->sites->ancestral_state_offset[site_j + 1];
+    self->sites->metadata_length = self->sites->metadata_offset[site_j + 1];
+
+    ret = check_offsets(self->sites->num_rows, self->sites->ancestral_state_offset,
+            self->sites->ancestral_state_length, true);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = check_offsets(self->sites->num_rows, self->sites->metadata_offset,
+            self->sites->metadata_length, true);
+    if (ret != 0) {
+        goto out;
     }
 
     // Remap sites in the mutation table
     for (j = 0; j < self->mutations->num_rows; j++) {
         k = self->mutations->site[j];
         assert(k <- self->sites->num_rows);
-        self->mutations->site[j] = self->site_id_map[self->mutations->site[j]];
-    }
-
-    // Copy new site table back over
-    ret = site_table_set_columns(self->sites, new_sites->num_rows, new_sites->position, 
-                new_sites->ancestral_state, new_sites->ancestral_state_offset,
-                new_sites->metadata, new_sites->metadata_offset);
-    if (ret != 0) {
-        goto out;
+        self->mutations->site[j] = self->site_id_map[k];
     }
 
 out:
-
-    if (new_sites != NULL) {
-        site_table_free(new_sites);
-        free(new_sites);
-    }
-
     return ret;
 }
 
