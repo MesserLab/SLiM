@@ -3718,7 +3718,7 @@ void SLiMSim::SimplifyTreeSequence(void){
 		populationIndividuals.insert(populationIndividuals.end(), subpopulationIndividuals.begin(), subpopulationIndividuals.end());
 	}
 
-    // DEBUG STDOUT
+    /* DEBUG STDOUT
     std::string var = std::string("test_output");
     WriteTreeSequence(var, 0, 0);
     // */
