@@ -2108,6 +2108,37 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 }
 
 
+//
+//	GenomeWalker
+//
+#pragma mark -
+#pragma mark GenomeWalker
+#pragma mark -
+
+void GenomeWalker::NextMutation(void)
+{
+	if (++mutrun_ptr_ >= mutrun_end_)
+	{
+		// finished the current mutation, so move to the next until we find a mutation
+		do
+		{
+			if (++mutrun_index_ >= genome_->mutrun_count_)
+			{
+				// finished all mutation runs, so we're done
+				mutation_ = nullptr;
+				return;
+			}
+			
+			MutationRun *mutrun = genome_->mutruns_[mutrun_index_].get();
+			mutrun_ptr_ = mutrun->begin_pointer_const();
+			mutrun_end_ = mutrun->end_pointer_const();
+		}
+		while (mutrun_ptr_ == mutrun_end_);
+	}
+	
+	mutation_ = gSLiM_Mutation_Block + *mutrun_ptr_;
+}
+
 
 
 
