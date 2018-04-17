@@ -22,6 +22,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include <hdf5.h>
 
@@ -4849,77 +4850,64 @@ static int table_cleaner_run(table_cleaner_t *self)
     // one. Assumes the tables have been sorted, throwing an error if not.
 
     int ret = 0;
-
-    if (self->sites->num_rows <= 1) {
-        // nothing to do
-        goto out;
-    }
-
     table_size_t j, k, site_j;
     table_size_t as_length, as_offset;
     table_size_t md_length, md_offset;
+    table_size_t num_input_sites;
     double last_position, position;
 
-    self->site_id_map[0] = 0;
-    site_j = 0;
-    last_position = self->sites->position[0];
-    as_offset = self->sites->ancestral_state_offset[1];
-    md_offset = self->sites->metadata_offset[1];
-    for (j = 1; j < self->sites->num_rows; j++) {
+    num_input_sites = self->sites->num_rows;
+    site_j = 0; // the index of the next output row
+    last_position = -INFINITY;
+    as_offset = 0;
+    md_offset = 0;
+
+    // self->site_id_map[0] = 0;
+    // last_position = self->sites->position[0];
+    // as_offset = self->sites->ancestral_state_offset[1];
+    // md_offset = self->sites->metadata_offset[1];
+    for (j = 0; j < self->sites->num_rows; j++) {
         position = self->sites->position[j];
         if (position < last_position) {
             ret = MSP_ERR_UNSORTED_SITES;
             goto out;
         }
         if (position != last_position) {
-            site_j++;
-            as_length = self->sites->ancestral_state_offset[j + 1] - self->sites->ancestral_state_offset[j];
+            as_length = (self->sites->ancestral_state_offset[j + 1] 
+                    - self->sites->ancestral_state_offset[j]);
             md_length = self->sites->metadata_offset[j + 1] - self->sites->metadata_offset[j];
             if (site_j != j) {
                 assert(site_j < j);
                 self->sites->position[site_j] = self->sites->position[j];
+                self->sites->ancestral_state_offset[site_j] = as_offset;
                 memcpy(self->sites->ancestral_state + self->sites->ancestral_state_offset[site_j],
                         self->sites->ancestral_state + self->sites->ancestral_state_offset[j],
                         as_length);
-                self->sites->ancestral_state_offset[site_j] = as_offset;
+                self->sites->metadata_offset[site_j] = md_offset;
                 memcpy(self->sites->metadata + self->sites->metadata_offset[site_j],
                         self->sites->metadata + self->sites->metadata_offset[j],
                         md_length);
-                self->sites->metadata_offset[site_j] = md_offset;
             }
             as_offset += as_length;
             md_offset += md_length;
             last_position = position;
+            site_j++;
         }
-        self->site_id_map[j] = site_j;
+        self->site_id_map[j] = site_j - 1;
     }
 
-    if (site_j == j) {
-        // we haven't changed anything, no need to remap sites
-        goto out;
-    }
+    self->sites->num_rows = site_j;
+    self->sites->ancestral_state_length = self->sites->ancestral_state_offset[site_j];
+    self->sites->metadata_length = self->sites->metadata_offset[site_j];
 
-    // reset site table size
-    self->sites->num_rows = site_j + 1;
-    self->sites->ancestral_state_length = self->sites->ancestral_state_offset[site_j + 1];
-    self->sites->metadata_length = self->sites->metadata_offset[site_j + 1];
-
-    ret = check_offsets(self->sites->num_rows, self->sites->ancestral_state_offset,
-            self->sites->ancestral_state_length, true);
-    if (ret != 0) {
-        goto out;
-    }
-    ret = check_offsets(self->sites->num_rows, self->sites->metadata_offset,
-            self->sites->metadata_length, true);
-    if (ret != 0) {
-        goto out;
-    }
-
-    // Remap sites in the mutation table
-    for (j = 0; j < self->mutations->num_rows; j++) {
-        k = self->mutations->site[j];
-        assert(k <- self->sites->num_rows);
-        self->mutations->site[j] = self->site_id_map[k];
+    if (self->sites->num_rows < num_input_sites) {
+        // Remap sites in the mutation table
+        // (but only if there's been any changed sites)
+        for (j = 0; j < self->mutations->num_rows; j++) {
+            k = self->mutations->site[j];
+            assert(k < num_input_sites);
+            self->mutations->site[j] = self->site_id_map[k];
+        }
     }
 
 out:
