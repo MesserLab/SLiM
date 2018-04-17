@@ -449,6 +449,8 @@ public:
 	void RecordAllDerivedStatesFromSLiM(void);
 	struct MutationInfoRec *MutationInfoForMutation(Mutation *p_mutation);
 	struct IndividualInfoRec *IndividualInfoForIndividual(Individual *p_individual);
+	void DumpMutationTable(void);
+	void CrosscheckTreeSeqIntegrity(void);
 	// put any other methods you need for the tree sequence stuff here
 	
 	//
