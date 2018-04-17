@@ -225,61 +225,83 @@ double _SpatialMap::ValueAtPoint(double *p_point)
 void _SpatialMap::ColorForValue(double p_value, double *p_rgb_ptr)
 {
 	if (n_colors_ == 0)
-		EIDOS_TERMINATION << "ERROR (_SpatialMap::ColorForValue): no color map defined for spatial map." << EidosTerminate();
-	
-	double value_fraction = (p_value - min_value_) / (max_value_ - min_value_);
-	double color_index = value_fraction * (n_colors_ - 1);
-	int color_index_1 = (int)floor(color_index);
-	int color_index_2 = (int)ceil(color_index);
-	
-	if (color_index_1 < 0) color_index_1 = 0;
-	if (color_index_1 >= n_colors_) color_index_1 = n_colors_ - 1;
-	if (color_index_2 < 0) color_index_2 = 0;
-	if (color_index_2 >= n_colors_) color_index_2 = n_colors_ - 1;
-	
-	double color_2_weight = color_index - color_index_1;
-	double color_1_weight = 1.0F - color_2_weight;
-	
-	double red1 = red_components_[color_index_1];
-	double green1 = green_components_[color_index_1];
-	double blue1 = blue_components_[color_index_1];
-	double red2 = red_components_[color_index_2];
-	double green2 = green_components_[color_index_2];
-	double blue2 = blue_components_[color_index_2];
-	
-	p_rgb_ptr[0] = (red1 * color_1_weight + red2 * color_2_weight);
-	p_rgb_ptr[1] = (green1 * color_1_weight + green2 * color_2_weight);
-	p_rgb_ptr[2] = (blue1 * color_1_weight + blue2 * color_2_weight);
+	{
+		// this is the case when a color table was not defined; here, min could equal max
+		// in this case, all values in the map should fall in the interval [min_value_, max_value_]
+		double value_fraction = ((min_value_ < max_value_) ? ((p_value - min_value_) / (max_value_ - min_value_)) : 0.0);
+		p_rgb_ptr[0] = value_fraction;
+		p_rgb_ptr[1] = value_fraction;
+		p_rgb_ptr[2] = value_fraction;
+	}
+	else
+	{
+		// this is the case when a color table was defined; here, min < max
+		// in this case, values in the map may fall outside the interval [min_value_, max_value_]
+		double value_fraction = (p_value - min_value_) / (max_value_ - min_value_);
+		double color_index = value_fraction * (n_colors_ - 1);
+		int color_index_1 = (int)floor(color_index);
+		int color_index_2 = (int)ceil(color_index);
+		
+		if (color_index_1 < 0) color_index_1 = 0;
+		if (color_index_1 >= n_colors_) color_index_1 = n_colors_ - 1;
+		if (color_index_2 < 0) color_index_2 = 0;
+		if (color_index_2 >= n_colors_) color_index_2 = n_colors_ - 1;
+		
+		double color_2_weight = color_index - color_index_1;
+		double color_1_weight = 1.0F - color_2_weight;
+		
+		double red1 = red_components_[color_index_1];
+		double green1 = green_components_[color_index_1];
+		double blue1 = blue_components_[color_index_1];
+		double red2 = red_components_[color_index_2];
+		double green2 = green_components_[color_index_2];
+		double blue2 = blue_components_[color_index_2];
+		
+		p_rgb_ptr[0] = (red1 * color_1_weight + red2 * color_2_weight);
+		p_rgb_ptr[1] = (green1 * color_1_weight + green2 * color_2_weight);
+		p_rgb_ptr[2] = (blue1 * color_1_weight + blue2 * color_2_weight);
+	}
 }
 
 void _SpatialMap::ColorForValue(double p_value, float *p_rgb_ptr)
 {
 	if (n_colors_ == 0)
-		EIDOS_TERMINATION << "ERROR (_SpatialMap::ColorForValue): no color map defined for spatial map." << EidosTerminate();
-	
-	double value_fraction = (p_value - min_value_) / (max_value_ - min_value_);
-	double color_index = value_fraction * (n_colors_ - 1);
-	int color_index_1 = (int)floor(color_index);
-	int color_index_2 = (int)ceil(color_index);
-	
-	if (color_index_1 < 0) color_index_1 = 0;
-	if (color_index_1 >= n_colors_) color_index_1 = n_colors_ - 1;
-	if (color_index_2 < 0) color_index_2 = 0;
-	if (color_index_2 >= n_colors_) color_index_2 = n_colors_ - 1;
-	
-	double color_2_weight = color_index - color_index_1;
-	double color_1_weight = 1.0F - color_2_weight;
-	
-	double red1 = red_components_[color_index_1];
-	double green1 = green_components_[color_index_1];
-	double blue1 = blue_components_[color_index_1];
-	double red2 = red_components_[color_index_2];
-	double green2 = green_components_[color_index_2];
-	double blue2 = blue_components_[color_index_2];
-	
-	p_rgb_ptr[0] = (float)(red1 * color_1_weight + red2 * color_2_weight);
-	p_rgb_ptr[1] = (float)(green1 * color_1_weight + green2 * color_2_weight);
-	p_rgb_ptr[2] = (float)(blue1 * color_1_weight + blue2 * color_2_weight);
+	{
+		// this is the case when a color table was not defined; here, min could equal max
+		// in this case, all values in the map should fall in the interval [min_value_, max_value_]
+		float value_fraction = (float)((min_value_ < max_value_) ? ((p_value - min_value_) / (max_value_ - min_value_)) : 0.0);
+		p_rgb_ptr[0] = value_fraction;
+		p_rgb_ptr[1] = value_fraction;
+		p_rgb_ptr[2] = value_fraction;
+	}
+	else
+	{
+		// this is the case when a color table was defined; here, min < max
+		// in this case, values in the map may fall outside the interval [min_value_, max_value_]
+		double value_fraction = (p_value - min_value_) / (max_value_ - min_value_);
+		double color_index = value_fraction * (n_colors_ - 1);
+		int color_index_1 = (int)floor(color_index);
+		int color_index_2 = (int)ceil(color_index);
+		
+		if (color_index_1 < 0) color_index_1 = 0;
+		if (color_index_1 >= n_colors_) color_index_1 = n_colors_ - 1;
+		if (color_index_2 < 0) color_index_2 = 0;
+		if (color_index_2 >= n_colors_) color_index_2 = n_colors_ - 1;
+		
+		double color_2_weight = color_index - color_index_1;
+		double color_1_weight = 1.0F - color_2_weight;
+		
+		double red1 = red_components_[color_index_1];
+		double green1 = green_components_[color_index_1];
+		double blue1 = blue_components_[color_index_1];
+		double red2 = red_components_[color_index_2];
+		double green2 = green_components_[color_index_2];
+		double blue2 = blue_components_[color_index_2];
+		
+		p_rgb_ptr[0] = (float)(red1 * color_1_weight + red2 * color_2_weight);
+		p_rgb_ptr[1] = (float)(green1 * color_1_weight + green2 * color_2_weight);
+		p_rgb_ptr[2] = (float)(blue1 * color_1_weight + blue2 * color_2_weight);
+	}
 }
 
 
@@ -5513,6 +5535,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID 
 		}
 	}
 	
+	const double *values_vec_ptr = values->FloatVector()->data();
 	bool range_is_null = (value_range->Type() == EidosValueType::kValueNULL);
 	bool colors_is_null = (colors->Type() == EidosValueType::kValueNULL);
 	double range_min = 0.0, range_max = 0.0;
@@ -5526,6 +5549,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID 
 		if (value_range->Count() != 2)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() valueRange must be exactly length 2 (giving the min and max value permitted)." << EidosTerminate();
 		
+		// valueRange and colors were provided, so use them for coloring
 		range_min = value_range->FloatAtIndex(0, nullptr);
 		range_max = value_range->FloatAtIndex(1, nullptr);
 		
@@ -5537,11 +5561,29 @@ EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID 
 		if (color_count < 2)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() colors must be of length >= 2." << EidosTerminate();
 	}
+	else
+	{
+		// so that we can provide a default color map, we try to find the value range here
+		range_min = range_max = values_vec_ptr[0];
+		
+		for (int64_t values_index = 1; values_index < map_size; ++values_index)
+		{
+			double value = values_vec_ptr[values_index];
+			
+			range_min = std::min(range_min, value);
+			range_max = std::max(range_max, value);
+		}
+		
+		if (!std::isfinite(range_min) || !std::isfinite(range_max))
+		{
+			range_min = 0.0;
+			range_max = 0.0;
+		}
+	}
 	
 	// OK, everything seems to check out, so we can make our SpatialMap struct and populate it
 	SpatialMap *spatial_map = new SpatialMap(spatiality_string, map_spatiality, dimension_sizes, interpolate, range_min, range_max, color_count);
 	double *values_ptr = spatial_map->values_;
-	const double *values_vec_ptr = values->FloatVector()->data();
 	
 	for (int64_t values_index = 0; values_index < map_size; ++values_index)
 		*(values_ptr++) = *(values_vec_ptr++);

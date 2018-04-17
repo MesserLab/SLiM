@@ -21,16 +21,30 @@
 #import <Cocoa/Cocoa.h>
 
 #include "subpopulation.h"
+#include <map>
 
+
+typedef struct {
+	int backgroundType;				// 0 == black, 1 == gray, 2 == white, 3 == named spatial map; if no preference has been set, no entry will exist
+	std::string spatialMapName;		// the name of the spatial map chosen, for backgroundType == 3
+} PopulationViewBackgroundSettings;
 
 @interface PopulationView : NSOpenGLView
 {
-	int displayMode;	// 0 == individuals, 1 == fitness distribution line plots, 2 == fitness distribution barplot
+	// display mode: 0 == individuals (non-spatial), 1 == individuals (spatial), 2 == fitness distribution line plots, 3 == fitness distribution barplot
+	int displayMode;
 	
-	// used in displayMode 1 and 2, set by PopulationViewOptionsSheet.xib
+	// used in displayMode 2 and 3, set by PopulationViewOptionsSheet.xib
 	int binCount;
 	double fitnessMin;
 	double fitnessMax;
+	
+	// display background preferences, kept indexed by subpopulation id
+	std::map<slim_objectid_t, PopulationViewBackgroundSettings> backgroundSettings;
+	slim_objectid_t lastContextMenuSubpopID;
+	
+	// subview tiling, kept indexed by subpopulation id
+	std::map<slim_objectid_t, NSRect> subpopTiles;
 }
 
 // Outlets connected to objects in PopulationViewOptionsSheet.xib
@@ -42,7 +56,7 @@
 
 - (IBAction)validateSheetControls:(id)sender;						// can be wired to controls that need to trigger validation
 
-- (BOOL)canDisplaySubpopulations:(std::vector<Subpopulation*> &)selectedSubpopulations;
+- (BOOL)tileSubpopulations:(std::vector<Subpopulation*> &)selectedSubpopulations;
 
 @end
 

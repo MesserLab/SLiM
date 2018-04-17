@@ -574,7 +574,7 @@
 - (void)updatePopulationViewHiding
 {
 	std::vector<Subpopulation*> selectedSubpopulations = [self selectedSubpopulations];
-	BOOL canDisplayPopulationView = [populationView canDisplaySubpopulations:selectedSubpopulations];
+	BOOL canDisplayPopulationView = [populationView tileSubpopulations:selectedSubpopulations];
 	
 	// Swap between populationView and populationErrorView as needed to show text messages in the pop view area
 	if (canDisplayPopulationView)
