@@ -781,6 +781,12 @@
 		986021081A3BB504001BDCFE /* LICENSE */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		98606AEC1DED0DCD00821CFF /* mutation_run.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mutation_run.cpp; sourceTree = "<group>"; };
 		98606AED1DED0DCD00821CFF /* mutation_run.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mutation_run.h; sourceTree = "<group>"; };
+		9867649E208699D200E81B2E /* msprime.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = msprime.h; path = treerec/msprime/lib/msprime.h; sourceTree = "<group>"; };
+		9867649F2087DA3400E81B2E /* avl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = avl.h; path = treerec/msprime/lib/avl.h; sourceTree = "<group>"; };
+		986764A02087DA3400E81B2E /* tables.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tables.h; path = treerec/msprime/lib/tables.h; sourceTree = "<group>"; };
+		986764A12087DA3400E81B2E /* fenwick.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = fenwick.h; path = treerec/msprime/lib/fenwick.h; sourceTree = "<group>"; };
+		986764A22087DA3400E81B2E /* object_heap.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = object_heap.h; path = treerec/msprime/lib/object_heap.h; sourceTree = "<group>"; };
+		986764A32087DAF900E81B2E /* util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = util.h; path = treerec/msprime/lib/util.h; sourceTree = "<group>"; };
 		986926D21AA1337A0000E138 /* graph_submenu_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = graph_submenu_H.pdf; sourceTree = "<group>"; };
 		986926D31AA1337A0000E138 /* graph_submenu.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = graph_submenu.pdf; sourceTree = "<group>"; };
 		986926D71AA140550000E138 /* GraphView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GraphView.h; sourceTree = "<group>"; };
@@ -1088,6 +1094,12 @@
 		980907B72081188500D9870F /* msprime */ = {
 			isa = PBXGroup;
 			children = (
+				9867649E208699D200E81B2E /* msprime.h */,
+				9867649F2087DA3400E81B2E /* avl.h */,
+				986764A12087DA3400E81B2E /* fenwick.h */,
+				986764A22087DA3400E81B2E /* object_heap.h */,
+				986764A02087DA3400E81B2E /* tables.h */,
+				986764A32087DAF900E81B2E /* util.h */,
 				980907BE208118E800D9870F /* newick.c */,
 				980907BB208118D100D9870F /* tree_sequence.c */,
 				980907B82081189B00D9870F /* vargen.c */,

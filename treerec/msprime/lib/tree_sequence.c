@@ -21,7 +21,7 @@
 #include <assert.h>
 #include <stdbool.h>
 
-#include <gsl/gsl_math.h>
+#include "gsl_math.h"
 
 #include "util.h"
 #include "object_heap.h"

@@ -27,7 +27,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#include <gsl/gsl_rng.h>
+#include "gsl_rng.h"
 
 #include "util.h"
 #include "avl.h"
