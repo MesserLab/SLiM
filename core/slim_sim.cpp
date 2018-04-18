@@ -3749,11 +3749,6 @@ void SLiMSim::SimplifyTreeSequence(void){
 		populationIndividuals.insert(populationIndividuals.end(), subpopulationIndividuals.begin(), subpopulationIndividuals.end());
 	}
 
-    /* DEBUG STDOUT
-    std::string var = std::string("test_output");
-    WriteTreeSequence(var, 0, 0);
-    // */
-
     // the RememberedGenomes will come first in the list of samples
     for (node_id_t sid : RememberedGenomes) {
         samples.push_back(sid);
@@ -4030,7 +4025,7 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
 
 	/* DEBUG STDOUT PRINTING
 	std::cout << tree_seq_generation_ << ":   New derived state for genome id "; 
-    std::cout << p_genome_id << " (msp: " << genomeMSPID << ") at position " << p_position << ":";
+    std::cout << p_genome_id << " (msp: " << genomeMSPID << ") at position " << p_position << ", mutation IDs:";
 	if (p_derived_mutations.size()) {
 	 for (Mutation *mutation : p_derived_mutations)
 	 std::cout << " " << mutation->mutation_id_;
@@ -4051,7 +4046,6 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
         j = tables.mutations.num_rows;
         while (j > table_position.mutation_position) {
             j--;
-            // if (tables.mutations.site[j] == site_id 
             if ((tables.sites.position[tables.mutations.site[j]] == msp_position)
                     && (tables.mutations.node[j] == genomeMSPID)) {
                 parent_mut_id = j;
@@ -4085,14 +4079,7 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
 		derived_mutation_ids.push_back(mutation->mutation_id_);
         mutation_metadata.push_back(*MutationInfoForMutation(mutation));
     }
-	
-    char *derived_muts_bytes = (char *)(derived_mutation_ids.data());
-    size_t derived_state_length = derived_mutation_ids.size() * sizeof(slim_mutationid_t);
-    char *mutation_metadata_bytes = (char *)(mutation_metadata.data());
-    size_t mutation_metadata_length = mutation_metadata.size() * sizeof(MutationInfoRec);
 
-    // we don't record parent mutations; they are added later
-    // the last (NULL, 0) is metadata
     tree_return_value_ = mutation_table_add_row(&tables.mutations, site_id, genomeMSPID, 
                             parent_mut_id, derived_muts_bytes, (table_size_t)derived_state_length, 
                             mutation_metadata_bytes, (table_size_t)mutation_metadata_length);
@@ -4190,12 +4177,9 @@ void SLiMSim::CheckAutoSimplification(void)
 
 void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
 {
-    /***************************************
-     * Make the data stored in the tables safe to output to ASCII.
-     * Currently, this only deals with the MutationTable:
-     * We have packed the integer mutation IDs into the "derived_state" char*;
-     * for output to ascii we need to convert this.
-     ***************************************/
+    /********************************************************
+     * Make the data stored in the tables readable as ASCII.
+     ********************************************************/
 
     tree_return_value_ = table_collection_copy(&tables, new_tables);
     if (tree_return_value_ < 0) 
@@ -4205,8 +4189,7 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
 
     /***  Ascii-ify Mutation Table ***/
 
-    mutation_table_t new_mutation_table = new_tables->mutations;
-    tree_return_value_ = mutation_table_clear(&new_mutation_table);
+    tree_return_value_ = mutation_table_clear(&new_tables->mutations);
     if (tree_return_value_ < 0) 
     {
         handle_error("convert_to_ascii", tree_return_value_);
@@ -4218,7 +4201,9 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
     table_size_t *derived_state_offset = tables.mutations.derived_state_offset;
     std::string text_derived_state;
     std::vector<table_size_t> text_derived_state_offset;
-    size_t cur_derived_state_length = 0;
+    size_t cur_derived_state_length;
+    size_t cur_mutation_metadata_length;
+    size_t i, j;
 
     // Mutation metadata
     MutationInfoRec *struct_mutation_metadata;
@@ -4230,13 +4215,13 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
     text_derived_state_offset.push_back(0);
     text_mutation_metadata_offset.push_back(0);
 
-    for (size_t j=0; j<tables.mutations.num_rows; j++)
+    for (j=0; j<tables.mutations.num_rows; j++)
     {
         // Mutation derived state
         int_derived_state = (slim_mutationid_t *)(derived_state + derived_state_offset[j]);
         cur_derived_state_length = (derived_state_offset[j+1] - derived_state_offset[j])/sizeof(slim_mutationid_t);
 
-        for (size_t i = 0; i < cur_derived_state_length; i++)
+        for (i = 0; i < cur_derived_state_length; i++)
         {
             if (i != 0)
                 text_derived_state.append(",");
@@ -4246,17 +4231,25 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
 
         // Mutation metadata
         struct_mutation_metadata = (MutationInfoRec *)(mutation_metadata + mutation_metadata_offset[j]);
-        text_mutation_metadata.append(std::to_string(struct_mutation_metadata->mutation_type_id_));
-        text_mutation_metadata.append(",");
-        text_mutation_metadata.append(std::to_string(struct_mutation_metadata->selection_coeff_));
-        text_mutation_metadata.append(",");
-        text_mutation_metadata.append(std::to_string(struct_mutation_metadata->subpop_index_));
-        text_mutation_metadata.append(",");
-        text_mutation_metadata.append(std::to_string(struct_mutation_metadata->origin_generation_));
-        text_mutation_metadata_offset.push_back((table_size_t)text_mutation_metadata.size());
+        cur_mutation_metadata_length = (mutation_metadata_offset[j+1] - mutation_metadata_offset[j])/sizeof(MutationInfoRec);
+        assert(cur_mutation_metadata_length == cur_derived_state_length);
+        for (i = 0; i < cur_mutation_metadata_length; i++) {
+            if (i > 0) {
+                text_mutation_metadata.append(";");
+            }
+            text_mutation_metadata.append(std::to_string(struct_mutation_metadata->mutation_type_id_));
+            text_mutation_metadata.append(",");
+            text_mutation_metadata.append(std::to_string(struct_mutation_metadata->selection_coeff_));
+            text_mutation_metadata.append(",");
+            text_mutation_metadata.append(std::to_string(struct_mutation_metadata->subpop_index_));
+            text_mutation_metadata.append(",");
+            text_mutation_metadata.append(std::to_string(struct_mutation_metadata->origin_generation_));
+            struct_mutation_metadata++;
+        }
+        text_mutation_metadata_offset.push_back(text_mutation_metadata.size());
     }
 
-    tree_return_value_ = mutation_table_set_columns(&new_mutation_table,
+    tree_return_value_ = mutation_table_set_columns(&new_tables->mutations,
                                     tables.mutations.num_rows,
                                     tables.mutations.site,
                                     tables.mutations.node,
@@ -4272,8 +4265,7 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
 
     /***** Ascii-ify Node Table *****/
 
-    node_table_t new_node_table = new_tables->nodes;
-    tree_return_value_ = node_table_clear(&new_node_table);
+    tree_return_value_ = node_table_clear(&new_tables->nodes);
     if (tree_return_value_ < 0) 
     {
         handle_error("convert_to_ascii", tree_return_value_);
@@ -4294,7 +4286,7 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
         text_metadata_offset.push_back((table_size_t)text_metadata.size());
     }
 
-    tree_return_value_ = node_table_set_columns(&new_node_table,
+    tree_return_value_ = node_table_set_columns(&new_tables->nodes,
                                     tables.nodes.num_rows,
                                     tables.nodes.flags,
                                     tables.nodes.time,

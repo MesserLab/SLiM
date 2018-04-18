@@ -908,13 +908,13 @@ site_table_print_state(site_table_t *self, FILE *out)
 
     fprintf(out, TABLE_SEP);
     fprintf(out, "site_table: %p:\n", (void *) self);
-    fprintf(out, "num_rows = %d\tmax= %d\tincrement = %d)\n",
+    fprintf(out, "num_rows = %d\t(max= %d\tincrement = %d)\n",
             (int) self->num_rows, (int) self->max_rows, (int) self->max_rows_increment);
-    fprintf(out, "ancestral_state_length = %d\tmax= %d\tincrement = %d)\n",
+    fprintf(out, "ancestral_state_length = %d\t(max= %d\tincrement = %d)\n",
             (int) self->ancestral_state_length,
             (int) self->max_ancestral_state_length,
             (int) self->max_ancestral_state_length_increment);
-    fprintf(out, "metadata_length = %d\tmax= %d\tincrement = %d)\n",
+    fprintf(out, "metadata_length = %d\(tmax= %d\tincrement = %d)\n",
             (int) self->metadata_length,
             (int) self->max_metadata_length,
             (int) self->max_metadata_length_increment);

@@ -2098,7 +2098,6 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 			for (Mutation *mut : mutations_to_remove)
 			{
 				slim_position_t pos = mut->position_;
-				
 				sim.RecordNewDerivedStateNonMeiosis(target_id, pos, *target_genome->derived_mutation_ids_at_position(pos));
 			}
 		}
