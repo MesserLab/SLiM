@@ -4080,6 +4080,11 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
         mutation_metadata.push_back(*MutationInfoForMutation(mutation));
     }
 
+    char *derived_muts_bytes = (char *)(derived_mutation_ids.data());
+    size_t derived_state_length = derived_mutation_ids.size() * sizeof(slim_mutationid_t);
+    char *mutation_metadata_bytes = (char *)(mutation_metadata.data());
+    size_t mutation_metadata_length = mutation_metadata.size() * sizeof(MutationInfoRec);
+
     tree_return_value_ = mutation_table_add_row(&tables.mutations, site_id, genomeMSPID, 
                             parent_mut_id, derived_muts_bytes, (table_size_t)derived_state_length, 
                             mutation_metadata_bytes, (table_size_t)mutation_metadata_length);
