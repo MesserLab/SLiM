@@ -4251,7 +4251,7 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
             text_mutation_metadata.append(std::to_string(struct_mutation_metadata->origin_generation_));
             struct_mutation_metadata++;
         }
-        text_mutation_metadata_offset.push_back(text_mutation_metadata.size());
+        text_mutation_metadata_offset.push_back((table_size_t)text_mutation_metadata.size());
     }
 
     tree_return_value_ = mutation_table_set_columns(&new_tables->mutations,
@@ -4284,7 +4284,7 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
 
     text_metadata_offset.push_back(0);
 
-    for (size_t j=0; j<tables.nodes.num_rows; j++)
+    for (j=0; j<tables.nodes.num_rows; j++)
     {
         int_genomeid = (slim_genomeid_t *)(metadata + metadata_offset[j]);
         text_metadata.append(std::to_string(*int_genomeid));
@@ -4460,7 +4460,7 @@ void SLiMSim::DumpMutationTable(void)
 		mutation_id_t parent_id = mutations.parent[mutindex];
 		char *derived_state = mutations.derived_state + mutations.derived_state_offset[mutindex];
 		table_size_t derived_state_length = mutations.derived_state_offset[mutindex + 1] - mutations.derived_state_offset[mutindex];
-		char *metadata_state = mutations.metadata + mutations.metadata_offset[mutindex];
+		//char *metadata_state = mutations.metadata + mutations.metadata_offset[mutindex];
 		table_size_t metadata_length = mutations.metadata_offset[mutindex + 1] - mutations.metadata_offset[mutindex];
 		
 		std::cout << "Mutation index " << mutindex << " has node_id " << node_id << ", site_id " << site_id << ", parent id " << parent_id << ", derived state length " << derived_state_length << ", metadata length " << metadata_length << std::endl;
@@ -4585,7 +4585,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 	ret = vargen_alloc(vg, ts, 0);	// flags seems to be unused at present
 	if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity vargen_alloc()", ret);
 	
-	int iteration_counter = 0;
+	//int iteration_counter = 0;
 	
 	// crosscheck by looping through variants
 	do
