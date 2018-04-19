@@ -43,6 +43,7 @@ class SLiMSim;
 class Population;
 class Subpopulation;
 class Individual;
+class GenomeWalker;
 
 
 extern EidosObjectClass *gSLiM_Genome_Class;
@@ -393,6 +394,7 @@ public:
 	friend Population;
 	friend Subpopulation;
 	friend Individual;
+	friend GenomeWalker;
 };
 
 // This class allows clients of Genome to walk the mutations inside a Genome without needing to know about MutationRun.
