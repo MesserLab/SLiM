@@ -18,11 +18,6 @@ set( EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin )
 find_package(HDF5 REQUIRED)
 include_directories(${HDF5_INCLUDE_DIR})
 
-set(TARGET_NAME tables)
-file(GLOB_RECURSE TABLE_SOURCES ${PROJECT_SOURCE_DIR}/treerec/tskit/*.c)
-add_library(${TARGET_NAME} STATIC ${TABLE_SOURCES})
-target_include_directories(${TARGET_NAME} PUBLIC ${HDF5_INCLUDE_DIR})
-
 # GSL 
 set(TARGET_NAME gsl)
 file(GLOB_RECURSE GSL_SOURCES ${PROJECT_SOURCE_DIR}/gsl/*.c ${PROJECT_SOURCE_DIR}/gsl/*/*.c)
@@ -30,6 +25,12 @@ set(GSL_INCLUDES ${PROJECT_SOURCE_DIR}/gsl ${PROJECT_SOURCE_DIR}/gsl/specfunc ${
 add_library(${TARGET_NAME} STATIC ${GSL_SOURCES})
 target_include_directories(${TARGET_NAME} PUBLIC ${GSL_INCLUDES})
 
+# TSKIT
+set(TARGET_NAME tables)
+file(GLOB_RECURSE TABLE_SOURCES ${PROJECT_SOURCE_DIR}/treerec/tskit/*.c)
+add_library(${TARGET_NAME} STATIC ${TABLE_SOURCES})
+target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES})
+target_include_directories(${TARGET_NAME} PUBLIC ${HDF5_INCLUDE_DIR})
 
 set(TARGET_NAME slim)
 file(GLOB_RECURSE SLIM_SOURCES ${PROJECT_SOURCE_DIR}/core/*.cpp ${PROJECT_SOURCE_DIR}/eidos/*.cpp)

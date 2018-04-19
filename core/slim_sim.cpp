@@ -51,7 +51,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include "../treerec/msprime/lib/msprime.h"
+#include "../treerec/tskit/msprime.h"
 #ifdef __cplusplus
 }
 #endif
