@@ -1873,7 +1873,16 @@ cmp_site(const void *a, const void *b) {
     const site_t *ia = (const site_t *) a;
     const site_t *ib = (const site_t *) b;
     /* Compare sites by position */
-    return (ia->position > ib->position) - (ia->position < ib->position);
+    int ret = (ia->position > ib->position) - (ia->position < ib->position);
+	if (ret == 0) {
+		/* Within a particular position sort by ID.  This ensures that relative ordering
+		 * of multiple sites at the same position is maintained; the redundant sites
+		 * will get compacted down by clean_tables(), but in the meantime if the order
+		 * of the redundant sites changes it will cause the sort order of mutations to
+		 * be corrupted, as the mutations will follow their sites. */
+		ret = (ia->id > ib->id) - (ia->id < ib->id);
+	}
+	return ret;
 }
 
 static int
