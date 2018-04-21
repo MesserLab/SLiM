@@ -3107,22 +3107,19 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		population_.TallyMutationReferences(nullptr, false);
 #endif
 	
-		cached_value_generation_.reset();
-		generation_++;
-		// note that tree_seq_generation_ was incremented earlier!
-		
 		// TREE SEQUENCE RECORDING
 		if (recording_tree_)
 		{
 			CheckAutoSimplification();
 			
-#if DEBUG
 			// note that this causes simplification, so it will confuse the auto-simplification code
-			// this should probably be turned off in general, except when explicitly testing this...
-//#warning CrosscheckTreeSeqIntegrity() enabled
-//			CrosscheckTreeSeqIntegrity();
-#endif
+			if (running_treeseq_crosschecks_)
+				CrosscheckTreeSeqIntegrity();
 		}
+		
+		cached_value_generation_.reset();
+		generation_++;
+		// note that tree_seq_generation_ was incremented earlier!
 		
 		// Zero out error-reporting info so raises elsewhere don't get attributed to this script
 		gEidosCurrentScript = nullptr;
@@ -3514,25 +3511,22 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		population_.TallyMutationReferences(nullptr, false);
 #endif
 	
+		// TREE SEQUENCE RECORDING
+		if (recording_tree_)
+		{
+			CheckAutoSimplification();
+			
+			// note that this causes simplification, so it will confuse the auto-simplification code
+			if (running_treeseq_crosschecks_)
+				CrosscheckTreeSeqIntegrity();
+		}
+		
 		cached_value_generation_.reset();
 		generation_++;
 		tree_seq_generation_++;
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
 			subpop_pair.second->IncrementIndividualAges();
-		
-		// TREE SEQUENCE RECORDING
-		if (recording_tree_)
-		{
-			CheckAutoSimplification();
-			
-#if DEBUG
-			// note that this causes simplification, so it will confuse the auto-simplification code
-			// this should probably be turned off in general, except when explicitly testing this...
-//#warning CrosscheckTreeSeqIntegrity() enabled
-//			CrosscheckTreeSeqIntegrity();
-#endif
-		}
 		
 		// Zero out error-reporting info so raises elsewhere don't get attributed to this script
 		gEidosCurrentScript = nullptr;
@@ -3732,10 +3726,9 @@ void SLiMSim::_CheckMutationStackPolicy(void)
 void
 SLiMSim::handle_error(std::string msg, int err)
 {
-	std::cout << "Error:" << msg << ":" << msp_strerror(err) << std::endl;
-	EIDOS_TERMINATION << msg << EidosTerminate();
+	std::cout << "Error:" << msg << ": " << msp_strerror(err) << std::endl;
+	EIDOS_TERMINATION << msg << ": " << msp_strerror(err) << EidosTerminate();
 }
-
 
 void SLiMSim::SimplifyTreeSequence(void){
 
@@ -4463,6 +4456,19 @@ void SLiMSim::DumpMutationTable(void)
 		//char *metadata_state = mutations.metadata + mutations.metadata_offset[mutindex];
 		table_size_t metadata_length = mutations.metadata_offset[mutindex + 1] - mutations.metadata_offset[mutindex];
 		
+		// DEBUG the gen 239 case: output a mutation only if its derived state contains mutation ID 18026, which is the background that gets stacked upon
+		// keeping this code around as it may prove useful for debugging other issues...
+//		{
+//			bool contains_18026 = false;
+//			
+//			for (size_t mutid_index = 0; mutid_index < derived_state_length / sizeof(slim_mutationid_t); ++mutid_index)
+//				if (((slim_mutationid_t *)derived_state)[mutid_index] == 18026)
+//					contains_18026 = true;
+//			
+//			if (!contains_18026)
+//				continue;
+//		}
+		
 		std::cout << "Mutation index " << mutindex << " has node_id " << node_id << ", site_id " << site_id << ", parent id " << parent_id << ", derived state length " << derived_state_length << ", metadata length " << metadata_length << std::endl;
 		
 		std::cout << "   derived state: ";
@@ -4500,191 +4506,148 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 	if (genome_count == 0)
 		return;
 	
-	// prepare to walk all the genomes by making GenomeWalker objects for them all
-	static std::vector<GenomeWalker> genome_walkers;
-	genome_walkers.clear();
-	genome_walkers.reserve(genome_count);
+	// check for correspondence between SLiM's genomes and the tree_seq's nodes, including their metadata
+	// FIXME unimplemented
 	
-	for (Genome *genome : genomes)
-		genome_walkers.emplace_back(genome);
-	
-//	if (generation_ == 240)
-//	{
-//		std::cout << "----------------------------" << std::endl;
-//		std::cout << "Mutation state before simplify:" << std::endl << std::endl;
-//		DumpMutationTable();
-//	}
-	
-	// simplify before making our tree_sequence object; this is required (at least the clean and sort, maybe not the full simplify)
-	// FIXME it would be nice to be able to do this crosscheck without modifying what we are trying to observe; it may be that there
-	// are bugs that get hidden as a side effect of simplifying every generation...
-	SimplifyTreeSequence();
-	
-//	if (generation_ == 240)
-//	{
-//		std::cout << "----------------------------" << std::endl;
-//		std::cout << "Mutation state after simplify:" << std::endl << std::endl;
-//		DumpMutationTable();
-//	}
-	
-	// allocate and set up the tree_sequence object that contains all the tree sequences
-	tree_sequence_t *ts;
-	int ret;
-	
-	ts = (tree_sequence_t *)malloc(sizeof(tree_sequence_t));
-	ret = tree_sequence_load_tables(ts, &tables, MSP_BUILD_INDEXES);
-	if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tree_sequence_load_tables()", ret);
-	
-	// find the nodes in the tree sequence's sample of genomes, which should correspond to our genomes (with perhaps some extras)
-	static std::unordered_map<slim_genomeid_t, int32_t> metadata_to_sample_index;
-	int32_t num_samples = (int32_t)tree_sequence_get_num_samples(ts);
-	node_id_t *samples;
-	
-	metadata_to_sample_index.clear();
-	
-	ret = tree_sequence_get_samples(ts, &samples);
-	if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tree_sequence_get_samples()", ret);
-	
-	for (int32_t sample_index = 0; sample_index < num_samples; ++sample_index)
+	// if we're recording mutations, we can check all of them
+	if (recording_mutations_)
 	{
-		node_t sample_node;
+		// prepare to walk all the genomes by making GenomeWalker objects for them all
+		static std::vector<GenomeWalker> genome_walkers;
+		genome_walkers.clear();
+		genome_walkers.reserve(genome_count);
 		
-		ret = tree_sequence_get_node(ts, samples[sample_index], &sample_node);
-		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tree_sequence_get_node()", ret);
+		for (Genome *genome : genomes)
+			genome_walkers.emplace_back(genome);
 		
-		slim_genomeid_t *sample_metadata = (slim_genomeid_t *)sample_node.metadata;
-		table_size_t sample_metadata_length = sample_node.metadata_length;
+		// DEBUG enable this and the dump after simplify to check whether simplify has changed the order of mutations in the table
+		//	if (generation_ == 240)
+		//	{
+		//		std::cout << "----------------------------" << std::endl;
+		//		std::cout << "Mutation state before SimplifyTreeSequence():" << std::endl << std::endl;
+		//		DumpMutationTable();
+		//	}
 		
-		// right now the metadata is a string that contains the genome ID, so we construct a std::string key
-		if (sample_metadata_length != sizeof(slim_genomeid_t))
-			handle_error("CrosscheckTreeSeqIntegrity unexpected genome metadata", -1);
+		// simplify before making our tree_sequence object; this is required (at least the clean and sort, maybe not the full simplify)
+		// FIXME it would be nice to be able to do this crosscheck without modifying what we are trying to observe; it may be that there
+		// are bugs that get hidden as a side effect of simplifying every generation...
+		SimplifyTreeSequence();
 		
-		metadata_to_sample_index.insert(std::pair<slim_genomeid_t, int32_t>(*sample_metadata, sample_index));
-	}
-	
-	// find the sample index for each genome, using the metadata_to_sample_index map we just built
-	static std::vector<int32_t> sample_indices_for_genomes;
-	sample_indices_for_genomes.clear();
-	sample_indices_for_genomes.reserve(genome_count);
-	
-	for (Genome *genome : genomes)
-	{
-		// figure out the expected metadata for the genome
-		auto sample_index_iter = metadata_to_sample_index.find(genome->genome_id_);
+		//	if (generation_ == 240)
+		//	{
+		//		std::cout << "----------------------------" << std::endl;
+		//		std::cout << "Mutation state after SimplifyTreeSequence():" << std::endl << std::endl;
+		//		DumpMutationTable();
+		//	}
 		
-		if (sample_index_iter == metadata_to_sample_index.end())
-			handle_error("CrosscheckTreeSeqIntegrity didn't find genome in sample", -1);
+		// allocate and set up the tree_sequence object that contains all the tree sequences
+		tree_sequence_t *ts;
+		int ret;
 		
-		sample_indices_for_genomes.emplace_back(sample_index_iter->second);
-	}
-	
-	// allocate and set up the vargen object we'll use to walk through variants
-	vargen_t *vg;
-	
-	vg = (vargen_t *)malloc(sizeof(vargen_t));
-	ret = vargen_alloc(vg, ts, 0);	// flags seems to be unused at present
-	if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity vargen_alloc()", ret);
-	
-	//int iteration_counter = 0;
-	
-	// crosscheck by looping through variants
-	do
-	{
-		variant_t *variant;
+		ts = (tree_sequence_t *)malloc(sizeof(tree_sequence_t));
+		ret = tree_sequence_load_tables(ts, &tables, MSP_BUILD_INDEXES | MSP_COMPUTE_PARENTS);	// note we do not do MSP_FIX_PARENTS, for minimal invasiveness
+		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tree_sequence_load_tables()", ret);
 		
-		ret = vargen_next(vg, &variant);
-		if (ret < 0) handle_error("CrosscheckTreeSeqIntegrity vargen_next()", ret);
+		// find the nodes in the tree sequence's sample of genomes, which should correspond to our genomes (with perhaps some extras)
+		static std::unordered_map<slim_genomeid_t, int32_t> metadata_to_sample_index;
+		int32_t num_samples = (int32_t)tree_sequence_get_num_samples(ts);
+		node_id_t *samples;
 		
-		if (ret == 1)
+		metadata_to_sample_index.clear();
+		
+		ret = tree_sequence_get_samples(ts, &samples);
+		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tree_sequence_get_samples()", ret);
+		
+		for (int32_t sample_index = 0; sample_index < num_samples; ++sample_index)
 		{
-			// We have a new variant; check it against SLiM.  A variant represents a site at which a tracked mutation exists.
-			// The variant_t will tell us all the allelic states involved at that site, what the alleles are, and which genomes
-			// in the sample are using them.  We will then check that all the genomes that the variant claims to involve have
-			// the allele the variant attributes to them, and that no genomes contain any alleles at the position that are not
-			// described by the variant.  The variants are returned in sorted order by position, so we can keep pointers into
-			// every extant genome's mutruns, advance those pointers a step at a time, and check that everything matches at every
-			// step.  Keep in mind that some mutations may have been fixed (substituted) or lost.
-			slim_position_t variant_pos_int = (slim_position_t)variant->site->position;		// should be no loss of precision, fingers crossed
+			node_t sample_node;
 			
-			for (size_t genome_index = 0; genome_index < genome_count; genome_index++)
+			ret = tree_sequence_get_node(ts, samples[sample_index], &sample_node);
+			if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tree_sequence_get_node()", ret);
+			
+			slim_genomeid_t *sample_metadata = (slim_genomeid_t *)sample_node.metadata;
+			table_size_t sample_metadata_length = sample_node.metadata_length;
+			
+			// right now the metadata is a string that contains the genome ID, so we construct a std::string key
+			if (sample_metadata_length != sizeof(slim_genomeid_t))
+				handle_error("CrosscheckTreeSeqIntegrity unexpected genome metadata", -1);
+			
+			metadata_to_sample_index.insert(std::pair<slim_genomeid_t, int32_t>(*sample_metadata, sample_index));
+		}
+		
+		// find the sample index for each genome, using the metadata_to_sample_index map we just built
+		static std::vector<int32_t> sample_indices_for_genomes;
+		sample_indices_for_genomes.clear();
+		sample_indices_for_genomes.reserve(genome_count);
+		
+		for (Genome *genome : genomes)
+		{
+			// figure out the expected metadata for the genome
+			auto sample_index_iter = metadata_to_sample_index.find(genome->genome_id_);
+			
+			if (sample_index_iter == metadata_to_sample_index.end())
+				handle_error("CrosscheckTreeSeqIntegrity didn't find genome in sample", -1);
+			
+			sample_indices_for_genomes.emplace_back(sample_index_iter->second);
+		}
+		
+		// allocate and set up the vargen object we'll use to walk through variants
+		vargen_t *vg;
+		
+		vg = (vargen_t *)malloc(sizeof(vargen_t));
+		ret = vargen_alloc(vg, ts, 0);	// flags seems to be unused at present
+		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity vargen_alloc()", ret);
+		
+		//int iteration_counter = 0;
+		
+		// crosscheck by looping through variants
+		do
+		{
+			variant_t *variant;
+			
+			ret = vargen_next(vg, &variant);
+			if (ret < 0) handle_error("CrosscheckTreeSeqIntegrity vargen_next()", ret);
+			
+			if (ret == 1)
 			{
-				int32_t sample_index_for_genome = sample_indices_for_genomes[genome_index];
-				GenomeWalker &genome_walker = genome_walkers[genome_index];
-				uint8_t genome_variant = variant->genotypes[sample_index_for_genome];
-				table_size_t genome_allele_length = variant->allele_lengths[genome_variant];
+				// We have a new variant; check it against SLiM.  A variant represents a site at which a tracked mutation exists.
+				// The variant_t will tell us all the allelic states involved at that site, what the alleles are, and which genomes
+				// in the sample are using them.  We will then check that all the genomes that the variant claims to involve have
+				// the allele the variant attributes to them, and that no genomes contain any alleles at the position that are not
+				// described by the variant.  The variants are returned in sorted order by position, so we can keep pointers into
+				// every extant genome's mutruns, advance those pointers a step at a time, and check that everything matches at every
+				// step.  Keep in mind that some mutations may have been fixed (substituted) or lost.
+				slim_position_t variant_pos_int = (slim_position_t)variant->site->position;		// should be no loss of precision, fingers crossed
 				
-				if (genome_allele_length % sizeof(slim_mutationid_t) != 0)
-					handle_error("CrosscheckTreeSeqIntegrity variant allele had length that was not a multiple of sizeof(slim_mutationid_t)", -1);
-				genome_allele_length /= sizeof(slim_mutationid_t);
-				
-				//std::cout << "variant for genome: " << (int)genome_variant << " (allele length == " << genome_allele_length << ")" << std::endl;
-				
-				// (1) if the variant's allele is zero-length, we do nothing (if it incorrectly claims that a genome contains no
-				// mutation, we'll catch that later)  (2) if the variant's allele is the length of one mutation id, we can simply
-				// check that the next mutation in the genome in question exists and has the right mutation id; (3) if the variant's
-				// allele has more than one mutation id, we have to check them all against all the mutations at the given position
-				// in the genome in question, which is a bit annoying since the lists may not be in the same order.  Note that if
-				// the variant is for a mutation that has fixed, it will not be present in the genome; we check for a substitution
-				// with the right ID.
-				slim_mutationid_t *genome_allele = (slim_mutationid_t *)variant->alleles[genome_variant];
-				
-				if (genome_allele_length == 0)
+				for (size_t genome_index = 0; genome_index < genome_count; genome_index++)
 				{
-					continue;
-				}
-				else if (genome_allele_length == 1)
-				{
-					slim_mutationid_t allele_mutid = *genome_allele;
-					Mutation *current_mut = genome_walker.CurrentMutation();
+					int32_t sample_index_for_genome = sample_indices_for_genomes[genome_index];
+					GenomeWalker &genome_walker = genome_walkers[genome_index];
+					uint8_t genome_variant = variant->genotypes[sample_index_for_genome];
+					table_size_t genome_allele_length = variant->allele_lengths[genome_variant];
 					
-					if (current_mut)
-					{
-						slim_position_t current_mut_pos = current_mut->position_;
-						
-						if (current_mut_pos < variant_pos_int)
-							handle_error("CrosscheckTreeSeqIntegrity genome mutation was not represented in trees (single case)", -1);
-						if (current_mut->position_ > variant_pos_int)
-							current_mut = nullptr;	// not a candidate for this position, we'll see it again later
-					}
+					if (genome_allele_length % sizeof(slim_mutationid_t) != 0)
+						handle_error("CrosscheckTreeSeqIntegrity variant allele had length that was not a multiple of sizeof(slim_mutationid_t)", -1);
+					genome_allele_length /= sizeof(slim_mutationid_t);
 					
-					if (fixed_mutids.find(allele_mutid) != fixed_mutids.end())	// if allele_mutid is fixed
+					//std::cout << "variant for genome: " << (int)genome_variant << " (allele length == " << genome_allele_length << ")" << std::endl;
+					
+					// (1) if the variant's allele is zero-length, we do nothing (if it incorrectly claims that a genome contains no
+					// mutation, we'll catch that later)  (2) if the variant's allele is the length of one mutation id, we can simply
+					// check that the next mutation in the genome in question exists and has the right mutation id; (3) if the variant's
+					// allele has more than one mutation id, we have to check them all against all the mutations at the given position
+					// in the genome in question, which is a bit annoying since the lists may not be in the same order.  Note that if
+					// the variant is for a mutation that has fixed, it will not be present in the genome; we check for a substitution
+					// with the right ID.
+					slim_mutationid_t *genome_allele = (slim_mutationid_t *)variant->alleles[genome_variant];
+					
+					if (genome_allele_length == 0)
 					{
-						if (current_mut)
-							handle_error("CrosscheckTreeSeqIntegrity genome/allele size mutation present at position of fixed mutation", -1);
-						
-						// the allele for this genome is a fixed mutation, but the genome has no mutation at this position, so there's no problem
 						continue;
 					}
-					
-					if (!current_mut)
-						handle_error("CrosscheckTreeSeqIntegrity no genome mutation to match tree mutation", -1);
-					if (allele_mutid != current_mut->mutation_id_)
-						handle_error("CrosscheckTreeSeqIntegrity genome/allele single mutid mismatch", -1);
-					
-					genome_walker.NextMutation();
-					
-					Mutation *next_mut = genome_walker.CurrentMutation();
-					
-					if (next_mut && next_mut->position_ == variant_pos_int)
-						handle_error("CrosscheckTreeSeqIntegrity tree sequence missing stacked mutation", -1);
-				}
-				else // (genome_allele_length > 1)
-				{
-					static std::vector<slim_mutationid_t> allele_mutids;
-					static std::vector<slim_mutationid_t> genome_mutids;
-					allele_mutids.clear();
-					genome_mutids.clear();
-					
-					for (table_size_t mutid_index = 0; mutid_index < genome_allele_length; ++mutid_index)
+					else if (genome_allele_length == 1)
 					{
-						slim_mutationid_t allele_mutid = genome_allele[mutid_index];
-						
-						if (fixed_mutids.find(allele_mutid) == fixed_mutids.end())		// if allele_mutid is not fixed
-							allele_mutids.push_back(allele_mutid);
-					}
-					
-					while (true)
-					{
+						slim_mutationid_t allele_mutid = *genome_allele;
 						Mutation *current_mut = genome_walker.CurrentMutation();
 						
 						if (current_mut)
@@ -4692,46 +4655,97 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 							slim_position_t current_mut_pos = current_mut->position_;
 							
 							if (current_mut_pos < variant_pos_int)
-								handle_error("CrosscheckTreeSeqIntegrity genome mutation was not represented in trees (bulk case)", -1);
-							else if (current_mut_pos == variant_pos_int)
+								handle_error("CrosscheckTreeSeqIntegrity genome mutation was not represented in trees (single case)", -1);
+							if (current_mut->position_ > variant_pos_int)
+								current_mut = nullptr;	// not a candidate for this position, we'll see it again later
+						}
+						
+						if (fixed_mutids.find(allele_mutid) != fixed_mutids.end())	// if allele_mutid is fixed
+						{
+							if (current_mut)
+								handle_error("CrosscheckTreeSeqIntegrity genome/allele size mutation present at position of fixed mutation", -1);
+							
+							// the allele for this genome is a fixed mutation, but the genome has no mutation at this position, so there's no problem
+							continue;
+						}
+						
+						if (!current_mut)
+							handle_error("CrosscheckTreeSeqIntegrity no genome mutation to match tree mutation", -1);
+						if (allele_mutid != current_mut->mutation_id_)
+							handle_error("CrosscheckTreeSeqIntegrity genome/allele single mutid mismatch", -1);
+						
+						genome_walker.NextMutation();
+						
+						Mutation *next_mut = genome_walker.CurrentMutation();
+						
+						if (next_mut && next_mut->position_ == variant_pos_int)
+							handle_error("CrosscheckTreeSeqIntegrity tree sequence missing stacked mutation", -1);
+					}
+					else // (genome_allele_length > 1)
+					{
+						static std::vector<slim_mutationid_t> allele_mutids;
+						static std::vector<slim_mutationid_t> genome_mutids;
+						allele_mutids.clear();
+						genome_mutids.clear();
+						
+						for (table_size_t mutid_index = 0; mutid_index < genome_allele_length; ++mutid_index)
+						{
+							slim_mutationid_t allele_mutid = genome_allele[mutid_index];
+							
+							if (fixed_mutids.find(allele_mutid) == fixed_mutids.end())		// if allele_mutid is not fixed
+								allele_mutids.push_back(allele_mutid);
+						}
+						
+						while (true)
+						{
+							Mutation *current_mut = genome_walker.CurrentMutation();
+							
+							if (current_mut)
 							{
-								genome_mutids.push_back(current_mut->mutation_id_);
-								genome_walker.NextMutation();
+								slim_position_t current_mut_pos = current_mut->position_;
+								
+								if (current_mut_pos < variant_pos_int)
+									handle_error("CrosscheckTreeSeqIntegrity genome mutation was not represented in trees (bulk case)", -1);
+								else if (current_mut_pos == variant_pos_int)
+								{
+									genome_mutids.push_back(current_mut->mutation_id_);
+									genome_walker.NextMutation();
+								}
+								else break;
 							}
 							else break;
 						}
-						else break;
+						
+						if (allele_mutids.size() != genome_mutids.size())
+							handle_error("CrosscheckTreeSeqIntegrity genome/allele size mismatch", -1);
+						
+						std::sort(allele_mutids.begin(), allele_mutids.end());
+						std::sort(genome_mutids.begin(), genome_mutids.end());
+						
+						for (table_size_t mutid_index = 0; mutid_index < genome_allele_length; ++mutid_index)
+							if (allele_mutids[mutid_index] != genome_mutids[mutid_index])
+								handle_error("CrosscheckTreeSeqIntegrity genome/allele bulk mutid mismatch", -1);
 					}
-					
-					if (allele_mutids.size() != genome_mutids.size())
-						handle_error("CrosscheckTreeSeqIntegrity genome/allele size mismatch", -1);
-					
-					std::sort(allele_mutids.begin(), allele_mutids.end());
-					std::sort(genome_mutids.begin(), genome_mutids.end());
-					
-					for (table_size_t mutid_index = 0; mutid_index < genome_allele_length; ++mutid_index)
-						if (allele_mutids[mutid_index] != genome_mutids[mutid_index])
-							handle_error("CrosscheckTreeSeqIntegrity genome/allele bulk mutid mismatch", -1);
 				}
 			}
 		}
+		while (ret != 0);
+		
+		// we have finished all variants, so all the genomes we're tracking should be at their ends; any left-over mutations
+		// should have been in the trees but weren't, so this is an error
+		for (GenomeWalker &genome_walker : genome_walkers)
+			if (!genome_walker.Finished())
+				handle_error("CrosscheckTreeSeqIntegrity mutations left in genome beyond those in tree", -1);
+		
+		// free
+		ret = vargen_free(vg);
+		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity vargen_free()", ret);
+		free(vg);
+		
+		ret = tree_sequence_free(ts);
+		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tree_sequence_free()", ret);
+		free(ts);
 	}
-	while (ret != 0);
-	
-	// we have finished all variants, so all the genomes we're tracking should be at their ends; any left-over mutations
-	// should have been in the trees but weren't, so this is an error
-	for (GenomeWalker &genome_walker : genome_walkers)
-		if (!genome_walker.Finished())
-			handle_error("CrosscheckTreeSeqIntegrity mutations left in genome beyond those in tree", -1);
-	
-	// free
-	ret = vargen_free(vg);
-	if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity vargen_free()", ret);
-	free(vg);
-	
-	ret = tree_sequence_free(ts);
-	if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tree_sequence_free()", ret);
-	free(ts);
 }
 
 
