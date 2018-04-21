@@ -3735,7 +3735,7 @@ void SLiMSim::SimplifyTreeSequence(void){
 	std::map<slim_objectid_t,Subpopulation*>::iterator it;
 	std::vector<Individual*> populationIndividuals;
 	std::vector<node_id_t> samples;
-	std::map<slim_genomeid_t,node_id_t> newSlimMspIdMap;
+	std::unordered_map<slim_genomeid_t,node_id_t> newSlimMspIdMap;
 	
 	for (it = population_.begin(); it != population_.end(); it++){
 		std::vector<Individual*> &subpopulationIndividuals = it->second->parent_individuals_;
