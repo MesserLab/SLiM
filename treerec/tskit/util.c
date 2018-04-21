@@ -262,6 +262,12 @@ msp_strerror(int err)
         case MSP_ERR_CONTRADICTORY_ANCESTRAL_STATES:
             ret = "More than one site record with the same position but different ancestral states.";
             break;
+		case MSP_ERR_MALFORMED_MUTATION_BRANCH_GROUP:
+			ret = "A single branch contained multiple mutations, and their parent mutation ids did not define a well-formed linear chain.";
+			break;
+		case MSP_ERR_MUTATION_PARENT_INCONSISTENT:
+			ret = "A mutation specified another mutation as its parent, but that relationship is inconsistent with the tree structure";
+			break;
         case MSP_ERR_BAD_TABLE_POSITION:
             ret = "Table collection position is negative or larger than current number of rows.";
             break;

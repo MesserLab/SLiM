@@ -46,6 +46,8 @@
 
 /* Flags for load tables */
 #define MSP_BUILD_INDEXES 1
+#define MSP_COMPUTE_PARENTS 2
+#define MSP_FIX_PARENTS 4	// requires MSP_COMPUTE_PARENTS
 
 /* Flags for tree sequence dump/load */
 #define MSP_DUMP_ZLIB_COMPRESSION 1
@@ -129,6 +131,8 @@
 #define MSP_ERR_MUTATION_PARENT_AFTER_CHILD                         -71
 #define MSP_ERR_BAD_TABLE_POSITION                                  -72
 #define MSP_ERR_CONTRADICTORY_ANCESTRAL_STATES                      -73
+#define MSP_ERR_MALFORMED_MUTATION_BRANCH_GROUP                     -74
+#define MSP_ERR_MUTATION_PARENT_INCONSISTENT                        -75
 
 const char * msp_strerror(int err);
 void __msp_safe_free(void **ptr);
