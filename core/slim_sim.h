@@ -281,11 +281,12 @@ private:
 	std::vector<int32_t> x_mutcount_history_;	// a record of the mutation run count used in each generation
 	
 	// TREE SEQUENCE RECORDING
-	bool recording_tree_ = false;		// true if we are doing tree sequence recording
-	bool recording_mutations_ = false;	// true if we are recording mutations in our tree sequence tables
-	double simplification_ratio_;		// the pre:post table size ratio we target with our automatic simplification heuristic
+	bool recording_tree_ = false;				// true if we are doing tree sequence recording
+	bool recording_mutations_ = false;			// true if we are recording mutations in our tree sequence tables
+	bool running_treeseq_crosschecks_ = false;	// true if crosschecks between our tree sequence tables and SLiM's data are enabled
+	double simplification_ratio_;				// the pre:post table size ratio we target with our automatic simplification heuristic
 	slim_generation_t simplify_elapsed_ = 0;	// the number of generations elapsed since a simplification was done (automatic or otherwise)
-	double simplify_interval_;			// the number of generations between automatic simplifications
+	double simplify_interval_;					// the number of generations between automatic simplifications
 	slim_generation_t tree_seq_generation_ = 0;	// the generation for the tree sequence code, incremented after offspring generation
 												// this is needed since addSubpop() in an early() event makes one gen, and then the offspring
 												// arrive in the same generation according to SLiM, which confuses the tree-seq code
