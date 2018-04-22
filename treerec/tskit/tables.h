@@ -10,8 +10,6 @@ extern "C" {
 #include <stdint.h>
 
 #include "util.h"
-#include "object_heap.h"
-#include "avl.h"
 
 typedef int32_t node_id_t;
 typedef int32_t edge_id_t;
@@ -74,8 +72,8 @@ typedef struct {
 
 typedef struct {
     table_size_t num_rows;
-    size_t max_rows;
-    size_t max_rows_increment;
+    table_size_t max_rows;
+    table_size_t max_rows_increment;
     double *left;
     double *right;
     node_id_t *parent;
@@ -84,8 +82,8 @@ typedef struct {
 
 typedef struct {
     table_size_t num_rows;
-    size_t max_rows;
-    size_t max_rows_increment;
+    table_size_t max_rows;
+    table_size_t max_rows_increment;
     population_id_t *source;
     population_id_t *dest;
     node_id_t *node;
@@ -191,6 +189,9 @@ typedef struct {
     table_size_t record_length;
 } provenance_t;
 
+/* TODO Move the simplifier structs into the tables.c file. We don't need to
+ * expose this API externally, and can use table_collection_simplify
+ * instead */
 
 /* For the simplify algorithm, we need specialised forms of ancestral
  * segments, sites and mutations */
@@ -201,15 +202,25 @@ typedef struct _simplify_segment_t {
     node_id_t node;
 } simplify_segment_t;
 
-typedef struct _mutation_node_list_t {
-    mutation_id_t mutation_id;
-    struct _mutation_node_list_t *next;
-} mutation_node_list_t;
+typedef struct _interval_list_t {
+    double left;
+    double right;
+    struct _interval_list_t *next;
+} interval_list_t;
 
+typedef struct _mutation_id_list_t {
+    mutation_id_t mutation;
+    struct _mutation_id_list_t *next;
+} mutation_id_list_t;
+
+/* State needed for overlapping segments algorithm */
 typedef struct {
-    double position;
-    mutation_node_list_t *head;
-} mutation_position_map_t;
+    size_t index;
+    size_t num_overlapping;
+    double left;
+    double right;
+    simplify_segment_t **overlapping;
+} overlapping_segments_state_t;
 
 typedef struct {
     node_id_t *samples;
@@ -218,13 +229,8 @@ typedef struct {
     double sequence_length;
     /* Keep a copy of the input nodes simplify mapping */
     node_table_t input_nodes;
-    /* TODO remove this field when name_offset has been added to node_table. */
-    size_t *node_name_offset;
     /* Also keep a copy of the input edges and a buffer to store unsorted edges */
     edge_table_t input_edges;
-    edge_t *edge_buffer;
-    size_t num_buffered_edges;
-    size_t max_buffered_edges;
     /* Input copy of the sites and mutations */
     site_table_t input_sites;
     mutation_table_t input_mutations;
@@ -234,22 +240,31 @@ typedef struct {
     site_table_t *sites;
     mutation_table_t *mutations;
     /* State for topology */
-    simplify_segment_t **ancestor_map;
+    simplify_segment_t **ancestor_map_head;
+    simplify_segment_t **ancestor_map_tail;
     node_id_t *node_id_map;
     bool *is_sample;
-    avl_tree_t merge_queue;
-    object_heap_t segment_heap;
-    object_heap_t avl_node_heap;
-    size_t segment_buffer_size;
-    simplify_segment_t **segment_buffer;
+    /* Segments for a particular parent that are processed together */
+    simplify_segment_t *segment_queue;
+    size_t segment_queue_size;
+    size_t max_segment_queue_size;
+    overlapping_segments_state_t overlapping_segments_state;
+    block_allocator_t segment_heap;
+    /* Buffer for output edges. For each child we keep a linked list of
+     * intervals, and also store the actual children that have been buffered. */
+    block_allocator_t interval_list_heap;
+    interval_list_t **child_edge_map_head;
+    interval_list_t **child_edge_map_tail;
+    node_id_t *buffered_children;
+    size_t num_buffered_children;
     /* For each mutation, map its output node. */
     node_id_t *mutation_node_map;
     /* Map of input mutation IDs to output mutation IDs. */
     mutation_id_t *mutation_id_map;
-    /* For each input node, map position -> list of mutation IDs */
-    avl_tree_t *mutation_position_map;
-    mutation_node_list_t *mutation_node_list_mem;
-    mutation_position_map_t *mutation_position_map_mem;
+    /* Map of input nodes to the list of input mutation IDs */
+    mutation_id_list_t **node_mutation_list_map_head;
+    mutation_id_list_t **node_mutation_list_map_tail;
+    mutation_id_list_t *node_mutation_list_mem;
 } simplifier_t;
 
 int node_table_alloc(node_table_t *self, size_t max_rows_increment,
@@ -369,12 +384,12 @@ int table_collection_copy(table_collection_t *self, table_collection_t *dest);
 int table_collection_free(table_collection_t *self);
 int table_collection_simplify(table_collection_t *self,
         node_id_t *samples, size_t num_samples, int flags, node_id_t *node_map);
+int table_collection_deduplicate_sites(table_collection_t *tables, int flags);
 
 int simplifier_alloc(simplifier_t *self, double sequence_length,
         node_id_t *samples, size_t num_samples,
         node_table_t *nodes, edge_table_t *edges, migration_table_t *migrations,
-        site_table_t *sites, mutation_table_t *mutations,
-        size_t max_buffered_edges, int flags);
+        site_table_t *sites, mutation_table_t *mutations, int flags);
 int simplifier_free(simplifier_t *self);
 int simplifier_run(simplifier_t *self, node_id_t *node_map);
 void simplifier_print_state(simplifier_t *self, FILE *out);
@@ -382,8 +397,6 @@ void simplifier_print_state(simplifier_t *self, FILE *out);
 int sort_tables(node_table_t *nodes, edge_table_t *edges, migration_table_t *migrations,
         site_table_t *sites, mutation_table_t *mutations, size_t edge_start);
 int squash_edges(edge_t *edges, size_t num_edges, size_t *num_output_edges);
-
-int clean_tables(site_table_t *sites, mutation_table_t *mutations);
 
 void table_collection_init_position(table_collection_position_t *position,
         table_collection_t *tables);

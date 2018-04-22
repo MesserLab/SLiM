@@ -20,9 +20,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <stdlib.h>
 
-#include "util.h"
-#include "msprime.h"
+#include "trees.h"
 
 /* This infrastructure is left-over from an earlier more complex version
  * of this algorithm that worked over a tree sequence and cached the newick

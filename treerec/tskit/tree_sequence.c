@@ -20,15 +20,11 @@
 #include <string.h>
 #include <assert.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
+#include "trees.h"
 #include "gsl_math.h"
 
-#include "util.h"
-#include "object_heap.h"
-#include "msprime.h"
-
-#define MSP_DIR_FORWARD 1
-#define MSP_DIR_REVERSE -1
 
 /* ======================================================== *
  * tree sequence

@@ -3773,9 +3773,9 @@ void SLiMSim::SimplifyTreeSequence(void){
 		handle_error("sort_tables", tree_return_value_);
 	}
 
-	tree_return_value_ = clean_tables(&tables.sites, &tables.mutations);
+	tree_return_value_ = table_collection_deduplicate_sites(&tables, 0);
 	if (tree_return_value_ < 0) {
-		handle_error("clean_tables", tree_return_value_);
+		handle_error("deduplicate_sites", tree_return_value_);
 	}
 
 	tree_return_value_ = table_collection_simplify(&tables, samples.data(), samples.size(), MSP_FILTER_ZERO_MUTATION_SITES, NULL);
