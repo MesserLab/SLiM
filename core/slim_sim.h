@@ -301,7 +301,7 @@ private:
     std::vector<node_id_t> RememberedGenomes;
 	std::unordered_map<slim_genomeid_t,node_id_t> SLiM_MSP_Id_Map;
 	
-	bool recording_mutations_ = true;			// true if we are recording mutations in our tree sequence tables
+	bool recording_mutations_ = false;			// true if we are recording mutations in our tree sequence tables
 	bool running_treeseq_crosschecks_ = false;	// true if crosschecks between our tree sequence tables and SLiM's data are enabled
 	double simplification_ratio_;				// the pre:post table size ratio we target with our automatic simplification heuristic
 	slim_generation_t simplify_elapsed_ = 0;	// the number of generations elapsed since a simplification was done (automatic or otherwise)
