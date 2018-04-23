@@ -23,7 +23,6 @@
 #include <stdlib.h>
 
 #include "trees.h"
-#include "gsl_math.h"
 
 
 /* ======================================================== *
@@ -434,10 +433,10 @@ tree_sequence_init_trees(tree_sequence_t *self)
         }
         tree_right = self->sequence_length;
         if (j < self->edges.num_records) {
-            tree_right = GSL_MIN(tree_right, self->edges.left[I[j]]);
+            tree_right = MSP_MIN(tree_right, self->edges.left[I[j]]);
         }
         if (k < self->edges.num_records) {
-             tree_right = GSL_MIN(tree_right, self->edges.right[O[k]]);
+             tree_right = MSP_MIN(tree_right, self->edges.right[O[k]]);
         }
         tree_left = tree_right;
         self->num_trees++;
@@ -468,10 +467,10 @@ tree_sequence_init_trees(tree_sequence_t *self)
         }
         tree_right = self->sequence_length;
         if (j < self->edges.num_records) {
-            tree_right = GSL_MIN(tree_right, self->edges.left[I[j]]);
+            tree_right = MSP_MIN(tree_right, self->edges.left[I[j]]);
         }
         if (k < self->edges.num_records) {
-             tree_right = GSL_MIN(tree_right, self->edges.right[O[k]]);
+             tree_right = MSP_MIN(tree_right, self->edges.right[O[k]]);
         }
         self->sites.tree_sites[tree_index] = self->sites.tree_sites_mem + site;
         while (site < (site_id_t) self->sites.num_records
@@ -562,7 +561,7 @@ tree_sequence_load_tables(tree_sequence_t *self, table_collection_t *tables,
     if (tables->sequence_length == 0) {
         /* Infer the sequence_length as the maximum right value in the edges */
         for (j = 0; j < tables->edges.num_rows; j++) {
-            self->sequence_length = GSL_MAX(self->sequence_length,
+            self->sequence_length = MSP_MAX(self->sequence_length,
                     tables->edges.right[j]);
         }
     }
@@ -1378,11 +1377,11 @@ tree_diff_iterator_next(tree_diff_iterator_t *self, double *ret_left, double *re
         }
         right = s->sequence_length;
         if (self->insertion_index < self->num_edges) {
-            right = GSL_MIN(right, s->edges.left[
+            right = MSP_MIN(right, s->edges.left[
                     s->edges.indexes.insertion_order[self->insertion_index]]);
         }
         if (self->removal_index < self->num_edges) {
-            right = GSL_MIN(right, s->edges.right[
+            right = MSP_MIN(right, s->edges.right[
                     s->edges.indexes.removal_order[self->removal_index]]);
         }
         self->tree_index++;
@@ -2302,19 +2301,19 @@ sparse_tree_advance(sparse_tree_t *self, int direction,
         self->left = x;
         self->right = s->sequence_length;
         if (out >= 0 && out < R) {
-            self->right = GSL_MIN(self->right, out_breakpoints[out_order[out]]);
+            self->right = MSP_MIN(self->right, out_breakpoints[out_order[out]]);
         }
         if (in >= 0 && in < R) {
-            self->right = GSL_MIN(self->right, in_breakpoints[in_order[in]]);
+            self->right = MSP_MIN(self->right, in_breakpoints[in_order[in]]);
         }
     } else {
         self->right = x;
         self->left = 0;
         if (out >= 0 && out < R) {
-            self->left = GSL_MAX(self->left, out_breakpoints[out_order[out]]);
+            self->left = MSP_MAX(self->left, out_breakpoints[out_order[out]]);
         }
         if (in >= 0 && in < R) {
-            self->left = GSL_MAX(self->left, in_breakpoints[in_order[in]]);
+            self->left = MSP_MAX(self->left, in_breakpoints[in_order[in]]);
         }
     }
     assert(self->left < self->right);
