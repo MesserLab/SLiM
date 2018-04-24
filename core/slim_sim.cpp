@@ -3723,8 +3723,7 @@ void SLiMSim::_CheckMutationStackPolicy(void)
 
 // other tree sequence methods should probably be implemented here, unless you just make them inline forwards to code in treerec...
 
-void
-SLiMSim::handle_error(std::string msg, int err)
+void SLiMSim::handle_error(std::string msg, int err)
 {
 	std::cout << "Error:" << msg << ": " << msp_strerror(err) << std::endl;
 	EIDOS_TERMINATION << msg << ": " << msp_strerror(err) << EidosTerminate();
@@ -3732,109 +3731,82 @@ SLiMSim::handle_error(std::string msg, int err)
 
 void SLiMSim::SimplifyTreeSequence(void)
 {
-	std::map<slim_objectid_t,Subpopulation*>::iterator it;
-	std::vector<Individual*> populationIndividuals;
+	if (tables.nodes.num_rows == 0)
+		return;
+	
 	std::vector<node_id_t> samples;
 	std::unordered_map<slim_genomeid_t,node_id_t> newSlimMspIdMap;
 	
-	for (it = population_.begin(); it != population_.end(); it++){
-		std::vector<Individual*> &subpopulationIndividuals = it->second->parent_individuals_;
-		populationIndividuals.insert(populationIndividuals.end(), subpopulationIndividuals.begin(), subpopulationIndividuals.end());
-	}
-
-    // the RememberedGenomes will come first in the list of samples
-    for (node_id_t sid : RememberedGenomes) {
+    // the RememberedGenomes come first in the list of samples
+    for (node_id_t sid : RememberedGenomes)
         samples.push_back(sid);
-    }
 	
-	slim_pedigreeid_t IndID;
-	slim_genomeid_t G1;
-	slim_genomeid_t G2;
+	// and then come all the genomes of the extant individuals
 	node_id_t newValueInNodeTable = (node_id_t)RememberedGenomes.size();
-	for (unsigned i = 0; i < populationIndividuals.size(); i++){
-		IndID = populationIndividuals[i]->PedigreeID();
-		G1 = 2 * IndID;
-		G2 = G1 + 1;
-
-		samples.push_back(getMSPID(G1));
-		samples.push_back(getMSPID(G2));	
-				
-		newSlimMspIdMap[G1] = newValueInNodeTable++;
-		newSlimMspIdMap[G2] = newValueInNodeTable++;
+	
+	for (auto it = population_.begin(); it != population_.end(); it++)
+	{
+		std::vector<Individual *> &subpopulationIndividuals = it->second->parent_individuals_;
+		
+		for (Individual *individual : subpopulationIndividuals)
+		{
+			slim_pedigreeid_t IndID = individual->PedigreeID();
+			slim_genomeid_t G1 = 2 * IndID;
+			slim_genomeid_t G2 = G1 + 1;
+			
+			samples.push_back(getMSPID(G1));
+			samples.push_back(getMSPID(G2));	
+			
+			newSlimMspIdMap[G1] = newValueInNodeTable++;
+			newSlimMspIdMap[G2] = newValueInNodeTable++;
+		}
 	}
 	
-	if(tables.nodes.num_rows == 0){
-		std::cout << "aint nobody here" << std::endl;
-		return;
-	}
+	// sort, deduplicate, and simplify
+	int ret = sort_tables(&tables.nodes, &tables.edges, &tables.migrations, &tables.sites, &tables.mutations, 0);				
+	if (ret < 0) handle_error("sort_tables", ret);
 	
-	tree_return_value_ = sort_tables(&tables.nodes, &tables.edges, &tables.migrations, &tables.sites, &tables.mutations, 0);				
-	if (tree_return_value_ < 0) {
-		handle_error("sort_tables", tree_return_value_);
-	}
-
-	tree_return_value_ = table_collection_deduplicate_sites(&tables, 0);
-	if (tree_return_value_ < 0) {
-		handle_error("deduplicate_sites", tree_return_value_);
-	}
-
-	tree_return_value_ = table_collection_simplify(&tables, samples.data(), samples.size(), MSP_FILTER_ZERO_MUTATION_SITES, NULL);
-    if (tree_return_value_ != 0) {
-        handle_error("simplifier_run", tree_return_value_);
-    }
-
+	ret = table_collection_deduplicate_sites(&tables, 0);
+	if (ret < 0) handle_error("deduplicate_sites", ret);
+	
+	ret = table_collection_simplify(&tables, samples.data(), samples.size(), MSP_FILTER_ZERO_MUTATION_SITES, NULL);
+    if (ret != 0) handle_error("simplifier_run", ret);
+	
     // update map of RememberedGenomes
-	SLiM_MSP_Id_Map = newSlimMspIdMap;		
-	for (node_id_t i = 0; i < (node_id_t)RememberedGenomes.size(); i++){
+	std::swap(SLiM_MSP_Id_Map, newSlimMspIdMap);
+	
+	for (node_id_t i = 0; i < (node_id_t)RememberedGenomes.size(); i++)
         RememberedGenomes[i] = i;
-    }
-
+	
     // reset current position
     table_collection_current_position(&table_position);
-
+	
+	// and reset our elapsed time since last simplification, for auto-simplification
 	simplify_elapsed_ = 0;
-}
-
-node_id_t SLiMSim::getMSPID(slim_genomeid_t GenomeID){
-
-	node_id_t retNode = SLiM_MSP_Id_Map[GenomeID];
-	return retNode;
-
 }
 
 void SLiMSim::StartTreeRecording(void)
 {
-	// Record any initial information needed about the simulation here.  Not sure what information you need.
+	std::cout << "Starting tree sequence recording with last base position: " << chromosome_.last_position_ << std::endl << std::endl;
 	
-	std::cout << "Starting tree sequence recording:" << std::endl;
-	std::cout << "   Chromosome last base position: " << chromosome_.last_position_ << std::endl << std::endl;
-	
-	// This would also be the right place to allocate any storage you need, initialize ivars, etc.  This method will be called once,
+	// This would be the right place to allocate any storage you need, initialize ivars, etc.  This method will be called once,
 	// immediately after the simulation finishes initializing (after all initialize() callbacks have completed).  It will not be called
 	// again on this SLiMSim instance – but note that in SLiMgui multiple SLiMSim instances may exist, and may all be recording their
 	// own trees, so your code needs to be capable of handling that.  Store your state inside SLiMSim, not in globals.  SLiMgui is
 	// single-threaded, though, so you don't need to worry about re-entrancy or multithreading issues.
-
+	
 	//INITIALIZE NODE AND EDGE TABLES.
+	int ret = table_collection_alloc(&tables, MSP_ALLOC_TABLES);
+	if (ret != 0) handle_error("alloc_tables", ret);
 	
-	tree_return_value_ = table_collection_alloc(&tables, MSP_ALLOC_TABLES);
-        if (tree_return_value_ != 0) {
-            //raise_exception(ret);
-		handle_error("alloc_tables", tree_return_value_);
-        }
-        /* NB: must set the sequence_length !! */
-        tables.sequence_length = (double)chromosome_.last_position_ + 1;
-
-    table_collection_init_position(&table_position, &tables);
-
-	std::cout << "succesfully allocated tables" << std::endl;
-			
+	tables.sequence_length = (double)chromosome_.last_position_ + 1;
 	
+	table_collection_init_position(&table_position, &tables);
 }
 
 void SLiMSim::SetCurrentNewIndividual(Individual *p_individual)
 {
-	// this is called by code where new individuals are created
+	// This is called by code where new individuals are created
 	
 	// The individual's pedigree ID should be set up already, as are its parents.  Parents can be -1, meaning that the individual started out
 	// with empty genomes and has no parents (as when a new subpopulation is created).  Both parent pedigree ids can also be the same, which
@@ -3861,7 +3833,7 @@ void SLiMSim::SetCurrentNewIndividual(Individual *p_individual)
 	current_new_individual_ = p_individual;
 	
     table_collection_current_position(&table_position);
-
+	
     /* DEBUG STDOUT
 	std::cout << "   Current position: ";
     std::cout << table_position.node_position << ", ";
@@ -3887,7 +3859,7 @@ void SLiMSim::RetractNewIndividual()
     std::cout << tables.mutations.num_rows << ", ";
     std::cout << std::endl;
     // */
-
+	
 	current_new_individual_ = nullptr;
 	
     table_collection_reset_position(&table_position);
@@ -3905,21 +3877,21 @@ void SLiMSim::RetractNewIndividual()
 void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_genomeid_t p_new_genome_id, 
         slim_genomeid_t p_initial_parental_genome_id, slim_genomeid_t p_second_parental_genome_id)
 {
-    /* This records information about an individual in both the Node and Edge tables. */
+    // This records information about an individual in both the Node and Edge tables.
 
 	// Note that the breakpoints vector provided may (or may not) contain a breakpoint, as the final breakpoint in the vector, that is beyond
 	// the end of the chromosome.  This is for bookkeeping in the crossover-mutation code and should be ignored, as the code below does.
 	// The breakpoints vector may be nullptr (indicating no recombination), but if it exists it will be sorted in ascending order.
 
 	node_id_t offspringMSPID;			//MSPrime equivilent of germ cell ID (Node returned from MSPrime)
-
+	
 	/* DEBUG STDOUT PRINTING 
   	std::cout << "------------" << std::endl;	
 	std::cout << "generation: " << Generation() << " -- and tree_seq_generation  " << tree_seq_generation_ << std::endl;
     std::cout << "New genome: " << p_new_genome_id << std::endl;
     std::cout << "  with parents " << p_initial_parental_genome_id << " and " << p_second_parental_genome_id << std::endl;
     // */
-
+	
 	//add genome node
 	double time = (double) -1 * tree_seq_generation_;
 	uint32_t flags = 1;
@@ -3933,9 +3905,8 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_
     SLiM_MSP_Id_Map[p_new_genome_id] = (node_id_t) offspringMSPID;
 	
     // if there is no parent then no need to record edges
-	if ((p_initial_parental_genome_id == -1) && (p_second_parental_genome_id == -1)) {
+	if ((p_initial_parental_genome_id == -1) && (p_second_parental_genome_id == -1))
 		return;
-	}
 	
 	node_id_t genome1MSPID;				//MSPrime equivilent of first genome ID of parent
 	node_id_t genome2MSPID;				//MSPrime equivilent of second genome ID of parent
@@ -3954,36 +3925,31 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_
     // */
 	
 	size_t breakpoint_count = (p_breakpoints ? p_breakpoints->size() : 0);
-	//Have yet to make it in this conditional. Ask ben about this funky business. 
-	if (breakpoint_count && (p_breakpoints->back() > chromosome_.last_position_)){
-                 breakpoint_count--;	
-		//std::cout << "AYYYEEEE Made it in the conditional" << std::endl;
-	}
+	
+	if (breakpoint_count && (p_breakpoints->back() > chromosome_.last_position_))	// fix possible excess past-the-end breakpoint
+		breakpoint_count--;
+	
 	double left = 0.0;
 	double right;
 	size_t i;
 	bool polarity = true;
 	
-	for (i = 0; i < breakpoint_count; i++){
-	
+	for (i = 0; i < breakpoint_count; i++)
+	{
 		right = (*p_breakpoints)[i];
 
 		node_id_t parent = (node_id_t) (polarity ? genome1MSPID : genome2MSPID);
-		tree_return_value_ = edge_table_add_row(&tables.edges,left,right,parent,offspringMSPID);
-		if (tree_return_value_ < 0) {
-			handle_error("add_edge", tree_return_value_);
-		}
-		polarity = !polarity;
+		int ret = edge_table_add_row(&tables.edges,left,right,parent,offspringMSPID);
+		if (ret < 0) handle_error("add_edge", ret);
 		
+		polarity = !polarity;
 		left = right;
 	}
 	
 	right = (double)chromosome_.last_position_+1;
 	node_id_t parent = (node_id_t) (polarity ? genome1MSPID : genome2MSPID);
-	tree_return_value_ = edge_table_add_row(&tables.edges,left,right,parent,offspringMSPID);
-	if (tree_return_value_ < 0) {
-		handle_error("add_edge", tree_return_value_);
-	}
+	int ret = edge_table_add_row(&tables.edges,left,right,parent,offspringMSPID);
+	if (ret < 0) handle_error("add_edge", ret);
 }
 
 void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations)
@@ -4035,19 +4001,23 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
 	std::cout << std::endl;
 	// END DEBUG */
 
-    // Identify any previous mutations at this site in this genome, and add a
-    // new site (if necessary)
+    // Identify any previous mutations at this site in this genome, and add a new site (if necessary)
     site_id_t site_id = 0;	// initialized to get rid of a dumb uninitialized-variable warning...
     bool existing_site = false;
     double msp_position = (double) p_position;
     mutation_id_t parent_mut_id = MSP_NULL_MUTATION;
     table_size_t j;
-    if (tables.mutations.num_rows > 0) {
+	
+    if (tables.mutations.num_rows > 0)
+	{
         j = tables.mutations.num_rows;
-        while (j > table_position.mutation_position) {
+		
+        while (j > table_position.mutation_position)
+		{
             j--;
-            if ((tables.sites.position[tables.mutations.site[j]] == msp_position)
-                    && (tables.mutations.node[j] == genomeMSPID)) {
+			
+            if ((tables.sites.position[tables.mutations.site[j]] == msp_position) && (tables.mutations.node[j] == genomeMSPID))
+			{
                 parent_mut_id = j;
                 site_id = tables.mutations.site[j];
                 existing_site = true;
@@ -4055,11 +4025,10 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
             }
         }
     }
-    if (!existing_site) {
-        site_id = site_table_add_row(&tables.sites, msp_position, 
-                                     NULL, 0, NULL, 0);
-    }
-
+	
+    if (!existing_site)
+        site_id = site_table_add_row(&tables.sites, msp_position, NULL, 0, NULL, 0);
+	
     /* DEBUG STDOUT
     std::cout << ":    Working at site " << site_id;
     std::cout << " which is " << (site_id == (int)tables.sites.num_rows - 1 ? "the last" : "an older"); 
@@ -4076,7 +4045,8 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
 	
 	derived_mutation_ids.clear();
     mutation_metadata.clear();
-	for (Mutation *mutation : p_derived_mutations) {
+	for (Mutation *mutation : p_derived_mutations)
+	{
 		derived_mutation_ids.push_back(mutation->mutation_id_);
 		MetadataForMutation(mutation, &metadata_rec);
         mutation_metadata.push_back(metadata_rec);
@@ -4087,13 +4057,8 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
     char *mutation_metadata_bytes = (char *)(mutation_metadata.data());
     size_t mutation_metadata_length = mutation_metadata.size() * sizeof(MutationMetadataRec);
 
-    tree_return_value_ = mutation_table_add_row(&tables.mutations, site_id, genomeMSPID, 
-                            parent_mut_id, derived_muts_bytes, (table_size_t)derived_state_length, 
-                            mutation_metadata_bytes, (table_size_t)mutation_metadata_length);
-
-	if (tree_return_value_ < 0) {
-		handle_error("add_mutation", tree_return_value_);
-	}
+    int ret = mutation_table_add_row(&tables.mutations, site_id, genomeMSPID, parent_mut_id, derived_muts_bytes, (table_size_t)derived_state_length, mutation_metadata_bytes, (table_size_t)mutation_metadata_length);
+	if (ret < 0) handle_error("add_mutation", ret);
 }
 
 void SLiMSim::RecordNewDerivedStateNonMeiosis(slim_genomeid_t p_genome_id, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations)
@@ -4116,8 +4081,7 @@ void SLiMSim::RecordNewDerivedStateNonMeiosis(slim_genomeid_t p_genome_id, slim_
     // */
 	
     // reset the position to the start of the tables, since we don't know any better
-    table_collection_set_position(&table_position, (table_size_t) 0, (table_size_t) 0, 
-            (table_size_t) 0, (table_size_t) 0, (table_size_t) 0);
+    table_collection_set_position(&table_position, 0, 0, 0, 0, 0);
 	RecordNewDerivedState(p_genome_id, p_position, p_derived_mutations);
 }
 
@@ -4181,27 +4145,20 @@ void SLiMSim::CheckAutoSimplification(void)
 	}
 }
 
-
 void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
 {
     /********************************************************
      * Make the data stored in the tables readable as ASCII.
      ********************************************************/
 
-    tree_return_value_ = table_collection_copy(&tables, new_tables);
-    if (tree_return_value_ < 0) 
-    {
-        handle_error("convert_to_ascii", tree_return_value_);
-    }
-
+    int ret = table_collection_copy(&tables, new_tables);
+    if (ret < 0) handle_error("convert_to_ascii", ret);
+	
     /***  Ascii-ify Mutation Table ***/
-
-    tree_return_value_ = mutation_table_clear(&new_tables->mutations);
-    if (tree_return_value_ < 0) 
-    {
-        handle_error("convert_to_ascii", tree_return_value_);
-    }
-
+	
+    ret = mutation_table_clear(&new_tables->mutations);
+    if (ret < 0) handle_error("convert_to_ascii", ret);
+	
     // Mutation derived state
     slim_mutationid_t *int_derived_state;
     const char *derived_state = tables.mutations.derived_state;
@@ -4256,7 +4213,7 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
         text_mutation_metadata_offset.push_back((table_size_t)text_mutation_metadata.size());
     }
 
-    tree_return_value_ = mutation_table_set_columns(&new_tables->mutations,
+    ret = mutation_table_set_columns(&new_tables->mutations,
                                     tables.mutations.num_rows,
                                     tables.mutations.site,
                                     tables.mutations.node,
@@ -4265,18 +4222,12 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
                                     text_derived_state_offset.data(),
                                     text_mutation_metadata.c_str(),
                                     text_mutation_metadata_offset.data());
-    if (tree_return_value_ < 0) 
-    {
-        handle_error("convert_to_ascii", tree_return_value_);
-    }
+    if (ret < 0) handle_error("convert_to_ascii", ret);
 
     /***** Ascii-ify Node Table *****/
 
-    tree_return_value_ = node_table_clear(&new_tables->nodes);
-    if (tree_return_value_ < 0) 
-    {
-        handle_error("convert_to_ascii", tree_return_value_);
-    }
+    ret = node_table_clear(&new_tables->nodes);
+    if (ret < 0) handle_error("convert_to_ascii", ret);
 
     slim_genomeid_t *int_genomeid;
     const char *metadata = tables.nodes.metadata;
@@ -4293,20 +4244,15 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
         text_metadata_offset.push_back((table_size_t)text_metadata.size());
     }
 
-    tree_return_value_ = node_table_set_columns(&new_tables->nodes,
+    ret = node_table_set_columns(&new_tables->nodes,
                                     tables.nodes.num_rows,
                                     tables.nodes.flags,
                                     tables.nodes.time,
                                     tables.nodes.population,
                                     text_metadata.c_str(),
                                     text_metadata_offset.data());
-    if (tree_return_value_ < 0) 
-    {
-        handle_error("convert_to_ascii", tree_return_value_);
-    }
-
+    if (ret < 0) handle_error("convert_to_ascii", ret);
 }
-
 
 void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify)
 {
@@ -4314,16 +4260,18 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
     // otherwise, create p_recording_tree_path as a directory,
     // and write out to text files in that directory
 
-    if (p_simplify) {
+    if (p_simplify)
         SimplifyTreeSequence();
-    }
 	
 	// Standardize the path, resolving a leading ~ and maybe other things
 	std::string path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(p_recording_tree_path));
 	
-    if (p_binary) {
+    if (p_binary)
+	{
         table_collection_dump(&tables, path.c_str(), 0);
-    } else {
+    }
+	else
+	{
         std::string error_string;
         bool success = Eidos_CreateDirectory(path, &error_string);
 		
@@ -4368,7 +4316,8 @@ void SLiMSim::RememberIndividuals(std::vector<slim_pedigreeid_t> p_individual_id
 	// permanently in this run of the model, i.e. added to the sample in every simplify.
 	
     // FIXME: not doing any error checking here
-    for (slim_pedigreeid_t ind_id : p_individual_ids) {
+    for (slim_pedigreeid_t ind_id : p_individual_ids)
+	{
         RememberedGenomes.push_back((node_id_t) (2*ind_id));
         RememberedGenomes.push_back((node_id_t) (2*ind_id + 1));
     }

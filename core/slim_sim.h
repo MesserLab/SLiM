@@ -296,7 +296,6 @@ private:
 	bool recording_tree_ = false;				// true if we are doing tree sequence recording
 	
 	// TABLE IVARS
-	int tree_return_value_;
 	table_collection_t tables;
 	table_collection_position_t table_position;
 	
@@ -437,6 +436,8 @@ public:
 	// TREE SEQUENCE RECORDING
 	inline __attribute__((always_inline)) bool RecordingTreeSequence(void) const											{ return recording_tree_; }
 	inline __attribute__((always_inline)) bool RecordingTreeSequenceMutations(void) const									{ return recording_mutations_; }
+	inline __attribute__((always_inline)) node_id_t getMSPID(slim_genomeid_t GenomeID)										{ return SLiM_MSP_Id_Map[GenomeID]; }
+	
 	void StartTreeRecording(void);
 	void SetCurrentNewIndividual(Individual *p_individual);
 	void RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_genomeid_t p_new_genome_id, slim_genomeid_t p_initial_parental_genome_id, slim_genomeid_t p_second_parental_genome_id);
@@ -446,7 +447,6 @@ public:
     void TreeSequenceDataToAscii(table_collection_t *new_tables);
 	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify);
 	void SimplifyTreeSequence(void);
-	node_id_t getMSPID(slim_genomeid_t GenomeID);
 	void handle_error(std::string msg, int error);
 	void CheckAutoSimplification(void);
 	void RememberIndividuals(std::vector<slim_pedigreeid_t> p_individual_ids);
