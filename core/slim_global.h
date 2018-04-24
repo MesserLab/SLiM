@@ -311,6 +311,7 @@ enum class IndividualSex : int32_t
 	kMale = 1
 };
 
+std::string StringForIndividualSex(IndividualSex p_sex);
 std::ostream& operator<<(std::ostream& p_out, IndividualSex p_sex);
 
 

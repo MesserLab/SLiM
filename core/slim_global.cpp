@@ -238,16 +238,20 @@ std::ostream& operator<<(std::ostream& p_out, GenomeType p_genome_type)
 	return p_out;
 }
 
-std::ostream& operator<<(std::ostream& p_out, IndividualSex p_sex)
+std::string StringForIndividualSex(IndividualSex p_sex)
 {
 	switch (p_sex)
 	{
-		case IndividualSex::kUnspecified:		p_out << "*"; break;
-		case IndividualSex::kHermaphrodite:		p_out << "H"; break;
-		case IndividualSex::kFemale:			p_out << "F"; break;	// SEX ONLY
-		case IndividualSex::kMale:				p_out << "M"; break;	// SEX ONLY
+		case IndividualSex::kUnspecified:		return "*";
+		case IndividualSex::kHermaphrodite:		return "H";
+		case IndividualSex::kFemale:			return "F";		// SEX ONLY
+		case IndividualSex::kMale:				return "M";		// SEX ONLY
 	}
-	
+}
+
+std::ostream& operator<<(std::ostream& p_out, IndividualSex p_sex)
+{
+	p_out << StringForIndividualSex(p_sex);
 	return p_out;
 }
 

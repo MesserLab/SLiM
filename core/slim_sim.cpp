@@ -4150,108 +4150,109 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
     /********************************************************
      * Make the data stored in the tables readable as ASCII.
      ********************************************************/
-
+	
     int ret = table_collection_copy(&tables, new_tables);
     if (ret < 0) handle_error("convert_to_ascii", ret);
 	
     /***  Ascii-ify Mutation Table ***/
+	{
+		ret = mutation_table_clear(&new_tables->mutations);
+		if (ret < 0) handle_error("convert_to_ascii", ret);
+		
+		// Mutation derived state
+		const char *derived_state = tables.mutations.derived_state;
+		table_size_t *derived_state_offset = tables.mutations.derived_state_offset;
+		std::string text_derived_state;
+		std::vector<table_size_t> text_derived_state_offset;
+		
+		// Mutation metadata
+		const char *mutation_metadata = tables.mutations.metadata;
+		table_size_t *mutation_metadata_offset = tables.mutations.metadata_offset;
+		std::string text_mutation_metadata;
+		std::vector<table_size_t> text_mutation_metadata_offset;
+		
+		text_derived_state_offset.push_back(0);
+		text_mutation_metadata_offset.push_back(0);
+		
+		for (size_t j = 0; j < tables.mutations.num_rows; j++)
+		{
+			// Mutation derived state
+			slim_mutationid_t *int_derived_state = (slim_mutationid_t *)(derived_state + derived_state_offset[j]);
+			size_t cur_derived_state_length = (derived_state_offset[j+1] - derived_state_offset[j])/sizeof(slim_mutationid_t);
+			
+			for (size_t i = 0; i < cur_derived_state_length; i++)
+			{
+				if (i != 0) text_derived_state.append(",");
+				text_derived_state.append(std::to_string(int_derived_state[i]));
+			}
+			text_derived_state_offset.push_back((table_size_t)text_derived_state.size());
+			
+			// Mutation metadata
+			MutationMetadataRec *struct_mutation_metadata = (MutationMetadataRec *)(mutation_metadata + mutation_metadata_offset[j]);
+			size_t cur_mutation_metadata_length = (mutation_metadata_offset[j+1] - mutation_metadata_offset[j])/sizeof(MutationMetadataRec);
+			
+			assert(cur_mutation_metadata_length == cur_derived_state_length);
+			
+			for (size_t i = 0; i < cur_mutation_metadata_length; i++)
+			{
+				if (i > 0) text_mutation_metadata.append(";");
+				text_mutation_metadata.append(std::to_string(struct_mutation_metadata->mutation_type_id_));
+				text_mutation_metadata.append(",");
+				text_mutation_metadata.append(std::to_string(struct_mutation_metadata->selection_coeff_));
+				text_mutation_metadata.append(",");
+				text_mutation_metadata.append(std::to_string(struct_mutation_metadata->subpop_index_));
+				text_mutation_metadata.append(",");
+				text_mutation_metadata.append(std::to_string(struct_mutation_metadata->origin_generation_));
+				struct_mutation_metadata++;
+			}
+			text_mutation_metadata_offset.push_back((table_size_t)text_mutation_metadata.size());
+		}
+		
+		ret = mutation_table_set_columns(&new_tables->mutations,
+										tables.mutations.num_rows,
+										tables.mutations.site,
+										tables.mutations.node,
+										tables.mutations.parent,
+										text_derived_state.c_str(),
+										text_derived_state_offset.data(),
+										text_mutation_metadata.c_str(),
+										text_mutation_metadata_offset.data());
+		if (ret < 0) handle_error("convert_to_ascii", ret);
+	}
 	
-    ret = mutation_table_clear(&new_tables->mutations);
-    if (ret < 0) handle_error("convert_to_ascii", ret);
-	
-    // Mutation derived state
-    slim_mutationid_t *int_derived_state;
-    const char *derived_state = tables.mutations.derived_state;
-    table_size_t *derived_state_offset = tables.mutations.derived_state_offset;
-    std::string text_derived_state;
-    std::vector<table_size_t> text_derived_state_offset;
-    size_t cur_derived_state_length;
-    size_t cur_mutation_metadata_length;
-    size_t i, j;
-
-    // Mutation metadata
-    MutationMetadataRec *struct_mutation_metadata;
-    const char *mutation_metadata = tables.mutations.metadata;
-    table_size_t *mutation_metadata_offset = tables.mutations.metadata_offset;
-    std::string text_mutation_metadata;
-    std::vector<table_size_t> text_mutation_metadata_offset;
-
-    text_derived_state_offset.push_back(0);
-    text_mutation_metadata_offset.push_back(0);
-
-    for (j=0; j<tables.mutations.num_rows; j++)
-    {
-        // Mutation derived state
-        int_derived_state = (slim_mutationid_t *)(derived_state + derived_state_offset[j]);
-        cur_derived_state_length = (derived_state_offset[j+1] - derived_state_offset[j])/sizeof(slim_mutationid_t);
-
-        for (i = 0; i < cur_derived_state_length; i++)
-        {
-            if (i != 0)
-                text_derived_state.append(",");
-            text_derived_state.append(std::to_string(int_derived_state[i]));
-        }
-        text_derived_state_offset.push_back((table_size_t)text_derived_state.size());
-
-        // Mutation metadata
-        struct_mutation_metadata = (MutationMetadataRec *)(mutation_metadata + mutation_metadata_offset[j]);
-        cur_mutation_metadata_length = (mutation_metadata_offset[j+1] - mutation_metadata_offset[j])/sizeof(MutationMetadataRec);
-        assert(cur_mutation_metadata_length == cur_derived_state_length);
-        for (i = 0; i < cur_mutation_metadata_length; i++) {
-            if (i > 0) {
-                text_mutation_metadata.append(";");
-            }
-            text_mutation_metadata.append(std::to_string(struct_mutation_metadata->mutation_type_id_));
-            text_mutation_metadata.append(",");
-            text_mutation_metadata.append(std::to_string(struct_mutation_metadata->selection_coeff_));
-            text_mutation_metadata.append(",");
-            text_mutation_metadata.append(std::to_string(struct_mutation_metadata->subpop_index_));
-            text_mutation_metadata.append(",");
-            text_mutation_metadata.append(std::to_string(struct_mutation_metadata->origin_generation_));
-            struct_mutation_metadata++;
-        }
-        text_mutation_metadata_offset.push_back((table_size_t)text_mutation_metadata.size());
-    }
-
-    ret = mutation_table_set_columns(&new_tables->mutations,
-                                    tables.mutations.num_rows,
-                                    tables.mutations.site,
-                                    tables.mutations.node,
-                                    tables.mutations.parent,
-                                    text_derived_state.c_str(),
-                                    text_derived_state_offset.data(),
-                                    text_mutation_metadata.c_str(),
-                                    text_mutation_metadata_offset.data());
-    if (ret < 0) handle_error("convert_to_ascii", ret);
-
     /***** Ascii-ify Node Table *****/
-
-    ret = node_table_clear(&new_tables->nodes);
-    if (ret < 0) handle_error("convert_to_ascii", ret);
-
-    slim_genomeid_t *int_genomeid;
-    const char *metadata = tables.nodes.metadata;
-    table_size_t *metadata_offset = tables.nodes.metadata_offset;
-    std::string text_metadata;
-    std::vector<table_size_t> text_metadata_offset;
-
-    text_metadata_offset.push_back(0);
-
-    for (j=0; j<tables.nodes.num_rows; j++)
-    {
-        int_genomeid = (slim_genomeid_t *)(metadata + metadata_offset[j]);
-        text_metadata.append(std::to_string(*int_genomeid));
-        text_metadata_offset.push_back((table_size_t)text_metadata.size());
-    }
-
-    ret = node_table_set_columns(&new_tables->nodes,
-                                    tables.nodes.num_rows,
-                                    tables.nodes.flags,
-                                    tables.nodes.time,
-                                    tables.nodes.population,
-                                    text_metadata.c_str(),
-                                    text_metadata_offset.data());
-    if (ret < 0) handle_error("convert_to_ascii", ret);
+	{
+		ret = node_table_clear(&new_tables->nodes);
+		if (ret < 0) handle_error("convert_to_ascii", ret);
+		
+		const char *metadata = tables.nodes.metadata;
+		table_size_t *metadata_offset = tables.nodes.metadata_offset;
+		std::string text_metadata;
+		std::vector<table_size_t> text_metadata_offset;
+		
+		text_metadata_offset.push_back(0);
+		
+		for (size_t j = 0; j < tables.nodes.num_rows; j++)
+		{
+			GenomeMetadataRec *struct_genome_metadata = (GenomeMetadataRec *)(metadata + metadata_offset[j]);
+			
+			text_metadata.append(std::to_string(struct_genome_metadata->genome_id_));
+			text_metadata.append(",");
+			text_metadata.append(StringForIndividualSex(struct_genome_metadata->sex_));
+			text_metadata.append(",");
+			text_metadata.append(std::to_string(struct_genome_metadata->subpop_index_));
+			text_metadata_offset.push_back((table_size_t)text_metadata.size());
+		}
+		
+		ret = node_table_set_columns(&new_tables->nodes,
+										tables.nodes.num_rows,
+										tables.nodes.flags,
+										tables.nodes.time,
+										tables.nodes.population,
+										text_metadata.c_str(),
+										text_metadata_offset.data());
+		if (ret < 0) handle_error("convert_to_ascii", ret);
+	}
 }
 
 void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify)
