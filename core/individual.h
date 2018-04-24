@@ -183,6 +183,8 @@ public:
 	static EidosValue *GetProperty_Accelerated_y(EidosObjectElement **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_z(EidosObjectElement **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_subpopulation(EidosObjectElement **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_genome1(EidosObjectElement **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_genome2(EidosObjectElement **p_values, size_t p_values_size);
 	
 	// Accelerated property writing; see class EidosObjectElement for comments on this mechanism
 	static void SetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);

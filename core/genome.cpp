@@ -1351,7 +1351,7 @@ const std::vector<const EidosMethodSignature *> *Genome_Class::Methods(void) con
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_positionsOfMutationsOfType, kEidosValueMaskInt))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
-		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_removeMutations, kEidosValueMaskVOID))->AddObject("mutations", gSLiM_Mutation_Class)->AddLogical_OS("substitute", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_removeMutations, kEidosValueMaskVOID))->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddLogical_OS("substitute", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputMS, kEidosValueMaskVOID))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputVCF, kEidosValueMaskVOID))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_output, kEidosValueMaskVOID))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
@@ -1915,7 +1915,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_i
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	+ (void)removeMutations(object mutations, [logical$ substitute = F])
+//	*********************	+ (void)removeMutations([No<Mutation> mutations = NULL], [logical$ substitute = F])
 //
 EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
 {
@@ -1975,46 +1975,40 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 	else if (pop.sim_.executing_block_type_ == SLiMEidosBlockType::SLiMEidosRecombinationCallback)
 		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called from within a recombination() callback." << EidosTerminate();
 	
-	// Construct a vector of mutations to remove that is sorted by position
-	int mutations_count = mutations_value->Count();
-	std::vector<Mutation *> mutations_to_remove;
-	
-	for (int value_index = 0; value_index < mutations_count; ++value_index)
-		mutations_to_remove.push_back((Mutation *)mutations_value->ObjectElementAtIndex(value_index, nullptr));
-	
-	std::sort(mutations_to_remove.begin(), mutations_to_remove.end(), [ ](Mutation *i1, Mutation *i2) {return i1->position_ < i2->position_;});
-	
-	// Create substitutions for the mutations being removed, if requested.
-	// Note we don't test for the mutations actually being fixed; that is the caller's responsibility to manage.
 	bool create_substitutions = substitute_value->LogicalAtIndex(0, nullptr);
-	
-	if (create_substitutions)
-	{
-		for (int value_index = 0; value_index < mutations_count; ++value_index)
-		{
-			Mutation *mut = (Mutation *)mutations_value->ObjectElementAtIndex(value_index, nullptr);
-			
-			pop.substitutions_.emplace_back(new Substitution(*mut, generation));
-		}
-	}
-	
-	// Now handle the mutations to remove, broken into bulk operations according to the mutation run they fall into
 	bool recording_tree_sequence_mutations = sim.RecordingTreeSequenceMutations();
-	int last_handled_mutrun_index = -1;
 	
-	for (int value_index = 0; value_index < mutations_count; ++value_index)
+	if (mutations_value->Type() == EidosValueType::kValueNULL)
 	{
-		Mutation *next_mutation = mutations_to_remove[value_index];
-		const slim_position_t pos = next_mutation->position_;
-		int mutrun_index = pos / mutrun_length;
+		// This is the "remove all mutations" case, for which we have no vector of mutations to remove.  In this case we do the tree
+		// sequence recording first, since we can add new empty derived states just at the locations where mutations presently exist.
+		// Then we just go through and clear out the target genomes.
+		if (create_substitutions)
+			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): in removeMutations() substitute may not be T if mutations is NULL; an explicit vector of mutations to be substituted must be supplied." << EidosTerminate();
 		
-		if (mutrun_index <= last_handled_mutrun_index)
-			continue;
+		// TREE SEQUENCE RECORDING
+		if (recording_tree_sequence_mutations)
+		{
+			const std::vector<Mutation *> empty_mut_vector;
+			
+			for (int genome_index = 0; genome_index < target_size; ++genome_index)
+			{
+				Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
+				slim_genomeid_t target_id = target_genome->genome_id_;
+				
+				for (GenomeWalker target_walker(target_genome); !target_walker.Finished(); target_walker.NextMutation())
+				{
+					Mutation *mut = target_walker.CurrentMutation();
+					slim_position_t pos = mut->position_;
+					
+					sim.RecordNewDerivedStateNonMeiosis(target_id, pos, empty_mut_vector);
+				}
+			}
+		}
 		
-		// We have not yet processed this mutation run; do this mutation run index as a bulk operation
-		int64_t operation_id = ++gSLiM_MutationRun_OperationID;
-		
-		Genome::BulkOperationStart(operation_id, mutrun_index);
+		// Now remove all mutations; we don't use bulk operations here because it is simpler to just set them all to the same empty run
+		MutationRun *shared_empty_run = MutationRun::NewMutationRun();
+		int mutrun_count = genome_0->mutrun_count_;
 		
 		for (int genome_index = 0; genome_index < target_size; ++genome_index)
 		{
@@ -2023,82 +2017,138 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 			if (target_genome->IsNull())
 				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called on a null genome." << EidosTerminate();
 			
-			// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
-			if (target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index))
-			{
-				// Remove the specified mutations; see RemoveFixedMutations for the origins of this code
-				MutationRun *mutrun = target_genome->mutruns_[mutrun_index].get();
-				MutationIndex *genome_iter = mutrun->begin_pointer();
-				MutationIndex *genome_backfill_iter = mutrun->begin_pointer();
-				MutationIndex *genome_max = mutrun->end_pointer();
-				
-				// genome_iter advances through the mutation list; for each entry it hits, the entry is either removed (skip it) or not removed (copy it backward to the backfill pointer)
-				while (genome_iter != genome_max)
-				{
-					MutationIndex candidate_mutation = *genome_iter;
-					const slim_position_t candidate_pos = (mut_block_ptr + candidate_mutation)->position_;
-					bool should_remove = false;
-					
-					for (int mut_index = value_index; mut_index < mutations_count; ++mut_index)
-					{
-						Mutation *mut_to_remove = mutations_to_remove[mut_index];
-						MutationIndex mut_to_remove_index = mut_to_remove->BlockIndex();
-						
-						if (mut_to_remove_index == candidate_mutation)
-						{
-							should_remove = true;
-							break;
-						}
-						
-						// since we're in sorted order by position, as soon as we pass the candidate we're done
-						if (mut_to_remove->position_ > candidate_pos)
-							break;
-					}
-					
-					if (should_remove)
-					{
-						// Removed mutation; we want to omit it, so we just advance our pointer
-						++genome_iter;
-					}
-					else
-					{
-						// Unremoved mutation; we want to keep it, so we copy it backward and advance our backfill pointer as well as genome_iter
-						if (genome_backfill_iter != genome_iter)
-							*genome_backfill_iter = *genome_iter;
-						
-						++genome_backfill_iter;
-						++genome_iter;
-					}
-				}
-				
-				// excess mutations at the end have been copied back already; we just adjust mutation_count_ and forget about them
-				mutrun->set_size(mutrun->size() - (int)(genome_iter - genome_backfill_iter));
-			}
+			for (int run_index = 0; run_index < mutrun_count; ++run_index)
+					target_genome->mutruns_[run_index].reset(shared_empty_run);
 		}
-		
-		Genome::BulkOperationEnd(operation_id, mutrun_index);
-		
-		// now we have handled all mutations at this index (and all previous indices)
-		last_handled_mutrun_index = mutrun_index;
 		
 		// invalidate cached mutation refcounts; refcounts have changed
 		pop.cached_tally_genome_count_ = 0;
 	}
-	
-	// TREE SEQUENCE RECORDING
-	// notify the tree seq code of the new derived state at every position in every target genome; this is overkill, since not all the
-	// target genomes contained all the mutations being removed, but that should be fixed by the next tree sequence simplification.
-	if (recording_tree_sequence_mutations)
+	else
 	{
-		for (int genome_index = 0; genome_index < target_size; ++genome_index)
+		// Construct a vector of mutations to remove that is sorted by position
+		int mutations_count = mutations_value->Count();
+		std::vector<Mutation *> mutations_to_remove;
+		
+		for (int value_index = 0; value_index < mutations_count; ++value_index)
+			mutations_to_remove.push_back((Mutation *)mutations_value->ObjectElementAtIndex(value_index, nullptr));
+		
+		std::sort(mutations_to_remove.begin(), mutations_to_remove.end(), [ ](Mutation *i1, Mutation *i2) {return i1->position_ < i2->position_;});
+		
+		// Create substitutions for the mutations being removed, if requested.
+		// Note we don't test for the mutations actually being fixed; that is the caller's responsibility to manage.
+		if (create_substitutions)
 		{
-			Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
-			slim_genomeid_t target_id = target_genome->genome_id_;
-			
-			for (Mutation *mut : mutations_to_remove)
+			for (int value_index = 0; value_index < mutations_count; ++value_index)
 			{
-				slim_position_t pos = mut->position_;
-				sim.RecordNewDerivedStateNonMeiosis(target_id, pos, *target_genome->derived_mutation_ids_at_position(pos));
+				Mutation *mut = (Mutation *)mutations_value->ObjectElementAtIndex(value_index, nullptr);
+				
+				pop.substitutions_.emplace_back(new Substitution(*mut, generation));
+			}
+		}
+		
+		// Now handle the mutations to remove, broken into bulk operations according to the mutation run they fall into
+		int last_handled_mutrun_index = -1;
+		
+		for (int value_index = 0; value_index < mutations_count; ++value_index)
+		{
+			Mutation *next_mutation = mutations_to_remove[value_index];
+			const slim_position_t pos = next_mutation->position_;
+			int mutrun_index = pos / mutrun_length;
+			
+			if (mutrun_index <= last_handled_mutrun_index)
+				continue;
+			
+			// We have not yet processed this mutation run; do this mutation run index as a bulk operation
+			int64_t operation_id = ++gSLiM_MutationRun_OperationID;
+			
+			Genome::BulkOperationStart(operation_id, mutrun_index);
+			
+			for (int genome_index = 0; genome_index < target_size; ++genome_index)
+			{
+				Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
+				
+				if (target_genome->IsNull())
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called on a null genome." << EidosTerminate();
+				
+				// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
+				if (target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index))
+				{
+					// Remove the specified mutations; see RemoveFixedMutations for the origins of this code
+					MutationRun *mutrun = target_genome->mutruns_[mutrun_index].get();
+					MutationIndex *genome_iter = mutrun->begin_pointer();
+					MutationIndex *genome_backfill_iter = mutrun->begin_pointer();
+					MutationIndex *genome_max = mutrun->end_pointer();
+					
+					// genome_iter advances through the mutation list; for each entry it hits, the entry is either removed (skip it) or not removed (copy it backward to the backfill pointer)
+					while (genome_iter != genome_max)
+					{
+						MutationIndex candidate_mutation = *genome_iter;
+						const slim_position_t candidate_pos = (mut_block_ptr + candidate_mutation)->position_;
+						bool should_remove = false;
+						
+						for (int mut_index = value_index; mut_index < mutations_count; ++mut_index)
+						{
+							Mutation *mut_to_remove = mutations_to_remove[mut_index];
+							MutationIndex mut_to_remove_index = mut_to_remove->BlockIndex();
+							
+							if (mut_to_remove_index == candidate_mutation)
+							{
+								should_remove = true;
+								break;
+							}
+							
+							// since we're in sorted order by position, as soon as we pass the candidate we're done
+							if (mut_to_remove->position_ > candidate_pos)
+								break;
+						}
+						
+						if (should_remove)
+						{
+							// Removed mutation; we want to omit it, so we just advance our pointer
+							++genome_iter;
+						}
+						else
+						{
+							// Unremoved mutation; we want to keep it, so we copy it backward and advance our backfill pointer as well as genome_iter
+							if (genome_backfill_iter != genome_iter)
+								*genome_backfill_iter = *genome_iter;
+							
+							++genome_backfill_iter;
+							++genome_iter;
+						}
+					}
+					
+					// excess mutations at the end have been copied back already; we just adjust mutation_count_ and forget about them
+					mutrun->set_size(mutrun->size() - (int)(genome_iter - genome_backfill_iter));
+				}
+			}
+			
+			Genome::BulkOperationEnd(operation_id, mutrun_index);
+			
+			// now we have handled all mutations at this index (and all previous indices)
+			last_handled_mutrun_index = mutrun_index;
+			
+			// invalidate cached mutation refcounts; refcounts have changed
+			pop.cached_tally_genome_count_ = 0;
+		}
+		
+		// TREE SEQUENCE RECORDING
+		// notify the tree seq code of the new derived state at every position in every target genome; this is overkill, since not all the
+		// target genomes contained all the mutations being removed, but that should be fixed by the next tree sequence simplification.
+		if (recording_tree_sequence_mutations)
+		{
+			for (int genome_index = 0; genome_index < target_size; ++genome_index)
+			{
+				Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
+				slim_genomeid_t target_id = target_genome->genome_id_;
+				
+				for (Mutation *mut : mutations_to_remove)
+				{
+					slim_position_t pos = mut->position_;
+					
+					sim.RecordNewDerivedStateNonMeiosis(target_id, pos, *target_genome->derived_mutation_ids_at_position(pos));
+				}
 			}
 		}
 	}

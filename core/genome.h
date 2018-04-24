@@ -390,6 +390,8 @@ public:
 	// With the new mutation run structure, the simplest course of action is to just let some SLiM classes delve
 	// in Genome directly; we really don't want to get into trying to define an iterator that loops over mutation
 	// runs, etc., transparently and pretends that a genome is just a single bag of mutations.
+	// FIXME well, now we do in fact have the GenomeWalker iterator class below, which works nicely, so some
+	// of the code that messes around inside Genome's internals can probably be switched over to using it...
 	friend SLiMSim;
 	friend Population;
 	friend Subpopulation;

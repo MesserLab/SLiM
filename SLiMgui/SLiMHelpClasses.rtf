@@ -814,22 +814,30 @@ See
 \f2\fs18 -mutationsOfType()
 \f0\fs20 .  This method is provided for speed; it is much faster than the corresponding Eidos code.
 \f3 \
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 +\'a0(void)removeMutations(object<Mutation>\'a0mutations, [logical$\'a0substitute\'a0=\'a0F])
-\f3 \
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\f2\fs18 \cf2 \expnd0\expndtw0\kerning0
++\'a0(void)removeMutations([No<Mutation>\'a0mutations\'a0=\'a0NULL], [logical$\'a0substitute\'a0=\'a0F])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 Remove the mutations in 
+\f0\fs20 \cf2 Remove the mutations in 
 \f2\fs18 mutations
-\f0\fs20  from the genome, if they are present (if they are not present, they will be ignored).  Note that the 
+\f0\fs20  from the target genome(s), if they are present (if they are not present, they will be ignored).  If 
+\f2\fs18 NULL
+\f0\fs20  is passed for 
+\f2\fs18 mutations
+\f0\fs20  (which is the default), then all mutations will be removed from the target genomes; in this case, 
+\f2\fs18 substitute
+\f0\fs20  must be 
+\f2\fs18 F
+\f0\fs20  (a specific vector of mutations to be substituted is required).  Note that the 
 \f2\fs18 Mutation
 \f0\fs20  objects removed remain valid, and will still be in the simulation\'92s mutation registry (i.e. will be returned by 
 \f2\fs18 SLiMSim
 \f0\fs20 \'92s 
 \f2\fs18 mutations
 \f0\fs20  property), until the next generation.\
-Changing this will normally affect the fitness values calculated at the end of the current generation; if you want current fitness values to be affected, you can call 
+\cf2 Changing this will normally affect the fitness values calculated at the end of the current generation; if you want current fitness values to be affected, you can call 
 \f2\fs18 SLiMSim
 \f0\fs20 \'92s method 
 \f2\fs18 recalculateFitness()
@@ -854,10 +862,18 @@ The optional parameter
 \f2\fs18 T
 \f0\fs20  in the context of calls like 
 \f2\fs18 sim.subpopulations.genomes.removeMutations(muts, T)
-\f0\fs20 , such that the substituted mutations are guaranteed to be entirely removed from circulation.\
+\f0\fs20 , such that the substituted mutations are guaranteed to be entirely removed from circulation.  As mentioned above, 
+\f2\fs18 substitute
+\f0\fs20  may not be 
+\f2\fs18 T
+\f0\fs20  if 
+\f2\fs18 mutations
+\f0\fs20  is 
+\f2\fs18 NULL
+\f0\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96
 \f3 \'a0
 \f2 (float$)sumOfMutationsOfType(io<MutationType>$\'a0mutType)
 \f3 \
@@ -1118,11 +1134,33 @@ The value of
 
 \f0\fs20 \cf0 The pair of 
 \f2\fs18 Genome
-\f0\fs20  objects associated with this individual.
-\f3 \
+\f0\fs20  objects associated with this individual.\cf2 \expnd0\expndtw0\kerning0
+  If only one of the two genomes is desired, the 
+\f2\fs18 genome1
+\f0\fs20  or 
+\f2\fs18 genome2
+\f0\fs20  property may be used.
+\f3 \cf0 \kerning1\expnd0\expndtw0 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 index => (integer$)\
+\f2\fs18 \cf2 \expnd0\expndtw0\kerning0
+genome1 => (object<Genome>$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 The first 
+\f2\fs18 Genome
+\f0\fs20  object associated with this individual.  This property is particularly useful when you want the first genome from each of a vector of individuals, as often arises in haploid models.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf2 genome2 => (object<Genome>$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 The second 
+\f2\fs18 Genome
+\f0\fs20  object associated with this individual.  This property is particularly useful when you want the second genome from each of a vector of individuals, as often arises in haploid models.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 index => (integer$)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 The index of the individual in the 
