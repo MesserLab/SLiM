@@ -62,6 +62,7 @@ development head (nonWF branch):
 	fix the incorrect actual recombination rate for requested recombination rates close to 0.5, impose a <= 0.5 requirement on recombination rates, add related recipe 13.18
 	improve options for display of subpopulations in the population view (control-click or right-click for menu)
 	add genome1 and genome2 properties on Individual to make getting just the first or second genomes of a vector of individuals simpler, in e.g. haploid models
+	add removeMutations(NULL) option that removes all of the mutations from the target genome, for e.g. haploid models; not allowed to be used with substitute=T
 
 
 2.6 (build 1292; Eidos version 1.6):

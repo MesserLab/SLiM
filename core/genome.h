@@ -43,6 +43,7 @@ class SLiMSim;
 class Population;
 class Subpopulation;
 class Individual;
+class GenomeWalker;
 
 
 extern EidosObjectClass *gSLiM_Genome_Class;
@@ -389,10 +390,38 @@ public:
 	// With the new mutation run structure, the simplest course of action is to just let some SLiM classes delve
 	// in Genome directly; we really don't want to get into trying to define an iterator that loops over mutation
 	// runs, etc., transparently and pretends that a genome is just a single bag of mutations.
+	// FIXME well, now we do in fact have the GenomeWalker iterator class below, which works nicely, so some
+	// of the code that messes around inside Genome's internals can probably be switched over to using it...
 	friend SLiMSim;
 	friend Population;
 	friend Subpopulation;
 	friend Individual;
+	friend GenomeWalker;
+};
+
+// This class allows clients of Genome to walk the mutations inside a Genome without needing to know about MutationRun.
+class GenomeWalker
+{
+private:
+	Genome *genome_;							// the genome being walked
+	int32_t mutrun_index_;						// the mutation run index we're presently traversing
+	const MutationIndex *mutrun_ptr_;			// a pointer to the current element in the mutation run
+	const MutationIndex *mutrun_end_;			// an end pointer for the mutation run
+	Mutation *mutation_;						// the current mutation pointer, or nullptr if we have reached the end of the genome
+	
+public:
+	GenomeWalker(void) = delete;
+	GenomeWalker(const GenomeWalker &p_original) = delete;
+	GenomeWalker& operator= (const GenomeWalker &p_original) = delete;
+	
+	inline GenomeWalker(Genome *p_genome) : genome_(p_genome), mutrun_index_(-1), mutrun_ptr_(nullptr), mutrun_end_(nullptr), mutation_(nullptr) { NextMutation(); };
+	GenomeWalker(GenomeWalker&&) = default;
+	inline ~GenomeWalker(void) {};
+	
+	inline Mutation *CurrentMutation(void) { return mutation_; }
+	inline bool Finished(void) { return (mutation_ == nullptr); }
+	
+	void NextMutation(void);
 };
 
 
