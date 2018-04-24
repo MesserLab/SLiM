@@ -9,11 +9,11 @@ initialize() {
 	sim.addSubpop("p1", 500);
 	p1.setCloningRate(1.0);
 }
-modifyChild() {
-	childGenome2.removeMutations(childGenome2.mutations);
-	return T;
-}
 late() {
+	// remove any new mutations added to the disabled diploid genomes
+	sim.subpopulations.individuals.genome2.removeMutations();
+	
+	// remove mutations in the haploid genomes that have fixed
 	muts = sim.mutationsOfType(m1);
 	freqs = sim.mutationFrequencies(NULL, muts);
 	sim.subpopulations.genomes.removeMutations(muts[freqs == 0.5], T);
