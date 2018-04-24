@@ -3730,8 +3730,8 @@ SLiMSim::handle_error(std::string msg, int err)
 	EIDOS_TERMINATION << msg << ": " << msp_strerror(err) << EidosTerminate();
 }
 
-void SLiMSim::SimplifyTreeSequence(void){
-
+void SLiMSim::SimplifyTreeSequence(void)
+{
 	std::map<slim_objectid_t,Subpopulation*>::iterator it;
 	std::vector<Individual*> populationIndividuals;
 	std::vector<node_id_t> samples;
@@ -3858,6 +3858,8 @@ void SLiMSim::SetCurrentNewIndividual(Individual *p_individual)
     std::cout << std::endl;
 	// */
 	
+	current_new_individual_ = p_individual;
+	
     table_collection_current_position(&table_position);
 
     /* DEBUG STDOUT
@@ -3886,6 +3888,8 @@ void SLiMSim::RetractNewIndividual()
     std::cout << std::endl;
     // */
 
+	current_new_individual_ = nullptr;
+	
     table_collection_reset_position(&table_position);
     
     /* DEBUG STDOUT
@@ -3919,9 +3923,12 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_
 	//add genome node
 	double time = (double) -1 * tree_seq_generation_;
 	uint32_t flags = 1;
-
-    const char *metadata = (char *)&p_new_genome_id;
-    size_t metadata_length = sizeof(slim_genomeid_t)/sizeof(char);
+	GenomeMetadataRec metadata_rec;
+	
+	MetadataForGenome(p_new_genome_id, current_new_individual_, &metadata_rec);
+	
+	const char *metadata = (char *)&metadata_rec;
+	size_t metadata_length = sizeof(GenomeMetadataRec)/sizeof(char);
 	offspringMSPID = node_table_add_row(&tables.nodes, flags, time, 0, metadata, metadata_length);
     SLiM_MSP_Id_Map[p_new_genome_id] = (node_id_t) offspringMSPID;
 	
@@ -4064,19 +4071,21 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
 
     // form derived state: needs to be a const char*
 	static std::vector<slim_mutationid_t> derived_mutation_ids;
-	static std::vector<MutationInfoRec> mutation_metadata;
+	static std::vector<MutationMetadataRec> mutation_metadata;
+	MutationMetadataRec metadata_rec;
 	
 	derived_mutation_ids.clear();
     mutation_metadata.clear();
 	for (Mutation *mutation : p_derived_mutations) {
 		derived_mutation_ids.push_back(mutation->mutation_id_);
-        mutation_metadata.push_back(*MutationInfoForMutation(mutation));
+		MetadataForMutation(mutation, &metadata_rec);
+        mutation_metadata.push_back(metadata_rec);
     }
-
+	
     char *derived_muts_bytes = (char *)(derived_mutation_ids.data());
     size_t derived_state_length = derived_mutation_ids.size() * sizeof(slim_mutationid_t);
     char *mutation_metadata_bytes = (char *)(mutation_metadata.data());
-    size_t mutation_metadata_length = mutation_metadata.size() * sizeof(MutationInfoRec);
+    size_t mutation_metadata_length = mutation_metadata.size() * sizeof(MutationMetadataRec);
 
     tree_return_value_ = mutation_table_add_row(&tables.mutations, site_id, genomeMSPID, 
                             parent_mut_id, derived_muts_bytes, (table_size_t)derived_state_length, 
@@ -4204,7 +4213,7 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
     size_t i, j;
 
     // Mutation metadata
-    MutationInfoRec *struct_mutation_metadata;
+    MutationMetadataRec *struct_mutation_metadata;
     const char *mutation_metadata = tables.mutations.metadata;
     table_size_t *mutation_metadata_offset = tables.mutations.metadata_offset;
     std::string text_mutation_metadata;
@@ -4228,8 +4237,8 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
         text_derived_state_offset.push_back((table_size_t)text_derived_state.size());
 
         // Mutation metadata
-        struct_mutation_metadata = (MutationInfoRec *)(mutation_metadata + mutation_metadata_offset[j]);
-        cur_mutation_metadata_length = (mutation_metadata_offset[j+1] - mutation_metadata_offset[j])/sizeof(MutationInfoRec);
+        struct_mutation_metadata = (MutationMetadataRec *)(mutation_metadata + mutation_metadata_offset[j]);
+        cur_mutation_metadata_length = (mutation_metadata_offset[j+1] - mutation_metadata_offset[j])/sizeof(MutationMetadataRec);
         assert(cur_mutation_metadata_length == cur_derived_state_length);
         for (i = 0; i < cur_mutation_metadata_length; i++) {
             if (i > 0) {
@@ -4407,39 +4416,25 @@ void SLiMSim::RecordAllDerivedStatesFromSLiM(void)
 	}
 }
 
-struct MutationInfoRec *SLiMSim::MutationInfoForMutation(Mutation *p_mutation)
+void SLiMSim::MetadataForMutation(Mutation *p_mutation, MutationMetadataRec *p_metadata)
 {
-	if (!p_mutation)
-		return nullptr;
+	if (!p_mutation || !p_metadata)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::MetadataForMutation): (internal error) bad parameters to MetadataForMutation()." << EidosTerminate();
 	
-	static struct MutationInfoRec static_mutation_info;
-	
-	static_mutation_info.mutation_type_id_ = p_mutation->mutation_type_ptr_->mutation_type_id_;
-	static_mutation_info.selection_coeff_ = p_mutation->selection_coeff_;
-	static_mutation_info.subpop_index_ = p_mutation->subpop_index_;
-	static_mutation_info.origin_generation_ = p_mutation->origin_generation_;
-	
-	return &static_mutation_info;
+	p_metadata->mutation_type_id_ = p_mutation->mutation_type_ptr_->mutation_type_id_;
+	p_metadata->selection_coeff_ = p_mutation->selection_coeff_;
+	p_metadata->subpop_index_ = p_mutation->subpop_index_;
+	p_metadata->origin_generation_ = p_mutation->origin_generation_;
 }
 
-struct IndividualInfoRec *SLiMSim::IndividualInfoForIndividual(Individual *p_individual)
+void SLiMSim::MetadataForGenome(slim_genomeid_t p_genome_id, Individual *p_individual, GenomeMetadataRec *p_metadata)
 {
-	if (!p_individual)
-		return nullptr;
+	if (!p_individual || !p_metadata)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::MetadataForGenome): (internal error) bad parameters to MetadataForGenome()." << EidosTerminate();
 	
-	static struct IndividualInfoRec static_individual_info;
-	
-	static_individual_info.sex_ = p_individual->sex_;
-#ifdef SLIM_NONWF_ONLY
-	static_individual_info.age_ = p_individual->age_;
-#else
-	static_individual_info.age_ = -1;
-#endif
-	static_individual_info.spatial_x_ = p_individual->spatial_x_;
-	static_individual_info.spatial_y_ = p_individual->spatial_y_;
-	static_individual_info.spatial_z_ = p_individual->spatial_z_;
-	
-	return &static_individual_info;
+	p_metadata->genome_id_ = p_genome_id;
+	p_metadata->sex_ = p_individual->sex_;
+	p_metadata->subpop_index_ = p_individual->subpopulation_.subpopulation_id_;
 }
 
 void SLiMSim::DumpMutationTable(void)
@@ -4469,7 +4464,7 @@ void SLiMSim::DumpMutationTable(void)
 //				continue;
 //		}
 		
-		std::cout << "Mutation index " << mutindex << " has node_id " << node_id << ", site_id " << site_id << ", parent id " << parent_id << ", derived state length " << derived_state_length << ", metadata length " << metadata_length << std::endl;
+		std::cout << "Mutation index " << mutindex << " has node_id " << node_id << ", site_id " << site_id << ", position " << tables.sites.position[site_id] << ", parent id " << parent_id << ", derived state length " << derived_state_length << ", metadata length " << metadata_length << std::endl;
 		
 		std::cout << "   derived state: ";
 		for (size_t mutid_index = 0; mutid_index < derived_state_length / sizeof(slim_mutationid_t); ++mutid_index)
@@ -4481,7 +4476,6 @@ void SLiMSim::DumpMutationTable(void)
 void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 {
 	// get the mutation IDs for all fixed mutations, so we can quickly check whether a given mutatiod id is fixed
-	// FIXME this could be something SLiM just maintains when tree recording is on, to avoid having to rebuild it every time
 	static std::unordered_set<slim_mutationid_t> fixed_mutids;
 	fixed_mutids.clear();
 	
@@ -4520,32 +4514,53 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 		for (Genome *genome : genomes)
 			genome_walkers.emplace_back(genome);
 		
-		// DEBUG enable this and the dump after simplify to check whether simplify has changed the order of mutations in the table
-		//	if (generation_ == 240)
-		//	{
-		//		std::cout << "----------------------------" << std::endl;
-		//		std::cout << "Mutation state before SimplifyTreeSequence():" << std::endl << std::endl;
-		//		DumpMutationTable();
-		//	}
+		// make a copy of the full table collection, so that we can sort/clean/simplify without modifying anything
+		int ret;
+		table_collection_t *tables_copy;
 		
-		// simplify before making our tree_sequence object; this is required (at least the clean and sort, maybe not the full simplify)
-		// FIXME it would be nice to be able to do this crosscheck without modifying what we are trying to observe; it may be that there
-		// are bugs that get hidden as a side effect of simplifying every generation...
-		SimplifyTreeSequence();
+		tables_copy = (table_collection_t *)malloc(sizeof(table_collection_t));
+		ret = table_collection_alloc(tables_copy, MSP_ALLOC_TABLES);
+		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity table_collection_alloc()", ret);
 		
-		//	if (generation_ == 240)
-		//	{
-		//		std::cout << "----------------------------" << std::endl;
-		//		std::cout << "Mutation state after SimplifyTreeSequence():" << std::endl << std::endl;
-		//		DumpMutationTable();
-		//	}
+		ret = table_collection_copy(&tables, tables_copy);
+		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity table_collection_copy()", ret);
+		
+		// simplify before making our tree_sequence object; the sort and deduplicate are required for the crosscheck, whereas the simplify
+		// could perhaps be removed, which would cause the vargen_t to visit a bunch of stuff unrelated to the current individuals.
+		// this code is adapted from SLiMSim::SimplifyTreeSequence(), but we don't need to update the MSP map table or the table position,
+		// and we simplify down to just the extant individuals since we can't cross-check older individuals anyway...
+		if (tables_copy->nodes.num_rows != 0)
+		{
+			std::vector<node_id_t> samples;
+			
+			for (auto iter = population_.begin(); iter != population_.end(); iter++)
+			{
+				std::vector<Individual *> &subpopulationIndividuals = iter->second->parent_individuals_;
+				
+				for (Individual *individual : subpopulationIndividuals)
+				{
+					slim_genomeid_t first_genome_id = 2 * individual->PedigreeID();
+					
+					samples.push_back(getMSPID(first_genome_id));
+					samples.push_back(getMSPID(first_genome_id + 1));	
+				}
+			}
+			
+			ret = sort_tables(&tables_copy->nodes, &tables_copy->edges, &tables_copy->migrations, &tables_copy->sites, &tables_copy->mutations, 0);				
+			if (ret < 0) handle_error("sort_tables", ret);
+			
+			ret = table_collection_deduplicate_sites(tables_copy, 0);
+			if (ret < 0) handle_error("deduplicate_sites", ret);
+			
+			ret = table_collection_simplify(tables_copy, samples.data(), samples.size(), MSP_FILTER_ZERO_MUTATION_SITES, NULL);
+			if (ret != 0) handle_error("simplifier_run", ret);
+		}
 		
 		// allocate and set up the tree_sequence object that contains all the tree sequences
 		tree_sequence_t *ts;
-		int ret;
 		
 		ts = (tree_sequence_t *)malloc(sizeof(tree_sequence_t));
-		ret = tree_sequence_load_tables(ts, &tables, MSP_BUILD_INDEXES | MSP_COMPUTE_PARENTS);	// note we do not do MSP_FIX_PARENTS, for minimal invasiveness
+		ret = tree_sequence_load_tables(ts, tables_copy, MSP_BUILD_INDEXES | MSP_FIX_PARENTS);
 		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tree_sequence_load_tables()", ret);
 		
 		// find the nodes in the tree sequence's sample of genomes, which should correspond to our genomes (with perhaps some extras)
@@ -4565,14 +4580,13 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 			ret = tree_sequence_get_node(ts, samples[sample_index], &sample_node);
 			if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tree_sequence_get_node()", ret);
 			
-			slim_genomeid_t *sample_metadata = (slim_genomeid_t *)sample_node.metadata;
+			GenomeMetadataRec *sample_metadata = (GenomeMetadataRec *)sample_node.metadata;
 			table_size_t sample_metadata_length = sample_node.metadata_length;
 			
-			// right now the metadata is a string that contains the genome ID, so we construct a std::string key
-			if (sample_metadata_length != sizeof(slim_genomeid_t))
+			if (sample_metadata_length != sizeof(GenomeMetadataRec))
 				handle_error("CrosscheckTreeSeqIntegrity unexpected genome metadata", -1);
 			
-			metadata_to_sample_index.insert(std::pair<slim_genomeid_t, int32_t>(*sample_metadata, sample_index));
+			metadata_to_sample_index.insert(std::pair<slim_genomeid_t, int32_t>(sample_metadata->genome_id_, sample_index));
 		}
 		
 		// find the sample index for each genome, using the metadata_to_sample_index map we just built
@@ -4582,7 +4596,6 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 		
 		for (Genome *genome : genomes)
 		{
-			// figure out the expected metadata for the genome
 			auto sample_index_iter = metadata_to_sample_index.find(genome->genome_id_);
 			
 			if (sample_index_iter == metadata_to_sample_index.end())
@@ -4597,8 +4610,6 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 		vg = (vargen_t *)malloc(sizeof(vargen_t));
 		ret = vargen_alloc(vg, ts, 0);	// flags seems to be unused at present
 		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity vargen_alloc()", ret);
-		
-		//int iteration_counter = 0;
 		
 		// crosscheck by looping through variants
 		do
@@ -4745,6 +4756,10 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 		ret = tree_sequence_free(ts);
 		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tree_sequence_free()", ret);
 		free(ts);
+		
+		ret = table_collection_free(tables_copy);
+		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity table_collection_free()", ret);
+		free(tables_copy);
 	}
 }
 

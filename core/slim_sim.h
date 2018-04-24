@@ -55,6 +55,7 @@
 
 
 class EidosInterpreter;
+class Individual;
 
 
 extern EidosObjectClass *gSLiM_SLiMSim_Class;
@@ -101,32 +102,34 @@ enum class SLiMFileFormat
 
 // TREE SEQUENCE RECORDING
 // This struct is used by the tree-rec code to record all metadata about a mutation that needs to be saved.
+// Note that this information is a snapshot taken at the point the mutation is generated, and may become stale.
 // This should be kept in sync with any new state that needs to be written out about mutations, but of course
 // changing the members/size/layout of this struct will mean that old output files will no longer be readable.
 // Note we save only the mutation type id, not state from the mutation type such as the dominance coefficient.
 // I decided not to use __attribute__((__packed__)); if this struct isn't naturally 16 bytes something is deeply wrong.
-struct MutationInfoRec {
+typedef struct {
 	slim_objectid_t mutation_type_id_;		// 4 bytes (int32_t): the id of the mutation type the mutation belongs to
 	slim_selcoeff_t selection_coeff_;		// 4 bytes (float): the selection coefficient
 	slim_objectid_t subpop_index_;			// 4 bytes (int32_t): the id of the subpopulation in which the mutation arose
 	slim_generation_t origin_generation_;	// 4 bytes (int32_t): the generation in which the mutation arose
-};
+} MutationMetadataRec;
 
-// This struct is used by the tree-rec code to record all metadata about an individual that needs to be saved.
-// This should be kept in sync with any new state that needs to be written out about individuals, but of course
+// This struct is used by the tree-rec code to record all metadata about a genome that needs to be saved.
+// Note that this information is a snapshot taken at the point the genome is generated, and may become stale.
+// Some of this belongs to the individual, not the genome; at some point individual-level data may get archived
+// independently to avoid duplication, but for now all the same information is replicated in both genomes' metadata.
+// This should be kept in sync with any new state that needs to be written out about genomes, but of course
 // changing the members/size/layout of this struct will mean that old output files will no longer be readable.
-// I decided not to use __attribute__((__packed__)); if this struct isn't naturally 32 bytes something is deeply wrong.
-struct IndividualInfoRec {
+// I decided not to use __attribute__((__packed__)); if this struct isn't naturally 16 bytes something is deeply wrong.
+typedef struct {
 	// no pedigree IDs
+	slim_genomeid_t genome_id_;				// 8 bytes (int64_t): the node ID for the genome (i.e., the MSPID)
 	IndividualSex sex_;						// 4 bytes (int32_t): the sex of the individual (H, F, M)
-	slim_age_t age_;						// 4 bytes (int32_t): the age of the individual (saved as -1 in WF models)
-	double spatial_x_;						// 8 bytes (double): spatial position x (garbage in models that don't use it)
-	double spatial_y_;						// 8 bytes (double): spatial position y (garbage in models that don't use it)
-	double spatial_z_;						// 8 bytes (double): spatial position z (garbage in models that don't use it)
-};
+	slim_objectid_t subpop_index_;			// 4 bytes (int32_t): the id of the subpopulation in which genome originated
+} GenomeMetadataRec;
 
-static_assert(sizeof(struct MutationInfoRec) == 16, "MutationInfoRec is not 16 bytes!");
-static_assert(sizeof(struct IndividualInfoRec) == 32, "IndividualInfoRec is not 32 bytes!");
+static_assert(sizeof(MutationMetadataRec) == 16, "MutationMetadataRec is not 16 bytes!");
+static_assert(sizeof(GenomeMetadataRec) == 16, "GenomeMetadataRec is not 16 bytes!");
 #if defined(__BYTE_ORDER__)
 #if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
 #warning Reading and writing binary files with SLiM may produce non-standard results on this (big-endian) platform due to endianness
@@ -300,6 +303,7 @@ private:
 	// TABLE SIMPLIFICATION
     std::vector<node_id_t> RememberedGenomes;
 	std::unordered_map<slim_genomeid_t,node_id_t> SLiM_MSP_Id_Map;
+	Individual *current_new_individual_;
 	
 	bool recording_mutations_ = false;			// true if we are recording mutations in our tree sequence tables
 	bool running_treeseq_crosschecks_ = false;	// true if crosschecks between our tree sequence tables and SLiM's data are enabled
@@ -448,8 +452,8 @@ public:
 	void RememberIndividuals(std::vector<slim_pedigreeid_t> p_individual_ids);
 	void FreeTreeSequence(void);
 	void RecordAllDerivedStatesFromSLiM(void);
-	struct MutationInfoRec *MutationInfoForMutation(Mutation *p_mutation);
-	struct IndividualInfoRec *IndividualInfoForIndividual(Individual *p_individual);
+	void MetadataForMutation(Mutation *p_mutation, MutationMetadataRec *p_metadata);
+	void MetadataForGenome(slim_genomeid_t p_genome_id, Individual *p_individual, GenomeMetadataRec *p_metadata);
 	void DumpMutationTable(void);
 	void CrosscheckTreeSeqIntegrity(void);
 	// put any other methods you need for the tree sequence stuff here
