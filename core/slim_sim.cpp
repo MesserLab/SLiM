@@ -3766,12 +3766,13 @@ void SLiMSim::SimplifyTreeSequence(void)
 		}
 	}
 	
-	// sort, deduplicate, and simplify
+	// sort, simplify
 	int ret = sort_tables(&tables.nodes, &tables.edges, &tables.migrations, &tables.sites, &tables.mutations, 0);				
 	if (ret < 0) handle_error("sort_tables", ret);
-	
-	ret = table_collection_deduplicate_sites(&tables, 0);
-	if (ret < 0) handle_error("deduplicate_sites", ret);
+
+    // Remove redundant sites we added
+    ret = table_collection_deduplicate_sites(&tables, 0);
+    if (ret < 0) handle_error("deduplicate_sites", ret);
 	
 	ret = table_collection_simplify(&tables, samples.data(), samples.size(), MSP_FILTER_ZERO_MUTATION_SITES, NULL);
     if (ret != 0) handle_error("simplifier_run", ret);
@@ -3958,22 +3959,7 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_
 
 void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations)
 {
-    // This records information in the Site and Mutation tables.  Properly
-    // recording information for a new mutation in the Site table requires
-    // checking whether there is already a Site at that position, and referring
-    // to it, instead of adding a new site, if so. We only really need to do
-    // that if there is more than one mutation at the same position in a given
-    // *individual* (since we go through and remove redundant sites at
-    // Simplify). Furthermore, if there's more than one mutation in a given
-    // indivdiual, we have to say which takes precedence, which we can record
-    // in the `parent` column of the Mutation table.  To facilitate these
-    // things, we keep a bookmark into the Tables of the earliest positoin we
-    // have to go back to, to check for multiple mutations.  This bookmark is
-    // `table_position`, and is updated by SetCurrentNewIndividual().  If this
-    // has *not* been properly called, then we need to look back through the
-    // entire set of tables for previous hits; this is done by the method
-    // RecordNewDerivedStateNonMeiosis().
-
+    // This records information in the Site and Mutation tables.
     // This is called whenever a new mutation is added to a genome.  Because
     // mutation stacking makes things complicated, this hook supplies not just
     // the new mutation, but the entire new derived state – all of the
@@ -4005,33 +3991,10 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
 	std::cout << std::endl;
 	// END DEBUG */
 
-    // Identify any previous mutations at this site in this genome, and add a new site (if necessary)
-    site_id_t site_id = 0;	// initialized to get rid of a dumb uninitialized-variable warning...
-    bool existing_site = false;
+    // Identify any previous mutations at this site in this genome, and add a new site
     double msp_position = (double) p_position;
-    mutation_id_t parent_mut_id = MSP_NULL_MUTATION;
-    table_size_t j;
-	
-    if (tables.mutations.num_rows > 0)
-	{
-        j = tables.mutations.num_rows;
-		
-        while (j > table_position.mutation_position)
-		{
-            j--;
-			
-            if ((tables.sites.position[tables.mutations.site[j]] == msp_position) && (tables.mutations.node[j] == genomeMSPID))
-			{
-                parent_mut_id = j;
-                site_id = tables.mutations.site[j];
-                existing_site = true;
-                break;
-            }
-        }
-    }
-	
-    if (!existing_site)
-        site_id = site_table_add_row(&tables.sites, msp_position, NULL, 0, NULL, 0);
+
+    site_id_t site_id = site_table_add_row(&tables.sites, msp_position, NULL, 0, NULL, 0);
 	
     /* DEBUG STDOUT
     std::cout << ":    Working at site " << site_id;
@@ -4039,7 +4002,6 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
     std::cout << " site" << std::endl;
     std::cout << ":    parent mutations? checked from " <<  table_position.mutation_position - 1;
     std::cout << " to " << tables.mutations.num_rows;
-    std::cout << " :: parent : " << parent_mut_id << std::endl;
     // */
 
     // form derived state: needs to be a const char*
@@ -4061,32 +4023,10 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
     char *mutation_metadata_bytes = (char *)(mutation_metadata.data());
     size_t mutation_metadata_length = mutation_metadata.size() * sizeof(MutationMetadataRec);
 
-    int ret = mutation_table_add_row(&tables.mutations, site_id, genomeMSPID, parent_mut_id, derived_muts_bytes, (table_size_t)derived_state_length, mutation_metadata_bytes, (table_size_t)mutation_metadata_length);
+    int ret = mutation_table_add_row(&tables.mutations, site_id, genomeMSPID, MSP_NULL_MUTATION, 
+                    derived_muts_bytes, (table_size_t)derived_state_length, 
+                    mutation_metadata_bytes, (table_size_t)mutation_metadata_length);
 	if (ret < 0) handle_error("add_mutation", ret);
-}
-
-void SLiMSim::RecordNewDerivedStateNonMeiosis(slim_genomeid_t p_genome_id, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations)
-{
-    // This is called when a mutation is added or removed outside of the
-    // crossover-mutation code.  When we're in the crossover-mutation code, the
-    // correct context has been set up for new derived state recording, with
-    // SetCurrentNewIndividual() and RecordNewGenome(), so that a backscan for
-    // the existence of previous state is fast; that is the case in
-    // RecordNewDerivedState().  Here, that context has not been set up, and a
-    // more expensive backscan is necessary to determine whether previous state
-    // exists at the given position.  So the use of this call instead of
-    // RecordNewDerivedState() basically notifies the tree-seq
-	// code "we're out of context here, you have to do a full backscan".
-    // See further explanation in RecordNewDerivedState().
-
-    /* DEBUG STDOUT
-	std::cout << tree_seq_generation_ << ":   New derived state about to be logged outside of meiosis..."<< std::endl;;
-    std::cout << "    Resetting table position." << std::endl;
-    // */
-	
-    // reset the position to the start of the tables, since we don't know any better
-    table_collection_set_position(&table_position, 0, 0, 0, 0, 0);
-	RecordNewDerivedState(p_genome_id, p_position, p_derived_mutations);
 }
 
 void SLiMSim::CheckAutoSimplification(void)
@@ -4271,14 +4211,27 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
     // otherwise, create p_recording_tree_path as a directory,
     // and write out to text files in that directory
 
-    if (p_simplify)
+    int ret = 0;
+
+    if (p_simplify) {
         SimplifyTreeSequence();
+    } else {
+        // this is done by SimplifyTreeSequence() but we need to do in any case
+        ret = sort_tables(&tables.nodes, &tables.edges, &tables.migrations, 
+                              &tables.sites, &tables.mutations, 0);				
+        if (ret < 0) handle_error("sort_tables", ret);
+
+        // Remove redundant sites we added
+        ret = table_collection_deduplicate_sites(&tables, 0);
+        if (ret < 0) handle_error("deduplicate_sites", ret);
+    }
 	
 	// Standardize the path, resolving a leading ~ and maybe other things
 	std::string path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(p_recording_tree_path));
 
     // Add in the mutation.parent information
-    table_collection_compute_mutation_parents(&tables, 0);
+    ret = table_collection_compute_mutation_parents(&tables, 0);
+    if (ret < 0) handle_error("deduplicate_sites", ret);
 	
     if (p_binary)
 	{
@@ -4352,7 +4305,7 @@ void SLiMSim::RecordAllDerivedStatesFromSLiM(void)
 	// sequence recording stuff has been freed with a call to FreeTreeSequence(), and then a new recording session has
 	// been initiated with StartTreeRecording(); it might be good for this method to do a sanity check that all of the
 	// recording tables are indeed allocated but empty, I guess.  This method then records every extant individual by
-	// making calls to SetCurrentNewIndividual(), RecordNewGenome(), and RecordNewDerivedStateNonMeiosis().  Note
+	// making calls to SetCurrentNewIndividual(), and RecordNewGenome(). Note
 	// that modifyChild() callbacks do not happen in this scenario, so new individuals will not get retracted.  Note
 	// also that new mutations will not be added one at a time, when they are stacked; instead, each block of stacked
 	// mutations in a genome will be added with a single derived state call here.
@@ -4488,7 +4441,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 		ret = table_collection_copy(&tables, tables_copy);
 		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity table_collection_copy()", ret);
 		
-		// simplify before making our tree_sequence object; the sort and deduplicate are required for the crosscheck, whereas the simplify
+		// simplify before making our tree_sequence object; the sort and deduplicate and compute parents are required for the crosscheck, whereas the simplify
 		// could perhaps be removed, which would cause the vargen_t to visit a bunch of stuff unrelated to the current individuals.
 		// this code is adapted from SLiMSim::SimplifyTreeSequence(), but we don't need to update the MSP map table or the table position,
 		// and we simplify down to just the extant individuals since we can't cross-check older individuals anyway...
@@ -4517,6 +4470,9 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 			
 			ret = table_collection_simplify(tables_copy, samples.data(), samples.size(), MSP_FILTER_ZERO_MUTATION_SITES, NULL);
 			if (ret != 0) handle_error("simplifier_run", ret);
+
+            ret = table_collection_compute_mutation_parents(tables_copy, 0);
+            if (ret < 0) handle_error("deduplicate_sites", ret);
 		}
 		
 		// allocate and set up the tree_sequence object that contains all the tree sequences
