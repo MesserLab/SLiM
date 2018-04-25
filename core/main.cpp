@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
 	unsigned long int override_seed = 0;					// this is the type defined for seeds by gsl_rng_set()
 	unsigned long int *override_seed_ptr = nullptr;			// by default, a seed is generated or supplied in the input file
 	const char *input_file = nullptr;
-	bool verbose_output = false, keep_time = false, keep_mem = false, keep_mem_hist = false, skip_checks = false;
+	bool verbose_output = false, keep_time = false, keep_mem = false, keep_mem_hist = false, skip_checks = false, tree_seq_checks = false;
 	std::vector<std::string> defined_constants;
 	
 	// command-line SLiM generally terminates rather than throwing
@@ -237,6 +237,13 @@ int main(int argc, char *argv[])
 			continue;
 		}
 		
+		// -TSXC is an undocumented command-line flag that turns on tree-sequence recording and runtime crosschecks
+		if (strcmp(arg, "-TSXC") == 0)
+		{
+			tree_seq_checks = true;
+			continue;
+		}
+		
 		// this is the fall-through, which should be the input file, and should be the last argument given
 		if (arg_index + 1 != argc)
 			PrintUsageAndDie(false, true);
@@ -285,15 +292,19 @@ int main(int argc, char *argv[])
 	Eidos_FinishWarmUp();
 	
 	SLiMSim *sim = new SLiMSim(input_file);
-	sim->InitializeRNGFromSeed(override_seed_ptr);
-	
-	Eidos_DefineConstantsFromCommandLine(defined_constants);	// do this after the RNG has been set up
 	
 	if (keep_mem_hist)
 		mem_record[mem_record_index++] = Eidos_GetCurrentRSS() - mem_record_capacity * sizeof(size_t);
 	
 	if (sim)
 	{
+		sim->InitializeRNGFromSeed(override_seed_ptr);
+		
+		Eidos_DefineConstantsFromCommandLine(defined_constants);	// do this after the RNG has been set up
+		
+		if (tree_seq_checks)
+			sim->TSXC_Enable();
+		
 #if DO_MEMORY_CHECKS
 		// We check memory usage at the end of every 10 generations, to be able to provide the user with a decent error message
 		// if the maximum memory limit is exceeded.  Every 10 generations is a compromise; these checks do take a little time.

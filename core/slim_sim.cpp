@@ -3113,7 +3113,7 @@ bool SLiMSim::_RunOneGenerationWF(void)
 			CheckAutoSimplification();
 			
 			// note that this causes simplification, so it will confuse the auto-simplification code
-			if (running_treeseq_crosschecks_)
+			if (running_treeseq_crosschecks_ && (generation_ % treeseq_crosschecks_interval_ == 0))
 				CrosscheckTreeSeqIntegrity();
 		}
 		
@@ -3517,7 +3517,7 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 			CheckAutoSimplification();
 			
 			// note that this causes simplification, so it will confuse the auto-simplification code
-			if (running_treeseq_crosschecks_)
+			if (running_treeseq_crosschecks_ && (generation_ % treeseq_crosschecks_interval_ == 0))
 				CrosscheckTreeSeqIntegrity();
 		}
 		
@@ -4713,6 +4713,23 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 	}
 }
 
+void SLiMSim::TSXC_Enable(void)
+{
+	// This is called by command-line slim if a -TSXC command-line option is supplied; the point of this is to allow
+	// tree-sequence recording to be turned on, with mutation recording and runtime crosschecks, with a simple
+	// command-line flag, so that my existing test suite can be crosschecked easily.  The -TSXC flag is not public.
+	recording_tree_ = true;
+	recording_mutations_ = true;
+	simplification_ratio_ = 10;
+	running_treeseq_crosschecks_ = true;
+	treeseq_crosschecks_interval_ = 50;		// check every 50th generation, otherwise it is just too slow
+	
+	pedigrees_enabled_ = true;
+	simplify_interval_ = 20;
+	
+	SLIM_ERRSTREAM << "// ********** Turning on tree-sequence recording with crosschecks (-TSXC)." << std::endl << std::endl;
+}
+
 
 //
 //	Eidos support
@@ -5565,10 +5582,14 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeTreeSeq(const std::strin
 	if (num_treeseq_declarations_ > 0)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeTreeSeq): initializeTreeSeq() may be called only once." << EidosTerminate();
 	
+	// NOTE: the TSXC_Enable() method also sets up tree-seq recording by setting these sorts of flags;
+	// if the code here changes, that method should probably be updated too.
+	
 	recording_tree_ = true;
 	recording_mutations_ = arg_recordMutations_value->LogicalAtIndex(0, nullptr);
 	simplification_ratio_ = arg_simplificationRatio_value->FloatAtIndex(0, nullptr);
 	running_treeseq_crosschecks_ = arg_runCrosschecks_value->LogicalAtIndex(0, nullptr);
+	treeseq_crosschecks_interval_ = 1;		// this interval is presently not exposed in the Eidos API
 	
 	// Pedigree recording is turned on as a side effect of tree sequence recording, since we need to
 	// have unique identifiers for every individual; pedigree recording does that for us

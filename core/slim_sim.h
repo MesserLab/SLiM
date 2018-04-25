@@ -306,6 +306,7 @@ private:
 	
 	bool recording_mutations_ = false;			// true if we are recording mutations in our tree sequence tables
 	bool running_treeseq_crosschecks_ = false;	// true if crosschecks between our tree sequence tables and SLiM's data are enabled
+	int treeseq_crosschecks_interval_ = 1;		// crosschecks, if enabled, will be done every treeseq_crosschecks_interval_ generations
 	double simplification_ratio_;				// the pre:post table size ratio we target with our automatic simplification heuristic
 	slim_generation_t simplify_elapsed_ = 0;	// the number of generations elapsed since a simplification was done (automatic or otherwise)
 	double simplify_interval_;					// the number of generations between automatic simplifications
@@ -456,6 +457,7 @@ public:
 	void MetadataForGenome(slim_genomeid_t p_genome_id, Individual *p_individual, GenomeMetadataRec *p_metadata);
 	void DumpMutationTable(void);
 	void CrosscheckTreeSeqIntegrity(void);
+	void TSXC_Enable(void);
 	// put any other methods you need for the tree sequence stuff here
 	
 	//
