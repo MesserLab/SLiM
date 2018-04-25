@@ -245,7 +245,6 @@ int tree_sequence_dump_tables(tree_sequence_t *self, table_collection_t *tables,
 int tree_sequence_load(tree_sequence_t *self, const char *filename, int flags);
 int tree_sequence_dump(tree_sequence_t *self, const char *filename, int flags);
 int tree_sequence_free(tree_sequence_t *self);
-int tree_sequence_compute_parents(tree_sequence_t *self, bool fix_missing_parents); 
 
 size_t tree_sequence_get_num_nodes(tree_sequence_t *self);
 size_t tree_sequence_get_num_edges(tree_sequence_t *self);
@@ -276,7 +275,6 @@ int tree_sequence_simplify(tree_sequence_t *self, node_id_t *samples,
         node_id_t *node_map);
 int tree_sequence_get_pairwise_diversity(tree_sequence_t *self,
     node_id_t *samples, size_t num_samples, double *pi);
-
 int tree_diff_iterator_alloc(tree_diff_iterator_t *self,
         tree_sequence_t *tree_sequence);
 int tree_diff_iterator_free(tree_diff_iterator_t *self);
@@ -308,6 +306,7 @@ int sparse_tree_get_sample_list(sparse_tree_t *self, node_id_t u,
 int sparse_tree_get_sites(sparse_tree_t *self, site_t **sites, table_size_t *sites_length);
 int sparse_tree_get_newick(sparse_tree_t *self, size_t precision, double time_scale,
         int flags, size_t buffer_size, char *newick_buffer);
+
 void sparse_tree_print_state(sparse_tree_t *self, FILE *out);
 /* Method for positioning the tree in the sequence. */
 int sparse_tree_first(sparse_tree_t *self);

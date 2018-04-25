@@ -4276,6 +4276,9 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 	
 	// Standardize the path, resolving a leading ~ and maybe other things
 	std::string path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(p_recording_tree_path));
+
+    // Add in the mutation.parent information
+    table_collection_compute_mutation_parents(&tables, 0);
 	
     if (p_binary)
 	{
@@ -4520,7 +4523,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 		tree_sequence_t *ts;
 		
 		ts = (tree_sequence_t *)malloc(sizeof(tree_sequence_t));
-		ret = tree_sequence_load_tables(ts, tables_copy, MSP_BUILD_INDEXES | MSP_FIX_PARENTS);
+		ret = tree_sequence_load_tables(ts, tables_copy, MSP_BUILD_INDEXES);
 		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tree_sequence_load_tables()", ret);
 		
 		// find the nodes in the tree sequence's sample of genomes, which should correspond to our genomes (with perhaps some extras)

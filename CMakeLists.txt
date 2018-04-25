@@ -8,8 +8,8 @@
 cmake_minimum_required (VERSION 2.6)
 
 # Use the flags below for all builds and report the build type
-set(CMAKE_C_FLAGS "-g -std=c11 -O3 -Wno-deprecated-register -Wno-attributes")
-set(CMAKE_CXX_FLAGS "-g -std=c++11 -O3 -Wno-deprecated-register -Wno-attributes") 
+set(CMAKE_C_FLAGS "-g -std=c11 -O3 -Wno-deprecated-register -Wno-attributes -Wunused-label -Wimplicit -Wunused-variable -Wunused-value")
+set(CMAKE_CXX_FLAGS "-g -std=c++11 -O3 -Wno-attributes -Wunused-label -Wunused-variable -Wunused-value") 
 message("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
 
 # Place slim and eidos in the bin subdirectory of the source directory
