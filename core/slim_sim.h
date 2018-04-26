@@ -453,7 +453,7 @@ public:
 	void SimplifyTreeSequence(void);
 	void handle_error(std::string msg, int error);
 	void CheckAutoSimplification(void);
-	void RememberIndividuals(std::vector<slim_pedigreeid_t> p_individual_ids);
+	void RememberGenomes(std::vector<slim_genomeid_t> p_genome_ids);
 	void FreeTreeSequence(void);
 	void RecordAllDerivedStatesFromSLiM(void);
 	void MetadataForMutation(Mutation *p_mutation, MutationMetadataRec *p_metadata);

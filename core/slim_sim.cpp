@@ -3750,29 +3750,25 @@ void SLiMSim::SimplifyTreeSequence(void)
 	
 	for (auto it = population_.begin(); it != population_.end(); it++)
 	{
-		std::vector<Individual *> &subpopulationIndividuals = it->second->parent_individuals_;
+		std::vector<Genome *> &subpopulationGenomes = it->second->parent_genomes_;
 		
-		for (Individual *individual : subpopulationIndividuals)
+		for (Genome *genome : subpopulationGenomes)
 		{
-			slim_pedigreeid_t IndID = individual->PedigreeID();
-            for (int k = 0; k < 2; ++k)
-            {
-                slim_genomeid_t G = 2 * IndID + k;
-                node_id_t M = getMSPID(G);
-				
-                // check if this sample is already being remembered
-				auto iter = RememberedGenomes.find(M);
-				
-				if (iter != RememberedGenomes.end())
-				{
-					samples.push_back(M);
-					newSlimMspIdMap[G] = newValueInNodeTable++;
-				}
-				else
-				{
-					newSlimMspIdMap[G] = iter - RememberedGenomes.begin();
-				}
-            }
+			slim_genomeid_t G = genome->genome_id_;
+			node_id_t M = getMSPID(G);
+			
+			// check if this sample is already being remembered
+			auto iter = std::find(RememberedGenomes.begin(), RememberedGenomes.end(), M);
+			
+			if (iter == RememberedGenomes.end())
+			{
+				samples.push_back(M);
+				newSlimMspIdMap[G] = newValueInNodeTable++;
+			}
+			else
+			{
+				newSlimMspIdMap[G] = (node_id_t)(iter - RememberedGenomes.begin());
+			}
 		}
 	}
 	
@@ -3823,30 +3819,10 @@ void SLiMSim::SetCurrentNewIndividual(Individual *p_individual)
 {
 	// This is called by code where new individuals are created
 	
-	// The individual's pedigree ID should be set up already, as are its parents.  Parents can be -1, meaning that the individual started out
-	// with empty genomes and has no parents (as when a new subpopulation is created).  Both parent pedigree ids can also be the same, which
-	// presently indicates the result of *either* clonal reproduction or hermaphroditic selfing; no distinction is drawn between those in
-	// the pedigree tracking code right now, but that could be changed (it would be logical for the second parent to be -1 for cloning, I
-	// think).  The first parent is always the female in sexual models, guaranteed.  At present, when this code is called the individual may
-	// not be completely initialized yet; it may not know its sex, and its genomes may not know their types, and so forth.  If that needs to
-	// be fixed, it should be reasonably straightforward to do so.  For now, the only information guaranteed valid is the pedigree IDs.
-
-	/* DEBUG STDOUT PRINTING 
-	slim_pedigreeid_t ind_pid = p_individual->PedigreeID();
-	slim_pedigreeid_t p1_pid = p_individual->Parent1PedigreeID();
-	slim_pedigreeid_t p2_pid = p_individual->Parent2PedigreeID();
-	std::cout << "--------------------------------------------------" << std::endl << std::endl;
-	std::cout << Generation() << ": New individual created, pedigree id " << ind_pid << " (parents: " << p1_pid << ", " << p2_pid << ")" << std::endl << std::endl;
-	std::cout << "    Prior table position: ";
-    std::cout << table_position.node_position << ", ";
-    std::cout << table_position.edge_position << ", ";
-    std::cout << table_position.site_position << ", ";
-    std::cout << table_position.mutation_position << ", ";
-    std::cout << std::endl;
-	// */
-	
+	// Remember the new individual being defined, for use in RetractNewIndividual() and metadata
 	current_new_individual_ = p_individual;
 	
+	// Remember the current table position so we can return to it later in RetractNewIndividual()
     table_collection_current_position(&table_position);
 }
 
@@ -3962,9 +3938,7 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
     // paths (with bulk operations) we may not know.  This method will also be
     // called when a mutation is removed from a given genome; if no mutations
     // remain at the given position, p_derived_mutations will be empty.  The
-    // p_genome_id value supplied is based upon the individual's pedigree ID,
-    // with the expected invariant relationship: it is 2 * pedigree_id + [0/1].
-    // The vector of IDs passed in here is reused internally, so this method
+    // vector of mutations passed in here is reused internally, so this method
     // must not keep a pointer to it; any information that needs to be kept
     // from it must be copied out.
 
@@ -4258,21 +4232,17 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
     }
 }	
 
-void SLiMSim::RememberIndividuals(std::vector<slim_pedigreeid_t> p_individual_ids)
+void SLiMSim::RememberGenomes(std::vector<slim_genomeid_t> p_genome_ids)
 {
-	// The individuals with pedigree ids specified in p_individual_ids are to be remembered
+	// The genomes with genomes ids specified in p_genome_ids are to be remembered
 	// permanently in this run of the model, i.e. added to the sample in every simplify.
-    for (slim_pedigreeid_t IndID : p_individual_ids)
+    for (slim_genomeid_t G : p_genome_ids)
 	{
-        for (int k = 0; k < 2; ++k)
-        {
-            slim_genomeid_t G = 2 * IndID + k;
-            node_id_t M = getMSPID(G);
-			
-            // check if this sample is already being remembered
-			if (RememberedGenomes.find(M) != RememberedGenomes.end())
-				RememberedGenomes.push_back(M);
-        }
+		node_id_t M = getMSPID(G);
+		
+		// check if this genome is already being remembered
+		if (std::find(RememberedGenomes.begin(), RememberedGenomes.end(), M) == RememberedGenomes.end())
+			RememberedGenomes.push_back(M);
     }
 }
 
@@ -7284,16 +7254,17 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStrin
 	if ((executing_block_type_ == SLiMEidosBlockType::SLiMEidosFitnessCallback) || (executing_block_type_ == SLiMEidosBlockType::SLiMEidosMateChoiceCallback) || (executing_block_type_ == SLiMEidosBlockType::SLiMEidosModifyChildCallback) || (executing_block_type_ == SLiMEidosBlockType::SLiMEidosRecombinationCallback))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqRememberIndividuals): treeSeqRememberIndividuals() may not be called from inside a fitness(), mateChoice(), modifyChild(), or recombination() callback." << EidosTerminate();
 	
-	std::vector<slim_pedigreeid_t> individual_IDs;
+	std::vector<slim_genomeid_t> genome_IDs;
 	
 	for (int ind_index = 0; ind_index < ind_count; ind_index++)
 	{
 		Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex(ind_index, nullptr));
 		
-		individual_IDs.emplace_back(ind->PedigreeID());
+		genome_IDs.emplace_back(ind->genome1_->genome_id_);
+		genome_IDs.emplace_back(ind->genome2_->genome_id_);
 	}
 	
-	RememberIndividuals(individual_IDs);
+	RememberGenomes(genome_IDs);
 	
 	return gStaticEidosValueVOID;
 }
