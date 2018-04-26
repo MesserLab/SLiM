@@ -27,7 +27,10 @@ To add a new test:
         ```
         outputMutationTypes();
         ```
-        at the end.
+        at the end. Note that this will only work properly if there is no new mutation.
+
+    c. Add `chooseAncestralSamples(5)` to some generations along the way
+        to add some individuals as "ancestral samples".
 
 To temporarily turn off a test, just add e.g. `dont_` to the start of its file name.
 Or, add it to `failingTestRecipes/`.

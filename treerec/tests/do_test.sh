@@ -21,7 +21,7 @@ do
         exit 1
     fi
 
-	rm -f test_output/*
+	rm -rf test_output/*
 
     echo "Now testing SLiM Recipe: $RECIPE"
     ../../bin/slim -s 22 "$RECIPE" &> test_output/SLiM_run_output.log || (echo "SLiM error" && exit 1)

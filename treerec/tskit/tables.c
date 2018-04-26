@@ -417,8 +417,9 @@ static int
 edge_table_expand_columns(edge_table_t *self, size_t additional_rows)
 {
     int ret = 0;
-    size_t increment = MSP_MAX(additional_rows, self->max_rows_increment);
-    size_t new_size = self->max_rows + increment;
+    table_size_t increment = MSP_MAX(
+        (table_size_t) additional_rows, self->max_rows_increment);
+    table_size_t new_size = self->max_rows + increment;
 
     if ((self->num_rows + additional_rows) > self->max_rows) {
         ret = expand_column((void **) &self->left, new_size, sizeof(double));
@@ -452,7 +453,7 @@ edge_table_alloc(edge_table_t *self, size_t max_rows_increment)
     if (max_rows_increment == 0) {
         max_rows_increment = DEFAULT_SIZE_INCREMENT;
     }
-    self->max_rows_increment = max_rows_increment;
+    self->max_rows_increment = (table_size_t) max_rows_increment;
     self->max_rows = 0;
     self->num_rows = 0;
     ret = edge_table_expand_columns(self, 1);
@@ -523,7 +524,7 @@ edge_table_append_columns(edge_table_t *self,
     memcpy(self->right + self->num_rows, right, num_rows * sizeof(double));
     memcpy(self->parent + self->num_rows, parent, num_rows * sizeof(node_id_t));
     memcpy(self->child + self->num_rows, child, num_rows * sizeof(node_id_t));
-    self->num_rows += num_rows;
+    self->num_rows += (table_size_t) num_rows;
 out:
     return ret;
 }
@@ -1344,8 +1345,9 @@ static int
 migration_table_expand(migration_table_t *self, size_t additional_rows)
 {
     int ret = 0;
-    size_t increment = MSP_MAX(additional_rows, self->max_rows_increment);
-    size_t new_size = self->max_rows + increment;
+    table_size_t increment = MSP_MAX(
+            (table_size_t) additional_rows, self->max_rows_increment);
+    table_size_t new_size = self->max_rows + increment;
 
     if ((self->num_rows + additional_rows) > self->max_rows) {
         ret = expand_column((void **) &self->left, new_size, sizeof(double));
@@ -1387,7 +1389,7 @@ migration_table_alloc(migration_table_t *self, size_t max_rows_increment)
     if (max_rows_increment == 0) {
         max_rows_increment = DEFAULT_SIZE_INCREMENT;
     }
-    self->max_rows_increment = max_rows_increment;
+    self->max_rows_increment = (table_size_t) max_rows_increment;
     self->max_rows = 0;
     self->num_rows = 0;
     ret = migration_table_expand(self, 1);
@@ -1420,7 +1422,7 @@ migration_table_append_columns(migration_table_t *self, size_t num_rows, double 
     memcpy(self->source + self->num_rows, source, num_rows * sizeof(population_id_t));
     memcpy(self->dest + self->num_rows, dest, num_rows * sizeof(population_id_t));
     memcpy(self->time + self->num_rows, time, num_rows * sizeof(double));
-    self->num_rows += num_rows;
+    self->num_rows += (table_size_t) num_rows;
 out:
     return ret;
 }
@@ -1871,15 +1873,15 @@ cmp_site(const void *a, const void *b) {
     const site_t *ib = (const site_t *) b;
     /* Compare sites by position */
     int ret = (ia->position > ib->position) - (ia->position < ib->position);
-	if (ret == 0) {
-		/* Within a particular position sort by ID.  This ensures that relative ordering
-		 * of multiple sites at the same position is maintained; the redundant sites
-		 * will get compacted down by clean_tables(), but in the meantime if the order
-		 * of the redundant sites changes it will cause the sort order of mutations to
-		 * be corrupted, as the mutations will follow their sites. */
-		ret = (ia->id > ib->id) - (ia->id < ib->id);
-	}
-	return ret;
+    if (ret == 0) {
+        /* Within a particular position sort by ID.  This ensures that relative ordering
+         * of multiple sites at the same position is maintained; the redundant sites
+         * will get compacted down by clean_tables(), but in the meantime if the order
+         * of the redundant sites changes it will cause the sort order of mutations to
+         * be corrupted, as the mutations will follow their sites. */
+        ret = (ia->id > ib->id) - (ia->id < ib->id);
+    }
+    return ret;
 }
 
 static int
@@ -2946,7 +2948,6 @@ simplifier_overlapping_segments_init(simplifier_t *self)
 {
     int ret = 0;
     simplify_segment_t *sentinel;
-    void *p;
 
     /* Sort the segments in the buffer by left coordinate */
     qsort(self->segment_queue, self->segment_queue_size, sizeof(simplify_segment_t),
@@ -2958,8 +2959,6 @@ simplifier_overlapping_segments_init(simplifier_t *self)
     self->overlapping_segments_state.num_overlapping = 0;
     self->overlapping_segments_state.left = 0;
     self->overlapping_segments_state.right = DBL_MAX;
-
-out:
     return ret;
 }
 
@@ -3190,10 +3189,8 @@ simplifier_output_sites(simplifier_t *self)
     mutation_id_t num_input_mutations = (mutation_id_t) self->input_mutations.num_rows;
     mutation_id_t input_parent, num_output_mutations, num_output_site_mutations;
     node_id_t mapped_node;
-    bool keep_mutation, keep_site;
+    bool keep_site;
     bool filter_zero_mutation_sites = (self->flags & MSP_FILTER_ZERO_MUTATION_SITES);
-    char *derived_state, *ancestral_state;
-    int cmp;
 
     input_mutation = 0;
     num_output_mutations = 0;
@@ -3209,33 +3206,9 @@ simplifier_output_sites(simplifier_t *self)
                 if (input_parent != MSP_NULL_MUTATION) {
                     mapped_parent = self->mutation_id_map[input_parent];
                 }
-                keep_mutation = true;
-                if (mapped_parent == MSP_NULL_MUTATION) {
-                    /* If there is no parent and the ancestral state is equal to the
-                     * derived state, then we remove this mutation.
-                     */
-                    derived_state = self->input_mutations.derived_state +
-                        self->input_mutations.derived_state_offset[input_mutation];
-                    derived_state_length =
-                        self->input_mutations.derived_state_offset[input_mutation + 1]
-                        - self->input_mutations.derived_state_offset[input_mutation];
-                    ancestral_state = self->input_sites.ancestral_state +
-                        self->input_sites.ancestral_state_offset[input_site];
-                    ancestral_state_length =
-                        self->input_sites.ancestral_state_offset[input_site + 1]
-                        - self->input_sites.ancestral_state_offset[input_site];
-                    if (ancestral_state_length == derived_state_length) {
-                        cmp = memcmp(derived_state, ancestral_state, derived_state_length);
-                        if (cmp == 0) {
-                            keep_mutation = false;
-                        }
-                    }
-                }
-                if (keep_mutation) {
-                    self->mutation_id_map[input_mutation] = num_output_mutations;
-                    num_output_mutations++;
-                    num_output_site_mutations++;
-                }
+                self->mutation_id_map[input_mutation] = num_output_mutations;
+                num_output_mutations++;
+                num_output_site_mutations++;
             }
             input_mutation++;
         }
@@ -3473,7 +3446,7 @@ static int
 hdf5_file_read_groups(hdf5_file_t *self, hid_t file_id)
 {
 #pragma unused(self)
-   int ret = MSP_ERR_HDF5;
+    int ret = MSP_ERR_HDF5;
     htri_t exists;
     const char* groups[] = {
         "/edges",
@@ -4422,7 +4395,7 @@ int WARN_UNUSED
 table_collection_build_indexes(table_collection_t *self, int flags)
 {
 #pragma unused(flags)
-   int ret = MSP_ERR_GENERIC;
+    int ret = MSP_ERR_GENERIC;
     size_t j;
     double *time = self->nodes.time;
     index_sort_t *sort_buff = NULL;
@@ -4502,7 +4475,7 @@ int WARN_UNUSED
 table_collection_load(table_collection_t *self, const char *filename, int flags)
 {
 #pragma unused(flags)
-   int ret = 0;
+    int ret = 0;
     hdf5_file_t hdf5_file;
 
     ret = hdf5_file_alloc(&hdf5_file, self);
@@ -4685,6 +4658,103 @@ table_collection_deduplicate_sites(table_collection_t *self, int flags)
     }
 out:
     msp_safe_free(site_id_map);
+    return ret;
+}
+
+
+int WARN_UNUSED
+table_collection_compute_mutation_parents(table_collection_t *self, int flags)
+{
+#pragma unused(flags)
+    int ret = 0;
+    const edge_id_t *I, *O;
+    const edge_table_t edges = self->edges;
+    const site_table_t sites = self->sites;
+    const mutation_table_t mutations = self->mutations;
+    edge_id_t tj, tk, M;
+    node_id_t *parent = NULL;
+    mutation_id_t *bottom_mutation = NULL;
+    node_id_t u;
+    double left, right;
+    site_id_t site;
+    /* Using unsigned values here avoids potentially undefined behaviour */
+    uint32_t j, mutation, first_mutation;
+
+    ret = table_collection_build_indexes(self, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    parent = malloc(self->nodes.num_rows * sizeof(*parent));
+    bottom_mutation = malloc(self->nodes.num_rows * sizeof(*bottom_mutation));
+    if (parent == NULL || bottom_mutation == NULL) {
+        ret = MSP_ERR_NO_MEMORY;
+        goto out;
+    }
+    memset(parent, 0xff, self->nodes.num_rows * sizeof(*parent));
+    memset(bottom_mutation, 0xff, self->nodes.num_rows * sizeof(*bottom_mutation));
+    memset(mutations.parent, 0xff, self->mutations.num_rows * sizeof(mutation_id_t));
+
+    I = self->indexes.edge_insertion_order;
+    O = self->indexes.edge_removal_order;
+    M = (edge_id_t) edges.num_rows;
+    tj = 0;
+    tk = 0;
+    site = 0;
+    mutation = 0;
+    while (tj < M) {
+        left = edges.left[I[tj]];
+        while (tk < M && edges.right[O[tk]] == left) {
+            parent[edges.child[O[tk]]] = MSP_NULL_NODE;
+            tk++;
+        }
+        while (tj < M && edges.left[I[tj]] == left) {
+            parent[edges.child[I[tj]]] = edges.parent[I[tj]];
+            tj++;
+        }
+        right = self->sequence_length;
+        if (tk < M) {
+            right = edges.right[O[tk]];
+        }
+        /* Tree is now ready. We look at each site on this tree in turn */
+        while (site < (site_id_t) sites.num_rows && sites.position[site] < right) {
+            /* Create a mapping from mutations to nodes. If we see more than one
+             * mutation at a node, the previously seen one must be the parent
+             * of the current since we assume they are in order. */
+            first_mutation = mutation;
+            while (mutation < mutations.num_rows && mutations.site[mutation] == site) {
+                u = mutations.node[mutation];
+                if (bottom_mutation[u] != MSP_NULL_MUTATION) {
+                    mutations.parent[mutation] = bottom_mutation[u];
+                }
+                bottom_mutation[u] = (mutation_id_t) mutation;
+                mutation++;
+            }
+            /* There's no point in checking the first mutation since this cannot
+             * have a parent. This also efficiently covers the common case of
+             * single mutations at a site. */
+            for (j = first_mutation + 1; j < mutation; j++) {
+                if (mutations.parent[j] == MSP_NULL_MUTATION) {
+                    u = parent[mutations.node[j]];
+                    while (u != MSP_NULL_NODE && bottom_mutation[u] == MSP_NULL_MUTATION) {
+                        u = parent[u];
+                    }
+                    if (u != MSP_NULL_NODE) {
+                        mutations.parent[j] = bottom_mutation[u];
+                    }
+                }
+            }
+            /* Reset the mapping for the next site */
+            for (j = first_mutation; j < mutation; j++) {
+                u = mutations.node[j];
+                bottom_mutation[u] = MSP_NULL_MUTATION;
+            }
+            site++;
+        }
+    }
+
+out:
+    msp_safe_free(parent);
+    msp_safe_free(bottom_mutation);
     return ret;
 }
 

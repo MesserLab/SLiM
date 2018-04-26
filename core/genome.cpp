@@ -409,11 +409,6 @@ void Genome::record_derived_states(SLiMSim *p_sim) const
 	// This is called by SLiMSim::RecordAllDerivedStatesFromSLiM() to record all the derived states present
 	// in a given genome that was just created by readFromPopulationFile() or some similar situation.  It should
 	// make calls to record the derived state at each position in the genome that has any mutation.
-	
-	// We have to call RecordNewDerivedStateNonMeiosis() here, because we are out of sequence with respect to
-	// calls to SetCurrentNewIndividual() / RecordNewGenome(), but in fact we do know that there is no previous
-	// state at each of the positions we're recording, we just presently have no way to tell the tree-seq code
-	// that it can skip the backscan work.  If this turns out to be a performance problem, that could be improved.
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	static std::vector<Mutation *> record_vec;
 	
@@ -436,7 +431,7 @@ void Genome::record_derived_states(SLiMSim *p_sim) const
 				// New position, so we finish the previous derived-state block...
 				if (last_pos != -1)
 				{
-					p_sim->RecordNewDerivedStateNonMeiosis(genome_id_, last_pos, record_vec);
+					p_sim->RecordNewDerivedState(genome_id_, last_pos, record_vec);
 					record_vec.clear();
 				}
 				
@@ -450,7 +445,7 @@ void Genome::record_derived_states(SLiMSim *p_sim) const
 		// record the last derived block, if any
 		if (last_pos != -1)
 		{
-			p_sim->RecordNewDerivedStateNonMeiosis(genome_id_, last_pos, record_vec);
+			p_sim->RecordNewDerivedState(genome_id_, last_pos, record_vec);
 			record_vec.clear();
 		}
 	}
@@ -1519,7 +1514,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 			{
 				slim_position_t pos = mut->position_;
 				
-				sim.RecordNewDerivedStateNonMeiosis(target_id, pos, *target_genome->derived_mutation_ids_at_position(pos));
+				sim.RecordNewDerivedState(target_id, pos, *target_genome->derived_mutation_ids_at_position(pos));
 			}
 		}
 	}
@@ -1809,7 +1804,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 					Mutation *mut = gSLiM_Mutation_Block + *(muts++);
 					slim_position_t pos = mut->position_;
 					
-					sim.RecordNewDerivedStateNonMeiosis(target_genome->genome_id_, pos, *target_genome->derived_mutation_ids_at_position(pos));
+					sim.RecordNewDerivedState(target_genome->genome_id_, pos, *target_genome->derived_mutation_ids_at_position(pos));
 				}
 			}
 		}
@@ -2001,7 +1996,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 					Mutation *mut = target_walker.CurrentMutation();
 					slim_position_t pos = mut->position_;
 					
-					sim.RecordNewDerivedStateNonMeiosis(target_id, pos, empty_mut_vector);
+					sim.RecordNewDerivedState(target_id, pos, empty_mut_vector);
 				}
 			}
 		}
@@ -2147,7 +2142,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 				{
 					slim_position_t pos = mut->position_;
 					
-					sim.RecordNewDerivedStateNonMeiosis(target_id, pos, *target_genome->derived_mutation_ids_at_position(pos));
+					sim.RecordNewDerivedState(target_id, pos, *target_genome->derived_mutation_ids_at_position(pos));
 				}
 			}
 		}

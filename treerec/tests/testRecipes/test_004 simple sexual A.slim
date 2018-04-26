@@ -13,7 +13,12 @@ initialize() {
 }
 1 {
 	sim.addSubpop("p1", 100);
+    chooseAncestralSamples(5);
 }
+50 {
+    chooseAncestralSamples(5);
+}
+
 100 late() { 
     outputMutationResult();
     cat("\nTotal mutation frequencies: " + sum(sim.mutationFrequencies(NULL)) + "\n"); 

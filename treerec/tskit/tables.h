@@ -385,6 +385,7 @@ int table_collection_free(table_collection_t *self);
 int table_collection_simplify(table_collection_t *self,
         node_id_t *samples, size_t num_samples, int flags, node_id_t *node_map);
 int table_collection_deduplicate_sites(table_collection_t *tables, int flags);
+int table_collection_compute_mutation_parents(table_collection_t *self, int flags);
 
 int simplifier_alloc(simplifier_t *self, double sequence_length,
         node_id_t *samples, size_t num_samples,

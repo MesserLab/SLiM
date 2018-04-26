@@ -28,6 +28,9 @@ late() {
 	freqs = sim.mutationFrequencies(NULL, muts);
 	sim.subpopulations.genomes.removeMutations(muts[freqs == 0.5], T);
 }
+5 {
+    chooseAncestralSamples(5);
+}
 9 late() { 
     outputMutationResult();
 }
