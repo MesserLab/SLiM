@@ -6076,13 +6076,20 @@ void _RunFunctionValueInspectionManipulationTests_m_through_z(void)
 	EidosAssertScriptSuccess("rev(6.0:10);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{10,9,8,7,6}));
 	EidosAssertScriptSuccess("rev(c(T,T,T,F));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true, true, true}));
 	
-	// size()
+	// size() / length()
 	EidosAssertScriptSuccess("size(NULL);", gStaticEidosValue_Integer0);
 	EidosAssertScriptSuccess("size(logical(0));", gStaticEidosValue_Integer0);
 	EidosAssertScriptSuccess("size(5);", gStaticEidosValue_Integer1);
 	EidosAssertScriptSuccess("size(c(5.5, 8.7));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(2)));
 	EidosAssertScriptSuccess("size(c('foo', 'bar', 'baz'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
 	EidosAssertScriptSuccess("size(rep(_Test(7), 4));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(4)));
+	
+	EidosAssertScriptSuccess("length(NULL);", gStaticEidosValue_Integer0);
+	EidosAssertScriptSuccess("length(logical(0));", gStaticEidosValue_Integer0);
+	EidosAssertScriptSuccess("length(5);", gStaticEidosValue_Integer1);
+	EidosAssertScriptSuccess("length(c(5.5, 8.7));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(2)));
+	EidosAssertScriptSuccess("length(c('foo', 'bar', 'baz'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
+	EidosAssertScriptSuccess("length(rep(_Test(7), 4));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(4)));
 	
 	// sort()
 	EidosAssertScriptSuccess("sort(integer(0));", gStaticEidosValue_Integer_ZeroVec);
@@ -7120,10 +7127,14 @@ void _RunMethodTests(void)
 	EidosAssertScriptSuccess("_Test(7).propertySignature('_yolk');", gStaticEidosValueVOID);
 	EidosAssertScriptSuccess("matrix(_Test(7)).propertySignature('_yolk');", gStaticEidosValueVOID);
 	
-	// size()
+	// size() / length()
 	EidosAssertScriptSuccess("_Test(7).size();", gStaticEidosValue_Integer1);
 	EidosAssertScriptSuccess("rep(_Test(7), 5).size();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
 	EidosAssertScriptSuccess("matrix(rep(_Test(7), 5)).size();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
+	
+	EidosAssertScriptSuccess("_Test(7).length();", gStaticEidosValue_Integer1);
+	EidosAssertScriptSuccess("rep(_Test(7), 5).length();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
+	EidosAssertScriptSuccess("matrix(rep(_Test(7), 5)).length();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
 	
 	// str()
 	EidosAssertScriptSuccess("_Test(7).str();", gStaticEidosValueVOID);

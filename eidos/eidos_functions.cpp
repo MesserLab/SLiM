@@ -207,7 +207,8 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("paste0",			Eidos_ExecuteFunction_paste0,		kEidosValueMaskString | kEidosValueMaskSingleton))->AddAny("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("print",				Eidos_ExecuteFunction_print,		kEidosValueMaskVOID))->AddAny("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rev",				Eidos_ExecuteFunction_rev,			kEidosValueMaskAny))->AddAny("x"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_size,		Eidos_ExecuteFunction_size,			kEidosValueMaskInt | kEidosValueMaskSingleton))->AddAny("x"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_size,		Eidos_ExecuteFunction_size_length,	kEidosValueMaskInt | kEidosValueMaskSingleton))->AddAny("x"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_length,	Eidos_ExecuteFunction_size_length,	kEidosValueMaskInt | kEidosValueMaskSingleton))->AddAny("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("sort",				Eidos_ExecuteFunction_sort,			kEidosValueMaskAnyBase))->AddAnyBase("x")->AddLogical_OS("ascending", gStaticEidosValue_LogicalT));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("sortBy",			Eidos_ExecuteFunction_sortBy,		kEidosValueMaskObject))->AddObject("x", nullptr)->AddString_S("property")->AddLogical_OS("ascending", gStaticEidosValue_LogicalT));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_str,		Eidos_ExecuteFunction_str,			kEidosValueMaskVOID))->AddAny("x"));
@@ -7061,7 +7062,8 @@ EidosValue_SP Eidos_ExecuteFunction_rev(const EidosValue_SP *const p_arguments, 
 }
 
 //	(integer$)size(* x)
-EidosValue_SP Eidos_ExecuteFunction_size(const EidosValue_SP *const p_arguments, int __attribute__((unused)) p_argument_count, EidosInterpreter __attribute__((unused)) &p_interpreter)
+//	(integer$)length(* x)
+EidosValue_SP Eidos_ExecuteFunction_size_length(const EidosValue_SP *const p_arguments, int __attribute__((unused)) p_argument_count, EidosInterpreter __attribute__((unused)) &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	

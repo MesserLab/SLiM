@@ -3587,6 +3587,7 @@ const std::vector<const EidosMethodSignature *> *EidosObjectClass::Methods(void)
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_methodSignature, kEidosValueMaskVOID))->AddString_OSN("methodName", gStaticEidosValueNULL));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_propertySignature, kEidosValueMaskVOID))->AddString_OSN("propertyName", gStaticEidosValueNULL));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_size, kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_length, kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_str, kEidosValueMaskVOID)));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
@@ -3601,7 +3602,8 @@ EidosValue_SP EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_
 	{
 		case gEidosID_propertySignature:	return ExecuteMethod_propertySignature(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
 		case gEidosID_methodSignature:		return ExecuteMethod_methodSignature(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
-		case gEidosID_size:					return ExecuteMethod_size(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
+		case gEidosID_size:					return ExecuteMethod_size_length(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
+		case gEidosID_length:				return ExecuteMethod_size_length(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
 			
 		default:
 		{
@@ -3698,8 +3700,9 @@ EidosValue_SP EidosObjectClass::ExecuteMethod_methodSignature(EidosGlobalStringI
 }
 
 //	*********************	+ (integer$)size(void)
+//	*********************	+ (integer$)length(void)
 //
-EidosValue_SP EidosObjectClass::ExecuteMethod_size(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
+EidosValue_SP EidosObjectClass::ExecuteMethod_size_length(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
 {
 #pragma unused (p_method_id, p_target, p_arguments, p_argument_count, p_interpreter)
 	
