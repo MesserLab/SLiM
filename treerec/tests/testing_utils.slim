@@ -44,7 +44,7 @@ function (void)outputMutationResult([s$ outputFile="test_output/slim_mutation_ou
      * * */
     sim.treeSeqOutput("test_output", binary=F, simplify=T);
     sim.treeSeqOutput("test_output/test_output.treeseq", binary=T, simplify=T);
-    sim.treeSeqOutput("test_output/test_output.unsimplified.treeseq", binary=T, simplify=F);
+    // sim.treeSeqOutput("test_output/test_output.unsimplified.treeseq", binary=T, simplify=F);
     for (pop in sim.subpopulations) {
         for (ind in pop.individuals) {
             pedID = ind.pedigreeID;

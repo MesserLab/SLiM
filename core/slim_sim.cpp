@@ -3838,16 +3838,6 @@ void SLiMSim::SetCurrentNewIndividual(Individual *p_individual)
 	current_new_individual_ = p_individual;
 	
     table_collection_current_position(&table_position);
-	
-    /* DEBUG STDOUT
-	std::cout << "   Current position: ";
-    std::cout << table_position.node_position << ", ";
-    std::cout << table_position.edge_position << ", ";
-    std::cout << table_position.site_position << ", ";
-    std::cout << table_position.mutation_position << ", ";
-    std::cout << std::endl;
-    // */
-
 }
 
 void SLiMSim::RetractNewIndividual()
@@ -3868,15 +3858,6 @@ void SLiMSim::RetractNewIndividual()
 	current_new_individual_ = nullptr;
 	
     table_collection_reset_position(&table_position);
-    
-    /* DEBUG STDOUT
-	std::cout << "  resulting table position ";
-    std::cout << tables.nodes.num_rows << ", ";
-    std::cout << tables.edges.num_rows << ", ";
-    std::cout << tables.sites.num_rows << ", ";
-    std::cout << tables.mutations.num_rows << ", ";
-    std::cout << std::endl;
-    // */
 }
 
 void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_genomeid_t p_new_genome_id, 
@@ -3890,7 +3871,7 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_
 
 	node_id_t offspringMSPID;			//MSPrime equivilent of germ cell ID (Node returned from MSPrime)
 	
-	/* DEBUG STDOUT PRINTING 
+	// DEBUG STDOUT PRINTING 
   	std::cout << "------------" << std::endl;	
 	std::cout << "generation: " << Generation() << " -- and tree_seq_generation  " << tree_seq_generation_ << std::endl;
     std::cout << "New genome: " << p_new_genome_id << std::endl;
@@ -3920,7 +3901,7 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_
 	genome1MSPID = getMSPID(p_initial_parental_genome_id);
 	genome2MSPID = (p_second_parental_genome_id == -1) ? genome1MSPID : getMSPID(p_second_parental_genome_id);
 
-	/* DEBUG STDOUT PRINTING
+	// DEBUG STDOUT PRINTING
     std::cout << "  in MSP ids: " << genome1MSPID << " and " << genome2MSPID << " ---> " << offspringMSPID << std::endl;
     std::cout << "  and breakpoints ";
 	for (size_t i = 0; i < (p_breakpoints ? p_breakpoints->size() : 0); i++){
@@ -3979,7 +3960,12 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
 
     node_id_t genomeMSPID = getMSPID(p_genome_id);
 
-	/* DEBUG STDOUT PRINTING
+    // Identify any previous mutations at this site in this genome, and add a new site
+    double msp_position = (double) p_position;
+
+    site_id_t site_id = site_table_add_row(&tables.sites, msp_position, NULL, 0, NULL, 0);
+	
+	// DEBUG STDOUT
 	std::cout << tree_seq_generation_ << ":   New derived state for genome id "; 
     std::cout << p_genome_id << " (msp: " << genomeMSPID << ") at position " << p_position << ", mutation IDs:";
 	if (p_derived_mutations.size()) {
@@ -3989,19 +3975,7 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
 		std::cout << " <empty>";
 	}
 	std::cout << std::endl;
-	// END DEBUG */
-
-    // Identify any previous mutations at this site in this genome, and add a new site
-    double msp_position = (double) p_position;
-
-    site_id_t site_id = site_table_add_row(&tables.sites, msp_position, NULL, 0, NULL, 0);
-	
-    /* DEBUG STDOUT
-    std::cout << ":    Working at site " << site_id;
-    std::cout << " which is " << (site_id == (int)tables.sites.num_rows - 1 ? "the last" : "an older"); 
-    std::cout << " site" << std::endl;
-    std::cout << ":    parent mutations? checked from " <<  table_position.mutation_position - 1;
-    std::cout << " to " << tables.mutations.num_rows;
+    std::cout << ":    Working at site " << site_id << std::endl;
     // */
 
     // form derived state: needs to be a const char*

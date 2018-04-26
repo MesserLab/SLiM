@@ -3189,10 +3189,8 @@ simplifier_output_sites(simplifier_t *self)
     mutation_id_t num_input_mutations = (mutation_id_t) self->input_mutations.num_rows;
     mutation_id_t input_parent, num_output_mutations, num_output_site_mutations;
     node_id_t mapped_node;
-    bool keep_mutation, keep_site;
+    bool keep_site;
     bool filter_zero_mutation_sites = (self->flags & MSP_FILTER_ZERO_MUTATION_SITES);
-    char *derived_state, *ancestral_state;
-    int cmp;
 
     input_mutation = 0;
     num_output_mutations = 0;
@@ -3208,33 +3206,9 @@ simplifier_output_sites(simplifier_t *self)
                 if (input_parent != MSP_NULL_MUTATION) {
                     mapped_parent = self->mutation_id_map[input_parent];
                 }
-                keep_mutation = true;
-                if (mapped_parent == MSP_NULL_MUTATION) {
-                    /* If there is no parent and the ancestral state is equal to the
-                     * derived state, then we remove this mutation.
-                     */
-                    derived_state = self->input_mutations.derived_state +
-                        self->input_mutations.derived_state_offset[input_mutation];
-                    derived_state_length =
-                        self->input_mutations.derived_state_offset[input_mutation + 1]
-                        - self->input_mutations.derived_state_offset[input_mutation];
-                    ancestral_state = self->input_sites.ancestral_state +
-                        self->input_sites.ancestral_state_offset[input_site];
-                    ancestral_state_length =
-                        self->input_sites.ancestral_state_offset[input_site + 1]
-                        - self->input_sites.ancestral_state_offset[input_site];
-                    if (ancestral_state_length == derived_state_length) {
-                        cmp = memcmp(derived_state, ancestral_state, derived_state_length);
-                        if (cmp == 0) {
-                            keep_mutation = false;
-                        }
-                    }
-                }
-                if (keep_mutation) {
-                    self->mutation_id_map[input_mutation] = num_output_mutations;
-                    num_output_mutations++;
-                    num_output_site_mutations++;
-                }
+                self->mutation_id_map[input_mutation] = num_output_mutations;
+                num_output_mutations++;
+                num_output_site_mutations++;
             }
             input_mutation++;
         }
