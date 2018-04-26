@@ -256,9 +256,9 @@ public:
 	Subpopulation(const Subpopulation&) = delete;													// no copying
 	Subpopulation& operator=(const Subpopulation&) = delete;										// no copying
 	Subpopulation(void) = delete;																	// no null construction
-	Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size);	// construct with a population size
-	Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, double p_sex_ratio,
-				  GenomeType p_modeled_chromosome_type, double p_x_chromosome_dominance_coeff);		// SEX ONLY: construct with a sex ratio (fraction male), chromosome type (AXY), and X dominance coeff
+	Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, bool p_record_in_treeseq);
+	Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, bool p_record_in_treeseq,
+				  double p_sex_ratio, GenomeType p_modeled_chromosome_type, double p_x_chromosome_dominance_coeff);		// SEX ONLY: construct with a sex ratio (fraction male), chromosome type (AXY), and X dominance coeff
 	~Subpopulation(void);																			// destructor
 	
 #ifdef SLIM_WF_ONLY
@@ -334,7 +334,7 @@ public:
 	
 	void WipeIndividualsAndGenomes(std::vector<Individual *> &p_individuals, std::vector<Genome *> &p_genomes, slim_popsize_t p_individual_count, slim_popsize_t p_first_male, bool p_no_clear);
 #ifdef SLIM_WF_ONLY
-	void GenerateIndividualsToFitWF(bool p_make_child_generation, bool p_placeholders);		// given the set subpop size and sex ratio, make new genomes and individuals to fit
+	void GenerateIndividualsToFitWF(bool p_make_child_generation, bool p_placeholders, bool p_record_in_treeseq);		// given the set subpop size and sex ratio, make new genomes and individuals to fit
 #endif	// SLIM_WF_ONLY
 #ifdef SLIM_NONWF_ONLY
 	void GenerateIndividualsToFitNonWF(double p_sex_ratio);									// given the initial subpop size, make new genomes and individuals to fit

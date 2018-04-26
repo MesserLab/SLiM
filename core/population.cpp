@@ -155,9 +155,9 @@ Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, slim_po
 	Subpopulation *new_subpop = nullptr;
 	
 	if (sim_.SexEnabled())
-		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size, p_initial_sex_ratio, sim_.ModeledChromosomeType(), sim_.XDominanceCoefficient());	// SEX ONLY
+		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size, true, p_initial_sex_ratio, sim_.ModeledChromosomeType(), sim_.XDominanceCoefficient());	// SEX ONLY
 	else
-		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size);
+		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size, true);
 	
 #ifdef SLIM_WF_ONLY
 	new_subpop->child_generation_valid_ = child_generation_valid_;	// synchronize its stage with ours
@@ -184,13 +184,13 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 	if (p_subpop_size < 1)
 		EIDOS_TERMINATION << "ERROR (Population::AddSubpopulationSplit): subpopulation p" << p_subpop_id << " empty." << EidosTerminate();
 	
-	// make and add the new subpopulation
+	// make and add the new subpopulation; note that we tell Subpopulation::Subpopulation() not to record tree-seq information
 	Subpopulation *new_subpop = nullptr;
  
 	if (sim_.SexEnabled())
-		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size, p_initial_sex_ratio, sim_.ModeledChromosomeType(), sim_.XDominanceCoefficient());	// SEX ONLY
+		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size, false, p_initial_sex_ratio, sim_.ModeledChromosomeType(), sim_.XDominanceCoefficient());	// SEX ONLY
 	else
-		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size);
+		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size, false);
 	
 	new_subpop->child_generation_valid_ = child_generation_valid_;	// synchronize its stage with ours
 	
@@ -205,10 +205,27 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 	
 	// then draw parents from the source population according to fitness, obeying the new subpop's sex ratio
 	Subpopulation &subpop = *new_subpop;
+	bool recording_tree_sequence = sim_.RecordingTreeSequence();
+	
+	// TREE SEQUENCE RECORDING
+	if (recording_tree_sequence)
+	{
+		// OK, so, this is gross.  The user can call addSubpopSplit(), and the new individuals created as a side effect need to
+		// arrive in the tree-seq tables stamped with a later time than their parents, but as far as SLiM is concerned they
+		// were created at the same time as the parents; they exist at the same point in time, and it's WF, therefore they
+		// were created at the same time, Q.E.D.  So to get the tree-seq code not to object, we add a small offset to the
+		// generation counter.  Since addSubpopSplit() could be called multiple times in sequence, splitting a new subpop off
+		// from each previous one in a linear fashion, each call to addSubpopSplit() needs to increase this offset slightly.
+		// The offset is reset to zero each time the tree sequence's generation counter advances.  This is similar to the
+		// timing problem that made us create tree_seq_generation_ in the first place, due to children arriving in the same
+		// SLiM generation as their parents, but at least that only happens once per generation in a predictable fashion.
+		sim_.AboutToSplitSubpop();
+	}
 	
 	for (slim_popsize_t parent_index = 0; parent_index < subpop.parent_subpop_size_; parent_index++)
 	{
 		// draw individual from p_source_subpop and assign to be a parent in subpop
+		// BCH 4/25/2018: we have to tree-seq record the new individuals and genomes here, with the correct parent information
 		slim_popsize_t migrant_index;
 		
 		if (sim_.SexEnabled())
@@ -223,8 +240,22 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 			migrant_index = p_source_subpop.DrawParentUsingFitness();
 		}
 		
-		subpop.parent_genomes_[2 * parent_index]->copy_from_genome(*p_source_subpop.parent_genomes_[2 * migrant_index]);
-		subpop.parent_genomes_[2 * parent_index + 1]->copy_from_genome(*p_source_subpop.parent_genomes_[2 * migrant_index + 1]);
+		Genome *source_genome1 = p_source_subpop.parent_genomes_[2 * migrant_index];
+		Genome *source_genome2 = p_source_subpop.parent_genomes_[2 * migrant_index + 1];
+		
+		Genome *dest_genome1 = subpop.parent_genomes_[2 * parent_index];
+		Genome *dest_genome2 = subpop.parent_genomes_[2 * parent_index + 1];
+		
+		dest_genome1->copy_from_genome(*source_genome1);
+		dest_genome2->copy_from_genome(*source_genome2);
+		
+		// TREE SEQUENCE RECORDING
+		if (recording_tree_sequence)
+		{
+			sim_.SetCurrentNewIndividual(subpop.parent_individuals_[parent_index]);
+			sim_.RecordNewGenome(nullptr, dest_genome1->genome_id_, source_genome1->genome_id_, -1);
+			sim_.RecordNewGenome(nullptr, dest_genome2->genome_id_, source_genome2->genome_id_, -1);
+		}
 	}
 	
 	// UpdateFitness() is not called here - all fitnesses are kept as equal.  This is because the parents were drawn from the source subpopulation according
@@ -268,7 +299,7 @@ void Population::SetSize(Subpopulation &p_subpop, slim_popsize_t p_subpop_size)
 	{
 		// After we change the subpop size, we need to generate new children genomes to fit the new requirements
 		p_subpop.child_subpop_size_ = p_subpop_size;
-		p_subpop.GenerateIndividualsToFitWF(true, true);		// make child generation, placeholders
+		p_subpop.GenerateIndividualsToFitWF(true, true, true);		// make child generation, placeholders, tree-seq record
 	}
 }
 #endif	// SLIM_WF_ONLY

@@ -463,12 +463,12 @@ void Subpopulation::WipeIndividualsAndGenomes(std::vector<Individual *> &p_indiv
 
 #ifdef SLIM_WF_ONLY
 // given the subpop size and sex ratio currently set for the child generation, make new genomes to fit
-// this method is called when a net subpop is created, a subpop size changes, or sex ratio changes
-void Subpopulation::GenerateIndividualsToFitWF(bool p_make_child_generation, bool p_placeholders)
+// this method is called when a new subpop is created, a subpop size changes, or sex ratio changes
+void Subpopulation::GenerateIndividualsToFitWF(bool p_make_child_generation, bool p_placeholders, bool p_record_in_treeseq)
 {
 	SLiMSim &sim = population_.sim_;
 	bool pedigrees_enabled = (!p_placeholders) && sim.PedigreesEnabled();
-	bool recording_tree_sequence = (!p_placeholders) && sim.RecordingTreeSequence();
+	bool recording_tree_sequence = (!p_placeholders) && p_record_in_treeseq && sim.RecordingTreeSequence();
 	Chromosome &chromosome = sim.TheChromosome();
 	int32_t mutrun_count = chromosome.mutrun_count_;
 	int32_t mutrun_length = chromosome.mutrun_length_;
@@ -906,7 +906,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 	}
 }
 
-Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size) : population_(p_population), subpopulation_id_(p_subpopulation_id), parent_subpop_size_(p_subpop_size),
+Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, bool p_record_in_treeseq) : population_(p_population), subpopulation_id_(p_subpopulation_id), parent_subpop_size_(p_subpop_size),
 #ifdef SLIM_WF_ONLY
 	child_subpop_size_(p_subpop_size),
 #endif	// SLIM_WF_ONLY
@@ -918,17 +918,19 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 #if defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY)
 	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
 	{
-		GenerateIndividualsToFitWF(false, false);	// make parent generation, not placeholders
-		GenerateIndividualsToFitWF(true, true);		// make child generation, placeholders
+		GenerateIndividualsToFitWF(false, false, p_record_in_treeseq);	// make parent generation, not placeholders
+		GenerateIndividualsToFitWF(true, true, true);		// make child generation, placeholders, tree-seq record
 	}
 	else
 	{
 		GenerateIndividualsToFitNonWF(0.0);
 	}
 #elif defined(SLIM_WF_ONLY)
-	GenerateIndividualsToFitWF(false, false);
-	GenerateIndividualsToFitWF(true, true);
+	GenerateIndividualsToFitWF(false, false, p_source_subpop);
+	GenerateIndividualsToFitWF(true, true, true);
 #elif defined(SLIM_NONWF_ONLY)
+	if (p_source_subpop)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::Subpopulation): (internal error) Subpopulation can be constructed with a source subpop only in the WF case." << EidosTerminate();
 	GenerateIndividualsToFitNonWF(0.0);
 #endif
 	
@@ -949,7 +951,8 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 }
 
 // SEX ONLY
-Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, double p_sex_ratio, GenomeType p_modeled_chromosome_type, double p_x_chromosome_dominance_coeff) :
+Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, bool p_record_in_treeseq,
+							 double p_sex_ratio, GenomeType p_modeled_chromosome_type, double p_x_chromosome_dominance_coeff) :
 	population_(p_population), subpopulation_id_(p_subpopulation_id), sex_enabled_(true), parent_subpop_size_(p_subpop_size),
 #ifdef SLIM_WF_ONLY
 	parent_sex_ratio_(p_sex_ratio), child_subpop_size_(p_subpop_size), child_sex_ratio_(p_sex_ratio),
@@ -963,17 +966,19 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 #if defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY)
 	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
 	{
-		GenerateIndividualsToFitWF(false, false);	// make parent generation, not placeholders
-		GenerateIndividualsToFitWF(true, true);		// make child generation, placeholders
+		GenerateIndividualsToFitWF(false, false, p_record_in_treeseq);	// make parent generation, not placeholders
+		GenerateIndividualsToFitWF(true, true, true);		// make child generation, placeholders
 	}
 	else
 	{
 		GenerateIndividualsToFitNonWF(p_sex_ratio);
 	}
 #elif defined(SLIM_WF_ONLY)
-	GenerateIndividualsToFitWF(false, false);
-	GenerateIndividualsToFitWF(true, true);
+	GenerateIndividualsToFitWF(false, false, p_source_subpop);
+	GenerateIndividualsToFitWF(true, true, true);
 #elif defined(SLIM_NONWF_ONLY)
+	if (p_source_subpop)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::Subpopulation): (internal error) Subpopulation can be constructed with a source subpop only in the WF case." << EidosTerminate();
 	GenerateIndividualsToFitNonWF(p_sex_ratio);
 #endif
 	
@@ -2847,7 +2852,7 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 	
 	// The parental genomes, which have now been swapped into the child genome vactor, no longer fit the bill.  We need to throw them out and generate new genome vectors.
 	if (will_need_new_children)
-		GenerateIndividualsToFitWF(true, true);		// make child generation, placeholders
+		GenerateIndividualsToFitWF(true, true, true);		// make child generation, placeholders, tree-seq record
 }
 #endif	// SLIM_WF_ONLY
 
@@ -4899,7 +4904,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSexRatio(EidosGlobalStringID p_met
 	
 	// After we change the subpop sex ratio, we need to generate new children genomes to fit the new requirements
 	child_sex_ratio_ = sex_ratio;
-	GenerateIndividualsToFitWF(true, true);		// make child generation, placeholders
+	GenerateIndividualsToFitWF(true, true, true);		// make child generation, placeholders, tree-seq record
 	
 	return gStaticEidosValueVOID;
 }

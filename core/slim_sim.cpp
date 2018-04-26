@@ -2654,6 +2654,8 @@ void SLiMSim::SetGeneration(slim_generation_t p_new_generation)
 		tree_seq_generation_ = generation_ - 1;
 	else
 		tree_seq_generation_ = generation_;
+	
+	tree_seq_generation_offset_ = 0;
 }
 
 // This function is called only by the SLiM self-testing machinery.  It has no exception handling; raises will
@@ -2814,6 +2816,7 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		
 		// increment the tree-sequence generation immediately, since we are now going to make a new generation of individuals
 		tree_seq_generation_++;
+		tree_seq_generation_offset_ = 0;
 		// note that generation_ is incremented later!
 		
 		std::vector<SLiMEidosBlock*> mate_choice_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosMateChoiceCallback, -1, -1, -1);
@@ -3524,6 +3527,7 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		cached_value_generation_.reset();
 		generation_++;
 		tree_seq_generation_++;
+		tree_seq_generation_offset_ = 0;
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
 			subpop_pair.second->IncrementIndividualAges();
@@ -3893,7 +3897,7 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_
     // */
 	
 	//add genome node
-	double time = (double) -1 * tree_seq_generation_;
+	double time = (double) -1 * (tree_seq_generation_ + tree_seq_generation_offset_);	// see Population::AddSubpopulationSplit() regarding tree_seq_generation_offset_
 	uint32_t flags = 1;
 	GenomeMetadataRec metadata_rec;
 	
@@ -4094,6 +4098,12 @@ void SLiMSim::CheckAutoSimplification(void)
 	// as set up in initializeTreeSeq().  Note that a simplification_ratio_ value of INF means "never simplify
 	// automatically"; we check for that up front.
 	++simplify_elapsed_;
+	
+	// DEBUG
+	if (generation_ % 25 == 0)
+		SimplifyTreeSequence();
+	return;
+	// */
 	
 	if (!std::isinf(simplification_ratio_))
 	{
@@ -4694,8 +4704,8 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 		
 		// we have finished all variants, so all the genomes we're tracking should be at their ends; any left-over mutations
 		// should have been in the trees but weren't, so this is an error
-		for (GenomeWalker &genome_walker : genome_walkers)
-			if (!genome_walker.Finished())
+		for (size_t genome_index = 0; genome_index < genome_count; genome_index++)
+			if (!genome_walkers[genome_index].Finished())
 				handle_error("CrosscheckTreeSeqIntegrity mutations left in genome beyond those in tree", -1);
 		
 		// free
@@ -4725,6 +4735,7 @@ void SLiMSim::TSXC_Enable(void)
 	treeseq_crosschecks_interval_ = 50;		// check every 50th generation, otherwise it is just too slow
 	
 	pedigrees_enabled_ = true;
+	pedigrees_enabled_by_tree_seq_ = true;
 	simplify_interval_ = 20;
 	
 	SLIM_ERRSTREAM << "// ********** Turning on tree-sequence recording with crosschecks (-TSXC)." << std::endl << std::endl;
@@ -5435,8 +5446,26 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 		// [logical$ keepPedigrees = F]
 		bool keep_pedigrees = arg_keepPedigrees_value->LogicalAtIndex(0, nullptr);
 		
-		pedigrees_enabled_ = keep_pedigrees;
-		pedigrees_enabled_by_user_ = keep_pedigrees;
+		if (keep_pedigrees)
+		{
+			// pedigree recording can always be turned on by the user
+			pedigrees_enabled_ = true;
+			pedigrees_enabled_by_user_ = true;
+		}
+		else	// !keep_pedigrees
+		{
+			if (pedigrees_enabled_by_tree_seq_)
+			{
+				// if pedigrees were forced on by tree-seq recording, they stay on, but we remember that the user wanted them off
+				pedigrees_enabled_by_user_ = false;
+			}
+			else
+			{
+				// otherwise, the user can turn them off if so desired
+				pedigrees_enabled_ = false;
+				pedigrees_enabled_by_user_ = false;
+			}
+		}
 	}
 	
 	{
@@ -5594,6 +5623,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeTreeSeq(const std::strin
 	// Pedigree recording is turned on as a side effect of tree sequence recording, since we need to
 	// have unique identifiers for every individual; pedigree recording does that for us
 	pedigrees_enabled_ = true;
+	pedigrees_enabled_by_tree_seq_ = true;
 	
 	// Choose an initial auto-simplification interval
 	if (simplification_ratio_ == 0.0)

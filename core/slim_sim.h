@@ -247,7 +247,8 @@ private:
 	
 	// pedigree tracking: off by default, optionally turned on at init time to enable calls to TrackPedigreeWithParents()
 	bool pedigrees_enabled_ = false;
-	bool pedigrees_enabled_by_user_ = false;	// pedigree tracking is turned on as a side effect of tree sequence recording, but that shouldn't be user-visible
+	bool pedigrees_enabled_by_user_ = false;		// pedigree tracking was turned on by the user, which is user-visible
+	bool pedigrees_enabled_by_tree_seq_ = false;	// pedigree tracking has been forced on by tree-seq recording, which is not user-visible
 	
 	// continuous space support
 	int spatial_dimensionality_ = 0;
@@ -313,6 +314,8 @@ private:
 	slim_generation_t tree_seq_generation_ = 0;	// the generation for the tree sequence code, incremented after offspring generation
 												// this is needed since addSubpop() in an early() event makes one gen, and then the offspring
 												// arrive in the same generation according to SLiM, which confuses the tree-seq code
+	double tree_seq_generation_offset_ = 0;		// this is a fractional offset added to tree_seq_generation_; this is needed to make successive calls
+												// to addSubpopSplit() arrive at successively later times; see Population::AddSubpopulationSplit()
 	// add further ivars you need for tree sequence recording here; don't forget to add cleanup for them to SLiMSim::~SLiMSim() if necessary
 
 	//ofstream to write txt file tree sequences
@@ -438,6 +441,7 @@ public:
 	inline __attribute__((always_inline)) bool RecordingTreeSequence(void) const											{ return recording_tree_; }
 	inline __attribute__((always_inline)) bool RecordingTreeSequenceMutations(void) const									{ return recording_mutations_; }
 	inline __attribute__((always_inline)) node_id_t getMSPID(slim_genomeid_t GenomeID)										{ return SLiM_MSP_Id_Map[GenomeID]; }
+	inline __attribute__((always_inline)) void AboutToSplitSubpop(void)														{ tree_seq_generation_offset_ += 0.00001; }	// see Population::AddSubpopulationSplit()
 	
 	void StartTreeRecording(void);
 	void SetCurrentNewIndividual(Individual *p_individual);
