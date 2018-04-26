@@ -4030,12 +4030,6 @@ void SLiMSim::CheckAutoSimplification(void)
 	// automatically"; we check for that up front.
 	++simplify_elapsed_;
 	
-	// DEBUG
-	if (generation_ % 25 == 0)
-		SimplifyTreeSequence();
-	return;
-	// */
-	
 	if (!std::isinf(simplification_ratio_))
 	{
 		if (simplify_elapsed_ >= simplify_interval_)
