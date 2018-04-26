@@ -4545,7 +4545,7 @@ out:
  * one. Assumes the tables have been sorted, throwing an error if not.
  */
 int WARN_UNUSED
-table_collection_deduplicate_sites(table_collection_t *self, int flags)
+table_collection_deduplicate_sites(table_collection_t *self, __attribute__((unused)) int flags)
 {
     int ret = 0;
     table_size_t j, site_j;
