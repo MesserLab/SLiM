@@ -3759,26 +3759,19 @@ void SLiMSim::SimplifyTreeSequence(void)
             {
                 slim_genomeid_t G = 2 * IndID + k;
                 node_id_t M = getMSPID(G);
+				
                 // check if this sample is already being remembered
-                // there should be a better way to do this!!
-                bool already_there = false;
-                int j = 0;
-                for (node_id_t sid : RememberedGenomes)
-                {
-                    if (sid == M)
-                    {
-                        already_there = true;
-                        break;
-                    }
-                    j++;
-                }
-                if (!already_there)
-                {
-                    samples.push_back(M);
-                    j = newValueInNodeTable;
-                    newValueInNodeTable++;
-                }
-                newSlimMspIdMap[G] = j;
+				auto iter = RememberedGenomes.find(M);
+				
+				if (iter != RememberedGenomes.end())
+				{
+					samples.push_back(M);
+					newSlimMspIdMap[G] = newValueInNodeTable++;
+				}
+				else
+				{
+					newSlimMspIdMap[G] = iter - RememberedGenomes.begin();
+				}
             }
 		}
 	}
@@ -4034,6 +4027,9 @@ void SLiMSim::CheckAutoSimplification(void)
 	{
 		if (simplify_elapsed_ >= simplify_interval_)
 		{
+			// We could, in principle, calculate actual memory used based on number of rows * sizeof(column), etc.,
+			// but that seems like overkill; adding together the number of rows in all the tables should be a
+			// reasonable proxy, and this whole thing is just a heuristic that needs to be tailored anyway.
 			uint64_t old_table_size = (uint64_t)tables.nodes.num_rows;
             old_table_size += (uint64_t)tables.edges.num_rows;
             old_table_size += (uint64_t)tables.sites.num_rows;
@@ -4272,24 +4268,10 @@ void SLiMSim::RememberIndividuals(std::vector<slim_pedigreeid_t> p_individual_id
         {
             slim_genomeid_t G = 2 * IndID + k;
             node_id_t M = getMSPID(G);
+			
             // check if this sample is already being remembered
-            // there should be a better way to do this!!
-            bool already_there = false;
-            for (node_id_t sid : RememberedGenomes)
-            {
-                if (sid == M)
-                {
-                    already_there = true;
-                    break;
-                }
-            }
-            if (!already_there)
-            {
-                // DEBUG STDOUT
-                std::cout << "Adding MSP id " << M << " to the remembered genomes." << std::endl;
-                // */
-                RememberedGenomes.push_back(M);
-            }
+			if (RememberedGenomes.find(M) != RememberedGenomes.end())
+				RememberedGenomes.push_back(M);
         }
     }
 }

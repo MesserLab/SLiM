@@ -226,6 +226,12 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 	{
 		// draw individual from p_source_subpop and assign to be a parent in subpop
 		// BCH 4/25/2018: we have to tree-seq record the new individuals and genomes here, with the correct parent information
+		// Peter observes that biologically, it might make sense for each new genome in the split subpop to actually be a
+		// clone of the original genome in the sense that it has the same parent as the original genomes, with the same
+		// recombination breakpoints, etc.  But that would be quite hard to implement, especially since the parent in question
+		// might have been simplified away already, and that script could have modified the original, and so forth.  Having
+		// the new genome just inherit exactly from the original seems reasonable enough; for practical purposes it shouldn't
+		// matter.
 		slim_popsize_t migrant_index;
 		
 		if (sim_.SexEnabled())
