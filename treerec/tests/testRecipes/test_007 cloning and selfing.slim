@@ -15,7 +15,13 @@ initialize() {
 	
 	p1.setSelfingRate(0.4);
 	p1.setCloningRate(0.4);
+
+    chooseAncestralSamples(5);
 }
+100 {
+    chooseAncestralSamples(5);
+}
+
 500 late() { 
     outputMutationResult();
     cat("\nTotal mutation frequencies: " + sum(sim.mutationFrequencies(NULL)) + "\n"); 

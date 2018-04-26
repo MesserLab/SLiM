@@ -3742,7 +3742,7 @@ void SLiMSim::SimplifyTreeSequence(void)
 	std::unordered_map<slim_genomeid_t,node_id_t> newSlimMspIdMap;
 	
     // the RememberedGenomes come first in the list of samples
-    for (node_id_t sid : RememberedGenomes)
+    for (node_id_t sid : RememberedGenomes) 
         samples.push_back(sid);
 	
 	// and then come all the genomes of the extant individuals
@@ -3755,14 +3755,31 @@ void SLiMSim::SimplifyTreeSequence(void)
 		for (Individual *individual : subpopulationIndividuals)
 		{
 			slim_pedigreeid_t IndID = individual->PedigreeID();
-			slim_genomeid_t G1 = 2 * IndID;
-			slim_genomeid_t G2 = G1 + 1;
-			
-			samples.push_back(getMSPID(G1));
-			samples.push_back(getMSPID(G2));	
-			
-			newSlimMspIdMap[G1] = newValueInNodeTable++;
-			newSlimMspIdMap[G2] = newValueInNodeTable++;
+            for (int k = 0; k < 2; ++k)
+            {
+                slim_genomeid_t G = 2 * IndID + k;
+                node_id_t M = getMSPID(G);
+                // check if this sample is already being remembered
+                // there should be a better way to do this!!
+                bool already_there = false;
+                int j = 0;
+                for (node_id_t sid : RememberedGenomes)
+                {
+                    if (sid == M)
+                    {
+                        already_there = true;
+                        break;
+                    }
+                    j++;
+                }
+                if (!already_there)
+                {
+                    samples.push_back(M);
+                    j = newValueInNodeTable;
+                    newValueInNodeTable++;
+                }
+                newSlimMspIdMap[G] = j;
+            }
 		}
 	}
 	
@@ -3871,7 +3888,7 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_
 
 	node_id_t offspringMSPID;			//MSPrime equivilent of germ cell ID (Node returned from MSPrime)
 	
-	// DEBUG STDOUT PRINTING 
+	// DEBUG STDOUT
   	std::cout << "------------" << std::endl;	
 	std::cout << "generation: " << Generation() << " -- and tree_seq_generation  " << tree_seq_generation_ << std::endl;
     std::cout << "New genome: " << p_new_genome_id << std::endl;
@@ -3901,7 +3918,7 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_
 	genome1MSPID = getMSPID(p_initial_parental_genome_id);
 	genome2MSPID = (p_second_parental_genome_id == -1) ? genome1MSPID : getMSPID(p_second_parental_genome_id);
 
-	// DEBUG STDOUT PRINTING
+	// DEBUG STDOUT
     std::cout << "  in MSP ids: " << genome1MSPID << " and " << genome2MSPID << " ---> " << offspringMSPID << std::endl;
     std::cout << "  and breakpoints ";
 	for (size_t i = 0; i < (p_breakpoints ? p_breakpoints->size() : 0); i++){
@@ -4255,12 +4272,31 @@ void SLiMSim::RememberIndividuals(std::vector<slim_pedigreeid_t> p_individual_id
 {
 	// The individuals with pedigree ids specified in p_individual_ids are to be remembered
 	// permanently in this run of the model, i.e. added to the sample in every simplify.
-	
-    // FIXME: not doing any error checking here
-    for (slim_pedigreeid_t ind_id : p_individual_ids)
+    for (slim_pedigreeid_t IndID : p_individual_ids)
 	{
-        RememberedGenomes.push_back((node_id_t) (2*ind_id));
-        RememberedGenomes.push_back((node_id_t) (2*ind_id + 1));
+        for (int k = 0; k < 2; ++k)
+        {
+            slim_genomeid_t G = 2 * IndID + k;
+            node_id_t M = getMSPID(G);
+            // check if this sample is already being remembered
+            // there should be a better way to do this!!
+            bool already_there = false;
+            for (node_id_t sid : RememberedGenomes)
+            {
+                if (sid == M)
+                {
+                    already_there = true;
+                    break;
+                }
+            }
+            if (!already_there)
+            {
+                // DEBUG STDOUT
+                std::cout << "Adding MSP id " << M << " to the remembered genomes." << std::endl;
+                // */
+                RememberedGenomes.push_back(M);
+            }
+        }
     }
 }
 

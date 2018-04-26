@@ -17,7 +17,9 @@ initialize() {
 	newSize = cos((sim.generation - 1) / 100) * 100 + 150;
 	p1.setSubpopulationSize(asInteger(newSize));
 }
-
+100 {
+    chooseAncestralSamples(5);
+}
 500 late() { 
     outputMutationResult();
     cat("\nTotal mutation frequencies: " + sum(sim.mutationFrequencies(NULL)) + "\n"); 

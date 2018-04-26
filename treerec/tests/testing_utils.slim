@@ -36,6 +36,39 @@ function (void)ongoingMarks(i$ num_marks)
     return;
 }
 
+function (void)outputIndividualMutations(o<Individual>$ ind,
+                        [s$ outputFile="test_output/slim_mutation_output.txt"]) {
+    pedID = ind.pedigreeID;
+    for(k in seqAlong(ind.genomes)){
+        genome = ind.genomes[k];
+        genomeID = (2 * pedID) + k;
+        ids = genome.mutations.id;
+        positions = genome.mutations.position;
+        if (!genome.isNullGenome) {
+            ids = c(ids, sim.substitutions.id);
+            positions = c(positions, sim.substitutions.position);
+        }
+        writeFile(outputFile, "#Genome: " + paste(genomeID) + " " + paste(ind.sex), append=T);
+        writeFile(outputFile, "Mutations: " + paste(ids), append=T);
+        writeFile(outputFile, "Positions: " + paste(positions), append=T);
+    }
+}
+
+function (void)chooseAncestralSamples(i$ num_samples,
+                        [s$ outputFile="test_output/slim_mutation_output.txt"]) {
+    /* * *
+     * Mark an individual to retain as an ancestral sample
+     * in the tree sequence, and write out its genome.
+     * * */
+    inds = sample(sim.subpopulations.individuals, 
+                  min(num_samples, sum(sim.subpopulations.individualCount)));
+    sim.treeSeqRememberIndividuals(inds);
+    for (ind in inds) {
+        catn("Recording individual " + ind.pedigreeID);
+        outputIndividualMutations(ind, outputFile);
+    }
+}
+
 function (void)outputMutationResult([s$ outputFile="test_output/slim_mutation_output.txt"]) {
     /* * *
      * For each individual, output
@@ -47,20 +80,7 @@ function (void)outputMutationResult([s$ outputFile="test_output/slim_mutation_ou
     // sim.treeSeqOutput("test_output/test_output.unsimplified.treeseq", binary=T, simplify=F);
     for (pop in sim.subpopulations) {
         for (ind in pop.individuals) {
-            pedID = ind.pedigreeID;
-            for(k in seqAlong(ind.genomes)){
-                genome = ind.genomes[k];
-                genomeID = (2 * pedID) + k;
-                ids = genome.mutations.id;
-                positions = genome.mutations.position;
-                if (!genome.isNullGenome) {
-                    ids = c(ids, sim.substitutions.id);
-                    positions = c(positions, sim.substitutions.position);
-                }
-                writeFile(outputFile, "#Genome: " + paste(genomeID) + " " + paste(ind.sex), append=T);
-                writeFile(outputFile, "Mutations: " + paste(ids), append=T);
-                writeFile(outputFile, "Positions: " + paste(positions), append=T);
-            }
+            outputIndividualMutations(ind, outputFile);
         }
     }
 }

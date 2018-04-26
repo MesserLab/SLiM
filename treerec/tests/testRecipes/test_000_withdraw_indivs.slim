@@ -27,7 +27,12 @@ reproduction(NULL,"F") {
 }
 1 early() {
     sim.addSubpop("p1",10);
+    chooseAncestralSamples(5);
 }   
+
+100 {
+    chooseAncestralSamples(5);
+}
 
 early() {
     p1.fitnessScaling = K / p1.individualCount;
