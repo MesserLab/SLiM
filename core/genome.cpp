@@ -2037,8 +2037,15 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 			for (int value_index = 0; value_index < mutations_count; ++value_index)
 			{
 				Mutation *mut = (Mutation *)mutations_value->ObjectElementAtIndex(value_index, nullptr);
+				Substitution *sub = new Substitution(*mut, generation);
 				
-				pop.substitutions_.emplace_back(new Substitution(*mut, generation));
+				// TREE SEQUENCE RECORDING
+				// When doing tree recording, we additionally keep all fixed mutations (their ids) in a multimap indexed by their position
+				// This allows us to find all the fixed mutations at a given position quickly and easily, for calculating derived states
+				if (sim.RecordingTreeSequence())
+					pop.treeseq_substitutions_map_.insert(std::pair<slim_position_t, Substitution *>(mut->position_, sub));
+				
+				pop.substitutions_.emplace_back(sub);
 			}
 		}
 		

@@ -3798,7 +3798,9 @@ void SLiMSim::SimplifyTreeSequence(void)
 
 void SLiMSim::StartTreeRecording(void)
 {
+	/* DEBUG STDOUT
 	std::cout << "Starting tree sequence recording with last base position: " << chromosome_.last_position_ << std::endl << std::endl;
+	// */
 	
 	// This would be the right place to allocate any storage you need, initialize ivars, etc.  This method will be called once,
 	// immediately after the simulation finishes initializing (after all initialize() callbacks have completed).  It will not be called
@@ -3857,7 +3859,7 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_
 
 	node_id_t offspringMSPID;			//MSPrime equivilent of germ cell ID (Node returned from MSPrime)
 	
-	// DEBUG STDOUT
+	/* DEBUG STDOUT
   	std::cout << "------------" << std::endl;	
 	std::cout << "generation: " << Generation() << " -- and tree_seq_generation  " << tree_seq_generation_ << std::endl;
     std::cout << "New genome: " << p_new_genome_id << std::endl;
@@ -3887,7 +3889,7 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_
 	genome1MSPID = getMSPID(p_initial_parental_genome_id);
 	genome2MSPID = (p_second_parental_genome_id == -1) ? genome1MSPID : getMSPID(p_second_parental_genome_id);
 
-	// DEBUG STDOUT
+	/* DEBUG STDOUT
     std::cout << "  in MSP ids: " << genome1MSPID << " and " << genome2MSPID << " ---> " << offspringMSPID << std::endl;
     std::cout << "  and breakpoints ";
 	for (size_t i = 0; i < (p_breakpoints ? p_breakpoints->size() : 0); i++){
@@ -3949,7 +3951,7 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
 
     site_id_t site_id = site_table_add_row(&tables.sites, msp_position, NULL, 0, NULL, 0);
 	
-	// DEBUG STDOUT
+	/* DEBUG STDOUT
 	std::cout << tree_seq_generation_ << ":   New derived state for genome id "; 
     std::cout << p_genome_id << " (msp: " << genomeMSPID << ") at position " << p_position << ", mutation IDs:";
 	if (p_derived_mutations.size()) {
@@ -3976,6 +3978,19 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
         mutation_metadata.push_back(metadata_rec);
     }
 	
+	// find and incorporate any fixed mutations at this position, which exist in all new derived states but are not included by SLiM
+	auto position_range_iter = population_.treeseq_substitutions_map_.equal_range(p_position);
+	
+	for (auto position_iter = position_range_iter.first; position_iter != position_range_iter.second; ++position_iter)
+	{
+		Substitution *substitution = position_iter->second;
+		
+		derived_mutation_ids.push_back(substitution->mutation_id_);
+		MetadataForSubstitution(substitution, &metadata_rec);
+		mutation_metadata.push_back(metadata_rec);
+	}
+	
+	// add the mutation table row with the final derived state and metadata
     char *derived_muts_bytes = (char *)(derived_mutation_ids.data());
     size_t derived_state_length = derived_mutation_ids.size() * sizeof(slim_mutationid_t);
     char *mutation_metadata_bytes = (char *)(mutation_metadata.data());
@@ -4299,6 +4314,17 @@ void SLiMSim::MetadataForMutation(Mutation *p_mutation, MutationMetadataRec *p_m
 	p_metadata->origin_generation_ = p_mutation->origin_generation_;
 }
 
+void SLiMSim::MetadataForSubstitution(Substitution *p_substitution, MutationMetadataRec *p_metadata)
+{
+	if (!p_substitution || !p_metadata)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::MetadataForSubstitution): (internal error) bad parameters to MetadataForSubstitution()." << EidosTerminate();
+	
+	p_metadata->mutation_type_id_ = p_substitution->mutation_type_ptr_->mutation_type_id_;
+	p_metadata->selection_coeff_ = p_substitution->selection_coeff_;
+	p_metadata->subpop_index_ = p_substitution->subpop_index_;
+	p_metadata->origin_generation_ = p_substitution->origin_generation_;
+}
+
 void SLiMSim::MetadataForGenome(slim_genomeid_t p_genome_id, Individual *p_individual, GenomeMetadataRec *p_metadata)
 {
 	if (!p_individual || !p_metadata)
@@ -4323,18 +4349,18 @@ void SLiMSim::DumpMutationTable(void)
 		//char *metadata_state = mutations.metadata + mutations.metadata_offset[mutindex];
 		table_size_t metadata_length = mutations.metadata_offset[mutindex + 1] - mutations.metadata_offset[mutindex];
 		
-		// DEBUG the gen 239 case: output a mutation only if its derived state contains mutation ID 18026, which is the background that gets stacked upon
-		// keeping this code around as it may prove useful for debugging other issues...
-//		{
-//			bool contains_18026 = false;
-//			
-//			for (size_t mutid_index = 0; mutid_index < derived_state_length / sizeof(slim_mutationid_t); ++mutid_index)
-//				if (((slim_mutationid_t *)derived_state)[mutid_index] == 18026)
-//					contains_18026 = true;
-//			
-//			if (!contains_18026)
-//				continue;
-//		}
+		/* DEBUG : output a mutation only if its derived state contains a certain mutation ID
+		{
+			bool contains_id = false;
+			
+			for (size_t mutid_index = 0; mutid_index < derived_state_length / sizeof(slim_mutationid_t); ++mutid_index)
+				if (((slim_mutationid_t *)derived_state)[mutid_index] == 72)
+					contains_id = true;
+			
+			if (!contains_id)
+				continue;
+		}
+		// */
 		
 		std::cout << "Mutation index " << mutindex << " has node_id " << node_id << ", site_id " << site_id << ", position " << tables.sites.position[site_id] << ", parent id " << parent_id << ", derived state length " << derived_state_length << ", metadata length " << metadata_length << std::endl;
 		
@@ -4347,12 +4373,20 @@ void SLiMSim::DumpMutationTable(void)
 
 void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 {
-	// get the mutation IDs for all fixed mutations, so we can quickly check whether a given mutatiod id is fixed
-	static std::unordered_set<slim_mutationid_t> fixed_mutids;
-	fixed_mutids.clear();
-	
-	for (Substitution *sub : population_.substitutions_)
-		fixed_mutids.insert(sub->mutation_id_);
+	// first crosscheck the substitutions multimap against SLiM's substitutions vector
+	{
+		std::vector<Substitution *> vector_subs = population_.substitutions_;
+		std::vector<Substitution *> multimap_subs;
+		
+		for (auto entry : population_.treeseq_substitutions_map_)
+			multimap_subs.push_back(entry.second);
+		
+		std::sort(vector_subs.begin(), vector_subs.end());
+		std::sort(multimap_subs.begin(), multimap_subs.end());
+		
+		if (vector_subs != multimap_subs)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::CrosscheckTreeSeqIntegrity): (internal error) mismatch between SLiM substitutions and the treeseq substitution multimap." << EidosTerminate();
+	}
 	
 	// get all genomes from all subpopulations; we will cross-check them all simultaneously
 	static std::vector<Genome *> genomes;
@@ -4418,6 +4452,12 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 				}
 			}
 			
+//			if (generation_ >= 25)
+//			{
+//				std::cout << "------------------- " << generation_ << " : Mutations before sort/deduplicate/simplify/parents:" << std::endl;
+//				DumpMutationTable();
+//			}
+			
 			ret = sort_tables(&tables_copy->nodes, &tables_copy->edges, &tables_copy->migrations, &tables_copy->sites, &tables_copy->mutations, 0);				
 			if (ret < 0) handle_error("sort_tables", ret);
 			
@@ -4428,7 +4468,13 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 			if (ret != 0) handle_error("simplifier_run", ret);
 
             ret = table_collection_compute_mutation_parents(tables_copy, 0);
-            if (ret < 0) handle_error("deduplicate_sites", ret);
+            if (ret < 0) handle_error("table_collection_compute_mutation_parents", ret);
+			
+//			if (generation_ >= 25)
+//			{
+//				std::cout << "------------------- " << generation_ << " : Mutations after sort/deduplicate/simplify/parents:" << std::endl;
+//				DumpMutationTable();
+//			}
 		}
 		
 		// allocate and set up the tree_sequence object that contains all the tree sequences
@@ -4438,7 +4484,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 		ret = tree_sequence_load_tables(ts, tables_copy, MSP_BUILD_INDEXES);
 		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tree_sequence_load_tables()", ret);
 		
-		// find the nodes in the tree sequence's sample of genomes, which should correspond to our genomes (with perhaps some extras)
+		// find the nodes in the tree sequence's sample of genomes, which should correspond to our genomes (with fixed mutations added)
 		static std::unordered_map<slim_genomeid_t, int32_t> metadata_to_sample_index;
 		int32_t num_samples = (int32_t)tree_sequence_get_num_samples(ts);
 		node_id_t *samples;
@@ -4459,7 +4505,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 			table_size_t sample_metadata_length = sample_node.metadata_length;
 			
 			if (sample_metadata_length != sizeof(GenomeMetadataRec))
-				handle_error("CrosscheckTreeSeqIntegrity unexpected genome metadata", -1);
+				EIDOS_TERMINATION << "ERROR (SLiMSim::CrosscheckTreeSeqIntegrity): (internal error) unexpected genome metadata." << EidosTerminate();
 			
 			metadata_to_sample_index.insert(std::pair<slim_genomeid_t, int32_t>(sample_metadata->genome_id_, sample_index));
 		}
@@ -4474,7 +4520,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 			auto sample_index_iter = metadata_to_sample_index.find(genome->genome_id_);
 			
 			if (sample_index_iter == metadata_to_sample_index.end())
-				handle_error("CrosscheckTreeSeqIntegrity didn't find genome in sample", -1);
+				EIDOS_TERMINATION << "ERROR (SLiMSim::CrosscheckTreeSeqIntegrity): (internal error) didn't find genome in sample." << EidosTerminate();
 			
 			sample_indices_for_genomes.emplace_back(sample_index_iter->second);
 		}
@@ -4505,6 +4551,15 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 				// step.  Keep in mind that some mutations may have been fixed (substituted) or lost.
 				slim_position_t variant_pos_int = (slim_position_t)variant->site->position;		// should be no loss of precision, fingers crossed
 				
+				// Get all the substitutions involved at this site, which should be present in every sample
+				auto substitution_range_iter = population_.treeseq_substitutions_map_.equal_range(variant_pos_int);
+				static std::vector<slim_mutationid_t> fixed_mutids;
+				
+				fixed_mutids.clear();
+				for (auto substitution_iter = substitution_range_iter.first; substitution_iter != substitution_range_iter.second; ++substitution_iter)
+					fixed_mutids.push_back(substitution_iter->second->mutation_id_);
+				
+				// Check all the genomes against the vargen_t's belief about this site
 				for (size_t genome_index = 0; genome_index < genome_count; genome_index++)
 				{
 					int32_t sample_index_for_genome = sample_indices_for_genomes[genome_index];
@@ -4513,7 +4568,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 					table_size_t genome_allele_length = variant->allele_lengths[genome_variant];
 					
 					if (genome_allele_length % sizeof(slim_mutationid_t) != 0)
-						handle_error("CrosscheckTreeSeqIntegrity variant allele had length that was not a multiple of sizeof(slim_mutationid_t)", -1);
+						EIDOS_TERMINATION << "ERROR (SLiMSim::CrosscheckTreeSeqIntegrity): (internal error) variant allele had length that was not a multiple of sizeof(slim_mutationid_t)." << EidosTerminate();
 					genome_allele_length /= sizeof(slim_mutationid_t);
 					
 					//std::cout << "variant for genome: " << (int)genome_variant << " (allele length == " << genome_allele_length << ")" << std::endl;
@@ -4529,10 +4584,16 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 					
 					if (genome_allele_length == 0)
 					{
-						continue;
+						// If there are no fixed mutations at this site, we can continue; genomes that have a mutation at this site will
+						// raise later when they realize they have been skipped over, so we don't have to check for that now...
+						if (fixed_mutids.size() == 0)
+							continue;
+						
+						EIDOS_TERMINATION << "ERROR (SLiMSim::CrosscheckTreeSeqIntegrity): (internal error) the treeseq has 0 mutations at position " << variant_pos_int << ", SLiM has " << fixed_mutids.size() << " fixed mutation(s)." << EidosTerminate();
 					}
 					else if (genome_allele_length == 1)
 					{
+						// The tree has just one mutation at this site; this is the common case, so we try to handle it quickly
 						slim_mutationid_t allele_mutid = *genome_allele;
 						Mutation *current_mut = genome_walker.CurrentMutation();
 						
@@ -4541,31 +4602,39 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 							slim_position_t current_mut_pos = current_mut->position_;
 							
 							if (current_mut_pos < variant_pos_int)
-								handle_error("CrosscheckTreeSeqIntegrity genome mutation was not represented in trees (single case)", -1);
+								EIDOS_TERMINATION << "ERROR (SLiMSim::CrosscheckTreeSeqIntegrity): (internal error) genome mutation was not represented in trees (single case)." << EidosTerminate();
 							if (current_mut->position_ > variant_pos_int)
 								current_mut = nullptr;	// not a candidate for this position, we'll see it again later
 						}
 						
-						if (fixed_mutids.find(allele_mutid) != fixed_mutids.end())	// if allele_mutid is fixed
+						if (!current_mut && (fixed_mutids.size() == 1))
 						{
-							if (current_mut)
-								handle_error("CrosscheckTreeSeqIntegrity genome/allele size mutation present at position of fixed mutation", -1);
+							// We have one fixed mutation and no segregating mutation, versus one mutation in the tree; crosscheck
+							if (allele_mutid != fixed_mutids[0])
+								EIDOS_TERMINATION << "ERROR (SLiMSim::CrosscheckTreeSeqIntegrity): (internal error) the treeseq has mutid " << allele_mutid << " at position " << variant_pos_int << ", SLiM has a fixed mutation of id " << fixed_mutids[0] << EidosTerminate();
 							
-							// the allele for this genome is a fixed mutation, but the genome has no mutation at this position, so there's no problem
-							continue;
+							continue;	// the match was against a fixed mutation, so don't go to the next mutation
 						}
-						
-						if (!current_mut)
-							handle_error("CrosscheckTreeSeqIntegrity no genome mutation to match tree mutation", -1);
-						if (allele_mutid != current_mut->mutation_id_)
-							handle_error("CrosscheckTreeSeqIntegrity genome/allele single mutid mismatch", -1);
+						else if (current_mut && (fixed_mutids.size() == 0))
+						{
+							// We have one segregating mutation and no fixed mutation, versus one mutation in the tree; crosscheck
+							if (allele_mutid != current_mut->mutation_id_)
+								EIDOS_TERMINATION << "ERROR (SLiMSim::CrosscheckTreeSeqIntegrity): (internal error) the treeseq has mutid " << allele_mutid << " at position " << variant_pos_int << ", SLiM has a segregating mutation of id " << current_mut->mutation_id_ << EidosTerminate();
+						}
+						else
+						{
+							// We have a count mismatch; there is one mutation in the tree, but we have !=1 in SLiM including substitutions
+							EIDOS_TERMINATION << "ERROR (SLiMSim::CrosscheckTreeSeqIntegrity): (internal error) genome/allele size mismatch at position " << variant_pos_int << ": the treeseq has 1 mutation of mutid " << allele_mutid << ", SLiM has " << (current_mut ? 1 : 0) << " segregating and " << fixed_mutids.size() << " fixed mutation(s)." << EidosTerminate();
+						}
 						
 						genome_walker.NextMutation();
 						
+						// Check the next mutation to see if it's at this position as well, and is missing from the tree;
+						// this would get caught downstream, but for debugging it is clearer to catch it here
 						Mutation *next_mut = genome_walker.CurrentMutation();
 						
 						if (next_mut && next_mut->position_ == variant_pos_int)
-							handle_error("CrosscheckTreeSeqIntegrity tree sequence missing stacked mutation", -1);
+							EIDOS_TERMINATION << "ERROR (SLiMSim::CrosscheckTreeSeqIntegrity): (internal error) the treeseq is missing a stacked mutation with mutid " << next_mut->mutation_id_ << " at position " << variant_pos_int << "." << EidosTerminate();
 					}
 					else // (genome_allele_length > 1)
 					{
@@ -4574,14 +4643,11 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 						allele_mutids.clear();
 						genome_mutids.clear();
 						
+						// tabulate all tree mutations
 						for (table_size_t mutid_index = 0; mutid_index < genome_allele_length; ++mutid_index)
-						{
-							slim_mutationid_t allele_mutid = genome_allele[mutid_index];
-							
-							if (fixed_mutids.find(allele_mutid) == fixed_mutids.end())		// if allele_mutid is not fixed
-								allele_mutids.push_back(allele_mutid);
-						}
+							allele_mutids.push_back(genome_allele[mutid_index]);
 						
+						// tabulate segregating SLiM mutations
 						while (true)
 						{
 							Mutation *current_mut = genome_walker.CurrentMutation();
@@ -4591,7 +4657,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 								slim_position_t current_mut_pos = current_mut->position_;
 								
 								if (current_mut_pos < variant_pos_int)
-									handle_error("CrosscheckTreeSeqIntegrity genome mutation was not represented in trees (bulk case)", -1);
+									EIDOS_TERMINATION << "ERROR (SLiMSim::CrosscheckTreeSeqIntegrity): (internal error) genome mutation was not represented in trees (bulk case)." << EidosTerminate();
 								else if (current_mut_pos == variant_pos_int)
 								{
 									genome_mutids.push_back(current_mut->mutation_id_);
@@ -4602,15 +4668,19 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 							else break;
 						}
 						
+						// tabulate fixed SLiM mutations
+						genome_mutids.insert(genome_mutids.end(), fixed_mutids.begin(), fixed_mutids.end());
+						
+						// crosscheck, sorting so there is no order-dependency
 						if (allele_mutids.size() != genome_mutids.size())
-							handle_error("CrosscheckTreeSeqIntegrity genome/allele size mismatch", -1);
+							EIDOS_TERMINATION << "ERROR (SLiMSim::CrosscheckTreeSeqIntegrity): (internal error) genome/allele size mismatch at position " << variant_pos_int << ": the treeseq has " << allele_mutids.size() << " mutations, SLiM has " << (genome_mutids.size() - fixed_mutids.size()) << " segregating and " << fixed_mutids.size() << " fixed mutation(s)." << EidosTerminate();
 						
 						std::sort(allele_mutids.begin(), allele_mutids.end());
 						std::sort(genome_mutids.begin(), genome_mutids.end());
 						
 						for (table_size_t mutid_index = 0; mutid_index < genome_allele_length; ++mutid_index)
 							if (allele_mutids[mutid_index] != genome_mutids[mutid_index])
-								handle_error("CrosscheckTreeSeqIntegrity genome/allele bulk mutid mismatch", -1);
+								EIDOS_TERMINATION << "ERROR (SLiMSim::CrosscheckTreeSeqIntegrity): (internal error) genome/allele bulk mutid mismatch." << EidosTerminate();
 					}
 				}
 			}
@@ -4621,7 +4691,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 		// should have been in the trees but weren't, so this is an error
 		for (size_t genome_index = 0; genome_index < genome_count; genome_index++)
 			if (!genome_walkers[genome_index].Finished())
-				handle_error("CrosscheckTreeSeqIntegrity mutations left in genome beyond those in tree", -1);
+				EIDOS_TERMINATION << "ERROR (SLiMSim::CrosscheckTreeSeqIntegrity): (internal error) mutations left in genome beyond those in tree." << EidosTerminate();
 		
 		// free
 		ret = vargen_free(vg);

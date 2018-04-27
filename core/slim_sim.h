@@ -457,6 +457,7 @@ public:
 	void FreeTreeSequence(void);
 	void RecordAllDerivedStatesFromSLiM(void);
 	void MetadataForMutation(Mutation *p_mutation, MutationMetadataRec *p_metadata);
+	void MetadataForSubstitution(Substitution *p_substitution, MutationMetadataRec *p_metadata);
 	void MetadataForGenome(slim_genomeid_t p_genome_id, Individual *p_individual, GenomeMetadataRec *p_metadata);
 	void DumpMutationTable(void);
 	void CrosscheckTreeSeqIntegrity(void);

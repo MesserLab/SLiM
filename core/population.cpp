@@ -79,6 +79,7 @@ void Population::RemoveAllSubpopulationInfo(void)
 		delete substitution;
 	
 	substitutions_.clear();
+	treeseq_substitutions_map_.clear();
 	
 	// The malloced storage of mutation_registry_ will be freed when it is destroyed, but it
 	// does not know that the Mutation pointers inside it are owned, so we need to free them.
@@ -4896,8 +4897,26 @@ void Population::RemoveAllFixedMutations(void)
 		
 		slim_generation_t generation = sim_.Generation();
 		
-		for (int i = 0; i < fixed_mutation_accumulator.size(); i++)
-			substitutions_.emplace_back(new Substitution(*(mut_block_ptr + fixed_mutation_accumulator[i]), generation));
+		// TREE SEQUENCE RECORDING
+		if (sim_.RecordingTreeSequence())
+		{
+			// When doing tree recording, we additionally keep all fixed mutations (their ids) in a multimap indexed by their position
+			// This allows us to find all the fixed mutations at a given position quickly and easily, for calculating derived states
+			for (int i = 0; i < fixed_mutation_accumulator.size(); i++)
+			{
+				Mutation *mut_to_remove = mut_block_ptr + fixed_mutation_accumulator[i];
+				Substitution *sub = new Substitution(*(mut_block_ptr + fixed_mutation_accumulator[i]), generation);
+				
+				treeseq_substitutions_map_.insert(std::pair<slim_position_t, Substitution *>(mut_to_remove->position_, sub));
+				substitutions_.emplace_back(sub);
+			}
+		}
+		else
+		{
+			// When not doing tree recording, we just create substitutions and keep them in a vector
+			for (int i = 0; i < fixed_mutation_accumulator.size(); i++)
+				substitutions_.emplace_back(new Substitution(*(mut_block_ptr + fixed_mutation_accumulator[i]), generation));
+		}
 	}
 	
 	// now we can delete (or zombify) removed mutation objects
