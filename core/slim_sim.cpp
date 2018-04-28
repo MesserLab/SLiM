@@ -4440,17 +4440,8 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 			std::vector<node_id_t> samples;
 			
 			for (auto iter = population_.begin(); iter != population_.end(); iter++)
-			{
-				std::vector<Individual *> &subpopulationIndividuals = iter->second->parent_individuals_;
-				
-				for (Individual *individual : subpopulationIndividuals)
-				{
-					slim_genomeid_t first_genome_id = 2 * individual->PedigreeID();
-					
-					samples.push_back(getMSPID(first_genome_id));
-					samples.push_back(getMSPID(first_genome_id + 1));	
-				}
-			}
+				for (Genome *genome : iter->second->parent_genomes_)
+					samples.push_back(getMSPID(genome->genome_id_));
 			
 //			if (generation_ >= 25)
 //			{
