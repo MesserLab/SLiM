@@ -2002,6 +2002,8 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 	
 	Population &pop = sim.ThePopulation();
 	slim_generation_t generation = sim.Generation();
+	bool create_substitutions = substitute_value->LogicalAtIndex(0, nullptr);
+	bool recording_tree_sequence_mutations = sim.RecordingTreeSequenceMutations();
 	
 	if (pop.sim_.executing_block_type_ == SLiMEidosBlockType::SLiMEidosModifyChildCallback)
 	{
@@ -2023,12 +2025,15 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called from within a modifyChild() callback to modify any genomes except those of the focal child being generated." << EidosTerminate();
 			}
 		}
+		
+		// This is actually only a problem when tree recording is on, but for consistency we outlaw it in all cases.  When a substitution
+		// is created, it is added to the derived state of every genome, which is a side effect that can't be retracted if the modifyChild()
+		// callback rejects the proposed child, so it has to be prohibited up front.  Anyway it would be a very strange thing to do.
+		if (create_substitutions)
+			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called from within a modifyChild() callback to create a substitution, because that would have side effects on genomes other than those of the focal child being generated." << EidosTerminate();
 	}
 	else if (pop.sim_.executing_block_type_ == SLiMEidosBlockType::SLiMEidosRecombinationCallback)
 		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called from within a recombination() callback." << EidosTerminate();
-	
-	bool create_substitutions = substitute_value->LogicalAtIndex(0, nullptr);
-	bool recording_tree_sequence_mutations = sim.RecordingTreeSequenceMutations();
 	
 	if (mutations_value->Type() == EidosValueType::kValueNULL)
 	{
