@@ -2181,7 +2181,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 			// it should just work automatically.
 			
 			// Mark all genomes in the simulation that are not among the target genomes operated upon; we use patch_pointer_ as scratch
-			for (auto subpop_pair : sim.population_)
+			for (auto subpop_pair : sim.ThePopulation())
 				for (Genome *genome : subpop_pair.second->parent_genomes_)
 					genome->patch_pointer_ = genome;
 			
@@ -2204,7 +2204,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 			}
 			
 			// Loop through those genomes and log the new derived state at each (unique) position
-			for (auto subpop_pair : sim.population_)
+			for (auto subpop_pair : sim.ThePopulation())
 				for (Genome *genome : subpop_pair.second->parent_genomes_)
 					if (genome->patch_pointer_)
 					{
