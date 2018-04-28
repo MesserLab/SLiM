@@ -5545,14 +5545,14 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeTreeSeq(const std::strin
 			previous_params = true;
 		}
 		
-		if (simplification_ratio_ != 2.0)
+		if (simplification_ratio_ != 10.0)
 		{
 			if (previous_params) output_stream << ", ";
 			output_stream << "simplificationRatio = " << simplification_ratio_;
 			previous_params = true;
 		}
 		
-		if (!running_treeseq_crosschecks_)
+		if (running_treeseq_crosschecks_)
 		{
 			if (previous_params) output_stream << ", ";
 			output_stream << "runCrosschecks = " << (running_treeseq_crosschecks_ ? "T" : "F");
