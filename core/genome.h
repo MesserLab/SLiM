@@ -418,8 +418,10 @@ public:
 	inline Genome *Genome(void) { return genome_; }
 	inline Mutation *CurrentMutation(void) { return mutation_; }
 	inline bool Finished(void) { return (mutation_ == nullptr); }
+	inline slim_position_t Position(void) { return mutation_->position_; }		// must be sure the walker is not finished!
 	
 	void NextMutation(void);
+	bool MutationIsStackedAtCurrentPosition(Mutation *p_search_mut);	// scans for the given mutation in any slot at the current position
 };
 
 

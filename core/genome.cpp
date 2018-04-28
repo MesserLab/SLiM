@@ -1443,8 +1443,70 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 	
 	std::sort(mutations_to_add.begin(), mutations_to_add.end(), [ ](Mutation *i1, Mutation *i2) {return i1->position_ < i2->position_;});
 	
-	// Now handle the mutations to add, broken into bulk operations according to the mutation run they fall into
+	// TREE SEQUENCE RECORDING
+	// First, pre-plan the positions of new tree-seq derived states in anticipation of doing the addition.  We have to check
+	// whether the mutation being added is already present, to avoid recording a new derived state identical to the old one state.
+	// The algorithm used here, with GenomeWalker, depends upon the fact that we just sorted the mutations to add by position.
+	// However, we do still have to think about multiple muts being added at the same position, and existing stacked mutations.
 	bool recording_tree_sequence_mutations = sim.RecordingTreeSequenceMutations();
+	std::vector<std::pair<Genome *, std::vector<slim_position_t>>> new_derived_state_positions;
+	
+	if (recording_tree_sequence_mutations)
+	{
+		for (int genome_index = 0; genome_index < target_size; ++genome_index)
+		{
+			Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
+			GenomeWalker walker(target_genome);
+			slim_position_t last_added_pos = -1;
+			
+			for (Mutation *mut : mutations_to_add)
+			{
+				slim_position_t mut_pos = mut->position_;
+				
+				// We don't care about other mutations at an already recorded position; move on
+				if (mut_pos == last_added_pos)
+					continue;
+				
+				// Advance the walker until it is at or after the mutation's position
+				while (!walker.Finished())
+				{
+					if (walker.Position() >= mut_pos)
+						break;
+					
+					walker.NextMutation();
+				}
+				
+				// If walker is finished, or is now after the mutation's position, drop through to add this position
+				if (!walker.Finished() && (walker.Position() == mut_pos))
+				{
+					// If the mutation is already present, somewhere at this position, then we don't need to record it
+					if (walker.MutationIsStackedAtCurrentPosition(mut))
+						continue;
+					
+					// The mutation is not already present, so we need to record it; drop through to the addition code
+				}
+				
+				// we have decided that the new derived state at this position will need to be recorded, so note that
+				if (last_added_pos == -1)
+				{
+					// no pair entry in new_derived_state_positions yet, so make a new pair entry for this genome
+					new_derived_state_positions.emplace_back(std::pair<Genome *, std::vector<slim_position_t>>(target_genome, std::vector<slim_position_t>(1, mut_pos)));
+				}
+				else
+				{
+					// we have an existing pair entry for this genome, so add this position to its position vector
+					std::pair<Genome *, std::vector<slim_position_t>> &genome_entry = new_derived_state_positions.back();
+					std::vector<slim_position_t> &genome_list = genome_entry.second;
+					
+					genome_list.push_back(mut_pos);
+				}
+				
+				last_added_pos = mut_pos;
+			}
+		}
+	}
+	
+	// Now handle the mutations to add, broken into bulk operations according to the mutation run they fall into
 	int last_handled_mutrun_index = -1;
 	
 	for (int value_index = 0; value_index < mutations_count; ++value_index)
@@ -1500,21 +1562,17 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 		pop.cached_tally_genome_count_ = 0;
 	}
 	
+	// TREE SEQUENCE RECORDING
+	// Now that all the bulk operations are done, record all the new derived states
 	if (recording_tree_sequence_mutations)
 	{
-		// TREE SEQUENCE RECORDING
-		// notify the tree seq code of the new derived state at every position in every target genome; this is overkill, since not all the
-		// target genomes will have changed at every position, but that should be fixed by the next tree sequence simplification.
-		for (int genome_index = 0; genome_index < target_size; ++genome_index)
+		for (std::pair<Genome *, std::vector<slim_position_t>> &genome_pair : new_derived_state_positions)
 		{
-			Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
+			Genome *target_genome = genome_pair.first;
+			std::vector<slim_position_t> &genome_positions = genome_pair.second;
 			
-			for (Mutation *mut : mutations_to_add)
-			{
-				slim_position_t pos = mut->position_;
-				
-				sim.RecordNewDerivedState(target_genome, pos, *target_genome->derived_mutation_ids_at_position(pos));
-			}
+			for (slim_position_t position : genome_positions)
+				sim.RecordNewDerivedState(target_genome, position, *target_genome->derived_mutation_ids_at_position(position));
 		}
 	}
 	
@@ -2028,6 +2086,68 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 		
 		std::sort(mutations_to_remove.begin(), mutations_to_remove.end(), [ ](Mutation *i1, Mutation *i2) {return i1->position_ < i2->position_;});
 		
+		// TREE SEQUENCE RECORDING
+		// First, pre-plan the positions of new tree-seq derived states in anticipation of doing the removal.  We have to check
+		// whether the mutation being added is already absent, to avoid recording a new derived state identical to the old one state.
+		// The algorithm used here, with GenomeWalker, depends upon the fact that we just sorted the mutations to add by position.
+		// However, we do still have to think about multiple muts being removed from the same position, and existing stacked mutations.
+		// Note that when we are not creating substitutions, the genomes that possess a given mutation are the ones that change; but
+		// when we are creating substitutions, the genomes that do *not* possess a given mutation are the ones that change, because
+		// they gain the substitutuon, whereas the other genomes lose the mutation and gain the substitution, and are thus unchanged.
+		std::vector<std::pair<Genome *, std::vector<slim_position_t>>> new_derived_state_positions;
+		
+		if (recording_tree_sequence_mutations)
+		{
+			for (int genome_index = 0; genome_index < target_size; ++genome_index)
+			{
+				Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
+				GenomeWalker walker(target_genome);
+				slim_position_t last_added_pos = -1;
+				
+				for (Mutation *mut : mutations_to_remove)
+				{
+					slim_position_t mut_pos = mut->position_;
+					
+					// We don't care about other mutations at an already recorded position; move on
+					if (mut_pos == last_added_pos)
+						continue;
+					
+					// Advance the walker until it is at or after the mutation's position
+					while (!walker.Finished())
+					{
+						if (walker.Position() >= mut_pos)
+							break;
+						
+						walker.NextMutation();
+					}
+					
+					// If the derived state won't change for this position, then we don't need to record it; whether the
+					// state will change depends upon whether the mutation is present, and whether we're substituting
+					bool mutation_present = !walker.Finished() && (walker.Position() == mut_pos) && walker.MutationIsStackedAtCurrentPosition(mut);
+					
+					if ((create_substitutions && mutation_present) || (!create_substitutions && !mutation_present))
+						continue;
+					
+					// we have decided that the new derived state at this position will need to be recorded, so note that
+					if (last_added_pos == -1)
+					{
+						// no pair entry in new_derived_state_positions yet, so make a new pair entry for this genome
+						new_derived_state_positions.emplace_back(std::pair<Genome *, std::vector<slim_position_t>>(target_genome, std::vector<slim_position_t>(1, mut_pos)));
+					}
+					else
+					{
+						// we have an existing pair entry for this genome, so add this position to its position vector
+						std::pair<Genome *, std::vector<slim_position_t>> &genome_entry = new_derived_state_positions.back();
+						std::vector<slim_position_t> &genome_list = genome_entry.second;
+						
+						genome_list.push_back(mut_pos);
+					}
+					
+					last_added_pos = mut_pos;
+				}
+			}
+		}
+		
 		// Create substitutions for the mutations being removed, if requested.
 		// Note we don't test for the mutations actually being fixed; that is the caller's responsibility to manage.
 		if (create_substitutions)
@@ -2045,6 +2165,48 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 				
 				pop.substitutions_.emplace_back(sub);
 			}
+			
+			// TREE SEQUENCE RECORDING
+			// When doing tree recording, if a given mutation is converted to a substitution by script, it may not be contained in some
+			// genomes (null genomes, notably), but at the moment it fixes it is then considered to belong to the derived state of every
+			// genome.  We therefore need to go through all of the non-target genomes and record their new derived states at all
+			// positions containing a new substitution.  If they already had a copy of the mutation, and didn't have it removed here,
+			// that is pretty weird, but in practice it just means that their derived state will contain that mutation id twice – once
+			// for the segregating mutation they still contain, and once for the new substitution.  We don't check for that case, but
+			// it should just work automatically.
+			
+			// Mark all genomes in the simulation that are not among the target genomes operated upon; we use patch_pointer_ as scratch
+			for (auto subpop_pair : sim.population_)
+				for (Genome *genome : subpop_pair.second->parent_genomes_)
+					genome->patch_pointer_ = genome;
+			
+			for (int genome_index = 0; genome_index < target_size; ++genome_index)
+				((Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr))->patch_pointer_ = nullptr;
+			
+			// Figure out the unique chromosome positions that have changed (the uniqued set of mutation positions)
+			std::vector<slim_position_t> unique_positions;
+			slim_position_t last_pos = -1;
+			
+			for (Mutation *mut : mutations_to_remove)
+			{
+				slim_position_t pos = mut->position_;
+				
+				if (pos != last_pos)
+				{
+					unique_positions.push_back(pos);
+					last_pos = pos;
+				}
+			}
+			
+			// Loop through those genomes and log the new derived state at each (unique) position
+			for (auto subpop_pair : sim.population_)
+				for (Genome *genome : subpop_pair.second->parent_genomes_)
+					if (genome->patch_pointer_)
+					{
+						for (slim_position_t position : unique_positions)
+							sim.RecordNewDerivedState(genome, position, *genome->derived_mutation_ids_at_position(position));
+						genome->patch_pointer_ = nullptr;
+					}
 		}
 		
 		// Now handle the mutations to remove, broken into bulk operations according to the mutation run they fall into
@@ -2134,20 +2296,16 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 		}
 		
 		// TREE SEQUENCE RECORDING
-		// notify the tree seq code of the new derived state at every position in every target genome; this is overkill, since not all the
-		// target genomes contained all the mutations being removed, but that should be fixed by the next tree sequence simplification.
+		// Now that all the bulk operations are done, record all the new derived states
 		if (recording_tree_sequence_mutations)
 		{
-			for (int genome_index = 0; genome_index < target_size; ++genome_index)
+			for (std::pair<Genome *, std::vector<slim_position_t>> &genome_pair : new_derived_state_positions)
 			{
-				Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
+				Genome *target_genome = genome_pair.first;
+				std::vector<slim_position_t> &genome_positions = genome_pair.second;
 				
-				for (Mutation *mut : mutations_to_remove)
-				{
-					slim_position_t pos = mut->position_;
-					
-					sim.RecordNewDerivedState(target_genome, pos, *target_genome->derived_mutation_ids_at_position(pos));
-				}
+				for (slim_position_t position : genome_positions)
+					sim.RecordNewDerivedState(target_genome, position, *target_genome->derived_mutation_ids_at_position(position));
 			}
 		}
 	}
@@ -2185,6 +2343,37 @@ void GenomeWalker::NextMutation(void)
 	}
 	
 	mutation_ = gSLiM_Mutation_Block + *mutrun_ptr_;
+}
+
+bool GenomeWalker::MutationIsStackedAtCurrentPosition(Mutation *p_search_mut)
+{
+	// We have reached some chromosome position (presumptively the *first mutation* at that position,
+	// which we do not check here), and the caller wants to know if a given mutation, which is
+	// located at that position, is contained in this genome.  This requires that we look ahead
+	// through all of the mutations at the current position, since they are not sorted.  We are
+	// guaranteed to stay inside the current mutation run, though, so this lookahead is simple.
+	if (Finished())
+		EIDOS_TERMINATION << "ERROR (GenomeWalker::MutationIsStackedAtCurrentPosition): (internal error) MutationIsStackedAtCurrentPosition() called on a finished walker." << EidosTerminate();
+	if (!p_search_mut)
+		EIDOS_TERMINATION << "ERROR (GenomeWalker::MutationIsStackedAtCurrentPosition): (internal error) MutationIsStackedAtCurrentPosition() called with a nullptr mutation to search for." << EidosTerminate();
+	
+	slim_position_t pos = mutation_->position_;
+	
+	if (p_search_mut->position_ != pos)
+		EIDOS_TERMINATION << "ERROR (GenomeWalker::MutationIsStackedAtCurrentPosition): (internal error) MutationIsStackedAtCurrentPosition() called with a mutation that is not at the current walker position." << EidosTerminate();
+	
+	for (const MutationIndex *search_ptr_ = mutrun_ptr_; search_ptr_ != mutrun_end_; ++search_ptr_)
+	{
+		MutationIndex mutindex = *search_ptr_;
+		Mutation *mut = gSLiM_Mutation_Block + mutindex;
+		
+		if (mut == p_search_mut)
+			return true;
+		if (mut->position_ != pos)
+			break;
+	}
+	
+	return false;
 }
 
 
