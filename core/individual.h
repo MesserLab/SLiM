@@ -69,7 +69,6 @@ private:
 	// Pedigree-tracking ivars.  These are -1 if unknown, otherwise assigned sequentially from 0 counting upward.  They
 	// uniquely identify individuals within the simulation, so that relatedness of individuals can be assessed.  They can
 	// be accessed through the read-only pedigree properties.  These are only maintained if sim->pedigrees_enabled_ is on.
-	// If these are maintained, genome pedigree IDs are also maintained in parallel; see genome.h.
 	slim_pedigreeid_t pedigree_id_;		// the id of this individual
 	slim_pedigreeid_t pedigree_p1_;		// the id of parent 1
 	slim_pedigreeid_t pedigree_p2_;		// the id of parent 2
@@ -132,9 +131,6 @@ public:
 	inline __attribute__((always_inline)) void TrackPedigreeWithParents(Individual &p_parent1, Individual &p_parent2)
 	{
 		pedigree_id_ = gSLiM_next_pedigree_id++;
-		
-		genome1_->genome_id_ = pedigree_id_ * 2;
-		genome2_->genome_id_ = pedigree_id_ * 2 + 1;
 		
 		pedigree_p1_ = p_parent1.pedigree_id_;
 		pedigree_p2_ = p_parent2.pedigree_id_;

@@ -260,8 +260,8 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 		if (recording_tree_sequence)
 		{
 			sim_.SetCurrentNewIndividual(subpop.parent_individuals_[parent_index]);
-			sim_.RecordNewGenome(nullptr, dest_genome1->genome_id_, source_genome1->genome_id_, -1);
-			sim_.RecordNewGenome(nullptr, dest_genome2->genome_id_, source_genome2->genome_id_, -1);
+			sim_.RecordNewGenome(nullptr, dest_genome1, source_genome1, nullptr);
+			sim_.RecordNewGenome(nullptr, dest_genome2, source_genome2, nullptr);
 		}
 	}
 	
@@ -1220,14 +1220,16 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 							Individual *new_child = p_subpop.child_individuals_[child_index];
 							
 							new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent1]);
+						}
+						
+						// TREE SEQUENCE RECORDING
+						if (recording_tree_sequence)
+						{
+							Individual *new_child = p_subpop.child_individuals_[child_index];
 							
-							// TREE SEQUENCE RECORDING
-							if (recording_tree_sequence)
-							{
-								sim_.SetCurrentNewIndividual(new_child);
-								sim_.RecordNewGenome(nullptr, child_genome_1.genome_id_, parent_genome_1.genome_id_, -1);
-								sim_.RecordNewGenome(nullptr, child_genome_2.genome_id_, parent_genome_2.genome_id_, -1);
-							}
+							sim_.SetCurrentNewIndividual(new_child);
+							sim_.RecordNewGenome(nullptr, &child_genome_1, &parent_genome_1, nullptr);
+							sim_.RecordNewGenome(nullptr, &child_genome_2, &parent_genome_2, nullptr);
 						}
 						
 						DoClonalMutation(&source_subpop, child_genome_1, parent_genome_1, child_sex);
@@ -1290,10 +1292,14 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 							Individual *new_child = p_subpop.child_individuals_[child_index];
 							
 							new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+						}
+						
+						// TREE SEQUENCE RECORDING
+						if (recording_tree_sequence)
+						{
+							Individual *new_child = p_subpop.child_individuals_[child_index];
 							
-							// TREE SEQUENCE RECORDING
-							if (recording_tree_sequence)
-								sim_.SetCurrentNewIndividual(new_child);
+							sim_.SetCurrentNewIndividual(new_child);
 						}
 						
 						// recombination, gene-conversion, mutation
@@ -1368,10 +1374,14 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						Individual *new_child = p_subpop.child_individuals_[child_count];
 						
 						new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+					}
+					
+					// TREE SEQUENCE RECORDING
+					if (recording_tree_sequence)
+					{
+						Individual *new_child = p_subpop.child_individuals_[child_count];
 						
-						// TREE SEQUENCE RECORDING
-						if (recording_tree_sequence)
-							sim_.SetCurrentNewIndividual(new_child);
+						sim_.SetCurrentNewIndividual(new_child);
 					}
 					
 					// recombination, gene-conversion, mutation
@@ -1645,14 +1655,16 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						Individual *new_child = p_subpop.child_individuals_[child_index];
 						
 						new_child->TrackPedigreeWithParents(*source_subpop->parent_individuals_[parent1], *source_subpop->parent_individuals_[parent1]);
+					}
+					
+					// TREE SEQUENCE RECORDING
+					if (recording_tree_sequence)
+					{
+						Individual *new_child = p_subpop.child_individuals_[child_index];
 						
-						// TREE SEQUENCE RECORDING
-						if (recording_tree_sequence)
-						{
-							sim_.SetCurrentNewIndividual(new_child);
-							sim_.RecordNewGenome(nullptr, child_genome_1.genome_id_, parent_genome_1.genome_id_, -1);
-							sim_.RecordNewGenome(nullptr, child_genome_2.genome_id_, parent_genome_2.genome_id_, -1);
-						}
+						sim_.SetCurrentNewIndividual(new_child);
+						sim_.RecordNewGenome(nullptr, &child_genome_1, &parent_genome_1, nullptr);
+						sim_.RecordNewGenome(nullptr, &child_genome_2, &parent_genome_2, nullptr);
 					}
 					
 					DoClonalMutation(source_subpop, child_genome_1, parent_genome_1, child_sex);
@@ -1715,10 +1727,14 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						Individual *new_child = p_subpop.child_individuals_[child_index];
 						
 						new_child->TrackPedigreeWithParents(*source_subpop->parent_individuals_[parent1], *source_subpop->parent_individuals_[parent2]);
+					}
+					
+					// TREE SEQUENCE RECORDING
+					if (recording_tree_sequence)
+					{
+						Individual *new_child = p_subpop.child_individuals_[child_index];
 						
-						// TREE SEQUENCE RECORDING
-						if (recording_tree_sequence)
-							sim_.SetCurrentNewIndividual(new_child);
+						sim_.SetCurrentNewIndividual(new_child);
 					}
 					
 					// recombination, gene-conversion, mutation
@@ -1844,10 +1860,14 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									Individual *new_child = p_subpop.child_individuals_[child_count];
 									
 									new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+								}
+								
+								// TREE SEQUENCE RECORDING
+								if (recording_tree_sequence)
+								{
+									Individual *new_child = p_subpop.child_individuals_[child_count];
 									
-									// TREE SEQUENCE RECORDING
-									if (recording_tree_sequence)
-										sim_.SetCurrentNewIndividual(new_child);
+									sim_.SetCurrentNewIndividual(new_child);
 								}
 								
 								// recombination, gene-conversion, mutation
@@ -1874,10 +1894,14 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									Individual *new_child = p_subpop.child_individuals_[child_count];
 									
 									new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+								}
+								
+								// TREE SEQUENCE RECORDING
+								if (recording_tree_sequence)
+								{
+									Individual *new_child = p_subpop.child_individuals_[child_count];
 									
-									// TREE SEQUENCE RECORDING
-									if (recording_tree_sequence)
-										sim_.SetCurrentNewIndividual(new_child);
+									sim_.SetCurrentNewIndividual(new_child);
 								}
 								
 								// recombination, gene-conversion, mutation
@@ -1918,14 +1942,16 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									Individual *new_child = p_subpop.child_individuals_[child_count];
 									
 									new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent1]);
+								}
+								
+								// TREE SEQUENCE RECORDING
+								if (recording_tree_sequence)
+								{
+									Individual *new_child = p_subpop.child_individuals_[child_count];
 									
-									// TREE SEQUENCE RECORDING
-									if (recording_tree_sequence)
-									{
-										sim_.SetCurrentNewIndividual(new_child);
-										sim_.RecordNewGenome(nullptr, child_genome_1.genome_id_, parent_genome_1.genome_id_, -1);
-										sim_.RecordNewGenome(nullptr, child_genome_2.genome_id_, parent_genome_2.genome_id_, -1);
-									}
+									sim_.SetCurrentNewIndividual(new_child);
+									sim_.RecordNewGenome(nullptr, &child_genome_1, &parent_genome_1, nullptr);
+									sim_.RecordNewGenome(nullptr, &child_genome_2, &parent_genome_2, nullptr);
 								}
 								
 								DoClonalMutation(&source_subpop, child_genome_1, parent_genome_1, child_sex);
@@ -1974,10 +2000,14 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									Individual *new_child = p_subpop.child_individuals_[child_count];
 									
 									new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+								}
+								
+								// TREE SEQUENCE RECORDING
+								if (recording_tree_sequence)
+								{
+									Individual *new_child = p_subpop.child_individuals_[child_count];
 									
-									// TREE SEQUENCE RECORDING
-									if (recording_tree_sequence)
-										sim_.SetCurrentNewIndividual(new_child);
+									sim_.SetCurrentNewIndividual(new_child);
 								}
 								
 								// recombination, gene-conversion, mutation
@@ -2347,7 +2377,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 		
 		// TREE SEQUENCE RECORDING
 		if (sim_.RecordingTreeSequence())
-			sim_.RecordNewGenome(nullptr, p_child_genome.genome_id_, parent_genome_1->genome_id_, parent_genome_2->genome_id_);
+			sim_.RecordNewGenome(nullptr, &p_child_genome, parent_genome_1, parent_genome_2);
 		
 		return;
 	}
@@ -2553,7 +2583,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 	bool recording_tree_sequence_mutations = sim_.RecordingTreeSequenceMutations();
 	
 	if (recording_tree_sequence)
-		sim_.RecordNewGenome(&all_breakpoints, p_child_genome.genome_id_, parent_genome_1->genome_id_, parent_genome_2->genome_id_);
+		sim_.RecordNewGenome(&all_breakpoints, &p_child_genome, parent_genome_1, parent_genome_2);
 	
 	// mutations are usually rare, so let's streamline the case where none occur
 	if (num_mutations == 0)
@@ -2782,7 +2812,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence_mutations)
-							sim_.RecordNewDerivedState(p_child_genome.genome_id_, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+							sim_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
 					}
 					else
 					{
@@ -2929,7 +2959,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 										
 										// TREE SEQUENCE RECORDING
 										if (recording_tree_sequence_mutations)
-											sim_.RecordNewDerivedState(p_child_genome.genome_id_, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+											sim_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
 									}
 									else
 									{
@@ -2975,7 +3005,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 									
 									// TREE SEQUENCE RECORDING
 									if (recording_tree_sequence_mutations)
-										sim_.RecordNewDerivedState(p_child_genome.genome_id_, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+										sim_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
 								}
 								else
 								{
@@ -3122,7 +3152,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 							
 							// TREE SEQUENCE RECORDING
 							if (recording_tree_sequence_mutations)
-								sim_.RecordNewDerivedState(p_child_genome.genome_id_, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+								sim_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
 						}
 						else
 						{
@@ -3291,7 +3321,7 @@ void Population::DoClonalMutation(Subpopulation *p_source_subpop, Genome &p_chil
 							
 							// TREE SEQUENCE RECORDING
 							if (recording_tree_sequence_mutations)
-								sim_.RecordNewDerivedState(p_child_genome.genome_id_, mutation_iter_pos, *child_run->derived_mutation_ids_at_position(mutation_iter_pos));
+								sim_.RecordNewDerivedState(&p_child_genome, mutation_iter_pos, *child_run->derived_mutation_ids_at_position(mutation_iter_pos));
 						}
 						else
 						{

@@ -513,8 +513,8 @@ void Subpopulation::GenerateIndividualsToFitWF(bool p_make_child_generation, boo
 			if (recording_tree_sequence)
 			{
 				sim.SetCurrentNewIndividual(individual);
-				sim.RecordNewGenome(nullptr, genome1->genome_id_, -1, -1);
-				sim.RecordNewGenome(nullptr, genome2->genome_id_, -1, -1);
+				sim.RecordNewGenome(nullptr, genome1, nullptr, nullptr);
+				sim.RecordNewGenome(nullptr, genome2, nullptr, nullptr);
 			}
 			
 			genomes.push_back(genome1);
@@ -605,8 +605,8 @@ void Subpopulation::GenerateIndividualsToFitNonWF(double p_sex_ratio)
 			if (recording_tree_sequence)
 			{
 				sim.SetCurrentNewIndividual(individual);
-				sim.RecordNewGenome(nullptr, genome1->genome_id_, -1, -1);
-				sim.RecordNewGenome(nullptr, genome2->genome_id_, -1, -1);
+				sim.RecordNewGenome(nullptr, genome1, nullptr, nullptr);
+				sim.RecordNewGenome(nullptr, genome2, nullptr, nullptr);
 			}
 			
 			parent_genomes_.push_back(genome1);
@@ -689,8 +689,6 @@ void Subpopulation::CheckIndividualIntegrity(void)
 		{
 			if (individual->pedigree_id_ == -1)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) individual has an invalid pedigree ID." << EidosTerminate();
-			if ((genome1->genome_id_ != individual->pedigree_id_ * 2) || (genome2->genome_id_ != individual->pedigree_id_ * 2 + 1))
-				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) genome has an invalid genome ID." << EidosTerminate();
 		}
 		
 #if defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY)
@@ -816,8 +814,6 @@ void Subpopulation::CheckIndividualIntegrity(void)
 			{
 				if (individual->pedigree_id_ == -1)
 					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) individual has an invalid pedigree ID." << EidosTerminate();
-				if ((genome1->genome_id_ != individual->pedigree_id_ * 2) || (genome2->genome_id_ != individual->pedigree_id_ * 2 + 1))
-					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) genome has an invalid genome ID." << EidosTerminate();
 			}
 			
 			if (sex_enabled_)
@@ -3639,16 +3635,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	Genome &parent_genome_2 = *parent_subpop.parent_genomes_[2 * parent->index_ + 1];
 	
 	if (pedigrees_enabled)
-	{
 		individual->TrackPedigreeWithParents(*parent, *parent);
-		
-		// TREE SEQUENCE RECORDING
-		if (sim.RecordingTreeSequence())
-		{
-			sim.SetCurrentNewIndividual(individual);
-			sim.RecordNewGenome(nullptr, genome1->genome_id_, parent_genome_1.genome_id_, -1);
-			sim.RecordNewGenome(nullptr, genome2->genome_id_, parent_genome_2.genome_id_, -1);
-		}
+	
+	// TREE SEQUENCE RECORDING
+	if (sim.RecordingTreeSequence())
+	{
+		sim.SetCurrentNewIndividual(individual);
+		sim.RecordNewGenome(nullptr, genome1, &parent_genome_1, nullptr);
+		sim.RecordNewGenome(nullptr, genome2, &parent_genome_2, nullptr);
 	}
 	
 	population_.DoClonalMutation(&parent_subpop, *genome1, parent_genome_1, child_sex);
@@ -3730,13 +3724,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	std::vector<SLiMEidosBlock*> *parent2_recombination_callbacks = &parent2_subpop.registered_recombination_callbacks_;
 	
 	if (pedigrees_enabled)
-	{
 		individual->TrackPedigreeWithParents(*parent1, *parent2);
-		
-		// TREE SEQUENCE RECORDING
-		if (sim.RecordingTreeSequence())
-			sim.SetCurrentNewIndividual(individual);
-	}
+	
+	// TREE SEQUENCE RECORDING
+	if (sim.RecordingTreeSequence())
+		sim.SetCurrentNewIndividual(individual);
 	
 	if (!parent1_recombination_callbacks->size()) parent1_recombination_callbacks = nullptr;
 	if (!parent2_recombination_callbacks->size()) parent2_recombination_callbacks = nullptr;
@@ -3794,13 +3786,15 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	
 	if (pedigrees_enabled)
 	{
-		// TREE SEQUENCE RECORDING
-		if (sim.RecordingTreeSequence())
-		{
-			sim.SetCurrentNewIndividual(individual);
-			sim.RecordNewGenome(nullptr, genome1->genome_id_, -1, -1);
-			sim.RecordNewGenome(nullptr, genome2->genome_id_, -1, -1);
-		}
+		// no pedigree information to record (it is initialized to -1 by the constructor
+	}
+	
+	// TREE SEQUENCE RECORDING
+	if (sim.RecordingTreeSequence())
+	{
+		sim.SetCurrentNewIndividual(individual);
+		sim.RecordNewGenome(nullptr, genome1, nullptr, nullptr);
+		sim.RecordNewGenome(nullptr, genome2, nullptr, nullptr);
 	}
 	
 	// set up empty mutation runs, since we're not calling DoCrossoverMutation() or DoClonalMutation()
@@ -3862,13 +3856,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	std::vector<SLiMEidosBlock*> *parent_recombination_callbacks = &parent_subpop.registered_recombination_callbacks_;
 	
 	if (pedigrees_enabled)
-	{
 		individual->TrackPedigreeWithParents(*parent, *parent);
-		
-		// TREE SEQUENCE RECORDING
-		if (sim.RecordingTreeSequence())
-			sim.SetCurrentNewIndividual(individual);
-	}
+	
+	// TREE SEQUENCE RECORDING
+	if (sim.RecordingTreeSequence())
+		sim.SetCurrentNewIndividual(individual);
 	
 	if (!parent_recombination_callbacks->size()) parent_recombination_callbacks = nullptr;
 	
@@ -4037,7 +4029,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 			}
 			genome1->mutruns_ = nullptr;
 			genome1_transmogrified->tag_value_ = genome1->tag_value_;
-			genome1_transmogrified->genome_id_ = genome1->genome_id_;
+			genome1_transmogrified->msp_node_id_ = genome1->msp_node_id_;
 			
 			genome2_transmogrified->genome_type_ = genome2->genome_type_;
 			std::swap(genome2->mutrun_count_, genome2_transmogrified->mutrun_count_);
@@ -4055,7 +4047,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 			}
 			genome2->mutruns_ = nullptr;
 			genome2_transmogrified->tag_value_ = genome2->tag_value_;
-			genome2_transmogrified->genome_id_ = genome2->genome_id_;
+			genome2_transmogrified->msp_node_id_ = genome2->msp_node_id_;
 			
 			migrant_transmogrified->color_ = migrant->color_;
 			migrant_transmogrified->color_red_ = migrant->color_red_;

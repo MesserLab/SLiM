@@ -38,6 +38,10 @@
 #include <string.h>
 #include <unordered_map>
 
+//TREE SEQUENCE
+//INCLUDE JEROME's TABLES API
+#include "../treerec/tskit/tables.h"
+
 
 class SLiMSim;
 class Population;
@@ -93,14 +97,9 @@ private:
 	
 	slim_usertag_t tag_value_;									// a user-defined tag value
 	
-	// Pedigree-tracking ivars.  These are -1 if unknown, otherwise assigned sequentially from 0 counting upward.  They
-	// uniquely identify genomes within the simulation.  These are not user-visible in SLiM (unlike the individual-level
-	// pedigree IDs); they are for internal use by the tree-recording code only.  However, they are maintained whenever
-	// sim->pedigrees_enabled_ is on.  If these are maintained, individual pedigree IDs are also maintained in parallel;
-	// see individual.h.  The genome pedigree IDs for an individual are always equal to the individual pedigree ID * 2
-	// plus 0 or 1; in other words, genome_id_ = pedigree_id_ * 2 + [0/1].  That invariant is guaranteed and essential
-	// for correct operation.
-	slim_genomeid_t genome_id_;
+	// TREE SEQUENCE RECORDING
+	// This is msprime's node_id_t for this genome, which is its index in the nodes table kept by the tree-seq code.
+	node_id_t msp_node_id_;
 	
 	// ********** BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE **********
 	//
@@ -120,8 +119,6 @@ public:
 	Genome& operator= (const Genome &p_original) = delete;
 	Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length, GenomeType p_genome_type_, bool p_is_null);
 	~Genome(void);
-	
-	inline __attribute__((always_inline)) slim_genomeid_t GenomeID()			{ return genome_id_; }
 	
 	void NullGenomeAccessError(void) const __attribute__((__noreturn__)) __attribute__((cold)) __attribute__((analyzer_noreturn));		// prints an error message, a stacktrace, and exits; called only for DEBUG
 	

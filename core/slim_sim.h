@@ -120,16 +120,15 @@ typedef struct {
 // independently to avoid duplication, but for now all the same information is replicated in both genomes' metadata.
 // This should be kept in sync with any new state that needs to be written out about genomes, but of course
 // changing the members/size/layout of this struct will mean that old output files will no longer be readable.
-// I decided not to use __attribute__((__packed__)); if this struct isn't naturally 16 bytes something is deeply wrong.
+// I decided not to use __attribute__((__packed__)); if this struct isn't naturally 8 bytes something is deeply wrong.
 typedef struct {
 	// no pedigree IDs
-	slim_genomeid_t genome_id_;				// 8 bytes (int64_t): the node ID for the genome (i.e., the MSPID)
 	IndividualSex sex_;						// 4 bytes (int32_t): the sex of the individual (H, F, M)
 	slim_objectid_t subpop_index_;			// 4 bytes (int32_t): the id of the subpopulation in which genome originated
 } GenomeMetadataRec;
 
 static_assert(sizeof(MutationMetadataRec) == 16, "MutationMetadataRec is not 16 bytes!");
-static_assert(sizeof(GenomeMetadataRec) == 16, "GenomeMetadataRec is not 16 bytes!");
+static_assert(sizeof(GenomeMetadataRec) == 8, "GenomeMetadataRec is not 8 bytes!");
 #if defined(__BYTE_ORDER__)
 #if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
 #warning Reading and writing binary files with SLiM may produce non-standard results on this (big-endian) platform due to endianness
@@ -247,8 +246,6 @@ private:
 	
 	// pedigree tracking: off by default, optionally turned on at init time to enable calls to TrackPedigreeWithParents()
 	bool pedigrees_enabled_ = false;
-	bool pedigrees_enabled_by_user_ = false;		// pedigree tracking was turned on by the user, which is user-visible
-	bool pedigrees_enabled_by_tree_seq_ = false;	// pedigree tracking has been forced on by tree-seq recording, which is not user-visible
 	
 	// continuous space support
 	int spatial_dimensionality_ = 0;
@@ -302,7 +299,6 @@ private:
 	
 	// TABLE SIMPLIFICATION
     std::vector<node_id_t> RememberedGenomes;
-	std::unordered_map<slim_genomeid_t,node_id_t> SLiM_MSP_Id_Map;
 	Individual *current_new_individual_;
 	
 	bool recording_mutations_ = false;			// true if we are recording mutations in our tree sequence tables
@@ -440,25 +436,24 @@ public:
 	// TREE SEQUENCE RECORDING
 	inline __attribute__((always_inline)) bool RecordingTreeSequence(void) const											{ return recording_tree_; }
 	inline __attribute__((always_inline)) bool RecordingTreeSequenceMutations(void) const									{ return recording_mutations_; }
-	inline __attribute__((always_inline)) node_id_t getMSPID(slim_genomeid_t GenomeID)										{ return SLiM_MSP_Id_Map[GenomeID]; }
 	inline __attribute__((always_inline)) void AboutToSplitSubpop(void)														{ tree_seq_generation_offset_ += 0.00001; }	// see Population::AddSubpopulationSplit()
 	
 	void StartTreeRecording(void);
 	void SetCurrentNewIndividual(Individual *p_individual);
-	void RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_genomeid_t p_new_genome_id, slim_genomeid_t p_initial_parental_genome_id, slim_genomeid_t p_second_parental_genome_id);
-	void RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations);
+	void RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genome *p_new_genome, const Genome *p_initial_parental_genome, const Genome *p_second_parental_genome);
+	void RecordNewDerivedState(const Genome *p_genome, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations);
 	void RetractNewIndividual(void);
     void TreeSequenceDataToAscii(table_collection_t *new_tables);
 	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify);
 	void SimplifyTreeSequence(void);
 	void handle_error(std::string msg, int error);
 	void CheckAutoSimplification(void);
-	void RememberGenomes(std::vector<slim_genomeid_t> p_genome_ids);
+	void RememberGenomes(std::vector<const Genome *> p_genomes);
 	void FreeTreeSequence(void);
 	void RecordAllDerivedStatesFromSLiM(void);
 	void MetadataForMutation(Mutation *p_mutation, MutationMetadataRec *p_metadata);
 	void MetadataForSubstitution(Substitution *p_substitution, MutationMetadataRec *p_metadata);
-	void MetadataForGenome(slim_genomeid_t p_genome_id, Individual *p_individual, GenomeMetadataRec *p_metadata);
+	void MetadataForGenome(Genome *p_genome, Individual *p_individual, GenomeMetadataRec *p_metadata);
 	void DumpMutationTable(void);
 	void CrosscheckTreeSeqIntegrity(void);
 	void TSXC_Enable(void);

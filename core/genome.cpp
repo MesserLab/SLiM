@@ -45,7 +45,7 @@ int Genome::s_bulk_operation_mutrun_index_ = -1;
 std::unordered_map<MutationRun*, MutationRun*> Genome::s_bulk_operation_runs_;
 
 
-Genome::Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length, enum GenomeType p_genome_type_, bool p_is_null) : genome_type_(p_genome_type_), subpop_(p_subpop), genome_id_(-1)
+Genome::Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length, enum GenomeType p_genome_type_, bool p_is_null) : genome_type_(p_genome_type_), subpop_(p_subpop)
 {
 	// null genomes are now signalled with a mutrun_count_ of 0, rather than a separate flag
 	if (p_is_null)
@@ -431,7 +431,7 @@ void Genome::record_derived_states(SLiMSim *p_sim) const
 				// New position, so we finish the previous derived-state block...
 				if (last_pos != -1)
 				{
-					p_sim->RecordNewDerivedState(genome_id_, last_pos, record_vec);
+					p_sim->RecordNewDerivedState(this, last_pos, record_vec);
 					record_vec.clear();
 				}
 				
@@ -445,7 +445,7 @@ void Genome::record_derived_states(SLiMSim *p_sim) const
 		// record the last derived block, if any
 		if (last_pos != -1)
 		{
-			p_sim->RecordNewDerivedState(genome_id_, last_pos, record_vec);
+			p_sim->RecordNewDerivedState(this, last_pos, record_vec);
 			record_vec.clear();
 		}
 	}
@@ -1508,13 +1508,12 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 		for (int genome_index = 0; genome_index < target_size; ++genome_index)
 		{
 			Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
-			slim_genomeid_t target_id = target_genome->genome_id_;
 			
 			for (Mutation *mut : mutations_to_add)
 			{
 				slim_position_t pos = mut->position_;
 				
-				sim.RecordNewDerivedState(target_id, pos, *target_genome->derived_mutation_ids_at_position(pos));
+				sim.RecordNewDerivedState(target_genome, pos, *target_genome->derived_mutation_ids_at_position(pos));
 			}
 		}
 	}
@@ -1804,7 +1803,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 					Mutation *mut = gSLiM_Mutation_Block + *(muts++);
 					slim_position_t pos = mut->position_;
 					
-					sim.RecordNewDerivedState(target_genome->genome_id_, pos, *target_genome->derived_mutation_ids_at_position(pos));
+					sim.RecordNewDerivedState(target_genome, pos, *target_genome->derived_mutation_ids_at_position(pos));
 				}
 			}
 		}
@@ -1989,14 +1988,13 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 			for (int genome_index = 0; genome_index < target_size; ++genome_index)
 			{
 				Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
-				slim_genomeid_t target_id = target_genome->genome_id_;
 				
 				for (GenomeWalker target_walker(target_genome); !target_walker.Finished(); target_walker.NextMutation())
 				{
 					Mutation *mut = target_walker.CurrentMutation();
 					slim_position_t pos = mut->position_;
 					
-					sim.RecordNewDerivedState(target_id, pos, empty_mut_vector);
+					sim.RecordNewDerivedState(target_genome, pos, empty_mut_vector);
 				}
 			}
 		}
@@ -2143,13 +2141,12 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 			for (int genome_index = 0; genome_index < target_size; ++genome_index)
 			{
 				Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
-				slim_genomeid_t target_id = target_genome->genome_id_;
 				
 				for (Mutation *mut : mutations_to_remove)
 				{
 					slim_position_t pos = mut->position_;
 					
-					sim.RecordNewDerivedState(target_id, pos, *target_genome->derived_mutation_ids_at_position(pos));
+					sim.RecordNewDerivedState(target_genome, pos, *target_genome->derived_mutation_ids_at_position(pos));
 				}
 			}
 		}

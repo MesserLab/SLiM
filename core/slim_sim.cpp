@@ -3739,7 +3739,6 @@ void SLiMSim::SimplifyTreeSequence(void)
 		return;
 	
 	std::vector<node_id_t> samples;
-	std::unordered_map<slim_genomeid_t,node_id_t> newSlimMspIdMap;
 	
     // the RememberedGenomes come first in the list of samples
     for (node_id_t sid : RememberedGenomes) 
@@ -3754,8 +3753,7 @@ void SLiMSim::SimplifyTreeSequence(void)
 		
 		for (Genome *genome : subpopulationGenomes)
 		{
-			slim_genomeid_t G = genome->genome_id_;
-			node_id_t M = getMSPID(G);
+			node_id_t M = genome->msp_node_id_;
 			
 			// check if this sample is already being remembered
 			auto iter = std::find(RememberedGenomes.begin(), RememberedGenomes.end(), M);
@@ -3763,11 +3761,11 @@ void SLiMSim::SimplifyTreeSequence(void)
 			if (iter == RememberedGenomes.end())
 			{
 				samples.push_back(M);
-				newSlimMspIdMap[G] = newValueInNodeTable++;
+				genome->msp_node_id_ = newValueInNodeTable++;
 			}
 			else
 			{
-				newSlimMspIdMap[G] = (node_id_t)(iter - RememberedGenomes.begin());
+				genome->msp_node_id_ = (node_id_t)(iter - RememberedGenomes.begin());
 			}
 		}
 	}
@@ -3784,8 +3782,6 @@ void SLiMSim::SimplifyTreeSequence(void)
     if (ret != 0) handle_error("simplifier_run", ret);
 	
     // update map of RememberedGenomes
-	std::swap(SLiM_MSP_Id_Map, newSlimMspIdMap);
-	
 	for (node_id_t i = 0; i < (node_id_t)RememberedGenomes.size(); i++)
         RememberedGenomes[i] = i;
 	
@@ -3848,8 +3844,8 @@ void SLiMSim::RetractNewIndividual()
     table_collection_reset_position(&table_position);
 }
 
-void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_genomeid_t p_new_genome_id, 
-        slim_genomeid_t p_initial_parental_genome_id, slim_genomeid_t p_second_parental_genome_id)
+void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genome *p_new_genome, 
+        const Genome *p_initial_parental_genome, const Genome *p_second_parental_genome)
 {
     // This records information about an individual in both the Node and Edge tables.
 
@@ -3871,23 +3867,24 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_
 	uint32_t flags = 1;
 	GenomeMetadataRec metadata_rec;
 	
-	MetadataForGenome(p_new_genome_id, current_new_individual_, &metadata_rec);
+	MetadataForGenome(p_new_genome, current_new_individual_, &metadata_rec);
 	
 	const char *metadata = (char *)&metadata_rec;
 	size_t metadata_length = sizeof(GenomeMetadataRec)/sizeof(char);
+	
 	offspringMSPID = node_table_add_row(&tables.nodes, flags, time, 0, metadata, metadata_length);
-    SLiM_MSP_Id_Map[p_new_genome_id] = (node_id_t) offspringMSPID;
+	p_new_genome->msp_node_id_ = offspringMSPID;
 	
     // if there is no parent then no need to record edges
-	if ((p_initial_parental_genome_id == -1) && (p_second_parental_genome_id == -1))
+	if (!p_initial_parental_genome && !p_second_parental_genome)
 		return;
 	
 	node_id_t genome1MSPID;				//MSPrime equivilent of first genome ID of parent
 	node_id_t genome2MSPID;				//MSPrime equivilent of second genome ID of parent
 
 	//Map the Parental Genome SLiM Id's to MSP IDs.
-	genome1MSPID = getMSPID(p_initial_parental_genome_id);
-	genome2MSPID = (p_second_parental_genome_id == -1) ? genome1MSPID : getMSPID(p_second_parental_genome_id);
+	genome1MSPID = p_initial_parental_genome->msp_node_id_;
+	genome2MSPID = (!p_second_parental_genome) ? genome1MSPID : p_second_parental_genome->msp_node_id_;
 
 	/* DEBUG STDOUT
     std::cout << "  in MSP ids: " << genome1MSPID << " and " << genome2MSPID << " ---> " << offspringMSPID << std::endl;
@@ -3926,7 +3923,7 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, slim_
 	if (ret < 0) handle_error("add_edge", ret);
 }
 
-void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations)
+void SLiMSim::RecordNewDerivedState(const Genome *p_genome, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations)
 {
     // This records information in the Site and Mutation tables.
     // This is called whenever a new mutation is added to a genome.  Because
@@ -3944,7 +3941,7 @@ void SLiMSim::RecordNewDerivedState(slim_genomeid_t p_genome_id, slim_position_t
     // must not keep a pointer to it; any information that needs to be kept
     // from it must be copied out.
 
-    node_id_t genomeMSPID = getMSPID(p_genome_id);
+    node_id_t genomeMSPID = p_genome->msp_node_id_;
 
     // Identify any previous mutations at this site in this genome, and add a new site
     double msp_position = (double) p_position;
@@ -4156,8 +4153,6 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
 		{
 			GenomeMetadataRec *struct_genome_metadata = (GenomeMetadataRec *)(metadata + metadata_offset[j]);
 			
-			text_metadata.append(std::to_string(struct_genome_metadata->genome_id_));
-			text_metadata.append(",");
 			text_metadata.append(StringForIndividualSex(struct_genome_metadata->sex_));
 			text_metadata.append(",");
 			text_metadata.append(std::to_string(struct_genome_metadata->subpop_index_));
@@ -4247,13 +4242,13 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
     }
 }	
 
-void SLiMSim::RememberGenomes(std::vector<slim_genomeid_t> p_genome_ids)
+void SLiMSim::RememberGenomes(std::vector<const Genome *> p_genomes)
 {
-	// The genomes with genomes ids specified in p_genome_ids are to be remembered
-	// permanently in this run of the model, i.e. added to the sample in every simplify.
-    for (slim_genomeid_t G : p_genome_ids)
+	// The genomes specified in p_genomes are to be remembered permanently
+	// in this run of the model, i.e. added to the sample in every simplify.
+    for (const Genome *G : p_genomes)
 	{
-		node_id_t M = getMSPID(G);
+		node_id_t M = G->msp_node_id_;
 		
 		// check if this genome is already being remembered
 		if (std::find(RememberedGenomes.begin(), RememberedGenomes.end(), M) == RememberedGenomes.end())
@@ -4291,8 +4286,8 @@ void SLiMSim::RecordAllDerivedStatesFromSLiM(void)
 			
 			// This is done for us, at present, as a side effect of the readPopulationFile() code...
 			//SetCurrentNewIndividual(individual);
-			//RecordNewGenome(nullptr, genome1->genome_id_, -1, -1);
-			//RecordNewGenome(nullptr, genome2->genome_id_, -1, -1);
+			//RecordNewGenome(nullptr, genome1, nullptr, nullptr);
+			//RecordNewGenome(nullptr, genome2, nullptr, nullptr);
 			
 			if (recording_mutations_)
 			{
@@ -4325,12 +4320,11 @@ void SLiMSim::MetadataForSubstitution(Substitution *p_substitution, MutationMeta
 	p_metadata->origin_generation_ = p_substitution->origin_generation_;
 }
 
-void SLiMSim::MetadataForGenome(slim_genomeid_t p_genome_id, Individual *p_individual, GenomeMetadataRec *p_metadata)
+void SLiMSim::MetadataForGenome(__attribute__((unused)) Genome *p_genome, Individual *p_individual, GenomeMetadataRec *p_metadata)
 {
 	if (!p_individual || !p_metadata)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::MetadataForGenome): (internal error) bad parameters to MetadataForGenome()." << EidosTerminate();
 	
-	p_metadata->genome_id_ = p_genome_id;
 	p_metadata->sex_ = p_individual->sex_;
 	p_metadata->subpop_index_ = p_individual->subpopulation_.subpopulation_id_;
 }
@@ -4441,7 +4435,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 			
 			for (auto iter = population_.begin(); iter != population_.end(); iter++)
 				for (Genome *genome : iter->second->parent_genomes_)
-					samples.push_back(getMSPID(genome->genome_id_));
+					samples.push_back(genome->msp_node_id_);
 			
 //			if (generation_ >= 25)
 //			{
@@ -4474,47 +4468,6 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 		ts = (tree_sequence_t *)malloc(sizeof(tree_sequence_t));
 		ret = tree_sequence_load_tables(ts, tables_copy, MSP_BUILD_INDEXES);
 		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tree_sequence_load_tables()", ret);
-		
-		// find the nodes in the tree sequence's sample of genomes, which should correspond to our genomes (with fixed mutations added)
-		static std::unordered_map<slim_genomeid_t, int32_t> metadata_to_sample_index;
-		int32_t num_samples = (int32_t)tree_sequence_get_num_samples(ts);
-		node_id_t *samples;
-		
-		metadata_to_sample_index.clear();
-		
-		ret = tree_sequence_get_samples(ts, &samples);
-		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tree_sequence_get_samples()", ret);
-		
-		for (int32_t sample_index = 0; sample_index < num_samples; ++sample_index)
-		{
-			node_t sample_node;
-			
-			ret = tree_sequence_get_node(ts, samples[sample_index], &sample_node);
-			if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tree_sequence_get_node()", ret);
-			
-			GenomeMetadataRec *sample_metadata = (GenomeMetadataRec *)sample_node.metadata;
-			table_size_t sample_metadata_length = sample_node.metadata_length;
-			
-			if (sample_metadata_length != sizeof(GenomeMetadataRec))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::CrosscheckTreeSeqIntegrity): (internal error) unexpected genome metadata." << EidosTerminate();
-			
-			metadata_to_sample_index.insert(std::pair<slim_genomeid_t, int32_t>(sample_metadata->genome_id_, sample_index));
-		}
-		
-		// find the sample index for each genome, using the metadata_to_sample_index map we just built
-		static std::vector<int32_t> sample_indices_for_genomes;
-		sample_indices_for_genomes.clear();
-		sample_indices_for_genomes.reserve(genome_count);
-		
-		for (Genome *genome : genomes)
-		{
-			auto sample_index_iter = metadata_to_sample_index.find(genome->genome_id_);
-			
-			if (sample_index_iter == metadata_to_sample_index.end())
-				EIDOS_TERMINATION << "ERROR (SLiMSim::CrosscheckTreeSeqIntegrity): (internal error) didn't find genome in sample." << EidosTerminate();
-			
-			sample_indices_for_genomes.emplace_back(sample_index_iter->second);
-		}
 		
 		// allocate and set up the vargen object we'll use to walk through variants
 		vargen_t *vg;
@@ -4553,9 +4506,8 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 				// Check all the genomes against the vargen_t's belief about this site
 				for (size_t genome_index = 0; genome_index < genome_count; genome_index++)
 				{
-					int32_t sample_index_for_genome = sample_indices_for_genomes[genome_index];
 					GenomeWalker &genome_walker = genome_walkers[genome_index];
-					uint8_t genome_variant = variant->genotypes[sample_index_for_genome];
+					uint8_t genome_variant = variant->genotypes[genome_index];
 					table_size_t genome_allele_length = variant->allele_lengths[genome_variant];
 					
 					if (genome_allele_length % sizeof(slim_mutationid_t) != 0)
@@ -4709,9 +4661,6 @@ void SLiMSim::TSXC_Enable(void)
 	simplification_ratio_ = 10;
 	running_treeseq_crosschecks_ = true;
 	treeseq_crosschecks_interval_ = 50;		// check every 50th generation, otherwise it is just too slow
-	
-	pedigrees_enabled_ = true;
-	pedigrees_enabled_by_tree_seq_ = true;
 	simplify_interval_ = 20;
 	
 	SLIM_ERRSTREAM << "// ********** Turning on tree-sequence recording with crosschecks (-TSXC)." << std::endl << std::endl;
@@ -5422,26 +5371,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 		// [logical$ keepPedigrees = F]
 		bool keep_pedigrees = arg_keepPedigrees_value->LogicalAtIndex(0, nullptr);
 		
-		if (keep_pedigrees)
-		{
-			// pedigree recording can always be turned on by the user
-			pedigrees_enabled_ = true;
-			pedigrees_enabled_by_user_ = true;
-		}
-		else	// !keep_pedigrees
-		{
-			if (pedigrees_enabled_by_tree_seq_)
-			{
-				// if pedigrees were forced on by tree-seq recording, they stay on, but we remember that the user wanted them off
-				pedigrees_enabled_by_user_ = false;
-			}
-			else
-			{
-				// otherwise, the user can turn them off if so desired
-				pedigrees_enabled_ = false;
-				pedigrees_enabled_by_user_ = false;
-			}
-		}
+		pedigrees_enabled_ = keep_pedigrees;
 	}
 	
 	{
@@ -5518,10 +5448,10 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 		
 		bool previous_params = false;
 		
-		if (pedigrees_enabled_by_user_)
+		if (pedigrees_enabled_)
 		{
 			if (previous_params) output_stream << ", ";
-			output_stream << "keepPedigrees = " << (pedigrees_enabled_by_user_ ? "T" : "F");
+			output_stream << "keepPedigrees = " << (pedigrees_enabled_ ? "T" : "F");
 			previous_params = true;
 		}
 		
@@ -5595,11 +5525,6 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeTreeSeq(const std::strin
 	simplification_ratio_ = arg_simplificationRatio_value->FloatAtIndex(0, nullptr);
 	running_treeseq_crosschecks_ = arg_runCrosschecks_value->LogicalAtIndex(0, nullptr);
 	treeseq_crosschecks_interval_ = 1;		// this interval is presently not exposed in the Eidos API
-	
-	// Pedigree recording is turned on as a side effect of tree sequence recording, since we need to
-	// have unique identifiers for every individual; pedigree recording does that for us
-	pedigrees_enabled_ = true;
-	pedigrees_enabled_by_tree_seq_ = true;
 	
 	// Choose an initial auto-simplification interval
 	if (simplification_ratio_ == 0.0)
@@ -7315,17 +7240,17 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStrin
 	if ((executing_block_type_ == SLiMEidosBlockType::SLiMEidosFitnessCallback) || (executing_block_type_ == SLiMEidosBlockType::SLiMEidosMateChoiceCallback) || (executing_block_type_ == SLiMEidosBlockType::SLiMEidosModifyChildCallback) || (executing_block_type_ == SLiMEidosBlockType::SLiMEidosRecombinationCallback))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqRememberIndividuals): treeSeqRememberIndividuals() may not be called from inside a fitness(), mateChoice(), modifyChild(), or recombination() callback." << EidosTerminate();
 	
-	std::vector<slim_genomeid_t> genome_IDs;
+	std::vector<const Genome *> genomes;
 	
 	for (int ind_index = 0; ind_index < ind_count; ind_index++)
 	{
 		Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex(ind_index, nullptr));
 		
-		genome_IDs.emplace_back(ind->genome1_->genome_id_);
-		genome_IDs.emplace_back(ind->genome2_->genome_id_);
+		genomes.emplace_back(ind->genome1_);
+		genomes.emplace_back(ind->genome2_);
 	}
 	
-	RememberGenomes(genome_IDs);
+	RememberGenomes(genomes);
 	
 	return gStaticEidosValueVOID;
 }
