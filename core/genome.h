@@ -415,6 +415,7 @@ public:
 	GenomeWalker(GenomeWalker&&) = default;
 	inline ~GenomeWalker(void) {};
 	
+	inline Genome *Genome(void) { return genome_; }
 	inline Mutation *CurrentMutation(void) { return mutation_; }
 	inline bool Finished(void) { return (mutation_ == nullptr); }
 	
