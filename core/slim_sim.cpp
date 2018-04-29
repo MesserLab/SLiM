@@ -4119,6 +4119,8 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
 	
     /***  Ascii-ify Mutation Table ***/
 	{
+		static_assert(sizeof(MutationMetadataRec) == 16, "MutationMetadataRec has changed size; this code probably needs to be updated");
+		
 		ret = mutation_table_clear(&new_tables->mutations);
 		if (ret < 0) handle_error("convert_to_ascii", ret);
 		
@@ -4185,6 +4187,8 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
 	
     /***** Ascii-ify Node Table *****/
 	{
+		static_assert(sizeof(GenomeMetadataRec) == 12, "GenomeMetadataRec has changed size; this code probably needs to be updated");
+		
 		ret = node_table_clear(&new_tables->nodes);
 		if (ret < 0) handle_error("convert_to_ascii", ret);
 		
@@ -4199,6 +4203,10 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
 		{
 			GenomeMetadataRec *struct_genome_metadata = (GenomeMetadataRec *)(metadata + metadata_offset[j]);
 			
+			text_metadata.append(struct_genome_metadata->is_null_ ? "T" : "F");
+			text_metadata.append(",");
+			text_metadata.append(StringForGenomeType(struct_genome_metadata->type_));
+			text_metadata.append(",");
 			text_metadata.append(StringForIndividualSex(struct_genome_metadata->sex_));
 			text_metadata.append(",");
 			text_metadata.append(std::to_string(struct_genome_metadata->subpop_index_));
@@ -4247,7 +4255,7 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 
     // Add in the mutation.parent information
     ret = table_collection_compute_mutation_parents(&tables, 0);
-    if (ret < 0) handle_error("deduplicate_sites", ret);
+    if (ret < 0) handle_error("compute_mutation_parents", ret);
 	
     if (p_binary)
 	{
@@ -4393,6 +4401,8 @@ void SLiMSim::MetadataForGenome(__attribute__((unused)) Genome *p_genome, Indivi
 	if (!p_individual || !p_metadata)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::MetadataForGenome): (internal error) bad parameters to MetadataForGenome()." << EidosTerminate();
 	
+	p_metadata->is_null_ = p_genome->IsNull();
+	p_metadata->type_ = p_genome->genome_type_;
 	p_metadata->sex_ = p_individual->sex_;
 	p_metadata->subpop_index_ = p_individual->subpopulation_.subpopulation_id_;
 }

@@ -120,15 +120,18 @@ typedef struct {
 // independently to avoid duplication, but for now all the same information is replicated in both genomes' metadata.
 // This should be kept in sync with any new state that needs to be written out about genomes, but of course
 // changing the members/size/layout of this struct will mean that old output files will no longer be readable.
-// I decided not to use __attribute__((__packed__)); if this struct isn't naturally 8 bytes something is deeply wrong.
+// I decided not to use __attribute__((__packed__)); if this struct isn't naturally 12 bytes something is deeply wrong.
 typedef struct {
 	// no pedigree IDs
+	uint8_t is_null_;						// 1 byte (uint8_t): true if this is a null genome (should never contain mutations)
+	GenomeType type_;						// 1 byte (uint8_t): the type of the genome (A, X, Y)
+	uint16_t __unused__;					// currently unused padding; I'm torn as to whether to pack this struct or not
 	IndividualSex sex_;						// 4 bytes (int32_t): the sex of the individual (H, F, M)
 	slim_objectid_t subpop_index_;			// 4 bytes (int32_t): the id of the subpopulation in which genome originated
 } GenomeMetadataRec;
 
 static_assert(sizeof(MutationMetadataRec) == 16, "MutationMetadataRec is not 16 bytes!");
-static_assert(sizeof(GenomeMetadataRec) == 8, "GenomeMetadataRec is not 8 bytes!");
+static_assert(sizeof(GenomeMetadataRec) == 12, "GenomeMetadataRec is not 12 bytes!");
 #if defined(__BYTE_ORDER__)
 #if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
 #warning Reading and writing binary files with SLiM may produce non-standard results on this (big-endian) platform due to endianness

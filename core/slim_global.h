@@ -298,6 +298,7 @@ enum class GenomeType : uint8_t {
 	kYChromosome
 };
 
+std::string StringForGenomeType(GenomeType p_genome_type);
 std::ostream& operator<<(std::ostream& p_out, GenomeType p_genome_type);
 
 

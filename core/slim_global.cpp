@@ -226,15 +226,19 @@ bool SLiM_verbose_output = false;
 
 
 // stream output for enumerations
-std::ostream& operator<<(std::ostream& p_out, GenomeType p_genome_type)
+std::string StringForGenomeType(GenomeType p_genome_type)
 {
 	switch (p_genome_type)
 	{
-		case GenomeType::kAutosome:		p_out << gStr_A; break;
-		case GenomeType::kXChromosome:	p_out << gStr_X; break;	// SEX ONLY
-		case GenomeType::kYChromosome:	p_out << gStr_Y; break;	// SEX ONLY
+		case GenomeType::kAutosome:		return gStr_A;
+		case GenomeType::kXChromosome:	return gStr_X;		// SEX ONLY
+		case GenomeType::kYChromosome:	return gStr_Y;		// SEX ONLY
 	}
-	
+}
+
+std::ostream& operator<<(std::ostream& p_out, GenomeType p_genome_type)
+{
+	p_out << StringForGenomeType(p_genome_type);
 	return p_out;
 }
 
