@@ -3735,6 +3735,11 @@ void SLiMSim::handle_error(std::string msg, int err)
 
 void SLiMSim::SimplifyTreeSequence(void)
 {
+#if DEBUG
+	if (!recording_tree_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::SimplifyTreeSequence): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
+#endif
+	
 	if (tables.nodes.num_rows == 0)
 		return;
 	
@@ -3794,6 +3799,11 @@ void SLiMSim::SimplifyTreeSequence(void)
 
 void SLiMSim::StartTreeRecording(void)
 {
+#if DEBUG
+	if (!recording_tree_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::StartTreeRecording): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
+#endif
+	
 	/* DEBUG STDOUT
 	std::cout << "Starting tree sequence recording with last base position: " << chromosome_.last_position_ << std::endl << std::endl;
 	// */
@@ -3815,6 +3825,11 @@ void SLiMSim::StartTreeRecording(void)
 
 void SLiMSim::SetCurrentNewIndividual(Individual *p_individual)
 {
+#if DEBUG
+	if (!recording_tree_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::SetCurrentNewIndividual): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
+#endif
+	
 	// This is called by code where new individuals are created
 	
 	// Remember the new individual being defined, for use in RetractNewIndividual() and metadata
@@ -3826,6 +3841,11 @@ void SLiMSim::SetCurrentNewIndividual(Individual *p_individual)
 
 void SLiMSim::RetractNewIndividual()
 {
+#if DEBUG
+	if (!recording_tree_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::RetractNewIndividual): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
+#endif
+	
 	// This is called when a new child, introduced by SetCurrentNewIndividual(), gets rejected by a modifyChild()
 	// callback.  We will have logged recombination breakpoints and new mutations into our tables, and now want
 	// to back those changes out by re-setting the active row index for the tables.
@@ -3847,6 +3867,11 @@ void SLiMSim::RetractNewIndividual()
 void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genome *p_new_genome, 
         const Genome *p_initial_parental_genome, const Genome *p_second_parental_genome)
 {
+#if DEBUG
+	if (!recording_tree_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::RecordNewGenome): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
+#endif
+	
     // This records information about an individual in both the Node and Edge tables.
 
 	// Note that the breakpoints vector provided may (or may not) contain a breakpoint, as the final breakpoint in the vector, that is beyond
@@ -3925,6 +3950,11 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genom
 
 void SLiMSim::RecordNewDerivedState(const Genome *p_genome, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations)
 {
+#if DEBUG
+	if (!recording_tree_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::RecordNewDerivedState): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
+#endif
+	
     // This records information in the Site and Mutation tables.
     // This is called whenever a new mutation is added to a genome.  Because
     // mutation stacking makes things complicated, this hook supplies not just
@@ -3940,7 +3970,13 @@ void SLiMSim::RecordNewDerivedState(const Genome *p_genome, slim_position_t p_po
     // vector of mutations passed in here is reused internally, so this method
     // must not keep a pointer to it; any information that needs to be kept
     // from it must be copied out.
-
+	
+	// BCH 4/29/2018: Null genomes should never contain any mutations at all,
+	// including fixed mutations; the simplest thing is to just disallow derived
+	// states for them altogether.
+	if (p_genome->IsNull())
+		EIDOS_TERMINATION << "ERROR (SLiMSim::RecordNewDerivedState): new derived states cannot be recorded for null genomes." << EidosTerminate();
+	
     node_id_t genomeMSPID = p_genome->msp_node_id_;
 
     // Identify any previous mutations at this site in this genome, and add a new site
@@ -4001,6 +4037,11 @@ void SLiMSim::RecordNewDerivedState(const Genome *p_genome, slim_position_t p_po
 
 void SLiMSim::CheckAutoSimplification(void)
 {
+#if DEBUG
+	if (!recording_tree_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::CheckAutoSimplification): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
+#endif
+	
 	// This is called at the end of each generation, at an appropriate time to simplify.  This method decides
 	// whether to simplify or not, based upon how long it has been since the last time we simplified.  Each
 	// time we simplify, we ask whether we simplified too early, too late, or just the right time by comparing
@@ -4064,6 +4105,11 @@ void SLiMSim::CheckAutoSimplification(void)
 
 void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
 {
+#if DEBUG
+	if (!recording_tree_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::TreeSequenceDataToAscii): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
+#endif
+	
     /********************************************************
      * Make the data stored in the tables readable as ASCII.
      ********************************************************/
@@ -4172,6 +4218,11 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
 
 void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify)
 {
+#if DEBUG
+	if (!recording_tree_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::WriteTreeSequence): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
+#endif
+	
     // If p_binary, then write out to that path;
     // otherwise, create p_recording_tree_path as a directory,
     // and write out to text files in that directory
@@ -4244,6 +4295,11 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 
 void SLiMSim::RememberGenomes(std::vector<const Genome *> p_genomes)
 {
+#if DEBUG
+	if (!recording_tree_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::RememberGenomes): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
+#endif
+	
 	// The genomes specified in p_genomes are to be remembered permanently
 	// in this run of the model, i.e. added to the sample in every simplify.
     for (const Genome *G : p_genomes)
@@ -4258,6 +4314,11 @@ void SLiMSim::RememberGenomes(std::vector<const Genome *> p_genomes)
 
 void SLiMSim::FreeTreeSequence(void)
 {
+#if DEBUG
+	if (!recording_tree_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::FreeTreeSequence): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
+#endif
+	
 	// Free any tree-sequence recording stuff that has been allocated; called when SLiMSim is getting deallocated,
 	// and also when we're wiping the slate clean with something like readFromPopulationFile().
 	if (recording_tree_)
@@ -4266,6 +4327,11 @@ void SLiMSim::FreeTreeSequence(void)
 
 void SLiMSim::RecordAllDerivedStatesFromSLiM(void)
 {
+#if DEBUG
+	if (!recording_tree_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::RecordAllDerivedStatesFromSLiM): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
+#endif
+	
 	// This is called when new tree sequence tables need to be built to correspond to the current state of SLiM, such as
 	// after handling a readFromPopulationFile() call.  It is guaranteed by the caller of this method that any old tree
 	// sequence recording stuff has been freed with a call to FreeTreeSequence(), and then a new recording session has
@@ -4291,8 +4357,10 @@ void SLiMSim::RecordAllDerivedStatesFromSLiM(void)
 			
 			if (recording_mutations_)
 			{
-				genome1->record_derived_states(this);
-				genome2->record_derived_states(this);
+				if (!genome1->IsNull())
+					genome1->record_derived_states(this);
+				if (!genome2->IsNull())
+					genome2->record_derived_states(this);
 			}
 		}
 	}
@@ -4331,6 +4399,11 @@ void SLiMSim::MetadataForGenome(__attribute__((unused)) Genome *p_genome, Indivi
 
 void SLiMSim::DumpMutationTable(void)
 {
+#if DEBUG
+	if (!recording_tree_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::DumpMutationTable): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
+#endif
+	
 	mutation_table_t &mutations = tables.mutations;
 	
 	for (table_size_t mutindex = 0; mutindex < mutations.num_rows; ++mutindex)
@@ -4367,6 +4440,11 @@ void SLiMSim::DumpMutationTable(void)
 
 void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 {
+#if DEBUG
+	if (!recording_tree_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::CrosscheckTreeSeqIntegrity): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
+#endif
+	
 	// first crosscheck the substitutions multimap against SLiM's substitutions vector
 	{
 		std::vector<Substitution *> vector_subs = population_.substitutions_;
@@ -4515,6 +4593,15 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 					genome_allele_length /= sizeof(slim_mutationid_t);
 					
 					//std::cout << "variant for genome: " << (int)genome_variant << " (allele length == " << genome_allele_length << ")" << std::endl;
+					
+					// BCH 4/29/2018: null genomes shouldn't ever contain any mutations, including fixed mutations
+					if (genome_walker.Genome()->IsNull())
+					{
+						if (genome_allele_length == 0)
+							continue;
+						
+						EIDOS_TERMINATION << "ERROR (SLiMSim::CrosscheckTreeSeqIntegrity): (internal error) null genome has non-zero treeseq allele length " << genome_allele_length << "." << EidosTerminate();
+					}
 					
 					// (1) if the variant's allele is zero-length, we do nothing (if it incorrectly claims that a genome contains no
 					// mutation, we'll catch that later)  (2) if the variant's allele is the length of one mutation id, we can simply

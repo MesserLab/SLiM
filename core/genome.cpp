@@ -2052,6 +2052,9 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 			{
 				Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
 				
+				if (target_genome->IsNull())
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called on a null genome." << EidosTerminate();
+				
 				for (GenomeWalker target_walker(target_genome); !target_walker.Finished(); target_walker.NextMutation())
 				{
 					Mutation *mut = target_walker.CurrentMutation();
@@ -2069,9 +2072,6 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 		for (int genome_index = 0; genome_index < target_size; ++genome_index)
 		{
 			Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
-			
-			if (target_genome->IsNull())
-				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called on a null genome." << EidosTerminate();
 			
 			for (int run_index = 0; run_index < mutrun_count; ++run_index)
 					target_genome->mutruns_[run_index].reset(shared_empty_run);
@@ -2173,45 +2173,47 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 			
 			// TREE SEQUENCE RECORDING
 			// When doing tree recording, if a given mutation is converted to a substitution by script, it may not be contained in some
-			// genomes (null genomes, notably), but at the moment it fixes it is then considered to belong to the derived state of every
-			// genome.  We therefore need to go through all of the non-target genomes and record their new derived states at all
-			// positions containing a new substitution.  If they already had a copy of the mutation, and didn't have it removed here,
-			// that is pretty weird, but in practice it just means that their derived state will contain that mutation id twice – once
-			// for the segregating mutation they still contain, and once for the new substitution.  We don't check for that case, but
-			// it should just work automatically.
-			
-			// Mark all genomes in the simulation that are not among the target genomes operated upon; we use patch_pointer_ as scratch
-			for (auto subpop_pair : sim.ThePopulation())
-				for (Genome *genome : subpop_pair.second->parent_genomes_)
-					genome->patch_pointer_ = genome;
-			
-			for (int genome_index = 0; genome_index < target_size; ++genome_index)
-				((Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr))->patch_pointer_ = nullptr;
-			
-			// Figure out the unique chromosome positions that have changed (the uniqued set of mutation positions)
-			std::vector<slim_position_t> unique_positions;
-			slim_position_t last_pos = -1;
-			
-			for (Mutation *mut : mutations_to_remove)
+			// genomes, but at the moment it fixes it is then considered to belong to the derived state of every non-null genome.  We
+			// therefore need to go through all of the non-target genomes and record their new derived states at all positions
+			// containing a new substitution.  If they already had a copy of the mutation, and didn't have it removed here, that is
+			// pretty weird, but in practice it just means that their derived state will contain that mutation id twice – once for the
+			// segregating mutation they still contain, and once for the new substitution.  We don't check for that case, but it should
+			// just work automatically.
+			if (sim.RecordingTreeSequence())
 			{
-				slim_position_t pos = mut->position_;
+				// Mark all non-null genomes in the simulation that are not among the target genomes; we use patch_pointer_ as scratch
+				for (auto subpop_pair : sim.ThePopulation())
+					for (Genome *genome : subpop_pair.second->parent_genomes_)
+						genome->patch_pointer_ = (genome->IsNull() ? nullptr : genome);
 				
-				if (pos != last_pos)
+				for (int genome_index = 0; genome_index < target_size; ++genome_index)
+					((Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr))->patch_pointer_ = nullptr;
+				
+				// Figure out the unique chromosome positions that have changed (the uniqued set of mutation positions)
+				std::vector<slim_position_t> unique_positions;
+				slim_position_t last_pos = -1;
+				
+				for (Mutation *mut : mutations_to_remove)
 				{
-					unique_positions.push_back(pos);
-					last_pos = pos;
-				}
-			}
-			
-			// Loop through those genomes and log the new derived state at each (unique) position
-			for (auto subpop_pair : sim.ThePopulation())
-				for (Genome *genome : subpop_pair.second->parent_genomes_)
-					if (genome->patch_pointer_)
+					slim_position_t pos = mut->position_;
+					
+					if (pos != last_pos)
 					{
-						for (slim_position_t position : unique_positions)
-							sim.RecordNewDerivedState(genome, position, *genome->derived_mutation_ids_at_position(position));
-						genome->patch_pointer_ = nullptr;
+						unique_positions.push_back(pos);
+						last_pos = pos;
 					}
+				}
+				
+				// Loop through those genomes and log the new derived state at each (unique) position
+				for (auto subpop_pair : sim.ThePopulation())
+					for (Genome *genome : subpop_pair.second->parent_genomes_)
+						if (genome->patch_pointer_)
+						{
+							for (slim_position_t position : unique_positions)
+								sim.RecordNewDerivedState(genome, position, *genome->derived_mutation_ids_at_position(position));
+							genome->patch_pointer_ = nullptr;
+						}
+			}
 		}
 		
 		// Now handle the mutations to remove, broken into bulk operations according to the mutation run they fall into
