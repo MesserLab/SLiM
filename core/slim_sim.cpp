@@ -4605,7 +4605,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 					//std::cout << "variant for genome: " << (int)genome_variant << " (allele length == " << genome_allele_length << ")" << std::endl;
 					
 					// BCH 4/29/2018: null genomes shouldn't ever contain any mutations, including fixed mutations
-					if (genome_walker.Genome()->IsNull())
+					if (genome_walker.WalkerGenome()->IsNull())
 					{
 						if (genome_allele_length == 0)
 							continue;
