@@ -98,8 +98,8 @@ private:
 	slim_usertag_t tag_value_;									// a user-defined tag value
 	
 	// TREE SEQUENCE RECORDING
-	// This is msprime's node_id_t for this genome, which is its index in the nodes table kept by the tree-seq code.
-	node_id_t msp_node_id_;
+	node_id_t msp_node_id_;			// msprime's node_id_t for this genome, which is its index in the nodes table kept by the tree-seq code.
+	slim_genomeid_t genome_id_;		// a unique id assigned by SLiM, as a side effect of pedigree recording, that never changes
 	
 	// ********** BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE **********
 	//
@@ -119,6 +119,8 @@ public:
 	Genome& operator= (const Genome &p_original) = delete;
 	Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length, GenomeType p_genome_type_, bool p_is_null);
 	~Genome(void);
+	
+	inline __attribute__((always_inline)) slim_genomeid_t GenomeID()			{ return genome_id_; }
 	
 	void NullGenomeAccessError(void) const __attribute__((__noreturn__)) __attribute__((cold)) __attribute__((analyzer_noreturn));		// prints an error message, a stacktrace, and exits; called only for DEBUG
 	

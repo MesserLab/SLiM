@@ -45,7 +45,7 @@ int Genome::s_bulk_operation_mutrun_index_ = -1;
 std::unordered_map<MutationRun*, MutationRun*> Genome::s_bulk_operation_runs_;
 
 
-Genome::Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length, enum GenomeType p_genome_type_, bool p_is_null) : genome_type_(p_genome_type_), subpop_(p_subpop)
+Genome::Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length, enum GenomeType p_genome_type_, bool p_is_null) : genome_type_(p_genome_type_), subpop_(p_subpop), genome_id_(-1)
 {
 	// null genomes are now signalled with a mutrun_count_ of 0, rather than a separate flag
 	if (p_is_null)

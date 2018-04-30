@@ -51,6 +51,14 @@ Individual::Individual(Subpopulation &p_subpopulation, slim_popsize_t p_individu
 #ifndef SLIM_NONWF_ONLY
 #pragma unused(p_age)
 #endif
+	// Make our genomes use the correct pedigree IDs, if we're doing pedigree recording
+	if (p_pedigree_id != -1)
+	{
+		if (p_genome1)
+			p_genome1->genome_id_ = p_pedigree_id * 2;
+		if (p_genome2)
+			p_genome2->genome_id_ = p_pedigree_id * 2 + 1;
+	}
 }
 
 double Individual::RelatednessToIndividual(Individual &p_ind)

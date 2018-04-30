@@ -689,6 +689,8 @@ void Subpopulation::CheckIndividualIntegrity(void)
 		{
 			if (individual->pedigree_id_ == -1)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) individual has an invalid pedigree ID." << EidosTerminate();
+			if ((genome1->genome_id_ != individual->pedigree_id_ * 2) || (genome2->genome_id_ != individual->pedigree_id_ * 2 + 1))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) genome has an invalid genome ID." << EidosTerminate();
 		}
 		
 #if defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY)
@@ -814,6 +816,8 @@ void Subpopulation::CheckIndividualIntegrity(void)
 			{
 				if (individual->pedigree_id_ == -1)
 					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) individual has an invalid pedigree ID." << EidosTerminate();
+				if ((genome1->genome_id_ != individual->pedigree_id_ * 2) || (genome2->genome_id_ != individual->pedigree_id_ * 2 + 1))
+					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) genome has an invalid genome ID." << EidosTerminate();
 			}
 			
 			if (sex_enabled_)
@@ -4029,6 +4033,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 			}
 			genome1->mutruns_ = nullptr;
 			genome1_transmogrified->tag_value_ = genome1->tag_value_;
+			genome1_transmogrified->genome_id_ = genome1->genome_id_;
 			genome1_transmogrified->msp_node_id_ = genome1->msp_node_id_;
 			
 			genome2_transmogrified->genome_type_ = genome2->genome_type_;
@@ -4047,6 +4052,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 			}
 			genome2->mutruns_ = nullptr;
 			genome2_transmogrified->tag_value_ = genome2->tag_value_;
+			genome2_transmogrified->genome_id_ = genome2->genome_id_;
 			genome2_transmogrified->msp_node_id_ = genome2->msp_node_id_;
 			
 			migrant_transmogrified->color_ = migrant->color_;

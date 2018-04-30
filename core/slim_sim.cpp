@@ -4187,7 +4187,7 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
 	
     /***** Ascii-ify Node Table *****/
 	{
-		static_assert(sizeof(GenomeMetadataRec) == 12, "GenomeMetadataRec has changed size; this code probably needs to be updated");
+		static_assert(sizeof(GenomeMetadataRec) == 14, "GenomeMetadataRec has changed size; this code probably needs to be updated");
 		
 		ret = node_table_clear(&new_tables->nodes);
 		if (ret < 0) handle_error("convert_to_ascii", ret);
@@ -4203,13 +4203,13 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
 		{
 			GenomeMetadataRec *struct_genome_metadata = (GenomeMetadataRec *)(metadata + metadata_offset[j]);
 			
+			text_metadata.append(std::to_string(struct_genome_metadata->genome_id_));
+			text_metadata.append(",");
 			text_metadata.append(struct_genome_metadata->is_null_ ? "T" : "F");
 			text_metadata.append(",");
 			text_metadata.append(StringForGenomeType(struct_genome_metadata->type_));
 			text_metadata.append(",");
 			text_metadata.append(StringForIndividualSex(struct_genome_metadata->sex_));
-			text_metadata.append(",");
-			text_metadata.append(std::to_string(struct_genome_metadata->subpop_index_));
 			text_metadata_offset.push_back((table_size_t)text_metadata.size());
 		}
 		
@@ -4376,6 +4376,8 @@ void SLiMSim::RecordAllDerivedStatesFromSLiM(void)
 
 void SLiMSim::MetadataForMutation(Mutation *p_mutation, MutationMetadataRec *p_metadata)
 {
+	static_assert(sizeof(MutationMetadataRec) == 16, "MutationMetadataRec has changed size; this code probably needs to be updated");
+	
 	if (!p_mutation || !p_metadata)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::MetadataForMutation): (internal error) bad parameters to MetadataForMutation()." << EidosTerminate();
 	
@@ -4387,6 +4389,8 @@ void SLiMSim::MetadataForMutation(Mutation *p_mutation, MutationMetadataRec *p_m
 
 void SLiMSim::MetadataForSubstitution(Substitution *p_substitution, MutationMetadataRec *p_metadata)
 {
+	static_assert(sizeof(MutationMetadataRec) == 16, "MutationMetadataRec has changed size; this code probably needs to be updated");
+	
 	if (!p_substitution || !p_metadata)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::MetadataForSubstitution): (internal error) bad parameters to MetadataForSubstitution()." << EidosTerminate();
 	
@@ -4396,15 +4400,17 @@ void SLiMSim::MetadataForSubstitution(Substitution *p_substitution, MutationMeta
 	p_metadata->origin_generation_ = p_substitution->origin_generation_;
 }
 
-void SLiMSim::MetadataForGenome(__attribute__((unused)) Genome *p_genome, Individual *p_individual, GenomeMetadataRec *p_metadata)
+void SLiMSim::MetadataForGenome(Genome *p_genome, Individual *p_individual, GenomeMetadataRec *p_metadata)
 {
+	static_assert(sizeof(GenomeMetadataRec) == 14, "GenomeMetadataRec has changed size; this code probably needs to be updated");
+	
 	if (!p_individual || !p_metadata)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::MetadataForGenome): (internal error) bad parameters to MetadataForGenome()." << EidosTerminate();
 	
+	p_metadata->genome_id_ = p_genome->genome_id_;
+	p_metadata->sex_ = p_individual->sex_;	// FIXME belongs in Individual metadata!
 	p_metadata->is_null_ = p_genome->IsNull();
 	p_metadata->type_ = p_genome->genome_type_;
-	p_metadata->sex_ = p_individual->sex_;
-	p_metadata->subpop_index_ = p_individual->subpopulation_.subpopulation_id_;
 }
 
 void SLiMSim::DumpMutationTable(void)
@@ -4595,7 +4601,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 				for (size_t genome_index = 0; genome_index < genome_count; genome_index++)
 				{
 					GenomeWalker &genome_walker = genome_walkers[genome_index];
-					uint8_t genome_variant = variant->genotypes.u16[genome_index];
+					uint16_t genome_variant = variant->genotypes.u16[genome_index];
 					table_size_t genome_allele_length = variant->allele_lengths[genome_variant];
 					
 					if (genome_allele_length % sizeof(slim_mutationid_t) != 0)
@@ -4758,6 +4764,9 @@ void SLiMSim::TSXC_Enable(void)
 	simplification_ratio_ = 10;
 	running_treeseq_crosschecks_ = true;
 	treeseq_crosschecks_interval_ = 50;		// check every 50th generation, otherwise it is just too slow
+	
+	pedigrees_enabled_ = true;
+	pedigrees_enabled_by_tree_seq_ = true;
 	simplify_interval_ = 20;
 	
 	SLIM_ERRSTREAM << "// ********** Turning on tree-sequence recording with crosschecks (-TSXC)." << std::endl << std::endl;
@@ -5468,7 +5477,26 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 		// [logical$ keepPedigrees = F]
 		bool keep_pedigrees = arg_keepPedigrees_value->LogicalAtIndex(0, nullptr);
 		
-		pedigrees_enabled_ = keep_pedigrees;
+		if (keep_pedigrees)
+		{
+			// pedigree recording can always be turned on by the user
+			pedigrees_enabled_ = true;
+			pedigrees_enabled_by_user_ = true;
+		}
+		else	// !keep_pedigrees
+		{
+			if (pedigrees_enabled_by_tree_seq_)
+			{
+				// if pedigrees were forced on by tree-seq recording, they stay on, but we remember that the user wanted them off
+				pedigrees_enabled_by_user_ = false;
+			}
+			else
+			{
+				// otherwise, the user can turn them off if so desired
+				pedigrees_enabled_ = false;
+				pedigrees_enabled_by_user_ = false;
+			}
+		}
 	}
 	
 	{
@@ -5545,10 +5573,10 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 		
 		bool previous_params = false;
 		
-		if (pedigrees_enabled_)
+		if (pedigrees_enabled_by_user_)
 		{
 			if (previous_params) output_stream << ", ";
-			output_stream << "keepPedigrees = " << (pedigrees_enabled_ ? "T" : "F");
+			output_stream << "keepPedigrees = " << (pedigrees_enabled_by_user_ ? "T" : "F");
 			previous_params = true;
 		}
 		
@@ -5622,6 +5650,11 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeTreeSeq(const std::strin
 	simplification_ratio_ = arg_simplificationRatio_value->FloatAtIndex(0, nullptr);
 	running_treeseq_crosschecks_ = arg_runCrosschecks_value->LogicalAtIndex(0, nullptr);
 	treeseq_crosschecks_interval_ = 1;		// this interval is presently not exposed in the Eidos API
+	
+	// Pedigree recording is turned on as a side effect of tree sequence recording, since we need to
+	// have unique identifiers for every individual; pedigree recording does that for us
+	pedigrees_enabled_ = true;
+	pedigrees_enabled_by_tree_seq_ = true;
 	
 	// Choose an initial auto-simplification interval
 	if (simplification_ratio_ == 0.0)

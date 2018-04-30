@@ -106,13 +106,15 @@ enum class SLiMFileFormat
 // This should be kept in sync with any new state that needs to be written out about mutations, but of course
 // changing the members/size/layout of this struct will mean that old output files will no longer be readable.
 // Note we save only the mutation type id, not state from the mutation type such as the dominance coefficient.
-// I decided not to use __attribute__((__packed__)); if this struct isn't naturally 16 bytes something is deeply wrong.
-typedef struct {
+// Note that this struct is packed, and so accesses to it and within it may be unaligned.
+typedef struct __attribute__((__packed__)) {
 	slim_objectid_t mutation_type_id_;		// 4 bytes (int32_t): the id of the mutation type the mutation belongs to
 	slim_selcoeff_t selection_coeff_;		// 4 bytes (float): the selection coefficient
 	slim_objectid_t subpop_index_;			// 4 bytes (int32_t): the id of the subpopulation in which the mutation arose
 	slim_generation_t origin_generation_;	// 4 bytes (int32_t): the generation in which the mutation arose
 } MutationMetadataRec;
+
+static_assert(sizeof(MutationMetadataRec) == 16, "MutationMetadataRec is not 16 bytes!");
 
 // This struct is used by the tree-rec code to record all metadata about a genome that needs to be saved.
 // Note that this information is a snapshot taken at the point the genome is generated, and may become stale.
@@ -120,18 +122,17 @@ typedef struct {
 // independently to avoid duplication, but for now all the same information is replicated in both genomes' metadata.
 // This should be kept in sync with any new state that needs to be written out about genomes, but of course
 // changing the members/size/layout of this struct will mean that old output files will no longer be readable.
-// I decided not to use __attribute__((__packed__)); if this struct isn't naturally 12 bytes something is deeply wrong.
-typedef struct {
+// Note that this struct is packed, and so accesses to it and within it may be unaligned.
+typedef struct __attribute__((__packed__)) {
 	// no pedigree IDs
+	slim_genomeid_t genome_id_;				// 8 bytes (int64_t): the SLiM genome ID for this genome, assigned by pedigree rec
+	IndividualSex sex_;						// 4 bytes (int32_t): the sex of the individual (H, F, M)	FIXME belongs in Individual metadata!
 	uint8_t is_null_;						// 1 byte (uint8_t): true if this is a null genome (should never contain mutations)
 	GenomeType type_;						// 1 byte (uint8_t): the type of the genome (A, X, Y)
-	uint16_t __unused__;					// currently unused padding; I'm torn as to whether to pack this struct or not
-	IndividualSex sex_;						// 4 bytes (int32_t): the sex of the individual (H, F, M)
-	slim_objectid_t subpop_index_;			// 4 bytes (int32_t): the id of the subpopulation in which genome originated
 } GenomeMetadataRec;
 
-static_assert(sizeof(MutationMetadataRec) == 16, "MutationMetadataRec is not 16 bytes!");
-static_assert(sizeof(GenomeMetadataRec) == 12, "GenomeMetadataRec is not 12 bytes!");
+static_assert(sizeof(GenomeMetadataRec) == 14, "GenomeMetadataRec is not 14 bytes!");
+
 #if defined(__BYTE_ORDER__)
 #if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
 #warning Reading and writing binary files with SLiM may produce non-standard results on this (big-endian) platform due to endianness
@@ -249,6 +250,8 @@ private:
 	
 	// pedigree tracking: off by default, optionally turned on at init time to enable calls to TrackPedigreeWithParents()
 	bool pedigrees_enabled_ = false;
+	bool pedigrees_enabled_by_user_ = false;		// pedigree tracking was turned on by the user, which is user-visible
+	bool pedigrees_enabled_by_tree_seq_ = false;	// pedigree tracking has been forced on by tree-seq recording, which is not user-visible
 	
 	// continuous space support
 	int spatial_dimensionality_ = 0;
