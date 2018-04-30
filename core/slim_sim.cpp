@@ -3897,7 +3897,8 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genom
 	const char *metadata = (char *)&metadata_rec;
 	size_t metadata_length = sizeof(GenomeMetadataRec)/sizeof(char);
 	
-	offspringMSPID = node_table_add_row(&tables.nodes, flags, time, 0, metadata, metadata_length);
+	std::cout << "new genome subpop ID == " << p_new_genome->subpop_->subpopulation_id_;
+	offspringMSPID = node_table_add_row(&tables.nodes, flags, time, (population_id_t)p_new_genome->subpop_->subpopulation_id_, metadata, metadata_length);
 	p_new_genome->msp_node_id_ = offspringMSPID;
 	
     // if there is no parent then no need to record edges
