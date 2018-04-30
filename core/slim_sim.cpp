@@ -4561,7 +4561,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 		vargen_t *vg;
 		
 		vg = (vargen_t *)malloc(sizeof(vargen_t));
-		ret = vargen_alloc(vg, ts, 0);	// flags seems to be unused at present
+		ret = vargen_alloc(vg, ts, MSP_16_BIT_GENOTYPES);
 		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity vargen_alloc()", ret);
 		
 		// crosscheck by looping through variants
@@ -4595,7 +4595,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 				for (size_t genome_index = 0; genome_index < genome_count; genome_index++)
 				{
 					GenomeWalker &genome_walker = genome_walkers[genome_index];
-					uint8_t genome_variant = variant->genotypes[genome_index];
+					uint8_t genome_variant = variant->genotypes.u16[genome_index];
 					table_size_t genome_allele_length = variant->allele_lengths[genome_variant];
 					
 					if (genome_allele_length % sizeof(slim_mutationid_t) != 0)

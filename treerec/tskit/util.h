@@ -27,6 +27,8 @@
     #define WARN_UNUSED __attribute__ ((warn_unused_result))
 #else
     #define WARN_UNUSED
+    /* Don't bother with restrict for MSVC */
+    #define restrict
 #endif
 
 #define MSP_NODE_IS_SAMPLE 1

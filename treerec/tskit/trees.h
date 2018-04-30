@@ -15,6 +15,8 @@ extern "C" {
 #define MSP_SAMPLE_COUNTS  1
 #define MSP_SAMPLE_LISTS   2
 
+#define MSP_16_BIT_GENOTYPES    1
+
 #define MSP_DIR_FORWARD 1
 #define MSP_DIR_REVERSE -1
 
@@ -197,7 +199,10 @@ typedef struct {
     table_size_t *allele_lengths;
     table_size_t num_alleles;
     table_size_t max_alleles;
-    uint8_t *genotypes;
+    union {
+        uint8_t *u8;
+        uint16_t *u16;
+    } genotypes;
 } variant_t;
 
 typedef struct {

@@ -4661,7 +4661,6 @@ out:
     return ret;
 }
 
-
 int WARN_UNUSED
 table_collection_compute_mutation_parents(table_collection_t *self, int flags)
 {
@@ -4669,9 +4668,11 @@ table_collection_compute_mutation_parents(table_collection_t *self, int flags)
     int ret = 0;
     const edge_id_t *I, *O;
     const edge_table_t edges = self->edges;
+    const node_table_t nodes = self->nodes;
     const site_table_t sites = self->sites;
     const mutation_table_t mutations = self->mutations;
-    edge_id_t tj, tk, M;
+    const edge_id_t M = (edge_id_t) edges.num_rows;
+    edge_id_t tj, tk;
     node_id_t *parent = NULL;
     mutation_id_t *bottom_mutation = NULL;
     node_id_t u;
@@ -4684,19 +4685,46 @@ table_collection_compute_mutation_parents(table_collection_t *self, int flags)
     if (ret != 0) {
         goto out;
     }
-    parent = malloc(self->nodes.num_rows * sizeof(*parent));
-    bottom_mutation = malloc(self->nodes.num_rows * sizeof(*bottom_mutation));
+    parent = malloc(nodes.num_rows * sizeof(*parent));
+    bottom_mutation = malloc(nodes.num_rows * sizeof(*bottom_mutation));
     if (parent == NULL || bottom_mutation == NULL) {
         ret = MSP_ERR_NO_MEMORY;
         goto out;
     }
-    memset(parent, 0xff, self->nodes.num_rows * sizeof(*parent));
-    memset(bottom_mutation, 0xff, self->nodes.num_rows * sizeof(*bottom_mutation));
+    memset(parent, 0xff, nodes.num_rows * sizeof(*parent));
+    memset(bottom_mutation, 0xff, nodes.num_rows * sizeof(*bottom_mutation));
     memset(mutations.parent, 0xff, self->mutations.num_rows * sizeof(mutation_id_t));
+
+    /* Building the indexes ensures that the nodes in the edge table are
+     * valid. We need to check the mutations. */
+    /* TODO replace this with calls to check_integrity */
+    for (j = 0; j < sites.num_rows; j++) {
+        if (j > 0) {
+            if (sites.position[j] < sites.position[j - 1]) {
+                ret = MSP_ERR_UNSORTED_SITES;
+                goto out;
+            }
+        }
+    }
+    for (j = 0; j < mutations.num_rows; j++) {
+        if (mutations.node[j] < 0 || mutations.node[j] >= (node_id_t) nodes.num_rows) {
+            ret = MSP_ERR_NODE_OUT_OF_BOUNDS;
+            goto out;
+        }
+        if (mutations.site[j] < 0 || mutations.site[j] >= (site_id_t) sites.num_rows) {
+            ret = MSP_ERR_SITE_OUT_OF_BOUNDS;
+            goto out;
+        }
+        if (j > 0) {
+            if (mutations.site[j] < mutations.site[j - 1]) {
+                ret = MSP_ERR_UNSORTED_MUTATIONS;
+                goto out;
+            }
+        }
+    }
 
     I = self->indexes.edge_insertion_order;
     O = self->indexes.edge_removal_order;
-    M = (edge_id_t) edges.num_rows;
     tj = 0;
     tk = 0;
     site = 0;
@@ -4729,17 +4757,21 @@ table_collection_compute_mutation_parents(table_collection_t *self, int flags)
                 bottom_mutation[u] = (mutation_id_t) mutation;
                 mutation++;
             }
-            /* There's no point in checking the first mutation since this cannot
-             * have a parent. This also efficiently covers the common case of
-             * single mutations at a site. */
-            for (j = first_mutation + 1; j < mutation; j++) {
-                if (mutations.parent[j] == MSP_NULL_MUTATION) {
-                    u = parent[mutations.node[j]];
-                    while (u != MSP_NULL_NODE && bottom_mutation[u] == MSP_NULL_MUTATION) {
-                        u = parent[u];
-                    }
-                    if (u != MSP_NULL_NODE) {
-                        mutations.parent[j] = bottom_mutation[u];
+            /* Make the common case of 1 mutation fast */
+            if (mutation > first_mutation + 1) {
+                /* If we have more than one mutation, compute the parent for each
+                 * one by traversing up the tree until we find a node that has a
+                 * mutation. */
+                for (j = first_mutation; j < mutation; j++) {
+                    if (mutations.parent[j] == MSP_NULL_MUTATION) {
+                        u = parent[mutations.node[j]];
+                        while (u != MSP_NULL_NODE
+                                && bottom_mutation[u] == MSP_NULL_MUTATION) {
+                            u = parent[u];
+                        }
+                        if (u != MSP_NULL_NODE) {
+                            mutations.parent[j] = bottom_mutation[u];
+                        }
                     }
                 }
             }
@@ -4747,6 +4779,11 @@ table_collection_compute_mutation_parents(table_collection_t *self, int flags)
             for (j = first_mutation; j < mutation; j++) {
                 u = mutations.node[j];
                 bottom_mutation[u] = MSP_NULL_MUTATION;
+                /* Check that we haven't violated the sortedness property */
+                if (mutations.parent[j] > (mutation_id_t) j) {
+                    ret = MSP_ERR_MUTATION_PARENT_AFTER_CHILD;
+                    goto out;
+                }
             }
             site++;
         }

@@ -24,8 +24,6 @@
 
 #include "trees.h"
 
-#define MAX_ALLELES UINT8_MAX
-
 void
 vargen_print_state(vargen_t *self, FILE *out)
 {
@@ -53,6 +51,7 @@ int
 vargen_alloc(vargen_t *self, tree_sequence_t *tree_sequence, int flags)
 {
     int ret = MSP_ERR_NO_MEMORY;
+    table_size_t max_alleles = 4;
 
     assert(tree_sequence != NULL);
     memset(self, 0, sizeof(vargen_t));
@@ -61,11 +60,19 @@ vargen_alloc(vargen_t *self, tree_sequence_t *tree_sequence, int flags)
     self->num_sites = tree_sequence_get_num_sites(tree_sequence);
     self->tree_sequence = tree_sequence;
     self->flags = flags;
-    self->variant.genotypes = malloc(self->num_samples * sizeof(*self->variant.genotypes));
-    self->variant.alleles = malloc(MAX_ALLELES * sizeof(*self->variant.alleles));
-    self->variant.allele_lengths = malloc(MAX_ALLELES
+    if (self->flags & MSP_16_BIT_GENOTYPES) {
+        self->variant.genotypes.u16 = malloc(
+            self->num_samples * sizeof(*self->variant.genotypes.u16));
+    } else {
+        self->variant.genotypes.u8 = malloc(
+            self->num_samples * sizeof(*self->variant.genotypes.u8));
+    }
+    self->variant.max_alleles = max_alleles;
+    self->variant.alleles = malloc(max_alleles * sizeof(*self->variant.alleles));
+    self->variant.allele_lengths = malloc(max_alleles
             * sizeof(*self->variant.allele_lengths));
-    if (self->variant.genotypes == NULL || self->variant.alleles == NULL
+    /* Because genotypes is a union we can check the pointer */
+    if (self->variant.genotypes.u8 == NULL || self->variant.alleles == NULL
             || self->variant.allele_lengths == NULL) {
         ret = MSP_ERR_NO_MEMORY;
         goto out;
@@ -93,25 +100,117 @@ int
 vargen_free(vargen_t *self)
 {
     sparse_tree_free(&self->tree);
-    msp_safe_free(self->variant.genotypes);
+    msp_safe_free(self->variant.genotypes.u8);
     msp_safe_free(self->variant.alleles);
     msp_safe_free(self->variant.allele_lengths);
     return 0;
 }
 
 static int
+vargen_expand_alleles(vargen_t *self)
+{
+    int ret = 0;
+    variant_t *var = &self->variant;
+    void *p;
+    table_size_t hard_limit = UINT8_MAX;
+
+    if (self->flags & MSP_16_BIT_GENOTYPES) {
+        hard_limit = UINT16_MAX;
+    }
+    if (var->max_alleles == hard_limit) {
+        ret = MSP_ERR_TOO_MANY_ALLELES;
+        goto out;
+    }
+    var->max_alleles = MSP_MIN(hard_limit, var->max_alleles * 2);
+    p = realloc(var->alleles, var->max_alleles * sizeof(*var->alleles));
+    if (p == NULL) {
+        ret = MSP_ERR_NO_MEMORY;
+        goto out;
+    }
+    var->alleles = p;
+    p = realloc(var->allele_lengths, var->max_alleles * sizeof(*var->allele_lengths));
+    if (p == NULL) {
+        ret = MSP_ERR_NO_MEMORY;
+        goto out;
+    }
+    var->allele_lengths = p;
+out:
+    return ret;
+}
+
+/* The following pair of functions are identical except one handles 8 bit
+ * genotypes and the other handles 16 bit genotypes. This is done for performance
+ * reasons as this is a key function and for common alleles can entail
+ * iterating over millions of samples. The compiler hints are included for the
+ * same reason */
+static int WARN_UNUSED
+vargen_update_genotypes_u8(vargen_t *self,
+        const node_list_t *restrict head, const node_list_t *restrict tail,
+        const table_size_t derived)
+{
+    const node_id_t *restrict sample_index_map = self->sample_index_map;
+    uint8_t *restrict genotypes = self->variant.genotypes.u8;
+    const node_list_t *restrict w = head;
+    node_id_t sample_index;
+    int ret = 0;
+
+    assert(derived < UINT8_MAX);
+    while (1) {
+        assert(w != NULL);
+        sample_index = sample_index_map[w->node];
+        assert(sample_index >= 0);
+        if (genotypes[sample_index] == derived) {
+            ret = MSP_ERR_INCONSISTENT_MUTATIONS;
+            goto out;
+        }
+        genotypes[sample_index] = (uint8_t) derived;
+        if (w == tail) {
+            break;
+        }
+        w = w->next;
+    }
+out:
+    return ret;
+}
+
+static int WARN_UNUSED
+vargen_update_genotypes_u16(vargen_t *self,
+        const node_list_t *restrict head, const node_list_t *restrict tail,
+        const table_size_t derived)
+{
+    const node_id_t *restrict sample_index_map = self->sample_index_map;
+    uint16_t *restrict genotypes = self->variant.genotypes.u16;
+    const node_list_t *restrict w = head;
+    node_id_t sample_index;
+    int ret = 0;
+
+    assert(derived < UINT16_MAX);
+    while (1) {
+        assert(w != NULL);
+        sample_index = sample_index_map[w->node];
+        assert(sample_index >= 0);
+        if (genotypes[sample_index] == derived) {
+            ret = MSP_ERR_INCONSISTENT_MUTATIONS;
+            goto out;
+        }
+        genotypes[sample_index] = (uint16_t) derived;
+        if (w == tail) {
+            break;
+        }
+        w = w->next;
+    }
+out:
+    return ret;
+}
+
+static int
 vargen_update_site(vargen_t *self)
 {
     int ret = 0;
-    node_list_t *w, *tail;
-    node_id_t sample_index;
-    bool not_done;
-    table_size_t j;
+    node_list_t *head, *tail;
+    table_size_t j, derived;
     variant_t *var = &self->variant;
     site_t *site = var->site;
-    uint8_t *genotypes = var->genotypes;
-    node_id_t *sample_index_map = self->sample_index_map;
-    uint8_t derived;
 
     /* Ancestral state is always allele 0 */
     var->alleles[0] = site->ancestral_state;
@@ -127,8 +226,11 @@ vargen_update_site(vargen_t *self)
      * field, where we require that a mutation's parent must appear before it
      * in the list of mutations. This guarantees the correctness of this algorith.
      */
-
-    memset(genotypes, 0, self->num_samples);
+    if (self->flags & MSP_16_BIT_GENOTYPES) {
+        memset(self->variant.genotypes.u16, 0, 2 * self->num_samples);
+    } else {
+        memset(self->variant.genotypes.u8, 0, self->num_samples);
+    }
     for (j = 0; j < site->mutations_length; j++) {
         /* Compute the allele index for this derived state value. */
         derived = 0;
@@ -141,32 +243,30 @@ vargen_update_site(vargen_t *self)
             derived++;
         }
         if (derived == var->num_alleles) {
-            if (var->num_alleles == MAX_ALLELES) {
-                ret = MSP_ERR_TOO_MANY_ALLELES;
-                goto out;
+            if (var->num_alleles == var->max_alleles) {
+                ret = vargen_expand_alleles(self);
+                if (ret != 0) {
+                    goto out;
+                }
             }
             var->alleles[derived] = site->mutations[j].derived_state;
             var->allele_lengths[derived] = site->mutations[j].derived_state_length;
             var->num_alleles++;
         }
 
-        ret = sparse_tree_get_sample_list(&self->tree, site->mutations[j].node, &w, &tail);
+        ret = sparse_tree_get_sample_list(&self->tree, site->mutations[j].node,
+                &head, &tail);
         if (ret != 0) {
             goto out;
         }
-        if (w != NULL) {
-            not_done = true;
-            while (not_done) {
-                assert(w != NULL);
-                sample_index = sample_index_map[w->node];
-                assert(sample_index >= 0);
-                if (genotypes[sample_index] == derived) {
-                    ret = MSP_ERR_INCONSISTENT_MUTATIONS;
-                    goto out;
-                }
-                genotypes[sample_index] = derived;
-                not_done = w != tail;
-                w = w->next;
+        if (head != NULL) {
+            if (self->flags & MSP_16_BIT_GENOTYPES) {
+                ret = vargen_update_genotypes_u16(self, head, tail, derived);
+            } else {
+                ret = vargen_update_genotypes_u8(self, head, tail, derived);
+            }
+            if (ret != 0) {
+                goto out;
             }
         }
     }
