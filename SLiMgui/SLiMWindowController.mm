@@ -427,6 +427,17 @@
 		[self setReachedSimulationEnd:NO];
 		[self setInvalidSimulation:NO];
 		hasImported = NO;
+		
+		// We set the working directory to ~/Desktop/, since it makes no sense for it to be at the location of the app.
+		// Note that each running simulation ought to track its own working directory, but we don't do that right now,
+		// so a simulation can have the wd changed out from under it by another simulation.  FIXME BCH 4/30/2018
+		std::string wd_path = Eidos_ResolvedPath("~/Desktop");
+		
+		errno = 0;
+		int retval = chdir(wd_path.c_str());
+		
+		if (retval == -1)
+			std::cerr << "The working directory could not be set to ~/Desktop by SLiMgui" << std::endl;
 	}
 	catch (...)
 	{
