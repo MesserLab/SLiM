@@ -557,7 +557,24 @@ Configure options for the simulation.  If
 \f0\fs18 relatedness()
 \f2\fs20  method, section 18.6.2), as well as allowing a model to find \'93trios\'94 (two parents and an offspring they generated) using the pedigree properties of 
 \f0\fs18 Individual
-\f2\fs20  (section 18.6.1).  Note that pedigree-based relatedness doesn\'92t necessarily correspond to genetic relatedness, due to effects such as assortment and recombination.\
+\f2\fs20  (section 18.6.1).  \cf2 \expnd0\expndtw0\kerning0
+As a side effect of 
+\f0\fs18 keepPedigrees
+\f2\fs20  being 
+\f0\fs18 T
+\f2\fs20 , the 
+\f0\fs18 pedigreeID
+\f2\fs20 , 
+\f0\fs18 pedigreeParentIDs
+\f2\fs20 , and 
+\f0\fs18 pedigreeGrandparentIDs
+\f2\fs20  properties of 
+\f0\fs18 Individual
+\f2\fs20  will have defined values (see section 20.6.1), as will the 
+\f0\fs18 genomePedigreeID
+\f2\fs20  property of 
+\f0\fs18 Genome
+\f2\fs20  (see section 20.3.1).  \cf0 \kerning1\expnd0\expndtw0 Note that pedigree-based relatedness doesn\'92t necessarily correspond to genetic relatedness, due to effects such as assortment and recombination.\
 If 
 \f0\fs18 dimensionality
 \f2\fs20  is not 
@@ -682,7 +699,7 @@ The
 \f2\fs20  may be supplied as a special value indicating that automatic simplification should never occur; 
 \f0\fs18 0
 \f2\fs20  may be supplied to indicate that automatic simplification should be performed at the end of every generation.\
-\cf2 The 
+The 
 \f0\fs18 runCrosschecks
-\f2\fs20  parameter controls whether cross-checks between SLiM\'92s internal data structures and the tree-sequence recording data structures will be conducted.  These two sets of data structures record much the same thing (mutations in genomes), but using completely different representations, so such cross-checks can be useful to confirm that the two data structures do indeed represent the same conceptual state.  This slows down the model considerably, however, and would normally be turned on only for debugging purposes, so it is turned off by default.  Ideally, enabling cross-checks would never alter the behavior of the model, but unfortunately that is not presently guaranteed since the tree-sequence tables need to be sorted and cleaned in order to do the cross-check.  In principle, this should not alter the model\'92s behavior, but it is hard to be sure of that \'96 particularly since these cross-checks are useful mainly when investigating possible bugs in the recording code.\cf2 \
+\f2\fs20  parameter controls whether cross-checks between SLiM\'92s internal data structures and the tree-sequence recording data structures will be conducted.  These two sets of data structures record much the same thing (mutations in genomes), but using completely different representations, so such cross-checks can be useful to confirm that the two data structures do indeed represent the same conceptual state.  This slows down the model considerably, however, and would normally be turned on only for debugging purposes, so it is turned off by default.  Ideally, enabling cross-checks would never alter the behavior of the model, but unfortunately that is not presently guaranteed since the tree-sequence tables need to be sorted and cleaned in order to do the cross-check.  In principle, this should not alter the model\'92s behavior, but it is hard to be sure of that \'96 particularly since these cross-checks are useful mainly when investigating possible bugs in the recording code.\
 }

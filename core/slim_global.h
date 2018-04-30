@@ -438,6 +438,7 @@ extern const std::string gStr_age;
 extern const std::string gStr_pedigreeID;
 extern const std::string gStr_pedigreeParentIDs;
 extern const std::string gStr_pedigreeGrandparentIDs;
+extern const std::string gStr_genomePedigreeID;
 extern const std::string gStr_reciprocal;
 extern const std::string gStr_sexSegregation;
 extern const std::string gStr_dimensionality;
@@ -693,6 +694,7 @@ enum _SLiMGlobalStringID : int {
 	gID_pedigreeID,
 	gID_pedigreeParentIDs,
 	gID_pedigreeGrandparentIDs,
+	gID_genomePedigreeID,
 	gID_reciprocal,
 	gID_sexSegregation,
 	gID_dimensionality,

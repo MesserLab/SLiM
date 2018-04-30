@@ -370,7 +370,28 @@ The recombination intervals are normally a constant in simulations, so be sure y
 \f0\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\i0\fs18 \cf0 genomeType => (string$)\
+\f2\i0\fs18 \cf2 \expnd0\expndtw0\kerning0
+genomePedigreeID => (integer$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 If pedigree tracking is turned on with 
+\f2\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f0\fs20 , 
+\f2\fs18 genomePedigreeID
+\f0\fs20  is a unique non-negative identifier for each genome in a simulation, never re-used throughout the duration of the simulation run.  Furthermore, the 
+\f2\fs18 genomePedigreeID
+\f0\fs20  of a given genome will be equal to either 
+\f2\fs18 (2*pedigreeID)
+\f0\fs20  or 
+\f2\fs18 (2*pedigreeID + 1)
+\f0\fs20  of the individual that the genome belongs to (the former for the first genome of the individual, the latter for the second genome of the individual); this invariant relationship is guaranteed.  If pedigree tracking is not on, the value of 
+\f2\fs18 genomePedigreeID
+\f0\fs20  will be a singleton 
+\f2\fs18 -1
+\f0\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 genomeType => (string$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 The type of chromosome represented by this genome; one of 
@@ -837,7 +858,7 @@ See
 \f0\fs20 \'92s 
 \f2\fs18 mutations
 \f0\fs20  property), until the next generation.\
-\cf2 Changing this will normally affect the fitness values calculated at the end of the current generation; if you want current fitness values to be affected, you can call 
+Changing this will normally affect the fitness values calculated at the end of the current generation; if you want current fitness values to be affected, you can call 
 \f2\fs18 SLiMSim
 \f0\fs20 \'92s method 
 \f2\fs18 recalculateFitness()

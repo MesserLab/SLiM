@@ -545,6 +545,10 @@ EidosValue_SP Genome::GetProperty(EidosGlobalStringID p_property_id)
 	switch (p_property_id)
 	{
 			// constants
+		case gID_genomePedigreeID:		// ACCELERATED
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(genome_id_));
+		}
 		case gID_genomeType:
 		{
 			switch (genome_type_)
@@ -585,6 +589,20 @@ EidosValue_SP Genome::GetProperty(EidosGlobalStringID p_property_id)
 		default:
 			return EidosObjectElement::GetProperty(p_property_id);
 	}
+}
+
+EidosValue *Genome::GetProperty_Accelerated_genomePedigreeID(EidosObjectElement **p_values, size_t p_values_size)
+{
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		Genome *value = (Genome *)(p_values[value_index]);
+		
+		int_result->set_int_no_check(value->genome_id_, value_index);
+	}
+	
+	return int_result;
 }
 
 EidosValue *Genome::GetProperty_Accelerated_isNullGenome(EidosObjectElement **p_values, size_t p_values_size)
@@ -1319,6 +1337,7 @@ const std::vector<const EidosPropertySignature *> *Genome_Class::Properties(void
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
 		
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomePedigreeID,true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Genome::GetProperty_Accelerated_genomePedigreeID));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomeType,		true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_isNullGenome,	true,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Genome::GetProperty_Accelerated_isNullGenome));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutations,		true,	kEidosValueMaskObject, gSLiM_Mutation_Class)));

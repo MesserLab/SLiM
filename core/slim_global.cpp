@@ -364,6 +364,7 @@ const std::string gStr_age = "age";
 const std::string gStr_pedigreeID = "pedigreeID";
 const std::string gStr_pedigreeParentIDs = "pedigreeParentIDs";
 const std::string gStr_pedigreeGrandparentIDs = "pedigreeGrandparentIDs";
+const std::string gStr_genomePedigreeID = "genomePedigreeID";
 const std::string gStr_reciprocal = "reciprocal";
 const std::string gStr_sexSegregation = "sexSegregation";
 const std::string gStr_dimensionality = "dimensionality";
@@ -658,6 +659,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_pedigreeID, gID_pedigreeID);
 		Eidos_RegisterStringForGlobalID(gStr_pedigreeParentIDs, gID_pedigreeParentIDs);
 		Eidos_RegisterStringForGlobalID(gStr_pedigreeGrandparentIDs, gID_pedigreeGrandparentIDs);
+		Eidos_RegisterStringForGlobalID(gStr_genomePedigreeID, gID_genomePedigreeID);
 		Eidos_RegisterStringForGlobalID(gStr_reciprocal, gID_reciprocal);
 		Eidos_RegisterStringForGlobalID(gStr_sexSegregation, gID_sexSegregation);
 		Eidos_RegisterStringForGlobalID(gStr_dimensionality, gID_dimensionality);

@@ -2716,6 +2716,7 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptStop(gen1_setup_norel + "5 { if (all(p1.individuals.pedigreeID == -1)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_norel + "5 { if (all(p1.individuals.pedigreeParentIDs == -1)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_norel + "5 { if (all(p1.individuals.pedigreeGrandparentIDs == -1)) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_norel + "5 { if (all(p1.individuals.genomes.genomePedigreeID == -1)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_norel + "5 { if (p1.individuals[0].relatedness(p1.individuals[0]) == 1.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_norel + "5 { if (p1.individuals[0].relatedness(p1.individuals[1]) == 0.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_norel + "5 { if (all(p1.individuals[0].relatedness(p1.individuals[1:9]) == 0.0)) stop(); }", __LINE__);
@@ -2723,6 +2724,7 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptStop(gen1_setup_rel + "5 { if (all(p1.individuals.pedigreeID != -1)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_rel + "5 { if (all(p1.individuals.pedigreeParentIDs != -1)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_rel + "5 { if (all(p1.individuals.pedigreeGrandparentIDs != -1)) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_rel + "5 { if (all(p1.individuals.genomes.genomePedigreeID != -1)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_rel + "5 { if (p1.individuals[0].relatedness(p1.individuals[0]) == 1.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_rel + "5 { if (p1.individuals[0].relatedness(p1.individuals[1]) <= 0.5) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_rel + "5 { if (all(p1.individuals[0].relatedness(p1.individuals[1:9]) <= 0.5)) stop(); }", __LINE__);
