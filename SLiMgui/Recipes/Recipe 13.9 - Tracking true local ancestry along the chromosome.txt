@@ -30,7 +30,7 @@ initialize() {
 
 2 late() {
 	// get rid of p1 and p2
-	p3.setMigrationRates(integer(0), integer(0));
+	p3.setMigrationRates(c(p1, p2), c(0.0, 0.0));
 	p1.setSubpopulationSize(0);
 	p2.setSubpopulationSize(0);
 }
