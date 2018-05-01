@@ -3751,6 +3751,10 @@ void SLiMSim::SimplifyTreeSequence(void)
 	
 	// and then come all the genomes of the extant individuals
 	node_id_t newValueInNodeTable = (node_id_t)RememberedGenomes.size();
+
+	//(1) initialize oldestGenome
+	Genome *oldestGenome = nullptr;
+	slim_genomeid_t oldestID = INT64_MAX;
 	
 	for (auto it = population_.begin(); it != population_.end(); it++)
 	{
@@ -3758,6 +3762,13 @@ void SLiMSim::SimplifyTreeSequence(void)
 		
 		for (Genome *genome : subpopulationGenomes)
 		{
+			//(2) check if current genome is older than oldest
+			slim_genomeid_t relativeAge = genome->genome_id_;
+			if (relativeAge < oldestID){
+				oldestGenome = genome;
+				oldestID = relativeAge;
+			}
+	
 			node_id_t M = genome->msp_node_id_;
 			
 			// check if this sample is already being remembered
@@ -3776,7 +3787,7 @@ void SLiMSim::SimplifyTreeSequence(void)
 	}
 	
 	// sort, simplify
-	int ret = sort_tables(&tables.nodes, &tables.edges, &tables.migrations, &tables.sites, &tables.mutations, 0);				
+	int ret = sort_tables(&tables.nodes, &tables.edges, &tables.migrations, &tables.sites, &tables.mutations, bookmarkOldestEdge);				
 	if (ret < 0) handle_error("sort_tables", ret);
 
     // Remove redundant sites we added
@@ -3786,6 +3797,22 @@ void SLiMSim::SimplifyTreeSequence(void)
 	ret = table_collection_simplify(&tables, samples.data(), samples.size(), MSP_FILTER_ZERO_MUTATION_SITES, NULL);
     if (ret != 0) handle_error("simplifier_run", ret);
 	
+
+	//(3) find the bookmark --- 
+	bookmarkOldestEdge = 0;
+	if (oldestGenome){
+		double ageOfOldestIndividual = tables.nodes.time[oldestGenome->msp_node_id_];
+		node_id_t *parents = tables.edges.parent;
+		
+		for(size_t bm = 0; bm < tables.edges.num_rows; bm++){ 
+			double ageOfParent = tables.nodes.time[parents[bm]];	
+			if (ageOfParent == ageOfOldestIndividual){				
+				bookmarkOldestEdge = bm;
+				break;
+			}
+		}
+	}
+
     // update map of RememberedGenomes
 	for (node_id_t i = 0; i < (node_id_t)RememberedGenomes.size(); i++)
         RememberedGenomes[i] = i;
