@@ -15,9 +15,6 @@ message("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
 # Place slim and eidos in the bin subdirectory of the source directory
 set( EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin )
 
-find_package(HDF5 REQUIRED)
-include_directories(${HDF5_INCLUDE_DIR})
-
 # GSL 
 set(TARGET_NAME gsl)
 file(GLOB_RECURSE GSL_SOURCES ${PROJECT_SOURCE_DIR}/gsl/*.c ${PROJECT_SOURCE_DIR}/gsl/*/*.c)
@@ -25,12 +22,19 @@ set(GSL_INCLUDES ${PROJECT_SOURCE_DIR}/gsl ${PROJECT_SOURCE_DIR}/gsl/specfunc ${
 add_library(${TARGET_NAME} STATIC ${GSL_SOURCES})
 target_include_directories(${TARGET_NAME} PUBLIC ${GSL_INCLUDES})
 
+# KASTORE
+set(TARGET_NAME kastore)
+file(GLOB_RECURSE KASTORE_SOURCES ${PROJECT_SOURCE_DIR}/treerec/tskit/kastore/*.c)
+set(KASTORE_INCLUDES ${PROJECT_SOURCE_DIR}/treerec/tskit/kastore)
+add_library(${TARGET_NAME} STATIC ${KASTORE_SOURCES})
+target_include_directories(${TARGET_NAME} PUBLIC)
+
 # TSKIT
 set(TARGET_NAME tables)
 file(GLOB_RECURSE TABLE_SOURCES ${PROJECT_SOURCE_DIR}/treerec/tskit/*.c)
 add_library(${TARGET_NAME} STATIC ${TABLE_SOURCES})
-target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES})
-target_include_directories(${TARGET_NAME} PUBLIC ${HDF5_INCLUDE_DIR})
+target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} ${KASTORE_INCLUDES})
+target_include_directories(${TARGET_NAME} PUBLIC ${KASTORE_INCLUDES})
 
 set(TARGET_NAME slim)
 file(GLOB_RECURSE SLIM_SOURCES ${PROJECT_SOURCE_DIR}/core/*.cpp ${PROJECT_SOURCE_DIR}/eidos/*.cpp)
@@ -38,7 +42,7 @@ add_executable(${TARGET_NAME} ${SLIM_SOURCES})
 target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} "${PROJECT_SOURCE_DIR}/core" "${PROJECT_SOURCE_DIR}/eidos")
 target_link_libraries(${TARGET_NAME} PUBLIC gsl)
 target_link_libraries(${TARGET_NAME} PUBLIC tables)
-target_link_libraries(${TARGET_NAME} PUBLIC hdf5 hdf5_cpp)
+target_link_libraries(${TARGET_NAME} PUBLIC)
 
 set(TARGET_NAME eidos)
 file(GLOB_RECURSE EIDOS_SOURCES  ${PROJECT_SOURCE_DIR}/eidos/*.cpp  ${PROJECT_SOURCE_DIR}/eidostool/*.cpp)

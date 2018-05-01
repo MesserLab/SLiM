@@ -10,6 +10,7 @@ extern "C" {
 #include <stdint.h>
 
 #include "util.h"
+#include "kastore.h"
 
 typedef int32_t node_id_t;
 typedef int32_t edge_id_t;
@@ -120,6 +121,7 @@ typedef struct {
         edge_id_t *edge_insertion_order;
         edge_id_t *edge_removal_order;
     } indexes;
+    kastore_t store;
     /* TODO Add in reserved space for future tables. */
 } table_collection_t;
 

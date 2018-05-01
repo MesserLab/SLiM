@@ -53,7 +53,7 @@
 #define MSP_DUMP_ZLIB_COMPRESSION 1
 #define MSP_LOAD_EXTENDED_CHECKS  1
 
-#define MSP_FILE_FORMAT_VERSION_MAJOR 10
+#define MSP_FILE_FORMAT_VERSION_MAJOR 11
 #define MSP_FILE_FORMAT_VERSION_MINOR 0
 
 
@@ -134,6 +134,7 @@
 #define MSP_ERR_MALFORMED_MUTATION_BRANCH_GROUP                     -74
 #define MSP_ERR_MUTATION_PARENT_INCONSISTENT                        -75
 
+int msp_set_kas_error(int err);
 const char * msp_strerror(int err);
 void __msp_safe_free(void **ptr);
 

@@ -24,9 +24,8 @@
 #include <stdlib.h>
 #include <float.h>
 
-#include <hdf5.h>
-
 #include "tables.h"
+#include "kastore.h"
 
 #define DEFAULT_SIZE_INCREMENT 1024
 
@@ -109,6 +108,54 @@ expand_column(void **column, size_t new_max_rows, size_t element_size)
         goto out;
     }
     *column = tmp;
+out:
+    return ret;
+}
+
+
+typedef struct {
+    const char *name;
+    const void **array_dest;
+    table_size_t *len_dest;
+    table_size_t len_offset;
+    int type;
+} read_table_col_t;
+
+static int
+read_table_cols(kastore_t *store, read_table_col_t *read_cols, size_t num_cols)
+{
+    int ret = 0;
+    size_t len;
+    int type;
+    size_t j;
+    table_size_t last_len;
+
+    /* Set all the size destinations to -1 so we can detect the first time we
+     * read it. Therefore, destinations that are supposed to have the same
+     * length will take the value of the first instance, and we check each
+     * subsequent value against this. */
+    for (j = 0; j < num_cols; j++) {
+        *read_cols[j].len_dest = (table_size_t) -1;
+    }
+    for (j = 0; j < num_cols; j++) {
+        ret = kastore_gets(store, read_cols[j].name, read_cols[j].array_dest,
+                &len, &type);
+        if (ret != 0) {
+            ret = msp_set_kas_error(ret);
+            goto out;
+        }
+        last_len = *read_cols[j].len_dest;
+        if (last_len == (table_size_t) -1) {
+            *read_cols[j].len_dest = (table_size_t) len - read_cols[j].len_offset;
+        } else if (last_len + read_cols[j].len_offset != (table_size_t) len) {
+            ret = MSP_ERR_FILE_FORMAT;
+            goto out;
+        }
+        if (type != read_cols[j].type) {
+            ret = MSP_ERR_FILE_FORMAT;
+            goto out;
+        }
+    }
 out:
     return ret;
 }
@@ -241,8 +288,8 @@ node_table_append_columns(node_table_t *self, size_t num_rows, uint32_t *flags, 
     if (ret != 0) {
         goto out;
     }
-    memcpy(self->flags + self->num_rows, flags, num_rows * sizeof(uint32_t));
     memcpy(self->time + self->num_rows, time, num_rows * sizeof(double));
+    memcpy(self->flags + self->num_rows, flags, num_rows * sizeof(uint32_t));
     if (metadata == NULL) {
         for (j = 0; j < num_rows; j++) {
             self->metadata_offset[self->num_rows + j + 1] = (table_size_t) self->metadata_length;
@@ -325,11 +372,13 @@ node_table_clear(node_table_t *self)
 int
 node_table_free(node_table_t *self)
 {
-    msp_safe_free(self->flags);
-    msp_safe_free(self->time);
-    msp_safe_free(self->population);
-    msp_safe_free(self->metadata);
-    msp_safe_free(self->metadata_offset);
+    if (self->max_rows > 0) {
+        msp_safe_free(self->flags);
+        msp_safe_free(self->time);
+        msp_safe_free(self->population);
+        msp_safe_free(self->metadata);
+        msp_safe_free(self->metadata_offset);
+    }
     return 0;
 }
 
@@ -407,6 +456,55 @@ node_table_equal(node_table_t *self, node_table_t *other)
                     self->metadata_length * sizeof(char)) == 0;
     }
     return ret;
+}
+
+static int
+node_table_dump(node_table_t *self, kastore_t *store)
+{
+    int ret = 0;
+
+    ret = kastore_puts(store, "nodes/time", self->time, self->num_rows, KAS_FLOAT64, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "nodes/flags", self->flags, self->num_rows,
+            KAS_UINT32, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "nodes/population", self->population, self->num_rows,
+            KAS_INT32, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "nodes/metadata", self->metadata, self->metadata_length,
+            KAS_UINT8, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "nodes/metadata_offset", self->metadata_offset,
+            self->num_rows + 1, KAS_UINT32, 0);
+    if (ret != 0) {
+        goto out;
+    }
+out:
+    return ret;
+}
+
+static int
+node_table_load(node_table_t *self, kastore_t *store)
+{
+    read_table_col_t read_cols[] = {
+        {"nodes/time", (const void **) &self->time, &self->num_rows, 0, KAS_FLOAT64},
+        {"nodes/flags", (const void **) &self->flags, &self->num_rows, 0, KAS_UINT32},
+        {"nodes/population", (const void **) &self->population, &self->num_rows, 0,
+            KAS_INT32},
+        {"nodes/metadata", (const void **) &self->metadata, &self->metadata_length, 0,
+            KAS_UINT8},
+        {"nodes/metadata_offset", (const void **) &self->metadata_offset, &self->num_rows,
+            1, KAS_UINT32},
+    };
+    return read_table_cols(store, read_cols, sizeof(read_cols) / sizeof(*read_cols));
 }
 
 /*************************
@@ -539,10 +637,12 @@ edge_table_clear(edge_table_t *self)
 int
 edge_table_free(edge_table_t *self)
 {
-    msp_safe_free(self->left);
-    msp_safe_free(self->right);
-    msp_safe_free(self->parent);
-    msp_safe_free(self->child);
+    if (self->max_rows > 0) {
+        msp_safe_free(self->left);
+        msp_safe_free(self->right);
+        msp_safe_free(self->parent);
+        msp_safe_free(self->child);
+    }
     return 0;
 }
 
@@ -600,6 +700,42 @@ edge_table_equal(edge_table_t *self, edge_table_t *other)
     return ret;
 }
 
+static int
+edge_table_dump(edge_table_t *self, kastore_t *store)
+{
+    int ret = 0;
+
+    ret = kastore_puts(store, "edges/left", self->left, self->num_rows, KAS_FLOAT64, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "edges/right", self->right, self->num_rows, KAS_FLOAT64, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "edges/parent", self->parent, self->num_rows, KAS_INT32, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "edges/child", self->child, self->num_rows, KAS_INT32, 0);
+    if (ret != 0) {
+        goto out;
+    }
+out:
+    return ret;
+}
+
+static int
+edge_table_load(edge_table_t *self, kastore_t *store)
+{
+    read_table_col_t read_cols[] = {
+        {"edges/left", (const void **) &self->left, &self->num_rows, 0, KAS_FLOAT64},
+        {"edges/right", (const void **) &self->right, &self->num_rows, 0, KAS_FLOAT64},
+        {"edges/parent", (const void **) &self->parent, &self->num_rows, 0, KAS_INT32},
+        {"edges/child", (const void **) &self->child, &self->num_rows, 0, KAS_INT32},
+    };
+    return read_table_cols(store, read_cols, sizeof(read_cols) / sizeof(*read_cols));
+}
 
 /*************************
  * site table
@@ -891,11 +1027,13 @@ site_table_clear(site_table_t *self)
 int
 site_table_free(site_table_t *self)
 {
-    msp_safe_free(self->position);
-    msp_safe_free(self->ancestral_state);
-    msp_safe_free(self->ancestral_state_offset);
-    msp_safe_free(self->metadata);
-    msp_safe_free(self->metadata_offset);
+    if (self->max_rows > 0) {
+        msp_safe_free(self->position);
+        msp_safe_free(self->ancestral_state);
+        msp_safe_free(self->ancestral_state_offset);
+        msp_safe_free(self->metadata);
+        msp_safe_free(self->metadata_offset);
+    }
     return 0;
 }
 
@@ -953,6 +1091,57 @@ site_table_dump_text(site_table_t *self, FILE *out)
     ret = 0;
 out:
     return ret;
+}
+
+static int
+site_table_dump(site_table_t *self, kastore_t *store)
+{
+    int ret = 0;
+
+    ret = kastore_puts(store, "sites/position", self->position, self->num_rows,
+            KAS_FLOAT64, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "sites/ancestral_state", self->ancestral_state,
+            self->ancestral_state_length, KAS_UINT8, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "sites/ancestral_state_offset",
+            self->ancestral_state_offset, self->num_rows + 1, KAS_UINT32, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "sites/metadata", self->metadata,
+            self->metadata_length, KAS_UINT8, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "sites/metadata_offset",
+            self->metadata_offset, self->num_rows + 1, KAS_UINT32, 0);
+    if (ret != 0) {
+        goto out;
+    }
+out:
+    return ret;
+}
+
+static int
+site_table_load(site_table_t *self, kastore_t *store)
+{
+    read_table_col_t read_cols[] = {
+        {"sites/position", (const void **) &self->position, &self->num_rows, 0, KAS_FLOAT64},
+        {"sites/ancestral_state", (const void **) &self->ancestral_state,
+            &self->ancestral_state_length, 0, KAS_UINT8},
+        {"sites/ancestral_state_offset", (const void **) &self->ancestral_state_offset,
+            &self->num_rows, 1, KAS_UINT32},
+        {"sites/metadata", (const void **) &self->metadata,
+            &self->metadata_length, 0, KAS_UINT8},
+        {"sites/metadata_offset", (const void **) &self->metadata_offset,
+            &self->num_rows, 1, KAS_UINT32},
+    };
+    return read_table_cols(store, read_cols, sizeof(read_cols) / sizeof(*read_cols));
 }
 
 /*************************
@@ -1270,13 +1459,15 @@ mutation_table_clear(mutation_table_t *self)
 int
 mutation_table_free(mutation_table_t *self)
 {
-    msp_safe_free(self->node);
-    msp_safe_free(self->site);
-    msp_safe_free(self->parent);
-    msp_safe_free(self->derived_state);
-    msp_safe_free(self->derived_state_offset);
-    msp_safe_free(self->metadata);
-    msp_safe_free(self->metadata_offset);
+    if (self->max_rows > 0) {
+        msp_safe_free(self->node);
+        msp_safe_free(self->site);
+        msp_safe_free(self->parent);
+        msp_safe_free(self->derived_state);
+        msp_safe_free(self->derived_state_offset);
+        msp_safe_free(self->metadata);
+        msp_safe_free(self->metadata_offset);
+    }
     return 0;
 }
 
@@ -1335,6 +1526,69 @@ mutation_table_dump_text(mutation_table_t *self, FILE *out)
     ret = 0;
 out:
     return ret;
+}
+
+static int
+mutation_table_dump(mutation_table_t *self, kastore_t *store)
+{
+    int ret = 0;
+
+    ret = kastore_puts(store, "mutations/site", self->site, self->num_rows,
+            KAS_INT32, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "mutations/node", self->node, self->num_rows,
+            KAS_INT32, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "mutations/parent", self->parent, self->num_rows,
+            KAS_INT32, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "mutations/derived_state", self->derived_state,
+            self->derived_state_length, KAS_UINT8, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "mutations/derived_state_offset",
+            self->derived_state_offset, self->num_rows + 1, KAS_UINT32, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "mutations/metadata", self->metadata,
+            self->metadata_length, KAS_UINT8, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "mutations/metadata_offset",
+            self->metadata_offset, self->num_rows + 1, KAS_UINT32, 0);
+    if (ret != 0) {
+        goto out;
+    }
+out:
+    return ret;
+}
+
+static int
+mutation_table_load(mutation_table_t *self, kastore_t *store)
+{
+    read_table_col_t read_cols[] = {
+        {"mutations/site", (const void **) &self->site, &self->num_rows, 0, KAS_INT32},
+        {"mutations/node", (const void **) &self->node, &self->num_rows, 0, KAS_INT32},
+        {"mutations/parent", (const void **) &self->parent, &self->num_rows, 0, KAS_INT32},
+        {"mutations/derived_state", (const void **) &self->derived_state,
+            &self->derived_state_length, 0, KAS_UINT8},
+        {"mutations/derived_state_offset", (const void **) &self->derived_state_offset,
+            &self->num_rows, 1, KAS_UINT32},
+        {"mutations/metadata", (const void **) &self->metadata,
+            &self->metadata_length, 0, KAS_UINT8},
+        {"mutations/metadata_offset", (const void **) &self->metadata_offset,
+            &self->num_rows, 1, KAS_UINT32},
+    };
+    return read_table_cols(store, read_cols, sizeof(read_cols) / sizeof(*read_cols));
 }
 
 /*************************
@@ -1484,12 +1738,14 @@ migration_table_clear(migration_table_t *self)
 int
 migration_table_free(migration_table_t *self)
 {
-    msp_safe_free(self->left);
-    msp_safe_free(self->right);
-    msp_safe_free(self->node);
-    msp_safe_free(self->source);
-    msp_safe_free(self->dest);
-    msp_safe_free(self->time);
+    if (self->max_rows > 0) {
+        msp_safe_free(self->left);
+        msp_safe_free(self->right);
+        msp_safe_free(self->node);
+        msp_safe_free(self->source);
+        msp_safe_free(self->dest);
+        msp_safe_free(self->time);
+    }
     return 0;
 }
 
@@ -1531,6 +1787,58 @@ out:
     return ret;
 }
 
+static int
+migration_table_dump(migration_table_t *self, kastore_t *store)
+{
+    int ret = 0;
+
+    ret = kastore_puts(store, "migrations/left", self->left, self->num_rows,
+            KAS_FLOAT64, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "migrations/right", self->right, self->num_rows,
+            KAS_FLOAT64, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "migrations/node", self->node,
+            self->num_rows, KAS_INT32, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "migrations/source", self->source,
+            self->num_rows, KAS_INT32, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "migrations/dest", self->dest,
+            self->num_rows, KAS_INT32, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "migrations/time", self->time, self->num_rows,
+            KAS_FLOAT64, 0);
+    if (ret != 0) {
+        goto out;
+    }
+out:
+    return ret;
+}
+
+static int
+migration_table_load(migration_table_t *self, kastore_t *store)
+{
+    read_table_col_t read_cols[] = {
+        {"migrations/left", (const void **) &self->left, &self->num_rows, 0, KAS_FLOAT64},
+        {"migrations/right", (const void **) &self->right, &self->num_rows, 0, KAS_FLOAT64},
+        {"migrations/node", (const void **) &self->node, &self->num_rows, 0, KAS_INT32},
+        {"migrations/source", (const void **) &self->source, &self->num_rows, 0, KAS_INT32},
+        {"migrations/dest", (const void **) &self->dest, &self->num_rows, 0, KAS_INT32},
+        {"migrations/time", (const void **) &self->time, &self->num_rows, 0, KAS_FLOAT64},
+    };
+    return read_table_cols(store, read_cols, sizeof(read_cols) / sizeof(*read_cols));
+}
 
 /*************************
  * provenance table
@@ -1732,11 +2040,11 @@ provenance_table_add_row_internal(provenance_table_t *self,
     int ret = 0;
 
     assert(self->num_rows < self->max_rows);
-    assert(self->timestamp_length + timestamp_length < self->max_timestamp_length);
+    assert(self->timestamp_length + timestamp_length <= self->max_timestamp_length);
     memcpy(self->timestamp + self->timestamp_length, timestamp, timestamp_length);
     self->timestamp_offset[self->num_rows + 1] = self->timestamp_length + timestamp_length;
     self->timestamp_length += timestamp_length;
-    assert(self->record_length + record_length < self->max_record_length);
+    assert(self->record_length + record_length <= self->max_record_length);
     memcpy(self->record + self->record_length, record, record_length);
     self->record_offset[self->num_rows + 1] = self->record_length + record_length;
     self->record_length += record_length;
@@ -1783,10 +2091,12 @@ provenance_table_clear(provenance_table_t *self)
 int
 provenance_table_free(provenance_table_t *self)
 {
-    msp_safe_free(self->timestamp);
-    msp_safe_free(self->timestamp_offset);
-    msp_safe_free(self->record);
-    msp_safe_free(self->record_offset);
+    if (self->max_rows > 0) {
+        msp_safe_free(self->timestamp);
+        msp_safe_free(self->timestamp_offset);
+        msp_safe_free(self->record);
+        msp_safe_free(self->record_offset);
+    }
     return 0;
 }
 
@@ -1842,6 +2152,51 @@ provenance_table_equal(provenance_table_t *self, provenance_table_t *other)
                     self->record_length * sizeof(char)) == 0;
     }
     return ret;
+}
+
+static int
+provenance_table_dump(provenance_table_t *self, kastore_t *store)
+{
+    int ret = 0;
+
+    ret = kastore_puts(store, "provenances/timestamp", self->timestamp,
+            self->timestamp_length, KAS_UINT8, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "provenances/timestamp_offset",
+            self->timestamp_offset, self->num_rows + 1, KAS_UINT32, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "provenances/record", self->record,
+            self->record_length, KAS_UINT8, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "provenances/record_offset",
+            self->record_offset, self->num_rows + 1, KAS_UINT32, 0);
+    if (ret != 0) {
+        goto out;
+    }
+out:
+    return ret;
+}
+
+static int
+provenance_table_load(provenance_table_t *self, kastore_t *store)
+{
+    read_table_col_t read_cols[] = {
+        {"provenances/timestamp", (const void **) &self->timestamp,
+            &self->timestamp_length, 0, KAS_UINT8},
+        {"provenances/timestamp_offset", (const void **) &self->timestamp_offset,
+            &self->num_rows, 1, KAS_UINT32},
+        {"provenances/record", (const void **) &self->record,
+            &self->record_length, 0, KAS_UINT8},
+        {"provenances/record_offset", (const void **) &self->record_offset,
+            &self->num_rows, 1, KAS_UINT32},
+    };
+    return read_table_cols(store, read_cols, sizeof(read_cols) / sizeof(*read_cols));
 }
 
 /*************************
@@ -3319,871 +3674,6 @@ out:
 }
 
 /*************************
- * hdf5_file
- *************************/
-
-typedef struct {
-    table_collection_t *tables;
-} hdf5_file_t;
-
-static int
-hdf5_file_alloc(hdf5_file_t *self, table_collection_t *tables)
-{
-    memset(self, 0, sizeof(*self));
-    self->tables = tables;
-    return 0;
-}
-
-static int
-hdf5_file_free(hdf5_file_t *self)
-{
-#pragma unused(self)
-    return 0;
-}
-
-/* Reads the metadata for the overall file and updates the basic
- * information in the hdf5_file.
- */
-static int
-hdf5_file_read_metadata(hdf5_file_t *self, hid_t file_id)
-{
-    int ret = MSP_ERR_HDF5;
-    hid_t attr_id, dataspace_id;
-    herr_t status;
-    int rank;
-    hsize_t dims;
-    uint32_t version[2];
-
-    attr_id = H5Aopen_by_name(file_id, "/", "format_version", H5P_DEFAULT, H5P_DEFAULT);
-    if (attr_id < 0) {
-        goto out;
-    }
-    dataspace_id = H5Aget_space(attr_id);
-    if (dataspace_id < 0) {
-        goto out;
-    }
-    rank = H5Sget_simple_extent_ndims(dataspace_id);
-    if (rank != 1) {
-        ret = MSP_ERR_FILE_FORMAT;
-        goto out;
-    }
-    status = H5Sget_simple_extent_dims(dataspace_id, &dims, NULL);
-    if (status < 0) {
-        goto out;
-    }
-    if (dims != 2) {
-        ret = MSP_ERR_FILE_FORMAT;
-        goto out;
-    }
-    status = H5Aread(attr_id, H5T_NATIVE_UINT32, version);
-    if (status < 0) {
-        goto out;
-    }
-    status = H5Sclose(dataspace_id);
-    if (status < 0) {
-        goto out;
-    }
-    status = H5Aclose(attr_id);
-    if (status < 0) {
-        goto out;
-    }
-
-    attr_id = H5Aopen_by_name(file_id, "/", "sequence_length", H5P_DEFAULT, H5P_DEFAULT);
-    if (attr_id < 0) {
-        goto out;
-    }
-    dataspace_id = H5Aget_space(attr_id);
-    if (dataspace_id < 0) {
-        goto out;
-    }
-    rank = H5Sget_simple_extent_ndims(dataspace_id);
-    if (rank != 1) {
-        ret = MSP_ERR_FILE_FORMAT;
-        goto out;
-    }
-    status = H5Sget_simple_extent_dims(dataspace_id, &dims, NULL);
-    if (status < 0) {
-        goto out;
-    }
-    if (dims != 1) {
-        ret = MSP_ERR_FILE_FORMAT;
-        goto out;
-    }
-    status = H5Aread(attr_id, H5T_NATIVE_DOUBLE, &self->tables->sequence_length);
-    if (status < 0) {
-        goto out;
-    }
-    status = H5Sclose(dataspace_id);
-    if (status < 0) {
-        goto out;
-    }
-    status = H5Aclose(attr_id);
-    if (status < 0) {
-        goto out;
-    }
-
-    /* Sanity check */
-    if (version[0] < MSP_FILE_FORMAT_VERSION_MAJOR) {
-        ret = MSP_ERR_FILE_VERSION_TOO_OLD;
-        goto out;
-    }
-    if (version[0] > MSP_FILE_FORMAT_VERSION_MAJOR) {
-        ret = MSP_ERR_FILE_VERSION_TOO_NEW;
-        goto out;
-    }
-    if (self->tables->sequence_length <= 0.0) {
-        ret = MSP_ERR_BAD_SEQUENCE_LENGTH;
-        goto out;
-    }
-    ret = 0;
-out:
-    return ret;
-}
-
-/* Reads the groups within the HDF5 file to ensure that they exist.
- */
-static int
-hdf5_file_read_groups(hdf5_file_t *self, hid_t file_id)
-{
-#pragma unused(self)
-    int ret = MSP_ERR_HDF5;
-    htri_t exists;
-    const char* groups[] = {
-        "/edges",
-        "/edges/indexes",
-        "/nodes",
-        "/sites",
-        "/mutations",
-        "/migrations",
-        "/provenances",
-    };
-    size_t num_groups = sizeof(groups) / sizeof(const char *);
-    size_t j;
-
-    for (j = 0; j < num_groups; j++) {
-        exists = H5Lexists(file_id, groups[j], H5P_DEFAULT);
-        if (exists < 0) {
-            goto out;
-        }
-        if (! exists) {
-            ret = MSP_ERR_FILE_FORMAT;
-            goto out;
-        }
-    }
-    ret = 0;
-out:
-    return ret;
-
-}
-
-/* Reads the dimensions for each table and allocs it.
- */
-static int
-hdf5_file_read_dimensions(hdf5_file_t *self, hid_t file_id)
-{
-    int ret = MSP_ERR_HDF5;
-    hid_t dataset_id, dataspace_id;
-    herr_t status;
-    htri_t exists;
-    int rank;
-    hsize_t dims;
-
-    size_t num_nodes = 0;
-    size_t num_edges = 0;
-    size_t num_sites = 0;
-    size_t num_mutations = 0;
-    size_t num_migrations = 0;
-    size_t num_provenances = 0;
-    size_t ancestral_state_length = 0;
-    size_t derived_state_length = 0;
-    size_t site_metadata_length = 0;
-    size_t mutation_metadata_length = 0;
-    size_t node_metadata_length = 0;
-    size_t provenance_timestamp_length = 0;
-    size_t provenance_record_length = 0;
-
-    struct _dimension_read {
-        const char *name;
-        size_t *dest;
-    };
-    struct _dimension_read fields[] = {
-        {"/sites/position", &num_sites},
-        {"/sites/ancestral_state", &ancestral_state_length},
-        {"/sites/metadata", &site_metadata_length},
-        {"/mutations/site", &num_mutations},
-        {"/mutations/derived_state", &derived_state_length},
-        {"/mutations/metadata", &mutation_metadata_length},
-        {"/nodes/time", &num_nodes},
-        {"/nodes/metadata", &node_metadata_length},
-        {"/edges/left", &num_edges},
-        {"/migrations/left", &num_migrations},
-        {"/provenances/timestamp_offset", &num_provenances},
-        {"/provenances/timestamp", &provenance_timestamp_length},
-        {"/provenances/record", &provenance_record_length},
-    };
-    size_t num_fields = sizeof(fields) / sizeof(struct _dimension_read);
-    size_t j;
-
-    for (j = 0; j < num_fields; j++) {
-        *fields[j].dest = 0;
-        exists = H5Lexists(file_id, fields[j].name, H5P_DEFAULT);
-        if (exists < 0) {
-            goto out;
-        }
-        if (exists) {
-            dataset_id = H5Dopen(file_id, fields[j].name, H5P_DEFAULT);
-            if (dataset_id < 0) {
-                ret = MSP_ERR_FILE_FORMAT;
-                goto out;
-            }
-            dataspace_id = H5Dget_space(dataset_id);
-            if (dataspace_id < 0) {
-                goto out;
-            }
-            rank = H5Sget_simple_extent_ndims(dataspace_id);
-            if (rank != 1) {
-                ret = MSP_ERR_FILE_FORMAT;
-                goto out;
-            }
-            status = H5Sget_simple_extent_dims(dataspace_id, &dims, NULL);
-            if (status < 0) {
-                goto out;
-            }
-            *fields[j].dest = (size_t) dims;
-            status = H5Sclose(dataspace_id);
-            if (status < 0) {
-                goto out;
-            }
-            status = H5Dclose(dataset_id);
-            if (status < 0) {
-                goto out;
-            }
-        }
-    }
-    /* provenance is a special case because we have no simple columns. We must
-     * have at least one row in the offsets col or we have an error. */
-    if (num_provenances == 0) {
-        goto out;
-    }
-    num_provenances -= 1;
-
-    /* Allocate the tables with the correct sizes */
-    ret = node_table_alloc(&self->tables->nodes, num_nodes, node_metadata_length);
-    if (ret != 0) {
-        goto out;
-    }
-    self->tables->nodes.num_rows = (table_size_t) num_nodes;
-    self->tables->nodes.metadata_length = (table_size_t) node_metadata_length;
-
-    ret = edge_table_alloc(&self->tables->edges, num_edges);
-    if (ret != 0) {
-        goto out;
-    }
-    self->tables->edges.num_rows = (table_size_t) num_edges;
-
-    ret = migration_table_alloc(&self->tables->migrations, num_migrations);
-    if (ret != 0) {
-        goto out;
-    }
-    self->tables->migrations.num_rows = (table_size_t) num_migrations;
-
-    ret = site_table_alloc(&self->tables->sites, num_sites, ancestral_state_length,
-            site_metadata_length);
-    if (ret != 0) {
-        goto out;
-    }
-    self->tables->sites.num_rows = (table_size_t) num_sites;
-    self->tables->sites.ancestral_state_length = (table_size_t) ancestral_state_length;
-    self->tables->sites.metadata_length = (table_size_t) site_metadata_length;
-
-    ret = mutation_table_alloc(&self->tables->mutations, num_mutations,
-            derived_state_length, mutation_metadata_length);
-    if (ret != 0) {
-        goto out;
-    }
-    self->tables->mutations.num_rows = (table_size_t) num_mutations;
-    self->tables->mutations.derived_state_length = (table_size_t) derived_state_length;
-    self->tables->mutations.metadata_length = (table_size_t) mutation_metadata_length;
-
-    ret = provenance_table_alloc(&self->tables->provenances, num_provenances,
-            provenance_timestamp_length, provenance_record_length);
-    self->tables->provenances.num_rows = (table_size_t) num_provenances;
-    self->tables->provenances.timestamp_length = (table_size_t) provenance_timestamp_length;
-    self->tables->provenances.record_length = (table_size_t) provenance_record_length;
-    if (ret != 0) {
-        goto out;
-    }
-    /* Alloc the indexes */
-    self->tables->indexes.edge_insertion_order = malloc(num_edges * sizeof(edge_id_t));
-    self->tables->indexes.edge_removal_order = malloc(num_edges * sizeof(edge_id_t));
-    if (self->tables->indexes.edge_insertion_order == NULL
-            || self->tables->indexes.edge_removal_order == NULL) {
-        ret = MSP_ERR_NO_MEMORY;
-        goto out;
-    }
-    ret = 0;
-out:
-    return ret;
-}
-
-static int
-hdf5_file_check_dimensions(hdf5_file_t *self, hid_t file_id)
-{
-    int ret = MSP_ERR_HDF5;
-    hid_t dataset_id, dataspace_id;
-    herr_t status;
-    int rank;
-    hsize_t dims[2];
-    htri_t exists;
-    struct _dimension_check {
-        const char *name;
-        size_t size;
-    };
-    struct _dimension_check fields[] = {
-        {"/sites/position", self->tables->sites.num_rows},
-        {"/sites/ancestral_state", self->tables->sites.ancestral_state_length},
-        {"/sites/ancestral_state_offset", self->tables->sites.num_rows + 1},
-        {"/sites/metadata", self->tables->sites.metadata_length},
-        {"/sites/metadata_offset", self->tables->sites.num_rows + 1},
-
-        {"/mutations/site", self->tables->mutations.num_rows},
-        {"/mutations/node", self->tables->mutations.num_rows},
-        {"/mutations/parent", self->tables->mutations.num_rows},
-        {"/mutations/derived_state", self->tables->mutations.derived_state_length},
-        {"/mutations/derived_state_offset", self->tables->mutations.num_rows + 1},
-        {"/mutations/metadata", self->tables->mutations.metadata_length},
-        {"/mutations/metadata_offset", self->tables->mutations.num_rows + 1},
-
-        {"/nodes/flags", self->tables->nodes.num_rows},
-        {"/nodes/population", self->tables->nodes.num_rows},
-        {"/nodes/metadata", self->tables->nodes.metadata_length},
-        {"/nodes/metadata_offset", self->tables->nodes.num_rows + 1},
-        {"/nodes/time", self->tables->nodes.num_rows},
-
-        {"/edges/left", self->tables->edges.num_rows},
-        {"/edges/right", self->tables->edges.num_rows},
-        {"/edges/parent", self->tables->edges.num_rows},
-        {"/edges/child", self->tables->edges.num_rows},
-        {"/edges/indexes/insertion_order", self->tables->edges.num_rows},
-        {"/edges/indexes/removal_order", self->tables->edges.num_rows},
-
-        {"/migrations/left", self->tables->migrations.num_rows},
-        {"/migrations/right", self->tables->migrations.num_rows},
-        {"/migrations/node", self->tables->migrations.num_rows},
-        {"/migrations/source", self->tables->migrations.num_rows},
-        {"/migrations/dest", self->tables->migrations.num_rows},
-        {"/migrations/time", self->tables->migrations.num_rows},
-
-        {"/provenances/timestamp", self->tables->provenances.timestamp_length},
-        {"/provenances/timestamp_offset", self->tables->provenances.num_rows + 1},
-        {"/provenances/record", self->tables->provenances.record_length},
-        {"/provenances/record_offset", self->tables->provenances.num_rows + 1},
-    };
-    size_t num_fields = sizeof(fields) / sizeof(struct _dimension_check);
-    size_t j;
-
-    /* Now go though the rest of the fields and make sure they have the
-     * right sizes
-     */
-    for (j = 0; j < num_fields; j++) {
-        exists = H5Lexists(file_id, fields[j].name, H5P_DEFAULT);
-        if (exists < 0) {
-            goto out;
-        }
-        dims[0] = 0;
-        if (exists) {
-            dataset_id = H5Dopen(file_id, fields[j].name, H5P_DEFAULT);
-            if (dataset_id < 0) {
-                goto out;
-            }
-            dataspace_id = H5Dget_space(dataset_id);
-            if (dataspace_id < 0) {
-                goto out;
-            }
-            rank = H5Sget_simple_extent_ndims(dataspace_id);
-            if (rank != 1) {
-                ret = MSP_ERR_FILE_FORMAT;
-                goto out;
-            }
-            status = H5Sget_simple_extent_dims(dataspace_id, dims, NULL);
-            if (status < 0) {
-                goto out;
-            }
-            status = H5Sclose(dataspace_id);
-            if (status < 0) {
-                goto out;
-            }
-            status = H5Dclose(dataset_id);
-            if (status < 0) {
-                goto out;
-            }
-        }
-        if (dims[0] != fields[j].size) {
-            ret = MSP_ERR_FILE_FORMAT;
-            goto out;
-        }
-    }
-    ret = 0;
-out:
-    return ret;
-}
-
-static int
-hdf5_file_read_data(hdf5_file_t *self, hid_t file_id)
-{
-    herr_t status;
-    int ret = MSP_ERR_HDF5;
-    hid_t dataset_id;
-    htri_t exists;
-    struct _hdf5_field_read {
-        const char *name;
-        hid_t type;
-        void *dest;
-    };
-    struct _hdf5_field_read fields[] = {
-        {"/nodes/metadata", H5T_NATIVE_CHAR, self->tables->nodes.metadata},
-        {"/nodes/metadata_offset", H5T_NATIVE_UINT32,
-            self->tables->nodes.metadata_offset},
-        {"/nodes/flags", H5T_NATIVE_UINT32, self->tables->nodes.flags},
-        {"/nodes/population", H5T_NATIVE_INT32, self->tables->nodes.population},
-        {"/nodes/time", H5T_NATIVE_DOUBLE, self->tables->nodes.time},
-
-        {"/sites/position", H5T_NATIVE_DOUBLE, self->tables->sites.position},
-        {"/sites/ancestral_state", H5T_NATIVE_CHAR, self->tables->sites.ancestral_state},
-        {"/sites/ancestral_state_offset", H5T_NATIVE_UINT32,
-            self->tables->sites.ancestral_state_offset},
-        {"/sites/metadata", H5T_NATIVE_CHAR, self->tables->sites.metadata},
-        {"/sites/metadata_offset", H5T_NATIVE_UINT32, self->tables->sites.metadata_offset},
-
-        {"/mutations/site", H5T_NATIVE_INT32, self->tables->mutations.site},
-        {"/mutations/node", H5T_NATIVE_INT32, self->tables->mutations.node},
-        {"/mutations/parent", H5T_NATIVE_INT32, self->tables->mutations.parent},
-        {"/mutations/derived_state", H5T_NATIVE_CHAR, self->tables->mutations.derived_state},
-        {"/mutations/derived_state_offset", H5T_NATIVE_UINT32,
-            self->tables->mutations.derived_state_offset},
-        {"/mutations/metadata", H5T_NATIVE_CHAR, self->tables->mutations.metadata},
-        {"/mutations/metadata_offset", H5T_NATIVE_UINT32,
-            self->tables->mutations.metadata_offset},
-
-        {"/edges/left", H5T_NATIVE_DOUBLE, self->tables->edges.left},
-        {"/edges/right", H5T_NATIVE_DOUBLE, self->tables->edges.right},
-        {"/edges/parent", H5T_NATIVE_INT32, self->tables->edges.parent},
-        {"/edges/child", H5T_NATIVE_INT32, self->tables->edges.child},
-
-        {"/edges/indexes/insertion_order", H5T_NATIVE_INT32,
-            self->tables->indexes.edge_insertion_order},
-        {"/edges/indexes/removal_order", H5T_NATIVE_INT32,
-            self->tables->indexes.edge_removal_order},
-
-        {"/migrations/left", H5T_NATIVE_DOUBLE, self->tables->migrations.left},
-        {"/migrations/right", H5T_NATIVE_DOUBLE, self->tables->migrations.right},
-        {"/migrations/node", H5T_NATIVE_INT32, self->tables->migrations.node},
-        {"/migrations/source", H5T_NATIVE_INT32, self->tables->migrations.source},
-        {"/migrations/dest", H5T_NATIVE_INT32, self->tables->migrations.dest},
-        {"/migrations/time", H5T_NATIVE_DOUBLE, self->tables->migrations.time},
-
-        {"/provenances/timestamp", H5T_NATIVE_CHAR, self->tables->provenances.timestamp},
-        {"/provenances/timestamp_offset", H5T_NATIVE_UINT32,
-            self->tables->provenances.timestamp_offset},
-        {"/provenances/record", H5T_NATIVE_CHAR, self->tables->provenances.record},
-        {"/provenances/record_offset", H5T_NATIVE_UINT32,
-            self->tables->provenances.record_offset},
-    };
-    size_t num_fields = sizeof(fields) / sizeof(struct _hdf5_field_read);
-    size_t j;
-
-    for (j = 0; j < num_fields; j++) {
-        exists = H5Lexists(file_id, fields[j].name, H5P_DEFAULT);
-        if (exists < 0) {
-            goto out;
-        }
-        if (exists) {
-            dataset_id = H5Dopen(file_id, fields[j].name, H5P_DEFAULT);
-            if (dataset_id < 0) {
-                goto out;
-            }
-            status = H5Dread(dataset_id, fields[j].type, H5S_ALL, H5S_ALL, H5P_DEFAULT,
-                    fields[j].dest);
-            if (status < 0) {
-                goto out;
-            }
-            status = H5Dclose(dataset_id);
-            if (status < 0) {
-                goto out;
-            }
-        }
-    }
-    ret = 0;
-out:
-    return ret;
-}
-
-static int
-hdf5_file_load(hdf5_file_t *self, const char *filename)
-{
-    int ret = MSP_ERR_GENERIC;
-    herr_t status;
-    hid_t file_id = -1;
-
-    file_id = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
-    if (file_id < 0) {
-        ret = MSP_ERR_HDF5;
-        goto out;
-    }
-    ret = hdf5_file_read_metadata(self, file_id);
-    if (ret < 0) {
-        goto out;
-    }
-    ret = hdf5_file_read_groups(self, file_id);
-    if (ret < 0) {
-        goto out;
-    }
-    ret = hdf5_file_read_dimensions(self, file_id);
-    if (ret < 0) {
-        goto out;
-    }
-    ret = hdf5_file_check_dimensions(self, file_id);
-    if (ret < 0) {
-        goto out;
-    }
-    ret = hdf5_file_read_data(self, file_id);
-    if (ret != 0) {
-        goto out;
-    }
-
-out:
-    if (file_id >= 0) {
-        status = H5Fclose(file_id);
-        if (status < 0) {
-            ret = MSP_ERR_HDF5;
-        }
-    }
-    return ret;
-}
-
-
-static int
-hdf5_file_write_hdf5_data(hdf5_file_t *self, hid_t file_id, int flags)
-{
-    herr_t ret = -1;
-    herr_t status;
-    hid_t group_id, dataset_id, dataspace_id, plist_id;
-    hsize_t dim, chunk_size;
-    struct _hdf5_field_write {
-        const char *name;
-        hid_t storage_type;
-        hid_t memory_type;
-        size_t size;
-        void *source;
-    };
-    struct _hdf5_field_write fields[] = {
-        {"/nodes/metadata",
-            H5T_STD_I8LE, H5T_NATIVE_CHAR,
-            self->tables->nodes.metadata_length, self->tables->nodes.metadata},
-        {"/nodes/metadata_offset",
-            H5T_STD_U32LE, H5T_NATIVE_UINT32,
-            self->tables->nodes.num_rows + 1, self->tables->nodes.metadata_offset},
-        {"/nodes/flags",
-            H5T_STD_U32LE, H5T_NATIVE_UINT32,
-            self->tables->nodes.num_rows, self->tables->nodes.flags},
-        {"/nodes/population",
-            H5T_STD_I32LE, H5T_NATIVE_INT32,
-            self->tables->nodes.num_rows, self->tables->nodes.population},
-        {"/nodes/time",
-            H5T_IEEE_F64LE, H5T_NATIVE_DOUBLE,
-            self->tables->nodes.num_rows, self->tables->nodes.time},
-
-        {"/edges/left",
-            H5T_IEEE_F64LE, H5T_NATIVE_DOUBLE,
-            self->tables->edges.num_rows, self->tables->edges.left},
-        {"/edges/right",
-            H5T_IEEE_F64LE, H5T_NATIVE_DOUBLE,
-            self->tables->edges.num_rows, self->tables->edges.right},
-        {"/edges/parent",
-            H5T_STD_I32LE, H5T_NATIVE_INT32,
-            self->tables->edges.num_rows, self->tables->edges.parent},
-        {"/edges/child",
-            H5T_STD_I32LE, H5T_NATIVE_INT32,
-            self->tables->edges.num_rows, self->tables->edges.child},
-
-        {"/edges/indexes/insertion_order",
-            H5T_STD_I32LE, H5T_NATIVE_INT32,
-            self->tables->edges.num_rows, self->tables->indexes.edge_insertion_order},
-        {"/edges/indexes/removal_order",
-            H5T_STD_I32LE, H5T_NATIVE_INT32,
-            self->tables->edges.num_rows, self->tables->indexes.edge_removal_order},
-
-        {"/sites/position",
-            H5T_IEEE_F64LE, H5T_NATIVE_DOUBLE,
-            self->tables->sites.num_rows, self->tables->sites.position},
-        {"/sites/ancestral_state",
-            H5T_STD_I8LE, H5T_NATIVE_CHAR,
-            self->tables->sites.ancestral_state_length, self->tables->sites.ancestral_state},
-        {"/sites/ancestral_state_offset",
-            H5T_STD_U32LE, H5T_NATIVE_UINT32,
-            self->tables->sites.num_rows + 1, self->tables->sites.ancestral_state_offset},
-        {"/sites/metadata",
-            H5T_STD_I8LE, H5T_NATIVE_CHAR,
-            self->tables->sites.metadata_length, self->tables->sites.metadata},
-        {"/sites/metadata_offset",
-            H5T_STD_U32LE, H5T_NATIVE_UINT32,
-            self->tables->sites.num_rows + 1, self->tables->sites.metadata_offset},
-
-        {"/mutations/site",
-            H5T_STD_I32LE, H5T_NATIVE_INT32,
-            self->tables->mutations.num_rows, self->tables->mutations.site},
-        {"/mutations/node",
-            H5T_STD_I32LE, H5T_NATIVE_INT32,
-            self->tables->mutations.num_rows, self->tables->mutations.node},
-        {"/mutations/parent",
-            H5T_STD_I32LE, H5T_NATIVE_INT32,
-            self->tables->mutations.num_rows, self->tables->mutations.parent},
-        {"/mutations/derived_state",
-            H5T_STD_I8LE, H5T_NATIVE_CHAR,
-            self->tables->mutations.derived_state_length, self->tables->mutations.derived_state},
-        {"/mutations/derived_state_offset",
-            H5T_STD_U32LE, H5T_NATIVE_UINT32,
-            self->tables->mutations.num_rows + 1, self->tables->mutations.derived_state_offset},
-        {"/mutations/metadata",
-            H5T_STD_I8LE, H5T_NATIVE_CHAR,
-            self->tables->mutations.metadata_length, self->tables->mutations.metadata},
-        {"/mutations/metadata_offset",
-            H5T_STD_U32LE, H5T_NATIVE_UINT32,
-            self->tables->mutations.num_rows + 1, self->tables->mutations.metadata_offset},
-
-        {"/migrations/left",
-            H5T_IEEE_F64LE, H5T_NATIVE_DOUBLE,
-            self->tables->migrations.num_rows, self->tables->migrations.left},
-        {"/migrations/right",
-            H5T_IEEE_F64LE, H5T_NATIVE_DOUBLE,
-            self->tables->migrations.num_rows, self->tables->migrations.right},
-        {"/migrations/time",
-            H5T_IEEE_F64LE, H5T_NATIVE_DOUBLE,
-            self->tables->migrations.num_rows, self->tables->migrations.time},
-        {"/migrations/node",
-            H5T_STD_I32LE, H5T_NATIVE_INT32,
-            self->tables->migrations.num_rows, self->tables->migrations.node},
-        {"/migrations/source",
-            H5T_STD_I32LE, H5T_NATIVE_INT32,
-            self->tables->migrations.num_rows, self->tables->migrations.source},
-        {"/migrations/dest",
-            H5T_STD_I32LE, H5T_NATIVE_INT32,
-            self->tables->migrations.num_rows, self->tables->migrations.dest},
-
-        {"/provenances/timestamp",
-            H5T_STD_I8LE, H5T_NATIVE_CHAR,
-            self->tables->provenances.timestamp_length, self->tables->provenances.timestamp},
-        {"/provenances/timestamp_offset",
-            H5T_STD_U32LE, H5T_NATIVE_UINT32,
-            self->tables->provenances.num_rows + 1, self->tables->provenances.timestamp_offset},
-        {"/provenances/record",
-            H5T_STD_I8LE, H5T_NATIVE_CHAR,
-            self->tables->provenances.record_length, self->tables->provenances.record},
-        {"/provenances/record_offset",
-            H5T_STD_U32LE, H5T_NATIVE_UINT32,
-            self->tables->provenances.num_rows + 1, self->tables->provenances.record_offset},
-    };
-    size_t num_fields = sizeof(fields) / sizeof(struct _hdf5_field_write);
-    struct _hdf5_group_write {
-        const char *name;
-    };
-    struct _hdf5_group_write groups[] = {
-        {"/sites"},
-        {"/mutations"},
-        {"/nodes"},
-        {"/edges"},
-        {"/edges/indexes"},
-        {"/migrations"},
-        {"/provenances"},
-    };
-    size_t num_groups = sizeof(groups) / sizeof(struct _hdf5_group_write);
-    size_t j;
-
-    /* Create the groups */
-    for (j = 0; j < num_groups; j++) {
-        group_id = H5Gcreate(file_id, groups[j].name, H5P_DEFAULT, H5P_DEFAULT,
-                H5P_DEFAULT);
-        if (group_id < 0) {
-            goto out;
-        }
-        status = H5Gclose(group_id);
-        if (status < 0) {
-            goto out;
-        }
-    }
-    /* now write the datasets */
-    for (j = 0; j < num_fields; j++) {
-        dim = fields[j].size;
-        /* Never create any 0-sized datasets. This causes all sorts of problems in older
-         * versions of HDF5, and so we adopt the protocol of omitting the dataset if it
-         * is of zero size.
-         */
-        if (dim > 0) {
-            dataspace_id = H5Screate_simple(1, &dim, &dim);
-            if (dataspace_id < 0) {
-                goto out;
-            }
-            plist_id = H5Pcreate(H5P_DATASET_CREATE);
-            if (plist_id < 0) {
-                goto out;
-            }
-            /* Set the chunk size to the full size of the dataset since we
-             * always read the full thing.
-             */
-            chunk_size = MSP_MAX(1, fields[j].size);
-            status = H5Pset_chunk(plist_id, 1, &chunk_size);
-            if (status < 0) {
-                goto out;
-            }
-            if (fields[j].memory_type != H5T_NATIVE_DOUBLE) {
-                /* For integer types, use the scale offset compression */
-                status = H5Pset_scaleoffset(plist_id, H5Z_SO_INT,
-                         H5Z_SO_INT_MINBITS_DEFAULT);
-                if (status < 0) {
-                    goto out;
-                }
-            }
-            if (flags & MSP_DUMP_ZLIB_COMPRESSION) {
-                /* Turn on byte shuffling to improve compression */
-                status = H5Pset_shuffle(plist_id);
-                if (status < 0) {
-                    goto out;
-                }
-                /* Set zlib compression at level 9 (best compression) */
-                status = H5Pset_deflate(plist_id, 9);
-                if (status < 0) {
-                    goto out;
-                }
-            }
-            /* Turn on Fletcher32 checksums for integrity checks */
-            status = H5Pset_fletcher32(plist_id);
-            if (status < 0) {
-                goto out;
-            }
-            dataset_id = H5Dcreate2(file_id, fields[j].name,
-                    fields[j].storage_type, dataspace_id, H5P_DEFAULT,
-                    plist_id, H5P_DEFAULT);
-            if (fields[j].size > 0) {
-                /* Don't write zero sized datasets to work-around problems
-                 * with older versions of hdf5. */
-                status = H5Dwrite(dataset_id, fields[j].memory_type, H5S_ALL,
-                        H5S_ALL, H5P_DEFAULT, fields[j].source);
-                if (status < 0) {
-                    goto out;
-                }
-            }
-            status = H5Dclose(dataset_id);
-            if (status < 0) {
-                goto out;
-            }
-            status = H5Pclose(plist_id);
-            if (status < 0) {
-                goto out;
-            }
-            status = H5Sclose(dataspace_id);
-            if (status < 0) {
-                goto out;
-            }
-        }
-    }
-    ret = 0;
-out:
-    return ret;
-}
-
-static int
-hdf5_file_write_hdf5_metadata(hdf5_file_t *self, hid_t file_id)
-{
-    herr_t status = -1;
-    hid_t attr_id, dataspace_id;
-    hsize_t dims = 1;
-    uint32_t version[2] = {
-        MSP_FILE_FORMAT_VERSION_MAJOR, MSP_FILE_FORMAT_VERSION_MINOR};
-    uint32_t unused_value = 0;
-
-    struct _hdf5_metadata_write {
-        const char *name;
-        hid_t parent;
-        hid_t storage_type;
-        hid_t memory_type;
-        size_t size;
-        void *source;
-    };
-    struct _hdf5_metadata_write fields[] = {
-        {"format_version", 0, H5T_STD_U32LE, H5T_NATIVE_UINT32, 2, version},
-        {"sequence_length", 0, H5T_IEEE_F64LE, H5T_NATIVE_DOUBLE, 1,
-            &self->tables->sequence_length},
-        /* The sample size attribute is vestigial, and only included because
-         * older versions of msprime give a better error condition when confronted
-         * with a newer file format. Due to a bug in the way that this attribute
-         * was loaded, versions of msprime pre 0.4.0 would complain about a missing
-         * attribute rather than giving a File format error. */
-        {"sample_size", 0, H5T_STD_U32LE, H5T_NATIVE_UINT32, 1, &unused_value},
-    };
-    size_t num_fields = sizeof(fields) / sizeof(struct _hdf5_metadata_write);
-    size_t j;
-
-    for (j = 0; j < num_fields; j++) {
-        dims = fields[j].size;
-        dataspace_id = H5Screate_simple(1, &dims, NULL);
-        if (dataspace_id < 0) {
-            status = (herr_t) dataspace_id;
-            goto out;
-        }
-        attr_id = H5Acreate(file_id, fields[j].name,
-                fields[j].storage_type, dataspace_id, H5P_DEFAULT,
-                H5P_DEFAULT);
-        if (attr_id < 0) {
-            goto out;
-        }
-        status = H5Awrite(attr_id, fields[j].memory_type, fields[j].source);
-        if (status < 0) {
-            goto out;
-        }
-        status = H5Aclose(attr_id);
-        if (status < 0) {
-            goto out;
-        }
-        status = H5Sclose(dataspace_id);
-        if (status < 0) {
-            goto out;
-        }
-    }
- out:
-    return status;
-}
-
-static int WARN_UNUSED
-hdf5_file_dump(hdf5_file_t *self, const char *filename, int flags)
-{
-    int ret = MSP_ERR_HDF5;
-    herr_t status;
-    hid_t file_id = -1;
-
-    file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-    if (file_id < 0) {
-        goto out;
-    }
-    status = hdf5_file_write_hdf5_metadata(self, file_id);
-    if (status < 0) {
-        goto out;
-    }
-    ret = hdf5_file_write_hdf5_data(self, file_id, flags);
-    if (ret < 0) {
-        goto out;
-    }
-    ret = 0;
-out:
-    if (file_id > 0) {
-        status = H5Fclose(file_id);
-        if (status < 0) {
-            ret = MSP_ERR_HDF5;
-        }
-    }
-    return ret;
-}
-
-/*************************
  * table_collection
  *************************/
 
@@ -4321,6 +3811,7 @@ table_collection_free(table_collection_t *self)
     provenance_table_free(&self->provenances);
     msp_safe_free(self->indexes.edge_insertion_order);
     msp_safe_free(self->indexes.edge_removal_order);
+    kastore_close(&self->store);
     return ret;
 }
 
@@ -4471,24 +3962,115 @@ out:
     return ret;
 }
 
+static int WARN_UNUSED
+table_collection_read_metadata(table_collection_t *self)
+{
+    int ret = 0;
+    int type;
+    size_t len;
+    const uint32_t *version;
+    const double *L;
+
+    ret = kastore_gets(&self->store, "format_version", (const void **) &version,
+            &len, &type);
+    if (ret != 0) {
+        ret = msp_set_kas_error(ret);
+        goto out;
+    }
+    if (type != KAS_UINT32 || len != 2) {
+        ret = MSP_ERR_FILE_FORMAT;
+        goto out;
+    }
+    if (version[0] < MSP_FILE_FORMAT_VERSION_MAJOR) {
+        ret = MSP_ERR_FILE_VERSION_TOO_OLD;
+        goto out;
+    }
+    if (version[0] > MSP_FILE_FORMAT_VERSION_MAJOR) {
+        ret = MSP_ERR_FILE_VERSION_TOO_NEW;
+        goto out;
+    }
+
+    ret = kastore_gets(&self->store, "sequence_length", (const void **) &L,
+            &len, &type);
+    if (ret != 0) {
+        ret = msp_set_kas_error(ret);
+        goto out;
+    }
+    if (type != KAS_FLOAT64 || len != 1) {
+        ret = MSP_ERR_FILE_FORMAT;
+        goto out;
+    }
+    if (L[0] <= 0.0) {
+        ret = MSP_ERR_BAD_SEQUENCE_LENGTH;
+        goto out;
+    }
+    self->sequence_length = L[0];
+out:
+    return ret;
+}
+
 int WARN_UNUSED
 table_collection_load(table_collection_t *self, const char *filename, int flags)
 {
 #pragma unused(flags)
     int ret = 0;
-    hdf5_file_t hdf5_file;
 
-    ret = hdf5_file_alloc(&hdf5_file, self);
+    ret = kastore_open(&self->store, filename, "r", 0);
+    if (ret != 0) {
+        ret = msp_set_kas_error(ret);
+        goto out;
+    }
+    ret = table_collection_read_metadata(self);
     if (ret != 0) {
         goto out;
     }
-    ret = hdf5_file_load(&hdf5_file, filename);
+    ret = node_table_load(&self->nodes, &self->store);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = edge_table_load(&self->edges, &self->store);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = site_table_load(&self->sites, &self->store);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = mutation_table_load(&self->mutations, &self->store);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = migration_table_load(&self->migrations, &self->store);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = provenance_table_load(&self->provenances, &self->store);
     if (ret != 0) {
         goto out;
     }
     ret = table_collection_check_offsets(self);
 out:
-    hdf5_file_free(&hdf5_file);
+    return ret;
+}
+
+static int WARN_UNUSED
+table_collection_write_metadata(table_collection_t *self, kastore_t *store)
+{
+    int ret = 0;
+    uint32_t version[2] = {
+        MSP_FILE_FORMAT_VERSION_MAJOR, MSP_FILE_FORMAT_VERSION_MINOR};
+
+    ret = kastore_puts(store, "format_version", version, 2, KAS_UINT32, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "sequence_length", &self->sequence_length, 1,
+            KAS_FLOAT64, 0);
+    if (ret != 0) {
+        goto out;
+    }
+
+out:
     return ret;
 }
 
@@ -4496,24 +4078,46 @@ int WARN_UNUSED
 table_collection_dump(table_collection_t *self, const char *filename, int flags)
 {
     int ret = 0;
-    hdf5_file_t hdf5_file;
+    kastore_t store;
 
-    if (!table_collection_is_indexed(self)) {
-        ret = table_collection_build_indexes(self, 0);
-        if (ret != 0) {
-            goto out;
-        }
-    }
-    ret = hdf5_file_alloc(&hdf5_file, self);
+    ret = kastore_open(&store, filename, "w", 0);
     if (ret != 0) {
         goto out;
     }
-    ret = hdf5_file_dump(&hdf5_file, filename, flags);
+    ret = table_collection_write_metadata(self, &store);
     if (ret != 0) {
         goto out;
     }
+    ret = node_table_dump(&self->nodes, &store);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = edge_table_dump(&self->edges, &store);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = site_table_dump(&self->sites, &store);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = migration_table_dump(&self->migrations, &store);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = mutation_table_dump(&self->mutations, &store);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = provenance_table_dump(&self->provenances, &store);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_close(&store);
 out:
-    hdf5_file_free(&hdf5_file);
+    if (ret != 0) {
+        ret = msp_set_kas_error(ret);
+        kastore_close(&store);
+    }
     return ret;
 }
 
