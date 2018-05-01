@@ -4701,8 +4701,8 @@ table_collection_compute_mutation_parents(table_collection_t *self, int flags)
     tk = 0;
     site = 0;
     mutation = 0;
-    while (tj < M) {
-        left = edges.left[I[tj]];
+    left = 0;
+    while (tj < M || left < self->sequence_length) {
         while (tk < M && edges.right[O[tk]] == left) {
             parent[edges.child[O[tk]]] = MSP_NULL_NODE;
             tk++;
@@ -4712,9 +4712,13 @@ table_collection_compute_mutation_parents(table_collection_t *self, int flags)
             tj++;
         }
         right = self->sequence_length;
-        if (tk < M) {
-            right = edges.right[O[tk]];
+        if (tj < M) {
+            right = MSP_MIN(right, edges.left[I[tj]]);
         }
+        if (tk < M) {
+            right = MSP_MIN(right, edges.right[O[tk]]);
+        }
+
         /* Tree is now ready. We look at each site on this tree in turn */
         while (site < (site_id_t) sites.num_rows && sites.position[site] < right) {
             /* Create a mapping from mutations to nodes. If we see more than one
@@ -4750,6 +4754,8 @@ table_collection_compute_mutation_parents(table_collection_t *self, int flags)
             }
             site++;
         }
+        /* Move on to the next tree */
+        left = right;
     }
 
 out:
