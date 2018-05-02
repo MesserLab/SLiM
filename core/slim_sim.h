@@ -451,6 +451,7 @@ public:
 	void RecordNewDerivedState(const Genome *p_genome, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations);
 	void RetractNewIndividual(void);
     void TreeSequenceDataToAscii(table_collection_t *new_tables);
+	void WriteIndividualTable(table_collection_t *p_tables);
 	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify);
 	void SimplifyTreeSequence(void);
 	void handle_error(std::string msg, int error);

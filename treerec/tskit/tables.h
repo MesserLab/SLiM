@@ -19,7 +19,7 @@ typedef int32_t site_id_t;
 typedef int32_t mutation_id_t;
 typedef int32_t migration_id_t;
 typedef int32_t individual_id_t;
-typedef int32_t individual_sex_t;
+typedef int32_t individual_sex_t;	/* conventionally, undefined == -2, hermaphrodite == -1, female == 0, male == 1; other values may also be used; #defines could be added for these */
 typedef double individual_age_t;
 typedef int32_t provenance_id_t;
 typedef uint32_t table_size_t;

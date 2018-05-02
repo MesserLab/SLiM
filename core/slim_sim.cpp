@@ -44,6 +44,7 @@
 //TREE SEQUENCE
 #include <stdio.h>
 #include <stdlib.h>
+#include "kastore.h"
 
 //TREE SEQUENCE
 //INCLUDE MSPRIME.H FOR THE CROSSCHECK CODE; NEEDS TO BE MOVED TO TSKIT
@@ -4253,40 +4254,42 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
 	}
 }
 
-void SLiMSim::WriteIndividualTable(std::string &p_recording_tree_path)
+void SLiMSim::WriteIndividualTable(table_collection_t *p_tables)
 {
     int ret = 0;
-    kastore_t store;
-
-    ret = kastore_open(&store, filename, "w", 0);
-    if (ret != 0) 
-        handle_error("write_individual_table", ret);
-
-    std::vector<IndividualSex> sex;
-    std::vector<slim_age_t> age;
-    std::vector<double> spatial_x;
-    std::vector<double> spatial_y;
-    std::vector<double> spatial_z;
-    std::vector<slim_objectid_t> subpopID;
-    std::vector<slim_genomeid_t> genomes;
-
-	for (auto pop = population_.begin(); pop != population_.end(); pop++)
+	
+    std::vector<individual_sex_t> sex;
+    std::vector<individual_age_t> age;
+    std::vector<double> spatial_position;
+    std::vector<population_id_t> subpopID;
+    std::vector<node_id_t> node_ids;
+	
+	std::vector<slim_pedigreeid_t> metadata;
+	std::vector<uint32_t> metadata_offsets;
+	
+	metadata_offsets.push_back(0);
+	
+	for (auto subpop_iter : population_)
 	{
-        sex.push_back(pop->second->sex_);
-        age.push_back(pop->second->age_);
-        spatial_x.push_back(pop->second->spatial_x_);
-        spatial_y.push_back(pop->second->spatial_y_);
-        spatial_z.push_back(pop->second->spatial_z_);
-        subpopId.push_back(subpopulation_->subpopulation_id_);
-
-		std::vector<Genome *> &subpopulationGenomes = pop->second->parent_genomes_;
-		
-		for (Genome *genome : subpopulationGenomes)
+		for (Individual *individual : subpop_iter.second->parent_individuals_)
 		{
-            genomes.push_back(genome->genome_id_);
+			sex.push_back((individual_sex_t)individual->sex_);			// note we rely on a correspondence between IndividualSex and individual_sex_t here
+			age.push_back((individual_age_t)individual->age_);			// note individual_age_t is double, slim_age_t is int32_t
+			spatial_position.push_back(individual->spatial_x_);
+			spatial_position.push_back(individual->spatial_y_);
+			spatial_position.push_back(individual->spatial_z_);
+			subpopID.push_back(individual->subpopulation_.subpopulation_id_);
+			node_ids.push_back(individual->genome1_->msp_node_id_);
+			node_ids.push_back(individual->genome2_->msp_node_id_);
+			
+			metadata.push_back(individual->PedigreeID());
+			metadata_offsets.push_back((uint32_t)metadata.size());
 		}
 	}
-
+	
+	ret = individual_table_set_columns(&(p_tables->individuals), /* num_rows */ sex.size(), /* ploidy */ 2, /* spatial_dimension */ 3,
+									   sex.data(), age.data(), spatial_position.data(), subpopID.data(), node_ids.data(), (char *)metadata.data(), metadata_offsets.data());
+	if (ret != 0) handle_error("individual_table_set_columns", ret);
 }
 
 void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify)

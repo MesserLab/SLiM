@@ -7,8 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		381DC19D2075901B007D85BE /* libhdf5.101.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 381DC19C2075901B007D85BE /* libhdf5.101.dylib */; };
-		381DC19E2075901B007D85BE /* libhdf5.101.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 381DC19C2075901B007D85BE /* libhdf5.101.dylib */; };
 		980613AD1FAFD79100D379BA /* SLiMHaplotypeGraphView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 980613AC1FAFD79100D379BA /* SLiMHaplotypeGraphView.mm */; };
 		980613B01FAFF16000D379BA /* SLiMHaplotypeGraphWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 980613AE1FAFF16000D379BA /* SLiMHaplotypeGraphWindow.xib */; };
 		98090FA21B1B8B5800791DBF /* show_browser_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98090FA01B1B8B5800791DBF /* show_browser_H.pdf */; };
@@ -144,8 +142,6 @@
 		9850D8E82063099D006BFD2E /* object_heap.c in Sources */ = {isa = PBXBuildFile; fileRef = 9850D8E22063098E006BFD2E /* object_heap.c */; };
 		9850D8E9206309A0006BFD2E /* tables.c in Sources */ = {isa = PBXBuildFile; fileRef = 9850D8DF2063098E006BFD2E /* tables.c */; };
 		9850D8EA206309A2006BFD2E /* util.c in Sources */ = {isa = PBXBuildFile; fileRef = 9850D8E12063098E006BFD2E /* util.c */; };
-		9850D8EC20630E27006BFD2E /* libhdf5.101.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9850D8EB20630E27006BFD2E /* libhdf5.101.dylib */; };
-		9850D8EF20630F6B006BFD2E /* libhdf5.101.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9850D8EB20630E27006BFD2E /* libhdf5.101.dylib */; };
 		985301EC1B72582E001520DF /* change_cloning_rate.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 985301EB1B72582E001520DF /* change_cloning_rate.pdf */; };
 		985301EF1B7262CC001520DF /* ScriptMod_ChangeCloning.mm in Sources */ = {isa = PBXBuildFile; fileRef = 985301EE1B7262CC001520DF /* ScriptMod_ChangeCloning.mm */; };
 		985301F21B7262E5001520DF /* ScriptMod_ChangeCloning.xib in Resources */ = {isa = PBXBuildFile; fileRef = 985301F01B7262E5001520DF /* ScriptMod_ChangeCloning.xib */; };
@@ -250,6 +246,8 @@
 		987AD8871B2CC0C10035D6C8 /* EidosVariableBrowserController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 987AD8851B2CC0C10035D6C8 /* EidosVariableBrowserController.mm */; };
 		987AD88A1B2CDBB80035D6C8 /* EidosConsoleWindowController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 987AD8891B2CDBB80035D6C8 /* EidosConsoleWindowController.mm */; };
 		987AD88B1B2CDBB80035D6C8 /* EidosConsoleWindowController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 987AD8891B2CDBB80035D6C8 /* EidosConsoleWindowController.mm */; };
+		987D19A5209A53850030D28D /* kastore.c in Sources */ = {isa = PBXBuildFile; fileRef = 987D19A4209A53850030D28D /* kastore.c */; };
+		987D19A6209A53850030D28D /* kastore.c in Sources */ = {isa = PBXBuildFile; fileRef = 987D19A4209A53850030D28D /* kastore.c */; };
 		98800DC41B7EDCB50046F5F9 /* slim_test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98800DC21B7EDCB50046F5F9 /* slim_test.cpp */; };
 		98800DC51B82B6C60046F5F9 /* slim_test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98800DC21B7EDCB50046F5F9 /* slim_test.cpp */; };
 		9887946B1EA8804900AE0C8D /* SLiMPDFDocument.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9887946A1EA8804900AE0C8D /* SLiMPDFDocument.mm */; };
@@ -590,7 +588,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		381DC19C2075901B007D85BE /* libhdf5.101.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libhdf5.101.dylib; path = ../../../../../../usr/local/Cellar/hdf5/1.10.1_2/lib/libhdf5.101.dylib; sourceTree = "<group>"; };
 		980613AB1FAFD79100D379BA /* SLiMHaplotypeGraphView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SLiMHaplotypeGraphView.h; sourceTree = "<group>"; };
 		980613AC1FAFD79100D379BA /* SLiMHaplotypeGraphView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SLiMHaplotypeGraphView.mm; sourceTree = "<group>"; };
 		980613AF1FAFF16000D379BA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/SLiMHaplotypeGraphWindow.xib; sourceTree = "<group>"; };
@@ -738,7 +735,6 @@
 		9850D8E02063098E006BFD2E /* avl.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = avl.c; path = treerec/tskit/avl.c; sourceTree = "<group>"; };
 		9850D8E12063098E006BFD2E /* util.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = util.c; path = treerec/tskit/util.c; sourceTree = "<group>"; };
 		9850D8E22063098E006BFD2E /* object_heap.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = object_heap.c; path = treerec/tskit/object_heap.c; sourceTree = "<group>"; };
-		9850D8EB20630E27006BFD2E /* libhdf5.101.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libhdf5.101.dylib; path = ../../../../../opt/local/lib/libhdf5.101.dylib; sourceTree = "<group>"; };
 		985301EB1B72582E001520DF /* change_cloning_rate.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = change_cloning_rate.pdf; sourceTree = "<group>"; };
 		985301ED1B7262CC001520DF /* ScriptMod_ChangeCloning.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScriptMod_ChangeCloning.h; sourceTree = "<group>"; };
 		985301EE1B7262CC001520DF /* ScriptMod_ChangeCloning.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ScriptMod_ChangeCloning.mm; sourceTree = "<group>"; };
@@ -822,6 +818,8 @@
 		987AD8851B2CC0C10035D6C8 /* EidosVariableBrowserController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = EidosVariableBrowserController.mm; sourceTree = "<group>"; };
 		987AD8881B2CDBB80035D6C8 /* EidosConsoleWindowController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EidosConsoleWindowController.h; sourceTree = "<group>"; };
 		987AD8891B2CDBB80035D6C8 /* EidosConsoleWindowController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = EidosConsoleWindowController.mm; sourceTree = "<group>"; };
+		987D19A3209A53850030D28D /* kastore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = kastore.h; path = treerec/tskit/kastore/kastore.h; sourceTree = "<group>"; };
+		987D19A4209A53850030D28D /* kastore.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = kastore.c; path = treerec/tskit/kastore/kastore.c; sourceTree = "<group>"; };
 		98800DC21B7EDCB50046F5F9 /* slim_test.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = slim_test.cpp; sourceTree = "<group>"; };
 		98800DC31B7EDCB50046F5F9 /* slim_test.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = slim_test.h; sourceTree = "<group>"; };
 		98833AEA1C7A9E8D0072DBAC /* _README */ = {isa = PBXFileReference; lastKnownFileType = text; path = _README; sourceTree = "<group>"; };
@@ -1040,8 +1038,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9850D8EC20630E27006BFD2E /* libhdf5.101.dylib in Frameworks */,
-				381DC19D2075901B007D85BE /* libhdf5.101.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1067,10 +1063,8 @@
 				98A2405D1B8E338E005C9A30 /* OpenGL.framework in Frameworks */,
 				98A2405A1B8E32D0005C9A30 /* Cocoa.framework in Frameworks */,
 				9821E2041ABDBC300036EAEA /* QuartzCore.framework in Frameworks */,
-				9850D8EF20630F6B006BFD2E /* libhdf5.101.dylib in Frameworks */,
 				98D4C2161A7187E200FFB083 /* Quartz.framework in Frameworks */,
 				98D4C2101A716E0E00FFB083 /* WebKit.framework in Frameworks */,
-				381DC19E2075901B007D85BE /* libhdf5.101.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1453,6 +1447,15 @@
 			name = cdf;
 			sourceTree = "<group>";
 		};
+		987D19A2209A535E0030D28D /* kastore */ = {
+			isa = PBXGroup;
+			children = (
+				987D19A3209A53850030D28D /* kastore.h */,
+				987D19A4209A53850030D28D /* kastore.c */,
+			);
+			name = kastore;
+			sourceTree = "<group>";
+		};
 		988794681EA87FC300AE0C8D /* PDF */ = {
 			isa = PBXGroup;
 			children = (
@@ -1470,8 +1473,6 @@
 		98A2405B1B8E32F4005C9A30 /* Shared Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				9850D8EB20630E27006BFD2E /* libhdf5.101.dylib */,
-				381DC19C2075901B007D85BE /* libhdf5.101.dylib */,
 				98A240581B8E3295005C9A30 /* Cocoa.framework */,
 			);
 			name = "Shared Frameworks";
@@ -1518,6 +1519,7 @@
 		98BCF14F200C5FDB00CB2837 /* treerec */ = {
 			isa = PBXGroup;
 			children = (
+				987D19A2209A535E0030D28D /* kastore */,
 				986764AB2089066A00E81B2E /* msprime.h */,
 				986764A82089066A00E81B2E /* avl.h */,
 				986764A72089066A00E81B2E /* fenwick.h */,
@@ -2258,6 +2260,7 @@
 				98C821321C7A980000548839 /* weibull.c in Sources */,
 				98C821411C7A980000548839 /* fdiv.c in Sources */,
 				98332AD71FDBBD1600274FF0 /* cholesky.c in Sources */,
+				987D19A5209A53850030D28D /* kastore.c in Sources */,
 				9876E5F51ED5572C00FF9762 /* tdist.c in Sources */,
 				98E9A69C1A3CD542000AD4FC /* polymorphism.cpp in Sources */,
 				989790DA1AF3D0E100C6B14C /* eidos_test_element.cpp in Sources */,
@@ -2520,6 +2523,7 @@
 				98332AED1FDBC29400274FF0 /* rowcol.c in Sources */,
 				98C8214D1C7A983700548839 /* gausszig.c in Sources */,
 				9893C7EA1CDFE9870029AC94 /* eidos_type_interpreter.cpp in Sources */,
+				987D19A6209A53850030D28D /* kastore.c in Sources */,
 				98D4C1DD1A6F543600FFB083 /* chromosome.cpp in Sources */,
 				98C8215B1C7A983700548839 /* psi.c in Sources */,
 				986926DF1AA14CF10000E138 /* GraphView_MutationFrequencySpectra.mm in Sources */,
@@ -2994,11 +2998,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = YES;
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					/opt/local/lib,
-					/usr/local/Cellar/hdf5/1.10.1_2/lib,
-				);
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				PRODUCT_NAME = slim;
 			};
 			name = Debug;
@@ -3007,11 +3007,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = YES;
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					/opt/local/lib,
-					/usr/local/Cellar/hdf5/1.10.1_2/lib,
-				);
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				PRODUCT_NAME = slim;
 			};
 			name = Release;

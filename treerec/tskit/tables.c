@@ -2149,21 +2149,21 @@ individual_table_dump_text(individual_table_t *self, FILE *out)
     if (err < 0) {
         goto out;
     }
-    for (j = 0; j < self->spatial_dimension; j++) {
+    for (j = 0; j < (size_t)self->spatial_dimension; j++) {
         fprintf(out, "space_%d\t", (int) j);
     }
-    for (j = 0; j < self->ploidy; j++) {
+    for (j = 0; j < (size_t)self->ploidy; j++) {
         fprintf(out, "node_%d\t", (int) j);
     }
     fprintf(out, "metadata_offset\tmetadata\n");
     for (j = 0; j < self->num_rows; j++) {
-        fprintf(out, "%d\t%d\t%f\t%d\t%d\t", (int) j, self->sex[j], self->age[j],
+        fprintf(out, "%d\t%d\t%f\t%d\t", (int) j, self->sex[j], self->age[j],
                 (int) self->population[j]);
-        for (k = 0; k < self->spatial_dimension; k++) {
+        for (k = 0; k < (size_t)self->spatial_dimension; k++) {
             fprintf(out, "%f\t", self->spatial_position[j * self->spatial_dimension + k]);
         }
-        for (k = 0; k < self->ploidy; k++) {
-            fprintf(out, "%f\t", self->nodes[j * self->ploidy + k]);
+        for (k = 0; k < (size_t)self->ploidy; k++) {
+            fprintf(out, "%d\t", self->nodes[j * self->ploidy + k]);
         }
         fprintf(out, "%d\t", self->metadata_offset[j]);
         for (k = self->metadata_offset[j]; k < self->metadata_offset[j + 1]; k++) {
@@ -4549,7 +4549,7 @@ out:
 }
 
 int WARN_UNUSED
-table_collection_dump(table_collection_t *self, const char *filename, int flags)
+table_collection_dump(table_collection_t *self, const char *filename, __attribute__((unused))int flags)
 {
     int ret = 0;
     kastore_t store;
