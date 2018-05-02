@@ -410,6 +410,7 @@ int individual_table_free(individual_table_t *self);
 int individual_table_copy(individual_table_t *self, individual_table_t *dest);
 int individual_table_dump_text(individual_table_t *self, FILE *out);
 void individual_table_print_state(individual_table_t *self, FILE *out);
+bool individual_table_equal(individual_table_t *self, individual_table_t *other);
 
 int provenance_table_alloc(provenance_table_t *self, size_t max_rows_increment,
         size_t max_timestamp_length_increment,

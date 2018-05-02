@@ -1926,6 +1926,8 @@ individual_table_alloc(individual_table_t *self, size_t max_rows_increment,
     self->num_rows = 0;
     self->max_metadata_length = 0;
     self->metadata_length = 0;
+    self->spatial_dimension = 0;
+    self->ploidy = 0;
     ret = individual_table_expand_main_columns(self, 1);
     if (ret != 0) {
         goto out;
@@ -2252,7 +2254,7 @@ individual_table_load(individual_table_t *self, kastore_t *store)
     int32_t *ploidy, *spatial_dimension;
     table_size_t num_spatial_positions, num_genomes;
 
-    ret = kastore_gets(store, "spatial_dimension", (const void **) &spatial_dimension, &len, &type);
+    ret = kastore_gets(store, "individuals/spatial_dimension", (const void **) &spatial_dimension, &len, &type);
     if (ret != 0) {
         goto out;
     }
@@ -2260,7 +2262,7 @@ individual_table_load(individual_table_t *self, kastore_t *store)
         ret = MSP_ERR_FILE_FORMAT;
         goto out;
     }
-    ret = kastore_gets(store, "ploidy", (const void **) &ploidy, &len, &type);
+    ret = kastore_gets(store, "individuals/ploidy", (const void **) &ploidy, &len, &type);
     if (ret != 0) {
         goto out;
     }
