@@ -118,6 +118,7 @@ typedef struct {
     const void **array_dest;
     table_size_t *len_dest;
     table_size_t len_offset;
+    table_size_t len_multiplier;
     int type;
 } read_table_col_t;
 
@@ -146,8 +147,10 @@ read_table_cols(kastore_t *store, read_table_col_t *read_cols, size_t num_cols)
         }
         last_len = *read_cols[j].len_dest;
         if (last_len == (table_size_t) -1) {
-            *read_cols[j].len_dest = (table_size_t) len - read_cols[j].len_offset;
-        } else if (last_len + read_cols[j].len_offset != (table_size_t) len) {
+            *read_cols[j].len_dest = (table_size_t) ((len - read_cols[j].len_offset)
+                    / read_cols[j].len_multiplier);
+        } else if ((last_len + read_cols[j].len_offset) * read_cols[j].len_multiplier 
+                   != (table_size_t) len) {
             ret = MSP_ERR_FILE_FORMAT;
             goto out;
         }
@@ -495,14 +498,14 @@ static int
 node_table_load(node_table_t *self, kastore_t *store)
 {
     read_table_col_t read_cols[] = {
-        {"nodes/time", (const void **) &self->time, &self->num_rows, 0, KAS_FLOAT64},
-        {"nodes/flags", (const void **) &self->flags, &self->num_rows, 0, KAS_UINT32},
+        {"nodes/time", (const void **) &self->time, &self->num_rows, 0, 1, KAS_FLOAT64},
+        {"nodes/flags", (const void **) &self->flags, &self->num_rows, 0, 1, KAS_UINT32},
         {"nodes/population", (const void **) &self->population, &self->num_rows, 0,
-            KAS_INT32},
+            1, KAS_INT32},
         {"nodes/metadata", (const void **) &self->metadata, &self->metadata_length, 0,
-            KAS_UINT8},
+            1, KAS_UINT8},
         {"nodes/metadata_offset", (const void **) &self->metadata_offset, &self->num_rows,
-            1, KAS_UINT32},
+            1, 1, KAS_UINT32},
     };
     return read_table_cols(store, read_cols, sizeof(read_cols) / sizeof(*read_cols));
 }
@@ -729,10 +732,10 @@ static int
 edge_table_load(edge_table_t *self, kastore_t *store)
 {
     read_table_col_t read_cols[] = {
-        {"edges/left", (const void **) &self->left, &self->num_rows, 0, KAS_FLOAT64},
-        {"edges/right", (const void **) &self->right, &self->num_rows, 0, KAS_FLOAT64},
-        {"edges/parent", (const void **) &self->parent, &self->num_rows, 0, KAS_INT32},
-        {"edges/child", (const void **) &self->child, &self->num_rows, 0, KAS_INT32},
+        {"edges/left", (const void **) &self->left, &self->num_rows, 0, 1, KAS_FLOAT64},
+        {"edges/right", (const void **) &self->right, &self->num_rows, 0, 1, KAS_FLOAT64},
+        {"edges/parent", (const void **) &self->parent, &self->num_rows, 0, 1, KAS_INT32},
+        {"edges/child", (const void **) &self->child, &self->num_rows, 0, 1, KAS_INT32},
     };
     return read_table_cols(store, read_cols, sizeof(read_cols) / sizeof(*read_cols));
 }
@@ -1131,15 +1134,15 @@ static int
 site_table_load(site_table_t *self, kastore_t *store)
 {
     read_table_col_t read_cols[] = {
-        {"sites/position", (const void **) &self->position, &self->num_rows, 0, KAS_FLOAT64},
+        {"sites/position", (const void **) &self->position, &self->num_rows, 0, 1, KAS_FLOAT64},
         {"sites/ancestral_state", (const void **) &self->ancestral_state,
-            &self->ancestral_state_length, 0, KAS_UINT8},
+            &self->ancestral_state_length, 0, 1, KAS_UINT8},
         {"sites/ancestral_state_offset", (const void **) &self->ancestral_state_offset,
-            &self->num_rows, 1, KAS_UINT32},
+            &self->num_rows, 1, 1, KAS_UINT32},
         {"sites/metadata", (const void **) &self->metadata,
-            &self->metadata_length, 0, KAS_UINT8},
+            &self->metadata_length, 0, 1, KAS_UINT8},
         {"sites/metadata_offset", (const void **) &self->metadata_offset,
-            &self->num_rows, 1, KAS_UINT32},
+            &self->num_rows, 1, 1, KAS_UINT32},
     };
     return read_table_cols(store, read_cols, sizeof(read_cols) / sizeof(*read_cols));
 }
@@ -1576,17 +1579,17 @@ static int
 mutation_table_load(mutation_table_t *self, kastore_t *store)
 {
     read_table_col_t read_cols[] = {
-        {"mutations/site", (const void **) &self->site, &self->num_rows, 0, KAS_INT32},
-        {"mutations/node", (const void **) &self->node, &self->num_rows, 0, KAS_INT32},
-        {"mutations/parent", (const void **) &self->parent, &self->num_rows, 0, KAS_INT32},
+        {"mutations/site", (const void **) &self->site, &self->num_rows, 0, 1, KAS_INT32},
+        {"mutations/node", (const void **) &self->node, &self->num_rows, 0, 1, KAS_INT32},
+        {"mutations/parent", (const void **) &self->parent, &self->num_rows, 0, 1, KAS_INT32},
         {"mutations/derived_state", (const void **) &self->derived_state,
-            &self->derived_state_length, 0, KAS_UINT8},
+            &self->derived_state_length, 0, 1, KAS_UINT8},
         {"mutations/derived_state_offset", (const void **) &self->derived_state_offset,
-            &self->num_rows, 1, KAS_UINT32},
+            &self->num_rows, 1, 1, KAS_UINT32},
         {"mutations/metadata", (const void **) &self->metadata,
-            &self->metadata_length, 0, KAS_UINT8},
+            &self->metadata_length, 0, 1, KAS_UINT8},
         {"mutations/metadata_offset", (const void **) &self->metadata_offset,
-            &self->num_rows, 1, KAS_UINT32},
+            &self->num_rows, 1, 1, KAS_UINT32},
     };
     return read_table_cols(store, read_cols, sizeof(read_cols) / sizeof(*read_cols));
 }
@@ -1830,15 +1833,465 @@ static int
 migration_table_load(migration_table_t *self, kastore_t *store)
 {
     read_table_col_t read_cols[] = {
-        {"migrations/left", (const void **) &self->left, &self->num_rows, 0, KAS_FLOAT64},
-        {"migrations/right", (const void **) &self->right, &self->num_rows, 0, KAS_FLOAT64},
-        {"migrations/node", (const void **) &self->node, &self->num_rows, 0, KAS_INT32},
-        {"migrations/source", (const void **) &self->source, &self->num_rows, 0, KAS_INT32},
-        {"migrations/dest", (const void **) &self->dest, &self->num_rows, 0, KAS_INT32},
-        {"migrations/time", (const void **) &self->time, &self->num_rows, 0, KAS_FLOAT64},
+        {"migrations/left", (const void **) &self->left, &self->num_rows, 0, 1, KAS_FLOAT64},
+        {"migrations/right", (const void **) &self->right, &self->num_rows, 0, 1, KAS_FLOAT64},
+        {"migrations/node", (const void **) &self->node, &self->num_rows, 0, 1, KAS_INT32},
+        {"migrations/source", (const void **) &self->source, &self->num_rows, 0, 1, KAS_INT32},
+        {"migrations/dest", (const void **) &self->dest, &self->num_rows, 0, 1, KAS_INT32},
+        {"migrations/time", (const void **) &self->time, &self->num_rows, 0, 1, KAS_FLOAT64},
     };
     return read_table_cols(store, read_cols, sizeof(read_cols) / sizeof(*read_cols));
 }
+
+/*************************
+ * individual table
+ *************************/
+
+static int
+individual_table_expand_main_columns(individual_table_t *self, table_size_t additional_rows)
+{
+    int ret = 0;
+    table_size_t increment = MSP_MAX(additional_rows, self->max_rows_increment);
+    table_size_t new_size = self->max_rows + increment;
+
+    if ((self->num_rows + additional_rows) > self->max_rows) {
+        ret = expand_column((void **) &self->sex, new_size, sizeof(individual_sex_t));
+        if (ret != 0) {
+            goto out;
+        }
+        ret = expand_column((void **) &self->age, new_size, sizeof(individual_age_t));
+        if (ret != 0) {
+            goto out;
+        }
+        ret = expand_column((void **) &self->spatial_position, new_size, 
+                self->spatial_dimension * sizeof(double));
+        if (ret != 0) {
+            goto out;
+        }
+        ret = expand_column((void **) &self->population, new_size, sizeof(population_id_t));
+        if (ret != 0) {
+            goto out;
+        }
+        ret = expand_column((void **) &self->nodes, new_size, 
+                self->ploidy * sizeof(node_id_t));
+        if (ret != 0) {
+            goto out;
+        }
+        ret = expand_column((void **) &self->metadata_offset, new_size + 1,
+                sizeof(table_size_t));
+        if (ret != 0) {
+            goto out;
+        }
+        self->max_rows = new_size;
+    }
+out:
+    return ret;
+}
+
+static int
+individual_table_expand_metadata(individual_table_t *self, table_size_t additional_length)
+{
+    int ret = 0;
+    table_size_t increment = MSP_MAX(additional_length,
+            self->max_metadata_length_increment);
+    table_size_t new_size = self->max_metadata_length + increment;
+
+    if ((self->metadata_length + additional_length) > self->max_metadata_length) {
+        ret = expand_column((void **) &self->metadata, new_size, sizeof(char *));
+        if (ret != 0) {
+            goto out;
+        }
+        self->max_metadata_length = new_size;
+    }
+out:
+    return ret;
+}
+
+int
+individual_table_alloc(individual_table_t *self, size_t max_rows_increment,
+        size_t max_metadata_length_increment)
+{
+    int ret = 0;
+
+    memset(self, 0, sizeof(individual_table_t));
+    if (max_rows_increment == 0) {
+       max_rows_increment = DEFAULT_SIZE_INCREMENT;
+    }
+    if (max_metadata_length_increment == 0) {
+        max_metadata_length_increment = DEFAULT_SIZE_INCREMENT;
+    }
+    self->max_rows_increment = (table_size_t) max_rows_increment;
+    self->max_metadata_length_increment = (table_size_t) max_metadata_length_increment;
+    self->max_rows = 0;
+    self->num_rows = 0;
+    self->max_metadata_length = 0;
+    self->metadata_length = 0;
+    ret = individual_table_expand_main_columns(self, 1);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = individual_table_expand_metadata(self, 1);
+    if (ret != 0) {
+        goto out;
+    }
+    self->metadata_offset[0] = 0;
+out:
+    return ret;
+}
+
+int WARN_UNUSED
+individual_table_copy(individual_table_t *self, individual_table_t *dest)
+{
+    return individual_table_set_columns(dest, self->num_rows, self->ploidy,
+            self->spatial_dimension, self->sex, self->age, self->spatial_position,
+            self->population, self->nodes, self->metadata, self->metadata_offset);
+}
+
+int WARN_UNUSED
+individual_table_set_columns(individual_table_t *self, size_t num_rows, int32_t ploidy, 
+        int32_t spatial_dimension, individual_sex_t *sex, individual_age_t *age, 
+        double *spatial_position, population_id_t *population, node_id_t *nodes, 
+        const char *metadata, uint32_t *metadata_offset)
+{
+    int ret;
+
+    ret = individual_table_clear(self);
+    if (ret != 0) {
+        goto out;
+    }
+    self->ploidy = ploidy;
+    self->spatial_dimension = spatial_dimension;
+    ret = individual_table_append_columns(self, num_rows, sex, age, 
+            spatial_position, population, nodes, metadata, metadata_offset);
+out:
+    return ret;
+}
+
+int
+individual_table_append_columns(individual_table_t *self, size_t num_rows,
+        individual_sex_t *sex, individual_age_t *age, double *spatial_position, 
+        population_id_t *population, node_id_t *nodes, 
+        const char *metadata, uint32_t *metadata_offset)
+{
+    int ret;
+    table_size_t j, metadata_length;
+
+    if (nodes == NULL) {
+        ret = MSP_ERR_BAD_PARAM_VALUE;
+        goto out;
+    }
+    if ((metadata == NULL) != (metadata_offset == NULL)) {
+        ret = MSP_ERR_BAD_PARAM_VALUE;
+        goto out;
+    }
+    ret = individual_table_expand_main_columns(self, (table_size_t) num_rows);
+    if (ret != 0) {
+        goto out;
+    }
+    memcpy(self->nodes + self->ploidy * self->num_rows, nodes, 
+            self->ploidy * num_rows * sizeof(node_id_t));
+    if (sex == NULL) {
+        /* Set sex to NULL_SEX (-1) if not specified */
+        memset(self->sex + self->num_rows, 0xff, num_rows * sizeof(individual_sex_t));
+    } else {
+        memcpy(self->sex + self->num_rows, sex, num_rows * sizeof(individual_sex_t));
+    }
+    if (age == NULL) {
+        /* Set age to NULL_AGE (-1) if not specified */
+        memset(self->age + self->num_rows, 0xff, num_rows * sizeof(individual_age_t));
+    } else {
+        memcpy(self->age + self->num_rows, age, num_rows * sizeof(individual_age_t));
+    }
+    if (spatial_position == NULL) {
+        /* Set spatial_position to 0 if not specified */
+        memset(self->age + self->num_rows, 0x00, num_rows * sizeof(individual_age_t));
+    } else {
+        memcpy(self->spatial_position + self->spatial_dimension * self->num_rows, 
+                spatial_position, 
+                self->spatial_dimension * num_rows * sizeof(individual_age_t));
+    }
+    if (metadata == NULL) {
+        for (j = 0; j < num_rows; j++) {
+            self->metadata_offset[self->num_rows + j + 1] = (table_size_t) self->metadata_length;
+        }
+    } else {
+        ret = check_offsets(num_rows, metadata_offset, 0, false);
+        if (ret != 0) {
+            goto out;
+        }
+        for (j = 0; j < num_rows; j++) {
+            self->metadata_offset[self->num_rows + j] =
+                (table_size_t) self->metadata_length + metadata_offset[j];
+        }
+        metadata_length = metadata_offset[num_rows];
+        ret = individual_table_expand_metadata(self, metadata_length);
+        if (ret != 0) {
+            goto out;
+        }
+        memcpy(self->metadata + self->metadata_length, metadata, metadata_length * sizeof(char));
+        self->metadata_length += metadata_length;
+    }
+    if (population == NULL) {
+        /* Set population to NULL_POPULATION (-1) if not specified */
+        memset(self->population + self->num_rows, 0xff,
+                num_rows * sizeof(population_id_t));
+    } else {
+        memcpy(self->population + self->num_rows, population,
+                num_rows * sizeof(population_id_t));
+    }
+    self->num_rows += (table_size_t) num_rows;
+    self->metadata_offset[self->num_rows] = self->metadata_length;
+out:
+    return ret;
+}
+
+static individual_id_t
+individual_table_add_row_internal(individual_table_t *self, individual_sex_t sex,
+        individual_age_t age, double *spatial_position, population_id_t population,
+        node_id_t *nodes, const char *metadata, table_size_t metadata_length)
+{
+    int k;
+
+    assert(self->num_rows < self->max_rows);
+    assert(self->metadata_length + metadata_length <= self->max_metadata_length);
+    memcpy(self->metadata + self->metadata_length, metadata, metadata_length);
+    self->age[self->num_rows] = age;
+    self->sex[self->num_rows] = sex;
+    for (k = 0; k <= self->spatial_dimension; ++k) {
+        self->spatial_position[self->spatial_dimension * self->num_rows + k] 
+            = spatial_position[k];
+    }
+    for (k = 0; k <= self->ploidy; ++k) {
+        self->nodes[self->ploidy * self->num_rows + k] = nodes[k];
+    }
+    self->population[self->num_rows] = population;
+    self->metadata_offset[self->num_rows + 1] = self->metadata_length + metadata_length;
+    self->metadata_length += metadata_length;
+    self->num_rows++;
+    return (individual_id_t) self->num_rows - 1;
+}
+
+individual_id_t
+individual_table_add_row(individual_table_t *self, individual_sex_t sex,
+        individual_age_t age, double *spatial_position, population_id_t population,
+        node_id_t *nodes, const char *metadata, table_size_t metadata_length)
+{
+    int ret = 0;
+
+    ret = individual_table_expand_main_columns(self, 1);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = individual_table_expand_metadata(self, (table_size_t) metadata_length);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = individual_table_add_row_internal(self, sex, age, spatial_position, population, 
+            nodes, metadata, (table_size_t) metadata_length);
+out:
+    return ret;
+}
+
+int
+individual_table_clear(individual_table_t *self)
+{
+    self->num_rows = 0;
+    self->metadata_length = 0;
+    self->ploidy = 0;
+    self->spatial_dimension = 0;
+    return 0;
+}
+
+int
+individual_table_free(individual_table_t *self)
+{
+    if (self->max_rows > 0) {
+        msp_safe_free(self->sex);
+        msp_safe_free(self->age);
+        msp_safe_free(self->spatial_position);
+        msp_safe_free(self->population);
+        msp_safe_free(self->nodes);
+        msp_safe_free(self->metadata);
+        msp_safe_free(self->metadata_offset);
+    }
+    return 0;
+}
+
+void
+individual_table_print_state(individual_table_t *self, FILE *out)
+{
+    int ret;
+    fprintf(out, TABLE_SEP);
+    fprintf(out, "individual_table: %p:\n", (void *) self);
+    fprintf(out, "num_rows          = %d\tmax= %d\tincrement = %d)\n",
+            (int) self->num_rows, (int) self->max_rows, (int) self->max_rows_increment);
+    fprintf(out, "metadata_length = %d\tmax= %d\tincrement = %d)\n",
+            (int) self->metadata_length,
+            (int) self->max_metadata_length,
+            (int) self->max_metadata_length_increment);
+    fprintf(out, "ploidy = %d\tspatial dimension = %d", self->ploidy, 
+            self->spatial_dimension);
+    fprintf(out, TABLE_SEP);
+    ret = individual_table_dump_text(self, out);
+    assert(ret == 0);
+}
+
+int
+individual_table_dump_text(individual_table_t *self, FILE *out)
+{
+    int ret = 0;
+    size_t j, k;
+    int err;
+
+    err = fprintf(out, "id\tsex\tage\tpopulation\t");
+    if (err < 0) {
+        goto out;
+    }
+    for (j = 0; j < self->spatial_dimension; j++) {
+        fprintf(out, "space_%d\t", (int) j);
+    }
+    for (j = 0; j < self->ploidy; j++) {
+        fprintf(out, "node_%d\t", (int) j);
+    }
+    fprintf(out, "metadata_offset\tmetadata\n");
+    for (j = 0; j < self->num_rows; j++) {
+        fprintf(out, "%d\t%d\t%f\t%d\t%d\t", (int) j, self->sex[j], self->age[j],
+                (int) self->population[j]);
+        for (k = 0; k < self->spatial_dimension; k++) {
+            fprintf(out, "%f\t", self->spatial_position[j * self->spatial_dimension + k]);
+        }
+        for (k = 0; k < self->ploidy; k++) {
+            fprintf(out, "%f\t", self->nodes[j * self->ploidy + k]);
+        }
+        fprintf(out, "%d\t", self->metadata_offset[j]);
+        for (k = self->metadata_offset[j]; k < self->metadata_offset[j + 1]; k++) {
+            fprintf(out, "%c", self->metadata[k]);
+        }
+        fprintf(out, "\n");
+    }
+    ret = 0;
+out:
+    return ret;
+}
+
+bool
+individual_table_equal(individual_table_t *self, individual_table_t *other)
+{
+    bool ret = false;
+    if (self->num_rows == other->num_rows
+            && self->metadata_length == other->metadata_length
+            && self->ploidy == other->ploidy
+            && self->spatial_dimension == other->spatial_dimension) {
+        ret = memcmp(self->sex, other->sex,
+                self->num_rows * sizeof(individual_sex_t)) == 0
+            && memcmp(self->age, other->age,
+                self->num_rows * sizeof(individual_age_t)) == 0
+            && memcmp(self->population, other->population,
+                    self->num_rows * sizeof(population_id_t)) == 0
+            && memcmp(self->spatial_position, other->spatial_position,
+                    self->num_rows * self->spatial_dimension * sizeof(double)) == 0
+            && memcmp(self->nodes, other->nodes,
+                    self->num_rows * self->ploidy * sizeof(node_id_t)) == 0
+            && memcmp(self->metadata_offset, other->metadata_offset,
+                    (self->num_rows + 1) * sizeof(table_size_t)) == 0
+            && memcmp(self->metadata, other->metadata,
+                    self->metadata_length * sizeof(char)) == 0;
+    }
+    return ret;
+}
+
+static int
+individual_table_dump(individual_table_t *self, kastore_t *store)
+{
+    int ret = 0;
+
+    ret = kastore_puts(store, "individuals/sex", self->sex, self->num_rows, KAS_INT32, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "individuals/age", self->age, self->num_rows,
+            KAS_FLOAT64, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "individuals/population", self->population, self->num_rows,
+            KAS_INT32, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "individuals/spatial_position", self->spatial_position, 
+            self->spatial_dimension * self->num_rows, KAS_FLOAT64, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "individuals/nodes", self->nodes, 
+            self->ploidy * self->num_rows, KAS_INT32, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "individuals/metadata", self->metadata, self->metadata_length,
+            KAS_UINT8, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "individuals/metadata_offset", self->metadata_offset,
+            self->num_rows + 1, KAS_UINT32, 0);
+    if (ret != 0) {
+        goto out;
+    }
+out:
+    return ret;
+}
+
+static int
+individual_table_load(individual_table_t *self, kastore_t *store)
+{
+    int ret = 0;
+    size_t len;
+    int type;
+    int32_t *ploidy, *spatial_dimension;
+    table_size_t num_spatial_positions, num_genomes;
+
+    ret = kastore_gets(store, "spatial_dimension", (const void **) &spatial_dimension, &len, &type);
+    if (ret != 0) {
+        goto out;
+    }
+    if ((type != KAS_INT32) || (len != 1)) {
+        ret = MSP_ERR_FILE_FORMAT;
+        goto out;
+    }
+    ret = kastore_gets(store, "ploidy", (const void **) &ploidy, &len, &type);
+    if (ret != 0) {
+        goto out;
+    }
+    if ((type != KAS_INT32) || (len != 1)) {
+        ret = MSP_ERR_FILE_FORMAT;
+        goto out;
+    }
+    self->spatial_dimension = spatial_dimension[0];
+    self->ploidy = ploidy[0];
+    num_spatial_positions = self->num_rows * self->spatial_dimension;
+    num_genomes = self->num_rows * self->ploidy;
+
+    read_table_col_t read_cols[] = {
+        {"individuals/sex", (const void **) &self->sex, &self->num_rows, 0, 1, KAS_INT32},
+        {"individuals/age", (const void **) &self->age, &self->num_rows, 0, 1, KAS_FLOAT64},
+        {"individuals/population", (const void **) &self->population, &self->num_rows, 0, 1,
+            KAS_INT32},
+        {"individuals/spatial_position", (const void **) &self->spatial_position, 
+            &self->num_rows, 0, self->spatial_dimension, KAS_FLOAT64},
+        {"individuals/nodes", (const void **) &self->nodes, 
+            &self->num_rows, 0, self->ploidy, KAS_INT32},
+        {"individuals/metadata", (const void **) &self->metadata, &self->metadata_length, 0, 1,
+            KAS_UINT8},
+        {"individuals/metadata_offset", (const void **) &self->metadata_offset, &self->num_rows,
+            1, 1, KAS_UINT32},
+    };
+    ret = read_table_cols(store, read_cols, sizeof(read_cols) / sizeof(*read_cols));
+out:
+    return ret;
+}
+
 
 /*************************
  * provenance table
@@ -2188,13 +2641,13 @@ provenance_table_load(provenance_table_t *self, kastore_t *store)
 {
     read_table_col_t read_cols[] = {
         {"provenances/timestamp", (const void **) &self->timestamp,
-            &self->timestamp_length, 0, KAS_UINT8},
+            &self->timestamp_length, 0, 1, KAS_UINT8},
         {"provenances/timestamp_offset", (const void **) &self->timestamp_offset,
-            &self->num_rows, 1, KAS_UINT32},
+            &self->num_rows, 1, 1, KAS_UINT32},
         {"provenances/record", (const void **) &self->record,
-            &self->record_length, 0, KAS_UINT8},
+            &self->record_length, 0, 1, KAS_UINT8},
         {"provenances/record_offset", (const void **) &self->record_offset,
-            &self->num_rows, 1, KAS_UINT32},
+            &self->num_rows, 1, 1, KAS_UINT32},
     };
     return read_table_cols(store, read_cols, sizeof(read_cols) / sizeof(*read_cols));
 }
@@ -3733,6 +4186,11 @@ table_collection_check_offsets(table_collection_t *self)
     if (ret != 0) {
         goto out;
     }
+    ret = check_offsets(self->individuals.num_rows, self->individuals.metadata_offset,
+            self->individuals.metadata_length, true);
+    if (ret != 0) {
+        goto out;
+    }
     ret = check_offsets(self->provenances.num_rows, self->provenances.timestamp_offset,
             self->provenances.timestamp_length, true);
     if (ret != 0) {
@@ -3758,6 +4216,7 @@ table_collection_print_state(table_collection_t *self, FILE *out)
     migration_table_print_state(&self->migrations, out);
     site_table_print_state(&self->sites, out);
     mutation_table_print_state(&self->mutations, out);
+    individual_table_print_state(&self->individuals, out);
     provenance_table_print_state(&self->provenances, out);
     return 0;
 }
@@ -3785,6 +4244,10 @@ table_collection_alloc(table_collection_t *self, int flags)
         if (ret != 0) {
             goto out;
         }
+        ret = individual_table_alloc(&self->individuals, 0, 0);
+        if (ret != 0) {
+            goto out;
+        }
         ret = mutation_table_alloc(&self->mutations, 0, 0, 0);
         if (ret != 0) {
             goto out;
@@ -3808,6 +4271,7 @@ table_collection_free(table_collection_t *self)
     migration_table_free(&self->migrations);
     site_table_free(&self->sites);
     mutation_table_free(&self->mutations);
+    individual_table_free(&self->individuals);
     provenance_table_free(&self->provenances);
     msp_safe_free(self->indexes.edge_insertion_order);
     msp_safe_free(self->indexes.edge_removal_order);
@@ -3838,6 +4302,10 @@ table_collection_copy(table_collection_t *self, table_collection_t *dest)
         goto out;
     }
     ret = mutation_table_copy(&self->mutations, &dest->mutations);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = individual_table_copy(&self->individuals, &dest->individuals);
     if (ret != 0) {
         goto out;
     }
@@ -4040,6 +4508,10 @@ table_collection_load(table_collection_t *self, const char *filename, int flags)
     if (ret != 0) {
         goto out;
     }
+    ret = individual_table_load(&self->individuals, &self->store);
+    if (ret != 0) {
+        goto out;
+    }
     ret = migration_table_load(&self->migrations, &self->store);
     if (ret != 0) {
         goto out;
@@ -4105,6 +4577,10 @@ table_collection_dump(table_collection_t *self, const char *filename, int flags)
         goto out;
     }
     ret = mutation_table_dump(&self->mutations, &store);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = individual_table_dump(&self->individuals, &store);
     if (ret != 0) {
         goto out;
     }
@@ -4265,7 +4741,6 @@ out:
     return ret;
 }
 
-
 int WARN_UNUSED
 table_collection_compute_mutation_parents(table_collection_t *self, int flags)
 {
@@ -4273,9 +4748,11 @@ table_collection_compute_mutation_parents(table_collection_t *self, int flags)
     int ret = 0;
     const edge_id_t *I, *O;
     const edge_table_t edges = self->edges;
+    const node_table_t nodes = self->nodes;
     const site_table_t sites = self->sites;
     const mutation_table_t mutations = self->mutations;
-    edge_id_t tj, tk, M;
+    const edge_id_t M = (edge_id_t) edges.num_rows;
+    edge_id_t tj, tk;
     node_id_t *parent = NULL;
     mutation_id_t *bottom_mutation = NULL;
     node_id_t u;
@@ -4288,19 +4765,46 @@ table_collection_compute_mutation_parents(table_collection_t *self, int flags)
     if (ret != 0) {
         goto out;
     }
-    parent = malloc(self->nodes.num_rows * sizeof(*parent));
-    bottom_mutation = malloc(self->nodes.num_rows * sizeof(*bottom_mutation));
+    parent = malloc(nodes.num_rows * sizeof(*parent));
+    bottom_mutation = malloc(nodes.num_rows * sizeof(*bottom_mutation));
     if (parent == NULL || bottom_mutation == NULL) {
         ret = MSP_ERR_NO_MEMORY;
         goto out;
     }
-    memset(parent, 0xff, self->nodes.num_rows * sizeof(*parent));
-    memset(bottom_mutation, 0xff, self->nodes.num_rows * sizeof(*bottom_mutation));
+    memset(parent, 0xff, nodes.num_rows * sizeof(*parent));
+    memset(bottom_mutation, 0xff, nodes.num_rows * sizeof(*bottom_mutation));
     memset(mutations.parent, 0xff, self->mutations.num_rows * sizeof(mutation_id_t));
+
+    /* Building the indexes ensures that the nodes in the edge table are
+     * valid. We need to check the mutations. */
+    /* TODO replace this with calls to check_integrity */
+    for (j = 0; j < sites.num_rows; j++) {
+        if (j > 0) {
+            if (sites.position[j] < sites.position[j - 1]) {
+                ret = MSP_ERR_UNSORTED_SITES;
+                goto out;
+            }
+        }
+    }
+    for (j = 0; j < mutations.num_rows; j++) {
+        if (mutations.node[j] < 0 || mutations.node[j] >= (node_id_t) nodes.num_rows) {
+            ret = MSP_ERR_NODE_OUT_OF_BOUNDS;
+            goto out;
+        }
+        if (mutations.site[j] < 0 || mutations.site[j] >= (site_id_t) sites.num_rows) {
+            ret = MSP_ERR_SITE_OUT_OF_BOUNDS;
+            goto out;
+        }
+        if (j > 0) {
+            if (mutations.site[j] < mutations.site[j - 1]) {
+                ret = MSP_ERR_UNSORTED_MUTATIONS;
+                goto out;
+            }
+        }
+    }
 
     I = self->indexes.edge_insertion_order;
     O = self->indexes.edge_removal_order;
-    M = (edge_id_t) edges.num_rows;
     tj = 0;
     tk = 0;
     site = 0;
@@ -4337,17 +4841,21 @@ table_collection_compute_mutation_parents(table_collection_t *self, int flags)
                 bottom_mutation[u] = (mutation_id_t) mutation;
                 mutation++;
             }
-            /* There's no point in checking the first mutation since this cannot
-             * have a parent. This also efficiently covers the common case of
-             * single mutations at a site. */
-            for (j = first_mutation + 1; j < mutation; j++) {
-                if (mutations.parent[j] == MSP_NULL_MUTATION) {
-                    u = parent[mutations.node[j]];
-                    while (u != MSP_NULL_NODE && bottom_mutation[u] == MSP_NULL_MUTATION) {
-                        u = parent[u];
-                    }
-                    if (u != MSP_NULL_NODE) {
-                        mutations.parent[j] = bottom_mutation[u];
+            /* Make the common case of 1 mutation fast */
+            if (mutation > first_mutation + 1) {
+                /* If we have more than one mutation, compute the parent for each
+                 * one by traversing up the tree until we find a node that has a
+                 * mutation. */
+                for (j = first_mutation; j < mutation; j++) {
+                    if (mutations.parent[j] == MSP_NULL_MUTATION) {
+                        u = parent[mutations.node[j]];
+                        while (u != MSP_NULL_NODE
+                                && bottom_mutation[u] == MSP_NULL_MUTATION) {
+                            u = parent[u];
+                        }
+                        if (u != MSP_NULL_NODE) {
+                            mutations.parent[j] = bottom_mutation[u];
+                        }
                     }
                 }
             }
@@ -4355,6 +4863,11 @@ table_collection_compute_mutation_parents(table_collection_t *self, int flags)
             for (j = first_mutation; j < mutation; j++) {
                 u = mutations.node[j];
                 bottom_mutation[u] = MSP_NULL_MUTATION;
+                /* Check that we haven't violated the sortedness property */
+                if (mutations.parent[j] > (mutation_id_t) j) {
+                    ret = MSP_ERR_MUTATION_PARENT_AFTER_CHILD;
+                    goto out;
+                }
             }
             site++;
         }

@@ -4143,6 +4143,8 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
 	
     int ret = table_collection_copy(&tables, new_tables);
     if (ret < 0) handle_error("convert_to_ascii", ret);
+
+    /***  Notes: ancestral states are always zero-length, so we don't need to Ascii-ify Site Table ***/
 	
     /***  Ascii-ify Mutation Table ***/
 	{
@@ -4249,6 +4251,42 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *new_tables)
 										text_metadata_offset.data());
 		if (ret < 0) handle_error("convert_to_ascii", ret);
 	}
+}
+
+void SLiMSim::WriteIndividualTable(std::string &p_recording_tree_path)
+{
+    int ret = 0;
+    kastore_t store;
+
+    ret = kastore_open(&store, filename, "w", 0);
+    if (ret != 0) 
+        handle_error("write_individual_table", ret);
+
+    std::vector<IndividualSex> sex;
+    std::vector<slim_age_t> age;
+    std::vector<double> spatial_x;
+    std::vector<double> spatial_y;
+    std::vector<double> spatial_z;
+    std::vector<slim_objectid_t> subpopID;
+    std::vector<slim_genomeid_t> genomes;
+
+	for (auto pop = population_.begin(); pop != population_.end(); pop++)
+	{
+        sex.push_back(pop->second->sex_);
+        age.push_back(pop->second->age_);
+        spatial_x.push_back(pop->second->spatial_x_);
+        spatial_y.push_back(pop->second->spatial_y_);
+        spatial_z.push_back(pop->second->spatial_z_);
+        subpopId.push_back(subpopulation_->subpopulation_id_);
+
+		std::vector<Genome *> &subpopulationGenomes = pop->second->parent_genomes_;
+		
+		for (Genome *genome : subpopulationGenomes)
+		{
+            genomes.push_back(genome->genome_id_);
+		}
+	}
+
 }
 
 void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify)
