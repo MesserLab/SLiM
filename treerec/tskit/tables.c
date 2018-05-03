@@ -2021,17 +2021,17 @@ individual_table_append_columns(individual_table_t *self, size_t num_rows,
     memcpy(self->nodes_m + self->num_rows, nodes_m, num_rows * sizeof(node_id_t));
     /* Set spatial_? to 0 if not specified */
     if (spatial_x == NULL) {
-        memset(self->age + self->num_rows, 0x00, num_rows * sizeof(individual_age_t));
+        memset(self->spatial_x + self->num_rows, 0x00, num_rows * sizeof(individual_age_t));
     } else {
         memcpy(self->spatial_x + self->num_rows, spatial_x, num_rows * sizeof(individual_age_t));
     }
     if (spatial_y == NULL) {
-        memset(self->age + self->num_rows, 0x00, num_rows * sizeof(individual_age_t));
+        memset(self->spatial_x + self->num_rows, 0x00, num_rows * sizeof(individual_age_t));
     } else {
         memcpy(self->spatial_y + self->num_rows, spatial_y, num_rows * sizeof(individual_age_t));
     }
     if (spatial_z == NULL) {
-        memset(self->age + self->num_rows, 0x00, num_rows * sizeof(individual_age_t));
+        memset(self->spatial_x + self->num_rows, 0x00, num_rows * sizeof(individual_age_t));
     } else {
         memcpy(self->spatial_z + self->num_rows, spatial_z, num_rows * sizeof(individual_age_t));
     }
@@ -2069,8 +2069,6 @@ individual_table_add_row_internal(individual_table_t *self, individual_sex_t sex
         double spatial_x, double spatial_y, double spatial_z, 
         const char *metadata, table_size_t metadata_length)
 {
-    int k;
-
     assert(self->num_rows < self->max_rows);
     assert(self->metadata_length + metadata_length <= self->max_metadata_length);
     memcpy(self->metadata + self->metadata_length, metadata, metadata_length);
@@ -2278,9 +2276,6 @@ static int
 individual_table_load(individual_table_t *self, kastore_t *store)
 {
     int ret = 0;
-    size_t len;
-    int type;
-
     read_table_col_t read_cols[] = {
         {"individuals/sex", (const void **) &self->sex, &self->num_rows, 0, KAS_INT32},
         {"individuals/age", (const void **) &self->age, &self->num_rows, 0, KAS_FLOAT64},
