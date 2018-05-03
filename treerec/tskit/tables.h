@@ -103,13 +103,14 @@ typedef struct {
     table_size_t metadata_length;
     table_size_t max_metadata_length;
     table_size_t max_metadata_length_increment;
-    int32_t ploidy;
-    int32_t spatial_dimension;
     individual_sex_t *sex;
     individual_age_t *age;
     population_id_t *population;
-    double *spatial_position;
-    node_id_t *nodes;
+    node_id_t *nodes_f;
+    node_id_t *nodes_m;
+    double *spatial_x;
+    double *spatial_y;
+    double *spatial_z;
     char *metadata;
     table_size_t *metadata_offset;
 } individual_table_t;
@@ -395,15 +396,19 @@ void migration_table_print_state(migration_table_t *self, FILE *out);
 int individual_table_alloc(individual_table_t *self, size_t max_rows_increment,
         size_t max_metadata_length_increment);
 individual_id_t individual_table_add_row(individual_table_t *self, individual_sex_t sex,
-        individual_age_t age, double *spatial_position, population_id_t population,
-        node_id_t *nodes, const char *metadata, table_size_t metadata_length);
-int individual_table_set_columns(individual_table_t *self, size_t num_rows, int32_t ploidy, 
-        int32_t spatial_dimension, individual_sex_t *sex, individual_age_t *age, 
-        double *spatial_position, population_id_t *population, node_id_t *nodes, 
+        individual_age_t age, population_id_t population,
+        node_id_t nodes_f, node_id_t nodes_m, 
+        double spatial_x, double spatial_y, double spatial_z, 
+        const char *metadata, table_size_t metadata_length);
+int individual_table_set_columns(individual_table_t *self, size_t num_rows,
+        individual_sex_t *sex, individual_age_t *age, population_id_t *population, 
+        node_id_t *nodes_f, node_id_t *nodes_m, 
+        double *spatial_x, double *spatial_y, double *spatial_z, 
         const char *metadata, uint32_t *metadata_offset);
 int individual_table_append_columns(individual_table_t *self, size_t num_rows,
-        individual_sex_t *sex, individual_age_t *age, double *spatial_position, 
-        population_id_t *population, node_id_t *nodes, 
+        individual_sex_t *sex, individual_age_t *age, population_id_t *population, 
+        node_id_t *nodes_f, node_id_t *nodes_m, 
+        double *spatial_x, double *spatial_y, double *spatial_z, 
         const char *metadata, uint32_t *metadata_offset);
 int individual_table_clear(individual_table_t *self);
 int individual_table_free(individual_table_t *self);

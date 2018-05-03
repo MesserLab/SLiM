@@ -118,7 +118,6 @@ typedef struct {
     const void **array_dest;
     table_size_t *len_dest;
     table_size_t len_offset;
-    table_size_t len_multiplier;
     int type;
 } read_table_col_t;
 
@@ -147,10 +146,8 @@ read_table_cols(kastore_t *store, read_table_col_t *read_cols, size_t num_cols)
         }
         last_len = *read_cols[j].len_dest;
         if (last_len == (table_size_t) -1) {
-            *read_cols[j].len_dest = (table_size_t) ((len - read_cols[j].len_offset)
-                    / read_cols[j].len_multiplier);
-        } else if ((last_len + read_cols[j].len_offset) * read_cols[j].len_multiplier 
-                   != (table_size_t) len) {
+            *read_cols[j].len_dest = (table_size_t) ((len - read_cols[j].len_offset));
+        } else if ((last_len + read_cols[j].len_offset) != (table_size_t) len) {
             ret = MSP_ERR_FILE_FORMAT;
             goto out;
         }
@@ -498,14 +495,14 @@ static int
 node_table_load(node_table_t *self, kastore_t *store)
 {
     read_table_col_t read_cols[] = {
-        {"nodes/time", (const void **) &self->time, &self->num_rows, 0, 1, KAS_FLOAT64},
-        {"nodes/flags", (const void **) &self->flags, &self->num_rows, 0, 1, KAS_UINT32},
+        {"nodes/time", (const void **) &self->time, &self->num_rows, 0, KAS_FLOAT64},
+        {"nodes/flags", (const void **) &self->flags, &self->num_rows, 0, KAS_UINT32},
         {"nodes/population", (const void **) &self->population, &self->num_rows, 0,
-            1, KAS_INT32},
+            KAS_INT32},
         {"nodes/metadata", (const void **) &self->metadata, &self->metadata_length, 0,
-            1, KAS_UINT8},
+            KAS_UINT8},
         {"nodes/metadata_offset", (const void **) &self->metadata_offset, &self->num_rows,
-            1, 1, KAS_UINT32},
+            1, KAS_UINT32},
     };
     return read_table_cols(store, read_cols, sizeof(read_cols) / sizeof(*read_cols));
 }
@@ -732,10 +729,10 @@ static int
 edge_table_load(edge_table_t *self, kastore_t *store)
 {
     read_table_col_t read_cols[] = {
-        {"edges/left", (const void **) &self->left, &self->num_rows, 0, 1, KAS_FLOAT64},
-        {"edges/right", (const void **) &self->right, &self->num_rows, 0, 1, KAS_FLOAT64},
-        {"edges/parent", (const void **) &self->parent, &self->num_rows, 0, 1, KAS_INT32},
-        {"edges/child", (const void **) &self->child, &self->num_rows, 0, 1, KAS_INT32},
+        {"edges/left", (const void **) &self->left, &self->num_rows, 0, KAS_FLOAT64},
+        {"edges/right", (const void **) &self->right, &self->num_rows, 0, KAS_FLOAT64},
+        {"edges/parent", (const void **) &self->parent, &self->num_rows, 0, KAS_INT32},
+        {"edges/child", (const void **) &self->child, &self->num_rows, 0, KAS_INT32},
     };
     return read_table_cols(store, read_cols, sizeof(read_cols) / sizeof(*read_cols));
 }
@@ -1134,15 +1131,15 @@ static int
 site_table_load(site_table_t *self, kastore_t *store)
 {
     read_table_col_t read_cols[] = {
-        {"sites/position", (const void **) &self->position, &self->num_rows, 0, 1, KAS_FLOAT64},
+        {"sites/position", (const void **) &self->position, &self->num_rows, 0, KAS_FLOAT64},
         {"sites/ancestral_state", (const void **) &self->ancestral_state,
-            &self->ancestral_state_length, 0, 1, KAS_UINT8},
+            &self->ancestral_state_length, 0, KAS_UINT8},
         {"sites/ancestral_state_offset", (const void **) &self->ancestral_state_offset,
-            &self->num_rows, 1, 1, KAS_UINT32},
+            &self->num_rows, 1, KAS_UINT32},
         {"sites/metadata", (const void **) &self->metadata,
-            &self->metadata_length, 0, 1, KAS_UINT8},
+            &self->metadata_length, 0, KAS_UINT8},
         {"sites/metadata_offset", (const void **) &self->metadata_offset,
-            &self->num_rows, 1, 1, KAS_UINT32},
+            &self->num_rows, 1, KAS_UINT32},
     };
     return read_table_cols(store, read_cols, sizeof(read_cols) / sizeof(*read_cols));
 }
@@ -1579,17 +1576,17 @@ static int
 mutation_table_load(mutation_table_t *self, kastore_t *store)
 {
     read_table_col_t read_cols[] = {
-        {"mutations/site", (const void **) &self->site, &self->num_rows, 0, 1, KAS_INT32},
-        {"mutations/node", (const void **) &self->node, &self->num_rows, 0, 1, KAS_INT32},
-        {"mutations/parent", (const void **) &self->parent, &self->num_rows, 0, 1, KAS_INT32},
+        {"mutations/site", (const void **) &self->site, &self->num_rows, 0, KAS_INT32},
+        {"mutations/node", (const void **) &self->node, &self->num_rows, 0, KAS_INT32},
+        {"mutations/parent", (const void **) &self->parent, &self->num_rows, 0, KAS_INT32},
         {"mutations/derived_state", (const void **) &self->derived_state,
-            &self->derived_state_length, 0, 1, KAS_UINT8},
+            &self->derived_state_length, 0, KAS_UINT8},
         {"mutations/derived_state_offset", (const void **) &self->derived_state_offset,
-            &self->num_rows, 1, 1, KAS_UINT32},
+            &self->num_rows, 1, KAS_UINT32},
         {"mutations/metadata", (const void **) &self->metadata,
-            &self->metadata_length, 0, 1, KAS_UINT8},
+            &self->metadata_length, 0, KAS_UINT8},
         {"mutations/metadata_offset", (const void **) &self->metadata_offset,
-            &self->num_rows, 1, 1, KAS_UINT32},
+            &self->num_rows, 1, KAS_UINT32},
     };
     return read_table_cols(store, read_cols, sizeof(read_cols) / sizeof(*read_cols));
 }
@@ -1833,12 +1830,12 @@ static int
 migration_table_load(migration_table_t *self, kastore_t *store)
 {
     read_table_col_t read_cols[] = {
-        {"migrations/left", (const void **) &self->left, &self->num_rows, 0, 1, KAS_FLOAT64},
-        {"migrations/right", (const void **) &self->right, &self->num_rows, 0, 1, KAS_FLOAT64},
-        {"migrations/node", (const void **) &self->node, &self->num_rows, 0, 1, KAS_INT32},
-        {"migrations/source", (const void **) &self->source, &self->num_rows, 0, 1, KAS_INT32},
-        {"migrations/dest", (const void **) &self->dest, &self->num_rows, 0, 1, KAS_INT32},
-        {"migrations/time", (const void **) &self->time, &self->num_rows, 0, 1, KAS_FLOAT64},
+        {"migrations/left", (const void **) &self->left, &self->num_rows, 0, KAS_FLOAT64},
+        {"migrations/right", (const void **) &self->right, &self->num_rows, 0, KAS_FLOAT64},
+        {"migrations/node", (const void **) &self->node, &self->num_rows, 0, KAS_INT32},
+        {"migrations/source", (const void **) &self->source, &self->num_rows, 0, KAS_INT32},
+        {"migrations/dest", (const void **) &self->dest, &self->num_rows, 0, KAS_INT32},
+        {"migrations/time", (const void **) &self->time, &self->num_rows, 0, KAS_FLOAT64},
     };
     return read_table_cols(store, read_cols, sizeof(read_cols) / sizeof(*read_cols));
 }
@@ -1863,17 +1860,27 @@ individual_table_expand_main_columns(individual_table_t *self, table_size_t addi
         if (ret != 0) {
             goto out;
         }
-        ret = expand_column((void **) &self->spatial_position, new_size, 
-                self->spatial_dimension * sizeof(double));
-        if (ret != 0) {
-            goto out;
-        }
         ret = expand_column((void **) &self->population, new_size, sizeof(population_id_t));
         if (ret != 0) {
             goto out;
         }
-        ret = expand_column((void **) &self->nodes, new_size, 
-                self->ploidy * sizeof(node_id_t));
+        ret = expand_column((void **) &self->nodes_f, new_size, sizeof(node_id_t));
+        if (ret != 0) {
+            goto out;
+        }
+        ret = expand_column((void **) &self->nodes_m, new_size, sizeof(node_id_t));
+        if (ret != 0) {
+            goto out;
+        }
+        ret = expand_column((void **) &self->spatial_x, new_size, sizeof(double));
+        if (ret != 0) {
+            goto out;
+        }
+        ret = expand_column((void **) &self->spatial_y, new_size, sizeof(double));
+        if (ret != 0) {
+            goto out;
+        }
+        ret = expand_column((void **) &self->spatial_z, new_size, sizeof(double));
         if (ret != 0) {
             goto out;
         }
@@ -1926,8 +1933,6 @@ individual_table_alloc(individual_table_t *self, size_t max_rows_increment,
     self->num_rows = 0;
     self->max_metadata_length = 0;
     self->metadata_length = 0;
-    self->spatial_dimension = 0;
-    self->ploidy = 0;
     ret = individual_table_expand_main_columns(self, 1);
     if (ret != 0) {
         goto out;
@@ -1944,15 +1949,17 @@ out:
 int WARN_UNUSED
 individual_table_copy(individual_table_t *self, individual_table_t *dest)
 {
-    return individual_table_set_columns(dest, self->num_rows, self->ploidy,
-            self->spatial_dimension, self->sex, self->age, self->spatial_position,
-            self->population, self->nodes, self->metadata, self->metadata_offset);
+    return individual_table_set_columns(dest, self->num_rows, self->sex, self->age, 
+            self->population, self->nodes_f, self->nodes_m, 
+            self->spatial_x, self->spatial_y, self->spatial_z,
+            self->metadata, self->metadata_offset);
 }
 
 int WARN_UNUSED
-individual_table_set_columns(individual_table_t *self, size_t num_rows, int32_t ploidy, 
-        int32_t spatial_dimension, individual_sex_t *sex, individual_age_t *age, 
-        double *spatial_position, population_id_t *population, node_id_t *nodes, 
+individual_table_set_columns(individual_table_t *self, size_t num_rows,
+        individual_sex_t *sex, individual_age_t *age, population_id_t *population, 
+        node_id_t *nodes_f, node_id_t *nodes_m, 
+        double *spatial_x, double *spatial_y, double *spatial_z, 
         const char *metadata, uint32_t *metadata_offset)
 {
     int ret;
@@ -1961,24 +1968,24 @@ individual_table_set_columns(individual_table_t *self, size_t num_rows, int32_t 
     if (ret != 0) {
         goto out;
     }
-    self->ploidy = ploidy;
-    self->spatial_dimension = spatial_dimension;
     ret = individual_table_append_columns(self, num_rows, sex, age, 
-            spatial_position, population, nodes, metadata, metadata_offset);
+            population, nodes_f, nodes_m, spatial_x, spatial_y, spatial_z, 
+            metadata, metadata_offset);
 out:
     return ret;
 }
 
 int
 individual_table_append_columns(individual_table_t *self, size_t num_rows,
-        individual_sex_t *sex, individual_age_t *age, double *spatial_position, 
-        population_id_t *population, node_id_t *nodes, 
+        individual_sex_t *sex, individual_age_t *age, population_id_t *population, 
+        node_id_t *nodes_f, node_id_t *nodes_m, 
+        double *spatial_x, double *spatial_y, double *spatial_z, 
         const char *metadata, uint32_t *metadata_offset)
 {
     int ret;
     table_size_t j, metadata_length;
 
-    if (nodes == NULL) {
+    if ((nodes_f == NULL) || (nodes_m == NULL)) {
         ret = MSP_ERR_BAD_PARAM_VALUE;
         goto out;
     }
@@ -1990,10 +1997,8 @@ individual_table_append_columns(individual_table_t *self, size_t num_rows,
     if (ret != 0) {
         goto out;
     }
-    memcpy(self->nodes + self->ploidy * self->num_rows, nodes, 
-            self->ploidy * num_rows * sizeof(node_id_t));
     if (sex == NULL) {
-        /* Set sex to NULL_SEX (-1) if not specified */
+        /* Set sex to HERMAPHRODITE (-1) if not specified */
         memset(self->sex + self->num_rows, 0xff, num_rows * sizeof(individual_sex_t));
     } else {
         memcpy(self->sex + self->num_rows, sex, num_rows * sizeof(individual_sex_t));
@@ -2004,13 +2009,31 @@ individual_table_append_columns(individual_table_t *self, size_t num_rows,
     } else {
         memcpy(self->age + self->num_rows, age, num_rows * sizeof(individual_age_t));
     }
-    if (spatial_position == NULL) {
-        /* Set spatial_position to 0 if not specified */
+    if (population == NULL) {
+        /* Set population to NULL_POPULATION (-1) if not specified */
+        memset(self->population + self->num_rows, 0xff,
+                num_rows * sizeof(population_id_t));
+    } else {
+        memcpy(self->population + self->num_rows, population,
+                num_rows * sizeof(population_id_t));
+    }
+    memcpy(self->nodes_f + self->num_rows, nodes_f, num_rows * sizeof(node_id_t));
+    memcpy(self->nodes_m + self->num_rows, nodes_m, num_rows * sizeof(node_id_t));
+    /* Set spatial_? to 0 if not specified */
+    if (spatial_x == NULL) {
         memset(self->age + self->num_rows, 0x00, num_rows * sizeof(individual_age_t));
     } else {
-        memcpy(self->spatial_position + self->spatial_dimension * self->num_rows, 
-                spatial_position, 
-                self->spatial_dimension * num_rows * sizeof(individual_age_t));
+        memcpy(self->spatial_x + self->num_rows, spatial_x, num_rows * sizeof(individual_age_t));
+    }
+    if (spatial_y == NULL) {
+        memset(self->age + self->num_rows, 0x00, num_rows * sizeof(individual_age_t));
+    } else {
+        memcpy(self->spatial_y + self->num_rows, spatial_y, num_rows * sizeof(individual_age_t));
+    }
+    if (spatial_z == NULL) {
+        memset(self->age + self->num_rows, 0x00, num_rows * sizeof(individual_age_t));
+    } else {
+        memcpy(self->spatial_z + self->num_rows, spatial_z, num_rows * sizeof(individual_age_t));
     }
     if (metadata == NULL) {
         for (j = 0; j < num_rows; j++) {
@@ -2033,14 +2056,6 @@ individual_table_append_columns(individual_table_t *self, size_t num_rows,
         memcpy(self->metadata + self->metadata_length, metadata, metadata_length * sizeof(char));
         self->metadata_length += metadata_length;
     }
-    if (population == NULL) {
-        /* Set population to NULL_POPULATION (-1) if not specified */
-        memset(self->population + self->num_rows, 0xff,
-                num_rows * sizeof(population_id_t));
-    } else {
-        memcpy(self->population + self->num_rows, population,
-                num_rows * sizeof(population_id_t));
-    }
     self->num_rows += (table_size_t) num_rows;
     self->metadata_offset[self->num_rows] = self->metadata_length;
 out:
@@ -2049,8 +2064,10 @@ out:
 
 static individual_id_t
 individual_table_add_row_internal(individual_table_t *self, individual_sex_t sex,
-        individual_age_t age, double *spatial_position, population_id_t population,
-        node_id_t *nodes, const char *metadata, table_size_t metadata_length)
+        individual_age_t age, population_id_t population,
+        node_id_t nodes_f, node_id_t nodes_m, 
+        double spatial_x, double spatial_y, double spatial_z, 
+        const char *metadata, table_size_t metadata_length)
 {
     int k;
 
@@ -2059,14 +2076,12 @@ individual_table_add_row_internal(individual_table_t *self, individual_sex_t sex
     memcpy(self->metadata + self->metadata_length, metadata, metadata_length);
     self->age[self->num_rows] = age;
     self->sex[self->num_rows] = sex;
-    for (k = 0; k <= self->spatial_dimension; ++k) {
-        self->spatial_position[self->spatial_dimension * self->num_rows + k] 
-            = spatial_position[k];
-    }
-    for (k = 0; k <= self->ploidy; ++k) {
-        self->nodes[self->ploidy * self->num_rows + k] = nodes[k];
-    }
     self->population[self->num_rows] = population;
+    self->nodes_f[self->num_rows] = nodes_f;
+    self->nodes_m[self->num_rows] = nodes_m;
+    self->spatial_x[self->num_rows] = spatial_x;
+    self->spatial_y[self->num_rows] = spatial_y;
+    self->spatial_z[self->num_rows] = spatial_z;
     self->metadata_offset[self->num_rows + 1] = self->metadata_length + metadata_length;
     self->metadata_length += metadata_length;
     self->num_rows++;
@@ -2075,8 +2090,10 @@ individual_table_add_row_internal(individual_table_t *self, individual_sex_t sex
 
 individual_id_t
 individual_table_add_row(individual_table_t *self, individual_sex_t sex,
-        individual_age_t age, double *spatial_position, population_id_t population,
-        node_id_t *nodes, const char *metadata, table_size_t metadata_length)
+        individual_age_t age, population_id_t population,
+        node_id_t nodes_f, node_id_t nodes_m, 
+        double spatial_x, double spatial_y, double spatial_z, 
+        const char *metadata, table_size_t metadata_length)
 {
     int ret = 0;
 
@@ -2088,8 +2105,9 @@ individual_table_add_row(individual_table_t *self, individual_sex_t sex,
     if (ret != 0) {
         goto out;
     }
-    ret = individual_table_add_row_internal(self, sex, age, spatial_position, population, 
-            nodes, metadata, (table_size_t) metadata_length);
+    ret = individual_table_add_row_internal(self, sex, age, population, 
+            nodes_f, nodes_m, spatial_x, spatial_y, spatial_z, 
+            metadata, (table_size_t) metadata_length);
 out:
     return ret;
 }
@@ -2099,8 +2117,6 @@ individual_table_clear(individual_table_t *self)
 {
     self->num_rows = 0;
     self->metadata_length = 0;
-    self->ploidy = 0;
-    self->spatial_dimension = 0;
     return 0;
 }
 
@@ -2110,9 +2126,12 @@ individual_table_free(individual_table_t *self)
     if (self->max_rows > 0) {
         msp_safe_free(self->sex);
         msp_safe_free(self->age);
-        msp_safe_free(self->spatial_position);
         msp_safe_free(self->population);
-        msp_safe_free(self->nodes);
+        msp_safe_free(self->nodes_f);
+        msp_safe_free(self->nodes_m);
+        msp_safe_free(self->spatial_x);
+        msp_safe_free(self->spatial_y);
+        msp_safe_free(self->spatial_z);
         msp_safe_free(self->metadata);
         msp_safe_free(self->metadata_offset);
     }
@@ -2131,8 +2150,6 @@ individual_table_print_state(individual_table_t *self, FILE *out)
             (int) self->metadata_length,
             (int) self->max_metadata_length,
             (int) self->max_metadata_length_increment);
-    fprintf(out, "ploidy = %d\tspatial dimension = %d", self->ploidy, 
-            self->spatial_dimension);
     fprintf(out, TABLE_SEP);
     ret = individual_table_dump_text(self, out);
     assert(ret == 0);
@@ -2149,22 +2166,15 @@ individual_table_dump_text(individual_table_t *self, FILE *out)
     if (err < 0) {
         goto out;
     }
-    for (j = 0; j < (size_t)self->spatial_dimension; j++) {
-        fprintf(out, "space_%d\t", (int) j);
-    }
-    for (j = 0; j < (size_t)self->ploidy; j++) {
-        fprintf(out, "node_%d\t", (int) j);
-    }
+    fprintf(out, "node_f\tnode_m\t");
+    fprintf(out, "space_x\tspace_y\tspace_x\t");
     fprintf(out, "metadata_offset\tmetadata\n");
     for (j = 0; j < self->num_rows; j++) {
         fprintf(out, "%d\t%d\t%f\t%d\t", (int) j, self->sex[j], self->age[j],
                 (int) self->population[j]);
-        for (k = 0; k < (size_t)self->spatial_dimension; k++) {
-            fprintf(out, "%f\t", self->spatial_position[j * self->spatial_dimension + k]);
-        }
-        for (k = 0; k < (size_t)self->ploidy; k++) {
-            fprintf(out, "%d\t", self->nodes[j * self->ploidy + k]);
-        }
+        fprintf(out, "%d\t%d\t", self->nodes_f[j], self->nodes_m[j]);
+        fprintf(out, "%f\t%f\t%f\t", self->spatial_x[j], self->spatial_y[j],
+                self->spatial_z[j]);
         fprintf(out, "%d\t", self->metadata_offset[j]);
         for (k = self->metadata_offset[j]; k < self->metadata_offset[j + 1]; k++) {
             fprintf(out, "%c", self->metadata[k]);
@@ -2181,19 +2191,23 @@ individual_table_equal(individual_table_t *self, individual_table_t *other)
 {
     bool ret = false;
     if (self->num_rows == other->num_rows
-            && self->metadata_length == other->metadata_length
-            && self->ploidy == other->ploidy
-            && self->spatial_dimension == other->spatial_dimension) {
+            && self->metadata_length == other->metadata_length) {
         ret = memcmp(self->sex, other->sex,
                 self->num_rows * sizeof(individual_sex_t)) == 0
             && memcmp(self->age, other->age,
                 self->num_rows * sizeof(individual_age_t)) == 0
             && memcmp(self->population, other->population,
                     self->num_rows * sizeof(population_id_t)) == 0
-            && memcmp(self->spatial_position, other->spatial_position,
-                    self->num_rows * self->spatial_dimension * sizeof(double)) == 0
-            && memcmp(self->nodes, other->nodes,
-                    self->num_rows * self->ploidy * sizeof(node_id_t)) == 0
+            && memcmp(self->nodes_f, other->nodes_f,
+                    self->num_rows * sizeof(node_id_t)) == 0
+            && memcmp(self->nodes_m, other->nodes_m,
+                    self->num_rows * sizeof(node_id_t)) == 0
+            && memcmp(self->spatial_x, other->spatial_x,
+                    self->num_rows * sizeof(double)) == 0
+            && memcmp(self->spatial_y, other->spatial_y,
+                    self->num_rows * sizeof(double)) == 0
+            && memcmp(self->spatial_z, other->spatial_z,
+                    self->num_rows * sizeof(double)) == 0
             && memcmp(self->metadata_offset, other->metadata_offset,
                     (self->num_rows + 1) * sizeof(table_size_t)) == 0
             && memcmp(self->metadata, other->metadata,
@@ -2221,13 +2235,28 @@ individual_table_dump(individual_table_t *self, kastore_t *store)
     if (ret != 0) {
         goto out;
     }
-    ret = kastore_puts(store, "individuals/spatial_position", self->spatial_position, 
-            self->spatial_dimension * self->num_rows, KAS_FLOAT64, 0);
+    ret = kastore_puts(store, "individuals/nodes_f", self->nodes_f, 
+            self->num_rows, KAS_INT32, 0);
     if (ret != 0) {
         goto out;
     }
-    ret = kastore_puts(store, "individuals/nodes", self->nodes, 
-            self->ploidy * self->num_rows, KAS_INT32, 0);
+    ret = kastore_puts(store, "individuals/nodes_m", self->nodes_m, 
+            self->num_rows, KAS_INT32, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "individuals/spatial_x", self->spatial_x, 
+            self->num_rows, KAS_FLOAT64, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "individuals/spatial_y", self->spatial_y, 
+            self->num_rows, KAS_FLOAT64, 0);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = kastore_puts(store, "individuals/spatial_z", self->spatial_z, 
+            self->num_rows, KAS_FLOAT64, 0);
     if (ret != 0) {
         goto out;
     }
@@ -2251,43 +2280,26 @@ individual_table_load(individual_table_t *self, kastore_t *store)
     int ret = 0;
     size_t len;
     int type;
-    int32_t *ploidy, *spatial_dimension;
-    table_size_t num_spatial_positions, num_genomes;
-
-    ret = kastore_gets(store, "individuals/spatial_dimension", (const void **) &spatial_dimension, &len, &type);
-    if (ret != 0) {
-        goto out;
-    }
-    if ((type != KAS_INT32) || (len != 1)) {
-        ret = MSP_ERR_FILE_FORMAT;
-        goto out;
-    }
-    ret = kastore_gets(store, "individuals/ploidy", (const void **) &ploidy, &len, &type);
-    if (ret != 0) {
-        goto out;
-    }
-    if ((type != KAS_INT32) || (len != 1)) {
-        ret = MSP_ERR_FILE_FORMAT;
-        goto out;
-    }
-    self->spatial_dimension = spatial_dimension[0];
-    self->ploidy = ploidy[0];
-    num_spatial_positions = self->num_rows * self->spatial_dimension;
-    num_genomes = self->num_rows * self->ploidy;
 
     read_table_col_t read_cols[] = {
-        {"individuals/sex", (const void **) &self->sex, &self->num_rows, 0, 1, KAS_INT32},
-        {"individuals/age", (const void **) &self->age, &self->num_rows, 0, 1, KAS_FLOAT64},
-        {"individuals/population", (const void **) &self->population, &self->num_rows, 0, 1,
+        {"individuals/sex", (const void **) &self->sex, &self->num_rows, 0, KAS_INT32},
+        {"individuals/age", (const void **) &self->age, &self->num_rows, 0, KAS_FLOAT64},
+        {"individuals/population", (const void **) &self->population, &self->num_rows, 0,
             KAS_INT32},
-        {"individuals/spatial_position", (const void **) &self->spatial_position, 
-            &self->num_rows, 0, self->spatial_dimension, KAS_FLOAT64},
-        {"individuals/nodes", (const void **) &self->nodes, 
-            &self->num_rows, 0, self->ploidy, KAS_INT32},
-        {"individuals/metadata", (const void **) &self->metadata, &self->metadata_length, 0, 1,
+        {"individuals/spatial_x", (const void **) &self->spatial_x, 
+            &self->num_rows, 0, KAS_FLOAT64},
+        {"individuals/spatial_y", (const void **) &self->spatial_y, 
+            &self->num_rows, 0, KAS_FLOAT64},
+        {"individuals/spatial_z", (const void **) &self->spatial_z, 
+            &self->num_rows, 0, KAS_FLOAT64},
+        {"individuals/nodes_f", (const void **) &self->nodes_f, 
+            &self->num_rows, 0, KAS_INT32},
+        {"individuals/nodes_m", (const void **) &self->nodes_m, 
+            &self->num_rows, 0, KAS_INT32},
+        {"individuals/metadata", (const void **) &self->metadata, &self->metadata_length, 0, 
             KAS_UINT8},
         {"individuals/metadata_offset", (const void **) &self->metadata_offset, &self->num_rows,
-            1, 1, KAS_UINT32},
+            1, KAS_UINT32},
     };
     ret = read_table_cols(store, read_cols, sizeof(read_cols) / sizeof(*read_cols));
 out:
@@ -2643,13 +2655,13 @@ provenance_table_load(provenance_table_t *self, kastore_t *store)
 {
     read_table_col_t read_cols[] = {
         {"provenances/timestamp", (const void **) &self->timestamp,
-            &self->timestamp_length, 0, 1, KAS_UINT8},
+            &self->timestamp_length, 0, KAS_UINT8},
         {"provenances/timestamp_offset", (const void **) &self->timestamp_offset,
-            &self->num_rows, 1, 1, KAS_UINT32},
+            &self->num_rows, 1, KAS_UINT32},
         {"provenances/record", (const void **) &self->record,
-            &self->record_length, 0, 1, KAS_UINT8},
+            &self->record_length, 0, KAS_UINT8},
         {"provenances/record_offset", (const void **) &self->record_offset,
-            &self->num_rows, 1, 1, KAS_UINT32},
+            &self->num_rows, 1, KAS_UINT32},
     };
     return read_table_cols(store, read_cols, sizeof(read_cols) / sizeof(*read_cols));
 }
