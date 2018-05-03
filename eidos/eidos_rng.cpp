@@ -40,7 +40,7 @@ unsigned long int Eidos_GenerateSeedFromPIDAndTime(void)
 	
 	long long milliseconds = te.tv_sec*1000LL + te.tv_usec/1000;	// calculate milliseconds
 	
-	milliseconds += (pid * 10000000);		// try to make the pid matter a lot, to separate runs made on different cores close in time
+	milliseconds += (pid * (long long)10000000);		// try to make the pid matter a lot, to separate runs made on different cores close in time
 	milliseconds += (hereCounter++);
 	
 	return (unsigned long int)milliseconds;
