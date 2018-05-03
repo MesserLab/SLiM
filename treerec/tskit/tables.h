@@ -202,7 +202,7 @@ typedef struct {
     individual_age_t age;
     population_id_t population;
     int32_t spatial_dimension;
-    double spatial_position;
+    double *spatial_position;
     int32_t ploidy;
     node_id_t *nodes;
     const char *metadata;
