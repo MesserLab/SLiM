@@ -68,7 +68,7 @@ kas_strerror(int err)
 static size_t
 type_size(int type)
 {
-    const size_t type_size_map[] = {1, 1, 4, 4, 8, 8, 4, 8};
+    const size_t type_size_map[] = {1, 1, 2, 2, 4, 4, 8, 8, 4, 8};
     assert(type < KAS_NUM_TYPES);
     return type_size_map[type];
 }
@@ -590,7 +590,7 @@ kastore_close(kastore_t *self)
 
 int KAS_WARN_UNUSED
 kastore_get(kastore_t *self, const char *key, size_t key_len,
-        const void **array, size_t *array_len, int *type)
+        void **array, size_t *array_len, int *type)
 {
     int ret = KAS_ERR_KEY_NOT_FOUND;
     kaitem_t search;
@@ -622,10 +622,87 @@ out:
 }
 
 int KAS_WARN_UNUSED
-kastore_gets(kastore_t *self, const char *key, const void **array,
-        size_t *array_len, int *type)
+kastore_gets(kastore_t *self, const char *key, void **array, size_t *array_len, int *type)
 {
     return kastore_get(self, key, strlen(key), array, array_len, type);
+}
+
+static int KAS_WARN_UNUSED
+kastore_gets_type(kastore_t *self, const char *key, void **array, size_t *array_len, int type)
+{
+    int loaded_type;
+    int ret;
+
+    ret = kastore_get(self, key, strlen(key), array, array_len, &loaded_type);
+    if (ret != 0) {
+        goto out;
+    }
+    if (type != loaded_type) {
+        ret = KAS_ERR_BAD_TYPE;
+        goto out;
+    }
+out:
+    return ret;
+}
+
+int KAS_WARN_UNUSED
+kastore_gets_int8(kastore_t *self, const char *key, int8_t **array, size_t *array_len)
+{
+    return kastore_gets_type(self, key, (void **) array, array_len, KAS_INT8);
+}
+
+int KAS_WARN_UNUSED
+kastore_gets_uint8(kastore_t *self, const char *key, uint8_t **array, size_t *array_len)
+{
+    return kastore_gets_type(self, key, (void **) array, array_len, KAS_UINT8);
+}
+
+int KAS_WARN_UNUSED
+kastore_gets_int16(kastore_t *self, const char *key, int16_t **array, size_t *array_len)
+{
+    return kastore_gets_type(self, key, (void **) array, array_len, KAS_INT16);
+}
+
+int KAS_WARN_UNUSED
+kastore_gets_uint16(kastore_t *self, const char *key, uint16_t **array, size_t *array_len)
+{
+    return kastore_gets_type(self, key, (void **) array, array_len, KAS_UINT16);
+}
+
+int KAS_WARN_UNUSED
+kastore_gets_int32(kastore_t *self, const char *key, int32_t **array, size_t *array_len)
+{
+    return kastore_gets_type(self, key, (void **) array, array_len, KAS_INT32);
+}
+
+int KAS_WARN_UNUSED
+kastore_gets_uint32(kastore_t *self, const char *key, uint32_t **array, size_t *array_len)
+{
+    return kastore_gets_type(self, key, (void **) array, array_len, KAS_UINT32);
+}
+
+int KAS_WARN_UNUSED
+kastore_gets_int64(kastore_t *self, const char *key, int64_t **array, size_t *array_len)
+{
+    return kastore_gets_type(self, key, (void **) array, array_len, KAS_INT64);
+}
+
+int KAS_WARN_UNUSED
+kastore_gets_uint64(kastore_t *self, const char *key, uint64_t **array, size_t *array_len)
+{
+    return kastore_gets_type(self, key, (void **) array, array_len, KAS_UINT64);
+}
+
+int KAS_WARN_UNUSED
+kastore_gets_float32(kastore_t *self, const char *key, float **array, size_t *array_len)
+{
+    return kastore_gets_type(self, key, (void **) array, array_len, KAS_FLOAT32);
+}
+
+int KAS_WARN_UNUSED
+kastore_gets_float64(kastore_t *self, const char *key, double **array, size_t *array_len)
+{
+    return kastore_gets_type(self, key, (void **) array, array_len, KAS_FLOAT64);
 }
 
 int KAS_WARN_UNUSED
@@ -699,6 +776,77 @@ kastore_puts(kastore_t *self, const char *key,
        const void *array, size_t array_len, int type, int flags)
 {
     return kastore_put(self, key, strlen(key), array, array_len, type, flags);
+}
+
+int KAS_WARN_UNUSED
+kastore_puts_int8(kastore_t *self, const char *key, const int8_t *array, size_t array_len,
+        int flags)
+{
+    return kastore_puts(self, key, (const void *) array, array_len, KAS_INT8, flags);
+}
+
+int KAS_WARN_UNUSED
+kastore_puts_uint8(kastore_t *self, const char *key, const uint8_t *array, size_t array_len,
+        int flags)
+{
+    return kastore_puts(self, key, (const void *) array, array_len, KAS_UINT8, flags);
+}
+
+int KAS_WARN_UNUSED
+kastore_puts_int16(kastore_t *self, const char *key, const int16_t *array, size_t array_len,
+        int flags)
+{
+    return kastore_puts(self, key, (const void *) array, array_len, KAS_INT16, flags);
+}
+
+int KAS_WARN_UNUSED
+kastore_puts_uint16(kastore_t *self, const char *key, const uint16_t *array, size_t array_len,
+        int flags)
+{
+    return kastore_puts(self, key, (const void *) array, array_len, KAS_UINT16, flags);
+}
+
+int KAS_WARN_UNUSED
+kastore_puts_int32(kastore_t *self, const char *key, const int32_t *array, size_t array_len,
+        int flags)
+{
+    return kastore_puts(self, key, (const void *) array, array_len, KAS_INT32, flags);
+}
+
+int KAS_WARN_UNUSED
+kastore_puts_uint32(kastore_t *self, const char *key, const uint32_t *array, size_t array_len,
+        int flags)
+{
+    return kastore_puts(self, key, (const void *) array, array_len, KAS_UINT32, flags);
+}
+
+int KAS_WARN_UNUSED
+kastore_puts_int64(kastore_t *self, const char *key, const int64_t *array, size_t array_len,
+        int flags)
+{
+    return kastore_puts(self, key, (const void *) array, array_len, KAS_INT64, flags);
+}
+
+int KAS_WARN_UNUSED
+kastore_puts_uint64(kastore_t *self, const char *key, const uint64_t *array, size_t array_len,
+        int flags)
+{
+    return kastore_puts(self, key, (const void *) array, array_len, KAS_UINT64, flags);
+}
+
+
+int KAS_WARN_UNUSED
+kastore_puts_float32(kastore_t *self, const char *key, const float *array, size_t array_len,
+        int flags)
+{
+    return kastore_puts(self, key, (const void *) array, array_len, KAS_FLOAT32, flags);
+}
+
+int KAS_WARN_UNUSED
+kastore_puts_float64(kastore_t *self, const char *key, const double *array, size_t array_len,
+        int flags)
+{
+    return kastore_puts(self, key, (const void *) array, array_len, KAS_FLOAT64, flags);
 }
 
 void
