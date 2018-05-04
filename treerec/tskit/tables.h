@@ -18,6 +18,9 @@ typedef int32_t population_id_t;
 typedef int32_t site_id_t;
 typedef int32_t mutation_id_t;
 typedef int32_t migration_id_t;
+typedef int32_t individual_id_t;
+typedef int32_t individual_sex_t;	/* conventionally, undefined == -2, hermaphrodite == -1, female == 0, male == 1; other values may also be used; #defines could be added for these */
+typedef double individual_age_t;
 typedef int32_t provenance_id_t;
 typedef uint32_t table_size_t;
 
@@ -97,6 +100,25 @@ typedef struct {
     table_size_t num_rows;
     table_size_t max_rows;
     table_size_t max_rows_increment;
+    table_size_t metadata_length;
+    table_size_t max_metadata_length;
+    table_size_t max_metadata_length_increment;
+    individual_sex_t *sex;
+    individual_age_t *age;
+    population_id_t *population;
+    node_id_t *nodes_f;
+    node_id_t *nodes_m;
+    double *spatial_x;
+    double *spatial_y;
+    double *spatial_z;
+    char *metadata;
+    table_size_t *metadata_offset;
+} individual_table_t;
+
+typedef struct {
+    table_size_t num_rows;
+    table_size_t max_rows;
+    table_size_t max_rows_increment;
     table_size_t timestamp_length;
     table_size_t max_timestamp_length;
     table_size_t max_timestamp_length_increment;
@@ -116,6 +138,7 @@ typedef struct {
     migration_table_t migrations;
     site_table_t sites;
     mutation_table_t mutations;
+    individual_table_t individuals;
     provenance_table_t provenances;
     struct {
         edge_id_t *edge_insertion_order;
@@ -173,6 +196,19 @@ typedef struct {
     mutation_t *mutations;
     table_size_t mutations_length;
 } site_t;
+
+typedef struct {
+    individual_id_t id;
+    individual_sex_t sex;
+    individual_age_t age;
+    population_id_t population;
+    int32_t spatial_dimension;
+    double *spatial_position;
+    int32_t ploidy;
+    node_id_t *nodes;
+    const char *metadata;
+    table_size_t metadata_length;
+} individual_t;
 
 typedef struct {
     population_id_t source;
@@ -356,6 +392,30 @@ int migration_table_free(migration_table_t *self);
 int migration_table_copy(migration_table_t *self, migration_table_t *dest);
 int migration_table_dump_text(migration_table_t *self, FILE *out);
 void migration_table_print_state(migration_table_t *self, FILE *out);
+
+int individual_table_alloc(individual_table_t *self, size_t max_rows_increment,
+        size_t max_metadata_length_increment);
+individual_id_t individual_table_add_row(individual_table_t *self, individual_sex_t sex,
+        individual_age_t age, population_id_t population,
+        node_id_t nodes_f, node_id_t nodes_m, 
+        double spatial_x, double spatial_y, double spatial_z, 
+        const char *metadata, table_size_t metadata_length);
+int individual_table_set_columns(individual_table_t *self, size_t num_rows,
+        individual_sex_t *sex, individual_age_t *age, population_id_t *population, 
+        node_id_t *nodes_f, node_id_t *nodes_m, 
+        double *spatial_x, double *spatial_y, double *spatial_z, 
+        const char *metadata, uint32_t *metadata_offset);
+int individual_table_append_columns(individual_table_t *self, size_t num_rows,
+        individual_sex_t *sex, individual_age_t *age, population_id_t *population, 
+        node_id_t *nodes_f, node_id_t *nodes_m, 
+        double *spatial_x, double *spatial_y, double *spatial_z, 
+        const char *metadata, uint32_t *metadata_offset);
+int individual_table_clear(individual_table_t *self);
+int individual_table_free(individual_table_t *self);
+int individual_table_copy(individual_table_t *self, individual_table_t *dest);
+int individual_table_dump_text(individual_table_t *self, FILE *out);
+void individual_table_print_state(individual_table_t *self, FILE *out);
+bool individual_table_equal(individual_table_t *self, individual_table_t *other);
 
 int provenance_table_alloc(provenance_table_t *self, size_t max_rows_increment,
         size_t max_timestamp_length_increment,
