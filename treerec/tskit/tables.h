@@ -433,6 +433,7 @@ int provenance_table_clear(provenance_table_t *self);
 int provenance_table_copy(provenance_table_t *self, provenance_table_t *dest);
 int provenance_table_free(provenance_table_t *self);
 void provenance_table_print_state(provenance_table_t *self, FILE *out);
+int provenance_table_dump_text(provenance_table_t *self, FILE *out);
 bool provenance_table_equal(provenance_table_t *self, provenance_table_t *other);
 
 int table_collection_alloc(table_collection_t *self, int flags);

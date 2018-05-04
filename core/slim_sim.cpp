@@ -4342,6 +4342,7 @@ void SLiMSim::WriteProvenanceTable(table_collection_t *p_tables)
     char buffer[timestamp_size];
     struct tm* tm_info;
     char *provenance_str;
+    provenance_str = (char *)malloc(1024);
     sprintf(provenance_str, "{\"program\"=\"SLiM\", \"version\"=\"%s\", \"file_version\"=\"%s\", \"generation\"=%d}",
             SLIM_VERSION, SLIM_FILE_VERSION, Generation());
 
@@ -4351,6 +4352,7 @@ void SLiMSim::WriteProvenanceTable(table_collection_t *p_tables)
 
     ret = provenance_table_add_row(&p_tables->provenances, buffer, strlen(buffer), provenance_str,
             strlen(provenance_str));
+    free(provenance_str);
 	if (ret != 0) handle_error("provenance_table_set_columns", ret);
 }
 
@@ -4423,24 +4425,28 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 			std::string SiteFileName = path + "/SiteTable.txt";
 			std::string MutationFileName = path + "/MutationTable.txt";
 			std::string IndividualsFileName = path + "/IndividualTable.txt";
+			std::string ProvenanceFileName = path + "/ProvenanceTable.txt";
 			
 			FILE *MspTxtNodeTable = fopen(NodeFileName.c_str(),"w");
 			FILE *MspTxtEdgeTable = fopen(EdgeFileName.c_str(),"w");
 			FILE *MspTxtSiteTable = fopen(SiteFileName.c_str(),"w");
 			FILE *MspTxtMutationTable = fopen(MutationFileName.c_str(),"w");
 			FILE *MspTxtIndividualTable = fopen(IndividualsFileName.c_str(),"w");
+			FILE *MspTxtProvenanceTable = fopen(ProvenanceFileName.c_str(),"w");
 			
 			node_table_dump_text(&(output_tables.nodes),MspTxtNodeTable);
 			edge_table_dump_text(&(output_tables.edges),MspTxtEdgeTable);
 			site_table_dump_text(&(output_tables.sites),MspTxtSiteTable);
 			mutation_table_dump_text(&(output_tables.mutations),MspTxtMutationTable);
 			individual_table_dump_text(&(output_tables.individuals), MspTxtIndividualTable);
+			provenance_table_dump_text(&(output_tables.provenances), MspTxtProvenanceTable);
 			
 			fclose(MspTxtNodeTable);
 			fclose(MspTxtEdgeTable);
 			fclose(MspTxtSiteTable);
 			fclose(MspTxtMutationTable);
 			fclose(MspTxtIndividualTable);
+			fclose(MspTxtProvenanceTable);
 		}
 		else
 		{
