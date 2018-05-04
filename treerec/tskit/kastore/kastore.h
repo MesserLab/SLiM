@@ -34,13 +34,15 @@
 
 #define KAS_INT8                0
 #define KAS_UINT8               1
-#define KAS_INT32               2
-#define KAS_UINT32              3
-#define KAS_INT64               4
-#define KAS_UINT64              5
-#define KAS_FLOAT32             6
-#define KAS_FLOAT64             7
-#define KAS_NUM_TYPES           8
+#define KAS_INT16               2
+#define KAS_UINT16              3
+#define KAS_INT32               4
+#define KAS_UINT32              5
+#define KAS_INT64               6
+#define KAS_UINT64              7
+#define KAS_FLOAT32             8
+#define KAS_FLOAT64             9
+#define KAS_NUM_TYPES           10
 
 #define KAS_READ                1
 #define KAS_WRITE               2
@@ -74,14 +76,46 @@ typedef struct {
 
 int kastore_open(kastore_t *self, const char *filename, const char *mode, int flags);
 int kastore_close(kastore_t *self);
-int kastore_gets(kastore_t *self, const char *key,
-       const void **array, size_t *array_len, int *type);
 int kastore_get(kastore_t *self, const char *key, size_t key_len,
-       const void **array, size_t *array_len, int *type);
+       void **array, size_t *array_len, int *type);
+int kastore_gets(kastore_t *self, const char *key,
+       void **array, size_t *array_len, int *type);
+int kastore_gets_int8(kastore_t *self, const char *key, int8_t **array, size_t *array_len);
+int kastore_gets_uint8(kastore_t *self, const char *key, uint8_t **array, size_t *array_len);
+int kastore_gets_int16(kastore_t *self, const char *key, int16_t **array, size_t *array_len);
+int kastore_gets_uint16(kastore_t *self, const char *key, uint16_t **array, size_t *array_len);
+int kastore_gets_int32(kastore_t *self, const char *key, int32_t **array, size_t *array_len);
+int kastore_gets_uint32(kastore_t *self, const char *key, uint32_t **array, size_t *array_len);
+int kastore_gets_int64(kastore_t *self, const char *key, int64_t **array, size_t *array_len);
+int kastore_gets_uint64(kastore_t *self, const char *key, uint64_t **array, size_t *array_len);
+int kastore_gets_float32(kastore_t *self, const char *key, float **array, size_t *array_len);
+int kastore_gets_float64(kastore_t *self, const char *key, double **array, size_t *array_len);
+
 int kastore_put(kastore_t *self, const char *key, size_t key_len,
        const void *array, size_t array_len, int type, int flags);
 int kastore_puts(kastore_t *self, const char *key,
        const void *array, size_t array_len, int type, int flags);
+/* Typed puts for convenience */
+int kastore_puts_uint8(kastore_t *self, const char *key, const uint8_t *array,
+        size_t array_len, int flags);
+int kastore_puts_int8(kastore_t *self, const char *key, const int8_t *array,
+        size_t array_len, int flags);
+int kastore_puts_int16(kastore_t *self, const char *key, const int16_t *array,
+        size_t array_len, int flags);
+int kastore_puts_uint16(kastore_t *self, const char *key, const uint16_t *array,
+        size_t array_len, int flags);
+int kastore_puts_int32(kastore_t *self, const char *key, const int32_t *array,
+        size_t array_len, int flags);
+int kastore_puts_uint32(kastore_t *self, const char *key, const uint32_t *array,
+        size_t array_len, int flags);
+int kastore_puts_int64(kastore_t *self, const char *key, const int64_t *array,
+        size_t array_len, int flags);
+int kastore_puts_uint64(kastore_t *self, const char *key, const uint64_t *array,
+        size_t array_len, int flags);
+int kastore_puts_float32(kastore_t *self, const char *key, const float *array,
+        size_t array_len, int flags);
+int kastore_puts_float64(kastore_t *self, const char *key, const double *array,
+        size_t array_len, int flags);
 
 const char *kas_strerror(int err);
 
