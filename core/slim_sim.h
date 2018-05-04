@@ -93,20 +93,21 @@ enum class SLiMFileFormat
 {
 	kFileNotFound = -1,
 	kFormatUnrecognized = 0,
-	kFormatSLiMText,			// as saved by outputFull(filePath, binary=F)
-	kFormatSLiMBinary,			// as saved by outputFull(filePath, binary=T)
-	kFormatMSPrimeText,			// as saved by treeSeqOutput(path, binary=F)
-	kFormatMSPrimeBinary		// as saved by treeSeqOutput(path, binary=T)
+	kFormatSLiMText,				// as saved by outputFull(filePath, binary=F)
+	kFormatSLiMBinary,				// as saved by outputFull(filePath, binary=T)
+	kFormatMSPrimeText,				// as saved by treeSeqOutput(path, binary=F)
+	kFormatMSPrimeBinary_HDF5,		// old file format, no longer supported
+	kFormatMSPrimeBinary_kastore,	// as saved by treeSeqOutput(path, binary=T)
 };
 
 
 // TREE SEQUENCE RECORDING
-// This struct is used by the tree-rec code to record all metadata about a mutation that needs to be saved.
-// Note that this information is a snapshot taken at the point the mutation is generated, and may become stale.
-// This should be kept in sync with any new state that needs to be written out about mutations, but of course
-// changing the members/size/layout of this struct will mean that old output files will no longer be readable.
-// Note we save only the mutation type id, not state from the mutation type such as the dominance coefficient.
-// Note that this struct is packed, and so accesses to it and within it may be unaligned.
+// These structs are used by the tree-rec code to record all metadata about an object that needs to be saved.
+// Note that this information is a snapshot taken at one point in time, and may become stale; be careful.
+// Changing these structs will break binary compatibility in our output files, and requires changes elsewhere.
+// Note that these structs are packed, and so accesses to them and within them may be unaligned; we assume
+// that is OK on the platforms we run on, so as to keep file sizes down.
+
 typedef struct __attribute__((__packed__)) {
 	slim_objectid_t mutation_type_id_;		// 4 bytes (int32_t): the id of the mutation type the mutation belongs to
 	slim_selcoeff_t selection_coeff_;		// 4 bytes (float): the selection coefficient
@@ -114,25 +115,22 @@ typedef struct __attribute__((__packed__)) {
 	slim_generation_t origin_generation_;	// 4 bytes (int32_t): the generation in which the mutation arose
 } MutationMetadataRec;
 
-static_assert(sizeof(MutationMetadataRec) == 16, "MutationMetadataRec is not 16 bytes!");
-
-// This struct is used by the tree-rec code to record all metadata about a genome that needs to be saved.
-// Note that this information is a snapshot taken at the point the genome is generated, and may become stale.
-// Some of this belongs to the individual, not the genome; at some point individual-level data may get archived
-// independently to avoid duplication, but for now all the same information is replicated in both genomes' metadata.
-// This should be kept in sync with any new state that needs to be written out about genomes, but of course
-// changing the members/size/layout of this struct will mean that old output files will no longer be readable.
-// Note that this struct is packed, and so accesses to it and within it may be unaligned.
 typedef struct __attribute__((__packed__)) {
-	// no pedigree IDs
 	slim_genomeid_t genome_id_;				// 8 bytes (int64_t): the SLiM genome ID for this genome, assigned by pedigree rec
-	IndividualSex sex_;						// 4 bytes (int32_t): the sex of the individual (H, F, M)	FIXME belongs in Individual metadata!
 	uint8_t is_null_;						// 1 byte (uint8_t): true if this is a null genome (should never contain mutations)
 	GenomeType type_;						// 1 byte (uint8_t): the type of the genome (A, X, Y)
 } GenomeMetadataRec;
 
-static_assert(sizeof(GenomeMetadataRec) == 14, "GenomeMetadataRec is not 14 bytes!");
+typedef struct __attribute__((__packed__)) {
+	slim_pedigreeid_t pedigree_id_;			// 8 bytes (int64_t): the SLiM pedigree ID for this individual, assigned by pedigree rec
+} IndividualMetadataRec;
 
+// We double-check the size of these records to make sure we understand what they contain and how they're packed
+static_assert(sizeof(MutationMetadataRec) == 16, "MutationMetadataRec is not 16 bytes!");
+static_assert(sizeof(GenomeMetadataRec) == 10, "GenomeMetadataRec is not 10 bytes!");
+static_assert(sizeof(IndividualMetadataRec) == 8, "IndividualMetadataRec is not 8 bytes!");
+
+// We check endianness on the platform we're building on; we assume little-endianness in our read/write code, I think.
 #if defined(__BYTE_ORDER__)
 #if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
 #warning Reading and writing binary files with SLiM may produce non-standard results on this (big-endian) platform due to endianness
@@ -306,7 +304,7 @@ private:
 	
 	// TABLE SIMPLIFICATION
     std::vector<node_id_t> RememberedGenomes;
-	Individual *current_new_individual_;
+	//Individual *current_new_individual_;
 	
 	bool recording_mutations_ = false;			// true if we are recording mutations in our tree sequence tables
 	bool running_treeseq_crosschecks_ = false;	// true if crosschecks between our tree sequence tables and SLiM's data are enabled
@@ -445,23 +443,25 @@ public:
 	inline __attribute__((always_inline)) bool RecordingTreeSequenceMutations(void) const									{ return recording_mutations_; }
 	inline __attribute__((always_inline)) void AboutToSplitSubpop(void)														{ tree_seq_generation_offset_ += 0.00001; }	// see Population::AddSubpopulationSplit()
 	
+	static void handle_error(std::string msg, int error);
+	static void MetadataForMutation(Mutation *p_mutation, MutationMetadataRec *p_metadata);
+	static void MetadataForSubstitution(Substitution *p_substitution, MutationMetadataRec *p_metadata);
+	static void MetadataForGenome(Genome *p_genome, GenomeMetadataRec *p_metadata);
+	static void MetadataForIndividual(Individual *p_individual, IndividualMetadataRec *p_metadata);
+	static void TreeSequenceDataToAscii(table_collection_t *p_tables);
+	
 	void StartTreeRecording(void);
 	void SetCurrentNewIndividual(Individual *p_individual);
 	void RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genome *p_new_genome, const Genome *p_initial_parental_genome, const Genome *p_second_parental_genome);
 	void RecordNewDerivedState(const Genome *p_genome, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations);
 	void RetractNewIndividual(void);
-    void TreeSequenceDataToAscii(table_collection_t *new_tables);
 	void WriteIndividualTable(table_collection_t *p_tables);
 	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify);
 	void SimplifyTreeSequence(void);
-	void handle_error(std::string msg, int error);
 	void CheckAutoSimplification(void);
 	void RememberGenomes(std::vector<const Genome *> p_genomes);
 	void FreeTreeSequence(void);
 	void RecordAllDerivedStatesFromSLiM(void);
-	void MetadataForMutation(Mutation *p_mutation, MutationMetadataRec *p_metadata);
-	void MetadataForSubstitution(Substitution *p_substitution, MutationMetadataRec *p_metadata);
-	void MetadataForGenome(Genome *p_genome, Individual *p_individual, GenomeMetadataRec *p_metadata);
 	void DumpMutationTable(void);
 	void CrosscheckTreeSeqIntegrity(void);
 	void TSXC_Enable(void);
