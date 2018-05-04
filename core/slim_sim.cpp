@@ -57,6 +57,9 @@ extern "C" {
 }
 #endif
 
+// TODO Fill these in for writing to the provenance table
+#define SLIM_VERSION        "X.Y"
+#define SLIM_FILE_VERSION   "0.1"
 
 #pragma mark -
 #pragma mark SLiMSim
@@ -4331,6 +4334,26 @@ void SLiMSim::WriteIndividualTable(table_collection_t *p_tables)
 	if (ret != 0) handle_error("individual_table_set_columns", ret);
 }
 
+void SLiMSim::WriteProvenanceTable(table_collection_t *p_tables)
+{
+    int ret = 0;
+    time_t timer;
+    size_t timestamp_size = 64;
+    char buffer[timestamp_size];
+    struct tm* tm_info;
+    char *provenance_str;
+    sprintf(provenance_str, "{\"program\"=\"SLiM\", \"version\"=\"%s\", \"file_version\"=\"%s\", \"generation\"=%d}",
+            SLIM_VERSION, SLIM_FILE_VERSION, Generation());
+
+    time(&timer);
+    tm_info = localtime(&timer);
+    strftime(buffer, timestamp_size, "%Y-%m-%dT%H:%M:%S", tm_info);
+
+    ret = provenance_table_add_row(&p_tables->provenances, buffer, strlen(buffer), provenance_str,
+            strlen(provenance_str));
+	if (ret != 0) handle_error("provenance_table_set_columns", ret);
+}
+
 void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify)
 {
 #if DEBUG
@@ -4376,6 +4399,9 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 	
 	// Add an individuals table to the table collection; individuals information comes from the time of output, not creation
 	WriteIndividualTable(&output_tables);
+
+    // Add a row to the Provenance table to record current state
+    WriteProvenanceTable(&output_tables);
 	
 	// Write out the copied tables
     if (p_binary)
