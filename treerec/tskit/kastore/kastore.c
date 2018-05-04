@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <errno.h>
+#include <stdbool.h>
 
 #include "kastore.h"
 
@@ -29,7 +30,7 @@ kas_strerror(int err)
             }
             break;
         case KAS_ERR_BAD_MODE:
-            ret = "Bad open mode; must be \"r\" or \"w\"";
+            ret = "Bad open mode; must be \"r\", \"w\", or \"a\"";
             break;
         case KAS_ERR_NO_MEMORY:
             ret = "Out of memory";
@@ -462,13 +463,36 @@ out:
     return ret;
 }
 
+static int KAS_WARN_UNUSED
+kastore_insert_all(kastore_t *self, kastore_t *other)
+{
+    size_t j;
+    int ret = 0;
+    kaitem_t item;
+
+    for (j = 0; j < other->num_items; j++) {
+        item = other->items[j];
+        ret = kastore_put(self, item.key, item.key_len, item.array, item.array_len,
+                item.type, 0);
+        if (ret != 0) {
+            goto out;
+        }
+    }
+out:
+    return ret;
+}
+
 int KAS_WARN_UNUSED
 kastore_open(kastore_t *self, const char *filename, const char *mode, int flags)
 {
     int ret = 0;
     const char *file_mode;
+    bool appending = false;
+    kastore_t tmp;
+    int err;
 
     memset(self, 0, sizeof(*self));
+    memset(&tmp, 0, sizeof(tmp));
     if (strlen(mode) != 1) {
         ret = KAS_ERR_BAD_MODE;
         goto out;
@@ -479,12 +503,29 @@ kastore_open(kastore_t *self, const char *filename, const char *mode, int flags)
     } else if (strncmp(mode, "w", 1) == 0) {
         self->mode = KAS_WRITE;
         file_mode = "wb";
+    } else if (strncmp(mode, "a", 1) == 0) {
+        self->mode = KAS_WRITE;
+        file_mode = "wb";
+        appending = true;
     } else {
         ret = KAS_ERR_BAD_MODE;
         goto out;
     }
     self->flags = flags;
     self->filename = filename;
+    if (appending) {
+        ret = kastore_open(&tmp, self->filename, "r", KAS_NO_MMAP);
+        if (ret != 0) {
+            goto out;
+        }
+        /* tmp will now have read all of the data into memory. We can now
+         * close its file. We have to do this for Windows. */
+        err = fclose(tmp.file);
+        tmp.file = NULL;
+        if (err != 0) {
+            ret = KAS_ERR_IO;
+        }
+    }
     self->file = fopen(filename, file_mode);
     if (self->file == NULL) {
         ret = KAS_ERR_IO;
@@ -492,8 +533,13 @@ kastore_open(kastore_t *self, const char *filename, const char *mode, int flags)
     }
     if (self->mode == KAS_READ) {
         ret = kastore_read(self);
+    } else if (appending) {
+        ret = kastore_insert_all(self, &tmp);
     }
 out:
+    if (appending) {
+        kastore_close(&tmp);
+    }
     return ret;
 }
 
@@ -514,9 +560,10 @@ kastore_close(kastore_t *self)
             }
         }
         if (self->items != NULL) {
-            /* We only alloc memory for the keys in write mode */
+            /* We only alloc memory for the keys and arrays in write mode */
             for (j = 0; j < self->num_items; j++) {
                 kas_safe_free(self->items[j].key);
+                kas_safe_free(self->items[j].array);
             }
         }
     }
@@ -589,7 +636,7 @@ kastore_put(kastore_t *self, const char *key, size_t key_len,
     int ret = 0;
     kaitem_t *new_item;
     void *p;
-    size_t j;
+    size_t j, array_size;
 
     if (self->mode != KAS_WRITE) {
         ret = KAS_ERR_ILLEGAL_OPERATION;
@@ -613,17 +660,20 @@ kastore_put(kastore_t *self, const char *key, size_t key_len,
     self->items = p;
     new_item = self->items + self->num_items;
     self->num_items++;
+
     memset(new_item, 0, sizeof(*new_item));
     new_item->type = type;
+    new_item->key_len = key_len;
+    new_item->array_len = array_len;
+    array_size = type_size(type) * array_len;
     new_item->key = malloc(key_len);
-    if (new_item->key == NULL) {
+    new_item->array = malloc(array_size == 0? 1: array_size);
+    if (new_item->key == NULL || new_item->array == NULL) {
         ret = KAS_ERR_NO_MEMORY;
         goto out;
     }
     memcpy(new_item->key, key, key_len);
-    new_item->key_len = key_len;
-    new_item->array = array;
-    new_item->array_len = array_len;
+    memcpy(new_item->array, array, array_size);
 
     /* Check if this key is already in here. OK, this is a quadratic time
      * algorithm, but we're not expecting to have lots of items (< 100). In
@@ -634,7 +684,8 @@ kastore_put(kastore_t *self, const char *key, size_t key_len,
         if (compare_items(new_item, self->items + j) == 0) {
             /* Free the key memory and remove this item */
             self->num_items--;
-            free(new_item->key);
+            kas_safe_free(new_item->key);
+            kas_safe_free(new_item->array);
             ret = KAS_ERR_DUPLICATE_KEY;
             goto out;
         }

@@ -55,7 +55,7 @@ typedef struct {
     size_t key_len;
     size_t array_len;
     char *key;
-    const void *array;
+    void *array;
     size_t key_start;
     size_t array_start;
 } kaitem_t;

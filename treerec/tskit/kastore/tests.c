@@ -43,8 +43,27 @@ test_open_io_errors(void)
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
 
+    /* Append a non existent file */
+    ret = kastore_open(&store, "", "a", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_IO);
+    CU_ASSERT_EQUAL_FATAL(errno, ENOENT);
+    msg1 = kas_strerror(KAS_ERR_IO);
+    msg2 = strerror(errno);
+    CU_ASSERT_STRING_EQUAL(msg1, msg2);
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
     /* Read a directory */
     ret = kastore_open(&store, "/", "r", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_IO);
+    CU_ASSERT_EQUAL_FATAL(errno, EISDIR)
+    msg1 = kas_strerror(KAS_ERR_IO);
+    msg2 = strerror(errno);
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    /* Append a directory */
+    ret = kastore_open(&store, "/", "a", 0);
     CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_IO);
     CU_ASSERT_EQUAL_FATAL(errno, EISDIR)
     msg1 = kas_strerror(KAS_ERR_IO);
@@ -61,7 +80,6 @@ test_open_io_errors(void)
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
 
-
     /* Write without permissions */
     ret = kastore_open(&store, "/noway.kas", "w", 0);
     CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_IO);
@@ -77,6 +95,28 @@ test_open_io_errors(void)
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
 
+    /* Appending /dev/null gives an error. */
+    ret = kastore_open(&store, "/dev/null", "a", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_BAD_FILE_FORMAT);
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+}
+
+static void
+test_append_empty_file(void)
+{
+    int ret;
+    kastore_t store;
+    FILE *f;
+
+    f = fopen(_tmp_file_name, "w");
+    CU_ASSERT_FATAL(f != NULL);
+    fclose(f);
+
+    ret = kastore_open(&store, _tmp_file_name, "a", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_BAD_FILE_FORMAT);
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
 }
 
 static void
@@ -143,37 +183,47 @@ verify_key_round_trip(const char **keys, size_t num_keys)
 {
     int ret;
     kastore_t store;
-    size_t j;
+    size_t j, m;
     uint32_t array[] = {1};
     uint32_t *a;
     size_t array_len;
     int type;
+    const char* modes[] = {"a", "w"};
 
-    ret = kastore_open(&store, _tmp_file_name, "w", 0);
-    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    for (m = 0; m < 2; m++) {
+        if (m == 0) {
+            /* Write an empty kastore first so we can append to it */
+            ret = kastore_open(&store, _tmp_file_name, "w", 0);
+            CU_ASSERT_EQUAL_FATAL(ret, 0);
+            ret = kastore_close(&store);
+            CU_ASSERT_EQUAL_FATAL(ret, 0);
+        }
+        ret = kastore_open(&store, _tmp_file_name, modes[m], 0);
+        CU_ASSERT_EQUAL_FATAL(ret, 0);
 
-    for (j = 0; j < num_keys; j++) {
-        ret = kastore_put(&store, keys[j], strlen(keys[j]), array, 1, KAS_UINT32, 0);
+        for (j = 0; j < num_keys; j++) {
+            ret = kastore_put(&store, keys[j], strlen(keys[j]), array, 1, KAS_UINT32, 0);
+            CU_ASSERT_EQUAL_FATAL(ret, 0);
+        }
+        ret = kastore_close(&store);
+        CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+        ret = kastore_open(&store, _tmp_file_name, "r", 0);
+        CU_ASSERT_EQUAL_FATAL(ret, 0);
+        kastore_print_state(&store, _devnull);
+
+        CU_ASSERT_EQUAL(store.num_items, num_keys);
+        for (j = 0; j < num_keys; j++) {
+            ret = kastore_get(&store, keys[j], strlen(keys[j]),
+                    (const void **) &a, &array_len, &type);
+            CU_ASSERT_EQUAL_FATAL(ret, 0);
+            CU_ASSERT_EQUAL(type, KAS_UINT32);
+            CU_ASSERT_EQUAL(array_len, 1);
+            CU_ASSERT_EQUAL(a[0], 1);
+        }
+        ret = kastore_close(&store);
         CU_ASSERT_EQUAL_FATAL(ret, 0);
     }
-    ret = kastore_close(&store);
-    CU_ASSERT_EQUAL_FATAL(ret, 0);
-
-    ret = kastore_open(&store, _tmp_file_name, "r", 0);
-    CU_ASSERT_EQUAL_FATAL(ret, 0);
-    kastore_print_state(&store, _devnull);
-
-    CU_ASSERT_EQUAL(store.num_items, num_keys);
-    for (j = 0; j < num_keys; j++) {
-        ret = kastore_get(&store, keys[j], strlen(keys[j]),
-                (const void **) &a, &array_len, &type);
-        CU_ASSERT_EQUAL_FATAL(ret, 0);
-        CU_ASSERT_EQUAL(type, KAS_UINT32);
-        CU_ASSERT_EQUAL(array_len, 1);
-        CU_ASSERT_EQUAL(a[0], 1);
-    }
-    ret = kastore_close(&store);
-    CU_ASSERT_EQUAL_FATAL(ret, 0);
 }
 
 static void
@@ -276,7 +326,13 @@ test_get_write_mode(void)
     CU_ASSERT_EQUAL_FATAL(ret, 0);
     ret = kastore_gets(&store, "xyz", (const void **) &a, &array_len, &type);
     CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_ILLEGAL_OPERATION);
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
 
+    ret = kastore_open(&store, _tmp_file_name, "a", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_gets(&store, "xyz", (const void **) &a, &array_len, &type);
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_ILLEGAL_OPERATION);
     ret = kastore_close(&store);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
 }
@@ -373,6 +429,70 @@ test_simple_round_trip(void)
 }
 
 static void
+test_simple_round_trip_append(void)
+{
+    int ret;
+    kastore_t store;
+    const uint32_t array[] = {1, 2, 3, 4};
+    uint32_t *a;
+    size_t j, array_len;
+    int type;
+    int flags[] = {0, 1};
+
+    ret = kastore_open(&store, _tmp_file_name, "w", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_puts(&store, "c", array, 4, KAS_UINT32, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    ret = kastore_open(&store, _tmp_file_name, "a", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_puts(&store, "b", array, 2, KAS_UINT32, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    ret = kastore_open(&store, _tmp_file_name, "a", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_puts(&store, "a", array, 1, KAS_UINT32, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    for (j = 0; j < sizeof(flags) / sizeof(*flags); j++) {
+        ret = kastore_open(&store, _tmp_file_name, "r", flags[j]);
+        CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+        CU_ASSERT_EQUAL(store.num_items, 3);
+        ret = kastore_gets(&store, "a", (const void **) &a, &array_len, &type);
+        CU_ASSERT_EQUAL_FATAL(ret, 0);
+        CU_ASSERT_EQUAL(type, KAS_UINT32);
+        CU_ASSERT_EQUAL(array_len, 1);
+        CU_ASSERT_EQUAL(a[0], 1);
+
+        ret = kastore_gets(&store, "b", (const void **) &a, &array_len, &type);
+        CU_ASSERT_EQUAL_FATAL(ret, 0);
+        CU_ASSERT_EQUAL(type, KAS_UINT32);
+        CU_ASSERT_EQUAL(array_len, 2);
+        CU_ASSERT_EQUAL(a[0], 1);
+        CU_ASSERT_EQUAL(a[1], 2);
+
+        ret = kastore_gets(&store, "c", (const void **) &a, &array_len, &type);
+        CU_ASSERT_EQUAL_FATAL(ret, 0);
+        CU_ASSERT_EQUAL(type, KAS_UINT32);
+        CU_ASSERT_EQUAL(array_len, 4);
+        CU_ASSERT_EQUAL(a[0], 1);
+        CU_ASSERT_EQUAL(a[1], 2);
+        CU_ASSERT_EQUAL(a[2], 3);
+        CU_ASSERT_EQUAL(a[3], 4);
+
+        ret = kastore_close(&store);
+        CU_ASSERT_EQUAL_FATAL(ret, 0);
+    }
+}
+
+static void
 verify_bad_file(const char *filename, int err)
 {
     int ret;
@@ -397,7 +517,7 @@ test_empty_file(void)
 }
 
 static void
-test_bad_type(void)
+test_read_bad_types(void)
 {
     verify_bad_file("test-data/malformed/bad_type_9.kas", KAS_ERR_BAD_TYPE);
     verify_bad_file("test-data/malformed/bad_type_16.kas", KAS_ERR_BAD_TYPE);
@@ -634,6 +754,7 @@ main(int argc, char **argv)
     CU_TestInfo tests[] = {
         {"test_bad_open_mode", test_bad_open_mode},
         {"test_open_io_errors", test_open_io_errors},
+        {"test_append_empty_file", test_append_empty_file},
         {"test_write_errors", test_write_errors},
         {"test_strerror", test_strerror},
         {"test_empty_key", test_empty_key},
@@ -646,8 +767,9 @@ main(int argc, char **argv)
         {"test_missing_key", test_missing_key},
         {"test_bad_types", test_bad_types},
         {"test_simple_round_trip", test_simple_round_trip},
+        {"test_simple_round_trip_append", test_simple_round_trip_append},
         {"test_empty_file", test_empty_file},
-        {"test_bad_types", test_bad_type},
+        {"test_read_bad_types", test_read_bad_types},
         {"test_bad_filesizes", test_bad_filesizes},
         {"test_bad_magic_number", test_bad_magic_number},
         {"test_version_0", test_version_0},
