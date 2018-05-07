@@ -4134,6 +4134,35 @@ void SLiMSim::CheckAutoSimplification(void)
 	}
 }
 
+void SLiMSim::TreeSequenceDataFromAscii(table_collection_t *p_tables,
+                    std::string NodeFileName,
+                    std::string EdgeFileName,
+                    std::string SiteFileName,
+                    std::string MutationFileName,
+                    std::string IndividualsFileName,
+                    std::string ProvenanceFileName)
+{
+    FILE *MspTxtNodeTable = fopen(NodeFileName.c_str(),"r");
+    FILE *MspTxtEdgeTable = fopen(EdgeFileName.c_str(),"r");
+    FILE *MspTxtSiteTable = fopen(SiteFileName.c_str(),"r");
+    FILE *MspTxtMutationTable = fopen(MutationFileName.c_str(),"r");
+    FILE *MspTxtIndividualTable = fopen(IndividualsFileName.c_str(),"r");
+    FILE *MspTxtProvenanceTable = fopen(ProvenanceFileName.c_str(),"r");
+
+    int ret = table_collection_alloc(p_tables, MSP_ALLOC_TABLES);
+    if (ret < 0) handle_error("read_from_ascii", ret);
+
+    ret = table_collection_from_text(p_tables,
+            MspTxtNodesTable,
+            MspTxtEdgesTable,
+            NULL, // migrations
+            MspTxtSitesTable,
+            MspTxtMutationsTable,
+            MspTxtIndividualsTable,
+            MspTxtProvenanceTable);
+    if (ret < 0) handle_error("read_from_ascii", ret);
+}
+
 void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
 {
 	// This modifies p_tables in place, replacing the metadata and derived_state columns of p_tables with ASCII versions.
