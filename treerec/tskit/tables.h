@@ -471,6 +471,8 @@ void table_collection_set_position(table_collection_position_t *position,
 void table_collection_current_position(table_collection_position_t *position);
 int table_collection_reset_position(table_collection_position_t *position);
 
+int table_collection_load_text(table_collection_t *tables, FILE *nodes, FILE *edges,
+        FILE *sites, FILE *mutations, FILE *migrations, FILE *individuals, FILE *provenances);
 
 #ifdef __cplusplus
 }

@@ -459,6 +459,9 @@ public:
 	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify);
 	void SimplifyTreeSequence(void);
 	void CheckAutoSimplification(void);
+    void TreeSequenceDataFromAscii(table_collection_t *p_tables, std::string NodeFileName, 
+            std::string EdgeFileName, std::string SiteFileName, std::string MutationFileName, 
+            std::string IndividualsFileName, std::string ProvenanceFileName);
 	void RememberGenomes(std::vector<const Genome *> p_genomes);
 	void FreeTreeSequence(void);
 	void RecordAllDerivedStatesFromSLiM(void);

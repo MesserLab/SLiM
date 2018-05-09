@@ -4152,13 +4152,13 @@ void SLiMSim::TreeSequenceDataFromAscii(table_collection_t *p_tables,
     int ret = table_collection_alloc(p_tables, MSP_ALLOC_TABLES);
     if (ret < 0) handle_error("read_from_ascii", ret);
 
-    ret = table_collection_from_text(p_tables,
-            MspTxtNodesTable,
-            MspTxtEdgesTable,
+    ret = table_collection_load_text(p_tables,
+            MspTxtNodeTable,
+            MspTxtEdgeTable,
             NULL, // migrations
-            MspTxtSitesTable,
-            MspTxtMutationsTable,
-            MspTxtIndividualsTable,
+            MspTxtSiteTable,
+            MspTxtMutationTable,
+            MspTxtIndividualTable,
             MspTxtProvenanceTable);
     if (ret < 0) handle_error("read_from_ascii", ret);
 }
