@@ -1461,7 +1461,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromMSPrimeBinaryFile(const char
 	if (ret != 0) handle_error("table_collection_free", ret);
 	
 	// read the file from disk
-	ret = table_collection_alloc(&tables, MSP_ALLOC_TABLES);
+	ret = table_collection_alloc(&tables, 0);
 	if (ret != 0) handle_error("table_collection_alloc", ret);
 	
 	ret = table_collection_load(&tables, p_file, 0);
