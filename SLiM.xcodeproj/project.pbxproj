@@ -554,6 +554,8 @@
 		98F65D541DF145230058BD29 /* TipsWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = 98F65D531DF145230058BD29 /* TipsWindowController.m */; };
 		98F65D561DF14DA50058BD29 /* Tips in Resources */ = {isa = PBXBuildFile; fileRef = 98F65D551DF14DA40058BD29 /* Tips */; };
 		98F65D5A1DF39F9D0058BD29 /* Tip_END.rtfd in Resources */ = {isa = PBXBuildFile; fileRef = 98F65D591DF39F9D0058BD29 /* Tip_END.rtfd */; };
+		D0A758F720A4CC9800132D2F /* text_input.c in Sources */ = {isa = PBXBuildFile; fileRef = D0A758F620A4CC9800132D2F /* text_input.c */; };
+		D0A758F920A4CCCF00132D2F /* text_input.c in Sources */ = {isa = PBXBuildFile; fileRef = D0A758F620A4CC9800132D2F /* text_input.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -1024,6 +1026,8 @@
 		98F65D531DF145230058BD29 /* TipsWindowController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TipsWindowController.m; sourceTree = "<group>"; };
 		98F65D551DF14DA40058BD29 /* Tips */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Tips; path = SLiMgui/Tips; sourceTree = "<group>"; };
 		98F65D591DF39F9D0058BD29 /* Tip_END.rtfd */ = {isa = PBXFileReference; lastKnownFileType = wrapper.rtfd; path = Tip_END.rtfd; sourceTree = "<group>"; };
+		D0A758F620A4CC9800132D2F /* text_input.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = text_input.c; path = treerec/tskit/text_input.c; sourceTree = "<group>"; };
+		D0A758F820A4CCC900132D2F /* trees.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = trees.h; path = treerec/tskit/trees.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1519,6 +1523,8 @@
 		98BCF14F200C5FDB00CB2837 /* treerec */ = {
 			isa = PBXGroup;
 			children = (
+				D0A758F820A4CCC900132D2F /* trees.h */,
+				D0A758F620A4CC9800132D2F /* text_input.c */,
 				987D19A2209A535E0030D28D /* kastore */,
 				986764AB2089066A00E81B2E /* msprime.h */,
 				986764A82089066A00E81B2E /* avl.h */,
@@ -2289,6 +2295,7 @@
 				98C821351C7A980000548839 /* rng.c in Sources */,
 				98332ACE1FDBA81A00274FF0 /* oper.c in Sources */,
 				98C821291C7A980000548839 /* beta.c in Sources */,
+				D0A758F720A4CC9800132D2F /* text_input.c in Sources */,
 				98C821A31C7A99F000548839 /* pow_int.c in Sources */,
 				98C8212F1C7A980000548839 /* lognormal.c in Sources */,
 			);
@@ -2500,6 +2507,7 @@
 				98D4C1D41A6F541700FFB083 /* slim_sim.cpp in Sources */,
 				984AD1961DF54E3C002D4AC8 /* ChromosomeGLView.mm in Sources */,
 				98C8215D1C7A983700548839 /* zeta.c in Sources */,
+				D0A758F920A4CCCF00132D2F /* text_input.c in Sources */,
 				98C821591C7A983700548839 /* log.c in Sources */,
 				98DE4C281B713F4C004FDF5F /* ScriptMod_OutputSubpopSample.mm in Sources */,
 				988880ED20744F0100E10172 /* cauchy.c in Sources */,

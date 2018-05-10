@@ -2757,7 +2757,7 @@ bool SLiMSim::_RunOneGeneration(void)
 
 #ifdef SLIM_WF_ONLY
 //
-//		_RunOneGenerationWF() : runs all the stages for one generation of a nonWF model
+//		_RunOneGenerationWF() : runs all the stages for one generation of a WF model
 //
 bool SLiMSim::_RunOneGenerationWF(void)
 {
@@ -5167,7 +5167,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeInteractionType(const st
 	IndividualSex receiver_sex = IndividualSex::kUnspecified, exerter_sex = IndividualSex::kUnspecified;
 	
 	if (interaction_types_.count(map_identifier) > 0) 
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeInteractionType): initializeInteractionType() mutation type m" << map_identifier << " already defined." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeInteractionType): initializeInteractionType() interaction type m" << map_identifier << " already defined." << EidosTerminate();
 	
 	if (spatiality_string.length() == 0)					required_dimensionality = 0;
 	else if (spatiality_string.compare(gEidosStr_x) == 0)	required_dimensionality = 1;
