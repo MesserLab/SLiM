@@ -2621,6 +2621,11 @@ void InteractionType::FindNeighborsN_3(SLiM_kdNode *root, double *nd, slim_popsi
 
 void InteractionType::FindNeighbors(Subpopulation *p_subpop, InteractionsData &p_subpop_data, double *p_point, int p_count, EidosValue_Object_vector &p_result_vec, Individual *p_excluded_individual)
 {
+    int subpop_size = (int)p_subpop_data.individual_count_;
+    if (subpop_size == 0) {
+        // TODO: maybe actually want to return a null vector here?!?
+        EIDOS_TERMINATION << "ERROR (InteractionType::TotalNeighborStrength): the selected population has no individuals." << EidosTerminate();
+    }
 	if (spatiality_ == 0)
 	{
 		EIDOS_TERMINATION << "ERROR (InteractionType::FindNeighbors): (internal error) neighbors cannot be found for non-spatial interactions." << EidosTerminate();
@@ -3463,6 +3468,11 @@ double InteractionType::TotalNeighborStrengthA_3_reciprocal_PERIODIC(SLiM_kdNode
 
 double InteractionType::TotalNeighborStrength(Subpopulation *p_subpop, InteractionsData &p_subpop_data, double *p_point, Individual *p_excluded_individual)
 {
+    int subpop_size = (int)p_subpop_data.individual_count_;
+    if (subpop_size == 0) {
+        // TODO: maybe actually want to return a null vector here?!?
+        EIDOS_TERMINATION << "ERROR (InteractionType::TotalNeighborStrength): the selected population has no individuals." << EidosTerminate();
+    }
 	if (spatiality_ == 0)
 	{
 		EIDOS_TERMINATION << "ERROR (InteractionType::TotalNeighborStrength): (internal error) neighbors cannot be found for non-spatial interactions." << EidosTerminate();
@@ -3478,7 +3488,6 @@ double InteractionType::TotalNeighborStrength(Subpopulation *p_subpop, Interacti
 	else
 	{
 		slim_popsize_t focal_index = p_excluded_individual->index_;
-		int subpop_size = (int)p_subpop_data.individual_count_;
 		double *focal_strengths = p_subpop_data.strengths_ + focal_index * subpop_size;
 		double *mirror_strengths = p_subpop_data.strengths_ + focal_index;				// for reciprocality
 		double *focal_distances = p_subpop_data.distances_ + focal_index * subpop_size;
@@ -4206,6 +4215,11 @@ void InteractionType::FillNeighborStrengthsA_3_reciprocal_PERIODIC(SLiM_kdNode *
 
 void InteractionType::FillNeighborStrengths(Subpopulation *p_subpop, InteractionsData &p_subpop_data, double *p_point, Individual *p_excluded_individual, double *p_result_vec)
 {
+    int subpop_size = (int)p_subpop_data.individual_count_;
+    if (subpop_size == 0) {
+        // TODO: maybe actually want to return a null vector here?!?
+        EIDOS_TERMINATION << "ERROR (InteractionType::TotalNeighborStrength): the selected population has no individuals." << EidosTerminate();
+    }
 	if (spatiality_ == 0)
 	{
 		EIDOS_TERMINATION << "ERROR (InteractionType::FillNeighborStrengths): (internal error) neighbors cannot be found for non-spatial interactions." << EidosTerminate();
@@ -4221,7 +4235,6 @@ void InteractionType::FillNeighborStrengths(Subpopulation *p_subpop, Interaction
 	else
 	{
 		slim_popsize_t focal_index = p_excluded_individual->index_;
-		int subpop_size = (int)p_subpop_data.individual_count_;
 		double *focal_strengths = p_subpop_data.strengths_ + focal_index * subpop_size;
 		double *mirror_strengths = p_subpop_data.strengths_ + focal_index;				// for reciprocality
 		double *focal_distances = p_subpop_data.distances_ + focal_index * subpop_size;
