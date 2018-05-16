@@ -608,7 +608,7 @@ static float *glArrayColors = nil;
 				
 				if (mut_info.neutral_ == plotting_neutral)
 				{
-					int mut_position = mut_info.position_;
+					slim_position_t mut_position = mut_info.position_;
 					float left = (float)(interior.origin.x + ((mut_position - width_subtractor) / width_divisor) * interior.size.width);
 					float right = (float)(interior.origin.x + ((mut_position - width_subtractor + 1) / width_divisor) * interior.size.width);
 					
@@ -711,12 +711,12 @@ static float *glArrayColors = nil;
 {
 	const int stripWidth = 15;
 	int genome_count = (int)displayList->size();
-	int width = (int)interior.size.width;
+	slim_position_t width = (int)interior.size.width;
 	int height = (int)interior.size.height;
 	
 	// We don't draw lines thicker than one pixel, so we reduce our dimensions if they are too large
 	// This is the one respect in which we don't try to exactly mirror the appearance of the GL view
-	int ideal_pixel_width = (usingSubrange ? (subrangeLastBase - subrangeFirstBase + 1) : (mutationLastPosition + 1));
+	slim_position_t ideal_pixel_width = (usingSubrange ? (subrangeLastBase - subrangeFirstBase + 1) : (mutationLastPosition + 1));
 	
 	if (showSubpopStrips)
 		ideal_pixel_width += stripWidth;
@@ -805,7 +805,7 @@ static float *glArrayColors = nil;
 				
 				if (mut_info.neutral_ == plotting_neutral)
 				{
-					int mut_position = mut_info.position_;
+					slim_position_t mut_position = mut_info.position_;
 					int pixel_x = (int)floorf((float)(((mut_position - width_subtractor) / width_divisor) * width));
 					int32_t pixel_value;
 					
@@ -947,7 +947,7 @@ static float *glArrayColors = nil;
 		Genome *genome1 = genomes[i];
 		int64_t *distance_column = distances + i;
 		int64_t *distance_row = distances + i * genome_count;
-		int mutrun_length = genome1->mutrun_length_;
+		slim_position_t mutrun_length = genome1->mutrun_length_;
 		int mutrun_count = genome1->mutrun_count_;
 		MutationRun_SP *genome1_mutruns = genome1->mutruns_;
 		
@@ -1141,7 +1141,7 @@ static float *glArrayColors = nil;
 		Genome *genome1 = genomes[i];
 		int64_t *distance_column = distances + i;
 		int64_t *distance_row = distances + i * genome_count;
-		int mutrun_length = genome1->mutrun_length_;
+		slim_position_t mutrun_length = genome1->mutrun_length_;
 		int mutrun_count = genome1->mutrun_count_;
 		MutationRun_SP *genome1_mutruns = genome1->mutruns_;
 		

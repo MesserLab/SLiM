@@ -24,10 +24,7 @@
 #include <sys/time.h>
 
 
-gsl_rng *gEidos_rng = nullptr;
-int gEidos_random_bool_bit_counter = 0;
-uint32_t gEidos_random_bool_bit_buffer = 0;
-unsigned long int gEidos_rng_last_seed = 0;				// unsigned long int is the type used by gsl_rng_set()
+Eidos_RNG_State gEidos_RNG;
 
 
 unsigned long int Eidos_GenerateSeedFromPIDAndTime(void)
@@ -46,32 +43,61 @@ unsigned long int Eidos_GenerateSeedFromPIDAndTime(void)
 	return (unsigned long int)milliseconds;
 }
 
-void Eidos_InitializeRNGFromSeed(unsigned long int p_seed)
+void Eidos_InitializeRNG(void)
 {
 	// Allocate the RNG if needed
-	if (!gEidos_rng)
-		gEidos_rng = gsl_rng_alloc(gsl_rng_taus2);	// the assumption of taus2 is hard-coded in eidos_rng.h
+	if (!gEidos_RNG.gsl_rng_)
+		gEidos_RNG.gsl_rng_ = gsl_rng_alloc(gsl_rng_taus2);	// the assumption of taus2 is hard-coded in eidos_rng.h
 	
-	// Then set the seed as requested
+	if (!gEidos_RNG.mt_)
+	{
+		gEidos_RNG.mt_ = (uint64_t *)malloc(Eidos_MT64_NN * sizeof(uint64_t));
+		gEidos_RNG.mti_ = Eidos_MT64_NN + 1;				// mti==NN+1 means mt[NN] is not initialized
+	}
+}
+
+void Eidos_FreeRNG(Eidos_RNG_State &p_rng)
+{
+	if (p_rng.gsl_rng_)
+	{
+		gsl_rng_free(p_rng.gsl_rng_);
+		p_rng.gsl_rng_ = NULL;
+	}
 	
+	if (p_rng.mt_)
+	{
+		free(p_rng.mt_);
+		p_rng.mt_ = NULL;
+	}
+	p_rng.mti_ = 0;
+	
+	p_rng.random_bool_bit_buffer_ = 0;
+	p_rng.random_bool_bit_counter_ = 0;
+}
+
+void Eidos_SetRNGSeed(unsigned long int p_seed)
+{
 	// BCH 12 Sept. 2016: it turns out that gsl_rng_taus2 produces exactly the same sequence for seeds 0 and 1.  This is obviously
 	// undesirable; people will often do a set of runs with sequential seeds starting at 0 and counting up, and they will get
 	// identical runs for 0 and 1.  There is no way to re-map the seed space to get rid of the problem altogether; all we can do
 	// is shift it to a place where it is unlikely to cause a problem.  So that's what we do.
 	if ((p_seed > 0) && (p_seed < 10000000000000000000UL))
-		gsl_rng_set(gEidos_rng, p_seed + 1);	// map 1 -> 2, 2-> 3, 3-> 4, etc.
+		gsl_rng_set(gEidos_RNG.gsl_rng_, p_seed + 1);	// map 1 -> 2, 2-> 3, 3-> 4, etc.
 	else
-		gsl_rng_set(gEidos_rng, p_seed);		// 0 stays 0
+		gsl_rng_set(gEidos_RNG.gsl_rng_, p_seed);		// 0 stays 0
+	
+	// BCH 13 May 2018: set the seed on the MT64 generator as well; we keep them synchronized in their seeding
+	Eidos_MT64_init_genrand64(p_seed);
 	
 	// remember the seed as part of the RNG state
 	
 	// BCH 12 Sept. 2016: we want to return the user the same seed they requested, if they call getSeed(), so we save the requested
 	// seed, not the seed shifted by one that is actually passed to the GSL above.
-	gEidos_rng_last_seed = p_seed;
+	gEidos_RNG.rng_last_seed_ = p_seed;
 	
 	// These need to be zeroed out, too; they are part of our RNG state
-	gEidos_random_bool_bit_counter = 0;
-	gEidos_random_bool_bit_buffer = 0;
+	gEidos_RNG.random_bool_bit_counter_ = 0;
+	gEidos_RNG.random_bool_bit_buffer_ = 0;
 }
 
 #ifndef USE_GSL_POISSON
@@ -93,6 +119,79 @@ double Eidos_FastRandomPoisson_PRECALCULATE(double p_mu)
 	return exp(-p_mu);
 }
 #endif
+
+
+#pragma mark -
+#pragma mark 64-bit MT
+#pragma mark -
+
+// This is a 64-bit Mersenne Twister implementation.  The code below is used in accordance with its license,
+// reproduced in eidos_rng.h.  See eidos_rng.h for further comments on this code; most of the code is there.
+
+/* initializes mt[NN] with a seed */
+void Eidos_MT64_init_genrand64(uint64_t seed)
+{
+	gEidos_RNG.mt_[0] = seed;
+	for (gEidos_RNG.mti_ = 1; gEidos_RNG.mti_ < Eidos_MT64_NN; gEidos_RNG.mti_++) 
+		gEidos_RNG.mt_[gEidos_RNG.mti_] =  (6364136223846793005ULL * (gEidos_RNG.mt_[gEidos_RNG.mti_ - 1] ^ (gEidos_RNG.mt_[gEidos_RNG.mti_ - 1] >> 62)) + gEidos_RNG.mti_);
+}
+
+/* initialize by an array with array-length */
+/* init_key is the array for initializing keys */
+/* key_length is its length */
+void Eidos_MT64_init_by_array64(uint64_t init_key[],
+					 uint64_t key_length)
+{
+	uint64_t i, j, k;
+	Eidos_MT64_init_genrand64(19650218ULL);
+	i=1; j=0;
+	k = (Eidos_MT64_NN>key_length ? Eidos_MT64_NN : key_length);
+	for (; k; k--) {
+		gEidos_RNG.mt_[i] = (gEidos_RNG.mt_[i] ^ ((gEidos_RNG.mt_[i-1] ^ (gEidos_RNG.mt_[i-1] >> 62)) * 3935559000370003845ULL))
+		+ init_key[j] + j; /* non linear */
+		i++; j++;
+		if (i>=Eidos_MT64_NN) { gEidos_RNG.mt_[0] = gEidos_RNG.mt_[Eidos_MT64_NN-1]; i=1; }
+		if (j>=key_length) j=0;
+	}
+	for (k=Eidos_MT64_NN-1; k; k--) {
+		gEidos_RNG.mt_[i] = (gEidos_RNG.mt_[i] ^ ((gEidos_RNG.mt_[i-1] ^ (gEidos_RNG.mt_[i-1] >> 62)) * 2862933555777941757ULL))
+		- i; /* non linear */
+		i++;
+		if (i>=Eidos_MT64_NN) { gEidos_RNG.mt_[0] = gEidos_RNG.mt_[Eidos_MT64_NN-1]; i=1; }
+	}
+	
+	gEidos_RNG.mt_[0] = 1ULL << 63; /* MSB is 1; assuring non-zero initial array */ 
+}
+
+/* BCH: fill the next Eidos_MT64_NN words; used internally by genrand64_int64() */
+void _Eidos_MT64_fill()
+{
+	/* generate NN words at one time */
+	/* if init_genrand64() has not been called, */
+	/* a default initial seed is used     */
+	int i;
+	static uint64_t mag01[2]={0ULL, Eidos_MT64_MATRIX_A};
+	uint64_t x;
+	
+	// In the original code, this would fall back to some default seed value, but we
+	// don't want to allow the RNG to be used without being seeded first.  BCH 5/13/2018
+	if (gEidos_RNG.mti_ == Eidos_MT64_NN+1) 
+		abort(); 
+	
+	for (i=0;i<Eidos_MT64_NN-Eidos_MT64_MM;i++) {
+		x = (gEidos_RNG.mt_[i]&Eidos_MT64_UM)|(gEidos_RNG.mt_[i+1]&Eidos_MT64_LM);
+		gEidos_RNG.mt_[i] = gEidos_RNG.mt_[i+Eidos_MT64_MM] ^ (x>>1) ^ mag01[(int)(x&1ULL)];
+	}
+	for (;i<Eidos_MT64_NN-1;i++) {
+		x = (gEidos_RNG.mt_[i]&Eidos_MT64_UM)|(gEidos_RNG.mt_[i+1]&Eidos_MT64_LM);
+		gEidos_RNG.mt_[i] = gEidos_RNG.mt_[i+(Eidos_MT64_MM-Eidos_MT64_NN)] ^ (x>>1) ^ mag01[(int)(x&1ULL)];
+	}
+	x = (gEidos_RNG.mt_[Eidos_MT64_NN-1]&Eidos_MT64_UM)|(gEidos_RNG.mt_[0]&Eidos_MT64_LM);
+	gEidos_RNG.mt_[Eidos_MT64_NN-1] = gEidos_RNG.mt_[Eidos_MT64_MM-1] ^ (x>>1) ^ mag01[(int)(x&1ULL)];
+	
+	gEidos_RNG.mti_ = 0;
+}
+
 
 
 

@@ -88,18 +88,18 @@ private:
 #endif
 	
 	GenomeType genome_type_ = GenomeType::kAutosome;			// SEX ONLY: the type of chromosome represented by this genome
-	Subpopulation *subpop_;										// NOT OWNED: the Subpopulation this genome belongs to
 	
 	int32_t mutrun_count_;										// number of runs being used; 0 for a null genome, otherwise >= 1
-	int32_t mutrun_length_;										// the length, in base pairs, of each run; the last run may not use its full length
+	slim_position_t mutrun_length_;								// the length, in base pairs, of each run; the last run may not use its full length
 	MutationRun_SP run_buffer_[SLIM_GENOME_MUTRUN_BUFSIZE];		// an internal buffer used to avoid allocation and memory nonlocality for simple models
 	MutationRun_SP *mutruns_;									// mutation runs; nullptr if a null genome OR an empty genome
 	
+	Subpopulation *subpop_;										// NOT OWNED: the Subpopulation this genome belongs to
 	slim_usertag_t tag_value_;									// a user-defined tag value
 	
 	// TREE SEQUENCE RECORDING
-	node_id_t msp_node_id_;			// msprime's node_id_t for this genome, which is its index in the nodes table kept by the tree-seq code.
 	slim_genomeid_t genome_id_;		// a unique id assigned by SLiM, as a side effect of pedigree recording, that never changes
+	node_id_t msp_node_id_;			// msprime's node_id_t for this genome, which is its index in the nodes table kept by the tree-seq code.
 	
 	// ********** BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE **********
 	//
@@ -110,14 +110,14 @@ private:
 	// objects in a bulk operation, and short-circuit the operation for all Genomes with the same initial MutationRun (since
 	// the bulk operation will produce the same product MutationRun given the same initial MutationRun).
 	static int64_t s_bulk_operation_id_;
-	static int s_bulk_operation_mutrun_index_;
+	static slim_mutrun_index_t s_bulk_operation_mutrun_index_;
 	static std::unordered_map<MutationRun*, MutationRun*> s_bulk_operation_runs_;
 	
 public:
 	
 	Genome(const Genome &p_original) = delete;
 	Genome& operator= (const Genome &p_original) = delete;
-	Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length, GenomeType p_genome_type_, bool p_is_null);
+	Genome(Subpopulation *p_subpop, int p_mutrun_count, slim_position_t p_mutrun_length, GenomeType p_genome_type_, bool p_is_null);
 	~Genome(void);
 	
 	inline __attribute__((always_inline)) slim_genomeid_t GenomeID()			{ return genome_id_; }
@@ -132,8 +132,8 @@ public:
 	void MakeNull(void) __attribute__((cold));	// transform into a null genome
 	
 	// used to re-initialize Genomes to a new state, reusing them for efficiency
-	void ReinitializeGenomeToMutrun(GenomeType p_genome_type, int32_t p_mutrun_count, int32_t p_mutrun_length, MutationRun *p_run);
-	void ReinitializeGenomeNullptr(GenomeType p_genome_type, int32_t p_mutrun_count, int32_t p_mutrun_length);
+	void ReinitializeGenomeToMutrun(GenomeType p_genome_type, int32_t p_mutrun_count, slim_position_t p_mutrun_length, MutationRun *p_run);
+	void ReinitializeGenomeNullptr(GenomeType p_genome_type, int32_t p_mutrun_count, slim_position_t p_mutrun_length);
 	
 	// This should be called before starting to define a mutation run from scratch, as the crossover-mutation code does.  It will
 	// discard the current MutationRun and start over from scratch with a unique, new MutationRun which is returned by the call.
@@ -154,7 +154,7 @@ public:
 	
 	// This should be called before modifying the run at a given index.  It will replicate the run to produce a single-referenced copy
 	// if necessary, thus guaranteeting that the run can be modified legally.  If the run is already single-referenced, it is a no-op.
-	void WillModifyRun(int p_run_index);
+	void WillModifyRun(slim_mutrun_index_t p_run_index);
 	
 	// This is an alternate version of WillModifyRun().  It labels the upcoming modification as being the result of a bulk operation
 	// being applied across multiple genomes, such that identical input genomes will produce identical output genomes, such as adding
@@ -165,16 +165,16 @@ public:
 	// nothing about the operation being performed; it just plays around with MutationRun pointers, recognizing when the runs are
 	// identical.  The first call for a new operation ID will always return T, and the caller will then perform the operation;
 	// subsequent calls for genomes with the same starting MutationRun will substitute the same final MutationRun and return F.
-	static void BulkOperationStart(int64_t p_operation_id, int p_mutrun_index);
-	bool WillModifyRunForBulkOperation(int64_t p_operation_id, int p_mutrun_index);
-	static void BulkOperationEnd(int64_t p_operation_id, int p_mutrun_index);
+	static void BulkOperationStart(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index);
+	bool WillModifyRunForBulkOperation(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index);
+	static void BulkOperationEnd(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index);
 	
 	inline __attribute__((always_inline)) GenomeType Type(void) const			// returns the type of the genome: automosomal, X chromosome, or Y chromosome
 	{
 		return genome_type_;
 	}
 	
-	void RemoveFixedMutations(int64_t p_operation_id, int p_mutrun_index);		// Remove all mutations with a refcount of -1, indicating that they have fixed
+	void RemoveFixedMutations(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index);		// Remove all mutations with a refcount of -1, indicating that they have fixed
 	
 	// This counts up the total MutationRun references, using their usage counts, as a checkback
 	void TallyGenomeReferences(slim_refcount_t *p_mutrun_ref_tally, slim_refcount_t *p_mutrun_tally, int64_t p_operation_id);
@@ -261,7 +261,7 @@ public:
 	inline __attribute__((always_inline)) void insert_sorted_mutation(MutationIndex p_mutation_index)
 	{
 		slim_position_t position = (gSLiM_Mutation_Block + p_mutation_index)->position_;
-		int32_t run_index = position / mutrun_length_;
+		slim_mutrun_index_t run_index = (slim_mutrun_index_t)(position / mutrun_length_);
 		
 		mutruns_[run_index]->insert_sorted_mutation(p_mutation_index);
 	}
@@ -269,7 +269,7 @@ public:
 	inline __attribute__((always_inline)) void insert_sorted_mutation_if_unique(MutationIndex p_mutation_index)
 	{
 		slim_position_t position = (gSLiM_Mutation_Block + p_mutation_index)->position_;
-		int32_t run_index = position / mutrun_length_;
+		slim_mutrun_index_t run_index = (slim_mutrun_index_t)(position / mutrun_length_);
 		
 		mutruns_[run_index]->insert_sorted_mutation_if_unique(p_mutation_index);
 	}
@@ -337,7 +337,7 @@ public:
 	
 	inline const std::vector<Mutation *> *derived_mutation_ids_at_position(slim_position_t p_position) const
 	{
-		int32_t run_index = p_position / mutrun_length_;
+		slim_mutrun_index_t run_index = (slim_mutrun_index_t)(p_position / mutrun_length_);
 		
 		return mutruns_[run_index]->derived_mutation_ids_at_position(p_position);
 	}

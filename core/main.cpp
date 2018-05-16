@@ -47,7 +47,7 @@ void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 		SLIM_OUTSTREAM << "SLiM version 2.6, built " << __DATE__ << " " __TIME__ << "." << std::endl << std::endl;	// SLIM VERSION
 		
 		SLIM_OUTSTREAM << "SLiM is a product of the Messer Lab, http://messerlab.org/" << std::endl;
-		SLIM_OUTSTREAM << "Copyright 2013-2017 Philipp Messer.  All rights reserved." << std::endl << std::endl;
+		SLIM_OUTSTREAM << "Copyright 2013-2018 Philipp Messer.  All rights reserved." << std::endl << std::endl;
 		SLIM_OUTSTREAM << "By Benjamin C. Haller, http://benhaller.com/, and Philipp Messer." << std::endl << std::endl;
 		
 		SLIM_OUTSTREAM << "---------------------------------------------------------------------------------" << std::endl << std::endl;
@@ -119,7 +119,7 @@ void test_exit(int test_result)
 int main(int argc, char *argv[])
 {
 	// parse command-line arguments
-	unsigned long int override_seed = 0;					// this is the type defined for seeds by gsl_rng_set()
+	unsigned long int override_seed = 0;					// this is the type used for seeds in the GSL
 	unsigned long int *override_seed_ptr = nullptr;			// by default, a seed is generated or supplied in the input file
 	const char *input_file = nullptr;
 	bool verbose_output = false, keep_time = false, keep_mem = false, keep_mem_hist = false, skip_checks = false, tree_seq_checks = false;

@@ -355,10 +355,10 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 - (void)drawTicksInContentRect:(NSRect)contentRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
 	NSRect interiorRect = [self interiorRect];
-	int lastTickIndex = numberOfTicksPlusOne;
+	int64_t lastTickIndex = numberOfTicksPlusOne;
 	
 	// Display fewer ticks when we are displaying a very small number of positions
-	lastTickIndex = MIN(lastTickIndex, ((int)displayedRange.length + 1) / 3);
+	lastTickIndex = MIN(lastTickIndex, ((int64_t)displayedRange.length + 1) / 3);
 	
 	double tickIndexDivisor = ((lastTickIndex == 0) ? 1.0 : (double)lastTickIndex);		// avoid a divide by zero when we are displaying a single site
 	
@@ -380,7 +380,14 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		[[NSColor colorWithCalibratedWhite:0.5 alpha:1.0] set];
 		NSRectFill(tickRect);
 		
-		NSString *tickLabel = [NSString stringWithFormat:@"%lld", (int64_t)tickBase];
+		// BCH 15 May 2018: display in scientific notation for positions at or above 1e10, as it gets a bit ridiculous...
+		NSString *tickLabel;
+		
+		if (tickBase >= 1e10)
+			tickLabel = [NSString stringWithFormat:@"%.6e", (double)tickBase];
+		else
+			tickLabel = [NSString stringWithFormat:@"%lld", (int64_t)tickBase];
+		
 		NSAttributedString *tickAttrLabel = [[NSAttributedString alloc] initWithString:tickLabel attributes:tickAttrs];
 		NSSize tickLabelSize = [tickAttrLabel size];
 		int tickLabelX = (int)floor(tickRect.origin.x + tickRect.size.width / 2.0);
@@ -1930,7 +1937,12 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	tipPoint = [self convertPoint:tipPoint toView:nil];
 	tipPoint = [[self window] convertRectToScreen:NSMakeRect(tipPoint.x, tipPoint.y, 0, 0)].origin;
 	
-	[*marker setLabel:[NSString stringWithFormat:@"%lld", (int64_t)selectionBase]];
+	// BCH 15 May 2018: display in scientific notation for positions at or above 1e10, as it gets a bit ridiculous...
+	if (selectionBase >= 1e10)
+		[*marker setLabel:[NSString stringWithFormat:@"%.6e", (double)selectionBase]];
+	else
+		[*marker setLabel:[NSString stringWithFormat:@"%lld", (int64_t)selectionBase]];
+	
 	[*marker setTipPoint:tipPoint];
 	[*marker setIsLeftMarker:isLeftMarker];
 	

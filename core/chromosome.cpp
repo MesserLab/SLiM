@@ -291,7 +291,7 @@ void Chromosome::ChooseMutationRunLayout(int p_preferred_count)
 			EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): there must be at least one mutation run per genome." << EidosTerminate();
 		
 		mutrun_count_ = p_preferred_count;
-		mutrun_length_ = (int)ceil((last_position_ + 1) / (double)mutrun_count_);
+		mutrun_length_ = (slim_position_t)ceil((last_position_ + 1) / (double)mutrun_count_);
 		
 		if (SLiM_verbose_output)
 			SLIM_OUTSTREAM << std::endl << "// Override mutation run count = " << mutrun_count_ << ", run length = " << mutrun_length_ << std::endl;
@@ -301,12 +301,12 @@ void Chromosome::ChooseMutationRunLayout(int p_preferred_count)
 		// The user has not supplied a count, so we will conduct experiments to find the best count;
 		// for simplicity we will just always start with a single run, since that is often best anyway
 		mutrun_count_ = 1;
-		mutrun_length_ = (int)ceil((last_position_ + 1) / (double)mutrun_count_);
+		mutrun_length_ = (slim_position_t)ceil((last_position_ + 1) / (double)mutrun_count_);
 		
 		// When we are running experiments, the mutation run length needs to be a power of two so that it can be divided evenly,
 		// potentially a fairly large number of times.  We impose a maximum mutrun count of SLIM_MUTRUN_MAXIMUM_COUNT, so
 		// actually it needs to just be an even multiple of SLIM_MUTRUN_MAXIMUM_COUNT, not an exact power of two.
-		mutrun_length_ = (int)round(ceil(mutrun_length_ / (double)SLIM_MUTRUN_MAXIMUM_COUNT) * SLIM_MUTRUN_MAXIMUM_COUNT);
+		mutrun_length_ = (slim_position_t)round(ceil(mutrun_length_ / (double)SLIM_MUTRUN_MAXIMUM_COUNT) * SLIM_MUTRUN_MAXIMUM_COUNT);
 		
 		if (SLiM_verbose_output)
 			SLIM_OUTSTREAM << std::endl << "// Initial mutation run count = " << mutrun_count_ << ", run length = " << mutrun_length_ << std::endl;
@@ -569,13 +569,15 @@ MutationIndex Chromosome::DrawNewMutation(IndividualSex p_sex, slim_objectid_t p
 		}
 	}
 	
-	int mut_subrange_index = static_cast<int>(gsl_ran_discrete(gEidos_rng, lookup));
+	int mut_subrange_index = static_cast<int>(gsl_ran_discrete(EIDOS_GSL_RNG, lookup));
 	const GESubrange &subrange = (*subranges)[mut_subrange_index];
 	const GenomicElement &source_element = *(subrange.genomic_element_ptr_);
 	const GenomicElementType &genomic_element_type = *source_element.genomic_element_type_ptr_;
 	MutationType *mutation_type_ptr = genomic_element_type.DrawMutationType();
 	
-	slim_position_t position = subrange.start_position_ + static_cast<slim_position_t>(Eidos_rng_uniform_int(gEidos_rng, subrange.end_position_ - subrange.start_position_ + 1));  
+	slim_position_t position = subrange.start_position_ + static_cast<slim_position_t>(Eidos_rng_uniform_int_MT64(subrange.end_position_ - subrange.start_position_ + 1));
+	// old 32-bit position not MT64 code:
+	//slim_position_t position = subrange.start_position_ + static_cast<slim_position_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)(subrange.end_position_ - subrange.start_position_ + 1)));
 	
 	double selection_coeff = mutation_type_ptr->DrawSelectionCoefficient();
 	
@@ -629,7 +631,7 @@ void Chromosome::DrawUniquedBreakpoints(IndividualSex p_sex, const int p_num_bre
 	for (int i = 0; i < p_num_breakpoints; i++)
 	{
 		slim_position_t breakpoint = 0;
-		int recombination_interval = static_cast<int>(gsl_ran_discrete(gEidos_rng, lookup));
+		int recombination_interval = static_cast<int>(gsl_ran_discrete(EIDOS_GSL_RNG, lookup));
 		
 		// choose a breakpoint anywhere in the chosen recombination interval with equal probability
 		
@@ -663,9 +665,17 @@ void Chromosome::DrawUniquedBreakpoints(IndividualSex p_sex, const int p_num_bre
 		// since we guarantee that recombination end positions are in strictly ascending order.  So we should never crash.  :->
 		
 		if (recombination_interval == 0)
-			breakpoint = static_cast<slim_position_t>(Eidos_rng_uniform_int(gEidos_rng, (*end_positions)[recombination_interval]) + 1);
+		{
+			breakpoint = static_cast<slim_position_t>(Eidos_rng_uniform_int_MT64((*end_positions)[recombination_interval]) + 1);
+			// old 32-bit position not MT64 code:
+			//breakpoint = static_cast<slim_position_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)((*end_positions)[recombination_interval])) + 1);
+		}
 		else
-			breakpoint = (*end_positions)[recombination_interval - 1] + 1 + static_cast<slim_position_t>(Eidos_rng_uniform_int(gEidos_rng, (*end_positions)[recombination_interval] - (*end_positions)[recombination_interval - 1]));
+		{
+			breakpoint = (*end_positions)[recombination_interval - 1] + 1 + static_cast<slim_position_t>(Eidos_rng_uniform_int_MT64((*end_positions)[recombination_interval] - (*end_positions)[recombination_interval - 1]));
+			// old 32-bit position not MT64 code:
+			//breakpoint = (*end_positions)[recombination_interval - 1] + 1 + static_cast<slim_position_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)((*end_positions)[recombination_interval] - (*end_positions)[recombination_interval - 1])));
+		}
 		
 		p_crossovers.emplace_back(breakpoint);
 	}
@@ -736,12 +746,20 @@ void Chromosome::DrawUniquedBreakpointsForGC_r05(IndividualSex p_sex, const int 
 	for (int i = 0; i < p_num_breakpoints; i++)
 	{
 		slim_position_t breakpoint = 0;
-		int recombination_interval = static_cast<int>(gsl_ran_discrete(gEidos_rng, lookup));
+		int recombination_interval = static_cast<int>(gsl_ran_discrete(EIDOS_GSL_RNG, lookup));
 		
 		if (recombination_interval == 0)
-			breakpoint = static_cast<slim_position_t>(Eidos_rng_uniform_int(gEidos_rng, (*end_positions)[recombination_interval]) + 1);
+		{
+			breakpoint = static_cast<slim_position_t>(Eidos_rng_uniform_int_MT64((*end_positions)[recombination_interval]) + 1);
+			// old 32-bit position not MT64 code:
+			//breakpoint = static_cast<slim_position_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)((*end_positions)[recombination_interval])) + 1);
+		}
 		else
-			breakpoint = (*end_positions)[recombination_interval - 1] + 1 + static_cast<slim_position_t>(Eidos_rng_uniform_int(gEidos_rng, (*end_positions)[recombination_interval] - (*end_positions)[recombination_interval - 1]));
+		{
+			breakpoint = (*end_positions)[recombination_interval - 1] + 1 + static_cast<slim_position_t>(Eidos_rng_uniform_int_MT64((*end_positions)[recombination_interval] - (*end_positions)[recombination_interval - 1]));
+			// old 32-bit position not MT64 code:
+			//breakpoint = (*end_positions)[recombination_interval - 1] + 1 + static_cast<slim_position_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)((*end_positions)[recombination_interval] - (*end_positions)[recombination_interval - 1])));
+		}
 		
 		if ((*rates)[recombination_interval] == 0.5)
 			p_crossovers_from_r05.emplace_back(breakpoint);
@@ -785,12 +803,12 @@ void Chromosome::DoGeneConversion(std::vector<slim_position_t> &p_crossovers, st
 		
 		for (int breakpoint_index = 0; breakpoint_index < breakpoint_count; ++breakpoint_index)
 		{
-			if (Eidos_rng_uniform(gEidos_rng) <= gene_conversion_fraction_)
+			if (Eidos_rng_uniform(EIDOS_GSL_RNG) <= gene_conversion_fraction_)
 			{
 				// we would like to do gene conversion; draw the end of the gene conversion stretch and see if it's off the end
 				// we used to always add the second breakpoint; added this test 17 August 2015 BCH, but it shouldn't really matter
 				slim_position_t breakpoint = p_crossovers[breakpoint_index];
-				slim_position_t breakpoint2 = SLiMClampToPositionType(breakpoint + gsl_ran_geometric(gEidos_rng, 1.0 / gene_conversion_avg_length_));
+				slim_position_t breakpoint2 = SLiMClampToPositionType(breakpoint + gsl_ran_geometric(EIDOS_GSL_RNG, 1.0 / gene_conversion_avg_length_));
 				
 				if (breakpoint2 <= last_position_)	
 				{

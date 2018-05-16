@@ -474,7 +474,9 @@ void _RunInitTests(void)
 	SLiMAssertScriptRaise("initialize() {" + define_g1 + "initializeGenomicElement(g1, 0); stop(); }", 1, 157, "missing required argument", __LINE__);
 	SLiMAssertScriptRaise("initialize() {" + define_g1 + "initializeGenomicElement(2, 0, 1000000000); stop(); }", 1, 157, "not defined", __LINE__);
 	SLiMAssertScriptRaise("initialize() {" + define_g1 + "initializeGenomicElement(g1, -1, 1000000000); stop(); }", 1, 157, "out of range", __LINE__);
-	SLiMAssertScriptRaise("initialize() {" + define_g1 + "initializeGenomicElement(g1, 0, 1000000001); stop(); }", 1, 157, "out of range", __LINE__);
+	//SLiMAssertScriptRaise("initialize() {" + define_g1 + "initializeGenomicElement(g1, 0, 1000000001); stop(); }", 1, 157, "out of range", __LINE__);		// now legal!
+	SLiMAssertScriptStop("initialize() {" + define_g1 + "initializeGenomicElement(g1, 0, 1000000000000000); stop(); }", __LINE__);
+	SLiMAssertScriptRaise("initialize() {" + define_g1 + "initializeGenomicElement(g1, 0, 1000000000000001); stop(); }", 1, 157, "out of range", __LINE__);
 	SLiMAssertScriptRaise("initialize() {" + define_g1 + "initializeGenomicElement(g1, 100, 99); stop(); }", 1, 157, "is less than start position", __LINE__);
 	
 	// Test (void)initializeMutationRate(numeric$ rate)
@@ -3607,7 +3609,7 @@ void _RunSLiMTimingTests(void)
 			
 			for (int64_t i = 0; i < 100000000; i++)
 			{
-				EidosGlobalStringID property_id = genome_properties[Eidos_rng_uniform_int(gEidos_rng, 4)];
+				EidosGlobalStringID property_id = genome_properties[Eidos_rng_uniform_int(EIDOS_GSL_RNG, 4)];
 				
 				total += (int64_t)(gSLiM_Genome_Class->_SignatureForProperty(property_id));
 			}
@@ -3623,7 +3625,7 @@ void _RunSLiMTimingTests(void)
 			
 			for (int64_t i = 0; i < 100000000; i++)
 			{
-				EidosGlobalStringID property_id = genome_properties[Eidos_rng_uniform_int(gEidos_rng, 4)];
+				EidosGlobalStringID property_id = genome_properties[Eidos_rng_uniform_int(EIDOS_GSL_RNG, 4)];
 				
 				auto found_iter = genome_map.find(property_id);
 				if (found_iter != genome_map.end())
@@ -3644,7 +3646,7 @@ void _RunSLiMTimingTests(void)
 			
 			for (int64_t i = 0; i < 100000000; i++)
 			{
-				EidosGlobalStringID property_id = genome_properties[Eidos_rng_uniform_int(gEidos_rng, 4)];
+				EidosGlobalStringID property_id = genome_properties[Eidos_rng_uniform_int(EIDOS_GSL_RNG, 4)];
 				
 				auto found_iter = genome_unordered_map.find(property_id);
 				if (found_iter != genome_unordered_map.end())
@@ -3678,7 +3680,7 @@ void _RunSLiMTimingTests(void)
 			
 			for (int64_t i = 0; i < 100000000; i++)
 			{
-				EidosGlobalStringID property_id = individual_properties[Eidos_rng_uniform_int(gEidos_rng, 17)];
+				EidosGlobalStringID property_id = individual_properties[Eidos_rng_uniform_int(EIDOS_GSL_RNG, 17)];
 				
 				total += (int64_t)(gSLiM_Individual_Class->_SignatureForProperty(property_id));
 			}
@@ -3694,7 +3696,7 @@ void _RunSLiMTimingTests(void)
 			
 			for (int64_t i = 0; i < 100000000; i++)
 			{
-				EidosGlobalStringID property_id = individual_properties[Eidos_rng_uniform_int(gEidos_rng, 17)];
+				EidosGlobalStringID property_id = individual_properties[Eidos_rng_uniform_int(EIDOS_GSL_RNG, 17)];
 				
 				auto found_iter = individual_map.find(property_id);
 				if (found_iter != individual_map.end())
@@ -3715,7 +3717,7 @@ void _RunSLiMTimingTests(void)
 			
 			for (int64_t i = 0; i < 100000000; i++)
 			{
-				EidosGlobalStringID property_id = individual_properties[Eidos_rng_uniform_int(gEidos_rng, 17)];
+				EidosGlobalStringID property_id = individual_properties[Eidos_rng_uniform_int(EIDOS_GSL_RNG, 17)];
 				
 				auto found_iter = individual_unordered_map.find(property_id);
 				if (found_iter != individual_unordered_map.end())
@@ -3787,7 +3789,7 @@ void _RunSLiMTimingTests(void)
 			
 			for (int64_t i = 0; i < 1000000000; i++)
 			{
-				EidosGlobalStringID variable_id = symbol_ids[Eidos_rng_uniform_int(gEidos_rng, 7)];
+				EidosGlobalStringID variable_id = symbol_ids[Eidos_rng_uniform_int(EIDOS_GSL_RNG, 7)];
 				
 				bool contains_symbol = internalTable.ContainsSymbol(variable_id);
 				
@@ -3805,7 +3807,7 @@ void _RunSLiMTimingTests(void)
 			
 			for (int64_t i = 0; i < 1000000000; i++)
 			{
-				EidosGlobalStringID variable_id = symbol_ids[Eidos_rng_uniform_int(gEidos_rng, 7)];
+				EidosGlobalStringID variable_id = symbol_ids[Eidos_rng_uniform_int(EIDOS_GSL_RNG, 7)];
 				
 				bool contains_symbol = externalTable.ContainsSymbol(variable_id);
 				

@@ -149,7 +149,7 @@ public:
 	double gene_conversion_avg_length_;						// average gene conversion stretch length
 	
 	int32_t mutrun_count_;									// number of mutation runs being used for all genomes
-	int32_t mutrun_length_;									// the length, in base pairs, of each mutation run; the last run may not use its full length
+	slim_position_t mutrun_length_;							// the length, in base pairs, of each mutation run; the last run may not use its full length
 	slim_position_t last_position_mutrun_;					// (mutrun_count_ * mutrun_length_ - 1), for complete coverage in crossover-mutation
 	
 	std::string color_sub_;										// color to use for substitutions by default (in SLiMgui)
@@ -217,18 +217,18 @@ inline __attribute__((always_inline)) int Chromosome::DrawMutationCount(Individu
 	if (single_mutation_map_)
 	{
 		// With a single map, we don't care what sex we are passed; same map for all, and sex may be enabled or disabled
-		return gsl_ran_poisson(gEidos_rng, overall_mutation_rate_H_);
+		return gsl_ran_poisson(EIDOS_GSL_RNG, overall_mutation_rate_H_);
 	}
 	else
 	{
 		// With sex-specific maps, we treat males and females separately, and the individual we're given better be one of the two
 		if (p_sex == IndividualSex::kMale)
 		{
-			return gsl_ran_poisson(gEidos_rng, overall_mutation_rate_M_);
+			return gsl_ran_poisson(EIDOS_GSL_RNG, overall_mutation_rate_M_);
 		}
 		else if (p_sex == IndividualSex::kFemale)
 		{
-			return gsl_ran_poisson(gEidos_rng, overall_mutation_rate_F_);
+			return gsl_ran_poisson(EIDOS_GSL_RNG, overall_mutation_rate_F_);
 		}
 		else
 		{
@@ -267,18 +267,18 @@ inline __attribute__((always_inline)) int Chromosome::DrawBreakpointCount(Indivi
 	if (single_recombination_map_)
 	{
 		// With a single map, we don't care what sex we are passed; same map for all, and sex may be enabled or disabled
-		return gsl_ran_poisson(gEidos_rng, overall_recombination_rate_H_);
+		return gsl_ran_poisson(EIDOS_GSL_RNG, overall_recombination_rate_H_);
 	}
 	else
 	{
 		// With sex-specific maps, we treat males and females separately, and the individual we're given better be one of the two
 		if (p_sex == IndividualSex::kMale)
 		{
-			return gsl_ran_poisson(gEidos_rng, overall_recombination_rate_M_);
+			return gsl_ran_poisson(EIDOS_GSL_RNG, overall_recombination_rate_M_);
 		}
 		else if (p_sex == IndividualSex::kFemale)
 		{
-			return gsl_ran_poisson(gEidos_rng, overall_recombination_rate_F_);
+			return gsl_ran_poisson(EIDOS_GSL_RNG, overall_recombination_rate_F_);
 		}
 		else
 		{
@@ -315,7 +315,7 @@ inline __attribute__((always_inline)) int Chromosome::DrawBreakpointCount(Indivi
 // this method relies on Eidos_FastRandomPoisson_NONZERO() and cannot be called when USE_GSL_POISSON is defined
 inline __attribute__((always_inline)) void Chromosome::DrawMutationAndBreakpointCounts(IndividualSex p_sex, int *p_mut_count, int *p_break_count) const
 {
-	double u = Eidos_rng_uniform(gEidos_rng);
+	double u = Eidos_rng_uniform(EIDOS_GSL_RNG);
 	
 	if (single_recombination_map_ && single_mutation_map_)
 	{

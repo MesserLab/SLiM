@@ -666,7 +666,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 		else if (positive_count <= weights_length / 4)	// the threshold here is a guess
 		{
 			// there are just a few positive values, so try to be faster about scanning for them by checking for zero first
-			double the_rose_in_the_teeth = Eidos_rng_uniform_pos(gEidos_rng) * weights_sum;
+			double the_rose_in_the_teeth = Eidos_rng_uniform_pos(EIDOS_GSL_RNG) * weights_sum;
 			double bachelor_sum = 0.0;
 			
 			for (slim_popsize_t weight_index = 0; weight_index < weights_length; ++weight_index)
@@ -688,7 +688,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 		else
 		{
 			// there are many positive values, so we need to do a uniform draw and see who gets the rose
-			double the_rose_in_the_teeth = Eidos_rng_uniform_pos(gEidos_rng) * weights_sum;
+			double the_rose_in_the_teeth = Eidos_rng_uniform_pos(EIDOS_GSL_RNG) * weights_sum;
 			double bachelor_sum = 0.0;
 			
 			for (slim_popsize_t weight_index = 0; weight_index < weights_length; ++weight_index)
@@ -1076,16 +1076,16 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								double fractions[3] = {selfing_fraction, cloning_fraction, 1.0 - (selfing_fraction + cloning_fraction)};
 								unsigned int counts[3] = {0, 0, 0};
 								
-								gsl_ran_multinomial(gEidos_rng, 3, (unsigned int)migrants_to_generate, fractions, counts);
+								gsl_ran_multinomial(EIDOS_GSL_RNG, 3, (unsigned int)migrants_to_generate, fractions, counts);
 								
 								number_to_self = static_cast<slim_popsize_t>(counts[0]);
 								number_to_clone = static_cast<slim_popsize_t>(counts[1]);
 							}
 							else
-								number_to_self = static_cast<slim_popsize_t>(gsl_ran_binomial(gEidos_rng, selfing_fraction, (unsigned int)migrants_to_generate));
+								number_to_self = static_cast<slim_popsize_t>(gsl_ran_binomial(EIDOS_GSL_RNG, selfing_fraction, (unsigned int)migrants_to_generate));
 						}
 						else if (cloning_fraction > 0)
-							number_to_clone = static_cast<slim_popsize_t>(gsl_ran_binomial(gEidos_rng, cloning_fraction, (unsigned int)migrants_to_generate));
+							number_to_clone = static_cast<slim_popsize_t>(gsl_ran_binomial(EIDOS_GSL_RNG, cloning_fraction, (unsigned int)migrants_to_generate));
 						
 						// generate all selfed, cloned, and autogamous offspring in one shared loop
 						slim_popsize_t migrant_count = 0;
@@ -1121,7 +1121,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					}
 				}
 				
-				gsl_ran_shuffle(gEidos_rng, planned_offspring, total_children, sizeof(offspring_plan));
+				gsl_ran_shuffle(EIDOS_GSL_RNG, planned_offspring, total_children, sizeof(offspring_plan));
 				
 				// Now we can run through our plan vector and generate each planned child in order.
 				slim_popsize_t child_index_F = 0, child_index_M = total_female_children, child_index;
@@ -1175,21 +1175,21 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						{
 							if (cloning_fraction > 0)
 							{
-								double draw = Eidos_rng_uniform(gEidos_rng);
+								double draw = Eidos_rng_uniform(EIDOS_GSL_RNG);
 								
 								if (draw < selfing_fraction)							selfed = true;
 								else if (draw < selfing_fraction + cloning_fraction)	cloned = true;
 							}
 							else
 							{
-								double draw = Eidos_rng_uniform(gEidos_rng);
+								double draw = Eidos_rng_uniform(EIDOS_GSL_RNG);
 								
 								if (draw < selfing_fraction)							selfed = true;
 							}
 						}
 						else if (cloning_fraction > 0)
 						{
-							double draw = Eidos_rng_uniform(gEidos_rng);
+							double draw = Eidos_rng_uniform(EIDOS_GSL_RNG);
 							
 							if (draw < cloning_fraction)								cloned = true;
 						}
@@ -1468,7 +1468,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 				if (migrant_source_count == 0)
 					num_migrants[0] = (unsigned int)total_children_of_sex;
 				else
-					gsl_ran_multinomial(gEidos_rng, migrant_source_count + 1, (unsigned int)total_children_of_sex, migration_rates, num_migrants);
+					gsl_ran_multinomial(EIDOS_GSL_RNG, migrant_source_count + 1, (unsigned int)total_children_of_sex, migration_rates, num_migrants);
 				
 				// loop over all source subpops, including ourselves
 				for (int pop_count = 0; pop_count < migrant_source_count + 1; ++pop_count)
@@ -1491,16 +1491,16 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								double fractions[3] = {selfing_fraction, cloning_fraction, 1.0 - (selfing_fraction + cloning_fraction)};
 								unsigned int counts[3] = {0, 0, 0};
 								
-								gsl_ran_multinomial(gEidos_rng, 3, (unsigned int)migrants_to_generate, fractions, counts);
+								gsl_ran_multinomial(EIDOS_GSL_RNG, 3, (unsigned int)migrants_to_generate, fractions, counts);
 								
 								number_to_self = static_cast<slim_popsize_t>(counts[0]);
 								number_to_clone = static_cast<slim_popsize_t>(counts[1]);
 							}
 							else
-								number_to_self = static_cast<slim_popsize_t>(gsl_ran_binomial(gEidos_rng, selfing_fraction, (unsigned int)migrants_to_generate));
+								number_to_self = static_cast<slim_popsize_t>(gsl_ran_binomial(EIDOS_GSL_RNG, selfing_fraction, (unsigned int)migrants_to_generate));
 						}
 						else if (cloning_fraction > 0)
-							number_to_clone = static_cast<slim_popsize_t>(gsl_ran_binomial(gEidos_rng, cloning_fraction, (unsigned int)migrants_to_generate));
+							number_to_clone = static_cast<slim_popsize_t>(gsl_ran_binomial(EIDOS_GSL_RNG, cloning_fraction, (unsigned int)migrants_to_generate));
 						
 						// generate all selfed, cloned, and autogamous offspring in one shared loop
 						slim_popsize_t migrant_count = 0;
@@ -1538,7 +1538,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 				}
 			}
 			
-			gsl_ran_shuffle(gEidos_rng, planned_offspring, total_children, sizeof(offspring_plan));
+			gsl_ran_shuffle(EIDOS_GSL_RNG, planned_offspring, total_children, sizeof(offspring_plan));
 			
 			// Now we can run through our plan vector and generate each planned child in order.
 			slim_popsize_t child_index_F = 0, child_index_M = total_female_children, child_index;
@@ -1610,21 +1610,21 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					{
 						if (cloning_fraction > 0)
 						{
-							double draw = Eidos_rng_uniform(gEidos_rng);
+							double draw = Eidos_rng_uniform(EIDOS_GSL_RNG);
 							
 							if (draw < selfing_fraction)							selfed = true;
 							else if (draw < selfing_fraction + cloning_fraction)	cloned = true;
 						}
 						else
 						{
-							double draw = Eidos_rng_uniform(gEidos_rng);
+							double draw = Eidos_rng_uniform(EIDOS_GSL_RNG);
 							
 							if (draw < selfing_fraction)							selfed = true;
 						}
 					}
 					else if (cloning_fraction > 0)
 					{
-						double draw = Eidos_rng_uniform(gEidos_rng);
+						double draw = Eidos_rng_uniform(EIDOS_GSL_RNG);
 						
 						if (draw < cloning_fraction)								cloned = true;
 					}
@@ -1754,7 +1754,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						// we need to even change the source subpop for our next attempt, so that differential mortality between different
 						// migration sources leads to differential representation in the offspring generation – more offspring from the
 						// subpop that is more successful at contributing migrants.
-						gsl_ran_multinomial(gEidos_rng, migrant_source_count + 1, 1, migration_rates, num_migrants);
+						gsl_ran_multinomial(EIDOS_GSL_RNG, migrant_source_count + 1, 1, migration_rates, num_migrants);
 						
 						for (int pop_count = 0; pop_count < migrant_source_count + 1; ++pop_count)
 							if (num_migrants[pop_count] > 0)
@@ -1808,7 +1808,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 			if (migrant_source_count == 0)
 				num_migrants[0] = (unsigned int)total_children_of_sex;
 			else
-				gsl_ran_multinomial(gEidos_rng, migrant_source_count + 1, (unsigned int)total_children_of_sex, migration_rates, num_migrants);
+				gsl_ran_multinomial(EIDOS_GSL_RNG, migrant_source_count + 1, (unsigned int)total_children_of_sex, migration_rates, num_migrants);
 			
 			// loop over all source subpops, including ourselves
 			for (int pop_count = 0; pop_count < migrant_source_count + 1; ++pop_count)
@@ -1831,16 +1831,16 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 							double fractions[3] = {selfing_fraction, cloning_fraction, 1.0 - (selfing_fraction + cloning_fraction)};
 							unsigned int counts[3] = {0, 0, 0};
 							
-							gsl_ran_multinomial(gEidos_rng, 3, (unsigned int)migrants_to_generate, fractions, counts);
+							gsl_ran_multinomial(EIDOS_GSL_RNG, 3, (unsigned int)migrants_to_generate, fractions, counts);
 							
 							number_to_self = static_cast<slim_popsize_t>(counts[0]);
 							number_to_clone = static_cast<slim_popsize_t>(counts[1]);
 						}
 						else
-							number_to_self = static_cast<slim_popsize_t>(gsl_ran_binomial(gEidos_rng, selfing_fraction, (unsigned int)migrants_to_generate));
+							number_to_self = static_cast<slim_popsize_t>(gsl_ran_binomial(EIDOS_GSL_RNG, selfing_fraction, (unsigned int)migrants_to_generate));
 					}
 					else if (cloning_fraction > 0)
-						number_to_clone = static_cast<slim_popsize_t>(gsl_ran_binomial(gEidos_rng, cloning_fraction, (unsigned int)migrants_to_generate));
+						number_to_clone = static_cast<slim_popsize_t>(gsl_ran_binomial(EIDOS_GSL_RNG, cloning_fraction, (unsigned int)migrants_to_generate));
 					
 					// generate all selfed, cloned, and autogamous offspring in one shared loop
 					slim_popsize_t migrant_count = 0;
@@ -2339,7 +2339,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 	// swap strands in half of cases to assure random assortment (or in all cases, if use_only_strand_1 == true, meaning that crossover cannot occur)
 	if (do_swap)
 	{
-		if (use_only_strand_1 || Eidos_RandomBool(gEidos_rng))
+		if (use_only_strand_1 || Eidos_RandomBool())
 		{
 			std::swap(parent_genome_1_index, parent_genome_2_index);
 			std::swap(parent_genome_1, parent_genome_2);
@@ -2609,7 +2609,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 			
 			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 			Genome *parent_genome = parent_genome_1;
-			int mutrun_length = p_child_genome.mutrun_length_;
+			slim_position_t mutrun_length = p_child_genome.mutrun_length_;
 			int mutrun_count = p_child_genome.mutrun_count_;
 			int first_uncompleted_mutrun = 0;
 			int break_index_max = static_cast<int>(all_breakpoints.size());	// can be != num_breakpoints+1 due to gene conversion and dup removal!
@@ -2617,7 +2617,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 			for (int break_index = 0; break_index < break_index_max; break_index++)
 			{
 				slim_position_t breakpoint = all_breakpoints[break_index];
-				int break_mutrun_index = breakpoint / mutrun_length;
+				slim_mutrun_index_t break_mutrun_index = (slim_mutrun_index_t)(breakpoint / mutrun_length);
 				
 				// Copy over mutation runs until we arrive at the run in which the breakpoint occurs
 				while (break_mutrun_index > first_uncompleted_mutrun)
@@ -2680,7 +2680,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 						
 						// otherwise, figure out the new breakpoint, and continue looping on the current mutation run, which needs to be finished
 						breakpoint = all_breakpoints[break_index];
-						break_mutrun_index = breakpoint / mutrun_length;
+						break_mutrun_index = (slim_mutrun_index_t)(breakpoint / mutrun_length);
 						
 						// if the next breakpoint is outside this mutation run, then finish the run and break out
 						if (break_mutrun_index > this_mutrun_index)
@@ -2715,7 +2715,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 		p_child_genome.check_cleared_to_nullptr();
 #endif
 		
-		int mutrun_length = p_child_genome.mutrun_length_;
+		slim_position_t mutrun_length = p_child_genome.mutrun_length_;
 		int mutrun_count = p_child_genome.mutrun_count_;
 		
 		// create vector with the mutations to be added
@@ -2747,7 +2747,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 			mutation_iter_pos = SLIM_INF_BASE_POSITION;
 		}
 		
-		int mutation_mutrun_index = mutation_iter_pos / mutrun_length;
+		slim_mutrun_index_t mutation_mutrun_index = (slim_mutrun_index_t)(mutation_iter_pos / mutrun_length);
 		
 		Genome *parent_genome = parent_genome_1;
 		int first_uncompleted_mutrun = 0;
@@ -2830,7 +2830,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 						mutation_iter_pos = SLIM_INF_BASE_POSITION;
 					}
 					
-					mutation_mutrun_index = mutation_iter_pos / mutrun_length;
+					mutation_mutrun_index = (slim_mutrun_index_t)(mutation_iter_pos / mutrun_length);
 				}
 				while (mutation_mutrun_index == this_mutrun_index);
 				
@@ -2859,7 +2859,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 			int break_index_max = static_cast<int>(all_breakpoints.size());	// can be != num_breakpoints+1 due to gene conversion and dup removal!
 			int break_index = 0;
 			slim_position_t breakpoint = all_breakpoints[break_index];
-			int break_mutrun_index = breakpoint / mutrun_length;
+			slim_mutrun_index_t break_mutrun_index = (slim_mutrun_index_t)(breakpoint / mutrun_length);
 			
 			while (true)	// loop over breakpoints until we have handled the last one, which comes at the end
 			{
@@ -2904,7 +2904,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 							break;
 						
 						breakpoint = all_breakpoints[break_index];
-						break_mutrun_index = breakpoint / mutrun_length;
+						break_mutrun_index = (slim_mutrun_index_t)(breakpoint / mutrun_length);
 						
 						continue;
 					}
@@ -2977,7 +2977,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 										mutation_iter_pos = SLIM_INF_BASE_POSITION;
 									}
 									
-									mutation_mutrun_index = mutation_iter_pos / mutrun_length;
+									mutation_mutrun_index = (slim_mutrun_index_t)(mutation_iter_pos / mutrun_length);
 								}
 								
 								// add the old mutation; no need to check for a duplicate here since the parental genome is already duplicate-free
@@ -3023,7 +3023,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 									mutation_iter_pos = SLIM_INF_BASE_POSITION;
 								}
 								
-								mutation_mutrun_index = mutation_iter_pos / mutrun_length;
+								mutation_mutrun_index = (slim_mutrun_index_t)(mutation_iter_pos / mutrun_length);
 							}
 							
 							// we have finished the parental mutation run; if the breakpoint we are now working toward lies beyond the end of the
@@ -3046,7 +3046,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 							
 							// otherwise, figure out the new breakpoint, and continue looping on the current mutation run, which needs to be finished
 							breakpoint = all_breakpoints[break_index];
-							break_mutrun_index = breakpoint / mutrun_length;
+							break_mutrun_index = (slim_mutrun_index_t)(breakpoint / mutrun_length);
 						}
 						
 						// if we just handled the last breakpoint, which is guaranteed to be at or beyond lastPosition+1, then we are done
@@ -3093,7 +3093,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 							
 							// otherwise, figure out the new breakpoint, and continue looping on the current mutation run, which needs to be finished
 							breakpoint = all_breakpoints[break_index];
-							break_mutrun_index = breakpoint / mutrun_length;
+							break_mutrun_index = (slim_mutrun_index_t)(breakpoint / mutrun_length);
 							
 							// if the next breakpoint is outside this mutation run, then finish the run and break out
 							if (break_mutrun_index > this_mutrun_index)
@@ -3170,7 +3170,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 							mutation_iter_pos = SLIM_INF_BASE_POSITION;
 						}
 						
-						mutation_mutrun_index = mutation_iter_pos / mutrun_length;
+						mutation_mutrun_index = (slim_mutrun_index_t)(mutation_iter_pos / mutrun_length);
 					}
 					while (mutation_mutrun_index == this_mutrun_index);
 					
@@ -3263,13 +3263,13 @@ void Population::DoClonalMutation(Subpopulation *p_source_subpop, Genome &p_chil
 		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 		
 		int mutrun_count = p_child_genome.mutrun_count_;
-		int mutrun_length = p_child_genome.mutrun_length_;
+		slim_position_t mutrun_length = p_child_genome.mutrun_length_;
 		
 		const MutationIndex *mutation_iter		= mutations_to_add.begin_pointer_const();
 		const MutationIndex *mutation_iter_max	= mutations_to_add.end_pointer_const();
 		MutationIndex mutation_iter_mutation_index = *mutation_iter;
 		slim_position_t mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
-		int mutation_iter_mutrun_index = mutation_iter_pos / mutrun_length;
+		slim_mutrun_index_t mutation_iter_mutrun_index = (slim_mutrun_index_t)(mutation_iter_pos / mutrun_length);
 		
 		for (int run_index = 0; run_index < mutrun_count; ++run_index)
 		{
@@ -3345,7 +3345,7 @@ void Population::DoClonalMutation(Subpopulation *p_source_subpop, Genome &p_chil
 							mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
 						}
 						
-						mutation_iter_mutrun_index = mutation_iter_pos / mutrun_length;
+						mutation_iter_mutrun_index = (slim_mutrun_index_t)(mutation_iter_pos / mutrun_length);
 						
 						// if we're out of new mutations for this run, transfer down to the simpler loop below
 						if (mutation_iter_mutrun_index != run_index)
@@ -3923,9 +3923,9 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 				if (!genome.IsNull())
 				{
 					int32_t old_mutrun_count = genome.mutrun_count_;
-					int32_t old_mutrun_length = genome.mutrun_length_;
+					slim_position_t old_mutrun_length = genome.mutrun_length_;
 					int32_t new_mutrun_count = old_mutrun_count << 1;
-					int32_t new_mutrun_length = old_mutrun_length >> 1;
+					slim_position_t new_mutrun_length = old_mutrun_length >> 1;
 					
 					genome.clear_to_nullptr();
 					if (genome.mutruns_ != genome.run_buffer_)
@@ -3971,9 +3971,9 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 			if (!genome.IsNull())
 			{
 				int32_t old_mutrun_count = genome.mutrun_count_;
-				int32_t old_mutrun_length = genome.mutrun_length_;
+				slim_position_t old_mutrun_length = genome.mutrun_length_;
 				int32_t new_mutrun_count = old_mutrun_count << 1;
-				int32_t new_mutrun_length = old_mutrun_length >> 1;
+				slim_position_t new_mutrun_length = old_mutrun_length >> 1;
 				
 				// for every mutation run, fill up mutrun_buf with entries
 				mutruns_buf_index = 0;
@@ -4095,9 +4095,9 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 				if (!genome.IsNull())
 				{
 					int32_t old_mutrun_count = genome.mutrun_count_;
-					int32_t old_mutrun_length = genome.mutrun_length_;
+					slim_position_t old_mutrun_length = genome.mutrun_length_;
 					int32_t new_mutrun_count = old_mutrun_count >> 1;
-					int32_t new_mutrun_length = old_mutrun_length << 1;
+					slim_position_t new_mutrun_length = old_mutrun_length << 1;
 					
 					genome.clear_to_nullptr();
 					if (genome.mutruns_ != genome.run_buffer_)
@@ -4143,9 +4143,9 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 			if (!genome.IsNull())
 			{
 				int32_t old_mutrun_count = genome.mutrun_count_;
-				int32_t old_mutrun_length = genome.mutrun_length_;
+				slim_position_t old_mutrun_length = genome.mutrun_length_;
 				int32_t new_mutrun_count = old_mutrun_count >> 1;
-				int32_t new_mutrun_length = old_mutrun_length << 1;
+				slim_position_t new_mutrun_length = old_mutrun_length << 1;
 				
 				// for every mutation run, fill up mutrun_buf with entries
 				mutruns_buf_index = 0;
@@ -4268,7 +4268,8 @@ void Population::AssessMutationRuns(void)
 	{
 		// First, unique our runs; this is just for debugging the uniquing, and should be removed.  FIXME
 		slim_refcount_t total_genome_count = 0, total_mutrun_count = 0, total_shared_mutrun_count = 0;
-		int mutrun_count = 0, mutrun_length = 0, use_count_total = 0;
+		int mutrun_count = 0, use_count_total = 0;
+		slim_position_t mutrun_length = 0;
 		int64_t mutation_total = 0;
 		
 		int64_t operation_id = ++gSLiM_MutationRun_OperationID;
@@ -4910,13 +4911,13 @@ void Population::RemoveAllFixedMutations(void)
 					// for removal only within the runs that contain a mutation to be removed.  If there is
 					// more than one mutation to be removed within the same run, the second time around the
 					// runs will no-op the scan using operatiod_id.  The whole rest of the genomes can be skipped.
-					int mutrun_length = genome->mutrun_length_;
+					slim_position_t mutrun_length = genome->mutrun_length_;
 					
 					for (int mut_index = 0; mut_index < fixed_mutation_accumulator.size(); mut_index++)
 					{
 						MutationIndex mut_to_remove = fixed_mutation_accumulator[mut_index];
 						slim_position_t mut_position = (mut_block_ptr + mut_to_remove)->position_;
-						int mutrun_index = mut_position / mutrun_length;
+						slim_mutrun_index_t mutrun_index = (slim_mutrun_index_t)(mut_position / mutrun_length);
 						
 						// Note that total_genome_count_ is not needed by RemoveAllFixedMutations(); refcounts were set to -1 above.
 						genome->RemoveFixedMutations(operation_id, mutrun_index);
@@ -5590,7 +5591,7 @@ void Population::PrintSample_SLiM(std::ostream &p_out, Subpopulation &p_subpop, 
 			if (candidates.size() == 0)
 				EIDOS_TERMINATION << "ERROR (Population::PrintSample_SLiM): not enough eligible genomes for sampling without replacement." << EidosTerminate();
 			
-			candidate_index = static_cast<slim_popsize_t>(Eidos_rng_uniform_int(gEidos_rng, (uint32_t)candidates.size()));
+			candidate_index = static_cast<slim_popsize_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)candidates.size()));
 			genome_index = candidates[candidate_index];
 			
 			// If we're sampling without replacement, remove the index we have just taken; either we will use it or it is invalid
@@ -5638,7 +5639,7 @@ void Population::PrintSample_MS(std::ostream &p_out, Subpopulation &p_subpop, sl
 			if (candidates.size() == 0)
 				EIDOS_TERMINATION << "ERROR (Population::PrintSample_MS): not enough eligible genomes for sampling without replacement." << EidosTerminate();
 			
-			candidate_index = static_cast<slim_popsize_t>(Eidos_rng_uniform_int(gEidos_rng, (uint32_t)candidates.size()));
+			candidate_index = static_cast<slim_popsize_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)candidates.size()));
 			genome_index = candidates[candidate_index];
 			
 			// If we're sampling without replacement, remove the index we have just taken; either we will use it or it is invalid
@@ -5689,7 +5690,7 @@ void Population::PrintSample_VCF(std::ostream &p_out, Subpopulation &p_subpop, s
 			if (candidates.size() == 0)
 				EIDOS_TERMINATION << "ERROR (Population::PrintSample_VCF): not enough eligible individuals for sampling without replacement." << EidosTerminate();
 			
-			candidate_index = static_cast<slim_popsize_t>(Eidos_rng_uniform_int(gEidos_rng, (uint32_t)candidates.size()));
+			candidate_index = static_cast<slim_popsize_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)candidates.size()));
 			individual_index = candidates[candidate_index];
 			
 			// If we're sampling without replacement, remove the index we have just taken; either we will use it or it is invalid

@@ -41,11 +41,11 @@
 
 // Static class variables in support of Genome's bulk operation optimization; see Genome::WillModifyRunForBulkOperation()
 int64_t Genome::s_bulk_operation_id_ = 0;
-int Genome::s_bulk_operation_mutrun_index_ = -1;
+slim_mutrun_index_t Genome::s_bulk_operation_mutrun_index_ = -1;
 std::unordered_map<MutationRun*, MutationRun*> Genome::s_bulk_operation_runs_;
 
 
-Genome::Genome(Subpopulation *p_subpop, int p_mutrun_count, int p_mutrun_length, enum GenomeType p_genome_type_, bool p_is_null) : genome_type_(p_genome_type_), subpop_(p_subpop), genome_id_(-1)
+Genome::Genome(Subpopulation *p_subpop, int p_mutrun_count, slim_position_t p_mutrun_length, enum GenomeType p_genome_type_, bool p_is_null) : genome_type_(p_genome_type_), subpop_(p_subpop), genome_id_(-1)
 {
 	// null genomes are now signalled with a mutrun_count_ of 0, rather than a separate flag
 	if (p_is_null)
@@ -84,7 +84,7 @@ void Genome::NullGenomeAccessError(void) const
 	EIDOS_TERMINATION << "ERROR (Genome::NullGenomeAccessError): (internal error) a null genome was accessed." << EidosTerminate();
 }
 
-void Genome::WillModifyRun(int p_run_index)
+void Genome::WillModifyRun(slim_mutrun_index_t p_run_index)
 {
 #ifdef DEBUG
 	if (p_run_index >= mutrun_count_)
@@ -106,7 +106,7 @@ void Genome::WillModifyRun(int p_run_index)
 	}
 }
 
-void Genome::BulkOperationStart(int64_t p_operation_id, int p_mutrun_index)
+void Genome::BulkOperationStart(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index)
 {
 	if (s_bulk_operation_id_ != 0)
 	{
@@ -125,7 +125,7 @@ void Genome::BulkOperationStart(int64_t p_operation_id, int p_mutrun_index)
 	s_bulk_operation_mutrun_index_ = p_mutrun_index;
 }
 
-bool Genome::WillModifyRunForBulkOperation(int64_t p_operation_id, int p_mutrun_index)
+bool Genome::WillModifyRunForBulkOperation(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index)
 {
 	if (p_mutrun_index != s_bulk_operation_mutrun_index_)
 		EIDOS_TERMINATION << "ERROR (Genome::WillModifyRunForBulkOperation): (internal error) incorrect run index during bulk operation." << EidosTerminate();
@@ -174,7 +174,7 @@ bool Genome::WillModifyRunForBulkOperation(int64_t p_operation_id, int p_mutrun_
 #endif
 }
 
-void Genome::BulkOperationEnd(int64_t p_operation_id, int p_mutrun_index)
+void Genome::BulkOperationEnd(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index)
 {
 	if ((p_operation_id == s_bulk_operation_id_) && (p_mutrun_index == s_bulk_operation_mutrun_index_))
 	{
@@ -190,7 +190,7 @@ void Genome::BulkOperationEnd(int64_t p_operation_id, int p_mutrun_index)
 
 // Remove all mutations in p_genome that have a refcount of p_fixed_count, indicating that they have fixed
 // This must be called with mutation counts set up correctly as all-population counts, or it will malfunction!
-void Genome::RemoveFixedMutations(int64_t p_operation_id, int p_mutrun_index)
+void Genome::RemoveFixedMutations(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index)
 {
 #ifdef DEBUG
 	if (mutrun_count_ == 0)
@@ -292,7 +292,7 @@ void Genome::MakeNull(void)
 	}
 }
 
-void Genome::ReinitializeGenomeToMutrun(GenomeType p_genome_type, int32_t p_mutrun_count, int32_t p_mutrun_length, MutationRun *p_run)
+void Genome::ReinitializeGenomeToMutrun(GenomeType p_genome_type, int32_t p_mutrun_count, slim_position_t p_mutrun_length, MutationRun *p_run)
 {
 	genome_type_ = p_genome_type;
 	
@@ -348,7 +348,7 @@ void Genome::ReinitializeGenomeToMutrun(GenomeType p_genome_type, int32_t p_mutr
 	}
 }
 
-void Genome::ReinitializeGenomeNullptr(GenomeType p_genome_type, int32_t p_mutrun_count, int32_t p_mutrun_length)
+void Genome::ReinitializeGenomeNullptr(GenomeType p_genome_type, int32_t p_mutrun_count, slim_position_t p_mutrun_length)
 {
 	genome_type_ = p_genome_type;
 	
@@ -723,7 +723,7 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMutations(EidosObjectEle
 		{
 			Mutation *mut = (Mutation *)(mutations_value->ObjectElementAtIndex(0, nullptr));
 			MutationIndex mut_block_index = mut->BlockIndex();
-			int32_t mutrun_length = ((Genome *)(p_elements[0]))->mutrun_length_;		// assume all Genome objects have the same mutrun_length_; better be true...
+			slim_position_t mutrun_length = ((Genome *)(p_elements[0]))->mutrun_length_;		// assume all Genome objects have the same mutrun_length_; better be true...
 			slim_position_t mutrun_index = mut->position_ / mutrun_length;
 			
 			if (p_elements_size == 1)
@@ -1409,7 +1409,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 	
 	// Use the 0th genome in the target to find out what the mutation run length is, so we can calculate run indices
 	Genome *genome_0 = (Genome *)p_target->ObjectElementAtIndex(0, nullptr);
-	int mutrun_length = genome_0->mutrun_length_;
+	slim_position_t mutrun_length = genome_0->mutrun_length_;
 	SLiMSim &sim = genome_0->subpop_->population_.sim_;
 	Population &pop = sim.ThePopulation();
 	
@@ -1526,13 +1526,13 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 	}
 	
 	// Now handle the mutations to add, broken into bulk operations according to the mutation run they fall into
-	int last_handled_mutrun_index = -1;
+	slim_mutrun_index_t last_handled_mutrun_index = -1;
 	
 	for (int value_index = 0; value_index < mutations_count; ++value_index)
 	{
 		Mutation *next_mutation = mutations_to_add[value_index];
 		const slim_position_t pos = next_mutation->position_;
-		int mutrun_index = pos / mutrun_length;
+		slim_mutrun_index_t mutrun_index = (slim_mutrun_index_t)(pos / mutrun_length);
 		
 		if (mutrun_index <= last_handled_mutrun_index)
 			continue;
@@ -1623,7 +1623,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	// Use the 0th genome in the target to find out what the mutation run length is, so we can calculate run indices
 	Genome *genome_0 = (Genome *)p_target->ObjectElementAtIndex(0, nullptr);
 	int mutrun_count = genome_0->mutrun_count_;
-	int mutrun_length = genome_0->mutrun_length_;
+	slim_position_t mutrun_length = genome_0->mutrun_length_;
 	SLiMSim &sim = genome_0->subpop_->population_.sim_;
 	Population &pop = sim.ThePopulation();
 	
@@ -1706,7 +1706,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	}
 	
 	// each bulk operation is performed on a single mutation run, so we need to figure out which runs we're influencing
-	std::vector<int> mutrun_indexes;
+	std::vector<slim_mutrun_index_t> mutrun_indexes;
 	
 	if (mutrun_count == 1)
 	{
@@ -1718,7 +1718,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		for (int pos_index = 0; pos_index < position_count; ++pos_index)
 		{
 			slim_position_t position = SLiMCastToPositionTypeOrRaise(arg_position->IntAtIndex(pos_index, nullptr));
-			mutrun_indexes.push_back(position / mutrun_length);
+			mutrun_indexes.push_back((slim_mutrun_index_t)(position / mutrun_length));
 		}
 		
 		std::sort(mutrun_indexes.begin(), mutrun_indexes.end());
@@ -1766,7 +1766,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	// ok, now loop to add the mutations in a single bulk operation per mutation run
 	bool recording_tree_sequence_mutations = sim.RecordingTreeSequenceMutations();
 	
-	for (int mutrun_index : mutrun_indexes)
+	for (slim_mutrun_index_t mutrun_index : mutrun_indexes)
 	{
 		int64_t operation_id = ++gSLiM_MutationRun_OperationID;
 		MutationRun &mutations_to_add = *MutationRun::NewMutationRun();		// take from shared pool of used objects;
@@ -2002,7 +2002,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 	
 	// Use the 0th genome in the target to find out what the mutation run length is, so we can calculate run indices
 	Genome *genome_0 = (Genome *)p_target->ObjectElementAtIndex(0, nullptr);
-	int mutrun_length = genome_0->mutrun_length_;
+	slim_position_t mutrun_length = genome_0->mutrun_length_;
 	SLiMSim &sim = genome_0->subpop_->population_.sim_;
 	
 	if (!sim.warned_early_mutation_remove_)
@@ -2236,13 +2236,13 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 		}
 		
 		// Now handle the mutations to remove, broken into bulk operations according to the mutation run they fall into
-		int last_handled_mutrun_index = -1;
+		slim_mutrun_index_t last_handled_mutrun_index = -1;
 		
 		for (int value_index = 0; value_index < mutations_count; ++value_index)
 		{
 			Mutation *next_mutation = mutations_to_remove[value_index];
 			const slim_position_t pos = next_mutation->position_;
-			int mutrun_index = pos / mutrun_length;
+			slim_mutrun_index_t mutrun_index = (slim_mutrun_index_t)(pos / mutrun_length);
 			
 			if (mutrun_index <= last_handled_mutrun_index)
 				continue;

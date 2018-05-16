@@ -31,6 +31,7 @@
 #include <vector>
 #include <stdexcept>
 #include <limits>
+#include <random>
 
 #if ((defined(SLIMGUI) && (SLIMPROFILING == 1)) || defined(EIDOS_GUI))
 // includes for the timing code in RunEidosTests(), which is normally #if 0
@@ -346,7 +347,8 @@ int RunEidosTests(void)
 	
 	// Do some tests of our custom math functions
 #if 0
-	Eidos_InitializeRNGFromSeed(Eidos_GenerateSeedFromPIDAndTime());
+	Eidos_InitializeRNG();
+	Eidos_SetRNGSeed(Eidos_GenerateSeedFromPIDAndTime());
 	
 	int64_t totals[17];		// note 17 is prime
 	
@@ -354,7 +356,7 @@ int RunEidosTests(void)
 		totals[i] = 0;
 	
 	for (int i = 0; i < 100000000; ++i)
-		totals[Eidos_rng_uniform_int(gEidos_rng, 17)]++;
+		totals[Eidos_rng_uniform_int(EIDOS_GSL_RNG, 17)]++;
 	
 	for (int i = 0; i < 17; ++i)
 		std::cout << "totals[" << i << "] == " << totals[i] << std::endl;
@@ -362,7 +364,8 @@ int RunEidosTests(void)
 	
 #if 0
 	//#ifndef USE_GSL_POISSON
-	Eidos_InitializeRNGFromSeed(Eidos_GenerateSeedFromPIDAndTime());
+	Eidos_InitializeRNG();
+	Eidos_SetRNGSeed(Eidos_GenerateSeedFromPIDAndTime());
 	
 	double total;
 	int i;
@@ -375,7 +378,7 @@ int RunEidosTests(void)
 	std::cout << "Eidos_FastRandomPoisson(1.0): mean = " << (total / 1000000) << ", expected 1.0" << std::endl;
 	
 	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += gsl_ran_poisson(gEidos_rng, 1.0);
+		total += gsl_ran_poisson(EIDOS_GSL_RNG, 1.0);
 	
 	std::cout << "gsl_ran_poisson(1.0): mean = " << (total / 1000000) << ", expected 1.0" << std::endl << std::endl;
 	
@@ -385,7 +388,7 @@ int RunEidosTests(void)
 	std::cout << "Eidos_FastRandomPoisson(0.001): mean = " << (total / 1000000) << ", expected 0.001" << std::endl;
 	
 	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += gsl_ran_poisson(gEidos_rng, 0.001);
+		total += gsl_ran_poisson(EIDOS_GSL_RNG, 0.001);
 	
 	std::cout << "gsl_ran_poisson(0.001): mean = " << (total / 1000000) << ", expected 0.001" << std::endl << std::endl;
 	
@@ -395,7 +398,7 @@ int RunEidosTests(void)
 	std::cout << "Eidos_FastRandomPoisson(0.00001): mean = " << (total / 1000000) << ", expected 0.00001" << std::endl;
 	
 	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += gsl_ran_poisson(gEidos_rng, 0.00001);
+		total += gsl_ran_poisson(EIDOS_GSL_RNG, 0.00001);
 	
 	std::cout << "gsl_ran_poisson(0.00001): mean = " << (total / 1000000) << ", expected 0.00001" << std::endl << std::endl;
 	
@@ -405,7 +408,7 @@ int RunEidosTests(void)
 	std::cout << "Eidos_FastRandomPoisson(100): mean = " << (total / 100000) << ", expected 100" << std::endl;
 	
 	for (total = 0.0, i = 0; i < 100000; i++)
-		total += gsl_ran_poisson(gEidos_rng, 100);
+		total += gsl_ran_poisson(EIDOS_GSL_RNG, 100);
 	
 	std::cout << "gsl_ran_poisson(100): mean = " << (total / 100000) << ", expected 100" << std::endl << std::endl;
 	
@@ -418,7 +421,7 @@ int RunEidosTests(void)
 	std::cout << "Eidos_FastRandomPoisson(1.0): mean = " << (total / 1000000) << ", expected 1.0" << std::endl;
 	
 	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += gsl_ran_poisson(gEidos_rng, 1.0);
+		total += gsl_ran_poisson(EIDOS_GSL_RNG, 1.0);
 	
 	std::cout << "gsl_ran_poisson(1.0): mean = " << (total / 1000000) << ", expected 1.0" << std::endl << std::endl;
 	
@@ -428,7 +431,7 @@ int RunEidosTests(void)
 	std::cout << "Eidos_FastRandomPoisson(0.001): mean = " << (total / 1000000) << ", expected 0.001" << std::endl;
 	
 	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += gsl_ran_poisson(gEidos_rng, 0.001);
+		total += gsl_ran_poisson(EIDOS_GSL_RNG, 0.001);
 	
 	std::cout << "gsl_ran_poisson(0.001): mean = " << (total / 1000000) << ", expected 0.001" << std::endl << std::endl;
 	
@@ -438,7 +441,7 @@ int RunEidosTests(void)
 	std::cout << "Eidos_FastRandomPoisson(0.00001): mean = " << (total / 1000000) << ", expected 0.00001" << std::endl;
 	
 	for (total = 0.0, i = 0; i < 1000000; i++)
-		total += gsl_ran_poisson(gEidos_rng, 0.00001);
+		total += gsl_ran_poisson(EIDOS_GSL_RNG, 0.00001);
 	
 	std::cout << "gsl_ran_poisson(0.00001): mean = " << (total / 1000000) << ", expected 0.00001" << std::endl << std::endl;
 	
@@ -448,7 +451,7 @@ int RunEidosTests(void)
 	std::cout << "Eidos_FastRandomPoisson(100): mean = " << (total / 100000) << ", expected 100" << std::endl;
 	
 	for (total = 0.0, i = 0; i < 100000; i++)
-		total += gsl_ran_poisson(gEidos_rng, 100);
+		total += gsl_ran_poisson(EIDOS_GSL_RNG, 100);
 	
 	std::cout << "gsl_ran_poisson(100): mean = " << (total / 100000) << ", expected 100" << std::endl << std::endl;
 	
@@ -465,7 +468,7 @@ int RunEidosTests(void)
 		unsigned int x;
 		
 		do {
-			x = gsl_ran_poisson(gEidos_rng, 1.0);
+			x = gsl_ran_poisson(EIDOS_GSL_RNG, 1.0);
 		} while (x == 0);
 		
 		total += x;
@@ -483,7 +486,7 @@ int RunEidosTests(void)
 	//		unsigned int x;
 	//		
 	//		do {
-	//			x = gsl_ran_poisson(gEidos_rng, 0.001);
+	//			x = gsl_ran_poisson(EIDOS_GSL_RNG, 0.001);
 	//		} while (x == 0);
 	//		
 	//		total += x;
@@ -501,7 +504,7 @@ int RunEidosTests(void)
 	//		unsigned int x;
 	//		
 	//		do {
-	//			x = gsl_ran_poisson(gEidos_rng, 0.00001);
+	//			x = gsl_ran_poisson(EIDOS_GSL_RNG, 0.00001);
 	//		} while (x == 0);
 	//		
 	//		total += x;
@@ -519,7 +522,7 @@ int RunEidosTests(void)
 		unsigned int x;
 		
 		do {
-			x = gsl_ran_poisson(gEidos_rng, 100);
+			x = gsl_ran_poisson(EIDOS_GSL_RNG, 100);
 		} while (x == 0);
 		
 		total += x;
@@ -578,7 +581,7 @@ int RunEidosTests(void)
 			else if (type == 2)
 			{
 				for (int i = 0; i < 1000000; i++)
-					total += gsl_ran_poisson(gEidos_rng, mu);
+					total += gsl_ran_poisson(EIDOS_GSL_RNG, mu);
 			}
 			
 			double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
@@ -589,27 +592,69 @@ int RunEidosTests(void)
 #endif
 	
 #if 0
-	// Speed tests of gsl_rng_uniform_int() versus Eidos_rng_uniform_int()
+	// Speed tests of gsl_rng_uniform_int() / Eidos_rng_uniform_int() / Eidos_rng_uniform_int_MT64 / C++'s MT64
+	// The use of total here is a thunk to force the compiler not to optimize away any work
+	// Results (12 May 2018, Release build):
+	//
+	//		gsl_rng_uniform_int(): time == 18.5712, total == 249506669929
+	//		Eidos_rng_uniform_int(): time == 2.83272, total == 249504929021
+	//		Eidos_rng_uniform_int_MT64(): time == 3.28454, total == 249512506686
+	//		std::mt19937_64: time == 16.9182, total == 249496346730
+	//
+	// So Eidos_rng_uniform_int_MT64() is only marginally slower than Eidos_rng_uniform_int(), whereas the
+	// straight GSL and C++ RNGs are much slower.  The straight GSL is not inlined; I'm not sure why the C++
+	// MT64 is so slow.
 	{
 		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		int64_t total = 0;
 		
-		for (int64_t iteration = 0; iteration < 100000000; ++iteration)
-			gsl_rng_uniform_int(gEidos_rng, 500);
+		for (int64_t iteration = 0; iteration < 1000000000; ++iteration)
+			total += gsl_rng_uniform_int(EIDOS_GSL_RNG, 500);
 		
 		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
 		
-		std::cout << std::endl << "gsl_rng_uniform_int(): time == " << (end_time - start_time) << std::endl;
+		std::cout << std::endl << "gsl_rng_uniform_int(): time == " << (end_time - start_time) << ", total == " << total << std::endl;
 	}
 	
 	{
 		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		int64_t total = 0;
 		
-		for (int64_t iteration = 0; iteration < 100000000; ++iteration)
-			Eidos_rng_uniform_int(gEidos_rng, 500);
+		for (int64_t iteration = 0; iteration < 1000000000; ++iteration)
+			total += Eidos_rng_uniform_int(EIDOS_GSL_RNG, 500);
 		
 		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
 		
-		std::cout << "Eidos_rng_uniform_int(): time == " << (end_time - start_time) << std::endl;
+		std::cout << "Eidos_rng_uniform_int(): time == " << (end_time - start_time) << ", total == " << total << std::endl;
+	}
+	
+	{
+		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		int64_t total = 0;
+		init_genrand64(0);
+		
+		for (int64_t iteration = 0; iteration < 1000000000; ++iteration)
+			total += Eidos_rng_uniform_int_MT64(500);
+		
+		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		
+		std::cout << "Eidos_rng_uniform_int_MT64(): time == " << (end_time - start_time) << ", total == " << total << std::endl;
+	}
+	
+	{
+		std::random_device rd;
+		std::mt19937_64 e2(rd());
+		std::uniform_int_distribution<long long int> dist(0, 499);
+		int64_t total = 0;
+		
+		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		
+		for (int64_t iteration = 0; iteration < 1000000000; ++iteration)
+			total += dist(e2);
+		
+		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		
+		std::cout << "std::mt19937_64: time == " << (end_time - start_time) << ", total == " << total << std::endl;
 	}
 #endif
 	
@@ -619,7 +664,7 @@ int RunEidosTests(void)
 		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
 		
 		for (int64_t iteration = 0; iteration < 100000000; ++iteration)
-			gsl_rng_uniform(gEidos_rng);
+			gsl_rng_uniform(EIDOS_GSL_RNG);
 		
 		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
 		
@@ -630,7 +675,7 @@ int RunEidosTests(void)
 		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
 		
 		for (int64_t iteration = 0; iteration < 100000000; ++iteration)
-			Eidos_rng_uniform(gEidos_rng);
+			Eidos_rng_uniform(EIDOS_GSL_RNG);
 		
 		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
 		
@@ -644,7 +689,7 @@ int RunEidosTests(void)
 		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
 		
 		for (int64_t iteration = 0; iteration < 100000000; ++iteration)
-			gsl_rng_uniform_pos(gEidos_rng);
+			gsl_rng_uniform_pos(EIDOS_GSL_RNG);
 		
 		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
 		
@@ -655,7 +700,7 @@ int RunEidosTests(void)
 		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
 		
 		for (int64_t iteration = 0; iteration < 100000000; ++iteration)
-			Eidos_rng_uniform_pos(gEidos_rng);
+			Eidos_rng_uniform_pos(EIDOS_GSL_RNG);
 		
 		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
 		
@@ -673,22 +718,25 @@ int RunEidosTests(void)
 		eidos_taus = (unsigned long int *)malloc(100000 * sizeof(unsigned long int));
 		mixed_taus = (unsigned long int *)malloc(100000 * sizeof(unsigned long int));
 		
-		Eidos_InitializeRNGFromSeed(10);
+		Eidos_InitializeRNG();
+		Eidos_SetRNGSeed(10);
 		
 		for (iter = 0; iter < 100000; ++iter)
-			gsl_taus[iter] = gsl_rng_get(gEidos_rng);
+			gsl_taus[iter] = gsl_rng_get(EIDOS_GSL_RNG);
 		
-		Eidos_InitializeRNGFromSeed(10);
+		Eidos_InitializeRNG();
+		Eidos_SetRNGSeed(10);
 		
 		for (iter = 0; iter < 100000; ++iter)
-			eidos_taus[iter] = taus_get_inline(gEidos_rng->state);
+			eidos_taus[iter] = taus_get_inline(EIDOS_GSL_RNG->state);
 		
-		Eidos_InitializeRNGFromSeed(10);
+		Eidos_InitializeRNG();
+		Eidos_SetRNGSeed(10);
 		
 		for (iter = 0; iter < 50000; ++iter)
 		{
-			mixed_taus[iter * 2] = gsl_rng_get(gEidos_rng);
-			mixed_taus[iter * 2 + 1] = taus_get_inline(gEidos_rng->state);
+			mixed_taus[iter * 2] = gsl_rng_get(EIDOS_GSL_RNG);
+			mixed_taus[iter * 2 + 1] = taus_get_inline(EIDOS_GSL_RNG->state);
 		}
 		
 		for (iter = 0; iter < 50000; ++iter)
@@ -1153,7 +1201,7 @@ int RunEidosTests(void)
 				int64_t total = 0;
 				
 				for (int64_t i = 0; i < 20000000; i++)
-					total += gsl_ran_binomial(gEidos_rng, p, n);
+					total += gsl_ran_binomial(EIDOS_GSL_RNG, p, n);
 				
 				double time_spent = static_cast<double>(clock() - begin) / CLOCKS_PER_SEC;
 				std::cout << ((pref == 1) ? "***" : "   ");
@@ -1165,7 +1213,7 @@ int RunEidosTests(void)
 				int64_t total = 0;
 				
 				for (int64_t i = 0; i < 20000000; i++)
-					total += gsl_ran_poisson(gEidos_rng, p * n);
+					total += gsl_ran_poisson(EIDOS_GSL_RNG, p * n);
 				
 				double time_spent = static_cast<double>(clock() - begin) / CLOCKS_PER_SEC;
 				std::cout << ((pref == 2) ? "***" : "   ");
@@ -1178,7 +1226,7 @@ int RunEidosTests(void)
 				double sd = sqrt(n * p * (1 - p));
 				
 				for (int64_t i = 0; i < 20000000; i++)
-					total += (int)round(gsl_ran_gaussian(gEidos_rng, sd) + p * n);
+					total += (int)round(gsl_ran_gaussian(EIDOS_GSL_RNG, sd) + p * n);
 				
 				double time_spent = static_cast<double>(clock() - begin) / CLOCKS_PER_SEC;
 				std::cout << ((pref == 3) ? "***" : "   ");
@@ -1190,7 +1238,8 @@ int RunEidosTests(void)
 #endif
 	
 	// If we ran tests, the random number seed has been set; let's set it back to a good seed value
-	Eidos_InitializeRNGFromSeed(Eidos_GenerateSeedFromPIDAndTime());
+	Eidos_InitializeRNG();
+	Eidos_SetRNGSeed(Eidos_GenerateSeedFromPIDAndTime());
 	
 	// return a standard Unix result code indicating success (0) or failure (1);
 	return (gEidosTestFailureCount > 0) ? 1 : 0;

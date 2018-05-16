@@ -113,8 +113,11 @@ EidosInterpreter::EidosInterpreter(const EidosScript &p_script, EidosSymbolTable
 {
 	// Initialize the random number generator if and only if it has not already been initialized.  In some cases the Context will want to
 	// initialize the RNG itself, with its own seed; we don't want to override that.
-	if (!gEidos_rng)
-		Eidos_InitializeRNGFromSeed(Eidos_GenerateSeedFromPIDAndTime());
+	if (!EIDOS_GSL_RNG)
+	{
+		Eidos_InitializeRNG();
+		Eidos_SetRNGSeed(Eidos_GenerateSeedFromPIDAndTime());
+	}
 }
 
 EidosInterpreter::EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context)
@@ -122,8 +125,11 @@ EidosInterpreter::EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbol
 {
 	// Initialize the random number generator if and only if it has not already been initialized.  In some cases the Context will want to
 	// initialize the RNG itself, with its own seed; we don't want to override that.
-	if (!gEidos_rng)
-		Eidos_InitializeRNGFromSeed(Eidos_GenerateSeedFromPIDAndTime());
+	if (!EIDOS_GSL_RNG)
+	{
+		Eidos_InitializeRNG();
+		Eidos_SetRNGSeed(Eidos_GenerateSeedFromPIDAndTime());
+	}
 }
 
 void EidosInterpreter::SetShouldLogExecution(bool p_log)

@@ -263,9 +263,6 @@ typedef enum SLiMLaunchAction
 	[messerLabLineTextField eidosSetHyperlink:[NSURL URLWithString:@"http://messerlab.org/slim/"] onText:@"http://messerlab.org/slim/"];
 	[benHallerLineTextField eidosSetHyperlink:[NSURL URLWithString:@"http://benhaller.com/"] onText:@"http://benhaller.com/"];
 	[licenseTextField eidosSetHyperlink:[NSURL URLWithString:@"http://www.gnu.org/licenses/"] onText:@"http://www.gnu.org/licenses/"];
-	[licenseTextField eidosSetHyperlink:[NSURL URLWithString:@"http://www.gnu.org/software/gsl/"] onText:@"http://www.gnu.org/software/gsl/"];
-	[licenseTextField eidosSetHyperlink:[NSURL URLWithString:@"http://www.boost.org/LICENSE_1_0.txt"] onText:@"http://www.boost.org/LICENSE_1_0.txt"];
-	[licenseTextField eidosSetHyperlink:[NSURL URLWithString:@"http://www.boost.org/users/download/#live"] onText:@"http://www.boost.org/users/download/#live"];
 	
 	// Now that everything is set up, show the window
 	[aboutWindow makeKeyAndOrderFront:nil];

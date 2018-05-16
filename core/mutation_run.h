@@ -586,7 +586,7 @@ public:
 	}
 	
 	// splitting mutation runs
-	void split_run(MutationRun **p_first_half, MutationRun **p_second_half, int32_t p_split_first_position);
+	void split_run(MutationRun **p_first_half, MutationRun **p_second_half, slim_position_t p_split_first_position);
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
 	// caching non-neutral mutations; see above for comments about the "regime" etc.

@@ -346,7 +346,7 @@ void Subpopulation::WipeIndividualsAndGenomes(std::vector<Individual *> &p_indiv
 	SLiMSim &sim = population_.sim_;
 	Chromosome &chromosome = sim.TheChromosome();
 	int32_t mutrun_count = chromosome.mutrun_count_;
-	int32_t mutrun_length = chromosome.mutrun_length_;
+	slim_position_t mutrun_length = chromosome.mutrun_length_;
 	
 	if (p_first_male == -1)
 	{
@@ -471,7 +471,7 @@ void Subpopulation::GenerateIndividualsToFitWF(bool p_make_child_generation, boo
 	bool recording_tree_sequence = (!p_placeholders) && p_record_in_treeseq && sim.RecordingTreeSequence();
 	Chromosome &chromosome = sim.TheChromosome();
 	int32_t mutrun_count = chromosome.mutrun_count_;
-	int32_t mutrun_length = chromosome.mutrun_length_;
+	slim_position_t mutrun_length = chromosome.mutrun_length_;
 	
 	if (p_make_child_generation)
 	{
@@ -576,7 +576,7 @@ void Subpopulation::GenerateIndividualsToFitNonWF(double p_sex_ratio)
 	bool recording_tree_sequence = sim.RecordingTreeSequence();
 	Chromosome &chromosome = sim.TheChromosome();
 	int32_t mutrun_count = chromosome.mutrun_count_;
-	int32_t mutrun_length = chromosome.mutrun_length_;
+	slim_position_t mutrun_length = chromosome.mutrun_length_;
 	
 	cached_parent_genomes_value_.reset();
 	cached_parent_individuals_value_.reset();
@@ -645,7 +645,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 #endif
 	Chromosome &chromosome = population_.sim_.TheChromosome();
 	int32_t mutrun_count = chromosome.mutrun_count_;
-	int32_t mutrun_length = chromosome.mutrun_length_;
+	slim_position_t mutrun_length = chromosome.mutrun_length_;
 	
 	//
 	//	Check the parental generation; this is essentially the same in WF and nonWF models
@@ -3053,7 +3053,7 @@ void Subpopulation::ViabilitySelection(void)
 		
 		if (fitness <= 0.0)			survived = false;
 		else if (fitness >= 1.0)	survived = true;
-		else						survived = (Eidos_rng_uniform(gEidos_rng) < fitness);
+		else						survived = (Eidos_rng_uniform(EIDOS_GSL_RNG) < fitness);
 		
 		if (survived)
 		{
@@ -3538,7 +3538,7 @@ IndividualSex Subpopulation::_GenomeConfigurationForSex(EidosValue *p_sex_value,
 		if (sex_value_type == EidosValueType::kValueNULL)
 		{
 			// in sexual simulations, NULL (the default) means pick a sex with equal probability
-			sex = (Eidos_RandomBool(gEidos_rng) ? IndividualSex::kMale : IndividualSex::kFemale);
+			sex = (Eidos_RandomBool() ? IndividualSex::kMale : IndividualSex::kFemale);
 		}
 		else if (sex_value_type == EidosValueType::kValueString)
 		{
@@ -3557,7 +3557,7 @@ IndividualSex Subpopulation::_GenomeConfigurationForSex(EidosValue *p_sex_value,
 			double sex_prob = p_sex_value->FloatAtIndex(0, nullptr);
 			
 			if ((sex_prob >= 0.0) && (sex_prob <= 1.0))
-				sex = ((Eidos_rng_uniform(gEidos_rng) < sex_prob) ? IndividualSex::kMale : IndividualSex::kFemale);
+				sex = ((Eidos_rng_uniform(EIDOS_GSL_RNG) < sex_prob) ? IndividualSex::kMale : IndividualSex::kFemale);
 			else
 				EIDOS_TERMINATION << "ERROR (Subpopulation::GenomeConfigurationForSex): probability " << sex_prob << " out of range [0.0, 1.0] for parameter sex." << EidosTerminate();
 		}
@@ -3614,7 +3614,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	
 	bool pedigrees_enabled = sim.PedigreesEnabled();
 	Chromosome &chromosome = sim.TheChromosome();
-	int32_t mutrun_count = chromosome.mutrun_count_, mutrun_length = chromosome.mutrun_length_;
+	int32_t mutrun_count = chromosome.mutrun_count_;
+	slim_position_t mutrun_length = chromosome.mutrun_length_;
 	
 	// Get and check the first parent (the mother)
 	EidosValue *parent_value = p_arguments[0].get();
@@ -3687,7 +3688,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	bool pedigrees_enabled = sim.PedigreesEnabled();
 	bool prevent_incidental_selfing = sim.PreventIncidentalSelfing();
 	Chromosome &chromosome = sim.TheChromosome();
-	int32_t mutrun_count = chromosome.mutrun_count_, mutrun_length = chromosome.mutrun_length_;
+	int32_t mutrun_count = chromosome.mutrun_count_;
+	slim_position_t mutrun_length = chromosome.mutrun_length_;
 	
 	// Get and check the first parent (the mother)
 	EidosValue *parent1_value = p_arguments[0].get();
@@ -3782,7 +3784,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	// Make the new individual as a candidate
 	bool pedigrees_enabled = sim.PedigreesEnabled();
 	Chromosome &chromosome = sim.TheChromosome();
-	int32_t mutrun_count = chromosome.mutrun_count_, mutrun_length = chromosome.mutrun_length_;
+	int32_t mutrun_count = chromosome.mutrun_count_;
+	slim_position_t mutrun_length = chromosome.mutrun_length_;
 	
 	Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, genome1_type, genome1_null);
 	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
@@ -3833,7 +3836,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	
 	bool pedigrees_enabled = sim.PedigreesEnabled();
 	Chromosome &chromosome = sim.TheChromosome();
-	int32_t mutrun_count = chromosome.mutrun_count_, mutrun_length = chromosome.mutrun_length_;
+	int32_t mutrun_count = chromosome.mutrun_count_;
+	slim_position_t mutrun_length = chromosome.mutrun_length_;
 	
 	// Get and check the first parent (the mother)
 	EidosValue *parent_value = p_arguments[0].get();
@@ -4771,7 +4775,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_me
 		{
 			for (int64_t point_index = 0; point_index < point_count; ++point_index)
 			{
-				float_result->set_float_no_check(Eidos_rng_uniform(gEidos_rng) * (bounds_x1_ - bounds_x0_) + bounds_x0_, value_index++);
+				float_result->set_float_no_check(Eidos_rng_uniform(EIDOS_GSL_RNG) * (bounds_x1_ - bounds_x0_) + bounds_x0_, value_index++);
 			}
 			break;
 		}
@@ -4779,8 +4783,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_me
 		{
 			for (int64_t point_index = 0; point_index < point_count; ++point_index)
 			{
-				float_result->set_float_no_check(Eidos_rng_uniform(gEidos_rng) * (bounds_x1_ - bounds_x0_) + bounds_x0_, value_index++);
-				float_result->set_float_no_check(Eidos_rng_uniform(gEidos_rng) * (bounds_y1_ - bounds_y0_) + bounds_y0_, value_index++);
+				float_result->set_float_no_check(Eidos_rng_uniform(EIDOS_GSL_RNG) * (bounds_x1_ - bounds_x0_) + bounds_x0_, value_index++);
+				float_result->set_float_no_check(Eidos_rng_uniform(EIDOS_GSL_RNG) * (bounds_y1_ - bounds_y0_) + bounds_y0_, value_index++);
 			}
 			break;
 		}
@@ -4788,9 +4792,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_me
 		{
 			for (int64_t point_index = 0; point_index < point_count; ++point_index)
 			{
-				float_result->set_float_no_check(Eidos_rng_uniform(gEidos_rng) * (bounds_x1_ - bounds_x0_) + bounds_x0_, value_index++);
-				float_result->set_float_no_check(Eidos_rng_uniform(gEidos_rng) * (bounds_y1_ - bounds_y0_) + bounds_y0_, value_index++);
-				float_result->set_float_no_check(Eidos_rng_uniform(gEidos_rng) * (bounds_z1_ - bounds_z0_) + bounds_z0_, value_index++);
+				float_result->set_float_no_check(Eidos_rng_uniform(EIDOS_GSL_RNG) * (bounds_x1_ - bounds_x0_) + bounds_x0_, value_index++);
+				float_result->set_float_no_check(Eidos_rng_uniform(EIDOS_GSL_RNG) * (bounds_y1_ - bounds_y0_) + bounds_y0_, value_index++);
+				float_result->set_float_no_check(Eidos_rng_uniform(EIDOS_GSL_RNG) * (bounds_z1_ - bounds_z0_) + bounds_z0_, value_index++);
 			}
 			break;
 		}
@@ -5202,7 +5206,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 		if (sample_size == 1)
 		{
 			// a sample size of 1 is very common; make it as fast as we can by getting a singleton EidosValue directly from x
-			int sample_index = (int)Eidos_rng_uniform_int(gEidos_rng, candidate_count) + first_candidate_index;
+			int sample_index = (int)Eidos_rng_uniform_int(EIDOS_GSL_RNG, candidate_count) + first_candidate_index;
 			
 			if ((excluded_index != -1) && (sample_index >= excluded_index))
 				sample_index++;
@@ -5217,7 +5221,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 			
 			for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
 			{
-				int sample_index = (int)Eidos_rng_uniform_int(gEidos_rng, candidate_count) + first_candidate_index;
+				int sample_index = (int)Eidos_rng_uniform_int(EIDOS_GSL_RNG, candidate_count) + first_candidate_index;
 				
 				if ((excluded_index != -1) && (sample_index >= excluded_index))
 					sample_index++;
@@ -5233,7 +5237,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 			EidosValue_Object_vector *result = ((EidosValue_Object_vector *)result_SP.get())->resize_no_initialize(sample_size);
 			
-			int sample_index1 = (int)Eidos_rng_uniform_int(gEidos_rng, candidate_count) + first_candidate_index;
+			int sample_index1 = (int)Eidos_rng_uniform_int(EIDOS_GSL_RNG, candidate_count) + first_candidate_index;
 			
 			if ((excluded_index != -1) && (sample_index1 >= excluded_index))
 				sample_index1++;
@@ -5244,7 +5248,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 			
 			do
 			{
-				sample_index2 = (int)Eidos_rng_uniform_int(gEidos_rng, candidate_count) + first_candidate_index;
+				sample_index2 = (int)Eidos_rng_uniform_int(EIDOS_GSL_RNG, candidate_count) + first_candidate_index;
 				
 				if ((excluded_index != -1) && (sample_index2 >= excluded_index))
 					sample_index2++;
@@ -5299,7 +5303,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_sampleIndividuals): (internal error) sampleIndividuals() ran out of eligible individuals from which to sample." << EidosTerminate(nullptr);		// CODE COVERAGE: This is dead code
 #endif
 			
-			int rose_index = (int)Eidos_rng_uniform_int(gEidos_rng, (uint32_t)contender_count);
+			int rose_index = (int)Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)contender_count);
 			
 			result->set_object_element_no_check(parent_individuals_[index_vector[rose_index]], samples_generated);
 			

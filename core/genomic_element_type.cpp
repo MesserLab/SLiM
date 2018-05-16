@@ -94,7 +94,7 @@ MutationType *GenomicElementType::DrawMutationType(void) const
 	if (!lookup_mutation_type_)
 		EIDOS_TERMINATION << "ERROR (GenomicElementType::DrawMutationType): empty mutation type vector for genomic element type." << EidosTerminate();
 	
-	return mutation_type_ptrs_[gsl_ran_discrete(gEidos_rng, lookup_mutation_type_)];
+	return mutation_type_ptrs_[gsl_ran_discrete(EIDOS_GSL_RNG, lookup_mutation_type_)];
 }
 
 // This is unused except by debugging code and in the debugger itself

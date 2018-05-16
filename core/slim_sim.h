@@ -56,7 +56,8 @@
 
 class EidosInterpreter;
 class Individual;
-
+struct ts_subpop_info;
+struct ts_mut_info;
 
 extern EidosObjectClass *gSLiM_SLiMSim_Class;
 
@@ -102,6 +103,10 @@ enum class SLiMFileFormat
 
 
 // TREE SEQUENCE RECORDING
+#pragma mark -
+#pragma mark treeseq recording metadata records
+#pragma mark -
+
 // These structs are used by the tree-rec code to record all metadata about an object that needs to be saved.
 // Note that this information is a snapshot taken at one point in time, and may become stale; be careful.
 // Changing these structs will break binary compatibility in our output files, and requires changes elsewhere.
@@ -137,6 +142,10 @@ static_assert(sizeof(IndividualMetadataRec) == 8, "IndividualMetadataRec is not 
 #endif
 #endif
 
+
+#pragma mark -
+#pragma mark SLiMSim
+#pragma mark -
 
 class SLiMSim : public SLiMEidosDictionary
 {
@@ -223,13 +232,10 @@ private:
 	
 	// private initialization methods
 	SLiMFileFormat FormatOfPopulationFile(const std::string &p_file_string);		// determine the format of a file/folder at the given path using leading bytes, etc.
+	void InitializeFromFile(std::istream &p_infile);								// parse a input file and set up the simulation state from its contents
 	slim_generation_t InitializePopulationFromFile(const std::string &p_file_string, EidosInterpreter *p_interpreter);	// initialize the population from the file
 	slim_generation_t _InitializePopulationFromTextFile(const char *p_file, EidosInterpreter *p_interpreter);			// initialize the population from a SLiM text file
 	slim_generation_t _InitializePopulationFromBinaryFile(const char *p_file, EidosInterpreter *p_interpreter);			// initialize the population from a SLiM binary file
-	slim_generation_t _InstantiateSLiMObjectsFromTreeSequence(void);																	// given tree-seq tables, makes individuals, genomes, and mutations
-	slim_generation_t _InitializePopulationFromMSPrimeTextFile(const char *p_file, EidosInterpreter *p_interpreter);	// initialize the population from an msprime text file
-	slim_generation_t _InitializePopulationFromMSPrimeBinaryFile(const char *p_file, EidosInterpreter *p_interpreter);	// initialize the population from an msprime binary file
-	void InitializeFromFile(std::istream &p_infile);								// parse a input file and set up the simulation state from its contents
 	
 	// initialization completeness check counts; used only when running initialize() callbacks
 	int num_interaction_types_;
@@ -295,6 +301,9 @@ private:
 	std::vector<int32_t> x_mutcount_history_;	// a record of the mutation run count used in each generation
 	
 	// TREE SEQUENCE RECORDING
+#pragma mark -
+#pragma mark treeseq recording ivars
+#pragma mark -
 	bool recording_tree_ = false;				// true if we are doing tree sequence recording
 	
 	// TABLE IVARS
@@ -438,6 +447,9 @@ public:
 	}
 	
 	// TREE SEQUENCE RECORDING
+#pragma mark -
+#pragma mark treeseq recording methods
+#pragma mark -
 	inline __attribute__((always_inline)) bool RecordingTreeSequence(void) const											{ return recording_tree_; }
 	inline __attribute__((always_inline)) bool RecordingTreeSequenceMutations(void) const									{ return recording_mutations_; }
 	inline __attribute__((always_inline)) void AboutToSplitSubpop(void)														{ tree_seq_generation_offset_ += 0.00001; }	// see Population::AddSubpopulationSplit()
@@ -468,11 +480,22 @@ public:
 	void DumpMutationTable(void);
 	void CrosscheckTreeSeqIntegrity(void);
 	void TSXC_Enable(void);
-	// put any other methods you need for the tree sequence stuff here
+	
+	void __TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap);
+	void __CreateSubpopulationsFromTabulation(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, EidosInterpreter *p_interpreter);
+	void __TabulateMutationsFromTreeSequence(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap);
+	void __CreateMutationsFromTabulation(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutInfoMap, std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap);
+	void __AddMutationsToGenomes(std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap);
+	slim_generation_t _InstantiateSLiMObjectsFromTreeSequence(EidosInterpreter *p_interpreter);							// given tree-seq tables, makes individuals, genomes, and mutations
+	slim_generation_t _InitializePopulationFromMSPrimeTextFile(const char *p_file, EidosInterpreter *p_interpreter);	// initialize the population from an msprime text file
+	slim_generation_t _InitializePopulationFromMSPrimeBinaryFile(const char *p_file, EidosInterpreter *p_interpreter);	// initialize the population from an msprime binary file
 	
 	//
 	// Eidos support
 	//
+#pragma mark -
+#pragma mark Eidos support
+#pragma mark -
 	inline EidosSymbolTableEntry &SymbolTableEntry(void) { return self_symbol_; };
 	
 	virtual EidosValue_SP ContextDefinedFunctionDispatch(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);

@@ -19,11 +19,11 @@
 
 /*
  
- This is a modified version of an object pool published by Paulo Zemak at
+ This is a modified version of an object pool published by Paulo Zemek at
  http://www.codeproject.com/Articles/746630/O-Object-Pool-in-Cplusplus .
  His code is published under the Code Project Open License (CPOL), available
  at http://www.codeproject.com/info/cpol10.aspx .  The CPOL is not compatible
- with the GPL.  Paulo Zemak has explicitly granted permission for his code
+ with the GPL.  Paulo Zemek has explicitly granted permission for his code
  to be used in Eidos and SLiM, and thus placed under the GPL as an alternative
  license.  An email granting this permission has been archived and can be
  provided upon request.  This code is therefore now under the same GPL license

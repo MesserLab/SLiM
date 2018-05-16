@@ -283,6 +283,7 @@ std::string Eidos_GetUntrimmedRaiseMessage(void);
 #pragma mark -
 
 // bzero() is deprecated, but memset() is not a perfect substitute, so this is a macro to use instead
+// this follows the standard bzero() declaration: void bzero(void *s, size_t n);
 // see https://stackoverflow.com/a/17097978/2752221 for some justification
 #define EIDOS_BZERO(s, n) memset((s), 0, (n))
 

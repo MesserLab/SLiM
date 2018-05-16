@@ -111,7 +111,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	[scriptTextView setSyntaxColoring:kEidosSyntaxColoringEidos];
 	
 	// Execute a null statement to get our symbols set up, for code completion etc.
-	// Note this has the side effect of creating a random number generator gEidos_rng for our use.
+	// Note this has the side effect of creating a random number generator gEidos_RNG for our use.
 	[self validateSymbolTableAndFunctionMap];
 }
 

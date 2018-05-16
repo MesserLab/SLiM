@@ -1424,7 +1424,7 @@ double Eidos_TTest_OneSample(const double *p_set1, int p_count1, double p_mu, do
 // This function uses an algorithm by Shewchuk (http://www.cs.berkeley.edu/~jrs/papers/robustr.pdf) to provide
 // an exact sum (within the precision limits of the double type) for a vector of double values.  This code is
 // adapted from source code in Python for its fsum() function, as implemented in the file mathmodule.c in the
-// math_fsum() C function, from Python versino 3.6.2, downloaded from https://www.python.org/getit/source/.
+// math_fsum() C function, from Python version 3.6.2, downloaded from https://www.python.org/getit/source/.
 // The authors of that code appear to be Raymond Hettinger and Mark Dickinson; a big thank-you to them.
 // The PSF open-source license for Python 3.6.2, which the PSF states is GSL-compatible, may be found on their
 // website at https://docs.python.org/3.6/license.html.  Their license follows:

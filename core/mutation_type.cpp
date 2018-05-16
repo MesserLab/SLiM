@@ -200,10 +200,10 @@ double MutationType::DrawSelectionCoefficient(void) const
 	switch (dfe_type_)
 	{
 		case DFEType::kFixed:			return dfe_parameters_[0];
-		case DFEType::kGamma:			return gsl_ran_gamma(gEidos_rng, dfe_parameters_[1], dfe_parameters_[0] / dfe_parameters_[1]);
-		case DFEType::kExponential:		return gsl_ran_exponential(gEidos_rng, dfe_parameters_[0]);
-		case DFEType::kNormal:			return gsl_ran_gaussian(gEidos_rng, dfe_parameters_[1]) + dfe_parameters_[0];
-		case DFEType::kWeibull:			return gsl_ran_weibull(gEidos_rng, dfe_parameters_[0], dfe_parameters_[1]);
+		case DFEType::kGamma:			return gsl_ran_gamma(EIDOS_GSL_RNG, dfe_parameters_[1], dfe_parameters_[0] / dfe_parameters_[1]);
+		case DFEType::kExponential:		return gsl_ran_exponential(EIDOS_GSL_RNG, dfe_parameters_[0]);
+		case DFEType::kNormal:			return gsl_ran_gaussian(EIDOS_GSL_RNG, dfe_parameters_[1]) + dfe_parameters_[0];
+		case DFEType::kWeibull:			return gsl_ran_weibull(EIDOS_GSL_RNG, dfe_parameters_[0], dfe_parameters_[1]);
 			
 		case DFEType::kScript:
 		{

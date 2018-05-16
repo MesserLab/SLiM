@@ -159,7 +159,8 @@ void SLiMSim::InitializeRNGFromSeed(unsigned long int *p_override_seed_ptr)
 	// track the random number seed given, if there is one
 	unsigned long int rng_seed = (p_override_seed_ptr ? *p_override_seed_ptr : Eidos_GenerateSeedFromPIDAndTime());
 	
-	Eidos_InitializeRNGFromSeed(rng_seed);
+	Eidos_InitializeRNG();
+	Eidos_SetRNGSeed(rng_seed);
 	
 	if (DEBUG_INPUT)
 		SLIM_OUTSTREAM << "// Initial random seed:\n" << rng_seed << "\n" << std::endl;
@@ -744,8 +745,8 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 					continue;
 			}
 			
-			int32_t mutrun_length_ = genome.mutrun_length_;
-			int current_mutrun_index = -1;
+			slim_position_t mutrun_length_ = genome.mutrun_length_;
+			slim_mutrun_index_t current_mutrun_index = -1;
 			MutationRun *current_mutrun = nullptr;
 			
 			do
@@ -759,7 +760,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 					EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): polymorphism " << polymorphism_id << " has not been defined." << EidosTerminate();
 				
 				MutationIndex mutation = found_mut_pair->second;
-				int mutrun_index = (mut_block_ptr + mutation)->position_ / mutrun_length_;
+				slim_mutrun_index_t mutrun_index = (slim_mutrun_index_t)((mut_block_ptr + mutation)->position_ / mutrun_length_);
 				
 				if (mutrun_index != current_mutrun_index)
 				{
@@ -1332,14 +1333,14 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 				}
 			}
 			
-			int32_t mutrun_length_ = genome.mutrun_length_;
-			int current_mutrun_index = -1;
+			slim_position_t mutrun_length_ = genome.mutrun_length_;
+			slim_mutrun_index_t current_mutrun_index = -1;
 			MutationRun *current_mutrun = nullptr;
 			
 			for (int mut_index = 0; mut_index < mutcount; ++mut_index)
 			{
 				MutationIndex mutation = genomebuf[mut_index];
-				int mutrun_index = (mut_block_ptr + mutation)->position_ / mutrun_length_;
+				slim_mutrun_index_t mutrun_index = (slim_mutrun_index_t)((mut_block_ptr + mutation)->position_ / mutrun_length_);
 				
 				if (mutrun_index != current_mutrun_index)
 				{
@@ -1426,50 +1427,6 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	return 0;
 }
 #endif
-
-slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTreeSequence(void)
-{
-	// make individuals with genomes corresponding to each node (what about nodes that were in the sample but are not part of the current generation?)
-	
-	
-	// make mutation objects
-	
-	
-	// add mutation objects to the appropriate genomes
-	
-	
-	// return the current simulation generation as reconstructed from the file
-	return 1;
-}
-
-slim_generation_t SLiMSim::_InitializePopulationFromMSPrimeTextFile(const char *p_file, EidosInterpreter *p_interpreter)
-{
-	// read the files from disk
-	
-	
-	// de-ASCII-fy the metadata and derived state information
-	
-	
-	// make the corresponding SLiM objects
-	return _InstantiateSLiMObjectsFromTreeSequence();
-}
-
-slim_generation_t SLiMSim::_InitializePopulationFromMSPrimeBinaryFile(const char *p_file, EidosInterpreter *p_interpreter)
-{
-	// free the existing table collection; probably needs refinement...
-	int ret = table_collection_free(&tables);
-	if (ret != 0) handle_error("table_collection_free", ret);
-	
-	// read the file from disk
-	ret = table_collection_alloc(&tables, 0);
-	if (ret != 0) handle_error("table_collection_alloc", ret);
-	
-	ret = table_collection_load(&tables, p_file, 0);
-	if (ret != 0) handle_error("table_collection_load", ret);
-	
-	// make the corresponding SLiM objects
-	return _InstantiateSLiMObjectsFromTreeSequence();
-}
 
 void SLiMSim::ValidateScriptBlockCaches(void)
 {
@@ -4965,6 +4922,394 @@ void SLiMSim::TSXC_Enable(void)
 	simplify_interval_ = 20;
 	
 	SLIM_ERRSTREAM << "// ********** Turning on tree-sequence recording with crosschecks (-TSXC)." << std::endl << std::endl;
+}
+
+typedef struct ts_subpop_info {
+	slim_popsize_t countMH_ = 0, countF_ = 0;
+	std::vector<node_id_t> nodesMH_, nodesF_;
+	std::vector<slim_pedigreeid_t> pedigreeID_;
+	std::vector<slim_age_t> age_;
+	std::vector<double> spatial_x_;
+	std::vector<double> spatial_y_;
+	std::vector<double> spatial_z_;
+} ts_subpop_info;
+
+void SLiMSim::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap)
+{
+	individual_table_t &individual_table = tables.individuals;
+	table_size_t individual_count = individual_table.num_rows;
+	
+	if (individual_count == 0)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): loaded tree sequence files must contain a non-empty individuals table." << EidosTerminate();
+	
+	for (table_size_t individual_index = 0; individual_index < individual_count; ++individual_index)
+	{
+		// bounds-check the subpop id
+		slim_objectid_t subpop_id = (slim_objectid_t)individual_table.population[individual_index];
+		if ((subpop_id < 0) || (subpop_id > SLIM_MAX_ID_VALUE))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): individuals loaded into a WF model must have subpop indices >= 0 and <= " << SLIM_MAX_ID_VALUE << "." << EidosTerminate();
+		
+		// find the ts_subpop_info rec for this individual's subpop
+		auto subpop_info_insert = p_subpopInfoMap.insert(std::pair<slim_objectid_t, ts_subpop_info>(subpop_id, ts_subpop_info()));
+		ts_subpop_info &subpop_info = (subpop_info_insert.first)->second;
+		
+		// check and tabulate sex within each subpop
+		individual_sex_t sex = individual_table.sex[individual_index];
+		
+		switch (sex)
+		{
+			case -1:
+				if (sex_enabled_)
+					EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): hermaphrodites may not be loaded into a model in which sex is enabled." << EidosTerminate();
+				subpop_info.countMH_++;
+				subpop_info.nodesMH_.push_back(individual_table.nodes_f[individual_index]);
+				subpop_info.nodesMH_.push_back(individual_table.nodes_m[individual_index]);
+				break;
+			case 0:
+				if (!sex_enabled_)
+					EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): females may not be loaded into a model in which sex is not enabled." << EidosTerminate();
+				subpop_info.countF_++;
+				subpop_info.nodesF_.push_back(individual_table.nodes_f[individual_index]);
+				subpop_info.nodesF_.push_back(individual_table.nodes_m[individual_index]);
+				break;
+			case 1:
+				if (!sex_enabled_)
+					EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): males may not be loaded into a model in which sex is not enabled." << EidosTerminate();
+				subpop_info.countMH_++;
+				subpop_info.nodesMH_.push_back(individual_table.nodes_f[individual_index]);
+				subpop_info.nodesMH_.push_back(individual_table.nodes_m[individual_index]);
+				break;
+			default:
+				EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): unrecognized individual sex value " << sex << "." << EidosTerminate();
+		}
+		
+		// parse the metadata for whatever it's got
+		const char *metadata_bytes = individual_table.metadata + individual_table.metadata_offset[individual_index];
+		table_size_t metadata_length = individual_table.metadata_offset[individual_index + 1] - individual_table.metadata_offset[individual_index];
+		
+		if (metadata_length != sizeof(IndividualMetadataRec))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): unexpected individual metadata length; this file cannot be read." << EidosTerminate();
+		
+		IndividualMetadataRec *metadata = (IndividualMetadataRec *)metadata_bytes;
+		
+		subpop_info.pedigreeID_.push_back(metadata->pedigree_id_);
+		
+		// bounds-check ages
+		individual_age_t double_age = individual_table.age[individual_index];
+		slim_age_t age = (slim_age_t)round(double_age);
+		if (((age < 0) || (age > SLIM_MAX_ID_VALUE)) && (model_type_ == SLiMModelType::kModelTypeNonWF))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): individuals loaded into a nonWF model must have age values >= 0 and <= " << SLIM_MAX_ID_VALUE << "." << EidosTerminate();
+		if ((age != -1) && (model_type_ == SLiMModelType::kModelTypeWF))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): individuals loaded into a WF model must have age values == -1." << EidosTerminate();
+		
+		subpop_info.age_.push_back(age);
+		
+		// no bounds-checks for spatial position
+		subpop_info.spatial_x_.push_back(individual_table.spatial_x[individual_index]);
+		subpop_info.spatial_y_.push_back(individual_table.spatial_y[individual_index]);
+		subpop_info.spatial_z_.push_back(individual_table.spatial_z[individual_index]);
+	}
+}
+
+void SLiMSim::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, EidosInterpreter *p_interpreter)
+{
+	gSLiM_next_pedigree_id = 0;
+	
+	for (auto subpop_info_iter : p_subpopInfoMap)
+	{
+		slim_objectid_t subpop_id = subpop_info_iter.first;
+		ts_subpop_info &subpop_info = subpop_info_iter.second;
+		slim_popsize_t subpop_size = sex_enabled_ ? (subpop_info.countMH_ + subpop_info.countF_) : subpop_info.countMH_;
+		double sex_ratio = sex_enabled_ ? (subpop_info.countMH_ / (double)subpop_size) : 0.5;
+		
+		// Create the new subpopulation – without recording it in the tree-seq tables
+#warning this gets recorded in the tree-sequence tables!
+		Subpopulation *new_subpop = population_.AddSubpopulation(subpop_id, subpop_size, sex_ratio);
+		
+		// define a new Eidos variable to refer to the new subpopulation
+		EidosSymbolTableEntry &symbol_entry = new_subpop->SymbolTableEntry();
+		
+		if (p_interpreter && p_interpreter->SymbolTable().ContainsSymbol(symbol_entry.first))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__CreateSubpopulationsFromTabulation): new subpopulation symbol " << Eidos_StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate();
+		
+		simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
+		
+		// connect up the individuals and genomes in the new subpop with the tree-seq table entries
+		if (!sex_enabled_)
+		{
+			for (slim_popsize_t ind_index = 0; ind_index < subpop_size; ++ind_index)
+			{
+				Individual *individual = new_subpop->parent_individuals_[ind_index];
+				individual->genome1_->msp_node_id_ = subpop_info.nodesMH_[ind_index * 2];
+				individual->genome2_->msp_node_id_ = subpop_info.nodesMH_[ind_index * 2 + 1];
+				
+				slim_pedigreeid_t pedigree_id = subpop_info.pedigreeID_[ind_index];
+#warning need to fix pedigree IDs here; pass it as a constructor argument?
+				//individual->pedigree_id_ = pedigree_id;
+				gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, pedigree_id + 1);
+				
+				individual->genome1_->genome_id_ = pedigree_id * 2;
+				individual->genome2_->genome_id_ = pedigree_id * 2 + 1;
+				
+				individual->age_ = subpop_info.age_[ind_index];
+				individual->spatial_x_ = subpop_info.spatial_x_[ind_index];
+				individual->spatial_y_ = subpop_info.spatial_y_[ind_index];
+				individual->spatial_z_ = subpop_info.spatial_z_[ind_index];
+			}
+		}
+	}
+}
+
+typedef struct ts_mut_info {
+	slim_position_t position;
+	MutationMetadataRec *metadata;
+} ts_mut_info;
+
+void SLiMSim::__TabulateMutationsFromTreeSequence(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap)
+{
+	mutation_table_t &mut_table = tables.mutations;
+	table_size_t mut_count = mut_table.num_rows;
+	
+	if ((mut_count > 0) && !recording_mutations_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateMutationsFromTreeSequence): cannot load mutations when mutation recording is disabled." << EidosTerminate();
+	
+	for (table_size_t mut_index = 0; mut_index < mut_count; ++mut_index)
+	{
+		const char *derived_state_bytes = mut_table.derived_state + mut_table.derived_state_offset[mut_index];
+		table_size_t derived_state_length = mut_table.derived_state_offset[mut_index + 1] - mut_table.derived_state_offset[mut_index];
+		const char *metadata_bytes = mut_table.metadata + mut_table.metadata_offset[mut_index];
+		table_size_t metadata_length = mut_table.metadata_offset[mut_index + 1] - mut_table.metadata_offset[mut_index];
+		
+		if (derived_state_length % sizeof(slim_mutationid_t) != 0)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateMutationsFromTreeSequence): unexpected mutation derived state length; this file cannot be read." << EidosTerminate();
+		if (metadata_length % sizeof(MutationMetadataRec) != 0)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateMutationsFromTreeSequence): unexpected mutation metadata length; this file cannot be read." << EidosTerminate();
+		if (derived_state_length / sizeof(slim_mutationid_t) != metadata_length / sizeof(MutationMetadataRec))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateMutationsFromTreeSequence): (internal error) mutation metadata length does not match derived state length." << EidosTerminate();
+		
+		int stack_count = derived_state_length / sizeof(slim_mutationid_t);
+		slim_mutationid_t *derived_state_vec = (slim_mutationid_t *)derived_state_bytes;
+		MutationMetadataRec *metadata_vec = (MutationMetadataRec *)metadata_bytes;
+		site_id_t site_id = mut_table.site[mut_index];
+		slim_position_t position = (slim_position_t)round(tables.sites.position[site_id]);
+		
+		// tabulate the mutations referenced by this entry, overwriting previous tabulations (last state wins)
+		for (int stack_index = 0; stack_index < stack_count; ++stack_index)
+		{
+			slim_mutationid_t mut_id = derived_state_vec[stack_index];
+			MutationMetadataRec *metadata = metadata_vec + stack_index;
+			auto mut_info_insert = p_mutMap.insert(std::pair<slim_mutationid_t, ts_mut_info>(mut_id, ts_mut_info()));
+			ts_mut_info &mut_info = (mut_info_insert.first)->second;
+			
+			mut_info.position = position;
+			mut_info.metadata = metadata;
+		}
+	}
+}
+
+void SLiMSim::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutInfoMap, std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap)
+{
+	for (auto mut_info_iter : p_mutInfoMap)
+	{
+		slim_mutationid_t mutation_id = mut_info_iter.first;
+		ts_mut_info &mut_info = mut_info_iter.second;
+		MutationMetadataRec *metadata = mut_info.metadata;
+		slim_position_t position = mut_info.position;
+		
+		// look up the mutation type from its index
+		auto found_muttype_pair = mutation_types_.find(metadata->mutation_type_id_);
+		
+		if (found_muttype_pair == mutation_types_.end()) 
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__CreateMutationsFromTabulation): mutation type m" << metadata->mutation_type_id_ << " has not been defined." << EidosTerminate();
+		
+		MutationType *mutation_type_ptr = found_muttype_pair->second;
+		
+		// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
+		MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
+		
+		Mutation *mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, position, metadata->selection_coeff_, metadata->subpop_index_, metadata->origin_generation_);
+		
+		// FIXME we want mutation ids to be preserved, so we need to set them up here
+#warning need to fix mutation IDs here; pass it as a constructor argument?
+		//mut->mutation_id_ = mutation_id;
+		
+		// add it to our local map, so we can find it when making genomes, and to the population's mutation registry
+		p_mutIndexMap[mutation_id] = new_mut_index;
+		population_.mutation_registry_.emplace_back(new_mut_index);
+		
+#ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
+		if (population_.keeping_muttype_registries_)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__CreateMutationsFromTabulation): (internal error) separate muttype registries set up during pop load." << EidosTerminate();
+#endif
+		
+		// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_ and all_pure_neutral_DFE_
+		if (metadata->selection_coeff_ != 0.0)
+		{
+			pure_neutral_ = false;
+			mutation_type_ptr->all_pure_neutral_DFE_ = false;
+		}
+	}
+}
+
+void SLiMSim::__AddMutationsToGenomes(std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap)
+{
+	// This code is based on SLiMSim::CrosscheckTreeSeqIntegrity(), but we don't have to think about fixed mutations
+	// since the tree-seq recording stuff doesn't differentiate them; muts that are fixed will substitute after this.
+	// We also don't need to sort/deduplicate/simplify; the tables read in should be simplified already.
+	if (!recording_mutations_)
+		return;
+	
+	// get all genomes from all subpopulations; we will cross-check them all simultaneously
+	static std::vector<Genome *> genomes;
+	genomes.clear();
+	
+	for (auto pop_iter : population_)
+	{
+		Subpopulation *subpop = pop_iter.second;
+		
+		for (Genome *genome : subpop->parent_genomes_)
+			genomes.push_back(genome);
+	}
+	
+	size_t genome_count = genomes.size();
+	
+	// allocate and set up the tree_sequence object that contains all the tree sequences
+	tree_sequence_t *ts;
+	
+	ts = (tree_sequence_t *)malloc(sizeof(tree_sequence_t));
+	int ret = tree_sequence_load_tables(ts, &tables, MSP_BUILD_INDEXES);
+	if (ret != 0) handle_error("__AddMutationsToGenomes tree_sequence_load_tables()", ret);
+	
+	// allocate and set up the vargen object we'll use to walk through variants
+	vargen_t *vg;
+	
+	vg = (vargen_t *)malloc(sizeof(vargen_t));
+	ret = vargen_alloc(vg, ts, MSP_16_BIT_GENOTYPES);
+	if (ret != 0) handle_error("__AddMutationsToGenomes vargen_alloc()", ret);
+	
+	// add mutations to genomes by looping through variants
+	do
+	{
+		variant_t *variant;
+		
+		ret = vargen_next(vg, &variant);
+		if (ret < 0) handle_error("__AddMutationsToGenomes vargen_next()", ret);
+		
+		if (ret == 1)
+		{
+			// We have a new variant; set it into SLiM.  A variant represents a site at which a tracked mutation exists.
+			// The variant_t will tell us all the allelic states involved at that site, what the alleles are, and which genomes
+			// in the sample are using them.  We will then set all the genomes that the variant claims to involve to have
+			// the allele the variant attributes to them.  The variants are returned in sorted order by position, so we can
+			// always add new mutations to the ends of genomes.
+			slim_position_t variant_pos_int = (slim_position_t)variant->site->position;
+			
+			// Check all the genomes against the vargen_t's belief about this site
+			for (size_t genome_index = 0; genome_index < genome_count; genome_index++)
+			{
+				Genome *genome = genomes[genome_index];
+				uint16_t genome_variant = variant->genotypes.u16[genome_index];
+				table_size_t genome_allele_length = variant->allele_lengths[genome_variant];
+				
+				if (genome_allele_length % sizeof(slim_mutationid_t) != 0)
+					EIDOS_TERMINATION << "ERROR (SLiMSim::__AddMutationsToGenomes): (internal error) variant allele had length that was not a multiple of sizeof(slim_mutationid_t)." << EidosTerminate();
+				genome_allele_length /= sizeof(slim_mutationid_t);
+				
+				if (genome_allele_length > 0)
+				{
+					if (genome->IsNull())
+						EIDOS_TERMINATION << "ERROR (SLiMSim::__AddMutationsToGenomes): (internal error) null genome has non-zero treeseq allele length " << genome_allele_length << "." << EidosTerminate();
+					
+					slim_mutationid_t *genome_allele = (slim_mutationid_t *)variant->alleles[genome_variant];
+					slim_mutrun_index_t run_index = (slim_mutrun_index_t)(variant_pos_int / genome->mutrun_length_);
+					MutationRun *mutrun = genome->mutruns_[run_index].get();
+					
+					for (table_size_t mutid_index = 0; mutid_index < genome_allele_length; ++mutid_index)
+					{
+						slim_mutationid_t mut_id = genome_allele[mutid_index];
+						auto mut_index_iter = p_mutIndexMap.find(mut_id);
+						
+						if (mut_index_iter == p_mutIndexMap.end())
+							EIDOS_TERMINATION << "ERROR (SLiMSim::__AddMutationsToGenomes): mutation id " << mut_id << " was referenced but does not exist." << EidosTerminate();
+						
+						mutrun->emplace_back(mut_index_iter->second);
+					}
+				}
+			}
+		}
+	}
+	while (ret != 0);
+	
+	// free
+	ret = vargen_free(vg);
+	if (ret != 0) handle_error("__AddMutationsToGenomes vargen_free()", ret);
+	free(vg);
+	
+	ret = tree_sequence_free(ts);
+	if (ret != 0) handle_error("__AddMutationsToGenomes tree_sequence_free()", ret);
+	free(ts);
+}
+
+slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTreeSequence(EidosInterpreter *p_interpreter)
+{
+	{
+		std::unordered_map<slim_objectid_t, ts_subpop_info> subpopInfoMap;
+		
+		__TabulateSubpopulationsFromTreeSequence(subpopInfoMap);
+		__CreateSubpopulationsFromTabulation(subpopInfoMap, p_interpreter);
+	}
+	
+	std::unordered_map<slim_mutationid_t, MutationIndex> mutIndexMap;
+	
+	{
+		std::unordered_map<slim_mutationid_t, ts_mut_info> mutInfoMap;
+		
+		__TabulateMutationsFromTreeSequence(mutInfoMap);
+		__CreateMutationsFromTabulation(mutInfoMap, mutIndexMap);
+	}
+	
+	__AddMutationsToGenomes(mutIndexMap);
+	
+	CrosscheckTreeSeqIntegrity();
+	
+	// return the current simulation generation as reconstructed from the file
+#warning look up the generation from the provenance table and return it
+	return 1;
+}
+
+slim_generation_t SLiMSim::_InitializePopulationFromMSPrimeTextFile(const char *p_file, EidosInterpreter *p_interpreter)
+{
+	if (!recording_tree_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromMSPrimeTextFile): to load a tree-sequence file, tree-sequence recording must be enabled with initializeTreeSeq()." << EidosTerminate();
+	
+	// read the files from disk
+	
+	
+	// de-ASCII-fy the metadata and derived state information
+	
+	
+	// make the corresponding SLiM objects
+	return _InstantiateSLiMObjectsFromTreeSequence(p_interpreter);
+}
+
+slim_generation_t SLiMSim::_InitializePopulationFromMSPrimeBinaryFile(const char *p_file, EidosInterpreter *p_interpreter)
+{
+	if (!recording_tree_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromMSPrimeBinaryFile): to load a tree-sequence file, tree-sequence recording must be enabled with initializeTreeSeq()." << EidosTerminate();
+	
+	// free the existing table collection
+	int ret = table_collection_free(&tables);
+	if (ret != 0) handle_error("table_collection_free", ret);
+	
+	// read the file from disk
+	ret = table_collection_alloc(&tables, 0);
+	if (ret != 0) handle_error("table_collection_alloc", ret);
+	
+	ret = table_collection_load(&tables, p_file, 0);
+	if (ret != 0) handle_error("table_collection_load", ret);
+	
+	// make the corresponding SLiM objects
+	return _InstantiateSLiMObjectsFromTreeSequence(p_interpreter);
 }
 
 

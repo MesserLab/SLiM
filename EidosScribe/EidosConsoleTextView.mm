@@ -197,7 +197,7 @@
 	
 	NSAttributedString *welcomeString1 = [[NSAttributedString alloc] initWithString:@"Eidos version 1.6\n\nBy Benjamin C. Haller (" attributes:outputAttrs];		// EIDOS VERSION
 	NSAttributedString *welcomeString2 = [[NSAttributedString alloc] initWithString:@"http://benhaller.com/" attributes:[NSDictionary eidosBaseAttributes:outputAttrs withHyperlink:@"http://benhaller.com/"]];
-	NSAttributedString *welcomeString3 = [[NSAttributedString alloc] initWithString:@").\nCopyright (c) 2016–2017 P. Messer. All rights reserved.\n\nEidos is free software with ABSOLUTELY NO WARRANTY.\nType license() for license and distribution details.\n\nGo to " attributes:outputAttrs];
+	NSAttributedString *welcomeString3 = [[NSAttributedString alloc] initWithString:@").\nCopyright (c) 2016–2018 P. Messer. All rights reserved.\n\nEidos is free software with ABSOLUTELY NO WARRANTY.\nType license() for license and distribution details.\n\nGo to " attributes:outputAttrs];
 	NSAttributedString *welcomeString4 = [[NSAttributedString alloc] initWithString:@"https://github.com/MesserLab/SLiM" attributes:[NSDictionary eidosBaseAttributes:outputAttrs withHyperlink:@"https://github.com/MesserLab/SLiM"]];
 	NSAttributedString *welcomeString5 = [[NSAttributedString alloc] initWithString:@" for source code,\ndocumentation, examples, and other information.\n\nWelcome to Eidos!\n\n---------------------------------------------------------\n\n" attributes:outputAttrs];
 	

@@ -43,11 +43,8 @@
 	SLiMSim *sim;				// the simulation instance for this window
 	
 	// random number generator variables that are globals in Eidos; we swap these in and out as needed
-	gsl_rng *sim_rng;
-	int sim_random_bool_bit_counter;
-	uint32_t sim_random_bool_bit_buffer;
-	unsigned long int sim_rng_last_seed;			// unsigned long int is the type used by gsl_rng_set()
-
+	Eidos_RNG_State sim_RNG;
+	
 	// play-related variables; note that continuousPlayOn covers both profiling and non-profiling runs, whereas profilePlayOn
 	// and nonProfilePlayOn cover those cases individually; this is for simplicity in enable bindings in the nib
 	BOOL invalidSimulation, continuousPlayOn, profilePlayOn, nonProfilePlayOn, generationPlayOn, reachedSimulationEnd, hasImported;

@@ -65,6 +65,7 @@ development head (nonWF branch):
 	add removeMutations(NULL) option that removes all of the mutations from the target genome, for e.g. haploid models; not allowed to be used with substitute=T
 	revise recipe 13.13 (modeling haploids) to use genome2 and removeMutations(NULL), making is much faster and simpler
 	make the default working directory be ~/Desktop when running in SLiMgui; makes no sense for it to be the folder the app is in
+	increase maximum chromosome length from 1e9 to 1e15 (breaks reproducibility from a given seed, due to new MT64 RNG)
 
 
 2.6 (build 1292; Eidos version 1.6):

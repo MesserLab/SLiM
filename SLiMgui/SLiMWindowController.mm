@@ -223,11 +223,7 @@
 		sim = nullptr;
 	}
 	
-	if (sim_rng)
-	{
-		gsl_rng_free(sim_rng);
-		sim_rng = nil;
-	}
+	Eidos_FreeRNG(sim_RNG);
 	
 	[self setInvalidSimulation:YES];
 	
@@ -374,15 +370,7 @@
 		// of the old simulation object; who knows what state it is in, touching it might crash.
 		sim = nullptr;
 		
-		if (sim_rng)
-		{
-			gsl_rng_free(sim_rng);
-			sim_rng = NULL;
-			
-			sim_random_bool_bit_counter = 0;
-			sim_random_bool_bit_buffer = 0;
-			sim_rng_last_seed = 0;
-		}
+		Eidos_FreeRNG(sim_RNG);
 		
 		[self setReachedSimulationEnd:YES];
 		[self setInvalidSimulation:YES];
@@ -397,17 +385,10 @@
 		sim = nullptr;
 	}
 	
-	if (sim_rng)
-	{
-		gsl_rng_free(sim_rng);
-		sim_rng = NULL;
-		
-		sim_random_bool_bit_counter = 0;
-		sim_random_bool_bit_buffer = 0;
-	}
+	Eidos_FreeRNG(sim_RNG);
 	
-	if (gEidos_rng)
-		NSLog(@"gEidos_rng already set up in startNewSimulationFromScript!");
+	if (EIDOS_GSL_RNG)
+		NSLog(@"gEidos_RNG already set up in startNewSimulationFromScript!");
 	
 	std::istringstream infile([scriptString UTF8String]);
 	
@@ -417,12 +398,8 @@
 		sim->InitializeRNGFromSeed(nullptr);
 		
 		// We take over the RNG instance that SLiMSim just made, since each SLiMgui window has its own RNG
-		sim_rng = gEidos_rng;
-		sim_random_bool_bit_counter = gEidos_random_bool_bit_counter;
-		sim_random_bool_bit_buffer = gEidos_random_bool_bit_buffer;
-		sim_rng_last_seed = gEidos_rng_last_seed;
-		
-		gEidos_rng = NULL;
+		sim_RNG = gEidos_RNG;
+		EIDOS_BZERO(&gEidos_RNG, sizeof(Eidos_RNG_State));
 		
 		[self setReachedSimulationEnd:NO];
 		[self setInvalidSimulation:NO];
@@ -3312,7 +3289,7 @@
 	[dividerString release];
 	
 	// We have some one-time work that we do when the first window opens; this is here instead of
-	// applicationWillFinishLaunching: because we don't want to mess up gEidos_rng
+	// applicationWillFinishLaunching: because we don't want to mess up gEidos_RNG
 	static BOOL beenHere = NO;
 	
 	if (!beenHere)
@@ -3473,24 +3450,17 @@
 {
 	// Whenever we are about to execute script, we swap in our random number generator; at other times, gEidos_rng is NULL.
 	// The goal here is to keep each SLiM window independent in its random number sequence.
-	if (gEidos_rng)
+	if (EIDOS_GSL_RNG)
 		NSLog(@"eidosConsoleWindowControllerWillExecuteScript: gEidos_rng already set up!");
 	
-	gEidos_rng = sim_rng;
-	gEidos_random_bool_bit_counter = sim_random_bool_bit_counter;
-	gEidos_random_bool_bit_buffer = sim_random_bool_bit_buffer;
-	gEidos_rng_last_seed = sim_rng_last_seed;
+	gEidos_RNG = sim_RNG;
 }
 
 - (void)eidosConsoleWindowControllerDidExecuteScript:(EidosConsoleWindowController *)eidosConsoleController
 {
 	// Swap our random number generator back out again; see -eidosConsoleWindowControllerWillExecuteScript
-	sim_rng = gEidos_rng;
-	sim_random_bool_bit_counter = gEidos_random_bool_bit_counter;
-	sim_random_bool_bit_buffer = gEidos_random_bool_bit_buffer;
-	sim_rng_last_seed = gEidos_rng_last_seed;
-	
-	gEidos_rng = NULL;
+	sim_RNG = gEidos_RNG;
+	EIDOS_BZERO(&gEidos_RNG, sizeof(Eidos_RNG_State));
 }
 
 - (void)eidosConsoleWindowControllerConsoleWindowWillClose:(EidosConsoleWindowController *)eidosConsoleController

@@ -110,10 +110,16 @@ extern std::ostringstream gSLiMOut;
 // Raising these limits to int64_t is reasonable if you need to run a larger simulation.  Lowering them to int16_t
 // is not recommended, and will likely buy you very little, because most of the memory usage in typical simulations
 // is in the arrays of mutation indices kept by Genome objects.
+// BCH 11 May 2018: changing slim_position_t to int64_t for SLiM 3; L <= 1e9 was a bit limiting.  We now enforce a
+// maximum position of 1e15.  INT64_MAX is almost 1e19, so this may seem arbitrary.  The reason is that we want to
+// interact well with code, such as the tree-sequence code, that keeps positions as doubles.  The IEEE standard for
+// double mandates 52 bits for the fractional part, which means that the ability to uniquely identify every integer
+// position breaks down a little bit shy of 1e16.  Thus we limit to 1e15, as a round limit with lots of headroom.
 
 typedef int32_t	slim_generation_t;		// generation numbers, generation durations
 typedef int32_t	slim_age_t;				// individual ages which may be from zero on up
-typedef int32_t	slim_position_t;		// chromosome positions, lengths in base pairs
+typedef int64_t	slim_position_t;		// chromosome positions, lengths in base pairs
+typedef int64_t slim_mutrun_index_t;	// indices of mutation runs within genomes; SLIM_INF_BASE_POSITION leads to very large values, thus 64-bit
 typedef int32_t	slim_objectid_t;		// identifiers values for objects, like the "5" in p5, g5, m5, s5
 typedef int32_t	slim_popsize_t;			// subpopulation sizes and indices, include genome indices
 typedef int64_t slim_usertag_t;			// user-provided "tag" values; also used for the "active" property, which is like tag
@@ -125,8 +131,8 @@ typedef int32_t slim_polymorphismid_t;	// identifiers for polymorphisms, which n
 typedef float slim_selcoeff_t;			// storage of selection coefficients in memory-tight classes; also dominance coefficients
 
 #define SLIM_MAX_GENERATION		(1000000000L)	// generation ranges from 0 (init time) to this; SLIM_MAX_GENERATION + 1 is an "infinite" marker value
-#define SLIM_MAX_BASE_POSITION	(1000000000L)	// base positions in the chromosome can range from 0 to this
-#define SLIM_INF_BASE_POSITION	(1100000000L)	// used to represent a base position infinitely beyond the end of the chromosome
+#define SLIM_MAX_BASE_POSITION	(1000000000000000L)	// base positions in the chromosome can range from 0 to 1e15; see above
+#define SLIM_INF_BASE_POSITION	(1100000000000000L)	// used to represent a base position infinitely beyond the end of the chromosome
 #define SLIM_MAX_ID_VALUE		(1000000000L)	// IDs for subpops, genomic elements, etc. can range from 0 to this
 #define SLIM_MAX_SUBPOP_SIZE	(1000000000L)	// subpopulations can range in size from 0 to this; genome indexes, up to 2x this
 

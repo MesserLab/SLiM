@@ -273,7 +273,7 @@ public:
 	void MakeMemoryPools(size_t p_individual_capacity);
 	
 	// Returns a new genome object that is cleared to nullptr; call clear_to_empty() afterwards if you need empty mutruns
-	inline __attribute__((always_inline)) Genome *NewSubpopGenome(int p_mutrun_count, int p_mutrun_length, GenomeType p_genome_type, bool p_is_null)
+	inline __attribute__((always_inline)) Genome *NewSubpopGenome(int p_mutrun_count, slim_position_t p_mutrun_length, GenomeType p_genome_type, bool p_is_null)
 	{
 		if (p_is_null)
 		{
@@ -514,9 +514,9 @@ inline __attribute__((always_inline)) slim_popsize_t Subpopulation::DrawParentUs
 #endif
 	
 	if (lookup_parent_)
-		return static_cast<slim_popsize_t>(gsl_ran_discrete(gEidos_rng, lookup_parent_));
+		return static_cast<slim_popsize_t>(gsl_ran_discrete(EIDOS_GSL_RNG, lookup_parent_));
 	else
-		return static_cast<slim_popsize_t>(Eidos_rng_uniform_int(gEidos_rng, parent_subpop_size_));
+		return static_cast<slim_popsize_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, parent_subpop_size_));
 }
 #endif	// SLIM_WF_ONLY
 
@@ -527,7 +527,7 @@ inline __attribute__((always_inline)) slim_popsize_t Subpopulation::DrawParentEq
 		EIDOS_TERMINATION << "ERROR (Subpopulation::DrawParentEqualProbability): (internal error) called on a population for which sex is enabled." << EidosTerminate();
 #endif
 	
-	return static_cast<slim_popsize_t>(Eidos_rng_uniform_int(gEidos_rng, parent_subpop_size_));
+	return static_cast<slim_popsize_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, parent_subpop_size_));
 }
 
 #ifdef SLIM_WF_ONLY
@@ -540,9 +540,9 @@ inline __attribute__((always_inline)) slim_popsize_t Subpopulation::DrawFemalePa
 #endif
 	
 	if (lookup_female_parent_)
-		return static_cast<slim_popsize_t>(gsl_ran_discrete(gEidos_rng, lookup_female_parent_));
+		return static_cast<slim_popsize_t>(gsl_ran_discrete(EIDOS_GSL_RNG, lookup_female_parent_));
 	else
-		return static_cast<slim_popsize_t>(Eidos_rng_uniform_int(gEidos_rng, parent_first_male_index_));
+		return static_cast<slim_popsize_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, parent_first_male_index_));
 }
 #endif	// SLIM_WF_ONLY
 
@@ -554,7 +554,7 @@ inline __attribute__((always_inline)) slim_popsize_t Subpopulation::DrawFemalePa
 		EIDOS_TERMINATION << "ERROR (Subpopulation::DrawFemaleParentEqualProbability): (internal error) called on a population for which sex is not enabled." << EidosTerminate();
 #endif
 	
-	return static_cast<slim_popsize_t>(Eidos_rng_uniform_int(gEidos_rng, parent_first_male_index_));
+	return static_cast<slim_popsize_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, parent_first_male_index_));
 }
 
 #ifdef SLIM_WF_ONLY
@@ -567,9 +567,9 @@ inline __attribute__((always_inline)) slim_popsize_t Subpopulation::DrawMalePare
 #endif
 	
 	if (lookup_male_parent_)
-		return static_cast<slim_popsize_t>(gsl_ran_discrete(gEidos_rng, lookup_male_parent_)) + parent_first_male_index_;
+		return static_cast<slim_popsize_t>(gsl_ran_discrete(EIDOS_GSL_RNG, lookup_male_parent_)) + parent_first_male_index_;
 	else
-		return static_cast<slim_popsize_t>(Eidos_rng_uniform_int(gEidos_rng, parent_subpop_size_ - parent_first_male_index_) + parent_first_male_index_);
+		return static_cast<slim_popsize_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, parent_subpop_size_ - parent_first_male_index_) + parent_first_male_index_);
 }
 #endif	// SLIM_WF_ONLY
 
@@ -581,7 +581,7 @@ inline __attribute__((always_inline)) slim_popsize_t Subpopulation::DrawMalePare
 		EIDOS_TERMINATION << "ERROR (Subpopulation::DrawMaleParentEqualProbability): (internal error) called on a population for which sex is not enabled." << EidosTerminate();
 #endif
 	
-	return static_cast<slim_popsize_t>(Eidos_rng_uniform_int(gEidos_rng, parent_subpop_size_ - parent_first_male_index_) + parent_first_male_index_);
+	return static_cast<slim_popsize_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, parent_subpop_size_ - parent_first_male_index_) + parent_first_male_index_);
 }
 
 inline IndividualSex Subpopulation::SexOfIndividual(slim_popsize_t p_individual_index)

@@ -417,7 +417,7 @@ bool MutationRun::_EnforceStackPolicyForAddition(slim_position_t p_position, Mut
 		EIDOS_TERMINATION << "ERROR (MutationRun::_EnforceStackPolicyForAddition): (internal error) invalid policy." << EidosTerminate();
 }
 
-void MutationRun::split_run(MutationRun **p_first_half, MutationRun **p_second_half, int32_t p_split_first_position)
+void MutationRun::split_run(MutationRun **p_first_half, MutationRun **p_second_half, slim_position_t p_split_first_position)
 {
 	MutationRun *first_half = NewMutationRun();
 	MutationRun *second_half = NewMutationRun();
