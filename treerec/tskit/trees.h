@@ -36,9 +36,19 @@ typedef struct {
 
     struct {
         size_t num_records;
+        uint32_t *flags;
+        double *location;
+        table_size_t *location_offset;
+        char *metadata;
+        table_size_t *metadata_offset;
+    } individuals;
+
+    struct {
+        size_t num_records;
         double *time;
         uint32_t *flags;
         population_id_t *population;
+        individual_id_t *individual;
         char *metadata;
         table_size_t *metadata_offset;
         node_id_t *sample_index_map;
@@ -105,6 +115,13 @@ typedef struct {
         char *record;
         table_size_t *record_offset;
     } provenances;
+
+    struct {
+        size_t num_records;
+        size_t metadata_length;
+        char *metadata;
+        table_size_t *metadata_offset;
+    } populations;
 
     table_collection_t *tables;
 
@@ -257,6 +274,8 @@ size_t tree_sequence_get_num_migrations(tree_sequence_t *self);
 size_t tree_sequence_get_num_sites(tree_sequence_t *self);
 size_t tree_sequence_get_num_mutations(tree_sequence_t *self);
 size_t tree_sequence_get_num_provenances(tree_sequence_t *self);
+size_t tree_sequence_get_num_populations(tree_sequence_t *self);
+size_t tree_sequence_get_num_individuals(tree_sequence_t *self);
 size_t tree_sequence_get_num_trees(tree_sequence_t *self);
 size_t tree_sequence_get_num_samples(tree_sequence_t *self);
 double tree_sequence_get_sequence_length(tree_sequence_t *self);
@@ -271,6 +290,10 @@ int tree_sequence_get_mutation(tree_sequence_t *self, mutation_id_t id,
         mutation_t *mutation);
 int tree_sequence_get_provenance(tree_sequence_t *self, size_t index,
         provenance_t *provenance);
+int tree_sequence_get_population(tree_sequence_t *self, size_t index,
+        tmp_population_t *population);
+int tree_sequence_get_individual(tree_sequence_t *self, size_t index,
+        individual_t *individual);
 int tree_sequence_get_samples(tree_sequence_t *self, node_id_t **samples);
 int tree_sequence_get_sample_index_map(tree_sequence_t *self,
         node_id_t **sample_index_map);

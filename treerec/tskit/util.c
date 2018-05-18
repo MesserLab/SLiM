@@ -263,7 +263,6 @@ out:
     return ret;
 }
 
-#define MSP_KAS_ERR_BIT 14
 
 int
 msp_set_kas_error(int err)
@@ -272,10 +271,16 @@ msp_set_kas_error(int err)
     return err ^ (1 << MSP_KAS_ERR_BIT);
 }
 
+bool
+msp_is_kas_error(int err)
+{
+    return !(err & (1 << MSP_KAS_ERR_BIT));
+}
+
 const char *
 msp_strerror(int err)
 {
-    if (!(err & (1 << MSP_KAS_ERR_BIT))) {
+    if (msp_is_kas_error(err)) {
         err ^= (1 << MSP_KAS_ERR_BIT);
         return kas_strerror(err);
     } else {

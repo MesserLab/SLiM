@@ -61,6 +61,9 @@ kas_strerror(int err)
         case KAS_ERR_ILLEGAL_OPERATION:
             ret = "Cannot perform the requested operation in the current mode";
             break;
+        case KAS_ERR_TYPE_MISMATCH:
+            ret = "Mismatch between requested and stored types for array";
+            break;
     }
     return ret;
 }
@@ -169,10 +172,9 @@ out:
 }
 
 /* Compute the locations of the keys and arrays in the file. */
-static int KAS_WARN_UNUSED
+static void
 kastore_pack_items(kastore_t *self)
 {
-    int ret = 0;
     size_t j, offset, remainder;
 
     /* Pack the keys */
@@ -191,7 +193,6 @@ kastore_pack_items(kastore_t *self)
         offset += self->items[j].array_len * type_size(self->items[j].type);
     }
     self->file_size = offset;
-    return ret;
 }
 
 static int KAS_WARN_UNUSED
@@ -402,10 +403,7 @@ kastore_write_file(kastore_t *self)
     int ret = 0;
 
     qsort(self->items, self->num_items, sizeof(kaitem_t), compare_items);
-    ret = kastore_pack_items(self);
-    if (ret != 0) {
-        goto out;
-    }
+    kastore_pack_items(self);
     ret = kastore_write_header(self);
     if (ret != 0) {
         goto out;
@@ -638,7 +636,7 @@ kastore_gets_type(kastore_t *self, const char *key, void **array, size_t *array_
         goto out;
     }
     if (type != loaded_type) {
-        ret = KAS_ERR_BAD_TYPE;
+        ret = KAS_ERR_TYPE_MISMATCH;
         goto out;
     }
 out:
@@ -736,7 +734,6 @@ kastore_put(kastore_t *self, const char *key, size_t key_len,
     }
     self->items = p;
     new_item = self->items + self->num_items;
-    self->num_items++;
 
     memset(new_item, 0, sizeof(*new_item));
     new_item->type = type;
@@ -746,9 +743,12 @@ kastore_put(kastore_t *self, const char *key, size_t key_len,
     new_item->key = malloc(key_len);
     new_item->array = malloc(array_size == 0? 1: array_size);
     if (new_item->key == NULL || new_item->array == NULL) {
+        kas_safe_free(new_item->key);
+        kas_safe_free(new_item->array);
         ret = KAS_ERR_NO_MEMORY;
         goto out;
     }
+    self->num_items++;
     memcpy(new_item->key, key, key_len);
     memcpy(new_item->array, array, array_size);
 

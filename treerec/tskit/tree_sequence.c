@@ -82,11 +82,35 @@ tree_sequence_print_state(tree_sequence_t *self, FILE *out)
         }
         fprintf(out, "\n");
     }
+    fprintf(out, "populations (%d)\n", (int) self->populations.num_records);
+    for (j = 0; j < self->populations.num_records; j++) {
+        fprintf(out, "\t%d\t", (int) j);
+        for (k = self->populations.metadata_offset[j];
+                k < self->populations.metadata_offset[j + 1]; k++) {
+            fprintf(out, "%c", self->populations.metadata[k]);
+        }
+        fprintf(out, "\n");
+    }
+    fprintf(out, "individuals (%d)\n", (int) self->individuals.num_records);
+    for (j = 0; j < self->individuals.num_records; j++) {
+        fprintf(out, "\t%d\t%d\t", (int) j, self->individuals.flags[j]);
+        for (k = self->individuals.location_offset[j];
+                k < self->individuals.location_offset[j + 1]; k++) {
+            fprintf(out, "%f,", self->individuals.location[k]);
+        }
+        fprintf(out, "\t");
+        for (k = self->individuals.metadata_offset[j];
+                k < self->individuals.metadata_offset[j + 1]; k++) {
+            fprintf(out, "%c", self->individuals.metadata[k]);
+        }
+        fprintf(out, "\n");
+    }
     fprintf(out, "nodes (%d)\n", (int) self->nodes.num_records);
     for (j = 0; j < self->nodes.num_records; j++) {
-        fprintf(out, "\t%d\t%d\t%d\t%f\t%d\t", (int) j,
+        fprintf(out, "\t%d\t%d\t%d\t%d\t%f\t%d\t", (int) j,
                 self->nodes.flags[j],
                 (int) self->nodes.population[j],
+                (int) self->nodes.individual[j],
                 self->nodes.time[j],
                 self->nodes.sample_index_map[j]);
         for (k = self->nodes.metadata_offset[j]; k < self->nodes.metadata_offset[j + 1]; k++) {
@@ -575,6 +599,7 @@ tree_sequence_load_tables(tree_sequence_t *self, table_collection_t *tables,
     self->nodes.flags = self->tables->nodes.flags;
     self->nodes.time = self->tables->nodes.time;
     self->nodes.population = self->tables->nodes.population;
+    self->nodes.individual = self->tables->nodes.individual;
     self->nodes.metadata = self->tables->nodes.metadata;
     self->nodes.metadata_offset = self->tables->nodes.metadata_offset;
 
@@ -615,6 +640,17 @@ tree_sequence_load_tables(tree_sequence_t *self, table_collection_t *tables,
     self->provenances.timestamp_offset = self->tables->provenances.timestamp_offset;
     self->provenances.record = self->tables->provenances.record;
     self->provenances.record_offset = self->tables->provenances.record_offset;
+
+    self->individuals.num_records = self->tables->individuals.num_rows;
+    self->individuals.flags = self->tables->individuals.flags;
+    self->individuals.location = self->tables->individuals.location;
+    self->individuals.location_offset = self->tables->individuals.location_offset;
+    self->individuals.metadata = self->tables->individuals.metadata;
+    self->individuals.metadata_offset = self->tables->individuals.metadata_offset;
+
+    self->populations.num_records = self->tables->populations.num_rows;
+    self->populations.metadata = self->tables->populations.metadata;
+    self->populations.metadata_offset = self->tables->populations.metadata_offset;
 
     ret = tree_sequence_init_nodes(self);
     if (ret != 0) {
@@ -734,6 +770,18 @@ tree_sequence_get_num_mutations(tree_sequence_t *self)
 }
 
 size_t
+tree_sequence_get_num_populations(tree_sequence_t *self)
+{
+    return self->populations.num_records;
+}
+
+size_t
+tree_sequence_get_num_individuals(tree_sequence_t *self)
+{
+    return self->individuals.num_records;
+}
+
+size_t
 tree_sequence_get_num_provenances(tree_sequence_t *self)
 {
     return self->provenances.num_records;
@@ -829,6 +877,7 @@ tree_sequence_get_node(tree_sequence_t *self, node_id_t index, node_t *node)
     }
     node->time = self->nodes.time[index];
     node->population = self->nodes.population[index];
+    node->individual = self->nodes.individual[index];
     node->flags = self->nodes.flags[index];
     offset = self->nodes.metadata_offset[index];
     length = self->nodes.metadata_offset[index + 1] - offset;
@@ -923,6 +972,50 @@ tree_sequence_get_site(tree_sequence_t *self, site_id_t id, site_t *record)
     record->position = self->sites.position[id];
     record->mutations = self->sites.site_mutations[id];
     record->mutations_length = self->sites.site_mutations_length[id];
+out:
+    return ret;
+}
+
+int WARN_UNUSED
+tree_sequence_get_individual(tree_sequence_t *self, size_t index, individual_t *individual)
+{
+    int ret = 0;
+    table_size_t offset, length;
+
+    if (index >= self->individuals.num_records) {
+        ret = MSP_ERR_OUT_OF_BOUNDS;
+        goto out;
+    }
+    individual->id = (individual_id_t) index;
+    individual->flags = self->individuals.flags[index];
+    offset = self->individuals.location_offset[index];
+    length = self->individuals.location_offset[index + 1] - offset;
+    individual->location = self->individuals.location + offset;
+    individual->location_length = length;
+    offset = self->individuals.metadata_offset[index];
+    length = self->individuals.metadata_offset[index + 1] - offset;
+    individual->metadata = self->individuals.metadata + offset;
+    individual->metadata_length = length;
+out:
+    return ret;
+}
+
+int WARN_UNUSED
+tree_sequence_get_population(tree_sequence_t *self, size_t index,
+        tmp_population_t *population)
+{
+    int ret = 0;
+    table_size_t offset, length;
+
+    if (index >= self->populations.num_records) {
+        ret = MSP_ERR_OUT_OF_BOUNDS;
+        goto out;
+    }
+    population->id = (table_size_t) index;
+    offset = self->populations.metadata_offset[index];
+    length = self->populations.metadata_offset[index + 1] - offset;
+    population->metadata = self->populations.metadata + offset;
+    population->metadata_length = length;
 out:
     return ret;
 }
@@ -1852,7 +1945,7 @@ static int
 sparse_tree_advance(sparse_tree_t *self, int direction,
         double *out_breakpoints, node_id_t *out_order, node_id_t *out_index,
         double *in_breakpoints, node_id_t *in_order, node_id_t *in_index,
-        __attribute__((unused)) int first_tree)
+        int first_tree)
 {
     int ret = 0;
     int direction_change = direction * (direction != self->direction);
