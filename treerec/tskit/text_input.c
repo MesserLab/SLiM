@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <stddef.h>
 #include <string.h>
@@ -7,7 +9,6 @@
 #include <float.h>
 
 #include "tables.h"
-#include "kastore.h"
 
 /*************************
  * load_text
@@ -173,7 +174,6 @@ edge_table_load_text(edge_table_t *edge_table, FILE *file)
     char *line = NULL;
     double left, right;
     node_id_t parent, child;
-    uint32_t num_children;
     const char *header = "left\tright\tparent\tchild\n";
     char *start, *childs;
 
@@ -310,7 +310,6 @@ mutation_table_load_text(mutation_table_t *mutation_table, FILE *file)
     size_t k;
     size_t MAX_LINE = 1024;
     char *line;
-    const char *tabsep = "\t\n";
     int id;
     node_id_t node;
     site_id_t site;
@@ -464,7 +463,6 @@ individual_table_load_text(individual_table_t *individual_table, FILE *file)
     size_t j, k;
     size_t MAX_LINE = 1024;
     char *line, *start, *loc;
-    const char *tabsep = "\t\n";
     double location[MAX_LINE];
     int flags, id;
     char *metadata;
@@ -538,7 +536,7 @@ provenance_table_load_text(provenance_table_t *provenance_table, FILE *file)
 {
     int ret;
     int err;
-    size_t c, k;
+    size_t k;
     size_t MAX_LINE = 1024;
     char *line = NULL;
     char *record, *timestamp;

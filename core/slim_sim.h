@@ -52,6 +52,7 @@
 //TREE SEQUENCE
 //INCLUDE JEROME's TABLES API
 #include "../treerec/tskit/tables.h"
+#include "../treerec/tskit/text_input.h"
 
 
 class EidosInterpreter;
@@ -128,12 +129,15 @@ typedef struct __attribute__((__packed__)) {
 
 typedef struct __attribute__((__packed__)) {
 	slim_pedigreeid_t pedigree_id_;			// 8 bytes (int64_t): the SLiM pedigree ID for this individual, assigned by pedigree rec
+    slim_age_t age_;                        // 4 bytes (int32_t)
+    slim_objectid_t subpopulation_id_;      // 4 bytes (int32_t)
+
 } IndividualMetadataRec;
 
 // We double-check the size of these records to make sure we understand what they contain and how they're packed
 static_assert(sizeof(MutationMetadataRec) == 16, "MutationMetadataRec is not 16 bytes!");
 static_assert(sizeof(GenomeMetadataRec) == 10, "GenomeMetadataRec is not 10 bytes!");
-static_assert(sizeof(IndividualMetadataRec) == 8, "IndividualMetadataRec is not 8 bytes!");
+static_assert(sizeof(IndividualMetadataRec) == 16, "IndividualMetadataRec is not 8 bytes!");
 
 // We check endianness on the platform we're building on; we assume little-endianness in our read/write code, I think.
 #if defined(__BYTE_ORDER__)
