@@ -4423,7 +4423,8 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 			site_table_dump_text(&(output_tables.sites), MspTxtSiteTable);
 			mutation_table_dump_text(&(output_tables.mutations), MspTxtMutationTable);
 			individual_table_dump_text(&(output_tables.individuals), MspTxtIndividualTable);
-			provenance_table_dump_text(&(output_tables.provenances), MspTxtProvenanceTable);
+#warning enable me
+			//provenance_table_dump_text(&(output_tables.provenances), MspTxtProvenanceTable);
 			
 			fclose(MspTxtNodeTable);
 			fclose(MspTxtEdgeTable);
@@ -4924,6 +4925,7 @@ void SLiMSim::TSXC_Enable(void)
 	SLIM_ERRSTREAM << "// ********** Turning on tree-sequence recording with crosschecks (-TSXC)." << std::endl << std::endl;
 }
 
+/*
 typedef struct ts_subpop_info {
 	slim_popsize_t countMH_ = 0, countF_ = 0;
 	std::vector<node_id_t> nodesMH_, nodesF_;
@@ -5276,6 +5278,7 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTreeSequence(EidosInterpre
 #warning look up the generation from the provenance table and return it
 	return 1;
 }
+*/
 
 slim_generation_t SLiMSim::_InitializePopulationFromMSPrimeTextFile(const char *p_file, EidosInterpreter *p_interpreter)
 {
@@ -5289,7 +5292,9 @@ slim_generation_t SLiMSim::_InitializePopulationFromMSPrimeTextFile(const char *
 	
 	
 	// make the corresponding SLiM objects
-	return _InstantiateSLiMObjectsFromTreeSequence(p_interpreter);
+#warning enable me
+	EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromMSPrimeTextFile): this method is presently disabled." << EidosTerminate();
+	//return _InstantiateSLiMObjectsFromTreeSequence(p_interpreter);
 }
 
 slim_generation_t SLiMSim::_InitializePopulationFromMSPrimeBinaryFile(const char *p_file, EidosInterpreter *p_interpreter)
@@ -5309,7 +5314,9 @@ slim_generation_t SLiMSim::_InitializePopulationFromMSPrimeBinaryFile(const char
 	if (ret != 0) handle_error("table_collection_load", ret);
 	
 	// make the corresponding SLiM objects
-	return _InstantiateSLiMObjectsFromTreeSequence(p_interpreter);
+#warning enable me
+	EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromMSPrimeBinaryFile): this method is presently disabled." << EidosTerminate();
+	//return _InstantiateSLiMObjectsFromTreeSequence(p_interpreter);
 }
 
 
