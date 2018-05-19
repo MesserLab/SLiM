@@ -19,6 +19,8 @@
 #ifndef __UTIL_H__
 #define __UTIL_H__
 
+#include <stdbool.h>
+
 /*
  * raise a compiler warning if a potentially error raising function's return
  * value is not used.
@@ -39,6 +41,8 @@
 #define MSP_NULL_POPULATION_ID (-1)
 /* There is no parent for a given mutation */
 #define MSP_NULL_MUTATION (-1)
+/* Indicates that no individual has been set */
+#define MSP_NULL_INDIVIDUAL (-1)
 
 /* Flags for simplify() */
 #define MSP_FILTER_ZERO_MUTATION_SITES 1
@@ -53,7 +57,9 @@
 #define MSP_DUMP_ZLIB_COMPRESSION 1
 #define MSP_LOAD_EXTENDED_CHECKS  1
 
-#define MSP_FILE_FORMAT_VERSION_MAJOR 11
+#define MSP_FILE_FORMAT_NAME          "tskit.trees"
+#define MSP_FILE_FORMAT_NAME_LENGTH   11
+#define MSP_FILE_FORMAT_VERSION_MAJOR 12
 #define MSP_FILE_FORMAT_VERSION_MINOR 0
 
 
@@ -130,11 +136,12 @@
 #define MSP_ERR_MUTATION_PARENT_EQUAL                               -70
 #define MSP_ERR_MUTATION_PARENT_AFTER_CHILD                         -71
 #define MSP_ERR_BAD_TABLE_POSITION                                  -72
-#define MSP_ERR_CONTRADICTORY_ANCESTRAL_STATES                      -73
-#define MSP_ERR_MALFORMED_MUTATION_BRANCH_GROUP                     -74
-#define MSP_ERR_MUTATION_PARENT_INCONSISTENT                        -75
+
+/* This bit is 0 for any errors originating from kastore */
+#define MSP_KAS_ERR_BIT 14
 
 int msp_set_kas_error(int err);
+bool msp_is_kas_error(int err);
 const char * msp_strerror(int err);
 void __msp_safe_free(void **ptr);
 

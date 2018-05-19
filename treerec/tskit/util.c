@@ -247,6 +247,9 @@ msp_strerror_internal(int err)
         case MSP_ERR_TOO_MANY_ALLELES:
             ret = "Cannot have more than 255 alleles.";
             break;
+        case MSP_ERR_BAD_TABLE_POSITION:
+            ret = "Bad position in tables provided.";
+            break;
         case MSP_ERR_IO:
             if (errno != 0) {
                 ret = strerror(errno);
@@ -263,7 +266,6 @@ out:
     return ret;
 }
 
-#define MSP_KAS_ERR_BIT 14
 
 int
 msp_set_kas_error(int err)
@@ -272,10 +274,16 @@ msp_set_kas_error(int err)
     return err ^ (1 << MSP_KAS_ERR_BIT);
 }
 
+bool
+msp_is_kas_error(int err)
+{
+    return !(err & (1 << MSP_KAS_ERR_BIT));
+}
+
 const char *
 msp_strerror(int err)
 {
-    if (!(err & (1 << MSP_KAS_ERR_BIT))) {
+    if (msp_is_kas_error(err)) {
         err ^= (1 << MSP_KAS_ERR_BIT);
         return kas_strerror(err);
     } else {

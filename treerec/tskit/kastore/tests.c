@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <float.h>
+#include <stdbool.h>
 
 #include "kastore.h"
 
@@ -531,6 +532,44 @@ test_simple_round_trip_append(void)
         CU_ASSERT_EQUAL_FATAL(ret, 0);
     }
 }
+
+static void
+test_gets_type_errors(void)
+{
+    int ret;
+    kastore_t store;
+    int8_t a = INT8_MAX;
+    int8_t *read;
+    uint8_t *readu8;
+    double *readf64;
+    size_t len;
+
+    ret = kastore_open(&store, _tmp_file_name, "w", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_puts_int8(&store, "a", &a, 1, 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+
+    ret = kastore_open(&store, _tmp_file_name, "r", 0);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    ret = kastore_gets_int8(&store, "abcdefg", &read, &len);
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_KEY_NOT_FOUND);
+
+    ret = kastore_gets_int8(&store, "a", &read, &len);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    CU_ASSERT_EQUAL_FATAL(read[0], a);
+
+    ret = kastore_gets_uint8(&store, "a", &readu8, &len);
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_TYPE_MISMATCH);
+
+    ret = kastore_gets_float64(&store, "a", &readf64, &len);
+    CU_ASSERT_EQUAL_FATAL(ret, KAS_ERR_TYPE_MISMATCH);
+
+    ret = kastore_close(&store);
+    CU_ASSERT_EQUAL_FATAL(ret, 0);
+}
+
 
 static void
 test_round_trip_int8(void)
@@ -1084,6 +1123,11 @@ test_all_types_n_elements(void)
     }
 }
 
+/*=================================================
+  Test suite management
+  =================================================
+*/
+
 static int
 kastore_suite_init(void)
 {
@@ -1155,6 +1199,7 @@ main(int argc, char **argv)
         {"test_bad_types", test_bad_types},
         {"test_simple_round_trip", test_simple_round_trip},
         {"test_simple_round_trip_append", test_simple_round_trip_append},
+        {"test_gets_type_errors", test_gets_type_errors},
         {"test_round_trip_int8", test_round_trip_int8},
         {"test_round_trip_uint8", test_round_trip_uint8},
         {"test_round_trip_int16", test_round_trip_int16},

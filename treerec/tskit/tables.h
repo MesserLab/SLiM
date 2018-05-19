@@ -19,8 +19,6 @@ typedef int32_t site_id_t;
 typedef int32_t mutation_id_t;
 typedef int32_t migration_id_t;
 typedef int32_t individual_id_t;
-typedef int32_t individual_sex_t;	/* conventionally, undefined == -2, hermaphrodite == -1, female == 0, male == 1; other values may also be used; #defines could be added for these */
-typedef double individual_age_t;
 typedef int32_t provenance_id_t;
 typedef uint32_t table_size_t;
 
@@ -64,12 +62,30 @@ typedef struct {
     table_size_t num_rows;
     table_size_t max_rows;
     table_size_t max_rows_increment;
+    table_size_t location_length;
+    table_size_t max_location_length;
+    table_size_t max_location_length_increment;
+    table_size_t metadata_length;
+    table_size_t max_metadata_length;
+    table_size_t max_metadata_length_increment;
+    uint32_t *flags;
+    double *location;
+    table_size_t *location_offset;
+    char *metadata;
+    table_size_t *metadata_offset;
+} individual_table_t;
+
+typedef struct {
+    table_size_t num_rows;
+    table_size_t max_rows;
+    table_size_t max_rows_increment;
     table_size_t metadata_length;
     table_size_t max_metadata_length;
     table_size_t max_metadata_length_increment;
     uint32_t *flags;
     double *time;
     population_id_t *population;
+    individual_id_t *individual;
     char *metadata;
     table_size_t *metadata_offset;
 } node_table_t;
@@ -103,17 +119,9 @@ typedef struct {
     table_size_t metadata_length;
     table_size_t max_metadata_length;
     table_size_t max_metadata_length_increment;
-    individual_sex_t *sex;
-    individual_age_t *age;
-    population_id_t *population;
-    node_id_t *nodes_f;
-    node_id_t *nodes_m;
-    double *spatial_x;
-    double *spatial_y;
-    double *spatial_z;
     char *metadata;
     table_size_t *metadata_offset;
-} individual_table_t;
+} population_table_t;
 
 typedef struct {
     table_size_t num_rows;
@@ -139,10 +147,12 @@ typedef struct {
     site_table_t sites;
     mutation_table_t mutations;
     individual_table_t individuals;
+    population_table_t populations;
     provenance_table_t provenances;
     struct {
         edge_id_t *edge_insertion_order;
         edge_id_t *edge_removal_order;
+        bool malloced_locally;
     } indexes;
     kastore_t store;
     /* TODO Add in reserved space for future tables. */
@@ -158,10 +168,21 @@ typedef struct {
 } table_collection_position_t;
 
 /* Definitions for the basic objects */
+
+typedef struct {
+    individual_id_t id;
+    uint32_t flags;
+    double *location;
+    table_size_t location_length;
+    const char *metadata;
+    table_size_t metadata_length;
+} individual_t;
+
 typedef struct {
     uint32_t flags;
     double time;
     population_id_t population;
+    individual_id_t individual;
     const char *metadata;
     table_size_t metadata_length;
 } node_t;
@@ -198,19 +219,6 @@ typedef struct {
 } site_t;
 
 typedef struct {
-    individual_id_t id;
-    individual_sex_t sex;
-    individual_age_t age;
-    population_id_t population;
-    int32_t spatial_dimension;
-    double *spatial_position;
-    int32_t ploidy;
-    node_id_t *nodes;
-    const char *metadata;
-    table_size_t metadata_length;
-} individual_t;
-
-typedef struct {
     population_id_t source;
     population_id_t dest;
     node_id_t node;
@@ -218,6 +226,16 @@ typedef struct {
     double right;
     double time;
 } migration_t;
+
+/* FIXME calling this tmp_population_t for now because we already have
+ * a population_t in msprime, which is a useful object. Once we have
+ * moved this code into tskit we can rename it, probably
+ * tsk_population_t */
+typedef struct {
+    table_size_t id;
+    const char *metadata;
+    table_size_t metadata_length;
+} tmp_population_t;
 
 typedef struct {
     table_size_t id;
@@ -308,11 +326,14 @@ typedef struct {
 int node_table_alloc(node_table_t *self, size_t max_rows_increment,
         size_t max_metadata_length_increment);
 node_id_t node_table_add_row(node_table_t *self, uint32_t flags, double time,
-        population_id_t population, const char *metadata, size_t metadata_length);
+        population_id_t population, individual_id_t individual,
+        const char *metadata, size_t metadata_length);
 int node_table_set_columns(node_table_t *self, size_t num_rows, uint32_t *flags, double *time,
-        population_id_t *population, const char *metadata, table_size_t *metadata_length);
+        population_id_t *population, individual_id_t *individual,
+        const char *metadata, table_size_t *metadata_length);
 int node_table_append_columns(node_table_t *self, size_t num_rows, uint32_t *flags, double *time,
-        population_id_t *population, const char *metadata, table_size_t *metadata_length);
+        population_id_t *population, individual_id_t *individual,
+        const char *metadata, table_size_t *metadata_length);
 int node_table_clear(node_table_t *self);
 int node_table_free(node_table_t *self);
 int node_table_dump_text(node_table_t *self, FILE *out);
@@ -394,28 +415,36 @@ int migration_table_dump_text(migration_table_t *self, FILE *out);
 void migration_table_print_state(migration_table_t *self, FILE *out);
 
 int individual_table_alloc(individual_table_t *self, size_t max_rows_increment,
-        size_t max_metadata_length_increment);
-individual_id_t individual_table_add_row(individual_table_t *self, individual_sex_t sex,
-        individual_age_t age, population_id_t population,
-        node_id_t nodes_f, node_id_t nodes_m, 
-        double spatial_x, double spatial_y, double spatial_z, 
-        const char *metadata, table_size_t metadata_length);
-int individual_table_set_columns(individual_table_t *self, size_t num_rows,
-        individual_sex_t *sex, individual_age_t *age, population_id_t *population, 
-        node_id_t *nodes_f, node_id_t *nodes_m, 
-        double *spatial_x, double *spatial_y, double *spatial_z, 
-        const char *metadata, uint32_t *metadata_offset);
-int individual_table_append_columns(individual_table_t *self, size_t num_rows,
-        individual_sex_t *sex, individual_age_t *age, population_id_t *population, 
-        node_id_t *nodes_f, node_id_t *nodes_m, 
-        double *spatial_x, double *spatial_y, double *spatial_z, 
-        const char *metadata, uint32_t *metadata_offset);
+        size_t max_location_length_increment, size_t max_metadata_length_increment);
+individual_id_t individual_table_add_row(individual_table_t *self, uint32_t flags,
+        double *location, size_t location_length,
+        const char *metadata, size_t metadata_length);
+int individual_table_set_columns(individual_table_t *self, size_t num_rows, uint32_t *flags,
+        double *location, table_size_t *location_length,
+        const char *metadata, table_size_t *metadata_length);
+int individual_table_append_columns(individual_table_t *self, size_t num_rows, uint32_t *flags,
+        double *location, table_size_t *location_length,
+        const char *metadata, table_size_t *metadata_length);
 int individual_table_clear(individual_table_t *self);
 int individual_table_free(individual_table_t *self);
-int individual_table_copy(individual_table_t *self, individual_table_t *dest);
 int individual_table_dump_text(individual_table_t *self, FILE *out);
+int individual_table_copy(individual_table_t *self, individual_table_t *dest);
 void individual_table_print_state(individual_table_t *self, FILE *out);
 bool individual_table_equal(individual_table_t *self, individual_table_t *other);
+
+int population_table_alloc(population_table_t *self, size_t max_rows_increment,
+        size_t max_metadata_length_increment);
+population_id_t population_table_add_row(population_table_t *self,
+        const char *metadata, size_t metadata_length);
+int population_table_set_columns(population_table_t *self, size_t num_rows,
+       char *metadata, table_size_t *metadata_offset);
+int population_table_append_columns(population_table_t *self, size_t num_rows,
+        char *metadata, table_size_t *metadata_offset);
+int population_table_clear(population_table_t *self);
+int population_table_copy(population_table_t *self, population_table_t *dest);
+int population_table_free(population_table_t *self);
+void population_table_print_state(population_table_t *self, FILE *out);
+bool population_table_equal(population_table_t *self, population_table_t *other);
 
 int provenance_table_alloc(provenance_table_t *self, size_t max_rows_increment,
         size_t max_timestamp_length_increment,
@@ -433,7 +462,6 @@ int provenance_table_clear(provenance_table_t *self);
 int provenance_table_copy(provenance_table_t *self, provenance_table_t *dest);
 int provenance_table_free(provenance_table_t *self);
 void provenance_table_print_state(provenance_table_t *self, FILE *out);
-int provenance_table_dump_text(provenance_table_t *self, FILE *out);
 bool provenance_table_equal(provenance_table_t *self, provenance_table_t *other);
 
 int table_collection_alloc(table_collection_t *self, int flags);
@@ -470,9 +498,6 @@ void table_collection_set_position(table_collection_position_t *position,
         table_size_t mutation_position);
 void table_collection_current_position(table_collection_position_t *position);
 int table_collection_reset_position(table_collection_position_t *position);
-
-int table_collection_load_text(table_collection_t *tables, FILE *nodes, FILE *edges,
-        FILE *sites, FILE *mutations, FILE *migrations, FILE *individuals, FILE *provenances);
 
 #ifdef __cplusplus
 }

@@ -17,3 +17,7 @@ Management:
 Simplification interval:
 
 - `CheckAutoSimplification` :
+
+
+The code in `tskit/` is from [tskit/lib](https://github.com/tskit-dev/msprime/tree/master/lib);
+the code in `tskit/kastore` is from [kastore/c](https://github.com/tskit-dev/kastore/tree/master/c).

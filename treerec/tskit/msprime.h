@@ -24,7 +24,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#include "gsl_rng.h"
+#include <gsl/gsl_rng.h>
 
 #include "avl.h"
 #include "fenwick.h"
@@ -39,8 +39,6 @@
 #define MSP_MODEL_DIRAC 4
 #define MSP_MODEL_DTWF 5
 
-
-#define MSP_INITIALISED_MAGIC 0x1234567
 
 typedef struct segment_t_t {
     population_id_t population_id;
@@ -289,7 +287,7 @@ int msp_run(msp_t *self, double max_time, unsigned long max_events);
 int msp_debug_demography(msp_t *self, double *end_time);
 int msp_populate_tables(msp_t *self, recomb_map_t *recomb_map,
         node_table_t *node_table, edge_table_t *edge_table,
-        migration_table_t *migration_table);
+        migration_table_t *migration_table, population_table_t *populations);
 int msp_reset(msp_t *self);
 int msp_print_state(msp_t *self, FILE *out);
 int msp_free(msp_t *self);

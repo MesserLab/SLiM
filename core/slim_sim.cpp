@@ -53,6 +53,7 @@
 extern "C" {
 #endif
 #include "../treerec/tskit/msprime.h"
+#include "../treerec/tskit/text_output.h"
 #ifdef __cplusplus
 }
 #endif
@@ -3885,7 +3886,8 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genom
 	const char *metadata = (char *)&metadata_rec;
 	size_t metadata_length = sizeof(GenomeMetadataRec)/sizeof(char);
 	
-	offspringMSPID = node_table_add_row(&tables.nodes, flags, time, (population_id_t)p_new_genome->subpop_->subpopulation_id_, metadata, metadata_length);
+	offspringMSPID = node_table_add_row(&tables.nodes, flags, time, (population_id_t)p_new_genome->subpop_->subpopulation_id_,
+                                        MSP_NULL_INDIVIDUAL, metadata, metadata_length);
 	p_new_genome->msp_node_id_ = offspringMSPID;
 	
     // if there is no parent then no need to record edges
@@ -4099,12 +4101,12 @@ void SLiMSim::TreeSequenceDataFromAscii(table_collection_t *p_tables,
                     std::string IndividualsFileName,
                     std::string ProvenanceFileName)
 {
-    FILE *MspTxtNodeTable = fopen(NodeFileName.c_str(),"r");
-    FILE *MspTxtEdgeTable = fopen(EdgeFileName.c_str(),"r");
-    FILE *MspTxtSiteTable = fopen(SiteFileName.c_str(),"r");
-    FILE *MspTxtMutationTable = fopen(MutationFileName.c_str(),"r");
-    FILE *MspTxtIndividualTable = fopen(IndividualsFileName.c_str(),"r");
-    FILE *MspTxtProvenanceTable = fopen(ProvenanceFileName.c_str(),"r");
+    FILE *MspTxtNodeTable = fopen(NodeFileName.c_str(), "r");
+    FILE *MspTxtEdgeTable = fopen(EdgeFileName.c_str(), "r");
+    FILE *MspTxtSiteTable = fopen(SiteFileName.c_str(), "r");
+    FILE *MspTxtMutationTable = fopen(MutationFileName.c_str(), "r");
+    FILE *MspTxtIndividualTable = fopen(IndividualsFileName.c_str(), "r");
+    FILE *MspTxtProvenanceTable = fopen(ProvenanceFileName.c_str(), "r");
 
     int ret = table_collection_alloc(p_tables, MSP_ALLOC_TABLES);
     if (ret < 0) handle_error("read_from_ascii", ret);
@@ -4112,9 +4114,9 @@ void SLiMSim::TreeSequenceDataFromAscii(table_collection_t *p_tables,
     ret = table_collection_load_text(p_tables,
             MspTxtNodeTable,
             MspTxtEdgeTable,
-            NULL, // migrations
             MspTxtSiteTable,
             MspTxtMutationTable,
+            NULL, // migrations
             MspTxtIndividualTable,
             MspTxtProvenanceTable);
     if (ret < 0) handle_error("read_from_ascii", ret);
@@ -4232,6 +4234,7 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
 									 tables_copy.nodes.flags,
 									 tables_copy.nodes.time,
 									 tables_copy.nodes.population,
+                                     NULL, // individual
 									 text_metadata.c_str(),
 									 text_metadata_offset.data());
 		if (ret < 0) handle_error("convert_to_ascii", ret);
@@ -4239,7 +4242,7 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
 	
 	/***** Ascii-ify Individuals Table *****/
 	{
-		static_assert(sizeof(IndividualMetadataRec) == 8, "IndividualMetadataRec is not 8 bytes!");
+		static_assert(sizeof(IndividualMetadataRec) == 16, "IndividualMetadataRec is not 8 bytes!");
 		
 		const char *metadata = p_tables->individuals.metadata;
 		table_size_t *metadata_offset = p_tables->individuals.metadata_offset;
@@ -4258,14 +4261,9 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
 		
 		ret = individual_table_set_columns(&p_tables->individuals,
 										   tables_copy.individuals.num_rows,
-										   tables_copy.individuals.sex,
-										   tables_copy.individuals.age,
-										   tables_copy.individuals.population,
-										   tables_copy.individuals.nodes_f,
-										   tables_copy.individuals.nodes_m,
-										   tables_copy.individuals.spatial_x,
-										   tables_copy.individuals.spatial_y,
-										   tables_copy.individuals.spatial_z,
+										   tables_copy.individuals.flags,
+										   tables_copy.individuals.location,
+										   tables_copy.individuals.location_offset,
 										   text_metadata.c_str(),
 										   text_metadata_offset.data());
 		if (ret < 0) handle_error("convert_to_ascii", ret);
@@ -4278,13 +4276,11 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
 void SLiMSim::WriteIndividualTable(table_collection_t *p_tables)
 {
     int ret = 0;
-	
-    std::vector<individual_sex_t> sex;
-    std::vector<individual_age_t> age;
-	std::vector<double> spatial_x;
-	std::vector<double> spatial_y;
-	std::vector<double> spatial_z;
-    std::vector<population_id_t> subpopID;
+
+    std::vector<unsigned int> flags;
+    std::vector<double> location;
+    std::vector<unsigned int> location_offset;
+
 	std::vector<node_id_t> node_ids_f;
 	std::vector<node_id_t> node_ids_m;
 	
@@ -4292,17 +4288,19 @@ void SLiMSim::WriteIndividualTable(table_collection_t *p_tables)
 	std::vector<uint32_t> metadata_offsets;
 	
 	metadata_offsets.push_back(0);
-	
+
 	for (auto subpop_iter : population_)
 	{
 		for (Individual *individual : subpop_iter.second->parent_individuals_)
 		{
-			sex.push_back((individual_sex_t)individual->sex_);			// note we rely on a correspondence between IndividualSex and individual_sex_t here
-			age.push_back((individual_age_t)individual->age_);			// note individual_age_t is double, slim_age_t is int32_t
-			spatial_x.push_back(individual->spatial_x_);
-			spatial_y.push_back(individual->spatial_y_);
-			spatial_z.push_back(individual->spatial_z_);
-			subpopID.push_back(individual->subpopulation_.subpopulation_id_);
+			flags.push_back((unsigned int) individual->sex_); // TODO make some flags for htis
+
+            location_offset.push_back(location.size() * sizeof(double));
+			location.push_back(individual->spatial_x_);
+			location.push_back(individual->spatial_y_);
+			location.push_back(individual->spatial_z_);
+
+            // TODO: need to get this into the NodeTable
 			node_ids_f.push_back(individual->genome1_->msp_node_id_);
 			node_ids_m.push_back(individual->genome2_->msp_node_id_);
 			
@@ -4314,9 +4312,8 @@ void SLiMSim::WriteIndividualTable(table_collection_t *p_tables)
 		}
 	}
 	
-	ret = individual_table_set_columns(&(p_tables->individuals), /* num_rows */ sex.size(),
-									   sex.data(), age.data(), subpopID.data(), node_ids_f.data(), node_ids_m.data(),
-									   spatial_x.data(), spatial_y.data(), spatial_z.data(), (char *)metadata.data(), metadata_offsets.data());
+	ret = individual_table_set_columns(&(p_tables->individuals), /* num_rows */ flags.size(), 
+            flags.data(), location.data(), location_offset.data(), (char *)metadata.data(), metadata_offsets.data());
 	if (ret != 0) handle_error("individual_table_set_columns", ret);
 }
 
@@ -4413,17 +4410,17 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 			std::string IndividualsFileName = path + "/IndividualTable.txt";
 			std::string ProvenanceFileName = path + "/ProvenanceTable.txt";
 			
-			FILE *MspTxtNodeTable = fopen(NodeFileName.c_str(),"w");
-			FILE *MspTxtEdgeTable = fopen(EdgeFileName.c_str(),"w");
-			FILE *MspTxtSiteTable = fopen(SiteFileName.c_str(),"w");
-			FILE *MspTxtMutationTable = fopen(MutationFileName.c_str(),"w");
-			FILE *MspTxtIndividualTable = fopen(IndividualsFileName.c_str(),"w");
-			FILE *MspTxtProvenanceTable = fopen(ProvenanceFileName.c_str(),"w");
+			FILE *MspTxtNodeTable = fopen(NodeFileName.c_str(), "w");
+			FILE *MspTxtEdgeTable = fopen(EdgeFileName.c_str(), "w");
+			FILE *MspTxtSiteTable = fopen(SiteFileName.c_str(), "w");
+			FILE *MspTxtMutationTable = fopen(MutationFileName.c_str(), "w");
+			FILE *MspTxtIndividualTable = fopen(IndividualsFileName.c_str(), "w");
+			FILE *MspTxtProvenanceTable = fopen(ProvenanceFileName.c_str(), "w");
 			
-			node_table_dump_text(&(output_tables.nodes),MspTxtNodeTable);
-			edge_table_dump_text(&(output_tables.edges),MspTxtEdgeTable);
-			site_table_dump_text(&(output_tables.sites),MspTxtSiteTable);
-			mutation_table_dump_text(&(output_tables.mutations),MspTxtMutationTable);
+			node_table_dump_text(&(output_tables.nodes), MspTxtNodeTable);
+			edge_table_dump_text(&(output_tables.edges), MspTxtEdgeTable);
+			site_table_dump_text(&(output_tables.sites), MspTxtSiteTable);
+			mutation_table_dump_text(&(output_tables.mutations), MspTxtMutationTable);
 			individual_table_dump_text(&(output_tables.individuals), MspTxtIndividualTable);
 			provenance_table_dump_text(&(output_tables.provenances), MspTxtProvenanceTable);
 			
@@ -4557,12 +4554,14 @@ void SLiMSim::MetadataForGenome(Genome *p_genome, GenomeMetadataRec *p_metadata)
 
 void SLiMSim::MetadataForIndividual(Individual *p_individual, IndividualMetadataRec *p_metadata)
 {
-	static_assert(sizeof(IndividualMetadataRec) == 8, "IndividualMetadataRec has changed size; this code probably needs to be updated");
+	static_assert(sizeof(IndividualMetadataRec) == 16, "IndividualMetadataRec has changed size; this code probably needs to be updated");
 	
 	if (!p_individual || !p_metadata)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::MetadataForIndividual): (internal error) bad parameters to MetadataForIndividual()." << EidosTerminate();
 	
 	p_metadata->pedigree_id_ = p_individual->PedigreeID();
+    p_metadata->age_ = p_individual->age_;
+    p_metadata->subpopulation_id_ = p_individual->subpopulation_.subpopulation_id_;
 }
 
 void SLiMSim::DumpMutationTable(void)
