@@ -51,8 +51,14 @@
 
 //TREE SEQUENCE
 //INCLUDE JEROME's TABLES API
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include "../treerec/tskit/tables.h"
 #include "../treerec/tskit/text_input.h"
+#ifdef __cplusplus
+}
+#endif
 
 
 class EidosInterpreter;

@@ -53,7 +53,8 @@
 extern "C" {
 #endif
 #include "../treerec/tskit/msprime.h"
-#include "../treerec/tskit/text_output.h"
+#include "../treerec/tskit/text_input.h"
+#include "../treerec/tskit/tables.h"
 #ifdef __cplusplus
 }
 #endif

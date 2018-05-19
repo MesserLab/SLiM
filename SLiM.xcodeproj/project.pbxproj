@@ -183,8 +183,6 @@
 		985724F71AD6DD470047C223 /* show_execution.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 985724F51AD6DD470047C223 /* show_execution.pdf */; };
 		98606AEE1DED0DCD00821CFF /* mutation_run.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98606AEC1DED0DCD00821CFF /* mutation_run.cpp */; };
 		98606AEF1DED0DCD00821CFF /* mutation_run.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98606AEC1DED0DCD00821CFF /* mutation_run.cpp */; };
-		986764AD2089066B00E81B2E /* newick.c in Sources */ = {isa = PBXBuildFile; fileRef = 986764A42089066A00E81B2E /* newick.c */; };
-		986764AE2089066B00E81B2E /* newick.c in Sources */ = {isa = PBXBuildFile; fileRef = 986764A42089066A00E81B2E /* newick.c */; };
 		986764AF2089066B00E81B2E /* tree_sequence.c in Sources */ = {isa = PBXBuildFile; fileRef = 986764A52089066A00E81B2E /* tree_sequence.c */; };
 		986764B02089066B00E81B2E /* tree_sequence.c in Sources */ = {isa = PBXBuildFile; fileRef = 986764A52089066A00E81B2E /* tree_sequence.c */; };
 		986764B12089066B00E81B2E /* vargen.c in Sources */ = {isa = PBXBuildFile; fileRef = 986764A62089066A00E81B2E /* vargen.c */; };
@@ -776,7 +774,6 @@
 		986021081A3BB504001BDCFE /* LICENSE */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		98606AEC1DED0DCD00821CFF /* mutation_run.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mutation_run.cpp; sourceTree = "<group>"; };
 		98606AED1DED0DCD00821CFF /* mutation_run.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mutation_run.h; sourceTree = "<group>"; };
-		986764A42089066A00E81B2E /* newick.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = newick.c; path = treerec/tskit/newick.c; sourceTree = "<group>"; };
 		986764A52089066A00E81B2E /* tree_sequence.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tree_sequence.c; path = treerec/tskit/tree_sequence.c; sourceTree = "<group>"; };
 		986764A62089066A00E81B2E /* vargen.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vargen.c; path = treerec/tskit/vargen.c; sourceTree = "<group>"; };
 		986764A72089066A00E81B2E /* fenwick.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = fenwick.h; path = treerec/tskit/fenwick.h; sourceTree = "<group>"; };
@@ -1532,7 +1529,6 @@
 				986764AA2089066A00E81B2E /* object_heap.h */,
 				986764A92089066A00E81B2E /* tables.h */,
 				986764AC2089066A00E81B2E /* util.h */,
-				986764A42089066A00E81B2E /* newick.c */,
 				986764A52089066A00E81B2E /* tree_sequence.c */,
 				986764A62089066A00E81B2E /* vargen.c */,
 				9850D8E02063098E006BFD2E /* avl.c */,
@@ -2213,7 +2209,6 @@
 				986764AF2089066B00E81B2E /* tree_sequence.c in Sources */,
 				98C821B21C7A9B9F00548839 /* shuffle.c in Sources */,
 				98E9A6901A3CD4CF000AD4FC /* mutation_type.cpp in Sources */,
-				986764AD2089066B00E81B2E /* newick.c in Sources */,
 				98E9A68A1A3CCFD0000AD4FC /* mutation.cpp in Sources */,
 				98C821401C7A980000548839 /* coerce.c in Sources */,
 				9850D8E62063098E006BFD2E /* object_heap.c in Sources */,
@@ -2548,7 +2543,6 @@
 				98C821601C7A983700548839 /* infnan.c in Sources */,
 				98332AD81FDBBE3500274FF0 /* cholesky.c in Sources */,
 				98332AC31FDBA54600274FF0 /* xerbla.c in Sources */,
-				986764AE2089066B00E81B2E /* newick.c in Sources */,
 				98C821AA1C7A9B1600548839 /* discrete.c in Sources */,
 				98C8219F1C7A99B200548839 /* minmax.c in Sources */,
 				98C821431C7A983700548839 /* inline.c in Sources */,
