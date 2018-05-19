@@ -4610,15 +4610,26 @@ EidosValue_SP Eidos_ExecuteFunction_rbinom(const EidosValue_SP *const p_argument
 		
 		if (num_draws == 1)
 		{
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gsl_ran_binomial(EIDOS_GSL_RNG, probability0, size0)));
+			if ((probability0 == 0.5) && (size0 == 1))
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(Eidos_RandomBool() ? 1 : 0));
+			else
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gsl_ran_binomial(EIDOS_GSL_RNG, probability0, size0)));
 		}
 		else
 		{
 			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(num_draws);
 			result_SP = EidosValue_SP(int_result);
 			
-			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
-				int_result->set_int_no_check(gsl_ran_binomial(EIDOS_GSL_RNG, probability0, size0), draw_index);
+			if ((probability0 == 0.5) && (size0 == 1))
+			{
+				for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
+					int_result->set_int_no_check(Eidos_RandomBool() ? 1 : 0, draw_index);
+			}
+			else
+			{
+				for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
+					int_result->set_int_no_check(gsl_ran_binomial(EIDOS_GSL_RNG, probability0, size0), draw_index);
+			}
 		}
 	}
 	else
@@ -4735,24 +4746,33 @@ EidosValue_SP Eidos_ExecuteFunction_rdunif(const EidosValue_SP *const p_argument
 	
 	if (min_singleton && max_singleton)
 	{
-		int64_t count0 = (max_value0 - min_value0) + 1;
+		uint64_t count0 = (max_value0 - min_value0) + 1;
 		
-		if (count0 < 1)
+		if (max_value0 < min_value0)
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rdunif): function rdunif() requires min <= max." << EidosTerminate(nullptr);
-		if (count0 > INT32_MAX)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rdunif): function rdunif() cannot generate draws across a range greater than " << INT32_MAX << "." << EidosTerminate(nullptr);
 		
 		if (num_draws == 1)
 		{
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton((int64_t)Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)count0) + min_value0));
+			if (count0 == 2)
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(Eidos_RandomBool() + min_value0));
+			else
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(Eidos_rng_uniform_int_MT64(count0) + min_value0));
 		}
 		else
 		{
 			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(num_draws);
 			result_SP = EidosValue_SP(int_result);
 			
-			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
-				int_result->set_int_no_check((int64_t)Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)count0) + min_value0, draw_index);
+			if (count0 == 2)
+			{
+				for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
+					int_result->set_int_no_check(Eidos_RandomBool() + min_value0, draw_index);
+			}
+			else
+			{
+				for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
+					int_result->set_int_no_check(Eidos_rng_uniform_int_MT64(count0) + min_value0, draw_index);
+			}
 		}
 	}
 	else
@@ -4766,12 +4786,10 @@ EidosValue_SP Eidos_ExecuteFunction_rdunif(const EidosValue_SP *const p_argument
 			int64_t max_value = (max_singleton ? max_value0 : arg_max->IntAtIndex(draw_index, nullptr));
 			int64_t count = (max_value - min_value) + 1;
 			
-			if (count < 1)
+			if (max_value < min_value)
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rdunif): function rdunif() requires min <= max." << EidosTerminate(nullptr);
-			if (count > INT32_MAX)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rdunif): function rdunif() cannot generate draws across a range greater than " << INT32_MAX << "." << EidosTerminate(nullptr);
 			
-			int_result->set_int_no_check((int64_t)Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)count) + min_value, draw_index);
+			int_result->set_int_no_check(Eidos_rng_uniform_int_MT64(count) + min_value, draw_index);
 		}
 	}
 	

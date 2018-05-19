@@ -5131,6 +5131,8 @@ void _RunFunctionDistributionTests(void)
 	EidosAssertScriptSuccess("rbinom(3, 10, 1.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{10, 10, 10}));
 	EidosAssertScriptSuccess("rbinom(3, 0, 0.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 0, 0}));
 	EidosAssertScriptSuccess("rbinom(3, 0, 1.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 0, 0}));
+	EidosAssertScriptSuccess("setSeed(0); rbinom(10, 1, 0.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 1, 1, 1, 1, 1, 0, 0, 0, 0}));
+	EidosAssertScriptSuccess("setSeed(0); rbinom(10, 1, 0.5000001);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 0, 0, 1, 1, 0, 1, 0, 1, 0}));
 	EidosAssertScriptSuccess("setSeed(0); rbinom(5, 10, 0.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{4, 8, 5, 3, 4}));
 	EidosAssertScriptSuccess("setSeed(1); rbinom(5, 10, 0.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 6, 3, 6, 3}));
 	EidosAssertScriptSuccess("setSeed(2); rbinom(5, 1000, 0.01);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{11, 16, 10, 14, 10}));
@@ -5168,13 +5170,13 @@ void _RunFunctionDistributionTests(void)
 	EidosAssertScriptSuccess("rdunif(1, 1, 1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1}));
 	EidosAssertScriptSuccess("rdunif(3, 1, 1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 1, 1}));
 	EidosAssertScriptSuccess("setSeed(0); identical(rdunif(1), 0);", gStaticEidosValue_LogicalT);
-	EidosAssertScriptSuccess("setSeed(0); identical(rdunif(5), c(0,1,1,0,0));", gStaticEidosValue_LogicalT);
-	EidosAssertScriptSuccess("setSeed(0); identical(rdunif(5, 10, 11), c(10,11,11,10,10));", gStaticEidosValue_LogicalT);
-	EidosAssertScriptSuccess("setSeed(0); identical(rdunif(5, 10, 15), c(11,15,13,10,11));", gStaticEidosValue_LogicalT);
-	EidosAssertScriptSuccess("setSeed(0); identical(rdunif(5, -10, 15), c(-6,14,4,-9,-5));", gStaticEidosValue_LogicalT);
-	EidosAssertScriptSuccess("setSeed(0); identical(rdunif(5, 1000000, 2000000), c(1186956,1951254,1545558,1074642,1229270));", gStaticEidosValue_LogicalT);
-	EidosAssertScriptSuccess("setSeed(0); identical(rdunif(5, 1000000000, 2000000000), c(1200698027,1585657199,1080129202,1246121879,1561536154));", gStaticEidosValue_LogicalT);
-	EidosAssertScriptRaise("rdunif(5, 10000000000, 20000000000);", 0, "cannot generate draws across");
+	EidosAssertScriptSuccess("setSeed(0); identical(rdunif(10), c(0,1,1,1,1,1,0,0,0,0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("setSeed(0); identical(rdunif(10, 10, 11), c(10,11,11,11,11,11,10,10,10,10));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("setSeed(0); identical(rdunif(10, 10, 15), c(10, 15, 11, 10, 14, 12, 11, 10, 12, 15));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("setSeed(0); identical(rdunif(10, -10, 15), c(-6, 9, 13, 8, -10, -2, 1, -2, 4, -9));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("setSeed(0); identical(rdunif(5, 1000000, 2000000), c(1834587, 1900900, 1272746, 1916963, 1786506));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("setSeed(0); identical(rdunif(5, 1000000000, 2000000000), c(1824498419, 1696516320, 1276316141, 1114192161, 1469447550));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("setSeed(0); identical(rdunif(5, 10000000000, 20000000000), c(18477398967, 14168180191, 12933243864, 17033840166, 15472500391));", gStaticEidosValue_LogicalT);	// 64-bit range
 	EidosAssertScriptRaise("rdunif(-1);", 0, "requires n to be");
 	EidosAssertScriptRaise("rdunif(1, 0, -1);", 0, "requires min <= max");
 	EidosAssertScriptRaise("rdunif(2, 0, c(7, -1));", 0, "requires min <= max");
