@@ -73,6 +73,10 @@
 				const EidosObjectClass *arg_obj_class = signature->arg_classes_[arg_index];
 				EidosValue_SP arg_default = signature->arg_defaults_[arg_index];
 				
+				// skip private arguments
+				if ((arg_name.length() >= 1) && (arg_name[0] == '_'))
+					continue;
+				
 				if (arg_index > 0)
 					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@", " attributes:plainAttrs] autorelease]];
 				

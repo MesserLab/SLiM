@@ -3580,10 +3580,10 @@ void _RunTreeSeqTests(void)
 	SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "1: { sim.treeSeqRememberIndividuals(p1.individuals); } 100 { sim.treeSeqSimplify(); stop(); }", __LINE__);
 	
 	// treeSeqOutput()
-	SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "100 { sim.treeSeqOutput('/tmp/SLiM_treeSeq_1.trees', binary=F, simplify=F); stop(); }", __LINE__);
-	SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "100 { sim.treeSeqOutput('/tmp/SLiM_treeSeq_2.trees', binary=F, simplify=T); stop(); }", __LINE__);
-	SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "100 { sim.treeSeqOutput('/tmp/SLiM_treeSeq_3.trees', binary=T, simplify=F); stop(); }", __LINE__);
-	SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "100 { sim.treeSeqOutput('/tmp/SLiM_treeSeq_4.trees', binary=T, simplify=T); stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "100 { sim.treeSeqOutput('/tmp/SLiM_treeSeq_1.trees', simplify=F, _binary=F); stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "100 { sim.treeSeqOutput('/tmp/SLiM_treeSeq_2.trees', simplify=T, _binary=F); stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "100 { sim.treeSeqOutput('/tmp/SLiM_treeSeq_3.trees', simplify=F, _binary=T); stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "100 { sim.treeSeqOutput('/tmp/SLiM_treeSeq_4.trees', simplify=T, _binary=T); stop(); }", __LINE__);
 }
 
 #pragma mark SLiM timing tests

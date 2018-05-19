@@ -510,6 +510,10 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosCallSignature &p_
 			const EidosObjectClass *arg_obj_class = p_signature.arg_classes_[arg_index];
 			EidosValue_SP arg_default = p_signature.arg_defaults_[arg_index];
 			
+			// skip private arguments
+			if ((arg_name.length() >= 1) && (arg_name[0] == '_'))
+				continue;
+			
 			if (arg_index > 0)
 				p_outstream << ", ";
 			

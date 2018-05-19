@@ -4046,7 +4046,7 @@ Note that new script blocks can also be created and scheduled using the
 \f0\fs20 , if you wanted the tree sequences recorded to include the ultimate ancestors that root the whole simulated tree.  However, this is not the typical usage pattern for the tree sequence recording; most models will not need to call this method.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf2 \'96\'a0(void)treeSeqOutput(string$\'a0path, [logical$\'a0binary\'a0=\'a0T], [logical$\'a0simplify\'a0=\'a0T])\
+\f2\fs18 \cf2 \'96\'a0(void)treeSeqOutput(string$\'a0path, [logical$\'a0simplify\'a0=\'a0T])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf2 Outputs the current tree sequence recording tables to the path specified by path.  This method may only be called if tree sequence recording has been turned on with 
@@ -4055,15 +4055,9 @@ Note that new script blocks can also be created and scheduled using the
 \f2\fs18 simplify
 \f0\fs20  is 
 \f2\fs18 T
-\f0\fs20  (the default), simplification will be done immediately prior to output; this is almost always desirable, unless a model wishes to avoid simplification entirely.  If 
-\f2\fs18 binary
-\f0\fs20  is 
-\f2\fs18 T
-\f0\fs20  (the default), a single binary tree sequence file will be written to the specified path; if 
-\f2\fs18 binary
-\f0\fs20  is 
-\f2\fs18 F
-\f0\fs20 , the path should be a path to a directory, which will be created if it does not already exist, and the tree sequences recording tables will be written to text files within that directory.\
+\f0\fs20  (the default), simplification will be done immediately prior to output; this is almost always desirable, unless a model wishes to avoid simplification entirely.  A binary tree sequence file will be written to the specified path; a filename extension of 
+\f2\fs18 .trees
+\f0\fs20  is suggested for this type of file.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
 \b\fs22 \cf0 \kerning1\expnd0\expndtw0 5.12  Class Subpopulation\
