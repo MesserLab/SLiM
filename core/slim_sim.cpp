@@ -4278,9 +4278,9 @@ void SLiMSim::WriteIndividualTable(table_collection_t *p_tables)
 {
     int ret = 0;
 
-    std::vector<unsigned int> flags;
+    std::vector<uint32_t> flags;
     std::vector<double> location;
-    std::vector<unsigned int> location_offset;
+    std::vector<uint32_t> location_offset;
 
 	std::vector<node_id_t> node_ids_f;
 	std::vector<node_id_t> node_ids_m;
@@ -4288,6 +4288,7 @@ void SLiMSim::WriteIndividualTable(table_collection_t *p_tables)
 	std::vector<IndividualMetadataRec> metadata;
 	std::vector<uint32_t> metadata_offsets;
 	
+	location_offset.push_back(0);
 	metadata_offsets.push_back(0);
 
 	for (auto subpop_iter : population_)
@@ -4296,7 +4297,7 @@ void SLiMSim::WriteIndividualTable(table_collection_t *p_tables)
 		{
 			flags.push_back((unsigned int) individual->sex_); // TODO make some flags for htis
 
-            location_offset.push_back(location.size() * sizeof(double));
+            location_offset.push_back((uint32_t)(location.size() * sizeof(double)));
 			location.push_back(individual->spatial_x_);
 			location.push_back(individual->spatial_y_);
 			location.push_back(individual->spatial_z_);
