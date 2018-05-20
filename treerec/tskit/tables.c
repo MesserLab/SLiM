@@ -2739,6 +2739,33 @@ provenance_table_print_state(provenance_table_t *self, FILE *out)
     assert(self->record_offset[self->num_rows] == self->record_length);
 }
 
+int
+provenance_table_dump_text(provenance_table_t *self, FILE *out)
+{
+    int ret = MSP_ERR_IO;
+    int err;
+    size_t j;
+    table_size_t timestamp_len, record_len;
+
+    err = fprintf(out, "record\ttimestamp\n");
+    if (err < 0) {
+        goto out;
+    }
+    for (j = 0; j < self->num_rows; j++) {
+        record_len = self->record_offset[j + 1] -
+            self->record_offset[j];
+        timestamp_len = self->timestamp_offset[j + 1] - self->timestamp_offset[j];
+        err = fprintf(out, "%.*s\t%.*s\n", record_len, self->record + self->record_offset[j],
+                timestamp_len, self->timestamp + self->timestamp_offset[j]);
+        if (err < 0) {
+            goto out;
+        }
+    }
+    ret = 0;
+out:
+    return ret;
+}
+
 bool
 provenance_table_equal(provenance_table_t *self, provenance_table_t *other)
 {

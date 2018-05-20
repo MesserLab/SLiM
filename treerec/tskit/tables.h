@@ -461,6 +461,7 @@ int provenance_table_append_columns(provenance_table_t *self, size_t num_rows,
 int provenance_table_clear(provenance_table_t *self);
 int provenance_table_copy(provenance_table_t *self, provenance_table_t *dest);
 int provenance_table_free(provenance_table_t *self);
+int provenance_table_dump_text(provenance_table_t *self, FILE *out);
 void provenance_table_print_state(provenance_table_t *self, FILE *out);
 bool provenance_table_equal(provenance_table_t *self, provenance_table_t *other);
 

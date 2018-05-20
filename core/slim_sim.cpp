@@ -4235,7 +4235,7 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
 									 tables_copy.nodes.flags,
 									 tables_copy.nodes.time,
 									 tables_copy.nodes.population,
-                                     NULL, // individual
+									 NULL, // individual
 									 text_metadata.c_str(),
 									 text_metadata_offset.data());
 		if (ret < 0) handle_error("convert_to_ascii", ret);
@@ -4243,7 +4243,7 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
 	
 	/***** Ascii-ify Individuals Table *****/
 	{
-		static_assert(sizeof(IndividualMetadataRec) == 16, "IndividualMetadataRec is not 8 bytes!");
+		static_assert(sizeof(IndividualMetadataRec) == 16, "IndividualMetadataRec is not 16 bytes!");
 		
 		const char *metadata = p_tables->individuals.metadata;
 		table_size_t *metadata_offset = p_tables->individuals.metadata_offset;
@@ -4257,6 +4257,10 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
 			IndividualMetadataRec *struct_individual_metadata = (IndividualMetadataRec *)(metadata + metadata_offset[j]);
 			
 			text_metadata.append(std::to_string(struct_individual_metadata->pedigree_id_));
+			text_metadata.append(",");
+			text_metadata.append(std::to_string(struct_individual_metadata->age_));
+			text_metadata.append(",");
+			text_metadata.append(std::to_string(struct_individual_metadata->subpopulation_id_));
 			text_metadata_offset.push_back((table_size_t)text_metadata.size());
 		}
 		
@@ -4295,12 +4299,12 @@ void SLiMSim::WriteIndividualTable(table_collection_t *p_tables)
 	{
 		for (Individual *individual : subpop_iter.second->parent_individuals_)
 		{
-			flags.push_back((unsigned int) individual->sex_); // TODO make some flags for htis
+			flags.push_back((unsigned int) individual->sex_); // TODO make some flags for this
 
-            location_offset.push_back((uint32_t)(location.size() * sizeof(double)));
 			location.push_back(individual->spatial_x_);
 			location.push_back(individual->spatial_y_);
 			location.push_back(individual->spatial_z_);
+            location_offset.push_back((uint32_t)(location.size() * sizeof(double)));
 
             // TODO: need to get this into the NodeTable
 			node_ids_f.push_back(individual->genome1_->msp_node_id_);
@@ -4424,8 +4428,7 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 			site_table_dump_text(&(output_tables.sites), MspTxtSiteTable);
 			mutation_table_dump_text(&(output_tables.mutations), MspTxtMutationTable);
 			individual_table_dump_text(&(output_tables.individuals), MspTxtIndividualTable);
-#warning enable me
-			//provenance_table_dump_text(&(output_tables.provenances), MspTxtProvenanceTable);
+			provenance_table_dump_text(&(output_tables.provenances), MspTxtProvenanceTable);
 			
 			fclose(MspTxtNodeTable);
 			fclose(MspTxtEdgeTable);
@@ -4563,8 +4566,8 @@ void SLiMSim::MetadataForIndividual(Individual *p_individual, IndividualMetadata
 		EIDOS_TERMINATION << "ERROR (SLiMSim::MetadataForIndividual): (internal error) bad parameters to MetadataForIndividual()." << EidosTerminate();
 	
 	p_metadata->pedigree_id_ = p_individual->PedigreeID();
-    p_metadata->age_ = p_individual->age_;
-    p_metadata->subpopulation_id_ = p_individual->subpopulation_.subpopulation_id_;
+	p_metadata->age_ = p_individual->age_;
+	p_metadata->subpopulation_id_ = p_individual->subpopulation_.subpopulation_id_;
 }
 
 void SLiMSim::DumpMutationTable(void)

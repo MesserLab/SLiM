@@ -135,9 +135,8 @@ typedef struct __attribute__((__packed__)) {
 
 typedef struct __attribute__((__packed__)) {
 	slim_pedigreeid_t pedigree_id_;			// 8 bytes (int64_t): the SLiM pedigree ID for this individual, assigned by pedigree rec
-    slim_age_t age_;                        // 4 bytes (int32_t)
-    slim_objectid_t subpopulation_id_;      // 4 bytes (int32_t)
-
+	slim_age_t age_;                        // 4 bytes (int32_t)
+	slim_objectid_t subpopulation_id_;      // 4 bytes (int32_t)
 } IndividualMetadataRec;
 
 // We double-check the size of these records to make sure we understand what they contain and how they're packed

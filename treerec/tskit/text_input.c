@@ -589,7 +589,6 @@ out:
 }
 
 
-
 int
 table_collection_load_text(table_collection_t *tables, FILE *nodes, FILE *edges,
         FILE *sites, FILE *mutations, FILE *migrations, FILE *individuals, 
