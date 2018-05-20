@@ -4280,68 +4280,68 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
 
 void SLiMSim::WriteIndividualTable(table_collection_t *p_tables)
 {
-    int ret = 0;
+    individual_id_t MspIndividual;
 
-    std::vector<uint32_t> flags;
-    std::vector<double> location;
-    std::vector<uint32_t> location_offset;
-
-	std::vector<node_id_t> node_ids_f;
-	std::vector<node_id_t> node_ids_m;
+    // This overwrites whatever might be previously in the individual table
+    individual_table_clear(&(p_tables->individuals));
+    // reset the individual column to -1 (which is MSP_NULL_INDIVIDUAL)
+    memset(p_tables->nodes.individual, 0xff, p_tables->nodes.num_rows * sizeof(individual_id_t));
 	
-	std::vector<IndividualMetadataRec> metadata;
-	std::vector<uint32_t> metadata_offsets;
-	
-	location_offset.push_back(0);
-	metadata_offsets.push_back(0);
-
 	for (auto subpop_iter : population_)
 	{
 		for (Individual *individual : subpop_iter.second->parent_individuals_)
 		{
-			flags.push_back((unsigned int) individual->sex_); // TODO make some flags for this
+            uint32_t flags = 0;
+            if (individual->sex_ == IndividualSex::kFemale 
+                    || individual->sex_ == IndividualSex::kHermaphrodite) {
+                flags |= MSP_INDIVIDUAL_FEMALE;
+            } 
+            if (individual->sex_ == IndividualSex::kMale 
+                    || individual->sex_ == IndividualSex::kHermaphrodite) {
+                flags |= MSP_INDIVIDUAL_MALE;
+            }
 
+            std::vector<double> location;
 			location.push_back(individual->spatial_x_);
 			location.push_back(individual->spatial_y_);
 			location.push_back(individual->spatial_z_);
-            location_offset.push_back((uint32_t)(location.size() * sizeof(double)));
-
-            // TODO: need to get this into the NodeTable
-			node_ids_f.push_back(individual->genome1_->msp_node_id_);
-			node_ids_m.push_back(individual->genome2_->msp_node_id_);
 			
 			IndividualMetadataRec metadata_rec;
 			MetadataForIndividual(individual, &metadata_rec);
 			
-			metadata.push_back(metadata_rec);
-			metadata_offsets.push_back((uint32_t)(metadata.size() * sizeof(IndividualMetadataRec)));
+            MspIndividual = individual_table_add_row(&(p_tables->individuals), flags, location.data(), 
+                    (uint32_t)(location.size() * sizeof(double)), (char *)&metadata_rec,
+                    (uint32_t)sizeof(IndividualMetadataRec));
+            if (MspIndividual < 0) handle_error("individual_table_add_row", MspIndividual);
+
+            // Update node table
+            assert(individual->genome1_->msp_node_id_ < p_tables->nodes.num_rows
+                    && individual->genome2_->msp_node_id_ < p_tables->nodes.num_rows);
+            p_tables->nodes.individual[individual->genome1_->msp_node_id_] = MspIndividual;
+            p_tables->nodes.individual[individual->genome2_->msp_node_id_] = MspIndividual;
 		}
 	}
-	
-	ret = individual_table_set_columns(&(p_tables->individuals), /* num_rows */ flags.size(), 
-            flags.data(), location.data(), location_offset.data(), (char *)metadata.data(), metadata_offsets.data());
-	if (ret != 0) handle_error("individual_table_set_columns", ret);
 }
 
 void SLiMSim::WriteProvenanceTable(table_collection_t *p_tables)
 {
-    int ret = 0;
-    time_t timer;
-    size_t timestamp_size = 64;
-    char buffer[timestamp_size];
-    struct tm* tm_info;
-    char *provenance_str;
-    provenance_str = (char *)malloc(1024);
-    sprintf(provenance_str, "{\"program\"=\"SLiM\", \"version\"=\"%s\", \"file_version\"=\"%s\", \"generation\"=%d}",
-            SLIM_VERSION, SLIM_FILE_VERSION, Generation());
+	int ret = 0;
+	time_t timer;
+	size_t timestamp_size = 64;
+	char buffer[timestamp_size];
+	struct tm* tm_info;
+	char *provenance_str;
+	provenance_str = (char *)malloc(1024);
+	sprintf(provenance_str, "{\"program\"=\"SLiM\", \"version\"=\"%s\", \"file_version\"=\"%s\", \"generation\"=%d}",
+			SLIM_VERSION, SLIM_FILE_VERSION, Generation());
 
-    time(&timer);
-    tm_info = localtime(&timer);
-    strftime(buffer, timestamp_size, "%Y-%m-%dT%H:%M:%S", tm_info);
+	time(&timer);
+	tm_info = localtime(&timer);
+	strftime(buffer, timestamp_size, "%Y-%m-%dT%H:%M:%S", tm_info);
 
-    ret = provenance_table_add_row(&p_tables->provenances, buffer, strlen(buffer), provenance_str,
-            strlen(provenance_str));
-    free(provenance_str);
+	ret = provenance_table_add_row(&p_tables->provenances, buffer, strlen(buffer), provenance_str,
+			strlen(provenance_str));
+	free(provenance_str);
 	if (ret != 0) handle_error("provenance_table_set_columns", ret);
 }
 

@@ -44,6 +44,10 @@
 /* Indicates that no individual has been set */
 #define MSP_NULL_INDIVIDUAL (-1)
 
+/* Flags for individuals */
+#define MSP_INDIVIDUAL_FEMALE 1
+#define MSP_INDIVIDUAL_MALE 2
+
 /* Flags for simplify() */
 #define MSP_FILTER_ZERO_MUTATION_SITES 1
 

@@ -24,6 +24,8 @@ do
 	rm -rf test_output/*
 
     echo "Now testing SLiM Recipe: $RECIPE"
+    echo "Running:"
+    echo "../../bin/slim -s 22 $RECIPE &> test_output/SLiM_run_output.log"
     ../../bin/slim -s 22 "$RECIPE" &> test_output/SLiM_run_output.log || (echo "SLiM error" && exit 1)
 
     TESTED="no"
