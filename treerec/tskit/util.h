@@ -139,7 +139,8 @@
 #define MSP_ERR_MUTATION_PARENT_DIFFERENT_SITE                      -69
 #define MSP_ERR_MUTATION_PARENT_EQUAL                               -70
 #define MSP_ERR_MUTATION_PARENT_AFTER_CHILD                         -71
-#define MSP_ERR_BAD_TABLE_POSITION                                  -72
+#define MSP_ERR_BAD_INDIVIDUAL                                      -72
+#define MSP_ERR_BAD_TABLE_POSITION                                  -73
 
 /* This bit is 0 for any errors originating from kastore */
 #define MSP_KAS_ERR_BIT 14

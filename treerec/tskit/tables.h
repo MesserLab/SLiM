@@ -176,6 +176,8 @@ typedef struct {
     table_size_t location_length;
     const char *metadata;
     table_size_t metadata_length;
+    node_id_t *nodes;
+    table_size_t nodes_length;
 } individual_t;
 
 typedef struct {

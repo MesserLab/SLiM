@@ -218,6 +218,9 @@ tree_sequence_free(tree_sequence_t *self)
     msp_safe_free(self->sites.site_mutations_mem);
     msp_safe_free(self->sites.site_mutations_length);
     msp_safe_free(self->sites.site_mutations);
+    msp_safe_free(self->individuals.individual_nodes_mem);
+    msp_safe_free(self->individuals.individual_nodes_length);
+    msp_safe_free(self->individuals.individual_nodes);
     return 0;
 }
 
@@ -429,6 +432,73 @@ tree_sequence_init_sites(tree_sequence_t *self)
 out:
     return ret;
 }
+
+static int
+tree_sequence_init_individuals(tree_sequence_t *self)
+{
+    int ret = 0;
+    individual_id_t j;
+    node_id_t k;
+    table_size_t offset = 0;
+    table_size_t total_nodes = 0;
+    table_size_t *num_nodes;
+    node_id_t *node_array;
+    size_t num_inds = self->individuals.num_records;
+
+    // First find number of nodes per individual
+    // TODO: if nodes for each individual were contiguous 
+    // this would require just one pass, not two
+    self->individuals.individual_nodes_length = calloc(
+            MSP_MAX(1, num_inds), sizeof(table_size_t));
+    num_nodes = calloc(MSP_MAX(1, num_inds), sizeof(size_t));
+    if (self->individuals.individual_nodes_length == NULL
+            || num_nodes == NULL) {
+        ret = MSP_ERR_NO_MEMORY;
+        goto out;
+    }
+
+    for (k = 0; k < (node_id_t) self->nodes.num_records; k++) {
+        j = self->nodes.individual[k];
+        if (j != MSP_NULL_INDIVIDUAL) {
+            if (j >= num_inds) {
+                ret = MSP_ERR_BAD_INDIVIDUAL;
+                goto out;
+            }
+            self->individuals.individual_nodes_length[j] += 1;
+        }
+        total_nodes++;
+    }
+
+    // now fill in the node IDs
+    self->individuals.individual_nodes_mem = malloc(
+            MSP_MAX(total_nodes, 1) * sizeof(node_id_t));
+    self->individuals.individual_nodes = malloc(
+            MSP_MAX(1, num_inds) * sizeof(node_id_t *));
+    if (self->individuals.individual_nodes_mem == NULL
+            || self->individuals.individual_nodes == NULL) {
+        ret = MSP_ERR_NO_MEMORY;
+        goto out;
+    }
+
+    for (j = 0; j < (individual_id_t) num_inds; j++) {
+        self->individuals.individual_nodes[j] = self->individuals.individual_nodes_mem + offset;
+        offset += self->individuals.individual_nodes_length[j];
+    }
+
+    for (k = 0; k < (node_id_t) self->nodes.num_records; k++) {
+        j = self->nodes.individual[k];
+        if (j != MSP_NULL_INDIVIDUAL) {
+            node_array = self->individuals.individual_nodes[j];
+            assert(node_array - self->individuals.individual_nodes_mem < total_nodes - num_nodes[j]);
+            node_array[num_nodes[j]] = k;
+            num_nodes[j] += 1;
+        }
+    }
+out:
+    free(num_nodes);
+    return ret;
+}
+
 
 /* Initialises memory associated with the trees.
  */
@@ -657,6 +727,10 @@ tree_sequence_load_tables(tree_sequence_t *self, table_collection_t *tables,
         goto out;
     }
     ret = tree_sequence_init_sites(self);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = tree_sequence_init_individuals(self);
     if (ret != 0) {
         goto out;
     }
@@ -996,6 +1070,8 @@ tree_sequence_get_individual(tree_sequence_t *self, size_t index, individual_t *
     length = self->individuals.metadata_offset[index + 1] - offset;
     individual->metadata = self->individuals.metadata + offset;
     individual->metadata_length = length;
+    individual->nodes = self->individuals.individual_nodes[index];
+    individual->nodes_length = self->individuals.individual_nodes_length[index];
 out:
     return ret;
 }

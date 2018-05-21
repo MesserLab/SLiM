@@ -41,6 +41,9 @@ typedef struct {
         table_size_t *location_offset;
         char *metadata;
         table_size_t *metadata_offset;
+        node_id_t *individual_nodes_mem;
+        node_id_t **individual_nodes;
+        table_size_t *individual_nodes_length;
     } individuals;
 
     struct {

@@ -247,6 +247,9 @@ msp_strerror_internal(int err)
         case MSP_ERR_TOO_MANY_ALLELES:
             ret = "Cannot have more than 255 alleles.";
             break;
+        case MSP_ERR_BAD_INDIVIDUAL:
+            ret = "Individual ID not in individual table.";
+            break;
         case MSP_ERR_BAD_TABLE_POSITION:
             ret = "Bad position in tables provided.";
             break;
