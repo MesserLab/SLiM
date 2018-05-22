@@ -52,7 +52,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include "../treerec/tskit/msprime.h"
+#include "../treerec/tskit/trees.h"
 #include "../treerec/tskit/text_input.h"
 #include "../treerec/tskit/tables.h"
 #ifdef __cplusplus
