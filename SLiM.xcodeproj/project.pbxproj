@@ -12,6 +12,7 @@
 		98090FA21B1B8B5800791DBF /* show_browser_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98090FA01B1B8B5800791DBF /* show_browser_H.pdf */; };
 		98090FA31B1B8B5800791DBF /* show_browser.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98090FA11B1B8B5800791DBF /* show_browser.pdf */; };
 		98090FA61B1B978900791DBF /* EidosValueWrapper.mm in Sources */ = {isa = PBXBuildFile; fileRef = 98090FA51B1B978900791DBF /* EidosValueWrapper.mm */; };
+		980A53E820B4C85800B1A598 /* newick.c in Sources */ = {isa = PBXBuildFile; fileRef = D05AC1E820B47EAA00FFD319 /* newick.c */; };
 		980DD51A1AAE42F900D5B7B8 /* GraphAxisRescaleSheet.xib in Resources */ = {isa = PBXBuildFile; fileRef = 980DD5181AAE42F900D5B7B8 /* GraphAxisRescaleSheet.xib */; };
 		980DD51D1AB0B01F00D5B7B8 /* GraphView_MutationFrequencyTrajectory.mm in Sources */ = {isa = PBXBuildFile; fileRef = 980DD51C1AB0B01F00D5B7B8 /* GraphView_MutationFrequencyTrajectory.mm */; };
 		981BAC6A1ACC6E8B0005BE94 /* eidos_script.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 981BAC681ACC6E8B0005BE94 /* eidos_script.cpp */; };
@@ -2477,6 +2478,7 @@
 				9825565B1BA32EE80054CB3F /* EidosCocoaExtra.mm in Sources */,
 				98C821581C7A983700548839 /* gamma.c in Sources */,
 				98332ABA1FDBA32500274FF0 /* dtrmv.c in Sources */,
+				980A53E820B4C85800B1A598 /* newick.c in Sources */,
 				98DE4C2A1B713F52004FDF5F /* ScriptMod_OutputFixedMutations.mm in Sources */,
 				9887946B1EA8804900AE0C8D /* SLiMPDFDocument.mm in Sources */,
 				98DE4C1C1B713F21004FDF5F /* ScriptMod_AddSubpop.mm in Sources */,

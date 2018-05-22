@@ -44,7 +44,6 @@
 //TREE SEQUENCE
 #include <stdio.h>
 #include <stdlib.h>
-#include "kastore.h"
 
 //TREE SEQUENCE
 //INCLUDE MSPRIME.H FOR THE CROSSCHECK CODE; NEEDS TO BE MOVED TO TSKIT
@@ -52,6 +51,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#include "kastore.h"
 #include "../treerec/tskit/trees.h"
 #include "../treerec/tskit/text_input.h"
 #include "../treerec/tskit/tables.h"

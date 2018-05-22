@@ -1804,8 +1804,6 @@ sparse_tree_get_sites(sparse_tree_t *self, site_t **sites, table_size_t *sites_l
     return 0;
 }
 
-#warning commenting this out since it is unused and doesn't build...
-/*
 int WARN_UNUSED
 sparse_tree_get_newick(sparse_tree_t *self, size_t precision, double time_scale,
         int flags, size_t buffer_size, char *newick_buffer)
@@ -1822,7 +1820,6 @@ out:
     newick_converter_free(&nc);
     return ret;
 }
-*/
 
 static void
 sparse_tree_check_state(sparse_tree_t *self)
