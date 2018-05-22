@@ -460,7 +460,7 @@ tree_sequence_init_individuals(tree_sequence_t *self)
     for (k = 0; k < (node_id_t) self->nodes.num_records; k++) {
         j = self->nodes.individual[k];
         if (j != MSP_NULL_INDIVIDUAL) {
-            if (j >= num_inds) {
+            if (j >= (int) num_inds) {
                 ret = MSP_ERR_BAD_INDIVIDUAL;
                 goto out;
             }

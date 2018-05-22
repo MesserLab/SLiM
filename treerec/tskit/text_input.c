@@ -115,7 +115,7 @@ node_table_load_text(node_table_t *node_table, FILE *file)
 
     // check the header
     ret = MSP_ERR_FILE_FORMAT;
-    err = getline(&line, &k, file);
+    err = (int) getline(&line, &k, file);
     if (err < 0) {
         goto out;
     }
@@ -124,7 +124,7 @@ node_table_load_text(node_table_t *node_table, FILE *file)
         goto out;
     }
 
-    while ((err = getline(&line, &k, file)) != -1) {
+    while ((err = (int) getline(&line, &k, file)) != -1) {
         start = line;
         err = get_sep_atoi(&start, &id, '\t');
         if (err <= 0) {
@@ -191,7 +191,7 @@ edge_table_load_text(edge_table_t *edge_table, FILE *file)
     
     // check the header
     ret = MSP_ERR_FILE_FORMAT;
-    err = getline(&line, &k, file);
+    err = (int) getline(&line, &k, file);
     if (err < 0) {
         goto out;
     }
@@ -200,7 +200,7 @@ edge_table_load_text(edge_table_t *edge_table, FILE *file)
         goto out;
     }
 
-    while ((err = getline(&line, &k, file)) != -1) {
+    while ((err = (int) getline(&line, &k, file)) != -1) {
         start = line;
         err = get_sep_atof(&start, &left, '\t');
         if (err <= 0) {
@@ -262,7 +262,7 @@ site_table_load_text(site_table_t *site_table, FILE *file)
     
     // check the header
     ret = MSP_ERR_FILE_FORMAT;
-    err = getline(&line, &k, file);
+    err = (int) getline(&line, &k, file);
     if (err < 0) {
         goto out;
     }
@@ -271,7 +271,7 @@ site_table_load_text(site_table_t *site_table, FILE *file)
         goto out;
     }
 
-    while ((err = getline(&line, &k, file)) != -1) {
+    while ((err = (int) getline(&line, &k, file)) != -1) {
         start = line;
         err = get_sep_atoi(&start, &id, '\t');
         if (err < 0) {
@@ -290,7 +290,7 @@ site_table_load_text(site_table_t *site_table, FILE *file)
             goto out;
         }
         ret = site_table_add_row(site_table, position, ancestral_state,
-                strlen(ancestral_state), metadata, strlen(metadata));
+                (table_size_t) strlen(ancestral_state), metadata, (table_size_t) strlen(metadata));
         if (ret < 0) {
             goto out;
         }
@@ -332,7 +332,7 @@ mutation_table_load_text(mutation_table_t *mutation_table, FILE *file)
     
     // check the header
     ret = MSP_ERR_FILE_FORMAT;
-    err = getline(&line, &k, file);
+    err = (int) getline(&line, &k, file);
     if (err < 0) {
         goto out;
     }
@@ -341,7 +341,7 @@ mutation_table_load_text(mutation_table_t *mutation_table, FILE *file)
         goto out;
     }
 
-    while ((err = getline(&line, &k, file)) != -1) {
+    while ((err = (int) getline(&line, &k, file)) != -1) {
         start = line;
         err = get_sep_atoi(&start, &id, '\t');
         if (err < 0) {
@@ -368,7 +368,7 @@ mutation_table_load_text(mutation_table_t *mutation_table, FILE *file)
             goto out;
         }
         ret = mutation_table_add_row(mutation_table, site, node, parent,
-                derived_state, strlen(derived_state), metadata, strlen(metadata));
+                derived_state, (table_size_t) strlen(derived_state), metadata, (table_size_t) strlen(metadata));
         if (ret < 0) {
             goto out;
         }
@@ -407,7 +407,7 @@ migration_table_load_text(migration_table_t *migration_table, FILE *file)
 
     // check the header
     ret = MSP_ERR_FILE_FORMAT;
-    err = getline(&line, &k, file);
+    err = (int) getline(&line, &k, file);
     if (err < 0) {
         goto out;
     }
@@ -416,7 +416,7 @@ migration_table_load_text(migration_table_t *migration_table, FILE *file)
         goto out;
     }
 
-    while ((err = getline(&line, &k, file)) != -1) {
+    while ((err = (int) getline(&line, &k, file)) != -1) {
         start = line;
         err = get_sep_atof(&start, &left, '\t');
         if (err < 0) {
@@ -482,7 +482,7 @@ individual_table_load_text(individual_table_t *individual_table, FILE *file)
     
     // check the header
     ret = MSP_ERR_FILE_FORMAT;
-    err = getline(&line, &k, file);
+    err = (int) getline(&line, &k, file);
     if (err < 0) {
         goto out;
     }
@@ -491,7 +491,7 @@ individual_table_load_text(individual_table_t *individual_table, FILE *file)
         goto out;
     }
 
-    while ((err = getline(&line, &k, file)) != -1) {
+    while ((err = (int) getline(&line, &k, file)) != -1) {
         start = line;
         err = get_sep_atoi(&start, &id, '\t');
         if (err < 0) {
@@ -557,7 +557,7 @@ provenance_table_load_text(provenance_table_t *provenance_table, FILE *file)
     
     // check the header
     ret = MSP_ERR_FILE_FORMAT;
-    err = getline(&line, &k, file);
+    err = (int) getline(&line, &k, file);
     if (err < 0) {
         goto out;
     }
@@ -566,7 +566,7 @@ provenance_table_load_text(provenance_table_t *provenance_table, FILE *file)
         goto out;
     }
 
-    while ((err = getline(&line, &k, file)) != -1) {
+    while ((err = (int) getline(&line, &k, file)) != -1) {
         start = line;
         err = get_sep_atoa(&start, &record, '\t');
         if (err < 0) {
@@ -595,7 +595,7 @@ table_collection_load_text(table_collection_t *tables, FILE *nodes, FILE *edges,
         FILE *provenances)
 {
     int ret;
-    int j;
+    table_size_t j;
     double sequence_length;
 
     ret = node_table_load_text(&tables->nodes, nodes);

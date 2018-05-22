@@ -4315,8 +4315,8 @@ void SLiMSim::WriteIndividualTable(table_collection_t *p_tables)
             if (MspIndividual < 0) handle_error("individual_table_add_row", MspIndividual);
 
             // Update node table
-            assert(individual->genome1_->msp_node_id_ < p_tables->nodes.num_rows
-                    && individual->genome2_->msp_node_id_ < p_tables->nodes.num_rows);
+            assert(individual->genome1_->msp_node_id_ < (node_id_t) p_tables->nodes.num_rows
+                    && individual->genome2_->msp_node_id_ < (node_id_t) p_tables->nodes.num_rows);
             p_tables->nodes.individual[individual->genome1_->msp_node_id_] = MspIndividual;
             p_tables->nodes.individual[individual->genome2_->msp_node_id_] = MspIndividual;
 		}
