@@ -1,3 +1,6 @@
+#ifndef TSK_TEXT_INPUT_H
+#define TSK_TEXT_INPUT_H
+
 #include <stdio.h>
 
 #include "tables.h"
@@ -12,3 +15,6 @@ int provenance_table_load_text(provenance_table_t *provenance_table, FILE *file)
 int table_collection_load_text(table_collection_t *tables, FILE *nodes, FILE *edges,
         FILE *sites, FILE *mutations, FILE *migrations, FILE *individuals, 
         FILE *provenances);
+
+#endif /* TSK_TEXT_INPUT_H */
+

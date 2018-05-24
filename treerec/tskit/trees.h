@@ -1,6 +1,5 @@
 #ifndef TSK_TREES_H
 #define TSK_TREES_H
-#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -381,3 +380,6 @@ void vargen_print_state(vargen_t *self, FILE *out);
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* TSK_TREES_H */
+
