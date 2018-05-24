@@ -42,8 +42,10 @@
 	NSString *scriptString;		// the script string that we are running on right now; not the same as the script textview!
 	SLiMSim *sim;				// the simulation instance for this window
 	
-	// random number generator variables that are globals in Eidos; we swap these in and out as needed
+	// state variables that are globals in Eidos and SLiM; we swap these in and out as needed, to provide each sim with its own context
 	Eidos_RNG_State sim_RNG;
+	slim_pedigreeid_t sim_next_pedigree_id;
+	slim_mutationid_t sim_next_mutation_id;
 	
 	// play-related variables; note that continuousPlayOn covers both profiling and non-profiling runs, whereas profilePlayOn
 	// and nonProfilePlayOn cover those cases individually; this is for simplicity in enable bindings in the nib

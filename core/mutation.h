@@ -39,6 +39,9 @@ class MutationType;
 
 extern EidosObjectClass *gSLiM_Mutation_Class;
 
+// A global counter used to assign all Mutation objects a unique ID
+extern slim_mutationid_t gSLiM_next_mutation_id;
+
 // A MutationIndex is an index into gSLiM_Mutation_Block (see below); it is used as, in effect, a Mutation *, but is 32-bit.
 // Note that type int32_t is used instead of uint32_t so that -1 can be used as a "null pointer"; perhaps UINT32_MAX would be
 // better, but on the other hand using int32_t has the virtue that if we run out of room we will probably crash hard rather

@@ -377,7 +377,7 @@ public:
 	friend void Eidos_intrusive_ptr_release(const EidosValue *p_value);
 	
 	// This is a hack scheme to track EidosValue allocations and deallocations, as a way to help debug leaks
-	// To enable it, change the #under to #define.  When you run Eidos tests, a summary of persistent EidosValues will print.
+	// To enable it, change the #undef to #define.  When you run Eidos tests, a summary of persistent EidosValues will print.
 	// The standard global values should be persistent (T, F, INF, NAN, NULL, NULL-invisible, E, PI); all others should be freed.
 #undef EIDOS_TRACK_VALUE_ALLOCATION
 	
