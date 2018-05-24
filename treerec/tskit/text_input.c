@@ -9,6 +9,8 @@
 #include <float.h>
 
 #include "tables.h"
+#include "text_input.h"
+
 
 /*************************
  * load_text
@@ -35,7 +37,7 @@
  *   and -1 otherwise.
  * ***/
 
-int
+static int
 get_sep_atoi(char **start, int *out, int sep)
 {
     int ret;
@@ -52,7 +54,7 @@ get_sep_atoi(char **start, int *out, int sep)
     return ret;
 }
 
-int
+static int
 get_sep_atof(char **start, double *out, int sep)
 {
     int ret;
@@ -69,7 +71,7 @@ get_sep_atof(char **start, double *out, int sep)
     return ret;
 }
 
-int
+static int
 get_sep_atoa(char **start, char **out, int sep)
 {
     int ret;
