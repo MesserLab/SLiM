@@ -321,7 +321,7 @@ private:
 	table_collection_position_t table_position;
 	
 	// TABLE SIMPLIFICATION
-    std::vector<node_id_t> RememberedGenomes;
+    std::vector<node_id_t> remembered_genomes_;
 	//Individual *current_new_individual_;
 	
 	bool recording_mutations_ = false;			// true if we are recording mutations in our tree sequence tables

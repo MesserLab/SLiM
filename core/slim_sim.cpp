@@ -3733,12 +3733,12 @@ void SLiMSim::SimplifyTreeSequence(void)
 	
 	std::vector<node_id_t> samples;
 	
-    // the RememberedGenomes come first in the list of samples
-    for (node_id_t sid : RememberedGenomes) 
+    // the remembered_genomes_ come first in the list of samples
+    for (node_id_t sid : remembered_genomes_) 
         samples.push_back(sid);
 	
 	// and then come all the genomes of the extant individuals
-	node_id_t newValueInNodeTable = (node_id_t)RememberedGenomes.size();
+	node_id_t newValueInNodeTable = (node_id_t)remembered_genomes_.size();
 	
 	for (auto it = population_.begin(); it != population_.end(); it++)
 	{
@@ -3749,16 +3749,16 @@ void SLiMSim::SimplifyTreeSequence(void)
 			node_id_t M = genome->msp_node_id_;
 			
 			// check if this sample is already being remembered
-			auto iter = std::find(RememberedGenomes.begin(), RememberedGenomes.end(), M);
+			auto iter = std::find(remembered_genomes_.begin(), remembered_genomes_.end(), M);
 			
-			if (iter == RememberedGenomes.end())
+			if (iter == remembered_genomes_.end())
 			{
 				samples.push_back(M);
 				genome->msp_node_id_ = newValueInNodeTable++;
 			}
 			else
 			{
-				genome->msp_node_id_ = (node_id_t)(iter - RememberedGenomes.begin());
+				genome->msp_node_id_ = (node_id_t)(iter - remembered_genomes_.begin());
 			}
 		}
 	}
@@ -3774,9 +3774,9 @@ void SLiMSim::SimplifyTreeSequence(void)
 	ret = table_collection_simplify(&tables, samples.data(), samples.size(), MSP_FILTER_ZERO_MUTATION_SITES, NULL);
     if (ret != 0) handle_error("simplifier_run", ret);
 	
-    // update map of RememberedGenomes
-	for (node_id_t i = 0; i < (node_id_t)RememberedGenomes.size(); i++)
-        RememberedGenomes[i] = i;
+    // update map of remembered_genomes_
+	for (node_id_t i = 0; i < (node_id_t)remembered_genomes_.size(); i++)
+        remembered_genomes_[i] = i;
 	
     // reset current position
     table_collection_current_position(&table_position);
@@ -4516,8 +4516,8 @@ void SLiMSim::RememberGenomes(std::vector<const Genome *> p_genomes)
 		node_id_t M = G->msp_node_id_;
 		
 		// check if this genome is already being remembered
-		if (std::find(RememberedGenomes.begin(), RememberedGenomes.end(), M) == RememberedGenomes.end())
-			RememberedGenomes.push_back(M);
+		if (std::find(remembered_genomes_.begin(), remembered_genomes_.end(), M) == remembered_genomes_.end())
+			remembered_genomes_.push_back(M);
     }
 }
 
@@ -4532,6 +4532,8 @@ void SLiMSim::FreeTreeSequence(void)
 	// and also when we're wiping the slate clean with something like readFromPopulationFile().
 	if (recording_tree_)
 		table_collection_free(&tables);
+	
+	remembered_genomes_.clear();
 }
 
 void SLiMSim::RecordAllDerivedStatesFromSLiM(void)
@@ -5389,15 +5391,27 @@ void SLiMSim::__AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mu
 	std::vector<Genome *> indexToGenomeMap;
 	size_t sample_count = vg->num_samples;
 	
+	if (remembered_genomes_.size() != 0)	// should have been cleared at the beginning of the load process
+		EIDOS_TERMINATION << "ERROR (SLiMSim::__AddMutationsFromTreeSequenceToGenomes): (internal error) remembered_genomes_ is not empty at the beginning of registering ancestral samples." << EidosTerminate();
+	
 	for (size_t sample_index = 0; sample_index < sample_count; ++sample_index)
 	{
 		node_id_t sample_node_id = vg->sample_index_map[sample_index];
 		auto sample_nodeToGenome_iter = p_nodeToGenomeMap.find(sample_node_id);
 		
 		if (sample_nodeToGenome_iter != p_nodeToGenomeMap.end())
+		{
+			// we found a genome for this sample, so record it
 			indexToGenomeMap.push_back(sample_nodeToGenome_iter->second);
+		}
 		else
-			indexToGenomeMap.push_back(nullptr);	// this sample is not extant; no corresponding genome
+		{
+			// this sample is not extant; no corresponding genome, so record nullptr
+			indexToGenomeMap.push_back(nullptr);
+			
+			// as a side effect here, we register ancestral samples to be remembered in the sample forever
+			remembered_genomes_.push_back(sample_node_id);
+		}
 	}
 	
 	// add mutations to genomes by looping through variants
@@ -5530,8 +5544,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromMSPrimeTextFile(const char *
 		EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromMSPrimeTextFile): to load a tree-sequence file, tree-sequence recording must be enabled with initializeTreeSeq()." << EidosTerminate();
 	
 	// free the existing table collection
-	int ret = table_collection_free(&tables);
-	if (ret != 0) handle_error("table_collection_free", ret);
+	FreeTreeSequence();
 	
 	// read the files from disk
 	std::string directory_path(p_file);
@@ -5554,14 +5567,13 @@ slim_generation_t SLiMSim::_InitializePopulationFromMSPrimeBinaryFile(const char
 		EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromMSPrimeBinaryFile): to load a tree-sequence file, tree-sequence recording must be enabled with initializeTreeSeq()." << EidosTerminate();
 	
 	// free the existing table collection
-	int ret = table_collection_free(&tables);
-	if (ret != 0) handle_error("table_collection_free", ret);
+	FreeTreeSequence();
 	
 #if 0
 	// CRASHES: the loaded table collection is immutable (non-malloc'd columns)
 	// Jerome says this is a bug, and that he will add a flag for table_collection_load() to make it copy the blocks
 	// read the file from disk
-	ret = table_collection_alloc(&tables, 0);
+	int ret = table_collection_alloc(&tables, 0);
 	if (ret != 0) handle_error("table_collection_alloc", ret);
 	
 	ret = table_collection_load(&tables, p_file, 0);
@@ -5571,7 +5583,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromMSPrimeBinaryFile(const char
 	// read the file from disk into a private table collection that is immutable
 	table_collection_t immutable_tables;
 	
-	ret = table_collection_alloc(&immutable_tables, 0);
+	int ret = table_collection_alloc(&immutable_tables, 0);
 	if (ret != 0) handle_error("table_collection_alloc", ret);
 	
 	ret = table_collection_load(&immutable_tables, p_file, 0);
