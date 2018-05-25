@@ -133,10 +133,10 @@ node_table_load_text(node_table_t *node_table, FILE *file)
             goto out;
         }
         err = get_sep_atoi(&start, &is_sample, '\t');
-        flags = (is_sample && MSP_NODE_IS_SAMPLE);
         if (err <= 0) {
             goto out;
         }
+        flags = is_sample ? MSP_NODE_IS_SAMPLE : 0;
         err = get_sep_atof(&start, &time, '\t');
         if (err <= 0) {
             goto out;
