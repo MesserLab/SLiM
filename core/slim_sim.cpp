@@ -2049,6 +2049,33 @@ void SLiMSim::RunInitializeCallbacks(void)
 	
 	CheckMutationStackPolicy();
 	
+	// Defining a neutral mutation type when tree-recording is on (with mutation recording) and the mutation rate is non-zero is legal, but causes a warning
+	// I'm not sure this is a good idea, but maybe it will help people avoid doing dumb things; added at the suggestion of Peter Ralph...
+	if (recording_tree_ && recording_mutations_)
+	{
+		bool mut_rate_zero = true;
+		
+		for (double rate : chromosome_.mutation_rates_H_)
+			if (rate != 0.0) { mut_rate_zero = false; break; }
+		if (mut_rate_zero)
+			for (double rate : chromosome_.mutation_rates_M_)
+				if (rate != 0.0) { mut_rate_zero = false; break; }
+		if (mut_rate_zero)
+			for (double rate : chromosome_.mutation_rates_F_)
+				if (rate != 0.0) { mut_rate_zero = false; break; }
+		
+		if (!mut_rate_zero)
+		{
+			for (auto muttype_iter : mutation_types_)
+			{
+				MutationType *muttype = muttype_iter.second;
+				
+				if ((muttype->dfe_type_ == DFEType::kFixed) && (muttype->dfe_parameters_.size() == 1) && (muttype->dfe_parameters_[0] == 0.0))
+					SLIM_OUTSTREAM << "#WARNING (SLiMSim::RunInitializeCallbacks): with tree-sequence recording enabled and a non-zero mutation rate, a neutral mutation type was defined; this is legal, but usually undesirable, since neutral mutations can be overlaid later using the tree-sequence information." << std::endl;
+			}
+		}
+	}
+	
 	time_start_ = FirstGeneration();	// SLIM_MAX_GENERATION + 1 if it can't find a first block
 	
 	if (time_start_ == SLIM_MAX_GENERATION + 1)
