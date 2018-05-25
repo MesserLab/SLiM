@@ -5153,7 +5153,7 @@ void SLiMSim::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 				p_nodeToGenomeMap.insert(std::pair<node_id_t, Genome *>(node_id_2, individual->genome2_));
 				
 				slim_pedigreeid_t pedigree_id = subpop_info.pedigreeID_[tabulation_index];
-				individual->pedigree_id_ = pedigree_id;
+				individual->SetPedigreeID(pedigree_id);
 				gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, pedigree_id + 1);
 				
 				individual->genome1_->genome_id_ = pedigree_id * 2;
