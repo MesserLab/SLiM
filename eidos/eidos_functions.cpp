@@ -10137,7 +10137,7 @@ EidosValue_SP Eidos_ExecuteFunction_version(__attribute__((unused)) const EidosV
 	
 	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 	
-	output_stream << "Eidos version 1.6" << std::endl;	// EIDOS VERSION
+	output_stream << "Eidos version " << EIDOS_VERSION_STRING << std::endl;
 	
 	if (gEidosContextVersionString.length())
 		output_stream << gEidosContextVersionString << std::endl;
@@ -10146,7 +10146,7 @@ EidosValue_SP Eidos_ExecuteFunction_version(__attribute__((unused)) const EidosV
 	EidosValue_Float_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->reserve(2);
 	result_SP = EidosValue_SP(result);
 	
-	result->push_float_no_check(1.6);	// EIDOS VERSION 1.6
+	result->push_float_no_check(EIDOS_VERSION_FLOAT);
 	
 	if (gEidosContextVersion != 0.0)
 		result->push_float_no_check(gEidosContextVersion);

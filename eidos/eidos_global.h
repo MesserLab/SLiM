@@ -35,6 +35,10 @@ class EidosScript;
 class EidosToken;
 
 
+#define EIDOS_VERSION_STRING	("1.6")
+#define EIDOS_VERSION_FLOAT		(1.6)
+
+
 // This should be called once at startup to give Eidos an opportunity to initialize static state
 void Eidos_WarmUp(void);
 void Eidos_FinishWarmUp(void);

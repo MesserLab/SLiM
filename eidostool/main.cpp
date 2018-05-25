@@ -59,7 +59,7 @@ int main(int argc, const char * argv[])
 		// -version or -v: print version information
 		if (strcmp(arg, "-version") == 0 || strcmp(arg, "-v") == 0)
 		{
-			std::cout << "Eidos version 1.6, built " << __DATE__ << " " __TIME__ << std::endl;		// EIDOS VERSION
+			std::cout << "Eidos version " << EIDOS_VERSION_STRING << ", built " << __DATE__ << " " __TIME__ << std::endl;
 			exit(0);
 		}
 		
