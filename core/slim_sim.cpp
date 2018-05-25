@@ -4359,19 +4359,23 @@ void SLiMSim::ReadProvenanceTable(table_collection_t *p_tables, slim_generation_
 	
 	//char *last_timestamp = provenance_table.timestamp + provenance_table.timestamp_offset[num_rows - 1];
 	char *last_record = provenance_table.record + provenance_table.record_offset[num_rows - 1];
+	table_size_t last_record_len = provenance_table.record_offset[num_rows] - provenance_table.record_offset[num_rows - 1];
 	
-	if (strlen(last_record) >= 1024)
+	if (last_record_len >= 1024)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ReadProvenanceTable): provenance table entry is too long; this file cannot be read." << EidosTerminate();
+	
+	std::string last_record_str(last_record, last_record_len);
 	
 	char program[101];
 	char version[101];
 	char file_version[101];
 	char generation[101];
+	int end_pos;
 	
-	int conv = sscanf(last_record, "{\"program\"=\"%100[^\"]\", \"version\"=\"%100[^\"]\", \"file_version\"=\"%100[^\"]\", \"generation\"=%100[0-9]}", program, version, file_version, generation);
+	int conv = sscanf(last_record_str.c_str(), "{\"program\"=\"%100[^\"]\", \"version\"=\"%100[^\"]\", \"file_version\"=\"%100[^\"]\", \"generation\"=%100[0-9]}%n", program, version, file_version, generation, &end_pos);
 	
-	if (conv != 4)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ReadProvenanceTable): provenance table entry was unparseable; this file cannot be read." << EidosTerminate();
+	if ((conv != 4) || (end_pos != (int)last_record_len))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ReadProvenanceTable): provenance table entry was malformed; this file cannot be read." << EidosTerminate();
 	
 	std::string program_str(program);
 	std::string version_str(version);
@@ -4391,7 +4395,7 @@ void SLiMSim::ReadProvenanceTable(table_collection_t *p_tables, slim_generation_
 	}
 	catch (...)
 	{
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ReadProvenanceTable): bad generation value; this file cannot be read." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ReadProvenanceTable): malformed generation value; this file cannot be read." << EidosTerminate();
 	}
 	
 	if ((gen_ll < 1) || (gen_ll > SLIM_MAX_GENERATION))
