@@ -38,6 +38,11 @@ mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position
 {
 }
 
+Substitution::Substitution(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation, slim_generation_t p_fixation_generation) :
+mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), origin_generation_(p_generation), fixation_generation_(p_fixation_generation), mutation_id_(p_mutation_id), tag_value_(-1)
+{
+}
+
 void Substitution::PrintForSLiMOutput(std::ostream &p_out) const
 { 
 	p_out << mutation_id_ << " m" << mutation_type_ptr_->mutation_type_id_ << " " << position_ << " " << selection_coeff_ << " " << mutation_type_ptr_->dominance_coeff_ << " p" << subpop_index_ << " " << origin_generation_ << " "<< fixation_generation_ << std::endl;

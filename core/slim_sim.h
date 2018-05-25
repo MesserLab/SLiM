@@ -54,6 +54,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#include "../treerec/tskit/trees.h"
 #include "../treerec/tskit/tables.h"
 #include "../treerec/tskit/text_input.h"
 #ifdef __cplusplus
@@ -477,6 +478,7 @@ public:
 	void RetractNewIndividual(void);
 	void WriteIndividualTable(table_collection_t *p_tables);
 	void WriteProvenanceTable(table_collection_t *p_tables);
+	void ReadProvenanceTable(table_collection_t *p_tables, slim_generation_t *p_generation);
 	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify);
 	void SimplifyTreeSequence(void);
 	void CheckAutoSimplification(void);
@@ -490,12 +492,13 @@ public:
 	void CrosscheckTreeSeqIntegrity(void);
 	void TSXC_Enable(void);
 	
-	void __TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap);
-	void __CreateSubpopulationsFromTabulation(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, EidosInterpreter *p_interpreter);
-	void __TabulateMutationsFromTreeSequence(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap);
+	void __TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, tree_sequence_t *p_ts);
+	void __CreateSubpopulationsFromTabulation(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, EidosInterpreter *p_interpreter, std::unordered_map<node_id_t, Genome *> &p_nodeToGenomeMap);
+	void __TabulateMutationsFromTables(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap);
+	void __TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap, std::unordered_map<node_id_t, Genome *> p_nodeToGenomeMap, tree_sequence_t *p_ts);
 	void __CreateMutationsFromTabulation(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutInfoMap, std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap);
-	void __AddMutationsToGenomes(std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap);
-	slim_generation_t _InstantiateSLiMObjectsFromTreeSequence(EidosInterpreter *p_interpreter);							// given tree-seq tables, makes individuals, genomes, and mutations
+	void __AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap, std::unordered_map<node_id_t, Genome *> p_nodeToGenomeMap, tree_sequence_t *p_ts);
+	slim_generation_t _InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter);								// given tree-seq tables, makes individuals, genomes, and mutations
 	slim_generation_t _InitializePopulationFromMSPrimeTextFile(const char *p_file, EidosInterpreter *p_interpreter);	// initialize the population from an msprime text file
 	slim_generation_t _InitializePopulationFromMSPrimeBinaryFile(const char *p_file, EidosInterpreter *p_interpreter);	// initialize the population from an msprime binary file
 	
