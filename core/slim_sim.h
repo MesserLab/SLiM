@@ -478,7 +478,7 @@ public:
 	void RetractNewIndividual(void);
 	void WriteIndividualTable(table_collection_t *p_tables);
 	void WriteProvenanceTable(table_collection_t *p_tables);
-	void ReadProvenanceTable(table_collection_t *p_tables, slim_generation_t *p_generation);
+	void ReadProvenanceTable(table_collection_t *p_tables, slim_generation_t *p_generation, size_t *p_remembered_genome_count);
 	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify);
 	void SimplifyTreeSequence(void);
 	void CheckAutoSimplification(void);
