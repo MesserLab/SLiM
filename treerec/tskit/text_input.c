@@ -512,7 +512,7 @@ individual_table_load_text(individual_table_t *individual_table, FILE *file)
             while ((err = get_sep_atof(&loc, location + j, ',')) > 0) {
                 j++;
             }
-            if (err < 0) {
+            if (err == 0) {
                 goto out;
             }
         }
