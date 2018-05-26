@@ -1660,6 +1660,25 @@ double Eidos_ExactSum(const double *p_double_vec, int64_t p_vec_length)
 	return hi;
 }
 
+// Thanks to user Sviatoslav at https://stackoverflow.com/a/37454181/2752221 for this code
+std::vector<std::string> Eidos_string_split(const std::string &p_str, const std::string &p_delim)
+{
+	std::vector<std::string> tokens;
+	size_t prev = 0, pos = 0;
+	
+	do
+	{
+		pos = p_str.find(p_delim, prev);
+		if (pos == std::string::npos) pos = p_str.length();
+		std::string token = p_str.substr(prev, pos-prev);
+		if (!token.empty()) tokens.emplace_back(token);
+		prev = pos + p_delim.length();
+	}
+	while (pos < p_str.length() && prev < p_str.length());
+	
+	return tokens;
+}
+
 // run a Un*x command; thanks to http://stackoverflow.com/questions/478898/how-to-execute-a-command-and-get-output-of-command-within-c-using-posix
 /*std::string Eidos_Exec(const char *p_cmd)
 {
