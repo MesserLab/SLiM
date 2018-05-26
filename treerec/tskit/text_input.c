@@ -509,8 +509,10 @@ individual_table_load_text(individual_table_t *individual_table, FILE *file)
             goto out;
         }
         if (err > 0) {
-            while ((err = get_sep_atof(&loc, location + j, ',')) > 0) {
+            while ((err = get_sep_atof(&loc, location + j, ',')) != 0) {
                 j++;
+				if (err == -1)
+					break;
             }
             if (err == 0) {
                 goto out;
