@@ -4150,8 +4150,183 @@ void SLiMSim::TreeSequenceDataFromAscii(table_collection_t *p_tables,
             MspTxtProvenanceTable);
     if (ret < 0) handle_error("read_from_ascii", ret);
 	
+	// We will be replacing the columns of some of the tables in p_tables with de-ASCII-fied versions.  That can't be
+	// done in place, so we make a copy of p_tables here to act as a source for the process of copying new information
+	// back into p_tables.
+	table_collection_t tables_copy;
+	ret = table_collection_alloc(&tables_copy, MSP_ALLOC_TABLES);
+	if (ret < 0) handle_error("convert_to_ascii", ret);
+	
+	ret = table_collection_copy(p_tables, &tables_copy);
+	if (ret < 0) handle_error("convert_to_ascii", ret);
+	
 	// de-ASCII-fy the metadata and derived state information; this is the inverse of the work done by TreeSequenceDataToAscii()
-#warning implement me!
+	
+	/***  De-ascii-ify Mutation Table ***/
+	{
+		static_assert(sizeof(MutationMetadataRec) == 16, "MutationMetadataRec has changed size; this code probably needs to be updated");
+		
+		// Mutation derived state
+		const char *derived_state = p_tables->mutations.derived_state;
+		table_size_t *derived_state_offset = p_tables->mutations.derived_state_offset;
+		std::vector<slim_mutationid_t> binary_derived_state;
+		std::vector<table_size_t> binary_derived_state_offset;
+		size_t derived_state_total_part_count = 0;
+		
+		// Mutation metadata
+		const char *mutation_metadata = p_tables->mutations.metadata;
+		table_size_t *mutation_metadata_offset = p_tables->mutations.metadata_offset;
+		std::vector<MutationMetadataRec> binary_mutation_metadata;
+		std::vector<table_size_t> binary_mutation_metadata_offset;
+		size_t mutation_metadata_total_part_count = 0;
+		
+		binary_derived_state_offset.push_back(0);
+		binary_mutation_metadata_offset.push_back(0);
+		
+		for (size_t j = 0; j < p_tables->mutations.num_rows; j++)
+		{
+			// Mutation derived state
+			std::string string_derived_state(derived_state + derived_state_offset[j], derived_state_offset[j+1] - derived_state_offset[j]);
+			std::vector<std::string> derived_state_parts = Eidos_string_split(string_derived_state, ",");
+			
+			for (std::string &derived_state_part : derived_state_parts)
+				binary_derived_state.emplace_back((slim_mutationid_t)std::stoll(derived_state_part));
+			
+			derived_state_total_part_count += derived_state_parts.size();
+			binary_derived_state_offset.push_back((table_size_t)(derived_state_total_part_count * sizeof(slim_mutationid_t)));
+			
+			// Mutation metadata
+			std::string string_mutation_metadata(mutation_metadata + mutation_metadata_offset[j], mutation_metadata_offset[j+1] - mutation_metadata_offset[j]);
+			std::vector<std::string> mutation_metadata_parts = Eidos_string_split(string_mutation_metadata, ";");
+			
+			if (derived_state_parts.size() != mutation_metadata_parts.size())
+				EIDOS_TERMINATION << "ERROR (SLiMSim::TreeSequenceDataFromAscii): derived state length != mutation metadata length; this file cannot be read." << EidosTerminate();
+			
+			for (std::string &mutation_metadata_part : mutation_metadata_parts)
+			{
+				std::vector<std::string> mutation_metadata_subparts = Eidos_string_split(mutation_metadata_part, ",");
+				
+				if (mutation_metadata_subparts.size() != 4)
+					EIDOS_TERMINATION << "ERROR (SLiMSim::TreeSequenceDataFromAscii): unexpected mutation metadata length; this file cannot be read." << EidosTerminate();
+				
+				MutationMetadataRec metarec;
+				metarec.mutation_type_id_ = (slim_objectid_t)std::stoll(mutation_metadata_subparts[0]);
+				metarec.selection_coeff_ = (slim_selcoeff_t)std::stod(mutation_metadata_subparts[1]);
+				metarec.subpop_index_ = (slim_objectid_t)std::stoll(mutation_metadata_subparts[2]);
+				metarec.origin_generation_ = (slim_generation_t)std::stoll(mutation_metadata_subparts[3]);
+				binary_mutation_metadata.emplace_back(metarec);
+			}
+			
+			mutation_metadata_total_part_count += mutation_metadata_parts.size();
+			binary_mutation_metadata_offset.push_back((table_size_t)(mutation_metadata_total_part_count * sizeof(MutationMetadataRec)));
+		}
+		
+		ret = mutation_table_set_columns(&p_tables->mutations,
+										 tables_copy.mutations.num_rows,
+										 tables_copy.mutations.site,
+										 tables_copy.mutations.node,
+										 tables_copy.mutations.parent,
+										 (char *)binary_derived_state.data(),
+										 binary_derived_state_offset.data(),
+										 (char *)binary_mutation_metadata.data(),
+										 binary_mutation_metadata_offset.data());
+		if (ret < 0) handle_error("convert_from_ascii", ret);
+	}
+	
+	/***** De-ascii-ify Node Table *****/
+	{
+		static_assert(sizeof(GenomeMetadataRec) == 10, "GenomeMetadataRec has changed size; this code probably needs to be updated");
+		
+		const char *metadata = p_tables->nodes.metadata;
+		table_size_t *metadata_offset = p_tables->nodes.metadata_offset;
+		std::vector<GenomeMetadataRec> binary_metadata;
+		std::vector<table_size_t> binary_metadata_offset;
+		size_t metadata_total_part_count = 0;
+		
+		binary_metadata_offset.push_back(0);
+		
+		for (size_t j = 0; j < p_tables->nodes.num_rows; j++)
+		{
+			std::string string_metadata(metadata + metadata_offset[j], metadata_offset[j+1] - metadata_offset[j]);
+			std::vector<std::string> metadata_parts = Eidos_string_split(string_metadata, ",");
+			
+			if (metadata_parts.size() != 3)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::TreeSequenceDataFromAscii): unexpected node metadata length; this file cannot be read." << EidosTerminate();
+			
+			GenomeMetadataRec metarec;
+			metarec.genome_id_ = (slim_genomeid_t)std::stoll(metadata_parts[0]);
+			
+			if (metadata_parts[1] == "T")		metarec.is_null_ = true;
+			else if (metadata_parts[1] == "F")	metarec.is_null_ = false;
+			else
+				EIDOS_TERMINATION << "ERROR (SLiMSim::TreeSequenceDataFromAscii): unexpected node is_null value; this file cannot be read." << EidosTerminate();
+			
+			if (metadata_parts[2] == gStr_A)		metarec.type_ = GenomeType::kAutosome;
+			else if (metadata_parts[2] == gStr_X)	metarec.type_ = GenomeType::kXChromosome;
+			else if (metadata_parts[2] == gStr_Y)	metarec.type_ = GenomeType::kYChromosome;
+			else
+				EIDOS_TERMINATION << "ERROR (SLiMSim::TreeSequenceDataFromAscii): unexpected node type value; this file cannot be read." << EidosTerminate();
+			
+			binary_metadata.emplace_back(metarec);
+			
+			metadata_total_part_count++;
+			binary_metadata_offset.push_back((table_size_t)(metadata_total_part_count * sizeof(GenomeMetadataRec)));
+		}
+		
+		ret = node_table_set_columns(&p_tables->nodes,
+									 tables_copy.nodes.num_rows,
+									 tables_copy.nodes.flags,
+									 tables_copy.nodes.time,
+									 tables_copy.nodes.population,
+									 tables_copy.nodes.individual,
+									 (char *)binary_metadata.data(),
+									 binary_metadata_offset.data());
+		if (ret < 0) handle_error("convert_from_ascii", ret);
+	}
+	
+	/***** De-ascii-ify Individuals Table *****/
+	{
+		static_assert(sizeof(IndividualMetadataRec) == 16, "IndividualMetadataRec has changed size; this code probably needs to be updated");
+		
+		const char *metadata = p_tables->individuals.metadata;
+		table_size_t *metadata_offset = p_tables->individuals.metadata_offset;
+		std::vector<IndividualMetadataRec> binary_metadata;
+		std::vector<table_size_t> binary_metadata_offset;
+		size_t metadata_total_part_count = 0;
+		
+		binary_metadata_offset.push_back(0);
+		
+		for (size_t j = 0; j < p_tables->individuals.num_rows; j++)
+		{
+			std::string string_metadata(metadata + metadata_offset[j], metadata_offset[j+1] - metadata_offset[j]);
+			std::vector<std::string> metadata_parts = Eidos_string_split(string_metadata, ",");
+			
+			if (metadata_parts.size() != 3)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::TreeSequenceDataFromAscii): unexpected individual metadata length; this file cannot be read." << EidosTerminate();
+			
+			IndividualMetadataRec metarec;
+			metarec.pedigree_id_ = (slim_pedigreeid_t)std::stoll(metadata_parts[0]);
+			metarec.age_ = (slim_age_t)std::stoll(metadata_parts[1]);
+			metarec.subpopulation_id_ = (slim_objectid_t)std::stoll(metadata_parts[2]);
+			
+			binary_metadata.emplace_back(metarec);
+			
+			metadata_total_part_count++;
+			binary_metadata_offset.push_back((table_size_t)(metadata_total_part_count * sizeof(IndividualMetadataRec)));
+		}
+		
+		ret = individual_table_set_columns(&p_tables->individuals,
+										   tables_copy.individuals.num_rows,
+										   tables_copy.individuals.flags,
+										   tables_copy.individuals.location,
+										   tables_copy.individuals.location_offset,
+										   (char *)binary_metadata.data(),
+										   binary_metadata_offset.data());
+		if (ret < 0) handle_error("convert_from_ascii", ret);
+	}
+	
+	// We are done with our private copy of the table collection
+	table_collection_free(&tables_copy);
 }
 
 void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
@@ -4266,7 +4441,7 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
 									 tables_copy.nodes.flags,
 									 tables_copy.nodes.time,
 									 tables_copy.nodes.population,
-									 NULL, // individual
+									 tables_copy.nodes.individual,
 									 text_metadata.c_str(),
 									 text_metadata_offset.data());
 		if (ret < 0) handle_error("convert_to_ascii", ret);
@@ -4274,7 +4449,7 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
 	
 	/***** Ascii-ify Individuals Table *****/
 	{
-		static_assert(sizeof(IndividualMetadataRec) == 16, "IndividualMetadataRec is not 16 bytes!");
+		static_assert(sizeof(IndividualMetadataRec) == 16, "IndividualMetadataRec has changed size; this code probably needs to be updated");
 		
 		const char *metadata = p_tables->individuals.metadata;
 		table_size_t *metadata_offset = p_tables->individuals.metadata_offset;
