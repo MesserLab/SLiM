@@ -40,6 +40,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <unordered_set>
+#include <float.h>
 
 //TREE SEQUENCE
 #include <stdio.h>
@@ -4391,7 +4392,12 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
 				if (i > 0) text_mutation_metadata.append(";");
 				text_mutation_metadata.append(std::to_string(struct_mutation_metadata->mutation_type_id_));
 				text_mutation_metadata.append(",");
-				text_mutation_metadata.append(std::to_string(struct_mutation_metadata->selection_coeff_));
+				
+				static_assert(sizeof(slim_selcoeff_t) == 4, "use DBL_DECIMAL_DIG if slim_selcoeff_t is double");
+				char selcoeff_buf[40];
+				sprintf(selcoeff_buf, "%.*g", FLT_DECIMAL_DIG, struct_mutation_metadata->selection_coeff_);		// necessary precision for non-lossiness
+				text_mutation_metadata.append(selcoeff_buf);
+				
 				text_mutation_metadata.append(",");
 				text_mutation_metadata.append(std::to_string(struct_mutation_metadata->subpop_index_));
 				text_mutation_metadata.append(",");
