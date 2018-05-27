@@ -26,6 +26,7 @@
 #include <sstream>
 #include <vector>
 #include <string>
+#include <float.h>
 
 #if ((defined(SLIMGUI) && (SLIMPROFILING == 1)) || defined(EIDOS_GUI))
 #include <mach/mach_time.h>		// for mach_absolute_time(), for profiling; needed only in SLiMgui and the Eidos GUI (the latter for the timing test code)
@@ -409,6 +410,34 @@ public:
 #define Eidos_mul_overflow(a, b, c)	(*(c)=(a)*(b), false)
 #define EIDOS_HAS_OVERFLOW_BUILTINS		0
 
+#endif
+
+
+// *******************************************************************************************************************
+//
+//	Floating point representation in text
+//
+#pragma mark -
+#pragma mark Floating point representation
+#pragma mark -
+
+// The question here is how many digits are needed to print out in text representations of floating-point numbers
+// in order to preserve their exact value.  This is quite a complicated question, and the macros in float.h needed
+// to resolve it are not always available.  See the answer from chux at https://stackoverflow.com/a/19897395/2752221,
+// which this is based upon.  The EIDOS_DBL_DIGS and EIDOS_FLT_DIGS macros defined here can be used directly with
+// a printf() format of %.*g with a double or float argument, respectively, to produce a correct representation in
+// all cases, if I understand that thread correctly.
+
+#ifdef DBL_DECIMAL_DIG
+#define EIDOS_DBL_DIGS (DBL_DECIMAL_DIG)
+#else  
+#define EIDOS_DBL_DIGS (DBL_DIG + 3)
+#endif
+
+#ifdef FLT_DECIMAL_DIG
+#define EIDOS_FLT_DIGS (FLT_DECIMAL_DIG)
+#else  
+#define EIDOS_FLT_DIGS (FLT_DIG + 3)
 #endif
 
 
