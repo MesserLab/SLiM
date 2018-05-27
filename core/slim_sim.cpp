@@ -355,20 +355,36 @@ slim_generation_t SLiMSim::InitializePopulationFromFile(const std::string &p_fil
 	// then we dispose of all existing subpopulations, mutations, etc.
 	population_.RemoveAllSubpopulationInfo();
 	
-	// TREE SEQUENCE RECORDING
-	if (RecordingTreeSequence())
-	{
-		FreeTreeSequence();
-		StartTreeRecording();
-	}
-	
 	const char *file_cstr = p_file_string.c_str();
-	slim_generation_t new_generation;
+	slim_generation_t new_generation = 0;
 	
-	if (file_format == SLiMFileFormat::kFormatSLiMText)
-		new_generation = _InitializePopulationFromTextFile(file_cstr, p_interpreter);
-	else if (file_format == SLiMFileFormat::kFormatSLiMBinary)
-		new_generation = _InitializePopulationFromBinaryFile(file_cstr, p_interpreter);
+	// Read in the file.  The SLiM file-reading methods are not tree-sequence-aware, so we bracket them
+	// with calls that fix the tree sequence recording state around them.  The treeSeq output methods
+	// are of course treeSeq-aware, so we don't need to do that for them.
+	if ((file_format == SLiMFileFormat::kFormatSLiMText) || (file_format == SLiMFileFormat::kFormatSLiMBinary))
+	{
+		// TREE SEQUENCE RECORDING
+		if (RecordingTreeSequence())
+		{
+			FreeTreeSequence();
+			AllocateTreeSequenceTables();
+		}
+		
+		if (file_format == SLiMFileFormat::kFormatSLiMText)
+			new_generation = _InitializePopulationFromTextFile(file_cstr, p_interpreter);
+		else if (file_format == SLiMFileFormat::kFormatSLiMBinary)
+			new_generation = _InitializePopulationFromBinaryFile(file_cstr, p_interpreter);
+		
+		// TREE SEQUENCE RECORDING
+		if (RecordingTreeSequence())
+		{
+			// set up all of the mutations we just read in with the tree-seq recording code
+			RecordAllDerivedStatesFromSLiM();
+			
+			// reset our tree-seq auto-simplification interval so we don't simplify immediately
+			simplify_elapsed_ = 0;
+		}
+	}
 	else if (file_format == SLiMFileFormat::kFormatMSPrimeText)
 		new_generation = _InitializePopulationFromMSPrimeTextFile(file_cstr, p_interpreter);
 	else if (file_format == SLiMFileFormat::kFormatMSPrimeBinary_kastore)
@@ -377,18 +393,6 @@ slim_generation_t SLiMSim::InitializePopulationFromFile(const std::string &p_fil
 		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromFile): msprime HDF5 binary files are not supported; that file format has been superseded by kastore." << EidosTerminate();
 	else
 		EIDOS_TERMINATION << "ERROR (SLiMSim::InitializePopulationFromFile): unrecognized format code." << EidosTerminate();
-	
-	// TREE SEQUENCE RECORDING
-	if (RecordingTreeSequence())
-	{
-		// set up all of the mutations we just read in with the tree-seq recording code
-		// if the file read was a trees file, then of course they are already set up
-		if ((file_format != SLiMFileFormat::kFormatMSPrimeText) && (file_format != SLiMFileFormat::kFormatMSPrimeBinary_kastore))
-			RecordAllDerivedStatesFromSLiM();
-		
-		// reset our tree-seq auto-simplification interval so we don't simplify immediately
-		simplify_elapsed_ = 0;
-	}
 	
 	return new_generation;
 }
@@ -2097,7 +2101,7 @@ void SLiMSim::RunInitializeCallbacks(void)
 	
 	// TREE SEQUENCE RECORDING
 	if (RecordingTreeSequence())
-		StartTreeRecording();
+		AllocateTreeSequenceTables();
 	
 	// emit our start log
 	SLIM_OUTSTREAM << "\n// Starting run at generation <start>:\n" << time_start_ << " " << "\n" << std::endl;
@@ -3813,30 +3817,25 @@ void SLiMSim::SimplifyTreeSequence(void)
 	simplify_elapsed_ = 0;
 }
 
-void SLiMSim::StartTreeRecording(void)
+void SLiMSim::RecordTablePosition(void)
+{
+	table_collection_init_position(&table_position, &tables);
+}
+
+void SLiMSim::AllocateTreeSequenceTables(void)
 {
 #if DEBUG
 	if (!recording_tree_)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::StartTreeRecording): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::AllocateTreeSequenceTables): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
 #endif
-	
-	/* DEBUG STDOUT
-	std::cout << "Starting tree sequence recording with last base position: " << chromosome_.last_position_ << std::endl << std::endl;
-	// */
-	
-	// This would be the right place to allocate any storage you need, initialize ivars, etc.  This method will be called once,
-	// immediately after the simulation finishes initializing (after all initialize() callbacks have completed).  It will not be called
-	// again on this SLiMSim instance – but note that in SLiMgui multiple SLiMSim instances may exist, and may all be recording their
-	// own trees, so your code needs to be capable of handling that.  Store your state inside SLiMSim, not in globals.  SLiMgui is
-	// single-threaded, though, so you don't need to worry about re-entrancy or multithreading issues.
 	
 	//INITIALIZE NODE AND EDGE TABLES.
 	int ret = table_collection_alloc(&tables, MSP_ALLOC_TABLES);
-	if (ret != 0) handle_error("alloc_tables", ret);
+	if (ret != 0) handle_error("AllocateTreeSequenceTables()", ret);
 	
 	tables.sequence_length = (double)chromosome_.last_position_ + 1;
 	
-	table_collection_init_position(&table_position, &tables);
+	RecordTablePosition();
 }
 
 void SLiMSim::SetCurrentNewIndividual(__attribute__((unused))Individual *p_individual)
@@ -4123,13 +4122,12 @@ void SLiMSim::CheckAutoSimplification(void)
 	}
 }
 
-void SLiMSim::TreeSequenceDataFromAscii(table_collection_t *p_tables,
-                    std::string NodeFileName,
-                    std::string EdgeFileName,
-                    std::string SiteFileName,
-                    std::string MutationFileName,
-                    std::string IndividualsFileName,
-                    std::string ProvenanceFileName)
+void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
+										std::string EdgeFileName,
+										std::string SiteFileName,
+										std::string MutationFileName,
+										std::string IndividualsFileName,
+										std::string ProvenanceFileName)
 {
     FILE *MspTxtNodeTable = fopen(NodeFileName.c_str(), "r");
     FILE *MspTxtEdgeTable = fopen(EdgeFileName.c_str(), "r");
@@ -4137,11 +4135,12 @@ void SLiMSim::TreeSequenceDataFromAscii(table_collection_t *p_tables,
     FILE *MspTxtMutationTable = fopen(MutationFileName.c_str(), "r");
     FILE *MspTxtIndividualTable = fopen(IndividualsFileName.c_str(), "r");
     FILE *MspTxtProvenanceTable = fopen(ProvenanceFileName.c_str(), "r");
-
-    int ret = table_collection_alloc(p_tables, MSP_ALLOC_TABLES);
-    if (ret < 0) handle_error("read_from_ascii", ret);
-
-    ret = table_collection_load_text(p_tables,
+	
+	int ret = table_collection_alloc(&tables, MSP_ALLOC_TABLES);
+	if (ret != 0) handle_error("TreeSequenceDataFromAscii()", ret);
+	RecordTablePosition();
+	
+    ret = table_collection_load_text(&tables,
             MspTxtNodeTable,
             MspTxtEdgeTable,
             MspTxtSiteTable,
@@ -4151,14 +4150,14 @@ void SLiMSim::TreeSequenceDataFromAscii(table_collection_t *p_tables,
             MspTxtProvenanceTable);
     if (ret < 0) handle_error("read_from_ascii", ret);
 	
-	// We will be replacing the columns of some of the tables in p_tables with de-ASCII-fied versions.  That can't be
-	// done in place, so we make a copy of p_tables here to act as a source for the process of copying new information
-	// back into p_tables.
+	// We will be replacing the columns of some of the tables in tables with de-ASCII-fied versions.  That can't be
+	// done in place, so we make a copy of tables here to act as a source for the process of copying new information
+	// back into tables.
 	table_collection_t tables_copy;
 	ret = table_collection_alloc(&tables_copy, MSP_ALLOC_TABLES);
 	if (ret < 0) handle_error("convert_to_ascii", ret);
 	
-	ret = table_collection_copy(p_tables, &tables_copy);
+	ret = table_collection_copy(&tables, &tables_copy);
 	if (ret < 0) handle_error("convert_to_ascii", ret);
 	
 	// de-ASCII-fy the metadata and derived state information; this is the inverse of the work done by TreeSequenceDataToAscii()
@@ -4168,15 +4167,15 @@ void SLiMSim::TreeSequenceDataFromAscii(table_collection_t *p_tables,
 		static_assert(sizeof(MutationMetadataRec) == 16, "MutationMetadataRec has changed size; this code probably needs to be updated");
 		
 		// Mutation derived state
-		const char *derived_state = p_tables->mutations.derived_state;
-		table_size_t *derived_state_offset = p_tables->mutations.derived_state_offset;
+		const char *derived_state = tables.mutations.derived_state;
+		table_size_t *derived_state_offset = tables.mutations.derived_state_offset;
 		std::vector<slim_mutationid_t> binary_derived_state;
 		std::vector<table_size_t> binary_derived_state_offset;
 		size_t derived_state_total_part_count = 0;
 		
 		// Mutation metadata
-		const char *mutation_metadata = p_tables->mutations.metadata;
-		table_size_t *mutation_metadata_offset = p_tables->mutations.metadata_offset;
+		const char *mutation_metadata = tables.mutations.metadata;
+		table_size_t *mutation_metadata_offset = tables.mutations.metadata_offset;
 		std::vector<MutationMetadataRec> binary_mutation_metadata;
 		std::vector<table_size_t> binary_mutation_metadata_offset;
 		size_t mutation_metadata_total_part_count = 0;
@@ -4184,7 +4183,7 @@ void SLiMSim::TreeSequenceDataFromAscii(table_collection_t *p_tables,
 		binary_derived_state_offset.push_back(0);
 		binary_mutation_metadata_offset.push_back(0);
 		
-		for (size_t j = 0; j < p_tables->mutations.num_rows; j++)
+		for (size_t j = 0; j < tables.mutations.num_rows; j++)
 		{
 			// Mutation derived state
 			std::string string_derived_state(derived_state + derived_state_offset[j], derived_state_offset[j+1] - derived_state_offset[j]);
@@ -4222,7 +4221,7 @@ void SLiMSim::TreeSequenceDataFromAscii(table_collection_t *p_tables,
 			binary_mutation_metadata_offset.push_back((table_size_t)(mutation_metadata_total_part_count * sizeof(MutationMetadataRec)));
 		}
 		
-		ret = mutation_table_set_columns(&p_tables->mutations,
+		ret = mutation_table_set_columns(&tables.mutations,
 										 tables_copy.mutations.num_rows,
 										 tables_copy.mutations.site,
 										 tables_copy.mutations.node,
@@ -4238,15 +4237,15 @@ void SLiMSim::TreeSequenceDataFromAscii(table_collection_t *p_tables,
 	{
 		static_assert(sizeof(GenomeMetadataRec) == 10, "GenomeMetadataRec has changed size; this code probably needs to be updated");
 		
-		const char *metadata = p_tables->nodes.metadata;
-		table_size_t *metadata_offset = p_tables->nodes.metadata_offset;
+		const char *metadata = tables.nodes.metadata;
+		table_size_t *metadata_offset = tables.nodes.metadata_offset;
 		std::vector<GenomeMetadataRec> binary_metadata;
 		std::vector<table_size_t> binary_metadata_offset;
 		size_t metadata_total_part_count = 0;
 		
 		binary_metadata_offset.push_back(0);
 		
-		for (size_t j = 0; j < p_tables->nodes.num_rows; j++)
+		for (size_t j = 0; j < tables.nodes.num_rows; j++)
 		{
 			std::string string_metadata(metadata + metadata_offset[j], metadata_offset[j+1] - metadata_offset[j]);
 			std::vector<std::string> metadata_parts = Eidos_string_split(string_metadata, ",");
@@ -4274,7 +4273,7 @@ void SLiMSim::TreeSequenceDataFromAscii(table_collection_t *p_tables,
 			binary_metadata_offset.push_back((table_size_t)(metadata_total_part_count * sizeof(GenomeMetadataRec)));
 		}
 		
-		ret = node_table_set_columns(&p_tables->nodes,
+		ret = node_table_set_columns(&tables.nodes,
 									 tables_copy.nodes.num_rows,
 									 tables_copy.nodes.flags,
 									 tables_copy.nodes.time,
@@ -4289,15 +4288,15 @@ void SLiMSim::TreeSequenceDataFromAscii(table_collection_t *p_tables,
 	{
 		static_assert(sizeof(IndividualMetadataRec) == 16, "IndividualMetadataRec has changed size; this code probably needs to be updated");
 		
-		const char *metadata = p_tables->individuals.metadata;
-		table_size_t *metadata_offset = p_tables->individuals.metadata_offset;
+		const char *metadata = tables.individuals.metadata;
+		table_size_t *metadata_offset = tables.individuals.metadata_offset;
 		std::vector<IndividualMetadataRec> binary_metadata;
 		std::vector<table_size_t> binary_metadata_offset;
 		size_t metadata_total_part_count = 0;
 		
 		binary_metadata_offset.push_back(0);
 		
-		for (size_t j = 0; j < p_tables->individuals.num_rows; j++)
+		for (size_t j = 0; j < tables.individuals.num_rows; j++)
 		{
 			std::string string_metadata(metadata + metadata_offset[j], metadata_offset[j+1] - metadata_offset[j]);
 			std::vector<std::string> metadata_parts = Eidos_string_split(string_metadata, ",");
@@ -4316,7 +4315,7 @@ void SLiMSim::TreeSequenceDataFromAscii(table_collection_t *p_tables,
 			binary_metadata_offset.push_back((table_size_t)(metadata_total_part_count * sizeof(IndividualMetadataRec)));
 		}
 		
-		ret = individual_table_set_columns(&p_tables->individuals,
+		ret = individual_table_set_columns(&tables.individuals,
 										   tables_copy.individuals.num_rows,
 										   tables_copy.individuals.flags,
 										   tables_copy.individuals.location,
@@ -4777,9 +4776,9 @@ void SLiMSim::RecordAllDerivedStatesFromSLiM(void)
 	// This is called when new tree sequence tables need to be built to correspond to the current state of SLiM, such as
 	// after handling a readFromPopulationFile() call.  It is guaranteed by the caller of this method that any old tree
 	// sequence recording stuff has been freed with a call to FreeTreeSequence(), and then a new recording session has
-	// been initiated with StartTreeRecording(); it might be good for this method to do a sanity check that all of the
-	// recording tables are indeed allocated but empty, I guess.  This method then records every extant individual by
-	// making calls to SetCurrentNewIndividual(), and RecordNewGenome(). Note
+	// been initiated with AllocateTreeSequenceTables(); it might be good for this method to do a sanity check that all
+	// of the recording tables are indeed allocated but empty, I guess.  This method then records every extant individual
+	// by making calls to SetCurrentNewIndividual(), and RecordNewGenome(). Note
 	// that modifyChild() callbacks do not happen in this scenario, so new individuals will not get retracted.  Note
 	// also that new mutations will not be added one at a time, when they are stacked; instead, each block of stacked
 	// mutations in a genome will be added with a single derived state call here.
@@ -5767,6 +5766,9 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	// Do a crosscheck to ensure data integrity
 	CrosscheckTreeSeqIntegrity();
 	
+	// Simplification has just been done, in effect
+	simplify_elapsed_ = 0;
+	
 	// return the current simulation generation as reconstructed from the file
 	return provinence_gen;
 }
@@ -5788,7 +5790,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromMSPrimeTextFile(const char *
 	std::string individual_path = directory_path + "/IndividualTable.txt";
 	std::string provenance_path = directory_path + "/ProvenanceTable.txt";
 	
-	TreeSequenceDataFromAscii(&tables, node_path, edge_path, site_path, mutation_path, individual_path, provenance_path);
+	TreeSequenceDataFromAscii(node_path, edge_path, site_path, mutation_path, individual_path, provenance_path);
 	
 	// make the corresponding SLiM objects
 	return _InstantiateSLiMObjectsFromTables(p_interpreter);
@@ -5808,6 +5810,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromMSPrimeBinaryFile(const char
 	// read the file from disk
 	int ret = table_collection_alloc(&tables, 0);
 	if (ret != 0) handle_error("table_collection_alloc", ret);
+	RecordTablePosition();
 	
 	ret = table_collection_load(&tables, p_file, 0);
 	if (ret != 0) handle_error("table_collection_load", ret);
@@ -5825,6 +5828,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromMSPrimeBinaryFile(const char
 	// copy the immutable table collection to make a mutable collection
 	ret = table_collection_alloc(&tables, MSP_ALLOC_TABLES);
 	if (ret != 0) handle_error("table_collection_alloc", ret);
+	RecordTablePosition();
 	
 	ret = table_collection_copy(&immutable_tables, &tables);
 	if (ret < 0) handle_error("table_collection_copy", ret);

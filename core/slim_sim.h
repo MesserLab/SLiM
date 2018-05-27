@@ -471,7 +471,8 @@ public:
 	static void MetadataForIndividual(Individual *p_individual, IndividualMetadataRec *p_metadata);
 	static void TreeSequenceDataToAscii(table_collection_t *p_tables);
 	
-	void StartTreeRecording(void);
+	void RecordTablePosition(void);
+	void AllocateTreeSequenceTables(void);
 	void SetCurrentNewIndividual(Individual *p_individual);
 	void RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genome *p_new_genome, const Genome *p_initial_parental_genome, const Genome *p_second_parental_genome);
 	void RecordNewDerivedState(const Genome *p_genome, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations);
@@ -482,7 +483,7 @@ public:
 	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify);
 	void SimplifyTreeSequence(void);
 	void CheckAutoSimplification(void);
-    void TreeSequenceDataFromAscii(table_collection_t *p_tables, std::string NodeFileName, 
+    void TreeSequenceDataFromAscii(std::string NodeFileName, 
             std::string EdgeFileName, std::string SiteFileName, std::string MutationFileName, 
             std::string IndividualsFileName, std::string ProvenanceFileName);
 	void RememberGenomes(std::vector<const Genome *> p_genomes);
