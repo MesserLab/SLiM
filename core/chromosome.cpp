@@ -595,8 +595,8 @@ void Chromosome::DrawUniquedBreakpoints(IndividualSex p_sex, const int p_num_bre
 {
 	// BEWARE!  Chromosome::DrawUniquedBreakpointsForGC_r05() below must be altered in parallel with this method!
 #if DEBUG
-	if (any_recombination_rates_05_)
-		EIDOS_TERMINATION << "ERROR (Chromosome::DrawUniquedBreakpoints): (internal error) this method should not be called when rate==0.5 segments exist." << EidosTerminate();
+	if (any_recombination_rates_05_ && (gene_conversion_fraction_ > 0.0))
+		EIDOS_TERMINATION << "ERROR (Chromosome::DrawUniquedBreakpoints): (internal error) this method should not be called when rate==0.5 segments exist unless gene conversion is disabled." << EidosTerminate();
 #endif
 	
 	gsl_ran_discrete_t *lookup;
@@ -709,8 +709,8 @@ void Chromosome::DrawUniquedBreakpointsForGC_r05(IndividualSex p_sex, const int 
 {
 	// BEWARE!  Chromosome::DrawUniquedBreakpoints() above must be altered in parallel with this method!
 #if DEBUG
-	if (!any_recombination_rates_05_)
-		EIDOS_TERMINATION << "ERROR (Chromosome::DrawUniquedBreakpointsForGC_r05): (internal error) this method should only be called when rate==0.5 segments exist." << EidosTerminate();
+	if ((!any_recombination_rates_05_) || (gene_conversion_fraction_ == 0.0))
+		EIDOS_TERMINATION << "ERROR (Chromosome::DrawUniquedBreakpointsForGC_r05): (internal error) this method should only be called when rate==0.5 segments exist and gene conversion is enabled." << EidosTerminate();
 #endif
 	
 	gsl_ran_discrete_t *lookup;
