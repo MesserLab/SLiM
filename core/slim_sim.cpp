@@ -5317,6 +5317,55 @@ void SLiMSim::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 		subpop_info.spatial_x_.push_back(individual.location[0]);
 		subpop_info.spatial_y_.push_back(individual.location[1]);
 		subpop_info.spatial_z_.push_back(individual.location[2]);
+		
+		// check the referenced nodes; right now this is not essential for re-creating the saved state, but is just a crosscheck
+		// here we crosscheck the node information against expected values from other places in the tables or the model
+		node_table_t &node_table = tables.nodes;
+		node_id_t node0 = individual.nodes[0];
+		node_id_t node1 = individual.nodes[1];
+		
+		if (((node_table.flags[node0] & MSP_NODE_IS_SAMPLE) == 0) || ((node_table.flags[node1] & MSP_NODE_IS_SAMPLE) == 0))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): nodes for individual are not in-sample; this file cannot be read." << EidosTerminate();
+		if ((node_table.individual[node0] != individual.id) || (node_table.individual[node1] != individual.id))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): individual-node inconsistency; this file cannot be read." << EidosTerminate();
+		
+		size_t node0_metadata_length = node_table.metadata_offset[node0 + 1] - node_table.metadata_offset[node0];
+		size_t node1_metadata_length = node_table.metadata_offset[node1 + 1] - node_table.metadata_offset[node1];
+		
+		if ((node0_metadata_length != sizeof(GenomeMetadataRec)) || (node1_metadata_length != sizeof(GenomeMetadataRec)))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): unexpected node metadata length; this file cannot be read." << EidosTerminate();
+		
+		GenomeMetadataRec *node0_metadata = (GenomeMetadataRec *)(node_table.metadata + node_table.metadata_offset[node0]);
+		GenomeMetadataRec *node1_metadata = (GenomeMetadataRec *)(node_table.metadata + node_table.metadata_offset[node1]);
+		
+		if ((node0_metadata->genome_id_ != metadata->pedigree_id_ * 2) || (node1_metadata->genome_id_ != metadata->pedigree_id_ * 2 + 1))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): genome id mismatch; this file cannot be read." << EidosTerminate();
+		
+		bool expected_is_null_0 = false, expected_is_null_1 = false;
+		GenomeType expected_genome_type_0 = GenomeType::kAutosome, expected_genome_type_1 = GenomeType::kAutosome;
+		
+		if (sex_enabled_)
+		{
+			if (modeled_chromosome_type_ == GenomeType::kXChromosome)
+			{
+				expected_is_null_0 = (sex == IndividualSex::kMale) ? false : false;
+				expected_is_null_1 = (sex == IndividualSex::kMale) ? true : false;
+				expected_genome_type_0 = (sex == IndividualSex::kMale) ? GenomeType::kXChromosome : GenomeType::kXChromosome;
+				expected_genome_type_1 = (sex == IndividualSex::kMale) ? GenomeType::kYChromosome : GenomeType::kXChromosome;
+			}
+			else if (modeled_chromosome_type_ == GenomeType::kYChromosome)
+			{
+				expected_is_null_0 = (sex == IndividualSex::kMale) ? true : true;
+				expected_is_null_1 = (sex == IndividualSex::kMale) ? false : true;
+				expected_genome_type_0 = (sex == IndividualSex::kMale) ? GenomeType::kXChromosome : GenomeType::kXChromosome;
+				expected_genome_type_1 = (sex == IndividualSex::kMale) ? GenomeType::kYChromosome : GenomeType::kXChromosome;
+			}
+		}
+		
+		if ((node0_metadata->is_null_ != expected_is_null_0) || (node1_metadata->is_null_ != expected_is_null_1))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): node is_null unexpected; this file cannot be read." << EidosTerminate();
+		if ((node0_metadata->type_ != expected_genome_type_0) || (node1_metadata->type_ != expected_genome_type_1))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): node type unexpected; this file cannot be read." << EidosTerminate();
 	}
 }
 
@@ -5375,14 +5424,14 @@ void SLiMSim::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 				if (individual->sex_ != generating_sex)
 					EIDOS_TERMINATION << "ERROR (SLiMSim::__CreateSubpopulationsFromTabulation): (internal error) unexpected individual sex." << EidosTerminate();
 				
-				node_id_t node_id_1 = subpop_info.nodes_[tabulation_index * 2];
-				node_id_t node_id_2 = subpop_info.nodes_[tabulation_index * 2 + 1];
+				node_id_t node_id_0 = subpop_info.nodes_[tabulation_index * 2];
+				node_id_t node_id_1 = subpop_info.nodes_[tabulation_index * 2 + 1];
 				
-				individual->genome1_->msp_node_id_ = node_id_1;
-				individual->genome2_->msp_node_id_ = node_id_2;
+				individual->genome1_->msp_node_id_ = node_id_0;
+				individual->genome2_->msp_node_id_ = node_id_1;
 				
-				p_nodeToGenomeMap.insert(std::pair<node_id_t, Genome *>(node_id_1, individual->genome1_));
-				p_nodeToGenomeMap.insert(std::pair<node_id_t, Genome *>(node_id_2, individual->genome2_));
+				p_nodeToGenomeMap.insert(std::pair<node_id_t, Genome *>(node_id_0, individual->genome1_));
+				p_nodeToGenomeMap.insert(std::pair<node_id_t, Genome *>(node_id_1, individual->genome2_));
 				
 				slim_pedigreeid_t pedigree_id = subpop_info.pedigreeID_[tabulation_index];
 				individual->SetPedigreeID(pedigree_id);
@@ -5395,6 +5444,26 @@ void SLiMSim::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 				individual->spatial_x_ = subpop_info.spatial_x_[tabulation_index];
 				individual->spatial_y_ = subpop_info.spatial_y_[tabulation_index];
 				individual->spatial_z_ = subpop_info.spatial_z_[tabulation_index];
+				
+				// check the referenced nodes; right now this is not essential for re-creating the saved state, but is just a crosscheck
+				// here we crosscheck the node information against the realized values in the genomes of the individual
+				node_table_t &node_table = tables.nodes;
+				size_t node0_metadata_length = node_table.metadata_offset[node_id_0 + 1] - node_table.metadata_offset[node_id_0];
+				size_t node1_metadata_length = node_table.metadata_offset[node_id_1 + 1] - node_table.metadata_offset[node_id_1];
+				
+				if ((node0_metadata_length != sizeof(GenomeMetadataRec)) || (node1_metadata_length != sizeof(GenomeMetadataRec)))
+					EIDOS_TERMINATION << "ERROR (SLiMSim::__CreateSubpopulationsFromTabulation): unexpected node metadata length; this file cannot be read." << EidosTerminate();
+				
+				GenomeMetadataRec *node0_metadata = (GenomeMetadataRec *)(node_table.metadata + node_table.metadata_offset[node_id_0]);
+				GenomeMetadataRec *node1_metadata = (GenomeMetadataRec *)(node_table.metadata + node_table.metadata_offset[node_id_1]);
+				Genome *genome0 = individual->genome1_, *genome1 = individual->genome2_;
+				
+				if ((node0_metadata->genome_id_ != genome0->genome_id_) || (node1_metadata->genome_id_ != genome1->genome_id_))
+					EIDOS_TERMINATION << "ERROR (SLiMSim::__CreateSubpopulationsFromTabulation): node-genome id mismatch; this file cannot be read." << EidosTerminate();
+				if ((node0_metadata->is_null_ != genome0->IsNull()) || (node1_metadata->is_null_ != genome1->IsNull()))
+					EIDOS_TERMINATION << "ERROR (SLiMSim::__CreateSubpopulationsFromTabulation): node-genome null mismatch; this file cannot be read." << EidosTerminate();
+				if ((node0_metadata->type_ != genome0->Type()) || (node1_metadata->type_ != genome1->Type()))
+					EIDOS_TERMINATION << "ERROR (SLiMSim::__CreateSubpopulationsFromTabulation): node-genome type mismatch; this file cannot be read." << EidosTerminate();
 			}
 		}
 	}
