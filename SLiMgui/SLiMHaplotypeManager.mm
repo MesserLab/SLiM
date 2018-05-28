@@ -121,10 +121,11 @@ BidiIter random_unique(BidiIter begin, BidiIter end, size_t num_random)
 		[self setTitleString:title];
 		[self setSubpopCount:(int)selected_subpops.size()];
 		
-		// Fetch genomes and figure out what we're going to plot
+		// Fetch genomes and figure out what we're going to plot; note that we plot only non-null genomes
 		for (Subpopulation *subpop : selected_subpops)
 			for (Genome *genome : subpop->parent_genomes_)
-				genomes.push_back(genome);
+				if (!genome->IsNull())
+					genomes.push_back(genome);
 		
 		// If a sample is requested, select that now; sampleSize <= 0 means no sampling
 		if ((sampleSize > 0) && ((int)genomes.size() > sampleSize))
