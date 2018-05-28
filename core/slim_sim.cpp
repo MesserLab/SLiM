@@ -5432,7 +5432,13 @@ void SLiMSim::__TabulateMutationsFromTables(std::unordered_map<slim_mutationid_t
 		slim_mutationid_t *derived_state_vec = (slim_mutationid_t *)derived_state_bytes;
 		MutationMetadataRec *metadata_vec = (MutationMetadataRec *)metadata_bytes;
 		site_id_t site_id = mut_table.site[mut_index];
-		slim_position_t position = (slim_position_t)round(tables.sites.position[site_id]);
+		double position_double = tables.sites.position[site_id];
+		double position_double_round = round(position_double);
+		
+		if (position_double_round != position_double)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateMutationsFromTables): mutation positions must be whole numbers for importation into SLiM; fractional positions are not allowed." << EidosTerminate();
+		
+		slim_position_t position = (slim_position_t)position_double_round;
 		
 		// tabulate the mutations referenced by this entry, overwriting previous tabulations (last state wins)
 		for (int stack_index = 0; stack_index < stack_count; ++stack_index)
