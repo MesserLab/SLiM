@@ -1812,7 +1812,16 @@ Note that this is an Eidos class method, somewhat unusually, which allows it to 
 \f2\fs18 individuals1
 \f0\fs20  or 
 \f2\fs18 individuals2
-\f0\fs20  must be singleton, so that the distances evaluated are either from one individual to many, or from many to one (which are equivalent, in fact); evaluating distances for many to many individuals cannot be done in a single call.  If 
+\f0\fs20  must be singleton, so that the distances evaluated are either from one individual to many, or from many to one (which are equivalent, in fact); evaluating distances for many to many individuals cannot be done in a single call.  \cf2 \expnd0\expndtw0\kerning0
+(There is one exception: if both 
+\f2\fs18 individuals1
+\f0\fs20  and 
+\f2\fs18 individuals2
+\f0\fs20  are zero-length or 
+\f2\fs18 NULL
+\f0\fs20 , a zero-length 
+\f2\fs18 float
+\f0\fs20  vector will be returned.)  \cf0 \kerning1\expnd0\expndtw0 If 
 \f2\fs18 individuals2
 \f0\fs20  is 
 \f2\fs18 NULL
@@ -2067,7 +2076,16 @@ The interaction function for an interaction type is normally a constant in simul
 \f2\fs18 individuals1
 \f0\fs20  or 
 \f2\fs18 individuals2
-\f0\fs20  must be singleton, so that the strengths evaluated are either from one individual to many, or from many to one (which are equivalent, in fact); evaluating strengths for many to many individuals cannot be done in a single call.  If 
+\f0\fs20  must be singleton, so that the strengths evaluated are either from one individual to many, or from many to one (which are equivalent, in fact); evaluating strengths for many to many individuals cannot be done in a single call.  \cf2 \expnd0\expndtw0\kerning0
+(There is one exception: if both 
+\f2\fs18 individuals1
+\f0\fs20  and 
+\f2\fs18 individuals2
+\f0\fs20  are zero-length or 
+\f2\fs18 NULL
+\f0\fs20 , a zero-length 
+\f2\fs18 float
+\f0\fs20  vector will be returned.)  \cf0 \kerning1\expnd0\expndtw0 If 
 \f2\fs18 individuals2
 \f0\fs20  is 
 \f2\fs18 NULL

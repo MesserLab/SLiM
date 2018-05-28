@@ -4501,8 +4501,13 @@ EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_meth
 	
 	if (spatiality_ == 0)
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distance): distance() requires that the interaction be spatial." << EidosTerminate();
+	
 	if ((count1 != 1) && (count2 != 1))
+	{
+		if ((count1 == 0) && (count2 == 0))
+			return gStaticEidosValue_Float_ZeroVec;
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distance): distance() requires that either individuals1 or individuals2 be singleton." << EidosTerminate();
+	}
 	
 	// Rearrange so that if either vector is non-singleton, it is the second that is non-singleton (one-to-many)
 	if (count1 != 1)
@@ -5068,11 +5073,12 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighborsOfPoint(EidosGlobal
 	
 	if (count < 0)
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighborsOfPoint): nearestNeighborsOfPoint() requires count > 0." << EidosTerminate();
-	if (count == 0)
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 	
 	if (count > subpop_size)
 		count = subpop_size;
+	
+	if (count == 0)
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 	
 	// Find the neighbors
 	InteractionsData &subpop_data = subpop_data_iter->second;
@@ -5199,7 +5205,11 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 	int count1 = individuals1->Count(), count2 = individuals2->Count();
 	
 	if ((count1 != 1) && (count2 != 1))
+	{
+		if ((count1 == 0) && (count2 == 0))
+			return gStaticEidosValue_Float_ZeroVec;
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that either individuals1 or individuals2 be singleton." << EidosTerminate();
+	}
 	
 	// Rearrange so that if either vector is non-singleton, it is the second that is non-singleton (one-to-many)
 	if (count1 != 1)
