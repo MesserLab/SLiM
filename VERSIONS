@@ -68,6 +68,7 @@ development head (nonWF branch):
 	increase maximum chromosome length from 1e9 to 1e15 (breaks reproducibility from a given seed, due to new MT64 RNG)
 	fix rdunif() to be able to generate uniform draws in the full 64-bit range, using the new MT64 RNG; optimize rdunif() and rbinom() for the simple coin-flip case (breaks backward output compatibility)
 	fix a crash in SLiMgui when displaying a haplotype plot (including in the chromosome view) in a model with null genomes, such as an X or Y model
+	extend containsMarkerMutation() with a [returnMutation=F] argument so the found mutation can be obtained
 
 
 2.6 (build 1292; Eidos version 1.6):

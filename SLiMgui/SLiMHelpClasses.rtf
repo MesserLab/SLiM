@@ -588,9 +588,11 @@ Calling this will normally affect the fitness values calculated at the end of th
 
 \f2\fs18 \cf0 \'96
 \f3 \'a0
-\f2 (logical$)containsMarkerMutation(io<MutationType>$\'a0mutType, integer$
+\f2 (\cf2 \expnd0\expndtw0\kerning0
+Nlo<Mutation>$\cf0 \kerning1\expnd0\expndtw0 )containsMarkerMutation(io<MutationType>$\'a0mutType, integer$
 \f3 \'a0
-\f2 position)
+\f2 position\cf2 \expnd0\expndtw0\kerning0
+, [logical$\'a0returnMutation\'a0=\'a0F]\cf0 \kerning1\expnd0\expndtw0 )
 \f3 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -602,7 +604,12 @@ Calling this will normally affect the fitness values calculated at the end of th
 \f2\fs18 position
 \f0\fs20 , 
 \f2\fs18 F
-\f0\fs20  otherwise.  This method is, as its name suggests, intended for checking for \'93marker mutations\'94: mutations of a special mutation type that are not literally mutations in the usual sense, but instead are added in to particular genomes to mark them as possessing some property.  Marker mutations are not typically added by SLiM\'92s mutation-generating machinery; instead they are added explicitly with 
+\f0\fs20  otherwise\cf2 \expnd0\expndtw0\kerning0
+ (if 
+\f2\fs18 returnMutation
+\f0\fs20  has its default value of 
+\f2\fs18 F
+\f0\fs20 ; see below)\cf0 \kerning1\expnd0\expndtw0 .  This method is, as its name suggests, intended for checking for \'93marker mutations\'94: mutations of a special mutation type that are not literally mutations in the usual sense, but instead are added in to particular genomes to mark them as possessing some property.  Marker mutations are not typically added by SLiM\'92s mutation-generating machinery; instead they are added explicitly with 
 \f2\fs18 addNewMutation()
 \f0\fs20  or 
 \f2\fs18 addNewDrawnMutation()
@@ -612,9 +619,35 @@ Calling this will normally affect the fitness values calculated at the end of th
 \f2\fs18 countOfMutationsOfType()
 \f0\fs20 , using a binary search of the genome.
 \f3 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0 \cf2 \expnd0\expndtw0\kerning0
+If 
+\f2\fs18 returnMutation
+\f0\fs20  is 
+\f2\fs18 T
+\f0\fs20  (an option added in SLiM 3), this method returns the actual mutation found, rather than just 
+\f2\fs18 T
+\f0\fs20  or 
+\f2\fs18 F
+\f0\fs20 .  More specifically, the 
+\i first
+\i0  mutation found of 
+\f2\fs18 mutType
+\f0\fs20  at 
+\f2\fs18 position
+\f0\fs20  will be returned; if more than one such mutation exists in the target genome, which one is returned is not defined.  If 
+\f2\fs18 returnMutation
+\f0\fs20  is T and no mutation of 
+\f2\fs18 mutType
+\f0\fs20  is found at 
+\f2\fs18 position
+\f0\fs20 , 
+\f2\fs18 NULL
+\f0\fs20  will be returned.\
 \pard\pardeftab529\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(logical)containsMutations(object<Mutation>\'a0mutations)
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(logical)containsMutations(object<Mutation>\'a0mutations)
 \f3 \
 \pard\pardeftab529\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -3401,7 +3434,6 @@ Beginning with SLiM 3.0, the
 \f0\fs20  is 
 \f2\fs18 T
 \f0\fs20 , ages will be output for nonWF models.  In WF simulations, the ages parameter will be ignored.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 Output is generally done in a 
 \f2\fs18 late()
 \f0\fs20  event, so that the output reflects the state of the simulation at the end of a generation.

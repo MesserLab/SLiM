@@ -249,13 +249,13 @@ public:
 		return mutruns_[(gSLiM_Mutation_Block + p_mutation_index)->position_ / mutrun_length_]->contains_mutation(p_mutation_index);
 	}
 	
-	inline __attribute__((always_inline)) bool contains_mutation_with_type_and_position(MutationType *p_mut_type, slim_position_t p_position, slim_position_t p_last_position)
+	inline __attribute__((always_inline)) Mutation *mutation_with_type_and_position(MutationType *p_mut_type, slim_position_t p_position, slim_position_t p_last_position)
 	{
 #ifdef DEBUG
 		if (mutrun_count_ == 0)
 			NullGenomeAccessError();
 #endif
-		return mutruns_[p_position / mutrun_length_]->contains_mutation_with_type_and_position(p_mut_type, p_position, p_last_position);
+		return mutruns_[p_position / mutrun_length_]->mutation_with_type_and_position(p_mut_type, p_position, p_last_position);
 	}
 	
 	inline __attribute__((always_inline)) void insert_sorted_mutation(MutationIndex p_mutation_index)

@@ -143,7 +143,7 @@ bool MutationRun::contains_mutation(MutationIndex p_mutation_index)
 }
 #endif
 
-bool MutationRun::contains_mutation_with_type_and_position(MutationType *p_mut_type, slim_position_t p_position, slim_position_t p_last_position)
+Mutation *MutationRun::mutation_with_type_and_position(MutationType *p_mut_type, slim_position_t p_position, slim_position_t p_last_position)
 {
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	int mut_count = size();
@@ -155,13 +155,13 @@ bool MutationRun::contains_mutation_with_type_and_position(MutationType *p_mut_t
 		// The marker is supposed to be at position 0.  This is a very common case, so we special-case it
 		// to avoid an inefficient binary search.  Instead, we just look at the beginning.
 		if (mut_count == 0)
-			return false;
+			return nullptr;
 		
 		if ((mut_block_ptr + mut_ptr[0])->position_ > 0)
-			return false;
+			return nullptr;
 		
 		if ((mut_block_ptr + mut_ptr[0])->mutation_type_ptr_ == p_mut_type)
-			return true;
+			return (mut_block_ptr + mut_ptr[0]);
 		
 		mut_index = 0;	// drop through to forward scan
 	}
@@ -170,15 +170,15 @@ bool MutationRun::contains_mutation_with_type_and_position(MutationType *p_mut_t
 		// The marker is supposed to be at the very end of the chromosome.  This is also a common case,
 		// so we special-case it by starting at the last mutation in the genome.
 		if (mut_count == 0)
-			return false;
+			return nullptr;
 		
 		mut_index = mut_count - 1;
 		
 		if ((mut_block_ptr + mut_ptr[mut_index])->position_ < p_last_position)
-			return false;
+			return nullptr;
 		
 		if ((mut_block_ptr + mut_ptr[mut_index])->mutation_type_ptr_ == p_mut_type)
-			return true;
+			return (mut_block_ptr + mut_ptr[mut_index]);
 		
 		// drop through to backward scan
 	}
@@ -193,7 +193,7 @@ bool MutationRun::contains_mutation_with_type_and_position(MutationType *p_mut_t
 			do
 			{
 				if (L > R)
-					return false;
+					return nullptr;
 				
 				mut_index = (L + R) >> 1;	// overflow-safe because base positions have a max of 1000000000L
 				mut_pos = (mut_block_ptr + mut_ptr[mut_index])->position_;
@@ -218,7 +218,7 @@ bool MutationRun::contains_mutation_with_type_and_position(MutationType *p_mut_t
 		// The mutation at mut_index is at p_position, but it may not be the only such
 		// We check it first, then we check before it scanning backwards, and check after it scanning forwards
 		if ((mut_block_ptr + mut_ptr[mut_index])->mutation_type_ptr_ == p_mut_type)
-			return true;
+			return (mut_block_ptr + mut_ptr[mut_index]);
 	}
 	
 	// backward & forward scan are shared by both code paths
@@ -232,7 +232,7 @@ bool MutationRun::contains_mutation_with_type_and_position(MutationType *p_mut_t
 			if ((mut_block_ptr + scan_mut_index)->position_ != p_position)
 				break;
 			if ((mut_block_ptr + scan_mut_index)->mutation_type_ptr_ == p_mut_type)
-				return true;
+				return (mut_block_ptr + scan_mut_index);
 		}
 	}
 	
@@ -246,11 +246,11 @@ bool MutationRun::contains_mutation_with_type_and_position(MutationType *p_mut_t
 			if ((mut_block_ptr + scan_mut_index)->position_ != p_position)
 				break;
 			if ((mut_block_ptr + scan_mut_index)->mutation_type_ptr_ == p_mut_type)
-				return true;
+				return (mut_block_ptr + scan_mut_index);
 		}
 	}
 	
-	return false;
+	return nullptr;
 }
 
 const std::vector<Mutation *> *MutationRun::derived_mutation_ids_at_position(slim_position_t p_position) const

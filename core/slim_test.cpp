@@ -1667,13 +1667,20 @@ void _RunGenomeTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.genomes.addNewMutation(1, 0.1, 5000, NULL, 237); stop(); }", __LINE__);							// bad subpop, but this is legal to allow "tagging" of mutations
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.genomes.addNewMutation(1, 0.1, 5000, NULL, -1); stop(); }", 1, 258, "out of range", __LINE__);	// however, such tags must be within range
 	
-	// Test Genome - (logical$)containsMarkerMutation(io<MutationType>$ mutType, integer$ position)
+	// Test Genome - (logical$)containsMarkerMutation(io<MutationType>$ mutType, integer$ position, [logical$ returnMutation = F])
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0].containsMarkerMutation(m1, 1000); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0].containsMarkerMutation(1, 1000); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0:1].containsMarkerMutation(1, 1000); stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "10 { p1.genomes[0].containsMarkerMutation(m1, -1); stop(); }", 1, 262, "out of range", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "10 { p1.genomes[0].containsMarkerMutation(m1, 1000000); stop(); }", 1, 262, "past the end", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "10 { p1.genomes[0].containsMarkerMutation(10, 1000); stop(); }", 1, 262, "mutation type m10 not defined", __LINE__);
+	
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0].containsMarkerMutation(m1, 1000, returnMutation=T); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0].containsMarkerMutation(1, 1000, returnMutation=T); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0:1].containsMarkerMutation(1, 1000, returnMutation=T); stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "10 { p1.genomes[0].containsMarkerMutation(m1, -1, returnMutation=T); stop(); }", 1, 262, "out of range", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "10 { p1.genomes[0].containsMarkerMutation(m1, 1000000, returnMutation=T); stop(); }", 1, 262, "past the end", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "10 { p1.genomes[0].containsMarkerMutation(10, 1000, returnMutation=T); stop(); }", 1, 262, "mutation type m10 not defined", __LINE__);
 	
 	// Test Genome - (logical)containsMutations(object<Mutation> mutations)
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0].containsMutations(object()); stop(); }", __LINE__);

@@ -261,7 +261,7 @@ public:
 	
 	bool contains_mutation(MutationIndex p_mutation_index);
 	
-	bool contains_mutation_with_type_and_position(MutationType *p_mut_type, slim_position_t p_position, slim_position_t p_last_position);
+	Mutation *mutation_with_type_and_position(MutationType *p_mut_type, slim_position_t p_position, slim_position_t p_last_position);
 	
 	inline __attribute__((always_inline)) void pop_back(void)
 	{
