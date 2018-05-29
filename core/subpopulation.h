@@ -155,7 +155,7 @@ public:
 	std::vector<Individual *> parent_individuals_;	// OWNED: objects representing simulated individuals, each of which has two genomes
 	EidosValue_SP cached_parent_individuals_value_;	// cached for the individuals property; self-maintains
 #ifdef SLIM_WF_ONLY
-	double parent_sex_ratio_ = 0.0;					// what sex ratio the parental genomes approximate
+	double parent_sex_ratio_ = 0.0;					// what sex ratio the parental genomes approximate (M:M+F)
 #endif	// SLIM_WF_ONLY
 	
 #ifdef SLIM_WF_ONLY
@@ -170,7 +170,7 @@ public:
 	slim_popsize_t child_first_male_index_ = INT_MAX;	// the index of the first male in the child Genome vector (NOT premultiplied by 2!); equal to the number of females
 	std::vector<Individual *> child_individuals_;	// OWNED: objects representing simulated individuals, each of which has two genomes
 	EidosValue_SP cached_child_individuals_value_;	// cached for the individuals property; self-maintains
-	double child_sex_ratio_ = 0.0;					// what sex ratio the child genomes approximate
+	double child_sex_ratio_ = 0.0;					// what sex ratio the child genomes approximate (M:M+F)
 #endif	// SLIM_WF_ONLY
 	
 #ifdef SLIM_NONWF_ONLY
