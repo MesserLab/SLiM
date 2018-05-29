@@ -536,6 +536,65 @@ out:
 
 
 int
+population_table_load_text(population_table_t *population_table, FILE *file)
+{
+	int ret;
+	int err;
+	size_t k;
+	size_t MAX_LINE = 1024;
+	char *line = NULL;
+	int id;
+	char *metadata;
+	const char *header = "id\tmetadata\n";
+	char *start;
+	
+	line = malloc(MAX_LINE);
+	if (line == NULL) {
+		ret = MSP_ERR_NO_MEMORY;
+		goto out;
+	}
+	k = MAX_LINE;
+	
+	ret = population_table_clear(population_table);
+	if (ret < 0) {
+		goto out;
+	}
+	
+	// check the header
+	ret = MSP_ERR_FILE_FORMAT;
+	err = (int) getline(&line, &k, file);
+	if (err < 0) {
+		goto out;
+	}
+	err = strcmp(line, header);
+	if (err != 0) {
+		goto out;
+	}
+	
+	while ((err = (int) getline(&line, &k, file)) != -1) {
+		start = line;
+		err = get_sep_atoi(&start, &id, '\t');
+		if (err < 0) {
+			goto out;
+		}
+		err = get_sep_atoa(&start, &metadata, '\n');
+		if (err < 0 || *start != '\0') {
+			goto out;
+		}
+		ret = population_table_add_row(population_table,
+								 metadata, (table_size_t) strlen(metadata));
+		if (ret < 0) {
+			goto out;
+		}
+	}
+	ret = 0;
+out:
+	free(line);
+	return ret;
+}
+
+
+int
 provenance_table_load_text(provenance_table_t *provenance_table, FILE *file)
 {
     int ret;
@@ -596,7 +655,7 @@ out:
 int
 table_collection_load_text(table_collection_t *tables, FILE *nodes, FILE *edges,
         FILE *sites, FILE *mutations, FILE *migrations, FILE *individuals, 
-        FILE *provenances)
+        FILE *populations, FILE *provenances)
 {
     int ret;
     table_size_t j;
@@ -634,6 +693,12 @@ table_collection_load_text(table_collection_t *tables, FILE *nodes, FILE *edges,
             goto out;
         }
     }
+	if (populations != NULL) {
+		ret = population_table_load_text(&tables->populations, populations);
+		if (ret != 0) {
+			goto out;
+		}
+	}
     if (provenances != NULL) {
         ret = provenance_table_load_text(&tables->provenances, provenances);
         if (ret != 0) {

@@ -4127,27 +4127,30 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 										std::string SiteFileName,
 										std::string MutationFileName,
 										std::string IndividualsFileName,
+										std::string PopulationFileName,
 										std::string ProvenanceFileName)
 {
     FILE *MspTxtNodeTable = fopen(NodeFileName.c_str(), "r");
     FILE *MspTxtEdgeTable = fopen(EdgeFileName.c_str(), "r");
     FILE *MspTxtSiteTable = fopen(SiteFileName.c_str(), "r");
     FILE *MspTxtMutationTable = fopen(MutationFileName.c_str(), "r");
-    FILE *MspTxtIndividualTable = fopen(IndividualsFileName.c_str(), "r");
+	FILE *MspTxtIndividualTable = fopen(IndividualsFileName.c_str(), "r");
+	FILE *MspTxtPopulationTable = fopen(PopulationFileName.c_str(), "r");
     FILE *MspTxtProvenanceTable = fopen(ProvenanceFileName.c_str(), "r");
 	
 	int ret = table_collection_alloc(&tables, MSP_ALLOC_TABLES);
 	if (ret != 0) handle_error("TreeSequenceDataFromAscii()", ret);
 	RecordTablePosition();
 	
-    ret = table_collection_load_text(&tables,
-            MspTxtNodeTable,
-            MspTxtEdgeTable,
-            MspTxtSiteTable,
-            MspTxtMutationTable,
-            NULL, // migrations
-            MspTxtIndividualTable,
-            MspTxtProvenanceTable);
+	ret = table_collection_load_text(&tables,
+									 MspTxtNodeTable,
+									 MspTxtEdgeTable,
+									 MspTxtSiteTable,
+									 MspTxtMutationTable,
+									 NULL, // migrations
+									 MspTxtIndividualTable,
+									 MspTxtPopulationTable,
+									 MspTxtProvenanceTable);
     if (ret < 0) handle_error("read_from_ascii", ret);
 	
 	// We will be replacing the columns of some of the tables in tables with de-ASCII-fied versions.  That can't be
@@ -4325,6 +4328,68 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 		if (ret < 0) handle_error("convert_from_ascii", ret);
 	}
 	
+	/***** De-ascii-ify Population Table *****/
+	{
+		static_assert(sizeof(SubpopulationMetadataRec) == 88, "SubpopulationMetadataRec has changed size; this code probably needs to be updated");
+		static_assert(sizeof(SubpopulationMigrationMetadataRec) == 12, "SubpopulationMigrationMetadataRec has changed size; this code probably needs to be updated");
+		
+		const char *metadata = tables.populations.metadata;
+		table_size_t *metadata_offset = tables.populations.metadata_offset;
+		char *binary_metadata = NULL;
+		std::vector<table_size_t> binary_metadata_offset;
+		
+		binary_metadata_offset.push_back(0);
+		
+		for (size_t j = 0; j < tables.populations.num_rows; j++)
+		{
+			std::string string_metadata(metadata + metadata_offset[j], metadata_offset[j+1] - metadata_offset[j]);
+			std::vector<std::string> metadata_parts = Eidos_string_split(string_metadata, ",");
+			
+			if (metadata_parts.size() < 12)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::TreeSequenceDataFromAscii): unexpected population metadata length; this file cannot be read." << EidosTerminate();
+			
+			SubpopulationMetadataRec metarec;
+			metarec.subpopulation_id_ = (slim_objectid_t)std::stoll(metadata_parts[0]);
+			metarec.selfing_fraction_ = std::stod(metadata_parts[1]);
+			metarec.female_clone_fraction_ = std::stod(metadata_parts[2]);
+			metarec.male_clone_fraction_ = std::stod(metadata_parts[3]);
+			metarec.sex_ratio_ = std::stod(metadata_parts[4]);
+			metarec.bounds_x0_ = std::stod(metadata_parts[5]);
+			metarec.bounds_x1_ = std::stod(metadata_parts[6]);
+			metarec.bounds_y0_ = std::stod(metadata_parts[7]);
+			metarec.bounds_y1_ = std::stod(metadata_parts[8]);
+			metarec.bounds_z0_ = std::stod(metadata_parts[9]);
+			metarec.bounds_z1_ = std::stod(metadata_parts[10]);
+			metarec.migration_rec_count_ = (int32_t)std::stoll(metadata_parts[11]);
+			
+			if ((int32_t)metadata_parts.size() != (12 + metarec.migration_rec_count_ * 2))
+				EIDOS_TERMINATION << "ERROR (SLiMSim::TreeSequenceDataFromAscii): malformed population metadata record; this file cannot be read." << EidosTerminate();
+			
+			size_t metadata_length = sizeof(SubpopulationMetadataRec) + metarec.migration_rec_count_ * sizeof(SubpopulationMigrationMetadataRec);
+			
+			binary_metadata = (char *)realloc(binary_metadata, binary_metadata_offset[j] + metadata_length);
+			
+			SubpopulationMetadataRec *binary_metadata_subpop_rec = (SubpopulationMetadataRec *)(binary_metadata + binary_metadata_offset[j]);
+			SubpopulationMigrationMetadataRec *binary_metadata_migrations = (SubpopulationMigrationMetadataRec *)(binary_metadata_subpop_rec + 1);
+			
+			*binary_metadata_subpop_rec = metarec;
+			
+			for (int migration_index = 0; migration_index < metarec.migration_rec_count_; ++migration_index)
+			{
+				binary_metadata_migrations[migration_index].source_subpop_id_ = (slim_objectid_t)std::stoll(metadata_parts[12 + migration_index * 2]);
+				binary_metadata_migrations[migration_index].migration_rate_ = std::stod(metadata_parts[12 + migration_index * 2 + 1]);
+			}
+			
+			binary_metadata_offset.push_back((table_size_t)(binary_metadata_offset[j] + metadata_length));
+		}
+		
+		ret = population_table_set_columns(&tables.populations,
+										   tables_copy.populations.num_rows,
+										   binary_metadata,
+										   binary_metadata_offset.data());
+		if (ret < 0) handle_error("convert_from_ascii", ret);
+	}
+	
 	// We are done with our private copy of the table collection
 	table_collection_free(&tables_copy);
 }
@@ -4347,6 +4412,12 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
      ********************************************************/
 	
     /***  Notes: ancestral states are always zero-length, so we don't need to Ascii-ify Site Table ***/
+	
+	// this buffer is used for converting double values to strings
+	static char *double_buf = NULL;
+	
+	if (!double_buf)
+		double_buf = (char *)malloc(40 *sizeof(char));
 	
     /***  Ascii-ify Mutation Table ***/
 	{
@@ -4393,11 +4464,10 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
 				text_mutation_metadata.append(",");
 				
 				static_assert(sizeof(slim_selcoeff_t) == 4, "use EIDOS_DBL_DIGS if slim_selcoeff_t is double");
-				char selcoeff_buf[40];
-				sprintf(selcoeff_buf, "%.*g", EIDOS_FLT_DIGS, struct_mutation_metadata->selection_coeff_);		// necessary precision for non-lossiness
-				text_mutation_metadata.append(selcoeff_buf);
-				
+				sprintf(double_buf, "%.*g", EIDOS_FLT_DIGS, struct_mutation_metadata->selection_coeff_);		// necessary precision for non-lossiness
+				text_mutation_metadata.append(double_buf);
 				text_mutation_metadata.append(",");
+				
 				text_mutation_metadata.append(std::to_string(struct_mutation_metadata->subpop_index_));
 				text_mutation_metadata.append(",");
 				text_mutation_metadata.append(std::to_string(struct_mutation_metadata->origin_generation_));
@@ -4485,16 +4555,89 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
 		if (ret < 0) handle_error("convert_to_ascii", ret);
 	}
 	
+	/***** Ascii-ify Population Table *****/
+	{
+		static_assert(sizeof(SubpopulationMetadataRec) == 88, "SubpopulationMetadataRec has changed size; this code probably needs to be updated");
+		static_assert(sizeof(SubpopulationMigrationMetadataRec) == 12, "SubpopulationMigrationMetadataRec has changed size; this code probably needs to be updated");
+		
+		const char *metadata = p_tables->populations.metadata;
+		table_size_t *metadata_offset = p_tables->populations.metadata_offset;
+		std::string text_metadata;
+		std::vector<table_size_t> text_metadata_offset;
+		
+		text_metadata_offset.push_back(0);
+		
+		for (size_t j = 0; j < p_tables->populations.num_rows; j++)
+		{
+			SubpopulationMetadataRec *struct_population_metadata = (SubpopulationMetadataRec *)(metadata + metadata_offset[j]);
+			SubpopulationMigrationMetadataRec *struct_migration_metadata = (SubpopulationMigrationMetadataRec *)(struct_population_metadata + 1);
+			
+			text_metadata.append(std::to_string(struct_population_metadata->subpopulation_id_));
+			text_metadata.append(",");
+			
+			sprintf(double_buf, "%.*g", EIDOS_FLT_DIGS, struct_population_metadata->selfing_fraction_);
+			text_metadata.append(double_buf);
+			text_metadata.append(",");
+			
+			sprintf(double_buf, "%.*g", EIDOS_FLT_DIGS, struct_population_metadata->female_clone_fraction_);
+			text_metadata.append(double_buf).append(",");
+			
+			sprintf(double_buf, "%.*g", EIDOS_FLT_DIGS, struct_population_metadata->male_clone_fraction_);
+			text_metadata.append(double_buf).append(",");
+			
+			sprintf(double_buf, "%.*g", EIDOS_FLT_DIGS, struct_population_metadata->sex_ratio_);
+			text_metadata.append(double_buf).append(",");
+			
+			sprintf(double_buf, "%.*g", EIDOS_FLT_DIGS, struct_population_metadata->bounds_x0_);
+			text_metadata.append(double_buf).append(",");
+			
+			sprintf(double_buf, "%.*g", EIDOS_FLT_DIGS, struct_population_metadata->bounds_x1_);
+			text_metadata.append(double_buf).append(",");
+			
+			sprintf(double_buf, "%.*g", EIDOS_FLT_DIGS, struct_population_metadata->bounds_y0_);
+			text_metadata.append(double_buf).append(",");
+			
+			sprintf(double_buf, "%.*g", EIDOS_FLT_DIGS, struct_population_metadata->bounds_y1_);
+			text_metadata.append(double_buf).append(",");
+			
+			sprintf(double_buf, "%.*g", EIDOS_FLT_DIGS, struct_population_metadata->bounds_z0_);
+			text_metadata.append(double_buf).append(",");
+			
+			sprintf(double_buf, "%.*g", EIDOS_FLT_DIGS, struct_population_metadata->bounds_z1_);
+			text_metadata.append(double_buf).append(",");
+			
+			text_metadata.append(std::to_string(struct_population_metadata->migration_rec_count_));
+			
+			for (int migration_index = 0; migration_index < struct_population_metadata->migration_rec_count_; ++migration_index)
+			{
+				text_metadata.append(",");
+				
+				text_metadata.append(std::to_string(struct_migration_metadata[migration_index].source_subpop_id_));
+				text_metadata.append(",");
+				
+				sprintf(double_buf, "%.*g", EIDOS_FLT_DIGS, struct_migration_metadata[migration_index].migration_rate_);
+				text_metadata.append(double_buf);
+			}
+			
+			text_metadata_offset.push_back((table_size_t)text_metadata.size());
+		}
+		
+		ret = population_table_set_columns(&p_tables->populations,
+										   tables_copy.populations.num_rows,
+										   text_metadata.c_str(),
+										   text_metadata_offset.data());
+		if (ret < 0) handle_error("convert_to_ascii", ret);
+	}
+	
 	// We are done with our private copy of the table collection
 	table_collection_free(&tables_copy);
 }
 
 void SLiMSim::WriteIndividualTable(table_collection_t *p_tables)
 {
-    individual_id_t MspIndividual;
-
     // This overwrites whatever might be previously in the individual table
     individual_table_clear(&(p_tables->individuals));
+	
     // reset the individual column to -1 (which is MSP_NULL_INDIVIDUAL)
     memset(p_tables->nodes.individual, 0xff, p_tables->nodes.num_rows * sizeof(individual_id_t));
 	
@@ -4520,17 +4663,59 @@ void SLiMSim::WriteIndividualTable(table_collection_t *p_tables)
 			IndividualMetadataRec metadata_rec;
 			MetadataForIndividual(individual, &metadata_rec);
 			
-            MspIndividual = individual_table_add_row(&(p_tables->individuals), flags, location.data(), 
+            individual_id_t msp_individual = individual_table_add_row(&(p_tables->individuals), flags, location.data(), 
                     (uint32_t)location.size(), (char *)&metadata_rec,
                     (uint32_t)sizeof(IndividualMetadataRec));
-            if (MspIndividual < 0) handle_error("individual_table_add_row", MspIndividual);
-
+            if (msp_individual < 0) handle_error("individual_table_add_row", msp_individual);
+			
             // Update node table
             assert(individual->genome1_->msp_node_id_ < (node_id_t) p_tables->nodes.num_rows
                     && individual->genome2_->msp_node_id_ < (node_id_t) p_tables->nodes.num_rows);
-            p_tables->nodes.individual[individual->genome1_->msp_node_id_] = MspIndividual;
-            p_tables->nodes.individual[individual->genome2_->msp_node_id_] = MspIndividual;
+            p_tables->nodes.individual[individual->genome1_->msp_node_id_] = msp_individual;
+            p_tables->nodes.individual[individual->genome2_->msp_node_id_] = msp_individual;
 		}
+	}
+}
+
+void SLiMSim::WritePopulationTable(table_collection_t *p_tables)
+{
+	// This overwrites whatever might be previously in the population table
+	population_table_clear(&(p_tables->populations));
+	
+	for (auto subpop_iter : population_)
+	{
+		Subpopulation *subpop = subpop_iter.second;
+		size_t migration_rec_count = subpop->migrant_fractions_.size();
+		size_t metadata_length = sizeof(SubpopulationMetadataRec) + migration_rec_count * sizeof(SubpopulationMigrationMetadataRec);
+		SubpopulationMetadataRec *metadata_rec = (SubpopulationMetadataRec *)malloc(metadata_length);
+		SubpopulationMigrationMetadataRec *migration_rec_base = (SubpopulationMigrationMetadataRec *)(metadata_rec + 1);
+		
+		metadata_rec->subpopulation_id_ = subpop->subpopulation_id_;
+		metadata_rec->selfing_fraction_ = subpop->selfing_fraction_;
+		metadata_rec->female_clone_fraction_ = subpop->female_clone_fraction_;
+		metadata_rec->male_clone_fraction_ = subpop->male_clone_fraction_;
+		metadata_rec->sex_ratio_ = subpop->parent_sex_ratio_;
+		metadata_rec->bounds_x0_ = subpop->bounds_x0_;
+		metadata_rec->bounds_x1_ = subpop->bounds_x1_;
+		metadata_rec->bounds_y0_ = subpop->bounds_y0_;
+		metadata_rec->bounds_y1_ = subpop->bounds_y1_;
+		metadata_rec->bounds_z0_ = subpop->bounds_z0_;
+		metadata_rec->bounds_z1_ = subpop->bounds_z1_;
+		metadata_rec->migration_rec_count_ = (int32_t)migration_rec_count;
+		
+		int migration_index = 0;
+		
+		for (std::pair<slim_objectid_t,double> migration_pair : subpop->migrant_fractions_)
+		{
+			migration_rec_base[migration_index].source_subpop_id_ = migration_pair.first;
+			migration_rec_base[migration_index].migration_rate_ = migration_pair.second;
+			migration_index++;
+		}
+		
+		population_id_t msp_population = population_table_add_row(&(p_tables->populations), (char *)metadata_rec, (uint32_t)metadata_length);
+		free(metadata_rec);
+		
+		if (msp_population < 0) handle_error("population_table_add_row", msp_population);
 	}
 }
 
@@ -4673,9 +4858,12 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
     ret = table_collection_compute_mutation_parents(&output_tables, 0);
     if (ret < 0) handle_error("compute_mutation_parents", ret);
 	
-	// Add an individuals table to the table collection; individuals information comes from the time of output, not creation
+	// Add an individual table to the table collection; individuals information comes from the time of output, not creation
 	WriteIndividualTable(&output_tables);
-
+	
+	// Add a population (i.e., subpopulation) table to the table collection; subpopulation information comes from the time of output
+	WritePopulationTable(&output_tables);
+	
     // Add a row to the Provenance table to record current state
     WriteProvenanceTable(&output_tables);
 	
@@ -4698,14 +4886,16 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 			std::string EdgeFileName = path + "/EdgeTable.txt";
 			std::string SiteFileName = path + "/SiteTable.txt";
 			std::string MutationFileName = path + "/MutationTable.txt";
-			std::string IndividualsFileName = path + "/IndividualTable.txt";
+			std::string IndividualFileName = path + "/IndividualTable.txt";
+			std::string PopulationFileName = path + "/PopulationTable.txt";
 			std::string ProvenanceFileName = path + "/ProvenanceTable.txt";
 			
 			FILE *MspTxtNodeTable = fopen(NodeFileName.c_str(), "w");
 			FILE *MspTxtEdgeTable = fopen(EdgeFileName.c_str(), "w");
 			FILE *MspTxtSiteTable = fopen(SiteFileName.c_str(), "w");
 			FILE *MspTxtMutationTable = fopen(MutationFileName.c_str(), "w");
-			FILE *MspTxtIndividualTable = fopen(IndividualsFileName.c_str(), "w");
+			FILE *MspTxtIndividualTable = fopen(IndividualFileName.c_str(), "w");
+			FILE *MspTxtPopulationTable = fopen(PopulationFileName.c_str(), "w");
 			FILE *MspTxtProvenanceTable = fopen(ProvenanceFileName.c_str(), "w");
 			
 			node_table_dump_text(&(output_tables.nodes), MspTxtNodeTable);
@@ -4713,6 +4903,7 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 			site_table_dump_text(&(output_tables.sites), MspTxtSiteTable);
 			mutation_table_dump_text(&(output_tables.mutations), MspTxtMutationTable);
 			individual_table_dump_text(&(output_tables.individuals), MspTxtIndividualTable);
+			population_table_dump_text(&(output_tables.populations), MspTxtPopulationTable);
 			provenance_table_dump_text(&(output_tables.provenances), MspTxtProvenanceTable);
 			
 			fclose(MspTxtNodeTable);
@@ -4720,6 +4911,7 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 			fclose(MspTxtSiteTable);
 			fclose(MspTxtMutationTable);
 			fclose(MspTxtIndividualTable);
+			fclose(MspTxtPopulationTable);
 			fclose(MspTxtProvenanceTable);
 		}
 		else
@@ -5469,6 +5661,107 @@ void SLiMSim::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 	}
 }
 
+void SLiMSim::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interpreter)
+{
+	population_table_t &pop_table = tables.populations;
+	table_size_t pop_count = pop_table.num_rows;
+	
+	if ((model_type_ == SLiMModelType::kModelTypeWF) && ((size_t)pop_count != population_.size()))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): subpopulation count mismatch; this file cannot be read." << EidosTerminate();
+	
+	for (table_size_t pop_index = 0; pop_index < pop_count; pop_index++)
+	{
+		size_t metadata_length = pop_table.metadata_offset[pop_index + 1] - pop_table.metadata_offset[pop_index];
+		char *metadata_char = pop_table.metadata + pop_table.metadata_offset[pop_index];
+		
+		if (metadata_length < sizeof(SubpopulationMetadataRec))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): malformed population metadata; this file cannot be read." << EidosTerminate();
+		
+		SubpopulationMetadataRec *metadata = (SubpopulationMetadataRec *)metadata_char;
+		SubpopulationMigrationMetadataRec *migration_recs = (SubpopulationMigrationMetadataRec *)(metadata + 1);
+		slim_objectid_t subpop_id = metadata->subpopulation_id_;
+		auto subpop_iter = population_.find(subpop_id);
+		Subpopulation *subpop = (subpop_iter == population_.end()) ? nullptr : subpop_iter->second;
+		
+		if (!subpop)
+		{
+			// in a WF model it is an error to have an referenced subpop that is empty
+			if (model_type_ == SLiMModelType::kModelTypeWF)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): referenced subpopulation is empty; this file cannot be read." << EidosTerminate();
+			
+			// If a nonWF model an empty subpop is legal, so create it without recording
+			recording_tree_ = false;
+			subpop = population_.AddSubpopulation(subpop_id, 0, 0.5);
+			recording_tree_ = true;
+			
+			// define a new Eidos variable to refer to the new subpopulation
+			EidosSymbolTableEntry &symbol_entry = subpop->SymbolTableEntry();
+			
+			if (p_interpreter && p_interpreter->SymbolTable().ContainsSymbol(symbol_entry.first))
+				EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): new subpopulation symbol " << Eidos_StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here; this file cannot be read." << EidosTerminate();
+			
+			simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
+		}
+		
+		if (model_type_ == SLiMModelType::kModelTypeWF)
+		{
+			subpop->selfing_fraction_ = metadata->selfing_fraction_;
+			subpop->female_clone_fraction_ = metadata->female_clone_fraction_;
+			subpop->male_clone_fraction_ = metadata->male_clone_fraction_;
+			subpop->child_sex_ratio_ = metadata->sex_ratio_;
+			
+			if (!sex_enabled_ && (subpop->female_clone_fraction_ != subpop->male_clone_fraction_))
+				EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): cloning rate mismatch for non-sexual model; this file cannot be read." << EidosTerminate();
+			if (sex_enabled_ && (subpop->selfing_fraction_ != 0.0))
+				EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): selfing rate may be non-zero only for hermaphoditic models; this file cannot be read." << EidosTerminate();
+			if ((subpop->female_clone_fraction_ < 0.0) || (subpop->female_clone_fraction_ > 1.0) ||
+				(subpop->male_clone_fraction_ < 0.0) || (subpop->male_clone_fraction_ > 1.0) ||
+				(subpop->selfing_fraction_ < 0.0) || (subpop->selfing_fraction_ > 1.0))
+				EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): out-of-range value for cloning rate or selfing rate; this file cannot be read." << EidosTerminate();
+			if (sex_enabled_ && ((subpop->child_sex_ratio_ < 0.0) || (subpop->child_sex_ratio_ > 1.0)))
+				EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): out-of-range value for sex ratio; this file cannot be read." << EidosTerminate();
+		}
+		
+		subpop->bounds_x0_ = metadata->bounds_x0_;
+		subpop->bounds_x1_ = metadata->bounds_x1_;
+		subpop->bounds_y0_ = metadata->bounds_y0_;
+		subpop->bounds_y1_ = metadata->bounds_y1_;
+		subpop->bounds_z0_ = metadata->bounds_z0_;
+		subpop->bounds_z1_ = metadata->bounds_z1_;
+		
+		if (((spatial_dimensionality_ >= 1) && (subpop->bounds_x0_ >= subpop->bounds_x1_)) ||
+			((spatial_dimensionality_ >= 2) && (subpop->bounds_y0_ >= subpop->bounds_y1_)) ||
+			((spatial_dimensionality_ >= 3) && (subpop->bounds_z0_ >= subpop->bounds_z1_)))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): unsorted spatial bounds; this file cannot be read." << EidosTerminate();
+		if (((spatial_dimensionality_ >= 1) && periodic_x_ && (subpop->bounds_x0_ != 0.0)) ||
+			((spatial_dimensionality_ >= 2) && periodic_y_ && (subpop->bounds_y0_ != 0.0)) ||
+			((spatial_dimensionality_ >= 3) && periodic_z_ && (subpop->bounds_z0_ != 0.0)))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): periodic bounds must have a minimum coordinate of 0.0; this file cannot be read." << EidosTerminate();
+		
+		int32_t migration_rec_count = metadata->migration_rec_count_;
+		
+		if (metadata_length != sizeof(SubpopulationMetadataRec) + migration_rec_count * sizeof(SubpopulationMigrationMetadataRec))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): malformed migration metadata; this file cannot be read." << EidosTerminate();
+		if ((model_type_ == SLiMModelType::kModelTypeNonWF) && (migration_rec_count > 0))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): migration rates cannot be provided in a nonWF model; this file cannot be read." << EidosTerminate();
+		
+		for (int migration_index = 0; migration_index < migration_rec_count; ++migration_index)
+		{
+			slim_objectid_t source_id = migration_recs[migration_index].source_subpop_id_;
+			double rate = migration_recs[migration_index].migration_rate_;
+			
+			if (source_id == subpop_id)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): self-referential migration record; this file cannot be read." << EidosTerminate();
+			if (subpop->migrant_fractions_.find(source_id) != subpop->migrant_fractions_.end())
+				EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): duplicate migration record; this file cannot be read." << EidosTerminate();
+			if ((rate < 0.0) || (rate > 1.0))
+				EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): out-of-range migration rate; this file cannot be read." << EidosTerminate();
+			
+			subpop->migrant_fractions_.insert(std::pair<slim_objectid_t, double>(source_id, rate));
+		}
+	}
+}
+
 typedef struct ts_mut_info {
 	slim_position_t position;
 	MutationMetadataRec *metadata;
@@ -5809,6 +6102,7 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 		
 		__TabulateSubpopulationsFromTreeSequence(subpopInfoMap, ts);
 		__CreateSubpopulationsFromTabulation(subpopInfoMap, p_interpreter, nodeToGenomeMap);
+		__ConfigureSubpopulationsFromTables(p_interpreter);
 	}
 	
 	std::unordered_map<slim_mutationid_t, MutationIndex> mutIndexMap;
@@ -5863,9 +6157,10 @@ slim_generation_t SLiMSim::_InitializePopulationFromMSPrimeTextFile(const char *
 	std::string site_path = directory_path + "/SiteTable.txt";
 	std::string mutation_path = directory_path + "/MutationTable.txt";
 	std::string individual_path = directory_path + "/IndividualTable.txt";
+	std::string population_path = directory_path + "/PopulationTable.txt";
 	std::string provenance_path = directory_path + "/ProvenanceTable.txt";
 	
-	TreeSequenceDataFromAscii(node_path, edge_path, site_path, mutation_path, individual_path, provenance_path);
+	TreeSequenceDataFromAscii(node_path, edge_path, site_path, mutation_path, individual_path, population_path, provenance_path);
 	
 	// make the corresponding SLiM objects
 	return _InstantiateSLiMObjectsFromTables(p_interpreter);

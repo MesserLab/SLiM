@@ -136,14 +136,37 @@ typedef struct __attribute__((__packed__)) {
 
 typedef struct __attribute__((__packed__)) {
 	slim_pedigreeid_t pedigree_id_;			// 8 bytes (int64_t): the SLiM pedigree ID for this individual, assigned by pedigree rec
-	slim_age_t age_;                        // 4 bytes (int32_t)
-	slim_objectid_t subpopulation_id_;      // 4 bytes (int32_t)
+	slim_age_t age_;                        // 4 bytes (int32_t): the age of the individual (-1 for WF models)
+	slim_objectid_t subpopulation_id_;      // 4 bytes (int32_t): the subpopulation the individual belongs to
 } IndividualMetadataRec;
+
+typedef struct __attribute__((__packed__)) {
+	slim_objectid_t subpopulation_id_;      // 4 bytes (int32_t): the id of this subpopulation
+	double selfing_fraction_;				// 8 bytes (double): selfing fraction (unused in non-sexual models), unused in nonWF models
+	double female_clone_fraction_;			// 8 bytes (double): cloning fraction (females / hermaphrodites), unused in nonWF models
+	double male_clone_fraction_;			// 8 bytes (double): cloning fraction (males / hermaphrodites), unused in nonWF models
+	double sex_ratio_;						// 8 bytes (double): sex ratio (M:M+F), unused in nonWF models
+	double bounds_x0_;						// 8 bytes (double): spatial bounds, unused in non-spatial models
+	double bounds_x1_;						// 8 bytes (double): spatial bounds, unused in non-spatial models
+	double bounds_y0_;						// 8 bytes (double): spatial bounds, unused in non-spatial / 1D models
+	double bounds_y1_;						// 8 bytes (double): spatial bounds, unused in non-spatial / 1D models
+	double bounds_z0_;						// 8 bytes (double): spatial bounds, unused in non-spatial / 1D / 2D models
+	double bounds_z1_;						// 8 bytes (double): spatial bounds, unused in non-spatial / 1D / 2D models
+	int32_t migration_rec_count_;			// 4 bytes (int32_t): the number of migration records, 0 in nonWF models
+	// followed by migration_rec_count_ instances of SubpopulationMigrationMetadataRec
+} SubpopulationMetadataRec;
+
+typedef struct __attribute__((__packed__)) {
+	slim_objectid_t source_subpop_id_;		// 4 bytes (int32_t): the id of the source subpopulation, unused in nonWF models
+	double migration_rate_;					// 8 bytes (double): the migration rate from source_subpop_id_, unused in nonWF models
+} SubpopulationMigrationMetadataRec;
 
 // We double-check the size of these records to make sure we understand what they contain and how they're packed
 static_assert(sizeof(MutationMetadataRec) == 16, "MutationMetadataRec is not 16 bytes!");
 static_assert(sizeof(GenomeMetadataRec) == 10, "GenomeMetadataRec is not 10 bytes!");
 static_assert(sizeof(IndividualMetadataRec) == 16, "IndividualMetadataRec is not 8 bytes!");
+static_assert(sizeof(SubpopulationMetadataRec) == 88, "SubpopulationMetadataRec is not 88 bytes!");
+static_assert(sizeof(SubpopulationMigrationMetadataRec) == 12, "SubpopulationMigrationMetadataRec is not 12 bytes!");
 
 // We check endianness on the platform we're building on; we assume little-endianness in our read/write code, I think.
 #if defined(__BYTE_ORDER__)
@@ -478,6 +501,7 @@ public:
 	void RecordNewDerivedState(const Genome *p_genome, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations);
 	void RetractNewIndividual(void);
 	void WriteIndividualTable(table_collection_t *p_tables);
+	void WritePopulationTable(table_collection_t *p_tables);
 	void WriteProvenanceTable(table_collection_t *p_tables);
 	void ReadProvenanceTable(table_collection_t *p_tables, slim_generation_t *p_generation, size_t *p_remembered_genome_count);
 	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify);
@@ -485,7 +509,7 @@ public:
 	void CheckAutoSimplification(void);
     void TreeSequenceDataFromAscii(std::string NodeFileName, 
             std::string EdgeFileName, std::string SiteFileName, std::string MutationFileName, 
-            std::string IndividualsFileName, std::string ProvenanceFileName);
+            std::string IndividualsFileName, std::string PopulationFileName, std::string ProvenanceFileName);
 	void RememberGenomes(std::vector<const Genome *> p_genomes);
 	void FreeTreeSequence(void);
 	void RecordAllDerivedStatesFromSLiM(void);
@@ -495,6 +519,7 @@ public:
 	
 	void __TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, tree_sequence_t *p_ts);
 	void __CreateSubpopulationsFromTabulation(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, EidosInterpreter *p_interpreter, std::unordered_map<node_id_t, Genome *> &p_nodeToGenomeMap);
+	void __ConfigureSubpopulationsFromTables(EidosInterpreter *p_interpreter);
 	void __TabulateMutationsFromTables(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap);
 	void __TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap, std::unordered_map<node_id_t, Genome *> p_nodeToGenomeMap, tree_sequence_t *p_ts);
 	void __CreateMutationsFromTabulation(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutInfoMap, std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap);

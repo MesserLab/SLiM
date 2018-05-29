@@ -439,12 +439,13 @@ int population_table_alloc(population_table_t *self, size_t max_rows_increment,
 population_id_t population_table_add_row(population_table_t *self,
         const char *metadata, size_t metadata_length);
 int population_table_set_columns(population_table_t *self, size_t num_rows,
-       char *metadata, table_size_t *metadata_offset);
+       const char *metadata, table_size_t *metadata_offset);
 int population_table_append_columns(population_table_t *self, size_t num_rows,
-        char *metadata, table_size_t *metadata_offset);
+        const char *metadata, table_size_t *metadata_offset);
 int population_table_clear(population_table_t *self);
 int population_table_copy(population_table_t *self, population_table_t *dest);
 int population_table_free(population_table_t *self);
+int population_table_dump_text(population_table_t *self, FILE *out);
 void population_table_print_state(population_table_t *self, FILE *out);
 bool population_table_equal(population_table_t *self, population_table_t *other);
 

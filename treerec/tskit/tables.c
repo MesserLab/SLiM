@@ -2280,7 +2280,7 @@ population_table_copy(population_table_t *self, population_table_t *dest)
 
 int
 population_table_set_columns(population_table_t *self, size_t num_rows,
-        char *metadata, uint32_t *metadata_offset)
+        const char *metadata, uint32_t *metadata_offset)
 {
     int ret;
 
@@ -2295,7 +2295,7 @@ out:
 
 int
 population_table_append_columns(population_table_t *self, size_t num_rows,
-        char *metadata, uint32_t *metadata_offset)
+        const char *metadata, uint32_t *metadata_offset)
 {
     int ret;
     table_size_t j, metadata_length;
@@ -2410,6 +2410,31 @@ population_table_print_state(population_table_t *self, FILE *out)
     }
     assert(self->metadata_offset[0] == 0);
     assert(self->metadata_offset[self->num_rows] == self->metadata_length);
+}
+
+int
+population_table_dump_text(population_table_t *self, FILE *out)
+{
+	size_t j;
+	int ret = MSP_ERR_IO;
+	int err;
+	table_size_t metadata_len;
+	
+	err = fprintf(out, "id\tmetadata\n");
+	if (err < 0) {
+		goto out;
+	}
+	for (j = 0; j < self->num_rows; j++) {
+		metadata_len = self->metadata_offset[j + 1] - self->metadata_offset[j];
+		err = fprintf(out, "%d\t%.*s\n", (int) j,
+					  metadata_len, self->metadata + self->metadata_offset[j]);
+		if (err < 0) {
+			goto out;
+		}
+	}
+	ret = 0;
+out:
+	return ret;
 }
 
 bool
