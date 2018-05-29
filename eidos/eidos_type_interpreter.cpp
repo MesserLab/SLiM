@@ -63,6 +63,21 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluateInterpreterBlock()
 	return result_type;
 }
 
+// this is a front end for TypeEvaluateInterpreterBlock() that supports autocompletion of argument names in functions and
+// method calls; it just needs to know the position of the end of the script string (where completion is occurring)
+EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluateInterpreterBlock_AddArgumentCompletions(std::vector<std::string> *p_argument_completions, size_t p_script_length)
+{
+	argument_completions_ = p_argument_completions;
+	script_length_ = p_script_length;
+	
+	EidosTypeSpecifier ret = TypeEvaluateInterpreterBlock();
+	
+	argument_completions_ = nullptr;
+	script_length_ = 0;
+	
+	return ret;
+}
+
 EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluateNode(const EidosASTNode *p_node)
 {
 	if (p_node)
@@ -265,8 +280,8 @@ void EidosTypeInterpreter::_ProcessArgumentListTypes(const EidosASTNode *p_node,
 	// Run through the argument nodes, evaluate them, and put the resulting pointers into the arguments buffer,
 	// interleaving default arguments and handling named arguments as we go.
 	auto node_children_end = node_children.end();
-	auto sig_arg_index = 0;
-	auto sig_arg_count = (int)p_call_signature->arg_name_IDs_.size();
+	int sig_arg_index = 0;
+	int sig_arg_count = (int)p_call_signature->arg_name_IDs_.size();
 	//bool had_named_argument = false;
 	
 	for (auto child_iter = node_children.begin() + 1; child_iter != node_children_end; ++child_iter)
@@ -280,6 +295,38 @@ void EidosTypeInterpreter::_ProcessArgumentListTypes(const EidosASTNode *p_node,
 				// We have a non-named argument; it will go into the next argument slot from the signature
 				// In EidosInterpreter it is an error if had_named_argument is set here; here, we ignore that
 				
+				// If this argument is the very last thing in the script string, then the user is trying to complete on it;
+				// in that case, we add potential matches to the completion list, providing autocompletion of argument names.
+				// We may be completing off an identifier (with partial typing), or off a bad token (with no typing).
+				// That token should be at or after the script end (if it is a bad token it may be immediately after, since
+				// it may have gotten its position from an EOF at the end of the token stream).
+				if (argument_completions_ &&
+					((child->token_->token_type_ == EidosTokenType::kTokenIdentifier) || (child->token_->token_type_ == EidosTokenType::kTokenBad)) &&
+					(script_length_ <= (size_t)child->token_->token_end_ + 1))
+				{
+					const std::string &arg_base = child->token_->token_string_;
+					size_t arg_base_length = arg_base.length();
+					
+					// Check each argument in the signature as a possibility for completion
+					for (int sig_arg_match_index = sig_arg_index; sig_arg_match_index < sig_arg_count; ++sig_arg_match_index)
+					{
+						EidosGlobalStringID arg_name_ID = p_call_signature->arg_name_IDs_[sig_arg_match_index];
+						const std::string &arg_name = Eidos_StringForGlobalStringID(arg_name_ID);
+						
+						// To be a completion match, the name must have the token string as a prefix, and not be private API ('_' prefix)
+						if (arg_name.length() > arg_base_length)
+							if (arg_name.substr(0, arg_base_length) == arg_base)
+								if (arg_name[0] != '_')
+									argument_completions_->push_back(arg_name);
+						
+						// If the argument we just examined is non-optional, we don't want to offer any further suggestions
+						// since they would not be legal to supply in this position in the function/method call.
+						if (!(p_call_signature->arg_masks_[sig_arg_match_index] & kEidosValueMaskOptional))
+							break;
+					}
+				}
+				
+				// Advance to the next argument slot
 				sig_arg_index++;
 			}
 			else

@@ -2100,6 +2100,29 @@
 	return 0;
 }
 
+- (NSArray *)insertArgumentNameCompletions:(std::vector<std::string> *)argumentCompletions before:(NSArray *)otherCompletions
+{
+	// put argument-name completions, if any, at the top of the list; we unique them (preserving order) and add "="
+	if (argumentCompletions && argumentCompletions->size())
+	{
+		NSMutableArray *completionsWithArgs = [NSMutableArray array];
+		
+		for (std::string &arg_completion : *argumentCompletions)
+		{
+			NSString *argNameString = [NSString stringWithUTF8String:arg_completion.c_str()];
+			NSString *argNameWithEquals = [argNameString stringByAppendingString:@"="];
+			
+			if (![completionsWithArgs containsObject:argNameWithEquals])
+				[completionsWithArgs addObject:argNameWithEquals];
+		}
+		
+		[completionsWithArgs addObjectsFromArray:otherCompletions];
+		return completionsWithArgs;
+	}
+	
+	return otherCompletions;
+}
+
 // one funnel for all completion work, since we use the same pattern to answer both questions...
 - (void)_completionHandlerWithRangeForCompletion:(NSRange *)baseRange completions:(NSArray **)completions
 {
@@ -2133,11 +2156,12 @@
 		EidosCallTypeTable callTypeTable;
 		EidosCallTypeTable *callTypeTablePtr = &callTypeTable;
 		NSMutableArray *keywords = [NSMutableArray arrayWithObjects:@"break", @"do", @"else", @"for", @"if", @"in", @"next", @"return", @"while", @"function", nil];
+		std::vector<std::string> argumentCompletions;
 		BOOL delegateHandled = NO;
 		
-		if ([delegate respondsToSelector:@selector(eidosTextView:completionContextWithScriptString:selection:typeTable:functionMap:callTypeTable:keywords:)])
+		if ([delegate respondsToSelector:@selector(eidosTextView:completionContextWithScriptString:selection:typeTable:functionMap:callTypeTable:keywords:argumentNameCompletions:)])
 		{
-			delegateHandled = [delegate eidosTextView:self completionContextWithScriptString:scriptSubstring selection:selection typeTable:&typeTablePtr functionMap:&functionMapPtr callTypeTable:&callTypeTablePtr keywords:keywords];
+			delegateHandled = [delegate eidosTextView:self completionContextWithScriptString:scriptSubstring selection:selection typeTable:&typeTablePtr functionMap:&functionMapPtr callTypeTable:&callTypeTablePtr keywords:keywords argumentNameCompletions:&argumentCompletions];
 		}
 		
 		// set up automatic disposal of a substitute type table or function map provided by delegate
@@ -2182,7 +2206,7 @@
 			
 			EidosTypeInterpreter typeInterpreter(script, *typeTablePtr, *functionMapPtr, *callTypeTablePtr);
 			
-			typeInterpreter.TypeEvaluateInterpreterBlock();	// result not used
+			typeInterpreter.TypeEvaluateInterpreterBlock_AddArgumentCompletions(&argumentCompletions, script_string.length());	// result not used
 		}
 		
 #if EIDOS_DEBUG_COMPLETION
@@ -2311,7 +2335,13 @@
 				}
 				
 				if (baseRange) *baseRange = NSMakeRange(selection.location + rangeOffset, 0);
-				if (completions) *completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:NO withTypes:typeTablePtr functions:functionMapPtr callTypes:callTypeTablePtr keywords:keywords];
+				if (completions)
+				{
+					NSArray *otherCompletions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:NO withTypes:typeTablePtr functions:functionMapPtr callTypes:callTypeTablePtr keywords:keywords];
+					
+					*completions = [self insertArgumentNameCompletions:&argumentCompletions before:otherCompletions];
+				}
+				
 				return;
 			}
 			else
@@ -2322,7 +2352,12 @@
 				if (token_type >= EidosTokenType::kTokenIdentifier)
 				{
 					if (baseRange) *baseRange = NSMakeRange(tokenRange.location + rangeOffset, tokenRange.length);
-					if (completions) *completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:YES withTypes:typeTablePtr functions:functionMapPtr callTypes:callTypeTablePtr keywords:keywords];
+					if (completions)
+					{
+						NSArray *otherCompletions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:YES withTypes:typeTablePtr functions:functionMapPtr callTypes:callTypeTablePtr keywords:keywords];
+						
+						*completions = [self insertArgumentNameCompletions:&argumentCompletions before:otherCompletions];
+					}
 					return;
 				}
 				
@@ -2334,7 +2369,12 @@
 				}
 				
 				if (baseRange) *baseRange = NSMakeRange(selection.location + rangeOffset, 0);
-				if (completions) *completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:NO withTypes:typeTablePtr functions:functionMapPtr callTypes:callTypeTablePtr keywords:keywords];
+				if (completions)
+				{
+					NSArray *otherCompletions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:NO withTypes:typeTablePtr functions:functionMapPtr callTypes:callTypeTablePtr keywords:keywords];
+					
+					*completions = [self insertArgumentNameCompletions:&argumentCompletions before:otherCompletions];
+				}
 				return;
 			}
 		}

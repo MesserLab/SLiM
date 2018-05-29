@@ -55,6 +55,10 @@ protected:
 	EidosCallTypeTable &call_type_map_;			// NOT OWNED: a map table of types for function calls encountered, keyed by position
 	bool defines_only_;							// if true, we add symbols only for defineConstant() calls, not for assignments
 	
+	// for autocompletion of argument names, set up by TypeEvaluateInterpreterBlock_AddArgumentCompletions()
+	std::vector<std::string> *argument_completions_ = nullptr;
+	size_t script_length_ = 0;
+	
 public:
 	
 	EidosTypeInterpreter(const EidosTypeInterpreter&) = delete;					// no copying
@@ -72,6 +76,7 @@ public:
 	
 	// Evaluation methods; the caller owns the returned EidosValue object
 	EidosTypeSpecifier TypeEvaluateInterpreterBlock();	// the starting point for executed blocks in Eidos, which do not require braces
+	EidosTypeSpecifier TypeEvaluateInterpreterBlock_AddArgumentCompletions(std::vector<std::string> *p_argument_completions, size_t p_script_length);	// for autocompletion of argument names
 	
 	EidosTypeSpecifier TypeEvaluateNode(const EidosASTNode *p_node);
 	

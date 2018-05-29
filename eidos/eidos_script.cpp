@@ -1709,7 +1709,9 @@ EidosASTNode *EidosScript::Parse_PrimaryExpr(void)
 			}
 			
 			// We're doing an error-tolerant parse, so we introduce a bad node here as a placeholder for a missing primary expression
-			EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, 0, 0, 0, 0);
+			// BCH 5/29/2018: changing to use the position of current_token_, so the bad token has a known position here; this allows code completion
+			// to suggest argument names inside functions and methods from an empty base.  See EidosTypeInterpreter::_ProcessArgumentListTypes().
+			EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, current_token_->token_start_, current_token_->token_start_, current_token_->token_UTF16_start_, current_token_->token_UTF16_start_);
 			EidosASTNode *bad_node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(bad_token, true);
 			
 			node = bad_node;

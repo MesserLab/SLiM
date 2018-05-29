@@ -3577,7 +3577,7 @@
 	return [self eidosConsoleWindowController:nullptr helpTextForClickedText:clickedText];
 }
 
-- (BOOL)eidosTextView:(EidosTextView *)eidosTextView completionContextWithScriptString:(NSString *)completionScriptString selection:(NSRange)selection typeTable:(EidosTypeTable **)typeTable functionMap:(EidosFunctionMap **)functionMap callTypeTable:(EidosCallTypeTable **)callTypeTable keywords:(NSMutableArray *)keywords
+- (BOOL)eidosTextView:(EidosTextView *)eidosTextView completionContextWithScriptString:(NSString *)completionScriptString selection:(NSRange)selection typeTable:(EidosTypeTable **)typeTable functionMap:(EidosFunctionMap **)functionMap callTypeTable:(EidosCallTypeTable **)callTypeTable keywords:(NSMutableArray *)keywords argumentNameCompletions:(std::vector<std::string> *)argNameCompletions
 {
 	// Code completion in the console window and other ancillary EidosTextViews should use the standard code completion
 	// machinery in EidosTextView.  In the script view, however, we want things to behave somewhat differently.  In
@@ -3840,7 +3840,7 @@
 							// We use SLiMTypeInterpreter because we want to pick up definitions of SLiM constants
 							SLiMTypeInterpreter typeInterpreter(block_statement_root, **typeTable, **functionMap, **callTypeTable);
 							
-							typeInterpreter.TypeEvaluateInterpreterBlock();	// result not used
+							typeInterpreter.TypeEvaluateInterpreterBlock_AddArgumentCompletions(argNameCompletions, script_string.length());	// result not used
 							
 							return YES;
 						}
