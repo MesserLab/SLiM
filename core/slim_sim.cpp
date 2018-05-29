@@ -244,29 +244,36 @@ SLiMFileFormat SLiMSim::FormatOfPopulationFile(const std::string &p_file_string)
 		{
 			// The path is for a whole directory.  The only file format we recognize that is directory-based is the
 			// msprime text (i.e. non-binary) format, which requires files with specific names inside; let's check.
-			// The files should be named EdgeTable.txt, NodeTable.txt, and SiteTable.txt, at present; there may
-			// be an IndividualTable.txt and a MutationTable.txt, but they are not required since mutations may not
-			// be present.
-			std::string edge_path = p_file_string + "/EdgeTable.txt";
+			// The files should be named EdgeTable.txt, NodeTable.txt, SiteTable.txt, etc.; we require all files to
+			// be present, for simplicity.
+			std::string NodeFileName = p_file_string + "/NodeTable.txt";
+			std::string EdgeFileName = p_file_string + "/EdgeTable.txt";
+			std::string SiteFileName = p_file_string + "/SiteTable.txt";
+			std::string MutationFileName = p_file_string + "/MutationTable.txt";
+			std::string IndividualFileName = p_file_string + "/IndividualTable.txt";
+			std::string PopulationFileName = p_file_string + "/PopulationTable.txt";
+			std::string ProvenanceFileName = p_file_string + "/ProvenanceTable.txt";
 			
-			if (stat(edge_path.c_str(), &statbuf) != 0)
-				return SLiMFileFormat::kFormatUnrecognized;
-			if (!S_ISREG(statbuf.st_mode))
-				return SLiMFileFormat::kFormatUnrecognized;
+			if (stat(NodeFileName.c_str(), &statbuf) != 0)			return SLiMFileFormat::kFormatUnrecognized;
+			if (!S_ISREG(statbuf.st_mode))							return SLiMFileFormat::kFormatUnrecognized;
 			
-			std::string node_path = p_file_string + "/NodeTable.txt";
+			if (stat(EdgeFileName.c_str(), &statbuf) != 0)			return SLiMFileFormat::kFormatUnrecognized;
+			if (!S_ISREG(statbuf.st_mode))							return SLiMFileFormat::kFormatUnrecognized;
 			
-			if (stat(node_path.c_str(), &statbuf) != 0)
-				return SLiMFileFormat::kFormatUnrecognized;
-			if (!S_ISREG(statbuf.st_mode))
-				return SLiMFileFormat::kFormatUnrecognized;
+			if (stat(SiteFileName.c_str(), &statbuf) != 0)			return SLiMFileFormat::kFormatUnrecognized;
+			if (!S_ISREG(statbuf.st_mode))							return SLiMFileFormat::kFormatUnrecognized;
 			
-			std::string site_path = p_file_string + "/SiteTable.txt";
+			if (stat(MutationFileName.c_str(), &statbuf) != 0)		return SLiMFileFormat::kFormatUnrecognized;
+			if (!S_ISREG(statbuf.st_mode))							return SLiMFileFormat::kFormatUnrecognized;
 			
-			if (stat(site_path.c_str(), &statbuf) != 0)
-				return SLiMFileFormat::kFormatUnrecognized;
-			if (!S_ISREG(statbuf.st_mode))
-				return SLiMFileFormat::kFormatUnrecognized;
+			if (stat(IndividualFileName.c_str(), &statbuf) != 0)	return SLiMFileFormat::kFormatUnrecognized;
+			if (!S_ISREG(statbuf.st_mode))							return SLiMFileFormat::kFormatUnrecognized;
+			
+			if (stat(PopulationFileName.c_str(), &statbuf) != 0)	return SLiMFileFormat::kFormatUnrecognized;
+			if (!S_ISREG(statbuf.st_mode))							return SLiMFileFormat::kFormatUnrecognized;
+			
+			if (stat(ProvenanceFileName.c_str(), &statbuf) != 0)	return SLiMFileFormat::kFormatUnrecognized;
+			if (!S_ISREG(statbuf.st_mode))							return SLiMFileFormat::kFormatUnrecognized;
 			
 			return SLiMFileFormat::kFormatMSPrimeText;
 		}
