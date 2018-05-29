@@ -2204,7 +2204,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 			// pretty weird, but in practice it just means that their derived state will contain that mutation id twice – once for the
 			// segregating mutation they still contain, and once for the new substitution.  We don't check for that case, but it should
 			// just work automatically.
-			if (sim.RecordingTreeSequence())
+			if (recording_tree_sequence_mutations)
 			{
 				// Mark all non-null genomes in the simulation that are not among the target genomes; we use patch_pointer_ as scratch
 				for (auto subpop_pair : sim.ThePopulation())

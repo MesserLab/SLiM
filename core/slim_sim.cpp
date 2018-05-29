@@ -3970,8 +3970,8 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genom
 void SLiMSim::RecordNewDerivedState(const Genome *p_genome, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations)
 {
 #if DEBUG
-	if (!recording_tree_)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::RecordNewDerivedState): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
+	if (!recording_mutations_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::RecordNewDerivedState): (internal error) tree sequence mutation recording method called with recording off." << EidosTerminate();
 #endif
 	
     // This records information in the Site and Mutation tables.
@@ -4952,8 +4952,7 @@ void SLiMSim::FreeTreeSequence(void)
 	
 	// Free any tree-sequence recording stuff that has been allocated; called when SLiMSim is getting deallocated,
 	// and also when we're wiping the slate clean with something like readFromPopulationFile().
-	if (recording_tree_)
-		table_collection_free(&tables);
+	table_collection_free(&tables);
 	
 	remembered_genomes_.clear();
 }
