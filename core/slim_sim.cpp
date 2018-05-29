@@ -4224,6 +4224,14 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 			binary_mutation_metadata_offset.push_back((table_size_t)(mutation_metadata_total_part_count * sizeof(MutationMetadataRec)));
 		}
 		
+		// if we have no rows, these vactors will be empty, and .data() will return NULL, which tskit doesn't like;
+		// it wants to get a non-NULL pointer even when it knows that the pointer points to zero valid bytes.  So
+		// we poke the vectors so they're non-zero-length and thus have non-NULL pointers; a harmless workaround.
+		if (binary_derived_state.size() == 0)
+			binary_derived_state.resize(1);
+		if (binary_mutation_metadata.size() == 0)
+			binary_mutation_metadata.resize(1);
+		
 		ret = mutation_table_set_columns(&tables.mutations,
 										 tables_copy.mutations.num_rows,
 										 tables_copy.mutations.site,
