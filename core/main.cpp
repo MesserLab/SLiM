@@ -264,6 +264,14 @@ int main(int argc, char *argv[])
 	if (skip_checks)
 		SLIM_ERRSTREAM << "// ********** The -x command-line option has disabled some runtime checks" << std::endl << std::endl;
 	
+	// emit defined constants in verbose mode
+	if (defined_constants.size() && SLiM_verbose_output)
+	{
+		for (std::string &constant : defined_constants)
+			std::cout << "-d[efine]: " << constant << std::endl;
+		std::cout << std::endl;
+	}
+	
 	// keep time (we do this whether or not the -time flag was passed)
 	clock_t begin = clock();
 	
