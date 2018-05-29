@@ -588,6 +588,22 @@
 	}
 }
 
+- (bool)modelMightBeNonWF
+{
+	// We don't have any really solid way to tell what the model will do until it is executed, given the dynamic nature of
+	// Eidos, but this method tries to apply some heuristics to the question to provide a guess that will usually be correct.
+	if (![self invalidSimulation] && sim)
+		if (sim->ModelType() == SLiMModelType::kModelTypeNonWF)
+			return YES;
+	
+	NSString *string = [scriptTextView string];
+	
+	if ([string containsString:@"initializeSLiMModelType(\"nonWF\")"] || [string containsString:@"initializeSLiMModelType(\'nonWF\')"])
+		return YES;
+	
+	return NO;
+}
+
 - (void)updateAfterTickFull:(BOOL)fullUpdate
 {
 	// fullUpdate is used to suppress some expensive updating to every third update
@@ -1040,14 +1056,32 @@
 #pragma mark -
 #pragma mark Actions
 
+- (void)scriptModNonWFError
+{
+	NSAlert *alert = [[NSAlert alloc] init];
+	
+	[alert setAlertStyle:NSCriticalAlertStyle];
+	[alert setMessageText:@"Script Modification Error"];
+	[alert setInformativeText:@"This type of script modification can only be applied to WF models.  This model appears to be a nonWF model, so this script modification cannot be used."];
+	[alert addButtonWithTitle:@"OK"];
+	
+	[alert beginSheetModalForWindow:[self window] completionHandler:^(NSModalResponse returnCode) { [alert autorelease]; }];
+}
+
 - (IBAction)buttonChangeSubpopSize:(id)sender
 {
-	[ScriptMod_ChangeSubpopSize runWithController:self];
+	if ([self modelMightBeNonWF])
+		[self scriptModNonWFError];
+	else
+		[ScriptMod_ChangeSubpopSize runWithController:self];
 }
 
 - (IBAction)buttonRemoveSubpop:(id)sender
 {
-	[ScriptMod_RemoveSubpop runWithController:self];
+	if ([self modelMightBeNonWF])
+		[self scriptModNonWFError];
+	else
+		[ScriptMod_RemoveSubpop runWithController:self];
 }
 
 - (IBAction)buttonAddSubpop:(id)sender
@@ -1057,27 +1091,42 @@
 
 - (IBAction)buttonSplitSubpop:(id)sender
 {
-	[ScriptMod_SplitSubpop runWithController:self];
+	if ([self modelMightBeNonWF])
+		[self scriptModNonWFError];
+	else
+		[ScriptMod_SplitSubpop runWithController:self];
 }
 
 - (IBAction)buttonChangeMigrationRates:(id)sender
 {
-	[ScriptMod_ChangeMigration runWithController:self];
+	if ([self modelMightBeNonWF])
+		[self scriptModNonWFError];
+	else
+		[ScriptMod_ChangeMigration runWithController:self];
 }
 
 - (IBAction)buttonChangeSelfingRates:(id)sender
 {
-	[ScriptMod_ChangeSelfing runWithController:self];
+	if ([self modelMightBeNonWF])
+		[self scriptModNonWFError];
+	else
+		[ScriptMod_ChangeSelfing runWithController:self];
 }
 
 - (IBAction)buttonChangeCloningRates:(id)sender
 {
-	[ScriptMod_ChangeCloning runWithController:self];
+	if ([self modelMightBeNonWF])
+		[self scriptModNonWFError];
+	else
+		[ScriptMod_ChangeCloning runWithController:self];
 }
 
 - (IBAction)buttonChangeSexRatio:(id)sender
 {
-	[ScriptMod_ChangeSexRatio runWithController:self];
+	if ([self modelMightBeNonWF])
+		[self scriptModNonWFError];
+	else
+		[ScriptMod_ChangeSexRatio runWithController:self];
 }
 
 - (IBAction)addMutationType:(id)sender
