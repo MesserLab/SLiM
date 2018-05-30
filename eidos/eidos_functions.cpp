@@ -6008,7 +6008,7 @@ EidosValue_SP Eidos_ExecuteFunction_cat(const EidosValue_SP *const p_arguments, 
 	EidosValue *x_value = p_arguments[0].get();
 	int x_count = x_value->Count();
 	EidosValueType x_type = x_value->Type();
-	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
+	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	std::string separator = p_arguments[1]->StringAtIndex(0, nullptr);
 	
 	for (int value_index = 0; value_index < x_count; ++value_index)
@@ -6034,7 +6034,7 @@ EidosValue_SP Eidos_ExecuteFunction_catn(const EidosValue_SP *const p_arguments,
 	EidosValue *x_value = p_arguments[0].get();
 	int x_count = x_value->Count();
 	EidosValueType x_type = x_value->Type();
-	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
+	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	std::string separator = p_arguments[1]->StringAtIndex(0, nullptr);
 	
 	for (int value_index = 0; value_index < x_count; ++value_index)
@@ -7144,7 +7144,7 @@ EidosValue_SP Eidos_ExecuteFunction_str(const EidosValue_SP *const p_arguments, 
 	int x_count = x_value->Count();
 	int x_dimcount = x_value->DimensionCount();
 	const int64_t *x_dims = x_value->Dimensions();
-	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
+	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	if (x_count == 0)
 	{
@@ -9230,8 +9230,8 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const EidosValue_SP *const p_arguments
 		symbols.RemoveValueForSymbol(gEidosID_applyValue);
 		
 		// Assemble all the individual results together, just as c() does
-		if (interpreter.HasExecutionOutput())
-			p_interpreter.ExecutionOutputStream() << interpreter.ExecutionOutput();
+		interpreter.FlushExecutionOutputToStream(p_interpreter.ExecutionOutputStream());
+		
 		result_SP = ConcatenateEidosValues(results.data(), (int)results.size(), true, false);	// allow NULL but not VOID
 		
 		// Set the dimensions of the result.  If the returns from the lambda were not consistent in their
@@ -9441,8 +9441,7 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const EidosValue_SP *const p_argument
 		symbols.RemoveValueForSymbol(gEidosID_applyValue);
 		
 		// Assemble all the individual results together, just as c() does
-		if (interpreter.HasExecutionOutput())
-			p_interpreter.ExecutionOutputStream() << interpreter.ExecutionOutput();
+		interpreter.FlushExecutionOutputToStream(p_interpreter.ExecutionOutputStream());
 		result_SP = ConcatenateEidosValues(results.data(), (int)results.size(), true, false);	// allow NULL but not VOID
 		
 		// Finally, we restructure the results:
@@ -9525,7 +9524,7 @@ EidosValue_SP Eidos_ExecuteFunction_beep(const EidosValue_SP *const p_arguments,
 	{
 		if (!gEidosSuppressWarnings)
 		{
-			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
+			std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 		
 			output_stream << beep_error << std::endl;
 		}
@@ -9539,7 +9538,7 @@ EidosValue_SP Eidos_ExecuteFunction_citation(__attribute__((unused)) const Eidos
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
-	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
+	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	output_stream << "To cite Eidos in publications please use:" << std::endl << std::endl;
 	output_stream << "Haller, B.C. (2016). Eidos: A Simple Scripting Language." << std::endl;
@@ -9762,8 +9761,7 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const EidosValue_SP *const p_arguments
 			end = clock();
 		
 		// Assimilate output
-		if (interpreter.HasExecutionOutput())
-			p_interpreter.ExecutionOutputStream() << interpreter.ExecutionOutput();
+		interpreter.FlushExecutionOutputToStream(p_interpreter.ExecutionOutputStream());
 	}
 	catch (...)
 	{
@@ -9848,7 +9846,7 @@ EidosValue_SP Eidos_ExecuteFunction_functionSignature(const EidosValue_SP *const
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
 	EidosValue *functionName_value = p_arguments[0].get();
-	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
+	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	bool function_name_specified = (functionName_value->Type() == EidosValueType::kValueString);
 	std::string match_string = (function_name_specified ? functionName_value->StringAtIndex(0, nullptr) : gEidosStr_empty_string);
 	bool signature_found = false;
@@ -9899,7 +9897,7 @@ EidosValue_SP Eidos_ExecuteFunction_license(__attribute__((unused)) const EidosV
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
-	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
+	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	output_stream << "Eidos is free software: you can redistribute it and/or" << std::endl;
 	output_stream << "modify it under the terms of the GNU General Public" << std::endl;
@@ -10152,7 +10150,7 @@ EidosValue_SP Eidos_ExecuteFunction_version(__attribute__((unused)) const EidosV
 	
 	EidosValue_SP result_SP(nullptr);
 	
-	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
+	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	output_stream << "Eidos version " << EIDOS_VERSION_STRING << std::endl;
 	

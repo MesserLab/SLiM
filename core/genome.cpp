@@ -1946,7 +1946,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_i
 	if (filePath_value->Type() == EidosValueType::kValueNULL)
 	{
 		// If filePath is NULL, output to our output stream
-		std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
+		std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 		
 		// For the output stream, we put out a descriptive SLiM-style header for all output types
 		output_stream << "#OUT: " << sim.Generation() << " G";

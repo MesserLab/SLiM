@@ -160,9 +160,13 @@ std::string EidosInterpreter::ExecutionLog(void)
 	return (execution_log_ ? execution_log_->str() : gEidosStr_empty_string);
 }
 
-std::ostringstream &EidosInterpreter::ExecutionOutputStream(void)
+std::ostream &EidosInterpreter::ExecutionOutputStream(void)
 {
 	// lazy allocation; all use of execution_output_ should get it through this accessor
+	// also, when running at the command line we send output directly to std::cout to avoid buffering issues on termination
+	if (!gEidosTerminateThrows)
+		return std::cout;
+	
 	if (!execution_output_)
 		execution_output_ = new std::ostringstream();
 	
@@ -282,7 +286,7 @@ EidosValue_SP EidosInterpreter::EvaluateInterpreterBlock(bool p_print_output, bo
 		
 		if (p_print_output && statement_result && !statement_result->Invisible())
 		{
-			std::ostringstream &execution_output = ExecutionOutputStream();
+			std::ostream &execution_output = ExecutionOutputStream();
 			
 			auto position = execution_output.tellp();
 			execution_output << *statement_result;
@@ -1286,8 +1290,7 @@ EidosValue_SP EidosInterpreter::DispatchUserDefinedFunction(const EidosFunctionS
 		result_SP = interpreter.EvaluateInterpreterBlock(false, false);	// don't print output, don't return last statement value
 		
 		// Assimilate output
-		if (interpreter.HasExecutionOutput())
-			ExecutionOutputStream() << interpreter.ExecutionOutput();
+		interpreter.FlushExecutionOutputToStream(ExecutionOutputStream());
 	}
 	catch (...)
 	{

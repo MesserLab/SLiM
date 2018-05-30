@@ -71,6 +71,7 @@ development head (nonWF branch):
 	extend containsMarkerMutation() with a [returnMutation=F] argument so the found mutation can be obtained
 	code completion can now supply argument names when in a function/method call
 	add suppressWarnings() function in Eidos
+	fix issue with dropped model output just before a simulation terminated due to an error
 
 
 2.6 (build 1292; Eidos version 1.6):

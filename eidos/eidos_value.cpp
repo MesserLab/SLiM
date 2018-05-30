@@ -3357,7 +3357,7 @@ EidosValue_SP EidosObjectElement::ExecuteMethod_str(EidosGlobalStringID p_method
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
 	
-	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
+	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	output_stream << Class()->ElementType() << ":" << std::endl;
 	
@@ -3627,7 +3627,7 @@ EidosValue_SP EidosObjectClass::ExecuteMethod_propertySignature(EidosGlobalStrin
 {
 #pragma unused (p_method_id, p_target, p_arguments, p_argument_count, p_interpreter)
 	
-	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
+	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	bool has_match_string = (p_arguments[0]->Type() == EidosValueType::kValueString);
 	std::string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0, nullptr) : gEidosStr_empty_string);
 	const std::vector<const EidosPropertySignature *> *properties = Properties();
@@ -3657,7 +3657,7 @@ EidosValue_SP EidosObjectClass::ExecuteMethod_methodSignature(EidosGlobalStringI
 {
 #pragma unused (p_method_id, p_target, p_arguments, p_argument_count, p_interpreter)
 	
-	std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
+	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	bool has_match_string = (p_arguments[0]->Type() == EidosValueType::kValueString);
 	std::string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0, nullptr) : gEidosStr_empty_string);
 	const std::vector<const EidosMethodSignature *> *methods = Methods();

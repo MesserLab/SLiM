@@ -80,7 +80,7 @@ private:
 	std::ostringstream *execution_log_ = nullptr;		// allocated lazily
 	
 	// an output stream for output from executed nodes and functions; this goes into the user's console
-	std::ostringstream *execution_output_ = nullptr;	// allocated lazily
+	std::ostringstream *execution_output_ = nullptr;	// allocated lazily, and might not be used at all; see ExecutionOutputStream()
 	
 	// The standard built-in function map, set up by CacheBuiltInFunctionMap()
 	static EidosFunctionMap *s_built_in_function_map_;
@@ -109,8 +109,8 @@ public:
 	bool ShouldLogExecution(void);
 	std::string ExecutionLog(void);
 	
-	std::ostringstream &ExecutionOutputStream(void);			// lazy allocation; all use of execution_output_ should get it through this accessor
-	inline __attribute__((always_inline)) bool HasExecutionOutput(void) { return (execution_output_ ? true : false); }
+	std::ostream &ExecutionOutputStream(void);			// lazy allocation; all use of execution_output_ should get it through this accessor
+	inline __attribute__((always_inline)) void FlushExecutionOutputToStream(std::ostream &p_stream) { if (execution_output_) p_stream << execution_output_->str(); }
 	inline __attribute__((always_inline)) std::string ExecutionOutput(void) { return (execution_output_ ? execution_output_->str() : gEidosStr_empty_string); }
 	
 	inline __attribute__((always_inline)) EidosSymbolTable &SymbolTable(void) { return *global_symbols_; };			// the returned reference is to the symbol table that the interpreter has borrowed
