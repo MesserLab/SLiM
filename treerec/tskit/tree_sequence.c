@@ -2021,7 +2021,7 @@ static int
 sparse_tree_advance(sparse_tree_t *self, int direction,
         double *out_breakpoints, node_id_t *out_order, node_id_t *out_index,
         double *in_breakpoints, node_id_t *in_order, node_id_t *in_index,
-        int first_tree)
+        int MSP_UNUSED(first_tree))
 {
     int ret = 0;
     int direction_change = direction * (direction != self->direction);

@@ -138,7 +138,7 @@ out:
 }
 
 int
-newick_converter_free(newick_converter_t *self)
+newick_converter_free(newick_converter_t *MSP_UNUSED(self))
 {
     return 0;
 }
