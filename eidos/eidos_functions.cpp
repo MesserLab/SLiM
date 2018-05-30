@@ -290,6 +290,7 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("setSeed",			Eidos_ExecuteFunction_setSeed,		kEidosValueMaskVOID))->AddInt_S("seed"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("getSeed",			Eidos_ExecuteFunction_getSeed,		kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("stop",				Eidos_ExecuteFunction_stop,			kEidosValueMaskVOID))->AddString_OSN("message", gStaticEidosValueNULL));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("suppressWarnings",	Eidos_ExecuteFunction_suppressWarnings,			kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddLogical_S("suppress"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("system",			Eidos_ExecuteFunction_system,		kEidosValueMaskString))->AddString_S("command")->AddString_O("args", gStaticEidosValue_StringEmpty)->AddString_O("input", gStaticEidosValue_StringEmpty)->AddLogical_OS("stderr", gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("time",				Eidos_ExecuteFunction_time,			kEidosValueMaskString | kEidosValueMaskSingleton)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("version",			Eidos_ExecuteFunction_version,		kEidosValueMaskFloat)));
@@ -8556,7 +8557,8 @@ EidosValue_SP Eidos_ExecuteFunction_createDirectory(const EidosValue_SP *const p
 	
 	// Emit a warning if there was one
 	if (error_string.length())
-		p_interpreter.ExecutionOutputStream() << error_string << std::endl;
+		if (!gEidosSuppressWarnings)
+			p_interpreter.ExecutionOutputStream() << error_string << std::endl;
 	
 	return (success ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 }
@@ -8598,7 +8600,8 @@ EidosValue_SP Eidos_ExecuteFunction_filesAtPath(const EidosValue_SP *const p_arg
 			
 			if (!ep && error)
 			{
-				p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_filesAtPath): function filesAtPath() encountered error code " << error << " while iterating through path " << path << "." << std::endl;
+				if (!gEidosSuppressWarnings)
+					p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_filesAtPath): function filesAtPath() encountered error code " << error << " while iterating through path " << path << "." << std::endl;
 				result_SP = gStaticEidosValueNULL;
 				break;
 			}
@@ -8618,8 +8621,8 @@ EidosValue_SP Eidos_ExecuteFunction_filesAtPath(const EidosValue_SP *const p_arg
 	}
 	else
 	{
-		// not a fatal error, just a warning log
-		p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_filesAtPath): function filesAtPath() could not open path " << path << "." << std::endl;
+		if (!gEidosSuppressWarnings)
+			p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_filesAtPath): function filesAtPath() could not open path " << path << "." << std::endl;
 		result_SP = gStaticEidosValueNULL;
 	}
 	
@@ -8707,8 +8710,8 @@ EidosValue_SP Eidos_ExecuteFunction_readFile(const EidosValue_SP *const p_argume
 	
 	if (!file_stream.is_open())
 	{
-		// not a fatal error, just a warning log
-		p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_readFile): function readFile() could not read file at path " << file_path << "." << std::endl;
+		if (!gEidosSuppressWarnings)
+			p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_readFile): function readFile() could not read file at path " << file_path << "." << std::endl;
 		result_SP = gStaticEidosValueNULL;
 	}
 	else
@@ -8723,9 +8726,8 @@ EidosValue_SP Eidos_ExecuteFunction_readFile(const EidosValue_SP *const p_argume
 		
 		if (file_stream.bad())
 		{
-			// not a fatal error, just a warning log
-			p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_readFile): function readFile() encountered stream errors while reading file at path " << file_path << "." << std::endl;
-			
+			if (!gEidosSuppressWarnings)
+				p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_readFile): function readFile() encountered stream errors while reading file at path " << file_path << "." << std::endl;
 			result_SP = gStaticEidosValueNULL;
 		}
 	}
@@ -8756,8 +8758,8 @@ EidosValue_SP Eidos_ExecuteFunction_writeFile(const EidosValue_SP *const p_argum
 	
 	if (!file_stream.is_open())
 	{
-		// Not a fatal error, just a warning log
-		p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeFile): function writeFile() could not write to file at path " << file_path << "." << std::endl;
+		if (!gEidosSuppressWarnings)
+			p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeFile): function writeFile() could not write to file at path " << file_path << "." << std::endl;
 		result_SP = gStaticEidosValue_LogicalF;
 	}
 	else
@@ -8786,8 +8788,8 @@ EidosValue_SP Eidos_ExecuteFunction_writeFile(const EidosValue_SP *const p_argum
 		
 		if (file_stream.bad())
 		{
-			// Not a fatal error, just a warning log
-			p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeFile): function writeFile() encountered stream errors while writing to file at path " << file_path << "." << std::endl;
+			if (!gEidosSuppressWarnings)
+				p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeFile): function writeFile() encountered stream errors while writing to file at path " << file_path << "." << std::endl;
 			result_SP = gStaticEidosValue_LogicalF;
 		}
 		else
@@ -8836,8 +8838,8 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const EidosValue_SP *const p_a
 	
 	if (!file_stream.is_open())
 	{
-		// Not a fatal error, just a warning log
-		p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeTempFile): function writeTempFile() could not write to file at path " << file_path << "." << std::endl;
+		if (!gEidosSuppressWarnings)
+			p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeTempFile): function writeTempFile() could not write to file at path " << file_path << "." << std::endl;
 		result_SP = gStaticEidosValue_StringEmpty;
 	}
 	else
@@ -8863,8 +8865,8 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const EidosValue_SP *const p_a
 		
 		if (file_stream.bad())
 		{
-			// Not a fatal error, just a warning log
-			p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeTempFile): function writeTempFile() encountered stream errors while writing to file at path " << file_path << "." << std::endl;
+			if (!gEidosSuppressWarnings)
+				p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeTempFile): function writeTempFile() encountered stream errors while writing to file at path " << file_path << "." << std::endl;
 			result_SP = gStaticEidosValue_StringEmpty;
 		}
 		else
@@ -9521,9 +9523,12 @@ EidosValue_SP Eidos_ExecuteFunction_beep(const EidosValue_SP *const p_arguments,
 	
 	if (beep_error.length())
 	{
-		std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
+		if (!gEidosSuppressWarnings)
+		{
+			std::ostringstream &output_stream = p_interpreter.ExecutionOutputStream();
 		
-		output_stream << beep_error << std::endl;
+			output_stream << beep_error << std::endl;
+		}
 	}
 	
 	return gStaticEidosValueVOID;
@@ -9999,6 +10004,18 @@ EidosValue_SP Eidos_ExecuteFunction_stop(const EidosValue_SP *const p_arguments,
 	}
 	
 	return result_SP;
+}
+
+//	(logical$)suppressWarnings(logical$ suppress)
+EidosValue_SP Eidos_ExecuteFunction_suppressWarnings(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue *suppress_value = p_arguments[0].get();
+	eidos_logical_t new_suppress = suppress_value->LogicalAtIndex(0, nullptr);
+	eidos_logical_t old_suppress = gEidosSuppressWarnings;
+	
+	gEidosSuppressWarnings = new_suppress;
+	
+	return (old_suppress ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 }
 
 //	(string)system(string$ command, [string args = ""], [string input = ""], [logical$ stderr = F])

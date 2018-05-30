@@ -46,6 +46,7 @@
 	Eidos_RNG_State sim_RNG;
 	slim_pedigreeid_t sim_next_pedigree_id;
 	slim_mutationid_t sim_next_mutation_id;
+	bool sim_suppress_warnings;
 	
 	// play-related variables; note that continuousPlayOn covers both profiling and non-profiling runs, whereas profilePlayOn
 	// and nonProfilePlayOn cover those cases individually; this is for simplicity in enable bindings in the nib

@@ -402,9 +402,10 @@
 		sim_RNG = gEidos_RNG;
 		EIDOS_BZERO(&gEidos_RNG, sizeof(Eidos_RNG_State));
 		
-		// We also reset the pedigree id and mutation id counters; each SLiMgui window is independent
+		// We also reset various Eidos/SLiM instance state; each SLiMgui window is independent
 		sim_next_pedigree_id = 0;
 		sim_next_mutation_id = 0;
+		sim_suppress_warnings = false;
 		
 		[self setReachedSimulationEnd:NO];
 		[self setInvalidSimulation:NO];
@@ -3512,6 +3513,7 @@
 	// We also swap in the pedigree id and mutation id counters; each SLiMgui window is independent
 	gSLiM_next_pedigree_id = sim_next_pedigree_id;
 	gSLiM_next_mutation_id = sim_next_mutation_id;
+	gEidosSuppressWarnings = sim_suppress_warnings;
 }
 
 - (void)eidosConsoleWindowControllerDidExecuteScript:(EidosConsoleWindowController *)eidosConsoleController
@@ -3527,6 +3529,9 @@
 	
 	sim_next_mutation_id = gSLiM_next_mutation_id;
 	gSLiM_next_mutation_id = -100000;
+	
+	sim_suppress_warnings = gEidosSuppressWarnings;
+	gEidosSuppressWarnings = false;
 }
 
 - (void)eidosConsoleWindowControllerConsoleWindowWillClose:(EidosConsoleWindowController *)eidosConsoleController

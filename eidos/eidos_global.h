@@ -96,6 +96,9 @@ extern bool gEidosExecutingRuntimeScript;
 
 extern int gEidosErrorLine, gEidosErrorLineCharacter;	// set up by EidosTerminate()
 
+// Warnings: consult this flag before emitting a warning
+extern bool gEidosSuppressWarnings;
+
 
 // *******************************************************************************************************************
 //

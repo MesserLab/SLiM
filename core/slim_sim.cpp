@@ -2083,7 +2083,8 @@ void SLiMSim::RunInitializeCallbacks(void)
 				MutationType *muttype = muttype_iter.second;
 				
 				if ((muttype->dfe_type_ == DFEType::kFixed) && (muttype->dfe_parameters_.size() == 1) && (muttype->dfe_parameters_[0] == 0.0))
-					SLIM_OUTSTREAM << "#WARNING (SLiMSim::RunInitializeCallbacks): with tree-sequence recording enabled and a non-zero mutation rate, a neutral mutation type was defined; this is legal, but usually undesirable, since neutral mutations can be overlaid later using the tree-sequence information." << std::endl;
+					if (!gEidosSuppressWarnings)
+						SLIM_OUTSTREAM << "#WARNING (SLiMSim::RunInitializeCallbacks): with tree-sequence recording enabled and a non-zero mutation rate, a neutral mutation type was defined; this is legal, but usually undesirable, since neutral mutations can be overlaid later using the tree-sequence information." << std::endl;
 			}
 		}
 	}
@@ -8134,8 +8135,11 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_
 	{
 		if (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts)
 		{
-			output_stream << "#WARNING (SLiMSim::ExecuteMethod_outputFixedMutations): outputFixedMutations() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the generation, not the end." << std::endl;
-			warned_early_output_ = true;
+			if (!gEidosSuppressWarnings)
+			{
+				output_stream << "#WARNING (SLiMSim::ExecuteMethod_outputFixedMutations): outputFixedMutations() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the generation, not the end." << std::endl;
+				warned_early_output_ = true;
+			}
 		}
 	}
 	
@@ -8216,8 +8220,11 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 	{
 		if (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts)
 		{
-			p_interpreter.ExecutionOutputStream() << "#WARNING (SLiMSim::ExecuteMethod_outputFull): outputFull() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the generation, not the end." << std::endl;
-			warned_early_output_ = true;
+			if (!gEidosSuppressWarnings)
+			{
+				p_interpreter.ExecutionOutputStream() << "#WARNING (SLiMSim::ExecuteMethod_outputFull): outputFull() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the generation, not the end." << std::endl;
+				warned_early_output_ = true;
+			}
 		}
 	}
 	
@@ -8293,8 +8300,11 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 	{
 		if (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts)
 		{
-			output_stream << "#WARNING (SLiMSim::ExecuteMethod_outputMutations): outputMutations() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the generation, not the end." << std::endl;
-			warned_early_output_ = true;
+			if (!gEidosSuppressWarnings)
+			{
+				output_stream << "#WARNING (SLiMSim::ExecuteMethod_outputMutations): outputMutations() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the generation, not the end." << std::endl;
+				warned_early_output_ = true;
+			}
 		}
 	}
 	
@@ -8388,13 +8398,19 @@ EidosValue_SP SLiMSim::ExecuteMethod_readFromPopulationFile(EidosGlobalStringID 
 	{
 		if (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts)
 		{
-			p_interpreter.ExecutionOutputStream() << "#WARNING (SLiMSim::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() should probably not be called from an early() event in a WF model; fitness values will not be recalculated prior to offspring generation unless recalculateFitness() is called." << std::endl;
-			warned_early_read_ = true;
+			if (!gEidosSuppressWarnings)
+			{
+				p_interpreter.ExecutionOutputStream() << "#WARNING (SLiMSim::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() should probably not be called from an early() event in a WF model; fitness values will not be recalculated prior to offspring generation unless recalculateFitness() is called." << std::endl;
+				warned_early_read_ = true;
+			}
 		}
 		if (GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts)
 		{
-			p_interpreter.ExecutionOutputStream() << "#WARNING (SLiMSim::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() should probably not be called from a late() event in a nonWF model; fitness values will not be recalculated prior to offspring generation unless recalculateFitness() is called." << std::endl;
-			warned_early_read_ = true;
+			if (!gEidosSuppressWarnings)
+			{
+				p_interpreter.ExecutionOutputStream() << "#WARNING (SLiMSim::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() should probably not be called from a late() event in a nonWF model; fitness values will not be recalculated prior to offspring generation unless recalculateFitness() is called." << std::endl;
+				warned_early_read_ = true;
+			}
 		}
 	}
 	

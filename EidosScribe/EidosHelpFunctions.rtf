@@ -2393,8 +2393,8 @@ This is quite similar to a function in R of the same name; note, however, that E
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf2 Returns the 
-\b \cf2 size
-\b0 \cf2  (e.g., length) of 
+\b size
+\b0  (e.g., length) of 
 \f1\fs18 x
 \f0\fs20 : the number of elements contained in 
 \f1\fs18 x
@@ -3186,6 +3186,7 @@ Prior to Eidos 1.6 / SLiM 2.6,
 \f0\fs20  was named 
 \f3\fs18 apply()
 \f0\fs20 , and this function did not yet exist\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \i0\b \cf2 Applies a block of Eidos code to margins of x
 \b0 .  This function is essentially an extension of 
@@ -4290,6 +4291,7 @@ The current implementation of
 Named 
 \f3\fs18 apply()
 \f0\fs20  prior to Eidos 1.6 / SLiM 2.6\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \i0\b \cf2 Applies a block of Eidos code to the elements of x
 \b0 .  This function is sort of a hybrid between 
@@ -4496,9 +4498,25 @@ Prior to Eidos 1.6 (SLiM 2.6),
 \f1\fs18 NULL
 \f0\fs20 , it will be printed to Eidos\'92s output stream prior to stopping.
 \f2 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 \expnd0\expndtw0\kerning0
+(logical$)suppressWarnings(logical$\'a0suppress)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Turns suppression of warning messages on or off
+\b0 .  The 
+\f1\fs18 suppress
+\f0\fs20  flag indicates whether suppression of warnings should be enabled (
+\f1\fs18 T
+\f0\fs20 ) or disabled (
+\f1\fs18 F
+\f0\fs20 ).  The previous warning-suppression value is returned by 
+\f1\fs18 suppressWarnings()
+\f0\fs20 , making it easy to suppress warnings from a given call and then return to the previous suppression state afterwards.  It is recommended that warnings be suppressed only around short blocks of code (not all the time), so that unexpected but perhaps important warnings are not missed.  And of course warnings are generally emitted for good reasons; before deciding to disregard a given warning, make sure that you understand exactly why it is being issued, and are certain that it does not represent a serious problem.\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (string)system(string$\'a0command, [string\'a0args\'a0=\'a0""], [string\'a0input\'a0=\'a0""], [logical$\'a0stderr\'a0=\'a0F])\
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (string)system(string$\'a0command, [string\'a0args\'a0=\'a0""], [string\'a0input\'a0=\'a0""], [logical$\'a0stderr\'a0=\'a0F])\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf0 Runs a Un*x command in a 

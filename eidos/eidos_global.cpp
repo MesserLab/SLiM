@@ -473,6 +473,9 @@ bool gEidosExecutingRuntimeScript = false;
 
 int gEidosErrorLine = -1, gEidosErrorLineCharacter = -1;
 
+// Warnings
+bool gEidosSuppressWarnings = false;
+
 
 // define string stream used for output when gEidosTerminateThrows == 1; otherwise, terminates call exit()
 bool gEidosTerminateThrows = true;
@@ -1067,6 +1070,7 @@ void Eidos_CheckRSSAgainstMax(std::string p_message1, std::string p_message2)
 		if (current_rss + 10L*1024L*1024L > max_rss)
 		{
 			// We output our warning to std::cerr, because we may get killed by the OS for exceeding our memory limit before other streams would get flushed
+			// Note this warning is not suppressed by gEidosSuppressWarnings; that is deliberate
 			std::cerr << "WARNING (" << p_message1 << "): memory usage of " << (current_rss / (1024.0 * 1024.0)) << " MB is dangerously close to the limit of " << (max_rss / (1024.0 * 1024.0)) << " MB reported by the operating system.  This SLiM process may soon be killed by the operating system for exceeding the memory limit.  You might raise the per-process memory limit, or modify your model to decrease memory usage.  You can turn off this memory check with the '-x' command-line option.  " << p_message2 << std::endl;
 			std::cerr.flush();
 			
