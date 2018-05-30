@@ -4077,7 +4077,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 			migrant_transmogrified->spatial_z_ = migrant->spatial_z_;
 			
 			// insert the transmogrified instances into ourselves
-			if (migrant_transmogrified->sex_ == IndividualSex::kFemale)
+			if ((migrant_transmogrified->sex_ == IndividualSex::kFemale) && (parent_first_male_index_ < parent_subpop_size_))
 			{
 				// room has to be made for females by shifting the first male and changing the first male index
 				Individual *backfill = parent_individuals_[parent_first_male_index_];
@@ -4097,13 +4097,15 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 			}
 			else
 			{
-				// males and hermaphrodites can just be added to the end
+				// males and hermaphrodites can just be added to the end; so can females, if no males are present
 				parent_individuals_.push_back(migrant_transmogrified);
 				parent_genomes_.push_back(genome1_transmogrified);
 				parent_genomes_.push_back(genome2_transmogrified);
 				migrant_transmogrified->index_ = parent_subpop_size_;
 				
 				parent_subpop_size_++;
+				if (migrant_transmogrified->sex_ == IndividualSex::kFemale)
+					parent_first_male_index_++;
 			}
 			
 			// track all the old and new pointers
