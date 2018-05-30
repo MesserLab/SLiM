@@ -7137,6 +7137,11 @@ void _RunFunctionMiscTests(void)
 	EidosAssertScriptRaise("stop(3.5);", 0, "cannot be type");
 	EidosAssertScriptRaise("stop(_Test(7));", 0, "cannot be type");
 	
+	// suppressWarnings()
+	EidosAssertScriptSuccess("suppressWarnings(F);", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("suppressWarnings(T);", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("suppressWarnings(T); suppressWarnings(F);", gStaticEidosValue_LogicalT);
+	
 	// system()
 	EidosAssertScriptSuccess("system('expr 5 + 5');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("10")));
 	EidosAssertScriptSuccess("system('expr', args=c('5', '+', '5'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("10")));

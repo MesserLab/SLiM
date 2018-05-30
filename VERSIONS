@@ -70,6 +70,7 @@ development head (nonWF branch):
 	fix a crash in SLiMgui when displaying a haplotype plot (including in the chromosome view) in a model with null genomes, such as an X or Y model
 	extend containsMarkerMutation() with a [returnMutation=F] argument so the found mutation can be obtained
 	code completion can now supply argument names when in a function/method call
+	add suppressWarnings() function in Eidos
 
 
 2.6 (build 1292; Eidos version 1.6):
