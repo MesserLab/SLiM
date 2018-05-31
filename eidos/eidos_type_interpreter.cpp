@@ -177,11 +177,22 @@ EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(std
 {
 #pragma unused(p_function_name)
 	EidosTypeSpecifier result_type = EidosTypeSpecifier{kEidosValueMaskNone, nullptr};
+	int argument_count = (int)p_arguments.size();
+	std::vector<EidosTypeSpecifier> argument_types;
+	
+	// BCH 31 May 2018: We used to not bother doing type-evaluation on arguments, except for the specific cases below where
+	// it influences the return type of a function/method, since such evaluation was unlikely to have side effects important
+	// for type-evaluation (such as defining new symbols).  Now, however, type-evaluation can define completion symbols for
+	// the named arguments of a function/method in argument_completions_ ; see _ProcessArgumentListTypes().  So that this
+	// works even doing completion inside nested function/method calls, we have to descend into each argument.  This also
+	// makes it so that any other type-evaluation side effects of arguments will occur correctly; it was always a bit of
+	// an assumption that no such side effects would exist.  Note that TypeEvaluateNode() is safe to call with nullptr,
+	// which is important since p_arguments can contain nullptr for missing/bad arguments.
+	for (int argument_index = 0; argument_index < argument_count; ++argument_index)
+		argument_types.emplace_back(TypeEvaluateNode(p_arguments[argument_index]));
 	
 	if (p_function_signature)
 	{
-		int argument_count = (int)p_arguments.size();
-		
 		// Look up the result type from the function signature, if there is one
 		result_type.type_mask = p_function_signature->return_mask_;
 		result_type.object_class = p_function_signature->return_class_;
@@ -189,7 +200,7 @@ EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(std
 		// We don't call out to functions, but we do have special knowledge of the side effects of built-in Eidos functions.
 		// In figuring this stuff out, we need to be careful about the fact that the p_arguments vector can contain nullptr
 		// values if there were missing arguments, etc.; we try to be error-tolerant, so we allow cases that would raise
-		// in EidosInterpreter.  TypeEvaluateNode() is safe to call with nullptr.
+		// in EidosInterpreter.
 		EidosInternalFunctionPtr function_ptr = p_function_signature->internal_function_;
 		
 		if ((function_ptr == &Eidos_ExecuteFunction_defineConstant) && (argument_count == 2))
@@ -202,7 +213,7 @@ EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(std
 				{
 					const std::string &constant_name = p_arguments[0]->token_->token_string_;
 					EidosGlobalStringID constant_id = Eidos_GlobalStringIDForString(constant_name);
-					EidosTypeSpecifier constant_type = TypeEvaluateNode(p_arguments[1]);
+					EidosTypeSpecifier &constant_type = argument_types[1];
 					
 					if (constant_type.object_class == nullptr)
 						global_symbols_->SetTypeForSymbol(constant_id, constant_type);
@@ -227,16 +238,12 @@ EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(std
 										   (function_ptr == &Eidos_ExecuteFunction_t)))
 		{
 			// These functions are all defined as returning *, but in fact return the same type/class as their first argument.
-			EidosTypeSpecifier argument_type = TypeEvaluateNode(p_arguments[0]);
-			
-			result_type = argument_type;
+			result_type = argument_types[0];
 		}
 		else if ((function_ptr == &Eidos_ExecuteFunction_ifelse) && (argument_count >= 2))
 		{
 			// These functions are all defined as returning *, but in fact return the same type/class as their second argument.
-			EidosTypeSpecifier argument_type = TypeEvaluateNode(p_arguments[1]);
-			
-			result_type = argument_type;
+			result_type = argument_types[1];
 		}
 		else if ((function_ptr == &Eidos_ExecuteFunction_c) && (argument_count >= 1))
 		{
@@ -244,7 +251,7 @@ EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(std
 			// important to us, except that if any argument is an object type, we assume the return will mirror that.
 			for (int argument_index = 0; argument_index < argument_count; ++argument_index)
 			{
-				EidosTypeSpecifier argument_type = TypeEvaluateNode(p_arguments[argument_index]);
+				EidosTypeSpecifier &argument_type = argument_types[argument_index];
 				
 				if ((argument_type.type_mask & kEidosValueMaskObject) == kEidosValueMaskObject)
 				{
@@ -262,6 +269,19 @@ EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_MethodCall_Internal(const
 {
 #pragma unused(p_target, p_arguments)
 	EidosTypeSpecifier result_type = EidosTypeSpecifier{kEidosValueMaskNone, nullptr};
+	int argument_count = (int)p_arguments.size();
+	std::vector<EidosTypeSpecifier> argument_types;
+	
+	// BCH 31 May 2018: We used to not bother doing type-evaluation on arguments, except for the specific cases below where
+	// it influences the return type of a function/method, since such evaluation was unlikely to have side effects important
+	// for type-evaluation (such as defining new symbols).  Now, however, type-evaluation can define completion symbols for
+	// the named arguments of a function/method in argument_completions_ ; see _ProcessArgumentListTypes().  So that this
+	// works even doing completion inside nested function/method calls, we have to descend into each argument.  This also
+	// makes it so that any other type-evaluation side effects of arguments will occur correctly; it was always a bit of
+	// an assumption that no such side effects would exist.  Note that TypeEvaluateNode() is safe to call with nullptr,
+	// which is important since p_arguments can contain nullptr for missing/bad arguments.
+	for (int argument_index = 0; argument_index < argument_count; ++argument_index)
+		argument_types.emplace_back(TypeEvaluateNode(p_arguments[argument_index]));
 	
 	if (p_method_signature)
 	{

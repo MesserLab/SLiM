@@ -1256,10 +1256,13 @@ void SLiMTypeInterpreter::_SetTypeForISArgumentOfClass(const EidosASTNode *p_arg
 
 EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(std::string const &p_function_name, const EidosFunctionSignature *p_function_signature, const std::vector<EidosASTNode *> &p_arguments)
 {
+	// call super; this should always be called, since it type-avaluates all arguments as a side effect
+	EidosTypeSpecifier ret = EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(p_function_name, p_function_signature, p_arguments);
+	
+	// Create any symbols defined as a side effect of this call, which happens after argument type-evaluation.
 	// In figuring this stuff out, we need to be careful about the fact that the p_arguments vector can contain nullptr
 	// values if there were missing arguments, etc.; we try to be error-tolerant, so we allow cases that would raise
 	// in EidosInterpreter.  _SetTypeForISArgumentOfClass() is safe to call with nullptr.
-	
 	int argument_count = (int)p_arguments.size();
 	
 	if ((p_function_name == "initializeGenomicElementType") && (argument_count >= 1))
@@ -1275,16 +1278,18 @@ EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(std:
 		_SetTypeForISArgumentOfClass(p_arguments[0], 'i', gSLiM_InteractionType_Class);
 	}
 	
-	// call super
-	return EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(p_function_name, p_function_signature, p_arguments);
+	return ret;
 }
 
 EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_MethodCall_Internal(const EidosObjectClass *p_target, const EidosMethodSignature *p_method_signature, const std::vector<EidosASTNode *> &p_arguments)
 {
+	// call super; this should always be called, since it type-avaluates all arguments as a side effect
+	EidosTypeSpecifier ret = EidosTypeInterpreter::_TypeEvaluate_MethodCall_Internal(p_target, p_method_signature, p_arguments);
+	
+	// Create any symbols defined as a side effect of this call, which happens after argument type-evaluation.
 	// In figuring this stuff out, we need to be careful about the fact that the p_arguments vector can contain nullptr
 	// values if there were missing arguments, etc.; we try to be error-tolerant, so we allow cases that would raise
 	// in EidosInterpreter.  _SetTypeForISArgumentOfClass() is safe to call with nullptr.
-	
 	if (p_method_signature)
 	{
 		if (p_target == gSLiM_SLiMSim_Class)
@@ -1304,8 +1309,7 @@ EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_MethodCall_Internal(const 
 		}
 	}
 	
-	// call super
-	return EidosTypeInterpreter::_TypeEvaluate_MethodCall_Internal(p_target, p_method_signature, p_arguments);
+	return ret;
 }
 
 
