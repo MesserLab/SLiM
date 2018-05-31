@@ -15,6 +15,9 @@
 #include <string>
 #include <vector>
 #include <stdexcept>
+#include <unordered_map>
+#include <map>
+#include <utility>
 
 
 // Helper functions for testing

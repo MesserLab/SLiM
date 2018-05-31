@@ -29,6 +29,7 @@
 #include <algorithm>
 #include <string>
 #include <cmath>
+#include <utility>
 
 
 // This struct is used to represent a constant-mutation-rate subrange of a genomic element; it is used internally by Chromosome.
