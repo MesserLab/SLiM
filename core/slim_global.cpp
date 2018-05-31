@@ -416,6 +416,7 @@ const std::string gStr_registerRecombinationCallback = "registerRecombinationCal
 const std::string gStr_registerReproductionCallback = "registerReproductionCallback";
 const std::string gStr_rescheduleScriptBlock = "rescheduleScriptBlock";
 const std::string gStr_simulationFinished = "simulationFinished";
+const std::string gStr_treeSeqCoalesced = "treeSeqCoalesced";
 const std::string gStr_treeSeqSimplify = "treeSeqSimplify";
 const std::string gStr_treeSeqRememberIndividuals = "treeSeqRememberIndividuals";
 const std::string gStr_treeSeqOutput = "treeSeqOutput";
@@ -708,6 +709,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_registerReproductionCallback, gID_registerReproductionCallback);
 		Eidos_RegisterStringForGlobalID(gStr_rescheduleScriptBlock, gID_rescheduleScriptBlock);
 		Eidos_RegisterStringForGlobalID(gStr_simulationFinished, gID_simulationFinished);
+		Eidos_RegisterStringForGlobalID(gStr_treeSeqCoalesced, gID_treeSeqCoalesced);
 		Eidos_RegisterStringForGlobalID(gStr_treeSeqSimplify, gID_treeSeqSimplify);
 		Eidos_RegisterStringForGlobalID(gStr_treeSeqRememberIndividuals, gID_treeSeqRememberIndividuals);
 		Eidos_RegisterStringForGlobalID(gStr_treeSeqOutput, gID_treeSeqOutput);

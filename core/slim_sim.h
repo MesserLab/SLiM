@@ -338,32 +338,29 @@ private:
 #pragma mark treeseq recording ivars
 #pragma mark -
 	bool recording_tree_ = false;				// true if we are doing tree sequence recording
+	bool recording_mutations_ = false;			// true if we are recording mutations in our tree sequence tables
 	
-	// TABLE IVARS
 	table_collection_t tables;
 	table_collection_position_t table_position;
 	
-	// TABLE SIMPLIFICATION
     std::vector<node_id_t> remembered_genomes_;
 	//Individual *current_new_individual_;
 	
-	bool recording_mutations_ = false;			// true if we are recording mutations in our tree sequence tables
+	bool running_coalescence_checks_ = false;	// true if we check for coalescence after each simplification
+	bool last_coalescence_state_ = false;		// if running_coalescence_checks_==true, updated every simplification
+	
 	bool running_treeseq_crosschecks_ = false;	// true if crosschecks between our tree sequence tables and SLiM's data are enabled
 	int treeseq_crosschecks_interval_ = 1;		// crosschecks, if enabled, will be done every treeseq_crosschecks_interval_ generations
+	
 	double simplification_ratio_;				// the pre:post table size ratio we target with our automatic simplification heuristic
 	slim_generation_t simplify_elapsed_ = 0;	// the number of generations elapsed since a simplification was done (automatic or otherwise)
 	double simplify_interval_;					// the number of generations between automatic simplifications
+	
 	slim_generation_t tree_seq_generation_ = 0;	// the generation for the tree sequence code, incremented after offspring generation
 												// this is needed since addSubpop() in an early() event makes one gen, and then the offspring
 												// arrive in the same generation according to SLiM, which confuses the tree-seq code
 	double tree_seq_generation_offset_ = 0;		// this is a fractional offset added to tree_seq_generation_; this is needed to make successive calls
 												// to addSubpopSplit() arrive at successively later times; see Population::AddSubpopulationSplit()
-	// add further ivars you need for tree sequence recording here; don't forget to add cleanup for them to SLiMSim::~SLiMSim() if necessary
-
-	//ofstream to write txt file tree sequences
-	//std::ofstream MspTxtNodeFile;
-	//std::ofstream MspTxtEdgeFile;
-
 	
 public:
 	
@@ -506,6 +503,7 @@ public:
 	void ReadProvenanceTable(table_collection_t *p_tables, slim_generation_t *p_generation, size_t *p_remembered_genome_count);
 	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify);
 	void SimplifyTreeSequence(void);
+	void CheckCoalescenceAfterSimplification(void);
 	void CheckAutoSimplification(void);
     void TreeSequenceDataFromAscii(std::string NodeFileName, 
             std::string EdgeFileName, std::string SiteFileName, std::string MutationFileName, 
@@ -586,6 +584,7 @@ public:
 	EidosValue_SP ExecuteMethod_registerReproductionCallback(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_simulationFinished(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_treeSeqCoalesced(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_treeSeqSimplify(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);

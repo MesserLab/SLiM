@@ -3568,18 +3568,34 @@ void _RunTreeSeqTests(void)
 {
 	// initializeTreeSeq()
 	SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
-	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=F, simplificationRatio=10.0, runCrosschecks=F); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
-	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=T, simplificationRatio=10.0, runCrosschecks=F); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
-	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=F, simplificationRatio=INF, runCrosschecks=F); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
-	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=T, simplificationRatio=INF, runCrosschecks=F); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
-	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=F, simplificationRatio=0.0, runCrosschecks=F); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
-	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=T, simplificationRatio=0.0, runCrosschecks=F); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
-	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=F, simplificationRatio=10.0, runCrosschecks=T); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
-	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=T, simplificationRatio=10.0, runCrosschecks=T); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
-	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=F, simplificationRatio=INF, runCrosschecks=T); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
-	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=T, simplificationRatio=INF, runCrosschecks=T); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
-	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=F, simplificationRatio=0.0, runCrosschecks=T); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
-	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=T, simplificationRatio=0.0, runCrosschecks=T); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=F, simplificationRatio=10.0, checkCoalescence=F, runCrosschecks=F); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=T, simplificationRatio=10.0, checkCoalescence=F, runCrosschecks=F); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=F, simplificationRatio=INF, checkCoalescence=F, runCrosschecks=F); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=T, simplificationRatio=INF, checkCoalescence=F, runCrosschecks=F); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=F, simplificationRatio=0.0, checkCoalescence=F, runCrosschecks=F); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=T, simplificationRatio=0.0, checkCoalescence=F, runCrosschecks=F); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=F, simplificationRatio=10.0, checkCoalescence=T, runCrosschecks=F); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=T, simplificationRatio=10.0, checkCoalescence=T, runCrosschecks=F); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=F, simplificationRatio=INF, checkCoalescence=T, runCrosschecks=F); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=T, simplificationRatio=INF, checkCoalescence=T, runCrosschecks=F); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=F, simplificationRatio=0.0, checkCoalescence=T, runCrosschecks=F); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=T, simplificationRatio=0.0, checkCoalescence=T, runCrosschecks=F); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=F, simplificationRatio=10.0, checkCoalescence=F, runCrosschecks=T); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=T, simplificationRatio=10.0, checkCoalescence=F, runCrosschecks=T); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=F, simplificationRatio=INF, checkCoalescence=F, runCrosschecks=T); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=T, simplificationRatio=INF, checkCoalescence=F, runCrosschecks=T); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=F, simplificationRatio=0.0, checkCoalescence=F, runCrosschecks=T); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=T, simplificationRatio=0.0, checkCoalescence=F, runCrosschecks=T); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=F, simplificationRatio=10.0, checkCoalescence=T, runCrosschecks=T); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=T, simplificationRatio=10.0, checkCoalescence=T, runCrosschecks=T); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=F, simplificationRatio=INF, checkCoalescence=T, runCrosschecks=T); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=T, simplificationRatio=INF, checkCoalescence=T, runCrosschecks=T); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=F, simplificationRatio=0.0, checkCoalescence=T, runCrosschecks=T); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(recordMutations=T, simplificationRatio=0.0, checkCoalescence=T, runCrosschecks=T); } " + gen1_setup_p1 + "100 { stop(); }", __LINE__);
+	
+	// treeSeqCoalesced()
+	SLiMAssertScriptRaise("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "1: { sim.treeSeqCoalesced(); } 100 { stop(); }", 1, 290, "coalescence checking is enabled", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(checkCoalescence=T); } " + gen1_setup_p1 + "1: { sim.treeSeqCoalesced(); } 100 { stop(); }", __LINE__);
 	
 	// treeSeqSimplify()
 	SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "50 { sim.treeSeqSimplify(); } 100 { stop(); }", __LINE__);

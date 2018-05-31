@@ -72,6 +72,7 @@ development head (nonWF branch):
 	code completion can now supply argument names when in a function/method call
 	add suppressWarnings() function in Eidos
 	fix issue with dropped model output just before a simulation terminated due to an error
+	add treeSeqCoalesced() and a checkCoalescence parameter for initializeTreeSeq(), to perform runtime checking for coalescence
 
 
 2.6 (build 1292; Eidos version 1.6):

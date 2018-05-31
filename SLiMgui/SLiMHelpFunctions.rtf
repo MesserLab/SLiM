@@ -355,7 +355,6 @@ If the optional
 \f2\fs20 , in which case the ellipsis should supply a 
 \f0\fs18 string$
 \f2\fs20  Eidos script parameter.  The global symbol for the new mutation type is immediately available; the return value also provides the new object.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 Note that by default in WF models, all mutations of a given mutation type will be converted into 
 \f0\fs18 Substitution
@@ -681,7 +680,7 @@ If
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f0\fs18 \cf0 (void)initializeTreeSeq([logical$\'a0recordMutations\'a0=\'a0T], [float$\'a0simplificationRatio\'a0=\'a010]\cf2 \expnd0\expndtw0\kerning0
-, [logical$\'a0runCrosschecks\'a0=\'a0F]\cf0 \kerning1\expnd0\expndtw0 )
+, \cf2 [logical$\'a0checkCoalescence\'a0=\'a0F], \cf2 [logical$\'a0runCrosschecks\'a0=\'a0F]\cf0 \kerning1\expnd0\expndtw0 )
 \f1 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -689,7 +688,7 @@ If
 Configure options for tree sequence recording.  Calling this function turns on tree sequence recording, as a side effect, for later reconstruction of the simulation\'92s evolutionary dynamics; if you do not want tree sequence recording to be enabled, do not call this function.\
 The 
 \f0\fs18 recordMutations
-\f2\fs20  flag controls whether information about individual mutations is recorded or not.  Such recording takes time and memory, and so can be turned off if only the tree sequence itself is needed, but it is turned off by default since mutation recording is generally useful.\
+\f2\fs20  flag controls whether information about individual mutations is recorded or not.  Such recording takes time and memory, and so can be turned off if only the tree sequence itself is needed, but it is turned on by default since mutation recording is generally useful.\
 The 
 \f0\fs18 simplificationRatio
 \f2\fs20  parameter controls how often automatic simplification of the recorded tree sequence occurs.  SLiM will try to find an optimal generation interval for simplification such that the ratio of the memory used by the tree sequence tables, (before:after) simplification, is close to the requested ratio.  The default of 
@@ -699,7 +698,20 @@ The
 \f2\fs20  may be supplied as a special value indicating that automatic simplification should never occur; 
 \f0\fs18 0
 \f2\fs20  may be supplied to indicate that automatic simplification should be performed at the end of every generation.\
-The 
+\cf2 The 
+\f0\fs18 checkCoalescence
+\f2\fs20  parameter controls whether a check for full coalescence is conducted after each simplification.  If a model will call 
+\f0\fs18 treeSeqCoalesced()
+\f2\fs20  to check for coalescence during its execution, 
+\f0\fs18 checkCoalescence
+\f2\fs20  should be set to 
+\f0\fs18 T
+\f2\fs20 .  Since the coalescence checks entail a performance penalty, the default of 
+\f0\fs18 F
+\f2\fs20  is preferable otherwise.  See the documentation for 
+\f0\fs18 treeSeqCoalesced()
+\f2\fs20  for further discussion.\
+\cf2 The 
 \f0\fs18 runCrosschecks
-\f2\fs20  parameter controls whether cross-checks between SLiM\'92s internal data structures and the tree-sequence recording data structures will be conducted.  These two sets of data structures record much the same thing (mutations in genomes), but using completely different representations, so such cross-checks can be useful to confirm that the two data structures do indeed represent the same conceptual state.  This slows down the model considerably, however, and would normally be turned on only for debugging purposes, so it is turned off by default.  Ideally, enabling cross-checks would never alter the behavior of the model, but unfortunately that is not presently guaranteed since the tree-sequence tables need to be sorted and cleaned in order to do the cross-check.  In principle, this should not alter the model\'92s behavior, but it is hard to be sure of that \'96 particularly since these cross-checks are useful mainly when investigating possible bugs in the recording code.\
+\f2\fs20  parameter controls whether cross-checks between SLiM\'92s internal data structures and the tree-sequence recording data structures will be conducted.  These two sets of data structures record much the same thing (mutations in genomes), but using completely different representations, so such cross-checks can be useful to confirm that the two data structures do indeed represent the same conceptual state.  This slows down the model considerably, however, and would normally be turned on only for debugging purposes, so it is turned off by default.\
 }

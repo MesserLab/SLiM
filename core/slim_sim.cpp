@@ -391,6 +391,9 @@ slim_generation_t SLiMSim::InitializePopulationFromFile(const std::string &p_fil
 			
 			// reset our tree-seq auto-simplification interval so we don't simplify immediately
 			simplify_elapsed_ = 0;
+			
+			// reset our last coalescence state; we don't know whether we're coalesced now or not
+			last_coalescence_state_ = false;
 		}
 	}
 	else if (file_format == SLiMFileFormat::kFormatMSPrimeText)
@@ -3822,6 +3825,76 @@ void SLiMSim::SimplifyTreeSequence(void)
 	
 	// and reset our elapsed time since last simplification, for auto-simplification
 	simplify_elapsed_ = 0;
+	
+	// as a side effect of simplification, update a "model has coalesced" flag that the user can consult, if requested
+	if (running_coalescence_checks_)
+		CheckCoalescenceAfterSimplification();
+}
+
+void SLiMSim::CheckCoalescenceAfterSimplification(void)
+{
+#if DEBUG
+	if (!recording_tree_ || !running_coalescence_checks_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::CheckCoalescenceAfterSimplification): (internal error) coalescence check called with recording or checking off." << EidosTerminate();
+#endif
+	
+	bool fully_coalesced = true;
+	int ret;
+	
+#if 0
+	// copy the table collection; Jerome says this is unnecessary since table_collection_build_indexes()
+	// does not modify the core information in the table collection, but just adds some separate indices
+	table_collection_t tables_copy;
+	
+	ret = table_collection_alloc(&tables_copy, MSP_ALLOC_TABLES);
+	if (ret < 0) handle_error("table_collection_alloc", ret);
+	
+	ret = table_collection_copy(&tables, &tables_copy);
+	if (ret < 0) handle_error("table_collection_copy", ret);
+	
+	ret = table_collection_build_indexes(&tables_copy, 0);
+	if (ret < 0) handle_error("table_collection_build_indexes", ret);
+#else
+	// no copy; see comment above
+	table_collection_t &tables_copy = tables;
+#endif
+	
+	tree_sequence_t ts;
+	
+	ret = tree_sequence_load_tables(&ts, &tables_copy, 0);
+	if (ret < 0) handle_error("tree_sequence_load_tables", ret);
+	
+	sparse_tree_t t;
+	
+	sparse_tree_alloc(&t, &ts, 0);
+	
+	ret = sparse_tree_first(&t);
+	if (ret < 0) handle_error("sparse_tree_first", ret);
+	
+	for (; ret == 1; ret = sparse_tree_next(&t))
+	{
+		if (t.right_sib[t.left_root] != MSP_NULL_NODE)
+		{
+			fully_coalesced = false;
+			break;
+		}
+	}
+	if (ret < 0) handle_error("sparse_tree_next", ret);
+	
+	ret = sparse_tree_free(&t);
+	if (ret < 0) handle_error("sparse_tree_free", ret);
+	
+	ret = tree_sequence_free(&ts);
+	if (ret < 0) handle_error("tree_sequence_free", ret);
+	
+	if (&tables_copy != &tables)
+	{
+		ret = table_collection_free(&tables_copy);
+		if (ret < 0) handle_error("table_collection_free", ret);
+	}
+	
+	//std::cout << generation_ << ": fully_coalesced == " << (fully_coalesced ? "TRUE" : "false") << std::endl;
+	last_coalescence_state_ = fully_coalesced;
 }
 
 void SLiMSim::RecordTablePosition(void)
@@ -5412,6 +5485,7 @@ void SLiMSim::TSXC_Enable(void)
 	recording_tree_ = true;
 	recording_mutations_ = true;
 	simplification_ratio_ = 10;
+	running_coalescence_checks_ = false;
 	running_treeseq_crosschecks_ = true;
 	treeseq_crosschecks_interval_ = 50;		// check every 50th generation, otherwise it is just too slow
 	
@@ -6151,6 +6225,9 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	
 	// Simplification has just been done, in effect
 	simplify_elapsed_ = 0;
+	
+	// Reset our last coalescence state; we don't know whether we're coalesced now or not
+	last_coalescence_state_ = false;
 	
 	// return the current simulation generation as reconstructed from the file
 	return provinence_gen;
@@ -7082,14 +7159,15 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 }
 
 // TREE SEQUENCE RECORDING
-//	*********************	(void)initializeTreeSeq([logical$ recordMutations = T], [float$ simplificationRatio = 10], [logical$ runCrosschecks = F])
+//	*********************	(void)initializeTreeSeq([logical$ recordMutations = T], [float$ simplificationRatio = 10], [logical$ checkCoalescence = F], [logical$ runCrosschecks = F])
 //
 EidosValue_SP SLiMSim::ExecuteContextFunction_initializeTreeSeq(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_function_name, p_argument_count, p_interpreter)
 	EidosValue *arg_recordMutations_value = p_arguments[0].get();
 	EidosValue *arg_simplificationRatio_value = p_arguments[1].get();
-	EidosValue *arg_runCrosschecks_value = p_arguments[2].get();
+	EidosValue *arg_checkCoalescence_value = p_arguments[2].get();
+	EidosValue *arg_runCrosschecks_value = p_arguments[3].get();
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	if (num_treeseq_declarations_ > 0)
@@ -7101,6 +7179,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeTreeSeq(const std::strin
 	recording_tree_ = true;
 	recording_mutations_ = arg_recordMutations_value->LogicalAtIndex(0, nullptr);
 	simplification_ratio_ = arg_simplificationRatio_value->FloatAtIndex(0, nullptr);
+	running_coalescence_checks_ = arg_checkCoalescence_value->LogicalAtIndex(0, nullptr);
 	running_treeseq_crosschecks_ = arg_runCrosschecks_value->LogicalAtIndex(0, nullptr);
 	treeseq_crosschecks_interval_ = 1;		// this interval is presently not exposed in the Eidos API
 	
@@ -7132,6 +7211,13 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeTreeSeq(const std::strin
 		{
 			if (previous_params) output_stream << ", ";
 			output_stream << "simplificationRatio = " << simplification_ratio_;
+			previous_params = true;
+		}
+		
+		if (running_coalescence_checks_)
+		{
+			if (previous_params) output_stream << ", ";
+			output_stream << "checkCoalescence = " << (running_coalescence_checks_ ? "T" : "F");
 			previous_params = true;
 		}
 		
@@ -7222,7 +7308,7 @@ const std::vector<EidosFunctionSignature_SP> *SLiMSim::ZeroGenerationFunctionSig
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMOptions, nullptr, kEidosValueMaskVOID, "SLiM"))
 									   ->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("dimensionality", gStaticEidosValue_StringEmpty)->AddString_OS("periodicity", gStaticEidosValue_StringEmpty)->AddInt_OS("mutationRuns", gStaticEidosValue_Integer0)->AddLogical_OS("preventIncidentalSelfing", gStaticEidosValue_LogicalF));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeTreeSeq, nullptr, kEidosValueMaskVOID, "SLiM"))
-									   ->AddLogical_OS("recordMutations", gStaticEidosValue_LogicalT)->AddFloat_OS("simplificationRatio", gStaticEidosValue_Float10)->AddLogical_OS("runCrosschecks", gStaticEidosValue_LogicalF));
+									   ->AddLogical_OS("recordMutations", gStaticEidosValue_LogicalT)->AddFloat_OS("simplificationRatio", gStaticEidosValue_Float10)->AddLogical_OS("checkCoalescence", gStaticEidosValue_LogicalF)->AddLogical_OS("runCrosschecks", gStaticEidosValue_LogicalF));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMModelType, nullptr, kEidosValueMaskVOID, "SLiM"))
 									   ->AddString_S("modelType"));
 	}
@@ -7704,6 +7790,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 		case gID_registerReproductionCallback:	return ExecuteMethod_registerReproductionCallback(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_rescheduleScriptBlock:			return ExecuteMethod_rescheduleScriptBlock(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_simulationFinished:			return ExecuteMethod_simulationFinished(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_treeSeqCoalesced:				return ExecuteMethod_treeSeqCoalesced(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_treeSeqSimplify:				return ExecuteMethod_treeSeqSimplify(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_treeSeqRememberIndividuals:	return ExecuteMethod_treeSeqRememberIndividuals(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_treeSeqOutput:					return ExecuteMethod_treeSeqOutput(p_method_id, p_arguments, p_argument_count, p_interpreter);
@@ -8802,6 +8889,20 @@ EidosValue_SP SLiMSim::ExecuteMethod_simulationFinished(EidosGlobalStringID p_me
 }
 
 // TREE SEQUENCE RECORDING
+//	*********************	- (logical$)treeSeqCoalesced(void)
+//
+EidosValue_SP SLiMSim::ExecuteMethod_treeSeqCoalesced(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	if (!recording_tree_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqCoalesced): treeSeqCoalesced() may only be called when tree recording is enabled." << EidosTerminate();
+	if (!running_coalescence_checks_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqCoalesced): treeSeqCoalesced() may only be called when coalescence checking is enabled; pass checkCoalescence=T to initializeTreeSeq() to enable this feature." << EidosTerminate();
+	
+	return (last_coalescence_state_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+}
+
+// TREE SEQUENCE RECORDING
 //	*********************	- (void)treeSeqSimplify(void)
 //
 EidosValue_SP SLiMSim::ExecuteMethod_treeSeqSimplify(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
@@ -8974,6 +9075,7 @@ const std::vector<const EidosMethodSignature *> *SLiMSim_Class::Methods(void) co
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerReproductionCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddString_OSN("sex", gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_rescheduleScriptBlock, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddObject_S("block", gSLiM_SLiMEidosBlock_Class)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL)->AddInt_ON("generations", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_simulationFinished, kEidosValueMaskVOID)));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqCoalesced, kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqSimplify, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqRememberIndividuals, kEidosValueMaskVOID))->AddObject("individuals", gSLiM_Individual_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqOutput, kEidosValueMaskVOID))->AddString_S("path")->AddLogical_OS("simplify", gStaticEidosValue_LogicalT)->AddLogical_OS("_binary", gStaticEidosValue_LogicalT));

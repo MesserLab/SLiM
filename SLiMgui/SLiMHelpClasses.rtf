@@ -4072,14 +4072,49 @@ Note that new script blocks can also be created and scheduled using the
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf2 \expnd0\expndtw0\kerning0
-\'96\'a0(void)treeSeqSimplify(void)\
+\'96\'a0(logical$)treeSeqCoalesced(void)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf2 Triggers an immediate simplification of the tree sequence recording tables.  This method may only be called if tree sequence recording has been turned on with 
+\f0\fs20 \cf2 Returns the coalescence state for the recorded tree sequence at the last simplification.  The returned value is a logical singleton flag, 
+\f2\fs18 T
+\f0\fs20  to indicate that full coalescence was observed at the last tree-sequence simplification (meaning that there is a single ancestral individual that roots all ancestry trees at all sites along the chromosome \'96 although not necessarily the 
+\i same
+\i0  ancestor at all sites), or 
+\f2\fs18 F
+\f0\fs20  if full coalescence was not observed.  For simple models, reaching coalescence may indicate that the model has reached an equilibrium state, but this may not be true in models that modify the dynamics of the model during execution by changing migration rates, introducing new mutations programmatically, dictating non-random mating, etc., so be careful not to attach more meaning to coalescence than it is due; some models may require burn-in beyond coalescence to reach equilibrium, or may not have an equilibrium state at all.  Also note that some actions by a model, such as adding a new subpopulation, may cause the coalescence state to revert from 
+\f2\fs18 T
+\f0\fs20  back to 
+\f2\fs18 F
+\f0\fs20  (at the next simplification), so a return value of 
+\f2\fs18 T
+\f0\fs20  may not necessarily mean that the model is coalesced at the present moment \'96 only that it 
+\i was
+\i0  coalesced at the last simplification.\
+This method may only be called if tree sequence recording has been turned on with 
 \f2\fs18 initializeTreeSeq()
-\f0\fs20 .  A call to this method will free up memory being used by entries that are no longer in the ancestral path of any individual within the current sample (currently living individuals, in other words, plus those explicitly added to the sample with 
-\f2\fs18 treeSeqRememberIndividuals()
-\f0\fs20 ), but it can also take a significant amount of time.  Typically calling this method is not necessary; the automatic simplification performed occasionally by SLiM should be sufficient for most models.\
+\f0\fs20 ; in addition, 
+\f2\fs18 checkCoalescence=T
+\f0\fs20  must have been supplied to 
+\f2\fs18 initializeTreeSeq()
+\f0\fs20 , so that the necessary work is done during each tree-sequence simplification.  Since this method does not perform coalescence checking itself, but instead simply returns the coalescence state observed at the last simplification, it may be desirable to call 
+\f2\fs18 treeSeqSimplify()
+\f0\fs20  immediately before 
+\f2\fs18 treeSeqCoalesced()
+\f0\fs20  to obtain up-to-date information.  However, the speed penalty of doing this in every generation would be large, and most models do not need this level of precision; usually it is sufficient to know that the model has coalesced, without knowing whether that happened in the current generation or in a recent preceding generation.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf2 \'96\'a0(void)treeSeqOutput(string$\'a0path, [logical$\'a0simplify\'a0=\'a0T])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 Outputs the current tree sequence recording tables to the path specified by path.  This method may only be called if tree sequence recording has been turned on with 
+\f2\fs18 initializeTreeSeq()
+\f0\fs20 .  If 
+\f2\fs18 simplify
+\f0\fs20  is 
+\f2\fs18 T
+\f0\fs20  (the default), simplification will be done immediately prior to output; this is almost always desirable, unless a model wishes to avoid simplification entirely.  A binary tree sequence file will be written to the specified path; a filename extension of 
+\f2\fs18 .trees
+\f0\fs20  is suggested for this type of file.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf2 \'96\'a0(void)treeSeqRememberIndividuals(object<Individual>\'a0individuals)\
@@ -4095,21 +4130,17 @@ Note that new script blocks can also be created and scheduled using the
 \i permanently
 \i0  adding particular individuals to the retained sample.  Typically this would be used, for example, to retain the initial individuals created in new subpopulations with 
 \f2\fs18 addSubpop()
-\f0\fs20 , if you wanted the tree sequences recorded to include the ultimate ancestors that root the whole simulated tree.  However, this is not the typical usage pattern for the tree sequence recording; most models will not need to call this method.\
+\f0\fs20 , if you wanted the tree sequences recorded to include the ultimate ancestors that root the whole simulated tree.  However, this is not the typical usage pattern for tree sequence recording; most models will not need to call this method.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf2 \'96\'a0(void)treeSeqOutput(string$\'a0path, [logical$\'a0simplify\'a0=\'a0T])\
+\f2\fs18 \cf2 \'96\'a0(void)treeSeqSimplify(void)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf2 Outputs the current tree sequence recording tables to the path specified by path.  This method may only be called if tree sequence recording has been turned on with 
+\f0\fs20 \cf2 Triggers an immediate simplification of the tree sequence recording tables.  This method may only be called if tree sequence recording has been turned on with 
 \f2\fs18 initializeTreeSeq()
-\f0\fs20 .  If 
-\f2\fs18 simplify
-\f0\fs20  is 
-\f2\fs18 T
-\f0\fs20  (the default), simplification will be done immediately prior to output; this is almost always desirable, unless a model wishes to avoid simplification entirely.  A binary tree sequence file will be written to the specified path; a filename extension of 
-\f2\fs18 .trees
-\f0\fs20  is suggested for this type of file.\
+\f0\fs20 .  A call to this method will free up memory being used by entries that are no longer in the ancestral path of any individual within the current sample (currently living individuals, in other words, plus those explicitly added to the sample with 
+\f2\fs18 treeSeqRememberIndividuals()
+\f0\fs20 ), but it can also take a significant amount of time.  Typically calling this method is not necessary; the automatic simplification performed occasionally by SLiM should be sufficient for most models.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
 \b\fs22 \cf0 \kerning1\expnd0\expndtw0 5.12  Class Subpopulation\
