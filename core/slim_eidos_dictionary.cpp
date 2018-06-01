@@ -34,8 +34,13 @@
 
 SLiMEidosDictionary::SLiMEidosDictionary(__attribute__((unused)) const SLiMEidosDictionary &p_original)
 {
-	// Note we do NOT copy hash_symbols_ from p_original; I don't think we need to.  I think, in fact,
-	// that this constructor is never called, although the STL insists that it has to exist.
+	// copy hash_symbols_ from p_original; I think this is called only when a Substitution is created from a Mutation
+	if (p_original.hash_symbols_)
+	{
+		hash_symbols_ = new std::unordered_map<std::string, EidosValue_SP>;
+		
+		*hash_symbols_ = *(p_original.hash_symbols_);
+	}
 }
 
 

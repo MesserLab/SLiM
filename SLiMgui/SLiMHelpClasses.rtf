@@ -5409,7 +5409,40 @@ Note that this method is only for use in nonWF models, in which migration is man
 \i\fs22 \cf0 5.13.2  
 \f1\fs18 Substitution
 \f0\fs22  methods\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\i0\fs18 \cf2 \expnd0\expndtw0\kerning0
+\'96\'a0(+)getValue(string$\'a0key)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 Returns the value previously set for the dictionary entry identifier 
+\f2\fs18 key
+\f0\fs20  using 
+\f2\fs18 setValue()
+\f0\fs20 , or 
+\f2\fs18 NULL
+\f0\fs20  if no value has been set.  This dictionary-style functionality is actually provided by the superclass of 
+\f2\fs18 Substitution
+\f0\fs20 , 
+\f2\fs18 SLiMEidosDictionary
+\f0\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf2 \'96\'a0(void)setValue(string$\'a0key, +\'a0value)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 Sets a value for the dictionary entry identifier 
+\f2\fs18 key
+\f0\fs20 .  The value, which may be of any type other than 
+\f2\fs18 object
+\f0\fs20 , can be fetched later using 
+\f2\fs18 getValue()
+\f0\fs20 .  This dictionary-style functionality is actually provided by the superclass of 
+\f2\fs18 Substitution
+\f0\fs20 , 
+\f2\fs18 SLiMEidosDictionary
+\f0\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
-\f3\i0 \cf0 \
+\f3\fs22 \cf0 \kerning1\expnd0\expndtw0 \
 }

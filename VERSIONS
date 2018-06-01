@@ -73,6 +73,7 @@ development head (nonWF branch):
 	add suppressWarnings() function in Eidos
 	fix issue with dropped model output just before a simulation terminated due to an error
 	add treeSeqCoalesced() and a checkCoalescence parameter for initializeTreeSeq(), to perform runtime checking for coalescence
+	add getValue() / setValue() functionality to Substitution, make values carry over from Mutation objects when they fix
 
 
 2.6 (build 1292; Eidos version 1.6):

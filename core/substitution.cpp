@@ -34,7 +34,8 @@
 #pragma mark -
 
 Substitution::Substitution(Mutation &p_mutation, slim_generation_t p_fixation_generation) :
-mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position_), selection_coeff_(p_mutation.selection_coeff_), subpop_index_(p_mutation.subpop_index_), origin_generation_(p_mutation.origin_generation_), fixation_generation_(p_fixation_generation), mutation_id_(p_mutation.mutation_id_), tag_value_(p_mutation.tag_value_)
+mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position_), selection_coeff_(p_mutation.selection_coeff_), subpop_index_(p_mutation.subpop_index_), origin_generation_(p_mutation.origin_generation_), fixation_generation_(p_fixation_generation), mutation_id_(p_mutation.mutation_id_), tag_value_(p_mutation.tag_value_),
+	SLiMEidosDictionary(p_mutation)
 {
 }
 
@@ -236,6 +237,14 @@ void Substitution::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 	}
 }
 
+EidosValue_SP Substitution::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+	switch (p_method_id)
+	{
+		default:					return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+	}
+}
+
 
 //
 //	Substitution_Class
@@ -244,7 +253,7 @@ void Substitution::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 #pragma mark Substitution_Class
 #pragma mark -
 
-class Substitution_Class : public EidosObjectClass
+class Substitution_Class : public SLiMEidosDictionary_Class
 {
 public:
 	Substitution_Class(const Substitution_Class &p_original) = delete;	// no copy-construct
@@ -254,6 +263,7 @@ public:
 	virtual const std::string &ElementType(void) const;
 	
 	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
+	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
 };
 
 EidosObjectClass *gSLiM_Substitution_Class = new Substitution_Class();
@@ -285,6 +295,20 @@ const std::vector<const EidosPropertySignature *> *Substitution_Class::Propertie
 	}
 	
 	return properties;
+}
+
+const std::vector<const EidosMethodSignature *> *Substitution_Class::Methods(void) const
+{
+	static std::vector<const EidosMethodSignature *> *methods = nullptr;
+	
+	if (!methods)
+	{
+		methods = new std::vector<const EidosMethodSignature *>(*SLiMEidosDictionary_Class::Methods());
+		
+		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
+	}
+	
+	return methods;
 }
 
 
