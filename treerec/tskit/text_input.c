@@ -661,46 +661,46 @@ table_collection_load_text(table_collection_t *tables, FILE *nodes, FILE *edges,
     table_size_t j;
     double sequence_length;
 
-    ret = node_table_load_text(&tables->nodes, nodes);
+    ret = node_table_load_text(tables->nodes, nodes);
     if (ret != 0) {
         goto out;
     }
-    ret = edge_table_load_text(&tables->edges, edges);
+    ret = edge_table_load_text(tables->edges, edges);
     if (ret != 0) {
         goto out;
     }
     if (sites != NULL) {
-        ret = site_table_load_text(&tables->sites, sites);
+        ret = site_table_load_text(tables->sites, sites);
         if (ret != 0) {
             goto out;
         }
     }
     if (mutations != NULL) {
-        ret = mutation_table_load_text(&tables->mutations, mutations);
+        ret = mutation_table_load_text(tables->mutations, mutations);
         if (ret != 0) {
             goto out;
         }
     }
     if (migrations != NULL) {
-        ret = migration_table_load_text(&tables->migrations, migrations);
+        ret = migration_table_load_text(tables->migrations, migrations);
         if (ret != 0) {
             goto out;
         }
     }
     if (individuals != NULL) {
-        ret = individual_table_load_text(&tables->individuals, individuals);
+        ret = individual_table_load_text(tables->individuals, individuals);
         if (ret != 0) {
             goto out;
         }
     }
-	if (populations != NULL) {
-		ret = population_table_load_text(&tables->populations, populations);
-		if (ret != 0) {
-			goto out;
-		}
-	}
+    if (populations != NULL) {
+        ret = population_table_load_text(tables->populations, populations);
+        if (ret != 0) {
+            goto out;
+        }
+    }
     if (provenances != NULL) {
-        ret = provenance_table_load_text(&tables->provenances, provenances);
+        ret = provenance_table_load_text(tables->provenances, provenances);
         if (ret != 0) {
             goto out;
         }

@@ -35,8 +35,7 @@
 
 // BCH 30 May 2018: probably the WARN_UNUSED macro above should be retired
 // in favor of MSP_WARN_UNUSED (adapted from KAS_WARN_UNUSED), for clean
-// naming, but I didn't make that change since it would be pretty
-// extensive; didn't want to create a merge hassle for @petrelharp...
+// naming, but I didn't make that change since it would be extensive
 #ifdef __GNUC__
 	#define MSP_WARN_UNUSED __attribute__ ((warn_unused_result))
 	#define MSP_UNUSED(x) MSP_UNUSED_ ## x __attribute__((__unused__))

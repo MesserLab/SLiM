@@ -382,4 +382,3 @@ void vargen_print_state(vargen_t *self, FILE *out);
 #endif
 
 #endif /* TSK_TREES_H */
-

@@ -25,6 +25,8 @@
     the sourcecode, change the interface and squash a few bugs.
     Mail him if you find new bugs.
 
+    Minor modifications to remove compiler warnings by Ben Haller on 6/1/2018.
+
 *****************************************************************************/
 
 #include <stdio.h>

@@ -27,7 +27,7 @@
 
 /* Ensure the tree is in a consistent state */
 static void
-hapgen_check_state(hapgen_t *self)
+hapgen_check_state(hapgen_t *MSP_UNUSED(self))
 {
     /* TODO some checks! */
 }
