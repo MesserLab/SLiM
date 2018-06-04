@@ -3770,7 +3770,7 @@ void SLiMSim::SimplifyTreeSequence(void)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::SimplifyTreeSequence): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
 #endif
 	
-	if (tables.nodes.num_rows == 0)
+	if (tables.nodes->num_rows == 0)
 		return;
 	
 	std::vector<node_id_t> samples;
@@ -3806,8 +3806,8 @@ void SLiMSim::SimplifyTreeSequence(void)
 	}
 	
 	// sort, simplify
-	int ret = sort_tables(&tables.nodes, &tables.edges, &tables.migrations, &tables.sites, &tables.mutations, 0);
-	if (ret < 0) handle_error("sort_tables", ret);
+	int ret = table_collection_sort(&tables, /* edge_start */ 0, /* flags */ 0);
+	if (ret < 0) handle_error("table_collection_sort", ret);
 
     // Remove redundant sites we added
     ret = table_collection_deduplicate_sites(&tables, 0);
@@ -3995,7 +3995,7 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genom
 	const char *metadata = (char *)&metadata_rec;
 	size_t metadata_length = sizeof(GenomeMetadataRec)/sizeof(char);
 	
-	offspringMSPID = node_table_add_row(&tables.nodes, flags, time, (population_id_t)p_new_genome->subpop_->subpopulation_id_,
+	offspringMSPID = node_table_add_row(tables.nodes, flags, time, (population_id_t)p_new_genome->subpop_->subpopulation_id_,
                                         MSP_NULL_INDIVIDUAL, metadata, metadata_length);
 	p_new_genome->msp_node_id_ = offspringMSPID;
 	
@@ -4034,7 +4034,7 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genom
 		right = (*p_breakpoints)[i];
 
 		node_id_t parent = (node_id_t) (polarity ? genome1MSPID : genome2MSPID);
-		int ret = edge_table_add_row(&tables.edges,left,right,parent,offspringMSPID);
+		int ret = edge_table_add_row(tables.edges,left,right,parent,offspringMSPID);
 		if (ret < 0) handle_error("add_edge", ret);
 		
 		polarity = !polarity;
@@ -4043,7 +4043,7 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genom
 	
 	right = (double)chromosome_.last_position_+1;
 	node_id_t parent = (node_id_t) (polarity ? genome1MSPID : genome2MSPID);
-	int ret = edge_table_add_row(&tables.edges,left,right,parent,offspringMSPID);
+	int ret = edge_table_add_row(tables.edges,left,right,parent,offspringMSPID);
 	if (ret < 0) handle_error("add_edge", ret);
 }
 
@@ -4081,7 +4081,7 @@ void SLiMSim::RecordNewDerivedState(const Genome *p_genome, slim_position_t p_po
     // Identify any previous mutations at this site in this genome, and add a new site
     double msp_position = (double) p_position;
 
-    site_id_t site_id = site_table_add_row(&tables.sites, msp_position, NULL, 0, NULL, 0);
+    site_id_t site_id = site_table_add_row(tables.sites, msp_position, NULL, 0, NULL, 0);
 	
 	/* DEBUG STDOUT
 	std::cout << tree_seq_generation_ << ":   New derived state for genome id "; 
@@ -4128,7 +4128,7 @@ void SLiMSim::RecordNewDerivedState(const Genome *p_genome, slim_position_t p_po
     char *mutation_metadata_bytes = (char *)(mutation_metadata.data());
     size_t mutation_metadata_length = mutation_metadata.size() * sizeof(MutationMetadataRec);
 
-    int ret = mutation_table_add_row(&tables.mutations, site_id, genomeMSPID, MSP_NULL_MUTATION, 
+    int ret = mutation_table_add_row(tables.mutations, site_id, genomeMSPID, MSP_NULL_MUTATION, 
                     derived_muts_bytes, (table_size_t)derived_state_length, 
                     mutation_metadata_bytes, (table_size_t)mutation_metadata_length);
 	if (ret < 0) handle_error("add_mutation", ret);
@@ -4156,17 +4156,17 @@ void SLiMSim::CheckAutoSimplification(void)
 			// We could, in principle, calculate actual memory used based on number of rows * sizeof(column), etc.,
 			// but that seems like overkill; adding together the number of rows in all the tables should be a
 			// reasonable proxy, and this whole thing is just a heuristic that needs to be tailored anyway.
-			uint64_t old_table_size = (uint64_t)tables.nodes.num_rows;
-            old_table_size += (uint64_t)tables.edges.num_rows;
-            old_table_size += (uint64_t)tables.sites.num_rows;
-            old_table_size += (uint64_t)tables.mutations.num_rows;
+			uint64_t old_table_size = (uint64_t)tables.nodes->num_rows;
+            old_table_size += (uint64_t)tables.edges->num_rows;
+            old_table_size += (uint64_t)tables.sites->num_rows;
+            old_table_size += (uint64_t)tables.mutations->num_rows;
 			
 			SimplifyTreeSequence();
 			
-			uint64_t new_table_size = (uint64_t)tables.nodes.num_rows;
-            new_table_size += (uint64_t)tables.edges.num_rows;
-            new_table_size += (uint64_t)tables.sites.num_rows;
-            new_table_size += (uint64_t)tables.mutations.num_rows;
+			uint64_t new_table_size = (uint64_t)tables.nodes->num_rows;
+            new_table_size += (uint64_t)tables.edges->num_rows;
+            new_table_size += (uint64_t)tables.sites->num_rows;
+            new_table_size += (uint64_t)tables.mutations->num_rows;
 			double ratio = old_table_size / (double)new_table_size;
 			
 			//std::cout << "auto-simplified in generation " << generation_ << "; old size " << old_table_size << ", new size " << new_table_size;
@@ -4250,15 +4250,15 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 		static_assert(sizeof(MutationMetadataRec) == 16, "MutationMetadataRec has changed size; this code probably needs to be updated");
 		
 		// Mutation derived state
-		const char *derived_state = tables.mutations.derived_state;
-		table_size_t *derived_state_offset = tables.mutations.derived_state_offset;
+		const char *derived_state = tables.mutations->derived_state;
+		table_size_t *derived_state_offset = tables.mutations->derived_state_offset;
 		std::vector<slim_mutationid_t> binary_derived_state;
 		std::vector<table_size_t> binary_derived_state_offset;
 		size_t derived_state_total_part_count = 0;
 		
 		// Mutation metadata
-		const char *mutation_metadata = tables.mutations.metadata;
-		table_size_t *mutation_metadata_offset = tables.mutations.metadata_offset;
+		const char *mutation_metadata = tables.mutations->metadata;
+		table_size_t *mutation_metadata_offset = tables.mutations->metadata_offset;
 		std::vector<MutationMetadataRec> binary_mutation_metadata;
 		std::vector<table_size_t> binary_mutation_metadata_offset;
 		size_t mutation_metadata_total_part_count = 0;
@@ -4266,7 +4266,7 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 		binary_derived_state_offset.push_back(0);
 		binary_mutation_metadata_offset.push_back(0);
 		
-		for (size_t j = 0; j < tables.mutations.num_rows; j++)
+		for (size_t j = 0; j < tables.mutations->num_rows; j++)
 		{
 			// Mutation derived state
 			std::string string_derived_state(derived_state + derived_state_offset[j], derived_state_offset[j+1] - derived_state_offset[j]);
@@ -4312,11 +4312,11 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 		if (binary_mutation_metadata.size() == 0)
 			binary_mutation_metadata.resize(1);
 		
-		ret = mutation_table_set_columns(&tables.mutations,
-										 tables_copy.mutations.num_rows,
-										 tables_copy.mutations.site,
-										 tables_copy.mutations.node,
-										 tables_copy.mutations.parent,
+		ret = mutation_table_set_columns(tables.mutations,
+										 tables_copy.mutations->num_rows,
+										 tables_copy.mutations->site,
+										 tables_copy.mutations->node,
+										 tables_copy.mutations->parent,
 										 (char *)binary_derived_state.data(),
 										 binary_derived_state_offset.data(),
 										 (char *)binary_mutation_metadata.data(),
@@ -4328,15 +4328,15 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 	{
 		static_assert(sizeof(GenomeMetadataRec) == 10, "GenomeMetadataRec has changed size; this code probably needs to be updated");
 		
-		const char *metadata = tables.nodes.metadata;
-		table_size_t *metadata_offset = tables.nodes.metadata_offset;
+		const char *metadata = tables.nodes->metadata;
+		table_size_t *metadata_offset = tables.nodes->metadata_offset;
 		std::vector<GenomeMetadataRec> binary_metadata;
 		std::vector<table_size_t> binary_metadata_offset;
 		size_t metadata_total_part_count = 0;
 		
 		binary_metadata_offset.push_back(0);
 		
-		for (size_t j = 0; j < tables.nodes.num_rows; j++)
+		for (size_t j = 0; j < tables.nodes->num_rows; j++)
 		{
 			std::string string_metadata(metadata + metadata_offset[j], metadata_offset[j+1] - metadata_offset[j]);
 			std::vector<std::string> metadata_parts = Eidos_string_split(string_metadata, ",");
@@ -4364,12 +4364,12 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 			binary_metadata_offset.push_back((table_size_t)(metadata_total_part_count * sizeof(GenomeMetadataRec)));
 		}
 		
-		ret = node_table_set_columns(&tables.nodes,
-									 tables_copy.nodes.num_rows,
-									 tables_copy.nodes.flags,
-									 tables_copy.nodes.time,
-									 tables_copy.nodes.population,
-									 tables_copy.nodes.individual,
+		ret = node_table_set_columns(tables.nodes,
+									 tables_copy.nodes->num_rows,
+									 tables_copy.nodes->flags,
+									 tables_copy.nodes->time,
+									 tables_copy.nodes->population,
+									 tables_copy.nodes->individual,
 									 (char *)binary_metadata.data(),
 									 binary_metadata_offset.data());
 		if (ret < 0) handle_error("convert_from_ascii", ret);
@@ -4379,15 +4379,15 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 	{
 		static_assert(sizeof(IndividualMetadataRec) == 16, "IndividualMetadataRec has changed size; this code probably needs to be updated");
 		
-		const char *metadata = tables.individuals.metadata;
-		table_size_t *metadata_offset = tables.individuals.metadata_offset;
+		const char *metadata = tables.individuals->metadata;
+		table_size_t *metadata_offset = tables.individuals->metadata_offset;
 		std::vector<IndividualMetadataRec> binary_metadata;
 		std::vector<table_size_t> binary_metadata_offset;
 		size_t metadata_total_part_count = 0;
 		
 		binary_metadata_offset.push_back(0);
 		
-		for (size_t j = 0; j < tables.individuals.num_rows; j++)
+		for (size_t j = 0; j < tables.individuals->num_rows; j++)
 		{
 			std::string string_metadata(metadata + metadata_offset[j], metadata_offset[j+1] - metadata_offset[j]);
 			std::vector<std::string> metadata_parts = Eidos_string_split(string_metadata, ",");
@@ -4406,11 +4406,11 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 			binary_metadata_offset.push_back((table_size_t)(metadata_total_part_count * sizeof(IndividualMetadataRec)));
 		}
 		
-		ret = individual_table_set_columns(&tables.individuals,
-										   tables_copy.individuals.num_rows,
-										   tables_copy.individuals.flags,
-										   tables_copy.individuals.location,
-										   tables_copy.individuals.location_offset,
+		ret = individual_table_set_columns(tables.individuals,
+										   tables_copy.individuals->num_rows,
+										   tables_copy.individuals->flags,
+										   tables_copy.individuals->location,
+										   tables_copy.individuals->location_offset,
 										   (char *)binary_metadata.data(),
 										   binary_metadata_offset.data());
 		if (ret < 0) handle_error("convert_from_ascii", ret);
@@ -4421,14 +4421,14 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 		static_assert(sizeof(SubpopulationMetadataRec) == 88, "SubpopulationMetadataRec has changed size; this code probably needs to be updated");
 		static_assert(sizeof(SubpopulationMigrationMetadataRec) == 12, "SubpopulationMigrationMetadataRec has changed size; this code probably needs to be updated");
 		
-		const char *metadata = tables.populations.metadata;
-		table_size_t *metadata_offset = tables.populations.metadata_offset;
+		const char *metadata = tables.populations->metadata;
+		table_size_t *metadata_offset = tables.populations->metadata_offset;
 		char *binary_metadata = NULL;
 		std::vector<table_size_t> binary_metadata_offset;
 		
 		binary_metadata_offset.push_back(0);
 		
-		for (size_t j = 0; j < tables.populations.num_rows; j++)
+		for (size_t j = 0; j < tables.populations->num_rows; j++)
 		{
 			std::string string_metadata(metadata + metadata_offset[j], metadata_offset[j+1] - metadata_offset[j]);
 			std::vector<std::string> metadata_parts = Eidos_string_split(string_metadata, ",");
@@ -4471,8 +4471,8 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 			binary_metadata_offset.push_back((table_size_t)(binary_metadata_offset[j] + metadata_length));
 		}
 		
-		ret = population_table_set_columns(&tables.populations,
-										   tables_copy.populations.num_rows,
+		ret = population_table_set_columns(tables.populations,
+										   tables_copy.populations->num_rows,
 										   binary_metadata,
 										   binary_metadata_offset.data());
 		if (ret < 0) handle_error("convert_from_ascii", ret);
@@ -4512,21 +4512,21 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
 		static_assert(sizeof(MutationMetadataRec) == 16, "MutationMetadataRec has changed size; this code probably needs to be updated");
 		
 		// Mutation derived state
-		const char *derived_state = p_tables->mutations.derived_state;
-		table_size_t *derived_state_offset = p_tables->mutations.derived_state_offset;
+		const char *derived_state = p_tables->mutations->derived_state;
+		table_size_t *derived_state_offset = p_tables->mutations->derived_state_offset;
 		std::string text_derived_state;
 		std::vector<table_size_t> text_derived_state_offset;
 		
 		// Mutation metadata
-		const char *mutation_metadata = p_tables->mutations.metadata;
-		table_size_t *mutation_metadata_offset = p_tables->mutations.metadata_offset;
+		const char *mutation_metadata = p_tables->mutations->metadata;
+		table_size_t *mutation_metadata_offset = p_tables->mutations->metadata_offset;
 		std::string text_mutation_metadata;
 		std::vector<table_size_t> text_mutation_metadata_offset;
 		
 		text_derived_state_offset.push_back(0);
 		text_mutation_metadata_offset.push_back(0);
 		
-		for (size_t j = 0; j < p_tables->mutations.num_rows; j++)
+		for (size_t j = 0; j < p_tables->mutations->num_rows; j++)
 		{
 			// Mutation derived state
 			slim_mutationid_t *int_derived_state = (slim_mutationid_t *)(derived_state + derived_state_offset[j]);
@@ -4564,11 +4564,11 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
 			text_mutation_metadata_offset.push_back((table_size_t)text_mutation_metadata.size());
 		}
 		
-		ret = mutation_table_set_columns(&p_tables->mutations,
-										tables_copy.mutations.num_rows,
-										tables_copy.mutations.site,
-										tables_copy.mutations.node,
-										tables_copy.mutations.parent,
+		ret = mutation_table_set_columns(p_tables->mutations,
+										tables_copy.mutations->num_rows,
+										tables_copy.mutations->site,
+										tables_copy.mutations->node,
+										tables_copy.mutations->parent,
 										text_derived_state.c_str(),
 										text_derived_state_offset.data(),
 										text_mutation_metadata.c_str(),
@@ -4580,14 +4580,14 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
 	{
 		static_assert(sizeof(GenomeMetadataRec) == 10, "GenomeMetadataRec has changed size; this code probably needs to be updated");
 		
-		const char *metadata = p_tables->nodes.metadata;
-		table_size_t *metadata_offset = p_tables->nodes.metadata_offset;
+		const char *metadata = p_tables->nodes->metadata;
+		table_size_t *metadata_offset = p_tables->nodes->metadata_offset;
 		std::string text_metadata;
 		std::vector<table_size_t> text_metadata_offset;
 		
 		text_metadata_offset.push_back(0);
 		
-		for (size_t j = 0; j < p_tables->nodes.num_rows; j++)
+		for (size_t j = 0; j < p_tables->nodes->num_rows; j++)
 		{
 			GenomeMetadataRec *struct_genome_metadata = (GenomeMetadataRec *)(metadata + metadata_offset[j]);
 			
@@ -4599,12 +4599,12 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
 			text_metadata_offset.push_back((table_size_t)text_metadata.size());
 		}
 		
-		ret = node_table_set_columns(&p_tables->nodes,
-									 tables_copy.nodes.num_rows,
-									 tables_copy.nodes.flags,
-									 tables_copy.nodes.time,
-									 tables_copy.nodes.population,
-									 tables_copy.nodes.individual,
+		ret = node_table_set_columns(p_tables->nodes,
+									 tables_copy.nodes->num_rows,
+									 tables_copy.nodes->flags,
+									 tables_copy.nodes->time,
+									 tables_copy.nodes->population,
+									 tables_copy.nodes->individual,
 									 text_metadata.c_str(),
 									 text_metadata_offset.data());
 		if (ret < 0) handle_error("convert_to_ascii", ret);
@@ -4614,14 +4614,14 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
 	{
 		static_assert(sizeof(IndividualMetadataRec) == 16, "IndividualMetadataRec has changed size; this code probably needs to be updated");
 		
-		const char *metadata = p_tables->individuals.metadata;
-		table_size_t *metadata_offset = p_tables->individuals.metadata_offset;
+		const char *metadata = p_tables->individuals->metadata;
+		table_size_t *metadata_offset = p_tables->individuals->metadata_offset;
 		std::string text_metadata;
 		std::vector<table_size_t> text_metadata_offset;
 		
 		text_metadata_offset.push_back(0);
 		
-		for (size_t j = 0; j < p_tables->individuals.num_rows; j++)
+		for (size_t j = 0; j < p_tables->individuals->num_rows; j++)
 		{
 			IndividualMetadataRec *struct_individual_metadata = (IndividualMetadataRec *)(metadata + metadata_offset[j]);
 			
@@ -4633,11 +4633,11 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
 			text_metadata_offset.push_back((table_size_t)text_metadata.size());
 		}
 		
-		ret = individual_table_set_columns(&p_tables->individuals,
-										   tables_copy.individuals.num_rows,
-										   tables_copy.individuals.flags,
-										   tables_copy.individuals.location,
-										   tables_copy.individuals.location_offset,
+		ret = individual_table_set_columns(p_tables->individuals,
+										   tables_copy.individuals->num_rows,
+										   tables_copy.individuals->flags,
+										   tables_copy.individuals->location,
+										   tables_copy.individuals->location_offset,
 										   text_metadata.c_str(),
 										   text_metadata_offset.data());
 		if (ret < 0) handle_error("convert_to_ascii", ret);
@@ -4648,14 +4648,14 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
 		static_assert(sizeof(SubpopulationMetadataRec) == 88, "SubpopulationMetadataRec has changed size; this code probably needs to be updated");
 		static_assert(sizeof(SubpopulationMigrationMetadataRec) == 12, "SubpopulationMigrationMetadataRec has changed size; this code probably needs to be updated");
 		
-		const char *metadata = p_tables->populations.metadata;
-		table_size_t *metadata_offset = p_tables->populations.metadata_offset;
+		const char *metadata = p_tables->populations->metadata;
+		table_size_t *metadata_offset = p_tables->populations->metadata_offset;
 		std::string text_metadata;
 		std::vector<table_size_t> text_metadata_offset;
 		
 		text_metadata_offset.push_back(0);
 		
-		for (size_t j = 0; j < p_tables->populations.num_rows; j++)
+		for (size_t j = 0; j < p_tables->populations->num_rows; j++)
 		{
 			SubpopulationMetadataRec *struct_population_metadata = (SubpopulationMetadataRec *)(metadata + metadata_offset[j]);
 			SubpopulationMigrationMetadataRec *struct_migration_metadata = (SubpopulationMigrationMetadataRec *)(struct_population_metadata + 1);
@@ -4710,8 +4710,8 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
 			text_metadata_offset.push_back((table_size_t)text_metadata.size());
 		}
 		
-		ret = population_table_set_columns(&p_tables->populations,
-										   tables_copy.populations.num_rows,
+		ret = population_table_set_columns(p_tables->populations,
+										   tables_copy.populations->num_rows,
 										   text_metadata.c_str(),
 										   text_metadata_offset.data());
 		if (ret < 0) handle_error("convert_to_ascii", ret);
@@ -4724,10 +4724,10 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
 void SLiMSim::WriteIndividualTable(table_collection_t *p_tables)
 {
     // This overwrites whatever might be previously in the individual table
-    individual_table_clear(&(p_tables->individuals));
+    individual_table_clear(p_tables->individuals);
 	
     // reset the individual column to -1 (which is MSP_NULL_INDIVIDUAL)
-    memset(p_tables->nodes.individual, 0xff, p_tables->nodes.num_rows * sizeof(individual_id_t));
+    memset(p_tables->nodes->individual, 0xff, p_tables->nodes->num_rows * sizeof(individual_id_t));
 	
 	for (auto subpop_iter : population_)
 	{
@@ -4751,16 +4751,16 @@ void SLiMSim::WriteIndividualTable(table_collection_t *p_tables)
 			IndividualMetadataRec metadata_rec;
 			MetadataForIndividual(individual, &metadata_rec);
 			
-            individual_id_t msp_individual = individual_table_add_row(&(p_tables->individuals), flags, location.data(), 
+            individual_id_t msp_individual = individual_table_add_row(p_tables->individuals, flags, location.data(), 
                     (uint32_t)location.size(), (char *)&metadata_rec,
                     (uint32_t)sizeof(IndividualMetadataRec));
             if (msp_individual < 0) handle_error("individual_table_add_row", msp_individual);
 			
             // Update node table
-            assert(individual->genome1_->msp_node_id_ < (node_id_t) p_tables->nodes.num_rows
-                    && individual->genome2_->msp_node_id_ < (node_id_t) p_tables->nodes.num_rows);
-            p_tables->nodes.individual[individual->genome1_->msp_node_id_] = msp_individual;
-            p_tables->nodes.individual[individual->genome2_->msp_node_id_] = msp_individual;
+            assert(individual->genome1_->msp_node_id_ < (node_id_t) p_tables->nodes->num_rows
+                    && individual->genome2_->msp_node_id_ < (node_id_t) p_tables->nodes->num_rows);
+            p_tables->nodes->individual[individual->genome1_->msp_node_id_] = msp_individual;
+            p_tables->nodes->individual[individual->genome2_->msp_node_id_] = msp_individual;
 		}
 	}
 }
@@ -4768,7 +4768,7 @@ void SLiMSim::WriteIndividualTable(table_collection_t *p_tables)
 void SLiMSim::WritePopulationTable(table_collection_t *p_tables)
 {
 	// This overwrites whatever might be previously in the population table
-	population_table_clear(&(p_tables->populations));
+	population_table_clear(p_tables->populations);
 	
 	for (auto subpop_iter : population_)
 	{
@@ -4800,7 +4800,7 @@ void SLiMSim::WritePopulationTable(table_collection_t *p_tables)
 			migration_index++;
 		}
 		
-		population_id_t msp_population = population_table_add_row(&(p_tables->populations), (char *)metadata_rec, (uint32_t)metadata_length);
+		population_id_t msp_population = population_table_add_row(p_tables->populations, (char *)metadata_rec, (uint32_t)metadata_length);
 		free(metadata_rec);
 		
 		if (msp_population < 0) handle_error("population_table_add_row", msp_population);
@@ -4823,7 +4823,7 @@ void SLiMSim::WriteProvenanceTable(table_collection_t *p_tables)
 	tm_info = localtime(&timer);
 	strftime(buffer, timestamp_size, "%Y-%m-%dT%H:%M:%S", tm_info);
 
-	ret = provenance_table_add_row(&p_tables->provenances, buffer, strlen(buffer), provenance_str,
+	ret = provenance_table_add_row(p_tables->provenances, buffer, strlen(buffer), provenance_str,
 			strlen(provenance_str));
 	free(provenance_str);
 	if (ret < 0) handle_error("provenance_table_set_columns", ret);
@@ -4831,7 +4831,7 @@ void SLiMSim::WriteProvenanceTable(table_collection_t *p_tables)
 
 void SLiMSim::ReadProvenanceTable(table_collection_t *p_tables, slim_generation_t *p_generation, size_t *p_remembered_genome_count)
 {
-	provenance_table_t &provenance_table = p_tables->provenances;
+	provenance_table_t &provenance_table = *p_tables->provenances;
 	table_size_t num_rows = provenance_table.num_rows;
 	
 	if (num_rows <= 0)
@@ -4925,9 +4925,8 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
         SimplifyTreeSequence();
     } else {
         // this is done by SimplifyTreeSequence() but we need to do in any case
-        ret = sort_tables(&tables.nodes, &tables.edges, &tables.migrations, 
-                              &tables.sites, &tables.mutations, 0);				
-        if (ret < 0) handle_error("sort_tables", ret);
+		ret = table_collection_sort(&tables, /* edge_start */ 0, /* flags */ 0);
+        if (ret < 0) handle_error("table_collection_sort", ret);
 		
         // Remove redundant sites we added
         ret = table_collection_deduplicate_sites(&tables, 0);
@@ -4986,13 +4985,13 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 			FILE *MspTxtPopulationTable = fopen(PopulationFileName.c_str(), "w");
 			FILE *MspTxtProvenanceTable = fopen(ProvenanceFileName.c_str(), "w");
 			
-			node_table_dump_text(&(output_tables.nodes), MspTxtNodeTable);
-			edge_table_dump_text(&(output_tables.edges), MspTxtEdgeTable);
-			site_table_dump_text(&(output_tables.sites), MspTxtSiteTable);
-			mutation_table_dump_text(&(output_tables.mutations), MspTxtMutationTable);
-			individual_table_dump_text(&(output_tables.individuals), MspTxtIndividualTable);
-			population_table_dump_text(&(output_tables.populations), MspTxtPopulationTable);
-			provenance_table_dump_text(&(output_tables.provenances), MspTxtProvenanceTable);
+			node_table_dump_text(output_tables.nodes, MspTxtNodeTable);
+			edge_table_dump_text(output_tables.edges, MspTxtEdgeTable);
+			site_table_dump_text(output_tables.sites, MspTxtSiteTable);
+			mutation_table_dump_text(output_tables.mutations, MspTxtMutationTable);
+			individual_table_dump_text(output_tables.individuals, MspTxtIndividualTable);
+			population_table_dump_text(output_tables.populations, MspTxtPopulationTable);
+			provenance_table_dump_text(output_tables.provenances, MspTxtProvenanceTable);
 			
 			fclose(MspTxtNodeTable);
 			fclose(MspTxtEdgeTable);
@@ -5143,7 +5142,7 @@ void SLiMSim::DumpMutationTable(void)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::DumpMutationTable): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
 #endif
 	
-	mutation_table_t &mutations = tables.mutations;
+	mutation_table_t &mutations = *tables.mutations;
 	
 	for (table_size_t mutindex = 0; mutindex < mutations.num_rows; ++mutindex)
 	{
@@ -5168,7 +5167,7 @@ void SLiMSim::DumpMutationTable(void)
 		}
 		// */
 		
-		std::cout << "Mutation index " << mutindex << " has node_id " << node_id << ", site_id " << site_id << ", position " << tables.sites.position[site_id] << ", parent id " << parent_id << ", derived state length " << derived_state_length << ", metadata length " << metadata_length << std::endl;
+		std::cout << "Mutation index " << mutindex << " has node_id " << node_id << ", site_id " << site_id << ", position " << tables.sites->position[site_id] << ", parent id " << parent_id << ", derived state length " << derived_state_length << ", metadata length " << metadata_length << std::endl;
 		
 		std::cout << "   derived state: ";
 		for (size_t mutid_index = 0; mutid_index < derived_state_length / sizeof(slim_mutationid_t); ++mutid_index)
@@ -5246,7 +5245,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 		// could perhaps be removed, which would cause the vargen_t to visit a bunch of stuff unrelated to the current individuals.
 		// this code is adapted from SLiMSim::SimplifyTreeSequence(), but we don't need to update the MSP map table or the table position,
 		// and we simplify down to just the extant individuals since we can't cross-check older individuals anyway...
-		if (tables_copy->nodes.num_rows != 0)
+		if (tables_copy->nodes->num_rows != 0)
 		{
 			std::vector<node_id_t> samples;
 			
@@ -5260,8 +5259,8 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 //				DumpMutationTable();
 //			}
 			
-			ret = sort_tables(&tables_copy->nodes, &tables_copy->edges, &tables_copy->migrations, &tables_copy->sites, &tables_copy->mutations, 0);				
-			if (ret < 0) handle_error("sort_tables", ret);
+			ret = table_collection_sort(tables_copy, /* edge_start */ 0, /* flags */ 0);
+			if (ret < 0) handle_error("table_collection_sort", ret);
 			
 			ret = table_collection_deduplicate_sites(tables_copy, 0);
 			if (ret < 0) handle_error("deduplicate_sites", ret);
@@ -5600,7 +5599,7 @@ void SLiMSim::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 		
 		// check the referenced nodes; right now this is not essential for re-creating the saved state, but is just a crosscheck
 		// here we crosscheck the node information against expected values from other places in the tables or the model
-		node_table_t &node_table = tables.nodes;
+		node_table_t &node_table = *tables.nodes;
 		node_id_t node0 = individual.nodes[0];
 		node_id_t node1 = individual.nodes[1];
 		
@@ -5727,7 +5726,7 @@ void SLiMSim::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 				
 				// check the referenced nodes; right now this is not essential for re-creating the saved state, but is just a crosscheck
 				// here we crosscheck the node information against the realized values in the genomes of the individual
-				node_table_t &node_table = tables.nodes;
+				node_table_t &node_table = *tables.nodes;
 				size_t node0_metadata_length = node_table.metadata_offset[node_id_0 + 1] - node_table.metadata_offset[node_id_0];
 				size_t node1_metadata_length = node_table.metadata_offset[node_id_1 + 1] - node_table.metadata_offset[node_id_1];
 				
@@ -5751,7 +5750,7 @@ void SLiMSim::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 
 void SLiMSim::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interpreter)
 {
-	population_table_t &pop_table = tables.populations;
+	population_table_t &pop_table = *tables.populations;
 	table_size_t pop_count = pop_table.num_rows;
 	
 	if ((model_type_ == SLiMModelType::kModelTypeWF) && ((size_t)pop_count != population_.size()))
@@ -5858,7 +5857,7 @@ typedef struct ts_mut_info {
 
 void SLiMSim::__TabulateMutationsFromTables(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap)
 {
-	mutation_table_t &mut_table = tables.mutations;
+	mutation_table_t &mut_table = *tables.mutations;
 	table_size_t mut_count = mut_table.num_rows;
 	
 	if ((mut_count > 0) && !recording_mutations_)
@@ -5882,7 +5881,7 @@ void SLiMSim::__TabulateMutationsFromTables(std::unordered_map<slim_mutationid_t
 		slim_mutationid_t *derived_state_vec = (slim_mutationid_t *)derived_state_bytes;
 		MutationMetadataRec *metadata_vec = (MutationMetadataRec *)metadata_bytes;
 		site_id_t site_id = mut_table.site[mut_index];
-		double position_double = tables.sites.position[site_id];
+		double position_double = tables.sites->position[site_id];
 		double position_double_round = round(position_double);
 		
 		if (position_double_round != position_double)

@@ -2304,7 +2304,7 @@ population_table_copy(population_table_t *self, population_table_t *dest)
 
 int
 population_table_set_columns(population_table_t *self, size_t num_rows,
-        char *metadata, uint32_t *metadata_offset)
+        const char *metadata, uint32_t *metadata_offset)
 {
     int ret;
 
@@ -2319,7 +2319,7 @@ out:
 
 int
 population_table_append_columns(population_table_t *self, size_t num_rows,
-        char *metadata, uint32_t *metadata_offset)
+        const char *metadata, uint32_t *metadata_offset)
 {
     int ret;
     table_size_t j, metadata_length;

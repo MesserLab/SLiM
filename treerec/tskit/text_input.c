@@ -707,11 +707,11 @@ table_collection_load_text(table_collection_t *tables, FILE *nodes, FILE *edges,
     }
     /* infer sequence length from the edges and/or sites */
     sequence_length = 0.0;
-    for (j = 0; j < tables->edges.num_rows; j++) {
-        sequence_length = MSP_MAX(sequence_length, tables->edges.right[j]);
+    for (j = 0; j < tables->edges->num_rows; j++) {
+        sequence_length = MSP_MAX(sequence_length, tables->edges->right[j]);
     }
-    for (j = 0; j < tables->sites.num_rows; j++) {
-        sequence_length = MSP_MAX(sequence_length, tables->sites.position[j]);
+    for (j = 0; j < tables->sites->num_rows; j++) {
+        sequence_length = MSP_MAX(sequence_length, tables->sites->position[j]);
     }
     if (sequence_length <= 0.0) {
         ret = MSP_ERR_BAD_SEQUENCE_LENGTH;
