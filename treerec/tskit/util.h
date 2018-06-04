@@ -44,6 +44,21 @@
 	#define MSP_UNUSED(x) MSP_UNUSED_ ## x
 #endif
 
+/* This sets up MSP_DBL_DECIMAL_DIG, which can then be used as a
+ * precision specifier when writing out doubles, if you want sufficient
+ * decimal digits to be written to guarantee a lossless round-trip
+ * after being read back in.  Usage:
+ *
+ *     printf("%.*g", MSP_DBL_DECIMAL_DIG, foo);
+ *
+ * See https://stackoverflow.com/a/19897395/2752221
+ */
+#ifdef DBL_DECIMAL_DIG
+#define MSP_DBL_DECIMAL_DIG (DBL_DECIMAL_DIG)
+#else
+#define MSP_DBL_DECIMAL_DIG (DBL_DIG + 3)
+#endif
+
 #define MSP_NODE_IS_SAMPLE 1
 
 /* The root node indicator */

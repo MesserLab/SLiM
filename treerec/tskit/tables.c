@@ -2141,12 +2141,7 @@ individual_table_dump_text(individual_table_t *self, FILE *out)
             goto out;
         }
         for (k = self->location_offset[j]; k < self->location_offset[j + 1]; k++) {
-            // necessary precision for non-lossiness; see https://stackoverflow.com/a/19897395/2752221
-#ifdef DBL_DECIMAL_DIG
-            err = fprintf(out, "%.*g", DBL_DECIMAL_DIG, self->location[k]);
-#else
-            fprintf(out, "%.*g", (DBL_DIG + 3), self->location[k]);
-#endif
+            err = fprintf(out, "%.*g", MSP_DBL_DECIMAL_DIG, self->location[k]);
             if (err < 0) {
                 goto out;
             }
