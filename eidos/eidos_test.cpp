@@ -251,14 +251,19 @@ static void _RunKeywordForInTests(void);
 static void _RunKeywordNextTests(void);
 static void _RunKeywordBreakTests(void);
 static void _RunKeywordReturnTests(void);
-static void _RunFunctionMathTests_a_through_q(void);
-static void _RunFunctionMathTests_r_through_z(void);
+static void _RunFunctionMathTests_a_through_f(void);
+static void _RunFunctionMathTests_g_through_r(void);
+static void _RunFunctionMathTests_setUnionIntersection(void);
+static void _RunFunctionMathTests_setDifferenceSymmetricDifference(void);
+static void _RunFunctionMathTests_s_through_z(void);
 static void _RunFunctionMatrixArrayTests(void);
 static void _RunFunctionStatisticsTests(void);
 static void _RunFunctionDistributionTests(void);
 static void _RunFunctionVectorConstructionTests(void);
-static void _RunFunctionValueInspectionManipulationTests_a_through_l(void);
-static void _RunFunctionValueInspectionManipulationTests_m_through_z(void);
+static void _RunFunctionValueInspectionManipulationTests_a_through_f(void);
+static void _RunFunctionValueInspectionManipulationTests_g_through_l(void);
+static void _RunFunctionValueInspectionManipulationTests_m_through_r(void);
+static void _RunFunctionValueInspectionManipulationTests_s_through_z(void);
 static void _RunFunctionValueTestingCoercionTests(void);
 static void _RunFunctionFilesystemTests(void);
 static void _RunColorManipulationTests(void);
@@ -312,14 +317,19 @@ int RunEidosTests(void)
 	_RunKeywordNextTests();
 	_RunKeywordBreakTests();
 	_RunKeywordReturnTests();
-	_RunFunctionMathTests_a_through_q();
-	_RunFunctionMathTests_r_through_z();
+	_RunFunctionMathTests_a_through_f();
+	_RunFunctionMathTests_g_through_r();
+	_RunFunctionMathTests_setUnionIntersection();
+	_RunFunctionMathTests_setDifferenceSymmetricDifference();
+	_RunFunctionMathTests_s_through_z();
 	_RunFunctionMatrixArrayTests();
 	_RunFunctionStatisticsTests();
 	_RunFunctionDistributionTests();
 	_RunFunctionVectorConstructionTests();
-	_RunFunctionValueInspectionManipulationTests_a_through_l();
-	_RunFunctionValueInspectionManipulationTests_m_through_z();
+	_RunFunctionValueInspectionManipulationTests_a_through_f();
+	_RunFunctionValueInspectionManipulationTests_g_through_l();
+	_RunFunctionValueInspectionManipulationTests_m_through_r();
+	_RunFunctionValueInspectionManipulationTests_s_through_z();
 	_RunFunctionValueTestingCoercionTests();
 	_RunFunctionFilesystemTests();
 	_RunColorManipulationTests();
@@ -3743,7 +3753,7 @@ void _RunKeywordReturnTests(void)
 	#pragma mark -
 	
 #pragma mark math
-void _RunFunctionMathTests_a_through_q(void)
+void _RunFunctionMathTests_a_through_f(void)
 {
 	// abs()
 	EidosAssertScriptSuccess("abs(5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
@@ -3981,7 +3991,10 @@ void _RunFunctionMathTests_a_through_q(void)
 	EidosAssertScriptSuccess("identical(floor(matrix(-0.3)), matrix(floor(-0.3)));", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("identical(floor(matrix(-0.6)), matrix(floor(-0.6)));", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("identical(floor(matrix(c(0.1, 5.7, -0.3))), matrix(floor(c(0.1, 5.7, -0.3))));", gStaticEidosValue_LogicalT);
-	
+}
+
+void _RunFunctionMathTests_g_through_r(void)
+{
 	// integerDiv()
 	EidosAssertScriptSuccess("integerDiv(6, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(2)));
 	EidosAssertScriptSuccess("integerDiv(7, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(2)));
@@ -4194,10 +4207,7 @@ void _RunFunctionMathTests_a_through_q(void)
 	EidosAssertScriptSuccess("product(matrix(5));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
 	EidosAssertScriptSuccess("product(matrix(c(5, -5)));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-25)));
 	EidosAssertScriptSuccess("product(array(c(5, -5, 3), c(1,3,1)));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-75)));
-}
-
-void _RunFunctionMathTests_r_through_z(void)
-{
+	
 	// round()
 	EidosAssertScriptSuccess("round(5.1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(5.0)));
 	EidosAssertScriptSuccess("round(-5.1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-5.0)));
@@ -4217,7 +4227,10 @@ void _RunFunctionMathTests_r_through_z(void)
 	EidosAssertScriptSuccess("identical(round(matrix(-0.3)), matrix(round(-0.3)));", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("identical(round(matrix(-0.6)), matrix(round(-0.6)));", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("identical(round(matrix(c(0.1, 5.7, -0.3))), matrix(round(c(0.1, 5.7, -0.3))));", gStaticEidosValue_LogicalT);
-	
+}
+
+void _RunFunctionMathTests_setUnionIntersection(void)
+{
 	// setUnion()
 	EidosAssertScriptSuccess("setUnion(NULL, NULL);", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("setUnion(logical(0), logical(0));", gStaticEidosValue_Logical_ZeroVec);
@@ -4454,7 +4467,10 @@ void _RunFunctionMathTests_r_through_z(void)
 	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); setIntersection(c(x, x, x, x), c(x, x, x, x))._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(7)));
 	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); z = _Test(-5); q = _Test(26); setIntersection(c(x, y, x, q), c(x, x, z, x))._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(7)));
 	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); z = _Test(-5); q = _Test(26); setIntersection(c(x, y, x, q), c(y, x, z, x))._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 9}));
-	
+}
+
+void _RunFunctionMathTests_setDifferenceSymmetricDifference(void)
+{
 	// setDifference()
 	EidosAssertScriptSuccess("setDifference(NULL, NULL);", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("setDifference(logical(0), logical(0));", gStaticEidosValue_Logical_ZeroVec);
@@ -4688,7 +4704,10 @@ void _RunFunctionMathTests_r_through_z(void)
 	EidosAssertScriptSuccess("setSymmetricDifference(c('foo', 'bar', 'foo', 'bar', 'foobaz'), c('foo', 'baz', 'foo', 'baz', 'foo'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"bar", "foobaz", "baz"}));
 	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); setSymmetricDifference(c(x, x, x, x), c(x, x, x, x))._yolk;", gStaticEidosValue_Integer_ZeroVec);
 	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); z = _Test(-5); q = _Test(26); setSymmetricDifference(c(x, y, x, y, z), c(x, q, x, q, x))._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{9, -5, 26}));
-	
+}
+
+void _RunFunctionMathTests_s_through_z(void)
+{
 	// sin()
 	EidosAssertScriptSuccess("abs(sin(0) - 0) < 0.000001;", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("abs(sin(0.0) - 0) < 0.000001;", gStaticEidosValue_LogicalT);
@@ -5576,7 +5595,7 @@ void _RunFunctionVectorConstructionTests(void)
 }
 
 #pragma mark value inspection / manipulation
-void _RunFunctionValueInspectionManipulationTests_a_through_l(void)
+void _RunFunctionValueInspectionManipulationTests_a_through_f(void)
 {
 	// all()
 	EidosAssertScriptRaise("all(NULL);", 0, "cannot be type");
@@ -5719,7 +5738,10 @@ void _RunFunctionValueInspectionManipulationTests_a_through_l(void)
 	EidosAssertScriptSuccess("format('%8.2E', 8.0:12);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"8.00E+00", "9.00E+00", "1.00E+01", "1.10E+01", "1.20E+01"}));
 	EidosAssertScriptSuccess("format('%8.2g', 8.0:12);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"       8","       9","      10","      11","      12"}));
 	EidosAssertScriptSuccess("format('%#8.2g', 8.0:12);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"     8.0","     9.0","     10.","     11.","     12."}));
-	
+}
+
+void _RunFunctionValueInspectionManipulationTests_g_through_l(void)
+{
 	// identical()
 	EidosAssertScriptSuccess("identical(NULL, NULL);", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("identical(NULL, F);", gStaticEidosValue_LogicalF);
@@ -5961,7 +5983,7 @@ void _RunFunctionValueInspectionManipulationTests_a_through_l(void)
 	EidosAssertScriptSuccess("identical(ifelse(matrix(c(T,F,F,T,F,T), nrow=2), 1:6, -6:-1), matrix(c(1,-5,-4,4,-2,6), nrow=2));", gStaticEidosValue_LogicalT);
 }
 
-void _RunFunctionValueInspectionManipulationTests_m_through_z(void)
+void _RunFunctionValueInspectionManipulationTests_m_through_r(void)
 {
 	// match()
 	EidosAssertScriptSuccess("match(NULL, NULL);", gStaticEidosValue_Integer_ZeroVec);
@@ -6126,7 +6148,10 @@ void _RunFunctionValueInspectionManipulationTests_m_through_z(void)
 	EidosAssertScriptSuccess("rev('foo');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foo")));
 	EidosAssertScriptSuccess("rev(6.0:10);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{10,9,8,7,6}));
 	EidosAssertScriptSuccess("rev(c(T,T,T,F));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true, true, true}));
-	
+}
+
+void _RunFunctionValueInspectionManipulationTests_s_through_z(void)
+{
 	// size() / length()
 	EidosAssertScriptSuccess("size(NULL);", gStaticEidosValue_Integer0);
 	EidosAssertScriptSuccess("size(logical(0));", gStaticEidosValue_Integer0);
