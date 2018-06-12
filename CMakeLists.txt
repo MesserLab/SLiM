@@ -1,19 +1,66 @@
-# To use CMAKE, create a new subdirectory in your source directory, e.g., build, then run 
-# the following commands: 
+# To use CMake to build SLiM, create a new subdirectory alongside your source directory (assumed here
+# to be named SLiM), e.g., "build", then run the following commands:
+#
 #   cd build
-#   cmake ..
+#   cmake ../SLiM
 #   make
-# Example session can be seen in example_cmake_output.txt
+#
+# This will make a Release build, with optimization and without debugging symbols, by default.
+# The built executables will be placed in the build directory upon successful completion.
+# 
+# You can also explicitly make a Release build; this is typically done in a directory named "Release"
+# instead of "build":
+#
+#   mkdir Release
+#   cd Release
+#   cmake -D CMAKE_BUILD_TYPE=Release ../SLiM
+#   make
+#
+# Or you can make a Debug build (without optimization, with debugging symbols):
+#
+#   mkdir Debug
+#   cd Debug
+#   cmake -D CMAKE_BUILD_TYPE=Debug ../SLiM
+#   make
+#
+# In all cases the concept is the same: make a build directory of some name, cd into it, run cmake
+# to set up the build (with a CMAKE_BUILD_TYPE flag if desired, otherwise Release will be used by
+# default), then run make to actually do the build.  This setup (1) keeps all build products out of
+# your source tree, which is generally a good idea, and (2) allows you to have both Release and
+# Debug builds going simultaneously.
+#
+# You can do "make VERBOSE=1" instead of just "make" to see the full command lines used.  There are
+# also various targets defined by cmake for make, such as "slim", "eidos", "clean", "all", etc.  To
+# rebuild all of cmake's internal caches etc. (which is generally a good idea after a "git pull",
+# for example, or after the addition or removal of source files), the simplest thing is generally
+# to touch the CMakeLists.txt file in the source tree top-level directory:
+#
+#   touch ../SLiM/CMakeLists.txt
+#
+# Then you can just do "make"; cmake will automatically be re-run by make since the CMakeLists.txt
+# file has changed.
+
 
 cmake_minimum_required (VERSION 2.6)
 
-# Use the flags below for all builds and report the build type
-set(CMAKE_C_FLAGS "-g -std=c11 -O3 -Wno-deprecated-register -Wno-attributes -Wunused-label -Wimplicit -Wunused-variable -Wunused-value")
-set(CMAKE_CXX_FLAGS "-g -std=c++11 -O3 -Wno-attributes -Wunused-label -Wunused-variable -Wunused-value") 
-message("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
 
-# Place slim and eidos in the bin subdirectory of the source directory
-set( EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin )
+# Make a Release build by default
+if(NOT CMAKE_BUILD_TYPE) 
+    set(CMAKE_BUILD_TYPE Release)
+endif(NOT CMAKE_BUILD_TYPE)
+
+# Use the flags below for [all / Debug / Release] builds; these flags are built in to cmake
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11 -Wno-deprecated-register -Wno-attributes -Wunused-label -Wimplicit -Wunused-variable -Wunused-value")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wno-attributes -Wunused-label -Wunused-variable -Wunused-value")
+
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -Og -DDEBUG=1")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -Og -DDEBUG=1")
+
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
+
+# Report the build type
+message("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
 
 # GSL 
 set(TARGET_NAME gsl)
