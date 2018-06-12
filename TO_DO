@@ -8,6 +8,10 @@ new cmake-based command line building:
 	cmake ..
 	make
 
+cause cmake to be re-run (after addition/removal of source files, etc.; this is necessary because we use GLOB with "file" in our cmake config):
+	cd SLiM
+	touch ./CMakeLists.txt
+
 look for exported symbols that are not tagged with "eidos" or "Eidos" somewhere in the symbol before the parameter list:
 	nm -g -U -j ./EidosScribe | grep -E -v "^_+([^_\r\n]+_)*[^_]*[Ee]idos"
 
