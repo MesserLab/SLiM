@@ -1,8 +1,12 @@
-to do:
+OK, this has turned out not to be a "to do" file so much as a place to put useful little snippets and such...
 
 
-building on the command line:
-	g++ -O3 ./core/*.cpp ./eidos/*.cpp ./gsl/*/*.c -iquote./eidos -iquote./gsl -iquote./gsl/rng -iquote./gsl/randist -iquote./gsl/sys -iquote./gsl/specfunc -iquote./gsl/complex -std=c++11 -o slim
+new cmake-based command line building:
+	cd SLiM
+	mkdir build
+	cd build
+	cmake ..
+	make
 
 look for exported symbols that are not tagged with "eidos" or "Eidos" somewhere in the symbol before the parameter list:
 	nm -g -U -j ./EidosScribe | grep -E -v "^_+([^_\r\n]+_)*[^_]*[Ee]idos"
