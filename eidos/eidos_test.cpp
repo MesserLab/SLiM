@@ -267,6 +267,7 @@ static void _RunFunctionValueInspectionManipulationTests_s_through_z(void);
 static void _RunFunctionValueTestingCoercionTests(void);
 static void _RunFunctionFilesystemTests(void);
 static void _RunColorManipulationTests(void);
+static void _RunFunctionMiscTests_apply_sapply(void);
 static void _RunFunctionMiscTests(void);
 static void _RunMethodTests(void);
 static void _RunCodeExampleTests(void);
@@ -333,6 +334,7 @@ int RunEidosTests(void)
 	_RunFunctionValueTestingCoercionTests();
 	_RunFunctionFilesystemTests();
 	_RunColorManipulationTests();
+	_RunFunctionMiscTests_apply_sapply();
 	_RunFunctionMiscTests();
 	_RunMethodTests();
 	_RunCodeExampleTests();
@@ -6815,7 +6817,7 @@ void _RunColorManipulationTests(void)
 }
 
 #pragma mark miscellaneous
-void _RunFunctionMiscTests(void)
+void _RunFunctionMiscTests_apply_sapply(void)
 {
 	// apply()
 	EidosAssertScriptRaise("x=integer(0); apply(x, 0, 'applyValue^2;');", 14, "matrix or array");
@@ -6993,7 +6995,10 @@ void _RunFunctionMiscTests(void)
 	EidosAssertScriptSuccess("identical(sapply(array(1:6, c(2,1,3)), 'if (applyValue % 2) c(applyValue, applyValue+2); else applyValue;', simplify='vector'), c(1,3,2,3,5,4,5,7,6));", gStaticEidosValue_LogicalT);
 	EidosAssertScriptRaise("identical(sapply(array(1:6, c(2,1,3)), 'if (applyValue % 2) c(applyValue, applyValue+2); else applyValue;', simplify='matrix'), matrix(c(1,3,2,3,5,4,5,7,6), nrow=2));", 10, "not of a consistent length");
 	EidosAssertScriptRaise("identical(sapply(array(1:6, c(2,1,3)), 'if (applyValue % 2) c(applyValue, applyValue+2); else applyValue;', simplify='match'), c(1,3,2,3,5,4,5,7,6));", 10, "not all singletons");
-	
+}
+
+void _RunFunctionMiscTests(void)
+{
 	// beep() – this is commented out by default since it would confuse people if the Eidos self-test beeped...
 	//EidosAssertScriptSuccess("beep();", gStaticEidosValueNULL);
 	//EidosAssertScriptSuccess("beep('Submarine');", gStaticEidosValueNULL);
