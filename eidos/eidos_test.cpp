@@ -225,7 +225,8 @@ static void _RunParsingTests(void);
 static void _RunFunctionDispatchTests(void);
 static void _RunRuntimeErrorTests(void);
 static void _RunVectorsAndSingletonsTests(void);
-static void _RunOperatorPlusTests(void);
+static void _RunOperatorPlusTests1(void);
+static void _RunOperatorPlusTests2(void);
 static void _RunOperatorMinusTests(void);
 static void _RunOperatorMultTests(void);
 static void _RunOperatorDivTests(void);
@@ -292,7 +293,8 @@ int RunEidosTests(void)
 	_RunFunctionDispatchTests();
 	_RunRuntimeErrorTests();
 	_RunVectorsAndSingletonsTests();
-	_RunOperatorPlusTests();
+	_RunOperatorPlusTests1();
+	_RunOperatorPlusTests2();
 	_RunOperatorMinusTests();
 	_RunOperatorMultTests();
 	_RunOperatorDivTests();
@@ -1570,7 +1572,7 @@ void _RunVectorsAndSingletonsTests(void)
 	#pragma mark -
 	
 #pragma mark operator +
-void _RunOperatorPlusTests(void)
+void _RunOperatorPlusTests1(void)
 {
 	// operator +
 	EidosAssertScriptRaise("NULL+T;", 4, "combination of operand types");
@@ -1778,7 +1780,10 @@ void _RunOperatorPlusTests(void)
 	EidosAssertScriptRaise("identical(array(1:6,c(3,2,1)) + array(1:6,c(1,3,2)), array(2:7, c(1,3,2)));", 30, "non-conformable");
 	EidosAssertScriptRaise("identical(array(1:6,c(3,2,1)) + array(1:6,c(2,1,3)), array(2:7, c(2,1,3)));", 30, "non-conformable");
 	EidosAssertScriptRaise("identical(array(1:6,c(3,2,1)) + array(1:6,c(1,2,3)), array(2:7, c(1,2,3)));", 30, "non-conformable");
-	
+}
+
+void _RunOperatorPlusTests2(void)
+{
 	// operator +: identical to the previous tests, but with the order of the operands switched; should behave identically,
 	// except that the error positions change, unfortunately.  Xcode search-replace to generate this from the above:
 	// identical\(([A-Za-z0-9:(),=]+) \+ ([A-Za-z0-9:(),=]+), 
