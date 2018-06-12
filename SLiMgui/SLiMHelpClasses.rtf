@@ -1961,7 +1961,27 @@ If
 \f0\fs20 , the interaction will immediately and synchronously evaluate all interactions between all individuals in the subpopulation(s), calling any applicable 
 \f2\fs18 interaction()
 \f0\fs20  callbacks as necessary.  However, depending upon what queries are later executed, this may represent considerable wasted computation, since it is an O(N\super 2\nosupersub ) operation.  Immediate evaluation usually generates only a slight performance improvement even if the interactions between all pairs of individuals are eventually accessed; the main reason to choose immediate evaluation, then, is that deferred calculation of interactions would lead to incorrect results due to changes in model state.\
-If an interaction is never evaluated for a given subpopulation, it is guaranteed that there will be essentially no memory or computational overhead associated with the interaction for that subpopulation.  Furthermore, attempting to query an interaction for an individual in a subpopulation that has not been evaluated is guaranteed to raise an error.
+\cf2 \expnd0\expndtw0\kerning0
+You must explicitly call 
+\f2\fs18 evaluate()
+\f0\fs20  at an appropriate time in the life cycle before the interaction is used, but after any relevant changes have been made to the population.  SLiM will invalidate any existing interactions after any portion of the generation cycle in which new individuals have been born or existing individuals have died.  In a WF model, these events occur just before 
+\f2\fs18 late()
+\f0\fs20  events execute (see the WF generation cycle diagram in chapter 18), so 
+\f2\fs18 late()
+\f0\fs20  events are often the appropriate place to put 
+\f2\fs18 evaluate()
+\f0\fs20  calls, but 
+\f2\fs18 early()
+\f0\fs20  events can work too if the interaction is not needed until that point in the generation cycle anyway. In nonWF models, on the other hand, new offspring are produced just before 
+\f2\fs18 early()
+\f0\fs20  events and then individuals die just before 
+\f2\fs18 late()
+\f0\fs20  events (see the nonWF generation cycle diagram in chapter 19), so interactions will be invalidated twice during each generation cycle.  This means that in a nonWF model, an interaction that influences reproduction should usually be evaluated in a 
+\f2\fs18 late()
+\f0\fs20  event, while an interaction that influences fitness or mortality should usually be evaluated in an 
+\f2\fs18 early()
+\f0\fs20  event (and an interaction that affects both may need to be evaluated at both times).\
+\cf0 \kerning1\expnd0\expndtw0 If an interaction is never evaluated for a given subpopulation, it is guaranteed that there will be essentially no memory or computational overhead associated with the interaction for that subpopulation.  Furthermore, attempting to query an interaction for an individual in a subpopulation that has not been evaluated is guaranteed to raise an error.
 \f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
