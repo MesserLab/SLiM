@@ -31,7 +31,8 @@
  * pointless. */
 
 int
-newick_converter_run(newick_converter_t *self, size_t buffer_size, char *buffer)
+newick_converter_run(newick_converter_t *self, node_id_t root,
+        size_t buffer_size, char *buffer)
 {
     int ret = MSP_ERR_GENERIC;
     sparse_tree_t *tree = self->tree;
@@ -41,15 +42,20 @@ newick_converter_run(newick_converter_t *self, size_t buffer_size, char *buffer)
     int label;
     size_t s = 0;
     int r;
-    node_id_t u, v, w;
+    node_id_t u, v, w, root_parent;
     double branch_length;
 
+    if (root < 0 || root >= (node_id_t) self->tree->num_nodes) {
+        ret = MSP_ERR_NODE_OUT_OF_BOUNDS;
+        goto out;
+    }
     if (buffer == NULL) {
         ret = MSP_ERR_BAD_PARAM_VALUE;
         goto out;
     }
-    stack[0] = tree->left_root;
-    u = MSP_NULL_NODE;
+    root_parent = tree->parent[root];
+    stack[0] = root;
+    u = root_parent;
     while (stack_top >= 0) {
         v = stack[stack_top];
         if (tree->left_child[v] != MSP_NULL_NODE && v != u) {
@@ -85,8 +91,8 @@ newick_converter_run(newick_converter_t *self, size_t buffer_size, char *buffer)
                     goto out;
                 }
             }
-            if (u != MSP_NULL_NODE) {
-                branch_length = (time[u] - time[v]) * self->time_scale;
+            if (u != root_parent) {
+                branch_length = (time[u] - time[v]);
                 r = snprintf(buffer + s, buffer_size - s, ":%.*f", (int) self->precision,
                         branch_length);
                 if (r < 0) {
@@ -120,20 +126,14 @@ out:
 
 int
 newick_converter_alloc(newick_converter_t *self, sparse_tree_t *tree,
-        size_t precision, double time_scale, int flags)
+        size_t precision, int flags)
 {
     int ret = 0;
 
     memset(self, 0, sizeof(newick_converter_t));
-    if (sparse_tree_get_num_roots(tree) != 1) {
-        ret = MSP_ERR_MULTIROOT_NEWICK;
-        goto out;
-    }
     self->precision = precision;
-    self->time_scale = time_scale;
     self->flags = flags;
     self->tree = tree;
-out:
     return ret;
 }
 

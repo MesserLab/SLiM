@@ -39,6 +39,13 @@
 #define MSP_MODEL_DIRAC 4
 #define MSP_MODEL_DTWF 5
 
+/* Alphabets for mutation generator */
+#define MSP_ALPHABET_BINARY     0
+#define MSP_ALPHABET_NUCLEOTIDE 1
+
+/* Flags for mutgen */
+#define MSP_KEEP_SITES  1
+
 
 typedef struct segment_t_t {
     population_id_t population_id;
@@ -236,12 +243,8 @@ typedef struct {
     int alphabet;
     gsl_rng *rng;
     double mutation_rate;
-    size_t num_mutations;
-    size_t max_num_mutations;
-    size_t mutation_block_size;
-    site_table_t *sites;
-    infinite_sites_mutation_t *mutations;
-    object_heap_t avl_node_heap;
+    avl_tree_t sites;
+    block_allocator_t allocator;
 } mutgen_t;
 
 int msp_alloc(msp_t *self, size_t num_samples, sample_t *samples, gsl_rng *rng);
@@ -285,9 +288,7 @@ int msp_add_instantaneous_bottleneck(msp_t *self, double time, int population_id
 int msp_initialise(msp_t *self);
 int msp_run(msp_t *self, double max_time, unsigned long max_events);
 int msp_debug_demography(msp_t *self, double *end_time);
-int msp_populate_tables(msp_t *self, recomb_map_t *recomb_map,
-        node_table_t *node_table, edge_table_t *edge_table,
-        migration_table_t *migration_table, population_table_t *populations);
+int msp_populate_tables(msp_t *self, recomb_map_t *recomb_map, table_collection_t *tables);
 int msp_reset(msp_t *self);
 int msp_print_state(msp_t *self, FILE *out);
 int msp_free(msp_t *self);
@@ -352,11 +353,7 @@ void recomb_map_print_state(recomb_map_t *self, FILE *out);
 int mutgen_alloc(mutgen_t *self, double mutation_rate, gsl_rng *rng,
         int alphabet, size_t mutation_block_size);
 int mutgen_free(mutgen_t *self);
-/* TODO finalise this interface */
-int mutgen_generate_tables_tmp(mutgen_t *self, node_table_t *nodes,
-        edge_table_t *edges);
-int mutgen_populate_tables(mutgen_t *self, site_table_t *sites,
-        mutation_table_t *mutations);
+int mutgen_generate(mutgen_t *self, table_collection_t *tables, int flags);
 void mutgen_print_state(mutgen_t *self, FILE *out);
 
 double compute_falling_factorial_log(unsigned int  m);

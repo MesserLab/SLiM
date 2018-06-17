@@ -441,13 +441,13 @@ tree_sequence_init_individuals(tree_sequence_t *self)
     node_id_t k;
     table_size_t offset = 0;
     table_size_t total_nodes = 0;
-    table_size_t *num_nodes;
+    table_size_t *num_nodes = NULL;
     node_id_t *node_array;
     size_t num_inds = self->individuals.num_records;
 
     // First find number of nodes per individual
-    // TODO: if nodes for each individual were contiguous
-    // this would require just one pass, not two
+    // TODO: this doesn't take advantage of the fact that nodes are
+    // contigusous. See https://github.com/tskit-dev/msprime/issues/527
     self->individuals.individual_nodes_length = calloc(
             MSP_MAX(1, num_inds), sizeof(table_size_t));
     num_nodes = calloc(MSP_MAX(1, num_inds), sizeof(size_t));
@@ -460,9 +460,11 @@ tree_sequence_init_individuals(tree_sequence_t *self)
     for (k = 0; k < (node_id_t) self->nodes.num_records; k++) {
         j = self->nodes.individual[k];
         if (j != MSP_NULL_INDIVIDUAL) {
-            if (j >= (individual_id_t) num_inds) {
-                ret = MSP_ERR_BAD_INDIVIDUAL;
-                goto out;
+            if (k > 0 && self->individuals.individual_nodes_length[j] > 0) {
+                if (self->nodes.individual[k - 1] != j) {
+                    ret = MSP_ERR_NODES_NONCONTIGUOUS_INDIVIDUALS;
+                    goto out;
+                }
             }
             self->individuals.individual_nodes_length[j] += 1;
         }
@@ -519,6 +521,9 @@ tree_sequence_init_trees(tree_sequence_t *self)
     k = 0;
     assert(I != NULL && O != NULL);
     while (j < self->edges.num_records || tree_left < self->sequence_length) {
+        /* TODO check for invalid indexes in I and O. See
+         * https://github.com/tskit-dev/msprime/issues/525
+         */
         while (k < self->edges.num_records && self->edges.right[O[k]] == tree_left) {
             k++;
         }
@@ -587,6 +592,8 @@ tree_sequence_init_nodes(tree_sequence_t *self)
 {
     size_t j, k;
     int ret = 0;
+    population_id_t num_populations = (population_id_t) self->populations.num_records;
+    individual_id_t num_individuals = (individual_id_t) self->individuals.num_records;
 
     /* Determine the sample size */
     self->num_samples = 0;
@@ -609,6 +616,16 @@ tree_sequence_init_nodes(tree_sequence_t *self)
             self->nodes.sample_index_map[j] = (node_id_t) k;
             k++;
         }
+        if (self->nodes.population[j] < -1
+                || self->nodes.population[j] >= num_populations) {
+            ret = MSP_ERR_BAD_POPULATION_ID;
+            goto out;
+        }
+        if (self->nodes.individual[j] < -1
+                || self->nodes.individual[j] >= num_individuals) {
+            ret = MSP_ERR_BAD_INDIVIDUAL;
+            goto out;
+        }
     }
     assert(k == self->num_samples);
 out:
@@ -622,7 +639,6 @@ tree_sequence_load_tables(tree_sequence_t *self, table_collection_t *tables,
         int flags)
 {
     int ret = 0;
-    size_t j;
 
     memset(self, 0, sizeof(*self));
     self->tables = malloc(sizeof(*self->tables));
@@ -642,7 +658,12 @@ tree_sequence_load_tables(tree_sequence_t *self, table_collection_t *tables,
     if (ret != 0) {
         goto out;
     }
-    if (flags & MSP_BUILD_INDEXES || !table_collection_is_indexed(tables)) {
+    /* if (flags & MSP_BUILD_INDEXES || !table_collection_is_indexed(tables)) { */
+    /* FIXME: setting this to always build indexes here as there were a good
+     * few bugs popping up where we were segfaulting because of stale indexes
+     * on a set of table that had been edited. See
+     * https://github.com/tskit-dev/msprime/issues/526 */
+    if (flags >= 0) {
         ret = table_collection_build_indexes(self->tables, 0);
         if (ret != 0) {
             goto out;
@@ -651,18 +672,11 @@ tree_sequence_load_tables(tree_sequence_t *self, table_collection_t *tables,
     assert(table_collection_is_indexed(self->tables));
 
     self->sequence_length = tables->sequence_length;
-    if (tables->sequence_length == 0) {
-        /* Infer the sequence_length as the maximum right value in the edges */
-        for (j = 0; j < tables->edges->num_rows; j++) {
-            self->sequence_length = MSP_MAX(self->sequence_length,
-                    tables->edges->right[j]);
-        }
-    }
     if (self->sequence_length <= 0) {
         ret = MSP_ERR_BAD_SEQUENCE_LENGTH;
         goto out;
     }
-    /* TODO It's messy having two copyies of this value. Should be in one place. */
+    /* TODO It's messy having two copies of this value. Should be in one place. */
     self->tables->sequence_length = self->sequence_length;
 
     self->individuals.num_records = self->tables->individuals->num_rows;
@@ -762,6 +776,8 @@ tree_sequence_dump_tables(tree_sequence_t *self, table_collection_t *tables, int
         }
     }
     ret = table_collection_copy(self->tables, tables);
+
+    assert(tables->sequence_length == self->sequence_length);
 out:
     return ret;
 }
@@ -1805,17 +1821,17 @@ sparse_tree_get_sites(sparse_tree_t *self, site_t **sites, table_size_t *sites_l
 }
 
 int WARN_UNUSED
-sparse_tree_get_newick(sparse_tree_t *self, size_t precision, double time_scale,
+sparse_tree_get_newick(sparse_tree_t *self, node_id_t root, size_t precision,
         int flags, size_t buffer_size, char *newick_buffer)
 {
     int ret = 0;
     newick_converter_t nc;
 
-    ret = newick_converter_alloc(&nc, self, precision, time_scale, flags);
+    ret = newick_converter_alloc(&nc, self, precision, flags);
     if (ret != 0) {
         goto out;
     }
-    ret = newick_converter_run(&nc, buffer_size, newick_buffer);
+    ret = newick_converter_run(&nc, root, buffer_size, newick_buffer);
 out:
     newick_converter_free(&nc);
     return ret;
@@ -2168,7 +2184,7 @@ sparse_tree_advance(sparse_tree_t *self, int direction,
                 self->left_root = root;
             } else {
                 /* Remove c from root list */
-                /* self->left_root = MSP_NULL_NODE; */
+                self->left_root = MSP_NULL_NODE;
                 if (lsib != MSP_NULL_NODE) {
                     self->right_sib[lsib] = rsib;
                     self->left_root = lsib;
@@ -2181,9 +2197,11 @@ sparse_tree_advance(sparse_tree_t *self, int direction,
         }
     }
 
-    /* Ensure that left_root is the left-most root */
-    while (self->left_sib[self->left_root] != MSP_NULL_NODE) {
-        self->left_root = self->left_sib[self->left_root];
+    if (self->left_root != MSP_NULL_NODE) {
+        /* Ensure that left_root is the left-most root */
+        while (self->left_sib[self->left_root] != MSP_NULL_NODE) {
+            self->left_root = self->left_sib[self->left_root];
+        }
     }
 
     self->direction = direction;

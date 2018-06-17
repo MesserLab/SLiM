@@ -120,6 +120,9 @@ msp_strerror_internal(int err)
         case MSP_ERR_EDGES_NONCONTIGUOUS_PARENTS:
             ret = "All edges for a given parent must be contiguous";
             break;
+        case MSP_ERR_NODES_NONCONTIGUOUS_INDIVIDUALS:
+            ret = "All nodes for a given individual must be contiguous";
+            break;
         case MSP_ERR_EDGES_NOT_SORTED_CHILD:
             ret = "Edges must be listed in (time[parent], child, left) order;"
                 " child order violated";
@@ -220,9 +223,6 @@ msp_strerror_internal(int err)
         case MSP_ERR_BAD_EDGESET_OVERLAPPING_PARENT:
             ret = "Bad edges: multiple definitions of a given parent over an interval";
             break;
-        case MSP_ERR_MULTIROOT_NEWICK:
-            ret = "Newick output not supported for trees with > 1 roots.";
-            break;
         case MSP_ERR_BAD_SEQUENCE_LENGTH:
             ret = "Sequence length must be > 0.";
             break;
@@ -250,8 +250,15 @@ msp_strerror_internal(int err)
         case MSP_ERR_BAD_INDIVIDUAL:
             ret = "Individual ID not in individual table.";
             break;
-        case MSP_ERR_BAD_TABLE_POSITION:
-            ret = "Bad position in tables provided.";
+        case MSP_ERR_GENERATE_UUID:
+            ret = "Error generating UUID";
+            break;
+        case MSP_ERR_DUPLICATE_SITE_POSITION:
+            ret = "Duplicate site positions.";
+            break;
+        case MSP_ERR_INDIVIDUALS_NOT_SUPPORTED:
+            /* Temporary error to flag a limitation in current implementation. */
+            ret = "Individuals are currently not supported in simplify.";
             break;
         case MSP_ERR_IO:
             if (errno != 0) {

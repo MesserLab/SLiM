@@ -25,10 +25,10 @@
 #include <float.h>
 
 #include "tables.h"
+#include "uuid.h"
 #include "kastore.h"
 
 #define DEFAULT_SIZE_INCREMENT 1024
-#define UUID_SIZE 36
 
 #define TABLE_SEP "-----------------------------------------\n"
 
@@ -3629,8 +3629,11 @@ simplifier_check_input(simplifier_t *self)
             goto out;
         }
         if (j > 0) {
-            if (self->sites->position[j - 1] >= self->sites->position[j]) {
+            if (self->sites->position[j - 1] > self->sites->position[j]) {
                 ret = MSP_ERR_UNSORTED_SITES;
+                goto out;
+            } else if (self->sites->position[j - 1] == self->sites->position[j]) {
+                ret = MSP_ERR_DUPLICATE_SITE_POSITION;
                 goto out;
             }
         }
@@ -3723,15 +3726,13 @@ simplifier_alloc(simplifier_t *self, node_id_t *samples, size_t num_samples,
         table_collection_t *tables, int flags)
 {
     int ret = 0;
-    size_t j, num_nodes_alloc;
-    double sequence_length;
+    size_t num_nodes_alloc;
 
+    memset(self, 0, sizeof(simplifier_t));
     if (samples == NULL || tables == NULL) {
         ret = MSP_ERR_BAD_PARAM_VALUE;
         goto out;
     }
-
-    memset(self, 0, sizeof(simplifier_t));
     self->num_samples = num_samples;
     self->flags = flags;
     self->nodes = tables->nodes;
@@ -3741,21 +3742,12 @@ simplifier_alloc(simplifier_t *self, node_id_t *samples, size_t num_samples,
     self->individuals = tables->individuals;
     self->populations = tables->populations;
     self->provenances = tables->provenances;
+    self->sequence_length = tables->sequence_length;
 
-    /* TODO is this the correct semantics now? */
-    sequence_length = tables->sequence_length;
-    if (sequence_length == 0) {
-        /* infer sequence length from the edges */
-        sequence_length = 0.0;
-        for (j = 0; j < tables->edges->num_rows; j++) {
-            sequence_length = MSP_MAX(sequence_length, tables->edges->right[j]);
-        }
-        if (sequence_length <= 0.0) {
-            ret = MSP_ERR_BAD_SEQUENCE_LENGTH;
-            goto out;
-        }
+    if (self->sequence_length <= 0.0) {
+        ret = MSP_ERR_BAD_SEQUENCE_LENGTH;
+        goto out;
     }
-    self->sequence_length = sequence_length;
     /* Take a copy of the input samples */
     self->samples = malloc(num_samples * sizeof(node_id_t));
     if (self->samples == NULL) {
@@ -3881,7 +3873,15 @@ simplifier_alloc(simplifier_t *self, node_id_t *samples, size_t num_samples,
     if (ret != 0) {
         goto out;
     }
-    /* simplifier_print_state(self, stdout); */
+
+    /* Temporary workaround to make sure that we don't ship code with
+     * incorrect semantics in terms of individuals. Put this check in
+     * last so we catch other errors first, and so we don't need
+     * to change other tests.  */
+    if (tables->individuals->num_rows != 0) {
+        ret = MSP_ERR_INDIVIDUALS_NOT_SUPPORTED;
+        goto out;
+    }
 out:
     return ret;
 }
@@ -4823,7 +4823,7 @@ table_collection_read_format_data(table_collection_t *self)
         ret = msp_set_kas_error(ret);
         goto out;
     }
-    if (len != UUID_SIZE) {
+    if (len != TSK_UUID_SIZE) {
         ret = MSP_ERR_FILE_FORMAT;
         goto out;
     }
@@ -4934,23 +4934,28 @@ out:
 static int WARN_UNUSED
 table_collection_write_format_data(table_collection_t *self, kastore_t *store)
 {
-    /* Until we implement UUID generation, put in a null UUID as a placeholder. */
-    const char *zero_uuid = "00000000-0000-0000-0000-000000000000";
+    int ret = 0;
     char format_name[MSP_FILE_FORMAT_NAME_LENGTH];
-    char uuid[UUID_SIZE]; // exclude trailing \0
+    char uuid[TSK_UUID_SIZE + 1]; // Must include space for trailing null.
     uint32_t version[2] = {
         MSP_FILE_FORMAT_VERSION_MAJOR, MSP_FILE_FORMAT_VERSION_MINOR};
     write_table_col_t write_cols[] = {
         {"format/name", (void *) format_name, sizeof(format_name), KAS_INT8},
         {"format/version", (void *) version, 2, KAS_UINT32},
         {"sequence_length", (void *) &self->sequence_length, 1, KAS_FLOAT64},
-        {"uuid", (void *) uuid, UUID_SIZE, KAS_INT8},
+        {"uuid", (void *) uuid, TSK_UUID_SIZE, KAS_INT8},
     };
+
+    ret = tsk_generate_uuid(uuid, 0);
+    if (ret != 0) {
+        goto out;
+    }
     /* This stupid dance is to workaround the fact that compilers won't allow
      * casts to discard the 'const' qualifier. */
     memcpy(format_name, MSP_FILE_FORMAT_NAME, sizeof(format_name));
-    memcpy(uuid, zero_uuid, UUID_SIZE);
-    return write_table_cols(store, write_cols, sizeof(write_cols) / sizeof(*write_cols));
+    ret = write_table_cols(store, write_cols, sizeof(write_cols) / sizeof(*write_cols));
+out:
+    return ret;
 }
 
 int WARN_UNUSED
@@ -5027,6 +5032,8 @@ table_collection_simplify(table_collection_t *self,
     if (ret != 0) {
         goto out;
     }
+    /* The indexes are invalidated now so drop them */
+    ret = table_collection_drop_indexes(self);
 out:
     simplifier_free(&simplifier);
     return ret;
@@ -5043,6 +5050,11 @@ table_collection_sort(table_collection_t *self, size_t edge_start, int flags)
         goto out;
     }
     ret = table_sorter_run(&sorter, edge_start);
+    if (ret != 0) {
+        goto out;
+    }
+    /* The indexes are invalidated now so drop them */
+    ret = table_collection_drop_indexes(self);
 out:
     table_sorter_free(&sorter);
     return ret;
@@ -5056,21 +5068,24 @@ int WARN_UNUSED
 table_collection_deduplicate_sites(table_collection_t *self, int MSP_UNUSED(flags))
 {
     int ret = 0;
-    table_size_t j, site_j;
-    table_size_t as_length, as_offset;
-    table_size_t md_length, md_offset;
-    table_size_t num_input_sites;
+    table_size_t j;
     double last_position, position;
     site_id_t mutation_site;
     /* Map of old site IDs to new site IDs. */
     site_id_t *site_id_map = NULL;
+    site_table_t copy;
 
-    num_input_sites = self->sites->num_rows;
-    site_id_map = malloc(num_input_sites * sizeof(*site_id_map));
-    if (site_id_map == NULL) {
-        ret = MSP_ERR_NO_MEMORY;
+    /* Must allocate the site table first for site_table_free to be safe */
+    ret = site_table_alloc(&copy, 0, 0, 0);
+    if (ret != 0) {
         goto out;
     }
+    /* If we have zero sites then there's nothing to do. Exiting early here
+     * simplifies logic below */
+    if (self->sites->num_rows == 0) {
+        return ret;
+    }
+
     /* Check the input first. This avoids leaving the table in an indeterminate
      * state after an error occurs, which could lead to nasty downstream bugs.
      * The cost of the extra iterations is minimal. If the user is super-sure
@@ -5114,49 +5129,48 @@ table_collection_deduplicate_sites(table_collection_t *self, int MSP_UNUSED(flag
     }
     for (j = 0; j < self->mutations->num_rows; j++) {
         mutation_site = self->mutations->site[j];
-        if (mutation_site < 0 || mutation_site >= (site_id_t) num_input_sites) {
+        if (mutation_site < 0 || mutation_site >= (site_id_t) self->sites->num_rows) {
             ret = MSP_ERR_SITE_OUT_OF_BOUNDS;
             goto out;
         }
     }
 
-    site_j = 0; // the index of the next output row
-    // NOTE: this will need to change if negative positions are allowed!
-    last_position = -1;
-    as_offset = 0;
-    md_offset = 0;
-
-    for (j = 0; j < self->sites->num_rows; j++) {
-        position = self->sites->position[j];
-        if (position != last_position) {
-            as_length = (self->sites->ancestral_state_offset[j + 1]
-                    - self->sites->ancestral_state_offset[j]);
-            md_length = self->sites->metadata_offset[j + 1] - self->sites->metadata_offset[j];
-            if (site_j != j) {
-                assert(site_j < j);
-                self->sites->position[site_j] = self->sites->position[j];
-                self->sites->ancestral_state_offset[site_j] = as_offset;
-                memcpy(self->sites->ancestral_state + self->sites->ancestral_state_offset[site_j],
-                        self->sites->ancestral_state + self->sites->ancestral_state_offset[j],
-                        as_length);
-                self->sites->metadata_offset[site_j] = md_offset;
-                memcpy(self->sites->metadata + self->sites->metadata_offset[site_j],
-                        self->sites->metadata + self->sites->metadata_offset[j],
-                        md_length);
+    ret = site_table_copy(self->sites, &copy);
+    if (ret != 0) {
+        goto out;
+    }
+    site_id_map = malloc(copy.num_rows * sizeof(*site_id_map));
+    if (site_id_map == NULL) {
+        ret = MSP_ERR_NO_MEMORY;
+        goto out;
+    }
+    ret = site_table_clear(self->sites);
+    if (ret != 0) {
+        goto out;
+    }
+    /* We exit early above if zero rows, so this is safe */
+    ret = site_table_add_row(self->sites, copy.position[0],
+            copy.ancestral_state, copy.ancestral_state_offset[1],
+            copy.metadata, copy.metadata_offset[1]);
+    if (ret < 0) {
+        goto out;
+    }
+    site_id_map[0] = 0;
+    for (j = 1; j < copy.num_rows; j++) {
+        if (copy.position[j] != copy.position[j - 1]) {
+            ret = site_table_add_row(self->sites, copy.position[j],
+                    copy.ancestral_state + copy.ancestral_state_offset[j],
+                    copy.ancestral_state_offset[j + 1] - copy.ancestral_state_offset[j],
+                    copy.metadata + copy.metadata_offset[j],
+                    copy.metadata_offset[j + 1] - copy.metadata_offset[j]);
+            if (ret < 0) {
+                goto out;
             }
-            as_offset += as_length;
-            md_offset += md_length;
-            last_position = position;
-            site_j++;
         }
-        site_id_map[j] = (site_id_t) site_j - 1;
+        site_id_map[j] = (site_id_t) self->sites->num_rows - 1;
     }
 
-    self->sites->num_rows = site_j;
-    self->sites->ancestral_state_length = self->sites->ancestral_state_offset[site_j];
-    self->sites->metadata_length = self->sites->metadata_offset[site_j];
-
-    if (self->sites->num_rows < num_input_sites) {
+    if (self->sites->num_rows < copy.num_rows) {
         // Remap sites in the mutation table
         // (but only if there's been any changed sites)
         for (j = 0; j < self->mutations->num_rows; j++) {
@@ -5164,7 +5178,9 @@ table_collection_deduplicate_sites(table_collection_t *self, int MSP_UNUSED(flag
             self->mutations->site[j] = site_id_map[self->mutations->site[j]];
         }
     }
+    ret = 0;
 out:
+    site_table_free(&copy);
     msp_safe_free(site_id_map);
     return ret;
 }
@@ -5188,8 +5204,10 @@ table_collection_compute_mutation_parents(table_collection_t *self, int MSP_UNUS
     /* Using unsigned values here avoids potentially undefined behaviour */
     uint32_t j, mutation, first_mutation;
 
-    /* TODO the loops below will break if sequence length is 0. */
-    assert(self->sequence_length > 0 && self->edges->num_rows > 0);
+    if (self->sequence_length <= 0 && self->edges->num_rows > 0) {
+        ret = MSP_ERR_BAD_PARAM_VALUE;
+        goto out;
+    }
     ret = table_collection_build_indexes(self, 0);
     if (ret != 0) {
         goto out;

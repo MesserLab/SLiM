@@ -83,8 +83,6 @@
 /* Flags for load tables */
 #define MSP_BUILD_INDEXES 1
 
-/* Flags for tree sequence dump/load */
-#define MSP_DUMP_ZLIB_COMPRESSION 1
 #define MSP_LOAD_EXTENDED_CHECKS  1
 
 #define MSP_FILE_FORMAT_NAME          "tskit.trees"
@@ -122,7 +120,7 @@
 #define MSP_ERR_BAD_RECOMBINATION_MAP                               -26
 #define MSP_ERR_BAD_POPULATION_SIZE                                 -27
 #define MSP_ERR_BAD_SAMPLES                                         -28
-#define MSP_ERR_MULTIROOT_NEWICK                                    -29
+#define MSP_ERR_NODES_NONCONTIGUOUS_INDIVIDUALS                     -29
 #define MSP_ERR_FILE_VERSION_TOO_OLD                                -30
 #define MSP_ERR_FILE_VERSION_TOO_NEW                                -31
 #define MSP_ERR_CANNOT_SIMPLIFY                                     -32
@@ -150,7 +148,7 @@
 #define MSP_ERR_SITE_OUT_OF_BOUNDS                                  -54
 #define MSP_ERR_NODE_OUT_OF_BOUNDS                                  -55
 #define MSP_ERR_LENGTH_MISMATCH                                     -56
-
+#define MSP_ERR_DUPLICATE_SITE_POSITION                             -57
 #define MSP_ERR_NON_SINGLE_CHAR_MUTATION                            -58
 #define MSP_ERR_UNSORTED_SITES                                      -59
 #define MSP_ERR_BAD_SITE_POSITION                                   -60
@@ -166,7 +164,14 @@
 #define MSP_ERR_MUTATION_PARENT_EQUAL                               -70
 #define MSP_ERR_MUTATION_PARENT_AFTER_CHILD                         -71
 #define MSP_ERR_BAD_INDIVIDUAL                                      -72
-#define MSP_ERR_BAD_TABLE_POSITION                                  -73
+#define MSP_ERR_GENERATE_UUID                                       -73
+/* TODO remove this code once we've fixed up support for
+ * individuals in simplify */
+#define MSP_ERR_INDIVIDUALS_NOT_SUPPORTED                           -74
+
+/* REUSE: * -57 */
+
+#define MSP_ERR_BAD_TABLE_POSITION                                  -75
 
 /* This bit is 0 for any errors originating from kastore */
 #define MSP_KAS_ERR_BIT 14

@@ -20,16 +20,32 @@ Development & Feedback
 -----------------------------------
 SLiM is under active development, and our goal is to make it as broadly useful as possible.  If you have feedback or feature requests, or if you are interested in contributing to SLiM, please contact Philipp Messer at [messer@cornell.edu](mailto:messer@cornell.edu). Please note that Philipp is also looking for graduate students and postdocs.
 
+Installation from source
+========================
+
+We use CMake, with an out-of-source build, as described here:
+    https://gitlab.kitware.com/cmake/community/wikis/FAQ#out-of-source-build-trees
+CMake, available by `brew install cmake` (on OSX) or `aptitude install cmake` (on debian).
+
 To compile the development version from this repository, do:
 ```
-mkdir build
-cd build
-cmake ..
+git clone https://github.com/MesserLab/SLiM.git
+mkdir SLiM_build  # the directory that SLiM will be built in (name can be anything)
+cd SLiM_build
+cmake -D CMAKE_BUILD_TYPE=Release ../SLiM
 make
 ```
-To do this you'll need CMake, available by `brew install cmake` (on OSX) or `aptitude install cmake` (on debian).
+The resulting binary will be called `slim`, within the `SLiM_build` directory.
 
-*Further notes for developers:* to enable debugging flags, replace the `cmake` command with
+To update the build, in the `SLiM_build` directory run
 ```
-cmake -DCMAKE_BUILD_TYPE=Debug ..
+cmake -D CMAKE_BUILD_TYPE=Release ../SLiM
+make
 ```
+
+To build the code with debug flags turned on, run instead
+```
+cmake -D CMAKE_BUILD_TYPE=Debug ../SLiM
+make
+```
+This could be done in a separate directory to retain both versions of the build.
