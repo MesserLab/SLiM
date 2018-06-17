@@ -952,8 +952,8 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 		
 		if (first_int <= second_int)
 		{
-			if (second_int - first_int + 1 >= 10000000)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 10000000 entries cannot be constructed." << EidosTerminate(operator_token);
+			if (second_int - first_int + 1 > 100000000)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 100000000 entries cannot be constructed." << EidosTerminate(operator_token);
 			
 			EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 			EidosValue_Int_vector *int_result = int_result_SP->resize_no_initialize(second_int - first_int + 1);
@@ -965,8 +965,8 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 		}
 		else
 		{
-			if (first_int - second_int + 1 >= 10000000)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 10000000 entries cannot be constructed." << EidosTerminate(operator_token);
+			if (first_int - second_int + 1 > 100000000)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 100000000 entries cannot be constructed." << EidosTerminate(operator_token);
 			
 			EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 			EidosValue_Int_vector *int_result = int_result_SP->resize_no_initialize(first_int - second_int + 1);
@@ -987,8 +987,8 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 		
 		if (first_float <= second_float)
 		{
-			if (second_float - first_float + 1 >= 10000000)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 10000000 entries cannot be constructed." << EidosTerminate(operator_token);
+			if (second_float - first_float + 1 > 100000000)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 100000000 entries cannot be constructed." << EidosTerminate(operator_token);
 			
 			EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 			EidosValue_Float_vector *float_result = float_result_SP->reserve((int)(second_float - first_float + 1));
@@ -1014,8 +1014,8 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 		}
 		else
 		{
-			if (first_float - second_float + 1 >= 10000000)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 10000000 entries cannot be constructed." << EidosTerminate(operator_token);
+			if (first_float - second_float + 1 > 100000000)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 100000000 entries cannot be constructed." << EidosTerminate(operator_token);
 			
 			EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 			EidosValue_Float_vector *float_result = float_result_SP->reserve((int)(first_float - second_float + 1));
