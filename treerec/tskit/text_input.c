@@ -543,9 +543,8 @@ population_table_load_text(population_table_t *population_table, FILE *file)
 	size_t k;
 	size_t MAX_LINE = 1024;
 	char *line = NULL;
-	int id;
 	char *metadata;
-	const char *header = "id\tmetadata\n";
+	const char *header = "metadata\n";
 	char *start;
 	
 	line = malloc(MAX_LINE);
@@ -573,10 +572,6 @@ population_table_load_text(population_table_t *population_table, FILE *file)
 	
 	while ((err = (int) getline(&line, &k, file)) != -1) {
 		start = line;
-		err = get_sep_atoi(&start, &id, '\t');
-		if (err < 0) {
-			goto out;
-		}
 		err = get_sep_atoa(&start, &metadata, '\n');
 		if (err < 0 || *start != '\0') {
 			goto out;
