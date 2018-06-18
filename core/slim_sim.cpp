@@ -4430,7 +4430,16 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 		
 		for (size_t j = 0; j < tables.populations->num_rows; j++)
 		{
-			std::string string_metadata(metadata + metadata_offset[j], metadata_offset[j+1] - metadata_offset[j]);
+			table_size_t metadata_string_length = metadata_offset[j+1] - metadata_offset[j];
+			
+			if (metadata_string_length == 0)
+			{
+				// empty population table entries just get preserved verbatim; these are unused subpop IDs
+				binary_metadata_offset.push_back(binary_metadata_offset[j]);
+				continue;
+			}
+			
+			std::string string_metadata(metadata + metadata_offset[j], metadata_string_length);
 			std::vector<std::string> metadata_parts = Eidos_string_split(string_metadata, ",");
 			
 			if (metadata_parts.size() < 12)
@@ -4657,6 +4666,15 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
 		
 		for (size_t j = 0; j < p_tables->populations->num_rows; j++)
 		{
+			table_size_t metadata_binary_length = metadata_offset[j+1] - metadata_offset[j];
+			
+			if (metadata_binary_length == 0)
+			{
+				// empty population table entries just get preserved verbatim; these are unused subpop IDs
+				text_metadata_offset.push_back((table_size_t)text_metadata.size());
+				continue;
+			}
+			
 			SubpopulationMetadataRec *struct_population_metadata = (SubpopulationMetadataRec *)(metadata + metadata_offset[j]);
 			SubpopulationMigrationMetadataRec *struct_migration_metadata = (SubpopulationMigrationMetadataRec *)(struct_population_metadata + 1);
 			
@@ -4770,9 +4788,23 @@ void SLiMSim::WritePopulationTable(table_collection_t *p_tables)
 	// This overwrites whatever might be previously in the population table
 	population_table_clear(p_tables->populations);
 	
+	// we will write out empty entries for all unused slots, up to largest_subpop_id_
+	slim_objectid_t last_subpop_id = population_.largest_subpop_id_;
+	slim_objectid_t last_id_written = -1;
+	
 	for (auto subpop_iter : population_)
 	{
 		Subpopulation *subpop = subpop_iter.second;
+		slim_objectid_t subpop_id = subpop->subpopulation_id_;
+		
+		// first, write out empty entries for unused subpop ids before this one
+		while (last_id_written < subpop_id - 1)
+		{
+			population_table_add_row(p_tables->populations, (char *)&last_subpop_id, (uint32_t)0);	// the address is unused
+			last_id_written++;
+		}
+		
+		// now we're at the slot for this subpopulation, so construct it and write it out
 		size_t migration_rec_count = subpop->migrant_fractions_.size();
 		size_t metadata_length = sizeof(SubpopulationMetadataRec) + migration_rec_count * sizeof(SubpopulationMigrationMetadataRec);
 		SubpopulationMetadataRec *metadata_rec = (SubpopulationMetadataRec *)malloc(metadata_length);
@@ -4801,9 +4833,19 @@ void SLiMSim::WritePopulationTable(table_collection_t *p_tables)
 		}
 		
 		population_id_t msp_population = population_table_add_row(p_tables->populations, (char *)metadata_rec, (uint32_t)metadata_length);
+		last_id_written++;
+		
 		free(metadata_rec);
 		
 		if (msp_population < 0) handle_error("population_table_add_row", msp_population);
+	}
+	
+	// finally, write out empty entries for the rest of the table; empty entries are needed
+	// up to largest_subpop_id_ because there could be ancestral nodes that reference them
+	while (last_id_written < last_subpop_id)
+	{
+		population_table_add_row(p_tables->populations, (char *)&last_subpop_id, (uint32_t)0);	// the address is unused
+		last_id_written++;
 	}
 }
 
@@ -5753,12 +5795,33 @@ void SLiMSim::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interprete
 	population_table_t &pop_table = *tables.populations;
 	table_size_t pop_count = pop_table.num_rows;
 	
-	if ((model_type_ == SLiMModelType::kModelTypeWF) && ((size_t)pop_count != population_.size()))
-		EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): subpopulation count mismatch; this file cannot be read." << EidosTerminate();
+	// do a quick sanity check that the number of non-empty rows equals the expected subpopulation count, in WF models
+	if (model_type_ == SLiMModelType::kModelTypeWF)
+	{
+		table_size_t nonempty_count = 0;
+		
+		for (table_size_t pop_index = 0; pop_index < pop_count; pop_index++)
+		{
+			size_t metadata_length = pop_table.metadata_offset[pop_index + 1] - pop_table.metadata_offset[pop_index];
+			
+			if (metadata_length > 0)
+				++nonempty_count;
+		}
+		
+		if ((size_t)nonempty_count != population_.size())
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): subpopulation count mismatch; this file cannot be read." << EidosTerminate();
+	}
 	
 	for (table_size_t pop_index = 0; pop_index < pop_count; pop_index++)
 	{
 		size_t metadata_length = pop_table.metadata_offset[pop_index + 1] - pop_table.metadata_offset[pop_index];
+		
+		if (metadata_length == 0)
+		{
+			// empty rows in the population table correspond to unused subpop IDs; ignore them
+			continue;
+		}
+		
 		char *metadata_char = pop_table.metadata + pop_table.metadata_offset[pop_index];
 		
 		if (metadata_length < sizeof(SubpopulationMetadataRec))
@@ -6207,6 +6270,12 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	ret = tree_sequence_free(ts);
 	if (ret != 0) handle_error("_InstantiateSLiMObjectsFromTables tree_sequence_free()", ret);
 	free(ts);
+	
+	// Get rid of the individuals table now that we're done using it; we're not supposed to have one while running
+	// Also, we have to reset the individual column to -1 (which is MSP_NULL_INDIVIDUAL)
+	individual_table_clear(tables.individuals);
+	
+	memset(tables.nodes->individual, 0xff, tables.nodes->num_rows * sizeof(individual_id_t));
 	
 	// Set up the remembered genomes, which are now the first remembered_genome_count node table entries
 	if (remembered_genomes_.size() != 0)

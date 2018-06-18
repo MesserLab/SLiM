@@ -172,6 +172,7 @@ Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, slim_po
 #endif
 	
 	insert(std::pair<const slim_objectid_t,Subpopulation*>(p_subpop_id, new_subpop));
+	largest_subpop_id_ = std::max(largest_subpop_id_, p_subpop_id);
 	
 	return new_subpop;
 }
@@ -203,6 +204,7 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 #endif
 	
 	insert(std::pair<const slim_objectid_t,Subpopulation*>(p_subpop_id, new_subpop));
+	largest_subpop_id_ = std::max(largest_subpop_id_, p_subpop_id);
 	
 	// then draw parents from the source population according to fitness, obeying the new subpop's sex ratio
 	Subpopulation &subpop = *new_subpop;
