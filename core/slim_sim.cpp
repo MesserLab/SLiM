@@ -5283,6 +5283,9 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 		ret = table_collection_copy(&tables, tables_copy);
 		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity table_collection_copy()", ret);
 		
+		// our tables copy needs to have a population table now, since this is required to build a tree sequence
+		WritePopulationTable(tables_copy);
+		
 		// simplify before making our tree_sequence object; the sort and deduplicate and compute parents are required for the crosscheck, whereas the simplify
 		// could perhaps be removed, which would cause the vargen_t to visit a bunch of stuff unrelated to the current individuals.
 		// this code is adapted from SLiMSim::SimplifyTreeSequence(), but we don't need to update the MSP map table or the table position,
