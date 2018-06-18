@@ -257,6 +257,8 @@
 		988880ED20744F0100E10172 /* cauchy.c in Sources */ = {isa = PBXBuildFile; fileRef = 988880EB20744EE800E10172 /* cauchy.c */; };
 		988880EE20744F0100E10172 /* cauchy.c in Sources */ = {isa = PBXBuildFile; fileRef = 988880EB20744EE800E10172 /* cauchy.c */; };
 		988880EF20744F0200E10172 /* cauchy.c in Sources */ = {isa = PBXBuildFile; fileRef = 988880EB20744EE800E10172 /* cauchy.c */; };
+		988D8FB620D7342400FEABC4 /* uuid.c in Sources */ = {isa = PBXBuildFile; fileRef = 988D8FB420D7342300FEABC4 /* uuid.c */; };
+		988D8FB720D7342C00FEABC4 /* uuid.c in Sources */ = {isa = PBXBuildFile; fileRef = 988D8FB420D7342300FEABC4 /* uuid.c */; };
 		9892282B1BAE279700429674 /* EidosHelpOperators.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9892282A1BAE279700429674 /* EidosHelpOperators.rtf */; };
 		9892282C1BAE279700429674 /* EidosHelpOperators.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9892282A1BAE279700429674 /* EidosHelpOperators.rtf */; };
 		9892282E1BAE27AA00429674 /* EidosHelpTypes.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9892282D1BAE27AA00429674 /* EidosHelpTypes.rtf */; };
@@ -836,6 +838,8 @@
 		988794711EA8C42200AE0C8D /* SLiMPDFView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SLiMPDFView.h; sourceTree = "<group>"; };
 		988794721EA8C42200AE0C8D /* SLiMPDFView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SLiMPDFView.mm; sourceTree = "<group>"; };
 		988880EB20744EE800E10172 /* cauchy.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cauchy.c; sourceTree = "<group>"; };
+		988D8FB420D7342300FEABC4 /* uuid.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = uuid.c; path = treerec/tskit/uuid.c; sourceTree = "<group>"; };
+		988D8FB520D7342400FEABC4 /* uuid.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = uuid.h; path = treerec/tskit/uuid.h; sourceTree = "<group>"; };
 		9892282A1BAE279700429674 /* EidosHelpOperators.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = EidosHelpOperators.rtf; sourceTree = "<group>"; };
 		9892282D1BAE27AA00429674 /* EidosHelpTypes.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = EidosHelpTypes.rtf; sourceTree = "<group>"; };
 		989228301BAF496C00429674 /* EidosHelpStatements.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = EidosHelpStatements.rtf; sourceTree = "<group>"; };
@@ -1535,12 +1539,14 @@
 				986764AA2089066A00E81B2E /* object_heap.h */,
 				986764A92089066A00E81B2E /* tables.h */,
 				986764AC2089066A00E81B2E /* util.h */,
+				988D8FB520D7342400FEABC4 /* uuid.h */,
 				986764A52089066A00E81B2E /* tree_sequence.c */,
 				986764A62089066A00E81B2E /* vargen.c */,
 				9850D8E02063098E006BFD2E /* avl.c */,
 				9850D8E22063098E006BFD2E /* object_heap.c */,
 				9850D8DF2063098E006BFD2E /* tables.c */,
 				9850D8E12063098E006BFD2E /* util.c */,
+				988D8FB420D7342300FEABC4 /* uuid.c */,
 			);
 			name = treerec;
 			sourceTree = "<group>";
@@ -2230,6 +2236,7 @@
 				98332AEA1FDBC1D900274FF0 /* submatrix.c in Sources */,
 				98C8213D1C7A980000548839 /* psi.c in Sources */,
 				98C8212A1C7A980000548839 /* binomial_tpe.c in Sources */,
+				988D8FB620D7342400FEABC4 /* uuid.c in Sources */,
 				98E9A6A81A3CD5A0000AD4FC /* genome.cpp in Sources */,
 				98332B031FDBCFC300274FF0 /* init.c in Sources */,
 				98C821281C7A980000548839 /* stream.c in Sources */,
@@ -2517,6 +2524,7 @@
 				986D73E91B07E89E007FBB70 /* eidos_call_signature.cpp in Sources */,
 				98DE4C1A1B713F16004FDF5F /* ScriptMod_RemoveSubpop.mm in Sources */,
 				98D4C20A1A7086FF00FFB083 /* ChromosomeView.mm in Sources */,
+				988D8FB720D7342C00FEABC4 /* uuid.c in Sources */,
 				980613AD1FAFD79100D379BA /* SLiMHaplotypeGraphView.mm in Sources */,
 				987AD8821B2CBF960035D6C8 /* EidosConsoleTextView.mm in Sources */,
 				98332AC81FDBA74900274FF0 /* vector.c in Sources */,
