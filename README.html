@@ -467,7 +467,7 @@ pre tt:after {
 
 <h2>License</h2>
 
-<p>Copyright (c) 2016 Philipp Messer.  All rights reserved.</p>
+<p>Copyright (c) 2016-2018 Philipp Messer.  All rights reserved.</p>
 
 <p>SLiM is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.</p>
 
@@ -478,5 +478,40 @@ pre tt:after {
 <h2>Development &amp; Feedback</h2>
 
 <p>SLiM is under active development, and our goal is to make it as broadly useful as possible.  If you have feedback or feature requests, or if you are interested in contributing to SLiM, please contact Philipp Messer at <a href="mailto:messer@cornell.edu">messer@cornell.edu</a>. Please note that Philipp is also looking for graduate students and postdocs.</p>
+
+<h2>Installation from source</h2>
+
+<p>We use CMake, with an out-of-source build, as described here:</p>
+
+<p><a href="https://gitlab.kitware.com/cmake/community/wikis/FAQ#out-of-source-build-trees">https://gitlab.kitware.com/cmake/community/wikis/FAQ#out-of-source-build-trees</a></p>
+
+<p>CMake is available with <code>port install cmake</code> or <code>brew install cmake</code> (on OS X, with MacPorts or Homebrew respectively), or with <code>aptitude install cmake</code> (on debian).</p>
+
+<p>To compile the development version from this repository, do:</p>
+
+<pre><code>git clone https://github.com/MesserLab/SLiM.git
+mkdir SLiM_build
+cd SLiM_build
+cmake -D CMAKE_BUILD_TYPE=Release ../SLiM
+make
+</code></pre>
+
+<p>The resulting binary will be called <code>slim</code>, within the <code>SLiM_build</code> directory.  You can name the build directory anything you wish; there is nothing magical about the name <code>SLiM_build</code>.</p>
+
+<p>To update the build, in the <code>SLiM_build</code> directory run:</p>
+
+<pre><code>cmake -D CMAKE_BUILD_TYPE=Release ../SLiM
+make
+</code></pre>
+
+<p>To build the code with debug flags turned on (i.e., optimization turned off, debugging symbols turned on, and extra runtime checking enabled), run instead:</p>
+
+<pre><code>cmake -D CMAKE_BUILD_TYPE=Debug ../SLiM
+make
+</code></pre>
+
+<p>This could be done in a separate directory to retain both versions of the build.</p>
+
+<p>See the SLiM manual for more information about building and installing, including instructions on building SLiMgui under Xcode.  The manual and other SLiM stuff can be found at <a href="http://messerlab.org/slim/">http://messerlab.org/slim/</a>.</p>
 </body>
 </html>
