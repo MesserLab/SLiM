@@ -6274,10 +6274,35 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	free(ts);
 	
 	// Get rid of the individuals table now that we're done using it; we're not supposed to have one while running
-	// Also, we have to reset the individual column to -1 (which is MSP_NULL_INDIVIDUAL)
 	individual_table_clear(tables.individuals);
 	
+	// Also, we have to reset the individual column in the node table
+#if 1
+	// This is the quick and dirty way; -1 is MSP_NULL_INDIVIDUAL
 	memset(tables.nodes->individual, 0xff, tables.nodes->num_rows * sizeof(individual_id_t));
+#else
+	// This is the safer way, but involves lots of copying and allocating and freeing
+	node_table_t node_table_clone;
+	
+	ret = node_table_alloc(&node_table_clone, 0, 0);
+	if (ret != 0) handle_error("_InstantiateSLiMObjectsFromTables node_table_alloc()", ret);
+	
+	ret = node_table_copy(tables.nodes, &node_table_clone);
+	if (ret != 0) handle_error("_InstantiateSLiMObjectsFromTables node_table_copy()", ret);
+	
+	ret = node_table_set_columns(tables.nodes,
+						   node_table_clone.num_rows,
+						   node_table_clone.flags,
+						   node_table_clone.time,
+						   node_table_clone.population,
+						   NULL /* individual_id_t *individual */,
+						   node_table_clone.metadata,
+						   node_table_clone.metadata_offset);
+	if (ret != 0) handle_error("_InstantiateSLiMObjectsFromTables node_table_set_columns()", ret);
+	
+	ret = node_table_free(&node_table_clone);
+	if (ret != 0) handle_error("_InstantiateSLiMObjectsFromTables node_table_free()", ret);
+#endif
 	
 	// Set up the remembered genomes, which are now the first remembered_genome_count node table entries
 	if (remembered_genomes_.size() != 0)
