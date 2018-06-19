@@ -3841,9 +3841,9 @@ void SLiMSim::CheckCoalescenceAfterSimplification(void)
 	bool fully_coalesced = true;
 	int ret;
 	
-#if 0
-	// copy the table collection; Jerome says this is unnecessary since table_collection_build_indexes()
-	// does not modify the core information in the table collection, but just adds some separate indices
+	// Copy the table collection; Jerome says this is unnecessary since table_collection_build_indexes()
+	// does not modify the core information in the table collection, but just adds some separate indices.
+	// However, we also need to add a population table, so really it is best to make a copy I think.
 	table_collection_t tables_copy;
 	
 	ret = table_collection_alloc(&tables_copy, MSP_ALLOC_TABLES);
@@ -3852,12 +3852,11 @@ void SLiMSim::CheckCoalescenceAfterSimplification(void)
 	ret = table_collection_copy(&tables, &tables_copy);
 	if (ret < 0) handle_error("table_collection_copy", ret);
 	
+	// our tables copy needs to have a population table now, since this is required to build a tree sequence
+	WritePopulationTable(&tables_copy);
+	
 	ret = table_collection_build_indexes(&tables_copy, 0);
 	if (ret < 0) handle_error("table_collection_build_indexes", ret);
-#else
-	// no copy; see comment above
-	table_collection_t &tables_copy = tables;
-#endif
 	
 	tree_sequence_t ts;
 	
