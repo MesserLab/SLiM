@@ -3191,8 +3191,8 @@ void _RunOperatorRangeTests(void)
 	EidosAssertScriptRaise("1.5:NAN;", 3, "must not be NAN");
 	EidosAssertScriptRaise("INF:1.5;", 3, "range with more than");
 	EidosAssertScriptRaise("NAN:1.5;", 3, "must not be NAN");
-	EidosAssertScriptRaise("1:10000010;", 1, "more than 10000000 entries");
-	EidosAssertScriptRaise("10000010:1;", 8, "more than 10000000 entries");
+	EidosAssertScriptRaise("1:100000010;", 1, "more than 100000000 entries");
+	EidosAssertScriptRaise("100000010:1;", 9, "more than 100000000 entries");
 	
 	EidosAssertScriptRaise("matrix(5):9;", 9, "must not be matrices or arrays");
 	EidosAssertScriptRaise("1:matrix(5);", 1, "must not be matrices or arrays");
