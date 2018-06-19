@@ -6,6 +6,12 @@ language: cpp
 # skip the install step, we have no dependencies
 install: true
 
+# set up a build directory and run cmake; "make all" should then work then work
+before_script:
+  - mkdir build
+  - cd build
+  - cmake ..
+
 # build using make, then run Eidos and SLiM tests
 # builds can take more than 10 minutes so we use travis_wait
 script:
@@ -26,11 +32,10 @@ os:
   - linux
   - osx
 
-# test only the master and nonWF branches for now
+# test only the master branch for now; add other branches as needed
 branches:
   only:
     - master
-    - nonWF
 
 # notify me by email after all builds
 notifications:
