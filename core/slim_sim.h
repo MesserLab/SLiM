@@ -164,7 +164,7 @@ typedef struct __attribute__((__packed__)) {
 // We double-check the size of these records to make sure we understand what they contain and how they're packed
 static_assert(sizeof(MutationMetadataRec) == 16, "MutationMetadataRec is not 16 bytes!");
 static_assert(sizeof(GenomeMetadataRec) == 10, "GenomeMetadataRec is not 10 bytes!");
-static_assert(sizeof(IndividualMetadataRec) == 16, "IndividualMetadataRec is not 8 bytes!");
+static_assert(sizeof(IndividualMetadataRec) == 16, "IndividualMetadataRec is not 16 bytes!");
 static_assert(sizeof(SubpopulationMetadataRec) == 88, "SubpopulationMetadataRec is not 88 bytes!");
 static_assert(sizeof(SubpopulationMigrationMetadataRec) == 12, "SubpopulationMigrationMetadataRec is not 12 bytes!");
 
