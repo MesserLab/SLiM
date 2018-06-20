@@ -74,6 +74,7 @@ development head (nonWF branch):
 	fix issue with dropped model output just before a simulation terminated due to an error
 	add treeSeqCoalesced() and a checkCoalescence parameter for initializeTreeSeq(), to perform runtime checking for coalescence
 	add getValue() / setValue() functionality to Substitution, make values carry over from Mutation objects when they fix
+	add tree-seq recipes to SLiMgui
 
 
 2.6 (build 1292; Eidos version 1.6):

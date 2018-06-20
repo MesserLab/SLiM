@@ -155,6 +155,7 @@ typedef enum SLiMLaunchAction
 				case 13:chapterName = @"Advanced models";													break;
 				case 14:chapterName = @"Continuous-space models and interactions";							break;
 				case 15:chapterName = @"Going beyond Wright-Fisher models: nonWF model recipes";			break;
+				case 16:chapterName = @"Tree-sequence recording: tracking population history and true local ancestry";			break;
 				default: break;
 			}
 			
