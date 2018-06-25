@@ -28,8 +28,6 @@ reproduction(NULL, "F") {
 			offspring.setValue("penalty", rgamma(1, penalty, 20));
 		}
 	}
-	
-	return NULL;
 }
 1 early() {
 	sim.addSubpop("p1", 500);

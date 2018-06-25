@@ -75,7 +75,6 @@
 	"// each individual reproduces itself once\n"
 	"reproduction() {\n"
 	"	subpop.addCrossed(individual, p1.sampleIndividuals(1));\n"
-	"	return NULL;\n"
 	"}\n"
 	"\n"
 	"// create an initial population of 10 individuals\n"

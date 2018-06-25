@@ -917,6 +917,7 @@ In this design, the recombination callback does not specify a custom recombinati
 \f0\fs22  callback, calculate the fraction of that maximum rate that the focal individual would experience based upon its genetics, and (3) probabilistically remove proposed crossover points based upon random uniform draws compared to that threshold fraction, thus achieving the individual effective recombination rate desired.  Other similar treatments could actually vary the effective recombination map, not just the overall rate, by removing proposed crossovers with probabilities that depend upon their position, allowing for the evolution of localized recombination hot-spots and cold-spots.  Crossovers and gene conversion events may also be added, not just removed, by 
 \f2\fs18 recombination()
 \f0\fs22  callbacks.\
+\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
 \cf5 \expnd0\expndtw0\kerning0
 Note that the positions in 
 \f2\fs18 breakpoints
@@ -939,6 +940,7 @@ Note that the positions in
 \f0\fs22 , and 
 \f2\fs18 gcEnds
 \f0\fs22 , the multiple occurrences of the position do not cancel; SLiM does not cross over and then \'93cross back over\'94 given a pair of identical positions.  Instead, the multiple occurrences of the position will simply be uniqued down to a single occurrence.\
+\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 As with the other callback types, multiple 
 \f2\fs18 recombination()
 \f0\fs22  callbacks may be registered and active.  In this case, all registered and active callbacks will be called for each gamete generated, in the order that the callbacks were registered.\
@@ -1133,13 +1135,9 @@ subpop
 \pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f0\fs22 \cf5 \expnd0\expndtw0\kerning0
-At present, the return value from 
+At present, \cf5 the return value from 
 \f2\fs18 reproduction()
-\f0\fs22  callbacks is not used.  To allow future extension of the semantics of 
-\f2\fs18 reproduction()
-\f0\fs22  callbacks without breaking backward compatibility, it is required that they always return 
-\f2\fs18 NULL
-\f0\fs22 ; other return values will cause an error at present, but may acquire some other meaning in future.\
+\f0\fs22  callbacks is not used, and must be void (i.e., a value may not be returned).  It is possible that other return values will be defined in future\cf5 .\
 It is possible, of course, to do actions unrelated to reproduction inside 
 \f2\fs18 reproduction()
 \f0\fs22  callbacks, but it is not recommended.  The 

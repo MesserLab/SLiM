@@ -27,7 +27,6 @@ reproduction() {
 	
 	// disable this callback for this generation
 	self.active = 0;
-	return NULL;
 }
 1 early() {
 	sim.addSubpop("p1", 10);

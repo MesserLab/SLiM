@@ -3545,7 +3545,7 @@ void _RunNonWFTests(void)
 	SLiMAssertScriptRaise(WF_prefix + gen1_setup_p1 + "1 { p1.addEmpty(); stop(); }", 1, 298, "not available in WF models", __LINE__);
 	SLiMAssertScriptRaise(WF_prefix + gen1_setup_p1 + "1 { p1.addSelfed(p1.individuals[0]); stop(); }", 1, 298, "not available in WF models", __LINE__);
 	
-	SLiMAssertScriptRaise(WF_prefix + gen1_setup_p1 + "1 reproduction() { return NULL; } ", 1, 293, "may not be defined in WF models", __LINE__);
+	SLiMAssertScriptRaise(WF_prefix + gen1_setup_p1 + "1 reproduction() { return; } ", 1, 293, "may not be defined in WF models", __LINE__);
 	
 	// SLiMSim.modelType
 	SLiMAssertScriptStop(nonWF_prefix + gen1_setup + "1 { if (sim.modelType == 'nonWF') stop(); } ", __LINE__);

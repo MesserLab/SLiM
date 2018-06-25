@@ -34,8 +34,6 @@ reproduction() {
 		pos = individual.spatialPosition + rnorm(2, 0, 0.02);
 		offspring.setSpatialPosition(p1.pointPeriodic(pos));
 	}
-	
-	return NULL;
 }
 1 early() {
 	sim.addSubpop("p1", 1);

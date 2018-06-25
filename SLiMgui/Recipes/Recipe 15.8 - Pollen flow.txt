@@ -22,8 +22,6 @@ reproduction() {
 	// the ovule belongs to individual, the pollen comes from source
 	for (source in pollenSources)
 		subpop.addCrossed(individual, source.sampleIndividuals(1));
-	
-	return NULL;
 }
 1 early() {
 	sim.addSubpop("p1", 10);

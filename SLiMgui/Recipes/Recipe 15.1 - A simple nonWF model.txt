@@ -12,7 +12,6 @@ initialize() {
 }
 reproduction() {
 	subpop.addCrossed(individual, subpop.sampleIndividuals(1));
-	return NULL;
 }
 1 early() {
 	sim.addSubpop("p1", 10);

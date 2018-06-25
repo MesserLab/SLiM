@@ -23,8 +23,6 @@ reproduction() {
 	// log the mating
 	line = paste(c(sim.generation, individual.tag, mate.tag, child.tag));
 	writeFile("~/Desktop/mating.txt", line, append=T);
-	
-	return NULL;
 }
 1 early() {
 	sim.addSubpop("p1", 10);
