@@ -6773,16 +6773,16 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeInteractionType(const st
 	
 	if (DEBUG_INPUT)
 	{
-		output_stream << "initializeInteractionType(" << map_identifier << ", \"" << spatiality_string;
+		output_stream << "initializeInteractionType(" << map_identifier << ", \"" << spatiality_string << "\"";
 		
 		if (reciprocal == true)
-			output_stream << "\", reciprocal=T";
+			output_stream << ", reciprocal=T";
 		
 		if (!std::isinf(max_distance))
-			output_stream << "\", maxDistance=" << max_distance;
+			output_stream << ", maxDistance=" << max_distance;
 		
 		if (sex_string != "**")
-			output_stream << "\", sexSegregation=" << sex_string;
+			output_stream << ", sexSegregation=\"" << sex_string << "\"";
 		
 		output_stream << ");" << std::endl;
 	}
