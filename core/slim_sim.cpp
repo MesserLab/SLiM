@@ -4738,6 +4738,125 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
 	table_collection_free(&tables_copy);
 }
 
+void SLiMSim::DerivedStatesFromAscii(table_collection_t *p_tables)
+{
+	// This modifies p_tables in place, replacing the derived_state column of p_tables with a binary version.
+	// See TreeSequenceDataFromAscii() for comments; this is basically just a pruned version of that method.
+	mutation_table_t mutations_copy;
+	
+	int ret = mutation_table_alloc(&mutations_copy, 0, 0, 0);
+	if (ret < 0) handle_error("derived_to_ascii", ret);
+	
+	ret = mutation_table_copy(p_tables->mutations, &mutations_copy);
+	if (ret < 0) handle_error("derived_to_ascii", ret);
+	
+	{
+		static_assert(sizeof(MutationMetadataRec) == 16, "MutationMetadataRec has changed size; this code probably needs to be updated");
+		
+		const char *derived_state = p_tables->mutations->derived_state;
+		table_size_t *derived_state_offset = p_tables->mutations->derived_state_offset;
+		std::vector<slim_mutationid_t> binary_derived_state;
+		std::vector<table_size_t> binary_derived_state_offset;
+		size_t derived_state_total_part_count = 0;
+		
+		binary_derived_state_offset.push_back(0);
+		
+		for (size_t j = 0; j < p_tables->mutations->num_rows; j++)
+		{
+			std::string string_derived_state(derived_state + derived_state_offset[j], derived_state_offset[j+1] - derived_state_offset[j]);
+			
+			if (string_derived_state.size() == 0)
+			{
+				// nothing to do for an empty derived state
+			}
+			else if (string_derived_state.find(",") == std::string::npos)
+			{
+				// a single mutation can be handled more efficiently, and this is the common case so it's worth optimizing
+				binary_derived_state.emplace_back((slim_mutationid_t)std::stoll(string_derived_state));
+				derived_state_total_part_count++;
+			}
+			else
+			{
+				// stacked mutations require that the derived state be separated to parse it
+				std::vector<std::string> derived_state_parts = Eidos_string_split(string_derived_state, ",");
+				
+				for (std::string &derived_state_part : derived_state_parts)
+					binary_derived_state.emplace_back((slim_mutationid_t)std::stoll(derived_state_part));
+				
+				derived_state_total_part_count += derived_state_parts.size();
+			}
+			
+			binary_derived_state_offset.push_back((table_size_t)(derived_state_total_part_count * sizeof(slim_mutationid_t)));
+		}
+		
+		if (binary_derived_state.size() == 0)
+			binary_derived_state.resize(1);
+		
+		ret = mutation_table_set_columns(p_tables->mutations,
+										 mutations_copy.num_rows,
+										 mutations_copy.site,
+										 mutations_copy.node,
+										 mutations_copy.parent,
+										 (char *)binary_derived_state.data(),
+										 binary_derived_state_offset.data(),
+										 mutations_copy.metadata,
+										 mutations_copy.metadata_offset);
+		if (ret < 0) handle_error("convert_from_ascii", ret);
+	}
+	
+	mutation_table_free(&mutations_copy);
+}
+
+void SLiMSim::DerivedStatesToAscii(table_collection_t *p_tables)
+{
+	// This modifies p_tables in place, replacing the derived_state column of p_tables with an ASCII version.
+	// See TreeSequenceDataToAscii() for comments; this is basically just a pruned version of that method.
+	mutation_table_t mutations_copy;
+	
+	int ret = mutation_table_alloc(&mutations_copy, 0, 0, 0);
+	if (ret < 0) handle_error("derived_to_ascii", ret);
+	
+	ret = mutation_table_copy(p_tables->mutations, &mutations_copy);
+	if (ret < 0) handle_error("derived_to_ascii", ret);
+	
+	{
+		static_assert(sizeof(MutationMetadataRec) == 16, "MutationMetadataRec has changed size; this code probably needs to be updated");
+		
+		const char *derived_state = p_tables->mutations->derived_state;
+		table_size_t *derived_state_offset = p_tables->mutations->derived_state_offset;
+		std::string text_derived_state;
+		std::vector<table_size_t> text_derived_state_offset;
+		
+		text_derived_state_offset.push_back(0);
+		
+		for (size_t j = 0; j < p_tables->mutations->num_rows; j++)
+		{
+			slim_mutationid_t *int_derived_state = (slim_mutationid_t *)(derived_state + derived_state_offset[j]);
+			size_t cur_derived_state_length = (derived_state_offset[j+1] - derived_state_offset[j])/sizeof(slim_mutationid_t);
+			
+			for (size_t i = 0; i < cur_derived_state_length; i++)
+			{
+				if (i != 0) text_derived_state.append(",");
+				text_derived_state.append(std::to_string(int_derived_state[i]));
+			}
+			text_derived_state_offset.push_back((table_size_t)text_derived_state.size());
+		}
+		
+		ret = mutation_table_set_columns(p_tables->mutations,
+										 mutations_copy.num_rows,
+										 mutations_copy.site,
+										 mutations_copy.node,
+										 mutations_copy.parent,
+										 text_derived_state.c_str(),
+										 text_derived_state_offset.data(),
+										 mutations_copy.metadata,
+										 mutations_copy.metadata_offset);
+		if (ret < 0) handle_error("derived_to_ascii", ret);
+	}
+	
+	mutation_table_free(&mutations_copy);
+}
+
 void SLiMSim::WriteIndividualTable(table_collection_t *p_tables)
 {
     // This overwrites whatever might be previously in the individual table
@@ -4998,7 +5117,10 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 	// Write out the copied tables
     if (p_binary)
 	{
-        table_collection_dump(&output_tables, path.c_str(), 0);
+		// derived state data must in ASCII (or unicode) on disk, according to tskit policy
+		DerivedStatesToAscii(&output_tables);
+		
+		table_collection_dump(&output_tables, path.c_str(), 0);
     }
 	else
 	{
@@ -6388,6 +6510,9 @@ slim_generation_t SLiMSim::_InitializePopulationFromMSPrimeBinaryFile(const char
 	
 	ret = table_collection_copy(&immutable_tables, &tables);
 	if (ret < 0) handle_error("table_collection_copy", ret);
+	
+	// convert ASCII derived-state data, which is the required format on disk, back to our in-memory binary format
+	DerivedStatesFromAscii(&tables);
 	
 	// free our private immutable tables
 	table_collection_free(&immutable_tables);

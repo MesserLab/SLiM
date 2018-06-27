@@ -490,6 +490,8 @@ public:
 	static void MetadataForGenome(Genome *p_genome, GenomeMetadataRec *p_metadata);
 	static void MetadataForIndividual(Individual *p_individual, IndividualMetadataRec *p_metadata);
 	static void TreeSequenceDataToAscii(table_collection_t *p_tables);
+	static void DerivedStatesFromAscii(table_collection_t *p_tables);
+	static void DerivedStatesToAscii(table_collection_t *p_tables);
 	
 	void RecordTablePosition(void);
 	void AllocateTreeSequenceTables(void);
