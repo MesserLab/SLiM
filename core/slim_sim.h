@@ -502,7 +502,7 @@ public:
 	void WriteIndividualTable(table_collection_t *p_tables);
 	void WritePopulationTable(table_collection_t *p_tables);
 	void WriteProvenanceTable(table_collection_t *p_tables);
-	void ReadProvenanceTable(table_collection_t *p_tables, slim_generation_t *p_generation, size_t *p_remembered_genome_count);
+	void ReadProvenanceTable(table_collection_t *p_tables, slim_generation_t *p_generation, size_t *p_remembered_genome_count, SLiMModelType *p_model_type);
 	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify);
 	void SimplifyTreeSequence(void);
 	void CheckCoalescenceAfterSimplification(void);
@@ -517,7 +517,7 @@ public:
 	void CrosscheckTreeSeqIntegrity(void);
 	void TSXC_Enable(void);
 	
-	void __TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, tree_sequence_t *p_ts);
+	void __TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, tree_sequence_t *p_ts, SLiMModelType p_file_model_type);
 	void __CreateSubpopulationsFromTabulation(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, EidosInterpreter *p_interpreter, std::unordered_map<node_id_t, Genome *> &p_nodeToGenomeMap);
 	void __ConfigureSubpopulationsFromTables(EidosInterpreter *p_interpreter);
 	void __TabulateMutationsFromTables(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap);
