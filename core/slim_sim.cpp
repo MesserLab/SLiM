@@ -4997,14 +4997,33 @@ void SLiMSim::ReadProvenanceTable(table_collection_t *p_tables, slim_generation_
 	if (num_rows <= 0)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ReadProvenanceTable): no provenance table entries; this file cannot be read." << EidosTerminate();
 	
-	//char *last_timestamp = provenance_table.timestamp + provenance_table.timestamp_offset[num_rows - 1];
-	char *last_record = provenance_table.record + provenance_table.record_offset[num_rows - 1];
-	table_size_t last_record_len = provenance_table.record_offset[num_rows] - provenance_table.record_offset[num_rows - 1];
+	// find the last record that is a SLiM provenance entry; we allow entries after ours, on the assumption that they have preserved SLiM-compliance
+	int slim_record_index = num_rows - 1;
 	
-	if (last_record_len >= 1024)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ReadProvenanceTable): provenance table entry is too long; this file cannot be read." << EidosTerminate();
+	for (slim_record_index = num_rows - 1; slim_record_index >= 0; --slim_record_index)
+	{
+		char *record = provenance_table.record + provenance_table.record_offset[slim_record_index];
+		table_size_t record_len = provenance_table.record_offset[slim_record_index + 1] - provenance_table.record_offset[slim_record_index];
+		
+		// for an entry to be acceptable, it has to start with the SLiM program declaration
+		if (record_len < strlen("{\"program\"=\"SLiM\", "))
+			continue;
+		if (strncmp(record, "{\"program\"=\"SLiM\", ", strlen("{\"program\"=\"SLiM\", ")))
+			continue;
+		break;
+	}
 	
-	std::string last_record_str(last_record, last_record_len);
+	if (slim_record_index == -1)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ReadProvenanceTable): no SLiM provenance table entry found; this file cannot be read." << EidosTerminate();
+	
+	//char *slim_timestamp = provenance_table.timestamp + provenance_table.timestamp_offset[slim_record_index];
+	char *slim_record = provenance_table.record + provenance_table.record_offset[slim_record_index];
+	table_size_t slim_record_len = provenance_table.record_offset[slim_record_index + 1] - provenance_table.record_offset[slim_record_index];
+	
+	if (slim_record_len >= 1024)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ReadProvenanceTable): SLiM provenance table entry is too long; this file cannot be read." << EidosTerminate();
+	
+	std::string last_record_str(slim_record, slim_record_len);
 	
 	static char *program = NULL, *version = NULL, *file_version = NULL, *model_type = NULL, *generation = NULL, *rem_count = NULL;
 	
@@ -5021,7 +5040,7 @@ void SLiMSim::ReadProvenanceTable(table_collection_t *p_tables, slim_generation_
 	int end_pos;
 	int conv = sscanf(last_record_str.c_str(), "{\"program\"=\"%100[^\"]\", \"version\"=\"%100[^\"]\", \"file_version\"=\"%100[^\"]\", \"model_type\"=\"%100[^\"]\", \"generation\"=%100[0-9], \"remembered_node_count\"=%100[0-9]}%n", program, version, file_version, model_type, generation, rem_count, &end_pos);
 	
-	if ((conv != 6) || (end_pos != (int)last_record_len))
+	if ((conv != 6) || (end_pos != (int)slim_record_len))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ReadProvenanceTable): provenance table entry was malformed; this file cannot be read." << EidosTerminate();
 	
 	std::string program_str(program);
