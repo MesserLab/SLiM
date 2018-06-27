@@ -1,8 +1,8 @@
 initialize() {
 	initializeSLiMModelType("nonWF");
 	initializeSLiMOptions(dimensionality="xy", periodicity="xy");
-	defineConstant("K", 300);   // carrying capacity
-	defineConstant("S", 0.1);   // spatial competition distance
+	defineConstant("K", 300);   // carrying-capacity density
+	defineConstant("S", 0.1);   // sigma_S, the spatial interaction width
 	
 	initializeMutationType("m1", 0.5, "f", 0.0);
 	m1.convertToSubstitution = T;
@@ -13,7 +13,8 @@ initialize() {
 	initializeRecombinationRate(1e-8);
 	
 	// spatial competition
-	initializeInteractionType(1, "xy", reciprocal=T, maxDistance=S);
+	initializeInteractionType(1, "xy", reciprocal=T, maxDistance=S * 3);
+	i1.setInteractionFunction("n", 1.0, S);
 	
 	// spatial mate choice
 	initializeInteractionType(2, "xy", reciprocal=T, maxDistance=0.1);
@@ -47,7 +48,7 @@ early() {
 	// spatial competition provides density-dependent selection
 	inds = p1.individuals;
 	competition = i1.totalOfNeighborStrengths(inds);
-	competition = (competition + 1) / (PI * S^2);
+	competition = competition / (2 * PI * S^2);
 	inds.fitnessScaling = K / competition;
 }
 late()
