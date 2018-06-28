@@ -138,7 +138,11 @@ typedef struct __attribute__((__packed__)) {
 	slim_pedigreeid_t pedigree_id_;			// 8 bytes (int64_t): the SLiM pedigree ID for this individual, assigned by pedigree rec
 	slim_age_t age_;                        // 4 bytes (int32_t): the age of the individual (-1 for WF models)
 	slim_objectid_t subpopulation_id_;      // 4 bytes (int32_t): the subpopulation the individual belongs to
+	IndividualSex sex_;						// 4 bytes (int32_t): the sex of the individual, as defined by the IndividualSex enum
+	uint32_t flags_;						// 4 bytes (uint32_t): assorted flags, see below
 } IndividualMetadataRec;
+
+#define SLIM_INDIVIDUAL_METADATA_MIGRATED	0x01	// set if the individual has migrated in this generation
 
 typedef struct __attribute__((__packed__)) {
 	slim_objectid_t subpopulation_id_;      // 4 bytes (int32_t): the id of this subpopulation
@@ -164,7 +168,7 @@ typedef struct __attribute__((__packed__)) {
 // We double-check the size of these records to make sure we understand what they contain and how they're packed
 static_assert(sizeof(MutationMetadataRec) == 16, "MutationMetadataRec is not 16 bytes!");
 static_assert(sizeof(GenomeMetadataRec) == 10, "GenomeMetadataRec is not 10 bytes!");
-static_assert(sizeof(IndividualMetadataRec) == 16, "IndividualMetadataRec is not 16 bytes!");
+static_assert(sizeof(IndividualMetadataRec) == 24, "IndividualMetadataRec is not 24 bytes!");
 static_assert(sizeof(SubpopulationMetadataRec) == 88, "SubpopulationMetadataRec is not 88 bytes!");
 static_assert(sizeof(SubpopulationMigrationMetadataRec) == 12, "SubpopulationMigrationMetadataRec is not 12 bytes!");
 

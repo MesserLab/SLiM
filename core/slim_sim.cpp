@@ -4376,7 +4376,7 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 	
 	/***** De-ascii-ify Individuals Table *****/
 	{
-		static_assert(sizeof(IndividualMetadataRec) == 16, "IndividualMetadataRec has changed size; this code probably needs to be updated");
+		static_assert(sizeof(IndividualMetadataRec) == 24, "IndividualMetadataRec has changed size; this code probably needs to be updated");
 		
 		const char *metadata = tables.individuals->metadata;
 		table_size_t *metadata_offset = tables.individuals->metadata_offset;
@@ -4391,13 +4391,15 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 			std::string string_metadata(metadata + metadata_offset[j], metadata_offset[j+1] - metadata_offset[j]);
 			std::vector<std::string> metadata_parts = Eidos_string_split(string_metadata, ",");
 			
-			if (metadata_parts.size() != 3)
+			if (metadata_parts.size() != 5)
 				EIDOS_TERMINATION << "ERROR (SLiMSim::TreeSequenceDataFromAscii): unexpected individual metadata length; this file cannot be read." << EidosTerminate();
 			
 			IndividualMetadataRec metarec;
 			metarec.pedigree_id_ = (slim_pedigreeid_t)std::stoll(metadata_parts[0]);
 			metarec.age_ = (slim_age_t)std::stoll(metadata_parts[1]);
 			metarec.subpopulation_id_ = (slim_objectid_t)std::stoll(metadata_parts[2]);
+			metarec.sex_ = (IndividualSex)std::stoll(metadata_parts[3]);
+			metarec.flags_ = (uint32_t)std::stoull(metadata_parts[4]);
 			
 			binary_metadata.emplace_back(metarec);
 			
@@ -4620,7 +4622,7 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
 	
 	/***** Ascii-ify Individuals Table *****/
 	{
-		static_assert(sizeof(IndividualMetadataRec) == 16, "IndividualMetadataRec has changed size; this code probably needs to be updated");
+		static_assert(sizeof(IndividualMetadataRec) == 24, "IndividualMetadataRec has changed size; this code probably needs to be updated");
 		
 		const char *metadata = p_tables->individuals->metadata;
 		table_size_t *metadata_offset = p_tables->individuals->metadata_offset;
@@ -4638,6 +4640,10 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
 			text_metadata.append(std::to_string(struct_individual_metadata->age_));
 			text_metadata.append(",");
 			text_metadata.append(std::to_string(struct_individual_metadata->subpopulation_id_));
+			text_metadata.append(",");
+			text_metadata.append(std::to_string((int32_t)struct_individual_metadata->sex_));
+			text_metadata.append(",");
+			text_metadata.append(std::to_string(struct_individual_metadata->flags_));
 			text_metadata_offset.push_back((table_size_t)text_metadata.size());
 		}
 		
@@ -4869,16 +4875,6 @@ void SLiMSim::WriteIndividualTable(table_collection_t *p_tables)
 	{
 		for (Individual *individual : subpop_iter.second->parent_individuals_)
 		{
-            uint32_t flags = 0;
-            if (individual->sex_ == IndividualSex::kFemale 
-                    || individual->sex_ == IndividualSex::kHermaphrodite) {
-                flags |= MSP_INDIVIDUAL_FEMALE;
-            } 
-            if (individual->sex_ == IndividualSex::kMale 
-                    || individual->sex_ == IndividualSex::kHermaphrodite) {
-                flags |= MSP_INDIVIDUAL_MALE;
-            }
-
             std::vector<double> location;
 			location.push_back(individual->spatial_x_);
 			location.push_back(individual->spatial_y_);
@@ -4887,9 +4883,7 @@ void SLiMSim::WriteIndividualTable(table_collection_t *p_tables)
 			IndividualMetadataRec metadata_rec;
 			MetadataForIndividual(individual, &metadata_rec);
 			
-            individual_id_t msp_individual = individual_table_add_row(p_tables->individuals, flags, location.data(), 
-                    (uint32_t)location.size(), (char *)&metadata_rec,
-                    (uint32_t)sizeof(IndividualMetadataRec));
+			individual_id_t msp_individual = individual_table_add_row(p_tables->individuals, 0 /* flags */, location.data(), (uint32_t)location.size(), (char *)&metadata_rec, (uint32_t)sizeof(IndividualMetadataRec));
             if (msp_individual < 0) handle_error("individual_table_add_row", msp_individual);
 			
             // Update node table
@@ -5330,7 +5324,7 @@ void SLiMSim::MetadataForGenome(Genome *p_genome, GenomeMetadataRec *p_metadata)
 
 void SLiMSim::MetadataForIndividual(Individual *p_individual, IndividualMetadataRec *p_metadata)
 {
-	static_assert(sizeof(IndividualMetadataRec) == 16, "IndividualMetadataRec has changed size; this code probably needs to be updated");
+	static_assert(sizeof(IndividualMetadataRec) == 24, "IndividualMetadataRec has changed size; this code probably needs to be updated");
 	
 	if (!p_individual || !p_metadata)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::MetadataForIndividual): (internal error) bad parameters to MetadataForIndividual()." << EidosTerminate();
@@ -5338,6 +5332,8 @@ void SLiMSim::MetadataForIndividual(Individual *p_individual, IndividualMetadata
 	p_metadata->pedigree_id_ = p_individual->PedigreeID();
 	p_metadata->age_ = p_individual->age_;
 	p_metadata->subpopulation_id_ = p_individual->subpopulation_.subpopulation_id_;
+	p_metadata->sex_ = p_individual->sex_;
+	p_metadata->flags_ = 0;	// FIXME: needs to take the "migrant" flag from Individual once that is implemented
 }
 
 void SLiMSim::DumpMutationTable(void)
@@ -5712,6 +5708,7 @@ typedef struct ts_subpop_info {
 	std::vector<double> spatial_x_;
 	std::vector<double> spatial_y_;
 	std::vector<double> spatial_z_;
+	std::vector<uint32_t> flags_;
 } ts_subpop_info;
 
 void SLiMSim::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, tree_sequence_t *p_ts, SLiMModelType p_file_model_type)
@@ -5745,15 +5742,7 @@ void SLiMSim::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 		ts_subpop_info &subpop_info = (subpop_info_insert.first)->second;
 		
 		// check and tabulate sex within each subpop
-		uint32_t flags = individual.flags;
-		IndividualSex sex = IndividualSex::kUnspecified;
-		
-		if ((flags & MSP_INDIVIDUAL_MALE) && (flags & MSP_INDIVIDUAL_FEMALE))
-			sex = IndividualSex::kHermaphrodite;
-		else if (flags & MSP_INDIVIDUAL_MALE)
-			sex = IndividualSex::kMale;
-		else if (flags & MSP_INDIVIDUAL_FEMALE)
-			sex = IndividualSex::kFemale;
+		IndividualSex sex = metadata->sex_;
 		
 		switch (sex)
 		{
@@ -5787,6 +5776,9 @@ void SLiMSim::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 		
 		// save off the pedigree ID, which we will use again
 		subpop_info.pedigreeID_.push_back(metadata->pedigree_id_);
+		
+		// save off the flags for later use
+		subpop_info.flags_.push_back(metadata->flags_);
 		
 		// bounds-check ages; we cross-translate ages of 0 and -1 if the model type has been switched
 		slim_age_t age = metadata->age_;
@@ -5929,6 +5921,9 @@ void SLiMSim::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 				slim_pedigreeid_t pedigree_id = subpop_info.pedigreeID_[tabulation_index];
 				individual->SetPedigreeID(pedigree_id);
 				gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, pedigree_id + 1);
+				
+				uint32_t flags = subpop_info.flags_[tabulation_index];
+				// FIXME move migrant flag back over to the individual
 				
 				individual->genome1_->genome_id_ = pedigree_id * 2;
 				individual->genome2_->genome_id_ = pedigree_id * 2 + 1;
