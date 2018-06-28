@@ -1853,7 +1853,7 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { identical(p1.cachedFitness(c(-1,5)), rep(1.0, 10)); stop(); }", 1, 260, "out of range", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { identical(p1.cachedFitness(c(5,10)), rep(1.0, 10)); stop(); }", 1, 260, "out of range", __LINE__);
 	
-	// Test Subpopulation – (object<Individual>)sampleIndividuals(integer$ size, [logical$ replace = F], [No<Individual>$ exclude = NULL], [Ns$ sex = NULL], [Ni$ tag = NULL], [Ni$ minAge = NULL], [Ni$ maxAge = NULL])
+	// Test Subpopulation – (object<Individual>)sampleIndividuals(integer$ size, [logical$ replace = F], [No<Individual>$ exclude = NULL], [Ns$ sex = NULL], [Ni$ tag = NULL], [Ni$ minAge = NULL], [Ni$ maxAge = NULL], [Nl$ migrant = NULL])
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (size(p1.sampleIndividuals(0)) == 0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (size(p1.sampleIndividuals(1)) == 1) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (size(p1.sampleIndividuals(2)) == 2) stop(); }", __LINE__);
@@ -1946,23 +1946,63 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.sampleIndividuals(2, replace=T, exclude=p1.individuals[2], sex='F')) == 2) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.sampleIndividuals(4, replace=T, exclude=p1.individuals[2], sex='F')) == 4) stop(); }", __LINE__);
 	
-	// Test Subpopulation – (object<Individual>)subsetIndividuals([No<Individual>$ exclude = NULL], [Ns$ sex = NULL], [Ni$ tag = NULL], [Ni$ minAge = NULL], [Ni$ maxAge = NULL])
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.sampleIndividuals(0, migrant=F)) == 0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.sampleIndividuals(1, migrant=F)) == 1) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.sampleIndividuals(2, migrant=F)) == 2) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.sampleIndividuals(4, migrant=F)) == 4) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.sampleIndividuals(0, exclude=p1.individuals[2], migrant=F)) == 0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.sampleIndividuals(1, exclude=p1.individuals[2], migrant=F)) == 1) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.sampleIndividuals(2, exclude=p1.individuals[2], migrant=F)) == 2) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.sampleIndividuals(4, exclude=p1.individuals[2], migrant=F)) == 4) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.sampleIndividuals(0, replace=T, migrant=F)) == 0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.sampleIndividuals(1, replace=T, migrant=F)) == 1) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.sampleIndividuals(2, replace=T, migrant=F)) == 2) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.sampleIndividuals(4, replace=T, migrant=F)) == 4) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.sampleIndividuals(0, replace=T, exclude=p1.individuals[2], migrant=F)) == 0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.sampleIndividuals(1, replace=T, exclude=p1.individuals[2], migrant=F)) == 1) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.sampleIndividuals(2, replace=T, exclude=p1.individuals[2], migrant=F)) == 2) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.sampleIndividuals(4, replace=T, exclude=p1.individuals[2], migrant=F)) == 4) stop(); }", __LINE__);
+	
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.sampleIndividuals(0, migrant=T)) == 0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.sampleIndividuals(1, migrant=T)) == 0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.sampleIndividuals(1, exclude=p1.individuals[2], migrant=T)) == 0) stop(); }", __LINE__);
+	
+	// Test Subpopulation – (object<Individual>)subsetIndividuals([No<Individual>$ exclude = NULL], [Ns$ sex = NULL], [Ni$ tag = NULL], [Ni$ minAge = NULL], [Ni$ maxAge = NULL], [Nl$ migrant = NULL])
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (size(p1.subsetIndividuals()) == 10) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (size(p1.subsetIndividuals(exclude=p1.individuals[2])) == 9) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.subsetIndividuals(sex='M'); }", 1, 250, "in non-sexual models", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.subsetIndividuals(sex='W'); }", 1, 270, "unrecognized value for sex", __LINE__);
+	
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.individuals.tag = rep(c(0,1),5); if (identical(p1.subsetIndividuals(tag=1).tag, c(1,1,1,1,1))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.individuals.tag = rep(c(0,1),5); if (identical(p1.subsetIndividuals(exclude=p1.individuals[3], tag=1).tag, c(1,1,1,1))) stop(); }", __LINE__);
+	
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.subsetIndividuals()) == 10) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.subsetIndividuals(exclude=p1.individuals[2])) == 9) stop(); }", __LINE__);
+	
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.subsetIndividuals(sex='M')) == 5) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.subsetIndividuals(exclude=p1.individuals[2], sex='M')) == 5) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.subsetIndividuals(sex='F')) == 5) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.subsetIndividuals(exclude=p1.individuals[2], sex='F')) == 4) stop(); }", __LINE__);
+	
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.subsetIndividuals(migrant=F)) == 10) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.subsetIndividuals(exclude=p1.individuals[2], migrant=F)) == 9) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.subsetIndividuals(migrant=T)) == 0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.subsetIndividuals(exclude=p1.individuals[2], migrant=T)) == 0) stop(); }", __LINE__);
+	
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.individuals.tag = rep(c(0,1),5); if (size(p1.subsetIndividuals(sex='F', tag=1)) == 2) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.individuals.tag = rep(c(0,1),5); if (size(p1.subsetIndividuals(exclude=p1.individuals[3], sex='F', tag=1)) == 1) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.individuals.tag = rep(c(0,1),5); if (size(p1.subsetIndividuals(sex='F', tag=0)) == 3) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.individuals.tag = rep(c(0,1),5); if (size(p1.subsetIndividuals(exclude=p1.individuals[3], sex='F', tag=0)) == 3) stop(); }", __LINE__);
+	
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.individuals.tag = rep(c(0,1),5); if (size(p1.subsetIndividuals(tag=1, migrant=F)) == 5) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.individuals.tag = rep(c(0,1),5); if (size(p1.subsetIndividuals(exclude=p1.individuals[3], tag=1, migrant=F)) == 4) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.individuals.tag = rep(c(0,1),5); if (size(p1.subsetIndividuals(tag=0, migrant=F)) == 5) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.individuals.tag = rep(c(0,1),5); if (size(p1.subsetIndividuals(exclude=p1.individuals[3], tag=0, migrant=F)) == 5) stop(); }", __LINE__);
+	
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.individuals.tag = rep(c(0,1),5); if (size(p1.subsetIndividuals(tag=1, migrant=T)) == 0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.individuals.tag = rep(c(0,1),5); if (size(p1.subsetIndividuals(exclude=p1.individuals[3], tag=1, migrant=T)) == 0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.individuals.tag = rep(c(0,1),5); if (size(p1.subsetIndividuals(tag=0, migrant=T)) == 0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.individuals.tag = rep(c(0,1),5); if (size(p1.subsetIndividuals(exclude=p1.individuals[3], tag=0, migrant=T)) == 0) stop(); }", __LINE__);
 	
 	// Test Subpopulation - (void)outputMSSample(integer$ sampleSize, [logical$ replace], [string$ requestedSex])
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 late() { p1.outputMSSample(1); stop(); }", __LINE__);

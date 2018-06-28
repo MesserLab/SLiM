@@ -5063,7 +5063,7 @@ Note that this method is only for use in nonWF models, in which there is a disti
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0\cf2 \expnd0\expndtw0\kerning0
-(object<Individual>)sampleIndividuals(integer$\'a0size, [logical$\'a0replace\'a0=\'a0F], [No<Individual>$\'a0exclude\'a0=\'a0NULL], [Ns$\'a0sex\'a0=\'a0NULL], [Ni$\'a0tag\'a0=\'a0NULL], [Ni$\'a0minAge\'a0=\'a0NULL], [Ni$\'a0maxAge\'a0=\'a0NULL])
+(object<Individual>)sampleIndividuals(integer$\'a0size, [logical$\'a0replace\'a0=\'a0F], [No<Individual>$\'a0exclude\'a0=\'a0NULL], [Ns$\'a0sex\'a0=\'a0NULL], [Ni$\'a0tag\'a0=\'a0NULL], [Ni$\'a0minAge\'a0=\'a0NULL], [Ni$\'a0maxAge\'a0=\'a0NULL]\cf2 , [Nl$\'a0migrant\'a0=\'a0NULL]\cf2 )
 \f3 \cf0 \kerning1\expnd0\expndtw0 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -5102,7 +5102,17 @@ Returns a vector of individuals, of size less than or equal to parameter
 \f2\fs18 maxAge
 \f0\fs20 , if non-
 \f2\fs18 NULL
-\f0\fs20 , may specify a minimum or maximum age for the individuals to be drawn, in nonWF models.  If the candidate pool is smaller than the requested sample size, all eligible candidates will be returned (in randomized order); the result will be a zero-length vector if no eligible candidates exist (unlike 
+\f0\fs20 , may specify a minimum or maximum age for the individuals to be drawn, in nonWF models.  \cf2 Parameter 
+\f2\fs18 migrant
+\f0\fs20 , if non-
+\f2\fs18 NULL
+\f0\fs20 , may specify a required value for the 
+\f2\fs18 migrant
+\f0\fs20  property of the individuals to be drawn (so 
+\f2\fs18 T
+\f0\fs20  will require that individuals be migrants, 
+\f2\fs18 F
+\f0\fs20  will require that they not be).  \cf2 If the candidate pool is smaller than the requested sample size, all eligible candidates will be returned (in randomized order); the result will be a zero-length vector if no eligible candidates exist (unlike 
 \f2\fs18 sample()
 \f0\fs20 ).\
 This method is similar to getting the 
@@ -5114,46 +5124,6 @@ This method is similar to getting the
 \f0\fs20  to sample from that candidate pool.  However, besides being much simpler than the equivalent Eidos code, it is also much faster, and it does not fail if less than the full sample size is available.  See 
 \f2\fs18 subsetIndividuals()
 \f0\fs20  for a similar method that returns a full subset, rather than a sample.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0\cf2 \expnd0\expndtw0\kerning0
-(object<Individual>)subsetIndividuals([No<Individual>$\'a0exclude\'a0=\'a0NULL], [Ns$\'a0sex\'a0=\'a0NULL], [Ni$\'a0tag\'a0=\'a0NULL], [Ni$\'a0minAge\'a0=\'a0NULL], [Ni$\'a0maxAge\'a0=\'a0NULL])
-\f3 \cf0 \kerning1\expnd0\expndtw0 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
-Returns a vector of individuals subset from the individuals in the target subpopulation.  The parameters specify constraints upon the subset of individuals that will be returned.  Parameter 
-\f2\fs18 exclude
-\f0\fs20 , if non-
-\f2\fs18 NULL
-\f0\fs20 , may specify a specific individual that should not be included (typically the focal individual in some operation).  Parameter 
-\f2\fs18 sex
-\f0\fs20 , if non-
-\f2\fs18 NULL
-\f0\fs20 , may specify a sex (
-\f2\fs18 "M"
-\f0\fs20  or 
-\f2\fs18 "F"
-\f0\fs20 ) for the individuals to be returned, in sexual models.  Parameter 
-\f2\fs18 tag
-\f0\fs20 , if non-
-\f2\fs18 NULL
-\f0\fs20 , may specify a tag value for the individuals to be returned; only individuals whose 
-\f2\fs18 tag
-\f0\fs20  property matches this value will be returned.  Parameters 
-\f2\fs18 minAge
-\f0\fs20  and 
-\f2\fs18 maxAge
-\f0\fs20 , if non-
-\f2\fs18 NULL
-\f0\fs20 , may specify a minimum or maximum age for the individuals to be returned, in nonWF models.\
-This method is shorthand for getting the 
-\f2\fs18 individuals
-\f0\fs20  property of the subpopulation, and then using operator 
-\f2\fs18 []
-\f0\fs20  to select only individuals with the desired properties; besides being much simpler than the equivalent Eidos code, it is also much faster.  See 
-\f2\fs18 sampleIndividuals()
-\f0\fs20  for a similar method that returns a sample taken from a chosen subset of individuals.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(void)setCloningRate(numeric\'a0rate)
@@ -5350,6 +5320,56 @@ Looks up the spatial map indicated by
 \f0\fs20  to wrap the point coordinates first if desired.  See the documentation for 
 \f2\fs18 defineSpatialMap()
 \f0\fs20  for information regarding the details of value mapping.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0\cf2 \expnd0\expndtw0\kerning0
+(object<Individual>)subsetIndividuals([No<Individual>$\'a0exclude\'a0=\'a0NULL], [Ns$\'a0sex\'a0=\'a0NULL], [Ni$\'a0tag\'a0=\'a0NULL], [Ni$\'a0minAge\'a0=\'a0NULL], [Ni$\'a0maxAge\'a0=\'a0NULL], [Nl$\'a0migrant\'a0=\'a0NULL])
+\f3 \cf0 \kerning1\expnd0\expndtw0 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+Returns a vector of individuals subset from the individuals in the target subpopulation.  The parameters specify constraints upon the subset of individuals that will be returned.  Parameter 
+\f2\fs18 exclude
+\f0\fs20 , if non-
+\f2\fs18 NULL
+\f0\fs20 , may specify a specific individual that should not be included (typically the focal individual in some operation).  Parameter 
+\f2\fs18 sex
+\f0\fs20 , if non-
+\f2\fs18 NULL
+\f0\fs20 , may specify a sex (
+\f2\fs18 "M"
+\f0\fs20  or 
+\f2\fs18 "F"
+\f0\fs20 ) for the individuals to be returned, in sexual models.  Parameter 
+\f2\fs18 tag
+\f0\fs20 , if non-
+\f2\fs18 NULL
+\f0\fs20 , may specify a tag value for the individuals to be returned; only individuals whose 
+\f2\fs18 tag
+\f0\fs20  property matches this value will be returned.  Parameters 
+\f2\fs18 minAge
+\f0\fs20  and 
+\f2\fs18 maxAge
+\f0\fs20 , if non-
+\f2\fs18 NULL
+\f0\fs20 , may specify a minimum or maximum age for the individuals to be returned, in nonWF models.\cf2   Parameter 
+\f2\fs18 migrant
+\f0\fs20 , if non-
+\f2\fs18 NULL
+\f0\fs20 , may specify a required value for the 
+\f2\fs18 migrant
+\f0\fs20  property of the individuals to be returned (so 
+\f2\fs18 T
+\f0\fs20  will require that individuals be migrants, 
+\f2\fs18 F
+\f0\fs20  will require that they not be).\cf2 \
+This method is shorthand for getting the 
+\f2\fs18 individuals
+\f0\fs20  property of the subpopulation, and then using operator 
+\f2\fs18 []
+\f0\fs20  to select only individuals with the desired properties; besides being much simpler than the equivalent Eidos code, it is also much faster.  See 
+\f2\fs18 sampleIndividuals()
+\f0\fs20  for a similar method that returns a sample taken from a chosen subset of individuals.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf2 \'96\'a0(void)takeMigrants(object<Individual>\'a0migrants)\

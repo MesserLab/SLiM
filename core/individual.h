@@ -101,7 +101,7 @@ public:
 	
 	slim_popsize_t index_;				// the individual index in that subpop (0-based, and not multiplied by 2)
 	Subpopulation &subpopulation_;		// the subpop to which we refer; we get deleted when our subpop gets destructed
-	uint8_t migrant_;					// T if the individual has migrated in the current generation, F otherwise
+	eidos_logical_t migrant_;			// T if the individual has migrated in the current generation, F otherwise
 	
 	// Continuous space ivars.  These are effectively free tag values of type float, unless they are used by interactions.
 	double spatial_x_, spatial_y_, spatial_z_;
