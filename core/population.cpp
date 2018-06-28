@@ -1211,18 +1211,15 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						Genome &parent_genome_1 = *source_subpop.parent_genomes_[2 * parent1];
 						Genome &parent_genome_2 = *source_subpop.parent_genomes_[2 * parent1 + 1];
 						
+						Individual *new_child = p_subpop.child_individuals_[child_index];
+						new_child->migrant_ = false;
+						
 						if (pedigrees_enabled)
-						{
-							Individual *new_child = p_subpop.child_individuals_[child_index];
-							
 							new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent1]);
-						}
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence)
 						{
-							Individual *new_child = p_subpop.child_individuals_[child_index];
-							
 							sim_.SetCurrentNewIndividual(new_child);
 							sim_.RecordNewGenome(nullptr, &child_genome_1, &parent_genome_1, nullptr);
 							sim_.RecordNewGenome(nullptr, &child_genome_2, &parent_genome_2, nullptr);
@@ -1283,20 +1280,15 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 							parent2_sex = (sex_enabled ? IndividualSex::kMale : IndividualSex::kHermaphrodite);		// guaranteed by ApplyMateChoiceCallbacks()
 						}
 						
+						Individual *new_child = p_subpop.child_individuals_[child_index];
+						new_child->migrant_ = false;
+						
 						if (pedigrees_enabled)
-						{
-							Individual *new_child = p_subpop.child_individuals_[child_index];
-							
 							new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
-						}
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence)
-						{
-							Individual *new_child = p_subpop.child_individuals_[child_index];
-							
 							sim_.SetCurrentNewIndividual(new_child);
-						}
 						
 						// recombination, gene-conversion, mutation
 						DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_index], parent1, child_sex, parent1_sex, recombination_callbacks);
@@ -1365,20 +1357,15 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						}
 					}
 					
+					Individual *new_child = p_subpop.child_individuals_[child_count];
+					new_child->migrant_ = false;
+					
 					if (pedigrees_enabled)
-					{
-						Individual *new_child = p_subpop.child_individuals_[child_count];
-						
 						new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
-					}
 					
 					// TREE SEQUENCE RECORDING
 					if (recording_tree_sequence)
-					{
-						Individual *new_child = p_subpop.child_individuals_[child_count];
-						
 						sim_.SetCurrentNewIndividual(new_child);
-					}
 					
 					// recombination, gene-conversion, mutation
 					DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], parent1, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, recombination_callbacks);
@@ -1646,18 +1633,15 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					Genome &parent_genome_1 = *source_subpop->parent_genomes_[2 * parent1];
 					Genome &parent_genome_2 = *source_subpop->parent_genomes_[2 * parent1 + 1];
 					
+					Individual *new_child = p_subpop.child_individuals_[child_index];
+					new_child->migrant_ = (source_subpop != &p_subpop);
+					
 					if (pedigrees_enabled)
-					{
-						Individual *new_child = p_subpop.child_individuals_[child_index];
-						
 						new_child->TrackPedigreeWithParents(*source_subpop->parent_individuals_[parent1], *source_subpop->parent_individuals_[parent1]);
-					}
 					
 					// TREE SEQUENCE RECORDING
 					if (recording_tree_sequence)
 					{
-						Individual *new_child = p_subpop.child_individuals_[child_index];
-						
 						sim_.SetCurrentNewIndividual(new_child);
 						sim_.RecordNewGenome(nullptr, &child_genome_1, &parent_genome_1, nullptr);
 						sim_.RecordNewGenome(nullptr, &child_genome_2, &parent_genome_2, nullptr);
@@ -1718,20 +1702,15 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						parent2_sex = (sex_enabled ? IndividualSex::kMale : IndividualSex::kHermaphrodite);		// guaranteed by ApplyMateChoiceCallbacks()
 					}
 					
+					Individual *new_child = p_subpop.child_individuals_[child_index];
+					new_child->migrant_ = (source_subpop != &p_subpop);
+					
 					if (pedigrees_enabled)
-					{
-						Individual *new_child = p_subpop.child_individuals_[child_index];
-						
 						new_child->TrackPedigreeWithParents(*source_subpop->parent_individuals_[parent1], *source_subpop->parent_individuals_[parent2]);
-					}
 					
 					// TREE SEQUENCE RECORDING
 					if (recording_tree_sequence)
-					{
-						Individual *new_child = p_subpop.child_individuals_[child_index];
-						
 						sim_.SetCurrentNewIndividual(new_child);
-					}
 					
 					// recombination, gene-conversion, mutation
 					DoCrossoverMutation(source_subpop, *p_subpop.child_genomes_[2 * child_index], parent1, child_sex, parent1_sex, recombination_callbacks);
@@ -1851,20 +1830,15 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								slim_popsize_t parent1 = source_subpop.DrawFemaleParentUsingFitness();
 								slim_popsize_t parent2 = source_subpop.DrawMaleParentUsingFitness();
 								
+								Individual *new_child = p_subpop.child_individuals_[child_count];
+								new_child->migrant_ = (&source_subpop != &p_subpop);
+								
 								if (pedigrees_enabled)
-								{
-									Individual *new_child = p_subpop.child_individuals_[child_count];
-									
 									new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
-								}
 								
 								// TREE SEQUENCE RECORDING
 								if (recording_tree_sequence)
-								{
-									Individual *new_child = p_subpop.child_individuals_[child_count];
-									
 									sim_.SetCurrentNewIndividual(new_child);
-								}
 								
 								// recombination, gene-conversion, mutation
 								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], parent1, child_sex, IndividualSex::kFemale, nullptr);
@@ -1885,20 +1859,15 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									parent2 = source_subpop.DrawParentUsingFitness();	// note this does not prohibit selfing!
 								while (prevent_incidental_selfing && (parent2 == parent1));
 								
+								Individual *new_child = p_subpop.child_individuals_[child_count];
+								new_child->migrant_ = (&source_subpop != &p_subpop);
+								
 								if (pedigrees_enabled)
-								{
-									Individual *new_child = p_subpop.child_individuals_[child_count];
-									
 									new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
-								}
 								
 								// TREE SEQUENCE RECORDING
 								if (recording_tree_sequence)
-								{
-									Individual *new_child = p_subpop.child_individuals_[child_count];
-									
 									sim_.SetCurrentNewIndividual(new_child);
-								}
 								
 								// recombination, gene-conversion, mutation
 								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], parent1, child_sex, IndividualSex::kHermaphrodite, nullptr);
@@ -1933,18 +1902,15 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								Genome &parent_genome_1 = *source_subpop.parent_genomes_[2 * parent1];
 								Genome &parent_genome_2 = *source_subpop.parent_genomes_[2 * parent1 + 1];
 								
+								Individual *new_child = p_subpop.child_individuals_[child_count];
+								new_child->migrant_ = (&source_subpop != &p_subpop);
+								
 								if (pedigrees_enabled)
-								{
-									Individual *new_child = p_subpop.child_individuals_[child_count];
-									
 									new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent1]);
-								}
 								
 								// TREE SEQUENCE RECORDING
 								if (recording_tree_sequence)
 								{
-									Individual *new_child = p_subpop.child_individuals_[child_count];
-									
 									sim_.SetCurrentNewIndividual(new_child);
 									sim_.RecordNewGenome(nullptr, &child_genome_1, &parent_genome_1, nullptr);
 									sim_.RecordNewGenome(nullptr, &child_genome_2, &parent_genome_2, nullptr);
@@ -1991,20 +1957,15 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									}
 								}
 								
+								Individual *new_child = p_subpop.child_individuals_[child_count];
+								new_child->migrant_ = (&source_subpop != &p_subpop);
+								
 								if (pedigrees_enabled)
-								{
-									Individual *new_child = p_subpop.child_individuals_[child_count];
-									
 									new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
-								}
 								
 								// TREE SEQUENCE RECORDING
 								if (recording_tree_sequence)
-								{
-									Individual *new_child = p_subpop.child_individuals_[child_count];
-									
 									sim_.SetCurrentNewIndividual(new_child);
-								}
 								
 								// recombination, gene-conversion, mutation
 								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], parent1, child_sex, parent1_sex, nullptr);

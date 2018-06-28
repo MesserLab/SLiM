@@ -1222,9 +1222,34 @@ genome1 => (object<Genome>$)\
 \f0\fs20  vector of its 
 \f2\fs18 Subpopulation
 \f3\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf2 \expnd0\expndtw0\kerning0
+migrant => (logical$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 Set to 
+\f2\fs18 T
+\f0\fs20  if the individual migrated during the current generation, 
+\f2\fs18 F
+\f0\fs20  otherwise.\
+In WF models, this flag is set at the point when a new child is generated if it is a migrant (i.e., if its source subpopulation is not the same as its subpopulation), and remains valid, with the same value, for the rest of the individual\'92s lifetime.\
+In nonWF models, this flag is 
+\f2\fs18 \cf2 F
+\f0\fs20 \cf2  for all new individuals, is set to 
+\f2\fs18 F
+\f0\fs20  in all individuals at the end of the reproduction generation cycle stage, and is set to 
+\f2\fs18 T
+\f0\fs20  on all individuals moved to a new subpopulation by 
+\f2\fs18 takeMigrants()
+\f0\fs20 ; the 
+\f2\fs18 T
+\f0\fs20  value set by 
+\f2\fs18 takeMigrants()
+\f0\fs20  will remain until it is reset at the end of the next reproduction generation cycle stage.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 pedigreeID => (integer$)\
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 pedigreeID => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 If pedigree tracking is turned on with 

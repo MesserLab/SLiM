@@ -75,6 +75,7 @@ development head (nonWF branch):
 	add treeSeqCoalesced() and a checkCoalescence parameter for initializeTreeSeq(), to perform runtime checking for coalescence
 	add getValue() / setValue() functionality to Substitution, make values carry over from Mutation objects when they fix
 	add tree-seq recipes to SLiMgui
+	add a "migrant" property to Individual that is true if the individual has migrated in this generation
 
 
 2.6 (build 1292; Eidos version 1.6):

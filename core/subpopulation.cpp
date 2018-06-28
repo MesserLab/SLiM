@@ -4113,6 +4113,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 					parent_first_male_index_++;
 			}
 			
+			// set the migrant flag of the migrated individual; note this is not set if the individual was already in the destination subpop
+			migrant_transmogrified->migrant_ = true;
+			
 			// track all the old and new pointers
 			old_genome_ptrs.push_back(genome1);
 			old_genome_ptrs.push_back(genome2);

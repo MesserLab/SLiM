@@ -3285,6 +3285,11 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
 			subpop_pair.second->MergeReproductionOffspring();
 		
+		// clear the "migrant" property on all individuals
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+			for (Individual *individual : subpop_pair.second->parent_individuals_)
+				individual->migrant_ = false;
+		
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
 		
@@ -5333,7 +5338,10 @@ void SLiMSim::MetadataForIndividual(Individual *p_individual, IndividualMetadata
 	p_metadata->age_ = p_individual->age_;
 	p_metadata->subpopulation_id_ = p_individual->subpopulation_.subpopulation_id_;
 	p_metadata->sex_ = p_individual->sex_;
-	p_metadata->flags_ = 0;	// FIXME: needs to take the "migrant" flag from Individual once that is implemented
+	
+	p_metadata->flags_ = 0;
+	if (p_individual->migrant_)
+		p_metadata->flags_ |= SLIM_INDIVIDUAL_METADATA_MIGRATED;
 }
 
 void SLiMSim::DumpMutationTable(void)
@@ -5923,7 +5931,8 @@ void SLiMSim::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 				gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, pedigree_id + 1);
 				
 				uint32_t flags = subpop_info.flags_[tabulation_index];
-				// FIXME move migrant flag back over to the individual
+				if (flags & SLIM_INDIVIDUAL_METADATA_MIGRATED)
+					individual->migrant_ = true;
 				
 				individual->genome1_->genome_id_ = pedigree_id * 2;
 				individual->genome2_->genome_id_ = pedigree_id * 2 + 1;
