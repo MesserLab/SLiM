@@ -4975,7 +4975,7 @@ void SLiMSim::WriteProvenanceTable(table_collection_t *p_tables)
 	struct tm* tm_info;
 	char *provenance_str;
 	provenance_str = (char *)malloc(1024);
-	sprintf(provenance_str, "{\"program\":\"SLiM\", \"version\":\"%s\", \"file_version\":\"%s\", \"model_type\":\"%s\", \"generation\":%d, \"remembered_node_count\":%ld}",
+	sprintf(provenance_str, "{\"program\": \"SLiM\", \"version\": \"%s\", \"file_version\": \"%s\", \"model_type\": \"%s\", \"generation\": %d, \"remembered_node_count\": %ld}",
 			SLIM_VERSION_STRING, SLIM_TREES_FILE_VERSION, (ModelType() == SLiMModelType::kModelTypeWF) ? "WF" : "nonWF", Generation(), (long)remembered_genomes_.size());
 	
 	time(&timer);
@@ -5005,9 +5005,9 @@ void SLiMSim::ReadProvenanceTable(table_collection_t *p_tables, slim_generation_
 		table_size_t record_len = provenance_table.record_offset[slim_record_index + 1] - provenance_table.record_offset[slim_record_index];
 		
 		// for an entry to be acceptable, it has to start with the SLiM program declaration
-		if (record_len < strlen("{\"program\":\"SLiM\", "))
+		if (record_len < strlen("{\"program\": \"SLiM\", "))
 			continue;
-		if (strncmp(record, "{\"program\":\"SLiM\", ", strlen("{\"program\":\"SLiM\", ")))
+		if (strncmp(record, "{\"program\": \"SLiM\", ", strlen("{\"program\": \"SLiM\", ")))
 			continue;
 		break;
 	}
@@ -5037,7 +5037,7 @@ void SLiMSim::ReadProvenanceTable(table_collection_t *p_tables, slim_generation_
 	}
 	
 	int end_pos;
-	int conv = sscanf(last_record_str.c_str(), "{\"program\":\"%100[^\"]\", \"version\":\"%100[^\"]\", \"file_version\":\"%100[^\"]\", \"model_type\":\"%100[^\"]\", \"generation\":%100[0-9], \"remembered_node_count\":%100[0-9]}%n", program, version, file_version, model_type, generation, rem_count, &end_pos);
+	int conv = sscanf(last_record_str.c_str(), "{\"program\": \"%100[^\"]\", \"version\": \"%100[^\"]\", \"file_version\": \"%100[^\"]\", \"model_type\": \"%100[^\"]\", \"generation\": %100[0-9], \"remembered_node_count\": %100[0-9]}%n", program, version, file_version, model_type, generation, rem_count, &end_pos);
 	
 	if ((conv != 6) || (end_pos != (int)slim_record_len))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ReadProvenanceTable): provenance table entry was malformed; this file cannot be read." << EidosTerminate();
