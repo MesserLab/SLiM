@@ -22,8 +22,7 @@ reproduction(NULL, "F") {
 	target.addNewDrawnMutation(m2, 10000);
 }
 early() {
-	for (subpop in sim.subpopulations)
-		subpop.fitnessScaling = 5000 / subpop.individualCount;
+	p0.fitnessScaling = 5000 / p0.individualCount;
 }
 1: late() {
 	if (sim.mutationsOfType(m2).size() == 0) {
