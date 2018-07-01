@@ -1,7 +1,7 @@
 function (i)readIntTable(s$ path)
 {
 	l = readFile(path);
-	t(sapply(l, "asInteger(strsplit(applyValue));", simplify="matrix"));
+	return t(sapply(l, "asInteger(strsplit(applyValue));", simplify="matrix"));
 }
 
 initialize() {
