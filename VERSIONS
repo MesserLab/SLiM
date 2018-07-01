@@ -7,7 +7,10 @@ Note that not every commit will be logged here; that is what the Github commit h
 The build numbers given here are visible in SLiMgui's about panel.  They are not visible in any way on non-OSX platforms, unfortunately, because they are maintained by a "Run Script" build phase in the Xcode project that places the current git commit count into a field in the Info.plist file of SLiMgui (and EidosScribe).  This mechanism works only on OSX, so the build number is not available on Linux and other platforms.
 
 
-development head (nonWF branch):
+development head:
+
+
+3.0 (build 1750; Eidos version 2.0):
 	add initializeSLiMModelType() function to choose SLiM's model type (WF or nonWF, at present), and modelType property on SLiMSim to access it
 	disable setSubpopulationSize(), setCloningRate(), setSelfingRate(), setSexRatio(), .cloningRate, .selfingRate, .sexRatio in nonWF models
 	disable addSubpopSplit(), setMigrationRates(), .immigrantSubpopFractions, .immigrantSubpopIDs in nonWF models
@@ -76,7 +79,6 @@ development head (nonWF branch):
 	add getValue() / setValue() functionality to Substitution, make values carry over from Mutation objects when they fix
 	add tree-seq recipes to SLiMgui
 	add a "migrant" property to Individual that is true if the individual has migrated in this generation, add "migrant" argument to sampleIndividuals() & subsetIndividuals()
-
 
 2.6 (build 1292; Eidos version 1.6):
 	make addNewMutation() and addNewDrawnMutation() vectorized, for much higher performance when adding many mutations in bulk; note policy change that requested mutations are returned whether added or not

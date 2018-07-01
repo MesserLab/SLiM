@@ -36,8 +36,8 @@ class EidosScript;
 class EidosToken;
 
 
-#define EIDOS_VERSION_STRING	("1.6")
-#define EIDOS_VERSION_FLOAT		(1.6)
+#define EIDOS_VERSION_STRING	("2.0")
+#define EIDOS_VERSION_FLOAT		(2.0)
 
 
 // This should be called once at startup to give Eidos an opportunity to initialize static state
