@@ -3826,7 +3826,7 @@ void SLiMSim::SimplifyTreeSequence(void)
         remembered_genomes_[i] = i;
 	
     // reset current position
-    table_collection_current_position(&table_position);
+    table_collection_record_position(&tables, &table_position);
 	
 	// and reset our elapsed time since last simplification, for auto-simplification
 	simplify_elapsed_ = 0;
@@ -3903,7 +3903,7 @@ void SLiMSim::CheckCoalescenceAfterSimplification(void)
 
 void SLiMSim::RecordTablePosition(void)
 {
-	table_collection_init_position(&table_position, &tables);
+	table_collection_record_position(&tables, &table_position);
 }
 
 void SLiMSim::AllocateTreeSequenceTables(void)
@@ -3936,7 +3936,7 @@ void SLiMSim::SetCurrentNewIndividual(__attribute__((unused))Individual *p_indiv
 	//current_new_individual_ = p_individual;
 	
 	// Remember the current table position so we can return to it later in RetractNewIndividual()
-    table_collection_current_position(&table_position);
+    table_collection_record_position(&tables, &table_position);
 }
 
 void SLiMSim::RetractNewIndividual()
@@ -3963,7 +3963,7 @@ void SLiMSim::RetractNewIndividual()
 	// around the code since it seems to keep coming back...
 	//current_new_individual_ = nullptr;
 	
-    table_collection_reset_position(&table_position);
+    table_collection_reset_position(&tables, &table_position);
 }
 
 void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genome *p_new_genome, 
