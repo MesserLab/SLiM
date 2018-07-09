@@ -76,7 +76,7 @@ function (void)outputMutationResult([s$ outputFile="test_output/slim_mutation_ou
      * a list of positions of those mutations.
      * * */
     sim.treeSeqOutput("test_output", simplify=T, _binary=F);
-    sim.treeSeqOutput("test_output/test_output.treeseq", simplify=T);
+    sim.treeSeqOutput("test_output/test_output.trees", simplify=T);
     // sim.treeSeqOutput("test_output/test_output.unsimplified.treeseq", simplify=F);
     for (pop in sim.subpopulations) {
         for (ind in pop.individuals) {

@@ -29,27 +29,26 @@ class TestWithMutations(TestSlimOutput):
         return slim
 
     def get_ts(self):
-        # read in from text
-        node_file = open("test_output/NodeTable.txt", "r")
-        edge_file = open("test_output/EdgeTable.txt", "r")
-        site_file = open("test_output/SiteTable.txt", "r")
-        mutation_file = open("test_output/MutationTable.txt", "r")
-        text_ts = msprime.load_text(nodes=node_file, edges=edge_file, 
-                               sites=site_file, mutations=mutation_file,
-                               base64_metadata=False)
-        print("******* Text input.")
-        yield text_ts
-        ###
-        # These are not passing due to binary encoding.
+        # TODO include more tables so text input/output works
         if False:
-            # and binary
-            bin_ts = msprime.load("test_output/test_output.treeseq")
-            print("******** Binary input.")
-            yield bin_ts
-            # and nonsimplified binary
-            print("******** Unsimplified binary.")
-            bin_nonsip_ts = msprime.load("test_output/test_output.unsimplified.treeseq")
-            yield bin_nonsip_ts
+            # read in from text
+            node_file = open("test_output/NodeTable.txt", "r")
+            edge_file = open("test_output/EdgeTable.txt", "r")
+            site_file = open("test_output/SiteTable.txt", "r")
+            mutation_file = open("test_output/MutationTable.txt", "r")
+            text_ts = msprime.load_text(nodes=node_file, edges=edge_file, 
+                                   sites=site_file, mutations=mutation_file,
+                                   base64_metadata=False)
+            print("******* Text input.")
+            yield text_ts
+        # and binary
+        bin_ts = pyslim.load("test_output/test_output.trees", slim_format=True)
+        print("******** Binary input.")
+        yield bin_ts
+        # and nonsimplified binary
+        print("******** Unsimplified binary.")
+        bin_nonsip_ts = pyslim.load("test_output/test_output.unsimplified.trees", slim_format=True)
+        yield bin_nonsip_ts
 
     def test_ts_slim_consistency(self):
         # load tree sequence
