@@ -59,9 +59,9 @@ enum CBLAS_SIDE {CblasLeft=141, CblasRight=142};
 double cblas_dsdot(const int N, const float *X, const int incX, const float *Y,
                    const int incY);
 float  cblas_sdot(const int N, const float  *X, const int incX,
-                  const float  *Y, const int incY);
+                  const float  *Y, const int incY);*/
 double cblas_ddot(const int N, const double *X, const int incX,
-                  const double *Y, const int incY);*/
+                  const double *Y, const int incY);
 
 /*
  * Functions having prefixes Z and C only
@@ -229,12 +229,12 @@ void cblas_dtrmv(const enum CBLAS_ORDER order, const enum CBLAS_UPLO Uplo,
                  double *X, const int incX);
 void cblas_dtpmv(const enum CBLAS_ORDER order, const enum CBLAS_UPLO Uplo,
                  const enum CBLAS_TRANSPOSE TransA, const enum CBLAS_DIAG Diag,
-                 const int N, const double *Ap, double *X, const int incX);
+                 const int N, const double *Ap, double *X, const int incX);*/
 void cblas_dtrsv(const enum CBLAS_ORDER order, const enum CBLAS_UPLO Uplo,
                  const enum CBLAS_TRANSPOSE TransA, const enum CBLAS_DIAG Diag,
                  const int N, const double *A, const int lda, double *X,
                  const int incX);
-void cblas_dtbsv(const enum CBLAS_ORDER order, const enum CBLAS_UPLO Uplo,
+/*void cblas_dtbsv(const enum CBLAS_ORDER order, const enum CBLAS_UPLO Uplo,
                  const enum CBLAS_TRANSPOSE TransA, const enum CBLAS_DIAG Diag,
                  const int N, const int K, const double *A, const int lda,
                  double *X, const int incX);

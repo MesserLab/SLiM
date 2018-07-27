@@ -8,6 +8,7 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 
 development head:
+	dmvnorm() function added to Eidos, parallel to dnorm() but for multivariate Gaussian distributions
 
 
 3.0 (build 1750; Eidos version 2.0):

@@ -72,3 +72,89 @@ gsl_ran_multivariate_gaussian (const gsl_rng * r,
     }
 }
 
+/* Compute the log of the probability density function at a given quantile
+ * vector for a multivariate Gaussian distribution using the Cholesky
+ * decomposition of the variance-covariance matrix.
+ *
+ * x       vector of quantiles (dimension d)
+ * mu      mean vector (dimension d)
+ * L       matrix resulting from the Cholesky decomposition of
+ *         variance-covariance matrix Sigma = L L^T (dimension d x d)
+ * result  output of the density (dimension 1)
+ * work    vector used for intermediate computations (dimension d)
+ */
+int
+gsl_ran_multivariate_gaussian_log_pdf (const gsl_vector * x,
+									   const gsl_vector * mu,
+									   const gsl_matrix * L,
+									   double * result,
+									   gsl_vector * work)
+{
+	const size_t M = L->size1;
+	const size_t N = L->size2;
+	
+	if (M != N)
+	{
+		GSL_ERROR("requires square matrix", GSL_ENOTSQR);
+	}
+	else if (mu->size != M)
+	{
+		GSL_ERROR("incompatible dimension of mean vector with variance-covariance matrix", GSL_EBADLEN);
+	}
+	else if (x->size != M)
+	{
+		GSL_ERROR("incompatible dimension of quantile vector", GSL_EBADLEN);
+	}
+	else if (work->size != M)
+	{
+		GSL_ERROR("incompatible dimension of work vector", GSL_EBADLEN);
+	}
+	else
+	{
+		size_t i;
+		double quadForm;        /* (x - mu)' Sigma^{-1} (x - mu) */
+		double logSqrtDetSigma; /* log [ sqrt(|Sigma|) ] */
+		
+		/* compute: work = x - mu */
+		for (i = 0; i < M; ++i)
+		{
+			double xi = gsl_vector_get(x, i);
+			double mui = gsl_vector_get(mu, i);
+			gsl_vector_set(work, i, xi - mui);
+		}
+		
+		/* compute: work = L^{-1} * (x - mu) */
+		gsl_blas_dtrsv(CblasLower, CblasNoTrans, CblasNonUnit, L, work);
+		
+		/* compute: quadForm = (x - mu)' Sigma^{-1} (x - mu) */
+		gsl_blas_ddot(work, work, &quadForm);
+		
+		/* compute: log [ sqrt(|Sigma|) ] = sum_i log L_{ii} */
+		logSqrtDetSigma = 0.0;
+		for (i = 0; i < M; ++i)
+		{
+			double Lii = gsl_matrix_get(L, i, i);
+			logSqrtDetSigma += log(Lii);
+		}
+		
+		*result = -0.5*quadForm - logSqrtDetSigma - 0.5*M*log(2.0*M_PI);
+		
+		return GSL_SUCCESS;
+	}
+}
+
+int
+gsl_ran_multivariate_gaussian_pdf (const gsl_vector * x,
+								   const gsl_vector * mu,
+								   const gsl_matrix * L,
+								   double * result,
+								   gsl_vector * work)
+{
+	double logpdf;
+	int status = gsl_ran_multivariate_gaussian_log_pdf(x, mu, L, &logpdf, work);
+	
+	if (status == GSL_SUCCESS)
+		*result = exp(logpdf);
+	
+	return status;
+}

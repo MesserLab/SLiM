@@ -155,6 +155,7 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		//	distribution draw / density functions
 		//
 		
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dmvnorm",			Eidos_ExecuteFunction_dmvnorm,		kEidosValueMaskFloat))->AddFloat("x")->AddNumeric("mu")->AddNumeric("sigma"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dnorm",				Eidos_ExecuteFunction_dnorm,		kEidosValueMaskFloat))->AddFloat("x")->AddNumeric_O("mean", gStaticEidosValue_Float0)->AddNumeric_O("sd", gStaticEidosValue_Float1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rbinom",			Eidos_ExecuteFunction_rbinom,		kEidosValueMaskInt))->AddInt_S(gEidosStr_n)->AddInt("size")->AddFloat("prob"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rcauchy",				Eidos_ExecuteFunction_rcauchy,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("location", gStaticEidosValue_Float0)->AddNumeric_O("scale", gStaticEidosValue_Float1));
@@ -4511,6 +4512,125 @@ EidosValue_SP Eidos_ExecuteFunction_var(const EidosValue_SP *const p_arguments, 
 #pragma mark Distribution draw/density functions
 #pragma mark -
 
+
+//	(float)dmvnorm(float x, numeric mu, numeric sigma)
+EidosValue_SP Eidos_ExecuteFunction_dmvnorm(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *arg_x = p_arguments[0].get();
+	EidosValue *arg_mu = p_arguments[1].get();
+	EidosValue *arg_sigma = p_arguments[2].get();
+	
+	if (arg_x->Count() == 0)
+		return gStaticEidosValue_Float_ZeroVec;
+	
+	// matrix with n rows (one row per quantile vector) and k columns (one column per dimension)
+	int dimension_count = arg_x->DimensionCount();
+	int64_t num_quantiles;
+	int d;
+	
+	if (dimension_count == 1)
+	{
+		num_quantiles = 1;
+		d = arg_x->Count();
+	}
+	else if (dimension_count == 2)
+	{
+		const int64_t *dimensions = arg_x->Dimensions();
+		num_quantiles = dimensions[0];
+		d = (int)dimensions[1];
+	}
+	else
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dmvnorm): function dmvnorm() requires x to be a vector containing a single quantile, or a matrix of quantiles." << EidosTerminate(nullptr);
+	
+	if (d <= 1)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dmvnorm): function dmvnorm() requires a Gaussian function dimensionality of >= 2 (use dnorm() for dimensionality of 1)." << EidosTerminate(nullptr);
+	
+	int mu_count = arg_mu->Count();
+	int mu_dimcount = arg_mu->DimensionCount();
+	int sigma_dimcount = arg_sigma->DimensionCount();
+	const int64_t *sigma_dims = arg_sigma->Dimensions();
+	
+	if ((mu_dimcount != 1) || (mu_count != d))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dmvnorm): function dmvnorm() requires mu to be a plain vector of length k, where k is the number of dimensions for the multivariate Gaussian function (>= 2), matching the dimensionality of the quantile vectors in x." << EidosTerminate(nullptr);
+	if (sigma_dimcount != 2)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dmvnorm): function dmvnorm() requires sigma to be a matrix." << EidosTerminate(nullptr);
+	if ((sigma_dims[0] != d) || (sigma_dims[1] != d))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dmvnorm): function dmvnorm() requires sigma to be a k x k matrix, where k is the number of dimensions for the multivariate Gaussian function (>= 2), matching the dimensionality of the quantile vectors in x." << EidosTerminate(nullptr);
+	
+	// Set up the GSL vectors
+	gsl_vector *gsl_mu = gsl_vector_calloc(d);
+	gsl_matrix *gsl_Sigma = gsl_matrix_calloc(d, d);
+	gsl_matrix *gsl_L = gsl_matrix_calloc(d, d);
+	gsl_vector *gsl_x = gsl_vector_calloc(d);
+	gsl_vector *gsl_work = gsl_vector_calloc(d);
+	
+	for (int dim_index = 0; dim_index < d; ++dim_index)
+		gsl_vector_set(gsl_mu, dim_index, arg_mu->FloatAtIndex(dim_index, nullptr));
+	
+	for (int row_index = 0; row_index < d; ++row_index)
+		for (int col_index = 0; col_index < d; ++col_index)
+			gsl_matrix_set(gsl_Sigma, row_index, col_index, arg_sigma->FloatAtIndex(row_index + col_index * d, nullptr));
+	
+	gsl_matrix_memcpy(gsl_L, gsl_Sigma);
+	
+	// Disable the GSL's default error handler, which calls abort().  Normally we run with that handler,
+	// which is perhaps a bit risky, but we want to check for all error cases and avert them before we
+	// ever call into the GSL; having the GSL raise when it encounters an error condition is kind of OK
+	// because it should never ever happen.  But the GSL calls we will make in this function could hit
+	// errors unpredictably, if for example it turns out that Sigma is not positive-definite.  So for
+	// this stretch of code we disable the default handler and check for errors returned from the GSL.
+	gsl_error_handler_t *old_handler = gsl_set_error_handler_off();
+	int gsl_err;
+	
+	// Do the draws, which involves a preliminary step of doing a Cholesky decomposition
+	gsl_err = gsl_linalg_cholesky_decomp1(gsl_L);
+	
+	if (gsl_err)
+	{
+		gsl_set_error_handler(old_handler);
+		
+		if (gsl_err == GSL_EDOM)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dmvnorm): function dmvnorm() requires that sigma, the variance-covariance matrix, be positive-definite." << EidosTerminate(nullptr);
+		else
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dmvnorm): (internal error) an unknown error with code " << gsl_err << " occurred inside the GNU Scientific Library's gsl_linalg_cholesky_decomp1() function." << EidosTerminate(nullptr);
+	}
+	
+	const double *float_data = arg_x->FloatVector()->data();
+	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
+	result_SP = EidosValue_SP(float_result);
+	
+	for (int64_t value_index = 0; value_index < num_quantiles; ++value_index)
+	{
+		double gsl_result;
+		
+		for (int dim_index = 0; dim_index < d; ++dim_index)
+			gsl_vector_set(gsl_x, dim_index, *(float_data + value_index + dim_index * num_quantiles));
+		
+		gsl_err = gsl_ran_multivariate_gaussian_pdf (gsl_x, gsl_mu, gsl_L, &gsl_result, gsl_work);
+		
+		if (gsl_err)
+		{
+			gsl_set_error_handler(old_handler);
+			
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dmvnorm): (internal error) an unknown error with code " << gsl_err << " occurred inside the GNU Scientific Library's gsl_ran_multivariate_gaussian_pdf() function." << EidosTerminate(nullptr);
+		}
+		
+		float_result->set_float_no_check(gsl_result, value_index);
+	}
+	
+	// Clean up GSL stuff
+	gsl_vector_free(gsl_mu);
+	gsl_matrix_free(gsl_Sigma);
+	gsl_matrix_free(gsl_L);
+	gsl_vector_free(gsl_x);
+	gsl_vector_free(gsl_work);
+	
+	gsl_set_error_handler(old_handler);
+	
+	return result_SP;
+}
 
 //	(float)dnorm(float x, [numeric mean = 0], [numeric sd = 1])
 EidosValue_SP Eidos_ExecuteFunction_dnorm(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)

@@ -61,14 +61,14 @@ int gsl_blas_dsdot (const gsl_vector_float * X,
 int gsl_blas_sdot (const gsl_vector_float * X,
                    const gsl_vector_float * Y,
                    float * result
-                   );
+                   );*/
 
 int gsl_blas_ddot (const gsl_vector * X,
                    const gsl_vector * Y,
                    double * result
                    );
 
-
+/*
 int  gsl_blas_cdotu (const gsl_vector_complex_float * X,
                      const gsl_vector_complex_float * Y,
                      gsl_complex_float * dotu);
@@ -214,12 +214,12 @@ int  gsl_blas_dtrmv (CBLAS_UPLO_t Uplo,
                      const gsl_matrix * A,
                      gsl_vector * X);
 
-/*int  gsl_blas_dtrsv (CBLAS_UPLO_t Uplo,
+int  gsl_blas_dtrsv (CBLAS_UPLO_t Uplo,
                      CBLAS_TRANSPOSE_t TransA, CBLAS_DIAG_t Diag,
                      const gsl_matrix * A,
                      gsl_vector * X);
 
-int  gsl_blas_cgemv (CBLAS_TRANSPOSE_t TransA,
+/*int  gsl_blas_cgemv (CBLAS_TRANSPOSE_t TransA,
                      const gsl_complex_float alpha,
                      const gsl_matrix_complex_float * A,
                      const gsl_vector_complex_float * X,

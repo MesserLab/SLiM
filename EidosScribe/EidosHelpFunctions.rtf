@@ -1186,7 +1186,51 @@
 \b\fs22 \cf0 \kerning1\expnd0\expndtw0 3.3.  Distribution drawing and density functions\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\b0\fs18 \cf0 (float)dnorm(float\'a0x, [numeric\'a0mean\'a0=\'a00], [numeric\'a0sd\'a0=\'a01])\
+\f1\b0\fs18 \cf2 \expnd0\expndtw0\kerning0
+(float)dmvnorm(float\'a0x, numeric\'a0mu, numeric\'a0sigma)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 Returns a vector of 
+\b probability densities for a 
+\i k
+\i0 -dimensional multivariate normal distribution
+\b0  with a length 
+\i k
+\i0  mean vector 
+\f1\fs18 mu
+\f0\fs20  and a 
+\i k
+\i0  \'d7 
+\i k
+\i0  variance-covariance matrix 
+\f1\fs18 sigma
+\f0\fs20 .  The 
+\f1\fs18 mu
+\f0\fs20  and 
+\f1\fs18 sigma
+\f0\fs20  parameters are used for all densities.  The quantile values, 
+\f1\fs18 x
+\f0\fs20 , should be supplied as a matrix with one row per vector of quantile values and 
+\i k
+\i0  columns (one column per dimension); for convenience, a single quantile may be supplied as a vector rather than a matrix with just one row.  The number of dimensions 
+\i k
+\i0  must be at least two; for 
+\i k
+\i0 =1, use 
+\f1\fs18 dnorm()
+\f0\fs20 .\
+Cholesky decomposition of the variance-covariance matrix 
+\f1\fs18 sigma
+\f0\fs20  is involved as an internal step, and this requires that 
+\f1\fs18 sigma
+\f0\fs20  be positive-definite; if it is not, an error will result.  When more than one density is needed, it is much more efficient to call 
+\f1\fs18 dmvnorm()
+\f0\fs20  once to generate all of the densities, since the Cholesky decomposition of 
+\f1\fs18 sigma
+\f0\fs20  can then be done just once.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (float)dnorm(float\'a0x, [numeric\'a0mean\'a0=\'a00], [numeric\'a0sd\'a0=\'a01])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Returns a vector of 

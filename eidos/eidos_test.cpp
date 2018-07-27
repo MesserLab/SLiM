@@ -5135,6 +5135,17 @@ void _RunFunctionStatisticsTests(void)
 #pragma mark distributions
 void _RunFunctionDistributionTests(void)
 {
+	// dmvnorm()
+	EidosAssertScriptRaise("dmvnorm(array(c(1.0,2,3,2,1), c(1,5,1)), c(0.0, 2.0), matrix(c(10,3,3,2), nrow=2));", 0, "requires x to be");
+	EidosAssertScriptSuccess("dmvnorm(float(0), c(0.0, 2.0), matrix(c(10,3,3,2), nrow=2));", gStaticEidosValue_Float_ZeroVec);
+	EidosAssertScriptRaise("dmvnorm(3.0, c(0.0, 2.0), matrix(c(10,3,3,2), nrow=2));", 0, "dimensionality of >= 2");
+	EidosAssertScriptRaise("dmvnorm(1.0:3.0, c(0.0, 2.0), matrix(c(10,3,3,2), nrow=2));", 0, "matching the dimensionality");
+	EidosAssertScriptRaise("dmvnorm(c(0.0, 2.0), c(0.0, 2.0), c(10,3,3,2));", 0, "sigma to be a matrix");
+	EidosAssertScriptRaise("dmvnorm(c(0.0, 2.0), c(0.0, 2.0, 3.0), matrix(c(10,3,3,2), nrow=2));", 0, "matching the dimensionality");
+	EidosAssertScriptRaise("dmvnorm(c(0.0, 2.0), c(0.0, 2.0), matrix(c(10,3,3,2,4,8), nrow=3));", 0, "matching the dimensionality");
+	EidosAssertScriptRaise("abs(dmvnorm(c(0.0, 2.0), c(0.0, 2.0), matrix(c(0,0,0,0), nrow=2)) - 0.047987) < 0.00001;", 4, "positive-definite");
+	EidosAssertScriptSuccess("abs(dmvnorm(c(0.0, 2.0), c(0.0, 2.0), matrix(c(10,3,3,2), nrow=2)) - 0.047987) < 0.00001;", gStaticEidosValue_LogicalT);
+	
 	// dnorm()
 	EidosAssertScriptSuccess("dnorm(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess("dnorm(float(0), float(0), float(0));", gStaticEidosValue_Float_ZeroVec);

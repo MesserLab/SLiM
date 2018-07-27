@@ -33,6 +33,22 @@
 
 
 int
+gsl_blas_ddot (const gsl_vector * X, const gsl_vector * Y, double *result)
+{
+	if (X->size == Y->size)
+	{
+		*result =
+		cblas_ddot (INT (X->size), X->data, INT (X->stride), Y->data,
+					INT (Y->stride));
+		return GSL_SUCCESS;
+	}
+	else
+	{
+		GSL_ERROR ("invalid length", GSL_EBADLEN);
+	}
+}
+
+int
 gsl_blas_dgemv (CBLAS_TRANSPOSE_t TransA, double alpha, const gsl_matrix * A,
 				const gsl_vector * X, double beta, gsl_vector * Y)
 {
@@ -72,6 +88,27 @@ gsl_blas_dtrmv (CBLAS_UPLO_t Uplo, CBLAS_TRANSPOSE_t TransA,
   cblas_dtrmv (CblasRowMajor, Uplo, TransA, Diag, INT (N), A->data,
                INT (A->tda), X->data, INT (X->stride));
   return GSL_SUCCESS;
+}
+
+int
+gsl_blas_dtrsv (CBLAS_UPLO_t Uplo, CBLAS_TRANSPOSE_t TransA,
+				CBLAS_DIAG_t Diag, const gsl_matrix * A, gsl_vector * X)
+{
+	const size_t M = A->size1;
+	const size_t N = A->size2;
+	
+	if (M != N)
+	{
+		GSL_ERROR ("matrix must be square", GSL_ENOTSQR);
+	}
+	else if (N != X->size)
+	{
+		GSL_ERROR ("invalid length", GSL_EBADLEN);
+	}
+	
+	cblas_dtrsv (CblasRowMajor, Uplo, TransA, Diag, INT (N), A->data,
+				 INT (A->tda), X->data, INT (X->stride));
+	return GSL_SUCCESS;
 }
 
 
