@@ -4514,7 +4514,7 @@ EidosValue_SP Eidos_ExecuteFunction_var(const EidosValue_SP *const p_arguments, 
 
 
 //	(float)dmvnorm(float x, numeric mu, numeric sigma)
-EidosValue_SP Eidos_ExecuteFunction_dmvnorm(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_dmvnorm(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
