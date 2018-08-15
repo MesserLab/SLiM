@@ -160,12 +160,15 @@ typedef struct {
 } table_collection_t;
 
 typedef struct {
-    table_collection_t *tables;
-    table_size_t node_position;
-    table_size_t edge_position;
-    table_size_t migration_position;
-    table_size_t site_position;
-    table_size_t mutation_position;
+    table_size_t individuals;
+    table_size_t nodes;
+    table_size_t edges;
+    table_size_t migrations;
+    table_size_t sites;
+    table_size_t mutations;
+    table_size_t populations;
+    table_size_t provenances;
+    /* TODO add reserved space for future tables. */
 } table_collection_position_t;
 
 /* Definitions for the basic objects */
@@ -341,6 +344,7 @@ int node_table_append_columns(node_table_t *self, size_t num_rows, uint32_t *fla
         population_id_t *population, individual_id_t *individual,
         const char *metadata, table_size_t *metadata_length);
 int node_table_clear(node_table_t *self);
+int node_table_truncate(node_table_t *self, size_t num_rows);
 int node_table_free(node_table_t *self);
 int node_table_dump_text(node_table_t *self, FILE *out);
 int node_table_copy(node_table_t *self, node_table_t *dest);
@@ -355,6 +359,7 @@ int edge_table_set_columns(edge_table_t *self, size_t num_rows, double *left,
 int edge_table_append_columns(edge_table_t *self, size_t num_rows, double *left,
         double *right, node_id_t *parent, node_id_t *child);
 int edge_table_clear(edge_table_t *self);
+int edge_table_truncate(edge_table_t *self, size_t num_rows);
 int edge_table_free(edge_table_t *self);
 int edge_table_dump_text(edge_table_t *self, FILE *out);
 int edge_table_copy(edge_table_t *self, edge_table_t *dest);
@@ -367,7 +372,6 @@ int site_table_alloc(site_table_t *self, size_t max_rows_increment,
 site_id_t site_table_add_row(site_table_t *self, double position,
         const char *ancestral_state, table_size_t ancestral_state_length,
         const char *metadata, table_size_t metadata_length);
-
 int site_table_set_columns(site_table_t *self, size_t num_rows, double *position,
         const char *ancestral_state, table_size_t *ancestral_state_length,
         const char *metadata, table_size_t *metadata_length);
@@ -376,6 +380,7 @@ int site_table_append_columns(site_table_t *self, size_t num_rows, double *posit
         const char *metadata, table_size_t *metadata_length);
 bool site_table_equals(site_table_t *self, site_table_t *other);
 int site_table_clear(site_table_t *self);
+int site_table_truncate(site_table_t *self, size_t num_rows);
 int site_table_copy(site_table_t *self, site_table_t *dest);
 int site_table_free(site_table_t *self);
 int site_table_dump_text(site_table_t *self, FILE *out);
@@ -399,6 +404,7 @@ int mutation_table_append_columns(mutation_table_t *self, size_t num_rows,
         const char *metadata, table_size_t *metadata_length);
 bool mutation_table_equals(mutation_table_t *self, mutation_table_t *other);
 int mutation_table_clear(mutation_table_t *self);
+int mutation_table_truncate(mutation_table_t *self, size_t num_rows);
 int mutation_table_copy(mutation_table_t *self, mutation_table_t *dest);
 int mutation_table_free(mutation_table_t *self);
 int mutation_table_dump_text(mutation_table_t *self, FILE *out);
@@ -415,6 +421,7 @@ int migration_table_append_columns(migration_table_t *self, size_t num_rows,
         double *left, double *right, node_id_t *node, population_id_t *source,
         population_id_t *dest, double *time);
 int migration_table_clear(migration_table_t *self);
+int migration_table_truncate(migration_table_t *self, size_t num_rows);
 int migration_table_free(migration_table_t *self);
 int migration_table_copy(migration_table_t *self, migration_table_t *dest);
 int migration_table_dump_text(migration_table_t *self, FILE *out);
@@ -433,6 +440,7 @@ int individual_table_append_columns(individual_table_t *self, size_t num_rows, u
         double *location, table_size_t *location_length,
         const char *metadata, table_size_t *metadata_length);
 int individual_table_clear(individual_table_t *self);
+int individual_table_truncate(individual_table_t *self, size_t num_rows);
 int individual_table_free(individual_table_t *self);
 int individual_table_dump_text(individual_table_t *self, FILE *out);
 int individual_table_copy(individual_table_t *self, individual_table_t *dest);
@@ -448,6 +456,7 @@ int population_table_set_columns(population_table_t *self, size_t num_rows,
 int population_table_append_columns(population_table_t *self, size_t num_rows,
         const char *metadata, table_size_t *metadata_offset);
 int population_table_clear(population_table_t *self);
+int population_table_truncate(population_table_t *self, size_t num_rows);
 int population_table_copy(population_table_t *self, population_table_t *dest);
 int population_table_free(population_table_t *self);
 void population_table_print_state(population_table_t *self, FILE *out);
@@ -467,6 +476,7 @@ int provenance_table_append_columns(provenance_table_t *self, size_t num_rows,
         char *timestamp, table_size_t *timestamp_offset,
         char *record, table_size_t *record_offset);
 int provenance_table_clear(provenance_table_t *self);
+int provenance_table_truncate(provenance_table_t *self, size_t num_rows);
 int provenance_table_copy(provenance_table_t *self, provenance_table_t *dest);
 int provenance_table_free(provenance_table_t *self);
 int provenance_table_dump_text(provenance_table_t *self, FILE *out);
@@ -493,6 +503,10 @@ int table_collection_sort(table_collection_t *self, size_t edge_start, int flags
 int table_collection_deduplicate_sites(table_collection_t *tables, int flags);
 int table_collection_compute_mutation_parents(table_collection_t *self, int flags);
 bool table_collection_equals(table_collection_t *self, table_collection_t *other);
+int table_collection_record_position(table_collection_t *self,
+        table_collection_position_t *position);
+int table_collection_reset_position(table_collection_t *self,
+        table_collection_position_t *position);
 
 int simplifier_alloc(simplifier_t *self, node_id_t *samples, size_t num_samples,
         table_collection_t *tables, int flags);
@@ -501,15 +515,6 @@ int simplifier_run(simplifier_t *self, node_id_t *node_map);
 void simplifier_print_state(simplifier_t *self, FILE *out);
 
 int squash_edges(edge_t *edges, size_t num_edges, size_t *num_output_edges);
-
-void table_collection_init_position(table_collection_position_t *position,
-        table_collection_t *tables);
-void table_collection_set_position(table_collection_position_t *position,
-        table_size_t node_position, table_size_t edge_position,
-        table_size_t migration_position, table_size_t site_position,
-        table_size_t mutation_position);
-void table_collection_current_position(table_collection_position_t *position);
-int table_collection_reset_position(table_collection_position_t *position);
 
 #ifdef __cplusplus
 }
