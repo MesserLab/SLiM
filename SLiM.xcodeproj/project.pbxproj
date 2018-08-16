@@ -790,6 +790,7 @@
 		986021081A3BB504001BDCFE /* LICENSE */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		98606AEC1DED0DCD00821CFF /* mutation_run.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mutation_run.cpp; sourceTree = "<group>"; };
 		98606AED1DED0DCD00821CFF /* mutation_run.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mutation_run.h; sourceTree = "<group>"; };
+		9866319421260DD3008F8F40 /* json.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = json.hpp; sourceTree = "<group>"; };
 		986764A52089066A00E81B2E /* tree_sequence.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tree_sequence.c; path = treerec/tskit/tree_sequence.c; sourceTree = "<group>"; };
 		986764A62089066A00E81B2E /* vargen.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vargen.c; path = treerec/tskit/vargen.c; sourceTree = "<group>"; };
 		986764A72089066A00E81B2E /* fenwick.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = fenwick.h; path = treerec/tskit/fenwick.h; sourceTree = "<group>"; };
@@ -1245,6 +1246,7 @@
 				984AD1971DF6B588002D4AC8 /* slim_eidos_dictionary.cpp */,
 				98800DC31B7EDCB50046F5F9 /* slim_test.h */,
 				98800DC21B7EDCB50046F5F9 /* slim_test.cpp */,
+				9866319421260DD3008F8F40 /* json.hpp */,
 			);
 			path = core;
 			sourceTree = "<group>";

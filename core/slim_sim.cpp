@@ -46,6 +46,7 @@
 //TREE SEQUENCE
 #include <stdio.h>
 #include <stdlib.h>
+#include "json.hpp"
 
 //TREE SEQUENCE
 //INCLUDE MSPRIME.H FOR THE CROSSCHECK CODE; NEEDS TO BE MOVED TO TSKIT
