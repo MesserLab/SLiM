@@ -118,7 +118,7 @@ using json = basic_json<>;
 // You MUST include macro_unscope.hpp at the end of json.hpp to undef all of them
 
 // exclude unsupported compilers
-// BCH 8/16/2018: allowing GCC 40800 and up, given the patch from https://github.com/nlohmann/json/pull/212/files for GCC 4.8.x compatibility
+// BCH 8/16/2018: patch from henryiii from https://github.com/nlohmann/json/pull/212/files for GCC 4.8.x compatibility
 #if defined(__clang__)
     #if (__clang_major__ * 10000 + __clang_minor__ * 100 + __clang_patchlevel__) < 30400
         #error "unsupported Clang version - see https://github.com/nlohmann/json#supported-compilers"
@@ -10436,6 +10436,24 @@ class basic_json
         return object.release();
     }
 
+	// BCH 8/16/2018: patch from henryiii from https://github.com/nlohmann/json/pull/212/files for GCC 4.8.x compatibility
+	/// helper for insertion of an iterator (supports GCC 4.8+)
+	template<typename... Args>
+	iterator insert_iterator(const_iterator pos, Args&& ... args)
+	{
+		iterator result(this);
+		assert(m_value.array != nullptr);
+		
+		auto insert_pos = std::distance(m_value.array->begin(), pos.m_it.array_iterator);
+		m_value.array->insert(pos.m_it.array_iterator, std::forward<Args>(args)...);
+		result.m_it.array_iterator = m_value.array->begin() + insert_pos;
+		
+		// For GCC 4.9+ only, this could become:
+		// result.m_it.array_iterator = m_value.array->insert(pos.m_it.array_iterator, cnt, val);
+		
+		return result;
+	}
+	
     ////////////////////////
     // JSON value storage //
     ////////////////////////
@@ -14580,9 +14598,8 @@ class basic_json
             }
 
             // insert to array and return iterator
-            iterator result(this);
-            result.m_it.array_iterator = m_value.array->insert(pos.m_it.array_iterator, val);
-            return result;
+			// BCH 8/16/2018: patch from henryiii from https://github.com/nlohmann/json/pull/212/files for GCC 4.8.x compatibility
+			return insert_iterator(pos, val);
         }
 
         JSON_THROW(type_error::create(309, "cannot use insert() with " + std::string(type_name())));
@@ -14633,17 +14650,8 @@ class basic_json
             }
 
             // insert to array and return iterator
-            iterator result(this);
-			
-			// BCH 8/16/2018: patch from https://github.com/nlohmann/json/pull/212/files for GCC 4.8.x compatibility
-#if defined(__GNUC__) && __GNUC__ <= 4 && __GNUC_MINOR__ <= 8
-			auto insert_pos = std::distance(m_value.array->begin(), pos.m_it.array_iterator);
-			m_value.array->insert(pos.m_it.array_iterator, cnt, val);
-			result.m_it.array_iterator = m_value.array->begin() + insert_pos;
-#else
-			result.m_it.array_iterator = m_value.array->insert(pos.m_it.array_iterator, cnt, val);
-#endif
-            return result;
+			// BCH 8/16/2018: patch from henryiii from https://github.com/nlohmann/json/pull/212/files for GCC 4.8.x compatibility
+			return insert_iterator(pos, cnt, val);
         }
 
         JSON_THROW(type_error::create(309, "cannot use insert() with " + std::string(type_name())));
@@ -14705,22 +14713,11 @@ class basic_json
         }
 
         // insert to array and return iterator
-        iterator result(this);
-		
-		// BCH 8/16/2018: patch from https://github.com/nlohmann/json/pull/212/files for GCC 4.8.x compatibility
-#if defined(__GNUC__) && __GNUC__ <= 4 && __GNUC_MINOR__ <= 8
-		auto insert_pos = std::distance(m_value.array->begin(), pos.m_it.array_iterator);
-		m_value.array->insert(pos.m_it.array_iterator, 
-							  first.m_it.array_iterator,
-							  last.m_it.array_iterator);
-		result.m_it.array_iterator = m_value.array->begin() + insert_pos;
-#else
-		result.m_it.array_iterator = m_value.array->insert(
-                                         pos.m_it.array_iterator,
-                                         first.m_it.array_iterator,
-                                         last.m_it.array_iterator);
-#endif
-        return result;
+		// BCH 8/16/2018: patch from henryiii from https://github.com/nlohmann/json/pull/212/files for GCC 4.8.x compatibility
+		return insert_iterator(
+							   pos,
+							   first.m_it.array_iterator,
+							   last.m_it.array_iterator);
     }
 
     /*!
@@ -14762,17 +14759,8 @@ class basic_json
         }
 
         // insert to array and return iterator
-        iterator result(this);
- 
-		// BCH 8/16/2018: patch from https://github.com/nlohmann/json/pull/212/files for GCC 4.8.x compatibility
-#if defined(__GNUC__) && __GNUC__ <= 4 && __GNUC_MINOR__ <= 8
-		auto insert_pos = std::distance(m_value.array->begin(), pos.m_it.array_iterator);
-		m_value.array->insert(pos.m_it.array_iterator, ilist.begin(), ilist.end());
-		result.m_it.array_iterator = m_value.array->begin() + insert_pos;
-#else
-		result.m_it.array_iterator = m_value.array->insert(pos.m_it.array_iterator, ilist.begin(), ilist.end());
-#endif
-        return result;
+		// BCH 8/16/2018: patch from henryiii from https://github.com/nlohmann/json/pull/212/files for GCC 4.8.x compatibility
+		return insert_iterator(pos, ilist.begin(), ilist.end());
     }
 
     /*!
