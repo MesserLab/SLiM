@@ -401,6 +401,10 @@ public:
 	bool chromosome_changed_ = true;
 	bool scripts_changed_ = true;
 	
+	// provenance-related stuff: remembering the seed and command-line args
+	unsigned long int original_seed_;												// the initial seed value, from the user via the -s CLI option, or auto-generated
+	std::vector<std::string> cli_params_;											// CLI parameters; an empty vector when run in SLiMgui, at least for now
+	
 	SLiMSim(const SLiMSim&) = delete;												// no copying
 	SLiMSim& operator=(const SLiMSim&) = delete;									// no copying
 	explicit SLiMSim(std::istream &p_infile);										// construct a SLiMSim from an input stream

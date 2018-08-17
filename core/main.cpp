@@ -310,6 +310,9 @@ int main(int argc, char *argv[])
 		
 		Eidos_DefineConstantsFromCommandLine(defined_constants);	// do this after the RNG has been set up
 		
+		for (int arg_index = 0; arg_index < argc; ++arg_index)
+			sim->cli_params_.push_back(argv[arg_index]);
+		
 		if (tree_seq_checks)
 			sim->TSXC_Enable();
 		
