@@ -47,6 +47,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "json.hpp"
+#include <sys/utsname.h>
 
 //TREE SEQUENCE
 //INCLUDE MSPRIME.H FOR THE CROSSCHECK CODE; NEEDS TO BE MOVED TO TSKIT
@@ -5009,6 +5010,15 @@ void SLiMSim::WriteProvenanceTable(table_collection_t *p_tables)
 	j["model"] = script_->String();
 	j["seed"] = original_seed_;
 	j["parameters"] = cli_params_;
+	
+	struct utsname name;
+	
+	ret = uname(&name);
+	j["environment"]["os"]["version"] = std::string(name.version);
+	j["environment"]["os"]["node"] = std::string(name.nodename);
+	j["environment"]["os"]["release"] = std::string(name.release);
+	j["environment"]["os"]["system"] = std::string(name.sysname);
+	j["environment"]["os"]["machine"] = std::string(name.machine);
 	
 	std::string provenance_str = j.dump(4);
 	
