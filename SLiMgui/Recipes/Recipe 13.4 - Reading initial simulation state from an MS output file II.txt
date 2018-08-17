@@ -41,7 +41,7 @@ initialize() {
 	g = p2.genomes[0];
 	L = sim.chromosome.lastPosition;
 	intPositions = asInteger(round(positions * L));
-	muts = sapply(intPositions, "g.addNewMutation(m1, 0.0, applyValue);");
+	muts = g.addNewMutation(m1, 0.0, intPositions);
 	
 	// add the appropriate mutations to each genome
 	for (g in p1.genomes)
