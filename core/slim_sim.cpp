@@ -3815,6 +3815,9 @@ void SLiMSim::SimplifyTreeSequence(void)
 		}
 	}
 	
+	// our tables copy needs to have a population table to be able to sort it
+	WritePopulationTable(&tables);
+	
 	// sort, simplify
 	int ret = table_collection_sort(&tables, /* edge_start */ 0, /* flags */ 0);
 	if (ret < 0) handle_error("table_collection_sort", ret);
@@ -3823,7 +3826,7 @@ void SLiMSim::SimplifyTreeSequence(void)
     ret = table_collection_deduplicate_sites(&tables, 0);
     if (ret < 0) handle_error("deduplicate_sites", ret);
 	
-	ret = table_collection_simplify(&tables, samples.data(), samples.size(), MSP_FILTER_ZERO_MUTATION_SITES, NULL);
+	ret = table_collection_simplify(&tables, samples.data(), samples.size(), MSP_FILTER_SITES, NULL);
     if (ret != 0) handle_error("simplifier_run", ret);
 	
     // update map of remembered_genomes_
@@ -4138,7 +4141,7 @@ void SLiMSim::RecordNewDerivedState(const Genome *p_genome, slim_position_t p_po
     size_t mutation_metadata_length = mutation_metadata.size() * sizeof(MutationMetadataRec);
 
     int ret = mutation_table_add_row(tables.mutations, site_id, genomeMSPID, MSP_NULL_MUTATION, 
-                    derived_muts_bytes, (table_size_t)derived_state_length, 
+                    derived_muts_bytes, (table_size_t)derived_state_length,
                     mutation_metadata_bytes, (table_size_t)mutation_metadata_length);
 	if (ret < 0) handle_error("add_mutation", ret);
 }
@@ -4873,35 +4876,79 @@ void SLiMSim::DerivedStatesToAscii(table_collection_t *p_tables)
 	mutation_table_free(&mutations_copy);
 }
 
-void SLiMSim::WriteIndividualTable(table_collection_t *p_tables)
+void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_num_individuals, table_collection_t *p_tables, bool p_addToRemembered)
 {
-    // This overwrites whatever might be previously in the individual table
-    individual_table_clear(p_tables->individuals);
-	
-    // reset the individual column to -1 (which is MSP_NULL_INDIVIDUAL)
-    memset(p_tables->nodes->individual, 0xff, p_tables->nodes->num_rows * sizeof(individual_id_t));
-	
+    // construct the map of currently remembered individuals first
+    std::vector<slim_pedigreeid_t> remembered_individuals;
+    for (size_t j = 0; j < p_tables->individuals->num_rows; j++)
+    {
+        IndividualMetadataRec *metadata_rec = (IndividualMetadataRec *)(p_tables->individuals->metadata + p_tables->individuals->metadata_offset[j]);
+        remembered_individuals.push_back(metadata_rec->pedigree_id_);
+    }
+    
+    for (size_t j = 0; j < p_num_individuals; j++)
+    {
+        Individual *ind = p_individual[j];
+        slim_pedigreeid_t ped_id = ind->PedigreeID();
+
+        std::vector<double> location;
+        location.push_back(ind->spatial_x_);
+        location.push_back(ind->spatial_y_);
+        location.push_back(ind->spatial_z_);
+        
+        IndividualMetadataRec metadata_rec;
+        MetadataForIndividual(ind, &metadata_rec);
+        auto ind_pos = std::find(remembered_individuals.begin(), remembered_individuals.end(), ped_id);
+        
+        if (ind_pos == remembered_individuals.end()) {
+            // This individual is not already in the tables.
+            individual_id_t msp_individual = individual_table_add_row(p_tables->individuals,
+                    0 /* flags */, location.data(), (uint32_t)location.size(),
+                    (char *)&metadata_rec, (uint32_t)sizeof(IndividualMetadataRec));
+            if (msp_individual < 0) handle_error("individual_table_add_row", msp_individual);
+            
+            // Update node table
+            assert(ind->genome1_->msp_node_id_ < (node_id_t) p_tables->nodes->num_rows
+                   && ind->genome2_->msp_node_id_ < (node_id_t) p_tables->nodes->num_rows);
+            p_tables->nodes->individual[ind->genome1_->msp_node_id_] = msp_individual;
+            p_tables->nodes->individual[ind->genome2_->msp_node_id_] = msp_individual;
+
+            // update remembered genomes
+            if (p_addToRemembered)
+            {
+                remembered_genomes_.push_back(ind->genome1_->msp_node_id_);
+                remembered_genomes_.push_back(ind->genome2_->msp_node_id_);
+            }
+        } else {
+            // This individual is already there; we need to update the information.
+            size_t msp_individual = std::distance(remembered_individuals.begin(), ind_pos);
+            assert((msp_individual < p_tables->individuals->num_rows)
+                   && (location.size()
+                       == (p_tables->individuals->location_offset[msp_individual + 1]
+                           - p_tables->individuals->location_offset[msp_individual]))
+                   && (sizeof(IndividualMetadataRec)
+                       == (p_tables->individuals->metadata_offset[msp_individual + 1]
+                           - p_tables->individuals->metadata_offset[msp_individual])));
+            assert(((size_t) p_tables->nodes->individual[ind->genome1_->msp_node_id_]
+                     == msp_individual)
+                   && ((size_t) p_tables->nodes->individual[ind->genome2_->msp_node_id_]
+                       == msp_individual));
+            memcpy(p_tables->individuals->location
+                    + p_tables->individuals->location_offset[msp_individual],
+                    &location, location.size());
+            memcpy(p_tables->individuals->metadata
+                    + p_tables->individuals->metadata_offset[msp_individual],
+                    &metadata_rec, sizeof(IndividualMetadataRec));
+        }
+    }
+}
+
+void SLiMSim::AddCurrentGenerationToIndividuals(table_collection_t *p_tables)
+{
 	for (auto subpop_iter : population_)
 	{
-		for (Individual *individual : subpop_iter.second->parent_individuals_)
-		{
-            std::vector<double> location;
-			location.push_back(individual->spatial_x_);
-			location.push_back(individual->spatial_y_);
-			location.push_back(individual->spatial_z_);
-			
-			IndividualMetadataRec metadata_rec;
-			MetadataForIndividual(individual, &metadata_rec);
-			
-			individual_id_t msp_individual = individual_table_add_row(p_tables->individuals, 0 /* flags */, location.data(), (uint32_t)location.size(), (char *)&metadata_rec, (uint32_t)sizeof(IndividualMetadataRec));
-            if (msp_individual < 0) handle_error("individual_table_add_row", msp_individual);
-			
-            // Update node table
-            assert(individual->genome1_->msp_node_id_ < (node_id_t) p_tables->nodes->num_rows
-                    && individual->genome2_->msp_node_id_ < (node_id_t) p_tables->nodes->num_rows);
-            p_tables->nodes->individual[individual->genome1_->msp_node_id_] = msp_individual;
-            p_tables->nodes->individual[individual->genome2_->msp_node_id_] = msp_individual;
-		}
+        AddIndividualsToTable(subpop_iter.second->parent_individuals_.data(),
+                              subpop_iter.second->parent_individuals_.size(), p_tables, false);
 	}
 }
 
@@ -4911,7 +4958,11 @@ void SLiMSim::WritePopulationTable(table_collection_t *p_tables)
 	population_table_clear(p_tables->populations);
 	
 	// we will write out empty entries for all unused slots, up to largest_subpop_id_
-	slim_objectid_t last_subpop_id = population_.largest_subpop_id_;
+	slim_objectid_t last_subpop_id = -1; // population_.largest_subpop_id_;
+	for (size_t j = 0; j < p_tables->nodes->num_rows; j++)
+	{
+		last_subpop_id = std::max(last_subpop_id, p_tables->nodes->population[j]);
+	}
 	slim_objectid_t last_id_written = -1;
 	
 	for (auto subpop_iter : population_)
@@ -5260,6 +5311,10 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 	// Standardize the path, resolving a leading ~ and maybe other things
 	std::string path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(p_recording_tree_path));
 	
+	// Add a population (i.e., subpopulation) table to the table collection; subpopulation information comes from the time of output
+	// This needs to happen before simplify/sort
+	WritePopulationTable(&tables);
+	
 	// First we simplify, on the original table collection; we considered doing this on the copy,
 	// but then the copy takes longer and the simplify's work is lost, and there doesn't seem to
 	// be a compelling case for leaving the original tables unsimplified.
@@ -5283,15 +5338,14 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 	ret = table_collection_copy(&tables, &output_tables);
 	if (ret < 0) handle_error("table_collection_copy", ret);
 	
-    // Add in the mutation.parent information
-    ret = table_collection_compute_mutation_parents(&output_tables, 0);
-    if (ret < 0) handle_error("compute_mutation_parents", ret);
+	// Add in the mutation.parent information
+	ret = table_collection_build_indexes(&output_tables, 0);
+	if (ret < 0) handle_error("table_collection_build_indexes", ret);
+	ret = table_collection_compute_mutation_parents(&output_tables, 0);
+	if (ret < 0) handle_error("compute_mutation_parents", ret);
 	
 	// Add an individual table to the table collection; individuals information comes from the time of output, not creation
-	WriteIndividualTable(&output_tables);
-	
-	// Add a population (i.e., subpopulation) table to the table collection; subpopulation information comes from the time of output
-	WritePopulationTable(&output_tables);
+	AddCurrentGenerationToIndividuals(&output_tables);
 	
     // Add a row to the Provenance table to record current state
     WriteProvenanceTable(&output_tables);
@@ -5356,24 +5410,6 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 	table_collection_free(&output_tables);
 }	
 
-void SLiMSim::RememberGenomes(std::vector<const Genome *> p_genomes)
-{
-#if DEBUG
-	if (!recording_tree_)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::RememberGenomes): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
-#endif
-	
-	// The genomes specified in p_genomes are to be remembered permanently
-	// in this run of the model, i.e. added to the sample in every simplify.
-    for (const Genome *G : p_genomes)
-	{
-		node_id_t M = G->msp_node_id_;
-		
-		// check if this genome is already being remembered
-		if (std::find(remembered_genomes_.begin(), remembered_genomes_.end(), M) == remembered_genomes_.end())
-			remembered_genomes_.push_back(M);
-    }
-}
 
 void SLiMSim::FreeTreeSequence(void)
 {
@@ -5606,29 +5642,22 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 				for (Genome *genome : iter->second->parent_genomes_)
 					samples.push_back(genome->msp_node_id_);
 			
-//			if (generation_ >= 25)
-//			{
-//				std::cout << "------------------- " << generation_ << " : Mutations before sort/deduplicate/simplify/parents:" << std::endl;
-//				DumpMutationTable();
-//			}
-			
 			ret = table_collection_sort(tables_copy, /* edge_start */ 0, /* flags */ 0);
 			if (ret < 0) handle_error("table_collection_sort", ret);
 			
 			ret = table_collection_deduplicate_sites(tables_copy, 0);
 			if (ret < 0) handle_error("deduplicate_sites", ret);
 			
-			ret = table_collection_simplify(tables_copy, samples.data(), samples.size(), MSP_FILTER_ZERO_MUTATION_SITES, NULL);
+			ret = table_collection_simplify(tables_copy, samples.data(), samples.size(), MSP_FILTER_SITES, NULL);
 			if (ret != 0) handle_error("simplifier_run", ret);
+            
+		// must build indexes before compute mutation parents
+		ret = table_collection_build_indexes(tables_copy, 0);
+		if (ret < 0) handle_error("table_collection_build_indexes", ret);
 
-            ret = table_collection_compute_mutation_parents(tables_copy, 0);
-            if (ret < 0) handle_error("table_collection_compute_mutation_parents", ret);
+		ret = table_collection_compute_mutation_parents(tables_copy, 0);
+		if (ret < 0) handle_error("table_collection_compute_mutation_parents", ret);
 			
-//			if (generation_ >= 25)
-//			{
-//				std::cout << "------------------- " << generation_ << " : Mutations after sort/deduplicate/simplify/parents:" << std::endl;
-//				DumpMutationTable();
-//			}
 		}
 		
 		// allocate and set up the tree_sequence object that contains all the tree sequences
@@ -5642,7 +5671,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 		vargen_t *vg;
 		
 		vg = (vargen_t *)malloc(sizeof(vargen_t));
-		ret = vargen_alloc(vg, ts, MSP_16_BIT_GENOTYPES);
+		ret = vargen_alloc(vg, ts, ts->samples, ts->num_samples, MSP_16_BIT_GENOTYPES);
 		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity vargen_alloc()", ret);
 		
 		// crosscheck by looping through variants
@@ -5862,7 +5891,7 @@ typedef struct ts_subpop_info {
 
 void SLiMSim::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, tree_sequence_t *p_ts, SLiMModelType p_file_model_type)
 {
-	size_t individual_count = p_ts->individuals.num_records;
+	size_t individual_count = p_ts->tables->individuals->num_rows;
 	
 	if (individual_count == 0)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): loaded tree sequence files must contain a non-empty individuals table." << EidosTerminate();
@@ -6289,7 +6318,7 @@ void SLiMSim::__TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_
 	vargen_t *vg;
 	
 	vg = (vargen_t *)malloc(sizeof(vargen_t));
-	int ret = vargen_alloc(vg, p_ts, MSP_16_BIT_GENOTYPES);
+	int ret = vargen_alloc(vg, p_ts, p_ts->samples, p_ts->num_samples, MSP_16_BIT_GENOTYPES);
 	if (ret != 0) handle_error("__TallyMutationReferencesWithTreeSequence vargen_alloc()", ret);
 	
 	// set up a map from sample indices in the vargen to Genome objects; the sample
@@ -6448,7 +6477,7 @@ void SLiMSim::__AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mu
 	vargen_t *vg;
 	
 	vg = (vargen_t *)malloc(sizeof(vargen_t));
-	int ret = vargen_alloc(vg, p_ts, MSP_16_BIT_GENOTYPES);
+	int ret = vargen_alloc(vg, p_ts, p_ts->samples, p_ts->num_samples, MSP_16_BIT_GENOTYPES);
 	if (ret != 0) handle_error("__AddMutationsFromTreeSequenceToGenomes vargen_alloc()", ret);
 	
 	// set up a map from sample indices in the vargen to Genome objects; the sample
@@ -9353,18 +9382,11 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStrin
 	if ((executing_block_type_ == SLiMEidosBlockType::SLiMEidosFitnessCallback) || (executing_block_type_ == SLiMEidosBlockType::SLiMEidosMateChoiceCallback) || (executing_block_type_ == SLiMEidosBlockType::SLiMEidosModifyChildCallback) || (executing_block_type_ == SLiMEidosBlockType::SLiMEidosRecombinationCallback))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqRememberIndividuals): treeSeqRememberIndividuals() may not be called from inside a fitness(), mateChoice(), modifyChild(), or recombination() callback." << EidosTerminate();
 	
-	std::vector<const Genome *> genomes;
-	
-	for (int ind_index = 0; ind_index < ind_count; ind_index++)
-	{
-		Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex(ind_index, nullptr));
-		
-		genomes.emplace_back(ind->genome1_);
-		genomes.emplace_back(ind->genome2_);
-	}
-	
-	RememberGenomes(genomes);
-	
+	const EidosValue_Object_vector *ind_vector = individuals_value->ObjectElementVector();
+	EidosObjectElement * const *oe_buffer = ind_vector->data();
+	Individual * const *ind_buffer = (Individual * const *)oe_buffer;
+	AddIndividualsToTable(ind_buffer, ind_count, &tables, true);
+
 	return gStaticEidosValueVOID;
 }
 

@@ -96,7 +96,6 @@ public:
 #endif
 	
 	std::vector<Subpopulation*> removed_subpops_;			// OWNED POINTERS: Subpops which are set to size 0 (and thus removed) are kept here until the end of the generation
-	slim_objectid_t largest_subpop_id_ = -1;				// the largest ID ever used by the population; used by .trees file output
 	
 #ifdef SLIMGUI
 	// information-gathering for various graphs in SLiMgui
