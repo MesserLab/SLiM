@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2015 University of Oxford
+** Copyright (C) 2015-2018 University of Oxford
 **
 ** This file is part of msprime.
 **
@@ -49,12 +49,11 @@ hapgen_print_state(hapgen_t *self, FILE *out)
 }
 
 
-static inline int
-hapgen_update_sample(hapgen_t * self, node_id_t sample_id, site_id_t site,
+static inline int WARN_UNUSED
+hapgen_update_sample(hapgen_t * self, size_t sample_index, site_id_t site,
         const char *derived_state)
 {
     int ret = 0;
-    size_t sample_index = (size_t) self->sample_index_map[sample_id];
     size_t index = sample_index * (self->num_sites + 1) + (size_t) site;
 
     if (self->haplotype_matrix[index] == derived_state[0]) {
@@ -70,31 +69,32 @@ static int
 hapgen_apply_tree_site(hapgen_t *self, site_t *site)
 {
     int ret = 0;
-    node_list_t *w, *tail;
-    bool not_done;
+    const node_id_t *restrict list_left = self->tree.left_sample;
+    const node_id_t *restrict list_right = self->tree.right_sample;
+    const node_id_t *restrict list_next = self->tree.next_sample;
+    node_id_t node, index, stop;
     table_size_t j;
     const char *derived_state;
 
     for (j = 0; j < site->mutations_length; j++) {
-        ret = sparse_tree_get_sample_list(&self->tree, site->mutations[j].node, &w, &tail);
-        if (ret != 0) {
-            goto out;
-        }
         if (site->mutations[j].derived_state_length != 1) {
             ret = MSP_ERR_NON_SINGLE_CHAR_MUTATION;
             goto out;
         }
         derived_state = site->mutations[j].derived_state;
-        if (w != NULL) {
-            not_done = true;
-            while (not_done) {
-                assert(w != NULL);
-                ret = hapgen_update_sample(self, w->node, site->id, derived_state);
+        node = site->mutations[j].node;
+        index = list_left[node];
+        if (index != MSP_NULL_NODE) {
+            stop = list_right[node];
+            while (true) {
+                ret = hapgen_update_sample(self, (size_t) index, site->id, derived_state);
                 if (ret != 0) {
                     goto out;
                 }
-                not_done = w != tail;
-                w = w->next;
+                if (index == stop) {
+                    break;
+                }
+                index = list_next[index];
             }
         }
     }
@@ -162,7 +162,7 @@ hapgen_alloc(hapgen_t *self, tree_sequence_t *tree_sequence)
     }
     /* For each site set the ancestral type */
     for (k = 0; k < self->num_sites; k++) {
-        ret = tree_sequence_get_site(self->tree_sequence, (site_id_t) k, &site);
+        ret = tree_sequence_get_site(self->tree_sequence, k, &site);
         if (ret != 0) {
             goto out;
         }

@@ -108,6 +108,17 @@ typedef struct _simulation_model_t {
     double (*model_rate_to_generation_rate)(struct _simulation_model_t *model, double rm);
 } simulation_model_t;
 
+/* Recombination map */
+
+typedef struct {
+    uint32_t num_loci;      /* size of the genetic coordinate space  */
+    double sequence_length; /* size of the physical coordinate space */
+    double total_recombination_rate;
+    size_t size;            /* the total number of values in the map */
+    double *positions;
+    double *rates;
+} recomb_map_t;
+
 typedef struct _msp_t {
     gsl_rng *rng;
     /* input parameters */
@@ -116,8 +127,11 @@ typedef struct _msp_t {
     uint32_t num_samples;
     uint32_t num_loci;
     double recombination_rate;
+    recomb_map_t *recomb_map;
     uint32_t num_populations;
     sample_t *samples;
+    double start_time;
+    tree_sequence_t *from_ts;
     simulation_model_t initial_model;
     double *initial_migration_matrix;
     population_t *initial_populations;
@@ -125,7 +139,6 @@ typedef struct _msp_t {
     size_t avl_node_block_size;
     size_t node_mapping_block_size;
     size_t segment_block_size;
-    size_t max_memory;
     /* Counters for statistics */
     size_t num_re_events;
     size_t num_ca_events;
@@ -143,7 +156,6 @@ typedef struct _msp_t {
     struct demographic_event_t_t *next_demographic_event;
     /* algorithm state */
     int state;
-    size_t used_memory;
     double time;
     double *migration_matrix;
     population_t *populations;
@@ -154,25 +166,13 @@ typedef struct _msp_t {
     object_heap_t avl_node_heap;
     object_heap_t segment_heap;
     object_heap_t node_mapping_heap;
-    /* nodes are stored in a flat array */
-    node_t *nodes;
-    size_t num_nodes;
-    size_t max_nodes;
-    size_t node_block_size;
-    size_t num_node_blocks;
-    /* edges are stored in a flat array */
-    edge_t *edges;
-    size_t num_edges;
-    size_t max_edges;
-    size_t edge_block_size;
-    size_t num_edge_blocks;
-    size_t edge_buffer_start;
-    /* migration records are stored in a flat array */
-    migration_t *migrations;
-    size_t num_migrations;
-    size_t max_migrations;
-    size_t migration_block_size;
-    size_t num_migration_blocks;
+    /* The tables used to store the simulation state */
+    table_collection_t tables;
+    table_collection_position_t from_position;
+    /* edges are buffered in a flat array until they are squashed and flushed */
+    edge_t *buffered_edges;
+    size_t num_buffered_edges;
+    size_t max_buffered_edges;
     /* Methods for getting the waiting time until the next common ancestor
      * event and the event are defined by the simulation model */
     double (*get_common_ancestor_waiting_time)(struct _msp_t *self, population_id_t pop);
@@ -221,17 +221,6 @@ typedef struct demographic_event_t_t {
     struct demographic_event_t_t *next;
 } demographic_event_t;
 
-/* Recombination map */
-
-typedef struct {
-    uint32_t num_loci;      /* size of the genetic coordinate space  */
-    double sequence_length; /* size of the physical coordinate space */
-    double total_recombination_rate;
-    size_t size;            /* the total number of values in the map */
-    double *positions;
-    double *rates;
-} recomb_map_t;
-
 typedef struct {
     double position;
     node_id_t node;
@@ -247,7 +236,10 @@ typedef struct {
     block_allocator_t allocator;
 } mutgen_t;
 
-int msp_alloc(msp_t *self, size_t num_samples, sample_t *samples, gsl_rng *rng);
+int msp_alloc(msp_t *self,
+        size_t num_samples, sample_t *samples,
+        recomb_map_t *recomb_map, tree_sequence_t *from, gsl_rng *rng);
+int msp_set_start_time(msp_t *self, double start_time);
 int msp_set_simulation_model_hudson(msp_t *self, double population_size);
 int msp_set_simulation_model_smc(msp_t *self, double population_size);
 int msp_set_simulation_model_smc_prime(msp_t *self, double population_size);
@@ -256,19 +248,11 @@ int msp_set_simulation_model_dirac(msp_t *self, double population_size, double p
     double c);
 int msp_set_simulation_model_beta(msp_t *self, double population_size, double alpha,
         double truncation_point);
-int msp_set_num_loci(msp_t *self, size_t num_loci);
 int msp_set_store_migrations(msp_t *self, bool store_migrations);
 int msp_set_num_populations(msp_t *self, size_t num_populations);
-int msp_set_recombination_rate(msp_t *self, double recombination_rate);
-int msp_set_max_memory(msp_t *self, size_t max_memory);
 int msp_set_node_mapping_block_size(msp_t *self, size_t block_size);
 int msp_set_segment_block_size(msp_t *self, size_t block_size);
 int msp_set_avl_node_block_size(msp_t *self, size_t block_size);
-int msp_set_node_block_size(msp_t *self, size_t block_size);
-int msp_set_edge_block_size(msp_t *self, size_t block_size);
-int msp_set_migration_block_size(msp_t *self, size_t block_size);
-int msp_set_sample_configuration(msp_t *self, size_t num_populations,
-        size_t *sample_configuration);
 int msp_set_migration_matrix(msp_t *self, size_t size,
         double *migration_matrix);
 int msp_set_population_configuration(msp_t *self, int population_id,
@@ -288,7 +272,7 @@ int msp_add_instantaneous_bottleneck(msp_t *self, double time, int population_id
 int msp_initialise(msp_t *self);
 int msp_run(msp_t *self, double max_time, unsigned long max_events);
 int msp_debug_demography(msp_t *self, double *end_time);
-int msp_populate_tables(msp_t *self, recomb_map_t *recomb_map, table_collection_t *tables);
+int msp_populate_tables(msp_t *self, table_collection_t *tables);
 int msp_reset(msp_t *self);
 int msp_print_state(msp_t *self, FILE *out);
 int msp_free(msp_t *self);
@@ -298,9 +282,6 @@ int msp_get_ancestors(msp_t *self, segment_t **ancestors);
 int msp_get_breakpoints(msp_t *self, size_t *breakpoints);
 int msp_get_migration_matrix(msp_t *self, double *migration_matrix);
 int msp_get_num_migration_events(msp_t *self, size_t *num_migration_events);
-int msp_get_nodes(msp_t *self, node_t **nodes);
-int msp_get_edges(msp_t *self, edge_t **edges);
-int msp_get_migrations(msp_t *self, migration_t **migrations);
 int msp_get_samples(msp_t *self, sample_t **samples);
 int msp_get_population_configuration(msp_t *self, size_t population_id,
         double *initial_size, double *growth_rate);
@@ -324,14 +305,13 @@ size_t msp_get_num_migrations(msp_t *self);
 size_t msp_get_num_avl_node_blocks(msp_t *self);
 size_t msp_get_num_node_mapping_blocks(msp_t *self);
 size_t msp_get_num_segment_blocks(msp_t *self);
-size_t msp_get_num_node_blocks(msp_t *self);
-size_t msp_get_num_edge_blocks(msp_t *self);
-size_t msp_get_num_migration_blocks(msp_t *self);
-size_t msp_get_used_memory(msp_t *self);
 size_t msp_get_num_common_ancestor_events(msp_t *self);
 size_t msp_get_num_rejected_common_ancestor_events(msp_t *self);
 size_t msp_get_num_recombination_events(msp_t *self);
 
+
+int recomb_map_alloc_uniform(recomb_map_t *self, uint32_t num_loci,
+        double sequence_length, double rate);
 int recomb_map_alloc(recomb_map_t *self, uint32_t num_loci,
         double sequence_length, double *positions, double *rates,
         size_t size);
@@ -342,8 +322,8 @@ double recomb_map_get_per_locus_recombination_rate(recomb_map_t *self);
 double recomb_map_get_total_recombination_rate(recomb_map_t *self);
 double recomb_map_genetic_to_phys(recomb_map_t *self, double genetic_x);
 double recomb_map_phys_to_genetic(recomb_map_t *self, double phys_x);
-int recomb_map_genetic_to_phys_bulk(recomb_map_t *self, double *genetic_x,
-        size_t n);
+int recomb_map_phys_to_discrete_genetic(recomb_map_t *self, double phys_x,
+        uint32_t *locus);
 size_t recomb_map_get_size(recomb_map_t *self);
 int recomb_map_get_positions(recomb_map_t *self, double *positions);
 int recomb_map_get_rates(recomb_map_t *self, double *rates);

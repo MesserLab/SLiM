@@ -37,7 +37,7 @@ newick_converter_run(newick_converter_t *self, node_id_t root,
     int ret = MSP_ERR_GENERIC;
     sparse_tree_t *tree = self->tree;
     node_id_t *stack = self->tree->stack1;
-    double *time = self->tree->tree_sequence->nodes.time;
+    const double *time = self->tree->tree_sequence->tables->nodes->time;
     int stack_top = 0;
     int label;
     size_t s = 0;

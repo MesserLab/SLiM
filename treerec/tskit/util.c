@@ -63,7 +63,7 @@ msp_strerror_internal(int err)
             ret = "Links Overflow occurred.";
             break;
         case MSP_ERR_OUT_OF_BOUNDS:
-            ret = "Array index out of bounds";
+            ret = "Object reference out of bounds";
             break;
         case MSP_ERR_BAD_ORDERING:
             ret = "Bad record ordering requested";
@@ -83,8 +83,8 @@ msp_strerror_internal(int err)
         case MSP_ERR_BAD_POPULATION_SIZE:
             ret = "Bad population size provided. Must be > 0.";
             break;
-        case MSP_ERR_BAD_POPULATION_ID:
-            ret = "Bad population id provided.";
+        case MSP_ERR_POPULATION_OUT_OF_BOUNDS:
+            ret = "Population ID out of bounds.";
             break;
         case MSP_ERR_BAD_MIGRATION_MATRIX:
             ret = "Bad migration matrix provided.";
@@ -119,9 +119,6 @@ msp_strerror_internal(int err)
             break;
         case MSP_ERR_EDGES_NONCONTIGUOUS_PARENTS:
             ret = "All edges for a given parent must be contiguous";
-            break;
-        case MSP_ERR_NODES_NONCONTIGUOUS_INDIVIDUALS:
-            ret = "All nodes for a given individual must be contiguous";
             break;
         case MSP_ERR_EDGES_NOT_SORTED_CHILD:
             ret = "Edges must be listed in (time[parent], child, left) order;"
@@ -226,6 +223,9 @@ msp_strerror_internal(int err)
         case MSP_ERR_BAD_SEQUENCE_LENGTH:
             ret = "Sequence length must be > 0.";
             break;
+        case MSP_ERR_LEFT_LESS_ZERO:
+            ret = "Left coordinate must be >= 0";
+            break;
         case MSP_ERR_RIGHT_GREATER_SEQ_LENGTH:
             ret = "Right coordinate > sequence length.";
             break;
@@ -247,8 +247,8 @@ msp_strerror_internal(int err)
         case MSP_ERR_TOO_MANY_ALLELES:
             ret = "Cannot have more than 255 alleles.";
             break;
-        case MSP_ERR_BAD_INDIVIDUAL:
-            ret = "Individual ID not in individual table.";
+        case MSP_ERR_INDIVIDUAL_OUT_OF_BOUNDS:
+            ret = "Individual ID out of bounds";
             break;
         case MSP_ERR_GENERATE_UUID:
             ret = "Error generating UUID";
@@ -256,10 +256,46 @@ msp_strerror_internal(int err)
         case MSP_ERR_DUPLICATE_SITE_POSITION:
             ret = "Duplicate site positions.";
             break;
-        case MSP_ERR_INDIVIDUALS_NOT_SUPPORTED:
-            /* Temporary error to flag a limitation in current implementation. */
-            ret = "Individuals are currently not supported in simplify.";
+        case MSP_ERR_BAD_TABLE_POSITION:
+            ret = "Bad table position provided to truncate/reset.";
             break;
+        case MSP_ERR_BAD_EDGE_INDEX:
+            ret = "Invalid edge index value.";
+            break;
+        case MSP_ERR_TABLES_NOT_INDEXED:
+            ret = "Table collection must be indexed.";
+            break;
+        case MSP_ERR_SIMPLIFY_MIGRATIONS_NOT_SUPPORTED:
+            ret = "Migrations currently not supported in simplify. Please open an "
+                "issue on GitHub if this operation is important to you.";
+            break;
+        case MSP_ERR_INCOMPATIBLE_FROM_TS:
+            ret = "The specified tree sequence is not a compatible starting point "
+                "for the current simulation";
+            break;
+        case MSP_ERR_BAD_START_TIME_FROM_TS:
+            ret = "The specified start_time and from_ts are not compatible. All "
+                "node times in the tree sequence must be <= start_time.";
+            break;
+        case MSP_ERR_BAD_START_TIME:
+            ret = "start_time must be >= 0.";
+            break;
+        case MSP_ERR_BAD_DEMOGRAPHIC_EVENT_TIME:
+            ret = "demographic event time must be >= start_time.";
+            break;
+        case MSP_ERR_RECOMB_MAP_TOO_COARSE:
+            ret = "The specified recombination map is cannot translate the coordinates"
+                "for the specified tree sequence. It is either too coarse (num_loci "
+                "is too small) or contains zero recombination rates. Please either "
+                "increase the number of loci or recombination rate";
+            break;
+        case MSP_ERR_TIME_TRAVEL:
+            ret = "The simulation model supplied resulted in a parent node having "
+                "a time value <= to its child. This can occur either as a result "
+                "of multiple bottlenecks happening at the same time or because of "
+                "numerical imprecision with very small population sizes.";
+            break;
+
         case MSP_ERR_IO:
             if (errno != 0) {
                 ret = strerror(errno);
@@ -411,4 +447,30 @@ block_allocator_free(block_allocator_t *self)
     if (self->mem_chunks != NULL) {
         free(self->mem_chunks);
     }
+}
+
+/* Mirrors the semantics of numpy's searchsorted function. Uses binary
+ * search to find the index of the closest value in the array. */
+size_t
+msp_search_sorted(const double *restrict array, size_t size, double value)
+{
+    int64_t upper = (int64_t) size;
+    int64_t lower = 0;
+    int64_t offset = 0;
+    int64_t mid;
+
+    if (upper == 0) {
+        return 0;
+    }
+
+    while (upper - lower > 1) {
+        mid = (upper + lower) / 2;
+        if (value >= array[mid]) {
+            lower = mid;
+        } else {
+            upper = mid;
+        }
+    }
+    offset = (int64_t) (array[lower] < value);
+    return (size_t) (lower + offset);
 }

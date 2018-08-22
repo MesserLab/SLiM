@@ -59,23 +59,34 @@
 #define MSP_DBL_DECIMAL_DIG (DBL_DIG + 3)
 #endif
 
-#define MSP_NODE_IS_SAMPLE 1
+/* Node flags */
+#define MSP_NODE_IS_SAMPLE 1u
 
 /* The root node indicator */
 #define MSP_NULL_NODE (-1)
 /* Indicates the that the population ID has not been set. */
-#define MSP_NULL_POPULATION_ID (-1)
+#define MSP_NULL_POPULATION (-1)
 /* There is no parent for a given mutation */
 #define MSP_NULL_MUTATION (-1)
 /* Indicates that no individual has been set */
 #define MSP_NULL_INDIVIDUAL (-1)
 
-/* Flags for individuals */
-#define MSP_INDIVIDUAL_FEMALE 1
-#define MSP_INDIVIDUAL_MALE 2
-
 /* Flags for simplify() */
-#define MSP_FILTER_ZERO_MUTATION_SITES 1
+#define MSP_FILTER_SITES                 (1 << 0)
+#define MSP_REDUCE_TO_SITE_TOPOLOGY      (1 << 1)
+#define MSP_FILTER_POPULATIONS           (1 << 2)
+#define MSP_FILTER_INDIVIDUALS           (1 << 3)
+
+/* Flags for check_integrity */
+#define MSP_CHECK_OFFSETS                (1 << 0)
+#define MSP_CHECK_EDGE_ORDERING          (1 << 1)
+#define MSP_CHECK_SITE_ORDERING          (1 << 2)
+#define MSP_CHECK_SITE_DUPLICATES        (1 << 3)
+#define MSP_CHECK_MUTATION_ORDERING      (1 << 4)
+#define MSP_CHECK_INDEXES                (1 << 5)
+#define MSP_CHECK_ALL                    \
+    (MSP_CHECK_OFFSETS | MSP_CHECK_EDGE_ORDERING | MSP_CHECK_SITE_ORDERING | \
+     MSP_CHECK_SITE_DUPLICATES | MSP_CHECK_MUTATION_ORDERING | MSP_CHECK_INDEXES)
 
 /* Flags for dump tables */
 #define MSP_ALLOC_TABLES 1
@@ -105,7 +116,7 @@
 #define MSP_ERR_POPULATION_OVERFLOW                                 -11
 #define MSP_ERR_LINKS_OVERFLOW                                      -12
 #define MSP_ERR_HDF5                                                -13
-#define MSP_ERR_BAD_POPULATION_ID                                   -14
+#define MSP_ERR_POPULATION_OUT_OF_BOUNDS                            -14
 #define MSP_ERR_DUPLICATE_SAMPLE                                    -15
 #define MSP_ERR_BAD_ORDERING                                        -16
 #define MSP_ERR_BAD_MUTATION                                        -17
@@ -120,7 +131,7 @@
 #define MSP_ERR_BAD_RECOMBINATION_MAP                               -26
 #define MSP_ERR_BAD_POPULATION_SIZE                                 -27
 #define MSP_ERR_BAD_SAMPLES                                         -28
-#define MSP_ERR_NODES_NONCONTIGUOUS_INDIVIDUALS                     -29
+#define MSP_ERR_BAD_TABLE_POSITION                                  -29
 #define MSP_ERR_FILE_VERSION_TOO_OLD                                -30
 #define MSP_ERR_FILE_VERSION_TOO_NEW                                -31
 #define MSP_ERR_CANNOT_SIMPLIFY                                     -32
@@ -163,15 +174,18 @@
 #define MSP_ERR_MUTATION_PARENT_DIFFERENT_SITE                      -69
 #define MSP_ERR_MUTATION_PARENT_EQUAL                               -70
 #define MSP_ERR_MUTATION_PARENT_AFTER_CHILD                         -71
-#define MSP_ERR_BAD_INDIVIDUAL                                      -72
+#define MSP_ERR_INDIVIDUAL_OUT_OF_BOUNDS                            -72
 #define MSP_ERR_GENERATE_UUID                                       -73
-/* TODO remove this code once we've fixed up support for
- * individuals in simplify */
-#define MSP_ERR_INDIVIDUALS_NOT_SUPPORTED                           -74
-
-/* REUSE: * -57 */
-
-#define MSP_ERR_BAD_TABLE_POSITION                                  -75
+#define MSP_ERR_BAD_EDGE_INDEX                                      -74
+#define MSP_ERR_LEFT_LESS_ZERO                                      -75
+#define MSP_ERR_TABLES_NOT_INDEXED                                  -76
+#define MSP_ERR_SIMPLIFY_MIGRATIONS_NOT_SUPPORTED                   -77
+#define MSP_ERR_INCOMPATIBLE_FROM_TS                                -78
+#define MSP_ERR_BAD_START_TIME_FROM_TS                              -79
+#define MSP_ERR_BAD_START_TIME                                      -80
+#define MSP_ERR_BAD_DEMOGRAPHIC_EVENT_TIME                          -81
+#define MSP_ERR_RECOMB_MAP_TOO_COARSE                               -82
+#define MSP_ERR_TIME_TRAVEL                                         -83
 
 /* This bit is 0 for any errors originating from kastore */
 #define MSP_KAS_ERR_BIT 14
@@ -209,5 +223,7 @@ extern int block_allocator_reset(block_allocator_t *self);
 extern int block_allocator_alloc(block_allocator_t *self, size_t chunk_size);
 extern void * block_allocator_get(block_allocator_t *self, size_t size);
 extern void block_allocator_free(block_allocator_t *self);
+
+size_t msp_search_sorted(const double *array, size_t size, double value);
 
 #endif /*__UTIL_H__*/
